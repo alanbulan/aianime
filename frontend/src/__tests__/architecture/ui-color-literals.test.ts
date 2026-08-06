@@ -21,7 +21,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "modules/project_workspace/presentation/components/project-folder.tsx": 3,
   "modules/creative_canvas/domain/storyboardNodeModel.ts": 2,
   "modules/creative_canvas/application/uploadNodeModel.ts": 1,
-  "features/canvas/Canvas.tsx": 1,
+  "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx": 1,
   "modules/creative_canvas/domain/groupColors.ts": 9,
   "modules/creative_canvas/domain/canvasNodeRegistry.ts": 2,
   "modules/creative_canvas/presentation/DisconnectableEdge.tsx": 13,

@@ -81,7 +81,7 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
 }));
 vi.mock('@/lib/runtime-config', () => ({ isCeRuntime: () => false }));
-vi.mock('@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter', () => ({
+vi.mock('./CanvasMinimapBookmarksOverlayAdapter', () => ({
   CanvasMinimapBookmarksOverlayAdapter: () => (
     <div data-testid="canvas-minimap-bookmarks" />
   ),

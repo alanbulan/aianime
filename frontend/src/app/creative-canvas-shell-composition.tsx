@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { useTranslation } from "react-i18next";
 import { useReactFlow } from "@xyflow/react";
 
-import { Canvas } from "@/features/canvas/Canvas";
+import { Canvas } from "@/modules/creative_canvas/presentation/canvas-shell/Canvas";
 
 import {
   hydrateAssetDragPayload,

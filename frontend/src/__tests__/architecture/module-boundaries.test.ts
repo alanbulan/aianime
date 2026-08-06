@@ -370,7 +370,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "react-i18next",
-        "@/features/canvas/Canvas",
+        "@/modules/creative_canvas/presentation/canvas-shell/Canvas",
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
@@ -472,7 +472,7 @@ describe("frontend architecture boundaries", () => {
     );
     const stagePath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasStageView.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx",
     );
     const quickActionBarPath = resolve(
       SRC_ROOT,
@@ -665,7 +665,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas video-story node controller and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoStoryNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/VideoStoryNode.tsx",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -685,7 +685,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -714,7 +714,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/VideoStoryNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/VideoStoryNode.tsx"],
       ["modules/creative_canvas/presentation/useVideoStoryNodeController.ts"],
       ["modules/creative_canvas/presentation/VideoStoryNodeView.tsx"],
     ]);
@@ -756,7 +756,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas audio-node domain, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/AudioNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/AudioNode.tsx",
     );
     const domainPath = resolve(
       SRC_ROOT,
@@ -788,7 +788,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -822,7 +822,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/AudioNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/AudioNode.tsx"],
       ["modules/creative_canvas/domain/audioFileTypes.ts"],
       ["modules/creative_canvas/presentation/useAudioNodeController.ts"],
       ["modules/creative_canvas/presentation/AudioNodeView.tsx"],
@@ -897,7 +897,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas image-node sizing, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/ImageNode.tsx",
     );
     const sizingPath = resolve(
       SRC_ROOT,
@@ -939,7 +939,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const sizingSource = readFileSync(sizingPath, "utf8");
@@ -974,7 +974,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/ImageNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/ImageNode.tsx"],
       ["modules/creative_canvas/domain/imageNodeSizing.ts"],
       ["modules/creative_canvas/domain/aspectRatio.ts"],
       ["modules/creative_canvas/presentation/useImageNodeController.ts"],
@@ -1033,7 +1033,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas video-compose inputs, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoComposeNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/VideoComposeNode.tsx",
     );
     const domainPath = resolve(
       SRC_ROOT,
@@ -1061,7 +1061,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -1093,7 +1093,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/VideoComposeNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/VideoComposeNode.tsx"],
       ["modules/creative_canvas/domain/videoComposeInputs.ts"],
       ["modules/creative_canvas/presentation/useVideoComposeNodeController.ts"],
       ["modules/creative_canvas/presentation/VideoComposeNodeView.tsx"],
@@ -1222,7 +1222,7 @@ describe("frontend architecture boundaries", () => {
     );
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/GroupNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/GroupNode.tsx",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -1242,7 +1242,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -1316,12 +1316,12 @@ describe("frontend architecture boundaries", () => {
         "@/modules/creative_canvas/public",
         "@/modules/creative_canvas/canvasComposition",
         "@/modules/creative_canvas/public",
-        "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
+        "../ui/CanvasHistoryAssetsModalAdapter",
         "@/modules/creative_canvas/public",
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/GroupNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/GroupNode.tsx"],
       ["modules/creative_canvas/presentation/useGroupNodeController.ts"],
       ["modules/creative_canvas/presentation/GroupNodeView.tsx"],
       ["modules/creative_canvas/presentation/canvasNodeFrameStyles.ts"],
@@ -1575,7 +1575,7 @@ describe("frontend architecture boundaries", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/TextAnnotationNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/TextAnnotationNode.tsx",
     );
     const modelPath = resolve(
       moduleRoot,
@@ -1607,7 +1607,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
@@ -1639,7 +1639,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/TextAnnotationNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/TextAnnotationNode.tsx"],
       ["modules/creative_canvas/domain/textAnnotationNodeModel.ts"],
       ["modules/creative_canvas/presentation/useTextAnnotationNodeController.ts"],
       ["modules/creative_canvas/presentation/TextAnnotationNodeView.tsx"],
@@ -1708,7 +1708,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas upload-node model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/UploadNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/UploadNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -1736,7 +1736,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
@@ -1768,7 +1768,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/UploadNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/UploadNode.tsx"],
       ["modules/creative_canvas/application/uploadNodeModel.ts"],
       ["modules/creative_canvas/presentation/useUploadNodeController.ts"],
       ["modules/creative_canvas/presentation/UploadNodeView.tsx"],
@@ -1838,7 +1838,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas script-node model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ScriptNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/ScriptNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -1866,7 +1866,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
@@ -1898,7 +1898,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/ScriptNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/ScriptNode.tsx"],
       ["modules/creative_canvas/application/scriptNodeModel.ts"],
       ["modules/creative_canvas/presentation/useScriptNodeController.ts"],
       ["modules/creative_canvas/presentation/ScriptNodeView.tsx"],
@@ -1969,7 +1969,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas pano-viewer model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/Pano360ViewerNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/Pano360ViewerNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -1997,7 +1997,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const viewerKitPublicPath = resolve(
       SRC_ROOT,
@@ -2034,7 +2034,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/Pano360ViewerNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/Pano360ViewerNode.tsx"],
       ["modules/creative_canvas/application/pano360ViewerNodeModel.ts"],
       ["modules/creative_canvas/presentation/usePano360ViewerNodeController.ts"],
       ["modules/creative_canvas/presentation/Pano360ViewerNodeView.tsx"],
@@ -2131,7 +2131,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas storyboard model, export use case, runtime, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/StoryboardNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/StoryboardNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -2175,7 +2175,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const compositionPath = resolve(
       SRC_ROOT,
@@ -2238,7 +2238,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/StoryboardNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/StoryboardNode.tsx"],
       ["modules/creative_canvas/domain/storyboardNodeModel.ts"],
       ["modules/creative_canvas/application/storyboardExport.ts"],
       ["modules/creative_canvas/infrastructure/browserStoryboardExportRuntime.ts"],
@@ -2336,7 +2336,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas storyboard-generator model, runtime, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/StoryboardGenNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/StoryboardGenNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -2392,7 +2392,7 @@ describe("frontend architecture boundaries", () => {
     );
     const registryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/index.ts",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
@@ -2444,7 +2444,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/StoryboardGenNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/StoryboardGenNode.tsx"],
       ["modules/creative_canvas/domain/storyboardGenNodeModel.ts"],
       ["modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.ts"],
       ["modules/creative_canvas/infrastructure/browserTextareaCaret.ts"],
@@ -2561,7 +2561,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas image-edit model, runtime, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageEditNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/ImageEditNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -2595,7 +2595,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/ImageEditNodeView.test.tsx",
     );
-    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const registryPath = resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
@@ -2629,7 +2629,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/ImageEditNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/ImageEditNode.tsx"],
       ["modules/creative_canvas/domain/imageEditNodeModel.ts"],
       ["modules/creative_canvas/infrastructure/browserImageEditRuntime.ts"],
       ["modules/creative_canvas/presentation/useImageEditNodeController.ts"],
@@ -2730,7 +2730,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas Beat Context model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/BeatContextNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/BeatContextNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -2756,7 +2756,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/BeatContextNodeView.test.tsx",
     );
-    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const registryPath = resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
@@ -2787,7 +2787,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/BeatContextNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/BeatContextNode.tsx"],
       ["modules/creative_canvas/application/beatContextNodeModel.ts"],
       ["modules/creative_canvas/presentation/useBeatContextNodeController.ts"],
       ["modules/creative_canvas/presentation/BeatContextNodeView.tsx"],
@@ -2859,7 +2859,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas Director World model, capture use case, runtime, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ThreeDWorldNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/ThreeDWorldNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -2905,7 +2905,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/ThreeDWorldReferenceImageThumb.tsx",
     );
-    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const registryPath = resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
@@ -2942,7 +2942,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/ThreeDWorldNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/ThreeDWorldNode.tsx"],
       ["modules/creative_canvas/application/threeDWorldNodeModel.ts"],
       ["modules/creative_canvas/application/directorCaptureBundle.ts"],
       ["modules/creative_canvas/infrastructure/browserDirectorCaptureRuntime.ts"],
@@ -3038,7 +3038,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(moduleRoot, "public.ts");
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/ImageGenNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/ImageGenNode.tsx",
     );
     const modelPath = resolve(
       moduleRoot,
@@ -3060,7 +3060,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
     );
-    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const registryPath = resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
@@ -3095,7 +3095,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/ImageGenNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/ImageGenNode.tsx"],
       ["modules/creative_canvas/domain/imageGenNodeModel.ts"],
       ["modules/creative_canvas/presentation/useImageGenNodeController.ts"],
       ["modules/creative_canvas/presentation/ImageGenNodeControls.tsx"],
@@ -3178,7 +3178,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas video node model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/VideoNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/VideoNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -3196,7 +3196,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/VideoNodeView.tsx",
     );
-    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const registryPath = resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
@@ -3225,7 +3225,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/VideoNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/VideoNode.tsx"],
       ["modules/creative_canvas/application/videoNodeModel.ts"],
       ["modules/creative_canvas/presentation/useVideoNodeController.ts"],
       ["modules/creative_canvas/presentation/VideoNodeView.tsx"],
@@ -3298,7 +3298,7 @@ describe("frontend architecture boundaries", () => {
   it("separates the Canvas Skill node model, controller, and view", () => {
     const entryPath = resolve(
       SRC_ROOT,
-      "features/canvas/nodes/SkillNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/SkillNode.tsx",
     );
     const modelPath = resolve(
       SRC_ROOT,
@@ -3324,7 +3324,7 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/presentation/SkillNodeView.test.tsx",
     );
-    const registryPath = resolve(SRC_ROOT, "features/canvas/nodes/index.ts");
+    const registryPath = resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/nodes/index.ts");
     const entrySource = readFileSync(entryPath, "utf8");
     const modelSource = readFileSync(modelPath, "utf8");
     const modelTestSource = readFileSync(modelTestPath, "utf8");
@@ -3355,7 +3355,7 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(declarationOwners).toEqual([
-      ["features/canvas/nodes/SkillNode.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/nodes/SkillNode.tsx"],
       ["modules/creative_canvas/application/skillNodeModel.ts"],
       ["modules/creative_canvas/presentation/useSkillNodeController.ts"],
       ["modules/creative_canvas/presentation/SkillNodeView.tsx"],
@@ -7962,7 +7962,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const legacyPaths = [
@@ -8116,11 +8116,11 @@ describe("frontend architecture boundaries", () => {
     );
     const canvasStagePath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasStageView.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx",
     );
     const historyAdapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModalAdapter.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasHistoryAssetsModalAdapter.tsx",
     );
     const publicPath = resolve(
       SRC_ROOT,
@@ -8351,7 +8351,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const clipboardDuplicationPlanner = readFileSync(
@@ -8370,7 +8370,7 @@ describe("frontend architecture boundaries", () => {
     );
     const backToNodesAdapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/BackToNodesHint.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/BackToNodesHint.tsx",
     );
     const backToNodesViewPath = resolve(
       moduleRoot,
@@ -8531,7 +8531,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(partnersPath).filter(
@@ -8587,11 +8587,11 @@ describe("frontend architecture boundaries", () => {
     );
     const interactionModel = readFileSync(interactionPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const stageView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx"),
       "utf8",
     );
     const zoomView = readFileSync(
@@ -8649,7 +8649,7 @@ describe("frontend architecture boundaries", () => {
     );
     const transferModel = readFileSync(transferPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const mediaPasteController = readFileSync(
@@ -8720,7 +8720,7 @@ describe("frontend architecture boundaries", () => {
     );
     const previewModel = readFileSync(previewPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const gestureController = readFileSync(
@@ -8843,7 +8843,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -8928,15 +8928,15 @@ describe("frontend architecture boundaries", () => {
     ];
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasMinimapBookmarksOverlayAdapter.tsx",
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const stageView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx"),
       "utf8",
     );
     const viewportSurface = readFileSync(
@@ -9020,7 +9020,7 @@ describe("frontend architecture boundaries", () => {
     const compositionSource = readFileSync(compositionPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -9090,7 +9090,7 @@ describe("frontend architecture boundaries", () => {
       "presentation/useCanvasNodePlacementConfirm.ts",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const hookPaths = [hoverHookPath, placementHookPath];
@@ -9153,7 +9153,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -9251,7 +9251,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -9322,7 +9322,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -9366,7 +9366,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const transferController = readFileSync(
@@ -9430,7 +9430,7 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const layoutModel = readFileSync(layoutPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const multiSelectionToolbar = readFileSync(
@@ -9534,7 +9534,7 @@ describe("frontend architecture boundaries", () => {
     const plannerModel = readFileSync(plannerPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const quickActionView = readFileSync(
@@ -9641,7 +9641,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -9705,7 +9705,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const viewportController = readFileSync(
@@ -9760,7 +9760,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const viewportController = readFileSync(
@@ -9835,7 +9835,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const viewportController = readFileSync(
@@ -9891,7 +9891,7 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const marqueeView = readFileSync(
@@ -9962,7 +9962,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const commandSurface = readFileSync(
@@ -10022,7 +10022,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const moduleControllerPath = resolve(
@@ -10083,7 +10083,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const transferController = readFileSync(
@@ -10132,7 +10132,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -10219,7 +10219,7 @@ describe("frontend architecture boundaries", () => {
     const builderModel = readFileSync(builderPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const controllerPath = resolve(
@@ -10348,7 +10348,7 @@ describe("frontend architecture boundaries", () => {
     const plannerModel = readFileSync(plannerPath, "utf8");
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const controllerModel = readFileSync(
@@ -10511,7 +10511,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -10575,7 +10575,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -10641,7 +10641,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -10708,7 +10708,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -10787,7 +10787,7 @@ describe("frontend architecture boundaries", () => {
     );
     const compositionSource = readFileSync(compositionPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -10877,7 +10877,7 @@ describe("frontend architecture boundaries", () => {
     const hookModel = readFileSync(hookPath, "utf8");
     const controllerModel = readFileSync(controllerPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const domainForbiddenImports = importSpecifiers(domainPath).filter(
@@ -10981,7 +10981,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -11042,7 +11042,7 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const legacyPaths = [
@@ -11153,7 +11153,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(guardPath).filter(
@@ -11211,7 +11211,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -11290,7 +11290,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const modulePresentationPaths = [
@@ -11357,7 +11357,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const commandSurface = readFileSync(
@@ -11420,7 +11420,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -11483,7 +11483,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const viewportControllerPath = resolve(
@@ -11556,7 +11556,7 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const legacyPaths = [
@@ -11651,7 +11651,7 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const legacyPaths = [
@@ -11770,7 +11770,7 @@ describe("frontend architecture boundaries", () => {
     );
     const skillNodeModel = readFileSync(skillNodePath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -11910,7 +11910,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/public.ts",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -11973,7 +11973,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -12024,7 +12024,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const controllerPath = resolve(
@@ -12110,7 +12110,7 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Canvas persistence triggered by useCanvasSync", () => {
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const canvasSync = readFileSync(
@@ -14915,7 +14915,7 @@ describe("frontend architecture boundaries", () => {
     );
     const surface = readFileSync(surfacePath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const recoveryControllerPath = resolve(
@@ -15044,7 +15044,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(useCasePath).filter(
@@ -15154,7 +15154,7 @@ describe("frontend architecture boundaries", () => {
     );
     const selectionSurface = readFileSync(selectionSurfacePath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const legacyPaths = [
@@ -16200,7 +16200,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const marqueeView = readFileSync(
@@ -16516,7 +16516,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(selectionPath).filter(
@@ -16646,7 +16646,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const clipboardDuplicationPlanner = readFileSync(
@@ -16975,7 +16975,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(connectionPath).filter(
@@ -17084,7 +17084,7 @@ describe("frontend architecture boundaries", () => {
     );
     const planningModel = readFileSync(planningPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const multiSelectionConnectButton = readFileSync(
@@ -17204,7 +17204,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const gestureController = readFileSync(
@@ -17354,7 +17354,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(hookPath).filter(
@@ -17420,7 +17420,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const gestureController = readFileSync(
@@ -17496,7 +17496,7 @@ describe("frontend architecture boundaries", () => {
     );
     const hookModel = readFileSync(hookPath, "utf8");
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const gestureControllerPath = resolve(
@@ -17634,7 +17634,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(deletionPath).filter(
@@ -23522,7 +23522,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeMainlineToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeMainlineToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -23530,7 +23530,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -23641,7 +23641,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/presentation/useNodeMainlineToolbarController.ts"],
-      ["features/canvas/ui/NodeMainlineToolbarActions.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/ui/NodeMainlineToolbarActions.tsx"],
       ["modules/creative_canvas/presentation/NodeMainlineToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
@@ -23749,7 +23749,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -23848,7 +23848,7 @@ describe("frontend architecture boundaries", () => {
     expect(modelSource).toContain("projectNodeActionToolbarShell<");
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/nodeActionToolbarShellModel.ts"],
-      ["features/canvas/ui/NodeActionToolbar.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx"],
       ["modules/creative_canvas/presentation/NodeActionToolbarView.tsx"],
     ]);
     expect(
@@ -23886,7 +23886,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeOutputToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeOutputToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -23894,7 +23894,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -24012,7 +24012,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/presentation/useNodeOutputToolbarController.ts"],
-      ["features/canvas/ui/NodeOutputToolbarActions.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/ui/NodeOutputToolbarActions.tsx"],
       ["modules/creative_canvas/presentation/NodeOutputToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(controllerTestPath, "utf8")).toContain(
@@ -24045,7 +24045,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeManagementToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeManagementToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24053,7 +24053,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -24185,7 +24185,7 @@ describe("frontend architecture boundaries", () => {
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/domain/nodeManagementToolbarModel.ts"],
       ["modules/creative_canvas/presentation/useNodeManagementToolbarController.ts"],
-      ["features/canvas/ui/NodeManagementToolbarActions.tsx"],
+      ["modules/creative_canvas/presentation/canvas-shell/ui/NodeManagementToolbarActions.tsx"],
       ["modules/creative_canvas/presentation/NodeManagementToolbarActionsView.tsx"],
     ]);
     expect(readFileSync(modelTestPath, "utf8")).toContain(
@@ -24229,7 +24229,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/VideoNodeToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/VideoNodeToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24241,7 +24241,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -24384,7 +24384,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/AudioNodeToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/AudioNodeToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24392,7 +24392,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const transcodePath = resolve(SRC_ROOT, "lib/audioTranscode.ts");
     const transcodeTestPath = resolve(
@@ -24523,7 +24523,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasGroupNodeToolbarActionsAdapter.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasGroupNodeToolbarActionsAdapter.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24531,7 +24531,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
@@ -24636,7 +24636,7 @@ describe("frontend architecture boundaries", () => {
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasStoryboardGroupToolbarAdapter.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStoryboardGroupToolbarAdapter.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24644,7 +24644,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const adapterSource = readFileSync(adapterPath, "utf8");
@@ -24771,11 +24771,11 @@ describe("frontend architecture boundaries", () => {
     );
     const imageToolbarViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageNodeToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/ImageNodeToolbarActions.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -24944,7 +24944,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageEditToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/ImageEditToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -24952,11 +24952,11 @@ describe("frontend architecture boundaries", () => {
     );
     const imageToolbarViewPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageNodeToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/ImageNodeToolbarActions.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const hoverControllerSource = readFileSync(hoverControllerPath, "utf8");
@@ -25145,11 +25145,11 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageEditToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/ImageEditToolbarActions.tsx",
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const modelSource = readFileSync(modelPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -25288,7 +25288,7 @@ describe("frontend architecture boundaries", () => {
     );
     const componentPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/ImageNodeToolbarActions.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/ImageNodeToolbarActions.tsx",
     );
     const viewPath = resolve(
       SRC_ROOT,
@@ -25300,7 +25300,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const toolTypesPath = resolve(
       SRC_ROOT,
@@ -25652,7 +25652,7 @@ describe("frontend architecture boundaries", () => {
   it("does not retain commented-out node actions as production dead code", () => {
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const outputControllerPath = resolve(
       SRC_ROOT,
@@ -25719,11 +25719,11 @@ describe("frontend architecture boundaries", () => {
     );
     const toolbarPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeActionToolbar.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
     );
     const selectedOverlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/SelectedNodeOverlay.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/SelectedNodeOverlay.tsx",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -26357,7 +26357,7 @@ describe("frontend architecture boundaries", () => {
     const historyAdapterSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "features/canvas/ui/CanvasHistoryAssetsModalAdapter.tsx",
+        "modules/creative_canvas/presentation/canvas-shell/ui/CanvasHistoryAssetsModalAdapter.tsx",
       ),
       "utf8",
     );
@@ -26433,11 +26433,11 @@ describe("frontend architecture boundaries", () => {
     );
     const adapterPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModalAdapter.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasHistoryAssetsModalAdapter.tsx",
     );
     const adapterTestPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasHistoryAssetsModalAdapter.test.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasHistoryAssetsModalAdapter.test.tsx",
     );
     const entrySource = readFileSync(entryPath, "utf8");
     const controllerSource = readFileSync(controllerPath, "utf8");
@@ -26520,7 +26520,7 @@ describe("frontend architecture boundaries", () => {
     expect(adapterSource).toContain("<VideoViewerModal");
     expect(adapterSource).toContain("<ThreeDDirectorDialog");
     const stageSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx"),
       "utf8",
     );
     const quickActionSource = readFileSync(
@@ -26537,7 +26537,7 @@ describe("frontend architecture boundaries", () => {
       "HistoryAssetsModal: ComponentType<CanvasHistoryAssetsModalCommandProps>",
     );
     expect(quickActionSource).not.toContain(
-      "@/features/canvas/ui/CanvasHistoryAssetsModalAdapter",
+      "../ui/CanvasHistoryAssetsModalAdapter",
     );
     expect(cardSource).toContain("<audio");
     expect(cardSource).toContain("requestAnimationFrame(tick)");
@@ -26796,7 +26796,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -26922,7 +26922,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -27011,7 +27011,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -27085,7 +27085,7 @@ describe("frontend architecture boundaries", () => {
     );
     const nodeInteractionSource = readFileSync(nodeInteractionPath, "utf8");
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -27196,7 +27196,7 @@ describe("frontend architecture boundaries", () => {
     );
     const controllerSource = readFileSync(controllerPath, "utf8");
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const commandSurfacePath = resolve(
@@ -27207,7 +27207,7 @@ describe("frontend architecture boundaries", () => {
     const menuViewPath = resolve(moduleRoot, "presentation/CanvasContextMenu.tsx");
     const menuView = readFileSync(menuViewPath, "utf8");
     const stageView = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/ui/CanvasStageView.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -27313,7 +27313,7 @@ describe("frontend architecture boundaries", () => {
     const controllerSource = readFileSync(controllerPath, "utf8");
     const publicPath = resolve(moduleRoot, "public.ts");
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(controllerPath).filter(
@@ -27384,7 +27384,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(projectionPath).filter(
@@ -27463,12 +27463,12 @@ describe("frontend architecture boundaries", () => {
     );
     const stagePath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasStageView.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx",
     );
     const viewSource = readFileSync(viewPath, "utf8");
     const stageSource = readFileSync(stagePath, "utf8");
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const forbiddenImports = importSpecifiers(viewPath).filter(
@@ -27539,10 +27539,10 @@ describe("frontend architecture boundaries", () => {
     expect(existsSync(legacyViewPath)).toBe(false);
     expect(existsSync(legacyViewTestPath)).toBe(false);
     expect(stageOwners).toEqual([
-      "features/canvas/ui/CanvasStageView.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx",
     ]);
     expect(connectionRadiusOwners).toEqual([
-      "features/canvas/ui/CanvasStageView.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx",
     ]);
     expect(overlaysOwners).toEqual([
       "modules/creative_canvas/presentation/CanvasTransientOverlays.tsx",
@@ -27593,7 +27593,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const altDragController = readFileSync(
@@ -27749,7 +27749,7 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const clipboardController = readFileSync(
@@ -27802,7 +27802,7 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Canvas media transfer events in one shared adapter", () => {
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const adapterPath = resolve(
@@ -27846,7 +27846,7 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Canvas client-to-Flow conversion in one adapter", () => {
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const directConversionCount = (
@@ -27870,7 +27870,7 @@ describe("frontend architecture boundaries", () => {
 
   it("keeps Canvas transferred Upload-node creation in one adapter", () => {
     const canvasSource = readFileSync(
-      resolve(SRC_ROOT, "features/canvas/Canvas.tsx"),
+      resolve(SRC_ROOT, "modules/creative_canvas/presentation/canvas-shell/Canvas.tsx"),
       "utf8",
     );
     const transferAdapter = readFileSync(
@@ -28919,7 +28919,7 @@ describe("frontend architecture boundaries", () => {
       [
         "modules/creative_canvas/presentation/VideoNodeView.tsx",
         "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
-        "features/canvas/ui/AssetCommitHandle.tsx",
+        "modules/creative_canvas/presentation/canvas-shell/ui/AssetCommitHandle.tsx",
       ].map((relativePath) => [
         relativePath,
         readFileSync(resolve(SRC_ROOT, relativePath), "utf8"),
@@ -28995,7 +28995,7 @@ describe("frontend architecture boundaries", () => {
       ),
     ).toContain("nodeHovered={uploadRailNodeHovered}");
     expect(
-      consumerSources.get("features/canvas/ui/AssetCommitHandle.tsx"),
+      consumerSources.get("modules/creative_canvas/presentation/canvas-shell/ui/AssetCommitHandle.tsx"),
     ).toContain("<NodeSideActionRail");
   });
 
@@ -31667,7 +31667,7 @@ describe("frontend architecture boundaries", () => {
     );
     const consumerPaths = [
       "modules/creative_canvas/presentation/useAudioNodeController.ts",
-      "features/canvas/nodes/GroupNode.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/nodes/GroupNode.tsx",
       "modules/creative_canvas/presentation/useImageGenNodeController.ts",
       "modules/creative_canvas/presentation/useSkillNodeController.ts",
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
@@ -33011,7 +33011,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/ImageGenNodeView.tsx",
       "modules/creative_canvas/presentation/VideoNodeView.tsx",
     ];
-    const fpsMeterConsumers = ["features/canvas/ui/CanvasStageView.tsx"];
+    const fpsMeterConsumers = ["modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx"];
 
     expect(existsSync(operationPanelPath)).toBe(true);
     expect(existsSync(fpsMeterPath)).toBe(true);
@@ -33202,7 +33202,7 @@ describe("frontend architecture boundaries", () => {
 
       const adapterPath = resolve(
         SRC_ROOT,
-        `features/canvas/ui/${adapterNames[index]}.tsx`,
+        `modules/creative_canvas/presentation/canvas-shell/ui/${adapterNames[index]}.tsx`,
       );
       expect(importSpecifiers(adapterPath)).toContain(
         "@/modules/creative_canvas/public",
@@ -33325,7 +33325,7 @@ describe("frontend architecture boundaries", () => {
     );
     const stagePath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/CanvasStageView.tsx",
+      "modules/creative_canvas/presentation/canvas-shell/ui/CanvasStageView.tsx",
     );
     const publicSource = readFileSync(
       resolve(SRC_ROOT, "modules/creative_canvas/public.ts"),

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 ;
 
-import { Canvas } from "@/features/canvas/Canvas";
+import { Canvas } from "@/modules/creative_canvas/presentation/canvas-shell/Canvas";
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/modules/creative_canvas/public";
@@ -151,23 +151,23 @@ const skillCatalogMocks = vi.hoisted(() => ({
   ]),
 }));
 
-vi.mock("@/features/canvas/nodes", () => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/nodes", () => ({
   createCanvasNodeTypes: () => ({}),
 }));
 
-vi.mock("@/features/canvas/ui/SelectedNodeOverlay", () => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/ui/SelectedNodeOverlay", () => ({
   SelectedNodeOverlay: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/MultiSelectionToolbar", () => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/ui/MultiSelectionToolbar", () => ({
   MultiSelectionToolbar: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/NodeSpawnPlusOverlay", () => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/ui/NodeSpawnPlusOverlay", () => ({
   NodeSpawnPlusOverlay: () => null,
 }));
 
-vi.mock("@/features/canvas/ui/NodeToolDialog", () => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/ui/NodeToolDialog", () => ({
   NodeToolDialog: () => null,
 }));
 
@@ -192,7 +192,7 @@ vi.mock("@/modules/creative_canvas/skillCatalogComposition", () => ({
   loadCanvasSkillRegistry: skillCatalogMocks.loadCanvasSkillRegistry,
 }));
 
-vi.mock("@/features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter", () => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/ui/CanvasMinimapBookmarksOverlayAdapter", () => ({
   CanvasMinimapBookmarksOverlayAdapter: () => null,
 }));
 

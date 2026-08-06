@@ -1231,7 +1231,7 @@ describe("round 2 residual architecture boundaries", () => {
       existsSync(
         resolve(
           SRC_ROOT,
-          "features/canvas/ui/CanvasMinimapBookmarksOverlayAdapter.tsx",
+          "modules/creative_canvas/presentation/canvas-shell/ui/CanvasMinimapBookmarksOverlayAdapter.tsx",
         ),
       ),
     ).toBe(true);
@@ -2843,7 +2843,7 @@ describe("round 2 residual architecture boundaries", () => {
 
   it("only allows the measured legacy feature roots to shrink", () => {
     const measuredMaximums = new Map([
-      ["features/canvas", 170],
+      ["features/canvas", 0],
       ["features/freezone", 0],
       ["features/superchat", 0],
       ["task-center", 0],
@@ -2885,9 +2885,7 @@ describe("round 2 residual architecture boundaries", () => {
   });
 
   it("does not add consumers of legacy Canvas, Freezone, or SuperChat internals", () => {
-    const allowed = new Set([
-      "app/creative-canvas-shell-composition.tsx: @/features/canvas/Canvas",
-    ]);
+    const allowed = new Set<string>([]);
     const roots = ["app", "components", "modules", "routes"];
     const actual = roots.flatMap((root) =>
       sourceFiles(resolve(SRC_ROOT, root)).flatMap((path) =>

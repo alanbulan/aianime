@@ -10,7 +10,9 @@ function read(path: string) {
 
 describe("freezone viewer contracts", () => {
   it("keeps Pano360ViewerNode as a compatible freezone canvas tool", () => {
-    const entry = read("src/features/canvas/nodes/Pano360ViewerNode.tsx");
+    const entry = read(
+      "src/modules/creative_canvas/presentation/canvas-shell/nodes/Pano360ViewerNode.tsx",
+    );
     const model = read(
       "src/modules/creative_canvas/application/pano360ViewerNodeModel.ts",
     );
@@ -34,7 +36,9 @@ describe("freezone viewer contracts", () => {
     const spawnOverlay = read(
       "src/modules/creative_canvas/presentation/NodeSpawnPlusOverlay.tsx",
     );
-    const nodesIndex = read("src/features/canvas/nodes/index.ts");
+    const nodesIndex = read(
+      "src/modules/creative_canvas/presentation/canvas-shell/nodes/index.ts",
+    );
 
     expect(entry).toContain("usePano360ViewerNodeController(props)");
     expect(controller).toContain("snap2x2");
@@ -512,8 +516,12 @@ describe("freezone viewer contracts", () => {
   });
 
   it("keeps Director World generation behind the connected ThreeDWorldNode", () => {
-    const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
-    const overlay = read("src/features/canvas/ui/SelectedNodeOverlay.tsx");
+    const toolbar = read(
+      "src/modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
+    );
+    const overlay = read(
+      "src/modules/creative_canvas/presentation/canvas-shell/ui/SelectedNodeOverlay.tsx",
+    );
     const worldModel = read(
       "src/modules/creative_canvas/application/threeDWorldNodeModel.ts",
     );
@@ -575,7 +583,9 @@ describe("freezone viewer contracts", () => {
   });
 
   it("routes projection group toolbar actions through projection sync and remove events", () => {
-    const toolbar = read("src/features/canvas/ui/NodeActionToolbar.tsx");
+    const toolbar = read(
+      "src/modules/creative_canvas/presentation/canvas-shell/ui/NodeActionToolbar.tsx",
+    );
     const managementModel = read(
       "src/modules/creative_canvas/domain/nodeManagementToolbarModel.ts",
     );

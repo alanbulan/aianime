@@ -5,7 +5,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const entrySource = readFileSync(
-  resolve(process.cwd(), "src/features/canvas/nodes/SkillNode.tsx"),
+  resolve(
+    process.cwd(),
+    "src/modules/creative_canvas/presentation/canvas-shell/nodes/SkillNode.tsx",
+  ),
   "utf8",
 );
 const modelSource = readFileSync(

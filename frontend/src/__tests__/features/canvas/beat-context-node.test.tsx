@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 ;
-import { BeatContextNode } from "@/features/canvas/nodes/BeatContextNode";
+import { BeatContextNode } from "@/modules/creative_canvas/presentation/canvas-shell/nodes/BeatContextNode";
 ;
 import { setFreezoneCanvasMetadata, type BeatContextNodeData } from "@/modules/creative_canvas/public";
 

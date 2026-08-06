@@ -9,7 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { uploadCanvasAsset } from "@/modules/creative_canvas/canvasComposition";
 ;
 import { GroupNodeView, NodeResizeHandle, canvasNodeFrameClass, computeSnapAlign, getStoryboardCellPreview, resolveNodeDisplayName, resolveCanvasNodeSourceImageUrl, useGroupNodeController, useSnapAlignStore, type GroupNodeControllerPorts, type GroupNodeViewBindings, type StoryboardCellPreviewPorts, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
-import { CanvasHistoryAssetsModalAdapter } from '@/features/canvas/ui/CanvasHistoryAssetsModalAdapter';
+import { CanvasHistoryAssetsModalAdapter } from '../ui/CanvasHistoryAssetsModalAdapter';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
