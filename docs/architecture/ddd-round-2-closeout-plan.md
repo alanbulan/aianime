@@ -10,7 +10,7 @@
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
-> 当前唯一 Gateway：`http://122.193.11.199:8889`
+> 当前唯一 Gateway：`https://aianime.122-193-11-199.sslip.io`
 >
 > 历史计划：[`ddd-refactoring-plan.md`](./ddd-refactoring-plan.md)
 
@@ -187,10 +187,11 @@
 | 第 966 批验证记录 | 渲染端更新安装流程接入制品下载/校验 IPC + release artifactId 投影 | 桌面 `checkRelease` IPC 经 `selectReleaseArtifactId` 按当前平台/架构从 `version.artifacts` 选出构件 id 后返回；新增 `desktop:commercial:install-artifact` IPC：仅接受 `os.tmpdir()/ai-anime-artifact-*` 下的路径、二次 SHA-256 比对后由主进程 detached 启动安装器。前端 Platform Release 网关新增 `downloadArtifact`/`installArtifact`，`CommercialReleaseStatus` 增加 `artifactId`；`VersionUpdateDialog` 与 `CommercialUpdateRequired` 增加「下载并安装」主操作与下载中/安装中/失败状态，失败可重试。zh/en 文案补齐。验证：桌面契约 48 项（新增 artifactId 投影 2 项）、前端 Platform Release 定向 23 项、架构门禁 350 项、前端/桌面 TypeScript 与 `git diff --check` 全部通过。剩余 R5/R6 仍缺网关真实服务端联调与制品公钥配置，R7 干净环境判定继续作为下一阶段，第二轮 GOAL 仍未完成 |
 | 第 967 批验证记录 | 离线租约验签落地（R4/R5 离线验签客户端能力） | 新增 `commercial-lease.ts`：按参考合同对 `payloadJson` 原始 UTF-8 字节做 Ed25519 验签，校验 `keyId`、有效期、签名载荷内 `editionType`/`allowsCustomModels` 及可选的许可/设备摘要；任一失败返回明确原因。`registerCommercialIpc` 新增 `leaseSigningKeys`/`devicePublicKeyHash` 注入点，`publishAuthorization` 与 bootstrap 在投影后执行验签并把 `lease.verifiedOffline` 置真；未配置内置公钥时保持 false（fail-closed），渲染进程仍不接触 payloadJson/signature。main 当前注入空密钥表，公钥配置后同一路径生效。桌面契约套件 55 项（新增 7 项验签用例）、TypeScript 与 `git diff --check` 全部通过。剩余 R5/R6 仍缺网关真实服务端联调、制品与许可签名公钥配置，R7 干净环境判定继续作为下一阶段，第二轮 GOAL 仍未完成 |
 | 第 968 批验证记录 | R7 干净环境代理判定：全新 venv 复跑后端门禁 | 在 `%TEMP%/ai-anime-r7-<uuid>` 创建全新 CPython 3.12.10 venv，`uv pip install -e . --group dev`（全新 site-packages，46 秒）后复跑：`tests/architecture` 184/184 全绿，`tests/contract` 82 通过、1 项既有条件跳过。证明后端在全新解释器与全新依赖安装路径下可复现全部门禁（部署环境代理，非独立机器）。前端依赖沿用锁定 node_modules 的 861 文件 3998 项证据；桌面契约 55 项。剩余 R5/R6 网关真实服务端联调、制品/许可签名公钥配置与独立机器 R7 复跑继续作为下一阶段，第二轮 GOAL 仍未完成 |
+| 第 969 批验证记录 | Gateway 地址切换为 `https://aianime.122-193-11-199.sslip.io` | `COMMERCIAL_GATEWAY_URL` 改为 HTTPS 域名（唯一生产地址，无服务器选择）；旧 `http://122.193.11.199:8889` 不再属于批准明文例外，架构门禁固定新常量与新 host 唯一计数；受影响的云端模型/明文传输测试夹具同步切到新地址，其余代码与行为不变。桌面契约 55 项、后端架构 184 项、桌面 TypeScript 与 `git diff --check` 全部通过 |
 
 当前主仓库已经具备以下事实能力：
 
-- `desktop/src/commercial.ts` 固定唯一服务器 `http://122.193.11.199:8889`，实现客户端登录、刷新、退出、Bootstrap、许可、额度、目录、公告和版本检查 transport。
+- `desktop/src/commercial.ts` 固定唯一服务器 `https://aianime.122-193-11-199.sslip.io`，实现客户端登录、刷新、退出、Bootstrap、许可、额度、目录、公告和版本检查 transport。
 - Electron 主进程使用 `safeStorage` 加密 JWT、Ed25519 设备私钥和 BYOK 配置；preload 只暴露白名单 IPC，不暴露 JWT、私钥、通用 fetch 或任意请求头。
 - 商业登录成功/会话恢复会建立本地 FastAPI HttpOnly Cookie；两种会话分别负责 Gateway 与本地工作区。
 - Identity & Access 已有三态路由门禁：未登录回登录页，无许可或设备未激活进入许可页，许可与本地会话均有效后才进入工作区。
@@ -433,7 +434,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 | 优先级 | 问题 | 影响 | 建议网关改进 |
 | --- | --- | --- | --- |
-| P0 | 当前唯一 Gateway 是公网 `http://122.193.11.199:8889` | 登录密码、JWT、设备激活和业务内容均可被链路窃听或篡改 | 配置受信任域名与有效 TLS 证书，HTTP 仅做 301 跳转且认证端点拒绝明文请求 |
+| P0 | 当前唯一 Gateway 是公网 `https://aianime.122-193-11-199.sslip.io` | 登录密码、JWT、设备激活和业务内容在 HTTPS 链路下加密传输；仍需确认 TLS 证书受信与 HTTP 明文端点拒绝 | 配置受信任域名与有效 TLS 证书，HTTP 仅做 301 跳转且认证端点拒绝明文请求 |
 | P0 | 许可响应没有服务端权威的“允许进入客户端”结果和拒绝原因；`license/device/activation.status` 枚举及过期语义未固定 | 客户端目前只能按许可、设备和激活记录是否存在来门禁，无法可靠区分过期、冻结、撤销、席位回收和临时网络错误 | 在 Bootstrap/current license 返回 `workspaceAccess.allowed`、稳定 `denialCode`、`evaluatedAt`，并固定所有状态枚举；最终授权判断必须由服务端完成 |
 | P0 | Release check 的完整响应 schema、版本 notes、artifact 字段在文档中不完整 | 前端只能用宽松 DTO，强制更新判断和 release notes 容易漂移 | 固化 OpenAPI schema，至少明确 `available/required/reason/version/artifacts/notes/publishedAt` |
 | P0 | 更新制品只有 `signature`，未明确算法、`keyId`、签名原文和公钥轮换 | 客户端无法可靠验签，只能校验 SHA-256 | 返回 `signatureAlgorithm`、`keyId`，发布签名公钥集和规范化签名载荷 |
@@ -517,7 +518,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 已完成：
 
-1. Electron main 已建立唯一 Commercial Gateway transport，生产地址只允许 `http://122.193.11.199:8889`；没有服务器选择或旧地址环境覆盖。
+1. Electron main 已建立唯一 Commercial Gateway transport，生产地址只允许 `https://aianime.122-193-11-199.sslip.io`；没有服务器选择或旧地址环境覆盖。
 2. Electron `safeStorage` 已加密会话文件，JWT 刷新采用内存单飞；退出清除 JWT 和本地 Cookie，但保留设备私钥。
 3. preload 只暴露显式 IPC；架构门禁禁止 token、通用 fetch、任意路径、任意 header 和 Secret 读取能力进入 renderer。
 4. Identity & Access 已有公开配置、Logo、验证码、登录、恢复、会话摘要和退出 ports；本地 Cookie store 与云端 JWT store 独立。

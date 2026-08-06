@@ -38,7 +38,7 @@ const MODEL_TIMEOUT_MS = 30 * 60_000;
 const REFRESH_SKEW_MS = 60_000;
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const MAX_CAPTCHA_BYTES = 512 * 1024;
-export const COMMERCIAL_GATEWAY_URL = "http://122.193.11.199:8889";
+export const COMMERCIAL_GATEWAY_URL = "https://aianime.122-193-11-199.sslip.io";
 
 type Identifier = string | number;
 type QueryValue = string | number | boolean | null | undefined;

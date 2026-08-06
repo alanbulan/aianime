@@ -400,9 +400,18 @@ test("plain HTTP is restricted to loopback or the single approved Gateway", () =
   assert.doesNotThrow(
     () =>
       new CommercialApiClient({
+        baseUrl: "https://aianime.122-193-11-199.sslip.io",
+        sessionStore: new MemorySessionStore(),
+      }),
+  );
+  assert.throws(
+    () =>
+      new CommercialApiClient({
         baseUrl: "http://122.193.11.199:8889",
         sessionStore: new MemorySessionStore(),
       }),
+    (error) =>
+      error instanceof CommercialApiError && error.message.includes("HTTPS"),
   );
   assert.throws(
     () =>

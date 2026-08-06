@@ -828,10 +828,10 @@ def test_commercial_gateway_has_one_fixed_production_origin() -> None:
         and "tests" not in path.parts
     )
     assert (
-        'export const COMMERCIAL_GATEWAY_URL = "http://122.193.11.199:8889";'
+        'export const COMMERCIAL_GATEWAY_URL = "https://aianime.122-193-11-199.sslip.io";'
         in production
     )
-    assert production.count("122.193.11.199:8889") == 1
+    assert production.count("aianime.122-193-11-199.sslip.io") == 1
     assert "AI_ANIME_CLOUD_API_URL" not in production
     assert "OFFICIAL_NEWAPI_BASE_URL" not in production
 

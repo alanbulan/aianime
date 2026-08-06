@@ -664,7 +664,7 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "http://122.193.11.199:8889",
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
     accessToken: "old-client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -673,7 +673,7 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   const calls = [];
   let modelAttempts = 0;
   const client = new CommercialApiClient({
-    baseUrl: "http://122.193.11.199:8889",
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const call = { url: String(url), init };
@@ -725,7 +725,7 @@ test("cloud model transport validates protocol-specific request headers", async 
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "http://122.193.11.199:8889",
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -733,7 +733,7 @@ test("cloud model transport validates protocol-specific request headers", async 
   };
   const calls = [];
   const client = new CommercialApiClient({
-    baseUrl: "http://122.193.11.199:8889",
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const call = { url: String(url), init };
@@ -799,14 +799,14 @@ test("cloud model requests reject absolute URLs and credential query parameters"
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "http://122.193.11.199:8889",
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
     tenant,
   };
   const client = new CommercialApiClient({
-    baseUrl: "http://122.193.11.199:8889",
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
     sessionStore: store,
     fetchImpl: async () => Response.json({ ok: true }),
   });
