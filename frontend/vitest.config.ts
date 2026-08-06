@@ -12,6 +12,9 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // 完整套件并行负载下，文件级架构门禁的纯读文件用例曾被 5 秒默认超时中断
+    // （无断言失败，单独复跑通过）。统一放宽到 30 秒，保持全量门禁可复现。
+    testTimeout: 30000,
     setupFiles: ["./src/__tests__/setup.ts"],
     globals: true,
     // Don't re-collect tests from nested git worktrees. Claude Code's agent

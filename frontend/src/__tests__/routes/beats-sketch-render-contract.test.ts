@@ -52,7 +52,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("keeps global render generation out of the top toolbar", () => {
-    const taskTypes = read("src/lib/task-types.ts");
+    const taskTypes = read("src/modules/task_execution/domain/taskTypes.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
     const batchBar = readBatchBarComposition();
     const batchBarView = read(
@@ -168,7 +168,7 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("keeps selected-beat render regeneration backed by render_plan", () => {
-    const taskTypes = read("src/lib/task-types.ts");
+    const taskTypes = read("src/modules/task_execution/domain/taskTypes.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
     const batchPanelController = read(
       "src/modules/production/application/use-batch-panel-controller.ts",

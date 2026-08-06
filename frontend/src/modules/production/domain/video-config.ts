@@ -111,7 +111,14 @@ export function isSeedance2ValueModel(value: string | null | undefined): boolean
 }
 
 export function normalizeVideoModelId(value: string | null | undefined): string {
-  return String(value ?? "").trim().toLowerCase();
+  const raw = String(value ?? "").trim().toLowerCase();
+  const pathless = raw.slice(raw.lastIndexOf("/") + 1);
+  for (const prefix of ["newapi_", "huimeng_"]) {
+    if (pathless.startsWith(prefix)) {
+      return pathless.slice(prefix.length);
+    }
+  }
+  return pathless;
 }
 
 export function videoModelDisplayLabel(

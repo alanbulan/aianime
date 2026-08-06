@@ -50,9 +50,10 @@ describe("generation credit cost CE runtime contract", () => {
       }),
     );
 
-    const { result } = renderHook(() => useGenerationCreditCost("beat_tts"), {
-      wrapper,
-    });
+    const { result } = renderHook(
+      () => useGenerationCreditCost("beat_tts", "ce-default-voice"),
+      { wrapper },
+    );
 
     await waitFor(() => expect(result.current.data).toBeDefined());
 
