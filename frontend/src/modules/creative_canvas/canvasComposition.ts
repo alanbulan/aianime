@@ -47,6 +47,7 @@ import { createEraseOverlay } from './presentation/EraseOverlay';
 import { createLightEditorOverlay } from './presentation/LightEditorOverlay';
 import { createMultiAngleEditorOverlay } from './presentation/MultiAngleEditorOverlay';
 import { createVideoUpscaleEditorOverlay } from './presentation/VideoUpscaleEditorOverlay';
+import { createNodeToolDialog } from './presentation/NodeToolDialog';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -148,6 +149,7 @@ import type { EdgeTypes } from '@xyflow/react';
 import {
   embedStoryboardImageMetadata,
   mergeStoryboardImages,
+  readStoryboardImageMetadata,
   saveImageSourceToDirectory,
 } from '@/commands/image';
 import {
@@ -168,6 +170,7 @@ import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExe
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
 import { zustandCanvasGraphGateway } from './infrastructure/zustandCanvasGraphGateway';
 import { showErrorDialog as showErrorDialogInfrastructure } from './infrastructure/globalErrorDialog';
+import { canvasToolProcessor } from './canvasToolComposition';
 
 
 const canvasSceneDirectorManifestGateway: CanvasSceneDirectorManifestGateway = {
@@ -603,6 +606,17 @@ export const MultiAngleEditorOverlay = createMultiAngleEditorOverlay({
 export const VideoUpscaleEditorOverlay = createVideoUpscaleEditorOverlay({
   useStore: useCanvasStore,
   generateCanvasVideoUpscale,
+});
+export const NodeToolDialog = createNodeToolDialog({
+  useStore: useCanvasStore,
+  closeToolDialog: () => {
+    canvasEventBus.publish('tool-dialog/close', undefined);
+  },
+  processTool: (toolType, imageUrl, toolOptions) =>
+    canvasToolProcessor.process(toolType, imageUrl, toolOptions),
+  prepareNodeImage,
+  uploadLocalImageToBackend,
+  readStoryboardImageMetadata,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>

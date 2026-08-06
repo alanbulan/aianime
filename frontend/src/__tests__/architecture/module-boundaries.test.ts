@@ -25299,7 +25299,7 @@ describe("frontend architecture boundaries", () => {
     );
     const toolDialogPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/NodeToolDialog.tsx",
+      "modules/creative_canvas/presentation/NodeToolDialog.tsx",
     );
     const toolEditorPaths = [
       [
