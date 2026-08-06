@@ -50,9 +50,9 @@ flowchart LR
 | Project Workspace | 项目生命周期、成员权限和项目导航 | `modules/project_workspace` | `modules/project_workspace` |
 | Narrative Planning | 剧集、剧本、Beat 和文案规划 | `modules/narrative_planning` | `modules/narrative_planning` |
 | Asset & World | 风格、角色、身份、声线、场景、道具和导演世界 | `modules/asset_world` | `modules/asset_world` |
-| Production | 草图、Render、音频、视频、合成与任务编排 | `modules/production`、`task-center` | `modules/production`、`task_backend` |
-| Creative Canvas | 自由画布、节点能力、主线提交和 Viewer | `features/canvas`、`features/freezone`、`features/viewer-kit` | `modules/creative_canvas`、`api/routes/canvas` |
-| AI Assistant | SuperChat、会话、工具调用和 Agent 运行时 | `features/superchat` | `modules/ai_assistant` |
+| Production | 草图、Render、音频、视频、合成与任务编排 | `modules/production`、`modules/task_execution` | `modules/production`、`modules/task_execution` |
+| Creative Canvas | 自由画布、节点能力、主线提交和 Viewer | `modules/creative_canvas`、`features/viewer-kit` | `modules/creative_canvas`、`api/routes/canvas` |
+| AI Assistant | SuperChat、会话、工具调用和 Agent 运行时 | `modules/ai_assistant` | `modules/ai_assistant` |
 | Model & Usage | 模型网关、额度、计费和调用观测 | `modules/model_usage` | `modules/model_usage` |
 | Platform & Release | 运行时配置、项目文件交付、发布通知和版本更新 | `modules/platform_release` | `modules/platform_release` |
 
@@ -74,19 +74,16 @@ ai-anime-desktop/
 │     ├─ app/                      Bootstrap、Router、Provider 和全局样式
 │     ├─ routes/                   TanStack Router 薄适配器
 │     ├─ modules/                  DDD 业务上下文
-│     ├─ features/                 Creative Canvas、Viewer、SuperChat 等特性上下文
+│     ├─ features/                 仅剩 viewer-kit 等既有共享特性上下文
 │     ├─ shared/api/               唯一通用 HTTP transport
-│     ├─ task-center/              任务查询、监控、状态和公共入口
 │     └─ __tests__/architecture/   依赖、颜色和主题对比度门禁
 ├─ src/ai_anime/
 │  ├─ api/                         FastAPI app、middleware、schema 和 route 适配器
-│  ├─ bootstrap/                   进程级 ApplicationContainer
-│  ├─ modules/                     后端 DDD 业务上下文
+│  ├─ modules/                     后端 DDD 业务上下文（含 bootstrap 组合根）
 │  ├─ shared/                      无领域所有权的稳定共享契约
-│  ├─ ports/                       任务、审计、生命周期和云端等进程级端口
-│  ├─ task_backend/                任务状态、队列、runner 与取消机制
+│  ├─ styles/                      风格预设数据资产
 │  ├─ desktop_server.py            桌面专用 FastAPI 启动器
-│  └─ generators、verification 等 由领域适配器复用的生成与校验引擎
+│  └─ config.py、model_access_policy.py 等  跨切面单文件（收敛登记项）
 ├─ tests/
 │  ├─ architecture/               Python 依赖边界和 OpenAPI 快照
 │  ├─ contract/                   API、任务和模块合同

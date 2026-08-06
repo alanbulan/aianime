@@ -206,6 +206,7 @@
 | 第 985 批验证记录 | 修复已登记的 cognee 失败契约测试 | `tests/test_cognee_ingest_failure_contract.py` 两处用 `object.__new__` 构造 CogneeStore 的测试补齐 `__init__` 才设置的 `text_model/embedding_model/embedding_dimensions`；`init_cognee` monkeypatch 目标从 config 模块改为 store 模块实际绑定（store.py 为 `from .config import init_cognee`），此前 patch 未生效并触发真实网关校验。该文件 6 项全部通过，登记问题清零 |
 | 第 986 批验证记录 | Creative Canvas 前端唯一模块边界收口：features/canvas 整体迁入 Creative Canvas presentation | 40 个文件（Canvas 装配壳、18 个节点入口、nodes/index 注册表、20 个 ui 适配层/浮层及 2 个测试）`git mv` 至 `modules/creative_canvas/presentation/canvas-shell`；app 壳、`__tests__/features/canvas` 与 viewer-kit 契约测试的导入/mock 全部切换到模块路径；架构门禁的 entryPath/registryPath/declarationOwners/颜色预算同步到新路径，旧目录不回流上限收紧到 0，legacy Canvas 消费者白名单清空；`features/` 仅剩 viewer-kit。前端架构门禁 398、全量 vitest 861 文件 4000 项、tsc、`git diff --check` 全部通过 |
 | 第 987 批验证记录 | 锁定环境复验与文档完成状态校正 | 桌面 TypeScript 通过、桌面契约 55 项全过；后端架构/定向 212 项、契约 82+1 跳过、Ruff、compileall 全绿（前端全量 861 文件 4000 项与架构 398 项已随第 986 批记录）。文档结论、R1 阶段表/状态段与当前检查点同步为 Creative Canvas 唯一边界已完成、features/ 仅剩 viewer-kit、后端顶层单文件收敛登记为后续项 |
+| 第 988 批验证记录 | 主计划文档与 README 完成状态/目录同步 | `ddd-refactoring-plan.md` 顶部状态、阶段 8 行与阶段 10 行按当前代码校正（阶段 8 已完成、阶段 10 待 R7）；README 领域地图去掉 task-center/features/canvas/features/freezone/features/superchat 旧所有者，目录树移除 task-center/bootstrap/ports/task_backend/generators 等已删除路径，后端树改为 modules/shared/styles/desktop_server/config 等当前结构。纯文档变更，无代码与门禁影响 |
 
 当前主仓库已经具备以下事实能力：
 

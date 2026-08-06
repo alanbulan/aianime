@@ -1,6 +1,6 @@
 # `ai-anime-desktop` DDD 模块化重构计划
 
-> 状态：第二轮收尾中（阶段 9 已完成；阶段 8 的前端 Creative Canvas 目录边界和阶段 10 的最终门禁尚未全部满足）
+> 状态：第二轮收尾中（阶段 8、阶段 9 已完成；阶段 10 的最终门禁待 R7 干净环境复验，R4-R6 待网关真实契约与签名公钥）
 >
 > 制定日期：2026-07-23
 >
@@ -448,9 +448,9 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 | 5. Narrative Planning | 已完成 | 后端领域/应用/适配器边界与前端 route/controller/view 已收敛到唯一模块 |
 | 6. Asset & World | 已完成 | 前后端资产边界已收敛，资产路由保持 HTTP 映射，文件与生成规则由 application/infrastructure 承担 |
 | 7. Production | 已完成 | 前后端 Production 边界、合成页、episode presentation 与 Beat 状态读模型均已收敛到唯一 public API |
-| 8. Creative Canvas | 第二轮收尾中 | 前端 `modules/creative_canvas` 当前有 1185 个 TS/TSX 文件，旧 `features/canvas`/`features/freezone` 仍有 81/0 个 TS/TSX 文件且 CSS 已归零；R1-A、R1-B 和 R1-F 已关闭。第 803-935 批已将页面级 Surface、渲染投影、Store 切片、节点注册表/目录/组合根端口、浏览器网关/节点工厂组合、canvasStore 组合根、错误事件、视频转码/截帧、自由区 AI/Skill 执行网关、composition 组合根、VideoStory/VideoCompose/Script/ImageNode/TextAnnotation/StoryboardNode/UploadNode 节点族、全部六个工具栏 controller、Audio 主链路与 CanvasMediaSurface/CanvasViewportSurface/CanvasGraphEditingSurface/CanvasNodeCreationSurface 控制器迁入模块；App Shell 对旧 Canvas 私有入口已收紧到 1 个。R1-C 至 R1-E 的其余 Canvas 所有权尚未迁完，阶段 8 不标记完成 |
+| 8. Creative Canvas | 已完成 | 前端 `modules/creative_canvas` 为唯一实现所有者（含第 986 批迁入的 presentation/canvas-shell 40 个薄壳），`features/canvas`/`features/freezone` 已删除，`features/` 仅剩 viewer-kit；R1-A 至 R1-F 全部关闭，后端旧 Freezone 源、模块外 infrastructure 直连与生产 readUrl 均归零。前端架构门禁 398、全量 vitest 861 文件 4000 项、tsc 通过 |
 | 9. Supporting Contexts | 已完成 | Model Usage、Platform Release、AI Assistant 与 Task Execution 已形成唯一模块边界；旧 `features/superchat`、旧 `task-center` 和旧 `task_backend` 已删除，跨上下文提交、业务 route 组合和本地 inline 重启恢复均已收口 |
-| 10. 最终收敛 | 第二轮收尾中 | 当前定向门禁可通过，但扫描范围未覆盖全部遗留目录，且尚未在与锁文件一致的干净环境完成最终复验 |
+| 10. 最终收敛 | 进行中（待 R7） | 锁定环境（仓库 .venv）下后端架构/契约/Ruff、前端全量 vitest 4000 项、桌面 55 项与 TypeScript 已全绿；剩余 R7 独立干净机器全量复验与 R4-R6 网关真实契约/签名公钥为外部阻塞项 |
 
 阶段 0 的实际验证基线：
 
