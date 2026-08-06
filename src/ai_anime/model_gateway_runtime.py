@@ -18,7 +18,7 @@ def _runtime_version(api_key: str, base_url: str) -> str:
 def _clear_agent_singletons() -> list[str]:
     cleared: list[str] = []
     targets = {
-        "ai_anime.agents.global_video_optimizer": ("_global_video_optimizer",),
+        "ai_anime.modules.agents.global_video_optimizer": ("_global_video_optimizer",),
     }
     for module_name, attrs in targets.items():
         module = sys.modules.get(module_name)

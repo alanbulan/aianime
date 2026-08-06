@@ -4821,7 +4821,7 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
         / "infrastructure"
         / "beat_prompt_generators.py"
     )
-    global_optimizer = PACKAGE_ROOT / "agents" / "global_video_optimizer.py"
+    global_optimizer = PACKAGE_ROOT / "modules" / "agents" / "global_video_optimizer.py"
     legacy_source = _removed_models_source(legacy_models)
     model_source = script_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -4891,8 +4891,8 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     )
     callers = (
-        PACKAGE_ROOT / "agents" / "episode_planner.py",
-        PACKAGE_ROOT / "agents" / "identity_planner.py",
+        PACKAGE_ROOT / "modules" / "agents" / "episode_planner.py",
+        PACKAGE_ROOT / "modules" / "agents" / "identity_planner.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
         cognee_pipeline,
@@ -4925,7 +4925,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
     owner_source = episode_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     callers = (
-        PACKAGE_ROOT / "agents" / "asset_compiler.py",
+        PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "director_world" / "sync_global_props.py",
         PACKAGE_ROOT
@@ -5058,7 +5058,7 @@ def test_asset_world_character_models_have_one_owner() -> None:
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     cognee_pipeline = PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
     external_callers = (
-        PACKAGE_ROOT / "agents" / "identity_planner.py",
+        PACKAGE_ROOT / "modules" / "agents" / "identity_planner.py",
         cognee_pipeline,
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
@@ -5104,7 +5104,7 @@ def test_asset_world_prop_model_has_one_owner() -> None:
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
-        PACKAGE_ROOT / "agents" / "asset_compiler.py",
+        PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT / "sqlite_store.py",
@@ -5137,7 +5137,7 @@ def test_asset_world_scene_model_has_one_owner() -> None:
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
-        PACKAGE_ROOT / "agents" / "asset_compiler.py",
+        PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
         PACKAGE_ROOT
@@ -5867,7 +5867,7 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
         / "production"
         / "infrastructure"
         / "generation_context.py",
-        PACKAGE_ROOT / "agents" / "global_video_optimizer.py",
+        PACKAGE_ROOT / "modules" / "agents" / "global_video_optimizer.py",
         PACKAGE_ROOT / "director_world" / "control_frame_to_sketch.py",
         PACKAGE_ROOT
         / "modules"
@@ -5885,7 +5885,7 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
 
 
 def test_removed_character_auto_promotion_service_does_not_return() -> None:
-    planner = PACKAGE_ROOT / "agents" / "identity_planner.py"
+    planner = PACKAGE_ROOT / "modules" / "agents" / "identity_planner.py"
     source = planner.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "character_promotion_service.py").exists()

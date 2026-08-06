@@ -85,7 +85,7 @@ class _RewriteRouteStore:
 
 @pytest.mark.asyncio
 async def test_generate_rewrite_applies_output_to_beat_source_text(monkeypatch) -> None:
-    from ai_anime.agents import content_rewriter
+    from ai_anime.modules.agents import content_rewriter
     from ai_anime.api.content_schemas import RewriteGenerateRequest
     from ai_anime.api.routes import content
 
@@ -117,7 +117,7 @@ async def test_generate_rewrite_applies_output_to_beat_source_text(monkeypatch) 
 
 @pytest.mark.asyncio
 async def test_content_rewriter_uses_newapi_text_model(monkeypatch) -> None:
-    from ai_anime.agents import content_rewriter
+    from ai_anime.modules.agents import content_rewriter
 
     calls: dict[str, object] = {}
 

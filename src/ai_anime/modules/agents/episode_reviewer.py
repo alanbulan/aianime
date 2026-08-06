@@ -562,4 +562,4 @@ def create_episode_plan_reviewer() -> EpisodePlanReviewer:
 # 类型提示的前向引用
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from ai_anime.agents.episode_planner import SeriesPlan, EpisodePlan
+    from ai_anime.modules.agents.episode_planner import SeriesPlan, EpisodePlan

@@ -89,7 +89,7 @@ def run_build_episodes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[st
 
 
 async def _run_build_episodes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.agents.episode_planner import EpisodePlannerAgent
+    from ai_anime.modules.agents.public import EpisodePlannerAgent
 
     payload = envelope.get("payload") or {}
     config = dict(payload.get("config") or {})

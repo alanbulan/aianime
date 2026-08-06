@@ -43,7 +43,7 @@ AssetCompiler = None
 def _asset_compiler_cls():
     global AssetCompiler
     if AssetCompiler is None:
-        from ai_anime.agents.asset_compiler import AssetCompiler as LoadedAssetCompiler
+        from ai_anime.modules.agents.asset_compiler import AssetCompiler as LoadedAssetCompiler
 
         AssetCompiler = LoadedAssetCompiler
     return AssetCompiler
@@ -345,7 +345,7 @@ async def plan_episode_identities(
     if episode is None:
         return {"ok": False, "error": f"Episode {episode_num} not found"}
 
-    from ai_anime.agents.identity_planner import IdentityPlanner
+    from ai_anime.modules.agents.identity_planner import IdentityPlanner
 
     planner = IdentityPlanner(store)
     logs = []

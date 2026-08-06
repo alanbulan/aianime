@@ -29,7 +29,7 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch, tmp_path):
     from ai_anime import cognee
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
     from ai_anime.modules.task_execution.infrastructure.runners import video
     from ai_anime.utils.path_resolver import PathResolver
 
@@ -103,7 +103,7 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_failure(monkeypatch, tmp_path):
     from ai_anime import cognee
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
     from ai_anime.modules.task_execution.infrastructure.runners import video
     from ai_anime.utils.path_resolver import PathResolver
 

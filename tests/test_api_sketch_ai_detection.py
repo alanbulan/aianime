@@ -144,7 +144,7 @@ def _client(
     usage_meter=None,
     ctx=None,
 ):
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
     from ai_anime.api.routes import production_sketch
     from ai_anime.modules.production import composition
     from ai_anime.modules.production.infrastructure import sketch_markers
@@ -298,7 +298,7 @@ def test_detect_identities_refunds_feature_credit_when_ai_detection_fails(
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
 
     store = _DetectStore([{"beat_number": 1, "visual_description": "{{Hero_Main}}"}])
     usage_meter = _UsageMeter()
@@ -395,7 +395,7 @@ def test_detect_identities_batches_more_than_twenty_five_sketches(monkeypatch, t
 def test_detect_identities_marks_empty_ai_result_as_no_character_and_no_prop(
     monkeypatch, tmp_path
 ):
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
 
     store = _DetectStore([{"beat_number": 1, "visual_description": ""}])
     calls: list[int] = []
@@ -427,7 +427,7 @@ def test_detect_identities_marks_empty_ai_result_as_no_character_and_no_prop(
 def test_detect_identities_marks_missing_ai_panel_result_as_no_character_and_no_prop(
     monkeypatch, tmp_path
 ):
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
 
     store = _DetectStore([{"beat_number": 1, "visual_description": ""}])
     _write_sketch(tmp_path, 1)

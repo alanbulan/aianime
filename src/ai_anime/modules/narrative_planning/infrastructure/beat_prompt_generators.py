@@ -27,7 +27,7 @@ async def generate_single_beat_video_prompt(
     next_beat: dict[str, Any] | None,
     language: str,
 ) -> str:
-    from ai_anime.agents.global_video_optimizer import (
+    from ai_anime.modules.agents.public import (
         _build_color_appearance_map,
         get_global_video_optimizer,
     )
@@ -77,7 +77,7 @@ async def generate_single_beat_keyframe_prompt(
     next_beat: dict[str, Any],
     language: str,
 ) -> str:
-    from ai_anime.agents.keyframe_prompt_builder import get_keyframe_prompt_builder
+    from ai_anime.modules.agents.public import get_keyframe_prompt_builder
     from ai_anime.modules.narrative_planning.application.script_models import (
         format_beat_narration,
     )

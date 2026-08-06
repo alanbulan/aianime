@@ -254,7 +254,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
 
     monkeypatch.setattr(
-        "ai_anime.agents.content_rewriter.rewrite_episode_content",
+        "ai_anime.modules.agents.content_rewriter.rewrite_episode_content",
         fake_rewrite_episode_content,
     )
     monkeypatch.setattr(

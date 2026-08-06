@@ -540,7 +540,7 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
 async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failure(
     monkeypatch, tmp_path
 ):
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
     from ai_anime.modules.narrative_planning.public import (
         generate_and_save_beat_video_prompt,
     )
@@ -597,7 +597,7 @@ async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failur
 async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
     monkeypatch, tmp_path
 ):
-    from ai_anime.agents import global_video_optimizer
+    from ai_anime.modules.agents import global_video_optimizer
     from ai_anime.modules.narrative_planning.public import (
         generate_and_save_beat_video_prompt,
     )

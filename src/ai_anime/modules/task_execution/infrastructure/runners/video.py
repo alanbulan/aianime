@@ -689,7 +689,7 @@ async def _run_global_optimize_video_async(
 ) -> dict[str, Any]:
     import os
 
-    from ai_anime.agents.global_video_optimizer import (
+    from ai_anime.modules.agents.public import (
         get_global_video_optimizer,
         prepare_global_optimizer_input,
     )

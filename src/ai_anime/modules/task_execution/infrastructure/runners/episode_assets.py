@@ -44,7 +44,7 @@ async def _run_episode_asset_planner(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.agents.asset_compiler import AssetCompiler
+    from ai_anime.modules.agents.public import AssetCompiler
     from ai_anime.modules.asset_world.public import promote_episode_props_to_global
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,

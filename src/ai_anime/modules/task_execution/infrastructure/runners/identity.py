@@ -39,7 +39,7 @@ def run_identity_planner(envelope: dict[str, Any], ctx: ProjectContext) -> dict[
 
 
 async def _run_identity_planner(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.agents.identity_planner import IdentityPlanner
+    from ai_anime.modules.agents.public import IdentityPlanner
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
