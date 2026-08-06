@@ -258,6 +258,8 @@ function registerCommercialGatewayIpc(
       });
       child.unref();
     },
+    // 制品签名公钥未配置前，离线租约一律保持未验证（fail-closed）。
+    leaseSigningKeys: {},
   });
 }
 

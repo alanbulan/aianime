@@ -36,7 +36,7 @@ export interface CommercialAuthorizationSnapshot {
     issuedAt?: string;
     expiresAt?: string;
     keyId?: string;
-    verifiedOffline: false;
+    verifiedOffline: boolean;
   } | null;
   capabilities: CommercialCapabilitySnapshot;
 }

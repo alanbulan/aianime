@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
+import { verifyOfflineLease } from "./commercial-lease.js";
 import type { CommercialDeviceSigner } from "./commercial-device.js";
 import {
   fetchByokModelCatalog,
@@ -937,6 +938,12 @@ interface RegisterCommercialIpcOptions {
   installArtifact?: (
     input: CommercialInstallArtifactInput,
   ) => Promise<void>;
+  /**
+   * keyId -> PEM SPKI public keys for offline lease verification. When empty,
+   * every lease stays `verifiedOffline: false` (fail-closed).
+   */
+  leaseSigningKeys?: Record<string, string>;
+  devicePublicKeyHash?: string;
 }
 
 export function registerCommercialIpc(
@@ -1013,9 +1020,13 @@ export function registerCommercialIpc(
     value: unknown,
   ): Promise<CommercialAuthorizationSnapshot> => {
     const authorization = projectCommercialAuthorization(value);
-    currentAuthorization = authorization;
+    currentAuthorization = verifyAuthorizationLease(
+      value,
+      authorization,
+      options,
+    );
     await synchronizeModelAccess();
-    return authorization;
+    return currentAuthorization;
   };
 
   handle(COMMERCIAL_CHANNELS.bootstrap, async (input) => {
@@ -1030,7 +1041,13 @@ export function registerCommercialIpc(
         arch: query.arch ?? options.arch,
       }),
     );
-    currentAuthorization = bootstrap.softwareAuthorization;
+    currentAuthorization = bootstrap.softwareAuthorization
+      ? verifyAuthorizationLease(
+          bootstrap,
+          bootstrap.softwareAuthorization,
+          options,
+        )
+      : null;
     cloudModelAssignments = defaultCloudTextModelAssignments(bootstrap.models);
     const access = await options.modelAccessStore.load();
     if (
@@ -1246,6 +1263,35 @@ function rendererModelAccessStatus(
 
 export function resolveCommercialGatewayUrl(): string {
   return COMMERCIAL_GATEWAY_URL;
+}
+
+function verifyAuthorizationLease(
+  raw: unknown,
+  authorization: CommercialAuthorizationSnapshot,
+  options: RegisterCommercialIpcOptions,
+): CommercialAuthorizationSnapshot {
+  if (!authorization.lease) return authorization;
+  if (!options.leaseSigningKeys) return authorization;
+  const root = optionalRecord(raw);
+  const lease = optionalRecord(root.lease);
+  const result = verifyOfflineLease(
+    lease as Parameters<typeof verifyOfflineLease>[0],
+    {
+      publicKeys: options.leaseSigningKeys,
+      ...(options.devicePublicKeyHash === undefined
+        ? {}
+        : { devicePublicKeyHash: options.devicePublicKeyHash }),
+      ...(authorization.license?.id === undefined
+        ? {}
+        : { licenseId: authorization.license.id }),
+    },
+  );
+  return result.verified
+    ? {
+        ...authorization,
+        lease: { ...authorization.lease, verifiedOffline: true },
+      }
+    : authorization;
 }
 
 function parseLoginInput(value: unknown): CommercialLoginInput {
