@@ -26310,13 +26310,13 @@ describe("frontend architecture boundaries", () => {
   it("routes Canvas erase generation through the redraw use case", () => {
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/EraseOverlay.tsx",
+      "modules/creative_canvas/presentation/EraseOverlay.tsx",
     );
     const overlaySource = readFileSync(overlayPath, "utf8");
     const imports = importSpecifiers(overlayPath);
 
-    expect(imports).toContain("@/modules/creative_canvas/canvasComposition");
-    expect(imports).toContain("@/modules/creative_canvas/public");
+    expect(imports).not.toContain("@/modules/creative_canvas/canvasComposition");
+    expect(imports).not.toContain("@/modules/creative_canvas/public");
     expect(imports).not.toContain("@/api/ops");
     expect(imports).not.toContain("@/api/tasks");
     expect(overlaySource).toContain("await generateCanvasRedraw(");
@@ -31660,7 +31660,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useThreeDWorldNodeController.ts",
       "modules/creative_canvas/presentation/useUploadNodeController.ts",
       "modules/creative_canvas/presentation/useVideoNodeController.ts",
-      "features/canvas/ui/EraseOverlay.tsx",
+      "modules/creative_canvas/presentation/EraseOverlay.tsx",
       "modules/creative_canvas/presentation/RedrawOverlay.tsx",
       "modules/creative_canvas/presentation/RotateEditorOverlay.tsx",
     ].map((path) => resolve(SRC_ROOT, path));

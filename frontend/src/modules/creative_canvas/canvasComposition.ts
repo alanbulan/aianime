@@ -43,6 +43,7 @@ import { createUpscaleEditorOverlay } from './presentation/UpscaleEditorOverlay'
 import { createScene360Overlay } from './presentation/Scene360Overlay';
 import { createRedrawOverlay } from './presentation/RedrawOverlay';
 import { createOutpaintEditorOverlay } from './presentation/OutpaintEditorOverlay';
+import { createEraseOverlay } from './presentation/EraseOverlay';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -578,6 +579,12 @@ export const OutpaintEditorOverlay = createOutpaintEditorOverlay({
   useStore: useCanvasStore,
   useCanvasImageModels,
   generateCanvasOutpaint,
+});
+export const EraseOverlay = createEraseOverlay({
+  useStore: useCanvasStore,
+  useCanvasImageModels,
+  generateCanvasRedraw,
+  uploadCanvasAsset,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
