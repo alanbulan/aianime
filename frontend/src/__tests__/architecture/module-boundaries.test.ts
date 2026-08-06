@@ -31662,7 +31662,7 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/presentation/useVideoNodeController.ts",
       "features/canvas/ui/EraseOverlay.tsx",
       "features/canvas/ui/RedrawOverlay.tsx",
-      "features/canvas/ui/RotateEditorOverlay.tsx",
+      "modules/creative_canvas/presentation/RotateEditorOverlay.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
     const consumerSources = consumerPaths.map((path) =>
       readFileSync(path, "utf8"),

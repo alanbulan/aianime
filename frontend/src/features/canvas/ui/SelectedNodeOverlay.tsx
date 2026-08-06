@@ -25,7 +25,7 @@ import { Scene360Overlay } from './Scene360Overlay';
 import { UpscaleEditorOverlay } from './UpscaleEditorOverlay';
 import { VideoUpscaleEditorOverlay } from './VideoUpscaleEditorOverlay';
 import { OutpaintEditorOverlay } from './OutpaintEditorOverlay';
-import { RotateEditorOverlay } from './RotateEditorOverlay';
+import { RotateEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { GridActionConfirmOverlay } from './GridActionConfirmOverlay';
 
 import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";

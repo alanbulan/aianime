@@ -11,12 +11,26 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-;
-import { CANVAS_NODE_TOOLBAR_PILL_CLASS, DEFAULT_CANVAS_NODE_WIDTH, NODE_TOOLBAR_CLASS, loadImageElement, type CanvasNode } from '@/modules/creative_canvas/public';
+import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './canvasNodeFrameStyles';
+import { NODE_TOOLBAR_CLASS } from './canvasNodeToolbarConfig';
+import { loadImageElement } from '../infrastructure/browserImageRuntime';
+import { DEFAULT_CANVAS_NODE_WIDTH } from '../domain/canvasGeometry';
+import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 
-import { uploadCanvasAsset } from "@/modules/creative_canvas/canvasComposition";
+export interface RotateEditorOverlayStore {
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+}
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+export type RotateEditorOverlayStoreHook = <TSelected>(
+  selector: (state: RotateEditorOverlayStore) => TSelected,
+) => TSelected;
+
+export type RotateEditorOverlayUploadCanvasAsset = (
+  projectId: string,
+  file: File | Blob,
+  filename: string,
+) => Promise<{ filename: string; url: string }>;
+
 interface RotateEditorOverlayProps {
   projectId: string;
   node: CanvasNode;
@@ -37,10 +51,16 @@ function normalizeAngle(angle: number): number {
   return n < 0 ? n + 360 : n;
 }
 
-export const RotateEditorOverlay = memo(
-  ({ projectId, node, imageSource, onClose }: RotateEditorOverlayProps) => {
+export function createRotateEditorOverlay({
+  useStore,
+  uploadCanvasAsset,
+}: {
+  useStore: RotateEditorOverlayStoreHook;
+  uploadCanvasAsset: RotateEditorOverlayUploadCanvasAsset;
+}) {
+  return memo(({ projectId, node, imageSource, onClose }: RotateEditorOverlayProps) => {
     const { t } = useTranslation();
-    const updateNodeData = useCanvasStore((state) => state.updateNodeData);
+    const updateNodeData = useStore((state) => state.updateNodeData);
 
     const [angle, setAngle] = useState(0);
     const [mirrorH, setMirrorH] = useState(false);
@@ -306,7 +326,7 @@ export const RotateEditorOverlay = memo(
         </ReactFlowNodeToolbar>
       </>
     );
-  },
-);
+  });
+}
 
-RotateEditorOverlay.displayName = 'RotateEditorOverlay';
+export type RotateEditorOverlay = ReturnType<typeof createRotateEditorOverlay>;
