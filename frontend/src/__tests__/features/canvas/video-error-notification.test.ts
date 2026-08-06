@@ -10,7 +10,7 @@ function read(relativePath: string): string {
 describe("VideoNode error notification contract", () => {
   it("uses preserved diagnostics for policy detection and dialog copy", () => {
     const source = read(
-      "src/features/canvas/hooks/useVideoNodeController.ts",
+      "src/modules/creative_canvas/presentation/useVideoNodeController.ts",
     );
 
     expect(source).toContain(

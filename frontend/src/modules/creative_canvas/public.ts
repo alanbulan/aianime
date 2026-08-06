@@ -3546,6 +3546,8 @@ export { ImageEditNodeView } from "@/modules/creative_canvas/presentation/ImageE
 export type { ImageEditNodeController } from "@/modules/creative_canvas/presentation/useImageEditNodeController";
 export { ImageGenNodeView } from "@/modules/creative_canvas/presentation/ImageGenNodeView";
 export type { ImageGenNodeController } from "@/modules/creative_canvas/presentation/useImageGenNodeController";
+export { VideoNodeView } from "@/modules/creative_canvas/presentation/VideoNodeView";
+export type { VideoNodeController } from "@/modules/creative_canvas/presentation/useVideoNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";

@@ -2,12 +2,12 @@
 import { createElement, memo } from 'react';
 import type { NodeProps } from '@xyflow/react';
 
-;
-import { useVideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
+import { useVideoNodeController } from '@/modules/creative_canvas/canvasComposition';
+import {
+  VideoNodeView,
+  type VideoNodeData,
+} from '@/modules/creative_canvas/public';
 
-import { VideoNodeView } from './VideoNodeView';
-
-import type { VideoNodeData } from "@/modules/creative_canvas/public";
 type VideoNodeProps = NodeProps & {
   id: string;
   data: VideoNodeData;

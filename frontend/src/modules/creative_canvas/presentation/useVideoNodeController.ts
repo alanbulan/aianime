@@ -12,96 +12,233 @@ import { useUpdateNodeInternals } from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { composeVideoNodePrompt, countVideoUpstreamMedia, countVideoUpstreamNodeTypes, hasVideoNodeGenerationError, planVideoAssetReferences, planVideoFrameSources, projectVideoReferenceMedia, resolveVideoFrameSeekSeconds, resolveVideoNodeAspectRatio, resolveVideoNodeDimensions, resolveVideoNodeDisplayedRect, resolveVideoNodeModel, resolveVideoNodePosterSource, resolveVideoNodeSource, resolveVideoNodeSubmitAspectRatio, videoNodeAlbumUrls, VIDEO_NODE_DEFAULT_HEIGHT, VIDEO_NODE_DEFAULT_WIDTH, VIDEO_NODE_OPERATIONS_PANEL_HEIGHT, VIDEO_NODE_OPERATIONS_PANEL_OVERHANG, type VideoNodeData, isAudioNode } from '@/modules/creative_canvas/public';
-
+import type {
+  CanvasEdge,
+  CanvasNode,
+  CanvasNodeData,
+  CanvasNodeType,
+  VideoNodeData,
+} from '../domain/canvasNodeData';
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import { isAudioNode } from '../domain/canvasNodePredicates';
 import {
-  captureVideoFrameBlob,
-  ensureWebSafeVideo,
-  showErrorDialog,
-  uploadCanvasAsset,
-  useIsBoxSelecting,
-  useUpstreamNodes,
-} from "@/modules/creative_canvas/canvasComposition";
-
+  composeVideoNodePrompt,
+  countVideoUpstreamMedia,
+  countVideoUpstreamNodeTypes,
+  hasVideoNodeGenerationError,
+  planVideoAssetReferences,
+  planVideoFrameSources,
+  projectVideoReferenceMedia,
+  resolveVideoFrameSeekSeconds,
+  resolveVideoNodeAspectRatio,
+  resolveVideoNodeDimensions,
+  resolveVideoNodeDisplayedRect,
+  resolveVideoNodeModel,
+  resolveVideoNodePosterSource,
+  resolveVideoNodeSource,
+  resolveVideoNodeSubmitAspectRatio,
+  videoNodeAlbumUrls,
+  VIDEO_NODE_DEFAULT_HEIGHT,
+  VIDEO_NODE_DEFAULT_WIDTH,
+  VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
+  VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
+} from '../application/videoNodeModel';
 import {
-  canvasEventBus,
   contextPromptPaletteInsertionText,
+  type ContextPromptPaletteEntry,
+} from '../domain/contextPromptPalette';
+import {
   extractUpstreamContent,
   joinUpstreamText,
-  rememberLastVideoModel,
-  resolveNodeDisplayName,
-  setAlbumPendingTotal,
-  type VideoGenCount,
-  useAlbumPendingTotal,
-} from '@/modules/creative_canvas/public';
+} from '../application/graphContentResolver';
+import { resolveNodeDisplayName } from '../domain/nodeDisplay';
 import {
   sortUpstreamByReferenceOrder,
-  type ContextPromptPaletteEntry,
-  type MentionCandidate,
-  type PromptMentionEditorHandle,
   upstreamNodesInEdgeOrder,
-  useReferenceMentionSync,
-} from '@/modules/creative_canvas/public';
-import type { VideoElementMetadata } from '@/modules/creative_canvas/public';
+} from '../domain/referenceOrdering';
+import type {
+  MentionCandidate,
+  PromptMentionEditorHandle,
+} from './PromptMentionEditor';
+import { useReferenceMentionSync } from './useReferenceMentionSync';
+import {
+  setAlbumPendingTotal,
+  useAlbumPendingTotal,
+} from './albumPendingTotals';
 import {
   CAMERA_MOVEMENT_PRESETS,
-  DEFAULT_VIDEO_DURATION_SEC,
-  VIDEO_FILE_ACCEPT,
-  buildVideoMetadataPatch,
-  captureBrowserVideoFrameStrip,
-  clampVideoDuration,
-  classifyVideoReferenceItems,
-  composeVideoClip,
-  completeVideoGenerationTask,
-  defaultSceneOptimizeForModel,
-  eraseVideoSubtitles,
   findCameraMovementPreset,
-  generationTaskDescriptor,
-  hasMainlineContexts,
-  historyRecordOutputUrl,
-  isVideoFile,
+} from '../domain/cameraMovementPresets';
+import {
+  DEFAULT_VIDEO_DURATION_SEC,
+  clampVideoDuration,
+  defaultSceneOptimizeForModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
   normalizeVideoQuality,
-  resolveBrowserDroppedVideoFile,
-  resolveErrorContent,
-  resolveGenerationErrorDiagnostics,
   qualityToResolution,
-  referenceImageUrl,
-  referenceVideoUrl,
-  resolveAudioReferenceDisplayName,
-  resolveImageDisplayUrl,
   sceneOptimizeOptionsForModel,
-  submitVideoGeneration,
   supportedVideoModesForModel,
-  submittableImageUrl,
-  translateCanvasText,
-  useCanvasVideoCameraTemplates,
-  useCanvasVideoModels,
-  useNodeGenerationHistory,
-  useNodeGenerationTaskState,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
   videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
+} from '../domain/videoGenerationModel';
+import { VIDEO_FILE_ACCEPT, isVideoFile } from '../domain/videoFileTypes';
+import { buildVideoMetadataPatch } from '../domain/videoMetadataPatch';
+import {
+  classifyVideoReferenceItems,
   videoReferenceCapsForMode,
-  validateVideoReferenceAudioDuration,
-  resolveVideoGenerationModeOptions,
-  type CanvasAssetLibrarySelection,
-  type CanvasGenerationHistoryRecord,
-  type CameraMovementPreset,
-  type VideoGenMode,
-  type VideoGenerationReference,
-  type VideoReferenceCapEntry,
-} from '@/modules/creative_canvas/public';
+} from '../domain/videoReferenceLimits';
+import { resolveVideoGenerationModeOptions } from '../domain/videoGenerationModeOptions';
+import {
+  referenceImageUrl,
+  referenceVideoUrl,
+  submittableImageUrl,
+} from '../domain/videoReferenceMedia';
+import { resolveAudioReferenceDisplayName } from '../application/audioReferenceDisplayName';
+import { historyRecordOutputUrl, type CanvasGenerationHistoryRecord } from '../domain/generationHistoryRecord';
+import { hasMainlineContexts } from '../domain/mainlineContext';
+import { generationTaskDescriptor } from '../application/resumeGeneration';
+import { resolveErrorContent } from '../application/errorDialog';
+import { resolveGenerationErrorDiagnostics } from '../application/generationErrorReport';
+import { resolveImageDisplayUrl } from '../domain/imageData';
+import type { EnsureWebSafeVideoResult } from '../infrastructure/videoTranscode';
+import { captureBrowserVideoFrameStrip } from '../infrastructure/browserVideoFrameStrip';
+import { resolveBrowserDroppedVideoFile } from '../infrastructure/browserDroppedVideoFile';
+import type {
+  TranslateCanvasTextParams,
+  TranslateCanvasTextResult,
+} from '../application/translateCanvasText';
+import type { VideoGenMode } from '../domain/videoGenerationMode';
+import type { VideoGenerationReference } from '../application/submitVideoGeneration';
+import { useNodeGenerationHistory } from './useNodeGenerationHistory';
+import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
+import type { VideoElementMetadata } from './VideoNodePrimaryVideo';
+import type {
+  CanvasAssetLibrarySelection,
+} from '../domain/assetLibrary';
+import type {
+  CameraMovementPreset,
+} from '../domain/cameraMovementPresets';
+import type { VideoGenCount } from '../domain/videoGenerationModel';
+import type { VideoReferenceCapEntry } from '../domain/videoReferenceLimits';
 import { formatCreditCost } from '@/components/credits/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+export interface VideoNodeStore {
+  setSelectedNode: (id: string | null) => void;
+  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  addDerivedUploadNode: (
+    sourceNodeId: string,
+    imageUrl: string,
+    aspectRatio: string,
+    previewImageUrl?: string,
+  ) => string | null;
+  addNode: (
+    type: CanvasNodeType,
+    position: { x: number; y: number },
+    data?: Partial<CanvasNodeData>,
+  ) => string;
+  addEdge: (source: string, target: string) => void;
+  deleteEdge: (edgeId: string) => void;
+  setActiveOverlayNodeId: (id: string | null) => void;
+  hoveredNodeId: string | null;
+  findNodePosition: (
+    sourceNodeId: string,
+    width: number,
+    height: number,
+  ) => { x: number; y: number };
+  autoGroupSpawn: (
+    sourceNodeId: string,
+    nodeIds: string[],
+    options?: { label?: string },
+  ) => void;
+  onNodesChange: (
+    changes: Array<{ id: string; type: string; selected: boolean }>,
+  ) => void;
+  edges: CanvasEdge[];
+}
+
+export type VideoNodeStoreHook = <TSelected>(
+  selector: (state: VideoNodeStore) => TSelected,
+) => TSelected;
+
+export type VideoNodeReadGraph = () => {
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+};
+
+export type VideoNodeReadNode = (nodeId: string) => CanvasNode | undefined;
+
+export type VideoNodeReadActiveOverlayNodeId = () => string | null;
+
+export type VideoNodeIsBoxSelecting = () => boolean;
+
+export type VideoNodeUseUpstreamNodes = (
+  nodeId: string,
+) => CanvasNode[];
+
+export type VideoNodeUseVideoModels = (
+  projectId: string,
+) => ReturnType<typeof import('../generationCatalogComposition').useCanvasVideoModels>;
+
+export type VideoNodeUseVideoCameraTemplates = (
+  projectId: string,
+) => ReturnType<typeof import('../generationCatalogComposition').useCanvasVideoCameraTemplates>;
+
+export type VideoNodeUploadCanvasAsset = (
+  projectId: string,
+  file: File | Blob,
+  filename: string,
+  options?: { disableTimeout?: boolean },
+) => Promise<{ filename: string; url: string }>;
+
+export type VideoNodeTranslateCanvasText = (
+  params: Omit<TranslateCanvasTextParams, 'model'> & { model?: string },
+) => Promise<TranslateCanvasTextResult>;
+
+export type VideoNodeSubmitVideoGeneration = typeof import('../videoGenerationComposition').submitVideoGeneration;
+
+export type VideoNodeCompleteVideoGenerationTask = typeof import('../videoGenerationComposition').completeVideoGenerationTask;
+
+export type VideoNodeComposeVideoClip = typeof import('../videoComposeComposition').composeVideoClip;
+
+export type VideoNodeEraseVideoSubtitles = typeof import('../videoSubtitleEraseComposition').eraseVideoSubtitles;
+
+export type VideoNodeValidateAudioDuration = typeof import('../audioReferenceValidationComposition').validateVideoReferenceAudioDuration;
+
+export type VideoNodeShowErrorDialog = (
+  text: string,
+  title: string,
+  details?: string,
+  copyText?: string,
+) => Promise<void>;
+
+export type VideoNodeCaptureVideoFrameBlob = (
+  src: string,
+  seekSeconds: number,
+) => Promise<Blob>;
+
+export type VideoNodeEnsureWebSafeVideo = (
+  file: File,
+) => Promise<EnsureWebSafeVideoResult>;
+
+export type VideoNodeEventPort = {
+  subscribe(
+    event: 'video-node/reupload',
+    handler: (payload: { nodeId: string }) => void,
+  ): () => void;
+  subscribe(
+    event: 'video-node/external-file',
+    handler: (payload: { nodeId: string; file: File }) => void,
+  ): () => void;
+};
+
+export type VideoNodeRememberLastVideoModel = (modelId: string) => void;
 export interface VideoNodeControllerOptions {
   id: string;
   data: VideoNodeData;
@@ -112,32 +249,78 @@ export interface VideoNodeControllerOptions {
   canvasId: string;
 }
 
-export function useVideoNodeController({
-  id,
-  data,
-  selected,
-  width,
-  height,
-  projectId,
-  canvasId,
-}: VideoNodeControllerOptions) {
+export function createUseVideoNodeController({
+  useStore,
+  readGraph,
+  readNode,
+  readActiveOverlayNodeId,
+  useIsBoxSelecting,
+  useUpstreamNodes,
+  useCanvasVideoModels,
+  useCanvasVideoCameraTemplates,
+  uploadCanvasAsset,
+  translateCanvasText,
+  submitVideoGeneration,
+  completeVideoGenerationTask,
+  composeVideoClip,
+  eraseVideoSubtitles,
+  validateVideoReferenceAudioDuration,
+  captureVideoFrameBlob,
+  ensureWebSafeVideo,
+  showErrorDialog,
+  canvasEventBus,
+  rememberLastVideoModel,
+}: {
+  useStore: VideoNodeStoreHook;
+  readGraph: VideoNodeReadGraph;
+  readNode: VideoNodeReadNode;
+  readActiveOverlayNodeId: VideoNodeReadActiveOverlayNodeId;
+  useIsBoxSelecting: VideoNodeIsBoxSelecting;
+  useUpstreamNodes: VideoNodeUseUpstreamNodes;
+  useCanvasVideoModels: VideoNodeUseVideoModels;
+  useCanvasVideoCameraTemplates: VideoNodeUseVideoCameraTemplates;
+  uploadCanvasAsset: VideoNodeUploadCanvasAsset;
+  translateCanvasText: VideoNodeTranslateCanvasText;
+  submitVideoGeneration: VideoNodeSubmitVideoGeneration;
+  completeVideoGenerationTask: VideoNodeCompleteVideoGenerationTask;
+  composeVideoClip: VideoNodeComposeVideoClip;
+  eraseVideoSubtitles: VideoNodeEraseVideoSubtitles;
+  validateVideoReferenceAudioDuration: VideoNodeValidateAudioDuration;
+  captureVideoFrameBlob: VideoNodeCaptureVideoFrameBlob;
+  ensureWebSafeVideo: VideoNodeEnsureWebSafeVideo;
+  showErrorDialog: VideoNodeShowErrorDialog;
+  canvasEventBus: VideoNodeEventPort;
+  rememberLastVideoModel: VideoNodeRememberLastVideoModel;
+}) {
+  return function useVideoNodeController({
+    id,
+    data,
+    selected,
+    width,
+    height,
+    projectId,
+    canvasId,
+  }: VideoNodeControllerOptions) {
   const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
-  const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
+  const setSelectedNode = useStore((state) => state.setSelectedNode);
   const isBoxSelecting = useIsBoxSelecting();
-  const updateNodeData = useCanvasStore((state) => state.updateNodeData);
-  const addDerivedUploadNode = useCanvasStore(
+  const updateNodeData = useStore((state) => state.updateNodeData);
+  const addDerivedUploadNode = useStore(
     (state) => state.addDerivedUploadNode,
   );
-  const addNode = useCanvasStore((state) => state.addNode);
-  const addEdge = useCanvasStore((state) => state.addEdge);
-  const deleteEdge = useCanvasStore((state) => state.deleteEdge);
-  const setActiveOverlayNodeId = useCanvasStore(
+  const addNode = useStore((state) => state.addNode);
+  const addEdge = useStore((state) => state.addEdge);
+  const deleteEdge = useStore((state) => state.deleteEdge);
+  const setActiveOverlayNodeId = useStore(
     (state) => state.setActiveOverlayNodeId,
   );
-  const uploadRailNodeHovered = useCanvasStore(
+  const uploadRailNodeHovered = useStore(
     (state) => state.hoveredNodeId === id,
   );
+  const findNodePosition = useStore((state) => state.findNodePosition);
+  const autoGroupSpawn = useStore((state) => state.autoGroupSpawn);
+  const onNodesChange = useStore((state) => state.onNodesChange);
   const inputRef = useRef<HTMLInputElement>(null);
   // 在途守卫：持到本批所有并发任务 allSettled 才释放（见 handleSubmit）。
   const submittingRef = useRef(false);
@@ -381,7 +564,7 @@ export function useVideoNodeController({
   // so dragging unrelated nodes doesn't re-render this node. See useUpstreamGraph.
   const upstreamNodes = useUpstreamNodes(id);
   // 节点被连线（存在入边）后：隐藏「试试」CTA，只在节点中间显示一个图标（对齐 libtv）。
-  const isConnected = useCanvasStore((state) =>
+  const isConnected = useStore((state) =>
     state.edges.some((edge) => edge.target === id)
   );
   const sortedUpstreamNodes = useMemo(
@@ -519,8 +702,7 @@ export function useVideoNodeController({
   // 只走一跳，item.nodeId 就是直接相连的上游节点，可精确定位要删的边。
   const handleDetachUpstream = useCallback(
     (sourceNodeId: string) => {
-      useCanvasStore
-        .getState()
+      readGraph()
         .edges.filter((edge) => edge.source === sourceNodeId && edge.target === id)
         .forEach((edge) => deleteEdge(edge.id));
     },
@@ -615,7 +797,7 @@ export function useVideoNodeController({
     if (!albumExpanded) return;
     setActiveOverlayNodeId(id);
     return () => {
-      if (useCanvasStore.getState().activeOverlayNodeId === id) {
+      if (readActiveOverlayNodeId() === id) {
         setActiveOverlayNodeId(null);
       }
     };
@@ -651,12 +833,12 @@ export function useVideoNodeController({
   // 副作用放在 setState updater 外面：updater 必须纯（StrictMode 会双调用）。
   const handleToggleAlbumExpanded = useCallback(() => {
     if (!albumExpanded) {
-      const store = useCanvasStore.getState();
-      const selectionChanges = store.nodes
+      const graph = readGraph();
+      const selectionChanges = graph.nodes
         .filter((node) => node.selected)
         .map((node) => ({ id: node.id, type: 'select' as const, selected: false }));
       if (selectionChanges.length > 0) {
-        store.onNodesChange(selectionChanges);
+        onNodesChange(selectionChanges);
       }
       setSelectedNode(null);
       // 每次展开重置「应用到画布」的落点游标。
@@ -670,7 +852,7 @@ export function useVideoNodeController({
   const albumAppliedCountRef = useRef(0);
   const handleApplyAlbumVideoToCanvas = useCallback(
     (url: string) => {
-      const self = useCanvasStore.getState().nodes.find((n) => n.id === id);
+      const self = readNode(id);
       if (!self) return;
       const applyIndex = albumAppliedCountRef.current;
       albumAppliedCountRef.current += 1;
@@ -785,7 +967,7 @@ export function useVideoNodeController({
   // 首帧走图片节点（可上传也可直接生图）+ 全能参考；首尾帧仍走上传节点 + 关键帧。
   const spawnFrameUploads = useCallback(
     (mode: 'firstFrame' | 'firstLastFrame') => {
-      const state = useCanvasStore.getState();
+      const state = readGraph();
       const targetNode = state.nodes.find((node) => node.id === id);
       if (!targetNode) return;
       const plan = planVideoFrameSources({
@@ -799,7 +981,7 @@ export function useVideoNodeController({
         addNode(nodePlan.type, nodePlan.position, nodePlan.data),
       );
       nodeIds.forEach((nodeId) => addEdge(nodeId, id));
-      state.autoGroupSpawn(id, nodeIds, { label: plan.groupLabel });
+      autoGroupSpawn(id, nodeIds, { label: plan.groupLabel });
       updateNodeData(id, plan.videoPatch);
     },
     [addEdge, addNode, id, prompt, updateNodeData],
@@ -813,7 +995,7 @@ export function useVideoNodeController({
   const spawnCharacterLibraryReferences = useCallback(
     (selections: ReadonlyArray<CanvasAssetLibrarySelection>) => {
       if (selections.length === 0) return;
-      const state = useCanvasStore.getState();
+      const state = readGraph();
       const targetNode = state.nodes.find((node) => node.id === id);
       if (!targetNode) return;
       const plans = planVideoAssetReferences({
@@ -826,7 +1008,7 @@ export function useVideoNodeController({
         addNode(plan.type, plan.position, plan.data),
       );
       nodeIds.forEach((nodeId) => addEdge(nodeId, id));
-      state.autoGroupSpawn(id, nodeIds, { label: '资产参考组' });
+      autoGroupSpawn(id, nodeIds, { label: '资产参考组' });
     },
     [addEdge, addNode, data.aspectRatio, id],
   );
@@ -1101,8 +1283,7 @@ export function useVideoNodeController({
           quality,
         });
         if (result.url) {
-          const state = useCanvasStore.getState();
-          const position = state.findNodePosition(
+          const position = findNodePosition(
             id,
             VIDEO_NODE_DEFAULT_WIDTH,
             VIDEO_NODE_DEFAULT_HEIGHT,
@@ -1223,7 +1404,7 @@ export function useVideoNodeController({
       // 同源：按连线顺序收集。曾按 state.nodes 顺序（节点创建顺序）收集，先创建
       // 但后连线的节点会排到 references 前面，@图片N 在后端就指向错位的图。
       const collectUpstream = () => {
-        const state = useCanvasStore.getState();
+        const state = readGraph();
         return sortUpstreamByReferenceOrder(
           upstreamNodesInEdgeOrder(state.nodes, state.edges, id),
           data.referenceOrder,
@@ -1938,6 +2119,9 @@ export function useVideoNodeController({
     videoFileAccept: VIDEO_FILE_ACCEPT,
     projectId,
   };
+  };
 }
 
-export type VideoNodeController = ReturnType<typeof useVideoNodeController>;
+export type VideoNodeController = ReturnType<
+  ReturnType<typeof createUseVideoNodeController>
+>;

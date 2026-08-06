@@ -17,64 +17,67 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_WIDTH,
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
-} from '@/modules/creative_canvas/public';
+} from '../application/videoNodeModel';
 import { CreditCostPill } from '@/components/credits/credit-visual';
-import type { VideoNodeController } from '@/features/canvas/hooks/useVideoNodeController';
+import type { VideoNodeController } from './useVideoNodeController';
+import { CameraMovementChip } from './CameraMovementChip';
+import { CharacterLibraryChip } from './CharacterLibraryChip';
+import { VideoConfigChip } from './VideoConfigChip';
+import { VideoCountPicker } from './VideoCountPicker';
+import { VideoGenerationModeSelect } from './VideoGenerationModeSelect';
+import { VideoHumanReviewSwitch } from './VideoHumanReviewSwitch';
+import { VideoNodeClipPanel } from './VideoNodeClipPanel';
+import { VideoNodePrimaryVideo } from './VideoNodePrimaryVideo';
 import {
-  CameraMovementChip,
-  CharacterLibraryChip,
-  VideoConfigChip,
-  VideoCountPicker,
-  VideoGenerationModeSelect,
-  VideoHumanReviewSwitch,
-  VideoNodeClipPanel,
-  VideoNodePrimaryVideo,
   SubtitleEraseBoxOverlay,
   SubtitleEraseOpsPanel,
-  ReferenceMediaRow,
+} from './VideoSubtitleEraseControls';
+import { ReferenceMediaRow } from './VideoReferenceMedia';
+import {
   VideoAlbumDeck,
   VideoAlbumGallery,
   VideoAlbumToggleButton,
-  VideoNodeEmptyState,
-  VideoNodeGenerationHistoryPanel,
-  VideoPlayerControls,
+} from './VideoAlbumControls';
+import { VideoNodeEmptyState } from './VideoNodeEmptyState';
+import { VideoNodeGenerationHistoryPanel } from './VideoNodeGenerationHistoryPanel';
+import { VideoPlayerControls } from './VideoPlayerControls';
+import {
   VideoGeneratingState,
   VideoGenerationErrorState,
   VideoGenerationHistoryPreview,
   VideoLoadErrorOverlay,
   VideoMetadataLoadingOverlay,
-  OperationPanelShell,
-  PromptMentionEditor,
-  ProviderModelPicker,
-  VideoUploadActionRail,
   VideoUploadingState,
-} from '@/modules/creative_canvas/public';
+} from './VideoNodeMediaStatus';
+import { OperationPanelShell } from './OperationPanelShell';
+import { PromptMentionEditor } from './PromptMentionEditor';
+import { ProviderModelPicker } from './ProviderModelPicker';
+import { VideoUploadActionRail } from './VideoUploadActionRail';
 import { NodeContextPromptPaletteButton } from '@/features/canvas/nodes/ContextPromptPaletteButton';
+import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
+import { AssetLibraryModal } from './AssetLibraryModal';
 import {
-  NodeHeader,
-  NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
-import {
-  AssetLibraryModal,
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
   CANVAS_NODE_INPUT_BODY_SELECTED_FRAME_CLASS,
   CANVAS_NODE_INPUT_PLACEHOLDER_CLASS,
   CANVAS_NODE_INPUT_SURFACE_CLASS,
   CANVAS_NODE_OPS_PANEL_CLASS,
   CANVAS_NODE_PANEL_SURFACE_CLASS,
+  canvasNodeFrameClass,
+} from './canvasNodeFrameStyles';
+import {
   NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
   NODE_INLINE_ICON_BUTTON_ACTIVE_CLASS,
   NODE_INLINE_ICON_BUTTON_CLASS,
-  NodeContextBadges,
-  NodeResizeHandle,
-  PanelExpandButton,
-  ReferenceTextChip,
-  canvasNodeFrameClass,
-  resolveImageDisplayUrl,
-} from '@/modules/creative_canvas/public';
+} from './canvasNodeControlStyles';
+import { NodeContextBadges } from './NodeContextBadges';
+import { NodeResizeHandle } from './NodeResizeHandle';
+import { PanelExpandButton } from './PanelExpandButton';
+import { ReferenceTextChip } from './ReferenceTextChip';
+import { resolveImageDisplayUrl } from '../domain/imageData';
 
 export interface VideoNodeViewProps {
   controller: VideoNodeController;

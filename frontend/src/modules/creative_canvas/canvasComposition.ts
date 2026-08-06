@@ -36,6 +36,7 @@ import { createUseSkillNodeController } from './presentation/useSkillNodeControl
 import { createUseStoryboardGenNodeController } from './presentation/useStoryboardGenNodeController';
 import { createUseImageEditNodeController } from './presentation/useImageEditNodeController';
 import { createUseImageGenNodeController } from './presentation/useImageGenNodeController';
+import { createUseVideoNodeController } from './presentation/useVideoNodeController';
 import { createUseAudioNodeController } from './presentation/useAudioNodeController';
 import { createUseAudioOperationsPanelController } from './presentation/useAudioOperationsPanelController';
 import { createUseAudioGeneration } from './presentation/useAudioGeneration';
@@ -55,11 +56,19 @@ import {
   generateCanvasImage,
   submitCanvasImageGeneration,
 } from './mediaOperationGenerationComposition';
-import { submitVideoGeneration } from './videoGenerationComposition';
+import {
+  completeVideoGenerationTask,
+  submitVideoGeneration,
+} from './videoGenerationComposition';
+import { composeVideoClip } from './videoComposeComposition';
+import { eraseVideoSubtitles } from './videoSubtitleEraseComposition';
+import { validateVideoReferenceAudioDuration } from './audioReferenceValidationComposition';
+import { rememberLastVideoModel } from './canvasNodeFactoryComposition';
 import {
   useCanvasCameraOptions,
   useCanvasImageModels,
   useCanvasStyleTemplates,
+  useCanvasVideoCameraTemplates,
   useCanvasVideoModels,
 } from './generationCatalogComposition';
 import { loadCanvasSkillRegistry } from './skillCatalogComposition';
@@ -503,6 +512,36 @@ export const useImageGenNodeController = createUseImageGenNodeController({
   getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   generateCanvasImage,
+});
+export const useVideoNodeController = createUseVideoNodeController({
+  useStore: useCanvasStore,
+  readGraph: () =>
+    useCanvasStore.getState() as unknown as {
+      nodes: CanvasNode[];
+      edges: CanvasEdge[];
+    },
+  readNode: (nodeId) =>
+    useCanvasStore
+      .getState()
+      .nodes.find((node) => node.id === nodeId) as CanvasNode | undefined,
+  readActiveOverlayNodeId: () =>
+    useCanvasStore.getState().activeOverlayNodeId,
+  useIsBoxSelecting,
+  useUpstreamNodes,
+  useCanvasVideoModels,
+  useCanvasVideoCameraTemplates,
+  uploadCanvasAsset,
+  translateCanvasText,
+  submitVideoGeneration,
+  completeVideoGenerationTask,
+  composeVideoClip,
+  eraseVideoSubtitles,
+  validateVideoReferenceAudioDuration,
+  captureVideoFrameBlob,
+  ensureWebSafeVideo,
+  showErrorDialog: showErrorDialogInfrastructure,
+  canvasEventBus,
+  rememberLastVideoModel,
 });
 export const useImageMatteController = createUseImageMatteController({
   addExportImageNode: (position, data) =>
