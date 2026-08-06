@@ -822,6 +822,18 @@ def test_removed_legacy_package_shells_do_not_return() -> None:
         "skills",
         "services",
         "assets",
+        "agents",
+        "audio",
+        "chat",
+        "cognee",
+        "director_world",
+        "generators",
+        "ports",
+        "security",
+        "seedance2_i2v",
+        "storage",
+        "utils",
+        "verification",
     )
     assert [name for name in removed if (PACKAGE_ROOT / name).exists()] == []
     assert (PACKAGE_ROOT / "styles" / "presets").is_dir()
