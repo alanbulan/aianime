@@ -23306,7 +23306,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/LightEditorOverlay.tsx",
+      "modules/creative_canvas/presentation/LightEditorOverlay.tsx",
     );
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const domainSource = readFileSync(domainPath, "utf8");
@@ -23382,7 +23382,7 @@ describe("frontend architecture boundaries", () => {
     expect(panelSource).not.toContain("export type LightDirectionKey");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(overlayPath)).not.toContain("@/api/tasks");
-    expect(importSpecifiers(overlayPath)).toContain(
+    expect(importSpecifiers(overlayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
     expect(overlaySource).toContain("await generateCanvasRelight(");
