@@ -17,7 +17,7 @@ import {
 } from '@/modules/creative_canvas/public';
 import { NodeActionToolbar } from './NodeActionToolbar';
 import { AssetCommitHandle } from './AssetCommitHandle';
-import { MultiAngleEditorOverlay } from './MultiAngleEditorOverlay';
+import { MultiAngleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { LightEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { RedrawOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { EraseOverlay } from '@/modules/creative_canvas/canvasComposition';

@@ -23170,7 +23170,7 @@ describe("frontend architecture boundaries", () => {
     );
     const overlayPath = resolve(
       SRC_ROOT,
-      "features/canvas/ui/MultiAngleEditorOverlay.tsx",
+      "modules/creative_canvas/presentation/MultiAngleEditorOverlay.tsx",
     );
     const sceneApplicationPath = resolve(
       SRC_ROOT,
