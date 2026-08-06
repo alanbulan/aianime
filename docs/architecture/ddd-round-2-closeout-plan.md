@@ -208,6 +208,7 @@
 | 第 987 批验证记录 | 锁定环境复验与文档完成状态校正 | 桌面 TypeScript 通过、桌面契约 55 项全过；后端架构/定向 212 项、契约 82+1 跳过、Ruff、compileall 全绿（前端全量 861 文件 4000 项与架构 398 项已随第 986 批记录）。文档结论、R1 阶段表/状态段与当前检查点同步为 Creative Canvas 唯一边界已完成、features/ 仅剩 viewer-kit、后端顶层单文件收敛登记为后续项 |
 | 第 988 批验证记录 | 主计划文档与 README 完成状态/目录同步 | `ddd-refactoring-plan.md` 顶部状态、阶段 8 行与阶段 10 行按当前代码校正（阶段 8 已完成、阶段 10 待 R7）；README 领域地图去掉 task-center/features/canvas/features/freezone/features/superchat 旧所有者，目录树移除 task-center/bootstrap/ports/task_backend/generators 等已删除路径，后端树改为 modules/shared/styles/desktop_server/config 等当前结构。纯文档变更，无代码与门禁影响 |
 | 第 989 批验证记录 | 真实网关只读联调探测（无凭据） | `https://aianime.122-193-11-199.sslip.io` 在线且为真实服务：`/api/v1/auth/captcha` 缺 `tenantCode` 时返回 400 `{"message":"field \"tenantCode\" is not set"}`，且不识别查询参数（与集成文档的 GET query 契约不一致）；`/api/v1/client/auth/login` POST 校验真实，`platform` 租户返回“租户不存在或服务已到期，请核对租户编码或联系管理员”；`/api/v1/client/bootstrap`、`/api/v1/client/releases/check` 无 token 返回 401；文档中的 `/api/v1/config/public`、`/api/v1/config/logo` 在真实服务端为 404，尚未实现；错误信封为 `{"message": ...}`。需后端提供真实租户编码、测试账号/验证码与签名公钥后继续登录→Bootstrap→许可→目录全链联调 |
+| 第 990 批验证记录 | 清理确认无引用的残余文件与遗留判断 | 删除后端零引用单文件 `task_jobs.py`(202 行)/`model_gateway_runtime.py`(69 行)/`telemetry.py`(58 行) 与前端零引用资源 `assets/icons/two-finger-pan.gif`；移除 `dev-backend-watch.ts` 的失效 `/watch/` 预登录判断与 themed-toaster 测试的 `/watch/demo` 用例；清除 pyproject 指向已删除文件的 2 条过期 Ruff 豁免。后端架构/定向 212、前端架构 398、Ruff、compileall、tsc、定向 11 项全部通过 |
 
 当前主仓库已经具备以下事实能力：
 

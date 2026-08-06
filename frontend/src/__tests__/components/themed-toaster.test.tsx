@@ -27,7 +27,6 @@ describe("ThemedToaster", () => {
     ["/projects/demo/freezone", "60"],
     ["/projects/demo/characters", "102"],
     ["/login", "24"],
-    ["/watch/demo", "24"],
   ])("uses the safe top offset for %s", (pathname, expectedOffset) => {
     routeState.pathname = pathname;
     render(<ThemedToaster />);

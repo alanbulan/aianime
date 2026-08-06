@@ -16,7 +16,7 @@ function hasChanged(previous: BackendIdentity, next: BackendIdentity): boolean {
 }
 
 function isPreauthPath(pathname: string): boolean {
-  return pathname === "/login" || pathname.startsWith("/watch/");
+  return pathname === "/login";
 }
 
 export function shouldWatchDevBackend(apiUrl: string | undefined): boolean {
