@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "path";
 
 // YYMMDD build-date prefix (UTC), e.g. "260420-". Prepended to every
@@ -19,14 +20,26 @@ function datePrefix(d: Date = new Date()): string {
 // The human-facing version shown in the status bar.
 // Resolution order:
 //   1. VITE_APP_VERSION — set by release CI from the tag.
-//   2. the nearest git tag (`git describe --tags --abbrev=0`) — so a local
-//      checkout shows the SAME version the release stamped, automatically,
-//      once you pull the code that carries the new tag. No manual bump needed.
-//   3. DEFAULT_APP_VERSION — last resort for a git-less build (source tarball).
-const DEFAULT_APP_VERSION = "v1.1.0";
+//   2. `desktop/package.json` version — the real product version that ships,
+//      so dev mode no longer shows a stale hardcoded value.
+//   3. the nearest git tag (`git describe --tags --abbrev=0`) as a fallback.
+//   4. DEFAULT_APP_VERSION — last resort for a git-less build (source tarball).
+const DEFAULT_APP_VERSION = "1.1.3";
 
 function resolveAppVersion(): string {
   if (process.env.VITE_APP_VERSION) return process.env.VITE_APP_VERSION;
+  try {
+    const pkg = JSON.parse(
+      readFileSync(
+        path.resolve(process.cwd(), "..", "desktop", "package.json"),
+        "utf8",
+      ),
+    );
+    const version = String(pkg.version || "").trim();
+    if (version) return version;
+  } catch {
+    // desktop package unavailable — fall through to git tag / constant
+  }
   try {
     const tag = execSync("git describe --tags --abbrev=0", {
       encoding: "utf8",
