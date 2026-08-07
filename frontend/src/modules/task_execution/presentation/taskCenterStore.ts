@@ -43,7 +43,7 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
   projectId: null,
   tasks: new Map(),
-  streamHealth: "connecting",
+  streamHealth: "idle",
   lastEventAt: null,
   selectedTaskKey: null,
   filter: "all",
@@ -103,7 +103,7 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
     set({
       projectId: null,
       tasks: new Map(),
-      streamHealth: "connecting",
+      streamHealth: "idle",
       lastEventAt: null,
       selectedTaskKey: null,
       filter: "all",

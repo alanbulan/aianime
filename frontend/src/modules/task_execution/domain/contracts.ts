@@ -46,6 +46,7 @@ export interface TaskStreamEvent {
 }
 
 export type StreamHealth =
+  | "idle"
   | "connecting"
   | "connected"
   | "reconnecting"

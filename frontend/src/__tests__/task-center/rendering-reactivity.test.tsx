@@ -127,8 +127,8 @@ describe("rendered-DOM reactivity — status bar", () => {
 
   it("re-renders stream health indicator when setHealth is called", () => {
     renderStatusBar();
-    // Initial health is "connecting"; both sr-only and visible label exist
-    expect(screen.getAllByText(/connecting/i).length).toBeGreaterThan(0);
+    // No active project yet — health starts idle ("空闲"), not "connecting"
+    expect(screen.getAllByText(/idle/i).length).toBeGreaterThan(0);
 
     act(() => {
       useTaskCenterStore.getState().setHealth("reconnecting");

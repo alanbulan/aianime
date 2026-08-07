@@ -19,6 +19,7 @@ import { APP_VERSION } from "@/lib/app-version";
 import { cn } from "@/lib/utils";
 
 const HEALTH_COLOR: Record<StreamHealth, string> = {
+  idle: "text-muted-foreground",
   connecting: "text-muted-foreground",
   connected: "text-success",
   reconnecting: "text-warning",
@@ -173,13 +174,15 @@ export function TaskStatusBar() {
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2 text-muted-foreground">
-        <span className="ml-1.5 flex items-center gap-1">
-          <Circle className={cn("size-1 fill-current", HEALTH_COLOR[health])} />
-          <span className="sr-only" aria-live="polite">
-            {t(`taskCenter.statusBar.${health}`)}
+        {health !== "idle" ? (
+          <span className="ml-1.5 flex items-center gap-1">
+            <Circle className={cn("size-1 fill-current", HEALTH_COLOR[health])} />
+            <span className="sr-only" aria-live="polite">
+              {t(`taskCenter.statusBar.${health}`)}
+            </span>
+            <span aria-hidden="true">{t(`taskCenter.statusBar.${health}`)}</span>
           </span>
-          <span aria-hidden="true">{t(`taskCenter.statusBar.${health}`)}</span>
-        </span>
+        ) : null}
         <span
           className="shrink-0 font-normal tabular-nums text-muted-foreground"
           title={APP_VERSION}
