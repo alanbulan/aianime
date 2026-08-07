@@ -2439,7 +2439,6 @@ async def test_prop_asset_preset_emits_missing_reference_placeholder(
         default_push_target={"kind": "prop_ref", "prop_id": "账单"},
     )
     nodes = {node["id"]: node for node in payload["nodes"]}
-    edges = {(edge["source"], edge["target"]) for edge in payload["edges"]}
 
     assert nodes["ref_prop_reference_1"]["type"] == "imageGenNode"
     assert nodes["ref_prop_reference_1"]["data"]["imageUrl"] is None

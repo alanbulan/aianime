@@ -8,7 +8,6 @@
 
 import colorsys
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -225,7 +224,6 @@ def annotate_sketch_with_identities(
                     continue
                 parts = color_str.split(" ", 1)
                 hex_code = parts[0]
-                color_name = parts[1] if len(parts) > 1 else ""
 
                 # 显示 char tag（ASCII，PIL 可渲染）
                 display_name = (tag_map or {}).get(identity_id, identity_id)

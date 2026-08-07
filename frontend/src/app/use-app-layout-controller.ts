@@ -6,7 +6,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
-import { clusterConfig } from "@/shared/platform/cluster-config";
+import { clusterConfig } from "@/shared/cluster-config";
 import { initObservability } from "@/lib/observability";
 import { initRegionTabSync } from "@/lib/region-tab-sync";
 import { authRequired } from "@/lib/runtime-config";

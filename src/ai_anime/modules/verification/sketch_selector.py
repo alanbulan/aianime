@@ -10,7 +10,6 @@ from pathlib import Path
 from ai_anime.modules.generators.public import compute_beat_content_hash, is_pool_image_stale
 
 from .image_verifier import ImageVerifier, resolve_verification_scene_context
-from .models import ObjectiveScore
 from .sketch_scorer import SketchScorer
 from .sketch_comparer import SketchComparer
 

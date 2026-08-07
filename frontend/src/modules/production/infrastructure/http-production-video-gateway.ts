@@ -43,10 +43,6 @@ import type {
 } from "@/modules/production/domain/render-plan";
 import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
 import type {
-  SketchRegenQueueData,
-  SketchRegenQueueItem,
-} from "@/modules/production/domain/sketch-regen-queue";
-import type {
   CropSketchCommand,
   SaveSketchPoseEditorCommand,
   SketchCropResult,
@@ -764,22 +760,6 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       .json<
         ProductionDataResponse<RenderExecuteResult> | ProductionErrorResponse
       >();
-  },
-  async getSketchRegenQueue(project, episode, signal) {
-    return api
-      .get(
-        p`api/v1/projects/${project}/episodes/${episode}/sketch-regen-queue`,
-        { signal },
-      )
-      .json<ProductionDataResponse<SketchRegenQueueData>>();
-  },
-  async saveSketchRegenQueue(project, episode, items: SketchRegenQueueItem[]) {
-    return api
-      .put(
-        p`api/v1/projects/${project}/episodes/${episode}/sketch-regen-queue`,
-        { json: { items } },
-      )
-      .json<ProductionDataResponse<SketchRegenQueueData>>();
   },
   async getSketchPoseEditor(project, episode, beatNum, signal) {
     return api

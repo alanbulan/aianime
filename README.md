@@ -1,188 +1,290 @@
 # AI anime 桌面客户端
 
-AI anime 是一个 Windows 桌面应用。发布包包含 React 前端、Electron 桌面壳、FastAPI 本地后端、Python 业务代码、SQLite 本地存储和 FFmpeg；最终用户不需要单独安装开发环境。
+AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
-仓库采用 DDD 风格的模块化单体。React、Electron、FastAPI 和本地任务运行时仍作为一个产品发布，业务按有界上下文组织，不拆成独立微服务。完整迁移记录和决策见 [`docs/architecture/ddd-refactoring-plan.md`](docs/architecture/ddd-refactoring-plan.md)。
+当前发布目标：
 
-## 1. 运行架构
+| 平台 | 架构 | 最低系统 | 安装包 |
+| --- | --- | --- | --- |
+| Windows | x64 | Windows 10/11 | NSIS `.exe` |
+| macOS | Apple Silicon arm64 | macOS 15 | `.dmg`、`.zip` |
+
+本仓库采用 DDD 风格的模块化单体，不是微服务集合。业务边界已大面积迁入有界上下文，但仍存在明确登记的遗留模块，因此当前状态是“主要业务链路完成分层”，不是“全仓已经纯 DDD”。
+
+## 1. 当前可交付状态
+
+代码和离线测试已经覆盖以下链路：
+
+- Electron 启停 FastAPI sidecar，并用随机桌面令牌保护本机接口。
+- React 通过 FastAPI 完成本地项目、剧集、资产、画布、任务和生成工作流。
+- 商业登录、会话刷新、许可、额度、模型目录、公告和版本更新通过 Electron IPC 访问真实 Gateway 路径。
+- 普通版 Cloud 模型请求经 Electron 本地模型代理转发到 Gateway；专业版 BYOK 由用户配置标准模型接口。
+- Windows x64 与 macOS arm64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
+
+以下内容不能据此视为已经完成线上验收：
+
+- 尚未使用真实租户账号执行登录、许可激活、扣费、生成、公告和版本更新的完整在线联调。
+- `desktop/src/main.ts` 中 `leaseSigningKeys` 仍为空，离线租约会按 fail-closed 保持未验证。
+- 更新制品签名公钥尚未配置，下载后安装会按 fail-closed 拒绝执行。
+- Windows 与 macOS 安装包必须分别在对应宿主系统构建；当前配置不支持在 Windows 上交叉生成 macOS sidecar。
+
+因此，“调用链已接线”和“生产环境已验收”必须分开判断。
+
+## 2. 运行架构
 
 ```mermaid
 flowchart LR
-    Electron[Electron 主进程] -->|启动和回收| API[本地 FastAPI]
-    Electron -->|开发模式| Vite[Vite 开发服务器]
-    Electron -->|发布模式| SPA[FastAPI 托管 React SPA]
-    Vite --> UI[React 渲染层]
-    SPA --> UI
-    UI -->|/api/v1/*| Routes[FastAPI 入站适配器]
-    Routes --> Public[领域 public API]
-    Public --> App[Application 用例与端口]
-    App --> Infra[Infrastructure 适配器]
-    Infra --> Local[SQLite / 本地文件 / FFmpeg]
-    Infra --> Mock[本地认证、发布通知和云任务模拟器]
-    Electron -->|商业登录/许可/模型代理| Cloud[真实云端 Gateway]
+    UI[React Renderer] -->|白名单方法| Preload[Electron preload]
+    Preload -->|IPC| Main[Electron 主进程]
+    Main -->|启动/停止| API[FastAPI sidecar]
+    UI -->|/api/v1/* + Cookie| API
+    API --> App[Application 用例]
+    App --> Domain[Domain]
+    App --> Ports[Ports]
+    Ports --> Infra[Infrastructure]
+    Infra --> Local[SQLite / 文件 / FFmpeg]
+    Main -->|HTTPS + JWT| Gateway[Commercial Gateway]
+    API -->|loopback token| Proxy[Electron 模型代理]
+    Proxy -->|/v1 或 /v1beta| Gateway
 ```
 
 桌面启动顺序：
 
-1. Electron 生成一次性的 32 字节随机令牌。
-2. Electron 启动 `ai_anime.desktop_server`；发布包使用 PyInstaller 生成的 `ai-anime-backend.exe`。
-3. FastAPI 只绑定 loopback 地址和系统分配的随机端口。
-4. FastAPI 通过标准输出发送 `AI_ANIME_DESKTOP` socket 事件。
-5. Electron 为该后端地址的请求注入 `X-AI-Anime-Desktop-Token`。
-6. 开发模式启动 Vite 并加载 `http://127.0.0.1:5173`；发布模式由 FastAPI 在随机地址托管 SPA。
-7. 窗口退出时，Electron 调用 `/__desktop/shutdown` 并回收后端进程。
+1. Electron 生成 32 字节随机桌面令牌。
+2. Electron 启动 `ai_anime.desktop_server`；发布包使用 PyInstaller sidecar。
+3. FastAPI 只绑定 loopback 随机端口，并通过标准输出报告实际地址。
+4. Electron 为本地请求注入 `X-AI-Anime-Desktop-Token`。
+5. 开发模式加载 Vite；发布模式由 FastAPI 托管已构建的 React SPA。
+6. Electron 启动只监听 loopback 的商业模型代理，并把地址和随机代理令牌传给 sidecar。
+7. 窗口退出时，Electron 请求 sidecar 关闭并回收 FastAPI、Hermes 和模型代理进程。
 
-开发模式启动前会自动对 `desktop/hermes-runtime` 执行锁定同步，Hermes ACP 以隐藏子进程启动，用户无需单独安装 Hermes 环境。
+三类身份不能混用：
 
-桌面进程令牌和用户会话是两套独立机制：
-
-| 机制 | 用途 | 是否代表用户身份 |
+| 凭据 | 所在位置 | 用途 |
 | --- | --- | --- |
-| `X-AI-Anime-Desktop-Token` | 阻止其他本机进程直接调用 sidecar | 否 |
-| `ai_anime_session` | 登录后识别当前用户 | 是 |
+| 桌面进程令牌 | Electron 与 FastAPI | 阻止其他本机进程调用 sidecar |
+| `ai_anime_session` Cookie | Electron Session 与 FastAPI | 标识已通过商业登录的本地工作区用户 |
+| Gateway JWT / 设备私钥 | 仅 Electron 主进程 | 访问远端商业服务、许可与模型代理 |
 
-云端访问令牌不能进入 React，也不能用桌面进程令牌替代。正式云端接入仍由本地 FastAPI 作为 BFF 代理。
+React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线租约原文。
 
-## 2. 领域地图
+## 3. DDD 边界
 
-| 有界上下文 | 主要职责 | 前端所有者 | 后端所有者 |
-| --- | --- | --- | --- |
-| Story Intake & Knowledge | 原文导入、章节预览、知识图谱刷新 | `modules/story_intake` | `modules/story_intake`、Cognee 适配能力 |
-| Identity & Access | 登录、授权、会话和头像 | `modules/identity_access` | `modules/identity_access` |
-| Project Workspace | 项目生命周期、成员权限和项目导航 | `modules/project_workspace` | `modules/project_workspace` |
-| Narrative Planning | 剧集、剧本、Beat 和文案规划 | `modules/narrative_planning` | `modules/narrative_planning` |
-| Asset & World | 风格、角色、身份、声线、场景、道具和导演世界 | `modules/asset_world` | `modules/asset_world` |
-| Production | 草图、Render、音频、视频、合成与任务编排 | `modules/production`、`modules/task_execution` | `modules/production`、`modules/task_execution` |
-| Creative Canvas | 自由画布、节点能力、主线提交和 Viewer | `modules/creative_canvas`、`features/viewer-kit` | `modules/creative_canvas`、`api/routes/canvas` |
-| AI Assistant | SuperChat、会话、工具调用和 Agent 运行时 | `modules/ai_assistant` | `modules/ai_assistant` |
-| Model & Usage | 模型网关、额度、计费和调用观测 | `modules/model_usage` | `modules/model_usage` |
-| Platform & Release | 运行时配置、项目文件交付、发布通知和版本更新 | `modules/platform_release` | `modules/platform_release` |
+### 3.1 已建立标准分层的上下文
 
-跨上下文调用只允许经过对应 `public.ts` 或 `public.py`。数据兼容回退仅用于读取既有用户项目，不作为新写入路径或第二套业务实现。
+后端和前端的主要上下文采用 `domain/application/infrastructure/presentation/composition/public` 中适用的层：
 
-## 3. 项目结构
+| 上下文 | 职责 |
+| --- | --- |
+| `identity_access` | 商业登录、本地会话、授权与许可 |
+| `project_workspace` | 项目生命周期、权限和工作区状态 |
+| `story_intake` | 原文上传、章节预览和知识导入 |
+| `narrative_planning` | 剧集、剧本、Beat 和镜头规划 |
+| `asset_world` | 风格、角色、身份、声线、场景和道具 |
+| `production` | 草图、Render、音频、视频和合成 |
+| `creative_canvas` | 自由画布、节点能力、候选生成与主线提交 |
+| `ai_assistant` | SuperChat、Agent 会话和工具调用 |
+| `task_execution` | 任务队列、状态、取消与运行器 |
+| `model_usage` | 模型目录、额度、计费和调用观测 |
+| `platform_release` | 运行时配置、项目文件交付和本地发布说明解析 |
+
+层职责：
+
+| 层 | 负责 | 禁止 |
+| --- | --- | --- |
+| `domain` | 实体、值对象、状态机和纯规则 | FastAPI、React、数据库和浏览器 API |
+| `application` | 用例、命令、查询、DTO 和端口 | 直接创建 infrastructure、处理 HTTP/DOM |
+| `infrastructure` | HTTP、SQLite、文件、浏览器和外部服务适配 | 重复业务规则 |
+| `presentation` | 纯视图和展示投影 | 直接调用原始 transport 或数据库 |
+| `composition` | 依赖装配 | 复制用例逻辑 |
+| `public` | 跨上下文稳定入口 | 暴露模块内部路径 |
+
+跨上下文调用应经过目标上下文的 `public.py` 或 `public.ts`。FastAPI route 只负责认证、schema、用例调用和 HTTP 错误映射；React route 只负责路由参数和页面装配。
+
+### 3.2 尚未完成的 DDD 收敛
+
+以下后端目录仍是平铺遗留结构：
+
+- `modules/agents`
+- `modules/backup`
+- `modules/director_world`
+- `modules/generators`
+- `modules/knowledge_graph`
+- `modules/seedance2_i2v`
+- `modules/verification`
+
+以下大文件仍需要后续按真实业务所有权拆分，不能通过再加 facade 掩盖：
+
+- `src/ai_anime/sqlite_store.py`：跨角色、场景、道具、剧集和 Beat 的兼容存储实现，仍依赖多个业务上下文 public API。
+- `src/ai_anime/stage_asset_tasks.py`：Director World 与任务运行时编排仍较集中。
+- `src/ai_anime/task_state.py`：任务持久化和状态规则仍较集中。
+- `desktop/src/commercial.ts`：商业 transport、会话和 IPC 组合仍位于同一文件。
+
+这些是已知架构债，不应在 README、发布说明或评审中描述为“DDD 已全部完成”。
+
+### 3.3 目录规则
+
+- 只有一个文件并不自动代表目录错误。`domain/application/infrastructure/presentation`、API 版本目录、locale 和资源目录表达稳定边界，可以保留。
+- 没有独立边界、只增加一层跳转的包装目录应打平。
+- 迁移完成后不保留旧 re-export、兼容 facade、第二套请求路径或只供源码字符串测试读取的旧文件。
+- 历史数据兼容只允许存在于读取和迁移边界，不得成为新写入路径。
+
+## 4. 项目结构
 
 ```text
 ai-anime-desktop/
-├─ desktop/                         Electron 生命周期、窗口 IPC 与 Windows 打包
-│  ├─ src/main.ts                  发布模式主进程
-│  ├─ src/backend.ts               FastAPI sidecar 启停、令牌与健康检查
-│  ├─ scripts/dev.mjs              FastAPI + Vite + Electron 直接开发模式
-│  ├─ backend/                     PyInstaller 入口和 spec
-│  ├─ hermes-runtime/             独立 Hermes ACP 运行时（锁定依赖）
-│  └─ electron-builder.yml         NSIS 和应用图标配置
+├─ desktop/                         Electron 主进程与跨平台打包
+│  ├─ src/main.ts                  窗口、sidecar 和商业链路组合根
+│  ├─ src/backend.ts               FastAPI sidecar 生命周期
+│  ├─ src/commercial*.ts           Gateway、许可、模型代理与制品安全
+│  ├─ src/preload.cts              渲染进程白名单 IPC
+│  ├─ backend/                     PyInstaller sidecar 入口与 spec
+│  ├─ hermes-runtime/              独立 Hermes ACP 运行时
+│  ├─ scripts/                     开发、FFmpeg、图标和宿主检查脚本
+│  └─ electron-builder.yml         NSIS、DMG 和 ZIP 配置
 ├─ frontend/
-│  ├─ public/                      Logo、登录背景和主题初始化脚本
+│  ├─ public/                      静态资源与主题初始化
 │  └─ src/
-│     ├─ app/                      Bootstrap、Router、Provider 和全局样式
+│     ├─ app/                      Bootstrap、Router 和 Provider
 │     ├─ routes/                   TanStack Router 薄适配器
-│     ├─ modules/                  DDD 业务上下文
-│     ├─ features/                 仅剩 viewer-kit 等既有共享特性上下文
-│     ├─ shared/api/               唯一通用 HTTP transport
-│     └─ __tests__/architecture/   依赖、颜色和主题对比度门禁
+│     ├─ modules/                  前端业务上下文
+│     ├─ features/viewer-kit/      3D/全景查看器能力
+│     ├─ shared/api/               通用 HTTP transport
+│     └─ __tests__/architecture/   前端依赖和 UI 门禁
 ├─ src/ai_anime/
-│  ├─ api/                         FastAPI app、middleware、schema 和 route 适配器
-│  ├─ modules/                     后端 DDD 业务上下文（含 bootstrap 组合根）
-│  ├─ shared/                      无领域所有权的稳定共享契约
-│  ├─ styles/                      风格预设数据资产
-│  ├─ desktop_server.py            桌面专用 FastAPI 启动器
-│  └─ config.py、model_access_policy.py 等  跨切面单文件（收敛登记项）
+│  ├─ api/                         FastAPI app、middleware、schema 和 route
+│  ├─ modules/                     后端业务上下文
+│  ├─ shared/                      跨上下文稳定技术能力
+│  ├─ styles/                      风格预设数据
+│  └─ desktop_server.py            桌面 sidecar 入口
 ├─ tests/
-│  ├─ architecture/               Python 依赖边界和 OpenAPI 快照
-│  ├─ contract/                   API、任务和模块合同
-│  └─ modules/                    后端领域用例测试
+│  ├─ architecture/               Python 边界与 OpenAPI 快照
+│  ├─ contract/                   API 和任务合同
+│  └─ modules/                    后端用例测试
+├─ docs/architecture/             重构计划、评估和修复记录
+├─ UPSTREAM.md                    代码来源与上游同步规则
 ├─ pyproject.toml
 └─ uv.lock
 ```
 
-模块内部统一采用以下职责：
-
-| 层 | 负责 | 禁止 |
-| --- | --- | --- |
-| `domain` | 领域实体、值对象和纯规则 | FastAPI、React、数据库、浏览器 API |
-| `application` | 用例、命令、查询、DTO 和端口 | 直接实例化 infrastructure、直接处理 HTTP/DOM |
-| `infrastructure` | HTTP、SQLite、文件、浏览器和外部服务适配器 | 持有重复业务规则 |
-| `presentation` | 纯视图和展示投影 | 直接调用原始 transport 或数据库 |
-| `composition` | 依赖装配 | 复制用例逻辑 |
-| `public` | 跨上下文稳定入口 | 暴露模块内部实现路径 |
-
-FastAPI route 只处理认证/授权、请求 schema、用例调用和 HTTP 错误映射。React route 只做路由参数投影和页面装配。复杂组件使用 controller/view 分离；全局样式入口 `frontend/src/index.css` 只导入 Tailwind 和 `app/styles`，主题颜色统一由语义 token 管理。
-
-## 4. 本地数据与发布物
-
-Electron 使用 `app.getPath("userData")` 作为用户数据根目录：
-
-```text
-<userData>/
-├─ data/
-│  ├─ output/                       生成结果和项目媒体
-│  ├─ state/                        SQLite 与业务状态
-│  └─ runtime/                      运行时临时状态
-└─ logs/
-   └─ backend.log                   FastAPI sidecar 日志
-```
-
-重构保持既有 SQLite schema、用户文件布局、静态 URL 和任务 payload 兼容。历史字段或旧路径读取回退可以保留；新写入只能走当前领域模型和规范路径。
-
-以下构建产物不提交：
+构建产物不提交：
 
 | 路径 | 内容 |
 | --- | --- |
 | `frontend/dist/` | React 生产构建 |
 | `desktop/dist/` | Electron 主进程编译结果 |
-| `desktop/backend-dist/` | PyInstaller sidecar |
-| `desktop/runtime/` | 随包 FFmpeg |
-| `desktop/release/` | NSIS 安装包 |
+| `desktop/backend-dist/` | FastAPI PyInstaller sidecar |
+| `desktop/hermes-runtime/dist/` | Hermes ACP sidecar |
+| `desktop/runtime/` | 平台 FFmpeg |
+| `desktop/release/` | 安装包与 unpacked 应用 |
 
-## 5. 当前认证与发布契约
+## 5. 商业 Gateway 接入状态
 
-前端认证调用链：
+固定 Gateway：
 
 ```text
-modules/identity_access/public.ts
-  -> composition.ts
-  -> application/session-store.ts
-  -> infrastructure/http-identity-gateway.ts
-  -> /api/v1/auth/*
+https://aianime.122-193-11-199.sslip.io
 ```
 
-后端入口为 `api/routes/auth.py`，领域会话和端口位于 `modules/identity_access`。桌面模式当前使用本地模拟登录：
+产品调用链统一为：
 
-| 接口 | 请求 | 当前行为 |
+```text
+React module
+  -> window.aiAnimeDesktop.commercial
+  -> preload 白名单 IPC
+  -> registerCommercialIpc
+  -> CommercialApiClient
+  -> Gateway HTTPS
+```
+
+### 5.1 已进入产品调用链
+
+| 能力 | Gateway 路径 | 产品入口 |
 | --- | --- | --- |
-| `POST /api/v1/auth/login` | 用户名、密码 | 任意非空值通过并设置 HttpOnly Cookie |
-| `POST /api/v1/auth/authorize` | 授权码 | 任意非空值通过并设置 HttpOnly Cookie |
-| `GET /api/v1/auth/me` | 无 | 校验 `ai_anime_session` 并返回用户与余额 |
-| `POST /api/v1/auth/logout` | 无 | 撤销本地会话并清除 Cookie |
+| 公共租户配置 | `GET /api/v1/config/public` | 登录页 |
+| 租户 Logo | `GET /api/v1/config/logo` | 登录页 |
+| 图形验证码 | `GET /api/v1/auth/captcha` | 登录页 |
+| 登录 | `POST /api/v1/client/auth/login` | 登录页 |
+| Token 刷新 | `POST /api/v1/client/auth/refresh` | Electron 会话自动刷新 |
+| 退出 | `POST /api/v1/client/auth/logout` | 账号菜单/会话清理 |
+| Bootstrap | `GET /api/v1/client/bootstrap` | 路由进入前初始化 |
+| 当前许可 | `GET /api/v1/client/licenses/current` | 权益状态 |
+| 激活 Challenge | `POST /api/v1/client/licenses/challenge` | 设备激活 |
+| 许可激活 | `POST /api/v1/client/licenses/activate` | 设备激活 |
+| 租约刷新 | `POST /api/v1/client/licenses/lease/refresh` | 权益续期 |
+| 额度余额 | `GET /api/v1/client/quota/balance` | 额度展示 |
+| 模型目录 | `GET /api/v1/client/models` | 模型选择与能力过滤 |
+| 公告 | `GET /api/v1/client/announcements/active` | 通知中心 |
+| 版本检查 | `GET /api/v1/client/releases/check` | 更新提示/强制升级 |
+| 制品下载授权 | `GET /api/v1/client/releases/artifacts/{id}/download` | 更新下载 |
+| 模型协议 | `/v1/*`、`/v1beta/*` | Electron 本地模型代理 |
 
-`login` 和 `authorize` 只在 `AI_ANIME_DESKTOP_MODE=1` 时进入 OpenAPI；普通浏览器 API 不暴露这两条本地模拟接口。Cookie 使用 `HttpOnly`、`SameSite=Lax`、`Path=/` 和 7 天上限，`Secure` 由运行环境决定。前端 localStorage 只保存经过校验的用户名和角色，不保存密码、授权码或 Cookie。
+上表表示代码调用链和合同测试存在，不表示远端生产数据已经在线验收。
 
-当前模拟会话格式不具备正式云端会话的签名、刷新和跨设备撤销能力。接入真实服务时保持 `/api/v1/auth/*` 与 `CurrentUser` 前端合同不变，在 `modules/identity_access/application/ports.py` 定义稳定能力，在 `infrastructure` 新增远程适配器，并由进程组合根选择实现。云端令牌必须保留在 FastAPI 或 Windows 安全存储中。
+### 5.2 当前版本明确不消费
 
-商业云端链路由 Electron 主进程承担（`desktop/src/commercial.ts`、`commercial-device.ts`、`commercial-lease.ts`、`commercial-model-proxy.ts`、`secure-file-store.ts`），固定 Gateway 为 `https://aianime.122-193-11-199.sslip.io`：
+当前桌面没有注册、找回密码、短信/邮箱验证码、滑块验证码、设备停用、单模型详情、Invocation 列表/详情/取消和通用文件对象上传 UI。对应 Gateway 能力即使存在，也不属于本版本桌面必需接口。
 
-- 登录/刷新/退出、设备身份、软件许可与离线租约验签、额度与模型目录、公告与版本检查全部经主进程访问 Gateway。
-- 渲染进程只持有可展示的会话摘要和业务 DTO；JWT、设备私钥、BYOK 持久化密文、离线租约与更新制品不进入 React。
-- 模型调用只有两条入口：普通版 Cloud 由云端中转；专业版 BYOK 由用户自填标准模型接口，客户端只做请求不中转。对象存储统一走平台云端，不提供用户 BYOK 存储入口。
-- Agent 执行使用 Electron 内置的 Hermes ACP（`desktop/hermes-runtime`），模型仍只走上面两条入口。
+此前仅在 `CommercialApiClient` 中存在、但没有 IPC/UI 消费者的 Invocation 查询和文件上传下载 helper 已删除。需要这些能力时，应先定义产品用例和 renderer-safe DTO，再补 application port、IPC 和主进程适配，不应只增加一个未消费的 HTTP 方法。
 
-通知中心与版本更新只走真实商业链路：公告来自网关 `/api/v1/client/announcements/active`，版本检查/强制升级来自 `/api/v1/client/releases/check`，均由 Electron 主进程经 IPC 提供给渲染层。后端 `/api/v1/release-notifications` 已移除 mock feed，返回空 feed（`source=none`），前端不再消费本地模拟发布数据。
+本地 FastAPI 原有的 `/api/v1/release-notifications` 只返回空 feed，渲染层也不消费；该虚假接口已删除。公告和版本更新只走真实商业 Gateway。
 
-## 6. 云生成任务适配
+### 5.3 云端联调前必须补齐
 
-进程级云任务协议位于 `src/ai_anime/modules/task_execution/application/cloud_tasks.py`：
+1. 提供隔离测试租户、普通版账号和专业版账号。
+2. 提供可用于测试的许可、设备激活和额度数据。
+3. 配置离线租约 `keyId -> Ed25519 SPKI PEM` 公钥。
+4. 配置更新制品 Ed25519 公钥，并确保 Gateway 返回 `sha256`、`sizeBytes`、`signature` 和有效下载 URL。
+5. 发布记录必须同时提供 `windows/x86_64` 与 `macos/arm64` 制品。
+6. 验证 Cloud 模型转发、BYOK、401 单飞刷新、幂等键、取消流和实际扣费一致。
 
-- `CloudTaskRequest` 定义 task ID、类型、媒体 kind、项目、剧集、Beat、scope、payload 和输出目录。
-- `CloudAdapter.run_task()` 执行任务、上报进度并响应取消。
-- `CloudTaskResult` 返回供应商任务 ID、provider、model、kind 和本地化结果。
+## 6. 本地认证与模型路径
 
-桌面任务后端不再使用 mock cloud adapter：`mock_cloud_adapter.py`/`mock_cloud_backend.py` 已删除，`shared/ports/local` 默认注册 inline 本地任务后端（真实执行）。真实商业模型调用由 Electron 主进程的商业模型代理按普通版 Cloud / 专业版 BYOK 两条入口发出；React 不直接理解供应商协议，也不直接连接云端。
+Electron 产品登录使用真实商业 Gateway。登录成功后，主进程只为本地 FastAPI 写入 HttpOnly `ai_anime_session` Cookie；Cookie 是本地 BFF 身份标记，不是 Gateway JWT。
 
-真实商业模型调用不经过 CloudAdapter，由 Electron 主进程的商业模型代理按普通版 Cloud / 专业版 BYOK 两条入口发出（见第 5 节）。
+`AI_ANIME_DESKTOP_MODE=1` 下 FastAPI 仍包含桌面专用本地认证适配入口，用于 sidecar 合同和本地工作区映射。React 商业登录页不把账号密码发送给这些本地入口。普通浏览器 API 不暴露桌面专用 `login/authorize` 操作。
 
-## 7. 本地开发
+模型访问只有两条：
 
-要求：Windows x64、Python 3.11 或 3.12、`uv`、Node.js 和 pnpm 11.5.0。运行与打包不依赖 Docker。
+- Cloud：Python sidecar -> loopback 商业模型代理 -> Gateway -> 上游模型。
+- BYOK：专业版权益允许时，React 只通过白名单 IPC 提交用户输入，Electron 加密保存并同步给 sidecar；密钥不写入 React 持久化状态。
+
+对象存储统一使用平台配置，不提供用户 BYOK 对象存储入口。Hermes ACP 只负责 Agent 协议执行，模型请求仍遵守 Cloud/BYOK 边界。
+
+## 7. 本地数据
+
+Electron 使用 `app.getPath("userData")`：
+
+```text
+<userData>/
+├─ data/
+│  ├─ output/                     项目媒体与生成结果
+│  ├─ state/                      SQLite 与业务状态
+│  └─ runtime/                    临时运行状态
+├─ logs/
+│  └─ backend.log
+└─ secure/
+   ├─ commercial-session.bin
+   ├─ commercial-device.bin
+   └─ commercial-model-access.bin
+```
+
+常见位置：
+
+- Windows：`%APPDATA%\AI anime`
+- macOS：`~/Library/Application Support/AI anime`
+
+重构必须保持现有 SQLite schema、用户文件布局、静态 URL 和任务 payload 兼容。敏感文件由 Electron `safeStorage` 加密，不得提交到仓库或复制进发布制品。
+
+## 8. 开发环境
+
+要求：
+
+- Python 3.11 或 3.12
+- `uv`
+- Node.js
+- pnpm 11.5.0
+- Windows x64 或 Apple Silicon Mac
 
 安装依赖：
 
@@ -192,40 +294,98 @@ pnpm --dir frontend install --frozen-lockfile
 pnpm --dir desktop install --frozen-lockfile
 ```
 
-直接启动 Electron 开发模式：
+启动桌面开发模式：
 
 ```powershell
 pnpm --dir desktop dev
 ```
 
-该命令直接启动本地 FastAPI、Vite 和 Electron，不执行前端生产构建。修改 React 代码后由 Vite 热更新；`5173` 被占用时会因 `--strictPort` 明确失败，不会静默切换到错误端口。
+该命令直接启动 FastAPI、Vite、Electron 和 Hermes 运行时。Vite 固定使用 `127.0.0.1:5173` 且启用 strict port；端口被占用时会明确失败。
 
 常用验证：
 
 ```powershell
-uv run pytest
 uv run ruff check src tests
-pnpm --dir frontend exec vitest run --maxWorkers=1 --no-file-parallelism
+uv run pytest
 pnpm --dir frontend typecheck
+pnpm --dir frontend exec vitest run --maxWorkers=1 --no-file-parallelism
 pnpm --dir desktop typecheck
 pnpm --dir desktop test
+git diff --check
 ```
 
-Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行；Vitest 使用单 worker，避免多个 Node 进程同时占用大量内存。日常重构不执行生产构建，发布门禁才运行：
+Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个大型 Node/Python 进程同时占用内存。
+
+## 9. 测试与架构门禁
+
+| 门禁 | 文件 | 主要约束 |
+| --- | --- | --- |
+| 后端依赖方向 | `tests/architecture/test_layer_boundaries.py` | 非 API 不反向依赖 API、route 不互相导入、上下文边界 |
+| OpenAPI 合同 | `tests/architecture/openapi-contract.json` | 浏览器 279、桌面 281 个规范化操作 |
+| 前端模块边界 | `frontend/src/__tests__/architecture/module-boundaries.test.ts` | route、domain、application、infrastructure、presentation、public |
+| SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.test.ts` | Agent、消息、存储、WebSocket 和视图所有权 |
+| UI 颜色 | `frontend/src/__tests__/architecture/ui-color-literals.test.ts` | 不新增未登记的硬编码 UI 色值 |
+| 主题对比度 | `frontend/src/__tests__/architecture/theme-contrast.test.ts` | 正文不低于 4.5:1，关键边界不低于 3:1 |
+| Electron 商业合同 | `desktop/tests/*.test.mjs` | JWT、设备身份、许可、模型代理、制品和跨平台路径 |
+
+门禁通过只证明已纳入规则的边界没有回退，不能替代真实 Gateway 联调、安装包冒烟或人工工作流验收。
+
+## 10. 打包
+
+打包链路依次执行：
+
+1. 生成应用图标。
+2. 下载并校验当前平台 LGPL FFmpeg。
+3. 构建 React CE renderer。
+4. 编译 Electron 主进程。
+5. 用 PyInstaller 构建 FastAPI sidecar。
+6. 用独立锁文件构建 Hermes ACP sidecar。
+7. 由 electron-builder 生成安装包。
+
+### Windows x64
+
+必须在 Windows x64 主机运行：
 
 ```powershell
 pnpm --dir desktop package:win
 ```
 
-## 8. 架构门禁
+输出目录：`desktop/release/`。主要制品名：
 
-| 门禁 | 文件 | 约束 |
+```text
+AI-anime-<version>-x64-setup.exe
+```
+
+### macOS arm64
+
+必须在 Apple Silicon Mac 运行：
+
+```bash
+pnpm --dir desktop package:mac
+```
+
+输出：
+
+```text
+AI-anime-<version>-macos-arm64.dmg
+AI-anime-<version>-macos-arm64.zip
+```
+
+当前 macOS 最低版本为 15.0。发布到外部测试前还应完成 Apple Developer ID 签名和 notarization；仓库没有内置开发者证书。
+
+### 发布前检查
+
+- `pyproject.toml` 与 `desktop/package.json` 版本一致。
+- `src/ai_anime/release-notes.md` 的版本标记一致。
+- Windows 和 macOS 分别完成干净安装、启动、登录、生成、退出和更新检查。
+- 记录安装包文件名、字节数、SHA-256、签名和目标平台。
+- 不上传 `secure/`、用户数据、日志、`.env`、JWT、API Key 或私钥。
+
+## 11. 代码来源与上游同步
+
+| Remote | 地址 | 用途 |
 | --- | --- | --- |
-| 后端依赖方向 | `tests/architecture/test_layer_boundaries.py` | 非 API 不反向依赖 API、route 不互相导入、跨上下文只经 public |
-| OpenAPI 合同 | `tests/architecture/test_openapi_contract_snapshot.py` | 浏览器 280、桌面 282 个规范化操作合同保持稳定 |
-| 前端模块边界 | `frontend/src/__tests__/architecture/module-boundaries.test.ts` | route、domain、application、infrastructure、presentation 和 public 边界 |
-| SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.test.ts` | Agent、消息、存储、WebSocket 和视图职责唯一 |
-| 颜色字面量 | `frontend/src/__tests__/architecture/ui-color-literals.test.ts` | UI chrome 不新增硬编码颜色，领域/媒体颜色使用精确预算 |
-| 主题对比度 | `frontend/src/__tests__/architecture/theme-contrast.test.ts` | light/dark 文本不低于 4.5:1，关键边界不低于 3:1 |
+| `origin` | `https://gitee.com/mingcheng_software/ai-manga-desktop.git` | 当前主仓 |
+| `upstream` | `https://github.com/dramaclaw/dramaclaw.git` | DramaClaw 原始上游，只读评估 |
 
-迁移代码不得保留旧实现转发、兼容 facade 或第二套请求路径。确需保留的兼容逻辑必须服务既有用户数据，并由合同测试锁定；不能作为新调用入口。
+详细约定见 [UPSTREAM.md](UPSTREAM.md)。上游改动不能直接整批合并；应先判断业务价值，再按当前 bounded context 和分层边界移植。商业配置、密钥、内部发布逻辑和当前仓库专属架构不得推送到上游。

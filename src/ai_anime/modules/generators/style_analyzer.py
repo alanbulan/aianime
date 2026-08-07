@@ -87,7 +87,7 @@ Return ONLY valid JSON with no markdown formatting:
         Returns:
             包含风格字段的字典
         """
-        from ai_anime.shared.storage.media_relay import upload_image_bytes
+        from ai_anime.shared.media_relay import upload_image_bytes
 
         # 压缩图片以减少 token 消耗
         compressed_bytes, _compressed_mime = self._compress_image(image_bytes)

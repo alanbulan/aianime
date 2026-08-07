@@ -49,7 +49,7 @@ import type {
 } from '../application/generateCanvasRedraw';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
-import { CreditCostPill } from '@/components/credits/credit-visual';
+import { CreditCostPill } from '@/components/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface EraseOverlayProps {

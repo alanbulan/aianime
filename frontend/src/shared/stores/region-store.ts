@@ -1,8 +1,8 @@
 // Copyright (c) 2026 AI anime
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { quotaSafeStateStorage } from "@/shared/storage/localStorageQuota";
-import { clusterConfig } from "@/shared/platform/cluster-config";
+import { quotaSafeStateStorage } from "@/shared/localStorageQuota";
+import { clusterConfig } from "@/shared/cluster-config";
 
 interface RegionState {
   selectedRegionId: string | null;

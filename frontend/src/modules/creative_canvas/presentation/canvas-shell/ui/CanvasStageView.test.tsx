@@ -53,7 +53,7 @@ vi.mock('@xyflow/react', () => ({
   },
 }));
 
-vi.mock('@/components/credits/credit-visual', () => ({
+vi.mock('@/components/credit-visual', () => ({
   CreditDisplayHiddenProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock('@/modules/creative_canvas/public', () => ({

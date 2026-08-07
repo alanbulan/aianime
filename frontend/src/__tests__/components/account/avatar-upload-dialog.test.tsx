@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AvatarUploadDialog } from "@/components/account/avatar-upload-dialog";
+import { AvatarUploadDialog } from "@/components/avatar-upload-dialog";
 
 const authState = vi.hoisted(() => ({
   avatarUrl: null as string | null,

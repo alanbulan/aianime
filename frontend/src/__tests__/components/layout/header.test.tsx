@@ -81,10 +81,6 @@ vi.mock("@/components/layout/credit-balance-badge", () => ({
   CreditBalanceBadge: () => <div data-testid="credit-balance" />,
 }));
 
-vi.mock("@/components/task-center/header-entry", () => ({
-  HeaderEntry: () => <button type="button">Tasks</button>,
-}));
-
 vi.mock("@/components/ui/button", () => ({
   Button: ({ children, ...props }: React.ComponentProps<"button">) => (
     <button type="button" {...props}>

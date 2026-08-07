@@ -10,7 +10,7 @@
  */
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { quotaSafeStateStorage } from "@/shared/storage/localStorageQuota";
+import { quotaSafeStateStorage } from "@/shared/localStorageQuota";
 import type {
   ProjectDashboardViewMode,
   ProjectStatus,

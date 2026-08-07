@@ -14,7 +14,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
+import { CharacterImageSourceSelect } from "@/modules/asset_world/public";
 import { clearCommercialModelCatalogCache } from "@/modules/model_usage/public";
 
 const server = setupServer();

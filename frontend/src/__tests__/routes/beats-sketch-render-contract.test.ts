@@ -62,9 +62,11 @@ describe("beats sketch/render v2 contract", () => {
       "src/modules/production/application/use-batch-bar-controller.ts",
     );
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
-    const batchPanel = read("src/components/episode/beat-workbench/batch-panel.tsx");
-    const batchPanelController = read(
-      "src/modules/production/application/use-batch-panel-controller.ts",
+    const beatsPageView = read(
+      "src/modules/narrative_planning/presentation/BeatsPageView.tsx",
+    );
+    const sketchPlanController = read(
+      "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
     );
     const actionPanel = readActionPanelComposition();
     const productionGateway = read(
@@ -93,11 +95,11 @@ describe("beats sketch/render v2 contract", () => {
 
     // Render regen fans out into N selected_regen grid tasks; track them by id
     // via the batch-invalidation hook rather than a single-scope controller.
-    expect(batchPanelController).toContain("useScopedTaskBatchInvalidation");
-    expect(batchPanelController).toContain("TASK_TYPES.SELECTED_REGEN");
-    expect(batchPanelController).toContain('matchBy: "task_id"');
-    expect(batchPanel).toContain("<RenderPlanDialog");
-    expect(batchPanel).not.toContain("handleBatchVideo");
+    expect(sketchPlanController).toContain("useScopedTaskBatchInvalidation");
+    expect(sketchPlanController).toContain("TASK_TYPES.SELECTED_REGEN");
+    expect(sketchPlanController).toContain('matchBy: "task_id"');
+    expect(beatsPageView).toContain("<RenderPlanDialog");
+    expect(beatsPageView).not.toContain("handleBatchVideo");
     expect(productionGateway).toContain("render/plan");
     expect(productionGateway).toContain("render/execute");
   });
@@ -170,8 +172,8 @@ describe("beats sketch/render v2 contract", () => {
   it("keeps selected-beat render regeneration backed by render_plan", () => {
     const taskTypes = read("src/modules/task_execution/domain/taskTypes.ts");
     const stageRegistry = read("src/lib/episode-stage-registry.ts");
-    const batchPanelController = read(
-      "src/modules/production/application/use-batch-panel-controller.ts",
+    const sketchPlanController = read(
+      "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
     );
     const renderSection = readRenderSectionComposition();
     const renderSectionController = read(
@@ -181,9 +183,9 @@ describe("beats sketch/render v2 contract", () => {
     expect(taskTypes).not.toContain('RENDER_PLAN: "render_plan"');
     expect(stageRegistry).not.toContain("TASK_TYPES.RENDER_PLAN");
 
-    expect(batchPanelController).toContain("useScopedTaskBatchInvalidation");
-    expect(batchPanelController).toContain("TASK_TYPES.SELECTED_REGEN");
-    expect(batchPanelController).toContain('matchBy: "task_id"');
+    expect(sketchPlanController).toContain("useScopedTaskBatchInvalidation");
+    expect(sketchPlanController).toContain("TASK_TYPES.SELECTED_REGEN");
+    expect(sketchPlanController).toContain('matchBy: "task_id"');
     expect(renderSection).not.toContain("useRegenerateRenderBeats");
     expect(renderSectionController).toContain("useRegenerateRenderBeats");
     expect(renderSectionController).toContain('taskType: "selected_regen"');
@@ -231,29 +233,15 @@ describe("beats sketch/render v2 contract", () => {
   });
 
   it("dispatches selected-beat sketch plans directly without persistent queue cards", () => {
-    const batchPanelController = read(
-      "src/modules/production/application/use-batch-panel-controller.ts",
+    const sketchPlanController = read(
+      "src/modules/narrative_planning/application/use-beats-sketch-plan-controller.ts",
     );
 
-    expect(batchPanelController).toContain("dispatchSketchPlanItems");
-    expect(batchPanelController).not.toContain("sketchDispatchQueue");
-    expect(batchPanelController).not.toContain("sketchDispatchRun");
-    expect(batchPanelController).not.toContain("handleDispatchSketchItem");
-    expect(batchPanelController).toContain("onClearSelection()");
-  });
-
-  it("labels the selected sketch grid action as batch redraw instead of auto combine", () => {
-    const batchPanelView = read(
-      "src/modules/production/presentation/BatchPanelView.tsx",
-    );
-    const sketchSection = batchPanelView.slice(
-      batchPanelView.indexOf("{/* Sketch modes */}"),
-      batchPanelView.indexOf("{/* Render modes */}"),
-    );
-
-    expect(sketchSection).toContain("episode.workbench.batch.autoCombine");
-    expect(sketchSection).toContain('defaultValue: "批量重抽"');
-    expect(sketchSection).not.toContain('defaultValue: "自动组合"');
+    expect(sketchPlanController).toContain("dispatchSketchPlanItems");
+    expect(sketchPlanController).not.toContain("sketchDispatchQueue");
+    expect(sketchPlanController).not.toContain("sketchDispatchRun");
+    expect(sketchPlanController).not.toContain("handleDispatchSketchItem");
+    expect(sketchPlanController).toContain("clearSelection()");
   });
 
   it("wires NiceGUI Render model/settings into React controls and task payloads", () => {

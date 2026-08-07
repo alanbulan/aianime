@@ -50,10 +50,6 @@ import type {
   VideoInputCropTarget,
 } from "@/modules/production/domain/seedance2-panel";
 import type {
-  SketchRegenQueueData,
-  SketchRegenQueueItem,
-} from "@/modules/production/domain/sketch-regen-queue";
-import type {
   CropSketchCommand,
   SaveSketchPoseEditorCommand,
   SketchCropResult,
@@ -323,16 +319,6 @@ export interface ProductionVideoGateway {
   ): Promise<
     ProductionDataResponse<RenderExecuteResult> | ProductionErrorResponse
   >;
-  getSketchRegenQueue(
-    project: string,
-    episode: number,
-    signal?: AbortSignal,
-  ): Promise<ProductionDataResponse<SketchRegenQueueData>>;
-  saveSketchRegenQueue(
-    project: string,
-    episode: number,
-    items: SketchRegenQueueItem[],
-  ): Promise<ProductionDataResponse<SketchRegenQueueData>>;
   getSketchPoseEditor(
     project: string,
     episode: number,

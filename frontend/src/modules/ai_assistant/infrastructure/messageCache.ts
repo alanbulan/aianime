@@ -8,7 +8,7 @@ import {
   pruneLocalStorageByPrefix,
   registerStorageReclaimer,
   safeLocalStorageSet,
-} from "@/shared/storage/localStorageQuota";
+} from "@/shared/localStorageQuota";
 
 const MESSAGE_CACHE_PREFIX = "superchat:messages:v2:";
 const MESSAGE_CACHE_LIMIT = 50;

@@ -18,7 +18,7 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_WIDTH,
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
 } from '../application/videoNodeModel';
-import { CreditCostPill } from '@/components/credits/credit-visual';
+import { CreditCostPill } from '@/components/credit-visual';
 import type { VideoNodeController } from './useVideoNodeController';
 import { CameraMovementChip } from './CameraMovementChip';
 import { CharacterLibraryChip } from './CharacterLibraryChip';

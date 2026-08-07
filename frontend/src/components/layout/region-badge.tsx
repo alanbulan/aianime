@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { clusterConfig } from "@/shared/platform/cluster-config";
+import { clusterConfig } from "@/shared/cluster-config";
 import { switchRegion } from "@/lib/region-switch";
 import { useRegionStore } from "@/shared/stores/region-store";
 

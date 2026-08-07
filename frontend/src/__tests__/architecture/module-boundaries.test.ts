@@ -4226,7 +4226,7 @@ describe("frontend architecture boundaries", () => {
     expect(toolImageGateway).not.toContain("@/features/canvas");
     expect(new Set(importSpecifiers(toolImageGatewayPath))).toEqual(
       new Set([
-        "@/commands/image",
+        "./browserImageCommands",
         "../application/canvasToolProcessor",
         "../domain/aspectRatio",
         "../domain/canvasAnnotationCodec",
@@ -14217,7 +14217,7 @@ describe("frontend architecture boundaries", () => {
       (specifier) =>
         specifier.startsWith("../infrastructure/") ||
         specifier.startsWith("@/features/freezone/infrastructure/") ||
-        specifier === "@/shared/storage/localStorageQuota",
+        specifier === "@/shared/localStorageQuota",
     );
     const gatewayDeclaration = [
       "export interface",
@@ -14248,7 +14248,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
-        "@/shared/storage/localStorageQuota",
+        "@/shared/localStorageQuota",
         "../application/canvasSyncStorage",
       ]),
     );
@@ -14871,7 +14871,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(adapterPath))).toEqual(
       new Set([
-        "@/shared/storage/localStorageQuota",
+        "@/shared/localStorageQuota",
         "../application/canvasDraft",
       ]),
     );
@@ -17937,14 +17937,14 @@ describe("frontend architecture boundaries", () => {
     }
     for (const caller of [
       "components/layout/header.tsx",
-      "components/settings/settings-dialog.tsx",
+      "components/settings-dialog.tsx",
     ]) {
       expect(importSpecifiers(resolve(SRC_ROOT, caller))).toContain(
         "@/modules/model_usage/public",
       );
     }
     const settingsSource = readFileSync(
-      resolve(SRC_ROOT, "components/settings/settings-dialog.tsx"),
+      resolve(SRC_ROOT, "components/settings-dialog.tsx"),
       "utf8",
     );
     expect(settingsSource).not.toContain("gatewayOrigin");
@@ -19018,27 +19018,6 @@ describe("frontend architecture boundaries", () => {
       ),
       "utf8",
     );
-    const batchPanelSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "components/episode/beat-workbench/batch-panel.tsx",
-      ),
-      "utf8",
-    );
-    const batchPanelViewSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/production/presentation/BatchPanelView.tsx",
-      ),
-      "utf8",
-    );
-    const batchPanelControllerSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/production/application/use-batch-panel-controller.ts",
-      ),
-      "utf8",
-    );
     const productionCompositionSource = readFileSync(
       resolve(SRC_ROOT, "modules/production/composition.ts"),
       "utf8",
@@ -19126,17 +19105,6 @@ describe("frontend architecture boundaries", () => {
       resolve(
         SRC_ROOT,
         "modules/production/domain/sketch-regen-queue.ts",
-      ),
-      "utf8",
-    );
-    const narrativePlanningCompositionSource = readFileSync(
-      resolve(SRC_ROOT, "modules/narrative_planning/composition.ts"),
-      "utf8",
-    );
-    const beatsPageViewSource = readFileSync(
-      resolve(
-        SRC_ROOT,
-        "modules/narrative_planning/presentation/BeatsPageView.tsx",
       ),
       "utf8",
     );
@@ -19946,69 +19914,6 @@ describe("frontend architecture boundaries", () => {
     expect(productionCompositionSource).toContain(
       "createUseBatchBarController",
     );
-    expect(batchPanelSource).toContain(
-      'from "@/modules/production/public"',
-    );
-    expect(batchPanelSource).toContain("<BatchPanelView");
-    expect(batchPanelSource).toContain("<RenderPlanDialog");
-    expect(batchPanelSource).toContain("useBatchPanelController({");
-    expect(batchPanelSource).toContain("useProjectAspectRatio(project)");
-    expect(batchPanelSource).not.toContain("className=");
-    expect(batchPanelSource).not.toContain("<Button");
-    expect(batchPanelSource).not.toContain("<AlertDialog");
-    expect(batchPanelSource).not.toContain("<CreditCostInline");
-    expect(batchPanelSource).not.toContain("sketchPlanGridLabel");
-    expect(batchPanelSource).not.toContain("useState(");
-    expect(batchPanelSource).not.toContain("useEffect(");
-    expect(batchPanelSource).not.toContain("useTasks(");
-    expect(batchPanelSource).not.toContain("useRegenerateSketches(");
-    expect(batchPanelSource).not.toContain("useGenerateAudio(");
-    expect(batchPanelSource).not.toContain("TASK_TYPES");
-    expect(batchPanelSource).not.toContain("toast.");
-    expect(batchPanelSource).not.toContain("localStorage");
-    expect(batchPanelSource).not.toContain("@/lib/regen-modes");
-    expect(batchPanelSource).not.toContain(
-      "export function createSketchRegenPlanItems",
-    );
-    expect(batchPanelSource).not.toContain(
-      "export function getLockedSketchRegenItemIds",
-    );
-    expect(batchPanelSource).not.toContain("function sketchModeCellAspect");
-    expect(batchPanelViewSource).toContain("className=");
-    expect(batchPanelViewSource).toContain("<Button");
-    expect(batchPanelViewSource).toContain("<AlertDialog");
-    expect(batchPanelViewSource).toContain("<CreditCostInline");
-    expect(batchPanelViewSource).toContain("sketchPlanGridLabel");
-    expect(batchPanelViewSource).toContain(
-      "controller: BatchPanelController",
-    );
-    expect(batchPanelViewSource).not.toContain("useTasks(");
-    expect(batchPanelViewSource).not.toContain("useRegenerateSketches(");
-    expect(batchPanelViewSource).not.toContain("useGenerateAudio(");
-    expect(batchPanelViewSource).not.toContain("toast.");
-    expect(batchPanelViewSource).not.toContain("localStorage");
-    expect(batchPanelControllerSource).toContain(
-      "createUseBatchPanelController",
-    );
-    expect(batchPanelControllerSource).toContain("queries.useGenerateAudio");
-    expect(batchPanelControllerSource).toContain(
-      "queries.useRegenerateSketches",
-    );
-    expect(batchPanelControllerSource).toContain("dependencies.useTasks");
-    expect(batchPanelControllerSource).toContain(
-      "useScopedTaskBatchInvalidation",
-    );
-    expect(batchPanelControllerSource).toContain("useTaskController(");
-    expect(batchPanelControllerSource).toContain(
-      "dependencies.removeStoredValue",
-    );
-    expect(batchPanelControllerSource).not.toContain("localStorage");
-    expect(batchPanelControllerSource).not.toContain("document.");
-    expect(batchPanelControllerSource).not.toContain("navigator.");
-    expect(productionCompositionSource).toContain(
-      "createUseBatchPanelController",
-    );
-    expect(productionCompositionSource).toContain("localStorage.removeItem");
     expect(renderPlanDialogSource).toContain(
       "createElement(RenderPlanDialogView",
     );
@@ -20193,12 +20098,6 @@ describe("frontend architecture boundaries", () => {
     expect(sketchRegenQueueDomainSource).not.toContain("TASK_TYPES");
     expect(sketchRegenQueueDomainSource).not.toContain(
       "task-controller-provider",
-    );
-    expect(narrativePlanningCompositionSource).not.toContain(
-      "@/components/episode/beat-workbench/batch-panel",
-    );
-    expect(beatsPageViewSource).not.toContain(
-      "@/components/episode/beat-workbench/batch-panel",
     );
     expect(narratorVoicePanelSource).toContain(
       "createElement(NarratorVoicePanelView",

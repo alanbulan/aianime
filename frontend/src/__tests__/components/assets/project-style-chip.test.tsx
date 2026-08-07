@@ -13,7 +13,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { ProjectStyleChip } from "@/components/assets/project-style-chip";
+import { ProjectStyleChip } from "@/modules/asset_world/public";
 
 const i18n = i18next.createInstance();
 const server = setupServer();

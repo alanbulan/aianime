@@ -3,11 +3,11 @@ import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "re
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { gsap } from "gsap";
-import { RegionSelector } from "@/components/login/region-selector";
+import { RegionSelector } from "@/components/region-selector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
-import { clusterConfig } from "@/shared/platform/cluster-config";
+import { clusterConfig } from "@/shared/cluster-config";
 import {
   useAuthStore,
   useCommercialAuthStore,

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { quotaSafeStateStorage } from '@/shared/storage/localStorageQuota';
+import { quotaSafeStateStorage } from '@/shared/localStorageQuota';
 import {
   DEFAULT_GRSAI_CREDIT_TIER_ID,
   PRICE_DISPLAY_CURRENCY_MODES,

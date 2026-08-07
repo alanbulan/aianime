@@ -97,23 +97,6 @@ export interface CommercialReleaseQuery {
   arch: string;
 }
 
-export interface CommercialFileUploadInput {
-  fileName: string;
-  contentType: string;
-  size: number;
-}
-
-export interface CommercialInvocationQuery {
-  page?: number;
-  pageSize?: number;
-  status?: string;
-  operation?: string;
-}
-
-export interface CommercialFileUploadResult {
-  fileId: Identifier;
-}
-
 export interface CommercialInstallArtifactInput {
   filePath: string;
   sha256: string;
@@ -562,88 +545,6 @@ export class CommercialApiClient {
     );
   }
 
-  listInvocations(
-    query: CommercialInvocationQuery = {},
-  ): Promise<unknown> {
-    const page = query.page;
-    const pageSize = query.pageSize;
-    if (page !== undefined && (!Number.isInteger(page) || page < 1)) {
-      throw new CommercialApiError("page 必须是大于等于 1 的整数");
-    }
-    if (
-      pageSize !== undefined &&
-      (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)
-    ) {
-      throw new CommercialApiError("pageSize 必须是 1 到 100 之间的整数");
-    }
-    return this.authenticatedJson("GET", "/api/v1/client/relay/invocations", {
-      query: compactObject({
-        page: page === undefined ? undefined : page,
-        pageSize: pageSize === undefined ? undefined : pageSize,
-        status: optionalText(query.status),
-        operation: optionalText(query.operation),
-      }),
-    });
-  }
-
-  async invocationResult(id: Identifier): Promise<Buffer> {
-    return this.authenticatedBinary(
-      "GET",
-      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}/result`,
-    );
-  }
-
-  async createFileUpload(
-    input: CommercialFileUploadInput,
-  ): Promise<CommercialFileUploadResult> {
-    const fileName = requiredText(input.fileName, "fileName");
-    if (Buffer.byteLength(fileName, "utf8") > 255) {
-      throw new CommercialApiError("fileName 长度不能超过 255 字节");
-    }
-    const contentType = requiredText(input.contentType, "contentType");
-    if (!/^[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+$/.test(contentType)) {
-      throw new CommercialApiError("contentType 格式无效");
-    }
-    const size = input.size;
-    if (typeof size !== "number" || !Number.isSafeInteger(size) || size <= 0) {
-      throw new CommercialApiError("size 必须是正整数");
-    }
-    const value = requiredRecord(
-      await this.authenticatedJson("POST", "/api/v1/files/uploads", {
-        body: { fileName, contentType, size },
-      }),
-      "file upload response",
-    );
-    return { fileId: requiredIdentifier(value.fileId, "fileId") };
-  }
-
-  async uploadFileContent(
-    fileId: Identifier,
-    contentType: string,
-    bytes: Uint8Array,
-  ): Promise<void> {
-    if (!bytes || bytes.byteLength === 0) {
-      throw new CommercialApiError("文件内容不能为空");
-    }
-    const response = await this.authenticatedResponse(
-      "PUT",
-      `/api/v1/files/${encodeURIComponent(String(requiredIdentifier(fileId, "fileId")))}/content`,
-      {
-        rawBody: bytes,
-        contentType: requiredText(contentType, "contentType"),
-        accept: "application/json",
-      },
-    );
-    await assertSuccessfulResponse(response);
-  }
-
-  async downloadFileBytes(fileId: Identifier): Promise<Buffer> {
-    return this.authenticatedBinary(
-      "GET",
-      `/api/v1/files/${encodeURIComponent(String(requiredIdentifier(fileId, "fileId")))}/content`,
-    );
-  }
-
   private async authenticatedJson(
     method: string,
     path: string,
@@ -661,16 +562,6 @@ export class CommercialApiClient {
         status: response.status,
       });
     }
-  }
-
-  private async authenticatedBinary(
-    method: string,
-    path: string,
-    options: Omit<RequestOptions, "token"> = {},
-  ): Promise<Buffer> {
-    const response = await this.authenticatedResponse(method, path, options);
-    await assertSuccessfulResponse(response);
-    return Buffer.from(await response.arrayBuffer());
   }
 
   private async authenticatedResponse(

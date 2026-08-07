@@ -3,7 +3,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { LoginPage } from "@/components/login-page";
 import { resolveAppRouteAccess } from "@/app/commercial-access";
 import { useAuthStore } from "@/modules/identity_access/public";
-import { clusterConfig } from "@/shared/platform/cluster-config";
+import { clusterConfig } from "@/shared/cluster-config";
 import { getRegionCookie } from "@/lib/region-cookie";
 import { authRequired } from "@/lib/runtime-config";
 

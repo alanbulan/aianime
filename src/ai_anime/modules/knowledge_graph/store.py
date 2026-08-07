@@ -52,7 +52,6 @@ from ai_anime.modules.narrative_planning.public import (
     build_scene_menu,
     sync_beat_asset_refs,
 )
-from .config import init_cognee
 
 console = Console()
 logger = logging.getLogger(__name__)

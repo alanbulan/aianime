@@ -27,13 +27,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from pypinyin import pinyin, Style
 
 from pydantic import BaseModel, Field
 
 from ai_anime.config import (
     IMAGE_DEFAULT_STYLE,
-    get_grid_generation_config,
     get_style_preset,
 )
 from ai_anime.modules.model_usage.public import (
@@ -51,7 +49,6 @@ from ai_anime.modules.generators.render_identity_guard import render_ai_detectio
 from ai_anime.modules.narrative_planning.public import (
     beat_order_value,
     beat_scene_id,
-    build_prop_menu,
 )
 from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.modules.production.public import (
@@ -65,7 +62,6 @@ from ai_anime.image_request_usage import (
     record_image_request,
     update_image_request_status,
 )
-from ai_anime.shared.utils.path_resolver import compute_scoped_grid_filename
 _STANDARD_IMAGE_VALID_QUALITIES = {"low", "medium", "high", "auto"}
 _STANDARD_IMAGE_MIN_PIXELS = 655_360
 _STANDARD_IMAGE_MAX_PIXELS = 8_294_400
@@ -1729,8 +1725,6 @@ def crop_sketch_panels(
     from ai_anime.modules.generators.grid_splitter import _trim_outer_border
     import numpy as np
 
-    sketch_dir = str(Path(sketch_path).parent) if Path(sketch_path).is_file() else sketch_path
-
     def _trim_panel(panel_img):
         """裁掉单个 panel 的白边。"""
         gray_arr = np.array(panel_img.convert("L"))
@@ -3239,10 +3233,6 @@ class NanoBananaGridGenerator:
                 # Sketch 模式使用 UnifiedPromptBuilder（与导出逻辑一致）
                 print(f"[NanoBananaPro] 进入 Sketch 模式")
 
-                # 当前网格的全局 beat 范围 (1-based)
-                grid_beat_start = beat_start_index + 1
-                grid_beat_end = beat_start_index + grid_capacity
-
                 # prompt_aspect_ratio 优先（two-pass 时图用 1:1 但 prompt 写 2:3）
                 _prompt_ar = prompt_aspect_ratio or (
                     REGEN_MODE_CONFIGS[mode_key]["aspect_ratio"] if mode_key else None
@@ -4095,8 +4085,6 @@ class NanoBananaGridGenerator:
         )
 
         if sketch:
-            grid_beat_start = beat_start_index + 1
-            grid_beat_end = beat_start_index + grid_capacity
             ctx = create_prompt_context(
                 mode=PromptMode.SKETCH,
                 beats=beats[:grid_capacity],
@@ -5014,11 +5002,9 @@ class NanoBananaGridGenerator:
         然后用本地偏移切出正确的 panel。
         """
         from PIL import Image
-        import io
 
         # 1. 查找覆盖当前 beat 范围的草图文件
         try:
-            sketch_capacity = SKETCH_GRID_CONFIG["rows"] * SKETCH_GRID_CONFIG["cols"]  # 25
             beat_range_start = beat_start_index + 1  # 1-based
             beat_range_end = beat_start_index + len(beats)
 
@@ -5081,7 +5067,6 @@ class NanoBananaGridGenerator:
 
         # 3. 准备并行任务 (使用 NanoBanana/Gemini)
         tasks = []
-        import time
 
         for i, beat in enumerate(beats):
             if i >= len(panels):

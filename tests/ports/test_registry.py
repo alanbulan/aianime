@@ -48,7 +48,6 @@ def test_ensure_bootstrap_registers_local_ports_for_explicit_ce(monkeypatch) -> 
     assert registry.get_port("project_access") is not None
     assert registry.get_port("usage_meter") is not None
     assert registry.get_port("provider_instrumentation") is not None
-    assert registry.get_port("release_feed") is not None
     assert registry.get_port("task_backend") is not None
     assert registry.get_port("cancellation_store") is not None
     assert registry.get_port("audit_sink") is not None

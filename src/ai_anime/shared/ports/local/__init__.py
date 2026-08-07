@@ -7,7 +7,6 @@ from ai_anime.modules.model_usage.public import (
     build_local_credit_quote,
     build_local_usage_adapters,
 )
-from ai_anime.modules.platform_release.public import build_local_release_feed
 from ai_anime.modules.project_workspace.public import build_local_project_adapters
 from ai_anime.modules.task_execution.public import (
     build_in_memory_cancellation_store,
@@ -29,10 +28,6 @@ def register_local_ports() -> None:
     register_port("usage_meter", usage_meter)
     register_port("provider_instrumentation", provider_instrumentation)
     register_port("credit_quote", build_local_credit_quote())
-    register_port(
-        "release_feed",
-        build_local_release_feed("none"),
-    )
     register_port("task_backend", build_inline_task_backend())
     register_port("cancellation_store", build_in_memory_cancellation_store())
     register_port("audit_sink", NoOpAuditSink())

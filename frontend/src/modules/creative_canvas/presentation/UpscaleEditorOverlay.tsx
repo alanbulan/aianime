@@ -30,7 +30,7 @@ import type {
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 
-import { CreditCostPill } from '@/components/credits/credit-visual';
+import { CreditCostPill } from '@/components/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 export interface UpscaleEditorOverlayStore {

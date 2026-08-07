@@ -8,7 +8,7 @@ import { getRegionCookie, clearRegionCookie } from "@/lib/region-cookie";
 const runtimeState = vi.hoisted(() => ({ authRequired: true }));
 const navigateMock = vi.hoisted(() => vi.fn());
 
-vi.mock("@/shared/platform/cluster-config", () => ({
+vi.mock("@/shared/cluster-config", () => ({
   clusterConfig: {
     mode: "multi-region",
     regions: [
@@ -32,7 +32,7 @@ vi.mock("react-i18next", async () => {
   return { ...actual, useTranslation: () => ({ t: (k: string) => k, i18n: { language: "zh" } }) };
 });
 
-import { RegionSelector } from "@/components/login/region-selector";
+import { RegionSelector } from "@/components/region-selector";
 
 describe("RegionSelector", () => {
   beforeEach(() => {
@@ -77,14 +77,14 @@ describe("RegionSelector — single-region auto-select", () => {
   });
 
   it("auto-selects the only region and renders read-only", async () => {
-    vi.doMock("@/shared/platform/cluster-config", () => ({
+    vi.doMock("@/shared/cluster-config", () => ({
       clusterConfig: { mode: "multi-region", regions: [{ id: "only-1", displayName: "唯一区" }] },
     }));
     // Reload the store fresh so the component and this assertion read the
     // same module instance after vi.resetModules().
     const { useRegionStore: freshStore } = await import("@/shared/stores/region-store");
     freshStore.setState({ selectedRegionId: null });
-    const { RegionSelector } = await import("@/components/login/region-selector");
+    const { RegionSelector } = await import("@/components/region-selector");
     render(<RegionSelector />);
     expect(screen.getByText("唯一区")).toBeInTheDocument();
     expect(freshStore.getState().selectedRegionId).toBe("only-1");
@@ -98,10 +98,10 @@ describe("RegionSelector — mode:none", () => {
   });
 
   it("renders nothing in mode:none", async () => {
-    vi.doMock("@/shared/platform/cluster-config", () => ({
+    vi.doMock("@/shared/cluster-config", () => ({
       clusterConfig: { mode: "none", regions: [] },
     }));
-    const { RegionSelector } = await import("@/components/login/region-selector");
+    const { RegionSelector } = await import("@/components/region-selector");
     const { container } = render(<RegionSelector />);
     expect(container.firstChild).toBeNull();
   });
@@ -112,10 +112,10 @@ describe("RegionSelector — empty regions in multi-region", () => {
     vi.resetModules();
   });
   it("renders a retry affordance when regions is empty", async () => {
-    vi.doMock("@/shared/platform/cluster-config", () => ({
+    vi.doMock("@/shared/cluster-config", () => ({
       clusterConfig: { mode: "multi-region", regions: [] },
     }));
-    const { RegionSelector } = await import("@/components/login/region-selector");
+    const { RegionSelector } = await import("@/components/region-selector");
     render(<RegionSelector />);
     expect(screen.getByRole("button", { name: /retry|重试|region\.empty/i })).toBeInTheDocument();
   });

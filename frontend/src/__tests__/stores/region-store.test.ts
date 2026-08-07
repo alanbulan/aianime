@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-vi.mock("@/shared/platform/cluster-config", () => ({
+vi.mock("@/shared/cluster-config", () => ({
   clusterConfig: {
     mode: "multi-region",
     regions: [

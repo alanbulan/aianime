@@ -1829,7 +1829,6 @@ ONE continuous image. ZERO visible boundaries between regions."""
                 if not PromptComponents._is_material_only_scene_ref(ref)
             )
         )
-        has_scene_ref = has_material_only_scene_ref or has_structural_scene_ref
         if has_structural_scene_ref:
             ref_parts.append(
                 "for matching locations with scene anchor images: environment architecture, materials, major props, and stable set dressing from the scene anchor only"
@@ -2715,7 +2714,6 @@ class SketchModeStrategy:
 
         director_frame_prop_colors = _director_frame_prop_colors()
 
-        ordered_char_names: list[str] = []
         if ctx.characters:
             from ai_anime.shared.utils.identity_resolver import compute_char_tag as _compute_tag
 
@@ -2723,7 +2721,6 @@ class SketchModeStrategy:
                 actual_beats_for_chars,
                 use_detected_identities=False,
             )
-            ordered_char_names = [name for name in panel_chars if name in ctx.characters]
             for char_name in panel_chars:
                 char_cfg = ctx.characters.get(char_name)
                 if not char_cfg:

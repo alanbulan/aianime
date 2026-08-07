@@ -7,11 +7,10 @@ import os
 import re
 import subprocess
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from ai_anime.config import get_video_config
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
@@ -593,7 +592,6 @@ class MoviePyComposer:
         try:
             from moviepy.editor import (
                 AudioFileClip,
-                CompositeVideoClip,
                 ImageClip,
                 TextClip,
                 concatenate_videoclips,
@@ -802,7 +800,6 @@ async def adjust_video_duration(
             print(f"[adjust_video_duration] 冻结最后一帧: {freeze_duration:.2f}s")
 
             # 使用 tpad 滤镜冻结最后一帧
-            freeze_frames = int(freeze_duration * 30)  # 假设 30fps
             cmd = [
                 "ffmpeg",
                 "-y",

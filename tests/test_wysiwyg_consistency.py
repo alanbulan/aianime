@@ -12,10 +12,9 @@ Usage:
 
 import asyncio
 import json
-import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import pytest
 
@@ -24,11 +23,8 @@ import pytest
 # ---------------------------------------------------------------------------
 from ai_anime.modules.generators.prompt_builder import (
     CharacterConfig,
-    GridConfig,
     PromptComponents,
-    PromptContext,
     PromptMode,
-    StyleConfig,
     UnifiedPromptBuilder,
     create_prompt_context,
 )
@@ -638,23 +634,6 @@ def test_export_ui_matches_reference_map(case):
     # Path C: export UI simulation
     has_sketch = True  # Render mode always has sketch
     path_c = simulate_export_ui_order(ordered, cmap, has_sketch)
-
-    # Compare image counts (excluding prompt_only chars that only exist in UI)
-    # The reference_map only has images for chars with ref_path,
-    # but export UI also shows placeholders for prompt_only chars.
-    # We compare only the indices that appear in both.
-    max_ref_idx = max(path_a.keys()) if path_a else 0
-    max_ui_idx = max(path_c.keys()) if path_c else 0
-
-    # The SKETCH should be at the same index
-    sketch_idx_a = next((i for i, t in path_a.items() if t == "SKETCH"), None)
-    sketch_idx_c = next((i for i, t in path_c.items() if t == "SKETCH"), None)
-
-    if sketch_idx_a is not None and sketch_idx_c is not None:
-        # In the UI, prompt_only chars get img_idx too (shown as placeholder),
-        # so UI sketch idx may be higher. That's expected.
-        # What matters: all chars WITH images have same idx in both paths.
-        pass
 
     # Compare chars that have actual images (non-SKETCH, non-placeholder)
     ref_char_indices = {

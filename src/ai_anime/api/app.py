@@ -6,7 +6,7 @@ import os
 
 from fastapi import FastAPI
 
-from ai_anime.api.errors import register_exception_handlers
+from ai_anime.api.exception_handlers import register_exception_handlers
 from ai_anime.api.lifespan import app_lifespan
 from ai_anime.api.logging_config import configure_api_logging
 from ai_anime.api.middleware import install_http_middleware

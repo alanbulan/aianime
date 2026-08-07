@@ -119,7 +119,7 @@ import type {
   DirectorStageManifest,
 } from '@/features/viewer-kit/public';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { formatCreditCost } from '@/components/credits/credit-visual';
+import { formatCreditCost } from '@/components/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createElement } from "react";
 
-import { formatCreditCost } from "@/components/credits/credit-visual";
+import { formatCreditCost } from "@/components/credit-visual";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 import { useNow } from "@/shared/hooks/use-now";
 import { useTaskController } from "@/modules/task_execution/public";
@@ -38,13 +38,11 @@ import { createUseVideoModels } from "@/modules/production/application/video-mod
 import { createVideoGenerationQueryHooks } from "@/modules/production/application/video-generation-query-hooks";
 import { createVideoPoolQueryHooks } from "@/modules/production/application/video-pool-query-hooks";
 import { createSeedance2PanelQueryHooks } from "@/modules/production/application/seedance2-panel-query-hooks";
-import { createSketchRegenQueueQueryHooks } from "@/modules/production/application/sketch-regen-queue-query-hooks";
 import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
 import { createUseAudioPaneController } from "@/modules/production/application/use-audio-pane-controller";
 import { createUseBatchBarController } from "@/modules/production/application/use-batch-bar-controller";
-import { createUseBatchPanelController } from "@/modules/production/application/use-batch-panel-controller";
 import { createUseBeatStates } from "@/modules/production/application/use-beat-states";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseEpisodeComposePageController } from "@/modules/production/application/use-episode-compose-page-controller";
@@ -111,9 +109,6 @@ const renderPlanQueries = createRenderPlanQueryHooks(
 );
 const sketchGenerationQueries = createSketchGenerationQueryHooks(
   authorizedProductionImageGateway,
-);
-const sketchRegenQueueQueries = createSketchRegenQueueQueryHooks(
-  httpProductionVideoGateway,
 );
 const sketchPoseEditorQueries = createSketchPoseEditorQueryHooks(
   httpProductionVideoGateway,
@@ -256,29 +251,6 @@ export const useBatchBarController = createUseBatchBarController(
   },
   { formatCreditCost, useGenerationCreditCost },
 );
-export const useBatchPanelController = createUseBatchPanelController(
-  {
-    useGenerateAudio: audioGenerationQueries.useGenerateAudio,
-    useRegenerateSketches: sketchGenerationQueries.useRegenerateSketches,
-    useSaveSketchRegenQueue:
-      sketchRegenQueueQueries.useSaveSketchRegenQueue,
-    useSketchRegenQueue: sketchRegenQueueQueries.useSketchRegenQueue,
-    useSketchSettings: imageSettingsQueries.useSketchSettings,
-    useAudioModels,
-  },
-  {
-    formatCreditCost,
-    removeStoredValue: (key) => {
-      try {
-        localStorage.removeItem(key);
-      } catch {
-        /* ignore */
-      }
-    },
-    useGenerationCreditCost,
-    useTasks,
-  },
-);
 export const useRenderPlanDialogController =
   createUseRenderPlanDialogController(
     {
@@ -357,8 +329,6 @@ export const {
   useSketchSettings,
   useUpdateSketchSettings,
 } = imageSettingsQueries;
-export const { useSketchRegenQueue, useSaveSketchRegenQueue } =
-  sketchRegenQueueQueries;
 export const { useAssignColors, useDetectIdentities } = sketchMarkerQueries;
 export const {
   useDirectorControlToSketch,

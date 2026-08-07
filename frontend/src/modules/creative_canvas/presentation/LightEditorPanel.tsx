@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 
-import { CreditCostPill } from "@/components/credits/credit-visual";
+import { CreditCostPill } from "@/components/credit-visual";
 import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/shadcn/slider";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";

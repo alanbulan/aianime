@@ -96,7 +96,6 @@ async def main_async() -> int:
                 return 1
 
             total = len(result.cells)
-            passed = len(result.passed_beats)
             failed = len(result.failed_beats)
             round_num = await convergence_log.write_round(
                 project_db,

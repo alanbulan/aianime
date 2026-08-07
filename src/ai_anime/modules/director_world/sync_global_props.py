@@ -6,7 +6,6 @@ import argparse
 import json
 import sqlite3
 import sys
-from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.narrative_planning.public import build_prop_menu

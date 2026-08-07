@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { splitImageSource } from '@/commands/image';
+import { splitImageSource } from './browserImageCommands';
 
 import type { CanvasImageSplitGateway } from '../application/canvasToolProcessor';
 

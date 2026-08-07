@@ -16,10 +16,9 @@ Usage:
 """
 
 import asyncio
-import os
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import pytest
 
@@ -29,7 +28,6 @@ import pytest
 from ai_anime.modules.generators.prompt_builder import (
     CharacterConfig,
     PromptComponents,
-    PromptContext,
     PromptMode,
     create_prompt_context,
 )

@@ -31,7 +31,7 @@ import {
   StatCard,
   UploadedFileCard,
   resolveOptionLabel,
-} from "@/modules/story_intake/presentation/components/IngestPageParts";
+} from "@/modules/story_intake/presentation/IngestPageParts";
 
 export function IngestResultPanel({
   controller,

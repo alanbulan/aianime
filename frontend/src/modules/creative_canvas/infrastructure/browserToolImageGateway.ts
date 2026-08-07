@@ -2,7 +2,7 @@
 import {
   cropImageSource,
   readStoryboardImageMetadata,
-} from '@/commands/image';
+} from './browserImageCommands';
 
 import type { CanvasToolImageGateway } from '../application/canvasToolProcessor';
 import { parseAspectRatio } from '../domain/aspectRatio';

@@ -94,7 +94,7 @@ vi.mock('./NodeGenerationHistory', () => ({
   ),
 }));
 
-vi.mock('@/components/credits/credit-visual', () => ({
+vi.mock('@/components/credit-visual', () => ({
   CreditCostPill: ({ display }: { display?: string }) => (
     <div>credit:{display}</div>
   ),

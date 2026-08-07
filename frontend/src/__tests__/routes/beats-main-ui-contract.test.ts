@@ -248,9 +248,6 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const batchBarSources = `${batchBar}\n${batchBarController}\n${batchBarView}`;
     const actionPanel = readActionPanelComposition();
     const singleBeatPanel = readSingleBeatPanelComposition();
-    const batchPanel = read(
-      "src/components/episode/beat-workbench/batch-panel.tsx",
-    );
     const videoPane = readVideoPaneComposition();
     const videoGeneration = read(
       "src/modules/production/domain/video-generation.ts",
@@ -276,7 +273,6 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     );
     expect(actionPanel).not.toContain("useDirectorRender");
     expect(singleBeatPanel).not.toContain("useDirectorRender");
-    expect(batchPanel).not.toContain("useDirectorRender");
     expect(videoPane).not.toContain("useDirectorRender");
   });
 });

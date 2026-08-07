@@ -168,7 +168,7 @@ import {
   mergeStoryboardImages,
   readStoryboardImageMetadata,
   saveImageSourceToDirectory,
-} from '@/commands/image';
+} from '@/modules/creative_canvas/infrastructure/browserImageCommands';
 import {
   loadBeatDirectorStageManifest,
   loadSceneDirectorStageManifest,

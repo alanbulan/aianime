@@ -1,4 +1,4 @@
-import { quotaSafeStateStorage } from "@/shared/storage/localStorageQuota";
+import { quotaSafeStateStorage } from "@/shared/localStorageQuota";
 import { createUseCurrentUser } from "@/modules/identity_access/application/query-hooks";
 import { createCommercialAuthStore } from "@/modules/identity_access/application/commercial-session-store";
 import { createCommercialEntitlementStore } from "@/modules/identity_access/application/commercial-entitlement-store";

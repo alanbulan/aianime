@@ -10,7 +10,7 @@ import pytest
 from PIL import Image
 
 from ai_anime import config
-from ai_anime.shared.storage import media_relay
+from ai_anime.shared import media_relay
 
 
 class FakeAuth:

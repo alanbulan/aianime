@@ -7,7 +7,7 @@ import { NovelFormatDialog } from "@/components/ingest/NovelFormatDialog";
 import type { StoryIntakeController } from "@/modules/story_intake/application/use-story-intake-controller";
 import { IngestInputPanel } from "@/modules/story_intake/presentation/IngestInputPanel";
 import { IngestResultPanel } from "@/modules/story_intake/presentation/IngestResultPanel";
-import { UploadingOverlay } from "@/modules/story_intake/presentation/components/IngestPageParts";
+import { UploadingOverlay } from "@/modules/story_intake/presentation/IngestPageParts";
 
 export function IngestPageView({
   controller,

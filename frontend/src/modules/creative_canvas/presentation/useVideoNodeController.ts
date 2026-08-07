@@ -122,7 +122,7 @@ import type {
 } from '../domain/cameraMovementPresets';
 import type { VideoGenCount } from '../domain/videoGenerationModel';
 import type { VideoReferenceCapEntry } from '../domain/videoReferenceLimits';
-import { formatCreditCost } from '@/components/credits/credit-visual';
+import { formatCreditCost } from '@/components/credit-visual';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';

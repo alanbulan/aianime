@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { safeLocalStorageSet } from "@/shared/storage/localStorageQuota";
+import { safeLocalStorageSet } from "@/shared/localStorageQuota";
 
 import {
   CANVAS_DRAFT_MAX_BYTES,

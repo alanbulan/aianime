@@ -11,8 +11,8 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "app/styles/portal-overrides.css": 81,
   "app/styles/themes.css": 126,
   "app/styles/tokens.css": 9,
-  "commands/image.ts": 2,
-  "components/credits/credit-visual.tsx": 6,
+  "modules/creative_canvas/infrastructure/browserImageCommands.ts": 2,
+  "components/credit-visual.tsx": 6,
   "modules/production/presentation/Seedance2AssetCropDialog.tsx": 1,
   "modules/production/presentation/RenderSectionView.tsx": 1,
   "modules/production/presentation/SketchCropDialogView.tsx": 1,
@@ -64,7 +64,7 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
 };
 
 const DOMAIN_COLOR_DATA = new Set([
-  "commands/image.ts",
+  "modules/creative_canvas/infrastructure/browserImageCommands.ts",
   "modules/creative_canvas/domain/storyboardNodeModel.ts",
   "modules/creative_canvas/domain/canvasAnnotationCodec.ts",
   "modules/creative_canvas/domain/canvasToolCatalog.ts",
@@ -81,7 +81,7 @@ const DOMAIN_COLOR_DATA = new Set([
 ]);
 
 const DOMAIN_VISUALIZATIONS = new Set([
-  "components/credits/credit-visual.tsx",
+  "components/credit-visual.tsx",
   "modules/project_workspace/presentation/components/project-folder.module.css",
   "modules/project_workspace/presentation/components/project-folder.tsx",
 ]);

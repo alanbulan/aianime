@@ -26,7 +26,7 @@ import { OperationPanelShell } from './OperationPanelShell';
 import { PanelExpandButton } from './PanelExpandButton';
 import { ReferenceTextChip } from './ReferenceTextChip';
 import type { AudioOperationsPanelController } from './useAudioOperationsPanelController';
-import { CreditCostPill } from '@/components/credits/credit-visual';
+import { CreditCostPill } from '@/components/credit-visual';
 import { UiSelect } from '@/components/ui';
 import {
   Tooltip,

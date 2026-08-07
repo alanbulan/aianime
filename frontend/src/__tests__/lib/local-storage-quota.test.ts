@@ -8,7 +8,7 @@ import {
   quotaSafeStateStorage,
   registerStorageReclaimer,
   safeLocalStorageSet,
-} from "@/shared/storage/localStorageQuota";
+} from "@/shared/localStorageQuota";
 
 function quotaError(): DOMException {
   return new DOMException("quota", "QuotaExceededError");

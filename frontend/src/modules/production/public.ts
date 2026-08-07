@@ -6,7 +6,6 @@ export {
   RenderPlanDialog,
   useAssignColors,
   useBatchBarController,
-  useBatchPanelController,
   useBeatStates,
   useComposeEpisode,
   useCopyProjectNarratorVoice,
@@ -42,8 +41,6 @@ export {
   useSeedance2BeatStatus,
   useSeedance2AssetOperationsController,
   useSeedance2ConfigController,
-  useSaveSketchRegenQueue,
-  useSketchRegenQueue,
   useSketchGridPreview,
   useSketchSettings,
   useTrimSeedance2Asset,
@@ -94,8 +91,6 @@ export {
   VideoParamField,
 } from "@/modules/production/presentation/VideoPaneParts";
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
-export { BatchPanelView } from "@/modules/production/presentation/BatchPanelView";
-export type { BatchPanelViewProps } from "@/modules/production/presentation/BatchPanelView";
 export { BatchBarView } from "@/modules/production/presentation/BatchBarView";
 export type { BatchBarViewProps } from "@/modules/production/presentation/BatchBarView";
 export type {
@@ -119,12 +114,6 @@ export type {
   RenderPlanDialogControllerQueries,
   RenderPlanStaleBanner,
 } from "@/modules/production/application/use-render-plan-dialog-controller";
-export type {
-  BatchPanelController,
-  BatchPanelControllerDependencies,
-  BatchPanelControllerOptions,
-  BatchPanelControllerQueries,
-} from "@/modules/production/application/use-batch-panel-controller";
 export { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type { NarratorVoicePanelViewProps } from "@/modules/production/presentation/NarratorVoicePanelView";
 export type {

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Minus, Plus, Sparkles } from 'lucide-react';
 
-import { CreditSparkIcon } from '@/components/credits/credit-visual';
+import { CreditSparkIcon } from '@/components/credit-visual';
 import { UiButton } from '@/components/ui';
 import { CanvasNodeImage } from './CanvasNodeImage';
 import {

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useTranslation } from "react-i18next";
 
-import { CREDIT_VALUE_CLASS, CreditSparkIcon } from "@/components/credits/credit-visual";
+import { CREDIT_VALUE_CLASS, CreditSparkIcon } from "@/components/credit-visual";
 import {
   Tooltip,
   TooltipContent,

@@ -31,7 +31,6 @@ from ai_anime.api.routes import (
     production_video,
     projects,
     props,
-    release_notifications,
     scenes,
     scripts,
     styles,
@@ -116,10 +115,6 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router.include_router(pipeline.router, tags=["pipeline"])
     router.include_router(model_gateway.router, tags=["model-gateway"])
     router.include_router(model_credits.router, tags=["model-credits"])
-    router.include_router(
-        release_notifications.router,
-        tags=["release-notifications"],
-    )
     router.include_router(freezone_bootstrap.router)
     router.include_router(freezone_assets.router)
     router.include_router(freezone_commits.router)

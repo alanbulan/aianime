@@ -44,7 +44,7 @@ vi.mock("@/components/ui/button", () => ({
   ),
 }));
 
-import { NotificationDrawer } from "@/components/notifications/notification-drawer";
+import { NotificationDrawer } from "@/components/notification-drawer";
 
 describe("NotificationDrawer commercial announcements", () => {
   beforeEach(() => {

@@ -14,7 +14,7 @@ import { memo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { CreditCostInline } from "@/components/credit-cost-inline";
-import { useCreditDisplayHidden } from "@/components/credits/credit-visual";
+import { useCreditDisplayHidden } from "@/components/credit-visual";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";

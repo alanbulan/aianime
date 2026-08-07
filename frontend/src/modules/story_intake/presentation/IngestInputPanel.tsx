@@ -29,7 +29,7 @@ import {
   InputModeToggle,
   SelectedFileCard,
   UploadZone,
-} from "@/modules/story_intake/presentation/components/IngestPageParts";
+} from "@/modules/story_intake/presentation/IngestPageParts";
 
 export function IngestInputPanel({
   controller,

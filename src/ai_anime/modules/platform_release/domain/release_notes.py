@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 from packaging.version import InvalidVersion, Version
 
-from ai_anime.modules.platform_release.domain.release_feed import Attention
+Attention = Literal["low", "medium", "high"]
 
 _HIGHLIGHTS_RE = re.compile(r"^user-facing highlights(?:\s*\((zh|en)\))?$", re.I)
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")

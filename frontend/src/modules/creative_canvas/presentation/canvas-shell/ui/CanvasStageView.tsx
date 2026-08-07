@@ -11,7 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
+import { CreditDisplayHiddenProvider } from '@/components/credit-visual';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import { isCeRuntime } from '@/lib/runtime-config';
 

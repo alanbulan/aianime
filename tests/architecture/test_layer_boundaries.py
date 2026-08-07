@@ -165,11 +165,6 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ("TTSGenerateRequest", "TTSPreviewRequest"),
         ),
         (
-            "release_notifications_schemas.py",
-            "routes/release_notifications.py",
-            ("OkResponse",),
-        ),
-        (
             "styles_schemas.py",
             "routes/styles.py",
             ("StylePreviewRequest",),
@@ -2456,29 +2451,23 @@ def test_model_usage_owns_runtime_provider_instrumentation() -> None:
     assert "ai_anime.llm_instrumentation" not in _imports(cognee_config)
 
 
-def test_platform_release_owns_release_feed_contract_and_adapters() -> None:
-    composition = PACKAGE_ROOT / "modules" / "platform_release" / "composition.py"
-    local_ports = (
-        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
-    )
-    composition_source = composition.read_text(encoding="utf-8")
-
+def test_platform_release_does_not_keep_a_noop_release_feed() -> None:
+    platform_release = PACKAGE_ROOT / "modules" / "platform_release"
+    local_ports = PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
     assert not (PACKAGE_ROOT / "ports" / "release_feed.py").exists()
     assert not (PACKAGE_ROOT / "ports" / "local" / "release_feed.py").exists()
     assert not (PACKAGE_ROOT / "release_notes.py").exists()
-    assert composition_source.count('get_port("release_feed")') == 1
-    assert "get_release_feed_port" not in composition_source
-    assert "ai_anime.modules.platform_release.public" in _imports(local_ports)
+    assert not (platform_release / "application" / "release_notifications.py").exists()
+    assert not (platform_release / "infrastructure" / "release_feed.py").exists()
+    assert 'register_port("release_feed"' not in local_ports.read_text(encoding="utf-8")
 
 
-def test_release_notifications_route_delegates_to_application() -> None:
+def test_noop_release_notifications_route_is_removed() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "release_notifications.py"
-    source = route.read_text(encoding="utf-8")
+    router = PACKAGE_ROOT / "api" / "v1" / "router.py"
 
-    assert source.count("release_notification_queries().current(") == 1
-    assert "ai_anime.modules.platform_release.public" in _imports(route)
-    assert "get_release_feed_port" not in source
-    assert "def normalize_locale(" not in source
+    assert not route.exists()
+    assert "release_notifications" not in router.read_text(encoding="utf-8")
 
 
 def test_runtime_config_route_delegates_to_application() -> None:

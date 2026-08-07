@@ -12,7 +12,6 @@
 
 import hashlib
 import re
-from typing import Optional
 
 from pypinyin import pinyin, Style
 

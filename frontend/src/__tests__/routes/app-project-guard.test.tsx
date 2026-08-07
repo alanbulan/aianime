@@ -76,7 +76,7 @@ vi.mock("framer-motion", () => ({
   },
 }));
 
-vi.mock("@/shared/platform/cluster-config", () => ({
+vi.mock("@/shared/cluster-config", () => ({
   clusterConfig: { mode: "none" },
 }));
 

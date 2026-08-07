@@ -92,7 +92,7 @@ vi.mock('./ModelParamsControls', () => ({
   ),
 }));
 
-vi.mock('@/components/credits/credit-visual', () => ({
+vi.mock('@/components/credit-visual', () => ({
   CreditSparkIcon: () => <span>credit-icon</span>,
 }));
 

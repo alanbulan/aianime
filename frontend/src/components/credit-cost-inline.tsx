@@ -3,7 +3,7 @@ import {
   CREDIT_VALUE_CLASS,
   CreditSparkIcon,
   useCreditDisplayHidden,
-} from "@/components/credits/credit-visual";
+} from "@/components/credit-visual";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 

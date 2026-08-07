@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRegionStore } from "@/shared/stores/region-store";
 
-vi.mock("@/shared/platform/cluster-config", () => ({
+vi.mock("@/shared/cluster-config", () => ({
   clusterConfig: {
     mode: "multi-region",
     regions: [
@@ -73,7 +73,7 @@ describe("RegionBadge", () => {
 describe("RegionBadge — mode:none", () => {
   it("renders nothing in mode:none", async () => {
     vi.resetModules();
-    vi.doMock("@/shared/platform/cluster-config", () => ({
+    vi.doMock("@/shared/cluster-config", () => ({
       clusterConfig: { mode: "none", regions: [] },
     }));
     const { RegionBadge } = await import("@/components/layout/region-badge");

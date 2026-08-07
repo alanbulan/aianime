@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ai_anime.shared.env_guard import preserve_st_env
@@ -38,7 +38,6 @@ from ai_anime.modules.asset_world.public import (
 )
 from ai_anime.modules.narrative_planning.public import (
     NovelEpisode as _NovelEpisode,
-    NovelVisualBeat,
 )
 
 

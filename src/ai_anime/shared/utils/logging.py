@@ -95,10 +95,8 @@ def _log_tool_call(
     # 输出颜色
     if error:
         color = "red"
-        status = "FAIL"
     else:
         color = "green"
-        status = "OK"
 
     # 打印工具调用头
     header = Text()

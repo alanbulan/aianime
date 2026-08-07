@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { CreditCostPill } from "@/components/credits/credit-visual";
+import { CreditCostPill } from "@/components/credit-visual";
 import type {
   VideoSubtitleEraseBox,
   VideoSubtitleEraseMode,

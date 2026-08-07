@@ -1,4 +1,4 @@
-import { formatCreditCost } from "@/components/credits/credit-visual";
+import { formatCreditCost } from "@/components/credit-visual";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import {
   useAssetWorkspaceNavigation,

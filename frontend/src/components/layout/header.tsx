@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AvatarUploadDialog } from "@/components/account/avatar-upload-dialog";
+import { AvatarUploadDialog } from "@/components/avatar-upload-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -26,9 +26,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
-import { NotificationDrawer } from "@/components/notifications/notification-drawer";
+import { NotificationDrawer } from "@/components/notification-drawer";
 import { BRAND_NAME, BrandMark } from "@/components/brand";
-import { SettingsDialog } from "@/components/settings/settings-dialog";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   logoutAllSessions,

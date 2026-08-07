@@ -7,7 +7,7 @@ import {
   canvasDraftSignature,
 } from "@/modules/creative_canvas/public";
 ;
-import { safeLocalStorageSet } from "@/shared/storage/localStorageQuota";
+import { safeLocalStorageSet } from "@/shared/localStorageQuota";
 import {
   FREEZONE_CANVAS_TTL_MS,
   installFreezoneCanvasStorageReclaimer,

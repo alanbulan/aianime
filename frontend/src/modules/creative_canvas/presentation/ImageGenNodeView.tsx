@@ -80,7 +80,7 @@ import { NodeContextPromptPaletteButton } from '@/modules/creative_canvas/canvas
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import {
   CreditCostPill,
-} from '@/components/credits/credit-visual';
+} from '@/components/credit-visual';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 export interface ImageGenNodeViewProps {

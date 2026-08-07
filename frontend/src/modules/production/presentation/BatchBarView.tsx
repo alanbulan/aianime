@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Mic2, Palette, Sparkles, Wand2 } from "lucide-react";
 
 import { CreditCostInline } from "@/components/credit-cost-inline";
-import { CreditCostPill } from "@/components/credits/credit-visual";
+import { CreditCostPill } from "@/components/credit-visual";
 import {
   AlertDialog,
   AlertDialogAction,

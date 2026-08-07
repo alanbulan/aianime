@@ -3,7 +3,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { AppLayout } from "@/app/AppLayout";
 import { resolveAppRouteAccess } from "@/app/commercial-access";
-import { clusterConfig } from "@/shared/platform/cluster-config";
+import { clusterConfig } from "@/shared/cluster-config";
 import { getRegionCookie } from "@/lib/region-cookie";
 
 export const Route = createFileRoute("/_app")({
