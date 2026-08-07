@@ -38,9 +38,6 @@ async def test_frame_skill_render_uses_canvas_sketch_input_without_mainline_sket
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-    from ai_anime.modules.generators import pool_indexer
-
     ctx = _project_ctx(tmp_path)
     canvas_sketch_path = tmp_path / "canvas" / "sketch.png"
     canvas_sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -75,8 +72,14 @@ async def test_frame_skill_render_uses_canvas_sketch_input_without_mainline_sket
         return {"grid_path": kwargs["grid_image_path"], "cell_paths": [Path("beat_03.png")], "added": 1, "skipped": 0}
 
     monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", fake_ensure_scene_refs_for_beats)
-    monkeypatch.setattr(nanobanana_grid, "regenerate_selected_beats", fake_regenerate_selected_beats)
-    monkeypatch.setattr(pool_indexer, "save_grid_and_split", fake_save_grid_and_split)
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.regenerate_selected_beats",
+        fake_regenerate_selected_beats,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.save_grid_and_split",
+        fake_save_grid_and_split,
+    )
 
     result = await render_runner._run_selected_regen_async(
         {
@@ -133,9 +136,6 @@ async def test_standalone_frame_skill_render_uses_zero_based_local_panel(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-    from ai_anime.modules.generators import pool_indexer
-
     ctx = _project_ctx(tmp_path)
     canvas_sketch_path = tmp_path / "canvas" / "sketch.png"
     canvas_sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -182,8 +182,14 @@ async def test_standalone_frame_skill_render_uses_zero_based_local_panel(
         }
 
     monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", fake_ensure_scene_refs_for_beats)
-    monkeypatch.setattr(nanobanana_grid, "regenerate_selected_beats", fake_regenerate_selected_beats)
-    monkeypatch.setattr(pool_indexer, "save_grid_and_split", fake_save_grid_and_split)
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.regenerate_selected_beats",
+        fake_regenerate_selected_beats,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.save_grid_and_split",
+        fake_save_grid_and_split,
+    )
 
     result = await render_runner._run_selected_regen_async(
         {
@@ -246,9 +252,6 @@ async def test_standalone_frame_skill_render_normalizes_legacy_local_panel_paylo
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-    from ai_anime.modules.generators import pool_indexer
-
     ctx = _project_ctx(tmp_path)
     canvas_sketch_path = tmp_path / "canvas" / "sketch.png"
     canvas_sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -288,8 +291,14 @@ async def test_standalone_frame_skill_render_normalizes_legacy_local_panel_paylo
         }
 
     monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", fake_ensure_scene_refs_for_beats)
-    monkeypatch.setattr(nanobanana_grid, "regenerate_selected_beats", fake_regenerate_selected_beats)
-    monkeypatch.setattr(pool_indexer, "save_grid_and_split", fake_save_grid_and_split)
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.regenerate_selected_beats",
+        fake_regenerate_selected_beats,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.save_grid_and_split",
+        fake_save_grid_and_split,
+    )
 
     result = await render_runner._run_selected_regen_async(
         {
@@ -331,9 +340,6 @@ async def test_sketch_runner_accepts_missing_generation_time(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-    from ai_anime.modules.generators import pool_indexer
-
     ctx = _project_ctx(tmp_path)
 
     class FakeGridGenerator:
@@ -357,8 +363,14 @@ async def test_sketch_runner_accepts_missing_generation_time(
             "skipped": 0,
         }
 
-    monkeypatch.setattr(nanobanana_grid, "NanoBananaGridGenerator", FakeGridGenerator)
-    monkeypatch.setattr(pool_indexer, "save_grid_and_split", fake_save_grid_and_split)
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.NanoBananaGridGenerator",
+        FakeGridGenerator,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.save_grid_and_split",
+        fake_save_grid_and_split,
+    )
 
     result = await sketch_runner._run_sketch_generation_async(
         {

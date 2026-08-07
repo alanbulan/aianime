@@ -2682,7 +2682,7 @@ async def test_mask_edit_job_uses_commercial_model_routing(
         Path(str(kwargs["output_path"])).write_bytes(b"png")
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.nanobanana_grid.generate_reference_edit_image",
+        "ai_anime.modules.generators.public.generate_reference_edit_image",
         fake_generate_reference_edit_image,
     )
 
@@ -3582,11 +3582,11 @@ def test_standalone_unified_sketch_prompt_keeps_missing_beat_number_null(
         captured.update(kwargs)
         return SimpleNamespace()
 
-    import ai_anime.modules.generators.prompt_builder as prompt_builder
+    import ai_anime.modules.generators.public as generators_public
 
-    monkeypatch.setattr(prompt_builder, "UnifiedPromptBuilder", FakePromptBuilder)
+    monkeypatch.setattr(generators_public, "UnifiedPromptBuilder", FakePromptBuilder)
     monkeypatch.setattr(
-        prompt_builder, "create_prompt_context", fake_create_prompt_context
+        generators_public, "create_prompt_context", fake_create_prompt_context
     )
 
     result = LocalCreativeCanvasSkillWorkspace().build_standalone_sketch_prompt(

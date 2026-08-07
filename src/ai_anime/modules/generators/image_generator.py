@@ -150,71 +150,9 @@ class CommercialImageGenerator:
             )
 
 
-class MockImageGenerator:
-    """Explicit test-only image generator."""
-
-    def __init__(self) -> None:
-        self.default_width = 1024
-        self.default_height = 1024
-
-    async def generate(
-        self,
-        prompt: str,
-        output_path: Optional[str] = None,
-        **kwargs: Any,
-    ) -> ImageGenResult:
-        try:
-            from PIL import Image, ImageDraw, ImageFont
-        except ImportError:
-            return ImageGenResult(success=False, error="Pillow not installed")
-
-        width = kwargs.get("width", self.default_width)
-        height = kwargs.get("height", self.default_height)
-        image = Image.new("RGB", (width, height), color=(50, 50, 80))
-        draw = ImageDraw.Draw(image)
-        text = f"Mock Image\n{prompt[:50]}..."
-        try:
-            font = ImageFont.truetype("/System/Library/Fonts/PingFang.ttc", 24)
-        except Exception:
-            font = ImageFont.load_default()
-        draw.multiline_text(
-            (width // 4, height // 3),
-            text,
-            fill=(200, 200, 200),
-            font=font,
-        )
-        if output_path:
-            target = Path(output_path)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            image.save(target)
-        return ImageGenResult(success=True, image_path=output_path)
-
-    async def generate_character_reference(
-        self,
-        character_name: str,
-        appearance_prompt: str,
-        output_dir: str,
-        count: int = 3,
-        style: str | None = None,
-        project_dir: str = "",
-    ) -> list[str]:
-        del style, project_dir
-        os.makedirs(output_dir, exist_ok=True)
-        paths: list[str] = []
-        for index in range(count):
-            path = os.path.join(output_dir, f"reference_{index + 1:02d}.png")
-            result = await self.generate(
-                prompt=f"{character_name} - {appearance_prompt}",
-                output_path=path,
-            )
-            if result.success:
-                paths.append(path)
-        return paths
-
-
-def create_image_generator(*, model: str | None = None, use_mock: bool = False):
-    """Create the production adapter or an explicitly requested test mock."""
-    return MockImageGenerator() if use_mock else CommercialImageGenerator(model)
+def create_image_generator(*, model: str | None = None):
+    """Create the production adapter."""
+    return CommercialImageGenerator(model)
 
 
 async def generate_character_reference_unified(
@@ -223,7 +161,6 @@ async def generate_character_reference_unified(
     output_dir: str,
     character_tag: str = "",
     count: int = 3,
-    use_mock: bool = False,
     style: str | None = None,
     ethnicity: str = "Chinese",
     prompt_only: bool = False,
@@ -235,14 +172,6 @@ async def generate_character_reference_unified(
     raise_on_error: bool = False,
 ) -> list[str]:
     """Generate character references through the selected platform model SKU."""
-    if use_mock:
-        return await MockImageGenerator().generate_character_reference(
-            character_name=character_name,
-            appearance_prompt=appearance_prompt,
-            output_dir=output_dir,
-            count=count,
-            project_dir=project_dir,
-        )
     resolved_model = str(model or "").strip()
     if not resolved_model:
         if raise_on_error:

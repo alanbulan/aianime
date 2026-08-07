@@ -32,8 +32,8 @@ def test_character_default_ethnicity_instruction_allows_explicit_foreign_descrip
 
 def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
     files = [
-        Path("src/ai_anime/generators/prompt_builder.py"),
-        Path("src/ai_anime/generators/nanobanana_character.py"),
+        Path("src/ai_anime/modules/generators/prompt_builder.py"),
+        Path("src/ai_anime/modules/generators/nanobanana_character.py"),
     ]
     forbidden_literals = [
         "East Asian facial features",

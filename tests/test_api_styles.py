@@ -238,8 +238,6 @@ def test_custom_style_detail_includes_project_media_preview_url(monkeypatch, tmp
 
 
 def test_style_preview_post_route_still_exists(monkeypatch, tmp_path):
-    from ai_anime.modules.generators import image_generator
-
     preview_path = tmp_path / "preview.png"
     preview_path.write_bytes(b"\x89PNG\r\n\x1a\n")
 
@@ -247,12 +245,14 @@ def test_style_preview_post_route_still_exists(monkeypatch, tmp_path):
         return [str(preview_path)]
 
     monkeypatch.setattr(
-        image_generator,
-        "generate_character_reference_unified",
+        "ai_anime.modules.generators.public.generate_character_reference_unified",
         fake_generate_character_reference_unified,
     )
 
-    response = _client().post("/styles/anime/preview", json={})
+    response = _client().post(
+        "/styles/anime/preview",
+        json={"model": "test-image-model"},
+    )
 
     assert response.status_code == 200
 

@@ -76,6 +76,7 @@ async def test_scene_reference_does_not_forward_gateway_credentials(monkeypatch,
         project_dir=tmp_path,
         scene=NovelScene(name="Hall", environment_prompt="wide hall"),
         kind="master",
+        model="test-image-model",
     )
 
     assert "api_key" not in captured

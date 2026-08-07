@@ -288,18 +288,18 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
 def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-
     scene_calls = []
 
     def scene_plan(beats, aspect_ratio="2:3"):
         scene_calls.append((beats, aspect_ratio))
         return [{"rows": 1, "cols": 2}]
 
-    monkeypatch.setattr(nanobanana_grid, "sketch_scene_grid_split", scene_plan)
     monkeypatch.setattr(
-        nanobanana_grid,
-        "sketch_grid_split",
+        "ai_anime.modules.generators.public.sketch_scene_grid_split",
+        scene_plan,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.generators.public.sketch_grid_split",
         lambda total: [(1, total)],
     )
     beats = [{"beat_number": 1}, {"beat_number": 2}]

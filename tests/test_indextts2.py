@@ -142,26 +142,23 @@ async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_p
         }
     ]
     assert refunded == []
-    assert _FakeAsyncClient.calls == [
-        (
-            "post",
-            "http://newapi.test/v1/audio/speech",
-            {
-                "Authorization": "Bearer newapi-test-key",
-                "Content-Type": "application/json",
-            },
-                {
-                    "model": "index-tts-2",
-                    "input": "你终于来了。",
-                    "response_format": "mp3",
-                    "metadata": {
-                    "audio_url": "data:audio/wav;base64,abc",
-                    "should_use_prompt_for_emotion": True,
-                    "emotion_prompt": "压低声音，克制但急切",
-                },
-            },
-        )
-    ]
+    assert len(_FakeAsyncClient.calls) == 1
+    method, url, headers, body = _FakeAsyncClient.calls[0]
+    assert method == "post"
+    assert url == "http://newapi.test/v1/audio/speech"
+    assert headers["Authorization"] == "Bearer newapi-test-key"
+    assert headers["Content-Type"] == "application/json"
+    assert "Idempotency-Key" in headers
+    assert body == {
+        "model": "index-tts-2",
+        "input": "你终于来了。",
+        "response_format": "mp3",
+        "metadata": {
+            "audio_url": "data:audio/wav;base64,abc",
+            "should_use_prompt_for_emotion": True,
+            "emotion_prompt": "压低声音，克制但急切",
+        },
+    }
 
 
 @pytest.mark.asyncio

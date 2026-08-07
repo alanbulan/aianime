@@ -16,9 +16,8 @@ from ai_anime.modules.task_execution.public import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.generators import tts_generator, video_composer, video_generator
-from ai_anime.modules.generators.tts_generator import CommercialTTSGenerator, MockTTSGenerator
+from ai_anime.modules.generators.tts_generator import CommercialTTSGenerator
 from ai_anime.modules.generators.video_composer import SceneAsset, VideoComposer
-from ai_anime.modules.generators.video_generator import MockVideoGenerator
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
 from ai_anime.modules.task_execution.public import global_lane_concurrency
 from ai_anime.modules.task_execution.public import register_project_task_runner
@@ -310,16 +309,6 @@ async def test_gate2_control_signals_are_not_swallowed_by_generator_fallbacks(mo
     with pytest.raises(TaskCancelled):
         await CommercialTTSGenerator()._get_audio_duration(str(tmp_path / "voice.mp3"))
 
-    with pytest.raises(TaskCancelled):
-        await MockTTSGenerator().generate("hello", str(tmp_path / "mock.mp3"))
-
-    with pytest.raises(TaskCancelled):
-        await MockVideoGenerator().generate(
-            image_path=str(tmp_path / "frame.png"),
-            prompt="move",
-            output_path=str(tmp_path / "mock.mp4"),
-        )
-
     scene = SceneAsset(
         scene_number=1,
         image_path=str(tmp_path / "frame.png"),
@@ -341,16 +330,6 @@ async def test_gate2_timeout_signals_are_not_swallowed_by_generator_fallbacks(mo
 
     with pytest.raises(TaskTimedOut):
         await CommercialTTSGenerator()._get_audio_duration(str(tmp_path / "voice.mp3"))
-
-    with pytest.raises(TaskTimedOut):
-        await MockTTSGenerator().generate("hello", str(tmp_path / "mock.mp3"))
-
-    with pytest.raises(TaskTimedOut):
-        await MockVideoGenerator().generate(
-            image_path=str(tmp_path / "frame.png"),
-            prompt="move",
-            output_path=str(tmp_path / "mock.mp4"),
-        )
 
     scene = SceneAsset(
         scene_number=1,

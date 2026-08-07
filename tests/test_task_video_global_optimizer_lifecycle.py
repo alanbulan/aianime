@@ -28,8 +28,7 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch, tmp_path):
-    from ai_anime import cognee
-    from ai_anime.modules.agents import global_video_optimizer
+    from ai_anime.modules import knowledge_graph
     from ai_anime.modules.task_execution.infrastructure.runners import video
     from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -65,15 +64,13 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
             return {"prompt": "optimized prompt"}
 
     monkeypatch.setattr(video, "get_task_manager", lambda: FakeTaskManager())
-    monkeypatch.setattr(cognee, "CogneeStore", FakeCogneeStore)
+    monkeypatch.setattr(knowledge_graph, "CogneeStore", FakeCogneeStore)
     monkeypatch.setattr(
-        global_video_optimizer,
-        "prepare_global_optimizer_input",
+        "ai_anime.modules.agents.public.prepare_global_optimizer_input",
         lambda **kwargs: ([str(sketch_path)], {}, 1),
     )
     monkeypatch.setattr(
-        global_video_optimizer,
-        "get_global_video_optimizer",
+        "ai_anime.modules.agents.public.get_global_video_optimizer",
         lambda: FakeOptimizer(),
     )
 
@@ -102,8 +99,7 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
 
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_failure(monkeypatch, tmp_path):
-    from ai_anime import cognee
-    from ai_anime.modules.agents import global_video_optimizer
+    from ai_anime.modules import knowledge_graph
     from ai_anime.modules.task_execution.infrastructure.runners import video
     from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -136,15 +132,13 @@ async def test_global_optimize_video_closes_cognee_store_on_failure(monkeypatch,
             raise RuntimeError("model unavailable")
 
     monkeypatch.setattr(video, "get_task_manager", lambda: FakeTaskManager())
-    monkeypatch.setattr(cognee, "CogneeStore", FakeCogneeStore)
+    monkeypatch.setattr(knowledge_graph, "CogneeStore", FakeCogneeStore)
     monkeypatch.setattr(
-        global_video_optimizer,
-        "prepare_global_optimizer_input",
+        "ai_anime.modules.agents.public.prepare_global_optimizer_input",
         lambda **kwargs: ([str(sketch_path)], {}, 1),
     )
     monkeypatch.setattr(
-        global_video_optimizer,
-        "get_global_video_optimizer",
+        "ai_anime.modules.agents.public.get_global_video_optimizer",
         lambda: FakeOptimizer(),
     )
 

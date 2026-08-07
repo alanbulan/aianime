@@ -122,81 +122,9 @@ class CommercialTTSGenerator:
         return results
 
 
-class MockTTSGenerator:
-    """Explicit test generator; never selected by production configuration."""
-
-    async def generate(
-        self,
-        text: str,
-        output_path: str,
-        **_kwargs,
-    ) -> TTSResult:
-        try:
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            duration = len(text) / 3.0
-            try:
-                run_project_subprocess(
-                    [
-                        "ffmpeg",
-                        "-y",
-                        "-f",
-                        "lavfi",
-                        "-i",
-                        "anullsrc=r=44100:cl=stereo",
-                        "-t",
-                        str(duration),
-                        "-acodec",
-                        "libmp3lame",
-                        output_path,
-                    ],
-                    capture_output=True,
-                    check=True,
-                    timeout=30 * 60,
-                )
-            except (TaskCancelled, TaskTimedOut):
-                raise
-            except Exception:
-                Path(output_path).write_bytes(b"")
-            subtitle_path = str(Path(output_path).with_suffix(".srt"))
-            Path(subtitle_path).write_text(
-                "1\n"
-                f"00:00:00,000 --> 00:00:{int(duration):02d},000\n"
-                f"{text[:100]}{'...' if len(text) > 100 else ''}\n",
-                encoding="utf-8",
-            )
-            return TTSResult(
-                success=True,
-                audio_path=output_path,
-                subtitle_path=subtitle_path,
-                duration_seconds=duration,
-            )
-        except (TaskCancelled, TaskTimedOut):
-            raise
-        except Exception as exc:
-            return TTSResult(success=False, error=str(exc))
-
-    async def generate_batch(
-        self,
-        texts: list[str],
-        output_dir: str,
-        filename_prefix: str = "audio",
-    ) -> list[TTSResult]:
-        os.makedirs(output_dir, exist_ok=True)
-        return [
-            await self.generate(
-                text,
-                str(Path(output_dir) / f"{filename_prefix}_{index:03d}.mp3"),
-            )
-            for index, text in enumerate(texts, start=1)
-        ]
-
-
 def create_tts_generator(
     *,
-    use_mock: bool = False,
     model: str | None = None,
     voice: str | None = None,
 ):
-    if use_mock:
-        return MockTTSGenerator()
     return CommercialTTSGenerator(model=model, voice=voice)

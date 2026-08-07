@@ -80,7 +80,6 @@ class UnifiedSynchronousCharacterGeneration:
                 appearance_prompt=str(identity.face_prompt).strip(),
                 output_dir=str(temp_dir),
                 count=1,
-                use_mock=False,
                 style=options.style,
                 ethnicity=options.ethnicity,
                 model=options.model,

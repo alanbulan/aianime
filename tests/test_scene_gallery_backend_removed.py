@@ -10,9 +10,9 @@ def test_dead_grid_preview_backend_flow_is_removed() -> None:
     schemas_source = "\n".join(
         path.read_text(encoding="utf-8") for path in schemas_root.glob("*_schemas.py")
     )
-    task_identity_source = Path("src/ai_anime/task_identity.py").read_text(
-        encoding="utf-8"
-    )
+    task_identity_source = Path(
+        "src/ai_anime/modules/task_execution/domain/task_identity.py"
+    ).read_text(encoding="utf-8")
 
     assert not (routes_root / "generation.py").exists()
     assert not (schemas_root / "schemas.py").exists()

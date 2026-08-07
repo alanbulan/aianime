@@ -8,8 +8,8 @@ def test_fish_speech_prompt_field_and_agent_are_removed() -> None:
         "character models": Path(
             "src/ai_anime/modules/asset_world/application/character_models.py"
         ).read_text(encoding="utf-8"),
-        "cognee store": Path("src/ai_anime/cognee/store.py").read_text(encoding="utf-8"),
-        "sketch edit tasks": Path("src/ai_anime/verification/sketch_edit_tasks.py").read_text(
+        "cognee store": Path("src/ai_anime/modules/knowledge_graph/store.py").read_text(encoding="utf-8"),
+        "sketch edit tasks": Path("src/ai_anime/modules/verification/sketch_edit_tasks.py").read_text(
             encoding="utf-8"
         ),
     }
@@ -24,6 +24,6 @@ def test_fish_speech_prompt_field_and_agent_are_removed() -> None:
 
 
 def test_fish_audio_tts_path_is_removed() -> None:
-    tts_generator = Path("src/ai_anime/generators/tts_generator.py").read_text(encoding="utf-8")
+    tts_generator = Path("src/ai_anime/modules/generators/tts_generator.py").read_text(encoding="utf-8")
 
     assert "class FishAudioTTSGenerator" not in tts_generator

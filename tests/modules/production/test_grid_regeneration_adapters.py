@@ -113,12 +113,9 @@ def _build(monkeypatch, store: _Store, planner: _Planner):
 
 
 def test_planner_uses_character_grouping_before_scene_grouping(monkeypatch) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-
     beats = [{"beat_number": 1}, {"beat_number": 2}]
     monkeypatch.setattr(
-        nanobanana_grid,
-        "character_grid_split",
+        "ai_anime.modules.generators.public.character_grid_split",
         lambda _beats, _character_map: [
             {
                 "rows": 1,
@@ -129,8 +126,7 @@ def test_planner_uses_character_grouping_before_scene_grouping(monkeypatch) -> N
         ],
     )
     monkeypatch.setattr(
-        nanobanana_grid,
-        "scene_grid_split",
+        "ai_anime.modules.generators.public.scene_grid_split",
         lambda *_args, **_kwargs: pytest.fail("不应调用场景分组"),
     )
     planner = NanoBananaGridRegenerationPlanner()
@@ -156,12 +152,9 @@ def test_planner_uses_character_grouping_before_scene_grouping(monkeypatch) -> N
 
 
 def test_planner_selects_scene_group_and_reports_its_range(monkeypatch) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-
     beats = [{"beat_number": 1}, {"beat_number": 2}]
     monkeypatch.setattr(
-        nanobanana_grid,
-        "scene_grid_split",
+        "ai_anime.modules.generators.public.scene_grid_split",
         lambda _beats, character_map=None: [
             {
                 "rows": 1,
@@ -194,16 +187,13 @@ def test_planner_selects_scene_group_and_reports_its_range(monkeypatch) -> None:
 
 
 def test_planner_selects_sequential_grid_beats(monkeypatch) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
-
     beats = [
         {"beat_number": 10},
         {"beat_number": 20},
         {"beat_number": 30},
     ]
     monkeypatch.setattr(
-        nanobanana_grid,
-        "perfect_grid_split",
+        "ai_anime.modules.generators.public.perfect_grid_split",
         lambda _count: ["1x2_4-3", "1x1_2-3"],
     )
     planner = NanoBananaGridRegenerationPlanner()

@@ -74,7 +74,7 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
 
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.modules.generators.video_generator.create_video_generator",
+        "ai_anime.modules.generators.public.create_video_generator",
         lambda **_kwargs: FakeVideoGenerator(),
     )
     pool_calls = _patch_video_pool(monkeypatch, video_runner)
@@ -151,11 +151,11 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
 
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.modules.generators.video_generator.create_video_generator",
+        "ai_anime.modules.generators.public.create_video_generator",
         lambda **_kwargs: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.pipeline.prepare_seedance2_generation_inputs",
+        "ai_anime.modules.seedance2_i2v.public.prepare_seedance2_generation_inputs",
         fake_prepare,
     )
     _patch_video_pool(monkeypatch, video_runner)
@@ -221,7 +221,7 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
 
     monkeypatch.setattr(video_runner, "get_task_manager", lambda: FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.modules.generators.video_generator.create_video_generator",
+        "ai_anime.modules.generators.public.create_video_generator",
         lambda **_kwargs: FakeVideoGenerator(),
     )
     _patch_video_pool(monkeypatch, video_runner)
