@@ -3,7 +3,9 @@ import { createElement, type ReactNode } from "react";
 
 import {
   CharactersPageContent as AssetCharactersPageContent,
+  type AssetWorldCanvasNavigation,
 } from "@/modules/asset_world/public";
+import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import {
   useBeatsPageController,
   useEpisodeListItemController,
@@ -19,8 +21,32 @@ import {
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
 import { NarratorVoicePanel } from "@/modules/production/public";
 
+const assetWorldCanvasNavigation: AssetWorldCanvasNavigation = {
+  openCharacter: (project, characterName) =>
+    openPresetProjectionInMyCanvas(project, {
+      scope: "asset",
+      asset_kind: "character",
+      character: characterName,
+    }),
+  async openProp(project, propName) {
+    await openPresetProjectionInMyCanvas(project, {
+      scope: "asset",
+      asset_kind: "prop",
+      asset_id: propName,
+    });
+  },
+  async openScene(project, sceneName) {
+    await openPresetProjectionInMyCanvas(project, {
+      scope: "asset",
+      asset_kind: "scene",
+      asset_id: sceneName,
+    });
+  },
+};
+
 export function CharactersPageContent({ project }: { project: string }) {
   return createElement(AssetCharactersPageContent, {
+    canvasNavigation: assetWorldCanvasNavigation,
     project,
     renderNarratorVoicePanel: (voiceProject) =>
       createElement(NarratorVoicePanel, {

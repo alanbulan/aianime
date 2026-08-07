@@ -164,7 +164,7 @@ describe('videoNodeModel', () => {
     ]);
     expect(plan.groupLabel).toBe('首帧生成视频组');
     expect(plan.videoPatch).toEqual({
-      genMode: 'allReference',
+      genMode: 'firstFrame',
       prompt: '以当前图为首帧生成视频',
     });
   });

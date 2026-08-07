@@ -1,41 +1,60 @@
 // Copyright (c) 2026 AI anime
-import type { VideoReferenceAudioDurationGateway } from "../application/validateVideoReferenceAudioDuration";
+import type {
+  VideoReferenceAudioDurationGateway,
+  VideoReferenceDurationGateway,
+  VideoReferenceMediaType,
+} from "../application/validateVideoReferenceAudioDuration";
 
 export function probeAudioDurationMs(url: string): Promise<number | null> {
+  return probeMediaDurationMs(url, "audio");
+}
+
+export function probeVideoDurationMs(url: string): Promise<number | null> {
+  return probeMediaDurationMs(url, "video");
+}
+
+function probeMediaDurationMs(
+  url: string,
+  media: VideoReferenceMediaType,
+): Promise<number | null> {
   return new Promise((resolve) => {
     if (!url) {
       resolve(null);
       return;
     }
 
-    const audio = document.createElement("audio");
+    const element = document.createElement(media);
     let settled = false;
     const finish = (durationMs: number | null) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timer);
-      audio.onloadedmetadata = null;
-      audio.onerror = null;
-      audio.removeAttribute("src");
-      audio.load();
+      element.onloadedmetadata = null;
+      element.onerror = null;
+      element.removeAttribute("src");
+      element.load();
       resolve(durationMs);
     };
     const timer = window.setTimeout(() => finish(null), 8000);
 
-    audio.preload = "metadata";
-    audio.onloadedmetadata = () => {
-      const seconds = audio.duration;
+    element.preload = "metadata";
+    element.onloadedmetadata = () => {
+      const seconds = element.duration;
       finish(
         Number.isFinite(seconds) && seconds > 0
           ? Math.round(seconds * 1000)
           : null,
       );
     };
-    audio.onerror = () => finish(null);
-    audio.src = url;
+    element.onerror = () => finish(null);
+    element.src = url;
   });
 }
 
 export const browserAudioMetadataGateway: VideoReferenceAudioDurationGateway = {
   probeDurationMs: probeAudioDurationMs,
+};
+
+export const browserReferenceDurationGateway: VideoReferenceDurationGateway = {
+  probeDurationMs: (url, media) => probeMediaDurationMs(url, media),
 };

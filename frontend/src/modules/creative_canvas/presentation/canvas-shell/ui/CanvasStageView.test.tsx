@@ -62,7 +62,6 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS: 'control-button-active',
   CANVAS_CONTROL_ICON_BUTTON_CLASS: 'control-button',
   CanvasContextMenu: () => <div data-testid="canvas-context-menu" />,
-  canvasEdgeTypes: stageMocks.edgeTypes,
   CanvasConnectionPreviewOverlay: () => (
     <div data-testid="canvas-connection-preview" />
   ),
@@ -79,6 +78,9 @@ vi.mock('@/modules/creative_canvas/public', () => ({
   ),
   NodeSelectionMenu: () => <div data-testid="node-selection-menu" />,
   VideoViewerModal: () => <div data-testid="video-viewer-modal" />,
+}));
+vi.mock('../../../canvasComposition', () => ({
+  canvasEdgeTypes: stageMocks.edgeTypes,
 }));
 vi.mock('@/lib/runtime-config', () => ({ isCeRuntime: () => false }));
 vi.mock('./CanvasMinimapBookmarksOverlayAdapter', () => ({
@@ -233,6 +235,9 @@ describe('CanvasStageView', () => {
 
     expect(props.minimapProps.onHoverChange).toHaveBeenNthCalledWith(1, true);
     expect(props.minimapProps.onHoverChange).toHaveBeenNthCalledWith(2, false);
+    expect(stageMocks.minimapProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pannable: false }),
+    );
   });
 
   it('keeps conditional chrome and overlay stacking order in the presentation view', () => {

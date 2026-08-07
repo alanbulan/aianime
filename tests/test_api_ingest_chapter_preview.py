@@ -9,6 +9,7 @@ from fastapi import UploadFile
 
 from ai_anime.api.story_intake_schemas import IngestStart
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.story_intake.domain import MAX_STORY_UPLOAD_BYTES
 
 pytestmark = pytest.mark.m03
 
@@ -308,6 +309,35 @@ async def test_upload_novel_rejects_unsupported_extension(tmp_path, monkeypatch)
     assert response["ok"] is False
     assert "不支持" in response["error"]
     assert not (tmp_path / "uploads" / "novel.pdf").exists()
+
+
+@pytest.mark.asyncio
+async def test_upload_novel_rejects_files_over_512kb(tmp_path, monkeypatch):
+    from ai_anime.api.routes import ingest
+
+    monkeypatch.setattr(
+        ingest,
+        "resolve_project_scope",
+        _project_scope_resolver(tmp_path),
+    )
+    upload = UploadFile(
+        file=io.BytesIO(b"x" * (MAX_STORY_UPLOAD_BYTES + 1)),
+        filename="novel.txt",
+    )
+
+    response = await ingest.upload_novel(
+        project="demo",
+        file=upload,
+        user={"username": "admin"},
+    )
+
+    assert response == {
+        "ok": False,
+        "error": "文件超过 512KB 上限，请压缩文件或拆分正文后重新上传。",
+        "error_type": "file_too_large",
+        "data": {"limit_bytes": MAX_STORY_UPLOAD_BYTES},
+    }
+    assert not (tmp_path / "uploads" / "novel.txt").exists()
 
 
 @pytest.mark.asyncio

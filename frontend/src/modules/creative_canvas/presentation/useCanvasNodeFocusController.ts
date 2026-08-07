@@ -35,6 +35,12 @@ export interface CanvasNodeFocusController {
   centerViewport: CanvasNodeFocusViewportPort['centerAt'];
 }
 
+const NEW_NODE_AUTO_FOCUS_ZOOM_THRESHOLD = 0.35;
+
+export function shouldFocusNewCanvasNode(zoom: number): boolean {
+  return Number.isFinite(zoom) && zoom < NEW_NODE_AUTO_FOCUS_ZOOM_THRESHOLD;
+}
+
 export function useCanvasNodeFocusController<
   TNode extends CanvasFocusableNode,
 >({

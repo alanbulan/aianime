@@ -49,6 +49,7 @@ describe("videoGenerationComposition", () => {
         durationSeconds: 5,
         generateAudio: false,
         model: "video-model-1",
+        genMode: "textToVideo",
         canvasId: "canvas-1",
         nodeId: "node-1",
         humanReview: false,

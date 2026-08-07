@@ -7,6 +7,7 @@
 """
 
 import asyncio
+import logging
 import os
 from datetime import date, datetime
 from pathlib import Path
@@ -54,6 +55,7 @@ from ai_anime.modules.narrative_planning.public import (
 from .config import init_cognee
 
 console = Console()
+logger = logging.getLogger(__name__)
 
 
 def _json_list_payload(values: list[str]) -> str:
@@ -502,14 +504,18 @@ class CogneeStore:
                 if callable(close):
                     try:
                         close()
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug(
+                            "failed to close Cognee graph handle %s: %s",
+                            attr_name,
+                            exc,
+                        )
             close_engine = getattr(graph_engine, "close", None)
             if callable(close_engine):
                 try:
                     close_engine()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("failed to close Cognee graph engine: %s", exc)
             executor = getattr(graph_engine, "executor", None)
             shutdown = getattr(executor, "shutdown", None)
             if callable(shutdown):
@@ -517,8 +523,8 @@ class CogneeStore:
                     shutdown(wait=False, cancel_futures=True)
                 except TypeError:
                     shutdown(wait=False)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("failed to stop Cognee graph executor: %s", exc)
 
         cache_clear = getattr(cached_factory, "cache_clear", None)
         if callable(cache_clear):

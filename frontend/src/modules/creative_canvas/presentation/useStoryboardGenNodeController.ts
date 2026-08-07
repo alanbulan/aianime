@@ -68,13 +68,6 @@ import type {
   GrsaiCreditTierId,
   PriceDisplayCurrencyMode,
 } from '../domain/modelPricing';
-import {
-  STORYBOARD_PICKER_FALLBACK_ANCHOR,
-  generateStoryboardGridImageDataUrl,
-  resolveStoryboardPickerAnchor,
-  resolveStoryboardPointerAnchor,
-  type StoryboardPickerAnchor,
-} from '../infrastructure/browserStoryboardGenRuntime';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 
 export interface StoryboardGenNodeStore {
@@ -150,6 +143,33 @@ export type StoryboardGenUseImageModels = (
   projectId: string,
   purpose: 'edit',
 ) => { models: Array<{ id: string; apiModel: string; label: string }> };
+
+export interface StoryboardPickerAnchor {
+  left: number;
+  top: number;
+}
+
+export type StoryboardGenGridImageRenderer = (
+  aspectRatio: string,
+  rows: number,
+  cols: number,
+  resolution: string,
+) => string;
+
+export type StoryboardGenResolvePickerAnchor = (
+  container: HTMLDivElement | null,
+  textarea: HTMLTextAreaElement,
+  caretIndex: number,
+  zoom: number,
+) => StoryboardPickerAnchor;
+
+export type StoryboardGenResolvePointerAnchor = (
+  container: HTMLDivElement | null,
+  clientX: number,
+  clientY: number,
+  zoom: number,
+) => StoryboardPickerAnchor;
+
 export interface StoryboardGenNodeControllerOptions {
   id: string;
   projectId: string;
@@ -180,6 +200,10 @@ export function createUseStoryboardGenNodeController({
   uploadLocalImageToBackend,
   useUpstreamImages,
   useCanvasImageModels,
+  storyboardPickerFallbackAnchor,
+  generateStoryboardGridImageDataUrl,
+  resolveStoryboardPickerAnchor,
+  resolveStoryboardPointerAnchor,
 }: {
   useStore: StoryboardGenNodeStoreHook;
   useSettingsStore: StoryboardGenNodeSettingsStoreHook;
@@ -191,6 +215,10 @@ export function createUseStoryboardGenNodeController({
   uploadLocalImageToBackend: StoryboardGenUploadLocalImage;
   useUpstreamImages: StoryboardGenUseUpstreamImages;
   useCanvasImageModels: StoryboardGenUseImageModels;
+  storyboardPickerFallbackAnchor: StoryboardPickerAnchor;
+  generateStoryboardGridImageDataUrl: StoryboardGenGridImageRenderer;
+  resolveStoryboardPickerAnchor: StoryboardGenResolvePickerAnchor;
+  resolveStoryboardPointerAnchor: StoryboardGenResolvePointerAnchor;
 }) {
   return function useStoryboardGenNodeController({
     id,
@@ -252,7 +280,7 @@ export function createUseStoryboardGenNodeController({
   const [pickerCursor, setPickerCursor] = useState<number | null>(null);
   const [pickerActiveIndex, setPickerActiveIndex] = useState(0);
   const [pickerAnchor, setPickerAnchor] = useState<StoryboardPickerAnchor>(
-    STORYBOARD_PICKER_FALLBACK_ANCHOR,
+    storyboardPickerFallbackAnchor,
   );
   const [frameDescriptionDrafts, setFrameDescriptionDrafts] = useState<
     Record<string, string>

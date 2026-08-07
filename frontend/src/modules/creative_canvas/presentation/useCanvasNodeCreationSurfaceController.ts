@@ -34,6 +34,7 @@ import {
   useCanvasNodeMenuStateController,
   type CanvasNodeMenuStateController,
 } from './useCanvasNodeMenuStateController';
+import { shouldFocusNewCanvasNode } from './useCanvasNodeFocusController';
 
 type NodeInteractionControllerOptions = CanvasNodeInteractionControllerOptions<
   CanvasNodeType,
@@ -61,6 +62,8 @@ export interface CanvasNodeCreationSurfaceControllerOptions {
   screenToFlowPosition:
     NodeInteractionControllerOptions['screenToFlowPosition'];
   createNode: NodeInteractionControllerOptions['createNode'];
+  getZoom: () => number;
+  requestFocusNode: (nodeId: string) => void;
   selectNode: NodeInteractionControllerOptions['selectNode'];
   confirmPlacement:
     NodeInteractionControllerOptions['confirmPlacement'];
@@ -131,6 +134,8 @@ export function useCanvasNodeCreationSurfaceController({
   nodes,
   screenToFlowPosition,
   createNode,
+  getZoom,
+  requestFocusNode,
   selectNode,
   confirmPlacement,
   onBlankPaneClick,
@@ -139,6 +144,16 @@ export function useCanvasNodeCreationSurfaceController({
   connectRegular,
   replaceEdges,
 }: CanvasNodeCreationSurfaceControllerOptions): CanvasNodeCreationSurfaceController {
+  const createSurfaceNode = useCallback<NodeInteractionControllerOptions['createNode']>(
+    (type, position, data) => {
+      const nodeId = createNode(type, position, data);
+      if (shouldFocusNewCanvasNode(getZoom())) {
+        requestFocusNode(nodeId);
+      }
+      return nodeId;
+    },
+    [createNode, getZoom, requestFocusNode],
+  );
   const resolveNodeTypeLabel = useCallback(
     (type: CanvasNodeType): string => {
       const definition = nodeCatalog.getDefinition(type);
@@ -164,7 +179,7 @@ export function useCanvasNodeCreationSurfaceController({
     nodeTypes: CANVAS_NODE_MENU_TYPES,
     skillNodeType: CANVAS_NODE_TYPES.skill,
     screenToFlowPosition,
-    createNode,
+    createNode: createSurfaceNode,
     adaptMenuCreationData: adaptCanvasNodeMenuCreationData,
     selectNode,
     bindSkill: connection.bindSingleBeatContextInput,

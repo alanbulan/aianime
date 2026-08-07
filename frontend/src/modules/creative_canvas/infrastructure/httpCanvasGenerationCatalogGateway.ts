@@ -120,18 +120,21 @@ export function commercialVideoModels(
       ...optionalNumberField(
         "maxReferenceImages",
         capabilities.maxReferenceImages ??
+          capabilities.referenceImageMax ??
           referenceLimits?.images ??
           properties.reference_images?.maxItems,
       ),
       ...optionalNumberField(
         "maxReferenceVideos",
         capabilities.maxReferenceVideos ??
+          capabilities.referenceVideoMax ??
           referenceLimits?.videos ??
           properties.reference_videos?.maxItems,
       ),
       ...optionalNumberField(
         "maxReferenceAudios",
         capabilities.maxReferenceAudios ??
+          capabilities.referenceAudioMax ??
           referenceLimits?.audios ??
           properties.reference_audios?.maxItems,
       ),
@@ -142,9 +145,38 @@ export function commercialVideoModels(
           properties.references?.maxItems,
       ),
       ...optionalNumberField(
-        "maxReferenceAudioDurationSeconds",
-        capabilities.maxReferenceAudioDurationSeconds ??
+        "referenceAudioMinSeconds",
+        capabilities.referenceAudioMinSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceAudioMaxSeconds",
+        capabilities.referenceAudioMaxSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceAudioTotalMinSeconds",
+        capabilities.referenceAudioTotalMinSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceAudioTotalMaxSeconds",
+        capabilities.referenceAudioTotalMaxSeconds ??
+          capabilities.maxReferenceAudioDurationSeconds ??
           referenceLimits?.audioDurationSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceVideoMinSeconds",
+        capabilities.referenceVideoMinSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceVideoMaxSeconds",
+        capabilities.referenceVideoMaxSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceVideoTotalMinSeconds",
+        capabilities.referenceVideoTotalMinSeconds,
+      ),
+      ...optionalNumberField(
+        "referenceVideoTotalMaxSeconds",
+        capabilities.referenceVideoTotalMaxSeconds,
       ),
       ...(resolutionOptions.length > 0 ? { resolutionOptions } : {}),
       minDuration: finiteNumber(
@@ -172,6 +204,7 @@ const VIDEO_MODE_BY_TOKEN: Record<string, VideoGenMode> = {
   omnireference: "allReference",
   imagetovideo: "imageToVideo",
   image2video: "imageToVideo",
+  firstframe: "firstFrame",
   firstlastframe: "firstLastFrame",
   keyframes: "firstLastFrame",
   imagereference: "imageReference",

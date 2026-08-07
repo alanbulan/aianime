@@ -3,16 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { VideoFrameStripCaptureOptions } from "../application/videoFrameStrip";
 
-const captureBrowserVideoFrameStrip = vi.hoisted(() => vi.fn());
+const captureVideoFrameStrip = vi.hoisted(() => vi.fn());
 
-vi.mock("../infrastructure/browserVideoFrameStrip", () => ({
-  captureBrowserVideoFrameStrip,
-}));
+import { createGetFilmstrip, pickFrame } from "./filmstrip";
 
-import { getFilmstrip, pickFrame } from "./filmstrip";
+let getFilmstrip = createGetFilmstrip({ captureVideoFrameStrip });
 
 beforeEach(() => {
-  captureBrowserVideoFrameStrip.mockReset();
+  captureVideoFrameStrip.mockReset();
+  getFilmstrip = createGetFilmstrip({ captureVideoFrameStrip });
 });
 
 describe("filmstrip", () => {
@@ -21,7 +20,7 @@ describe("filmstrip", () => {
       { timeMs: 500, url: "frame-1" },
       { timeMs: 1_500, url: "frame-2" },
     ];
-    captureBrowserVideoFrameStrip.mockResolvedValue(frames);
+    captureVideoFrameStrip.mockResolvedValue(frames);
 
     const resolveMediaUrl = (url: string) => `resolved:${url}`;
     const first = getFilmstrip(
@@ -35,11 +34,11 @@ describe("filmstrip", () => {
 
     await expect(first).resolves.toEqual(frames);
     await expect(second).resolves.toEqual(frames);
-    expect(captureBrowserVideoFrameStrip).toHaveBeenCalledOnce();
-    expect(captureBrowserVideoFrameStrip.mock.calls[0]?.[0]).toBe(
+    expect(captureVideoFrameStrip).toHaveBeenCalledOnce();
+    expect(captureVideoFrameStrip.mock.calls[0]?.[0]).toBe(
       "resolved:https://cdn.example.test/unique-clip.mp4",
     );
-    const options = captureBrowserVideoFrameStrip.mock.calls[0]?.[1] as
+    const options = captureVideoFrameStrip.mock.calls[0]?.[1] as
       | VideoFrameStripCaptureOptions
       | undefined;
     expect(options?.targetWidth).toBe(120);

@@ -7,20 +7,12 @@ import io
 import os
 import re
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.output import NativeOutput
 from PIL import Image as PILImage
-
-
-class BeatVideoStrategy(BaseModel):
-    """单个 Beat 的视频策略。"""
-
-    beat_number: int
-    video_mode: Literal["first_frame", "keyframe"]
-    prompt: str = Field(description="中文运动提示词，50-90字")
 
 
 class ReviewResult(BaseModel):
@@ -200,7 +192,7 @@ def create_global_video_optimizer_agent(language: str = "en") -> Agent:
             legacy_model or "gemini-3.5-flash",
         ),
         system_prompt=GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN,
-        output_type=NativeOutput(list[BeatVideoStrategy]),
+        output_type=str,
         name="Global Video Motion Director",
         **agent_kwargs,
     )
@@ -235,7 +227,7 @@ class GlobalVideoPromptOptimizer:
         ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
         print(
             f"[GlobalVideoOptimizer] 压缩图片: {os.path.basename(image_path)}: "
-            f"{original_size/1024:.0f}KB → {compressed_size/1024:.0f}KB "
+            f"{original_size / 1024:.0f}KB → {compressed_size / 1024:.0f}KB "
             f"({ratio:.0f}% 压缩)"
         )
         return image_bytes
@@ -302,7 +294,9 @@ class GlobalVideoPromptOptimizer:
         if vd:
             context_parts.append(f"- Visual: {vd}")
 
-        beat_context = "\n".join(context_parts) if context_parts else "No additional context."
+        beat_context = (
+            "\n".join(context_parts) if context_parts else "No additional context."
+        )
 
         # Dialogue annotation
         dialogue_hint = ""
@@ -315,19 +309,27 @@ class GlobalVideoPromptOptimizer:
         if prev_beat or next_beat or prev_prompt:
             parts = []
             if prev_prompt:
-                parts.append(f'- Previous beat prompt (for continuity): "{prev_prompt[:150]}..."')
+                parts.append(
+                    f'- Previous beat prompt (for continuity): "{prev_prompt[:150]}..."'
+                )
             if prev_beat:
                 prev_vd = prev_beat.get("visual_description", "")
                 if prev_vd:
-                    prev_vd = re.sub(r"\{\{([^}]*)\}\}", _replace_identity_marker, prev_vd)
+                    prev_vd = re.sub(
+                        r"\{\{([^}]*)\}\}", _replace_identity_marker, prev_vd
+                    )
                 parts.append(
                     f"- Previous beat (B{prev_beat.get('beat_number', '?')}): {prev_vd[:120]}"
                 )
             if next_beat:
                 next_vd = next_beat.get("visual_description", "")
                 if next_vd:
-                    next_vd = re.sub(r"\{\{([^}]*)\}\}", _replace_identity_marker, next_vd)
-                parts.append(f"- Next beat (B{next_beat.get('beat_number', '?')}): {next_vd[:120]}")
+                    next_vd = re.sub(
+                        r"\{\{([^}]*)\}\}", _replace_identity_marker, next_vd
+                    )
+                parts.append(
+                    f"- Next beat (B{next_beat.get('beat_number', '?')}): {next_vd[:120]}"
+                )
             continuity_section = (
                 "\n## Continuity Context (vary your camera work from previous beat)\n"
                 + "\n".join(parts)
@@ -340,13 +342,9 @@ class GlobalVideoPromptOptimizer:
             if bn <= 2:
                 position_hint += "This is an OPENING beat — establish the scene with a wider shot before pushing in."
             elif bn >= total_beats - 1:
-                position_hint += (
-                    "This is a CLOSING beat — build to a final visual climax or cliffhanger moment."
-                )
+                position_hint += "This is a CLOSING beat — build to a final visual climax or cliffhanger moment."
             else:
-                position_hint += (
-                    "Vary shot scale and angle from adjacent beats to create visual rhythm."
-                )
+                position_hint += "Vary shot scale and angle from adjacent beats to create visual rhythm."
 
         task = f"""Generate a first-frame motion prompt for Beat {bn}. You see the sketch frame for this beat.
 {position_hint}
@@ -357,15 +355,13 @@ class GlobalVideoPromptOptimizer:
 {beat_context}
 {dialogue_hint}{continuity_section}
 ## Requirements
-1. Use first_frame mode
-2. Treat the sketch frame and Start Frame as video t=0; describe only what happens after it
-3. Use Motion Prompt as the authoritative forward action chain
-4. If Motion Prompt starts with an action that contradicts the visible t=0 state, begin from the first compatible action instead
-5. Generate the motion prompt in Chinese (中文)
-6. Use character appearance descriptions, never use character names
-7. Output beat_number as {bn}
+1. Treat the sketch frame and Start Frame as video t=0; describe only what happens after it
+2. Use Motion Prompt as the authoritative forward action chain
+3. If Motion Prompt starts with an action that contradicts the visible t=0 state, begin from the first compatible action instead
+4. Generate the motion prompt in Chinese (中文)
+5. Use character appearance descriptions, never use character names
 
-Output JSON array with one element directly."""
+Output the Chinese motion prompt directly. No JSON, explanation, or markdown."""
 
         # Load and compress the sketch image
         if not os.path.exists(sketch_image_path):
@@ -385,16 +381,13 @@ Output JSON array with one element directly."""
         if not response.output:
             raise RuntimeError(f"Beat {bn}: AI 返回空内容")
 
-        strategies: list[BeatVideoStrategy] = response.output
-        if not strategies:
-            raise RuntimeError(f"Beat {bn}: AI 返回空数组")
-
-        # Take the first (and should be only) result
-        s = strategies[0]
+        prompt = response.output.strip()
+        if not prompt:
+            raise RuntimeError(f"Beat {bn}: AI 返回空内容")
         result = {
             "beat_number": bn,
             "video_mode": "first_frame",
-            "prompt": s.prompt.strip(),
+            "prompt": prompt,
         }
 
         # Append dialogue line if applicable
@@ -403,7 +396,9 @@ Output JSON array with one element directly."""
             if line and line not in result["prompt"]:
                 result["prompt"] = f"{result['prompt']} Says: {line}"
 
-        print(f"[GlobalVideoOptimizer] Beat {bn}: prompt generated ({len(result['prompt'])} chars)")
+        print(
+            f"[GlobalVideoOptimizer] Beat {bn}: prompt generated ({len(result['prompt'])} chars)"
+        )
         return result
 
     async def optimize(
@@ -587,7 +582,9 @@ Output JSON array with one element directly."""
             color_name = parts[1] if len(parts) > 1 else ""
             label = f"{color_name} ({hex_code})" if color_name else hex_code
             descriptor = _format_color_mapping_descriptor(info)
-            lines.append(f"- Any figure with a {label} tint (even pale/desaturated) → {descriptor}")
+            lines.append(
+                f"- Any figure with a {label} tint (even pale/desaturated) → {descriptor}"
+            )
         return "\n".join(lines) if lines else "No character color mapping"
 
 
@@ -809,14 +806,18 @@ Use an empty identities array for panels with no colored markers."""
                     img = img.convert("RGB")
                 buffer = io.BytesIO()
                 img.save(buffer, format="JPEG", quality=70, optimize=True)
-                images.append(BinaryContent(data=buffer.getvalue(), media_type="image/jpeg"))
+                images.append(
+                    BinaryContent(data=buffer.getvalue(), media_type="image/jpeg")
+                )
             except Exception as e:
                 print(f"[detect_identities_by_ai] 加载图片失败: {path}, {e}")
 
     if not images:
         raise RuntimeError("没有可用的草图网格图片")
 
-    print(f"[detect_identities_by_ai] 发送 {len(images)} 张网格图片, {total_beats} beats")
+    print(
+        f"[detect_identities_by_ai] 发送 {len(images)} 张网格图片, {total_beats} beats"
+    )
     response = await agent.run([task] + images)
 
     if not response.output:
@@ -824,9 +825,13 @@ Use an empty identities array for panels with no colored markers."""
 
     # structured output: response.output 直接是 list[BeatIdentity]
     beat_identities: list[BeatIdentity] = response.output
-    result: dict[int, list[str]] = {bi.beat_number: bi.identities for bi in beat_identities}
+    result: dict[int, list[str]] = {
+        bi.beat_number: bi.identities for bi in beat_identities
+    }
 
-    print(f"[detect_identities_by_ai] 识别结果: { {k: v for k, v in sorted(result.items())} }")
+    print(
+        f"[detect_identities_by_ai] 识别结果: { {k: v for k, v in sorted(result.items())} }"
+    )
     return result
 
 

@@ -16,8 +16,11 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("./filmstrip", () => ({
+vi.mock("../videoComposePresentationComposition", () => ({
   getFilmstrip: vi.fn(() => new Promise(() => {})),
+}));
+
+vi.mock("./filmstrip", () => ({
   pickFrame: vi.fn(() => null),
 }));
 

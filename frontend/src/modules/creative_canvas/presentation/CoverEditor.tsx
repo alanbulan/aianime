@@ -16,15 +16,10 @@ import {
   coverFrameSourceAt,
   hasCoverableVideo,
 } from "../application/videoComposeCover";
-import { uploadFreezoneAsset } from "../assetTransferComposition";
 import type {
   ComposeCover,
   ComposeTimelineState,
 } from "../domain/videoComposeTimeline";
-import {
-  captureVideoComposeCoverFrame,
-  waitForVideoComposeCoverFrameReady,
-} from "../infrastructure/browserVideoComposeCoverRuntime";
 
 export interface CoverEditorProps {
   project: string;
@@ -42,6 +37,20 @@ export interface CoverEditorProps {
 
 type CoverTab = "frame" | "upload";
 
+export type CoverEditorUploadAsset = (
+  project: string,
+  asset: File | Blob,
+  filename: string,
+) => Promise<{ url: string }>;
+
+export type CoverEditorCaptureFrame = (
+  video: HTMLVideoElement,
+) => Promise<Blob | null>;
+
+export type CoverEditorWaitForFrame = (
+  video: HTMLVideoElement,
+) => Promise<void>;
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
@@ -53,16 +62,25 @@ function formatTime(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function CoverEditor({
-  project,
-  timeline,
-  durationMs,
-  defaultFrameMs,
-  cover,
-  resolveMediaUrl,
-  onCancel,
-  onApply,
-}: CoverEditorProps) {
+export function createCoverEditor({
+  uploadAsset,
+  captureFrame,
+  waitForFrame,
+}: {
+  uploadAsset: CoverEditorUploadAsset;
+  captureFrame: CoverEditorCaptureFrame;
+  waitForFrame: CoverEditorWaitForFrame;
+}) {
+  return function CoverEditor({
+    project,
+    timeline,
+    durationMs,
+    defaultFrameMs,
+    cover,
+    resolveMediaUrl,
+    onCancel,
+    onApply,
+  }: CoverEditorProps) {
   const { t } = useTranslation();
   const canPickFrame = useMemo(() => hasCoverableVideo(timeline), [timeline]);
   const [tab, setTab] = useState<CoverTab>(
@@ -158,16 +176,16 @@ export function CoverEditor({
       const name = `cover_${Date.now()}.jpg`;
       if (tab === "upload") {
         if (!uploadFile) return;
-        const res = await uploadFreezoneAsset(project, uploadFile, name);
+        const res = await uploadAsset(project, uploadFile, name);
         onApply({ source: "upload", frameMs: null, url: res.url });
       } else {
         const el = videoRef.current;
         // 拖完滑块立刻点确定时元素可能还在 seeking —— 等目标帧落定再截，
         // 否则截到的是上一个已解码帧。
-        if (el) await waitForVideoComposeCoverFrameReady(el);
-        const blob = el ? await captureVideoComposeCoverFrame(el) : null;
+        if (el) await waitForFrame(el);
+        const blob = el ? await captureFrame(el) : null;
         if (!blob) throw new Error(t("videoCompose.cover.captureFailed"));
-        const res = await uploadFreezoneAsset(project, blob, name);
+        const res = await uploadAsset(project, blob, name);
         onApply({ source: "frame", frameMs, url: res.url });
       }
       // 成功后由父级关闭编辑器，这里不复位 busy（避免闪烁）。
@@ -314,4 +332,7 @@ export function CoverEditor({
     </div>,
     document.body,
   );
+  };
 }
+
+export type CoverEditor = ReturnType<typeof createCoverEditor>;

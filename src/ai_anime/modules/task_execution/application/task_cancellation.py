@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import math
 import time
 from collections.abc import Callable
@@ -15,6 +16,7 @@ from ai_anime.modules.task_execution.domain.task_cancellation import (
 )
 
 CancellationStoreProvider = Callable[[], CancellationStore]
+logger = logging.getLogger(__name__)
 
 
 async def is_cancel_requested(
@@ -85,7 +87,8 @@ async def await_with_cancel_watch(
                         if task_id
                         else False
                     )
-                except Exception:
+                except Exception as exc:
+                    logger.debug("task cancellation poll failed: %s", exc)
                     cancelled = False
                 if cancelled:
                     stop_reason = "cancelled"
@@ -99,7 +102,7 @@ async def await_with_cancel_watch(
                     )
                 await asyncio.sleep(sleep_seconds)
         except asyncio.CancelledError:
-            pass
+            return
 
     watcher = asyncio.create_task(_watch())
     try:
@@ -112,8 +115,10 @@ async def await_with_cancel_watch(
         watcher.cancel()
         try:
             await watcher
-        except (asyncio.CancelledError, Exception):
-            pass
+        except asyncio.CancelledError:
+            logger.debug("task cancellation watcher stopped")
+        except Exception as exc:
+            logger.debug("task cancellation watcher failed: %s", exc)
 
 
 def _optional_int(value: Any) -> int | None:

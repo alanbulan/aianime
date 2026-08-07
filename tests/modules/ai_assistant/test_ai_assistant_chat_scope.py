@@ -17,10 +17,11 @@ def test_home_scope_discards_payload_id():
     )
 
 
-@pytest.mark.parametrize("kind", ["project", "asset", "task"])
-def test_scoped_conversations_normalize_id(kind):
-    assert ChatScope.from_payload({"kind": kind, "id": "  item-1  "}).to_dict() == {
-        "kind": kind,
+def test_project_conversations_normalize_id():
+    assert ChatScope.from_payload(
+        {"kind": "project", "id": "  item-1  "}
+    ).to_dict() == {
+        "kind": "project",
         "id": "item-1",
     }
 
@@ -30,7 +31,12 @@ def test_unknown_scope_is_rejected():
         ChatScope.from_payload({"kind": "unknown"})
 
 
-@pytest.mark.parametrize("kind", ["project", "asset", "task"])
-def test_non_home_scope_requires_id(kind):
-    with pytest.raises(ValueError, match=f"scope id is required for {kind}"):
-        ChatScope.from_payload({"kind": kind, "id": "  "})
+def test_project_scope_requires_id():
+    with pytest.raises(ValueError, match="scope id is required for project"):
+        ChatScope.from_payload({"kind": "project", "id": "  "})
+
+
+@pytest.mark.parametrize("kind", ["asset", "task"])
+def test_non_interactive_scope_is_rejected_from_payload(kind):
+    with pytest.raises(ValueError, match=f"unsupported chat scope: {kind}"):
+        ChatScope.from_payload({"kind": kind, "id": "item-1"})

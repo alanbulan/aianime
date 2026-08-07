@@ -25,6 +25,18 @@ win:
       arch:
         - x64
   artifactName: AI-anime-${version}-${arch}-setup.${ext}
+mac:
+  icon: build/icon.png
+  category: public.app-category.graphics-design
+  minimumSystemVersion: 15.0.0
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
+      arch:
+        - arm64
+  artifactName: AI-anime-${version}-macos-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true

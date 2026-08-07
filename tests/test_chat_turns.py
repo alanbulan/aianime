@@ -209,7 +209,7 @@ async def test_dispatch_chat_turn_reports_unsupported_scope(monkeypatch):
         {
             "type": "error",
             "turn_id": "turn-3",
-            "message": "scope not implemented: task",
+            "message": "unsupported chat scope: task",
         }
     ]
 

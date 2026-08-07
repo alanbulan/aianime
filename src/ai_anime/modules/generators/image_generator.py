@@ -1,8 +1,4 @@
-"""Commercial image-generation adapters.
-
-Production calls use the process-wide cloud/BYOK model-access transport. The
-mock adapter is available only when a caller explicitly requests it.
-"""
+"""Commercial image generation over the cloud/BYOK model-access transport."""
 
 from __future__ import annotations
 

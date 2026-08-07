@@ -4,19 +4,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ComposeTimelineState } from "../domain/videoComposeTimeline";
 
-import { CoverEditor } from "./CoverEditor";
+import { createCoverEditor } from "./CoverEditor";
 
 const mocks = vi.hoisted(() => ({
   uploadAsset: vi.fn(),
+  captureFrame: vi.fn(),
+  waitForFrame: vi.fn(),
 }));
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("../assetTransferComposition", () => ({
-  uploadFreezoneAsset: mocks.uploadAsset,
-}));
+const CoverEditor = createCoverEditor({
+  uploadAsset: (...args) => mocks.uploadAsset(...args),
+  captureFrame: (...args) => mocks.captureFrame(...args),
+  waitForFrame: (...args) => mocks.waitForFrame(...args),
+});
 
 const timeline: ComposeTimelineState = {
   tracks: [],
@@ -34,6 +38,8 @@ const originalRevokeObjectUrl = Object.getOwnPropertyDescriptor(
 describe("CoverEditor", () => {
   beforeEach(() => {
     mocks.uploadAsset.mockReset().mockResolvedValue({ url: "/cover.jpg" });
+    mocks.captureFrame.mockReset();
+    mocks.waitForFrame.mockReset();
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: vi.fn(() => "blob:cover-preview"),

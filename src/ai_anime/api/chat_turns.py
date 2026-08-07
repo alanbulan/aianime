@@ -139,7 +139,7 @@ async def dispatch_chat_turn(
                 {
                     "type": "error",
                     "turn_id": turn_id,
-                    "message": f"scope not implemented: {scope.kind}",
+                    "message": f"unsupported chat scope: {scope.kind}",
                 },
             )
     except Exception as exc:  # noqa: BLE001

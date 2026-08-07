@@ -7,6 +7,12 @@ import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
 import { app } from "electron";
 import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
+import {
+  bundledBackendPath,
+  bundledFfmpegPath,
+  developmentFfmpegPath,
+  packagedVideoCodec,
+} from "./platform-runtime.js";
 
 const EVENT_PREFIX = "AI_ANIME_DESKTOP ";
 const TOKEN_HEADER = "X-AI-Anime-Desktop-Token";
@@ -91,6 +97,7 @@ export class LocalBackend {
       cwd: app.isPackaged ? app.getPath("userData") : this.repoRoot(),
       env: {
         ...process.env,
+        ...(app.isPackaged ? { VIDEO_CODEC: packagedVideoCodec() } : {}),
         ...this.environment,
         AI_ANIME_DESKTOP_TOKEN: this.token,
         AI_ANIME_MODEL_ADMIN_TOKEN: this.modelAdminToken,
@@ -148,6 +155,17 @@ export class LocalBackend {
     byokApiKey?: string;
     modelAssignments?: Array<{ modelId: string; role: string }>;
     cloudModelAssignments?: Array<{ modelId: string; role: string }>;
+    modelCapabilities?: Array<{
+      modelId: string;
+      referenceAudioMinSeconds?: number;
+      referenceAudioMaxSeconds?: number;
+      referenceAudioTotalMinSeconds?: number;
+      referenceAudioTotalMaxSeconds?: number;
+      referenceVideoMinSeconds?: number;
+      referenceVideoMaxSeconds?: number;
+      referenceVideoTotalMinSeconds?: number;
+      referenceVideoTotalMaxSeconds?: number;
+    }>;
   }): Promise<void> {
     const response = await fetch(
       `${this.baseUrl}/api/v1/model-gateway/internal/capability`,
@@ -169,11 +187,11 @@ export class LocalBackend {
 
   private resolveLaunch(): BackendLaunch {
     if (app.isPackaged) {
-      const executable = join(process.resourcesPath, "backend", "ai-anime-backend.exe");
+      const executable = bundledBackendPath(process.resourcesPath);
       const frontendDist = join(process.resourcesPath, "frontend");
       if (!existsSync(executable)) throw new Error(`bundled backend not found: ${executable}`);
       if (!existsSync(frontendDist)) throw new Error(`bundled frontend not found: ${frontendDist}`);
-      const ffmpegPath = join(process.resourcesPath, "bin", "ffmpeg.exe");
+      const ffmpegPath = bundledFfmpegPath(process.resourcesPath);
       return {
         command: executable,
         args: [],
@@ -190,7 +208,7 @@ export class LocalBackend {
       }
     }
     const configuredFfmpeg = process.env.FFMPEG_PATH?.trim();
-    const developmentFfmpeg = join(app.getAppPath(), "runtime", "ffmpeg", "ffmpeg.exe");
+    const developmentFfmpeg = developmentFfmpegPath(app.getAppPath());
     const ffmpegPath = configuredFfmpeg || (existsSync(developmentFfmpeg) ? developmentFfmpeg : undefined);
     return {
       command: process.env.AI_ANIME_UV_COMMAND?.trim() || "uv",

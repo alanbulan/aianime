@@ -53,6 +53,22 @@ describe('useCanvasMinimapVisibility', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('keeps the minimap mounted until smooth panning settles', () => {
+    const { result } = renderHook(() => useCanvasMinimapVisibility({
+      isImmersiveViewerActive,
+    }));
+
+    act(() => result.current.setHovered(true));
+    act(() => result.current.startPanning());
+    act(() => result.current.setHovered(false));
+    act(() => vi.advanceTimersByTime(500));
+    expect(result.current.visible).toBe(true);
+
+    act(() => result.current.endPanning(false));
+    act(() => vi.advanceTimersByTime(180));
+    expect(result.current.visible).toBe(false);
+  });
+
   it('toggles only with an unmodified M key outside blocked contexts', () => {
     const { result } = renderHook(() => useCanvasMinimapVisibility({
       isImmersiveViewerActive,

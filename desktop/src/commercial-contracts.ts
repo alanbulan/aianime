@@ -80,6 +80,18 @@ export interface CommercialModelCatalogSnapshot {
   }>;
 }
 
+export interface CommercialModelCapabilitySnapshot {
+  modelId: string;
+  referenceAudioMinSeconds?: number;
+  referenceAudioMaxSeconds?: number;
+  referenceAudioTotalMinSeconds?: number;
+  referenceAudioTotalMaxSeconds?: number;
+  referenceVideoMinSeconds?: number;
+  referenceVideoMaxSeconds?: number;
+  referenceVideoTotalMinSeconds?: number;
+  referenceVideoTotalMaxSeconds?: number;
+}
+
 export interface CommercialBootstrapSnapshot {
   softwareAuthorization: CommercialAuthorizationSnapshot | null;
   personalQuota: CommercialQuotaSnapshot | null;
@@ -140,7 +152,10 @@ export function projectCommercialAuthorization(
         ...optionalTextProperty("versionCode", licenseRecord.versionCode),
         ...optionalTextProperty("versionName", licenseRecord.versionName),
         ...optionalTextProperty("status", licenseRecord.status),
-        ...optionalTextProperty("expiresAt", licenseRecord.expiresAt),
+        ...optionalTextProperty(
+          "expiresAt",
+          licenseRecord.expiresAt ?? licenseRecord.validUntil,
+        ),
       }
     : null;
   const device = deviceRecord
@@ -155,7 +170,10 @@ export function projectCommercialAuthorization(
         id: identifier(activationRecord.id, "activation.id"),
         ...optionalTextProperty("status", activationRecord.status),
         ...optionalTextProperty("activatedAt", activationRecord.activatedAt),
-        ...optionalTextProperty("lastSeenAt", activationRecord.lastSeenAt),
+        ...optionalTextProperty(
+          "lastSeenAt",
+          activationRecord.lastSeenAt ?? activationRecord.lastHeartbeatAt,
+        ),
       }
     : null;
   const lease = leaseRecord
@@ -360,7 +378,7 @@ export function selectReleaseArtifactId(
   const version = nullableRecord(release.version);
   if (!version) return release;
   const artifacts = Array.isArray(version.artifacts) ? version.artifacts : [];
-  let artifactId: Identifier | null = null;
+  const matchingArtifacts: Record<string, unknown>[] = [];
   for (const raw of artifacts) {
     const artifact = optionalRecord(raw);
     const artifactTarget =
@@ -374,11 +392,26 @@ export function selectReleaseArtifactId(
       artifactArch === arch &&
       artifact.id !== undefined
     ) {
-      artifactId = identifier(artifact.id, "artifact.id");
-      break;
+      matchingArtifacts.push(artifact);
     }
   }
+  const preferredKind = preferredInstallerKind(target);
+  const selected =
+    matchingArtifacts.find(
+      (artifact) =>
+        preferredKind !== null &&
+        optionalText(artifact.installerKind)?.toLowerCase() === preferredKind,
+    ) ?? matchingArtifacts[0];
+  const artifactId = selected
+    ? identifier(selected.id, "artifact.id")
+    : null;
   return { ...release, artifactId };
+}
+
+function preferredInstallerKind(target: string): string | null {
+  if (target === "windows") return "nsis";
+  if (target === "macos") return "dmg";
+  return null;
 }
 
 function requiredRecord(

@@ -7,7 +7,7 @@ import type {
   ComposeTimelineState,
 } from '../domain/videoComposeTimeline';
 
-import { useVideoComposeExportController } from './useVideoComposeExportController';
+import { createUseVideoComposeExportController } from './useVideoComposeExportController';
 
 const mocks = vi.hoisted(() => ({
   compose: vi.fn(),
@@ -17,24 +17,14 @@ const mocks = vi.hoisted(() => ({
   fileName: vi.fn(),
 }));
 
-vi.mock('../assetTransferComposition', () => ({
-  uploadFreezoneAsset: (...args: unknown[]) => mocks.upload(...args),
-}));
-
-vi.mock('../videoComposeComposition', () => ({
-  composeCanvasVideo: (input: unknown) => mocks.compose(input),
-}));
-
-vi.mock(
-  '../infrastructure/browserVideoComposeExportRuntime',
-  () => ({
-    fetchVideoComposeResultBlob: (...args: unknown[]) =>
-      mocks.fetchBlob(...args),
-    downloadVideoComposeBlob: (...args: unknown[]) =>
-      mocks.downloadBlob(...args),
-    resolveVideoComposeResultFileName: (url: string) => mocks.fileName(url),
-  }),
-);
+const useVideoComposeExportController =
+  createUseVideoComposeExportController({
+    uploadAsset: (...args) => mocks.upload(...args),
+    composeVideo: (...args) => mocks.compose(...args),
+    fetchResultBlob: (...args) => mocks.fetchBlob(...args),
+    downloadBlob: (...args) => mocks.downloadBlob(...args),
+    resolveResultFileName: (...args) => mocks.fileName(...args),
+  });
 
 function clip(
   id: string,

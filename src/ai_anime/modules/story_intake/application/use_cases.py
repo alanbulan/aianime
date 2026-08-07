@@ -13,6 +13,7 @@ from ai_anime.modules.story_intake.application.dto import (
 from ai_anime.modules.story_intake.application.errors import (
     NoChaptersDetected,
     StoryDocumentParseFailed,
+    StoryDocumentTooLarge,
 )
 from ai_anime.modules.story_intake.application.ports import (
     KnowledgeGraph,
@@ -20,7 +21,10 @@ from ai_anime.modules.story_intake.application.ports import (
     StoryDocument,
     TaskScheduler,
 )
-from ai_anime.modules.story_intake.domain import IngestionOptions
+from ai_anime.modules.story_intake.domain import (
+    IngestionOptions,
+    MAX_STORY_IMPORT_BYTES,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 logger = logging.getLogger("ai_anime.story_intake")
@@ -100,6 +104,8 @@ class StartIngestion:
         command: StartIngestionCommand,
     ) -> dict[str, Any]:
         document = self._documents.get_existing(scope.output_dir, command.filename)
+        if document.size is not None and document.size > MAX_STORY_IMPORT_BYTES:
+            raise StoryDocumentTooLarge(MAX_STORY_IMPORT_BYTES)
         try:
             story_text = self._documents.load_text(document)
             billable_chars = self._documents.count_billable_chars(story_text)

@@ -253,6 +253,77 @@ test("Bootstrap exposes the selected BYOK catalog instead of cloud SKUs", async 
   assert.equal(synchronized.at(-1).allowsCustomModels, true);
 });
 
+test("video catalog synchronization sends only projected duration capabilities", async () => {
+  const handlers = new Map();
+  const synchronized = [];
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.example.test",
+      modelCatalog: async () => ({
+        catalogVersion: "video-v1",
+        items: [
+          {
+            id: "video-1",
+            code: "cloud/video-standard",
+            displayName: "Cloud Video",
+            operation: "VIDEO",
+            capabilityJson: JSON.stringify({
+              referenceAudioMinSeconds: 1.8,
+              referenceAudioMaxSeconds: 15.2,
+              referenceAudioTotalMinSeconds: 2,
+              referenceAudioTotalMaxSeconds: 15.2,
+              referenceVideoMinSeconds: 3,
+              referenceVideoMaxSeconds: 10,
+              referenceVideoTotalMinSeconds: 5,
+              referenceVideoTotalMaxSeconds: 20,
+              providerSecret: "must-not-cross-process-boundary",
+            }),
+          },
+        ],
+      }),
+    },
+    deviceIdentity: {},
+    modelAccessStore: {
+      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+    },
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.3",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async (
+      _access,
+      _allowsCustomModels,
+      _cloudModelAssignments,
+      modelCapabilities,
+    ) => synchronized.push(modelCapabilities),
+    onLoggedOut: async () => undefined,
+  });
+
+  const modelCatalog = handlers.get(COMMERCIAL_CHANNELS.modelCatalog);
+  await modelCatalog({ sender: { id: 1 } }, { operation: "VIDEO" });
+
+  assert.deepEqual(synchronized.at(-1), [
+    {
+      modelId: "cloud/video-standard",
+      referenceAudioMinSeconds: 1.8,
+      referenceAudioMaxSeconds: 15.2,
+      referenceAudioTotalMinSeconds: 2,
+      referenceAudioTotalMaxSeconds: 15.2,
+      referenceVideoMinSeconds: 3,
+      referenceVideoMaxSeconds: 10,
+      referenceVideoTotalMinSeconds: 5,
+      referenceVideoTotalMaxSeconds: 20,
+    },
+  ]);
+  assert.equal(JSON.stringify(synchronized).includes("providerSecret"), false);
+});
+
 test("release checks use Electron-owned version, platform, and architecture", async () => {
   const handlers = new Map();
   let receivedQuery = null;
@@ -418,6 +489,27 @@ test("BYOK model catalog supports a keyless standard endpoint", async () => {
 
   assert.equal(authorization, null);
   assert.equal(catalog.items[0].code, "local-model");
+});
+
+test("BYOK video roles expose requested modes without conflating first frame and image reference", async () => {
+  const catalog = await fetchByokModelCatalog(
+    {
+      schemaVersion: 2,
+      mode: "byok",
+      byokBaseUrl: "https://models.example.test/v1",
+      byokApiKey: "key",
+      byokModelAssignments: [
+        { modelId: "video-model", role: "VIDEO_IMAGE_TO_VIDEO" },
+        { modelId: "video-model", role: "VIDEO_IMAGE_REFERENCE" },
+      ],
+    },
+    "VIDEO",
+    async () => Response.json({ data: [{ id: "video-model" }] }),
+  );
+
+  assert.deepEqual(JSON.parse(catalog.items[0].capabilityJson), {
+    supportedModes: ["FIRST_FRAME", "IMAGE_REFERENCE", "IMAGE_TO_VIDEO"],
+  });
 });
 
 test("BYOK catalog operation filters assignments instead of relabeling models", async () => {

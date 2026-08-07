@@ -12,13 +12,15 @@
     "build:hermes": "uv run --project hermes-runtime --locked --group build pyinstaller --clean --noconfirm --distpath hermes-runtime/dist --workpath hermes-runtime/.pyinstaller hermes-runtime/hermes_acp.spec",
     "runtime:hermes": "uv sync --project hermes-runtime --locked",
     "runtime:icon": "electron scripts/generate-icon.cjs",
-    "runtime:ffmpeg": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-ffmpeg.ps1",
+    "runtime:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "build": "pnpm run build:renderer && pnpm run build:main",
     "dev": "electron scripts/dev-entry.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --import ./scripts/register-typescript.mjs --test tests/*.test.mjs",
-    "package:dir": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && pnpm run build:hermes && electron-builder --dir",
-    "package:win": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && pnpm run build:hermes && electron-builder --win nsis"
+    "package:prepare": "pnpm run runtime:icon && pnpm run runtime:ffmpeg && pnpm run build && pnpm run build:backend && pnpm run build:hermes",
+    "package:dir": "pnpm run package:prepare && electron-builder --dir",
+    "package:win": "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64",
+    "package:mac": "node scripts/assert-package-host.mjs darwin arm64 && pnpm run package:prepare && electron-builder --mac dmg zip --arm64"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",

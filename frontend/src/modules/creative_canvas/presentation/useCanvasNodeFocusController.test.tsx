@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  shouldFocusNewCanvasNode,
   useCanvasNodeFocusController,
   type CanvasNodeFocusRuntimePort,
 } from './useCanvasNodeFocusController';
@@ -16,6 +17,13 @@ function canvasNode(): CanvasFocusableNode {
 }
 
 describe('useCanvasNodeFocusController', () => {
+  it('uses the low-detail zoom boundary for new-node focus', () => {
+    expect(shouldFocusNewCanvasNode(0.1)).toBe(true);
+    expect(shouldFocusNewCanvasNode(0.349)).toBe(true);
+    expect(shouldFocusNewCanvasNode(0.35)).toBe(false);
+    expect(shouldFocusNewCanvasNode(Number.NaN)).toBe(false);
+  });
+
   it('adapts the runtime viewport for pending and explicit node focus', () => {
     const setCenter = vi.fn();
     const runtimePort: CanvasNodeFocusRuntimePort = {

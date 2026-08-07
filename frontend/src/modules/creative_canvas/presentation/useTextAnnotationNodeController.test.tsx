@@ -454,6 +454,7 @@ describe('useTextAnnotationNodeController', () => {
         nodeId: 'video-a',
         prompt: '视频提示词',
         model: 'video-model-a',
+        genMode: 'textToVideo',
         aspectRatio: '9:16',
         quality: '1080P',
         durationSeconds: 8,

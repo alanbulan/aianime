@@ -1,8 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
-import type { CanvasViewportPort } from '../application/bookmarkActions';
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 import type { CanvasEdge, CanvasNode } from '../domain/canvasNodeData';
 import type { ViewportBookmark } from '../domain/viewportBookmarks';
@@ -34,6 +33,10 @@ import {
 } from './useCanvasViewportRuntimeController';
 import { useSnapAlignStore } from './snapAlignStore';
 import { useTrackpadPanStore } from './trackpadPanStore';
+import {
+  useSmoothMinimapPan,
+  type CanvasMinimapPanRuntimePort,
+} from './useSmoothMinimapPan';
 
 export interface CanvasViewportSurfaceStore {
   currentViewport: ViewportBookmark;
@@ -57,8 +60,8 @@ const CANVAS_SNAP_ALIGNMENT_PORT: CanvasSnapAlignmentPort<CanvasNode> = {
 };
 
 export interface CanvasViewportSurfacePort
-  extends CanvasViewportPort,
-    CanvasNodeFocusRuntimePort {
+  extends CanvasNodeFocusRuntimePort,
+    CanvasMinimapPanRuntimePort<CanvasNode> {
   fitView: (options: CanvasAutoLayoutViewportOptions) => unknown;
 }
 
@@ -115,6 +118,7 @@ export function createUseCanvasViewportSurfaceController({
     closeImageViewer,
   }: CanvasViewportSurfaceControllerOptions): CanvasViewportSurfaceController {
     const minimap = useCanvasMinimapVisibility({ isImmersiveViewerActive });
+    const minimapPanningRef = useRef(false);
     const trackpadPanEnabled = useTrackpadPanStore((state) => state.enabled);
     const viewportRuntime = useCanvasViewportRuntimeController({
       wrapperRef,
@@ -124,6 +128,33 @@ export function createUseCanvasViewportSurfaceController({
       commitViewport,
       setViewportSize,
       isImmersiveViewerActive,
+    });
+    const handleMinimapPanStart = useCallback(() => {
+      minimapPanningRef.current = true;
+      minimap.startPanning();
+    }, [minimap.startPanning]);
+    const handleMinimapPanEnd = useCallback(
+      (pointerInsideMinimap: boolean) => {
+        minimapPanningRef.current = false;
+        minimap.endPanning(pointerInsideMinimap);
+      },
+      [minimap.endPanning],
+    );
+    const handleMoveEnd = useCallback(
+      (event: unknown, viewport: Parameters<typeof viewportRuntime.handleMoveEnd>[1]) => {
+        if (!minimapPanningRef.current) {
+          viewportRuntime.handleMoveEnd(event, viewport);
+        }
+      },
+      [viewportRuntime.handleMoveEnd],
+    );
+    useSmoothMinimapPan({
+      enabled: minimap.visible,
+      wrapperRef,
+      runtimePort: viewportPort,
+      onPanStart: handleMinimapPanStart,
+      onPanEnd: handleMinimapPanEnd,
+      onViewportSettled: commitViewport,
     });
     useCanvasLifecycle({
       wrapperRef,
@@ -155,6 +186,7 @@ export function createUseCanvasViewportSurfaceController({
     return {
       ...minimap,
       ...viewportRuntime,
+      handleMoveEnd,
       ...snapAlignment,
       trackpadPanEnabled,
       centerNodeViewport,

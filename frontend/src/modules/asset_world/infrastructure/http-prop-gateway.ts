@@ -1,8 +1,4 @@
 // Copyright (c) 2026 AI anime
-import {
-  commitFreezoneAsset,
-  uploadFreezoneAsset,
-} from "@/modules/creative_canvas/public";
 import type {
   AssetDataResponse,
   AssetErrorResponse,
@@ -13,6 +9,10 @@ import type { PropGateway } from "@/modules/asset_world/application/prop-gateway
 import type { PropAsset } from "@/modules/asset_world/domain/prop";
 import { jsonWithBackendError } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
+import {
+  commitProjectAsset,
+  uploadProjectAsset,
+} from "@/shared/api/project-asset-transfer";
 import { api } from "@/shared/api/transport";
 
 export const httpPropGateway: PropGateway = {
@@ -50,14 +50,18 @@ export const httpPropGateway: PropGateway = {
   },
 
   async uploadReference(project, name, file) {
-    const uploaded = await uploadFreezoneAsset(project, file, file.name);
+    const uploaded = await uploadProjectAsset({
+      projectId: project,
+      file,
+      filename: file.name,
+    });
 
-    const committed = await commitFreezoneAsset(
-      project,
-      uploaded.url,
-      { kind: "prop_ref", prop_id: name },
-      { mark_stale: true },
-    );
+    const committed = await commitProjectAsset({
+      projectId: project,
+      sourceUrl: uploaded.url,
+      target: { kind: "prop_ref", prop_id: name },
+      markStale: true,
+    });
     return { ok: true, data: committed };
   },
 

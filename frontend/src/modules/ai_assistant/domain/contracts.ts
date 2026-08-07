@@ -10,7 +10,7 @@ export type ClientFrame =
   | { type: "scope.set"; scope: ChatScope };
 
 export type ChatScope = {
-  kind: "home" | "project" | "asset" | "task";
+  kind: "home" | "project";
   id?: string | null;
 };
 

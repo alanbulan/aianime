@@ -213,8 +213,11 @@ def project_task_failure_for_exception(
                 {"error_code": "TASK_TIMEOUT", "timeout_seconds": timeout_seconds},
                 True,
             )
-    except Exception:
-        pass
+    except Exception as classification_error:
+        logger.debug(
+            "could not classify Celery timeout: %s",
+            classification_error,
+        )
 
     if is_insufficient_credits_error(exc):
         return INSUFFICIENT_CREDITS_MESSAGE, insufficient_credits_payload(exc), True
@@ -224,16 +227,22 @@ def project_task_failure_for_exception(
 
         if isinstance(exc, Sharp3DUnavailable):
             return str(exc), {"error_code": exc.error_code}, True
-    except Exception:
-        pass
+    except Exception as classification_error:
+        logger.debug(
+            "could not classify Sharp3D failure: %s",
+            classification_error,
+        )
 
     try:
         from ai_anime.modules.director_world.public import BlockWorldUnavailable
 
         if isinstance(exc, BlockWorldUnavailable):
             return str(exc), {"error_code": exc.error_code}, True
-    except Exception:
-        pass
+    except Exception as classification_error:
+        logger.debug(
+            "could not classify block-world failure: %s",
+            classification_error,
+        )
 
     try:
         from ai_anime.shared.provider_errors import (
@@ -244,8 +253,11 @@ def project_task_failure_for_exception(
         if is_content_moderation_error(exc):
             payload = content_moderation_payload(exc)
             return str(payload.get("message") or ""), payload, True
-    except Exception:
-        pass
+    except Exception as classification_error:
+        logger.debug(
+            "could not classify content-moderation failure: %s",
+            classification_error,
+        )
 
     if not isinstance(exc, Exception):
         raise exc

@@ -543,7 +543,7 @@ def _scene_image_config(model: str) -> dict[str, str]:
         "image-2",
         "image-2-official",
     }:
-        image_config["quality"] = "low"
+        image_config["quality"] = "medium"
     return image_config
 
 

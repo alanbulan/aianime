@@ -33,6 +33,17 @@ test("STANDARD edition cannot enable BYOK even when the raw flag is true", () =>
   assert.equal(snapshot.capabilities.allowsCustomModels, false);
 });
 
+test("authorization projection maps the current gateway timestamp fields", () => {
+  const value = authorization("PROFESSIONAL", true);
+  value.license.validUntil = "2027-01-02T03:04:05Z";
+  value.activation.lastHeartbeatAt = "2026-08-07T10:20:30Z";
+
+  const snapshot = projectCommercialAuthorization(value);
+
+  assert.equal(snapshot.license?.expiresAt, "2027-01-02T03:04:05Z");
+  assert.equal(snapshot.activation?.lastSeenAt, "2026-08-07T10:20:30Z");
+});
+
 test("release artifact selection picks the id matching platform and arch", () => {
   const projected = selectReleaseArtifactId(
     {
@@ -68,6 +79,35 @@ test("release artifact selection returns null when no artifact matches", () => {
   );
 
   assert.equal(projected.artifactId, null);
+});
+
+test("release artifact selection prefers the installable macOS DMG", () => {
+  const projected = selectReleaseArtifactId(
+    {
+      available: true,
+      required: false,
+      version: {
+        artifacts: [
+          {
+            id: "mac-zip",
+            target: "macos",
+            arch: "arm64",
+            installerKind: "zip",
+          },
+          {
+            id: "mac-dmg",
+            target: "macos",
+            arch: "arm64",
+            installerKind: "DMG",
+          },
+        ],
+      },
+    },
+    "macos",
+    "arm64",
+  );
+
+  assert.equal(projected.artifactId, "mac-dmg");
 });
 
 test("PROFESSIONAL BYOK requires both server capability and device activation", () => {

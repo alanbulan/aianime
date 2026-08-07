@@ -312,11 +312,17 @@ async def test_generation_credit_cost_route_preserves_catalog_code_without_mappi
 async def test_generation_credit_cost_route_uses_selected_model_for_scene_master():
     from ai_anime.api.routes import model_credits
 
-    patch_quote(expected_model="scene-image-sku", cost=9)
+    patch_quote_expect(
+        expected_kind="image",
+        expected_model="gpt-image-2",
+        expected_params={"size": "1K", "quality": "medium"},
+        expected_quantity=1,
+        cost=9,
+    )
 
     result = await model_credits.get_generation_credit_cost(
         kind="image_selection",
-        value="scene-image-sku",
+        value="gpt-image-2",
         image_role="scene_master",
         user={"user_id": "usr_1"},
     )

@@ -1028,7 +1028,7 @@
     "title": "Story Source",
     "subtitle": "Upload a script and start your creative journey.",
     "dropzoneHint": "Click or drop your novel file here",
-    "supportedFormats": "Supports .txt / .md / .docx · up to 10MB",
+    "supportedFormats": "Supports .txt / .md / .docx · up to 512KB",
     "uploadingTitle": "Uploading novel…",
     "uploadingHint": "Please stay on this page until the upload finishes. It may take a moment on a slow connection.",
     "inputMode": {
@@ -3036,6 +3036,14 @@
         "on": "On",
         "off": "Off",
         "durationExceeded": "Total audio duration must not exceed {{max}} seconds. Shorten or replace the audio reference and try again."
+      },
+      "referenceDuration": {
+        "audio": "Audio",
+        "video": "Video",
+        "tooShort": "{{media}} reference duration must be at least {{limit}} seconds: {{items}}",
+        "tooLong": "{{media}} reference duration must not exceed {{limit}} seconds: {{items}}",
+        "totalTooShort": "Total {{media}} reference duration must be at least {{limit}} seconds; current total is {{total}} seconds: {{items}}",
+        "totalTooLong": "Total {{media}} reference duration must not exceed {{limit}} seconds; current total is {{total}} seconds: {{items}}"
       },
       "count": {
         "format": "{{count}}"

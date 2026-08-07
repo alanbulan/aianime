@@ -18,6 +18,7 @@ const MODE_OPTIONS: ReadonlyArray<
 > = [
   { key: "textToVideo", labelKey: "node.videoNode.tabs.textToVideo" },
   { key: "allReference", labelKey: "node.videoNode.tabs.allReference" },
+  { key: "firstFrame", labelKey: "node.videoNode.tabs.firstFrame" },
   { key: "imageToVideo", labelKey: "node.videoNode.tabs.imageToVideo" },
   {
     key: "firstLastFrame",
@@ -29,6 +30,7 @@ const MODE_OPTIONS: ReadonlyArray<
 
 const TYPED_REFERENCE_MODE_ORDER: ReadonlyArray<VideoGenMode> = [
   "textToVideo",
+  "firstFrame",
   "imageToVideo",
   "imageReference",
   "videoEdit",
@@ -46,10 +48,15 @@ function disabledReason(
         if (videos > 0) return "已连接视频节点，请使用「视频编辑」";
         if (images > 0) return "已连接图片节点，请选择「首帧」或「图片参考」";
         return null;
-      case "imageToVideo":
+      case "firstFrame":
         if (videos > 0) return "已连接视频节点，「首帧」不可用";
         if (images === 0) return "需要连接图片节点（1个）";
         if (images > 1) return "「首帧」仅支持单张图片，请用「图片参考」";
+        return null;
+      case "imageToVideo":
+        if (videos > 0) return "已连接视频节点，「图生视频」不可用";
+        if (images === 0) return "需要连接图片节点（1个）";
+        if (images > 1) return "「图生视频」仅支持单张图片，请用「图片参考」";
         return null;
       case "imageReference":
         if (videos > 0) return "已连接视频节点，「图片参考」不可用";
@@ -105,11 +112,6 @@ export function resolveVideoGenerationModeOptions({
             VideoGenerationModeOption,
             "key" | "labelKey"
           > => option != null,
-        )
-        .map((option) =>
-          option.key === "imageToVideo"
-            ? { ...option, labelKey: "node.videoNode.tabs.firstFrame" }
-            : option,
         )
     : MODE_OPTIONS.filter((option) => supportedModes.includes(option.key));
 

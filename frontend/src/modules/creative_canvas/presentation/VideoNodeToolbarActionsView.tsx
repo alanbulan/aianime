@@ -108,8 +108,13 @@ export function VideoNodeToolbarActionsView({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <UiChipButton
-            className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-            title={t("nodeToolbar.video.subtitleRemovalTip")}
+            disabled={!hasVideo}
+            className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${unavailableClass}`}
+            title={
+              hasVideo
+                ? t("nodeToolbar.video.subtitleRemovalTip")
+                : t("nodeToolbar.video.requiresVideo")
+            }
             onClick={(event) => event.stopPropagation()}
           >
             <Eraser className="h-3.5 w-3.5" />

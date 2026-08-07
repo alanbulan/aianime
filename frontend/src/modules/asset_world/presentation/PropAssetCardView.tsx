@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { LightboxImage } from "@/components/lightbox-image";
 import { ASSET_CARD_META_BADGE_CLASS } from "@/components/assets/asset-card-styles";
 import { UsageCountBadge } from "@/components/assets/usage-count-badge";
-import { CopyAssetLinkButton } from "@/components/assets/copy-asset-link-button";
+import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import {

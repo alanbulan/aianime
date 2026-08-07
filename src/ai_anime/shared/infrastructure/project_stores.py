@@ -64,9 +64,18 @@ def register_request_store(store: "SQLiteStore") -> None:
     if _REQUEST_STORE_OWNER_TASK.get() != id(task):
         return
     stores = _REQUEST_SQLITE_STORES.get()
-    if stores is None:
-        return
     stores.append(store)
+
+
+async def _initialize_sqlite_store(store: "SQLiteStore") -> "SQLiteStore":
+    try:
+        await store.initialize()
+        await store.load_graph_state()
+    except BaseException:
+        await store.close()
+        raise
+    register_request_store(store)
+    return store
 
 
 async def make_cognee_store(username: str, project: str) -> CogneeStore:
@@ -91,10 +100,7 @@ async def make_sqlite_store(username: str, project: str) -> SQLiteStore:
         output_dir=str(paths.output_dir),
         state_dir=str(paths.state_dir),
     )
-    await store.initialize()
-    await store.load_graph_state()
-    register_request_store(store)
-    return store
+    return await _initialize_sqlite_store(store)
 
 
 async def make_sqlite_store_for_context(ctx: ProjectContext) -> SQLiteStore:
@@ -106,10 +112,7 @@ async def make_sqlite_store_for_context(ctx: ProjectContext) -> SQLiteStore:
         output_dir=str(ctx.output_dir),
         state_dir=str(ctx.state_dir),
     )
-    await store.initialize()
-    await store.load_graph_state()
-    register_request_store(store)
-    return store
+    return await _initialize_sqlite_store(store)
 
 
 async def make_cognee_store_for_context(

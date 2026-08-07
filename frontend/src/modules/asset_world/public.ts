@@ -1,4 +1,5 @@
 export {
+  type AssetWorldCanvasNavigation,
   CharactersPageContent,
   clearSceneDirectorWorld,
   createIdentityAsset,
@@ -13,28 +14,22 @@ export {
   saveSceneDirectorWorld,
   saveSceneDirectorWorldSource,
   useAssetReferenceIndex,
-  useAssetImageSourceSelection,
   useAssetWorkspaceNavigation,
   useBatchGeneratePropReferences,
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,
   useBuildScenes,
   useClearSceneDirectorWorld,
-  stylesQueryOptions,
-  useAnalyzeStyle,
   useBuildCharacters,
   useCharacterAssetHistory,
   useCharacterIdentities,
-  useCharacterImageSelection,
   useCharacters,
   useCharacterVoiceSamples,
-  useCreateStyle,
   useCreateCharacter,
   useCreateIdentity,
   useCreateProp,
   useCreateScene,
   useCropBeatBackgroundAnchor,
-  useDeleteStyle,
   useDeleteCharacter,
   useDeleteCharacterVoiceSample,
   useDeleteIdentity,
@@ -64,10 +59,7 @@ export {
   useScenePanoManifest,
   useScenePlatePreview,
   useScenes,
-  useStyleDetail,
-  useStyles,
   useTrimCharacterVoiceSample,
-  useUpdateAssetImageSourceSelection,
   useUpdateBeatBackgroundAnchor,
   useUpdateCharacter,
   useUpdateIdentity,
@@ -84,8 +76,30 @@ export {
   useUploadSceneCustomPackage,
   useUploadSceneMaster,
   useUploadScenePano,
-  useUploadStylePreview,
 } from "@/modules/asset_world/composition";
+export {
+  useAssetImageSourceSelection,
+  useCharacterImageSelection,
+  useUpdateAssetImageSourceSelection,
+} from "@/modules/asset_world/imageSourceComposition";
+export {
+  stylesQueryOptions,
+  useAnalyzeStyle,
+  useCreateStyle,
+  useDeleteStyle,
+  useStyleDetail,
+  useStyles,
+  useUploadStylePreview,
+} from "@/modules/asset_world/styleComposition";
+export {
+  CharacterImageSourceSelect,
+  type CharacterImageSourceSelectProps,
+} from "@/modules/asset_world/presentation/CharacterImageSourceSelect";
+export {
+  ProjectStyleChip,
+  type ProjectStyleChipProps,
+} from "@/modules/asset_world/presentation/ProjectStyleChip";
+export { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
 export type { BeatViewerGateway } from "@/modules/asset_world/application/beat-viewer-gateway";
 export type { DirectorStageManifest } from "@/features/viewer-kit/public";
 export type {

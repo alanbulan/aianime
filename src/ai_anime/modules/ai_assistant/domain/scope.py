@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 ChatScopeKind = Literal["home", "project", "asset", "task"]
+InteractiveChatScopeKind = Literal["home", "project"]
 
 
 @dataclass(frozen=True)
@@ -17,7 +18,7 @@ class ChatScope:
     def from_payload(cls, payload: dict[str, Any] | None) -> "ChatScope":
         payload = payload or {"kind": "home"}
         kind = str(payload.get("kind") or "home")
-        if kind not in {"home", "project", "asset", "task"}:
+        if kind not in {"home", "project"}:
             raise ValueError(f"unsupported chat scope: {kind}")
         raw_id = payload.get("id")
         scope_id = str(raw_id).strip() if raw_id is not None else None

@@ -76,7 +76,7 @@ def _image_selection_billing_params(
             image_billing_params(
                 model=model,
                 image_size="1K",
-                quality="low",
+                quality="medium",
             ),
         )
     elif clean_role == "scene_pano":

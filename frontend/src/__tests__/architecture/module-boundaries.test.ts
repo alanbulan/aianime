@@ -4,7 +4,7 @@ import {
   readdirSync,
   readFileSync as readFileSyncStrict,
 } from "node:fs";
-import { relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
 
@@ -88,6 +88,25 @@ function isRawDataImport(specifier: string): boolean {
     specifier.startsWith("@/api/") ||
     specifier.startsWith("@/lib/queries/")
   );
+}
+
+function resolveModuleImportTarget(
+  importerPath: string,
+  specifier: string,
+): { context: string; layer: string } | null {
+  if (specifier.startsWith("@/modules/")) {
+    const [, , context, layer] = specifier.split("/");
+    return context && layer ? { context, layer } : null;
+  }
+  if (!specifier.startsWith(".")) return null;
+
+  const targetPath = relative(
+    MODULES_ROOT,
+    resolve(dirname(importerPath), specifier),
+  ).replace(/\\/g, "/");
+  if (targetPath === ".." || targetPath.startsWith("../")) return null;
+  const [context, layer] = targetPath.split("/");
+  return context && layer ? { context, layer } : null;
 }
 
 describe("frontend architecture boundaries", () => {
@@ -3574,6 +3593,7 @@ describe("frontend architecture boundaries", () => {
   it("keeps new modules on the declared dependency direction", () => {
     const failures: string[] = [];
     for (const path of sourceFiles(MODULES_ROOT)) {
+      if (path.includes(".test.")) continue;
       const relativePath = relative(MODULES_ROOT, path).replace(/\\/g, "/");
       const [context, layer] = relativePath.split("/");
       if (!context || !["domain", "application", "infrastructure", "presentation"].includes(layer)) {
@@ -3606,9 +3626,9 @@ describe("frontend architecture boundaries", () => {
         if (layer === "presentation" && isRawDataImport(specifier)) {
           failures.push(`${relativePath}: presentation imports raw data layer ${specifier}`);
         }
-        if (!specifier.startsWith("@/modules/")) continue;
-
-        const [, , targetContext, targetLayer] = specifier.split("/");
+        const target = resolveModuleImportTarget(path, specifier);
+        if (!target) continue;
+        const { context: targetContext, layer: targetLayer } = target;
         if (targetContext !== context) {
           if (specifier !== `@/modules/${targetContext}/public`) {
             failures.push(
@@ -5887,7 +5907,7 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
-  it("keeps Freezone asset upload behind one application gateway", () => {
+  it("keeps Freezone asset upload behind one platform transfer contract", () => {
     const legacyOpsPath = resolve(SRC_ROOT, "api/ops.ts");
     const legacyApplicationPath = resolve(
       SRC_ROOT,
@@ -5942,6 +5962,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/asset_world/infrastructure/http-prop-gateway.ts",
     );
+    const projectAssetTransferPath = resolve(
+      SRC_ROOT,
+      "shared/api/project-asset-transfer.ts",
+    );
     const pipelineConsumerPaths = [
       "app/creative-canvas-shell-composition.tsx",
     ].map((path) => resolve(SRC_ROOT, path));
@@ -5960,6 +5984,10 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const propGatewaySource = readFileSync(propGatewayPath, "utf8");
+    const projectAssetTransferSource = readFileSync(
+      projectAssetTransferPath,
+      "utf8",
+    );
     const uploadEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !path.includes(".test."))
       .filter((path) =>
@@ -5989,16 +6017,16 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
-        "@/shared/api/client",
-        "@/modules/creative_canvas/domain/assetUpload",
+        "@/shared/api/project-asset-transfer",
         "../application/assetUpload",
       ]),
     );
     expect(uploadEndpointOwners).toEqual([
-      "modules/creative_canvas/infrastructure/httpFreezoneAssetUploadGateway.ts",
+      "shared/api/project-asset-transfer.ts",
     ]);
-    expect(infrastructureSource).toContain('method: "POST"');
-    expect(infrastructureSource).toContain(
+    expect(infrastructureSource).toContain("uploadProjectAsset");
+    expect(projectAssetTransferSource).toContain('method: "POST"');
+    expect(projectAssetTransferSource).toContain(
       "params.options?.disableTimeout ? false : undefined",
     );
     expect(compositionSource).toContain("uploadFreezoneAssetUseCase(");
@@ -6041,9 +6069,12 @@ describe("frontend architecture boundaries", () => {
       ),
     ).toBe(false);
     expect(importSpecifiers(propGatewayPath)).toContain(
+      "@/shared/api/project-asset-transfer",
+    );
+    expect(importSpecifiers(propGatewayPath)).not.toContain(
       "@/modules/creative_canvas/public",
     );
-    expect(propGatewaySource).toContain("uploadFreezoneAsset(");
+    expect(propGatewaySource).toContain("uploadProjectAsset({");
     expect(propGatewaySource).not.toContain("}/freezone/upload`");
     expect(importSpecifiers(aiGatewayPath)).not.toContain(
       "@/modules/creative_canvas/public",
@@ -6453,7 +6484,7 @@ describe("frontend architecture boundaries", () => {
     const publicPath = resolve(SRC_ROOT, "modules/creative_canvas/public.ts");
     const canvasConsumerPaths = [
       "modules/creative_canvas/presentation/useBeatContextNodeController.ts",
-      "modules/asset_world/composition.ts",
+      "app/workspace-composition.tsx",
       "modules/narrative_planning/composition.ts",
       "modules/production/render-section-composition.ts",
       "modules/production/sketch-section-composition.ts",
@@ -7488,7 +7519,7 @@ describe("frontend architecture boundaries", () => {
     expect(lifecycleSource).not.toContain("CanvasLoadingOverlay");
   });
 
-  it("owns asset commit targets behind the Creative Canvas application gateway", () => {
+  it("owns asset commit targets behind one platform transfer contract", () => {
     const legacyApiPath = resolve(SRC_ROOT, "api/push.ts");
     const legacyDomainPath = resolve(
       SRC_ROOT,
@@ -7554,6 +7585,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/public.ts",
     );
+    const projectAssetTransferPath = resolve(
+      SRC_ROOT,
+      "shared/api/project-asset-transfer.ts",
+    );
     const applicationSource = readFileSync(applicationPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
     const pushTargetSource = readFileSync(pushTargetPath, "utf8");
@@ -7611,7 +7646,7 @@ describe("frontend architecture boundaries", () => {
     const domainConsumerPaths = [
       "modules/creative_canvas/presentation/useImageEditNodeController.ts",
     ];
-    const applicationPublicConsumerPath =
+    const propGatewayPath =
       "modules/asset_world/infrastructure/http-prop-gateway.ts";
 
     expect(existsSync(legacyApiPath)).toBe(false);
@@ -7649,7 +7684,7 @@ describe("frontend architecture boundaries", () => {
     ]);
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
-        "@/shared/api/client",
+        "@/shared/api/project-asset-transfer",
         "@/modules/creative_canvas/domain/assetCommit",
         "../application/assetCommit",
       ]),
@@ -7657,11 +7692,14 @@ describe("frontend architecture boundaries", () => {
     expect(directLegacyConsumers).toEqual([]);
     expect(legacyDomainConsumers).toEqual([]);
     expect(pushEndpointOwners).toEqual([
-      "modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway.ts",
+      "shared/api/project-asset-transfer.ts",
     ]);
     expect(impactEndpointOwners).toEqual([
-      "modules/creative_canvas/infrastructure/httpFreezoneAssetCommitGateway.ts",
+      "shared/api/project-asset-transfer.ts",
     ]);
+    expect(importSpecifiers(projectAssetTransferPath)).toContain(
+      "@/shared/api/client",
+    );
     for (const consumerPath of internalConsumerPaths) {
       const imports = importSpecifiers(resolve(SRC_ROOT, consumerPath));
       expect(imports).toContain("../domain/assetCommit");
@@ -7680,9 +7718,12 @@ describe("frontend architecture boundaries", () => {
     expect(
       importSpecifiers(resolve(SRC_ROOT, internalDomainConsumerPath)),
     ).toContain("./pushTarget");
-    expect(
-      importSpecifiers(resolve(SRC_ROOT, applicationPublicConsumerPath)),
-    ).toContain("@/modules/creative_canvas/public");
+    expect(importSpecifiers(resolve(SRC_ROOT, propGatewayPath))).toContain(
+      "@/shared/api/project-asset-transfer",
+    );
+    expect(importSpecifiers(resolve(SRC_ROOT, propGatewayPath))).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
     expect(applicationSource).toContain("validateCommitTarget(params.target)");
     expect(applicationSource).toContain('target.kind === "scene_director_world"');
     expect(applicationSource).not.toContain("@/shared/api/");
@@ -20270,7 +20311,16 @@ describe("frontend architecture boundaries", () => {
     expect(assetCompositionSource).not.toContain(
       "@/modules/production/",
     );
+    expect(assetCompositionSource).not.toContain(
+      "@/modules/creative_canvas/",
+    );
     expect(assetCompositionSource).toContain("renderNarratorVoicePanel");
+    expect(workspaceCompositionSource).toContain(
+      "openPresetProjectionInMyCanvas",
+    );
+    expect(workspaceCompositionSource).toContain(
+      "canvasNavigation: assetWorldCanvasNavigation",
+    );
 
     for (const source of [
       narrativeCompositionSource,
@@ -22164,7 +22214,7 @@ describe("frontend architecture boundaries", () => {
     );
   });
 
-  it("keeps Beat director editing behind the Viewer Kit public API", () => {
+  it("keeps Beat director editing behind Viewer Kit composition and public boundaries", () => {
     const applicationPath = resolve(
       SRC_ROOT,
       "features/viewer-kit/three-d/application/directorStageOperations.ts",
@@ -22266,7 +22316,8 @@ describe("frontend architecture boundaries", () => {
     );
     expect(compositionSource).toContain("freezoneDirectorStageGateway");
     expect(publicSource).toContain("saveBeatDirectorControlFrame,");
-    expect(importSpecifiers(dialogPath)).toContain(
+    expect(importSpecifiers(dialogPath)).toContain("./composition");
+    expect(importSpecifiers(dialogPath)).not.toContain(
       "@/features/viewer-kit/public",
     );
     expect(importSpecifiers(dialogPath)).not.toContain(
@@ -29896,9 +29947,13 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(sessionControllerPath)).not.toContain(
       "@/features/canvas/domain/videoComposeTimeline",
     );
-    expect(importSpecifiers(sessionControllerPath)).toContain(
+    expect(importSpecifiers(sessionControllerPath)).not.toContain(
       "../infrastructure/browserVideoComposeMediaRuntime",
     );
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposePresentationComposition.ts",
+    ))).toContain("./infrastructure/browserVideoComposeMediaRuntime");
     expect(modalSource).toContain("useVideoComposeTimelineSessionController");
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposeTimelineSessionController",
@@ -29916,7 +29971,7 @@ describe("frontend architecture boundaries", () => {
       "resolveVideoComposeInitialTimeline({",
     );
     expect(sessionControllerSource).toContain(
-      "probeVideoComposeMediaDuration(",
+      "probeMediaDuration(",
     );
     expect(modalSource).not.toContain("resolveVideoComposeInitialTimeline({");
     expect(modalSource).not.toContain("probeVideoComposeMediaDuration(");
@@ -29969,7 +30024,7 @@ describe("frontend architecture boundaries", () => {
     const modalViewSource = readFileSync(modalViewPath, "utf8");
     const declaration = [
       "export function",
-      "useVideoComposeTimelineSessionController(",
+      "createUseVideoComposeTimelineSessionController(",
     ].join(" ");
     const declarationOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(declaration))
@@ -29983,7 +30038,6 @@ describe("frontend architecture boundaries", () => {
         "../domain/videoComposeInputs",
         "../domain/videoComposeTimeline",
         "../domain/videoComposeTimelineEdits",
-        "../infrastructure/browserVideoComposeMediaRuntime",
       ]),
     );
     expect(controllerSource).toContain("VIDEO_COMPOSE_HISTORY_LIMIT = 50");
@@ -29999,7 +30053,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "./useVideoComposeTimelineSessionController",
+      "../videoComposePresentationComposition",
     );
     expect(modalSource).toContain("sourceMedia");
     expect(modalSource).toContain("resolveMediaUrl,");
@@ -30443,17 +30497,23 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/ui/VideoComposeModalView",
     );
-    expect(importSpecifiers(modalPath)).toContain("./CoverEditor");
+    expect(importSpecifiers(modalPath)).toContain(
+      "../videoComposePresentationComposition",
+    );
     expect(importSpecifiers(coverEditorPath)).toContain(
       "../application/videoComposeCover",
     );
-    expect(importSpecifiers(coverEditorPath)).toContain(
+    expect(importSpecifiers(coverEditorPath)).not.toContain(
       "../infrastructure/browserVideoComposeCoverRuntime",
     );
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposePresentationComposition.ts",
+    ))).toContain("./infrastructure/browserVideoComposeCoverRuntime");
     expect(importSpecifiers(coverEditorPath)).not.toContain(
       "@/modules/creative_canvas/canvasComposition",
     );
-    expect(coverEditorSource).toContain("uploadFreezoneAsset(");
+    expect(coverEditorSource).toContain("uploadAsset(");
     expect(importSpecifiers(coverProjectionPath)).toEqual([
       "../domain/videoComposeTimeline",
     ]);
@@ -30555,6 +30615,7 @@ describe("frontend architecture boundaries", () => {
         "lucide-react",
         "react-i18next",
         "../domain/videoComposeTimeline",
+        "../videoComposePresentationComposition",
         "./audioPeaks",
         "./filmstrip",
       ]),
@@ -30818,7 +30879,7 @@ describe("frontend architecture boundaries", () => {
       ["export async function", "fetchVideoComposeResultBlob("].join(" "),
       ["export function", "resolveVideoComposeResultFileName("].join(" "),
       ["export function", "downloadVideoComposeBlob("].join(" "),
-      ["export function", "useVideoComposeExportController("].join(" "),
+      ["export function", "createUseVideoComposeExportController("].join(" "),
     ];
     const declarationOwners = declarations.map((declaration) =>
       sourceFiles(SRC_ROOT)
@@ -30836,15 +30897,13 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
-        "../assetTransferComposition",
+        "../application/composeCanvasVideo",
         "../domain/videoComposeTimeline",
         "../domain/videoCompose",
-        "../infrastructure/browserVideoComposeExportRuntime",
-        "../videoComposeComposition",
       ]),
     );
-    expect(controllerSource).toContain("await composeCanvasVideo({");
-    expect(controllerSource).toContain("await uploadFreezoneAsset(");
+    expect(controllerSource).toContain("await composeVideo({");
+    expect(controllerSource).toContain("await uploadAsset(");
     expect(controllerSource).toContain("buildComposePayload(");
     expect(controllerSource).toContain("hasOverlappingVideoClips(timeline)");
     expect(controllerSource).toContain(
@@ -30854,8 +30913,12 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("URL.createObjectURL");
     expect(controllerSource).not.toContain("className=");
     expect(importSpecifiers(modalPath)).toContain(
-      "./useVideoComposeExportController",
+      "../videoComposePresentationComposition",
     );
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposePresentationComposition.ts",
+    ))).toContain("./infrastructure/browserVideoComposeExportRuntime");
     expect(importSpecifiers(modalPath)).not.toContain(
       "@/features/canvas/hooks/useVideoComposeExportController",
     );
@@ -31076,18 +31139,25 @@ describe("frontend architecture boundaries", () => {
     expect(timelineSource).toContain(
       "): CanvasVideoComposeRequest {",
     );
-    expect(importSpecifiers(exportControllerPath)).toContain(
+    expect(importSpecifiers(exportControllerPath)).not.toContain(
       "../assetTransferComposition",
     );
-    expect(importSpecifiers(exportControllerPath)).toContain(
+    expect(importSpecifiers(exportControllerPath)).not.toContain(
       "../videoComposeComposition",
     );
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposePresentationComposition.ts",
+    ))).toEqual(expect.arrayContaining([
+      "./assetTransferComposition",
+      "./videoComposeComposition",
+    ]));
     expect(importSpecifiers(exportControllerPath)).not.toContain(
       "@/modules/creative_canvas/canvasComposition",
     );
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/ops");
     expect(importSpecifiers(exportControllerPath)).not.toContain("@/api/tasks");
-    expect(exportControllerSource).toContain("await composeCanvasVideo({");
+    expect(exportControllerSource).toContain("await composeVideo({");
     expect(exportControllerSource).not.toContain("submitFreezoneVideoCompose");
     expect(exportControllerSource).not.toContain("fetchFreezoneJobResult");
     expect(exportControllerSource).not.toContain("awaitTaskCompletion");
@@ -31710,10 +31780,14 @@ describe("frontend architecture boundaries", () => {
         ),
       ),
     ).toBe(false);
-    expect(importSpecifiers(coverEditorPath)).toContain(
+    expect(importSpecifiers(coverEditorPath)).not.toContain(
       "../assetTransferComposition",
     );
-    expect(coverEditorSource).toContain("uploadFreezoneAsset(");
+    expect(importSpecifiers(resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposePresentationComposition.ts",
+    ))).toContain("./assetTransferComposition");
+    expect(coverEditorSource).toContain("uploadAsset(");
     expect(coverEditorSource).not.toContain("uploadCanvasAsset(");
     expect(
       existsSync(resolve(SRC_ROOT, "features/canvas/compose/CoverEditor.tsx")),
@@ -32331,6 +32405,10 @@ describe("frontend architecture boundaries", () => {
       resolve(SRC_ROOT, "modules/creative_canvas/presentation/useVideoNodeController.ts"),
       "utf8",
     );
+    const compositionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/creative_canvas/canvasComposition.ts"),
+      "utf8",
+    );
     const declaration = [
       "export function",
       "resolveBrowserDroppedVideoFile(",
@@ -32353,9 +32431,12 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(videoNode).toContain(
-      "resolveBrowserDroppedVideoFile(event.dataTransfer)",
+      "resolveDroppedVideoFile(event.dataTransfer)",
     );
     expect(videoNode).not.toContain("function resolveBrowserDroppedVideoFile(");
+    expect(compositionSource).toContain(
+      "resolveDroppedVideoFile: resolveBrowserDroppedVideoFile",
+    );
     expect(existsSync(resolve(
       SRC_ROOT,
       "features/canvas/application/resolveDroppedVideoFile.ts",
@@ -32366,7 +32447,7 @@ describe("frontend architecture boundaries", () => {
     ))).toBe(false);
   });
 
-  it("keeps reference audio duration validation in application", () => {
+  it("keeps reference media duration validation in application", () => {
     const applicationPath = resolve(
       SRC_ROOT,
       "modules/creative_canvas/application/validateVideoReferenceAudioDuration.ts",
@@ -32392,7 +32473,7 @@ describe("frontend architecture boundaries", () => {
     ].join(" ");
     const useCaseDeclaration = [
       "export async function",
-      "validateVideoReferenceAudioDuration(",
+      "validateVideoReferenceDuration(",
     ].join(" ");
     const probeOwners = sourceFiles(SRC_ROOT)
       .filter((path) => readFileSync(path, "utf8").includes(probeDeclaration))
@@ -32407,7 +32488,9 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("document");
     expect(applicationSource).not.toContain("@/api/");
-    expect(applicationSource).toContain("readonly maxDurationMs: number");
+    expect(applicationSource).toContain(
+      "readonly limits: VideoReferenceDurationLimits",
+    );
     expect(applicationSource).not.toContain(
       "SEEDANCE_2_MAX_REFERENCE_AUDIO_DURATION_MS",
     );
@@ -32421,18 +32504,21 @@ describe("frontend architecture boundaries", () => {
     expect(probeOwners).toEqual([
       "modules/creative_canvas/infrastructure/browserAudioMetadata.ts",
     ]);
-    expect(infrastructureSource).toContain('document.createElement("audio")');
+    expect(infrastructureSource).toContain("document.createElement(media)");
     expect(infrastructureSource).toContain(
       "window.setTimeout(() => finish(null), 8000)",
     );
-    expect(infrastructureSource).toContain('audio.removeAttribute("src")');
+    expect(infrastructureSource).toContain('element.removeAttribute("src")');
     expect(compositionSource).toContain(
-      "browserAudioMetadataGateway",
+      "browserReferenceDurationGateway",
     );
-    expect(videoNode).toContain("validateVideoReferenceAudioDuration({");
+    expect(videoNode).toContain("validateVideoReferenceDuration({");
     expect(videoNode).not.toContain("@/modules/creative_canvas/public");
     expect(videoNode).toContain(
-      "selectedVideoModel.maxReferenceAudioDurationSeconds * 1000",
+      'videoReferenceDurationLimitsForModel(selectedVideoModel, "audio")',
+    );
+    expect(videoNode).toContain(
+      'videoReferenceDurationLimitsForModel(selectedVideoModel, "video")',
     );
     expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserAudioMetadata",
@@ -32495,6 +32581,10 @@ describe("frontend architecture boundaries", () => {
       SRC_ROOT,
       "modules/creative_canvas/canvasComposition.ts",
     );
+    const presentationCompositionPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/videoComposePresentationComposition.ts",
+    );
     const contractPath = resolve(
       SRC_ROOT,
       "modules/creative_canvas/application/videoFrameStrip.ts",
@@ -32521,6 +32611,10 @@ describe("frontend architecture boundaries", () => {
     );
     const contractSource = readFileSync(contractPath, "utf8");
     const compositionSource = readFileSync(compositionPath, "utf8");
+    const presentationCompositionSource = readFileSync(
+      presentationCompositionPath,
+      "utf8",
+    );
     const infrastructureSource = readFileSync(infrastructurePath, "utf8");
     const clipPanelSource = readFileSync(clipPanelPath, "utf8");
     const filmstripSource = readFileSync(filmstripPath, "utf8");
@@ -32576,8 +32670,8 @@ describe("frontend architecture boundaries", () => {
     expect(clipPanelSource).toContain("captureFrameStrip(resolved, {");
     expect(clipPanelSource).not.toContain('document.createElement("video")');
     expect(clipPanelSource).not.toContain("function captureFrames(");
-    expect(filmstripSource).toContain("captureBrowserVideoFrameStrip(");
-    expect(filmstripSource).toContain(
+    expect(filmstripSource).toContain("captureVideoFrameStrip(");
+    expect(filmstripSource).not.toContain(
       "../infrastructure/browserVideoFrameStrip",
     );
     expect(filmstripSource).not.toContain("@/modules/creative_canvas/canvasComposition");
@@ -32586,14 +32680,19 @@ describe("frontend architecture boundaries", () => {
     );
     expect(filmstripSource).not.toContain('document.createElement("video")');
     expect(filmstripSource).not.toContain("function captureFilmstrip(");
-    expect(compositionSource).not.toContain(
+    expect(compositionSource).toContain(
       "./infrastructure/browserVideoFrameStrip",
     );
-    expect(compositionSource).not.toContain("captureBrowserVideoFrameStrip");
+    expect(compositionSource).toContain(
+      "captureVideoFrameStrip: captureBrowserVideoFrameStrip",
+    );
+    expect(presentationCompositionSource).toContain(
+      "captureVideoFrameStrip: captureBrowserVideoFrameStrip",
+    );
     expect(videoNode).not.toContain(
       "@/features/canvas/infrastructure/browserVideoFrameStrip",
     );
-    expect(videoNode).toContain("captureBrowserVideoFrameStrip,");
+    expect(videoNode).toContain("captureFrameStrip: captureVideoFrameStrip");
     expect(clipPanelSource).toContain(
       "import type { CaptureVideoFrameStrip }",
     );

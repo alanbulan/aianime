@@ -21,7 +21,7 @@ class ReleaseItem:
 
 @dataclass(frozen=True)
 class ReleaseFeed:
-    source: Literal["mock", "remote", "none"]
+    source: Literal["remote", "none"]
     current_version: str | None = None
     current_tag: str | None = None
     current_items: list[ReleaseItem] = field(default_factory=list)

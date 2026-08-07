@@ -6,11 +6,14 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from ai_anime.modules.ai_assistant.public import ChatScope
+from ai_anime.modules.ai_assistant.public import (
+    ChatScope,
+    InteractiveChatScopeKind,
+)
 
 
 class ChatScopePayload(BaseModel):
-    kind: str = "home"
+    kind: InteractiveChatScopeKind = "home"
     id: str | None = None
 
 

@@ -5,9 +5,15 @@ from types import SimpleNamespace
 from typing import Mapping
 
 import pytest
+from pydantic import ValidationError
 
-from ai_anime.api.canvas_video_schemas import FreezoneVideoGenRequest
+from ai_anime.api.canvas_video_schemas import (
+    FreezoneImageToVideoRequest,
+    FreezoneKeyframeVideoRequest,
+    FreezoneVideoGenRequest,
+)
 from ai_anime.api.routes.canvas import video as video_routes
+from ai_anime.model_access_policy import configure_model_access
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskSubmission,
@@ -28,6 +34,9 @@ from ai_anime.modules.creative_canvas.application.video_generation import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.media_sources import (
     ProjectCreativeCanvasMediaSourceResolver,
+)
+from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
+    ConfiguredCreativeCanvasVideoModelPolicy,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -90,6 +99,42 @@ def _receipt(
     )
 
 
+def test_configured_video_policy_reads_projected_catalog_duration_capabilities() -> (
+    None
+):
+    configure_model_access(
+        allows_custom_models=False,
+        mode="cloud",
+        model_capabilities=[
+            {
+                "modelId": "cloud/video-standard",
+                "referenceAudioMinSeconds": 2,
+                "referenceAudioTotalMaxSeconds": 14,
+                "referenceVideoMinSeconds": 3,
+                "referenceVideoMaxSeconds": 10,
+                "referenceVideoTotalMinSeconds": 5,
+                "referenceVideoTotalMaxSeconds": 20,
+            }
+        ],
+    )
+    try:
+        policy = ConfiguredCreativeCanvasVideoModelPolicy()
+        assert policy.reference_duration_limits(
+            "cloud/video-standard",
+            "audio",
+        ) == (2.0, None, None, 14.0)
+        assert policy.reference_duration_limits(
+            "cloud/video-standard",
+            "video",
+        ) == (3.0, 10.0, 5.0, 20.0)
+        assert policy.reference_duration_limits(
+            "seedance-2.0-fast",
+            "audio",
+        ) == (1.8, 15.2, None, 15.2)
+    finally:
+        configure_model_access(allows_custom_models=False, mode="cloud")
+
+
 class _FixedJobIds:
     def __init__(self, *job_ids: str) -> None:
         self._job_ids = iter(job_ids)
@@ -117,6 +162,26 @@ class _ModelPolicy:
 
     def normalize_scene_optimize(self, model: str | None, value: str | None) -> str:
         return str(value or "") if "value" in str(model or "") else ""
+
+    def reference_duration_limits(
+        self,
+        model: str | None,
+        media_type: str,
+    ) -> tuple[float | None, float | None, float | None, float | None]:
+        if media_type == "audio" and str(model or "").startswith("seedance-2.0"):
+            return 1.8, 15.2, None, 15.2
+        if media_type == "video" and model == "video-limited":
+            return 2.0, 10.0, 4.0, 12.0
+        return None, None, None, None
+
+
+class _ReferenceDurations:
+    def __init__(self, values: Mapping[str, float | None] | None = None) -> None:
+        self._values = dict(values or {})
+
+    async def probe_seconds(self, path: str, media_type: str) -> float | None:
+        del media_type
+        return self._values.get(Path(path).name)
 
 
 class _CharacterCatalog:
@@ -148,10 +213,12 @@ def _use_cases(
     scheduler: _CapturingScheduler,
     *job_ids: str,
     characters: _CharacterCatalog | None = None,
+    reference_durations: _ReferenceDurations | None = None,
 ) -> CreativeCanvasVideoGenerationUseCases:
     return CreativeCanvasVideoGenerationUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         _ModelPolicy(),
+        reference_durations or _ReferenceDurations(),
         characters or _CharacterCatalog(),
         _FixedJobIds(*job_ids),
         scheduler,
@@ -268,6 +335,20 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
         "VIDEO_ALL_REFERENCE",
         "VIDEO_EDIT",
     ]
+    assert [task.payload["gen_mode"] for task in scheduler.tasks] == [
+        "text_to_video",
+        "image_reference",
+        "first_last_frame",
+        "all_reference",
+        "video_edit",
+    ]
+    assert [task.payload["requested_gen_mode"] for task in scheduler.tasks] == [
+        "textToVideo",
+        "imageReference",
+        "firstLastFrame",
+        "allReference",
+        "videoEdit",
+    ]
 
     text_payload = scheduler.tasks[0].payload
     assert "林小满" in str(text_payload["prompt"])
@@ -357,7 +438,7 @@ async def test_video_generation_preserves_validation_contracts(tmp_path: Path) -
 
     with pytest.raises(
         InvalidCreativeCanvasVideoGenerationRequest,
-        match="first_frame_url or last_frame_url is required",
+        match="firstLastFrame requires at least one keyframe",
     ):
         await use_cases.start_keyframe_video(
             StartCreativeCanvasKeyframeVideoCommand(
@@ -402,6 +483,119 @@ async def test_video_generation_preserves_validation_contracts(tmp_path: Path) -
                 audio_setting="auto",
             )
         )
+    assert scheduler.tasks == []
+
+
+@pytest.mark.asyncio
+async def test_first_frame_keeps_requested_mode_and_uses_first_frame_protocol(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    scheduler = _CapturingScheduler(context)
+    use_cases = _use_cases(context, scheduler, "job-first-frame")
+
+    await use_cases.start_keyframe_video(
+        StartCreativeCanvasKeyframeVideoCommand(
+            context=context,
+            project_dir=context.output_dir,
+            options=_options(gen_mode="firstFrame"),
+            first_frame_url="freezone/_uploads/first.png",
+        )
+    )
+
+    payload = scheduler.tasks[0].payload
+    assert payload["requested_gen_mode"] == "firstFrame"
+    assert payload["gen_mode"] == "first_frame"
+    assert payload["model_role"] == "VIDEO_IMAGE_TO_VIDEO"
+    assert payload["last_frame_path"] is None
+
+
+def test_reference_video_requests_require_an_explicit_business_mode() -> None:
+    with pytest.raises(ValidationError, match="gen_mode"):
+        FreezoneImageToVideoRequest(image_urls=["one.png"], model="video-model")
+    with pytest.raises(ValidationError, match="gen_mode"):
+        FreezoneKeyframeVideoRequest(
+            first_frame_url="first.png",
+            model="video-model",
+        )
+
+
+@pytest.mark.asyncio
+async def test_omni_video_rejects_reference_audio_over_total_limit(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    scheduler = _CapturingScheduler(context)
+    use_cases = _use_cases(
+        context,
+        scheduler,
+        "unused",
+        reference_durations=_ReferenceDurations(
+            {
+                "voice-a.mp3": 8.0,
+                "voice-b.mp3": 7.201,
+            }
+        ),
+    )
+
+    with pytest.raises(
+        InvalidCreativeCanvasVideoGenerationRequest,
+        match=r"audio references total duration must be <= 15\.2s, got 15\.201s",
+    ):
+        await use_cases.start_omni_video(
+            StartCreativeCanvasOmniVideoCommand(
+                context=context,
+                project_dir=context.output_dir,
+                options=_options(),
+                theme="",
+                references=(
+                    CreativeCanvasOmniVideoReference(
+                        media_type="audio",
+                        url="freezone/_uploads/voice-a.mp3",
+                    ),
+                    CreativeCanvasOmniVideoReference(
+                        media_type="audio",
+                        url="freezone/_uploads/voice-b.mp3",
+                    ),
+                ),
+            )
+        )
+
+    assert scheduler.tasks == []
+
+
+@pytest.mark.asyncio
+async def test_omni_video_rejects_catalog_limited_reference_video_duration(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    scheduler = _CapturingScheduler(context)
+    use_cases = _use_cases(
+        context,
+        scheduler,
+        "unused",
+        reference_durations=_ReferenceDurations({"clip.mp4": 10.001}),
+    )
+
+    with pytest.raises(
+        InvalidCreativeCanvasVideoGenerationRequest,
+        match=r"video reference duration must be <= 10s: clip\.mp4 \(10\.001s\)",
+    ):
+        await use_cases.start_omni_video(
+            StartCreativeCanvasOmniVideoCommand(
+                context=context,
+                project_dir=context.output_dir,
+                options=_options(model="video-limited"),
+                theme="",
+                references=(
+                    CreativeCanvasOmniVideoReference(
+                        media_type="video",
+                        url="freezone/_uploads/clip.mp4",
+                    ),
+                ),
+            )
+        )
+
     assert scheduler.tasks == []
 
 

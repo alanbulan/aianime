@@ -21,7 +21,9 @@ from ai_anime.modules.seedance2_i2v.models import (
     dump_seedance2_config,
     parse_seedance2_config,
 )
-from ai_anime.modules.seedance2_i2v.spoken_dialogue import parse_seedance2_spoken_lines
+from ai_anime.modules.seedance2_i2v.spoken_dialogue import (
+    required_seedance2_dialogue_texts,
+)
 from ai_anime.modules.seedance2_i2v.voice_clone import normalize_seedance2_audio_type
 
 MAX_SEEDANCE2_REFERENCE_AUDIOS = 3
@@ -98,7 +100,9 @@ def _asset_missing_reason(asset: Seedance2ResolvedAsset) -> str:
     return ""
 
 
-def _selected_audio_assets(assets: list[Seedance2ResolvedAsset]) -> list[Seedance2ResolvedAsset]:
+def _selected_audio_assets(
+    assets: list[Seedance2ResolvedAsset],
+) -> list[Seedance2ResolvedAsset]:
     return [
         asset
         for asset in assets
@@ -122,7 +126,8 @@ def _validate_reference_audio_request(audio_paths: list[str]) -> None:
             continue
     if measured and total_duration > MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS:
         raise ValueError(
-            "Seedance2 参考音频总时长超过 15 秒，" "请回到角色工作台把参考声线裁剪到 3-5 秒"
+            "Seedance2 参考音频总时长超过 15 秒，"
+            "请回到角色工作台把参考声线裁剪到 3-5 秒"
         )
 
 
@@ -139,15 +144,12 @@ def _validate_dialogue_final_prompt(
     if normalize_seedance2_audio_type(beat) != "dialogue":
         return
 
-    lines = parse_seedance2_spoken_lines(beat)
-    if not lines:
-        return
-
+    required_texts = required_seedance2_dialogue_texts(beat)
     prompt_text = _compact_text(final_prompt)
     missing_lines = [
-        line.text
-        for line in lines
-        if _compact_text(line.text) and _compact_text(line.text) not in prompt_text
+        text
+        for text in required_texts
+        if _compact_text(text) and _compact_text(text) not in prompt_text
     ]
     if missing_lines:
         raise ValueError(
@@ -161,7 +163,9 @@ def _validate_dialogue_final_prompt(
         if asset.reference_label.startswith("音频")
     ]
     if not audio_labels or any(label not in final_prompt for label in audio_labels):
-        raise ValueError("Seedance2 最终提示词缺少参考声线，请在台词描述中写明对应音频编号")
+        raise ValueError(
+            "Seedance2 最终提示词缺少参考声线，请在台词描述中写明对应音频编号"
+        )
 
 
 def collect_seedance2_video_prereq_errors(
@@ -217,7 +221,9 @@ def collect_seedance2_video_prereq_errors(
                 Seedance2VideoPrereqError(
                     beat_number=beat_number,
                     key=asset.key,
-                    label=f"{asset.label}（{asset.note}）" if asset.note else asset.label,
+                    label=f"{asset.label}（{asset.note}）"
+                    if asset.note
+                    else asset.label,
                     media_type=asset.media_type,
                     path=str(asset.path),
                     reason=reason,

@@ -18,6 +18,7 @@ from ai_anime.model_access_policy import (
     resolve_internal_model_for_role,
     resolve_model_for_role,
     runtime_model_access,
+    runtime_model_capability,
 )
 from ai_anime.model_gateway_settings import (
     MODE_BYOK,
@@ -147,6 +148,19 @@ def test_internal_capability_endpoint_requires_the_electron_admin_token(
         "mode": MODE_BYOK,
         "byokBaseUrl": "https://models.example.test/v1",
         "byokApiKey": "user-secret",
+        "modelCapabilities": [
+            {
+                "modelId": "cloud/video-standard",
+                "referenceAudioMinSeconds": 1.8,
+                "referenceAudioMaxSeconds": 15.2,
+                "referenceAudioTotalMinSeconds": 2,
+                "referenceAudioTotalMaxSeconds": 15.2,
+                "referenceVideoMinSeconds": 3,
+                "referenceVideoMaxSeconds": 10,
+                "referenceVideoTotalMinSeconds": 5,
+                "referenceVideoTotalMaxSeconds": 20,
+            }
+        ],
     }
 
     denied = client.post("/model-gateway/internal/capability", json=body)
@@ -165,6 +179,12 @@ def test_internal_capability_endpoint_requires_the_electron_admin_token(
     assert payload["data"]["byok"]["allowed"] is True
     assert payload["data"]["byok"]["apiKeyPreview"] == "user...cret"
     assert "user-secret" not in status_response.text
+    capability = runtime_model_capability("cloud/video-standard")
+    assert capability is not None
+    assert capability.reference_audio_min_seconds == 1.8
+    assert capability.reference_audio_total_max_seconds == 15.2
+    assert capability.reference_video_min_seconds == 3
+    assert capability.reference_video_total_max_seconds == 20
 
 
 def test_model_gateway_status_never_exposes_cloud_proxy_credentials(
@@ -319,7 +339,9 @@ def test_synchronous_text_operation_owns_one_idempotency_key(
     assert str(uuid.UUID(idempotency_key)) == idempotency_key
 
 
-def test_byok_task_model_uses_an_explicit_assignment_or_the_normalized_default() -> None:
+def test_byok_task_model_uses_an_explicit_assignment_or_the_normalized_default() -> (
+    None
+):
     configure_model_access(
         allows_custom_models=True,
         mode=MODE_BYOK,
@@ -455,26 +477,30 @@ def test_model_subprocess_receives_only_the_selected_runtime_over_stdin(
         byok_base_url=base_url if mode == MODE_BYOK else "",
         byok_api_key=api_key if mode == MODE_BYOK else "",
         model_assignments=(
-            [{"modelId": "byok-text", "role": "TEXT"}]
-            if mode == MODE_BYOK
-            else []
+            [{"modelId": "byok-text", "role": "TEXT"}] if mode == MODE_BYOK else []
         ),
         cloud_model_assignments=(
-            [{"modelId": "cloud-text", "role": "TEXT"}]
-            if mode == MODE_CLOUD
-            else []
+            [{"modelId": "cloud-text", "role": "TEXT"}] if mode == MODE_CLOUD else []
         ),
+        model_capabilities=[
+            {
+                "modelId": "cloud/video-standard",
+                "referenceVideoMaxSeconds": 10,
+            }
+        ],
     )
     script = "\n".join(
         [
             "import hashlib, json, os",
-            "from ai_anime.model_access_policy import load_model_access_from_stdin, runtime_model_access",
+            "from ai_anime.model_access_policy import load_model_access_from_stdin, runtime_model_access, runtime_model_capability",
             "loaded = load_model_access_from_stdin()",
             "access = runtime_model_access()",
+            "capability = runtime_model_capability('cloud/video-standard')",
             "legacy = ['AI_ANIME_CLOUD_PROXY_TOKEN', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'MODEL_API_KEY']",
             "print(json.dumps({'loaded': loaded, 'mode': access.mode, 'baseUrl': access.base_url, "
             "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
             "'modelAssignments': [[item.model_id, item.role] for item in access.model_assignments], "
+            "'referenceVideoMaxSeconds': capability.reference_video_max_seconds if capability else None, "
             "'legacyPresent': any(os.environ.get(name) for name in legacy), "
             "'stdinMarkerPresent': 'AI_ANIME_MODEL_ACCESS_STDIN' in os.environ}))",
         ]
@@ -495,10 +521,9 @@ def test_model_subprocess_receives_only_the_selected_runtime_over_stdin(
         "baseUrl": base_url,
         "apiKeyHash": hashlib.sha256(api_key.encode()).hexdigest(),
         "modelAssignments": (
-            [["byok-text", "TEXT"]]
-            if mode == MODE_BYOK
-            else [["cloud-text", "TEXT"]]
+            [["byok-text", "TEXT"]] if mode == MODE_BYOK else [["cloud-text", "TEXT"]]
         ),
+        "referenceVideoMaxSeconds": 10.0,
         "legacyPresent": False,
         "stdinMarkerPresent": False,
     }

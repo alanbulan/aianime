@@ -6,10 +6,10 @@ desktop process. Instead of touching every handler, stores created by the
 request task are registered (see ``shared/infrastructure/project_stores.py``)
 and closed once the response completes.
 
-The registry is keyed by task id, so background tasks spawned during a request
-(inline task runners) are not closed out from under them; those runners manage
-their own store lifecycle. ``SQLiteStore.close()`` is idempotent, so handlers
-that already close manually stay correct.
+The registry is keyed by task id, so child tasks spawned during a request
+(including inline task runners and SSE generator tasks) are not closed out from
+under them; those tasks manage their own store lifecycle. ``SQLiteStore.close()``
+is idempotent, so handlers that already close manually stay correct.
 """
 
 from __future__ import annotations
@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from ai_anime.shared.infrastructure.project_stores import (
     begin_request_store_tracking,
@@ -30,12 +31,20 @@ if TYPE_CHECKING:
 logger = logging.getLogger("ai_anime.api.middleware.request_store_close")
 
 
-def install_request_store_close_middleware(application: FastAPI) -> None:
-    @application.middleware("http")
-    async def _close_request_stores(request: Request, call_next):
+class RequestStoreCloseMiddleware:
+    """Keep store tracking active until the complete response body is sent."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         tokens = begin_request_store_tracking()
         try:
-            return await call_next(request)
+            await self.app(scope, receive, send)
         finally:
             stores: list[SQLiteStore] = end_request_store_tracking(tokens)
             for store in stores:
@@ -46,3 +55,7 @@ def install_request_store_close_middleware(application: FastAPI) -> None:
                         "failed to close request-scoped SQLiteStore project_dir=%s",
                         getattr(store, "project_dir", "?"),
                     )
+
+
+def install_request_store_close_middleware(application: FastAPI) -> None:
+    application.add_middleware(RequestStoreCloseMiddleware)

@@ -190,6 +190,7 @@ from ai_anime.modules.creative_canvas.infrastructure.text_generation import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
     ConfiguredCreativeCanvasVideoModelPolicy,
+    FfprobeCreativeCanvasReferenceDurationProbe,
 )
 from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import (
     LocalCreativeCanvasVideoAssetRepository,
@@ -410,9 +411,7 @@ def creative_canvas_reverse_prompt_use_cases() -> CreativeCanvasReversePromptUse
     return CreativeCanvasReversePromptUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneJobIdGenerator(),
-        TaskExecutionCreativeCanvasTaskScheduler(
-            project_task_submission_use_cases()
-        ),
+        TaskExecutionCreativeCanvasTaskScheduler(project_task_submission_use_cases()),
     )
 
 
@@ -456,9 +455,7 @@ def creative_canvas_image_to_three_gs_use_cases() -> (
     return CreativeCanvasImageToThreeGsUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         FreezoneJobIdGenerator(),
-        TaskExecutionCreativeCanvasTaskScheduler(
-            project_task_submission_use_cases()
-        ),
+        TaskExecutionCreativeCanvasTaskScheduler(project_task_submission_use_cases()),
     )
 
 
@@ -470,9 +467,7 @@ def creative_canvas_image_editing_use_cases() -> CreativeCanvasImageEditingUseCa
         FreezoneCreativeCanvasImagePromptComposer(),
         FreezoneCreativeCanvasImageModelRouter(),
         FreezoneJobIdGenerator(),
-        TaskExecutionCreativeCanvasTaskScheduler(
-            project_task_submission_use_cases()
-        ),
+        TaskExecutionCreativeCanvasTaskScheduler(project_task_submission_use_cases()),
     )
 
 
@@ -586,9 +581,8 @@ def creative_canvas_video_generation_use_cases() -> (
     return CreativeCanvasVideoGenerationUseCases(
         ProjectCreativeCanvasMediaSourceResolver(),
         creative_canvas_video_model_policy(),
+        FfprobeCreativeCanvasReferenceDurationProbe(),
         creative_canvas_video_asset_repository(),
         FreezoneJobIdGenerator(),
-        TaskExecutionCreativeCanvasTaskScheduler(
-            project_task_submission_use_cases()
-        ),
+        TaskExecutionCreativeCanvasTaskScheduler(project_task_submission_use_cases()),
     )

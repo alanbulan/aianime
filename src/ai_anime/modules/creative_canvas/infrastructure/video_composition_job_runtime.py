@@ -23,6 +23,9 @@ from ai_anime.modules.creative_canvas.infrastructure.media_process import (
     require_media_binary,
     run_media_command,
 )
+from ai_anime.shared.infrastructure.video_encoding import (
+    ffmpeg_video_encoding_args,
+)
 
 
 async def _render_gap_clip(
@@ -48,10 +51,7 @@ async def _render_gap_clip(
             "anullsrc=channel_layout=stereo:sample_rate=48000",
             "-t",
             f"{duration:.3f}",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
+            *ffmpeg_video_encoding_args(preset="veryfast", crf=20),
             "-pix_fmt",
             "yuv420p",
             "-c:a",
@@ -101,10 +101,7 @@ async def _render_video_clip(
             source_path,
             "-vf",
             video_filter,
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
+            *ffmpeg_video_encoding_args(preset="veryfast", crf=20),
             "-pix_fmt",
             "yuv420p",
             "-c:a",
@@ -141,10 +138,7 @@ async def _render_video_clip(
             "1:a:0",
             "-vf",
             video_filter,
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
+            *ffmpeg_video_encoding_args(preset="veryfast", crf=20),
             "-pix_fmt",
             "yuv420p",
             "-c:a",
@@ -218,10 +212,7 @@ async def _concat_media_segments(
                 "0",
                 "-i",
                 str(list_path),
-                "-c:v",
-                "libx264",
-                "-preset",
-                "veryfast",
+                *ffmpeg_video_encoding_args(preset="veryfast", crf=20),
                 "-pix_fmt",
                 "yuv420p",
                 "-c:a",

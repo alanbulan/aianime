@@ -78,16 +78,6 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('../infrastructure/browserStoryboardGenRuntime', () => ({
-  STORYBOARD_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
-  generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
-    mocks.generateGridImage(...args),
-  resolveStoryboardPointerAnchor: (...args: unknown[]) =>
-    mocks.resolvePointerAnchor(...args),
-  resolveStoryboardPickerAnchor: (...args: unknown[]) =>
-    mocks.resolvePickerAnchor(...args),
-}));
-
 vi.mock('../application/generationErrorReport', () => ({
   buildGenerationErrorReport: () => '错误报告',
   createReferenceImagePlaceholders: (count: number) =>
@@ -144,6 +134,13 @@ const useStoryboardGenNodeController = createUseStoryboardGenNodeController({
   useCanvasImageModels: () => ({
     models: [{ id: 'model-a', apiModel: 'model-a', label: '模型 A' }],
   }),
+  storyboardPickerFallbackAnchor: { left: 8, top: 8 },
+  generateStoryboardGridImageDataUrl: (...args: unknown[]) =>
+    mocks.generateGridImage(...args) as string,
+  resolveStoryboardPointerAnchor: (...args: unknown[]) =>
+    mocks.resolvePointerAnchor(...args) as { left: number; top: number },
+  resolveStoryboardPickerAnchor: (...args: unknown[]) =>
+    mocks.resolvePickerAnchor(...args) as { left: number; top: number },
 });
 
 vi.mock('@/shared/api/errors', () => ({

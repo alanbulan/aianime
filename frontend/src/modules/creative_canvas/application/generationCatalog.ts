@@ -19,7 +19,14 @@ export interface CanvasCatalogModelOption {
   readonly maxReferenceVideos?: number | null;
   readonly maxReferenceAudios?: number | null;
   readonly maxReferenceTotal?: number | null;
-  readonly maxReferenceAudioDurationSeconds?: number | null;
+  readonly referenceAudioMinSeconds?: number | null;
+  readonly referenceAudioMaxSeconds?: number | null;
+  readonly referenceAudioTotalMinSeconds?: number | null;
+  readonly referenceAudioTotalMaxSeconds?: number | null;
+  readonly referenceVideoMinSeconds?: number | null;
+  readonly referenceVideoMaxSeconds?: number | null;
+  readonly referenceVideoTotalMinSeconds?: number | null;
+  readonly referenceVideoTotalMaxSeconds?: number | null;
   readonly resolutionOptions?: string[];
   readonly minDuration?: number | null;
   readonly maxDuration?: number | null;

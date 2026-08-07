@@ -20,6 +20,8 @@ import {
   isPresetManagedEdge,
   isPresetManagedNode,
   NODE_SELECTION_MENU_ADD_NODE_TYPES,
+  type CanvasEdge,
+  type CanvasNode,
   type CanvasNodeType,
   useCanvasCommandSurfaceController,
   useCanvasRenderSurfaceController,
@@ -75,7 +77,7 @@ export function Canvas({
   controlsPlacement = 'bottom-right',
 }: CanvasProps) {
   const { t } = useTranslation();
-  const reactFlowInstance = useReactFlow();
+  const reactFlowInstance = useReactFlow<CanvasNode, CanvasEdge>();
   const reactFlowStore = useStoreApi();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -104,6 +106,7 @@ export function Canvas({
   const setSelectedNode = useCanvasStore((state) => state.setSelectedNode);
   const selectedNodeId = useCanvasStore((state) => state.selectedNodeId);
   const pendingFocusNodeId = useCanvasStore((state) => state.pendingFocusNodeId);
+  const requestFocusNode = useCanvasStore((state) => state.requestFocusNode);
   const clearPendingFocus = useCanvasStore((state) => state.clearPendingFocus);
   const deleteEdge = useCanvasStore((state) => state.deleteEdge);
   const deleteNode = useCanvasStore((state) => state.deleteNode);
@@ -201,6 +204,8 @@ export function Canvas({
     nodes,
     screenToFlowPosition,
     createNode: addNode,
+    getZoom: reactFlowInstance.getZoom,
+    requestFocusNode,
     selectNode: setSelectedNode,
     confirmPlacement: triggerPlacementConfirm,
     onBlankPaneClick,

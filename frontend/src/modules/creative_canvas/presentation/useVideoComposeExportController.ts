@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useCallback, useRef, useState } from 'react';
 
-import { uploadFreezoneAsset } from '../assetTransferComposition';
+import type {
+  ComposeCanvasVideoParams,
+  ComposeCanvasVideoResult,
+} from '../application/composeCanvasVideo';
 import {
   buildComposePayload,
   hasExportableClips,
@@ -9,15 +12,32 @@ import {
   type ComposeTimelineState,
 } from '../domain/videoComposeTimeline';
 import type { CanvasVideoComposeResolution } from '../domain/videoCompose';
-import {
-  downloadVideoComposeBlob,
-  fetchVideoComposeResultBlob,
-  resolveVideoComposeResultFileName,
-  type VideoComposeExportUrlResolver,
-} from '../infrastructure/browserVideoComposeExportRuntime';
-import { composeCanvasVideo } from '../videoComposeComposition';
 
 export type VideoComposeExportTarget = 'local' | 'canvas';
+export type VideoComposeExportUrlResolver = (url: string) => string | null;
+
+export type VideoComposeExportUploadAsset = (
+  project: string,
+  asset: Blob,
+  filename: string,
+  options: { disableTimeout: true },
+) => Promise<{ url: string }>;
+
+export type VideoComposeExportComposeVideo = (
+  params: ComposeCanvasVideoParams,
+) => Promise<ComposeCanvasVideoResult>;
+
+export type VideoComposeExportFetchBlob = (
+  url: string,
+  resolveUrl: VideoComposeExportUrlResolver,
+) => Promise<Blob>;
+
+export type VideoComposeExportDownloadBlob = (
+  blob: Blob,
+  fileName: string,
+) => void;
+
+export type VideoComposeExportResolveFileName = (url: string) => string;
 
 export interface VideoComposeExportControllerOptions {
   project: string;
@@ -29,41 +49,54 @@ export interface VideoComposeExportControllerOptions {
   resolveMediaUrl: VideoComposeExportUrlResolver;
 }
 
-export function useVideoComposeExportController({
-  project,
-  canvasId,
-  timeline,
-  onComposed,
-  overlapErrorMessage,
-  missingUrlErrorMessage,
-  resolveMediaUrl,
-}: VideoComposeExportControllerOptions) {
+export function createUseVideoComposeExportController({
+  uploadAsset,
+  composeVideo,
+  fetchResultBlob,
+  downloadBlob,
+  resolveResultFileName,
+}: {
+  uploadAsset: VideoComposeExportUploadAsset;
+  composeVideo: VideoComposeExportComposeVideo;
+  fetchResultBlob: VideoComposeExportFetchBlob;
+  downloadBlob: VideoComposeExportDownloadBlob;
+  resolveResultFileName: VideoComposeExportResolveFileName;
+}) {
+  return function useVideoComposeExportController({
+    project,
+    canvasId,
+    timeline,
+    onComposed,
+    overlapErrorMessage,
+    missingUrlErrorMessage,
+    resolveMediaUrl,
+  }: VideoComposeExportControllerOptions) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const timelineRef = useRef(timeline);
   timelineRef.current = timeline;
 
   const exportToLocal = useCallback(async (url: string) => {
-    const blob = await fetchVideoComposeResultBlob(
+    const blob = await fetchResultBlob(
       url,
       resolveMediaUrl,
     );
-    downloadVideoComposeBlob(
+    downloadBlob(
       blob,
-      resolveVideoComposeResultFileName(url),
+      resolveResultFileName(url),
     );
   }, [resolveMediaUrl]);
 
   const exportToCanvas = useCallback(
     async (url: string) => {
-      const blob = await fetchVideoComposeResultBlob(
+      const blob = await fetchResultBlob(
         url,
         resolveMediaUrl,
       );
-      const uploaded = await uploadFreezoneAsset(
+      const uploaded = await uploadAsset(
         project,
         blob,
-        resolveVideoComposeResultFileName(url),
+        resolveResultFileName(url),
         { disableTimeout: true },
       );
       onComposed(uploaded.url, timelineRef.current.cover?.url ?? null);
@@ -84,7 +117,7 @@ export function useVideoComposeExportController({
       setIsExporting(true);
       setExportError(null);
       try {
-        const { url } = await composeCanvasVideo({
+        const { url } = await composeVideo({
           projectId: project,
           request: buildComposePayload(
             { ...timeline, resolution },
@@ -119,8 +152,9 @@ export function useVideoComposeExportController({
   );
 
   return { isExporting, exportError, runExport };
+  };
 }
 
 export type VideoComposeExportController = ReturnType<
-  typeof useVideoComposeExportController
+  ReturnType<typeof createUseVideoComposeExportController>
 >;

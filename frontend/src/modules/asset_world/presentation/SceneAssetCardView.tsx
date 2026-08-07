@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/card";
 import { UsageCountBadge } from "@/components/assets/usage-count-badge";
 import { ASSET_CARD_META_BADGE_CLASS } from "@/components/assets/asset-card-styles";
-import { CopyAssetLinkButton } from "@/components/assets/copy-asset-link-button";
+import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { sceneTypeLabel } from "@/lib/scene-type";

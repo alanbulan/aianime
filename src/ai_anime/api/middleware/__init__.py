@@ -22,8 +22,11 @@ def install_http_middleware(
     desktop_mode: bool,
     desktop_token: str,
 ) -> None:
-    # Keep registration order stable: Starlette executes the last registered
-    # function middleware first.
+    # Keep registration order stable: Starlette wraps later registrations
+    # around earlier ones.
+    # Store tracking must be innermost because BaseHTTPMiddleware runs its
+    # downstream app in a child task, while registration is request-task scoped.
+    install_request_store_close_middleware(application)
     install_desktop_session_middleware(
         application,
         desktop_mode=desktop_mode,
@@ -31,4 +34,3 @@ def install_http_middleware(
     )
     install_request_limit_middleware(application)
     install_resource_logging_middleware(application)
-    install_request_store_close_middleware(application)

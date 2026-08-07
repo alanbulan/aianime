@@ -1091,7 +1091,7 @@ def test_chat_turn_dispatch_stays_in_api_adapter() -> None:
         "async def _stream_home_turn(",
         "uuid.uuid4().hex",
         '"message": "empty message"',
-        '"message": f"scope not implemented: {scope.kind}"',
+        '"message": f"unsupported chat scope: {scope.kind}"',
         "chat_access.require_ai_assistant_access(",
         "project_chat_turns.stream(",
         "hermes_home_replies.stream(",

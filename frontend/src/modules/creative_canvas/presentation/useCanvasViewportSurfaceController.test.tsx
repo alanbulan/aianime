@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -18,6 +18,8 @@ const controllerMocks = vi.hoisted(() => {
     pinned: false,
     visible: true,
     setHovered: vi.fn(),
+    startPanning: vi.fn(),
+    endPanning: vi.fn(),
     togglePinned: vi.fn(),
   };
   const viewportRuntimeController = {
@@ -45,6 +47,13 @@ const controllerMocks = vi.hoisted(() => {
     clearViewportBookmarks: vi.fn(),
     setViewportBookmark: vi.fn(),
   };
+  const smoothMinimapOptions = {
+    current: null as null | {
+      onPanStart?: () => void;
+      onPanEnd?: (pointerInsideMinimap: boolean) => void;
+      onViewportSettled?: (viewport: { x: number; y: number; zoom: number }) => void;
+    },
+  };
 
   return {
     minimapController,
@@ -54,6 +63,7 @@ const controllerMocks = vi.hoisted(() => {
     autoLayoutController,
     snapState,
     canvasState,
+    smoothMinimapOptions,
     trackpadState: { enabled: true },
     isImmersiveViewerActive: vi.fn(() => false),
     useMinimapVisibility: vi.fn(() => minimapController),
@@ -82,6 +92,12 @@ vi.mock('./useCanvasMinimapVisibility', () => ({
 
 vi.mock('./useCanvasViewportRuntimeController', () => ({
   useCanvasViewportRuntimeController: controllerMocks.useViewportRuntime,
+}));
+
+vi.mock('./useSmoothMinimapPan', () => ({
+  useSmoothMinimapPan: (options: typeof controllerMocks.smoothMinimapOptions.current) => {
+    controllerMocks.smoothMinimapOptions.current = options;
+  },
 }));
 
 vi.mock('./useCanvasLifecycle', () => ({
@@ -155,6 +171,44 @@ describe('useCanvasViewportSurfaceController', () => {
     vi.clearAllMocks();
     controllerMocks.trackpadState.enabled = true;
     controllerMocks.snapState.enabled = true;
+    controllerMocks.smoothMinimapOptions.current = null;
+  });
+
+  it('suppresses per-frame final commits during minimap easing', () => {
+    const options = createOptions();
+    const { result } = renderHook(() =>
+      useCanvasViewportSurfaceController(options),
+    );
+    const pan = controllerMocks.smoothMinimapOptions.current;
+    expect(pan).not.toBeNull();
+
+    act(() => pan?.onPanStart?.());
+    act(() => result.current.handleMoveEnd(undefined, {
+      x: -30,
+      y: 0,
+      zoom: 1,
+    }));
+    expect(controllerMocks.viewportRuntimeController.handleMoveEnd)
+      .not.toHaveBeenCalled();
+
+    act(() => pan?.onViewportSettled?.({ x: -100, y: 0, zoom: 1 }));
+    expect(options.commitViewport).toHaveBeenCalledOnce();
+    expect(options.commitViewport).toHaveBeenCalledWith({
+      x: -100,
+      y: 0,
+      zoom: 1,
+    });
+
+    act(() => pan?.onPanEnd?.(false));
+    act(() => result.current.handleMoveEnd(undefined, {
+      x: -120,
+      y: 0,
+      zoom: 1,
+    }));
+    expect(controllerMocks.minimapController.endPanning)
+      .toHaveBeenCalledWith(false);
+    expect(controllerMocks.viewportRuntimeController.handleMoveEnd)
+      .toHaveBeenCalledOnce();
   });
 
   it('assembles the viewport surface through each existing controller once', () => {
@@ -196,6 +250,7 @@ describe('useCanvasViewportSurfaceController', () => {
       ...controllerMocks.minimapController,
       ...controllerMocks.viewportRuntimeController,
       ...controllerMocks.snapAlignmentController,
+      handleMoveEnd: expect.any(Function),
       trackpadPanEnabled: true,
       centerNodeViewport: controllerMocks.focusController.centerViewport,
       organizeCanvas: controllerMocks.autoLayoutController.organizeCanvas,

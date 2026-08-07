@@ -19,6 +19,9 @@ from ai_anime.modules.creative_canvas.infrastructure.media_process import (
     require_media_binary,
     run_media_command,
 )
+from ai_anime.shared.infrastructure.video_encoding import (
+    ffmpeg_video_encoding_args,
+)
 
 
 class FfmpegCreativeCanvasVideoProcessingJobRuntime:
@@ -59,12 +62,7 @@ class FfmpegCreativeCanvasVideoProcessingJobRuntime:
                 str(source_path),
                 "-vf",
                 video_filter,
-                "-c:v",
-                "libx264",
-                "-preset",
-                "slow",
-                "-crf",
-                "18",
+                *ffmpeg_video_encoding_args(preset="slow", crf=18),
                 "-c:a",
                 "copy",
                 "-movflags",

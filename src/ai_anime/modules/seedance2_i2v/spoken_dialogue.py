@@ -6,13 +6,19 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from ai_anime.modules.seedance2_i2v.voice_clone import dialogue_text, normalize_seedance2_audio_type
+from ai_anime.modules.seedance2_i2v.voice_clone import (
+    dialogue_text,
+    normalize_seedance2_audio_type,
+)
 
 
 _SPEAKER_PREFIX_RE = re.compile(
     r"(?P<speaker>[\w\u4e00-\u9fff·]{1,40})"
     r"(?:（(?P<action>[^）]{0,120})）|\((?P<action_ascii>[^)]{0,120})\))?"
     r"\s*[：:]"
+)
+_LEADING_PERFORMANCE_NOTE_RE = re.compile(
+    r"^\s*(?:（[^）]{1,120}）|\([^)]{1,120}\))\s*"
 )
 
 
@@ -29,15 +35,18 @@ def _text(value: Any) -> str:
 
 def _spoken_source(beat: dict[str, Any]) -> str:
     return _text(
-        beat.get("dialogue") or beat.get("narration_segment") or beat.get("narration") or ""
+        beat.get("dialogue")
+        or beat.get("narration_segment")
+        or beat.get("narration")
+        or ""
     )
 
 
 def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLine]:
     """Parse dialogue text into speaker/action/text lines.
 
-    Supports literal script lines such as ``角色（动作）：台词``. Falls back to the
-    beat-level ``speaker`` when the text is plain dialogue.
+    Only parses explicit literal-script lines such as ``角色（动作）：台词``.
+    Ambiguous beat-level prose is left intact for the AI prompt composer.
     """
 
     if normalize_seedance2_audio_type(beat) != "dialogue":
@@ -65,11 +74,25 @@ def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLi
     if lines:
         return lines
 
-    speaker = _text(beat.get("speaker"))
-    text = dialogue_text(beat)
-    if speaker and text:
-        return [Seedance2SpokenLine(speaker=speaker, text=text)]
     return []
+
+
+def required_seedance2_dialogue_texts(beat: dict[str, Any]) -> list[str]:
+    """Return verbatim dialogue that must remain in the final prompt."""
+
+    lines = parse_seedance2_spoken_lines(beat)
+    if lines:
+        return [line.text for line in lines if line.text]
+
+    text = dialogue_text(beat).strip(" \t\r\n，,。；;")
+    if not text:
+        return []
+    leading_note = _LEADING_PERFORMANCE_NOTE_RE.match(text)
+    if leading_note:
+        spoken_text = text[leading_note.end() :].strip(" \t\r\n，,。；;")
+        if spoken_text:
+            text = spoken_text
+    return [text]
 
 
 def unique_seedance2_dialogue_speakers(beat: dict[str, Any]) -> list[str]:

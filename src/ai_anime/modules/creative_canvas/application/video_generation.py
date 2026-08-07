@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import asyncio
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Literal, Mapping, Protocol
 
@@ -19,18 +20,22 @@ from ai_anime.modules.creative_canvas.application.video_asset_library import (
     CreativeCanvasVideoAssetReader,
 )
 from ai_anime.modules.creative_canvas.domain.video_generation import (
+    CreativeCanvasVideoRequestedMode,
     build_freezone_image_to_video_prompt,
     build_freezone_keyframe_video_prompt,
     build_freezone_omni_video_prompt,
     build_freezone_video_prompt,
     get_video_camera_template,
+    resolve_video_generation_mode,
     summarize_omni_reference_counts,
+    validate_reference_media_durations,
     validate_omni_reference_limits,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 CREATIVE_CANVAS_VIDEO_GENERATION_TASK_TYPE = "freezone_video_gen"
 CreativeCanvasVideoReferenceType = Literal["image", "video", "audio"]
+CreativeCanvasVideoGenerationMode = CreativeCanvasVideoRequestedMode
 
 
 class InvalidCreativeCanvasVideoGenerationRequest(ValueError):
@@ -58,6 +63,20 @@ class CreativeCanvasVideoGenerationModelPolicy(Protocol):
         value: str | None,
     ) -> str: ...
 
+    def reference_duration_limits(
+        self,
+        model: str | None,
+        media_type: CreativeCanvasVideoReferenceType,
+    ) -> tuple[float | None, float | None, float | None, float | None]: ...
+
+
+class CreativeCanvasReferenceDurationProbe(Protocol):
+    async def probe_seconds(
+        self,
+        path: str,
+        media_type: CreativeCanvasVideoReferenceType,
+    ) -> float | None: ...
+
 
 @dataclass(frozen=True)
 class CreativeCanvasVideoGenerationOptions:
@@ -73,7 +92,7 @@ class CreativeCanvasVideoGenerationOptions:
     model: str | None
     canvas_id: str | None = None
     node_id: str | None = None
-    gen_mode: str | None = None
+    gen_mode: CreativeCanvasVideoGenerationMode | None = None
 
 
 @dataclass(frozen=True)
@@ -138,12 +157,14 @@ class CreativeCanvasVideoGenerationUseCases:
         self,
         sources: CreativeCanvasMediaSourceResolver,
         models: CreativeCanvasVideoGenerationModelPolicy,
+        reference_durations: CreativeCanvasReferenceDurationProbe,
         characters: CreativeCanvasVideoAssetReader,
         job_ids: CreativeCanvasJobIds,
         scheduler: CreativeCanvasTaskScheduler,
     ) -> None:
         self._sources = sources
         self._models = models
+        self._reference_durations = reference_durations
         self._characters = characters
         self._job_ids = job_ids
         self._scheduler = scheduler
@@ -152,7 +173,11 @@ class CreativeCanvasVideoGenerationUseCases:
         self,
         command: StartCreativeCanvasTextVideoCommand,
     ) -> CreativeCanvasVideoGenerationResult:
-        options = command.options
+        options = self._with_generation_mode(
+            command.options,
+            default="textToVideo",
+            allowed=("textToVideo",),
+        )
         if not options.prompt.strip():
             raise InvalidCreativeCanvasVideoGenerationRequest("prompt is required")
         self._validate_camera_template(options.camera_template_id)
@@ -189,7 +214,6 @@ class CreativeCanvasVideoGenerationUseCases:
             command.project_dir,
             options,
             model=model,
-            model_role="VIDEO_TEXT_TO_VIDEO",
             prompt=prompt,
             reference_items=reference_items,
         )
@@ -217,6 +241,16 @@ class CreativeCanvasVideoGenerationUseCases:
             raise InvalidCreativeCanvasVideoGenerationRequest(
                 "some image_urls could not be resolved"
             )
+        inferred_mode = "imageReference" if len(source_paths) > 1 else "imageToVideo"
+        options = self._with_generation_mode(
+            options,
+            default=inferred_mode,
+            allowed=("imageToVideo", "imageReference"),
+        )
+        if options.gen_mode == "imageToVideo" and len(source_paths) != 1:
+            raise InvalidCreativeCanvasVideoGenerationRequest(
+                "imageToVideo requires exactly one image_url"
+            )
         reference_items: list[dict[str, object]] = []
         for index, path in enumerate(source_paths):
             reference_items.append(
@@ -238,11 +272,6 @@ class CreativeCanvasVideoGenerationUseCases:
             command.project_dir,
             options,
             model=model,
-            model_role=(
-                "VIDEO_IMAGE_REFERENCE"
-                if options.gen_mode == "imageReference" or len(source_paths) > 1
-                else "VIDEO_IMAGE_TO_VIDEO"
-            ),
             prompt=prompt,
             reference_items=reference_items,
         )
@@ -251,11 +280,25 @@ class CreativeCanvasVideoGenerationUseCases:
         self,
         command: StartCreativeCanvasKeyframeVideoCommand,
     ) -> CreativeCanvasVideoGenerationResult:
-        options = command.options
+        options = self._with_generation_mode(
+            command.options,
+            default="firstLastFrame",
+            allowed=("firstFrame", "firstLastFrame"),
+        )
         self._validate_camera_template(options.camera_template_id)
-        if not (command.first_frame_url or command.last_frame_url):
+        if options.gen_mode == "firstFrame" and not command.first_frame_url:
             raise InvalidCreativeCanvasVideoGenerationRequest(
-                "first_frame_url or last_frame_url is required"
+                "firstFrame requires first_frame_url"
+            )
+        if options.gen_mode == "firstFrame" and command.last_frame_url:
+            raise InvalidCreativeCanvasVideoGenerationRequest(
+                "firstFrame does not accept last_frame_url"
+            )
+        if options.gen_mode == "firstLastFrame" and not (
+            command.first_frame_url or command.last_frame_url
+        ):
+            raise InvalidCreativeCanvasVideoGenerationRequest(
+                "firstLastFrame requires at least one keyframe"
             )
         model = self._resolve_model(options.model)
 
@@ -299,7 +342,6 @@ class CreativeCanvasVideoGenerationUseCases:
             command.project_dir,
             options,
             model=model,
-            model_role="VIDEO_FIRST_LAST_FRAME",
             prompt=prompt,
             reference_items=reference_items,
             last_frame_path=last_path or None,
@@ -309,7 +351,11 @@ class CreativeCanvasVideoGenerationUseCases:
         self,
         command: StartCreativeCanvasOmniVideoCommand,
     ) -> CreativeCanvasVideoGenerationResult:
-        options = command.options
+        options = self._with_generation_mode(
+            command.options,
+            default="allReference",
+            allowed=("allReference",),
+        )
         if not options.prompt.strip():
             raise InvalidCreativeCanvasVideoGenerationRequest("prompt is required")
         self._validate_camera_template(options.camera_template_id)
@@ -345,6 +391,45 @@ class CreativeCanvasVideoGenerationUseCases:
                     "field": f"reference_{str(reference.get('type') or 'image')}s",
                 }
             )
+        for media_type in ("audio", "video"):
+            media_items = [
+                item for item in reference_items if item.get("type") == media_type
+            ]
+            duration_limits = self._models.reference_duration_limits(
+                model,
+                media_type,
+            )
+            if not media_items or not any(
+                limit is not None for limit in duration_limits
+            ):
+                continue
+            durations = await asyncio.gather(
+                *(
+                    self._reference_durations.probe_seconds(
+                        str(item["path"]),
+                        media_type,
+                    )
+                    for item in media_items
+                )
+            )
+            measured = [
+                (Path(str(item["path"])).name or f"{media_type}{index}", duration)
+                for index, (item, duration) in enumerate(
+                    zip(media_items, durations),
+                    start=1,
+                )
+            ]
+            try:
+                validate_reference_media_durations(
+                    measured,
+                    min_seconds=duration_limits[0],
+                    max_seconds=duration_limits[1],
+                    total_min_seconds=duration_limits[2],
+                    total_max_seconds=duration_limits[3],
+                    media_label=media_type,
+                )
+            except ValueError as exc:
+                raise InvalidCreativeCanvasVideoGenerationRequest(str(exc)) from exc
         prompt = build_freezone_omni_video_prompt(
             user_prompt=options.prompt,
             theme=command.theme,
@@ -356,7 +441,6 @@ class CreativeCanvasVideoGenerationUseCases:
             command.project_dir,
             options,
             model=model,
-            model_role="VIDEO_ALL_REFERENCE",
             prompt=prompt,
             reference_items=reference_items,
             meta=summarize_omni_reference_counts(raw_references),
@@ -366,7 +450,11 @@ class CreativeCanvasVideoGenerationUseCases:
         self,
         command: StartCreativeCanvasVideoEditCommand,
     ) -> CreativeCanvasVideoGenerationResult:
-        options = command.options
+        options = self._with_generation_mode(
+            command.options,
+            default="videoEdit",
+            allowed=("videoEdit",),
+        )
         self._validate_camera_template(options.camera_template_id)
         model = self._resolve_model(options.model)
         if not command.video_url.strip():
@@ -415,7 +503,6 @@ class CreativeCanvasVideoGenerationUseCases:
             command.project_dir,
             options,
             model=model,
-            model_role="VIDEO_EDIT",
             prompt=prompt,
             reference_items=reference_items,
             audio_setting=command.audio_setting,
@@ -428,13 +515,13 @@ class CreativeCanvasVideoGenerationUseCases:
         options: CreativeCanvasVideoGenerationOptions,
         *,
         model: str,
-        model_role: str,
         prompt: str,
         reference_items: list[dict[str, object]],
         last_frame_path: str | None = None,
         audio_setting: str | None = None,
         meta: dict[str, int] | None = None,
     ) -> CreativeCanvasVideoGenerationResult:
+        mode_contract = resolve_video_generation_mode(options.gen_mode or "textToVideo")
         job_id = self._job_ids.new_id()
         receipt = await self._scheduler.enqueue(
             context,
@@ -447,7 +534,8 @@ class CreativeCanvasVideoGenerationUseCases:
                     "canvas_id": options.canvas_id or "",
                     "node_id": options.node_id or "",
                     "model_id": model,
-                    "gen_mode": options.gen_mode or "",
+                    "gen_mode": mode_contract.execution_mode,
+                    "requested_gen_mode": options.gen_mode or "",
                     "prompt": prompt,
                     "reference_items": reference_items,
                     "aspect_ratio": self._models.normalize_aspect_ratio(
@@ -468,7 +556,7 @@ class CreativeCanvasVideoGenerationUseCases:
                         options.scene_optimize,
                     ),
                     "video_model": model,
-                    "model_role": model_role,
+                    "model_role": mode_contract.model_role,
                     "last_frame_path": last_frame_path,
                     "audio_setting": audio_setting or "",
                 },
@@ -510,6 +598,20 @@ class CreativeCanvasVideoGenerationUseCases:
             return self._models.resolve_model(model)
         except ValueError as exc:
             raise InvalidCreativeCanvasVideoGenerationRequest(str(exc)) from exc
+
+    @staticmethod
+    def _with_generation_mode(
+        options: CreativeCanvasVideoGenerationOptions,
+        *,
+        default: CreativeCanvasVideoGenerationMode,
+        allowed: tuple[CreativeCanvasVideoGenerationMode, ...],
+    ) -> CreativeCanvasVideoGenerationOptions:
+        mode = options.gen_mode or default
+        if mode not in allowed:
+            raise InvalidCreativeCanvasVideoGenerationRequest(
+                f"generation mode {mode!r} is invalid for this operation"
+            )
+        return replace(options, gen_mode=mode)
 
     @staticmethod
     def _validate_camera_template(camera_template_id: str | None) -> None:

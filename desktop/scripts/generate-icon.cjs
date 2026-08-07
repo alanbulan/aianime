@@ -2,7 +2,7 @@ const { app, BrowserWindow } = require("electron");
 const { mkdirSync, readFileSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 
-const ICON_SIZE = 512;
+const ICON_SIZE = 1024;
 
 async function generateIcon() {
   const source = join(
@@ -24,7 +24,7 @@ async function generateIcon() {
         <style>
           html, body { width: 100%; height: 100%; margin: 0; background: transparent; overflow: hidden; }
           body { display: grid; place-items: center; }
-          img { width: 448px; height: 448px; object-fit: contain; }
+          img { width: 896px; height: 896px; object-fit: contain; }
         </style>
       </head>
       <body><img src="${sourceUrl}" alt=""></body>
@@ -54,7 +54,7 @@ async function generateIcon() {
   mkdirSync(outputDirectory, { recursive: true });
   writeFileSync(output, image.toPNG());
   window.destroy();
-  console.log(`Windows icon ready: ${output}`);
+  console.log(`Desktop icon ready: ${output}`);
 }
 
 app.whenReady()

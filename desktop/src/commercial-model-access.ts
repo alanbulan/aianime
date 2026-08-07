@@ -55,26 +55,26 @@ const MAX_BYOK_MODEL_ASSIGNMENTS = 128;
 const BYOK_MODEL_ROLE_SET = new Set<string>(BYOK_MODEL_ROLES);
 const BYOK_ROLE_CAPABILITY: Record<
   ByokModelRole,
-  { operation: string; mode?: string }
+  { operation: string; modes?: readonly string[] }
 > = {
   TEXT: { operation: "TEXT" },
-  IMAGE_GENERATION: { operation: "IMAGE", mode: "TEXT_TO_IMAGE" },
-  IMAGE_EDIT: { operation: "IMAGE", mode: "IMAGE_EDIT" },
-  VIDEO_TEXT_TO_VIDEO: { operation: "VIDEO", mode: "TEXT_TO_VIDEO" },
-  VIDEO_IMAGE_TO_VIDEO: { operation: "VIDEO", mode: "IMAGE_TO_VIDEO" },
+  IMAGE_GENERATION: { operation: "IMAGE", modes: ["TEXT_TO_IMAGE"] },
+  IMAGE_EDIT: { operation: "IMAGE", modes: ["IMAGE_EDIT"] },
+  VIDEO_TEXT_TO_VIDEO: { operation: "VIDEO", modes: ["TEXT_TO_VIDEO"] },
+  VIDEO_IMAGE_TO_VIDEO: { operation: "VIDEO", modes: ["FIRST_FRAME"] },
   VIDEO_FIRST_LAST_FRAME: {
     operation: "VIDEO",
-    mode: "FIRST_LAST_FRAME",
+    modes: ["FIRST_LAST_FRAME"],
   },
   VIDEO_IMAGE_REFERENCE: {
     operation: "VIDEO",
-    mode: "IMAGE_REFERENCE",
+    modes: ["IMAGE_TO_VIDEO", "IMAGE_REFERENCE"],
   },
-  VIDEO_ALL_REFERENCE: { operation: "VIDEO", mode: "ALL_REFERENCE" },
-  VIDEO_EDIT: { operation: "VIDEO", mode: "VIDEO_EDIT" },
-  AUDIO_SPEECH: { operation: "AUDIO", mode: "SPEECH" },
-  AUDIO_VOICE_CLONE: { operation: "AUDIO", mode: "VOICE_CLONE" },
-  AUDIO_MUSIC: { operation: "AUDIO", mode: "MUSIC" },
+  VIDEO_ALL_REFERENCE: { operation: "VIDEO", modes: ["ALL_REFERENCE"] },
+  VIDEO_EDIT: { operation: "VIDEO", modes: ["VIDEO_EDIT"] },
+  AUDIO_SPEECH: { operation: "AUDIO", modes: ["SPEECH"] },
+  AUDIO_VOICE_CLONE: { operation: "AUDIO", modes: ["VOICE_CLONE"] },
+  AUDIO_MUSIC: { operation: "AUDIO", modes: ["MUSIC"] },
   EMBEDDING: { operation: "EMBEDDING" },
   RERANK: { operation: "RERANK" },
   MODERATION: { operation: "MODERATION" },
@@ -330,7 +330,7 @@ function groupByokAssignments(
       operation: capability.operation,
       supportedModes: new Set<string>(),
     };
-    if (capability.mode) group.supportedModes.add(capability.mode);
+    for (const mode of capability.modes ?? []) group.supportedModes.add(mode);
     groups.set(key, group);
   }
   return Array.from(groups.values())

@@ -111,9 +111,6 @@ export function createUseVideoNodeToolbarController({
     const openSubtitleRemoval = useCallback(
       (mode: VideoSubtitleEraseMode) => {
         if (!projection.hasVideo) {
-          console.info(
-            `[video-toolbar] stub action triggered: subtitle-${mode}-erase`,
-          );
           return;
         }
         updateNodeData(nodeId, {

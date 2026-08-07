@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
-import type { VideoFrameStripFrame } from "../application/videoFrameStrip";
-import { captureBrowserVideoFrameStrip } from "../infrastructure/browserVideoFrameStrip";
+import type {
+  CaptureVideoFrameStrip,
+  VideoFrameStripFrame,
+} from "../application/videoFrameStrip";
 
 /**
  * 视频「胶片条」抽帧 —— 给时间线片段铺满采样帧（libtv 风格）。
@@ -13,31 +15,39 @@ import { captureBrowserVideoFrameStrip } from "../infrastructure/browserVideoFra
  */
 export type FilmstripFrame = VideoFrameStripFrame;
 
-const cache = new Map<string, Promise<FilmstripFrame[]>>();
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
 /** Get (and cache) the filmstrip frames for a source video. */
-export function getFilmstrip(
-  sourceUrl: string,
-  resolveMediaUrl: (url: string) => string,
-): Promise<FilmstripFrame[]> {
-  const resolved = resolveMediaUrl(sourceUrl);
-  if (!resolved) return Promise.resolve([]);
-  const cached = cache.get(resolved);
-  if (cached) return cached;
-  const pending = captureBrowserVideoFrameStrip(resolved, {
-    count: (duration) => clamp(Math.round(duration), 6, 40),
-    targetWidth: 120,
-  }).catch((error) => {
-    cache.delete(resolved);
-    throw error;
-  });
-  cache.set(resolved, pending);
-  return pending;
+export function createGetFilmstrip({
+  captureVideoFrameStrip,
+}: {
+  captureVideoFrameStrip: CaptureVideoFrameStrip;
+}) {
+  const cache = new Map<string, Promise<FilmstripFrame[]>>();
+
+  return function getFilmstrip(
+    sourceUrl: string,
+    resolveMediaUrl: (url: string) => string,
+  ): Promise<FilmstripFrame[]> {
+    const resolved = resolveMediaUrl(sourceUrl);
+    if (!resolved) return Promise.resolve([]);
+    const cached = cache.get(resolved);
+    if (cached) return cached;
+    const pending = captureVideoFrameStrip(resolved, {
+      count: (duration) => clamp(Math.round(duration), 6, 40),
+      targetWidth: 120,
+    }).catch((error) => {
+      cache.delete(resolved);
+      throw error;
+    });
+    cache.set(resolved, pending);
+    return pending;
+  };
 }
+
+export type GetFilmstrip = ReturnType<typeof createGetFilmstrip>;
 
 /** Pick the captured frame closest to a given source time (ms). */
 export function pickFrame(

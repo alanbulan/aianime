@@ -12,12 +12,11 @@ import {
 import '@xyflow/react/dist/style.css';
 
 import { CreditDisplayHiddenProvider } from '@/components/credits/credit-visual';
-;
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
 import { isCeRuntime } from '@/lib/runtime-config';
 
 import { createCanvasNodeTypes } from '../nodes';
-import { canvasEdgeTypes } from '@/modules/creative_canvas/public';
+import { canvasEdgeTypes } from '../../../canvasComposition';
 import { CanvasContextMenu, CANVAS_CONTROL_GLASS_CLASS, CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS, CANVAS_CONTROL_ICON_BUTTON_CLASS, CanvasFpsMeter, CanvasConnectionPreviewOverlay, CanvasMinimapButton, MultiSelectionConnectButton, CanvasQuickActionBar, CanvasSnapAlignButton, CanvasSnapAlignGuides, CanvasTransientOverlays, CanvasZoomControl, ImageViewerModal, NodeSelectionMenu, type CanvasQuickActionBarProps, type MultiSelectionConnectButtonProps, type NodeSelectionMenuProps, PAN_ACTIVATION_KEY_CODE, VideoViewerModal, type CanvasEdge, type CanvasNode, type CanvasNodeType } from '@/modules/creative_canvas/public';
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
@@ -185,7 +184,7 @@ export function CanvasStageView({
               style={{ pointerEvents: 'all', zIndex: 10000 }}
               nodeColor="var(--canvas-minimap-node)"
               maskColor="var(--canvas-minimap-mask)"
-              pannable
+              pannable={false}
               zoomable
               onMouseEnter={() => minimapProps.onHoverChange(true)}
               onMouseLeave={() => minimapProps.onHoverChange(false)}

@@ -2,7 +2,78 @@
 
 from __future__ import annotations
 
-from typing import Any
+import math
+from dataclasses import dataclass
+from typing import Any, Literal
+
+MIN_OMNI_REFERENCE_AUDIO_SECONDS = 1.8
+MAX_OMNI_REFERENCE_AUDIO_SECONDS = 15.2
+MAX_OMNI_REFERENCE_AUDIO_TOTAL_SECONDS = 15.2
+
+CreativeCanvasVideoRequestedMode = Literal[
+    "textToVideo",
+    "firstFrame",
+    "imageToVideo",
+    "imageReference",
+    "firstLastFrame",
+    "allReference",
+    "videoEdit",
+]
+CreativeCanvasVideoExecutionMode = Literal[
+    "text_to_video",
+    "first_frame",
+    "image_reference",
+    "first_last_frame",
+    "all_reference",
+    "video_edit",
+]
+
+
+@dataclass(frozen=True)
+class CreativeCanvasVideoModeContract:
+    execution_mode: CreativeCanvasVideoExecutionMode
+    model_role: str
+
+
+_VIDEO_MODE_CONTRACTS: dict[
+    CreativeCanvasVideoRequestedMode,
+    CreativeCanvasVideoModeContract,
+] = {
+    "textToVideo": CreativeCanvasVideoModeContract(
+        execution_mode="text_to_video",
+        model_role="VIDEO_TEXT_TO_VIDEO",
+    ),
+    "firstFrame": CreativeCanvasVideoModeContract(
+        execution_mode="first_frame",
+        model_role="VIDEO_IMAGE_TO_VIDEO",
+    ),
+    "imageToVideo": CreativeCanvasVideoModeContract(
+        execution_mode="image_reference",
+        model_role="VIDEO_IMAGE_REFERENCE",
+    ),
+    "imageReference": CreativeCanvasVideoModeContract(
+        execution_mode="image_reference",
+        model_role="VIDEO_IMAGE_REFERENCE",
+    ),
+    "firstLastFrame": CreativeCanvasVideoModeContract(
+        execution_mode="first_last_frame",
+        model_role="VIDEO_FIRST_LAST_FRAME",
+    ),
+    "allReference": CreativeCanvasVideoModeContract(
+        execution_mode="all_reference",
+        model_role="VIDEO_ALL_REFERENCE",
+    ),
+    "videoEdit": CreativeCanvasVideoModeContract(
+        execution_mode="video_edit",
+        model_role="VIDEO_EDIT",
+    ),
+}
+
+
+def resolve_video_generation_mode(
+    requested_mode: CreativeCanvasVideoRequestedMode,
+) -> CreativeCanvasVideoModeContract:
+    return _VIDEO_MODE_CONTRACTS[requested_mode]
 
 VIDEO_CAMERA_TEMPLATES: tuple[dict[str, str], ...] = (
     {
@@ -66,6 +137,7 @@ VIDEO_CAMERA_TEMPLATES: tuple[dict[str, str], ...] = (
         "prompt": "镜头整体向右平移，保持运镜稳定，突出场景横向调度。",
     },
 )
+
 
 def get_video_camera_templates() -> list[dict[str, str]]:
     return [dict(item) for item in VIDEO_CAMERA_TEMPLATES]
@@ -272,3 +344,69 @@ def validate_omni_reference_limits(items: list[dict[str, Any]]) -> None:
         raise ValueError("video references count must be <= 3")
     if counts["audio_count"] > 3:
         raise ValueError("audio references count must be <= 3")
+
+
+def _format_seconds(value: float) -> str:
+    return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
+def _exceeds(value: float, limit: float) -> bool:
+    return round(value - limit, 3) > 0
+
+
+def validate_reference_media_durations(
+    durations: list[tuple[str, float | None]],
+    *,
+    min_seconds: float | None,
+    max_seconds: float | None,
+    total_min_seconds: float | None,
+    total_max_seconds: float | None,
+    media_label: str,
+) -> None:
+    measured = [
+        (label, float(seconds))
+        for label, seconds in durations
+        if isinstance(seconds, (int, float))
+        and not isinstance(seconds, bool)
+        and math.isfinite(seconds)
+        and seconds > 0
+    ]
+    if not measured:
+        return
+
+    def clips(items: list[tuple[str, float]]) -> str:
+        return ", ".join(
+            f"{label} ({_format_seconds(value)}s)" for label, value in items
+        )
+
+    if min_seconds is not None:
+        too_short = [item for item in measured if _exceeds(min_seconds, item[1])]
+        if too_short:
+            raise ValueError(
+                f"{media_label} reference duration must be >= "
+                f"{_format_seconds(min_seconds)}s: " + clips(too_short)
+            )
+    if max_seconds is not None:
+        too_long = [item for item in measured if _exceeds(item[1], max_seconds)]
+        if too_long:
+            raise ValueError(
+                f"{media_label} reference duration must be <= "
+                f"{_format_seconds(max_seconds)}s: " + clips(too_long)
+            )
+    total = sum(value for _, value in measured)
+    if (
+        total_min_seconds is not None
+        and len(measured) == len(durations)
+        and _exceeds(total_min_seconds, total)
+    ):
+        raise ValueError(
+            f"{media_label} references total duration must be >= "
+            f"{_format_seconds(total_min_seconds)}s, got {_format_seconds(total)}s: "
+            + clips(measured)
+        )
+    if total_max_seconds is not None and _exceeds(total, total_max_seconds):
+        raise ValueError(
+            f"{media_label} references total duration must be <= "
+            f"{_format_seconds(total_max_seconds)}s, got {_format_seconds(total)}s: "
+            + clips(measured)
+        )

@@ -128,8 +128,8 @@ class FreezoneVideoGenRequest(BaseModel):
     node_id: str = Field(
         default="", description="可选：来源节点 id，用于记录节点生成历史"
     )
-    gen_mode: Optional[str] = Field(
-        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    gen_mode: Literal["textToVideo"] = Field(
+        default="textToVideo", description="文生视频入口的固定业务模式"
     )
 
 
@@ -185,8 +185,11 @@ class FreezoneImageToVideoRequest(BaseModel):
     node_id: str = Field(
         default="", description="可选：来源节点 id，用于记录节点生成历史"
     )
-    gen_mode: Optional[str] = Field(
-        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    gen_mode: Literal["imageToVideo", "imageReference"] = Field(
+        description=(
+            "必填：imageToVideo 表示单图整体参考；imageReference 表示图片参考。"
+            "两者执行时均使用 image_reference 协议，不代表首帧"
+        ),
     )
 
 
@@ -244,8 +247,8 @@ class FreezoneKeyframeVideoRequest(BaseModel):
     node_id: str = Field(
         default="", description="可选：来源节点 id，用于记录节点生成历史"
     )
-    gen_mode: Optional[str] = Field(
-        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    gen_mode: Literal["firstFrame", "firstLastFrame"] = Field(
+        description="必填：首帧或首尾帧业务模式，不能按实际上传帧数推断"
     )
 
 
@@ -300,8 +303,8 @@ class FreezoneVideoEditRequest(BaseModel):
     node_id: str = Field(
         default="", description="可选：来源节点 id，用于记录节点生成历史"
     )
-    gen_mode: Optional[str] = Field(
-        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    gen_mode: Literal["videoEdit"] = Field(
+        default="videoEdit", description="视频编辑入口的固定业务模式"
     )
 
 
@@ -369,8 +372,8 @@ class FreezoneVideoOmniGenRequest(BaseModel):
     node_id: str = Field(
         default="", description="可选：来源节点 id，用于记录节点生成历史"
     )
-    gen_mode: Optional[str] = Field(
-        default=None, description="可选：生成模式，用于还原节点时回填 genMode"
+    gen_mode: Literal["allReference"] = Field(
+        default="allReference", description="全能参考入口的固定业务模式"
     )
 
 

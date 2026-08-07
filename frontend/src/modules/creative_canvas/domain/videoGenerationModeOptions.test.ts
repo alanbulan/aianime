@@ -14,7 +14,7 @@ function reasonsByMode(
 describe("resolveVideoGenerationModeOptions", () => {
   it("exposes catalog-supported general modes when there are no references", () => {
     const options = resolveVideoGenerationModeOptions({
-      supportedModes: ["textToVideo", "allReference", "imageToVideo", "firstLastFrame", "imageReference"],
+      supportedModes: ["textToVideo", "allReference", "firstFrame", "imageToVideo", "firstLastFrame", "imageReference"],
       usesTypedReferenceModes: false,
       upstreamCounts: { images: 0, videos: 0, audios: 0 },
     });
@@ -22,6 +22,7 @@ describe("resolveVideoGenerationModeOptions", () => {
     expect(options.map((option) => option.key)).toEqual([
       "textToVideo",
       "allReference",
+      "firstFrame",
       "imageToVideo",
       "firstLastFrame",
       "imageReference",
@@ -31,7 +32,7 @@ describe("resolveVideoGenerationModeOptions", () => {
 
   it("restricts general references without hiding supported modes", () => {
     const videoOptions = resolveVideoGenerationModeOptions({
-      supportedModes: ["textToVideo", "allReference", "imageToVideo", "firstLastFrame", "imageReference"],
+      supportedModes: ["textToVideo", "allReference", "firstFrame", "imageToVideo", "firstLastFrame", "imageReference"],
       usesTypedReferenceModes: false,
       upstreamCounts: { images: 0, videos: 1, audios: 0 },
     });
@@ -43,7 +44,7 @@ describe("resolveVideoGenerationModeOptions", () => {
     );
 
     const imageOptions = resolveVideoGenerationModeOptions({
-      supportedModes: ["textToVideo", "allReference", "imageToVideo", "firstLastFrame", "imageReference"],
+      supportedModes: ["textToVideo", "allReference", "firstFrame", "imageToVideo", "firstLastFrame", "imageReference"],
       usesTypedReferenceModes: false,
       upstreamCounts: { images: 3, videos: 0, audios: 1 },
     });
@@ -52,9 +53,9 @@ describe("resolveVideoGenerationModeOptions", () => {
     expect(imageReasons.firstLastFrame).toBe("上游图片超过 2 张时不可用");
   });
 
-  it("projects typed-reference image modes and first-frame label", () => {
+  it("keeps typed-reference first-frame and image-reference modes distinct", () => {
     const options = resolveVideoGenerationModeOptions({
-      supportedModes: ["textToVideo", "imageToVideo", "imageReference", "videoEdit"],
+      supportedModes: ["textToVideo", "firstFrame", "imageToVideo", "imageReference", "videoEdit"],
       usesTypedReferenceModes: true,
       upstreamCounts: { images: 1, videos: 0, audios: 0 },
     });
@@ -62,16 +63,21 @@ describe("resolveVideoGenerationModeOptions", () => {
 
     expect(options.map((option) => option.key)).toEqual([
       "textToVideo",
+      "firstFrame",
       "imageToVideo",
       "imageReference",
       "videoEdit",
     ]);
-    expect(options.find((option) => option.key === "imageToVideo")?.labelKey).toBe(
+    expect(options.find((option) => option.key === "firstFrame")?.labelKey).toBe(
       "node.videoNode.tabs.firstFrame",
+    );
+    expect(options.find((option) => option.key === "imageToVideo")?.labelKey).toBe(
+      "node.videoNode.tabs.imageToVideo",
     );
     expect(reasons.textToVideo).toBe(
       "已连接图片节点，请选择「首帧」或「图片参考」",
     );
+    expect(reasons.firstFrame).toBeNull();
     expect(reasons.imageToVideo).toBeNull();
     expect(reasons.imageReference).toBeNull();
     expect(reasons.videoEdit).toBe("需要连接视频节点（1个）");

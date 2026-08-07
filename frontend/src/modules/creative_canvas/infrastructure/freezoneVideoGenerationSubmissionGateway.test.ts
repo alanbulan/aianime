@@ -21,7 +21,6 @@ const common = {
   durationSeconds: 8,
   generateAudio: true,
   model: "model-1",
-  genMode: "textToVideo" as const,
   canvasId: "canvas-1",
   nodeId: "node-1",
 };
@@ -36,7 +35,6 @@ const commonBody = {
   generate_audio: true,
   model: "model-1",
   model_id: "model-1",
-  gen_mode: "textToVideo",
   canvas_id: "canvas-1",
   node_id: "node-1",
 };
@@ -51,6 +49,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
     await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "text",
+      genMode: "textToVideo",
       humanReview: true,
       sceneOptimize: "anime",
     });
@@ -61,6 +60,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
         method: "POST",
         json: {
           ...commonBody,
+          gen_mode: "textToVideo",
           character_ids: [],
           human_review: true,
           scene_optimize: "anime",
@@ -73,6 +73,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
     await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "keyframes",
+      genMode: "firstLastFrame",
       firstFrameUrl: "first.png",
       lastFrameUrl: "last.png",
       humanReview: false,
@@ -85,8 +86,36 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
         method: "POST",
         json: {
           ...commonBody,
+          gen_mode: "firstLastFrame",
           first_frame_url: "first.png",
           last_frame_url: "last.png",
+          human_review: false,
+          scene_optimize: null,
+        },
+      },
+    );
+  });
+
+  it("dispatches first-frame generation without disguising the business mode", async () => {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
+      ...common,
+      kind: "keyframes",
+      genMode: "firstFrame",
+      firstFrameUrl: "first.png",
+      lastFrameUrl: null,
+      humanReview: false,
+      sceneOptimize: null,
+    });
+
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/keyframes",
+      {
+        method: "POST",
+        json: {
+          ...commonBody,
+          gen_mode: "firstFrame",
+          first_frame_url: "first.png",
+          last_frame_url: null,
           human_review: false,
           scene_optimize: null,
         },
@@ -98,6 +127,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
     await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "imageReferences",
+      genMode: "imageReference",
       imageUrls: ["one.png", "two.png"],
       humanReview: true,
       sceneOptimize: "realistic",
@@ -109,6 +139,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
         method: "POST",
         json: {
           ...commonBody,
+          gen_mode: "imageReference",
           image_urls: ["one.png", "two.png"],
           human_review: true,
           scene_optimize: "realistic",
@@ -121,6 +152,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
     await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "videoEdit",
+      genMode: "videoEdit",
       videoUrl: "source.mp4",
       imageUrls: ["one.png"],
     });
@@ -131,6 +163,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
         method: "POST",
         json: {
           ...commonBody,
+          gen_mode: "videoEdit",
           video_url: "source.mp4",
           image_urls: ["one.png"],
           audio_setting: "auto",
@@ -147,6 +180,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
     await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
       ...common,
       kind: "allReferences",
+      genMode: "allReference",
       references,
       humanReview: false,
       sceneOptimize: null,
@@ -158,6 +192,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
         method: "POST",
         json: {
           ...commonBody,
+          gen_mode: "allReference",
           theme: "",
           references: [
             {
@@ -184,6 +219,7 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
       freezoneVideoGenerationSubmissionGateway.submit("project-1", {
         ...common,
         kind: "text",
+        genMode: "textToVideo",
         humanReview: false,
         sceneOptimize: null,
       }),

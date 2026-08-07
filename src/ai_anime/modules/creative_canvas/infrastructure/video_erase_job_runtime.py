@@ -23,6 +23,9 @@ from ai_anime.modules.creative_canvas.infrastructure.media_process import (
     require_media_binary,
     run_media_command,
 )
+from ai_anime.shared.infrastructure.video_encoding import (
+    ffmpeg_video_encoding_args,
+)
 
 
 def _expand_mask(mask: np.ndarray, radius: int = 2) -> np.ndarray:
@@ -193,12 +196,7 @@ async def _render_delogo_video(
             source_path,
             "-vf",
             f"delogo=x={x}:y={y}:w={width}:h={height}:show=0",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "medium",
-            "-crf",
-            "18",
+            *ffmpeg_video_encoding_args(preset="medium", crf=18),
             "-c:a",
             "copy",
             str(output_path),

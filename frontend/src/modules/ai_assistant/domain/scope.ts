@@ -24,10 +24,5 @@ export function scopeMatches(a: ChatScope | undefined, b: ChatScope): boolean {
 export function isChatScope(value: unknown): value is ChatScope {
   if (!value || typeof value !== "object") return false;
   const scope = value as Record<string, unknown>;
-  return (
-    scope.kind === "home"
-    || scope.kind === "project"
-    || scope.kind === "asset"
-    || scope.kind === "task"
-  );
+  return scope.kind === "home" || scope.kind === "project";
 }

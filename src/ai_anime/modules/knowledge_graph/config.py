@@ -49,6 +49,7 @@ _embedding_headers_capture: contextvars.ContextVar[dict[str, str] | None] = (
     contextvars.ContextVar("ai_anime_embedding_headers_capture", default=None)
 )
 _KEYLESS_MODEL_ACCESS_PLACEHOLDER = "ai-anime-no-auth"
+logger = logging.getLogger(__name__)
 
 
 _COGNEE_PROVIDER = "custom"
@@ -168,8 +169,8 @@ def _clear_cognee_embedding_config_cache() -> None:
         cache_clear = getattr(getter, "cache_clear", None)
         if callable(cache_clear):
             cache_clear()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("failed to clear Cognee embedding config cache: %s", exc)
 
 
 def _clear_cognee_llm_config_cache() -> None:
@@ -182,8 +183,8 @@ def _clear_cognee_llm_config_cache() -> None:
         cache_clear = getattr(getter, "cache_clear", None)
         if callable(cache_clear):
             cache_clear()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("failed to clear Cognee LLM config cache: %s", exc)
 
 
 def _apply_cognee_runtime_defaults() -> None:
@@ -431,8 +432,8 @@ def _embedding_response_trace(
             )
         response_headers = getattr(response, "_response_headers", None)
         merged_headers.update(_headers_to_plain_dict(response_headers))
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("failed to read embedding response trace: %s", exc)
     request_id = (
         request_id
         or merged_headers.get("x-request-id", "")
@@ -543,15 +544,21 @@ def _patch_cognee_embedding_gateway() -> None:
                         reservation_id,
                         metadata={"source": "cognee_embedding_gateway_exception"},
                     )
-                except Exception:
-                    pass
+                except Exception as refund_error:
+                    logger.warning(
+                        "failed to refund Cognee embedding reservation: %s",
+                        refund_error,
+                    )
             raise
         finally:
             if active_token is not None:
                 try:
                     reset_model_call_reservation_active(active_token)
-                except Exception:
-                    pass
+                except Exception as reset_error:
+                    logger.debug(
+                        "failed to reset Cognee reservation context: %s",
+                        reset_error,
+                    )
             if original_model is not None:
                 self.model = original_model
             _embedding_headers_capture.reset(token)
@@ -575,8 +582,11 @@ def _patch_cognee_embedding_gateway() -> None:
                     provider_request_id=request_id,
                     metadata=metadata,
                 )
-            except Exception:
-                pass
+            except Exception as usage_error:
+                logger.warning(
+                    "failed to record Cognee embedding usage: %s",
+                    usage_error,
+                )
         return result
 
     engine_cls.embed_text = patched_embed_text

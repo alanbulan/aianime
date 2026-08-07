@@ -13,6 +13,8 @@ export interface CanvasMinimapVisibilityController {
   pinned: boolean;
   visible: boolean;
   setHovered: (hovered: boolean) => void;
+  startPanning: () => void;
+  endPanning: (pointerInsideMinimap: boolean) => void;
   togglePinned: () => void;
 }
 
@@ -21,6 +23,7 @@ export function useCanvasMinimapVisibility({
 }: CanvasMinimapVisibilityOptions): CanvasMinimapVisibilityController {
   const [pinned, setPinned] = useState(false);
   const [hovered, setHoveredState] = useState(false);
+  const [panning, setPanning] = useState(false);
   const hideTimerRef = useRef<number | null>(null);
 
   const clearHideTimer = useCallback(() => {
@@ -45,6 +48,16 @@ export function useCanvasMinimapVisibility({
   const togglePinned = useCallback(() => {
     setPinned((current) => !current);
   }, []);
+
+  const startPanning = useCallback(() => {
+    clearHideTimer();
+    setPanning(true);
+  }, [clearHideTimer]);
+
+  const endPanning = useCallback((pointerInsideMinimap: boolean) => {
+    setPanning(false);
+    setHovered(pointerInsideMinimap);
+  }, [setHovered]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,8 +84,10 @@ export function useCanvasMinimapVisibility({
 
   return {
     pinned,
-    visible: pinned || hovered,
+    visible: pinned || hovered || panning,
     setHovered,
+    startPanning,
+    endPanning,
     togglePinned,
   };
 }

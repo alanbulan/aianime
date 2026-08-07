@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next';
 
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './canvasNodeFrameStyles';
 import { NODE_TOOLBAR_CLASS } from './canvasNodeToolbarConfig';
-import { loadImageElement } from '../infrastructure/browserImageRuntime';
 import { DEFAULT_CANVAS_NODE_WIDTH } from '../domain/canvasGeometry';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 
@@ -30,6 +29,10 @@ export type RotateEditorOverlayUploadCanvasAsset = (
   file: File | Blob,
   filename: string,
 ) => Promise<{ filename: string; url: string }>;
+
+export type RotateEditorOverlayLoadImage = (
+  source: string,
+) => Promise<HTMLImageElement>;
 
 interface RotateEditorOverlayProps {
   projectId: string;
@@ -54,9 +57,11 @@ function normalizeAngle(angle: number): number {
 export function createRotateEditorOverlay({
   useStore,
   uploadCanvasAsset,
+  loadImageElement,
 }: {
   useStore: RotateEditorOverlayStoreHook;
   uploadCanvasAsset: RotateEditorOverlayUploadCanvasAsset;
+  loadImageElement: RotateEditorOverlayLoadImage;
 }) {
   return memo(({ projectId, node, imageSource, onClose }: RotateEditorOverlayProps) => {
     const { t } = useTranslation();

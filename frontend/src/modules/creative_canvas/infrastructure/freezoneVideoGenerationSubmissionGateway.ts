@@ -45,7 +45,7 @@ function commonRequestBody(submission: VideoGenerationSubmission) {
     ...(submission.model
       ? { model: submission.model, model_id: submission.model }
       : {}),
-    ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
+    gen_mode: submission.genMode,
     ...nodeContextBody(submission),
   };
 }

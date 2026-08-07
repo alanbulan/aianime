@@ -75,11 +75,6 @@ import {
 import { resolveErrorContent } from '../application/errorDialog';
 import type { CanvasImageJobGateway } from '../application/canvasImageJob';
 import {
-  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
-  resolveImageEditPickerAnchor,
-  type ImageEditPickerAnchor,
-} from '../infrastructure/browserImageEditRuntime';
-import {
   pickClosestAspectRatio,
   resolveImageDisplayUrl,
 } from '../domain/imageData';
@@ -165,6 +160,18 @@ export type ImageEditUseImageModels = (
   projectId: string,
   purpose: 'edit',
 ) => { models: Array<{ id: string; apiModel: string; label: string }> };
+
+export interface ImageEditPickerAnchor {
+  left: number;
+  top: number;
+}
+
+export type ImageEditResolvePickerAnchor = (
+  container: HTMLDivElement | null,
+  textarea: HTMLTextAreaElement,
+  caretIndex: number,
+) => ImageEditPickerAnchor;
+
 export interface ImageEditNodeControllerOptions {
   projectId: string;
   canvasId: string;
@@ -188,6 +195,8 @@ export function createUseImageEditNodeController({
   useUpstreamContents,
   useUpstreamImages,
   useCanvasImageModels,
+  imageEditPickerFallbackAnchor,
+  resolveImageEditPickerAnchor,
 }: {
   useStore: ImageEditNodeStoreHook;
   useSettingsStore: ImageEditNodeSettingsStoreHook;
@@ -201,6 +210,8 @@ export function createUseImageEditNodeController({
   useUpstreamContents: ImageEditUseUpstreamContents;
   useUpstreamImages: ImageEditUseUpstreamImages;
   useCanvasImageModels: ImageEditUseImageModels;
+  imageEditPickerFallbackAnchor: ImageEditPickerAnchor;
+  resolveImageEditPickerAnchor: ImageEditResolvePickerAnchor;
 }) {
   return function useImageEditNodeController({
     projectId,
@@ -241,7 +252,7 @@ export function createUseImageEditNodeController({
   const [pickerCursor, setPickerCursor] = useState<number | null>(null);
   const [pickerActiveIndex, setPickerActiveIndex] = useState(0);
   const [pickerAnchor, setPickerAnchor] = useState<ImageEditPickerAnchor>(
-    IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
+    imageEditPickerFallbackAnchor,
   );
   const [replaceTokenRange, setReplaceTokenRange] = useState<{
     start: number;

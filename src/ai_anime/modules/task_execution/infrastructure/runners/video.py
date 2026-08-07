@@ -24,6 +24,9 @@ from ai_anime.modules.task_execution.public import (
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.public import run_project_subprocess
 from ai_anime.modules.task_execution.public import project_task_state_key
+from ai_anime.shared.infrastructure.video_encoding import (
+    ffmpeg_video_encoding_args,
+)
 from ai_anime.task_state import get_task_manager
 
 
@@ -60,8 +63,9 @@ def _append_freezone_video_node_history(
     extra: dict[str, Any] = {}
     if payload.get("model_id"):
         extra["model"] = str(payload["model_id"])
-    if payload.get("gen_mode"):
-        extra["gen_mode"] = str(payload["gen_mode"])
+    history_mode = payload.get("requested_gen_mode") or payload.get("gen_mode")
+    if history_mode:
+        extra["gen_mode"] = str(history_mode)
 
     return creative_canvas_generation_history_use_cases().record(
         RecordCreativeCanvasGenerationCommand(
@@ -532,12 +536,7 @@ def run_compose_episode(
                         "0:v:0",
                         "-map",
                         "1:a:0",
-                        "-c:v",
-                        "libx264",
-                        "-preset",
-                        "fast",
-                        "-crf",
-                        "23",
+                        *ffmpeg_video_encoding_args(preset="fast", crf=23),
                         "-c:a",
                         "aac",
                         "-b:a",
@@ -566,12 +565,7 @@ def run_compose_episode(
                         "0:v:0",
                         "-map",
                         "0:a:0",
-                        "-c:v",
-                        "libx264",
-                        "-preset",
-                        "fast",
-                        "-crf",
-                        "23",
+                        *ffmpeg_video_encoding_args(preset="fast", crf=23),
                         "-c:a",
                         "aac",
                         "-b:a",
@@ -598,12 +592,7 @@ def run_compose_episode(
                         "0:v:0",
                         "-map",
                         "1:a:0",
-                        "-c:v",
-                        "libx264",
-                        "-preset",
-                        "fast",
-                        "-crf",
-                        "23",
+                        *ffmpeg_video_encoding_args(preset="fast", crf=23),
                         "-c:a",
                         "aac",
                         "-b:a",
@@ -656,12 +645,7 @@ def run_compose_episode(
                 "[outv]",
                 "-map",
                 "[outa]",
-                "-c:v",
-                "libx264",
-                "-preset",
-                "fast",
-                "-crf",
-                "23",
+                *ffmpeg_video_encoding_args(preset="fast", crf=23),
                 "-pix_fmt",
                 "yuv420p",
                 "-c:a",

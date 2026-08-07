@@ -47,7 +47,10 @@ from ai_anime.modules.ai_assistant.domain.project_media import (
     merge_project_media_items,
     normalize_media_source,
 )
-from ai_anime.modules.ai_assistant.domain.scope import ChatScope
+from ai_anime.modules.ai_assistant.domain.scope import (
+    ChatScope,
+    InteractiveChatScopeKind,
+)
 from ai_anime.modules.ai_assistant.domain.prompt_context import compose_agent_prompt
 from ai_anime.modules.ai_assistant.domain.turn_guidance import (
     reingest_confirmation_reply,
@@ -57,6 +60,7 @@ from ai_anime.modules.ai_assistant.domain.tool_errors import tool_chat_error
 
 __all__ = [
     "ChatScope",
+    "InteractiveChatScopeKind",
     "canonical_media_path",
     "completion_text_or_existing",
     "compose_agent_prompt",

@@ -33,6 +33,7 @@ vi.mock("@/modules/creative_canvas/assetTransferComposition", () => ({
   commitFreezoneAsset: (...args: unknown[]) => mocks.promoteToAsset(...args),
   getFreezoneAssetImpact: (...args: unknown[]) =>
     mocks.previewAssetImpact(...args),
+  uploadFreezoneAsset: vi.fn(),
 }));
 
 describe("CommitDialog submit", () => {

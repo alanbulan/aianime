@@ -390,7 +390,7 @@ async def test_indextts2_narrated_project_ignores_beat_uploaded_narration_voice(
         mode="redo_selected",
     )
 
-    assert errors == ["Beat 01 解说声线缺失：项目解说人声线缺失，请上传或录制解说人音频"]
+    assert errors == ["Beat 01 解说声线缺失：项目解说人声线未配置，请上传或录制解说人音频"]
 
 
 @pytest.mark.asyncio
@@ -811,7 +811,7 @@ async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task
         mode="redo_selected",
     )
 
-    assert errors == ["Beat 01 解说声线缺失：项目解说人声线缺失，请上传或录制解说人音频"]
+    assert errors == ["Beat 01 解说声线缺失：项目解说人声线未配置，请上传或录制解说人音频"]
 
 
 @pytest.mark.asyncio

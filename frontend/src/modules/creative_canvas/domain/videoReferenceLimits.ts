@@ -36,6 +36,7 @@ const REFERENCE_CAPS_BY_MODE: Partial<
   Record<VideoGenMode, VideoReferenceCaps>
 > = {
   allReference: { image: 9, video: 3, audio: 3 },
+  firstFrame: { image: 1, video: 0, audio: 0 },
   firstLastFrame: { image: 2, video: 0, audio: 0 },
 };
 

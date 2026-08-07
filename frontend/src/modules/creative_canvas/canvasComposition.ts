@@ -1,7 +1,20 @@
 // Copyright (c) 2026 AI anime
 import { applyStoryboardTextOverlay, getStoryboardReferenceFrameHeight } from './infrastructure/browserStoryboardExportRuntime';
 import { browserGenerationRuntimeGateway } from './infrastructure/browserGenerationRuntimeGateway';
-import { browserImageRuntimeGateway } from './infrastructure/browserImageRuntime';
+import {
+  browserImageRuntimeGateway,
+  loadImageElement,
+} from './infrastructure/browserImageRuntime';
+import {
+  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
+  resolveImageEditPickerAnchor,
+} from './infrastructure/browserImageEditRuntime';
+import {
+  STORYBOARD_PICKER_FALLBACK_ANCHOR,
+  generateStoryboardGridImageDataUrl,
+  resolveStoryboardPickerAnchor,
+  resolveStoryboardPointerAnchor,
+} from './infrastructure/browserStoryboardGenRuntime';
 import { canvasEventBus } from './canvasEventComposition';
 import { composeCapability } from './domain/capabilities/registry';
 import { createUseCanvasConnectionGestureSurfaceController } from './presentation/useCanvasConnectionGestureSurfaceController';
@@ -83,7 +96,7 @@ import {
 } from './videoGenerationComposition';
 import { composeVideoClip } from './videoComposeComposition';
 import { eraseVideoSubtitles } from './videoSubtitleEraseComposition';
-import { validateVideoReferenceAudioDuration } from './audioReferenceValidationComposition';
+import { validateVideoReferenceDuration } from './audioReferenceValidationComposition';
 import { rememberLastVideoModel } from './canvasNodeFactoryComposition';
 import {
   useCanvasCameraOptions,
@@ -169,6 +182,8 @@ import { useSettingsStore } from './presentation/settingsStore';
 
 
 import { captureVideoFrameBlob } from './infrastructure/browserVideoFrameCapture';
+import { captureBrowserVideoFrameStrip } from './infrastructure/browserVideoFrameStrip';
+import { resolveBrowserDroppedVideoFile } from './infrastructure/browserDroppedVideoFile';
 import { createFreezoneAiGateway } from './infrastructure/freezoneAiGateway';
 import { freezoneSkillExecutionGateway } from './infrastructure/freezoneSkillExecutionGateway';
 import { ensureWebSafeVideo } from './infrastructure/videoTranscode';
@@ -493,6 +508,10 @@ export const useStoryboardGenNodeController =
     uploadLocalImageToBackend,
     useUpstreamImages,
     useCanvasImageModels,
+    storyboardPickerFallbackAnchor: STORYBOARD_PICKER_FALLBACK_ANCHOR,
+    generateStoryboardGridImageDataUrl,
+    resolveStoryboardPickerAnchor,
+    resolveStoryboardPointerAnchor,
   });
 export const useImageEditNodeController = createUseImageEditNodeController({
   useStore: useCanvasStore,
@@ -511,6 +530,8 @@ export const useImageEditNodeController = createUseImageEditNodeController({
   useUpstreamContents,
   useUpstreamImages,
   useCanvasImageModels,
+  imageEditPickerFallbackAnchor: IMAGE_EDIT_PICKER_FALLBACK_ANCHOR,
+  resolveImageEditPickerAnchor,
 });
 export const useImageGenNodeController = createUseImageGenNodeController({
   useStore: useCanvasStore,
@@ -559,9 +580,11 @@ export const useVideoNodeController = createUseVideoNodeController({
   completeVideoGenerationTask,
   composeVideoClip,
   eraseVideoSubtitles,
-  validateVideoReferenceAudioDuration,
+  validateVideoReferenceDuration,
   captureVideoFrameBlob,
+  captureVideoFrameStrip: captureBrowserVideoFrameStrip,
   ensureWebSafeVideo,
+  resolveDroppedVideoFile: resolveBrowserDroppedVideoFile,
   showErrorDialog: showErrorDialogInfrastructure,
   canvasEventBus,
   rememberLastVideoModel,
@@ -571,6 +594,7 @@ export const NodeContextPromptPaletteButton =
 export const RotateEditorOverlay = createRotateEditorOverlay({
   useStore: useCanvasStore,
   uploadCanvasAsset,
+  loadImageElement,
 });
 export const UpscaleEditorOverlay = createUpscaleEditorOverlay({
   useStore: useCanvasStore,

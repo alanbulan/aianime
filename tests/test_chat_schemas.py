@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from ai_anime.api.chat_schemas import (
     ChatAttachmentIn,
@@ -22,6 +23,12 @@ from ai_anime.api.chat_schemas import (
 )
 def test_chat_scope_payload_maps_to_domain_scope(payload, expected):
     assert to_chat_scope(payload).to_dict() == expected
+
+
+@pytest.mark.parametrize("kind", ["asset", "task", "unknown"])
+def test_chat_scope_payload_rejects_non_interactive_kinds(kind):
+    with pytest.raises(ValidationError):
+        ChatScopePayload(kind=kind, id="item-1")
 
 
 def test_attachment_payloads_preserve_present_values_and_field_names():

@@ -462,6 +462,7 @@ export function createUseTextAnnotationNodeController({
             durationSeconds: durationSec,
             generateAudio,
             model: videoModel,
+            genMode: 'textToVideo',
             humanReview: false,
             sceneOptimize: null,
             canvasId,
@@ -528,24 +529,10 @@ export function createUseTextAnnotationNodeController({
       }
       if (mode === 'textToVideo') {
         void runTextToVideo();
-        return;
       }
-      if (!hasUserContent) {
-        return;
-      }
-      console.info('[text-node] submit stub', {
-        id,
-        mode,
-        model: modelId,
-        content,
-      });
     }, [
-      content,
-      hasUserContent,
-      id,
       isGenerating,
       mode,
-      modelId,
       runImageToPrompt,
       runTextToVideo,
     ]);

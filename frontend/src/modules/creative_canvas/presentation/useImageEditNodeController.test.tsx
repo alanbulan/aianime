@@ -102,12 +102,6 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('../infrastructure/browserImageEditRuntime', () => ({
-  IMAGE_EDIT_PICKER_FALLBACK_ANCHOR: { left: 8, top: 8 },
-  resolveImageEditPickerAnchor: (...args: unknown[]) =>
-    mocks.resolvePickerAnchor(...args),
-}));
-
 vi.mock('../application/generationErrorReport', () => ({
   buildGenerationErrorReport: () => '错误报告',
   createReferenceImagePlaceholders: (count: number) =>
@@ -189,6 +183,9 @@ const useImageEditNodeController = createUseImageEditNodeController({
   useDetachUpstream: () => mocks.detachUpstream,
   useUpstreamContents: () => mocks.upstreamContents,
   useUpstreamImages: () => mocks.upstreamImages,
+  imageEditPickerFallbackAnchor: { left: 8, top: 8 },
+  resolveImageEditPickerAnchor: (...args: unknown[]) =>
+    mocks.resolvePickerAnchor(...args) as { left: number; top: number },
 });
 
 vi.mock('@/shared/api/errors', () => ({

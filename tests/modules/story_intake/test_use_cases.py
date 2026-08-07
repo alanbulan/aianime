@@ -14,12 +14,14 @@ from ai_anime.modules.story_intake.application.dto import (
     StoredStoryDocument,
     UploadStoryDocumentCommand,
 )
+from ai_anime.modules.story_intake.application.errors import StoryDocumentTooLarge
 from ai_anime.modules.story_intake.application.use_cases import (
     GetChapterPreview,
     GetKnowledgeGraph,
     StartIngestion,
     UploadStoryDocument,
 )
+from ai_anime.modules.story_intake.domain import MAX_STORY_IMPORT_BYTES
 
 
 class FakeStoryDocuments:
@@ -181,6 +183,32 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         "queue": "inline",
         "message": "导入任务已进入队列: novel.txt",
     }
+
+
+@pytest.mark.asyncio
+async def test_start_ingestion_rejects_legacy_document_over_import_limit(tmp_path):
+    documents = FakeStoryDocuments(tmp_path)
+    documents.document = StoredStoryDocument(
+        filename="novel.txt",
+        path=tmp_path / "uploads" / "novel.txt",
+        size=MAX_STORY_IMPORT_BYTES + 1,
+    )
+    settings = FakeProjectSettings()
+    scheduler = FakeTaskScheduler()
+
+    with pytest.raises(StoryDocumentTooLarge) as captured:
+        await StartIngestion(documents, settings, scheduler).execute(
+            _scope(tmp_path),
+            StartIngestionCommand(
+                filename="novel.txt",
+                text_model="cloud-text-standard",
+                embedding_model="cloud-embedding-standard",
+            ),
+        )
+
+    assert captured.value.max_bytes == MAX_STORY_IMPORT_BYTES
+    assert settings.calls == []
+    assert scheduler.calls == []
 
 @pytest.mark.asyncio
 async def test_get_knowledge_graph_delegates_to_port():

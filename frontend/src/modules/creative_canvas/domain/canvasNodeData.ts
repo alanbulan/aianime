@@ -14,7 +14,6 @@ import type {
   ImageQuality,
 } from './imageGenNodeModel';
 import type { ImageSize } from './imageNodeSizing';
-import type { ScriptGenAction } from '../application/scriptNodeModel';
 import type {
   Seedance2SceneOptimize,
   VideoGenCount,
@@ -403,6 +402,8 @@ export interface VideoStoryNodeData extends NodeDisplayData {
   analysisError?: string | null;
   [key: string]: unknown;
 }
+
+export type ScriptGenAction = "fromScript" | "fromVideoRef" | "fromCharacter";
 
 export interface ScriptNodeData extends NodeDisplayData {
   /** 操作区输入的剧情/参考说明文本 */

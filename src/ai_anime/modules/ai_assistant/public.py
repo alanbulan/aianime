@@ -12,6 +12,7 @@ from ai_anime.modules.ai_assistant.application import (
 )
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
+    InteractiveChatScopeKind,
     dedupe_tool_ui_specs,
     display_tool_call_key,
     extract_display_tool_call,
@@ -144,6 +145,7 @@ __all__ = [
     "ProjectChatTurns",
     "ScopedChatMessages",
     "ChatScope",
+    "InteractiveChatScopeKind",
     "append_tool_ui_specs",
     "build_agent_prompt_context",
     "create_page_agent_session_token",

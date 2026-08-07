@@ -213,4 +213,33 @@ describe('node toolbar action views', () => {
     expect(download).toHaveBeenCalledOnce();
     expect(openFullscreen).toHaveBeenCalledOnce();
   });
+
+  it('disables subtitle removal until the video node has output', () => {
+    const openSubtitleRemoval = vi.fn();
+
+    render(
+      <VideoNodeToolbarActionsView
+        controller={{
+          t: translate,
+          hasVideo: false,
+          isAnalyzing: false,
+          isSeparatingAudioVideo: false,
+          toggleClipMode: vi.fn(),
+          createUpscaleNode: vi.fn(),
+          analyze: vi.fn(async () => undefined),
+          openSubtitleRemoval,
+          separateAudioVideo: vi.fn(async () => undefined),
+          download: vi.fn(async () => undefined),
+          openFullscreen: vi.fn(),
+        }}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', {
+      name: 'nodeToolbar.video.subtitleRemoval',
+    });
+    expect(trigger).toBeDisabled();
+    fireEvent.click(trigger);
+    expect(openSubtitleRemoval).not.toHaveBeenCalled();
+  });
 });

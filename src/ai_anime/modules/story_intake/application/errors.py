@@ -22,9 +22,9 @@ class UnsupportedStoryDocument(StoryIntakeError):
 
 
 class StoryDocumentTooLarge(StoryIntakeError):
-    def __init__(self, max_megabytes: int) -> None:
-        super().__init__(max_megabytes)
-        self.max_megabytes = max_megabytes
+    def __init__(self, max_bytes: int) -> None:
+        super().__init__(max_bytes)
+        self.max_bytes = max_bytes
 
 
 class StoryDocumentNotFound(StoryIntakeError):

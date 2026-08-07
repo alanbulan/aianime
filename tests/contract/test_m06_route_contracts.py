@@ -101,7 +101,10 @@ class _M06Store:
         return self._characters.get(name)
 
     async def add_character_identity(self, name: str, identity: CharacterIdentity):
-        self._characters[name].identities = [*self._characters[name].identities, identity]
+        self._characters[name].identities = [
+            *self._characters[name].identities,
+            identity,
+        ]
 
     async def update_character_identity(self, name: str, identity_id: str, **updates):
         for identity in self._characters[name].identities:
@@ -344,6 +347,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
         ConfiguredCreativeCanvasVideoModelPolicy,
+        FfprobeCreativeCanvasReferenceDurationProbe,
     )
     from ai_anime.modules.creative_canvas.infrastructure.video_asset_library import (
         LocalCreativeCanvasVideoAssetRepository,
@@ -391,10 +395,14 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     audio_file = _write_media(uploads_dir(project_dir) / "voice.mp3", b"audio")
     scene_master = _write_png(canonical_scene_master_path(project_dir, _SCENE))
     scene_reverse = _write_png(canonical_scene_reverse_master_path(project_dir, _SCENE))
-    selected_background = _write_png(canonical_beat_selected_background_path(project_dir, 1, 1))
+    selected_background = _write_png(
+        canonical_beat_selected_background_path(project_dir, 1, 1)
+    )
     env_only = _write_png(canonical_beat_director_env_only_path(project_dir, 1, 1))
     portrait = _write_png(canonical_portrait_path(project_dir, _CHARACTER))
-    identity = _write_png(canonical_identity_path(project_dir, _CHARACTER, _IDENTITY_ID))
+    identity = _write_png(
+        canonical_identity_path(project_dir, _CHARACTER, _IDENTITY_ID)
+    )
     prop = _write_png(canonical_prop_reference_path(project_dir, _PROP))
     uploads_dir(project_dir).mkdir(parents=True, exist_ok=True)
 
@@ -700,6 +708,7 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         video_generation_use_cases = CreativeCanvasVideoGenerationUseCases(
             ProjectCreativeCanvasMediaSourceResolver(),
             ConfiguredCreativeCanvasVideoModelPolicy(),
+            FfprobeCreativeCanvasReferenceDurationProbe(),
             video_asset_repository,
             FreezoneJobIdGenerator(),
             task_scheduler,
@@ -795,13 +804,17 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         app.dependency_overrides[ingest.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_audio.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_assets.get_api_user] = lambda user=user: user
-        app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_bootstrap.get_api_user] = lambda user=user: (
+            user
+        )
         app.dependency_overrides[freezone_commits.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_image.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_jobs.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_media.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_presets.get_api_user] = lambda user=user: user
-        app.dependency_overrides[freezone_projections.get_api_user] = lambda user=user: user
+        app.dependency_overrides[freezone_projections.get_api_user] = lambda user=user: (
+            user
+        )
         app.dependency_overrides[freezone_skills.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_text.get_api_user] = lambda user=user: user
         app.dependency_overrides[freezone_video.get_api_user] = lambda user=user: user
@@ -875,7 +888,9 @@ def test_m06_freezone_skill_catalog_contract(m06_client_factory):
 
 
 def test_m06_ingest_upload_preview_and_unsupported_format(m06_client_factory):
-    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory("inline")
+    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
 
     response = client.post(
         f"/api/v1/projects/{_PROJECT}/ingest/upload",
@@ -928,7 +943,8 @@ def test_m06_freezone_media_upload_and_screenshot(m06_client_factory):
         client.post(
             f"/api/v1/projects/{_PROJECT}/freezone/three-d-viewer/screenshot",
             json={
-                "data_url": "data:image/png;base64," + base64.b64encode(png).decode("ascii"),
+                "data_url": "data:image/png;base64,"
+                + base64.b64encode(png).decode("ascii"),
                 "node_id": "three-d-node",
                 "label": " ",
             },
@@ -1033,7 +1049,9 @@ def test_m06_freezone_mark_detection_contract(m06_client_factory):
 
 
 def test_m06_ingest_exposes_real_knowledge_graph_snapshot(m06_client_factory):
-    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory("inline")
+    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
 
     response = client.get(f"/api/v1/projects/{_PROJECT}/ingest/graph")
     payload = _assert_ok(response)
@@ -1045,8 +1063,12 @@ def test_m06_ingest_exposes_real_knowledge_graph_snapshot(m06_client_factory):
 
 
 @pytest.mark.parametrize("backend", ["inline", "celery"])
-def test_m06_ingest_start_task_shape_is_ce_ee_isomorphic(m06_client_factory, backend: str):
-    client, task_backend, _task_manager, project_dir, _assets, _store = m06_client_factory(backend)
+def test_m06_ingest_start_task_shape_is_ce_ee_isomorphic(
+    m06_client_factory, backend: str
+):
+    client, task_backend, _task_manager, project_dir, _assets, _store = (
+        m06_client_factory(backend)
+    )
     upload = project_dir / "uploads" / "novel.txt"
     upload.parent.mkdir(parents=True, exist_ok=True)
     upload.write_text("第一章 雨巷\n林昭撑伞。", encoding="utf-8")
@@ -1238,6 +1260,7 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                     "image_urls": [image],
                     "prompt": "move",
                     "model": "cloud-video-standard",
+                    "gen_mode": "imageToVideo",
                 },
             ),
         ),
@@ -1249,6 +1272,7 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                     "first_frame_url": image,
                     "prompt": "move",
                     "model": "cloud-video-standard",
+                    "gen_mode": "firstFrame",
                 },
             ),
         ),
@@ -1259,7 +1283,9 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                 json={
                     "prompt": "omni",
                     "model": "cloud-video-standard",
-                    "references": [{"type": "image", "url": image, "role": "reference"}],
+                    "references": [
+                        {"type": "image", "url": image, "role": "reference"}
+                    ],
                 },
             ),
         ),
@@ -1276,11 +1302,16 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
         ),
         (
             "freezone_video_erase",
-            client.post(f"/api/v1/projects/{p}/freezone/video/erase", json={"source_url": video}),
+            client.post(
+                f"/api/v1/projects/{p}/freezone/video/erase", json={"source_url": video}
+            ),
         ),
         (
             "freezone_video_upscale",
-            client.post(f"/api/v1/projects/{p}/freezone/video/upscale", json={"source_url": video}),
+            client.post(
+                f"/api/v1/projects/{p}/freezone/video/upscale",
+                json={"source_url": video},
+            ),
         ),
         (
             "freezone_audio_separate",
@@ -1360,7 +1391,9 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
 def test_m06_freezone_task_backend_responses_are_ce_ee_isomorphic(
     m06_client_factory, backend: str
 ):
-    client, task_backend, _task_manager, _project_dir, assets, _store = m06_client_factory(backend)
+    client, task_backend, _task_manager, _project_dir, assets, _store = (
+        m06_client_factory(backend)
+    )
 
     cases = _freezone_task_cases(client, assets)
     assert len(cases) == 29
@@ -1429,7 +1462,9 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
         StartCreativeCanvasTextTranslationCommand,
     )
 
-    _client, _task_backend, _task_manager, project_dir, assets, _store = m06_client_factory(backend)
+    _client, _task_backend, _task_manager, project_dir, assets, _store = (
+        m06_client_factory(backend)
+    )
     freezone = assets.freezone
     freezone_text = assets.freezone_text
 
@@ -1467,16 +1502,22 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
 
 
 def test_m06_freezone_job_result_reads_terminal_output(m06_client_factory):
-    client, _backend, task_manager, project_dir, _assets, _store = m06_client_factory("inline")
+    client, _backend, task_manager, project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
 
     response = client.post(
         f"/api/v1/projects/{_PROJECT}/freezone/gen",
         json={"prompt": "terminal output", "model": "cloud-image-standard"},
     )
     data = _assert_freezone_http_task_shape(response.json(), task_type="freezone_gen")
-    out = project_dir / "freezone" / "_outputs" / "freezone_gen" / f"{data['job_id']}.png"
+    out = (
+        project_dir / "freezone" / "_outputs" / "freezone_gen" / f"{data['job_id']}.png"
+    )
     _write_png(out)
-    task_manager.set_completed("freezone_gen", data["job_id"], {"output_path": str(out)})
+    task_manager.set_completed(
+        "freezone_gen", data["job_id"], {"output_path": str(out)}
+    )
 
     result = _assert_ok(
         client.get(
@@ -1490,7 +1531,9 @@ def test_m06_freezone_job_result_reads_terminal_output(m06_client_factory):
 def test_m06_freezone_canvas_crud_revision_idempotency_history_and_default_guard(
     m06_client_factory,
 ):
-    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory("inline")
+    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
 
     first_init = _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/freezone/init"))
     second_init = _assert_ok(client.post(f"/api/v1/projects/{_PROJECT}/freezone/init"))
@@ -1509,7 +1552,9 @@ def test_m06_freezone_canvas_crud_revision_idempotency_history_and_default_guard
 
     listing = _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/freezone/canvases"))
     assert any(item["id"] == canvas_id for item in listing["data"])
-    canvas = _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/freezone/canvases/{canvas_id}"))
+    canvas = _assert_ok(
+        client.get(f"/api/v1/projects/{_PROJECT}/freezone/canvases/{canvas_id}")
+    )
     revision = canvas["data"]["revision"]
     assert canvas["data"]["revision"] == revision
     assert revision >= 1
@@ -1520,7 +1565,9 @@ def test_m06_freezone_canvas_crud_revision_idempotency_history_and_default_guard
             json={
                 "base_revision": revision,
                 "client_save_id": "save-1",
-                "nodes": [{"id": "node-1", "type": "textNode", "data": {"text": "hello"}}],
+                "nodes": [
+                    {"id": "node-1", "type": "textNode", "data": {"text": "hello"}}
+                ],
                 "edges": [],
             },
         )
@@ -1532,7 +1579,9 @@ def test_m06_freezone_canvas_crud_revision_idempotency_history_and_default_guard
             json={
                 "base_revision": revision,
                 "client_save_id": "save-1",
-                "nodes": [{"id": "node-1", "type": "textNode", "data": {"text": "hello"}}],
+                "nodes": [
+                    {"id": "node-1", "type": "textNode", "data": {"text": "hello"}}
+                ],
                 "edges": [],
             },
         )
@@ -1556,14 +1605,18 @@ def test_m06_freezone_canvas_crud_revision_idempotency_history_and_default_guard
         client.delete(f"/api/v1/projects/{_PROJECT}/freezone/canvases/default")
     )
     assert deleted_default["data"]["deleted"] is True
-    deleted = _assert_ok(client.delete(f"/api/v1/projects/{_PROJECT}/freezone/canvases/{canvas_id}"))
+    deleted = _assert_ok(
+        client.delete(f"/api/v1/projects/{_PROJECT}/freezone/canvases/{canvas_id}")
+    )
     assert deleted["data"]["deleted"] is True
 
 
 def test_m06_build_projection_from_preset_returns_local_graph_without_canvas_side_effect(
     m06_client_factory,
 ):
-    client, _backend, _task_manager, project_dir, _assets, _store = m06_client_factory("inline")
+    client, _backend, _task_manager, project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
 
     response = client.post(
         f"/api/v1/projects/{_PROJECT}/freezone/projections:build-from-preset",
@@ -1579,7 +1632,13 @@ def test_m06_build_projection_from_preset_returns_local_graph_without_canvas_sid
 
     payload = _assert_ok(response)
     data = payload["data"]
-    assert set(data) == {"projection_key", "facts_signature", "nodes", "edges", "metadata"}
+    assert set(data) == {
+        "projection_key",
+        "facts_signature",
+        "nodes",
+        "edges",
+        "metadata",
+    }
     assert data["projection_key"] == "beat:1:1:sketch"
     assert data["facts_signature"]
     assert isinstance(data["nodes"], list)
@@ -1595,7 +1654,9 @@ def test_m06_build_projection_from_preset_returns_local_graph_without_canvas_sid
 def test_m06_build_projection_from_preset_rejects_invalid_preset_request(
     m06_client_factory,
 ):
-    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory("inline")
+    client, _backend, _task_manager, _project_dir, _assets, _store = m06_client_factory(
+        "inline"
+    )
 
     response = client.post(
         f"/api/v1/projects/{_PROJECT}/freezone/projections:build-from-preset",
@@ -1610,13 +1671,22 @@ def test_m06_build_projection_from_preset_rejects_invalid_preset_request(
     assert "asset" in response.text
 
 
-def test_m06_freezone_assets_are_m06_scoped_and_identity_creation_works(m06_client_factory):
+def test_m06_freezone_assets_are_m06_scoped_and_identity_creation_works(
+    m06_client_factory,
+):
     """api-coverage:40 keeps /freezone/assets in M06, not the M09 /projects/{p}/assets API."""
-    client, _backend, _task_manager, _project_dir, assets, store = m06_client_factory("inline")
+    client, _backend, _task_manager, _project_dir, assets, store = m06_client_factory(
+        "inline"
+    )
 
-    asset_response = _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/freezone/assets"))
+    asset_response = _assert_ok(
+        client.get(f"/api/v1/projects/{_PROJECT}/freezone/assets")
+    )
     assert any(item.get("tab") == "characters" for item in asset_response["data"])
-    assert all("/projects/{p}/assets" not in item.get("id", "") for item in asset_response["data"])
+    assert all(
+        "/projects/{p}/assets" not in item.get("id", "")
+        for item in asset_response["data"]
+    )
     assert client.get(f"/api/v1/projects/{_PROJECT}/assets").status_code == 404
 
     beat_context = _assert_ok(
@@ -1674,17 +1744,24 @@ def test_m06_freezone_assets_are_m06_scoped_and_identity_creation_works(m06_clie
         )
     )
     assert created["data"]["identity_id"] == f"{_CHARACTER}_雨夜"
-    assert any(i.identity_id == f"{_CHARACTER}_雨夜" for i in store.get_character(_CHARACTER).identities)
+    assert any(
+        i.identity_id == f"{_CHARACTER}_雨夜"
+        for i in store.get_character(_CHARACTER).identities
+    )
 
 
 def test_m06_freezone_push_impact_writes_canonical_backup_and_stale_count(
     m06_client_factory,
 ):
-    client, _backend, _task_manager, _project_dir, assets, _store = m06_client_factory("inline")
+    client, _backend, _task_manager, _project_dir, assets, _store = m06_client_factory(
+        "inline"
+    )
     target = {"kind": "identity", "character": _CHARACTER, "identity_id": _IDENTITY_ID}
 
     impact = _assert_ok(
-        client.post(f"/api/v1/projects/{_PROJECT}/freezone/impact", json={"target": target})
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/freezone/impact", json={"target": target}
+        )
     )
     assert impact["data"]["affected_count"] == 1
 

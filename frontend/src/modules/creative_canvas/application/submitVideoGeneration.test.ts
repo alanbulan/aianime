@@ -23,7 +23,6 @@ const commonParams = {
   durationSeconds: 8,
   generateAudio: true,
   model: "model-1",
-  genMode: "textToVideo" as const,
   canvasId: "canvas-1",
   nodeId: "node-1",
 };
@@ -36,7 +35,6 @@ const commonSubmission = {
   durationSeconds: 8,
   generateAudio: true,
   model: "model-1",
-  genMode: "textToVideo" as const,
   canvasId: "canvas-1",
   nodeId: "node-1",
 };
@@ -54,12 +52,14 @@ describe("submitVideoGeneration", () => {
         params: {
           ...commonParams,
           kind: "text",
+          genMode: "textToVideo",
           humanReview: true,
           sceneOptimize: "anime",
         },
         submission: {
           ...commonSubmission,
           kind: "text",
+          genMode: "textToVideo",
           humanReview: true,
           sceneOptimize: "anime",
         },
@@ -68,6 +68,27 @@ describe("submitVideoGeneration", () => {
         params: {
           ...commonParams,
           kind: "keyframes",
+          genMode: "firstFrame",
+          firstFrameUrl: "first.png",
+          lastFrameUrl: null,
+          humanReview: false,
+          sceneOptimize: null,
+        },
+        submission: {
+          ...commonSubmission,
+          kind: "keyframes",
+          genMode: "firstFrame",
+          firstFrameUrl: "first.png",
+          lastFrameUrl: null,
+          humanReview: false,
+          sceneOptimize: null,
+        },
+      },
+      {
+        params: {
+          ...commonParams,
+          kind: "keyframes",
+          genMode: "firstLastFrame",
           firstFrameUrl: "first.png",
           lastFrameUrl: "last.png",
           humanReview: false,
@@ -76,6 +97,7 @@ describe("submitVideoGeneration", () => {
         submission: {
           ...commonSubmission,
           kind: "keyframes",
+          genMode: "firstLastFrame",
           firstFrameUrl: "first.png",
           lastFrameUrl: "last.png",
           humanReview: false,
@@ -86,6 +108,7 @@ describe("submitVideoGeneration", () => {
         params: {
           ...commonParams,
           kind: "imageReferences",
+          genMode: "imageReference",
           imageUrls: ["one.png", "two.png"],
           humanReview: true,
           sceneOptimize: "realistic",
@@ -93,6 +116,7 @@ describe("submitVideoGeneration", () => {
         submission: {
           ...commonSubmission,
           kind: "imageReferences",
+          genMode: "imageReference",
           imageUrls: ["one.png", "two.png"],
           humanReview: true,
           sceneOptimize: "realistic",
@@ -102,12 +126,14 @@ describe("submitVideoGeneration", () => {
         params: {
           ...commonParams,
           kind: "videoEdit",
+          genMode: "videoEdit",
           videoUrl: "source.mp4",
           imageUrls: ["one.png"],
         },
         submission: {
           ...commonSubmission,
           kind: "videoEdit",
+          genMode: "videoEdit",
           videoUrl: "source.mp4",
           imageUrls: ["one.png"],
         },
@@ -116,6 +142,7 @@ describe("submitVideoGeneration", () => {
         params: {
           ...commonParams,
           kind: "allReferences",
+          genMode: "allReference",
           references: [{ type: "audio", url: "music.mp3", role: "配乐参考" }],
           humanReview: false,
           sceneOptimize: null,
@@ -123,6 +150,7 @@ describe("submitVideoGeneration", () => {
         submission: {
           ...commonSubmission,
           kind: "allReferences",
+          genMode: "allReference",
           references: [{ type: "audio", url: "music.mp3", role: "配乐参考" }],
           humanReview: false,
           sceneOptimize: null,

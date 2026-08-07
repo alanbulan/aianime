@@ -11,18 +11,20 @@ import {
 } from "../domain/videoComposeTimeline";
 import type { VideoComposeSourceMedia } from "../domain/videoComposeInputs";
 
-import { CoverEditor } from "./CoverEditor";
+import {
+  CoverEditor,
+  useVideoComposeExportController,
+  useVideoComposeTimelineSessionController,
+} from "../videoComposePresentationComposition";
 import {
   VideoComposeModalView,
   type VideoComposeExportDialogState,
   type VideoComposeExportLocation,
 } from "./VideoComposeModalView";
-import { useVideoComposeExportController } from "./useVideoComposeExportController";
 import { useVideoComposeKeyboardController } from "./useVideoComposeKeyboardController";
 import { useVideoComposePlaybackController } from "./useVideoComposePlaybackController";
 import { useVideoComposeTimelineEditorController } from "./useVideoComposeTimelineEditorController";
 import { useVideoComposeTimelinePointerController } from "./useVideoComposeTimelinePointerController";
-import { useVideoComposeTimelineSessionController } from "./useVideoComposeTimelineSessionController";
 
 export interface VideoComposeModalProps {
   project: string;

@@ -17,12 +17,17 @@ def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
 
 
 def test_character_default_ethnicity_instruction_allows_explicit_foreign_descriptions():
-    from ai_anime.modules.generators.nanobanana_character import _default_ethnicity_instruction
+    from ai_anime.modules.generators.nanobanana_character import (
+        _default_ethnicity_instruction,
+    )
 
     instruction = _default_ethnicity_instruction("Chinese")
 
     assert "Default ethnicity for unspecified people: Chinese" in instruction
-    assert "only when the character description and reference images do not specify" in instruction
+    assert (
+        "only when the character description and reference images do not specify"
+        in instruction
+    )
     assert "follow that explicit description" in instruction
     assert "Western" in instruction
     assert "Persian" in instruction
@@ -46,7 +51,9 @@ def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
     for path in files:
         source = path.read_text()
         for literal in forbidden_literals:
-            assert literal not in source, f"{path} still contains hard ethnicity constraint {literal!r}"
+            assert literal not in source, (
+                f"{path} still contains hard ethnicity constraint {literal!r}"
+            )
 
 
 def test_style_presets_do_not_use_hard_negative_content_constraints():
@@ -59,6 +66,7 @@ def test_style_presets_do_not_use_hard_negative_content_constraints():
         "business suit",
         "foreign person",
         "western person",
+        "childish face",
     ]
 
     for path in preset_dir.glob("*.json"):
@@ -87,6 +95,7 @@ def test_style_tags_do_not_encode_era_content():
         "MODERN",
         "ANCIENT",
         "DRAMA",
+        "FANTASY",
         "民国",
         "古装",
     }
@@ -134,20 +143,47 @@ def test_live_action_style_tags_describe_grade_finish():
         assert normalized_words & grade_words
 
 
-def test_guoman_fantasy_content_bias_is_fallback_flavor():
+def test_guoman_fantasy_preset_contains_only_rendering_style():
     path = Path("src/ai_anime/styles/presets/guoman_fantasy.json")
     data = json.loads(path.read_text())
     instructions = data["style_instructions"]
     lowered = instructions.lower()
 
-    assert "default flavor" in lowered
-    assert "when character descriptions or reference images do not specify" in lowered
-    assert "when wardrobe is unspecified" in lowered
-    assert "always follow explicit character descriptions" in lowered
+    assert "apply this style only to the rendering medium" in lowered
+    assert "do not infer or change faces" in lowered
     assert "reference images" in lowered
-    assert "phoenix-shaped eyes" not in lowered
-    assert "distant-mountain brows" not in lowered
-    assert "cold detached temperament" not in lowered
+    assert "do not override them with the style preset" in lowered
+    assert "high-status fantasy robes" not in lowered
+    assert "black-gold" not in lowered
+    assert "when wardrobe is unspecified" not in lowered
+    assert "keep the image transparent" not in lowered
+    assert data["style_tag"] == "PREMIUM 3D GUOMAN CG"
+
+
+def test_anime_preset_contains_only_rendering_style():
+    path = Path("src/ai_anime/styles/presets/anime.json")
+    data = json.loads(path.read_text())
+    instructions = data["style_instructions"].lower()
+
+    assert "apply this style only to the rendering medium" in instructions
+    assert "do not infer or change facial features" in instructions
+    assert "reference images" in instructions
+    assert "do not override them with the style preset" in instructions
+    assert "eyes: large" not in instructions
+    assert "hair: flowing" not in instructions
+    assert "watercolor-style environment" not in instructions
+
+
+def test_post_apocalyptic_preset_does_not_force_human_or_weathered_subjects():
+    path = Path("src/ai_anime/styles/presets/post_apocalyptic.json")
+    data = json.loads(path.read_text())
+    instructions = data["style_instructions"].lower()
+    avoid = data["avoid_instructions"].lower()
+
+    assert "real people" not in instructions
+    assert "non-human details" in instructions
+    assert "only when supported by the character and scene context" in avoid
+    assert "must show natural texture and weathering" not in avoid
 
 
 def test_topic_flavored_presets_defer_to_explicit_story_content():

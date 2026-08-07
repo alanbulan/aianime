@@ -16,6 +16,11 @@ from pydantic import BaseModel, Field
 from ai_anime.config import get_video_config
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
 from ai_anime.modules.task_execution.public import run_project_subprocess
+from ai_anime.shared.infrastructure.video_encoding import (
+    configured_video_codec,
+    ffmpeg_video_encoding_args,
+    ffmpeg_video_quality_args,
+)
 
 
 def _run_video_subprocess(cmd: list[str], *, timeout: int = 30 * 60) -> subprocess.CompletedProcess:
@@ -657,8 +662,9 @@ class MoviePyComposer:
             final_clip.write_videofile(
                 output_path,
                 fps=self.fps,
-                codec="libx264",
+                codec=configured_video_codec(),
                 audio_codec="aac",
+                ffmpeg_params=ffmpeg_video_quality_args(crf=20),
             )
 
             # 清理
@@ -786,8 +792,7 @@ async def adjust_video_duration(
                 f"[0:v]setpts={stretch_ratio}*PTS[v];[0:a]atempo={speed_factor}[a]",
                 "-map", "[v]",
                 "-map", "[a]",
-                "-c:v", "libx264",
-                "-preset", "fast",
+                *ffmpeg_video_encoding_args(preset="fast", crf=20),
                 "-c:a", "aac",
                 output_path,
             ]
@@ -803,8 +808,7 @@ async def adjust_video_duration(
                 "-y",
                 "-i", video_path,
                 "-vf", f"tpad=stop_mode=clone:stop_duration={freeze_duration}",
-                "-c:v", "libx264",
-                "-preset", "fast",
+                *ffmpeg_video_encoding_args(preset="fast", crf=20),
                 "-c:a", "aac",
                 output_path,
             ]

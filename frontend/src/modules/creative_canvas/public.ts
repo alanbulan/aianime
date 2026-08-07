@@ -2784,11 +2784,19 @@ export type {
   SeparateCanvasAudioVideoParams,
   SeparateCanvasAudioVideoResult,
 } from "@/modules/creative_canvas/application/separateCanvasAudioVideo";
-export { validateVideoReferenceAudioDuration } from "@/modules/creative_canvas/audioReferenceValidationComposition";
+export {
+  validateVideoReferenceAudioDuration,
+  validateVideoReferenceDuration,
+} from "@/modules/creative_canvas/audioReferenceValidationComposition";
 export type {
+  ValidateVideoReferenceDurationParams,
+  ValidateVideoReferenceDurationResult,
   ValidateVideoReferenceAudioDurationParams,
   ValidateVideoReferenceAudioDurationResult,
   VideoReferenceAudioDuration,
+  VideoReferenceDuration,
+  VideoReferenceDurationLimits,
+  VideoReferenceDurationRejection,
 } from "@/modules/creative_canvas/application/validateVideoReferenceAudioDuration";
 export {
   buildCanvasAudioPrompt,
@@ -3025,7 +3033,7 @@ export type {
 export { captureBrowserVideoFrameStrip } from "@/modules/creative_canvas/infrastructure/browserVideoFrameStrip";
 export { useVideoComposeTimelineEditorController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
 export type { UseVideoComposeTimelineEditorControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineEditorController";
-export { useVideoComposeTimelineSessionController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineSessionController";
+export { useVideoComposeTimelineSessionController } from "@/modules/creative_canvas/videoComposePresentationComposition";
 export type { UseVideoComposeTimelineSessionControllerOptions } from "@/modules/creative_canvas/presentation/useVideoComposeTimelineSessionController";
 export { useVideoComposeTimelinePointerController } from "@/modules/creative_canvas/presentation/useVideoComposeTimelinePointerController";
 export type {
@@ -3038,7 +3046,7 @@ export type { UseVideoComposeKeyboardControllerOptions } from "@/modules/creativ
 export { useVideoComposePlaybackClock } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock";
 export type { VideoComposePlaybackClock } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackClock";
 export { useVideoComposePlaybackController } from "@/modules/creative_canvas/presentation/useVideoComposePlaybackController";
-export { useVideoComposeExportController } from "@/modules/creative_canvas/presentation/useVideoComposeExportController";
+export { useVideoComposeExportController } from "@/modules/creative_canvas/videoComposePresentationComposition";
 export type {
   VideoComposeExportController,
   VideoComposeExportControllerOptions,

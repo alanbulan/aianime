@@ -40,7 +40,6 @@ interface VideoGenerationParamsBase {
   readonly durationSeconds: number;
   readonly generateAudio: boolean;
   readonly model: string;
-  readonly genMode?: VideoGenMode;
   readonly canvasId: string;
   readonly nodeId: string;
 }
@@ -52,23 +51,30 @@ interface ReviewedVideoGenerationParams {
 
 export type SubmitVideoGenerationParams = VideoGenerationParamsBase &
   (
-    | ({ readonly kind: "text" } & ReviewedVideoGenerationParams)
+    | ({
+        readonly kind: "text";
+        readonly genMode: "textToVideo";
+      } & ReviewedVideoGenerationParams)
     | ({
         readonly kind: "keyframes";
+        readonly genMode: "firstFrame" | "firstLastFrame";
         readonly firstFrameUrl: string | null;
         readonly lastFrameUrl: string | null;
       } & ReviewedVideoGenerationParams)
     | ({
         readonly kind: "imageReferences";
+        readonly genMode: "imageToVideo" | "imageReference";
         readonly imageUrls: ReadonlyArray<string>;
       } & ReviewedVideoGenerationParams)
     | {
         readonly kind: "videoEdit";
+        readonly genMode: "videoEdit";
         readonly videoUrl: string;
         readonly imageUrls: ReadonlyArray<string>;
       }
     | ({
         readonly kind: "allReferences";
+        readonly genMode: "allReference";
         readonly references: ReadonlyArray<VideoGenerationReference>;
       } & ReviewedVideoGenerationParams)
   );
@@ -81,7 +87,7 @@ interface VideoGenerationSubmissionBase {
   readonly durationSeconds: number;
   readonly generateAudio: boolean;
   readonly model: string;
-  readonly genMode?: VideoGenMode;
+  readonly genMode: VideoGenMode;
   readonly canvasId: string;
   readonly nodeId: string;
 }

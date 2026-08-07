@@ -81,6 +81,7 @@ import {
   supportedVideoModesForModel,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
+  videoReferenceDurationLimitsForModel,
   videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
 } from '../domain/videoGenerationModel';
@@ -103,9 +104,7 @@ import { generationTaskDescriptor } from '../application/resumeGeneration';
 import { resolveErrorContent } from '../application/errorDialog';
 import { resolveGenerationErrorDiagnostics } from '../application/generationErrorReport';
 import { resolveImageDisplayUrl } from '../domain/imageData';
-import type { EnsureWebSafeVideoResult } from '../infrastructure/videoTranscode';
-import { captureBrowserVideoFrameStrip } from '../infrastructure/browserVideoFrameStrip';
-import { resolveBrowserDroppedVideoFile } from '../infrastructure/browserDroppedVideoFile';
+import type { CaptureVideoFrameStrip } from '../application/videoFrameStrip';
 import type {
   TranslateCanvasTextParams,
   TranslateCanvasTextResult,
@@ -128,6 +127,10 @@ import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
+
+function formatDurationSeconds(durationMs: number): string {
+  return (Math.round(durationMs) / 1000).toFixed(3).replace(/\.?0+$/, "");
+}
 
 export interface VideoNodeStore {
   setSelectedNode: (id: string | null) => void;
@@ -209,7 +212,7 @@ export type VideoNodeComposeVideoClip = typeof import('../videoComposeCompositio
 
 export type VideoNodeEraseVideoSubtitles = typeof import('../videoSubtitleEraseComposition').eraseVideoSubtitles;
 
-export type VideoNodeValidateAudioDuration = typeof import('../audioReferenceValidationComposition').validateVideoReferenceAudioDuration;
+export type VideoNodeValidateReferenceDuration = typeof import('../audioReferenceValidationComposition').validateVideoReferenceDuration;
 
 export type VideoNodeShowErrorDialog = (
   text: string,
@@ -223,9 +226,18 @@ export type VideoNodeCaptureVideoFrameBlob = (
   seekSeconds: number,
 ) => Promise<Blob>;
 
+export interface VideoNodePreparedVideo {
+  file: File;
+  transcoded: boolean;
+}
+
 export type VideoNodeEnsureWebSafeVideo = (
   file: File,
-) => Promise<EnsureWebSafeVideoResult>;
+) => Promise<VideoNodePreparedVideo>;
+
+export type VideoNodeResolveDroppedVideoFile = (
+  dataTransfer: DataTransfer,
+) => File | null;
 
 export type VideoNodeEventPort = {
   subscribe(
@@ -264,9 +276,11 @@ export function createUseVideoNodeController({
   completeVideoGenerationTask,
   composeVideoClip,
   eraseVideoSubtitles,
-  validateVideoReferenceAudioDuration,
+  validateVideoReferenceDuration,
   captureVideoFrameBlob,
+  captureVideoFrameStrip,
   ensureWebSafeVideo,
+  resolveDroppedVideoFile,
   showErrorDialog,
   canvasEventBus,
   rememberLastVideoModel,
@@ -285,9 +299,11 @@ export function createUseVideoNodeController({
   completeVideoGenerationTask: VideoNodeCompleteVideoGenerationTask;
   composeVideoClip: VideoNodeComposeVideoClip;
   eraseVideoSubtitles: VideoNodeEraseVideoSubtitles;
-  validateVideoReferenceAudioDuration: VideoNodeValidateAudioDuration;
+  validateVideoReferenceDuration: VideoNodeValidateReferenceDuration;
   captureVideoFrameBlob: VideoNodeCaptureVideoFrameBlob;
+  captureVideoFrameStrip: CaptureVideoFrameStrip;
   ensureWebSafeVideo: VideoNodeEnsureWebSafeVideo;
+  resolveDroppedVideoFile: VideoNodeResolveDroppedVideoFile;
   showErrorDialog: VideoNodeShowErrorDialog;
   canvasEventBus: VideoNodeEventPort;
   rememberLastVideoModel: VideoNodeRememberLastVideoModel;
@@ -435,10 +451,14 @@ export function createUseVideoNodeController({
   );
   const generateAudio = Boolean(data.generateAudio);
   const supportsHumanReview = selectedVideoModel?.supportsHumanReview === true;
-  const maxReferenceAudioDurationMs =
-    typeof selectedVideoModel?.maxReferenceAudioDurationSeconds === "number"
-      ? selectedVideoModel.maxReferenceAudioDurationSeconds * 1000
-      : null;
+  const audioReferenceDurationLimits = useMemo(
+    () => videoReferenceDurationLimitsForModel(selectedVideoModel, "audio"),
+    [selectedVideoModel],
+  );
+  const videoReferenceDurationLimits = useMemo(
+    () => videoReferenceDurationLimitsForModel(selectedVideoModel, "video"),
+    [selectedVideoModel],
+  );
   const maxReferenceImages = selectedVideoModel?.maxReferenceImages ??
     (usesTypedReferenceModes ? 5 : 9);
   const maxReferenceVideos = selectedVideoModel?.maxReferenceVideos ?? 3;
@@ -947,7 +967,7 @@ export function createUseVideoNodeController({
     async (event: DragEvent<HTMLElement>) => {
       event.preventDefault();
       event.stopPropagation();
-      const file = resolveBrowserDroppedVideoFile(event.dataTransfer);
+      const file = resolveDroppedVideoFile(event.dataTransfer);
       if (file) await processFile(file);
     },
     [processFile],
@@ -1429,10 +1449,12 @@ export function createUseVideoNodeController({
       let doSubmit:
         | ((targetId: string) => ReturnType<typeof submitVideoGeneration>)
         | null = null;
-      if (genMode === "firstLastFrame") {
+      if (genMode === "firstFrame" || genMode === "firstLastFrame") {
         const imageUrls = collectUpstreamImageUrls();
         const firstFrameUrl = imageUrls[0] ?? null;
-        const lastFrameUrl = imageUrls[1] ?? null;
+        const lastFrameUrl = genMode === "firstLastFrame"
+          ? (imageUrls[1] ?? null)
+          : null;
         if (!firstFrameUrl && !lastFrameUrl) {
           console.warn(
             "[video-node] firstLastFrame submit without any frame",
@@ -1546,8 +1568,16 @@ export function createUseVideoNodeController({
         // Reference caps come from the active model catalog entry.
         const upstream = collectUpstream();
         const references: VideoGenerationReference[] = [];
-        // 与 references 里 type==="audio" 的项一一对应，用于提交前校验音频总时长。
-        const audioRefs: { url: string; durationMs: number | null }[] = [];
+        const audioRefs: {
+          url: string;
+          label?: string;
+          durationMs: number | null;
+        }[] = [];
+        const videoRefs: {
+          url: string;
+          label?: string;
+          durationMs: number | null;
+        }[] = [];
         let imageCount = 0;
         let videoCount = 0;
         let audioCount = 0;
@@ -1558,6 +1588,20 @@ export function createUseVideoNodeController({
             // 视频节点或携带 videoUrl 的 upload 节点（资产库视频）统一收集。
             if (videoCount < maxReferenceVideos) {
               references.push({ type: "video", url: videoRefUrl });
+              videoRefs.push({
+                url: videoRefUrl,
+                label:
+                  (typeof node.data.sourceFileName === "string"
+                    ? node.data.sourceFileName
+                    : "") ||
+                  (typeof node.data.displayName === "string"
+                    ? node.data.displayName
+                    : undefined),
+                durationMs:
+                  typeof node.data.durationMs === "number"
+                    ? node.data.durationMs
+                    : null,
+              });
               videoCount += 1;
             }
           } else if (isAudioNode(node)) {
@@ -1583,6 +1627,7 @@ export function createUseVideoNodeController({
               });
               audioRefs.push({
                 url,
+                label: rawLabel || undefined,
                 durationMs:
                   typeof node.data.durationMs === "number"
                     ? node.data.durationMs
@@ -1606,26 +1651,63 @@ export function createUseVideoNodeController({
           });
           return;
         }
-        // Validate only when the model catalog declares an audio-duration cap.
-        if (maxReferenceAudioDurationMs && audioRefs.length > 0) {
-          const audioDuration =
-            await validateVideoReferenceAudioDuration({
-              references: audioRefs,
-              maxDurationMs: maxReferenceAudioDurationMs,
-            });
-          if (audioDuration.exceedsLimit) {
-            void showErrorDialog(
-              t("node.videoNode.audio.durationExceeded", {
-                max: Math.floor(maxReferenceAudioDurationMs / 1000),
-              }),
-              t("common.error"),
-            );
-            updateNodeData(id, {
-              isGenerating: false,
-              generationStartedAt: null,
-            });
-            return;
+        const validateReferenceDurations = async (
+          media: "audio" | "video",
+          refs: typeof audioRefs,
+          limits:
+            | typeof audioReferenceDurationLimits
+            | typeof videoReferenceDurationLimits,
+        ): Promise<boolean> => {
+          if (
+            refs.length === 0 ||
+            Object.values(limits).every((value) => value == null)
+          ) {
+            return true;
           }
+          const result = await validateVideoReferenceDuration({
+            media,
+            references: refs,
+            limits,
+          });
+          if (!result.rejection) return true;
+          const rejection = result.rejection;
+          const items = rejection.references
+            .map(
+              (reference) =>
+                `${reference.label} (${formatDurationSeconds(reference.durationMs)}s)`,
+            )
+            .join(", ");
+          void showErrorDialog(
+            t(`node.videoNode.referenceDuration.${rejection.kind}`, {
+              media:
+                media === "audio"
+                  ? t("node.videoNode.referenceDuration.audio")
+                  : t("node.videoNode.referenceDuration.video"),
+              limit: formatDurationSeconds(rejection.limitMs),
+              total: formatDurationSeconds(rejection.totalDurationMs),
+              items,
+            }),
+            t("common.error"),
+          );
+          updateNodeData(id, {
+            isGenerating: false,
+            generationStartedAt: null,
+          });
+          return false;
+        };
+        if (
+          !(await validateReferenceDurations(
+            "audio",
+            audioRefs,
+            audioReferenceDurationLimits,
+          )) ||
+          !(await validateReferenceDurations(
+            "video",
+            videoRefs,
+            videoReferenceDurationLimits,
+          ))
+        ) {
+          return;
         }
         doSubmit = (targetId) =>
           submitVideoGeneration({
@@ -1831,7 +1913,7 @@ export function createUseVideoNodeController({
     genMode,
     humanReview,
     id,
-    maxReferenceAudioDurationMs,
+    audioReferenceDurationLimits,
     maxReferenceAudios,
     maxReferenceImages,
     maxReferenceTotal,
@@ -1847,6 +1929,7 @@ export function createUseVideoNodeController({
     updateNodeData,
     upstreamTextJoined,
     usesTypedReferenceModes,
+    videoReferenceDurationLimits,
   ]);
 
   const hasMainlineContext = hasMainlineContexts(
@@ -2115,7 +2198,7 @@ export function createUseVideoNodeController({
     isEmptyVideoBody,
     showVideoOpsPanel,
     handleCaptureFrame,
-    captureFrameStrip: captureBrowserVideoFrameStrip,
+    captureFrameStrip: captureVideoFrameStrip,
     videoFileAccept: VIDEO_FILE_ACCEPT,
     projectId,
   };

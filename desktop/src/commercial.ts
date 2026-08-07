@@ -23,6 +23,7 @@ import {
   selectReleaseArtifactId,
   type CommercialArtifactDownloadSnapshot,
   type CommercialAuthorizationSnapshot,
+  type CommercialModelCapabilitySnapshot,
 } from "./commercial-contracts.js";
 import {
   clearEncryptedFile,
@@ -925,6 +926,7 @@ interface RegisterCommercialIpcOptions {
     access: StoredCommercialModelAccess,
     allowsCustomModels: boolean,
     cloudModelAssignments: readonly ByokModelAssignment[],
+    modelCapabilities: readonly CommercialModelCapabilitySnapshot[],
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
   releaseArtifactDownloader?: (
@@ -952,6 +954,19 @@ export function registerCommercialIpc(
   const client = options.client;
   let currentAuthorization: CommercialAuthorizationSnapshot | null = null;
   let cloudModelAssignments: ByokModelAssignment[] = [];
+  const modelCapabilities = new Map<string, CommercialModelCapabilitySnapshot>();
+  let modelCapabilityCatalogVersion = "";
+
+  const updateModelCapabilities = (
+    catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
+  ): void => {
+    if (!catalog) return;
+    if (catalog.catalogVersion !== modelCapabilityCatalogVersion) {
+      modelCapabilities.clear();
+      modelCapabilityCatalogVersion = catalog.catalogVersion;
+    }
+    mergeModelCapabilities(catalog, modelCapabilities);
+  };
 
   const requireClient = (): CommercialApiClient => {
     if (!client) throw new CommercialApiError("未配置 Commercial Gateway 地址");
@@ -986,6 +1001,8 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.session, async () => {
     currentAuthorization = null;
     cloudModelAssignments = [];
+    modelCapabilities.clear();
+    modelCapabilityCatalogVersion = "";
     const session = await requireClient().restoreSession();
     if (session) await options.onAuthenticated(session);
     else await options.onLoggedOut();
@@ -994,6 +1011,8 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.login, async (input) => {
     currentAuthorization = null;
     cloudModelAssignments = [];
+    modelCapabilities.clear();
+    modelCapabilityCatalogVersion = "";
     await synchronizeModelAccess();
     const session = await requireClient().login(parseLoginInput(input));
     try {
@@ -1009,6 +1028,8 @@ export function registerCommercialIpc(
     await options.onLoggedOut();
     currentAuthorization = null;
     cloudModelAssignments = [];
+    modelCapabilities.clear();
+    modelCapabilityCatalogVersion = "";
     await synchronizeModelAccess();
     return result;
   });
@@ -1049,6 +1070,7 @@ export function registerCommercialIpc(
         )
       : null;
     cloudModelAssignments = defaultCloudTextModelAssignments(bootstrap.models);
+    updateModelCapabilities(bootstrap.models);
     const access = await options.modelAccessStore.load();
     if (
       authorizationAllowsByok(currentAuthorization) &&
@@ -1084,13 +1106,14 @@ export function registerCommercialIpc(
     const catalog = projectCommercialModelCatalog(
       await requireClient().modelCatalog(query),
     );
+    updateModelCapabilities(catalog);
     if (
       query.operation?.trim().toUpperCase() === "TEXT" ||
       catalog.items.some((item) => item.operation.trim().toUpperCase() === "TEXT")
     ) {
       cloudModelAssignments = defaultCloudTextModelAssignments(catalog);
-      await synchronizeModelAccess();
     }
+    await synchronizeModelAccess();
     return catalog;
   });
   handle(COMMERCIAL_CHANNELS.currentLicense, async () =>
@@ -1214,7 +1237,50 @@ export function registerCommercialIpc(
       access,
       authorizationAllowsByok(currentAuthorization),
       cloudModelAssignments,
+      [...modelCapabilities.values()],
     );
+  }
+}
+
+const REFERENCE_DURATION_CAPABILITY_FIELDS = [
+  "referenceAudioMinSeconds",
+  "referenceAudioMaxSeconds",
+  "referenceAudioTotalMinSeconds",
+  "referenceAudioTotalMaxSeconds",
+  "referenceVideoMinSeconds",
+  "referenceVideoMaxSeconds",
+  "referenceVideoTotalMinSeconds",
+  "referenceVideoTotalMaxSeconds",
+] as const;
+
+function mergeModelCapabilities(
+  catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
+  target: Map<string, CommercialModelCapabilitySnapshot>,
+): void {
+  for (const item of catalog?.items ?? []) {
+    target.delete(item.code);
+    if (!item.capabilityJson) continue;
+    let raw: unknown;
+    try {
+      raw = JSON.parse(item.capabilityJson);
+    } catch {
+      throw new CommercialApiError(
+        `模型 ${item.code} 的 capabilityJson 不是有效 JSON`,
+      );
+    }
+    const capabilities = optionalRecord(raw);
+    const projected: CommercialModelCapabilitySnapshot = {
+      modelId: item.code,
+    };
+    for (const field of REFERENCE_DURATION_CAPABILITY_FIELDS) {
+      const value = capabilities[field];
+      if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+        projected[field] = value;
+      }
+    }
+    if (Object.keys(projected).length > 1) {
+      target.set(item.code, projected);
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 # AI anime 桌面壳（Electron）
 
-`desktop/` 是 AI anime 的 Electron 桌面壳：负责窗口生命周期、本地 FastAPI sidecar 启停、商业云端链路（登录/许可/额度/模型目录/更新）、内置 Hermes ACP 运行时和 Windows 打包。
+`desktop/` 是 AI anime 的 Electron 桌面壳：负责窗口生命周期、本地 FastAPI sidecar 启停、商业云端链路（登录/许可/额度/模型目录/更新）、内置 Hermes ACP 运行时和桌面打包。
 
 ## 目录结构
 
@@ -23,7 +23,7 @@ desktop/
 ├─ hermes-runtime/               独立 Hermes ACP 运行时（独立 pyproject/uv.lock）
 ├─ scripts/                      开发启动、图标生成、FFmpeg 拉取等脚本
 ├─ tests/                        Electron 主进程契约测试
-├─ electron-builder.yml          NSIS 与应用图标配置
+├─ electron-builder.yml          NSIS、DMG、ZIP 与应用图标配置
 └─ package.json
 ```
 
@@ -47,9 +47,10 @@ pnpm --dir desktop test
 ```powershell
 pnpm --dir desktop package:dir    # 生成 unpacked 目录
 pnpm --dir desktop package:win    # 生成 NSIS 安装包
+pnpm --dir desktop package:mac    # 在 Apple Silicon Mac 上生成 DMG 与 ZIP
 ```
 
-打包链路依次执行：应用图标生成、FFmpeg 拉取、前端 CE 构建、Electron 主进程编译、后端 PyInstaller、Hermes 运行时 PyInstaller，最后 electron-builder 出包。
+打包链路依次执行：应用图标生成、对应平台的 LGPL FFmpeg 拉取与校验、前端 CE 构建、Electron 主进程编译、后端 PyInstaller、Hermes 运行时 PyInstaller，最后 electron-builder 出包。Windows 目标为 x64；macOS 目标为 Apple Silicon arm64、macOS 15 及以上。PyInstaller sidecar 不能跨系统或跨架构生成，因此两种安装包必须分别在对应宿主系统构建。
 
 ## 安全边界
 

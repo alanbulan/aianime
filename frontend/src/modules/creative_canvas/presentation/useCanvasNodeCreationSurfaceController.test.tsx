@@ -66,7 +66,7 @@ const controllerMocks = vi.hoisted(() => {
     useNodeMenu: vi.fn(() => nodeMenu),
     useNodeCatalog: vi.fn(() => nodeCatalog),
     useConnection: vi.fn(() => connection),
-    useNodeInteraction: vi.fn(() => nodeInteraction),
+    useNodeInteraction: vi.fn((_options: unknown) => nodeInteraction),
   };
 });
 
@@ -106,6 +106,8 @@ function createOptions(): CanvasNodeCreationSurfaceControllerOptions {
     nodes: [],
     screenToFlowPosition: vi.fn((position) => position),
     createNode: vi.fn(() => 'node-1'),
+    getZoom: vi.fn(() => 1),
+    requestFocusNode: vi.fn(),
     selectNode: vi.fn(),
     confirmPlacement: vi.fn(),
     onBlankPaneClick: vi.fn(),
@@ -147,7 +149,7 @@ describe('useCanvasNodeCreationSurfaceController', () => {
       },
       skillNodeType: 'skillNode',
       screenToFlowPosition: options.screenToFlowPosition,
-      createNode: options.createNode,
+      createNode: expect.any(Function),
       adaptMenuCreationData: expect.any(Function),
       selectNode: options.selectNode,
       bindSkill: controllerMocks.connection.bindSingleBeatContextInput,
@@ -170,6 +172,24 @@ describe('useCanvasNodeCreationSurfaceController', () => {
         controllerMocks.nodeMenu.hideNodeMenuForPlacement,
       closeNodeMenu: controllerMocks.nodeMenu.closeNodeMenu,
     });
+  });
+
+  it('focuses all surface-created nodes only below the low-zoom threshold', () => {
+    const options = createOptions();
+    vi.mocked(options.getZoom).mockReturnValue(0.1);
+    renderHook(() => useCanvasNodeCreationSurfaceController(options));
+
+    const interactionCalls = controllerMocks.useNodeInteraction.mock.calls;
+    const interactionOptions = interactionCalls[interactionCalls.length - 1]?.[0] as
+      | { createNode: CanvasNodeCreationSurfaceControllerOptions['createNode'] }
+      | undefined;
+    expect(interactionOptions).toBeDefined();
+    interactionOptions?.createNode('uploadNode', { x: 10, y: 20 });
+    expect(options.requestFocusNode).toHaveBeenCalledWith('node-1');
+
+    vi.mocked(options.getZoom).mockReturnValue(0.6);
+    interactionOptions?.createNode('uploadNode', { x: 30, y: 40 });
+    expect(options.requestFocusNode).toHaveBeenCalledTimes(1);
   });
 
   it('exposes only the node-creation surface contract', () => {

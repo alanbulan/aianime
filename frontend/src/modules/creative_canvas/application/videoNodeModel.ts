@@ -477,7 +477,7 @@ export function planVideoFrameSources(input: {
       ],
       groupLabel: '首帧生成视频组',
       videoPatch: {
-        genMode: 'allReference',
+        genMode: 'firstFrame',
         ...(input.prompt.trim()
           ? {}
           : { prompt: VIDEO_NODE_FIRST_FRAME_PROMPT }),

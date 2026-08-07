@@ -1028,7 +1028,7 @@
     "title": "素材导入",
     "subtitle": "上传剧本，开启你的创意之旅",
     "dropzoneHint": "点击或拖拽上传小说文件",
-    "supportedFormats": "支持 .txt / .md / .docx，建议不超过 10MB",
+    "supportedFormats": "支持 .txt / .md / .docx，文件不超过 512KB",
     "uploadingTitle": "正在上传小说…",
     "uploadingHint": "上传完成前请勿离开本页面，网络较慢时可能需要多等一会儿。",
     "inputMode": {
@@ -3036,6 +3036,14 @@
         "on": "开启",
         "off": "关闭",
         "durationExceeded": "音频总时长不能超过 {{max}} 秒，请缩短或替换配乐参考后再试。"
+      },
+      "referenceDuration": {
+        "audio": "音频",
+        "video": "视频",
+        "tooShort": "{{media}}参考素材时长不能短于 {{limit}} 秒：{{items}}",
+        "tooLong": "{{media}}参考素材时长不能超过 {{limit}} 秒：{{items}}",
+        "totalTooShort": "{{media}}参考素材总时长不能短于 {{limit}} 秒，当前为 {{total}} 秒：{{items}}",
+        "totalTooLong": "{{media}}参考素材总时长不能超过 {{limit}} 秒，当前为 {{total}} 秒：{{items}}"
       },
       "count": {
         "format": "{{count}}个"

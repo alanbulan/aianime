@@ -14,6 +14,12 @@ from ai_anime.modules.story_intake.public import (
 )
 
 
+def _format_size_limit(limit_bytes: int) -> str:
+    if limit_bytes % (1024 * 1024) == 0:
+        return f"{limit_bytes // (1024 * 1024)}MB"
+    return f"{limit_bytes // 1024}KB"
+
+
 def story_intake_error_payload(error: Exception) -> dict:
     if isinstance(error, UnsafeStoryDocumentName):
         return {"ok": False, "error": "非法文件名"}
@@ -29,7 +35,12 @@ def story_intake_error_payload(error: Exception) -> dict:
     if isinstance(error, StoryDocumentTooLarge):
         return {
             "ok": False,
-            "error": f"文件超过上限 ({error.max_megabytes}MB)",
+            "error": (
+                f"文件超过 {_format_size_limit(error.max_bytes)} 上限，"
+                "请压缩文件或拆分正文后重新上传。"
+            ),
+            "error_type": "file_too_large",
+            "data": {"limit_bytes": error.max_bytes},
         }
     if isinstance(error, StoryDocumentNotFound):
         return {

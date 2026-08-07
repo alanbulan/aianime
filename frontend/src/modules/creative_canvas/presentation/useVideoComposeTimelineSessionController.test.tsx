@@ -9,18 +9,16 @@ import {
 } from "../domain/videoComposeTimeline";
 import type { VideoComposeSourceMedia } from "../domain/videoComposeInputs";
 
-import { useVideoComposeTimelineSessionController } from "./useVideoComposeTimelineSessionController";
+import { createUseVideoComposeTimelineSessionController } from "./useVideoComposeTimelineSessionController";
 
 const mocks = vi.hoisted(() => ({
   probeDuration: vi.fn(),
 }));
 
-vi.mock(
-  "../infrastructure/browserVideoComposeMediaRuntime",
-  () => ({
-    probeVideoComposeMediaDuration: mocks.probeDuration,
-  }),
-);
+const useVideoComposeTimelineSessionController =
+  createUseVideoComposeTimelineSessionController({
+    probeMediaDuration: (...args) => mocks.probeDuration(...args),
+  });
 
 afterEach(() => {
   mocks.probeDuration.mockReset();

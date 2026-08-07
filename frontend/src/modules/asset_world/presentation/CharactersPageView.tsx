@@ -37,9 +37,9 @@ import type { IdentityCardController } from "@/modules/asset_world/application/u
 import { SlidingTabs } from "@/components/nav/sliding-tabs";
 import { CharacterSearch } from "@/components/assets/character-search";
 import { CharacterStatsStrip } from "@/components/assets/character-stats-strip";
-import { ProjectStyleChip } from "@/components/assets/project-style-chip";
+import { ProjectStyleChip } from "@/modules/asset_world/presentation/ProjectStyleChip";
 import { UsageCountBadge } from "@/components/assets/usage-count-badge";
-import { CopyAssetLinkButton } from "@/components/assets/copy-asset-link-button";
+import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
 import { AssetBeatReferences } from "@/components/assets/asset-beat-references";
 import { LightboxImage } from "@/components/lightbox-image";
 import { CreditCostInline } from "@/components/credit-cost-inline";

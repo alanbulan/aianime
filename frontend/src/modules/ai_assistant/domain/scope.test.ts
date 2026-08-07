@@ -27,16 +27,16 @@ describe("AI Assistant scope", () => {
       .toBe("ai_anime:home:main");
     expect(scopeSessionKey({ kind: "home", id: null }))
       .toBe("ai_anime:home:main");
-    expect(scopeSessionKey({ kind: "asset", id: "asset-a" }))
-      .toBe("ai_anime:home:main");
   });
 
   it("accepts only supported scope kinds", () => {
-    for (const kind of ["home", "project", "asset", "task"] as const) {
+    for (const kind of ["home", "project"] as const) {
       expect(isChatScope({ kind, id: "value" })).toBe(true);
     }
     expect(isChatScope(undefined)).toBe(false);
     expect(isChatScope([])).toBe(false);
+    expect(isChatScope({ kind: "asset", id: "asset-a" })).toBe(false);
+    expect(isChatScope({ kind: "task", id: "task-a" })).toBe(false);
     expect(isChatScope({ kind: "unknown" })).toBe(false);
   });
 
@@ -58,9 +58,5 @@ describe("AI Assistant scope", () => {
       { kind: "project", id: "project-a" },
       { kind: "project", id: "project-b" },
     )).toBe(false);
-    expect(scopeMatches(
-      { kind: "task" },
-      { kind: "task", id: null },
-    )).toBe(true);
   });
 });

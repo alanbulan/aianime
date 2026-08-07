@@ -31,6 +31,7 @@ import {
   downloadAndVerifyReleaseArtifact,
   verifyWindowsAuthenticodeSignature,
 } from "./commercial-artifact.js";
+import { releaseInstallerCommand } from "./platform-runtime.js";
 
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
@@ -209,11 +210,13 @@ function registerCommercialGatewayIpc(
       access,
       allowsCustomModels,
       cloudModelAssignments,
+      modelCapabilities,
     ) =>
       localBackend.configureModelAccess({
         allowsCustomModels,
         mode: allowsCustomModels ? access.mode : "cloud",
         cloudModelAssignments: [...cloudModelAssignments],
+        modelCapabilities: [...modelCapabilities],
         ...(allowsCustomModels && access.mode === "byok"
           ? {
               byokBaseUrl: access.byokBaseUrl,
@@ -252,7 +255,8 @@ function registerCommercialGatewayIpc(
           "安装程序 SHA-256 与下载结果不一致",
         );
       }
-      const child = spawn(resolved, [], {
+      const installer = releaseInstallerCommand(resolved);
+      const child = spawn(installer.command, installer.args, {
         detached: true,
         stdio: "ignore",
       });

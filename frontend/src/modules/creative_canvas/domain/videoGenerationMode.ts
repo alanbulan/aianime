@@ -2,6 +2,7 @@
 export type VideoGenMode =
   | "textToVideo"
   | "allReference"
+  | "firstFrame"
   | "imageToVideo"
   | "firstLastFrame"
   | "imageReference"

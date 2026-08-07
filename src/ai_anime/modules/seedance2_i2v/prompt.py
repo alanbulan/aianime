@@ -8,24 +8,13 @@ import re
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
 
-from pydantic import BaseModel, Field
-
 from ai_anime.modules.production.public import (
     real_detected_identities,
     real_detected_props,
 )
 from ai_anime.modules.narrative_planning.public import beat_scene_ref
 from ai_anime.modules.seedance2_i2v.models import Seedance2I2VMode
-from ai_anime.modules.seedance2_i2v.spoken_dialogue import (
-    parse_seedance2_spoken_lines,
-    speaker_display_name,
-)
-
-
-class Seedance2PromptComposerOutput(BaseModel):
-    """Structured output returned by the prompt composer agent."""
-
-    prompt: str = Field(default="", description="最终 Seedance 2.0 prompt")
+from ai_anime.modules.seedance2_i2v.spoken_dialogue import speaker_display_name
 
 
 @dataclass(frozen=True)
@@ -60,7 +49,10 @@ def _sentence_text(value: Any) -> str:
 
 def _beat_spoken_text(beat: dict[str, Any]) -> str:
     return _text(
-        beat.get("dialogue") or beat.get("narration_segment") or beat.get("narration") or ""
+        beat.get("dialogue")
+        or beat.get("narration_segment")
+        or beat.get("narration")
+        or ""
     )
 
 
@@ -131,7 +123,12 @@ def _scene_ref_label(beat: dict[str, Any], assets: list[Any] | None = None) -> s
 def normalize_seedance2_editor_prompt(prompt: str) -> str:
     """Convert editor-only @ mentions into model-facing reference labels."""
 
-    return _text(prompt).replace("@图片", "图片").replace("@音频", "音频").replace("@视频", "视频")
+    return (
+        _text(prompt)
+        .replace("@图片", "图片")
+        .replace("@音频", "音频")
+        .replace("@视频", "视频")
+    )
 
 
 def _selected_assets(assets: list[Any] | None) -> list[Any]:
@@ -186,7 +183,9 @@ def build_seedance2_asset_manifest(assets: list[Any] | None) -> list[dict[str, s
     return manifest
 
 
-def build_seedance2_asset_fallback_manifest(assets: list[Any] | None) -> list[dict[str, str]]:
+def build_seedance2_asset_fallback_manifest(
+    assets: list[Any] | None,
+) -> list[dict[str, str]]:
     """Return text-only reference constraints for assets that are not sent to the API."""
 
     manifest: list[dict[str, str]] = []
@@ -249,46 +248,35 @@ def _prop_prompt_fallbacks(assets: list[Any] | None) -> dict[str, str]:
     return fallbacks
 
 
-def _voice_reference_labels(assets: list[Any] | None) -> dict[str, str]:
-    labels: dict[str, str] = {}
+def _beat_spoken_prompt_fragment(beat: dict[str, Any], assets: list[Any] | None) -> str:
+    spoken = _beat_spoken_text(beat)
+    if not spoken:
+        return ""
+
+    voice_references: list[str] = []
     for asset in _selected_assets(assets):
-        media_type = _text(_asset_value(asset, "media_type"))
-        reference_label = _text(_asset_value(asset, "reference_label"))
-        if media_type != "audio" or not reference_label.startswith("音频"):
+        label = _text(_asset_value(asset, "reference_label"))
+        if not label.startswith("音频"):
             continue
         identity_id = _text(_asset_value(asset, "identity_id"))
-        key = _text(_asset_value(asset, "key"))
-        if identity_id:
-            labels.setdefault(identity_id, reference_label)
-            labels.setdefault(speaker_display_name(identity_id), reference_label)
-        if key.startswith("voice:"):
-            key_id = key.split(":", 1)[1]
-            labels.setdefault(key_id, reference_label)
-            labels.setdefault(speaker_display_name(key_id), reference_label)
-    return labels
+        title = speaker_display_name(identity_id) or _text(_asset_value(asset, "label"))
+        voice_references.append(
+            f"{title}参考{label}声线" if title else f"参考{label}声线"
+        )
 
-
-def _beat_spoken_prompt_fragment(beat: dict[str, Any], assets: list[Any] | None) -> str:
-    lines = parse_seedance2_spoken_lines(beat)
-    if not lines:
-        return _beat_spoken_text(beat)
-
-    voice_labels = _voice_reference_labels(assets)
-    fragments: list[str] = []
-    for line in lines:
-        speaker = speaker_display_name(line.speaker)
-        label = voice_labels.get(line.speaker) or voice_labels.get(speaker)
-        action = _sentence_text(line.action)
-        if action and label:
-            action_part = f"（{action}，参考{label}声线）"
-        elif action:
-            action_part = f"（{action}）"
-        elif label:
-            action_part = f"（参考{label}声线）"
-        else:
-            action_part = ""
-        fragments.append(f"{speaker}{action_part}说：“{_sentence_text(line.text)}”")
-    return "；".join(fragments)
+    speaker = speaker_display_name(_text(beat.get("speaker")))
+    context: list[str] = []
+    if speaker:
+        context.append(f"本 Beat 说话角色为{speaker}")
+    if voice_references:
+        context.append("声线对应：" + "、".join(dict.fromkeys(voice_references)))
+    context_text = "；".join(context)
+    if context_text:
+        context_text = f"；{context_text}"
+    return (
+        "原始对白与表演文本（请语义区分动作说明和实际说出的台词，"
+        f"实际台词必须逐字完整保留{context_text}）：{spoken}"
+    )
 
 
 def _text_with_identity_references(text: Any, assets: list[Any] | None) -> str:
@@ -392,7 +380,11 @@ def _reference_sentence_for_assets(
     elif mode == Seedance2I2VMode.FIRST_FRAME and image_parts:
         base = f"以{image_parts[0]}生成图生视频"
     else:
-        base = "参考" + "、".join(image_parts) if image_parts else "根据输入参考素材生成图生视频"
+        base = (
+            "参考" + "、".join(image_parts)
+            if image_parts
+            else "根据输入参考素材生成图生视频"
+        )
 
     if audio_parts:
         base = f"{base}，参考{'、'.join(audio_parts)}"
@@ -419,7 +411,9 @@ def build_text_overlay_prompt_fragment(text_overlay: dict[str, Any] | None) -> s
     if speaker:
         character, identity = _split_identity_label(speaker)
         speaker_text = (
-            f"，说话人为{character}（{identity}）" if identity else f"，说话人为{character}"
+            f"，说话人为{character}（{identity}）"
+            if identity
+            else f"，说话人为{character}"
         )
     return (
         f"画面文字使用{kind_label}“{content}”，位置为{placement}，"
@@ -471,7 +465,9 @@ def build_seedance2_prompt_draft(
     if guidance:
         lines.append(_clean_sentence(guidance))
     if manual:
-        lines.append(_clean_sentence(f"用户手动版本可作为改写参考：{_sentence_text(manual)}"))
+        lines.append(
+            _clean_sentence(f"用户手动版本可作为改写参考：{_sentence_text(manual)}")
+        )
 
     return normalize_seedance2_editor_prompt("".join(line for line in lines if line))
 
@@ -543,7 +539,9 @@ def build_seedance2_prompt_composer_task(
         "asset_fallbacks": build_seedance2_asset_fallback_manifest(assets),
         "text_overlay": text_overlay or {},
         "user_prompt_guidance": _text(prompt_guidance),
-        "manual_prompt_reference": normalize_seedance2_editor_prompt(manual_prompt_reference),
+        "manual_prompt_reference": normalize_seedance2_editor_prompt(
+            manual_prompt_reference
+        ),
         "request_params_for_context_only": request_params or {},
         "rule_based_draft_prompt": normalize_seedance2_editor_prompt(draft_prompt),
     }
@@ -559,7 +557,9 @@ def build_seedance2_prompt_composer_task(
         "- duration、resolution、ratio、generate_audio、return_last_frame、human_review "
         "只作为 API 请求参数，不要写进 prompt。\n"
         "- 如果用户写作要求和资产清单、道具 fallback 冲突，以资产清单和 fallback 为准。\n"
-        "- 输出字段 prompt 只放最终 prompt，不要解释。\n\n"
+        "- dialogue 或 narration_segment 属于对白时，请根据语义区分动作说明和实际说出的台词；"
+        "动作可自然改写，但实际台词必须逐字完整保留，不能删减或概括。\n"
+        "- 只输出最终 prompt，不要解释。\n\n"
         f"{json.dumps(payload, ensure_ascii=False, indent=2, default=str)}"
     )
 
@@ -586,8 +586,7 @@ def create_seedance2_prompt_composer_agent():
             "gemini-3.5-flash",
         ),
         system_prompt=SEEDANCE2_COMPOSER_SYSTEM_PROMPT,
-        output_type=Seedance2PromptComposerOutput,
-        output_retries=2,
+        output_type=str,
         name="Seedance 2.0 Prompt Composer",
         **agent_kwargs,
     )
@@ -617,7 +616,7 @@ async def compose_seedance2_prompt_with_agent(
             manual_prompt_reference=manual_prompt_reference,
         )
     )
-    prompt = normalize_seedance2_editor_prompt(result.output.prompt)
+    prompt = normalize_seedance2_editor_prompt(result.output)
     if not prompt:
         raise ValueError("AI composer returned an empty prompt")
     return prompt

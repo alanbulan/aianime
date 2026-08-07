@@ -1,25 +1,27 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-$archiveName = "ffmpeg-n8.1.2-29-g703dcc25b9-win64-lgpl-8.1.zip"
-$releaseTag = "autobuild-2026-07-21-13-38"
-$expectedSha256 = "7292007cf83eb537d6498750af356d3aa026b62c21000196bc7851f5531ab649"
+$archiveName = "ffmpeg-n8.1-latest-win64-lgpl-8.1.zip"
+$releaseTag = "latest"
 $downloadUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/$releaseTag/$archiveName"
-$archiveRoot = "ffmpeg-n8.1.2-29-g703dcc25b9-win64-lgpl-8.1"
+$checksumsUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/$releaseTag/checksums.sha256"
+$archiveRoot = [System.IO.Path]::GetFileNameWithoutExtension($archiveName)
 
 $desktopRoot = Split-Path -Parent $PSScriptRoot
 $cacheDir = Join-Path $desktopRoot ".ffmpeg-cache"
 $archivePath = Join-Path $cacheDir $archiveName
+$checksumsPath = Join-Path $cacheDir "checksums.sha256"
 $runtimeDir = Join-Path $desktopRoot "runtime\ffmpeg"
 
 New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
 New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
-foreach ($staleMetadata in @("SOURCE.json", "BUILD-CONFIGURATION.txt")) {
-    $stalePath = Join-Path $runtimeDir $staleMetadata
-    if (Test-Path -LiteralPath $stalePath -PathType Leaf) {
-        Remove-Item -LiteralPath $stalePath -Force
-    }
+Invoke-WebRequest -Headers @{ "User-Agent" = "AI-anime-Desktop-Build" } -Uri $checksumsUrl -OutFile $checksumsPath
+$checksumPattern = "(?m)^([0-9a-f]{64})\s+" + [regex]::Escape($archiveName) + "$"
+$checksumMatch = [regex]::Match((Get-Content -LiteralPath $checksumsPath -Raw), $checksumPattern)
+if (-not $checksumMatch.Success) {
+    throw "FFmpeg checksum entry not found: $archiveName"
 }
+$expectedSha256 = $checksumMatch.Groups[1].Value
 
 function Test-ArchiveHash {
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
@@ -81,9 +83,28 @@ if ($LASTEXITCODE -ne 0) {
 if ($buildConfiguration -match "--enable-(gpl|nonfree)") {
     throw "Bundled FFmpeg build is not LGPL-only"
 }
+$encoders = (& $ffmpegPath -hide_banner -encoders 2>&1 | Out-String)
+if ($encoders -notmatch "libopenh264") {
+    throw "Bundled FFmpeg is missing libopenh264"
+}
+$filters = (& $ffmpegPath -hide_banner -filters 2>&1 | Out-String)
+if ($filters -notmatch "drawtext") {
+    throw "Bundled FFmpeg is missing drawtext"
+}
 & $ffprobePath -hide_banner -version | Out-Null
 if ($LASTEXITCODE -ne 0) {
     throw "Bundled ffprobe.exe did not start"
 }
+
+$buildConfiguration | Set-Content -LiteralPath (Join-Path $runtimeDir "BUILD-CONFIGURATION.txt") -Encoding utf8
+@{
+    source = "BtbN/FFmpeg-Builds"
+    releaseTag = $releaseTag
+    target = "windows"
+    arch = "x64"
+    archive = $archiveName
+    archiveSha256 = $expectedSha256
+    sourceRelease = "https://github.com/BtbN/FFmpeg-Builds/releases/tag/$releaseTag"
+} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeDir "SOURCE.json") -Encoding utf8
 
 Write-Host "FFmpeg runtime ready: $runtimeDir"

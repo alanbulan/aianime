@@ -49,13 +49,47 @@ vi.mock("@/features/viewer-kit/three-d/ThreeDDirectorDialog", () => ({
 }));
 
 import {
-  PropsPanelContent as PropsPanel,
-  ScenesPanelContent as ScenesPanel,
+  PropsPanelContent,
+  ScenesPanelContent,
 } from "@/modules/asset_world/public";
 import {
   AssetHeaderActionsSlotProvider,
   AssetHeaderActionsTarget,
 } from "@/components/assets/asset-header-actions-slot";
+
+const openAssetFreezone = vi.fn(async () => undefined);
+
+function PropsPanel({
+  focusId,
+  project,
+}: {
+  focusId?: string | null;
+  project: string;
+}) {
+  return (
+    <PropsPanelContent
+      focusId={focusId}
+      openPropFreezone={openAssetFreezone}
+      project={project}
+    />
+  );
+}
+
+function ScenesPanel({
+  focusId,
+  project,
+}: {
+  focusId?: string | null;
+  project: string;
+}) {
+  return (
+    <ScenesPanelContent
+      focusId={focusId}
+      openSceneFreezone={openAssetFreezone}
+      project={project}
+    />
+  );
+}
 
 const i18n = i18next.createInstance();
 

@@ -13,6 +13,7 @@ import {
   supportedVideoModesForModel,
   videoDurationBoundsForModel,
   videoModelReferenceDisabledReason,
+  videoReferenceDurationLimitsForModel,
   videoModelUsesTypedReferenceModes,
   videoQualityOptionsForModel,
 } from "./videoGenerationModel";
@@ -37,6 +38,32 @@ describe("videoGenerationModel", () => {
       "720P",
     );
     expect(normalizeVideoQuality(undefined, ["1080P"])).toBe("1080P");
+  });
+
+  it("normalizes independent audio and video duration capabilities", () => {
+    const model = {
+      referenceAudioMinSeconds: 1.8,
+      referenceAudioMaxSeconds: 15.2,
+      referenceAudioTotalMinSeconds: 2,
+      referenceAudioTotalMaxSeconds: 15.2,
+      referenceVideoMinSeconds: 3,
+      referenceVideoMaxSeconds: 12.5,
+      referenceVideoTotalMinSeconds: 5,
+      referenceVideoTotalMaxSeconds: 30,
+    };
+
+    expect(videoReferenceDurationLimitsForModel(model, "audio")).toEqual({
+      minMs: 1_800,
+      maxMs: 15_200,
+      totalMinMs: 2_000,
+      totalMaxMs: 15_200,
+    });
+    expect(videoReferenceDurationLimitsForModel(model, "video")).toEqual({
+      minMs: 3_000,
+      maxMs: 12_500,
+      totalMinMs: 5_000,
+      totalMaxMs: 30_000,
+    });
   });
 
   it("resolves duration bounds and clamps rounded values", () => {
@@ -98,6 +125,35 @@ describe("videoGenerationModel", () => {
         audios: 1,
       }),
     ).toBeNull();
+  });
+
+  it("treats supported modes as authoritative for reference media", () => {
+    const imageOnly = {
+      supportedModes: [
+        "textToVideo",
+        "imageToVideo",
+        "imageReference",
+      ] as const,
+    };
+    expect(
+      videoModelReferenceDisabledReason(imageOnly, {
+        images: 1,
+        videos: 1,
+        audios: 0,
+      }),
+    ).toBe("该模型不支持视频参考素材");
+    expect(
+      videoModelReferenceDisabledReason(
+        { supportedModes: [...imageOnly.supportedModes, "videoEdit"] },
+        { images: 1, videos: 1, audios: 0 },
+      ),
+    ).toBeNull();
+    expect(
+      videoModelReferenceDisabledReason(
+        { supportedModes: ["textToVideo", "imageToVideo"] },
+        { images: 2, videos: 0, audios: 0 },
+      ),
+    ).toBe("该模型单次仅支持 1 张参考图片");
   });
 
   it("resolves and normalizes scene optimization", () => {

@@ -27,10 +27,10 @@ import {
   PEAK_BUCKETS_PER_SEC,
 } from "./audioPeaks";
 import {
-  getFilmstrip,
   pickFrame,
   type FilmstripFrame,
 } from "./filmstrip";
+import { getFilmstrip } from "../videoComposePresentationComposition";
 
 const FILMSTRIP_THUMB_WIDTH = 72;
 

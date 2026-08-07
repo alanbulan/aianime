@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,8 @@ from ai_anime.modules.task_execution.public import (
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.public import project_task_state_key
 from ai_anime.task_state import get_task_manager
+
+logger = logging.getLogger(__name__)
 
 
 def _splat_format_for_path(path: Path) -> str:
@@ -196,8 +199,8 @@ def run_stage_asset(
                     result.setdefault("url", output_url)
                     result.setdefault("image_url", output_url)
                     result.setdefault("media_type", "image")
-                except ValueError:
-                    pass
+                except ValueError as exc:
+                    logger.debug("stage panorama output is outside project: %s", exc)
         ply_path_text = result.get("ply_path")
         if ply_path_text:
             ply_path = Path(str(ply_path_text))
@@ -211,8 +214,8 @@ def run_stage_asset(
                     result.setdefault("splat_url", output_url)
                     result.setdefault("splat_format", _splat_format_for_path(ply_path))
                     result.setdefault("media_type", "file")
-                except ValueError:
-                    pass
+                except ValueError as exc:
+                    logger.debug("stage splat output is outside project: %s", exc)
     return result
 
 

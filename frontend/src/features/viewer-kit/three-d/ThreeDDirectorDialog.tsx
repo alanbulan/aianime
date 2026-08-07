@@ -22,7 +22,7 @@ import {
   getBeatDirectorStageOverlay,
   saveBeatDirectorControlFrame,
   saveBeatDirectorStageOverlay,
-} from "@/features/viewer-kit/public";
+} from "./composition";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

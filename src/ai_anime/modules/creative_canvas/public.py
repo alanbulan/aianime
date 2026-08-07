@@ -1,6 +1,7 @@
 """Stable application API exposed by Creative Canvas."""
 
 from collections.abc import Mapping
+from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Literal
 
@@ -362,6 +363,23 @@ def creative_canvas_bootstrap_use_cases() -> CreativeCanvasBootstrapUseCases:
     )
 
     return build()
+
+
+def creative_canvas_write_lock(
+    project_dir: Path,
+    canvas_id: str,
+    *,
+    timeout_seconds: float = 3.0,
+) -> AbstractContextManager[None]:
+    from ai_anime.modules.creative_canvas.infrastructure.canvas_lock import (
+        canvas_write_lock,
+    )
+
+    return canvas_write_lock(
+        project_dir,
+        canvas_id,
+        timeout_seconds=timeout_seconds,
+    )
 
 
 def creative_canvas_document_queries() -> CreativeCanvasDocumentQueries:
@@ -983,6 +1001,7 @@ __all__ = [
     "generate_creative_canvas_audio_speech",
     "creative_canvas_audio_library_use_cases",
     "creative_canvas_bootstrap_use_cases",
+    "creative_canvas_write_lock",
     "creative_canvas_asset_use_cases",
     "creative_canvas_document_commands",
     "creative_canvas_document_queries",

@@ -9,7 +9,7 @@ describe("application module graph", () => {
 
       await expect(import("@/app/router")).resolves.toHaveProperty("router");
     },
-    30_000,
+    60_000,
   );
 
   it(

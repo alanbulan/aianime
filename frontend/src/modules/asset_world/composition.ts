@@ -1,8 +1,6 @@
-import { createElement, type ReactNode } from "react";
+import { createElement, useMemo, type ReactNode } from "react";
 
-import { CharacterImageSourceSelect } from "@/components/assets/character-image-source-select";
 import { TaskControllerProvider } from "@/modules/task_execution/public";
-import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { useAssetFocus } from "./application/useAssetFocus";
 import { useNavigateToAsset } from "./application/useAssetsDeepLink";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
@@ -28,16 +26,17 @@ import {
   listCharacterIdentities as listCharacterIdentitiesUseCase,
   listCharacters as listCharactersUseCase,
 } from "@/modules/asset_world/application/character-catalog";
-import { createImageSourceQueryHooks } from "@/modules/asset_world/application/image-source-query-hooks";
 import {
   createIdentityAsset as createIdentityAssetUseCase,
 } from "@/modules/asset_world/application/identity-asset";
 import { createPropQueryHooks } from "@/modules/asset_world/application/prop-query-hooks";
 import { createSceneQueryHooks } from "@/modules/asset_world/application/scene-query-hooks";
-import { createStyleQueryHooks } from "@/modules/asset_world/application/style-query-hooks";
 import { createUseAddCharacterController } from "@/modules/asset_world/application/use-add-character-controller";
 import { createUseCharacterAssetHistoryController } from "@/modules/asset_world/application/use-character-asset-history-controller";
-import { createUseCharacterDetailController } from "@/modules/asset_world/application/use-character-detail-controller";
+import {
+  createUseCharacterDetailController,
+  type CharacterDetailControllerOptions,
+} from "@/modules/asset_world/application/use-character-detail-controller";
 import { createUseCharacterVoiceController } from "@/modules/asset_world/application/use-character-voice-controller";
 import { createUseCharactersPageController } from "@/modules/asset_world/application/use-characters-page-controller";
 import { createUseCreateStyleController } from "@/modules/asset_world/application/use-create-style-controller";
@@ -81,9 +80,7 @@ import {
 import { useAssetWorkspaceNavigation } from "@/modules/asset_world/infrastructure/asset-workspace-navigation";
 import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
-import { httpAssetWorldGateway } from "@/modules/asset_world/infrastructure/http-asset-world-gateway";
 import { httpBeatViewerGateway } from "@/modules/asset_world/infrastructure/http-beat-viewer-gateway";
-import { httpImageSourceGateway } from "@/modules/asset_world/infrastructure/http-image-source-gateway";
 import {
   httpIdentityAssetGateway,
 } from "@/modules/asset_world/infrastructure/http-identity-asset-gateway";
@@ -94,6 +91,8 @@ import {
   writeStoredSceneGroupSelection,
 } from "@/modules/asset_world/infrastructure/scene-group-storage";
 import { stylePreviewUrl } from "@/modules/asset_world/infrastructure/style-preview-url";
+import { imageSourceQueries } from "@/modules/asset_world/imageSourceComposition";
+import { CharacterImageSourceSelect } from "@/modules/asset_world/presentation/CharacterImageSourceSelect";
 import {
   AddCharacterDialogView,
   CharacterAssetHistoryButtonView,
@@ -115,17 +114,20 @@ import {
   StyleDetailView,
   StylesPageView,
 } from "@/modules/asset_world/presentation/StylesPageView";
+import { styleQueries } from "@/modules/asset_world/styleComposition";
 import {
   useProject,
   useUpdateProject,
 } from "@/modules/project_workspace/public";
 
-const styleQueries = createStyleQueryHooks(httpAssetWorldGateway);
+export interface AssetWorldCanvasNavigation {
+  openCharacter(project: string, characterName: string): Promise<unknown>;
+  openProp(project: string, propName: string): Promise<void>;
+  openScene(project: string, sceneName: string): Promise<void>;
+}
+
 const beatViewerQueries = createBeatViewerQueryHooks(httpBeatViewerGateway);
 const characterQueries = createCharacterQueryHooks(httpCharacterGateway);
-const imageSourceQueries = createImageSourceQueryHooks(
-  httpImageSourceGateway,
-);
 const propQueries = createPropQueryHooks(httpPropGateway);
 const sceneQueries = createSceneQueryHooks(httpSceneGateway);
 const usePropsPanelController = createUsePropsPanelController(
@@ -138,19 +140,6 @@ const usePropsPanelController = createUsePropsPanelController(
   },
 );
 const usePropDialogController = createUsePropDialogController();
-const usePropAssetCardController = createUsePropAssetCardController(
-  propQueries,
-  {
-    openPropFreezone: async (project, propName) => {
-      await openPresetProjectionInMyCanvas(project, {
-        scope: "asset",
-        asset_kind: "prop",
-        asset_id: propName,
-      });
-    },
-    useGenerationCreditCost,
-  },
-);
 const useScenesPanelController = createUseScenesPanelController(
   sceneQueries,
   imageSourceQueries,
@@ -165,20 +154,6 @@ const useScenesPanelController = createUseScenesPanelController(
 const useSceneDialogController = createUseSceneDialogController({
   useNavigateToAsset,
 });
-const useSceneAssetCardController = createUseSceneAssetCardController(
-  sceneQueries,
-  {
-    downloadBlob: downloadBlobAsFile,
-    openSceneFreezone: async (project, sceneName) => {
-      await openPresetProjectionInMyCanvas(project, {
-        scope: "asset",
-        asset_kind: "scene",
-        asset_id: sceneName,
-      });
-    },
-    useGenerationCreditCost,
-  },
-);
 
 export const {
   useBeatBackgroundAnchors,
@@ -314,16 +289,31 @@ function PropDialogContent(options: PropDialogControllerOptions) {
   return createElement(PropDialogView, { controller });
 }
 
-function PropAssetCardContent(options: PropAssetCardControllerOptions) {
-  const controller = usePropAssetCardController(options);
+function PropAssetCardContent({
+  openPropFreezone,
+  ...options
+}: PropAssetCardControllerOptions & {
+  openPropFreezone: AssetWorldCanvasNavigation["openProp"];
+}) {
+  const useController = useMemo(
+    () =>
+      createUsePropAssetCardController(propQueries, {
+        openPropFreezone,
+        useGenerationCreditCost,
+      }),
+    [openPropFreezone],
+  );
+  const controller = useController(options);
   return createElement(PropAssetCardControllerView, { controller });
 }
 
 export function PropsPanelContent({
   focusId,
+  openPropFreezone,
   project,
 }: {
   focusId?: string | null;
+  openPropFreezone: AssetWorldCanvasNavigation["openProp"];
   project: string;
 }) {
   const controller = usePropsPanelController({ focusId, project });
@@ -339,6 +329,7 @@ export function PropsPanelContent({
         imageSourceSelection: controller.imageSourceSelection,
         onDelete: () => void controller.deleteProp(prop),
         onEdit: () => controller.openEditProp(prop),
+        openPropFreezone,
         project,
         prop,
         referenceCount: controller.referenceCountForProp(prop),
@@ -351,16 +342,32 @@ function SceneDialogContent(options: SceneDialogControllerOptions) {
   return createElement(SceneDialogView, { controller });
 }
 
-function SceneAssetCardContent(options: SceneAssetCardControllerOptions) {
-  const controller = useSceneAssetCardController(options);
+function SceneAssetCardContent({
+  openSceneFreezone,
+  ...options
+}: SceneAssetCardControllerOptions & {
+  openSceneFreezone: AssetWorldCanvasNavigation["openScene"];
+}) {
+  const useController = useMemo(
+    () =>
+      createUseSceneAssetCardController(sceneQueries, {
+        downloadBlob: downloadBlobAsFile,
+        openSceneFreezone,
+        useGenerationCreditCost,
+      }),
+    [openSceneFreezone],
+  );
+  const controller = useController(options);
   return createElement(SceneAssetCardControllerView, { controller });
 }
 
 export function ScenesPanelContent({
   focusId,
+  openSceneFreezone,
   project,
 }: {
   focusId?: string | null;
+  openSceneFreezone: AssetWorldCanvasNavigation["openScene"];
   project: string;
 }) {
   const controller = useScenesPanelController({ focusId, project });
@@ -376,6 +383,7 @@ export function ScenesPanelContent({
         imageSourceSelection: controller.imageSourceSelection,
         onDelete: () => void controller.deleteScene(scene),
         onEdit: () => controller.openEditScene(scene),
+        openSceneFreezone,
         project,
         referenceCount: controller.referenceCountForScene(scene),
         scene,
@@ -413,22 +421,6 @@ export const {
   useUploadPortrait,
 } = characterQueries;
 
-export const {
-  useAssetImageSourceSelection,
-  useCharacterImageSelection,
-  useUpdateAssetImageSourceSelection,
-} = imageSourceQueries;
-
-export const {
-  stylesQueryOptions,
-  useAnalyzeStyle,
-  useCreateStyle,
-  useDeleteStyle,
-  useStyleDetail,
-  useStyles,
-  useUploadStylePreview,
-} = styleQueries;
-
 const useStylesPageController = createUseStylesPageController(styleQueries, {
   stylePreviewUrl,
   useProject,
@@ -454,18 +446,6 @@ const useAddCharacterController =
   createUseAddCharacterController(characterQueries);
 const useCharacterAssetHistoryController =
   createUseCharacterAssetHistoryController(characterQueries);
-const useCharacterDetailController = createUseCharacterDetailController(
-  characterQueries,
-  {
-    openCharacterFreezone: (project, characterName) =>
-      openPresetProjectionInMyCanvas(project, {
-        scope: "asset",
-        asset_kind: "character",
-        character: characterName,
-      }),
-    useGenerationCreditCost,
-  },
-);
 const useCharacterVoiceController = createUseCharacterVoiceController(
   characterQueries,
   { createVoiceRecorder: createBrowserVoiceRecorder },
@@ -652,10 +632,21 @@ function CharacterDetailContent({
   mainCopy,
   onAttempt,
   onDeleted,
+  openCharacterFreezone,
   onRenamed,
   project,
-}: Parameters<typeof useCharacterDetailController>[0]) {
-  const controller = useCharacterDetailController({
+}: CharacterDetailControllerOptions & {
+  openCharacterFreezone: AssetWorldCanvasNavigation["openCharacter"];
+}) {
+  const useController = useMemo(
+    () =>
+      createUseCharacterDetailController(characterQueries, {
+        openCharacterFreezone,
+        useGenerationCreditCost,
+      }),
+    [openCharacterFreezone],
+  );
+  const controller = useController({
     attemptCount,
     character,
     imageModel,
@@ -719,6 +710,7 @@ function AddCharacterDialogContent({
 }
 
 function CharactersPageBody({
+  canvasNavigation,
   project,
   renderNarratorVoicePanel,
 }: CharactersPageContentProps) {
@@ -734,6 +726,7 @@ function CharactersPageBody({
         onAttempt: () => controller.handleAttempt(selectedCharacter.name),
         onDeleted: () => controller.selectCharacter(null),
         onRenamed: controller.selectCharacter,
+        openCharacterFreezone: canvasNavigation.openCharacter,
         project,
       })
     : createElement(EmptyCharacterDetailView);
@@ -757,27 +750,32 @@ function CharactersPageBody({
     propsContent: createElement(PropsPanelContent, {
       focusId:
         controller.assetTab === "props" ? controller.assetFocusId : null,
+      openPropFreezone: canvasNavigation.openProp,
       project,
     }),
     scenesContent: createElement(ScenesPanelContent, {
       focusId:
         controller.assetTab === "scenes" ? controller.assetFocusId : null,
+      openSceneFreezone: canvasNavigation.openScene,
       project,
     }),
   });
 }
 
 export interface CharactersPageContentProps {
+  canvasNavigation: AssetWorldCanvasNavigation;
   project: string;
   renderNarratorVoicePanel(project: string): ReactNode;
 }
 
 export function CharactersPageContent({
+  canvasNavigation,
   project,
   renderNarratorVoicePanel,
 }: CharactersPageContentProps) {
   return createElement(TaskControllerProvider, {
     children: createElement(CharactersPageBody, {
+      canvasNavigation,
       project,
       renderNarratorVoicePanel,
     }),

@@ -4,8 +4,9 @@ import {
   type CanvasStoryScriptReference,
   type CanvasStoryScriptResult,
 } from "./generateCanvasStoryScript";
+import type { ScriptGenAction } from "../domain/canvasNodeData";
 
-export type ScriptGenAction = "fromScript" | "fromVideoRef" | "fromCharacter";
+export type { ScriptGenAction };
 
 export interface ScriptGraphNode {
   id: string;

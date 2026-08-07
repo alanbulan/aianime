@@ -15,6 +15,7 @@ const DEFAULT_DURATION_MAX = 15;
 const DEFAULT_SUPPORTED_MODES: ReadonlyArray<VideoGenMode> = [
   "textToVideo",
   "allReference",
+  "firstFrame",
   "imageToVideo",
   "firstLastFrame",
   "imageReference",
@@ -30,7 +31,14 @@ export interface VideoModelCapabilityDescriptor {
   readonly maxReferenceVideos?: number | null;
   readonly maxReferenceAudios?: number | null;
   readonly maxReferenceTotal?: number | null;
-  readonly maxReferenceAudioDurationSeconds?: number | null;
+  readonly referenceAudioMinSeconds?: number | null;
+  readonly referenceAudioMaxSeconds?: number | null;
+  readonly referenceAudioTotalMinSeconds?: number | null;
+  readonly referenceAudioTotalMaxSeconds?: number | null;
+  readonly referenceVideoMinSeconds?: number | null;
+  readonly referenceVideoMaxSeconds?: number | null;
+  readonly referenceVideoTotalMinSeconds?: number | null;
+  readonly referenceVideoTotalMaxSeconds?: number | null;
   readonly sceneOptimizeOptions?: Array<"anime" | "realistic">;
   readonly defaultSceneOptimize?: "anime" | "realistic" | null;
 }
@@ -38,6 +46,34 @@ export interface VideoModelCapabilityDescriptor {
 export interface VideoDurationBounds {
   min: number;
   max: number;
+}
+
+export interface VideoReferenceDurationLimitsMs {
+  readonly minMs?: number;
+  readonly maxMs?: number;
+  readonly totalMinMs?: number;
+  readonly totalMaxMs?: number;
+}
+
+export function videoReferenceDurationLimitsForModel(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+  media: "audio" | "video",
+): VideoReferenceDurationLimitsMs {
+  const prefix = media === "audio" ? "referenceAudio" : "referenceVideo";
+  const readSeconds = (suffix: string): number | undefined => {
+    const value = (model as Record<string, unknown> | null | undefined)?.[
+      `${prefix}${suffix}`
+    ];
+    return typeof value === "number" && Number.isFinite(value) && value > 0
+      ? Math.round(value * 1000)
+      : undefined;
+  };
+  return {
+    minMs: readSeconds("MinSeconds"),
+    maxMs: readSeconds("MaxSeconds"),
+    totalMinMs: readSeconds("TotalMinSeconds"),
+    totalMaxMs: readSeconds("TotalMaxSeconds"),
+  };
 }
 
 export function qualityToResolution(
@@ -133,6 +169,23 @@ export function videoModelReferenceDisabledReason(
   }
   if (model?.supportsReferenceAudios === false && counts.audios > 0) {
     return "该模型不支持音频参考素材";
+  }
+  if (model?.supportedModes?.length) {
+    const supportsAllReferences = model.supportedModes.includes("allReference");
+    const supportsVideoEdit = model.supportedModes.includes("videoEdit");
+    if (counts.videos > 0 && !supportsAllReferences && !supportsVideoEdit) {
+      return "该模型不支持视频参考素材";
+    }
+    if (counts.audios > 0 && !supportsAllReferences) {
+      return "该模型不支持音频参考素材";
+    }
+    if (
+      counts.images > 1 &&
+      !supportsAllReferences &&
+      !model.supportedModes.includes("imageReference")
+    ) {
+      return "该模型单次仅支持 1 张参考图片";
+    }
   }
   if (exceedsLimit(counts.images, model?.maxReferenceImages)) {
     return `该模型最多支持 ${model?.maxReferenceImages} 张参考图片`;

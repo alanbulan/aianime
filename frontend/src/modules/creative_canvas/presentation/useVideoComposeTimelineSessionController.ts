@@ -17,12 +17,15 @@ import {
   type VideoComposeClipReference,
   type VideoComposeTimelineEdit,
 } from "../domain/videoComposeTimelineEdits";
-import {
-  probeVideoComposeMediaDuration,
-  type VideoComposeMediaUrlResolver,
-} from "../infrastructure/browserVideoComposeMediaRuntime";
-
 const VIDEO_COMPOSE_HISTORY_LIMIT = 50;
+
+export type VideoComposeMediaUrlResolver = (url: string) => string;
+
+export type VideoComposeMediaDurationProbe = (
+  url: string,
+  kind: ComposeTrack["kind"],
+  resolveUrl: VideoComposeMediaUrlResolver,
+) => Promise<number | null>;
 
 export interface UseVideoComposeTimelineSessionControllerOptions {
   initialTimeline?: ComposeTimelineState | null;
@@ -33,14 +36,19 @@ export interface UseVideoComposeTimelineSessionControllerOptions {
   createClipId: VideoComposeClipIdFactory;
 }
 
-export function useVideoComposeTimelineSessionController({
-  initialTimeline,
-  sourceMedia,
-  seedNodeIds,
-  resolveMediaUrl,
-  onPersistDraft,
-  createClipId,
-}: UseVideoComposeTimelineSessionControllerOptions) {
+export function createUseVideoComposeTimelineSessionController({
+  probeMediaDuration,
+}: {
+  probeMediaDuration: VideoComposeMediaDurationProbe;
+}) {
+  return function useVideoComposeTimelineSessionController({
+    initialTimeline,
+    sourceMedia,
+    seedNodeIds,
+    resolveMediaUrl,
+    onPersistDraft,
+    createClipId,
+  }: UseVideoComposeTimelineSessionControllerOptions) {
   const [timeline, setTimeline] = useState<ComposeTimelineState>(() =>
     resolveVideoComposeInitialTimeline({
       initialTimeline,
@@ -151,7 +159,7 @@ export function useVideoComposeTimelineSessionController({
     if (pending.length === 0) return;
     void Promise.all(
       pending.map(async ({ trackId, clip, kind }) => {
-        const durationMs = await probeVideoComposeMediaDuration(
+        const durationMs = await probeMediaDuration(
           clip.sourceUrl,
           kind,
           resolveMediaUrl,
@@ -229,4 +237,9 @@ export function useVideoComposeTimelineSessionController({
     resetToUpstream,
     updateTimelineTracks,
   };
+  };
 }
+
+export type VideoComposeTimelineSessionController = ReturnType<
+  ReturnType<typeof createUseVideoComposeTimelineSessionController>
+>;

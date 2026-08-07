@@ -13,6 +13,7 @@ from ai_anime.modules.story_intake.application.errors import (
     UnsafeStoryDocumentName,
     UnsupportedStoryDocument,
 )
+from ai_anime.modules.story_intake.domain import MAX_STORY_UPLOAD_BYTES
 from ai_anime.shared.utils.document_parsers import (
     DocumentParseError,
     count_billable_novel_chars,
@@ -22,7 +23,6 @@ from ai_anime.shared.utils.document_parsers import (
 )
 from ai_anime.shared.utils.screenplay_quality import build_import_format_check
 from ai_anime.shared.utils.upload_safety import (
-    MAX_UPLOAD_BYTES,
     UploadTooLargeError,
     is_safe_upload_target,
     sanitize_upload_filename,
@@ -44,9 +44,13 @@ class LocalStoryDocumentGateway:
         self._validate_supported_target(uploads_dir, safe_name)
         destination = uploads_dir / safe_name
         try:
-            size = stream_to_file_with_limit(stream, destination)
+            size = stream_to_file_with_limit(
+                stream,
+                destination,
+                max_bytes=MAX_STORY_UPLOAD_BYTES,
+            )
         except UploadTooLargeError as exc:
-            raise StoryDocumentTooLarge(MAX_UPLOAD_BYTES // (1024 * 1024)) from exc
+            raise StoryDocumentTooLarge(MAX_STORY_UPLOAD_BYTES) from exc
         return StoredStoryDocument(filename=safe_name, path=destination, size=size)
 
     def get_existing(self, project_dir: Path, filename: str) -> StoredStoryDocument:
@@ -59,7 +63,11 @@ class LocalStoryDocumentGateway:
         path = uploads_dir / safe_name
         if not path.exists():
             raise StoryDocumentNotFound(filename)
-        return StoredStoryDocument(filename=safe_name, path=path)
+        return StoredStoryDocument(
+            filename=safe_name,
+            path=path,
+            size=path.stat().st_size,
+        )
 
     def load_text(self, document: StoredStoryDocument) -> str:
         try:
