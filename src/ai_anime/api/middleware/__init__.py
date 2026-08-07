@@ -8,6 +8,9 @@ from ai_anime.api.middleware.desktop_session import (
     install_desktop_session_middleware,
 )
 from ai_anime.api.middleware.request_limits import install_request_limit_middleware
+from ai_anime.api.middleware.request_store_close import (
+    install_request_store_close_middleware,
+)
 from ai_anime.api.middleware.resource_logging import (
     install_resource_logging_middleware,
 )
@@ -28,3 +31,4 @@ def install_http_middleware(
     )
     install_request_limit_middleware(application)
     install_resource_logging_middleware(application)
+    install_request_store_close_middleware(application)

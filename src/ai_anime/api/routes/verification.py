@@ -130,8 +130,9 @@ async def verify_beat(
     try:
         color_mapping = store.get_sketch_colors(episode_num) or {}
         scenes = await store.list_scenes()
-    except Exception:
-        pass  # 无颜色映射/场景列表时退化为原有行为
+    except Exception as e:
+        # 无颜色映射/场景列表时退化为原有行为，但仍记录原因便于排查
+        logger.debug("verify_beat: 颜色映射/场景列表读取失败，退化为默认行为: %s", e)
 
     # 4. 调用验证
     visual_desc = beat.get("visual_description", "")
@@ -402,8 +403,8 @@ async def score_beat(
     color_mapping: dict[str, str] = {}
     try:
         color_mapping = store.get_sketch_colors(episode_num) or {}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("score_beat: 颜色映射读取失败，使用空映射: %s", e)
 
     scorer = SketchScorer()
     try:
@@ -449,8 +450,8 @@ async def score_batch(
     color_mapping: dict[str, str] = {}
     try:
         color_mapping = store.get_sketch_colors(episode_num) or {}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("score_batch: 颜色映射读取失败，使用空映射: %s", e)
 
     from ai_anime.modules.generators.pool_indexer import load_pool_index
 

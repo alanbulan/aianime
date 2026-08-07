@@ -5192,7 +5192,12 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                     img = Image.open(res)
                     rendered_panels.append(img)
                     success_count += 1
-                except:
+                except Exception as exc:
+                    logger.warning(
+                        "Panel %d render result could not be opened: %s",
+                        idx + 1,
+                        exc,
+                    )
                     rendered_panels.append(panels[idx])
 
         print(f"[Render] Completed {success_count}/{len(beats)} panels.")
