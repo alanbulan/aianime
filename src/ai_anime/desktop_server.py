@@ -61,6 +61,9 @@ def configure_environment(options: DesktopOptions) -> None:
         {
             "AI_ANIME_EDITION": "ce",
             "AI_ANIME_DESKTOP_MODE": "1",
+            # 桌面端只走 loopback http，Secure Cookie 会被浏览器静默丢弃，
+            # 导致登录会话无法持久化；桌面环境必须显式关闭 Secure。
+            "AI_ANIME_COOKIE_SECURE": "0",
             "AI_ANIME_DATA_ROOT": str(data_root),
             "AI_ANIME_OUTPUT_DIR": str(output_dir),
             "AI_ANIME_STATE_DIR": str(state_dir),

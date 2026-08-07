@@ -35,6 +35,7 @@ def test_desktop_environment_uses_isolated_local_directories(
     env_names = (
         "AI_ANIME_EDITION",
         "AI_ANIME_DESKTOP_MODE",
+        "AI_ANIME_COOKIE_SECURE",
         "AI_ANIME_DATA_ROOT",
         "AI_ANIME_OUTPUT_DIR",
         "AI_ANIME_STATE_DIR",
@@ -49,6 +50,7 @@ def test_desktop_environment_uses_isolated_local_directories(
         assert (tmp_path / "output").is_dir()
         assert (tmp_path / "runtime").is_dir()
         assert __import__("os").environ["AI_ANIME_EDITION"] == "ce"
+        assert __import__("os").environ["AI_ANIME_COOKIE_SECURE"] == "0"
         assert "AI_ANIME_CLOUD_ADAPTER" not in __import__("os").environ
         assert "AI_ANIME_RELEASE_FEED_ADAPTER" not in __import__("os").environ
         assert "AI_ANIME_CONTROL_PLANE_DSN" not in __import__("os").environ
