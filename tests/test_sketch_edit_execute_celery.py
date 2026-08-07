@@ -79,6 +79,17 @@ async def test_start_sketch_edit_execute_enqueues_project_task(tmp_path, monkeyp
         "get_task_backend",
         lambda: SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
+    from ai_anime.modules.production.application.image_settings import (
+        ProductionImageSettingsUseCases,
+    )
+
+    monkeypatch.setattr(
+        ProductionImageSettingsUseCases,
+        "sketch_settings",
+        lambda _self, *_args, **_kwargs: {
+            "sketch_image_selection": "newapi_gpt_image2"
+        },
+    )
 
     result = await routes.start_sketch_edit_execute(
         "proj",

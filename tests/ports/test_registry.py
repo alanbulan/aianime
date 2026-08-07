@@ -1,4 +1,3 @@
-import importlib
 
 import pytest
 
@@ -6,7 +5,9 @@ import pytest
 def _registry():
     import ai_anime.shared.ports.registry as registry
 
-    return importlib.reload(registry)
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
+    return registry
 
 
 @pytest.fixture(autouse=True)

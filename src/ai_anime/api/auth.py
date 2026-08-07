@@ -24,6 +24,7 @@ from ai_anime.modules.identity_access.public import (
     verify_agent_session,
     verify_browser_session,
 )
+from ai_anime.shared.ports.registry import PortNotRegistered
 
 logger = logging.getLogger("ai_anime.api.auth")
 
@@ -50,6 +51,8 @@ async def _verify_browser_session(raw_cookie: str | None) -> dict:
         return await verify_browser_session(raw_cookie)
     except IdentityBackendNotInitialized:
         raise HTTPException(status_code=503, detail="auth backend not initialised")
+    except PortNotRegistered:
+        raise HTTPException(status_code=503, detail="auth backend not initialised")
     except AuthError as exc:
         if exc.reason == AuthFailureReason.MISSING:
             detail = exc.detail or "Missing session or agent token"
@@ -62,6 +65,8 @@ async def _verify_agent_bearer(token: str) -> dict:
     try:
         return await verify_agent_session(token)
     except IdentityBackendNotInitialized:
+        raise HTTPException(status_code=401, detail="Agent sessions require control plane")
+    except PortNotRegistered:
         raise HTTPException(status_code=401, detail="Agent sessions require control plane")
     except AuthError:
         raise HTTPException(status_code=401, detail="Invalid agent session")

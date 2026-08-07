@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 import json
 import sqlite3
 from pathlib import Path
@@ -587,7 +586,6 @@ async def test_cli_project_id_scene_migration_ignores_legacy_project_json(
     )
 
     import ai_anime.config as config
-    import ai_anime.shared.ports as ports
     import ai_anime.shared.ports.registry as registry
 
     monkeypatch.setattr(config, "OUTPUT_DIR", str(output), raising=False)
@@ -595,8 +593,8 @@ async def test_cli_project_id_scene_migration_ignores_legacy_project_json(
     monkeypatch.setattr(config, "RUNTIME_DIR", str(runtime), raising=False)
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
-    importlib.reload(registry)
-    importlib.reload(ports)
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
 
     from ai_anime import cli
 
@@ -620,12 +618,11 @@ async def test_cli_project_id_scene_migration_uses_ee_entry_point(
     runtime = tmp_path / "runtime"
     project_id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
-    import ai_anime.shared.ports as ports
     import ai_anime.shared.ports.registry as registry
     from ai_anime.modules.project_workspace.public import ProjectRecord
 
-    registry = importlib.reload(registry)
-    importlib.reload(ports)
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
     monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
     monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
 
@@ -678,8 +675,8 @@ async def test_cli_project_id_scene_migration_uses_ee_entry_point(
             output_dir="",
         )
     finally:
-        importlib.reload(registry)
-        importlib.reload(ports)
+        registry._PORTS.clear()
+        registry._BOOTSTRAPPED = False
 
     assert db_dir == state / "alice" / "demo"
     assert asset_dir == output / "alice" / "demo"

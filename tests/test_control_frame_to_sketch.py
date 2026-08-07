@@ -91,6 +91,7 @@ async def test_director_control_frame_to_sketch_uses_commercial_access(monkeypat
         project="demo",
         episode=1,
         beat=3,
+        model="gpt-image-2",
         output_dir=project_dir,
         state_dir=state_dir,
     )

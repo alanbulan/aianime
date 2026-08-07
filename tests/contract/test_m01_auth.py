@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -26,9 +25,8 @@ def _reset_port_modules():
     import ai_anime.shared.ports.local as local_ports
     import ai_anime.shared.ports.registry as registry
 
-    registry = importlib.reload(registry)
-    ports = importlib.reload(ports)
-    local_ports = importlib.reload(local_ports)
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
     return registry, ports, local_ports
 
 

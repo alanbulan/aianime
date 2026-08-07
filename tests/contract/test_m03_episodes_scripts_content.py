@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,14 +12,11 @@ pytestmark = pytest.mark.m03
 
 
 def _reset_port_modules():
-    import ai_anime.shared.ports as ports
-    import ai_anime.shared.ports.local as local_ports
     import ai_anime.shared.ports.registry as registry
 
-    registry = importlib.reload(registry)
-    ports = importlib.reload(ports)
-    local_ports = importlib.reload(local_ports)
-    return registry, ports, local_ports
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
+    return registry
 
 
 def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -254,11 +250,11 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
 
     monkeypatch.setattr(
-        "ai_anime.modules.agents.content_rewriter.rewrite_episode_content",
+        "ai_anime.modules.agents.public.rewrite_episode_content",
         fake_rewrite_episode_content,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.panel_service.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
         fake_seedance2_prompt_for_panel,
     )
 

@@ -20,6 +20,28 @@ def restore_ports_registry_globals():
 
 
 @pytest.fixture(autouse=True)
+def restore_model_access_globals():
+    from ai_anime import model_access_policy as policy
+
+    names = (
+        "_byok_allowed",
+        "_selected_mode",
+        "_byok_base_url",
+        "_byok_api_key",
+        "_byok_model_assignments",
+        "_cloud_model_assignments",
+        "_cloud_base_url_override",
+        "_cloud_api_key_override",
+    )
+    snapshot = {name: getattr(policy, name) for name in names}
+    try:
+        yield
+    finally:
+        for name, value in snapshot.items():
+            setattr(policy, name, value)
+
+
+@pytest.fixture(autouse=True)
 async def close_sqlite_stores_created_by_test(monkeypatch):
     from ai_anime.sqlite_store import SQLiteStore
 

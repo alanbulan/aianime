@@ -19,6 +19,9 @@ from ai_anime.api.v1.router import OPENAPI_TAGS, create_api_router
 from ai_anime.shared.api_coverage import mount_api_coverage_middleware
 
 
+_app: FastAPI | None = None
+
+
 def create_app() -> FastAPI:
     configure_api_logging()
 
@@ -51,4 +54,10 @@ def create_app() -> FastAPI:
     return application
 
 
-app = create_app()
+def __getattr__(name: str):
+    if name == "app":
+        global _app
+        if _app is None:
+            _app = create_app()
+        return _app
+    raise AttributeError(name)

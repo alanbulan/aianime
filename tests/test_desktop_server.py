@@ -32,16 +32,32 @@ def test_desktop_environment_uses_isolated_local_directories(
         frontend_dist=None,
         ffmpeg_path=None,
     )
+    env_names = (
+        "AI_ANIME_EDITION",
+        "AI_ANIME_DESKTOP_MODE",
+        "AI_ANIME_DATA_ROOT",
+        "AI_ANIME_OUTPUT_DIR",
+        "AI_ANIME_STATE_DIR",
+        "AI_ANIME_RUNTIME_DIR",
+        "AI_ANIME_CONTROL_PLANE_DSN",
+    )
+    saved_env = {name: __import__("os").environ.get(name) for name in env_names}
+    try:
+        configure_environment(options)
 
-    configure_environment(options)
-
-    assert (tmp_path / "state").is_dir()
-    assert (tmp_path / "output").is_dir()
-    assert (tmp_path / "runtime").is_dir()
-    assert __import__("os").environ["AI_ANIME_EDITION"] == "ce"
-    assert "AI_ANIME_CLOUD_ADAPTER" not in __import__("os").environ
-    assert "AI_ANIME_RELEASE_FEED_ADAPTER" not in __import__("os").environ
-    assert "AI_ANIME_CONTROL_PLANE_DSN" not in __import__("os").environ
+        assert (tmp_path / "state").is_dir()
+        assert (tmp_path / "output").is_dir()
+        assert (tmp_path / "runtime").is_dir()
+        assert __import__("os").environ["AI_ANIME_EDITION"] == "ce"
+        assert "AI_ANIME_CLOUD_ADAPTER" not in __import__("os").environ
+        assert "AI_ANIME_RELEASE_FEED_ADAPTER" not in __import__("os").environ
+        assert "AI_ANIME_CONTROL_PLANE_DSN" not in __import__("os").environ
+    finally:
+        for name, value in saved_env.items():
+            if value is None:
+                __import__("os").environ.pop(name, None)
+            else:
+                __import__("os").environ[name] = value
 
 
 def test_desktop_socket_uses_an_available_port() -> None:

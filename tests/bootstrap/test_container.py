@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import importlib
-
-
 def test_container_captures_required_ce_ports(monkeypatch) -> None:
     import ai_anime.shared.ports.registry as registry
 
-    registry = importlib.reload(registry)
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
 
@@ -32,7 +30,8 @@ def test_container_captures_required_ce_ports(monkeypatch) -> None:
 def test_container_uses_registered_test_adapter(monkeypatch) -> None:
     import ai_anime.shared.ports.registry as registry
 
-    registry = importlib.reload(registry)
+    registry._PORTS.clear()
+    registry._BOOTSTRAPPED = False
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     registry.ensure_bootstrap()
