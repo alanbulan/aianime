@@ -68,8 +68,31 @@ def _create_translation_agent(model: str) -> Agent:
         transport_model,
         system_prompt=CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT,
         output_type=_CreativeCanvasTranslationResult,
+        output_retries=1,
         name="Freezone Prompt Translator",
     )
+
+
+async def _run_agent_with_readable_json_errors(
+    agent: Agent,
+    task: str,
+    *,
+    label: str,
+):
+    try:
+        return await agent.run(task)
+    except Exception as exc:
+        message = str(exc)
+        if (
+            "Unterminated string" in message
+            or "Expecting value" in message
+            or "Extra data" in message
+        ):
+            raise RuntimeError(
+                f"{label}模型响应不完整（返回内容被截断，无法解析为 JSON），"
+                "请检查云端模型网关或稍后重试"
+            ) from exc
+        raise
 
 def _create_story_script_agent(model: str) -> Agent:
     from ai_anime.config import get_newapi_text_pydantic_model
@@ -104,7 +127,11 @@ async def translate_creative_canvas_text(
         text=text,
         node_type=node_type,
     )
-    response = await _create_translation_agent(model).run(task)
+    response = await _run_agent_with_readable_json_errors(
+        _create_translation_agent(model),
+        task,
+        label="翻译",
+    )
     result = response.output
     target_language: Literal["zh", "en"] = result.target_language
     if target_language == result.source_language:
@@ -129,5 +156,9 @@ async def generate_creative_canvas_story_script(
         source_text=source_text,
         prompt=prompt,
     )
-    response = await _create_story_script_agent(model).run(task)
+    response = await _run_agent_with_readable_json_errors(
+        _create_story_script_agent(model),
+        task,
+        label="故事脚本",
+    )
     return response.output.model_dump()
