@@ -1429,121 +1429,6 @@ def build_color_map_from_character_map(
     return color_map
 
 
-def _extract_hex_color(color_str: str, fallback: str) -> str:
-    text = str(color_str or "").strip()
-    match = re.search(r"#[0-9A-Fa-f]{6}", text)
-    return match.group(0) if match else fallback
-
-
-def _color_for_identity(identity_id: str, character_map: dict, fallback: str) -> str:
-    color_map = build_color_map_from_character_map(character_map)
-    if identity_id in color_map:
-        return _extract_hex_color(color_map[identity_id], fallback)
-    for char_name, info in character_map.items():
-        if identity_id == char_name or identity_id.startswith(f"{char_name}_"):
-            identity_colors = info.get("identity_sketch_colors") or {}
-            suffix = (
-                identity_id[len(char_name) + 1 :] if identity_id.startswith(f"{char_name}_") else ""
-            )
-            if suffix and suffix in identity_colors:
-                return _extract_hex_color(identity_colors[suffix], fallback)
-            return _extract_hex_color(info.get("sketch_color", ""), fallback)
-    return fallback
-
-
-def _draw_blocking_stick_figure(
-    draw,
-    *,
-    x: float,
-    y: float,
-    scale: float,
-    color: str,
-    foreground: bool = False,
-    seated: bool = False,
-) -> None:
-    """Draw simple color-coded stick blocking onto a director environment ref."""
-
-    width = max(5, int(scale * 0.08))
-    head_r = scale * (0.22 if foreground else 0.16)
-    body_len = scale * (0.62 if foreground else (0.34 if seated else 0.48))
-    shoulder = scale * (0.22 if foreground else 0.16)
-    hip = scale * (0.16 if foreground else 0.12)
-    outline = color
-
-    # Head.
-    draw.ellipse(
-        (x - head_r, y - head_r, x + head_r, y + head_r),
-        outline=outline,
-        width=width,
-    )
-
-    neck_y = y + head_r
-    torso_y = neck_y + body_len
-    draw.line((x, neck_y, x, torso_y), fill=outline, width=width)
-    draw.line(
-        (x - shoulder, neck_y + scale * 0.1, x + shoulder, neck_y + scale * 0.1),
-        fill=outline,
-        width=width,
-    )
-    draw.line((x - hip, torso_y, x + hip, torso_y), fill=outline, width=width)
-
-    # Arms and rough lower-body cues. Keep it rough: these are placement markers, not anatomy.
-    if foreground:
-        draw.line(
-            (x + shoulder, neck_y + scale * 0.12, x + scale * 0.38, torso_y),
-            fill=outline,
-            width=width,
-        )
-        draw.line(
-            (x - shoulder, neck_y + scale * 0.12, x - scale * 0.34, torso_y),
-            fill=outline,
-            width=width,
-        )
-    elif seated:
-        draw.line(
-            (x - shoulder, neck_y + scale * 0.1, x - scale * 0.34, torso_y + scale * 0.04),
-            fill=outline,
-            width=width,
-        )
-        draw.line(
-            (x + shoulder, neck_y + scale * 0.1, x + scale * 0.3, torso_y + scale * 0.02),
-            fill=outline,
-            width=width,
-        )
-    else:
-        draw.line(
-            (x - shoulder, neck_y + scale * 0.12, x - scale * 0.28, torso_y - scale * 0.08),
-            fill=outline,
-            width=width,
-        )
-        draw.line(
-            (x + shoulder, neck_y + scale * 0.12, x + scale * 0.26, torso_y - scale * 0.1),
-            fill=outline,
-            width=width,
-        )
-        draw.line(
-            (x - hip, torso_y, x - scale * 0.22, torso_y + scale * 0.24), fill=outline, width=width
-        )
-        draw.line(
-            (x + hip, torso_y, x + scale * 0.24, torso_y + scale * 0.22), fill=outline, width=width
-        )
-
-
-def _prepare_director_blocking_refs(
-    *,
-    scene_refs: dict[int, list],
-    beats: list[dict],
-    character_map: dict,
-) -> None:
-    """Legacy no-op.
-
-    Current 3GS scene sketch submits the PlayCanvas combined.png directly.
-    The image already contains the visible actor placeholder and prop/staging
-    marker colors; the model edits that single image in place.
-    """
-    return
-
-
 def detect_panel_characters(
     character_map: dict,
     sketch_image_path: str,
@@ -3218,12 +3103,6 @@ class NanoBananaGridGenerator:
                         ),
                         generation_time=time.time() - start_time,
                     )
-                if not has_director_sheet:
-                    _prepare_director_blocking_refs(
-                        scene_refs=scene_refs,
-                        beats=beats[:grid_capacity],
-                        character_map=valid_character_map,
-                    )
             style_family, animation_subtype = StyleService.get_style_branch(
                 style or IMAGE_DEFAULT_STYLE,
                 project_dir=project_dir,
@@ -4074,11 +3953,6 @@ class NanoBananaGridGenerator:
                 raise RuntimeError(
                     "导演单镜缺少 beat 级 3GS control frame；" "草图主线不再回退到旧场景参考图。"
                 )
-            _prepare_director_blocking_refs(
-                scene_refs=scene_refs,
-                beats=beats[:grid_capacity],
-                character_map=valid_character_map,
-            )
         style_family, animation_subtype = StyleService.get_style_branch(
             style or IMAGE_DEFAULT_STYLE,
             project_dir=project_dir,
