@@ -6,7 +6,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from ai_anime.config import RUNTIME_DIR
+from ai_anime.shared.runtime_paths import RUNTIME_DIR
 
 
 def configure_api_logging() -> None:

@@ -6,8 +6,10 @@ import uuid
 import base64
 import io
 import logging
+import os
 import re
 import mimetypes
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -20,6 +22,49 @@ IMAGE_TRANSFORM_AI_REFERENCE_JPEG = "ai_reference_jpeg"
 
 class MediaRelayConfigError(RuntimeError):
     """Raised when the media relay is not configured for URL input."""
+
+
+@dataclass(frozen=True)
+class EffectiveMediaRelayConfig:
+    provider: str
+    ttl_seconds: int
+    endpoint: str
+    bucket: str
+    access_key_id: str
+    access_key_secret: str
+    cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+    cloudinary_folder: str = ""
+
+
+def get_effective_media_relay_config() -> EffectiveMediaRelayConfig:
+    try:
+        ttl_seconds = int(os.environ.get("MEDIA_RELAY_TTL_SECONDS", "1800"))
+    except ValueError:
+        ttl_seconds = 1800
+    return EffectiveMediaRelayConfig(
+        provider=os.environ.get("MEDIA_RELAY_PROVIDER", "aliyun_oss").strip().lower(),
+        ttl_seconds=ttl_seconds,
+        endpoint=os.environ.get(
+            "OSS_RELAY_ENDPOINT", "oss-cn-chengdu.aliyuncs.com"
+        ).strip(),
+        bucket=os.environ.get(
+            "OSS_RELAY_BUCKET", "ai-anime-media-relay"
+        ).strip(),
+        access_key_id=os.environ.get("OSS_RELAY_AK", "").strip(),
+        access_key_secret=os.environ.get("OSS_RELAY_SK", "").strip(),
+        cloud_name=os.environ.get("CLOUDINARY_RELAY_CLOUD_NAME", "").strip(),
+        cloudinary_api_key=os.environ.get(
+            "CLOUDINARY_RELAY_API_KEY", ""
+        ).strip(),
+        cloudinary_api_secret=os.environ.get(
+            "CLOUDINARY_RELAY_API_SECRET", ""
+        ).strip(),
+        cloudinary_folder=os.environ.get("CLOUDINARY_RELAY_FOLDER", "")
+        .strip()
+        .strip("/"),
+    )
 
 
 class AliyunOSSRelay:
@@ -149,24 +194,9 @@ class CloudinaryRelay:
 def get_media_relay() -> AliyunOSSRelay | CloudinaryRelay:
     """Build the configured media relay.
 
-    The relay is intentionally not cached so tests can monkeypatch config and
-    failed or rotated credentials are not hidden behind process-local state.
+    The relay is intentionally not cached so rotated credentials are visible.
     """
-    from ai_anime import config
-    from ai_anime.model_gateway_settings import get_effective_media_relay_config
-
-    relay_config = get_effective_media_relay_config(
-        env_provider=getattr(config, "MEDIA_RELAY_PROVIDER", ""),
-        env_ttl_seconds=getattr(config, "MEDIA_RELAY_TTL_SECONDS", 1800),
-        env_endpoint=getattr(config, "OSS_RELAY_ENDPOINT", ""),
-        env_bucket=getattr(config, "OSS_RELAY_BUCKET", ""),
-        env_access_key_id=getattr(config, "OSS_RELAY_AK", ""),
-        env_access_key_secret=getattr(config, "OSS_RELAY_SK", ""),
-        env_cloud_name=getattr(config, "CLOUDINARY_RELAY_CLOUD_NAME", ""),
-        env_cloudinary_api_key=getattr(config, "CLOUDINARY_RELAY_API_KEY", ""),
-        env_cloudinary_api_secret=getattr(config, "CLOUDINARY_RELAY_API_SECRET", ""),
-        env_cloudinary_folder=getattr(config, "CLOUDINARY_RELAY_FOLDER", ""),
-    )
+    relay_config = get_effective_media_relay_config()
     provider = relay_config.provider
     if provider == "cloudinary":
         return CloudinaryRelay(
@@ -187,21 +217,7 @@ def get_media_relay() -> AliyunOSSRelay | CloudinaryRelay:
 
 
 def _default_media_relay_ttl_seconds() -> int:
-    from ai_anime import config
-    from ai_anime.model_gateway_settings import get_effective_media_relay_config
-
-    return get_effective_media_relay_config(
-        env_provider=getattr(config, "MEDIA_RELAY_PROVIDER", ""),
-        env_ttl_seconds=getattr(config, "MEDIA_RELAY_TTL_SECONDS", 1800),
-        env_endpoint=getattr(config, "OSS_RELAY_ENDPOINT", ""),
-        env_bucket=getattr(config, "OSS_RELAY_BUCKET", ""),
-        env_access_key_id=getattr(config, "OSS_RELAY_AK", ""),
-        env_access_key_secret=getattr(config, "OSS_RELAY_SK", ""),
-        env_cloud_name=getattr(config, "CLOUDINARY_RELAY_CLOUD_NAME", ""),
-        env_cloudinary_api_key=getattr(config, "CLOUDINARY_RELAY_API_KEY", ""),
-        env_cloudinary_api_secret=getattr(config, "CLOUDINARY_RELAY_API_SECRET", ""),
-        env_cloudinary_folder=getattr(config, "CLOUDINARY_RELAY_FOLDER", ""),
-    ).ttl_seconds
+    return get_effective_media_relay_config().ttl_seconds
 
 
 def upload_image_bytes(

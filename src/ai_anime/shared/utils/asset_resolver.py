@@ -18,7 +18,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from ai_anime.modules.director_world.paths import safe_name
 from ai_anime.modules.production.public import (
     extract_prop_ids_from_markers,
     real_detected_props,
@@ -34,6 +33,7 @@ from ai_anime.shared.utils.path_resolver import (
     PathResolver,
     compute_prop_reference_path,
     compute_scene_master_path,
+    safe_path_name,
 )
 
 
@@ -269,7 +269,9 @@ class AssetResolver:
         """
         if not scene_name:
             return []
-        stage_root = self.project_dir / "director_worlds" / safe_name(scene_name) / "v1"
+        stage_root = (
+            self.project_dir / "director_worlds" / safe_path_name(scene_name) / "v1"
+        )
         cubemap_dir = _latest_cubemap_faces_dir(stage_root)
         refs: list[ResolvedAssetRef] = []
         for view_name, cubemap_filename, _refs_filename in PANO_VIEW_REF_ORDER:

@@ -20,8 +20,8 @@ from ai_anime.modules.creative_canvas.public import canvas_id_for_preset
 
 @pytest.fixture()
 def preset_client(monkeypatch, tmp_path):
-    from ai_anime.api.auth import get_api_user
-    from ai_anime.api.routes.canvas import presets
+    from ai_anime.api.routes.identity_access.dependencies import get_api_user
+    from ai_anime.api.routes.creative_canvas import presets
 
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True, exist_ok=True)

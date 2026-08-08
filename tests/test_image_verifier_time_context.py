@@ -1,8 +1,10 @@
 import pytest
 
-from ai_anime.modules.verification.image_verifier import ImageVerifier
-from ai_anime.modules.verification.image_verifier import resolve_verification_scene_context
-from ai_anime.modules.verification.models import VerificationResult
+from ai_anime.modules.verification.application.models import VerificationResult
+from ai_anime.modules.verification.infrastructure.image_verifier import (
+    ImageVerifier,
+    resolve_verification_scene_context,
+)
 
 
 class _FakeAgent:
@@ -30,7 +32,10 @@ class _FakeAgent:
 async def test_image_verifier_marks_time_baked_scene_as_locked_light(monkeypatch, tmp_path):
     image_path = tmp_path / "sketch.jpg"
     image_path.write_bytes(b"image")
-    monkeypatch.setattr("ai_anime.modules.verification.image_verifier.compress_image", lambda _p: b"jpeg")
+    monkeypatch.setattr(
+        "ai_anime.modules.verification.infrastructure.image_verifier.compress_image",
+        lambda _p: b"jpeg",
+    )
 
     verifier = ImageVerifier()
     fake_agent = _FakeAgent()
@@ -57,7 +62,10 @@ async def test_image_verifier_marks_time_baked_scene_as_locked_light(monkeypatch
 async def test_image_verifier_marks_unbaked_scene_as_relight_target(monkeypatch, tmp_path):
     image_path = tmp_path / "sketch.jpg"
     image_path.write_bytes(b"image")
-    monkeypatch.setattr("ai_anime.modules.verification.image_verifier.compress_image", lambda _p: b"jpeg")
+    monkeypatch.setattr(
+        "ai_anime.modules.verification.infrastructure.image_verifier.compress_image",
+        lambda _p: b"jpeg",
+    )
 
     verifier = ImageVerifier()
     fake_agent = _FakeAgent()

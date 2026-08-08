@@ -8,8 +8,10 @@ import pytest
 
 @pytest.mark.parametrize("env_name", ["DIRECTOR_VIEWER_URL", "VITE_DIRECTOR_VIEWER_URL"])
 def test_3gs_stage_url_uses_configured_director_viewer_origin(tmp_path, monkeypatch, env_name):
-    from ai_anime.modules.director_world import stage_manifest
-    from ai_anime.modules.director_world.service import DirectorWorldService
+    from ai_anime.modules.asset_world.public import stage_manifest
+    from ai_anime.modules.asset_world.infrastructure.director_world.service import (
+        DirectorWorldService,
+    )
 
     # Both env vars are honoured by the service (DIRECTOR_VIEWER_URL first),
     # so clear any inherited values and set only the one under test to make

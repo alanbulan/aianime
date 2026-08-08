@@ -7,7 +7,7 @@ from typing import Any
 
 class ProjectConfigProductionSettings:
     def load(self, username: str, project: str) -> dict[str, Any]:
-        from ai_anime.project_config import load_project_config
+        from ai_anime.modules.project_workspace.public import load_project_config
 
         return load_project_config(username, project)
 
@@ -17,7 +17,7 @@ class ProjectConfigProductionSettings:
         project: str,
         updates: dict[str, Any],
     ) -> None:
-        from ai_anime.project_config import save_project_config
+        from ai_anime.modules.project_workspace.public import save_project_config
 
         save_project_config(username, project, config=updates)
 

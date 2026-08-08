@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ai_anime.api.chat_schemas import (
+from ai_anime.api.routes.ai_assistant.schemas import (
     ChatAttachmentIn,
     ChatMessageIn,
     ChatScopePayload,

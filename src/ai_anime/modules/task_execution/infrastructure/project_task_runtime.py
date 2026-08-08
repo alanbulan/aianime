@@ -42,7 +42,9 @@ def ensure_builtin_runners_registered() -> None:
 
 
 def project_task_run_context(task_id: str):
-    from ai_anime.task_state import project_task_run_context as task_run_context
+    from ai_anime.modules.task_execution.infrastructure.task_state import (
+        project_task_run_context as task_run_context,
+    )
 
     return task_run_context(task_id)
 

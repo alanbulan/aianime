@@ -8,7 +8,7 @@ from typing import Any
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _build_identity_planner_result(
@@ -39,7 +39,7 @@ def run_identity_planner(envelope: dict[str, Any], ctx: ProjectContext) -> dict[
 
 
 async def _run_identity_planner(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.modules.agents.public import IdentityPlanner
+    from ai_anime.modules.narrative_planning.public import IdentityPlanner
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )

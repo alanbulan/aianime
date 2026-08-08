@@ -63,7 +63,7 @@ async def test_character_portrait_uses_canonical_path_and_preserves_old_content(
         return [str(generated)]
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.generate_character_reference_unified",
+        "ai_anime.modules.production.public.generate_character_reference_unified",
         fake_generate,
     )
 
@@ -117,7 +117,7 @@ async def test_identity_portrait_uses_canonical_path_and_removes_temp_directory(
         return [str(generated)]
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.generate_character_reference_unified",
+        "ai_anime.modules.production.public.generate_character_reference_unified",
         fake_generate,
     )
 
@@ -153,7 +153,7 @@ async def test_identity_portrait_removes_temp_directory_when_generator_fails(
         raise RuntimeError("provider failed")
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.generate_character_reference_unified",
+        "ai_anime.modules.production.public.generate_character_reference_unified",
         fake_generate,
     )
 
@@ -227,7 +227,7 @@ async def test_identity_image_prepares_canonical_output_and_passes_generator_con
         return {"success": True}
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.generate_identity_image_unified",
+        "ai_anime.modules.production.public.generate_identity_image_unified",
         fake_generate,
     )
 

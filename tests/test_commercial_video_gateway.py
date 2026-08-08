@@ -7,8 +7,10 @@ from types import SimpleNamespace
 import aiohttp
 import pytest
 
-from ai_anime.modules.generators import video_generator as video_module
-from ai_anime.modules.generators.video_generator import (
+from ai_anime.modules.production.infrastructure.media_generation import (
+    video_generator as video_module,
+)
+from ai_anime.modules.production.infrastructure.media_generation.video_generator import (
     CommercialVideoError,
     CommercialVideoGenerator,
     ShotReference,
@@ -25,10 +27,10 @@ def _generator(
     model: str = "cloud-video-standard",
     model_role: str = "VIDEO_TEXT_TO_VIDEO",
 ) -> CommercialVideoGenerator:
-    from ai_anime import config
+    from ai_anime.modules.model_usage import public as model_usage
 
     monkeypatch.setattr(
-        config,
+        model_usage,
         "get_effective_newapi_gateway_config",
         lambda: SimpleNamespace(
             mode=mode,

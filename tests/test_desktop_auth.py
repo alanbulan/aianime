@@ -5,7 +5,7 @@ import json
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.routes.auth import (
+from ai_anime.api.routes.identity_access.auth import (
     DesktopAuthorizationRequest,
     DesktopLoginRequest,
     authorize,

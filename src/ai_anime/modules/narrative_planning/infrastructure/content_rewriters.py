@@ -10,7 +10,9 @@ async def rewrite_episode_content(
     beat_chars_range: tuple[int, int],
     narration_style: str,
 ) -> str:
-    from ai_anime.modules.agents.public import rewrite_episode_content as rewrite
+    from ai_anime.modules.narrative_planning.infrastructure.content_rewriter_agent import (
+        rewrite_episode_content as rewrite,
+    )
 
     return await rewrite(
         raw_content,

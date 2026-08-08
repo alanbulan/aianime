@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.canvas_image_schemas import FreezoneImageReversePromptRequest
-from ai_anime.api.routes.canvas import image as reverse_prompt_routes
+from ai_anime.api.routes.creative_canvas.image_schemas import FreezoneImageReversePromptRequest
+from ai_anime.api.routes.creative_canvas import image as reverse_prompt_routes
 from ai_anime.modules.creative_canvas.application.reverse_prompt import (
     CREATIVE_CANVAS_REVERSE_PROMPT_TASK_TYPE,
     CreativeCanvasReversePromptSourceMissing,

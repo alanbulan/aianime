@@ -10,9 +10,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ai_anime import config
-from ai_anime.api.routes import model_gateway
-from ai_anime.model_access_policy import (
+from ai_anime.api.routes.model_usage import gateway as model_gateway
+from ai_anime.modules.model_usage.infrastructure import model_gateway_settings
+from ai_anime.modules.model_usage.infrastructure import model_runtime as config
+from ai_anime.modules.model_usage.public import (
     configure_model_access,
     require_model_role,
     resolve_internal_model_for_role,
@@ -20,7 +21,7 @@ from ai_anime.model_access_policy import (
     runtime_model_access,
     runtime_model_capability,
 )
-from ai_anime.model_gateway_settings import (
+from ai_anime.modules.model_usage.public import (
     MODE_BYOK,
     MODE_CLOUD,
     build_model_gateway_status,
@@ -38,7 +39,11 @@ def _reset_model_access() -> None:
 
 
 def _isolate_runtime(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    monkeypatch.setattr(config, "STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr(
+        model_gateway_settings,
+        "STATE_DIR",
+        str(tmp_path / "state"),
+    )
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv(
@@ -492,7 +497,7 @@ def test_model_subprocess_receives_only_the_selected_runtime_over_stdin(
     script = "\n".join(
         [
             "import hashlib, json, os",
-            "from ai_anime.model_access_policy import load_model_access_from_stdin, runtime_model_access, runtime_model_capability",
+            "from ai_anime.modules.model_usage.public import load_model_access_from_stdin, runtime_model_access, runtime_model_capability",
             "loaded = load_model_access_from_stdin()",
             "access = runtime_model_access()",
             "capability = runtime_model_capability('cloud/video-standard')",

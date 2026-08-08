@@ -14,7 +14,9 @@ def _configure_roots(monkeypatch, tmp_path):
 
 
 def test_build_pool_index_keeps_all_timestamped_candidates(tmp_path):
-    from ai_anime.modules.generators.pool_indexer import build_pool_index
+    from ai_anime.modules.production.infrastructure.media_generation.pool_indexer import (
+        build_pool_index,
+    )
 
     grids_dir = tmp_path / "grids" / "ep001"
     sketch_dir = grids_dir / "sketch"
@@ -41,7 +43,10 @@ def test_build_pool_index_keeps_all_timestamped_candidates(tmp_path):
 
 def test_rebuild_pool_index_preserves_existing_assignments(monkeypatch, tmp_path):
     output_root, _state_root = _configure_roots(monkeypatch, tmp_path)
-    from ai_anime.modules.generators.pool_indexer import rebuild_pool_index, save_pool_index
+    from ai_anime.modules.production.infrastructure.media_generation.pool_indexer import (
+        rebuild_pool_index,
+        save_pool_index,
+    )
 
     grids_dir = output_root / "admin" / "demo" / "grids" / "ep001"
     sketch_dir = grids_dir / "sketch"

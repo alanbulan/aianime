@@ -7,7 +7,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_quadruped_shape_hint_registry_matches_viewer_scale():
     shape_hint = json.loads(
-        (ROOT / "src/ai_anime/modules/director_world/shape_hints/quadruped_mount.json").read_text(
+        (
+            ROOT
+            / "src/ai_anime/modules/asset_world/infrastructure/director_world/shape_hints/quadruped_mount.json"
+        ).read_text(
             encoding="utf-8"
         )
     )
@@ -19,12 +22,18 @@ def test_quadruped_shape_hint_registry_matches_viewer_scale():
 
 def test_sports_car_shape_hint_registry_is_available():
     registry = json.loads(
-        (ROOT / "src/ai_anime/modules/director_world/shape_hints/registry.json").read_text(
+        (
+            ROOT
+            / "src/ai_anime/modules/asset_world/infrastructure/director_world/shape_hints/registry.json"
+        ).read_text(
             encoding="utf-8"
         )
     )
     sports_car = json.loads(
-        (ROOT / "src/ai_anime/modules/director_world/shape_hints/sports_car.json").read_text(
+        (
+            ROOT
+            / "src/ai_anime/modules/asset_world/infrastructure/director_world/shape_hints/sports_car.json"
+        ).read_text(
             encoding="utf-8"
         )
     )

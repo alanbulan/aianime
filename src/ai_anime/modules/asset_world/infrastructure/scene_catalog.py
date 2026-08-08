@@ -7,7 +7,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.director_world.public import stage_manifest
 from ai_anime.modules.asset_world.application.dto import CreateSceneCommand
 from ai_anime.modules.asset_world.application.scene_models import (
     NovelScene,
@@ -17,6 +16,7 @@ from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_updated_at,
     tree_updated_at,
 )
+from ai_anime.modules.asset_world.infrastructure.director_world import stage_manifest
 from ai_anime.shared.utils.path_resolver import (
     compute_scene_master_path,
     compute_scene_reverse_master_path,

@@ -1,6 +1,6 @@
 import pytest
 
-from ai_anime.modules.agents.identity_planner import (
+from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import (
     DefaultIdentityRequirement,
     EpisodeDefaultIdentities,
     EpisodeIdentityRequirements,

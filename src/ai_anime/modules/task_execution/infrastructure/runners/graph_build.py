@@ -8,7 +8,7 @@ from typing import Any
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _run_async(coro, envelope: dict[str, Any], task_type: str):
@@ -89,7 +89,7 @@ def run_build_episodes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[st
 
 
 async def _run_build_episodes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
-    from ai_anime.modules.agents.public import EpisodePlannerAgent
+    from ai_anime.modules.narrative_planning.public import EpisodePlannerAgent
 
     payload = envelope.get("payload") or {}
     config = dict(payload.get("config") or {})

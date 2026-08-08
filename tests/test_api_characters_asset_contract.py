@@ -42,7 +42,7 @@ class _CharacterStore:
 
 
 def _client(monkeypatch, tmp_path, store: _CharacterStore):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     project_dir.mkdir(parents=True)

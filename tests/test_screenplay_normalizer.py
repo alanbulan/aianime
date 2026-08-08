@@ -1,6 +1,6 @@
 import pytest
 
-from ai_anime.modules.knowledge_graph.screenplay_normalizer import (
+from ai_anime.modules.knowledge_graph.infrastructure.screenplay_normalizer import (
     NormalizedScreenplay,
     NormalizedSceneBlock,
     clean_scene_name_and_time,
@@ -21,7 +21,7 @@ def test_normalize_time_of_day_maps_classical_terms_to_closed_choices():
 
 
 def test_time_of_day_agent_outputs_expose_closed_enum_schema():
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
 
     expected = ["无", "清晨", "上午", "正午", "午后", "白天", "黄昏", "夜晚"]
 
@@ -33,7 +33,7 @@ def test_time_of_day_agent_outputs_expose_closed_enum_schema():
 
 
 def test_time_of_day_agent_no_value_round_trips_to_internal_empty_string():
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
 
     block = NormalizedSceneBlock(
         episode_number=3,
@@ -63,7 +63,7 @@ def test_time_of_day_agent_no_value_round_trips_to_internal_empty_string():
 
 
 def test_time_of_day_agent_outputs_normalize_before_literal_validation():
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
 
     block = NormalizedSceneBlock(
         episode_number=3,
@@ -167,7 +167,9 @@ def test_normalized_scene_block_validator_cleans_location_time():
 
 
 def test_select_scene_primary_name_accepts_time_suffix_cleanup():
-    from ai_anime.modules.knowledge_graph.pipeline import _select_scene_primary_name
+    from ai_anime.modules.knowledge_graph.infrastructure.pipeline import (
+        _select_scene_primary_name,
+    )
 
     assert _select_scene_primary_name("演武场外墙·夜", "演武场外墙") == "演武场外墙"
     assert _select_scene_primary_name("演武场外墙・夜", "演武场外墙") == "演武场外墙"
@@ -179,7 +181,9 @@ def test_select_scene_primary_name_accepts_time_suffix_cleanup():
 
 
 def test_scene_candidates_fill_missing_episode_from_raw_header():
-    from ai_anime.modules.knowledge_graph.pipeline import _scene_candidates_from_normalized_blocks
+    from ai_anime.modules.knowledge_graph.infrastructure.pipeline import (
+        _scene_candidates_from_normalized_blocks,
+    )
 
     candidates = _scene_candidates_from_normalized_blocks(
         [
@@ -279,7 +283,7 @@ async def test_normalize_screenplay_scenes_returns_empty_without_calling_agent()
 
 @pytest.mark.asyncio
 async def test_extract_scenes_from_script_prefers_ai_normalized_blocks(monkeypatch):
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
     from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
@@ -345,7 +349,7 @@ async def test_extract_scenes_from_script_prefers_ai_normalized_blocks(monkeypat
 async def test_extract_scenes_from_script_falls_back_when_ai_returns_partial_blocks(
     monkeypatch,
 ):
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
     from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
@@ -425,7 +429,7 @@ async def test_extract_scenes_from_script_falls_back_when_ai_returns_partial_blo
 
 @pytest.mark.asyncio
 async def test_extract_scenes_from_script_falls_back_when_ai_returns_empty(monkeypatch):
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
     from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):
@@ -475,7 +479,7 @@ async def test_extract_scenes_from_script_falls_back_when_ai_returns_empty(monke
 async def test_extract_scenes_from_script_falls_back_when_ai_merges_distinct_locations(
     monkeypatch,
 ):
-    from ai_anime.modules.knowledge_graph import pipeline
+    from ai_anime.modules.knowledge_graph.infrastructure import pipeline
     from ai_anime.modules.asset_world.public import NovelScene
 
     async def fake_normalize(_text: str):

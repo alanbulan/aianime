@@ -1,7 +1,7 @@
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-import ai_anime.api.chat_session as chat_session
+import ai_anime.api.routes.ai_assistant.session as chat_session
 from ai_anime.modules.ai_assistant.public import ChatScope
 
 

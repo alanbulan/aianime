@@ -17,6 +17,7 @@ from ai_anime.modules.project_workspace.application.errors import (
 )
 from ai_anime.modules.project_workspace.domain import Principal, ProjectRecord
 from ai_anime.shared.project_dirs import default_project_dirs
+from ai_anime.shared.runtime_paths import STATE_DIR
 
 
 def _now_iso() -> str:
@@ -73,9 +74,7 @@ class SQLiteProjectRegistry:
         self._schema_ready = False
 
     def _db_path(self) -> Path:
-        from ai_anime import config
-
-        return Path(config.STATE_DIR) / "local" / "projects.db"
+        return Path(STATE_DIR) / "local" / "projects.db"
 
     async def _connect(self) -> aiosqlite.Connection:
         await self._ensure_schema()

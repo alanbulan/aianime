@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from pydantic_ai.models.test import TestModel
 
-from ai_anime import config
-from ai_anime.model_access_policy import configure_model_access
+from ai_anime.modules.model_usage import public as config
+from ai_anime.modules.model_usage.public import configure_model_access
 from ai_anime.modules.creative_canvas.application.vision_analysis import (
     CreativeCanvasVisionInput,
     creative_canvas_image_media_type,

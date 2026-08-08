@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from ai_anime import config
 from ai_anime.shared import media_relay
 
 
@@ -81,12 +80,12 @@ def test_aliyun_oss_relay_requires_credentials() -> None:
 
 
 def test_get_media_relay_uses_platform_oss_config(monkeypatch) -> None:
-    monkeypatch.setattr(config, "MEDIA_RELAY_PROVIDER", "aliyun_oss")
-    monkeypatch.setattr(config, "MEDIA_RELAY_TTL_SECONDS", 1800)
-    monkeypatch.setattr(config, "OSS_RELAY_ENDPOINT", "env.endpoint")
-    monkeypatch.setattr(config, "OSS_RELAY_BUCKET", "env-bucket")
-    monkeypatch.setattr(config, "OSS_RELAY_AK", "env-ak")
-    monkeypatch.setattr(config, "OSS_RELAY_SK", "env-sk")
+    monkeypatch.setenv("MEDIA_RELAY_PROVIDER", "aliyun_oss")
+    monkeypatch.setenv("MEDIA_RELAY_TTL_SECONDS", "1800")
+    monkeypatch.setenv("OSS_RELAY_ENDPOINT", "env.endpoint")
+    monkeypatch.setenv("OSS_RELAY_BUCKET", "env-bucket")
+    monkeypatch.setenv("OSS_RELAY_AK", "env-ak")
+    monkeypatch.setenv("OSS_RELAY_SK", "env-sk")
 
     relay = media_relay.get_media_relay()
     url = relay.upload_bytes(b"image-bytes", ext="png", ttl=900)
@@ -101,16 +100,16 @@ def test_get_media_relay_uses_platform_oss_config(monkeypatch) -> None:
 
 
 def test_get_media_relay_uses_platform_cloudinary_config(monkeypatch) -> None:
-    monkeypatch.setattr(config, "MEDIA_RELAY_PROVIDER", "cloudinary")
-    monkeypatch.setattr(config, "MEDIA_RELAY_TTL_SECONDS", 900)
-    monkeypatch.setattr(config, "OSS_RELAY_ENDPOINT", "env.endpoint")
-    monkeypatch.setattr(config, "OSS_RELAY_BUCKET", "env-bucket")
-    monkeypatch.setattr(config, "OSS_RELAY_AK", "env-ak")
-    monkeypatch.setattr(config, "OSS_RELAY_SK", "env-sk")
-    monkeypatch.setattr(config, "CLOUDINARY_RELAY_CLOUD_NAME", "demo-cloud")
-    monkeypatch.setattr(config, "CLOUDINARY_RELAY_API_KEY", "api-key")
-    monkeypatch.setattr(config, "CLOUDINARY_RELAY_API_SECRET", "api-secret")
-    monkeypatch.setattr(config, "CLOUDINARY_RELAY_FOLDER", "ai-anime-relay")
+    monkeypatch.setenv("MEDIA_RELAY_PROVIDER", "cloudinary")
+    monkeypatch.setenv("MEDIA_RELAY_TTL_SECONDS", "900")
+    monkeypatch.setenv("OSS_RELAY_ENDPOINT", "env.endpoint")
+    monkeypatch.setenv("OSS_RELAY_BUCKET", "env-bucket")
+    monkeypatch.setenv("OSS_RELAY_AK", "env-ak")
+    monkeypatch.setenv("OSS_RELAY_SK", "env-sk")
+    monkeypatch.setenv("CLOUDINARY_RELAY_CLOUD_NAME", "demo-cloud")
+    monkeypatch.setenv("CLOUDINARY_RELAY_API_KEY", "api-key")
+    monkeypatch.setenv("CLOUDINARY_RELAY_API_SECRET", "api-secret")
+    monkeypatch.setenv("CLOUDINARY_RELAY_FOLDER", "ai-anime-relay")
 
     relay = media_relay.get_media_relay()
 

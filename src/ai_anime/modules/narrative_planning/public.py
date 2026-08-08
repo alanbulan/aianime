@@ -1,8 +1,20 @@
 """Stable application API exposed by Narrative Planning."""
 
 from collections.abc import Sequence
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent import (
+        AssetCompiler,
+    )
+    from ai_anime.modules.narrative_planning.infrastructure.episode_planner_agent import (
+        EpisodePlannerAgent,
+    )
+    from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import (
+        IdentityPlanner,
+    )
 
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     GeneratedBeatVideoPrompt,
@@ -110,6 +122,31 @@ from ai_anime.modules.narrative_planning.domain import (
     storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+
+_LAZY_EXPORTS = {
+    "AssetCompiler": (
+        "ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent",
+        "AssetCompiler",
+    ),
+    "EpisodePlannerAgent": (
+        "ai_anime.modules.narrative_planning.infrastructure.episode_planner_agent",
+        "EpisodePlannerAgent",
+    ),
+    "IdentityPlanner": (
+        "ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent",
+        "IdentityPlanner",
+    ),
+}
+
+
+def __getattr__(name: str) -> Any:
+    target = _LAZY_EXPORTS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attribute_name = target
+    value = getattr(import_module(module_name), attribute_name)
+    globals()[name] = value
+    return value
 
 
 async def load_raw_episode_content(
@@ -405,6 +442,7 @@ async def generate_and_save_beat_video_prompt(
 
 
 __all__ = [
+    "AssetCompiler",
     "BeatNotFound",
     "BeatStoreUpdateFailed",
     "BeatVideoPromptSelection",
@@ -412,6 +450,7 @@ __all__ = [
     "EpisodeContentDocument",
     "EpisodeContentWriteFailed",
     "EpisodeNotFound",
+    "EpisodePlannerAgent",
     "EpisodeAssetPlanningTask",
     "FinalBeatTransitionNotAllowed",
     "GenerateEpisodeRewriteCommand",
@@ -420,6 +459,7 @@ __all__ = [
     "GeneratedSeedancePrompt",
     "GeneratedBeatVideoPrompt",
     "IdentityPlanRequired",
+    "IdentityPlanner",
     "LiteralBeatMetaOutput",
     "LiteralScriptWritingWorkflow",
     "NarrationScript",

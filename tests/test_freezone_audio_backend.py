@@ -4,7 +4,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from ai_anime import config
 from ai_anime.modules.creative_canvas.infrastructure import (
     audio_generation,
     audio_voice_store,
@@ -21,8 +20,9 @@ from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
     resolve_user_audio_voice,
     user_audio_voices_index_path,
 )
-from ai_anime.model_access_policy import configure_model_access
-from ai_anime.model_gateway_settings import MODE_CLOUD
+from ai_anime.modules.model_usage.public import configure_model_access
+from ai_anime.modules.model_usage.public import MODE_CLOUD
+from ai_anime.modules.model_usage.infrastructure import model_gateway_settings
 
 
 class FakeTTSGenerator:
@@ -32,7 +32,9 @@ class FakeTTSGenerator:
         self.model = model
 
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
-        from ai_anime.modules.generators.tts_generator import TTSResult
+        from ai_anime.modules.production.infrastructure.media_generation.tts_generator import (
+            TTSResult,
+        )
 
         self.__class__.calls.append(
             {
@@ -55,7 +57,11 @@ def _reset_model_access() -> None:
 
 
 def _isolate_settings_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(config, "STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr(
+        model_gateway_settings,
+        "STATE_DIR",
+        str(tmp_path / "state"),
+    )
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.delenv("MODEL_GATEWAY_MODE", raising=False)
@@ -178,15 +184,18 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.project_config import set_narrator_reference_audio, update_project_config_file
-    from ai_anime.modules.seedance2_i2v.voice_clone import file_sha256
+    from ai_anime.modules.project_workspace.infrastructure.project_config import set_narrator_reference_audio, update_project_config_file
+    from ai_anime.modules.production.infrastructure.seedance2_voice import file_sha256
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     narrator = project_dir / "assets" / "narrator" / "voice.wav"
     narrator.parent.mkdir(parents=True, exist_ok=True)
     narrator.write_bytes(b"project-narrator-reference")
     narrator_sha = file_sha256(narrator)
-    monkeypatch.setattr("ai_anime.project_config.OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr(
+        "ai_anime.modules.project_workspace.infrastructure.project_config.STATE_DIR",
+        tmp_path / "state",
+    )
     monkeypatch.setattr(audio_generation, "IndexTTS2Client", FakeTTSGenerator)
     monkeypatch.setattr(
         audio_generation,

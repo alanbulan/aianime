@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from ai_anime.modules.director_world.public import stage_manifest
+from ai_anime.modules.asset_world.infrastructure.director_world import stage_manifest
 from ai_anime.shared.utils.path_resolver import (
     compute_scene_master_path,
     compute_scene_reverse_master_path,

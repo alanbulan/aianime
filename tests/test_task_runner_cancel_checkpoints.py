@@ -38,7 +38,7 @@ def test_stage_asset_checks_cancel_after_local_runner_returns(tmp_path, monkeypa
     monkeypatch.setattr(stage_asset, "raise_if_envelope_cancel_requested", fake_check)
     monkeypatch.setattr(stage_asset, "get_task_manager", lambda: _FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.stage_asset_tasks.upload_scene_package",
+        "ai_anime.modules.asset_world.public.upload_scene_package",
         lambda *_args, **_kwargs: {"ok": True},
     )
 
@@ -78,7 +78,7 @@ def test_freezone_image_to_3gs_checks_cancel_before_publishing_result(tmp_path, 
     monkeypatch.setattr(stage_asset, "raise_if_envelope_cancel_requested", fake_check)
     monkeypatch.setattr(stage_asset, "get_task_manager", lambda: _FakeTaskManager())
     monkeypatch.setattr(
-        "ai_anime.stage_asset_tasks.run_single_face_sharp",
+        "ai_anime.modules.asset_world.public.run_single_face_sharp",
         lambda *_args, **_kwargs: {"ply_path": str(sog), "sog_path": str(sog)},
     )
 
@@ -115,7 +115,10 @@ def test_stage_asset_caps_local_runner_timeout_to_task_deadline(tmp_path, monkey
 
     monkeypatch.setattr(stage_asset, "get_task_manager", lambda: _FakeTaskManager())
     monkeypatch.setattr(stage_asset, "raise_if_envelope_cancel_requested", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("ai_anime.stage_asset_tasks.run_pano_sharp", fake_run_pano_sharp)
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.public.run_pano_sharp",
+        fake_run_pano_sharp,
+    )
 
     stage_asset.run_stage_asset(
         {

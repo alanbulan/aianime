@@ -1,7 +1,7 @@
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.model_access_policy import configure_model_access
+from ai_anime.modules.model_usage.public import configure_model_access
 
 
 @pytest.fixture(autouse=True)
@@ -80,7 +80,7 @@ def patch_quote_display_mismatch(cost: int, display: str) -> None:
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_keeps_local_display_helper():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote_display_mismatch(cost=8, display="different")
 
@@ -95,7 +95,7 @@ async def test_generation_credit_cost_route_keeps_local_display_helper():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_uses_ce_zero_quote_port():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
     from ai_anime.modules.model_usage.public import build_local_credit_quote
     from ai_anime.shared.ports.registry import register_port
 
@@ -112,7 +112,7 @@ async def test_generation_credit_cost_route_uses_ce_zero_quote_port():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_resolves_model_kind():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote(expected_model="gpt-image-2", cost=5)
 
@@ -127,7 +127,7 @@ async def test_generation_credit_cost_route_resolves_model_kind():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_passes_params_and_quantity():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote_expect(
         expected_kind="image",
@@ -150,7 +150,7 @@ async def test_generation_credit_cost_route_passes_params_and_quantity():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_rejects_blank_model():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     with pytest.raises(HTTPException) as exc_info:
         await model_credits.get_generation_credit_cost(
@@ -165,7 +165,7 @@ async def test_generation_credit_cost_route_rejects_blank_model():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_resolves_beat_tts():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote(expected_model="audio-speech-1", cost=3)
 
@@ -180,7 +180,7 @@ async def test_generation_credit_cost_route_resolves_beat_tts():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_resolves_freezone_audio_music():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote_expect(
         expected_kind="audio",
@@ -202,7 +202,7 @@ async def test_generation_credit_cost_route_resolves_freezone_audio_music():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_resolves_freezone_story_script():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote(
         expected_model="ai-anime-freezone-story-script-writer-LLM",
@@ -222,7 +222,7 @@ async def test_generation_credit_cost_route_resolves_freezone_story_script():
 async def test_generation_credit_cost_route_resolves_freezone_image_reverse_prompt(
     monkeypatch,
 ):
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     monkeypatch.setenv("FREEZONE_VISION_MODEL", "legacy-vision-model")
     configure_model_access(
@@ -251,7 +251,7 @@ async def test_generation_credit_cost_route_resolves_freezone_image_reverse_prom
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_resolves_style_analyzer(monkeypatch):
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     monkeypatch.setenv("STYLE_ANALYZER_MODEL", "legacy-style-analyzer-model")
     configure_model_access(
@@ -280,7 +280,7 @@ async def test_generation_credit_cost_route_resolves_style_analyzer(monkeypatch)
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_resolves_image_selection():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote(expected_model="image-platform-sku", cost=7)
 
@@ -295,7 +295,7 @@ async def test_generation_credit_cost_route_resolves_image_selection():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_preserves_catalog_code_without_mapping():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote(expected_model="newapi_gpt_image2", cost=7)
 
@@ -310,7 +310,7 @@ async def test_generation_credit_cost_route_preserves_catalog_code_without_mappi
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_uses_selected_model_for_scene_master():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote_expect(
         expected_kind="image",
@@ -332,7 +332,7 @@ async def test_generation_credit_cost_route_uses_selected_model_for_scene_master
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_adds_scene_pano_params(monkeypatch):
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     monkeypatch.setenv("SCENE_360_IMAGE_SIZE", "2K")
     monkeypatch.setenv("SCENE_360_IMAGE_QUALITY", "medium")
@@ -356,8 +356,8 @@ async def test_generation_credit_cost_route_adds_scene_pano_params(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_adds_image_mode_params(monkeypatch):
-    from ai_anime import config
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
+    from ai_anime.modules.production import public as config
 
     monkeypatch.setattr(config, "OPENAI_IMAGE_QUALITY", "medium")
     patch_quote_expect(
@@ -382,7 +382,7 @@ async def test_generation_credit_cost_route_adds_image_mode_params(monkeypatch):
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_canvas_uses_only_explicit_params(
 ):
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote_expect(
         expected_kind="image",
@@ -408,8 +408,8 @@ async def test_generation_credit_cost_route_canvas_uses_only_explicit_params(
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_adds_character_image_params(monkeypatch):
-    from ai_anime import config
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
+    from ai_anime.modules.production import public as config
 
     monkeypatch.setattr(config, "OPENAI_IMAGE_QUALITY", "medium")
     patch_quote_expect(
@@ -432,7 +432,7 @@ async def test_generation_credit_cost_route_adds_character_image_params(monkeypa
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_keeps_video_params_and_quantity():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote_expect(
         expected_kind="video",
@@ -455,7 +455,7 @@ async def test_generation_credit_cost_route_keeps_video_params_and_quantity():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_uses_bare_video_model_sku():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     patch_quote(expected_model="seedance-1.0-pro-fast", cost=12)
 
@@ -470,7 +470,7 @@ async def test_generation_credit_cost_route_uses_bare_video_model_sku():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_rejects_blank_image_model():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     with pytest.raises(HTTPException) as exc_info:
         await model_credits.get_generation_credit_cost(
@@ -485,7 +485,7 @@ async def test_generation_credit_cost_route_rejects_blank_image_model():
 
 @pytest.mark.asyncio
 async def test_generation_credit_cost_route_rejects_empty_video_model():
-    from ai_anime.api.routes import model_credits
+    from ai_anime.api.routes.model_usage import credits as model_credits
 
     with pytest.raises(HTTPException) as exc_info:
         await model_credits.get_generation_credit_cost(

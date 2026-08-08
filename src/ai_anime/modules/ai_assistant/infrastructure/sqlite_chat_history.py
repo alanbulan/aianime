@@ -15,7 +15,7 @@ from ai_anime.modules.ai_assistant.domain import (
     strip_stored_assistant_replay,
 )
 from ai_anime.modules.ai_assistant.infrastructure.local_state import local_state_root
-from ai_anime.sqlite_pragmas import configure_sqlite_connection
+from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 
 
 class SQLiteChatHistory:

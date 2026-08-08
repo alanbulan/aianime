@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.modules.generators.video_generator import (
+from ai_anime.modules.production.infrastructure.media_generation.video_generator import (
     CommercialVideoGenerator,
     VideoGenResult,
     VideoGenStatus,
 )
-from ai_anime.model_access_policy import configure_model_access
+from ai_anime.modules.model_usage.public import configure_model_access
 from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
     ConfiguredCreativeCanvasVideoModelPolicy,
 )
@@ -174,7 +174,7 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
         return FakeVideoGenerator()
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.create_video_generator",
+        "ai_anime.modules.production.public.create_video_generator",
         fake_create_video_generator,
     )
 

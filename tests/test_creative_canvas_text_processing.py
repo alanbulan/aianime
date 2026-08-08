@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.routes.canvas import text as text_routes
-from ai_anime.api.canvas_text_schemas import (
+from ai_anime.api.routes.creative_canvas import text as text_routes
+from ai_anime.api.routes.creative_canvas.text_schemas import (
     FreezoneStoryScriptGenerateRequest,
     FreezoneTextTranslateRequest,
 )

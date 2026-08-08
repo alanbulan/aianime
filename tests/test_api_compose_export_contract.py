@@ -20,7 +20,7 @@ class _FakeStore:
 
 def _client(monkeypatch, tmp_path) -> TestClient:
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import production_export
+    from ai_anime.api.routes.production import export as production_export
     from ai_anime.modules.project_workspace.public import ProjectContext
     from ai_anime.shared.infrastructure import project_stores
 

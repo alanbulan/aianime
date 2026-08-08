@@ -128,7 +128,7 @@ def _root_value(*names: str) -> str:
 
 def _effective_newapi_gateway() -> tuple[str, str]:
     """Return effective model-access ``(api_key, base_url)`` for Hermes."""
-    from ai_anime.model_gateway_settings import get_effective_newapi_config
+    from ai_anime.modules.model_usage.public import get_effective_newapi_config
 
     gateway = get_effective_newapi_config()
     return gateway.api_key, gateway.base_url
@@ -156,7 +156,7 @@ def _hermes_model_default() -> str:
         "HERMES_MODEL_DEFAULT",
         "AI_ANIME_HERMES_MODEL",
     ) or _DEFAULT_HERMES_MODEL
-    from ai_anime.model_access_policy import resolve_internal_model_for_role
+    from ai_anime.modules.model_usage.public import resolve_internal_model_for_role
 
     return resolve_internal_model_for_role(logical_model, "TEXT")
 

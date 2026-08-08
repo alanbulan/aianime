@@ -20,11 +20,15 @@ from ai_anime.modules.production.application.seedance2_panel import (
     UploadSeedance2AssetCommand,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.seedance2_i2v.public import (
-    dialogue_voice_reference_rows,
-    normalize_seedance2_audio_type,
-    panel_service,
+from ai_anime.modules.production.application.seedance2_config import (
     parse_seedance2_config,
+)
+from ai_anime.modules.production.domain.seedance2_dialogue import (
+    normalize_seedance2_audio_type,
+)
+from ai_anime.modules.production.infrastructure import seedance2_panel_service
+from ai_anime.modules.production.infrastructure.seedance2_voice_references import (
+    dialogue_voice_reference_rows,
     resolve_narrator_reference_status,
 )
 from ai_anime.shared import project_media
@@ -286,7 +290,7 @@ class LocalSeedance2PanelGateway:
 
     def _status_response(self, session: _PanelSession) -> dict[str, Any]:
         request = session.request
-        state = panel_service.build_seedance2_video_panel_state(
+        state = seedance2_panel_service.build_seedance2_video_panel_state(
             project_dir=session.output_dir,
             episode=request.episode_num,
             beat=session.beat,
@@ -405,7 +409,7 @@ class LocalSeedance2PanelGateway:
         command: UploadSeedance2AssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            target = await panel_service.save_seedance2_uploaded_asset(
+            target = await seedance2_panel_service.save_seedance2_uploaded_asset(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,
@@ -422,7 +426,7 @@ class LocalSeedance2PanelGateway:
         command: RemoveSeedance2AssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            removed = await panel_service.remove_seedance2_uploaded_asset(
+            removed = await seedance2_panel_service.remove_seedance2_uploaded_asset(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,
@@ -437,7 +441,7 @@ class LocalSeedance2PanelGateway:
         command: CropSeedance2AssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            target = await panel_service.crop_seedance2_asset_to_reference(
+            target = await seedance2_panel_service.crop_seedance2_asset_to_reference(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,
@@ -454,7 +458,7 @@ class LocalSeedance2PanelGateway:
         command: TrimSeedance2AudioAssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            target = await panel_service.trim_seedance2_audio_to_reference(
+            target = await seedance2_panel_service.trim_seedance2_audio_to_reference(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,

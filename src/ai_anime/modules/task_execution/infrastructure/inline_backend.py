@@ -34,7 +34,7 @@ from ai_anime.modules.project_workspace.public import require_project_home_node
 from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     ACTIVE_PROJECT_TASK_STATUSES,
 )
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 logger = logging.getLogger(__name__)
 

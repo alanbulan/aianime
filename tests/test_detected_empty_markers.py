@@ -1,4 +1,6 @@
-from ai_anime.modules.generators.prompt_builder import PromptComponents
+from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
+    PromptComponents,
+)
 from ai_anime.modules.production.public import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,

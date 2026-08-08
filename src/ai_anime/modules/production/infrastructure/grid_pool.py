@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.generators.public import nanobanana_grid, pool_indexer
+from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid, pool_indexer
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
     BeatSketchCandidateView,

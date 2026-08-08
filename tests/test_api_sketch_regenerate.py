@@ -17,7 +17,8 @@ from ai_anime.modules.production.application.selected_regeneration import (
 
 
 def _client(monkeypatch):
-    from ai_anime.api.routes import production_render, production_sketch
+    from ai_anime.api.routes.production import render as production_render
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     context = object()
 
@@ -39,7 +40,7 @@ def _client(monkeypatch):
 
 
 def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
     from ai_anime.modules.task_execution.public import selection_scope
 
     client, context = _client(monkeypatch)
@@ -92,7 +93,7 @@ def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
 
 
 def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client, _context = _client(monkeypatch)
 
@@ -116,7 +117,7 @@ def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):
 
 
 def test_missing_manual_sketch_regen_maps_request_to_application(monkeypatch):
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     client, context = _client(monkeypatch)
     calls = []
@@ -167,7 +168,7 @@ def test_missing_manual_sketch_regen_maps_request_to_application(monkeypatch):
 
 
 def test_missing_manual_sketch_regen_preserves_rejection_envelope(monkeypatch):
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     client, _context = _client(monkeypatch)
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.api.auth import AUTH_COOKIE_NAME
+from ai_anime.api.routes.identity_access.dependencies import AUTH_COOKIE_NAME
 from ai_anime.modules.identity_access.public import (
     AgentAuthenticatedUser,
     AuthenticatedUser,

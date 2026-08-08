@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.routes.canvas import image as image_generation_routes
-from ai_anime.api.canvas_image_schemas import (
+from ai_anime.api.routes.creative_canvas import image as image_generation_routes
+from ai_anime.api.routes.creative_canvas.image_schemas import (
     FreezoneGenRequest,
     FreezoneImageCameraConfig,
     FreezoneImageStyleConfig,

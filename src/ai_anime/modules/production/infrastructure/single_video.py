@@ -42,17 +42,17 @@ from ai_anime.modules.production.domain.video_model import (
     video_resolution,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.seedance2_i2v.public import (
+from ai_anime.modules.production.infrastructure.seedance2_assets import (
     append_seedance2_user_reference_assets,
     build_seedance2_project_assets,
     selected_reference_paths,
 )
-from ai_anime.modules.seedance2_i2v.public import (
+from ai_anime.modules.production.application.seedance2_config import (
     Seedance2I2VMode,
     dump_seedance2_config,
     parse_seedance2_config,
 )
-from ai_anime.modules.seedance2_i2v.public import (
+from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
     prepare_seedance2_generation_inputs,
 )
 from ai_anime.modules.task_execution.public import (

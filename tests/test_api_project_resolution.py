@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.api import deps
-from ai_anime.api.routes import scenes
+from ai_anime.api.routes.asset_world import scenes
 
 
 @pytest.mark.asyncio

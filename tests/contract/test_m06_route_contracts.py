@@ -249,22 +249,22 @@ class _FakeTaskManager:
 @pytest.fixture()
 def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.shared import ports
-    from ai_anime.api import auth as api_auth
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import ingest
-    from ai_anime.api.routes.canvas import audio as freezone_audio
-    from ai_anime.api.routes.canvas import assets as freezone_assets
-    from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
-    from ai_anime.api.routes.canvas import commits as freezone_commits
-    from ai_anime.api.routes.canvas import documents as freezone_documents
-    from ai_anime.api.routes.canvas import image as freezone_image
-    from ai_anime.api.routes.canvas import jobs as freezone_jobs
-    from ai_anime.api.routes.canvas import media as freezone_media
-    from ai_anime.api.routes.canvas import presets as freezone_presets
-    from ai_anime.api.routes.canvas import projections as freezone_projections
-    from ai_anime.api.routes.canvas import skills as freezone_skills
-    from ai_anime.api.routes.canvas import text as freezone_text
-    from ai_anime.api.routes.canvas import video as freezone_video
+    from ai_anime.api.routes.story_intake import ingest
+    from ai_anime.api.routes.creative_canvas import audio as freezone_audio
+    from ai_anime.api.routes.creative_canvas import assets as freezone_assets
+    from ai_anime.api.routes.creative_canvas import bootstrap as freezone_bootstrap
+    from ai_anime.api.routes.creative_canvas import commits as freezone_commits
+    from ai_anime.api.routes.creative_canvas import documents as freezone_documents
+    from ai_anime.api.routes.creative_canvas import image as freezone_image
+    from ai_anime.api.routes.creative_canvas import jobs as freezone_jobs
+    from ai_anime.api.routes.creative_canvas import media as freezone_media
+    from ai_anime.api.routes.creative_canvas import presets as freezone_presets
+    from ai_anime.api.routes.creative_canvas import projections as freezone_projections
+    from ai_anime.api.routes.creative_canvas import skills as freezone_skills
+    from ai_anime.api.routes.creative_canvas import text as freezone_text
+    from ai_anime.api.routes.creative_canvas import video as freezone_video
     from ai_anime.modules.creative_canvas.infrastructure.paths import uploads_dir
     from ai_anime.modules.creative_canvas.public import (
         CreativeCanvasMarkDetectionResult,

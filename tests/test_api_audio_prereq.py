@@ -3,8 +3,8 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_path):
-    from ai_anime.api.production_audio_schemas import TTSGenerateRequest
-    from ai_anime.api.routes import production_audio
+    from ai_anime.api.routes.production.audio_schemas import TTSGenerateRequest
+    from ai_anime.api.routes.production import audio as production_audio
     from ai_anime.modules.production.public import AudioVoicePrerequisitesMissing
 
     context = object()

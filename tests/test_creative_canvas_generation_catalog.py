@@ -4,8 +4,8 @@ from typing import Any
 
 import pytest
 
-from ai_anime.api.routes.canvas import image as image_routes
-from ai_anime.api.routes.canvas import video as video_routes
+from ai_anime.api.routes.creative_canvas import image as image_routes
+from ai_anime.api.routes.creative_canvas import video as video_routes
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )

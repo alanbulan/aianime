@@ -9,7 +9,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 | Windows | x64 | Windows 10/11 | NSIS `.exe` |
 | macOS | Apple Silicon arm64 | macOS 15 | `.dmg`、`.zip` |
 
-本仓库采用 DDD 风格的模块化单体，不是微服务集合。业务边界已大面积迁入有界上下文，但仍存在明确登记的遗留模块，因此当前状态是“主要业务链路完成分层”，不是“全仓已经纯 DDD”。
+本仓库采用 DDD 风格的模块化单体，不是微服务集合。本轮已登记的平铺上下文、顶层存储、任务状态和商业入口债务已经完成所有权迁移；跨上下文依赖由 `public.py` / `public.ts` 和自动化边界测试约束。DDD 合规以职责和依赖方向为准，不以目录层数或单个文件大小代替边界判断。
 
 ## 1. 当前可交付状态
 
@@ -20,6 +20,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 - 商业登录、会话刷新、许可、额度、模型目录、公告和版本更新通过 Electron IPC 访问真实 Gateway 路径。
 - 普通版 Cloud 模型请求经 Electron 本地模型代理转发到 Gateway；专业版 BYOK 由用户配置标准模型接口。
 - Windows x64 与 macOS arm64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
+- 旧 `agents`、`director_world`、`generators`、`seedance2_i2v` Python 路径已经退役；Backup、Knowledge Graph 和 Verification 已按实际职责分层。
 
 以下内容不能据此视为已经完成线上验收：
 
@@ -101,26 +102,22 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 跨上下文调用应经过目标上下文的 `public.py` 或 `public.ts`。FastAPI route 只负责认证、schema、用例调用和 HTTP 错误映射；React route 只负责路由参数和页面装配。
 
-### 3.2 尚未完成的 DDD 收敛
+### 3.2 本轮 DDD 收敛结果
 
-以下后端目录仍是平铺遗留结构：
+| 原架构债 | 当前所有权 |
+| --- | --- |
+| `modules/agents` | 规划能力归入 `narrative_planning`，生成能力归入 `production`，审核能力归入 `verification`；旧源码路径退役 |
+| `modules/director_world` | 归入 `asset_world/infrastructure/director_world`，场景世界不再作为伪独立上下文 |
+| `modules/generators`、`modules/seedance2_i2v` | 归入 `production` 的 application、domain 和 infrastructure；外部调用只经 `production.public` |
+| `modules/backup` | 拆为 application 恢复计划、infrastructure 文件/SQLite/WAL 适配和 presentation CLI |
+| `modules/knowledge_graph` | 解析规则归 domain，Cognee、迁移和持久化归 infrastructure，跨上下文入口归 `public.py` |
+| `modules/verification` | 模型与 schema 归 application，纯规则归 domain，验证器与存储归 infrastructure，CLI 归 presentation |
+| `src/ai_anime/sqlite_store.py` | 从 1803 行降为 33 行组合根；资产仓储归 `asset_world`，叙事仓储归 `narrative_planning`，通用 schema、生命周期和图状态归 shared infrastructure |
+| `src/ai_anime/stage_asset_tasks.py` | 已删除；全景、场景包、Splat 和 Voxel 任务适配归 `asset_world`，任务执行只保留 runner |
+| `src/ai_anime/task_state.py` | 顶层入口已删除；持久化适配归 `task_execution/infrastructure`，重启恢复规则归 domain |
+| `desktop/src/commercial.ts` | 从 1607 行降为 35 行公共入口；API client、IPC、设备、租约、制品、模型访问和模型代理各自独立 |
 
-- `modules/agents`
-- `modules/backup`
-- `modules/director_world`
-- `modules/generators`
-- `modules/knowledge_graph`
-- `modules/seedance2_i2v`
-- `modules/verification`
-
-以下大文件仍需要后续按真实业务所有权拆分，不能通过再加 facade 掩盖：
-
-- `src/ai_anime/sqlite_store.py`：跨角色、场景、道具、剧集和 Beat 的兼容存储实现，仍依赖多个业务上下文 public API。
-- `src/ai_anime/stage_asset_tasks.py`：Director World 与任务运行时编排仍较集中。
-- `src/ai_anime/task_state.py`：任务持久化和状态规则仍较集中。
-- `desktop/src/commercial.ts`：商业 transport、会话和 IPC 组合仍位于同一文件。
-
-这些是已知架构债，不应在 README、发布说明或评审中描述为“DDD 已全部完成”。
+架构门禁会阻止旧路径、兼容 re-export、业务上下文反向导入 shared 和 presentation 直接依赖 infrastructure 回流。较大的基础设施适配文件可以继续按行为边界演进，但不能仅为减少行数制造无业务含义的目录或 facade。
 
 ### 3.3 目录规则
 
@@ -152,11 +149,16 @@ ai-anime-desktop/
 │     ├─ shared/api/               通用 HTTP transport
 │     └─ __tests__/architecture/   前端依赖和 UI 门禁
 ├─ src/ai_anime/
-│  ├─ api/                         FastAPI app、middleware、schema 和 route
+│  ├─ api/                         FastAPI 壳层：app、middleware、异常和共享依赖
+│  │  ├─ routes/<context>/        12 个业务上下文的 HTTP adapter 与请求 schema
+│  │  └─ v1/router.py             只按上下文聚合 create_router()
 │  ├─ modules/                     后端业务上下文
 │  ├─ shared/                      跨上下文稳定技术能力
 │  ├─ styles/                      风格预设数据
-│  └─ desktop_server.py            桌面 sidecar 入口
+│  ├─ cli.py                       命令行入口
+│  ├─ desktop_server.py            桌面 sidecar 入口
+│  ├─ sqlite_store.py              跨上下文 SQLite UoW 组合根
+│  └─ release-notes.md             随 Python 包发布的本地版本说明
 ├─ tests/
 │  ├─ architecture/               Python 边界与 OpenAPI 快照
 │  ├─ contract/                   API 和任务合同
@@ -166,6 +168,8 @@ ai-anime-desktop/
 ├─ pyproject.toml
 └─ uv.lock
 ```
+
+`src/ai_anime` 根包不承载业务实现；新增业务代码应进入所属 `modules/<context>`，新增 HTTP 接口应进入对应 `api/routes/<context>`。`api/v1/router.py` 不直接注册文件级 router。
 
 构建产物不提交：
 
@@ -231,12 +235,26 @@ React module
 
 ### 5.3 云端联调前必须补齐
 
-1. 提供隔离测试租户、普通版账号和专业版账号。
-2. 提供可用于测试的许可、设备激活和额度数据。
-3. 配置离线租约 `keyId -> Ed25519 SPKI PEM` 公钥。
-4. 配置更新制品 Ed25519 公钥，并确保 Gateway 返回 `sha256`、`sizeBytes`、`signature` 和有效下载 URL。
-5. 发布记录必须同时提供 `windows/x86_64` 与 `macos/arm64` 制品。
-6. 验证 Cloud 模型转发、BYOK、401 单飞刷新、幂等键、取消流和实际扣费一致。
+2026-08-08 对固定 Gateway 做了无凭据、只读探测：
+
+| 探测项 | 结果 | 判断 |
+| --- | --- | --- |
+| 根路径与 TLS | `200`，证书校验通过 | 服务在线 |
+| `GET /api/v1/config/public?tenantCode=platform` | `404` | 云端未实现登录页公共配置 |
+| `GET /api/v1/config/logo?tenantCode=platform` | `404` | 云端未实现租户 Logo |
+| `GET /api/v1/auth/captcha?tenantCode=platform` | `400`，`field \"tenantCode\" is not set` | 云端没有按合同读取 GET query |
+| `GET /api/v1/client/bootstrap`（无令牌） | `401` | 认证门禁存在 |
+| `GET /api/v1/client/releases/check`（无令牌） | `401` | 认证门禁存在 |
+
+客户端调用链已经接到真实 Gateway，但登录首屏依赖的三个云端接口尚未闭环，因此当前不能声明商业登录和更新链路已完成线上验收。云端需要：
+
+1. 实现 `/api/v1/config/public` 和 `/api/v1/config/logo`，后者返回真实图片字节，并统一读取 query 中的 `tenantCode`。
+2. 修正 Captcha GET query 契约，保持与客户端和集成文档一致。
+3. 提供隔离测试租户、普通版账号、专业版账号，以及许可、设备激活和额度数据。
+4. 配置离线租约 `keyId -> Ed25519 SPKI PEM` 公钥。
+5. 配置更新制品 Ed25519 公钥，并确保 Gateway 返回 `sha256`、`sizeBytes`、`signature` 和有效下载 URL。
+6. 发布记录同时提供 `windows/x86_64` 与 `macos/arm64` 签名制品。
+7. 使用测试账号验证 Cloud 模型转发、BYOK、401 单飞刷新、幂等键、取消流和实际扣费一致。
 
 ## 6. 本地认证与模型路径
 

@@ -14,7 +14,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 
 
 def _configure(monkeypatch, tmp_path, *, use_cases):
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     context = ProjectContext(
         project_id="project-1",

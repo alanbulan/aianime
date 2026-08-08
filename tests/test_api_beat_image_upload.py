@@ -16,7 +16,7 @@ def _png_bytes() -> bytes:
 
 def _client(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import production_pool
+    from ai_anime.api.routes.production import pool as production_pool
     from ai_anime.modules.production.application.grid_pool import GridPoolUseCases
     from ai_anime.modules.production.infrastructure import grid_pool
     from ai_anime.modules.production.infrastructure.grid_pool import (

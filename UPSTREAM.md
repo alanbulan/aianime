@@ -9,15 +9,17 @@
 | `origin` | `https://gitee.com/mingcheng_software/ai-manga-desktop.git` | 明程软件主仓，日常开发与发布代码推送到这里 |
 | `upstream` | `https://github.com/dramaclaw/dramaclaw.git` | 原始项目上游，只用于拉取和评估更新 |
 
-上游最后审查基线：`30efddcccc58d0106bfe35a5db08c8541aa0c694`（2026-08-07）。
+上游最后审查基线：`30efddcccc58d0106bfe35a5db08c8541aa0c694`（上游提交时间 2026-08-07）。2026-08-08 已执行 `git fetch upstream --prune`，`upstream/main` 仍指向该提交，因此本次没有新增同步项。
 
 ## 上游同步流程
 
 ```bash
-git fetch upstream main
-git log --oneline HEAD..upstream/main
-git diff --stat HEAD...upstream/main
+git fetch upstream --prune
+git show -s --format="%H %cI %s" upstream/main
+git log --oneline 30efddcccc58d0106bfe35a5db08c8541aa0c694..upstream/main
 ```
+
+当前仓库与上游已经形成独立提交历史，`HEAD..upstream/main` 会列出上游历史分叉中的旧提交，不能直接当成“尚未同步清单”。每次从上次登记的审查基线向新的 `upstream/main` 比较，再按功能逐项移植并更新本文件基线。
 
 不要直接覆盖当前架构，也不要批量合并上游提交。先逐项判断上游改动是否适用于当前产品，再按现有 bounded context、domain、application、infrastructure、presentation 和 composition 边界进行移植。
 

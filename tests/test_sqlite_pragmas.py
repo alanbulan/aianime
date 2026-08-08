@@ -5,7 +5,7 @@ import sqlite3
 
 import aiosqlite
 
-from ai_anime.sqlite_pragmas import (
+from ai_anime.shared.infrastructure.sqlite_pragmas import (
     configure_sqlite_connection,
     configure_sqlite_connection_async,
 )
@@ -48,7 +48,7 @@ def test_autocheckpoint_default_when_no_litestream(tmp_path, monkeypatch):
 
 
 def test_litestream_enabled_semantics(monkeypatch):
-    from ai_anime.sqlite_pragmas import litestream_enabled
+    from ai_anime.shared.infrastructure.sqlite_pragmas import litestream_enabled
 
     monkeypatch.setenv("AI_ANIME_LITESTREAM_ENABLED", "1")
     assert litestream_enabled() is True

@@ -10,7 +10,7 @@ from collections.abc import Awaitable, Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.director_world.public import DirectorWorldService
+from ai_anime.modules.asset_world.public import DirectorWorldService
 from ai_anime.modules.creative_canvas.infrastructure.canvas_static_urls import (
     migrate_canvas_static_urls_in_memory,
 )
@@ -368,7 +368,7 @@ class LocalCreativeCanvasAssetCatalogGateway:
                 director_pano_path = None
                 stage_manifest_module = None
                 try:
-                    from ai_anime.modules.director_world.public import stage_manifest
+                    from ai_anime.modules.asset_world.public import stage_manifest
 
                     stage_manifest_module = stage_manifest
                     director_pano_path = stage_manifest.resolve_pano_path(
@@ -849,7 +849,7 @@ class LocalCreativeCanvasDirectorCaptureStorage:
             canonical_scene_reverse_master_path(project_dir, scene_id)
         )
         try:
-            from ai_anime.modules.director_world.public import stage_manifest
+            from ai_anime.modules.asset_world.public import stage_manifest
 
             urls["pano_360_url"] = resolve(
                 stage_manifest.resolve_pano_path(project_dir, scene_id)

@@ -73,11 +73,11 @@ async def test_frame_skill_render_uses_canvas_sketch_input_without_mainline_sket
 
     monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", fake_ensure_scene_refs_for_beats)
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.regenerate_selected_beats",
+        "ai_anime.modules.production.public.regenerate_selected_beats",
         fake_regenerate_selected_beats,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.save_grid_and_split",
+        "ai_anime.modules.production.public.save_grid_and_split",
         fake_save_grid_and_split,
     )
 
@@ -183,11 +183,11 @@ async def test_standalone_frame_skill_render_uses_zero_based_local_panel(
 
     monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", fake_ensure_scene_refs_for_beats)
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.regenerate_selected_beats",
+        "ai_anime.modules.production.public.regenerate_selected_beats",
         fake_regenerate_selected_beats,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.save_grid_and_split",
+        "ai_anime.modules.production.public.save_grid_and_split",
         fake_save_grid_and_split,
     )
 
@@ -292,11 +292,11 @@ async def test_standalone_frame_skill_render_normalizes_legacy_local_panel_paylo
 
     monkeypatch.setattr(render_runner, "_ensure_scene_refs_for_beats", fake_ensure_scene_refs_for_beats)
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.regenerate_selected_beats",
+        "ai_anime.modules.production.public.regenerate_selected_beats",
         fake_regenerate_selected_beats,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.save_grid_and_split",
+        "ai_anime.modules.production.public.save_grid_and_split",
         fake_save_grid_and_split,
     )
 
@@ -364,11 +364,11 @@ async def test_sketch_runner_accepts_missing_generation_time(
         }
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.NanoBananaGridGenerator",
+        "ai_anime.modules.production.public.NanoBananaGridGenerator",
         FakeGridGenerator,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.save_grid_and_split",
+        "ai_anime.modules.production.public.save_grid_and_split",
         fake_save_grid_and_split,
     )
 
@@ -409,7 +409,7 @@ async def test_regenerate_selected_beats_preserves_standalone_zero_beat_number(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
+    from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid
 
     sketch_path = tmp_path / "canvas" / "sketch.png"
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -463,7 +463,7 @@ async def test_generate_grid_render_accepts_standalone_zero_sketch_override(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.generators import nanobanana_grid
+    from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid
 
     sketch_path = tmp_path / "canvas" / "sketch.png"
     sketch_path.parent.mkdir(parents=True, exist_ok=True)

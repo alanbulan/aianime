@@ -3,7 +3,6 @@
 import os
 import subprocess
 from collections.abc import Callable, Sequence
-from datetime import datetime, timezone
 from typing import Any
 
 from ai_anime.modules.task_execution.application.project_tasks import (
@@ -17,10 +16,6 @@ from ai_anime.modules.task_execution.application.project_task_submission import 
 )
 from ai_anime.modules.task_execution.application.task_cancellation import (
     await_envelope_with_cancel_watch as _await_envelope_with_cancel_watch,
-)
-from ai_anime.modules.task_execution.domain.task_restart_recovery import (
-    InterruptedTaskRecoveryPlan,
-    build_interrupted_inline_recovery_plan,
 )
 from ai_anime.modules.task_execution.application.task_cancellation import (
     await_with_cancel_watch as _await_with_cancel_watch,
@@ -48,11 +43,10 @@ from ai_anime.modules.task_execution.infrastructure.runner_registry import (
 )
 
 
-_PROCESS_STARTED_AT = datetime.now(timezone.utc)
-
-
 def _task_manager() -> Any:
-    from ai_anime.task_state import get_task_manager
+    from ai_anime.modules.task_execution.infrastructure.task_state import (
+        get_task_manager,
+    )
 
     return get_task_manager()
 
@@ -128,16 +122,6 @@ def project_task_limit_use_cases() -> ProjectTaskLimitUseCases:
 
 def project_task_submission_use_cases() -> ProjectTaskSubmissionUseCases:
     return _project_task_submission_use_cases
-
-
-def interrupted_inline_recovery_plan(
-    terminal_ttl_seconds: int,
-) -> InterruptedTaskRecoveryPlan:
-    return build_interrupted_inline_recovery_plan(
-        process_started_at=_PROCESS_STARTED_AT,
-        recovered_at=datetime.now(timezone.utc),
-        terminal_ttl_seconds=terminal_ttl_seconds,
-    )
 
 
 def build_inline_task_backend() -> Any:
@@ -388,7 +372,6 @@ __all__ = [
     "create_project_task_use_cases",
     "get_project_task_runner",
     "is_cancel_requested",
-    "interrupted_inline_recovery_plan",
     "kill_task_processes",
     "project_task_use_cases",
     "project_task_limit_use_cases",

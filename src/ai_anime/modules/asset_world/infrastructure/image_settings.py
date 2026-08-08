@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_anime.image_request_usage import get_image_usage_summary
-from ai_anime.project_config import (
+from ai_anime.modules.model_usage.public import get_image_usage_summary
+from ai_anime.modules.project_workspace.public import (
     load_project_config,
     load_project_config_file,
     update_project_config_file,

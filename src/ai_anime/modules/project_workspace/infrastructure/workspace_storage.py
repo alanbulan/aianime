@@ -8,7 +8,6 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ai_anime.config import ensure_project_dirs_at_paths
 from ai_anime.modules.project_workspace.application.dto import ProjectSummaryData
 from ai_anime.modules.project_workspace.application.project_scope import (
     ProjectContext,
@@ -16,20 +15,22 @@ from ai_anime.modules.project_workspace.application.project_scope import (
 )
 from ai_anime.modules.project_workspace.domain import ProjectRecord
 from ai_anime.shared.ports.audit import AuditSink
-from ai_anime.project_config import (
+from ai_anime.modules.project_workspace.infrastructure.project_config import (
     load_project_config_file_from_state_dir,
     load_project_config_from_state_dir,
     save_project_config_in_state_dir,
 )
+from ai_anime.modules.project_workspace.infrastructure.project_directories import (
+    ensure_project_dirs_at_paths,
+)
 from ai_anime.shared.node_identity import resolve_worker_id
+from ai_anime.shared.runtime_paths import OUTPUT_DIR
 
 logger = logging.getLogger("ai_anime.project_workspace")
 
 
 def user_output_dir(username: str) -> Path:
-    from ai_anime import config
-
-    return Path(config.OUTPUT_DIR) / username
+    return Path(OUTPUT_DIR) / username
 
 
 def _updated_at(project: ProjectRecord) -> str | None:

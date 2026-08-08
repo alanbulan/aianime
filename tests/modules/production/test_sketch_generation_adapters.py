@@ -295,11 +295,11 @@ def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(
         return [{"rows": 1, "cols": 2}]
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.sketch_scene_grid_split",
+        "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid.sketch_scene_grid_split",
         scene_plan,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.sketch_grid_split",
+        "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid.sketch_grid_split",
         lambda total: [(1, total)],
     )
     beats = [{"beat_number": 1}, {"beat_number": 2}]

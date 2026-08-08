@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.projects_schemas import ProjectUpdate
-from ai_anime.api.story_intake_schemas import IngestStart
+from ai_anime.api.routes.project_workspace.schemas import ProjectUpdate
+from ai_anime.api.routes.story_intake.schemas import IngestStart
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 pytestmark = pytest.mark.m03
@@ -38,8 +38,8 @@ def test_project_config_defaults_to_drama(tmp_path, monkeypatch):
 
     import importlib
 
-    import ai_anime.config as cfg
-    import ai_anime.project_config as pc
+    import ai_anime.shared.runtime_paths as cfg
+    import ai_anime.modules.project_workspace.infrastructure.project_config as pc
     import ai_anime.shared.utils.project_paths as pp
 
     importlib.reload(cfg)
@@ -117,7 +117,7 @@ def _project_scope_resolver(tmp_path):
 
 @pytest.mark.asyncio
 async def test_update_project_saves_spine_template_before_import(monkeypatch, tmp_path):
-    from ai_anime.api.routes import projects
+    from ai_anime.api.routes.project_workspace import projects
 
     saved: dict = {}
 
@@ -156,7 +156,7 @@ async def test_update_project_saves_spine_template_before_import(monkeypatch, tm
 async def test_update_project_keeps_explicit_aspect_ratio_when_spine_template_changes(
     monkeypatch, tmp_path
 ):
-    from ai_anime.api.routes import projects
+    from ai_anime.api.routes.project_workspace import projects
 
     saved = {"spine_template": "drama", "aspect_ratio": "9:16"}
 
@@ -191,7 +191,7 @@ async def test_update_project_keeps_explicit_aspect_ratio_when_spine_template_ch
 
 @pytest.mark.asyncio
 async def test_update_project_accepts_frontend_portrait_aspect_ratio(monkeypatch, tmp_path):
-    from ai_anime.api.routes import projects
+    from ai_anime.api.routes.project_workspace import projects
 
     saved = {"spine_template": "drama", "aspect_ratio": "9:16"}
 
@@ -230,7 +230,7 @@ async def test_update_project_rejects_spine_template_change_after_import(
 ):
     from fastapi.responses import JSONResponse
 
-    from ai_anime.api.routes import projects
+    from ai_anime.api.routes.project_workspace import projects
 
     saved = {"spine_template": "drama"}
 
@@ -267,7 +267,7 @@ async def test_update_project_rejects_spine_template_change_after_import(
 async def test_start_ingest_allows_spine_template_change_during_rebuild(
     monkeypatch, tmp_path
 ):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
     from ai_anime.modules.story_intake import bootstrap as story_intake_bootstrap
 
     saved = {"spine_template": "drama"}
@@ -324,7 +324,7 @@ async def test_start_ingest_allows_spine_template_change_during_rebuild(
 async def test_start_ingest_rejects_spine_template_change_without_rebuild(
     monkeypatch, tmp_path
 ):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     uploads = tmp_path / "uploads"
     uploads.mkdir()

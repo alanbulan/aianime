@@ -11,8 +11,8 @@ from ai_anime.modules.production.application.sketch_generation import (
 async def test_generate_sketches_route_maps_request_to_application(
     monkeypatch,
 ) -> None:
-    from ai_anime.api.production_sketch_schemas import SketchGenerateRequest
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production.sketch_schemas import SketchGenerateRequest
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     context = object()
     calls = []
@@ -121,8 +121,8 @@ async def test_generate_sketches_route_maps_request_to_application(
 async def test_generate_sketches_route_preserves_rejection_envelope(
     monkeypatch,
 ) -> None:
-    from ai_anime.api.production_sketch_schemas import SketchGenerateRequest
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production.sketch_schemas import SketchGenerateRequest
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     async def resolve(*_args, **_kwargs):
         return type("Resolution", (), {"ctx": object()})()

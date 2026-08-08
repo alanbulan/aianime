@@ -7,8 +7,8 @@ import pytest
 from fastapi import HTTPException
 from PIL import Image
 
-from ai_anime.api.canvas_image_schemas import FreezoneMarkDetectRequest
-from ai_anime.api.routes.canvas import image as mark_detection_routes
+from ai_anime.api.routes.creative_canvas.image_schemas import FreezoneMarkDetectRequest
+from ai_anime.api.routes.creative_canvas import image as mark_detection_routes
 from ai_anime.modules.creative_canvas.application.mark_detection import (
     CreativeCanvasMarkDetectionFailed,
     CreativeCanvasMarkDetectionUseCases,

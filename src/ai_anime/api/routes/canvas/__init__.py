@@ -1,1 +1,0 @@
-"""Creative Canvas HTTP adapters."""

@@ -150,7 +150,7 @@ async def test_app_lifespan_orders_startup_and_shutdown(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from ai_anime.api import lifespan as lifespan_module
-    from ai_anime import sqlite_pragmas
+    from ai_anime.shared.infrastructure import sqlite_pragmas
 
     events: list[str] = []
 

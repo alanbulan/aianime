@@ -78,7 +78,7 @@ async def _fake_resolve(
 
 @pytest.mark.asyncio
 async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_pool
+    from ai_anime.api.routes.production import pool as production_pool
 
     ctx = _ctx(tmp_path)
     _configure_state_roots(monkeypatch, ctx)
@@ -104,8 +104,8 @@ async def test_video_pool_list_returns_project_id_static_urls(monkeypatch, tmp_p
 
 @pytest.mark.asyncio
 async def test_video_pool_select_returns_project_id_static_url(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_pool
-    from ai_anime.api.production_pool_schemas import VideoPoolSelectRequest
+    from ai_anime.api.routes.production import pool as production_pool
+    from ai_anime.api.routes.production.pool_schemas import VideoPoolSelectRequest
 
     ctx = _ctx(tmp_path)
     _configure_state_roots(monkeypatch, ctx)

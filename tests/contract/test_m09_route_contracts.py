@@ -182,18 +182,16 @@ class _FakeTaskBackend:
 @pytest.fixture()
 def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.shared import ports as runtime_ports
-    from ai_anime.api import auth as api_auth
-    from ai_anime.api import project_file_delivery
+    from ai_anime.api import file_delivery as project_file_delivery
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import (
-        assets,
-        files,
-        production_export,
-        production_pool,
-        production_render,
-        production_settings,
-        production_video,
-    )
+    from ai_anime.api.routes.asset_world import assets
+    from ai_anime.api.routes.project_workspace import files
+    from ai_anime.api.routes.production import export as production_export
+    from ai_anime.api.routes.production import pool as production_pool
+    from ai_anime.api.routes.production import render as production_render
+    from ai_anime.api.routes.production import settings as production_settings
+    from ai_anime.api.routes.production import video as production_video
     from ai_anime.modules.production import composition as production_composition
     from ai_anime.modules.production.infrastructure import (
         episode_export,

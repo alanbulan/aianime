@@ -7,7 +7,7 @@ from subprocess import CompletedProcess
 
 import pytest
 
-import ai_anime.modules.backup.files_sync as files_sync_module
+import ai_anime.modules.backup.infrastructure.files_sync as files_sync_module
 
 from ai_anime.modules.backup.public import (
     HOT_SNAPSHOT_FILTER,

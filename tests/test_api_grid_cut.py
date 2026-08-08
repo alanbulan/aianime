@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_pool
+    from ai_anime.api.routes.production import pool as production_pool
     from ai_anime.modules.project_workspace.public import ProjectContext
 
     async def resolve(*args, **kwargs):
@@ -41,7 +41,7 @@ def _client(monkeypatch, tmp_path):
 
 
 def test_cut_grid_can_register_render_cells(monkeypatch, tmp_path):
-    from ai_anime.modules.generators import pool_indexer
+    from ai_anime.modules.production.infrastructure.media_generation import pool_indexer
 
     grids_dir = tmp_path / "grids" / "ep001"
     grids_dir.mkdir(parents=True)

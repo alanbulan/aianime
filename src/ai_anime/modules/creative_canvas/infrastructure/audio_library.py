@@ -15,11 +15,11 @@ from ai_anime.modules.creative_canvas.domain import (
     CREATIVE_CANVAS_AUDIO_AGE_GROUP_LABELS,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.project_config import (
+from ai_anime.modules.project_workspace.public import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.modules.seedance2_i2v.public import resolve_character_voice
+from ai_anime.modules.production.public import resolve_character_voice
 from ai_anime.shared.infrastructure.project_stores import (
     make_sqlite_store_for_context,
 )

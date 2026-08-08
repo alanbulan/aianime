@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.routes.canvas import audio as audio_routes
+from ai_anime.api.routes.creative_canvas import audio as audio_routes
 from ai_anime.modules.creative_canvas.application.audio_library import (
     CreateCreativeCanvasAudioVoiceCommand,
     CreativeCanvasAudioLibraryUseCases,

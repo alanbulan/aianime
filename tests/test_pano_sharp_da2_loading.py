@@ -6,7 +6,7 @@ import pytest
 
 
 def test_pano_sharp_module_imports_without_world_extra(monkeypatch):
-    from ai_anime.modules.director_world import pano_sharp
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_sharp
 
     real_find_spec = importlib.util.find_spec
 
@@ -22,7 +22,9 @@ def test_pano_sharp_module_imports_without_world_extra(monkeypatch):
 
 
 def test_pano_sharp_unavailable_is_handled_task_failure():
-    from ai_anime.modules.director_world.pano_sharp import Sharp3DUnavailable
+    from ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp import (
+        Sharp3DUnavailable,
+    )
     from ai_anime.modules.task_execution.application.project_task_execution import (
         project_task_failure_for_exception,
     )
@@ -37,21 +39,23 @@ def test_pano_sharp_unavailable_is_handled_task_failure():
 def test_run_pano_sharp_missing_sharp_fails_before_subprocess(tmp_path, monkeypatch):
     from PIL import Image
 
-    from ai_anime import stage_asset_tasks
-    from ai_anime.modules.director_world import pano_sharp
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        pano_sharp,
+        pano_splat_tasks,
+    )
 
     pano_path = tmp_path / "pano_360.png"
     Image.new("RGB", (8, 4), "white").save(pano_path)
 
     monkeypatch.setattr(pano_sharp, "sharp_available", lambda: False)
     monkeypatch.setattr(
-        stage_asset_tasks,
+        pano_splat_tasks,
         "run_project_subprocess",
         lambda *_args, **_kwargs: pytest.fail("SHARP subprocess should not be spawned"),
     )
 
     with pytest.raises(pano_sharp.Sharp3DUnavailable) as exc:
-        stage_asset_tasks.run_pano_sharp(
+        pano_splat_tasks.run_pano_sharp(
             tmp_path,
             "scene_a",
             pano_path=pano_path,
@@ -65,21 +69,23 @@ def test_run_pano_sharp_missing_sharp_fails_before_subprocess(tmp_path, monkeypa
 def test_run_single_face_sharp_missing_sharp_fails_before_subprocess(tmp_path, monkeypatch):
     from PIL import Image
 
-    from ai_anime import stage_asset_tasks
-    from ai_anime.modules.director_world import pano_sharp
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        pano_sharp,
+        pano_splat_tasks,
+    )
 
     image_path = tmp_path / "master.png"
     Image.new("RGB", (4, 4), "white").save(image_path)
 
     monkeypatch.setattr(pano_sharp, "sharp_available", lambda: False)
     monkeypatch.setattr(
-        stage_asset_tasks,
+        pano_splat_tasks,
         "run_project_subprocess",
         lambda *_args, **_kwargs: pytest.fail("SHARP subprocess should not be spawned"),
     )
 
     with pytest.raises(pano_sharp.Sharp3DUnavailable) as exc:
-        stage_asset_tasks.run_single_face_sharp(
+        pano_splat_tasks.run_single_face_sharp(
             tmp_path,
             "scene_a",
             image_path=image_path,
@@ -92,7 +98,7 @@ def test_run_single_face_sharp_missing_sharp_fails_before_subprocess(tmp_path, m
 
 
 def _load_pano_sharp_module():
-    from ai_anime.modules.director_world import pano_sharp
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_sharp
 
     return pano_sharp
 

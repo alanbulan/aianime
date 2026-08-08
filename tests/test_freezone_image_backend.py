@@ -10,31 +10,33 @@ from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from ai_anime.api import canvas_documents_schemas
-from ai_anime.api.canvas_commits_schemas import PushRequest
-from ai_anime.api.canvas_documents_schemas import CanvasPayload
-from ai_anime.api.canvas_image_schemas import (
+from ai_anime.api.routes.creative_canvas import (
+    documents_schemas as canvas_documents_schemas,
+)
+from ai_anime.api.routes.creative_canvas.commits_schemas import PushRequest
+from ai_anime.api.routes.creative_canvas.documents_schemas import CanvasPayload
+from ai_anime.api.routes.creative_canvas.image_schemas import (
     FreezoneGenRequest,
     FreezoneImageReversePromptRequest,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
     FreezoneTemplateEditRequest,
 )
-from ai_anime.api.canvas_presets_schemas import PresetCanvasRequest
-from ai_anime.api.canvas_skills_schemas import (
+from ai_anime.api.routes.creative_canvas.presets_schemas import PresetCanvasRequest
+from ai_anime.api.routes.creative_canvas.skills_schemas import (
     FreezoneFrameFromContextRequest,
     FreezoneScene360Request,
     FreezoneSketchFromContextRequest,
 )
-from ai_anime.api.canvas_video_schemas import FreezoneVideoOmniGenRequest
-from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap_routes
-from ai_anime.api.routes.canvas import commits as freezone_commit_routes
-from ai_anime.api.routes.canvas import documents as freezone_document_routes
-from ai_anime.api.routes.canvas import image as freezone_image_routes
-from ai_anime.api.routes.canvas import jobs as freezone_job_routes
-from ai_anime.api.routes.canvas import presets as freezone_preset_routes
-from ai_anime.api.routes.canvas import skills as freezone_skill_routes
-from ai_anime.api.routes.canvas import video as freezone_video_routes
+from ai_anime.api.routes.creative_canvas.video_schemas import FreezoneVideoOmniGenRequest
+from ai_anime.api.routes.creative_canvas import bootstrap as freezone_bootstrap_routes
+from ai_anime.api.routes.creative_canvas import commits as freezone_commit_routes
+from ai_anime.api.routes.creative_canvas import documents as freezone_document_routes
+from ai_anime.api.routes.creative_canvas import image as freezone_image_routes
+from ai_anime.api.routes.creative_canvas import jobs as freezone_job_routes
+from ai_anime.api.routes.creative_canvas import presets as freezone_preset_routes
+from ai_anime.api.routes.creative_canvas import skills as freezone_skill_routes
+from ai_anime.api.routes.creative_canvas import video as freezone_video_routes
 from ai_anime.modules.creative_canvas.infrastructure import (
     canvas_store,
     canvas_store_io,
@@ -121,7 +123,7 @@ from ai_anime.modules.task_execution.public import (
     ProjectTaskSubmissionUseCases,
     ProjectUserTaskLimitExceeded,
 )
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _project_ctx(tmp_path: Path) -> ProjectContext:
@@ -2682,7 +2684,7 @@ async def test_mask_edit_job_uses_commercial_model_routing(
         Path(str(kwargs["output_path"])).write_bytes(b"png")
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.generate_reference_edit_image",
+        "ai_anime.modules.production.public.generate_reference_edit_image",
         fake_generate_reference_edit_image,
     )
 
@@ -2996,7 +2998,7 @@ def test_freezone_image_to_3gs_runner_records_project_node_history(
             return None
 
     monkeypatch.setattr(
-        "ai_anime.stage_asset_tasks.run_single_face_sharp",
+        "ai_anime.modules.asset_world.public.run_single_face_sharp",
         fake_run_single_face_sharp,
     )
     monkeypatch.setattr(
@@ -3582,7 +3584,7 @@ def test_standalone_unified_sketch_prompt_keeps_missing_beat_number_null(
         captured.update(kwargs)
         return SimpleNamespace()
 
-    import ai_anime.modules.generators.public as generators_public
+    import ai_anime.modules.production.public as generators_public
 
     monkeypatch.setattr(generators_public, "UnifiedPromptBuilder", FakePromptBuilder)
     monkeypatch.setattr(
@@ -5452,7 +5454,7 @@ async def test_skill_run_frame_uses_resolved_identity_and_prop_references(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    import ai_anime.project_config as project_config
+    import ai_anime.modules.project_workspace.infrastructure.project_config as project_config
 
     monkeypatch.setattr(
         project_config,
@@ -5965,7 +5967,7 @@ async def test_skill_result_uses_task_result_dict_output_url(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     run_id = "freezone_gen:job_result_dict"
@@ -6085,7 +6087,7 @@ async def test_skill_result_normalizes_nested_outputs_from_task_result(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     run_id = "freezone_edit:job_nested_outputs"
@@ -6158,7 +6160,7 @@ async def test_skill_result_normalizes_output_path_from_task_result(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
     output_path = project_dir / "freezone" / "_outputs" / "custom" / "path_only.webp"

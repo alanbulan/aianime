@@ -11,18 +11,18 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ai_anime.modules.backup.public import backup_app
-from ai_anime.modules.knowledge_graph import CogneeStore
-from ai_anime.config import ensure_project_dirs
+from ai_anime.modules.knowledge_graph.public import CogneeStore
+from ai_anime.modules.project_workspace.public import ensure_project_dirs
 from ai_anime.modules.narrative_planning.public import (
     create_script_writing_workflow,
 )
-from ai_anime.modules.generators import (
+from ai_anime.modules.production.public import (
     SceneAsset,
     create_image_generator,
     create_tts_generator,
     create_video_composer,
 )
-from ai_anime.modules.generators.video_composer import normalize_video_title
+from ai_anime.modules.production.public import normalize_video_title
 
 app = typer.Typer(name="ai_anime", help="小说解说视频自动生成系统（Cognee 版）")
 app.add_typer(backup_app, name="backup")
@@ -74,7 +74,7 @@ async def _resolve_scene_migration_dirs(
             "provide either --project-id, --state-dir, or both --user and --project"
         )
 
-    from ai_anime.config import OUTPUT_DIR, STATE_DIR
+    from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
 
     return (
         Path(STATE_DIR) / user / project,
@@ -500,7 +500,7 @@ def migrate_scene_names_cmd(
     ),
 ):
     """迁移旧项目中混入时间词的场景名。默认 dry-run，不写入。"""
-    from ai_anime.modules.knowledge_graph.scene_name_migration import migrate_scene_names
+    from ai_anime.modules.knowledge_graph.public import migrate_scene_names
 
     async def do_migrate():
         db_dir, asset_dir, label = await _resolve_scene_migration_dirs(

@@ -12,7 +12,7 @@ class FakeAgent:
 
 
 def _capture_model_calls(monkeypatch):
-    from ai_anime import config
+    from ai_anime.modules.model_usage.infrastructure import model_runtime as config
 
     calls: list[str | None] = []
 
@@ -28,14 +28,9 @@ def _capture_model_calls(monkeypatch):
     ("module_name", "factory_name", "model_env"),
     [
         (
-            "ai_anime.modules.agents.global_video_optimizer",
+            "ai_anime.modules.production.infrastructure.global_video_optimizer",
             "create_global_video_reviewer_agent",
             "GLOBAL_VIDEO_MODEL",
-        ),
-        (
-            "ai_anime.modules.agents.video_prompt_builder",
-            "create_video_prompt_builder_agent",
-            "VIDEO_PROMPT_MODEL",
         ),
     ],
 )
@@ -62,7 +57,7 @@ def test_superpower_prompt_agents_use_default_model_unless_overridden(
 
 def test_global_video_reviewer_superpower_can_use_feature_specific_model_override(monkeypatch):
     calls = _capture_model_calls(monkeypatch)
-    from ai_anime.modules.agents import global_video_optimizer
+    from ai_anime.modules.production.infrastructure import global_video_optimizer
 
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)
     monkeypatch.setenv("GLOBAL_VIDEO_MODEL", "gemini-3.5-flash")
@@ -73,8 +68,8 @@ def test_global_video_reviewer_superpower_can_use_feature_specific_model_overrid
 
 
 def test_keyframe_prompt_builder_uses_video_optimizer_model(monkeypatch):
-    from ai_anime import config
-    from ai_anime.modules.agents import keyframe_prompt_builder
+    from ai_anime.modules.model_usage import public as config
+    from ai_anime.modules.narrative_planning.infrastructure import keyframe_prompt_builder
 
     calls: list[tuple[str, str]] = []
 

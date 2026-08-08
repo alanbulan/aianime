@@ -25,8 +25,8 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     runtime = tmp_path / "runtime"
 
     import ai_anime.api.deps as deps
-    import ai_anime.config as config
-    import ai_anime.project_config as project_config
+    import ai_anime.shared.runtime_paths as config
+    import ai_anime.modules.project_workspace.infrastructure.project_config as project_config
     import ai_anime.shared.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
@@ -186,9 +186,11 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.setenv("AI_ANIME_LOCAL_USERNAME", "alice")
 
-    from ai_anime.api import auth as api_auth
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import content, episodes, scripts
+    from ai_anime.api.routes.narrative_planning import content
+    from ai_anime.api.routes.narrative_planning import episodes
+    from ai_anime.api.routes.narrative_planning import scripts
 
     store = _M03Store(tmp_path)
     ctx = SimpleNamespace(project_id="proj_m03", output_dir=tmp_path, state_dir=tmp_path / "state")
@@ -240,7 +242,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return "改写第一行\n改写第二行"
 
     async def fake_seedance2_prompt_for_panel(**kwargs):
-        from ai_anime.modules.seedance2_i2v.models import dump_seedance2_config
+        from ai_anime.modules.production.application.seedance2_config import dump_seedance2_config
 
         return dump_seedance2_config(
             {
@@ -250,11 +252,11 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         )
 
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.rewrite_episode_content",
+        "ai_anime.modules.narrative_planning.infrastructure.content_rewriter_agent.rewrite_episode_content",
         fake_rewrite_episode_content,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
         fake_seedance2_prompt_for_panel,
     )
 

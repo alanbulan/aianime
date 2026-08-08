@@ -7,7 +7,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_asset_references_resolves_project_id_before_opening_store(monkeypatch, tmp_path):
-    from ai_anime.api.routes import assets
+    from ai_anime.api.routes.asset_world import assets
     from ai_anime.modules.narrative_planning.public import NovelVisualBeat
 
     class Store:
@@ -84,7 +84,7 @@ async def test_verification_routes_resolve_project_id_before_opening_project_dir
     monkeypatch,
     tmp_path,
 ):
-    from ai_anime.api.routes import verification as routes
+    from ai_anime.api.routes.verification import episode_checks as routes
 
     ctx = SimpleNamespace(
         project_id="01PROJECTID",
@@ -136,7 +136,11 @@ async def test_verification_routes_resolve_project_id_before_opening_project_dir
         report_path.write_text("{}", encoding="utf-8")
         return report_path
 
-    monkeypatch.setattr(routes, "resolve_project_scope", fake_resolve_project_scope)
+    monkeypatch.setattr(
+        routes,
+        "resolve_verification_project",
+        fake_resolve_project_scope,
+    )
     monkeypatch.setattr(
         routes,
         "make_sqlite_store_for_context",

@@ -7,7 +7,7 @@ import pytest
 
 
 def test_first_ce_gateway_configuration_does_not_require_restart(monkeypatch):
-    from ai_anime.modules.knowledge_graph import config as nv_config
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
 
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
@@ -18,7 +18,7 @@ def test_first_ce_gateway_configuration_does_not_require_restart(monkeypatch):
 
 
 def test_init_cognee_rejects_gateway_change_until_restart(monkeypatch):
-    from ai_anime.modules.knowledge_graph import config as nv_config
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
 
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
@@ -34,7 +34,7 @@ def test_init_cognee_rejects_gateway_change_until_restart(monkeypatch):
 
 
 def test_keyless_byok_transport_satisfies_cognee_without_forwarding_placeholder():
-    from ai_anime.modules.knowledge_graph import config as nv_config
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
 
     transport_key = nv_config._cognee_transport_api_key(
         "",
@@ -64,7 +64,7 @@ def test_keyless_byok_transport_satisfies_cognee_without_forwarding_placeholder(
     ],
 )
 def test_cognee_transport_wrapper_preserves_the_catalog_model_code(catalog_code):
-    from ai_anime.modules.knowledge_graph import config as nv_config
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
 
     transport_model = nv_config._wrap_openai_compatible_model(catalog_code)
 
@@ -77,7 +77,7 @@ def test_cognee_transport_wrapper_preserves_the_catalog_model_code(catalog_code)
 
 @pytest.mark.asyncio
 async def test_cognee_litellm_operations_own_stable_idempotency_keys():
-    from ai_anime.modules.knowledge_graph import config as nv_config
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
 
     calls: list[tuple[str, dict]] = []
 

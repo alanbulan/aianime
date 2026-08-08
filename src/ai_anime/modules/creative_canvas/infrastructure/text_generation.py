@@ -54,8 +54,8 @@ class _CreativeCanvasStoryScriptResult(BaseModel):
 
 
 def _create_translation_agent(model: str) -> Agent:
-    from ai_anime.config import get_newapi_text_pydantic_model
-    from ai_anime.model_access_policy import require_model_role
+    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+    from ai_anime.modules.model_usage.public import require_model_role
 
     clean_model = str(model or "").strip()
     require_model_role(clean_model, "TEXT")
@@ -95,8 +95,8 @@ async def _run_agent_with_readable_json_errors(
         raise
 
 def _create_story_script_agent(model: str) -> Agent:
-    from ai_anime.config import get_newapi_text_pydantic_model
-    from ai_anime.model_access_policy import require_model_role
+    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+    from ai_anime.modules.model_usage.public import require_model_role
 
     clean_model = str(model or "").strip()
     require_model_role(clean_model, "TEXT")

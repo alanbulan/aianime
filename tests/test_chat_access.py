@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api import chat_access
+from ai_anime.api.routes.ai_assistant import access as chat_access
 from ai_anime.modules.ai_assistant.public import ChatScope
 
 

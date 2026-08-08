@@ -9,7 +9,7 @@ from typing import Any
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def run_scene_reference_asset(
@@ -29,8 +29,8 @@ async def _run_scene_reference_asset(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime.config import IMAGE_DEFAULT_STYLE, get_style_preset
-    from ai_anime.modules.generators.public import generate_scene_reference_image
+    from ai_anime.modules.production.public import IMAGE_DEFAULT_STYLE, get_style_preset
+    from ai_anime.modules.production.public import generate_scene_reference_image
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )

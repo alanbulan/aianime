@@ -14,7 +14,7 @@ class _FakeCompletedPipelineStatus:
 
 
 def test_cognee_pipeline_error_result_raises_runtime_error():
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     result = SimpleNamespace(
         status=_FakePipelineStatus(),
@@ -26,7 +26,7 @@ def test_cognee_pipeline_error_result_raises_runtime_error():
 
 
 def test_cognee_pipeline_error_includes_nested_data_item_error():
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     result = SimpleNamespace(
         status=_FakePipelineStatus(),
@@ -58,8 +58,8 @@ async def test_failed_graph_build_leaves_project_unimported(tmp_path, monkeypatc
     text — and the UI inferred "导入完成" from that. A failure must leave the
     project un-imported so the user can retry.
     """
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
-    from ai_anime.modules.knowledge_graph import store as store_module
+    from ai_anime.modules.knowledge_graph.infrastructure import store as store_module
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     novel = tmp_path / "novel.txt"
     novel.write_text("第一章\n春深不见旧门红，内容内容内容。\n", encoding="utf-8")
@@ -97,8 +97,8 @@ async def test_failed_graph_build_leaves_project_unimported(tmp_path, monkeypatc
 @pytest.mark.asyncio
 async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
     """A successful ingest must persist novel content (导入完成)."""
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
-    from ai_anime.modules.knowledge_graph import store as store_module
+    from ai_anime.modules.knowledge_graph.infrastructure import store as store_module
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     text = "第一章\n春深不见旧门红，内容内容内容。\n"
     novel = tmp_path / "novel.txt"
@@ -136,7 +136,7 @@ async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypatch):
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     store = object.__new__(CogneeStore)
     context_calls = 0
@@ -172,7 +172,7 @@ async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypat
 
 @pytest.mark.asyncio
 async def test_cognee_pipeline_retry_raises_after_second_pipeline_error(monkeypatch):
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     store = object.__new__(CogneeStore)
     context_calls = 0

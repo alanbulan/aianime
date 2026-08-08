@@ -1,10 +1,4 @@
-"""C2 smoke tests for vendored IndexTTS2 modules.
-
-Verifies the IndexTTS2 client and the seedance2_i2v voice helpers load
-under v2.0-storage. The full ``indextts2_beat_audio_task`` import depends on
-``project_config.load_narration_style`` which is added in C5 (A4); that
-module is imported in ``test_indextts2_beat_audio_task_imports`` (C5).
-"""
+"""IndexTTS2 and Production Seedance2 smoke tests."""
 
 from __future__ import annotations
 
@@ -15,12 +9,14 @@ import pytest
 
 
 def test_indextts2_client_module_loads():
-    mod = importlib.import_module("ai_anime.modules.generators.indextts2")
+    mod = importlib.import_module(
+        "ai_anime.modules.production.infrastructure.media_generation.indextts2"
+    )
     assert hasattr(mod, "IndexTTS2Client")
 
 
 def test_voice_audio_records_module_loads():
-    mod = importlib.import_module("ai_anime.modules.seedance2_i2v.voice_audio_records")
+    mod = importlib.import_module("ai_anime.modules.production.infrastructure.seedance2_voice_records")
     assert hasattr(mod, "classify_seedance2_voice_audio")
     assert hasattr(mod, "upsert_seedance2_voice_audio_record")
 
@@ -34,27 +30,30 @@ def test_character_voice_storage_module_loads():
 
 
 def test_voice_clone_module_loads_without_oss_client():
-    mod = importlib.import_module("ai_anime.modules.seedance2_i2v.voice_clone")
+    mod = importlib.import_module("ai_anime.modules.production.infrastructure.seedance2_voice")
     assert hasattr(mod, "build_reference_audio_url")
     assert hasattr(mod, "MAX_REFERENCE_AUDIO_BYTES")
 
 
 def test_audio_request_usage_module_loads():
-    mod = importlib.import_module("ai_anime.audio_request_usage")
+    mod = importlib.import_module(
+        "ai_anime.modules.model_usage.infrastructure.audio_request_usage"
+    )
     assert mod is not None
 
 
-def test_seedance2_i2v_init_exports_stage_a_only():
-    pkg = importlib.import_module("ai_anime.modules.seedance2_i2v")
-    assert "classify_seedance2_voice_audio" in pkg.__all__
-    assert "Seedance2VoiceAudioRecord" in pkg.__all__
+def test_production_public_exports_seedance2_runtime_contract():
+    public = importlib.import_module("ai_anime.modules.production.public")
+    assert "Seedance2I2VMode" in public.__all__
+    assert "prepare_seedance2_generation_inputs" in public.__all__
 
 
 def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
-    import ai_anime.config as config
-    import ai_anime.modules.generators.indextts2 as indextts2
+    import ai_anime.modules.production.infrastructure.media_generation.indextts2 as indextts2
 
-    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
+        IndexTTS2Client,
+    )
 
     async def fake_reserve(model, *, source):
         return "reservation_1"
@@ -62,12 +61,13 @@ def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
     async def fake_refund(*args, **kwargs):
         return None
 
-    def missing_transport():
+    async def missing_transport(**kwargs):
+        _ = kwargs
         raise ValueError("Model Base URL is not configured.")
 
     monkeypatch.setattr(indextts2, "_reserve_tts_model_call", fake_reserve)
     monkeypatch.setattr(indextts2, "_refund_tts_model_call", fake_refund)
-    monkeypatch.setattr(config, "get_model_access_json_transport", missing_transport)
+    monkeypatch.setattr(indextts2, "write_model_audio_speech", missing_transport)
     client = IndexTTS2Client(model="audio-speech-test")
     result = asyncio.run(
         client.generate(
@@ -81,7 +81,9 @@ def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
 
 
 def test_indextts2_client_rejects_empty_prompt(tmp_path):
-    from ai_anime.modules.generators.indextts2 import IndexTTS2Client
+    from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
+        IndexTTS2Client,
+    )
 
     client = IndexTTS2Client(model="audio-speech-test")
     result = asyncio.run(
@@ -96,7 +98,7 @@ def test_indextts2_client_rejects_empty_prompt(tmp_path):
 
 
 def test_build_reference_audio_url_size_guard(tmp_path):
-    from ai_anime.modules.seedance2_i2v.voice_clone import (
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
         MAX_REFERENCE_AUDIO_BYTES,
         build_reference_audio_url,
     )
@@ -108,7 +110,7 @@ def test_build_reference_audio_url_size_guard(tmp_path):
 
 
 def test_build_reference_audio_url_returns_data_url(tmp_path):
-    from ai_anime.modules.seedance2_i2v.voice_clone import build_reference_audio_url
+    from ai_anime.modules.production.infrastructure.seedance2_voice import build_reference_audio_url
 
     small = tmp_path / "small.mp3"
     small.write_bytes(b"ID3\x03\x00\x00\x00fake-mp3-bytes")

@@ -24,7 +24,7 @@ from ai_anime.modules.task_execution.infrastructure.runners.sketch import (
     _ensure_scene_refs_for_beats,
     _scene_refs_override_from_config,
 )
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _identity_character(identity_id: str) -> str:
@@ -214,9 +214,9 @@ async def _run_batch_render_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.config import get_render_generation_config
-    from ai_anime.modules.generators.public import NanoBananaGridGenerator, scene_grid_split
-    from ai_anime.modules.generators.public import (
+    from ai_anime.modules.production.public import get_render_generation_config
+    from ai_anime.modules.production.public import NanoBananaGridGenerator, scene_grid_split
+    from ai_anime.modules.production.public import (
         build_beat_sketch_paths,
         load_pool_index,
         rebuild_pool_index,
@@ -422,16 +422,20 @@ async def _run_selected_regen_async(
     *,
     is_sketch: bool,
 ) -> dict[str, Any]:
-    from ai_anime.modules.generators.public import regenerate_selected_beats
-    from ai_anime.modules.generators.public import save_grid_and_split
+    from ai_anime.modules.production.public import regenerate_selected_beats
+    from ai_anime.modules.production.public import save_grid_and_split
     from ai_anime.modules.narrative_planning.public import beat_scene_id
     from ai_anime.modules.task_execution.public import selection_scope
     from ai_anime.shared.utils.path_resolver import PathResolver
 
     if is_sketch:
-        from ai_anime.config import get_sketch_generation_config as get_generation_config
+        from ai_anime.modules.production.public import (
+            get_sketch_generation_config as get_generation_config,
+        )
     else:
-        from ai_anime.config import get_render_generation_config as get_generation_config
+        from ai_anime.modules.production.public import (
+            get_render_generation_config as get_generation_config,
+        )
 
     payload = envelope.get("payload") or {}
     config = dict(payload.get("config") or {})
@@ -732,9 +736,15 @@ async def _run_grid_regenerate_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.config import MODE_CONFIG, get_render_generation_config
-    from ai_anime.modules.generators.public import create_grid_generator
-    from ai_anime.modules.generators.public import build_beat_sketch_paths, save_grid_and_split
+    from ai_anime.modules.production.public import (
+        MODE_CONFIG,
+        get_render_generation_config,
+    )
+    from ai_anime.modules.production.public import create_grid_generator
+    from ai_anime.modules.production.public import (
+        build_beat_sketch_paths,
+        save_grid_and_split,
+    )
     from ai_anime.modules.task_execution.public import selection_scope
     from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -787,7 +797,7 @@ async def _run_grid_regenerate_async(
     scene_grid_plan = None
 
     if config_beat_numbers:
-        from ai_anime.modules.generators.public import REGEN_MODE_CONFIGS
+        from ai_anime.modules.production.public import REGEN_MODE_CONFIGS
 
         cfg = REGEN_MODE_CONFIGS.get(grid_mode, {})
         rows_cfg = int(cfg.get("rows") or 1)
@@ -809,12 +819,12 @@ async def _run_grid_regenerate_async(
         grid_dir = episode_grids_dir / grid_mode
     else:
         if character_grouping:
-            from ai_anime.modules.generators.public import character_grid_split
+            from ai_anime.modules.production.public import character_grid_split
 
             scene_grid_plan = character_grid_split(beats_data, character_map)
             scene_grouping = False
         elif scene_grouping:
-            from ai_anime.modules.generators.public import scene_grid_split
+            from ai_anime.modules.production.public import scene_grid_split
 
             scene_grid_plan = scene_grid_split(beats_data, character_map=character_map)
 

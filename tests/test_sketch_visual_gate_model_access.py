@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.model_access_policy import configure_model_access
-from ai_anime.modules.verification import sketch_visual_gate
+from ai_anime.modules.model_usage.public import configure_model_access
+from ai_anime.modules.verification.infrastructure import sketch_visual_gate
 
 
 @pytest.fixture(autouse=True)

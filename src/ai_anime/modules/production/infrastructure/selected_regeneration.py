@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ai_anime.modules.generators.public import render_ai_detection_error
+from ai_anime.modules.production.infrastructure.media_generation.render_identity_guard import (
+    render_ai_detection_error,
+)
 from ai_anime.modules.narrative_planning.public import pick_beats_by_number
 from ai_anime.modules.production.application.generation_context import (
     ProductionGenerationContextUseCases,

@@ -4,7 +4,10 @@ from typing import Any, List
 
 from pydantic import BaseModel, Field
 
-from ai_anime.time_of_day import is_time_of_day_token, time_of_day_name_candidates
+from ai_anime.shared.time_of_day import (
+    is_time_of_day_token,
+    time_of_day_name_candidates,
+)
 from ai_anime.shared.utils.derived_scenes import compose_derived_scene_name
 
 

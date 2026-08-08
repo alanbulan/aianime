@@ -51,7 +51,7 @@ def test_remove_style_previews_removes_all_supported_variants(tmp_path):
 
 def test_style_reference_upload_returns_final_path_without_ai_analysis(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         assert required_role == "editor"
@@ -93,7 +93,7 @@ def test_style_reference_upload_rejects_unsupported_format(
     content_type,
 ):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -120,7 +120,7 @@ def test_style_reference_upload_rejects_unsupported_format(
 
 def test_style_reference_upload_rejects_empty_file(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -146,7 +146,7 @@ def test_style_reference_upload_rejects_empty_file(monkeypatch, tmp_path):
 
 
 def _client():
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
 
     app = FastAPI()
     app.include_router(styles.router)
@@ -164,7 +164,7 @@ def test_style_preview_get_returns_image_without_generation():
 
 def test_custom_style_list_includes_project_media_preview_url(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
     from ai_anime.modules.asset_world.public import StyleService
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
@@ -203,7 +203,7 @@ def test_custom_style_list_includes_project_media_preview_url(monkeypatch, tmp_p
 
 def test_custom_style_detail_includes_project_media_preview_url(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
     from ai_anime.modules.asset_world.public import StyleConfig, StyleService
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
@@ -245,7 +245,7 @@ def test_style_preview_post_route_still_exists(monkeypatch, tmp_path):
         return [str(preview_path)]
 
     monkeypatch.setattr(
-        "ai_anime.modules.generators.public.generate_character_reference_unified",
+        "ai_anime.modules.production.public.generate_character_reference_unified",
         fake_generate_character_reference_unified,
     )
 
@@ -270,7 +270,7 @@ def test_guoman_fantasy_is_listed_as_3d_animation_preset():
 
 def test_create_style_accepts_frontend_payload_with_top_level_id_and_name(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
     from ai_anime.modules.asset_world.public import StyleService
 
     saved = []
@@ -324,7 +324,7 @@ def test_create_style_accepts_frontend_payload_with_top_level_id_and_name(monkey
 
 def test_create_style_accepts_existing_published_preview_path(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
     from ai_anime.modules.asset_world.public import StyleService
 
     saved = []
@@ -367,7 +367,7 @@ def test_create_style_accepts_existing_published_preview_path(monkeypatch, tmp_p
 
 def test_create_style_associates_published_preview_without_request_path(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
     from ai_anime.modules.asset_world.public import StyleService
 
     saved = []
@@ -409,7 +409,7 @@ def test_create_style_associates_published_preview_without_request_path(monkeypa
 
 def test_create_style_rejects_missing_published_preview_path(monkeypatch, tmp_path):
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import styles
+    from ai_anime.api.routes.asset_world import styles
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
@@ -440,8 +440,8 @@ def test_create_style_rejects_missing_published_preview_path(monkeypatch, tmp_pa
 
 
 def test_config_style_helpers_do_not_fallback_to_hardcoded_presets(monkeypatch):
-    from ai_anime import config
     from ai_anime.modules.asset_world import public as asset_world
+    from ai_anime.modules.production import public as config
 
     class BrokenStyleService:
         @staticmethod

@@ -52,7 +52,7 @@ class _FakePipelineStore:
 
 @pytest.mark.asyncio
 async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, tmp_path):
-    from ai_anime.api.routes import pipeline
+    from ai_anime.api.routes.task_execution import pipeline
     from ai_anime.api.deps import ProjectResolution
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
@@ -106,7 +106,7 @@ async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, t
 
 
 def test_pipeline_script_status_accepts_current_sqlite_beat_fields():
-    from ai_anime.api.routes.pipeline import _beat_has_script_content
+    from ai_anime.api.routes.task_execution.pipeline import _beat_has_script_content
 
     assert _beat_has_script_content({"narration": "旁白", "visual_description": ""}) is True
     assert _beat_has_script_content({"narration": "", "visual_description": "黑屏标题"}) is True

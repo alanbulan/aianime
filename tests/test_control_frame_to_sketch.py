@@ -8,7 +8,9 @@ from PIL import Image
 
 @pytest.mark.asyncio
 async def test_director_control_frame_to_sketch_uses_commercial_access(monkeypatch, tmp_path):
-    from ai_anime.modules.director_world import control_frame_to_sketch as module
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        control_frame_to_sketch as module,
+    )
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     state_dir = tmp_path / "state" / "admin" / "demo"

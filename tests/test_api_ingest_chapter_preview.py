@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from ai_anime.api.story_intake_schemas import IngestStart
+from ai_anime.api.routes.story_intake.schemas import IngestStart
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.story_intake.domain import MAX_STORY_UPLOAD_BYTES
 
@@ -230,7 +230,7 @@ def test_chapter_preview_keeps_valid_titles_after_marker():
 
 @pytest.mark.asyncio
 async def test_upload_novel_returns_nicegui_chapter_preview(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(
         ingest,
@@ -262,7 +262,7 @@ async def test_upload_novel_returns_nicegui_chapter_preview(tmp_path, monkeypatc
 
 @pytest.mark.asyncio
 async def test_upload_novel_returns_chapter_preview_for_docx(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(
         ingest,
@@ -290,7 +290,7 @@ async def test_upload_novel_returns_chapter_preview_for_docx(tmp_path, monkeypat
 
 @pytest.mark.asyncio
 async def test_upload_novel_rejects_unsupported_extension(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(
         ingest,
@@ -313,7 +313,7 @@ async def test_upload_novel_rejects_unsupported_extension(tmp_path, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_upload_novel_rejects_files_over_512kb(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(
         ingest,
@@ -342,7 +342,7 @@ async def test_upload_novel_rejects_files_over_512kb(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_upload_novel_rejects_preview_decode_failure(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(
         ingest,
@@ -365,7 +365,7 @@ async def test_upload_novel_rejects_preview_decode_failure(tmp_path, monkeypatch
 
 @pytest.mark.asyncio
 async def test_upload_novel_rejects_empty_preview(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(
         ingest,
@@ -387,7 +387,7 @@ async def test_upload_novel_rejects_empty_preview(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_start_ingest_rejects_unsupported_extension_before_ray(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     uploads_dir = tmp_path / "uploads"
     uploads_dir.mkdir()
@@ -415,7 +415,7 @@ async def test_start_ingest_rejects_unsupported_extension_before_ray(tmp_path, m
 
 @pytest.mark.asyncio
 async def test_detect_chapters_returns_content_and_total_chars(tmp_path, monkeypatch):
-    from ai_anime.api.routes import episodes
+    from ai_anime.api.routes.narrative_planning import episodes
 
     monkeypatch.setattr(
         episodes,

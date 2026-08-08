@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from ai_anime.api.chat_websocket import (
+from ai_anime.api.routes.ai_assistant.websocket import (
     send_json_best_effort,
     stream_chat_turn,
 )

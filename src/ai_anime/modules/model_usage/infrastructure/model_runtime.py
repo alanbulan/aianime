@@ -1,0 +1,380 @@
+"""OpenAI-compatible model runtime construction and request settings."""
+
+import os
+import uuid
+from contextvars import ContextVar
+from typing import Any
+
+from ai_anime.modules.model_usage.domain.official_defaults import (
+    DEFAULT_GENERAL_TEXT_MODEL,
+    DEFAULT_TEXT_MODEL_BY_ENV,
+)
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
+
+load_project_dotenv()
+
+_TEXT_MODEL_IDEMPOTENCY_KEY: ContextVar[str] = ContextVar(
+    "ai_anime_text_model_idempotency_key",
+    default="",
+)
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
+def get_pydantic_model(
+    model_name_override: str | None = None,
+):
+    """Return a PydanticAI model through the selected cloud/BYOK transport."""
+    return get_newapi_text_pydantic_model(
+        "MODEL_NAME",
+        DEFAULT_GENERAL_TEXT_MODEL,
+        model_name_override=model_name_override,
+        model_name_override_is_internal=True,
+        timeout_seconds_override=_env_float("MODEL_TIMEOUT", 120.0),
+    )
+
+
+def _clean_env_value(name: str | None) -> str | None:
+    if not name:
+        return None
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def get_newapi_text_model_name(model_env: str, default_model: str) -> str:
+    """Return the logical newAPI text model for a path-specific task."""
+    return _clean_env_value(model_env) or DEFAULT_TEXT_MODEL_BY_ENV.get(
+        model_env, default_model
+    )
+
+
+def _get_newapi_text_model_profile(model_name: str):
+    """Attach Gemini-compatible model profile while routing through newAPI."""
+    normalized = (model_name or "").strip()
+    if not normalized.startswith("gemini-") or "image" in normalized:
+        return None
+
+    from pydantic_ai.providers.openrouter import OpenRouterProvider
+
+    return OpenRouterProvider.model_profile(f"google/{normalized}")
+
+
+def _newapi_text_http_client_factory(
+    *,
+    timeout_seconds: float,
+    omit_authorization: bool = False,
+) -> Any:
+    trust_env = _env_bool("NEWAPI_TEXT_TRUST_ENV", True)
+
+    def factory():
+        import httpx
+
+        kwargs: dict[str, Any] = {"timeout": timeout_seconds}
+        if not trust_env:
+            kwargs["trust_env"] = False
+
+        async def prepare_model_request(request: httpx.Request) -> None:
+            if (
+                omit_authorization
+                and request.headers.get("Authorization") == "Bearer ai-anime-no-auth"
+            ):
+                request.headers.pop("Authorization", None)
+            idempotency_key = _TEXT_MODEL_IDEMPOTENCY_KEY.get()
+            if (
+                idempotency_key
+                and request.method.upper() not in {"GET", "HEAD", "OPTIONS"}
+                and "Idempotency-Key" not in request.headers
+            ):
+                request.headers["Idempotency-Key"] = idempotency_key
+
+        kwargs["event_hooks"] = {"request": [prepare_model_request]}
+        return httpx.AsyncClient(**kwargs)
+
+    return factory
+
+
+def _newapi_text_openai_provider(
+    *,
+    api_key: str,
+    base_url: str,
+    timeout_seconds: float,
+):
+    from openai import AsyncOpenAI
+    from pydantic_ai.providers.openai import OpenAIProvider
+
+    class _LifecycleManagedOpenAIProvider(OpenAIProvider):
+        def __init__(self) -> None:
+            omit_authorization = not str(api_key or "").strip()
+            http_client_factory = _newapi_text_http_client_factory(
+                timeout_seconds=timeout_seconds,
+                omit_authorization=omit_authorization,
+            )
+            http_client = http_client_factory()
+            super().__init__(
+                openai_client=AsyncOpenAI(
+                    api_key=api_key or "ai-anime-no-auth",
+                    base_url=base_url,
+                    timeout=timeout_seconds,
+                    max_retries=1,
+                    http_client=http_client,
+                ),
+            )
+            self._own_http_client = http_client
+            self._http_client_factory = http_client_factory
+
+    return _LifecycleManagedOpenAIProvider()
+
+
+def _newapi_text_openai_model(
+    model_name: str,
+    *,
+    api_key: str,
+    base_url: str,
+    timeout_seconds: float,
+    profile: Any,
+):
+    from contextlib import asynccontextmanager
+
+    from pydantic_ai.models.openai import OpenAIChatModel
+
+    class _AutoClosingOpenAIChatModel(OpenAIChatModel):
+        async def request(self, *args: Any, **kwargs: Any) -> Any:
+            token = _TEXT_MODEL_IDEMPOTENCY_KEY.set(str(uuid.uuid4()))
+            try:
+                async with self:
+                    return await super().request(*args, **kwargs)
+            finally:
+                _TEXT_MODEL_IDEMPOTENCY_KEY.reset(token)
+
+        @asynccontextmanager
+        async def request_stream(self, *args: Any, **kwargs: Any):
+            token = _TEXT_MODEL_IDEMPOTENCY_KEY.set(str(uuid.uuid4()))
+            try:
+                async with self:
+                    async with super().request_stream(*args, **kwargs) as response:
+                        yield response
+            finally:
+                _TEXT_MODEL_IDEMPOTENCY_KEY.reset(token)
+
+    return _AutoClosingOpenAIChatModel(
+        model_name,
+        provider=_newapi_text_openai_provider(
+            api_key=api_key,
+            base_url=base_url,
+            timeout_seconds=timeout_seconds,
+        ),
+        profile=profile,
+    )
+
+
+def get_newapi_text_pydantic_model(
+    model_env: str,
+    default_model: str,
+    *,
+    model_name_override: str | None = None,
+    model_name_override_is_internal: bool = False,
+    timeout_seconds_override: float | None = None,
+):
+    """Create a PydanticAI OpenAI-compatible model that routes through newAPI."""
+    explicit_model = str(model_name_override or "").strip()
+    logical_model = explicit_model or get_newapi_text_model_name(model_env, default_model)
+    from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
+        resolve_internal_model_for_role,
+        resolve_model_for_role,
+    )
+
+    model_name = (
+        resolve_internal_model_for_role(logical_model, "TEXT")
+        if model_name_override_is_internal or not explicit_model
+        else resolve_model_for_role(logical_model, "TEXT")
+    )
+    api_key, base_url = get_newapi_runtime_credentials()
+    if not base_url:
+        raise ValueError("Model Base URL is not configured.")
+    timeout_seconds = (
+        float(timeout_seconds_override)
+        if timeout_seconds_override is not None
+        else _env_float(
+            f"{model_env}_TIMEOUT_SECONDS",
+            _env_float("NEWAPI_TEXT_TIMEOUT_SECONDS", 120.0),
+        )
+    )
+    return _newapi_text_openai_model(
+        model_name,
+        api_key=api_key,
+        base_url=base_url,
+        timeout_seconds=timeout_seconds,
+        profile=_get_newapi_text_model_profile(model_name),
+    )
+
+
+def get_newapi_text_pydantic_model_settings(
+    thinking_env: str,
+    default_thinking_level: str,
+) -> dict | None:
+    """Build PydanticAI model settings for a newAPI text task."""
+    thinking_level = get_text_thinking_level(thinking_env, default_thinking_level)
+    reasoning_effort = _normalize_openai_compat_reasoning_effort(thinking_level)
+    if not reasoning_effort:
+        return None
+    return {"openai_reasoning_effort": reasoning_effort}
+
+
+def get_superpower_pydantic_model(
+    *,
+    feature_model_env: str | None = None,
+):
+    """Return a task-selected model through the process model-access mode."""
+    model_name_override = (
+        _clean_env_value(feature_model_env)
+        or _clean_env_value("SUPERPOWER_MODEL")
+        or _clean_env_value("SUPERPOWER_MODEL_NAME")
+    )
+    return get_pydantic_model(model_name_override=model_name_override)
+
+
+def get_pydantic_model_settings(
+    *,
+    max_tokens: int | None = None,
+    thinking_level_override: str | None = None,
+) -> dict | None:
+    """Build settings for the OpenAI-compatible cloud/BYOK transport."""
+    thinking_level = (
+        thinking_level_override
+        or os.environ.get("MODEL_THINKING_LEVEL")
+        or "low"
+    )
+
+    settings: dict[str, object] = {}
+    if max_tokens is not None:
+        settings["max_tokens"] = max_tokens
+
+    if thinking_level:
+        reasoning_effort = _normalize_openai_compat_reasoning_effort(thinking_level)
+        if reasoning_effort:
+            settings["openai_reasoning_effort"] = reasoning_effort
+
+    return settings or None
+
+
+def get_text_thinking_level(env_name: str, default: str) -> str:
+    """Read a path-specific thinking level.
+
+    Missing env vars use the caller default. Explicit empty env vars mean
+    "do not send a thinking/reasoning setting" for that path.
+    """
+    return os.environ.get(env_name, default).strip()
+
+
+_OPENAI_COMPAT_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
+
+
+def _normalize_openai_compat_reasoning_effort(value: str | None) -> str:
+    normalized = str(value or "").strip().lower()
+    return normalized if normalized in _OPENAI_COMPAT_REASONING_EFFORTS else ""
+
+
+def get_newapi_reasoning_kwargs(
+    *,
+    thinking_env: str | None = None,
+    default_thinking_level: str | None = None,
+) -> dict:
+    """Build reasoning kwargs for OpenAI-compatible newAPI/Cognee calls.
+
+    Explicit empty env values disable sending reasoning parameters.
+    Both supported access modes use an OpenAI-compatible request shape.
+    """
+    if thinking_env and thinking_env in os.environ:
+        thinking_level = os.environ.get(thinking_env, "").strip()
+    elif default_thinking_level is not None:
+        thinking_level = default_thinking_level
+    else:
+        thinking_level = os.environ.get("MODEL_THINKING_LEVEL", "").strip()
+    reasoning_effort = _normalize_openai_compat_reasoning_effort(thinking_level)
+    if not reasoning_effort:
+        return {}
+    return {
+        "reasoning_effort": reasoning_effort,
+        "allowed_openai_params": ["reasoning_effort"],
+    }
+
+
+def get_effective_newapi_gateway_config():
+    """Return the selected cloud-proxy or BYOK runtime endpoint."""
+    from ai_anime.modules.model_usage.infrastructure.model_gateway_settings import (
+        get_effective_newapi_config,
+    )
+
+    return get_effective_newapi_config()
+
+
+def get_newapi_runtime_credentials() -> tuple[str, str]:
+    """Resolve the single process-wide cloud-proxy or BYOK endpoint."""
+
+    gateway = get_effective_newapi_gateway_config()
+    return str(gateway.api_key or "").strip(), str(gateway.base_url or "").strip()
+
+
+def get_model_access_json_transport() -> tuple[str, dict[str, str]]:
+    """Return the process-wide model endpoint and JSON request headers."""
+    api_key, base_url = get_newapi_runtime_credentials()
+    if not base_url:
+        raise ValueError("Model Base URL is not configured.")
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return base_url.rstrip("/"), headers
+
+
+def get_model_access_openai_client(*, timeout_seconds: float = 120.0):
+    """Create one synchronous OpenAI-compatible model operation client."""
+    import httpx
+    from openai import OpenAI
+
+    api_key, base_url = get_newapi_runtime_credentials()
+    if not base_url:
+        raise ValueError("Model Base URL is not configured.")
+
+    event_hooks: dict[str, list[Any]] = {}
+    if not api_key:
+
+        def strip_placeholder_authorization(request: httpx.Request) -> None:
+            if request.headers.get("Authorization") == "Bearer ai-anime-no-auth":
+                request.headers.pop("Authorization", None)
+
+        event_hooks["request"] = [strip_placeholder_authorization]
+
+    http_client = httpx.Client(
+        timeout=timeout_seconds,
+        event_hooks=event_hooks,
+    )
+    return OpenAI(
+        api_key=api_key or "ai-anime-no-auth",
+        base_url=base_url,
+        timeout=timeout_seconds,
+        max_retries=1,
+        default_headers={"Idempotency-Key": str(uuid.uuid4())},
+        http_client=http_client,
+    )

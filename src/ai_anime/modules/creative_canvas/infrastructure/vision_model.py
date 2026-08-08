@@ -6,7 +6,7 @@ from ai_anime.modules.creative_canvas.application.vision_analysis import (
     AnalyzeCreativeCanvasVisionCommand,
     CreativeCanvasVisionInput,
 )
-from ai_anime.official_defaults import DEFAULT_FREEZONE_VISION_MODEL
+from ai_anime.modules.model_usage.public import DEFAULT_FREEZONE_VISION_MODEL
 
 
 def resolve_creative_canvas_vision_model(
@@ -17,7 +17,7 @@ def resolve_creative_canvas_vision_model(
     if clean_override:
         return clean_override
 
-    from ai_anime.config import get_newapi_text_model_name
+    from ai_anime.modules.model_usage.public import get_newapi_text_model_name
 
     return get_newapi_text_model_name(
         "FREEZONE_VISION_MODEL",
@@ -38,8 +38,8 @@ async def call_creative_canvas_vision_model(
 
     from pydantic_ai import Agent, BinaryContent
 
-    from ai_anime.config import get_newapi_text_pydantic_model
-    from ai_anime.model_access_policy import (
+    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+    from ai_anime.modules.model_usage.public import (
         resolve_internal_model_for_role,
         resolve_model_for_role,
     )

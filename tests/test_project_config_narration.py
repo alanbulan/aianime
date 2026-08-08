@@ -21,9 +21,9 @@ def narration_env(tmp_path, monkeypatch):
     monkeypatch.setenv("AI_ANIME_OUTPUT_DIR", str(output_dir))
 
     import importlib
-    import ai_anime.config as cfg
+    import ai_anime.shared.runtime_paths as cfg
     import ai_anime.shared.utils.project_paths as pp
-    import ai_anime.project_config as pc
+    import ai_anime.modules.project_workspace.infrastructure.project_config as pc
 
     importlib.reload(cfg)
     importlib.reload(pp)
@@ -107,12 +107,14 @@ def test_indextts2_beat_audio_task_module_imports():
     """C5 unblocks top-level import of indextts2_beat_audio_task."""
     import importlib
 
-    mod = importlib.import_module("ai_anime.modules.seedance2_i2v.infrastructure.indextts2_beat_audio_task")
+    mod = importlib.import_module("ai_anime.modules.production.infrastructure.indextts2_beat_audio_task")
     assert hasattr(mod, "run_indextts2_beat_audio_generation")
 
 
 def test_indextts2_uses_only_commercial_model_access_config():
-    from ai_anime import config as cfg
+    from ai_anime.modules.production.infrastructure import (
+        media_generation_settings as cfg,
+    )
 
     assert not hasattr(cfg, "FAL_API_KEY")
     assert not hasattr(cfg, "INDEXTTS2_FAL_ENDPOINT")
@@ -121,8 +123,8 @@ def test_indextts2_uses_only_commercial_model_access_config():
     assert isinstance(cfg.INDEXTTS2_TIMEOUT_SECONDS, float)
 
 
-def test_output_dir_alias_present_for_monkeypatching():
-    """Source-branch tests monkeypatch ``project_config.OUTPUT_DIR`` to redirect roots."""
-    import ai_anime.project_config as pc
+def test_project_config_uses_state_dir_as_its_single_root():
+    import ai_anime.modules.project_workspace.infrastructure.project_config as pc
 
-    assert hasattr(pc, "OUTPUT_DIR")
+    assert hasattr(pc, "STATE_DIR")
+    assert not hasattr(pc, "OUTPUT_DIR")

@@ -70,14 +70,14 @@ def slot_target_path(project_dir: Path, target: SlotTarget) -> Path:
     if target.kind == "scene_spatial_layout":
         return canonical_scene_spatial_layout_path(project_dir, target.scene_id)
     if target.kind == "scene_director_pano_360":
-        from ai_anime.modules.director_world.public import stage_manifest
+        from ai_anime.modules.asset_world.public import stage_manifest
 
         existing = stage_manifest.resolve_pano_path(project_dir, target.scene_id)
         return existing or (
             stage_manifest.stage_dir(project_dir, target.scene_id) / "pano_360.png"
         )
     if target.kind in SCENE_3GS_PLY_TARGETS:
-        from ai_anime.modules.director_world.public import stage_manifest
+        from ai_anime.modules.asset_world.public import stage_manifest
 
         ply_kind, default_name = SCENE_3GS_PLY_TARGETS[target.kind]
         existing = stage_manifest.resolve_ply_path(
@@ -89,7 +89,7 @@ def slot_target_path(project_dir: Path, target: SlotTarget) -> Path:
             stage_manifest.stage_dir(project_dir, target.scene_id) / default_name
         )
     if target.kind == "scene_3gs_collision_glb":
-        from ai_anime.modules.director_world.public import stage_manifest
+        from ai_anime.modules.asset_world.public import stage_manifest
 
         existing = stage_manifest.resolve_collision_glb_path(
             project_dir,
@@ -132,7 +132,7 @@ def sync_slot_after_write(
     ):
         return
 
-    from ai_anime.modules.director_world.public import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     relative_name = target_path.name
     if target.kind == "scene_director_pano_360":

@@ -19,9 +19,9 @@ logger = logging.getLogger("ai_anime.platform_release.project_files")
 
 
 def _download_via_oss_enabled() -> bool:
-    from ai_anime import config
+    from ai_anime.shared.oss_settings import DOWNLOAD_VIA_OSS
 
-    return bool(getattr(config, "DOWNLOAD_VIA_OSS", False))
+    return DOWNLOAD_VIA_OSS
 
 
 def _presign_download(path: Path) -> str | None:

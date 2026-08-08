@@ -1,6 +1,6 @@
 def test_identity_planner_uses_split_newapi_model_envs(monkeypatch):
-    from ai_anime.modules.agents.identity_planner import IdentityPlanner
-    import ai_anime.modules.agents.identity_planner as identity_planner
+    from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import IdentityPlanner
+    import ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent as identity_planner
 
     calls = []
     sentinel = object()
@@ -20,7 +20,7 @@ def test_identity_planner_uses_split_newapi_model_envs(monkeypatch):
 
 
 def test_newapi_text_model_settings_use_path_specific_thinking(monkeypatch):
-    from ai_anime.modules.agents.identity_planner import IdentityPlanner
+    from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import IdentityPlanner
 
     monkeypatch.setenv("IDENTITY_PLANNER_CAST_THINKING_LEVEL", "low")
     monkeypatch.setenv("IDENTITY_PLANNER_ANALYSIS_THINKING_LEVEL", "high")
@@ -37,7 +37,7 @@ def test_newapi_text_model_settings_use_path_specific_thinking(monkeypatch):
 
 
 def test_newapi_text_model_settings_empty_env_disables(monkeypatch):
-    from ai_anime.modules.agents.identity_planner import IdentityPlanner
+    from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import IdentityPlanner
 
     monkeypatch.setenv("IDENTITY_PLANNER_APPEARANCE_THINKING_LEVEL", "")
 
@@ -53,7 +53,7 @@ def test_newapi_text_model_settings_empty_env_disables(monkeypatch):
 def test_newapi_text_provider_default_trusts_env(monkeypatch):
     import asyncio
 
-    import ai_anime.config as config
+    import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
     monkeypatch.delenv("NEWAPI_TEXT_TRUST_ENV", raising=False)
 
@@ -75,7 +75,7 @@ def test_newapi_text_provider_default_trusts_env(monkeypatch):
 def test_newapi_text_provider_can_disable_system_proxy(monkeypatch):
     import asyncio
 
-    import ai_anime.config as config
+    import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
     monkeypatch.setenv("NEWAPI_TEXT_TRUST_ENV", "false")
 
@@ -99,7 +99,7 @@ def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
 
     from pydantic_ai.models.openai import OpenAIChatModel
 
-    import ai_anime.config as config
+    import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
     model = config._newapi_text_openai_model(
         "gpt-test",
@@ -141,7 +141,7 @@ def test_newapi_text_http_retries_reuse_the_operation_idempotency_key():
 
     import httpx
 
-    import ai_anime.config as config
+    import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
     client = config._newapi_text_http_client_factory(
         timeout_seconds=12.0,
@@ -186,7 +186,7 @@ def test_newapi_text_stream_keeps_one_key_until_the_stream_closes(monkeypatch):
 
     from pydantic_ai.models.openai import OpenAIChatModel
 
-    import ai_anime.config as config
+    import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
     model = config._newapi_text_openai_model(
         "gpt-test",
@@ -228,7 +228,7 @@ def test_asset_compiler_scene_planner_uses_scene_newapi_env(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
-    import ai_anime.modules.agents.asset_compiler as asset_compiler
+    import ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent as asset_compiler
 
     model_calls = []
     settings_calls = []
@@ -278,7 +278,7 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
-    import ai_anime.modules.agents.asset_compiler as asset_compiler
+    import ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent as asset_compiler
 
     model_calls = []
     settings_calls = []
@@ -374,8 +374,8 @@ def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
 
 
 def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.agents.global_video_optimizer as global_video_optimizer
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
     model_calls = []
     settings_calls = []
@@ -411,8 +411,8 @@ def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
 
 
 def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.agents.global_video_optimizer as global_video_optimizer
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
     model_calls = []
     settings_calls = []
@@ -449,8 +449,8 @@ def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
 
 
 def test_global_video_optimizer_keeps_legacy_global_video_model_fallback(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.agents.global_video_optimizer as global_video_optimizer
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
     model_calls = []
 
@@ -477,8 +477,8 @@ def test_global_video_optimizer_keeps_legacy_global_video_model_fallback(monkeyp
 
 
 def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.agents.global_video_optimizer as global_video_optimizer
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
     agent_kwargs = {}
 
@@ -505,8 +505,8 @@ def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypat
 
 
 def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.seedance2_i2v.prompt as seedance2_prompt
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.seedance2_prompt as seedance2_prompt
 
     model_calls = []
     settings_calls = []
@@ -543,8 +543,8 @@ def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
 
 
 def test_ai_identity_detector_keeps_legacy_global_video_model_fallback(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.agents.global_video_optimizer as global_video_optimizer
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
     model_calls = []
 
@@ -573,8 +573,8 @@ def test_ai_identity_detector_keeps_legacy_global_video_model_fallback(monkeypat
 
 
 def test_ai_identity_detector_can_pass_explicit_thinking_level(monkeypatch):
-    import ai_anime.config as config
-    import ai_anime.modules.agents.global_video_optimizer as global_video_optimizer
+    from ai_anime.modules.model_usage import public as config
+    import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
     agent_kwargs = {}
 

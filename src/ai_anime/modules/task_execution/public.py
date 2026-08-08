@@ -89,7 +89,6 @@ from ai_anime.modules.task_execution.composition import (
     create_project_task_use_cases,
     get_project_task_runner,
     is_cancel_requested,
-    interrupted_inline_recovery_plan,
     kill_task_processes,
     project_task_use_cases,
     project_task_limit_use_cases,
@@ -109,6 +108,9 @@ from ai_anime.modules.task_execution.infrastructure.admission_policy import (
     project_lane_effective_active_limit,
     project_lane_min_active_limit,
     project_user_lane_active_limit,
+)
+from ai_anime.modules.task_execution.infrastructure.task_state import (
+    get_task_manager,
 )
 from ai_anime.modules.task_execution.presentation.project_task_projection import (
     serialize_project_task,
@@ -166,7 +168,7 @@ __all__ = [
     "global_lane_queue_limit",
     "hashed_scope",
     "is_cancel_requested",
-    "interrupted_inline_recovery_plan",
+    "get_task_manager",
     "kill_task_processes",
     "normalize_queue_kind",
     "parse_task_timestamp",

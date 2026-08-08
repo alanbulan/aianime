@@ -8,13 +8,13 @@ from typing import Literal
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.canvas_video_schemas import (
+from ai_anime.api.routes.creative_canvas.video_schemas import (
     FreezoneAudioSeparateRequest,
     FreezoneExtractFramesRequest,
     FreezoneVideoComposeRequest,
     FreezoneVideoEraseRequest,
 )
-from ai_anime.api.routes.canvas import video as video_processing_routes
+from ai_anime.api.routes.creative_canvas import video as video_processing_routes
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskSubmission,

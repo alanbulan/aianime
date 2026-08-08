@@ -32,7 +32,9 @@ from ai_anime.modules.creative_canvas.infrastructure.preset_references import (
     _add_scene_refs,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.generators.nanobanana_prop import build_prop_reference_prompt
+from ai_anime.modules.production.infrastructure.media_generation.nanobanana_prop import (
+    build_prop_reference_prompt,
+)
 from ai_anime.modules.creative_canvas.public import default_push_target_for_preset
 
 
@@ -2632,11 +2634,11 @@ async def test_character_asset_preset_style_lookup_uses_project_context(
         }
 
     monkeypatch.setattr(
-        "ai_anime.project_config.load_project_config",
+        "ai_anime.modules.project_workspace.infrastructure.project_config.load_project_config",
         fake_load_project_config,
     )
     monkeypatch.setattr(
-        "ai_anime.config.get_style_preset",
+        "ai_anime.modules.production.infrastructure.media_generation_settings.get_style_preset",
         fake_get_style_preset,
     )
 

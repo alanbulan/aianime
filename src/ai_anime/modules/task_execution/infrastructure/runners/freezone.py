@@ -13,7 +13,7 @@ from ai_anime.modules.task_execution.public import (
 )
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.public import project_task_state_key
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _run_cancellable(
@@ -533,7 +533,7 @@ async def _run_mainline_director_control_sketch_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.shared.project_media import make_static_url_for_context
-    from ai_anime.modules.director_world.public import (
+    from ai_anime.modules.asset_world.public import (
         convert_control_frame_to_sketch,
     )
     from ai_anime.modules.creative_canvas.public import (

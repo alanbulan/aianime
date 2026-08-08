@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.generators.public import PromptComponents
+from ai_anime.modules.production.public import PromptComponents
 from ai_anime.modules.production.public import (
     extract_char_identities_from_markers,
     real_detected_identities,

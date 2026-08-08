@@ -7,12 +7,12 @@ import pytest
 from fastapi import HTTPException
 from PIL import Image
 
-from ai_anime.api.canvas_image_schemas import (
+from ai_anime.api.routes.creative_canvas.image_schemas import (
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
     FreezoneUpscaleRequest,
 )
-from ai_anime.api.routes.canvas import image as image_editing_routes
+from ai_anime.api.routes.creative_canvas import image as image_editing_routes
 from ai_anime.modules.creative_canvas.application.image_editing import (
     CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE,
     CREATIVE_CANVAS_IMAGE_MASK_EDIT_TASK_TYPE,

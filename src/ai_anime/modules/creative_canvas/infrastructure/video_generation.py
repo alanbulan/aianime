@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 
 from ai_anime.modules.asset_world.public import probe_voice_sample_duration_seconds
-from ai_anime.model_access_policy import runtime_model_capability
+from ai_anime.modules.model_usage.public import runtime_model_capability
 from ai_anime.modules.creative_canvas.domain.video_generation import (
     MAX_OMNI_REFERENCE_AUDIO_SECONDS,
     MAX_OMNI_REFERENCE_AUDIO_TOTAL_SECONDS,

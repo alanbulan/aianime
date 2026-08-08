@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime import config
+from ai_anime.shared import oss_settings
 from ai_anime.shared.utils import oss_client
 
 
@@ -41,8 +41,8 @@ class FakeBucket:
 def output_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root = tmp_path / "output"
     root.mkdir()
-    monkeypatch.setattr(config, "OUTPUT_DIR", str(root))
-    monkeypatch.setattr(config, "OSS_OBJECT_PREFIX", "output", raising=False)
+    monkeypatch.setattr(oss_client, "OUTPUT_DIR", str(root))
+    monkeypatch.setattr(oss_settings, "OSS_OBJECT_PREFIX", "output")
     return root
 
 
@@ -123,11 +123,19 @@ def test_presign_or_upload_output_uploads_missing_oss_object_then_signs(
 
 def test_public_endpoint_overrides_internal_for_signing(monkeypatch: pytest.MonkeyPatch) -> None:
     oss_client._reset_for_tests()
-    monkeypatch.setattr(config, "OSS_ENDPOINT", "oss-cn-chengdu-internal.aliyuncs.com")
-    monkeypatch.setattr(config, "OSS_PUBLIC_ENDPOINT", "oss-cn-chengdu.aliyuncs.com", raising=False)
-    monkeypatch.setattr(config, "OSS_BUCKET", "bucket", raising=False)
-    monkeypatch.setattr(config, "OSS_ACCESS_KEY_ID", "ak", raising=False)
-    monkeypatch.setattr(config, "OSS_ACCESS_KEY_SECRET", "sk", raising=False)
+    monkeypatch.setattr(
+        oss_settings,
+        "OSS_ENDPOINT",
+        "oss-cn-chengdu-internal.aliyuncs.com",
+    )
+    monkeypatch.setattr(
+        oss_settings,
+        "OSS_PUBLIC_ENDPOINT",
+        "oss-cn-chengdu.aliyuncs.com",
+    )
+    monkeypatch.setattr(oss_settings, "OSS_BUCKET", "bucket")
+    monkeypatch.setattr(oss_settings, "OSS_ACCESS_KEY_ID", "ak")
+    monkeypatch.setattr(oss_settings, "OSS_ACCESS_KEY_SECRET", "sk")
 
     endpoint, *_ = oss_client._read_creds()
 

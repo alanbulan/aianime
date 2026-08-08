@@ -8,7 +8,6 @@ from typing import Any, Mapping
 
 from PIL import Image
 
-from ai_anime import project_config
 from ai_anime.modules.asset_world.public import runtime_prop_menu_for_episode
 from ai_anime.modules.creative_canvas.application.mainline_generation import (
     CreativeCanvasMainlineBeatMissing,
@@ -28,7 +27,7 @@ from ai_anime.modules.production.public import (
     production_generation_context_use_cases,
     production_image_settings_use_cases,
 )
-from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.project_workspace.public import ProjectContext, load_project_config
 from ai_anime.shared.infrastructure.project_stores import make_sqlite_store_for_context
 
 
@@ -77,7 +76,7 @@ class LocalCreativeCanvasMainlineGenerationConfigSource:
                 f"No beats found for episode {episode}"
             )
         selected_beat = self._beat_by_number(beats, int(beat))
-        loaded_project_config = project_config.load_project_config(
+        loaded_project_config = load_project_config(
             context.owner_username,
             context.project_name,
         )
@@ -153,7 +152,7 @@ class LocalCreativeCanvasMainlineGenerationConfigSource:
         aspect_ratio: str,
         quality: str,
     ) -> dict[str, Any]:
-        loaded_project_config = project_config.load_project_config(
+        loaded_project_config = load_project_config(
             context.owner_username,
             context.project_name,
         )

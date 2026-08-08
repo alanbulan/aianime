@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from ai_anime.config import VIDEO_CODEC
+import os
+
+VIDEO_CODEC = os.environ.get("VIDEO_CODEC", "libx264")
 
 
 def configured_video_codec() -> str:

@@ -26,7 +26,7 @@ from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     context = object()
 
@@ -64,7 +64,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     tmp_path,
 ):
     from ai_anime.modules.task_execution.public import selection_scope
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
     use_case_calls = []
@@ -119,7 +119,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
 
 
 def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -143,7 +143,7 @@ def test_render_selected_regen_preserves_rejection_envelope(monkeypatch, tmp_pat
 
 
 def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
     use_case_calls = []
@@ -233,7 +233,7 @@ def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path)
 
 
 def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -261,7 +261,7 @@ def test_render_plan_feature_disabled_preserves_503_envelope(monkeypatch, tmp_pa
 
 
 def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
 
@@ -295,7 +295,7 @@ def test_render_plan_rejection_preserves_400_envelope(monkeypatch, tmp_path):
 
 
 def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
     use_case_calls = []
@@ -349,7 +349,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
 
 
 def test_render_grid_regen_preserves_rejection_envelope(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_render
+    from ai_anime.api.routes.production import render as production_render
 
     client = _client(monkeypatch, tmp_path)
 

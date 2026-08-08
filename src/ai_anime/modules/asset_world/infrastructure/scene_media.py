@@ -11,8 +11,8 @@ from typing import Any, BinaryIO
 
 from PIL import Image
 
-from ai_anime.modules.director_world.public import stage_manifest
 from ai_anime.modules.asset_world.application.errors import InvalidSceneMediaInput
+from ai_anime.modules.asset_world.infrastructure.director_world import stage_manifest
 from ai_anime.shared.utils.path_resolver import (
     canonical_scene_master_path,
     compute_scene_master_path,
@@ -123,9 +123,11 @@ class LocalSceneMediaFiles:
             if size == 0:
                 raise InvalidSceneMediaInput("Custom scene package is empty")
 
-            from ai_anime import stage_asset_tasks
+            from ai_anime.modules.asset_world.infrastructure.director_world.scene_package_tasks import (
+                upload_scene_package,
+            )
 
-            return stage_asset_tasks.upload_scene_package(
+            return upload_scene_package(
                 project_dir,
                 scene_name,
                 tmp_path,

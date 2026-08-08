@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_va
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ContentFilterError
 
-from ai_anime.config import (
+from ai_anime.modules.model_usage.public import (
     get_newapi_text_pydantic_model,
     get_newapi_text_pydantic_model_settings,
 )
@@ -24,7 +24,7 @@ from ai_anime.modules.narrative_planning.application.script_models import (
     NarrationScript,
     VisualBeat,
 )
-from ai_anime.time_of_day import normalize_time_of_day
+from ai_anime.shared.time_of_day import normalize_time_of_day
 from ai_anime.shared.utils.screenplay_quality import check_screenplay_import_quality
 from ai_anime.shared.utils.screenplay_scene_parser import (
     parse_character_line,

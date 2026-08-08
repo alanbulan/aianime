@@ -10,8 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ai_anime.config import OUTPUT_DIR
-from ai_anime.modules.seedance2_i2v.public import file_sha256
+from ai_anime.shared.runtime_paths import OUTPUT_DIR
+from ai_anime.modules.production.public import file_sha256
 
 USER_VOICE_EXTENSIONS = frozenset(
     {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"}

@@ -5,8 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.modules.knowledge_graph import scene_name_migration as migration_module
-from ai_anime.modules.knowledge_graph.scene_name_migration import migrate_scene_names
+from ai_anime.modules.knowledge_graph.infrastructure import (
+    scene_name_migration as migration_module,
+)
+from ai_anime.modules.knowledge_graph.infrastructure.scene_name_migration import (
+    migrate_scene_names,
+)
 
 DIRTY = "凤鸣皇城·苏鸾寝殿 亥时"
 CANONICAL = "凤鸣皇城·苏鸾寝殿"
@@ -533,7 +537,9 @@ def test_asset_copy_failure_records_failure_and_skips_backup_and_db_write(
 
 def test_cli_scene_migration_report_keeps_failed_copy_count_and_detail(monkeypatch):
     from ai_anime import cli
-    from ai_anime.modules.knowledge_graph.scene_name_migration import SceneNameMigrationReport
+    from ai_anime.modules.knowledge_graph.infrastructure.scene_name_migration import (
+        SceneNameMigrationReport,
+    )
 
     printed: list[str] = []
     report = SceneNameMigrationReport(
@@ -585,7 +591,7 @@ async def test_cli_project_id_scene_migration_ignores_legacy_project_json(
         encoding="utf-8",
     )
 
-    import ai_anime.config as config
+    import ai_anime.shared.runtime_paths as config
     import ai_anime.shared.ports.registry as registry
 
     monkeypatch.setattr(config, "OUTPUT_DIR", str(output), raising=False)

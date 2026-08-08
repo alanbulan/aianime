@@ -1,7 +1,51 @@
 """Stable application API for the Asset & World bounded context."""
 
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        stage_manifest,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.block_world_builder import (
+        BlockWorldUnavailable,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.control_frame_to_sketch import (
+        convert_control_frame_to_sketch,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp import (
+        Sharp3DUnavailable,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.pano_splat_tasks import (
+        run_pano_sharp,
+        run_single_face_sharp,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.paths import (
+        beat_blocking_path,
+        blockings_dir,
+        fs_url,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.scene_360_tasks import (
+        run_scene_360,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.scene_package_tasks import (
+        run_splat_collision,
+        upload_scene_package,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.service import (
+        DirectorWorldService,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.staging_prop_ai import (
+        generate_ai_staging_prop,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.store import (
+        load_beat_blocking,
+        save_beat_blocking,
+    )
+    from ai_anime.modules.asset_world.infrastructure.director_world.voxel_world_tasks import (
+        run_voxel_world_from_360,
+    )
 
 from ai_anime.modules.asset_world.application.beat_viewer import (
     BeatViewerBeatNotFound,
@@ -151,6 +195,94 @@ from ai_anime.modules.asset_world.infrastructure.character_voice_storage import 
 )
 from ai_anime.modules.asset_world.infrastructure.style_catalog import StyleService
 from ai_anime.modules.project_workspace.public import ProjectContext
+
+_LAZY_MODULES = {
+    "stage_manifest": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.stage_manifest"
+    ),
+}
+
+_LAZY_EXPORTS = {
+    "BlockWorldUnavailable": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.block_world_builder",
+        "BlockWorldUnavailable",
+    ),
+    "DirectorWorldService": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.service",
+        "DirectorWorldService",
+    ),
+    "Sharp3DUnavailable": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp",
+        "Sharp3DUnavailable",
+    ),
+    "beat_blocking_path": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.paths",
+        "beat_blocking_path",
+    ),
+    "blockings_dir": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.paths",
+        "blockings_dir",
+    ),
+    "convert_control_frame_to_sketch": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.control_frame_to_sketch",
+        "convert_control_frame_to_sketch",
+    ),
+    "fs_url": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.paths",
+        "fs_url",
+    ),
+    "generate_ai_staging_prop": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.staging_prop_ai",
+        "generate_ai_staging_prop",
+    ),
+    "load_beat_blocking": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.store",
+        "load_beat_blocking",
+    ),
+    "run_pano_sharp": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.pano_splat_tasks",
+        "run_pano_sharp",
+    ),
+    "run_scene_360": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.scene_360_tasks",
+        "run_scene_360",
+    ),
+    "run_single_face_sharp": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.pano_splat_tasks",
+        "run_single_face_sharp",
+    ),
+    "run_splat_collision": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.scene_package_tasks",
+        "run_splat_collision",
+    ),
+    "run_voxel_world_from_360": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.voxel_world_tasks",
+        "run_voxel_world_from_360",
+    ),
+    "save_beat_blocking": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.store",
+        "save_beat_blocking",
+    ),
+    "upload_scene_package": (
+        "ai_anime.modules.asset_world.infrastructure.director_world.scene_package_tasks",
+        "upload_scene_package",
+    ),
+}
+
+
+def __getattr__(name: str) -> Any:
+    module_name = _LAZY_MODULES.get(name)
+    if module_name is not None:
+        value = import_module(module_name)
+        globals()[name] = value
+        return value
+    target = _LAZY_EXPORTS.get(name)
+    if target is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module_name, attribute_name = target
+    value = getattr(import_module(module_name), attribute_name)
+    globals()[name] = value
+    return value
 
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
@@ -475,4 +607,21 @@ __all__ = [
     "voice_content_sha256",
     "voice_sample_extension",
     "utc_iso",
+    "BlockWorldUnavailable",
+    "DirectorWorldService",
+    "Sharp3DUnavailable",
+    "beat_blocking_path",
+    "blockings_dir",
+    "convert_control_frame_to_sketch",
+    "fs_url",
+    "generate_ai_staging_prop",
+    "load_beat_blocking",
+    "run_pano_sharp",
+    "run_scene_360",
+    "run_single_face_sharp",
+    "run_splat_collision",
+    "run_voxel_world_from_360",
+    "save_beat_blocking",
+    "stage_manifest",
+    "upload_scene_package",
 ]

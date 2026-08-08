@@ -10,7 +10,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext, require_pr
 from ai_anime.shared.utils.project_paths import ProjectPaths
 
 if TYPE_CHECKING:
-    from ai_anime.modules.knowledge_graph import CogneeStore
+    from ai_anime.modules.knowledge_graph.public import CogneeStore
     from ai_anime.sqlite_store import SQLiteStore
 
 
@@ -79,7 +79,7 @@ async def _initialize_sqlite_store(store: "SQLiteStore") -> "SQLiteStore":
 
 
 async def make_cognee_store(username: str, project: str) -> CogneeStore:
-    from ai_anime.modules.knowledge_graph import CogneeStore
+    from ai_anime.modules.knowledge_graph.public import CogneeStore
 
     paths = ProjectPaths(username, project)
     store = CogneeStore(
@@ -123,7 +123,7 @@ async def make_cognee_store_for_context(
     embedding_dimensions: int | None = None,
     load_graph_state: bool = False,
 ) -> CogneeStore:
-    from ai_anime.modules.knowledge_graph import CogneeStore
+    from ai_anime.modules.knowledge_graph.public import CogneeStore
 
     require_project_home_node(ctx, operation="open project graph store")
     store = CogneeStore(

@@ -6,8 +6,8 @@ import pytest
 import respx
 from httpx import Response
 
-from ai_anime.model_access_policy import configure_model_access
-from ai_anime.model_text_transport import (
+from ai_anime.modules.model_usage.public import configure_model_access
+from ai_anime.modules.model_usage.public import (
     ModelTextTransportError,
     request_model_chat_content,
 )

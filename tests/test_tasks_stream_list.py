@@ -33,7 +33,7 @@ def _ctx(tmp_path: Path, *, role: str = "viewer") -> ProjectContext:
 
 
 def _install_fake_project_context(monkeypatch, ctx: ProjectContext) -> None:
-    from ai_anime.api.routes import tasks as tasks_routes
+    from ai_anime.api.routes.task_execution import tasks as tasks_routes
 
     async def fake_resolve_project_context(**kwargs):
         assert kwargs["project_id"] == ctx.project_id
@@ -55,14 +55,14 @@ def _install_fake_task_manager(monkeypatch, tasks=None, task=None) -> None:
             return self._single
 
     monkeypatch.setattr(
-        "ai_anime.task_state.get_task_manager",
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
         lambda: _FakeTaskManager(tasks, task),
     )
 
 
 def test_stage_asset_task_display_name_includes_scene_and_step():
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     task = TaskState(
         task_id="task-1",
@@ -82,7 +82,7 @@ def test_stage_asset_task_display_name_includes_scene_and_step():
 
 def test_serialize_task_rewrites_internal_result_paths_to_project_static_urls(tmp_path):
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     ctx = _ctx(tmp_path)
     project_dir = Path(ctx.output_dir)
@@ -129,7 +129,7 @@ async def test_project_stream_emits_heartbeat_immediately(tmp_path, monkeypatch)
     _install_fake_project_context(monkeypatch, ctx)
     _install_fake_task_manager(monkeypatch, tasks=[])
 
-    from ai_anime.api.routes.tasks import stream_project_tasks
+    from ai_anime.api.routes.task_execution.tasks import stream_project_tasks
 
     resp = await stream_project_tasks(
         project=ctx.project_id,
@@ -181,7 +181,7 @@ async def test_project_stream_rejects_missing_auth():
 
 @pytest.mark.asyncio
 async def test_project_task_stream_includes_logs(tmp_path, monkeypatch):
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     ctx = _ctx(tmp_path)
     _install_fake_project_context(monkeypatch, ctx)
@@ -202,7 +202,7 @@ async def test_project_task_stream_includes_logs(tmp_path, monkeypatch):
         ),
     )
 
-    from ai_anime.api.routes.tasks import stream_project_task
+    from ai_anime.api.routes.task_execution.tasks import stream_project_task
 
     resp = await stream_project_task(
         project=ctx.project_id,

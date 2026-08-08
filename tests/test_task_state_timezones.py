@@ -3,7 +3,7 @@ from pathlib import Path
 
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import parse_task_timestamp
-from ai_anime.task_state import (
+from ai_anime.modules.task_execution.infrastructure.task_state import (
     TaskState,
     TaskStateManager,
     utc_now_iso,

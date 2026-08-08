@@ -9,7 +9,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 _TASK_ASSET_KIND = {
     "episode_scene_planner": "scene",
@@ -44,7 +44,7 @@ async def _run_episode_asset_planner(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.modules.agents.public import AssetCompiler
+    from ai_anime.modules.narrative_planning.public import AssetCompiler
     from ai_anime.modules.asset_world.public import promote_episode_props_to_global
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,

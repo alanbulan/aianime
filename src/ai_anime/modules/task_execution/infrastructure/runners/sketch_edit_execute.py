@@ -8,7 +8,7 @@ from typing import Any
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import raise_if_envelope_cancel_requested
 from ai_anime.modules.task_execution.public import register_project_task_runner
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 from ai_anime.modules.verification.public import (
     execute_sketch_edit_batches,
     resolve_labels_jsonl,

@@ -1,10 +1,10 @@
 # AI 漫剧项目评估报告
 
-> 状态：已归档（2026-08-07，全部门禁实测后落盘）
+> 状态：已复核更新（2026-08-08）
 >
-> 验证基线：`refactor/ddd-modular-monolith`，第 995 批提交附近
+> 验证基线：`master`，`e4c06ed3` 之后的本轮 DDD 收敛工作区
 >
-> 门禁结论：六项全绿，与 README 声明一致；并行执行会触发严重资源争抢
+> 门禁结论：后端架构 193 项、前端架构 398 项和知识图谱扩大回归均通过；全量发布门禁按串行方式执行
 
 ## 一、项目概况
 
@@ -37,17 +37,18 @@
 
 ## 四、问题与风险
 
-### P0（建议尽快修复）
+### P0（本轮已处理）
 
-1. SQLite 连接泄漏：`src/ai_anime/api/routes/verification.py` 等 7 个路由文件共 36 处直接调用 `make_sqlite_store_for_context` 且从不 close——桌面是长驻进程，长时间运行会累积句柄泄漏。应统一走依赖注入并强制关闭（对照 `assets.py` 的正确写法）。
-2. 吞异常：全库 89 处 `except: pass`，其中 `modules/generators/nanobanana_grid.py:5195` 还是裸 `except:`——AI 生成管线出错会被静默吞掉，线上排查困难。
+1. SQLite 请求生命周期：已增加请求任务级 store 注册表和响应结束统一关闭；后台任务按 owner task id 隔离，异常路径和重复关闭有测试覆盖。
+2. 高风险吞异常：生成管线裸 `except:` 与 Verification 路由的静默异常已改为带上下文日志。其余精确异常捕获中仍有 best-effort `pass`，属于可维护性清理，不再与这两处高风险问题混为一项发布阻塞。
 
-### P1（本轮重构未覆盖的技术债）
+### P1（本轮架构债处理结果）
 
-3. 顶层大文件：`sqlite_store.py`（1803 行）**反向导入** production/asset_world/narrative_planning 的 public（:23/:27/:33），违反基础设施→业务的分层方向；`stage_asset_tasks.py`（1544 行）、`task_state.py`（1466 行）同样混职责。README 已登记为"收敛项"。
-4. 巨型文件：`desktop/src/commercial.ts` 1607 行，单文件承载登录/许可/设备/公告/更新/文件全部商业逻辑（49 个 async 方法）。
-5. 前端分层越界：`modules/creative_canvas/presentation` 直接 import `../infrastructure/` 10+ 处（`CoverEditor.tsx:27`、`filmstrip.ts:3` 等），靠边界测试白名单豁免而非架构收敛。
-6. 前端 `module-boundaries.test.ts` 达 33,383 行 / 353 断言，任何模块迁移都会产生超大 diff，维护负担重。
+3. `sqlite_store.py` 已降为 33 行组合根，业务仓储回归 Asset World 和 Narrative Planning；shared 只保留通用 SQLite 核心、schema 和图状态，不再反向依赖业务 public。
+4. `stage_asset_tasks.py` 已删除并按资产任务类型拆入 Asset World；`task_state.py` 已迁入 Task Execution infrastructure，恢复判定规则位于 domain。
+5. `commercial.ts` 已降为 35 行显式公共入口，API client、IPC、设备、租约、制品、合同投影、模型访问和代理已拆分。
+6. 原平铺的 Agents、Director World、Generators、Seedance2 已退役或归并；Backup、Knowledge Graph、Verification 已建立适用分层。
+7. 前端 presentation 不再直接导入 infrastructure，398 项前端架构门禁通过。`module-boundaries.test.ts` 仍约 3.3 万行，是测试维护成本，不是运行时分层越界；本轮不做无行为收益的机械拆文件。
 
 ### P2（优化项，摘要）
 
@@ -55,12 +56,12 @@
 - `nanobanana_grid.py` 96 处 print 调试残留；6 处同步 `sqlite3.connect` 散落顶层文件未走统一工厂
 - i18n 仅 71 行单文件、少量硬编码中文；`features/` 与 `modules/` 存在同名重复实现（`browserStoryboardGenRuntime`）
 - 依赖风险：`litellm>=1.85.0.dev1` 使用 dev 版本；world 可选依赖 `sharp/da2` 走 git+https 引用
-- 仓库卫生：根目录 `jr_error.log`（11KB）与 `frontend/node_modules.broken-*` 残留目录可清理
+- 仓库卫生：根目录 `jr_error.log` 与 `frontend/node_modules.broken-*` 已移出工作区
 
 ## 五、商业联调状态（README 明示的阻塞项）
 
-等待后端提供真实租户编码、测试账号与签名公钥；服务端缺失 `/api/v1/config/public`、`/api/v1/config/logo`。商业能力收尾剩余：许可服务端判定、离线验签、更新制品、云端文件与 Invocation 全量覆盖。
+2026-08-08 无凭据只读探测确认 Gateway 在线且 TLS 正常；`bootstrap`、`releases/check` 无令牌返回 401。云端仍缺失 `/api/v1/config/public`、`/api/v1/config/logo`，Captcha 也没有按 GET query 读取 `tenantCode`。客户端已删除无产品消费者的 Invocation 和通用文件 helper，不再把“云端可能提供”写成“当前客户端必须覆盖”。线上闭环仍需测试租户、普通版/专业版账号、许可与额度、公钥和双平台签名制品。
 
 ## 六、总体结论
 
-**工程治理水平属于上游**：架构纪律、测试体系、文档化程度、安全边界四项都很扎实，门禁声明与实际一致（这在国内团队项目中不多见）。当前主要矛盾不在架构，而在**运行稳定性（连接泄漏/吞异常）与商业链路未闭环**。建议按 P0 → P1 顺序推进：先修 SQLite 连接生命周期与吞异常，再逐步消化顶层单文件技术债；商业联调依赖后端侧资源，建议作为并行线推进。
+本轮登记的后端所有权、顶层组合根和 Electron 商业入口债务已经收敛，并由架构门禁防回流。当前发布阻塞不再是这些 DDD 迁移，而是云端登录前置接口、测试资源和签名材料尚未闭环。代码调用链存在不等于真实环境验收通过，发布说明必须继续区分这两种状态。

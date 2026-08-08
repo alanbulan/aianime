@@ -4,7 +4,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-from ai_anime.config import OUTPUT_DIR, RUNTIME_DIR, STATE_DIR
+from ai_anime.shared.runtime_paths import OUTPUT_DIR, RUNTIME_DIR, STATE_DIR
 
 _SQLITE_MAGIC = b"SQLite format 3\x00"
 

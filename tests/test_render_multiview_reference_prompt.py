@@ -2,8 +2,10 @@ import json
 
 import pytest
 
-from ai_anime.modules.generators.nanobanana_grid import NanoBananaGridGenerator
-from ai_anime.modules.generators.prompt_builder import (
+from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+    NanoBananaGridGenerator,
+)
+from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
     CharacterConfig,
     GridConfig,
     PromptComponents,

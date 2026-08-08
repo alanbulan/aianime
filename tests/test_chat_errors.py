@@ -1,4 +1,4 @@
-from ai_anime.api.chat_errors import chat_exception_event
+from ai_anime.api.routes.ai_assistant.errors import chat_exception_event
 from ai_anime.modules.ai_assistant.public import ChatScope
 from ai_anime.modules.model_usage.public import (
     BillingRuleNotConfiguredError,

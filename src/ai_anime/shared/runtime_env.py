@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from ai_anime.env import load_project_dotenv
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
 
 def _load_env() -> None:

@@ -13,7 +13,7 @@ import time
 from collections.abc import Awaitable, Callable, Iterator, Sequence
 from typing import Any
 
-from ai_anime.model_access_policy import (
+from ai_anime.modules.model_usage.public import (
     MODEL_ACCESS_STDIN_ENV,
     serialize_model_access_for_subprocess,
 )

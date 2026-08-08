@@ -21,7 +21,7 @@ def restore_ports_registry_globals():
 
 @pytest.fixture(autouse=True)
 def restore_model_access_globals():
-    from ai_anime import model_access_policy as policy
+    from ai_anime.modules.model_usage.infrastructure import model_access_policy as policy
 
     names = (
         "_byok_allowed",

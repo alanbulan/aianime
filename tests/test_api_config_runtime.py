@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 
 def test_runtime_config_includes_stable_instance_id(monkeypatch) -> None:
-    from ai_anime.api.routes import config
+    from ai_anime.api.routes.platform_release import runtime_config as config
     from ai_anime.shared import runtime_env
 
     monkeypatch.setattr(runtime_env, "load_project_dotenv", lambda override=False: None)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ai_anime.modules.director_world import staging_prop_ai
+from ai_anime.modules.asset_world.infrastructure.director_world import staging_prop_ai
 
 
 def test_generate_ai_staging_prop_uses_director_world_shape_hints(monkeypatch) -> None:

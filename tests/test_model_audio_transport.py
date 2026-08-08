@@ -10,12 +10,12 @@ import pytest
 import respx
 from httpx import Response
 
-from ai_anime.model_access_policy import configure_model_access
-from ai_anime.model_audio_transport import (
+from ai_anime.modules.model_usage.public import configure_model_access
+from ai_anime.modules.model_usage.public import (
     ModelAudioTransportError,
     write_model_audio_speech,
 )
-from ai_anime.model_gateway_settings import MODE_BYOK, MODE_CLOUD
+from ai_anime.modules.model_usage.public import MODE_BYOK, MODE_CLOUD
 
 
 @pytest.fixture(autouse=True)

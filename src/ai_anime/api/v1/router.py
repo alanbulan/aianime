@@ -8,48 +8,19 @@ from importlib.metadata import entry_points
 from fastapi import APIRouter
 
 from ai_anime.api.routes import (
-    assets,
-    asset_world_viewer,
-    auth,
-    characters,
-    chat,
-    chat_http,
-    config,
-    content,
-    episodes,
-    files,
-    ingest,
-    model_credits,
-    model_gateway,
-    pipeline,
-    production_audio,
-    production_export,
-    production_pool,
-    production_render,
-    production_settings,
-    production_sketch,
-    production_video,
-    projects,
-    props,
-    scenes,
-    scripts,
-    styles,
-    tasks,
+    ai_assistant,
+    asset_world,
+    creative_canvas,
+    identity_access,
+    model_usage,
+    narrative_planning,
+    platform_release,
+    production,
+    project_workspace,
+    story_intake,
+    task_execution,
     verification,
 )
-from ai_anime.api.routes.canvas import bootstrap as freezone_bootstrap
-from ai_anime.api.routes.canvas import assets as freezone_assets
-from ai_anime.api.routes.canvas import commits as freezone_commits
-from ai_anime.api.routes.canvas import audio as freezone_audio
-from ai_anime.api.routes.canvas import documents as freezone_documents
-from ai_anime.api.routes.canvas import image as freezone_image
-from ai_anime.api.routes.canvas import jobs as freezone_jobs
-from ai_anime.api.routes.canvas import media as freezone_media
-from ai_anime.api.routes.canvas import presets as freezone_presets
-from ai_anime.api.routes.canvas import projections as freezone_projections
-from ai_anime.api.routes.canvas import skills as freezone_skills
-from ai_anime.api.routes.canvas import text as freezone_text
-from ai_anime.api.routes.canvas import video as freezone_video
 from ai_anime.shared import runtime_env
 
 OPENAPI_TAGS = [
@@ -83,50 +54,19 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
         desktop_mode = os.environ.get("AI_ANIME_DESKTOP_MODE", "") == "1"
 
     router = APIRouter(prefix="/api/v1")
-    router.include_router(auth.router, tags=["auth"])
-    if desktop_mode:
-        router.include_router(auth.desktop_router, tags=["auth"])
+    router.include_router(identity_access.create_router(desktop_mode=desktop_mode))
     if not runtime_env.is_ce_effective():
         for entry_point in entry_points(group="ai_anime.api_routes"):
             entry_point.load()(router)
-    router.include_router(config.router, tags=["config"])
-    router.include_router(chat_http.router, tags=["chat"])
-    router.include_router(chat.router, tags=["chat"])
-    router.include_router(projects.router, tags=["projects"])
-    router.include_router(ingest.router, tags=["ingest"])
-    router.include_router(characters.router, tags=["characters"])
-    router.include_router(assets.router, tags=["assets"])
-    router.include_router(scenes.router, tags=["scenes"])
-    router.include_router(props.router, tags=["props"])
-    router.include_router(episodes.router, tags=["episodes"])
-    router.include_router(scripts.router, tags=["scripts"])
-    router.include_router(content.router, tags=["content"])
-    router.include_router(asset_world_viewer.router, tags=["generation"])
-    router.include_router(production_audio.router, tags=["generation"])
-    router.include_router(production_export.router, tags=["generation"])
-    router.include_router(production_pool.router, tags=["generation"])
-    router.include_router(production_render.router, tags=["generation"])
-    router.include_router(production_settings.router, tags=["generation"])
-    router.include_router(production_sketch.router, tags=["generation"])
-    router.include_router(production_video.router, tags=["generation"])
-    router.include_router(tasks.router, tags=["tasks"])
-    router.include_router(files.router, tags=["files"])
-    router.include_router(styles.router, tags=["styles"])
-    router.include_router(pipeline.router, tags=["pipeline"])
-    router.include_router(model_gateway.router, tags=["model-gateway"])
-    router.include_router(model_credits.router, tags=["model-credits"])
-    router.include_router(freezone_bootstrap.router)
-    router.include_router(freezone_assets.router)
-    router.include_router(freezone_commits.router)
-    router.include_router(freezone_audio.router)
-    router.include_router(freezone_documents.router)
-    router.include_router(freezone_image.router)
-    router.include_router(freezone_jobs.router)
-    router.include_router(freezone_media.router)
-    router.include_router(freezone_presets.router)
-    router.include_router(freezone_projections.router)
-    router.include_router(freezone_skills.router)
-    router.include_router(freezone_text.router)
-    router.include_router(freezone_video.router)
-    router.include_router(verification.router, tags=["verification"])
+    router.include_router(platform_release.create_router())
+    router.include_router(ai_assistant.create_router())
+    router.include_router(project_workspace.create_router())
+    router.include_router(story_intake.create_router())
+    router.include_router(asset_world.create_router())
+    router.include_router(narrative_planning.create_router())
+    router.include_router(production.create_router())
+    router.include_router(task_execution.create_router())
+    router.include_router(model_usage.create_router())
+    router.include_router(creative_canvas.create_router())
+    router.include_router(verification.create_router(), tags=["verification"])
     return router

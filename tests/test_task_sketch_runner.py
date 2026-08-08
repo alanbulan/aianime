@@ -60,7 +60,7 @@ async def test_director_control_to_sketch_runner_logs_to_sketch_generation_task(
 
     monkeypatch.setattr(sketch_runner, "get_task_manager", lambda: manager)
     monkeypatch.setattr(
-        "ai_anime.modules.director_world.public.convert_control_frame_to_sketch",
+        "ai_anime.modules.asset_world.public.convert_control_frame_to_sketch",
         fake_convert_control_frame_to_sketch,
     )
 

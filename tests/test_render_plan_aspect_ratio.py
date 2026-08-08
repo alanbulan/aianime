@@ -1,6 +1,8 @@
 import pytest
 
-from ai_anime.modules.generators.nanobanana_grid import build_regen_plan
+from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+    build_regen_plan,
+)
 
 
 pytestmark = pytest.mark.m09

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from ai_anime.api import chat_scope
+from ai_anime.api.routes.ai_assistant import scope as chat_scope
 from ai_anime.modules.ai_assistant.public import ChatScope
 from ai_anime.modules.project_workspace.public import ProjectNotFound
 

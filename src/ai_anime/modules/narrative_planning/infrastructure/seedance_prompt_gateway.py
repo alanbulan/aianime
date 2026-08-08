@@ -10,7 +10,7 @@ from ai_anime.modules.narrative_planning.application.ports import (
 
 class SeedancePanelPromptGateway:
     def mode(self, config_json: Any) -> str:
-        from ai_anime.modules.seedance2_i2v.public import parse_seedance2_config
+        from ai_anime.modules.production.public import parse_seedance2_config
 
         config = parse_seedance2_config(config_json)
         return str(getattr(config.mode, "value", config.mode))
@@ -27,7 +27,7 @@ class SeedancePanelPromptGateway:
         prompt_guidance: str | None,
         prop_menu: list[Any],
     ) -> str:
-        from ai_anime.modules.seedance2_i2v.public import (
+        from ai_anime.modules.production.public import (
             generate_seedance2_prompt_for_panel,
         )
 
@@ -43,7 +43,7 @@ class SeedancePanelPromptGateway:
         )
 
     def result_fields(self, config_json: str) -> tuple[str, str]:
-        from ai_anime.modules.seedance2_i2v.public import parse_seedance2_config
+        from ai_anime.modules.production.public import parse_seedance2_config
 
         config = parse_seedance2_config(config_json)
         return config.final_prompt, config.prompt_source

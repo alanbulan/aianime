@@ -26,7 +26,7 @@ def _image_selection_billing_params(
 ) -> dict:
     params: dict[str, str] = {}
     if mode_key:
-        from ai_anime.modules.generators.public import (
+        from ai_anime.modules.production.public import (
             REGEN_MODE_CONFIGS,
             normalize_image_size,
         )
@@ -38,7 +38,7 @@ def _image_selection_billing_params(
 
     clean_role = image_role.lower()
     if clean_role == "sketch":
-        from ai_anime.config import OPENAI_SKETCH_IMAGE_QUALITY
+        from ai_anime.modules.production.public import OPENAI_SKETCH_IMAGE_QUALITY
 
         params = merge_billing_params(
             params,
@@ -48,7 +48,7 @@ def _image_selection_billing_params(
             ),
         )
     elif clean_role in {"render", "character", "identity"}:
-        from ai_anime.config import OPENAI_IMAGE_QUALITY
+        from ai_anime.modules.production.public import OPENAI_IMAGE_QUALITY
 
         params = merge_billing_params(
             params,
@@ -59,8 +59,8 @@ def _image_selection_billing_params(
             ),
         )
     elif clean_role == "prop_reference":
-        from ai_anime.modules.generators.public import normalize_image_size
-        from ai_anime.modules.generators.public import PROP_REF_IMAGE_SIZE
+        from ai_anime.modules.production.public import normalize_image_size
+        from ai_anime.modules.production.public import PROP_REF_IMAGE_SIZE
 
         params = merge_billing_params(
             params,
@@ -112,7 +112,9 @@ class ConfiguredGenerationModelCatalog:
                 raise InvalidGenerationCreditRequest("audio model is required")
             return value
         if kind == "freezone_image_reverse_prompt":
-            from ai_anime.model_access_policy import resolve_internal_model_for_role
+            from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
+                resolve_internal_model_for_role,
+            )
             from ai_anime.modules.creative_canvas.public import (
                 resolve_creative_canvas_vision_model,
             )
@@ -125,8 +127,12 @@ class ConfiguredGenerationModelCatalog:
                 raise InvalidGenerationCreditRequest("text model is required")
             return value
         if kind == "style_analyzer":
-            from ai_anime.config import get_newapi_text_model_name
-            from ai_anime.model_access_policy import resolve_internal_model_for_role
+            from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
+                resolve_internal_model_for_role,
+            )
+            from ai_anime.modules.model_usage.infrastructure.model_runtime import (
+                get_newapi_text_model_name,
+            )
 
             return resolve_internal_model_for_role(
                 get_newapi_text_model_name(

@@ -31,7 +31,7 @@ class _PoseStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production import sketch as production_sketch
     from ai_anime.modules.production.infrastructure import sketch_editing
     from ai_anime.modules.project_workspace.public import ProjectContext
 

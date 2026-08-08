@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ai_anime.modules.agents.public import global_video_optimizer
-from ai_anime.modules.generators.public import combine_to_grid
+from ai_anime.modules.production.infrastructure import global_video_optimizer
+from ai_anime.modules.production.infrastructure.media_generation.grid_splitter import combine_to_grid
 from ai_anime.modules.production.domain.sketch_marker_detection import (
     SketchDetectionFrame,
 )

@@ -28,8 +28,8 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
 
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch, tmp_path):
-    from ai_anime.modules import knowledge_graph
     from ai_anime.modules.task_execution.infrastructure.runners import video
+    from ai_anime.shared.infrastructure import project_stores
     from ai_anime.shared.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
@@ -63,14 +63,24 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
         async def optimize_single_beat(self, **kwargs):
             return {"prompt": "optimized prompt"}
 
+    async def fake_make_cognee_store_for_context(*args, **kwargs):
+        store = FakeCogneeStore()
+        await store.initialize()
+        await store.load_graph_state()
+        return store
+
     monkeypatch.setattr(video, "get_task_manager", lambda: FakeTaskManager())
-    monkeypatch.setattr(knowledge_graph, "CogneeStore", FakeCogneeStore)
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.prepare_global_optimizer_input",
+        project_stores,
+        "make_cognee_store_for_context",
+        fake_make_cognee_store_for_context,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.prepare_global_optimizer_input",
         lambda **kwargs: ([str(sketch_path)], {}, 1),
     )
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.get_global_video_optimizer",
+        "ai_anime.modules.production.public.get_global_video_optimizer",
         lambda: FakeOptimizer(),
     )
 
@@ -99,8 +109,8 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
 
 @pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_failure(monkeypatch, tmp_path):
-    from ai_anime.modules import knowledge_graph
     from ai_anime.modules.task_execution.infrastructure.runners import video
+    from ai_anime.shared.infrastructure import project_stores
     from ai_anime.shared.utils.path_resolver import PathResolver
 
     sketch_path = PathResolver(str(tmp_path), 1).sketch(1)
@@ -131,14 +141,24 @@ async def test_global_optimize_video_closes_cognee_store_on_failure(monkeypatch,
             calls.append("optimize_single_beat")
             raise RuntimeError("model unavailable")
 
+    async def fake_make_cognee_store_for_context(*args, **kwargs):
+        store = FakeCogneeStore()
+        await store.initialize()
+        await store.load_graph_state()
+        return store
+
     monkeypatch.setattr(video, "get_task_manager", lambda: FakeTaskManager())
-    monkeypatch.setattr(knowledge_graph, "CogneeStore", FakeCogneeStore)
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.prepare_global_optimizer_input",
+        project_stores,
+        "make_cognee_store_for_context",
+        fake_make_cognee_store_for_context,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.prepare_global_optimizer_input",
         lambda **kwargs: ([str(sketch_path)], {}, 1),
     )
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.get_global_video_optimizer",
+        "ai_anime.modules.production.public.get_global_video_optimizer",
         lambda: FakeOptimizer(),
     )
 

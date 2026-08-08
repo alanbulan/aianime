@@ -14,9 +14,18 @@ from ai_anime.modules.task_execution.public import (
     build_inline_task_backend,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.generators import tts_generator, video_composer, video_generator
-from ai_anime.modules.generators.tts_generator import CommercialTTSGenerator
-from ai_anime.modules.generators.video_composer import SceneAsset, VideoComposer
+from ai_anime.modules.production.infrastructure.media_generation import (
+    tts_generator,
+    video_composer,
+    video_generator,
+)
+from ai_anime.modules.production.infrastructure.media_generation.tts_generator import (
+    CommercialTTSGenerator,
+)
+from ai_anime.modules.production.infrastructure.media_generation.video_composer import (
+    SceneAsset,
+    VideoComposer,
+)
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut, raise_if_envelope_cancel_requested
 from ai_anime.modules.task_execution.public import global_lane_concurrency
 from ai_anime.modules.task_execution.public import register_project_task_runner
@@ -25,7 +34,7 @@ from ai_anime.modules.task_execution.public import (
     kill_task_processes,
     run_project_subprocess,
 )
-from ai_anime.task_state import TaskStateManager
+from ai_anime.modules.task_execution.infrastructure.task_state import TaskStateManager
 
 
 pytestmark = pytest.mark.m07
@@ -55,7 +64,7 @@ def _task_ports(monkeypatch):
     manager = TaskStateManager()
     monkeypatch.setattr(registry, "_PORTS", dict(registry._PORTS))
     registry.register_port("cancellation_store", build_in_memory_cancellation_store())
-    monkeypatch.setattr("ai_anime.task_state._task_manager", manager)
+    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state._task_manager", manager)
     monkeypatch.setattr(
         "ai_anime.modules.task_execution.infrastructure.inline_backend.get_task_manager",
         lambda: manager,

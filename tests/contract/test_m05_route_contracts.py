@@ -268,18 +268,16 @@ class _FakeTaskBackend:
 @pytest.fixture()
 def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.shared import ports as ai_anime_ports
-    from ai_anime.api import auth as api_auth
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import (
-        asset_world_viewer,
-        episodes,
-        production_pool,
-        production_render,
-        production_settings,
-        production_sketch,
-        scenes,
-        verification as verification_routes,
-    )
+    from ai_anime.api.routes.asset_world import viewer as asset_world_viewer
+    from ai_anime.api.routes.narrative_planning import episodes
+    from ai_anime.api.routes.production import pool as production_pool
+    from ai_anime.api.routes.production import render as production_render
+    from ai_anime.api.routes.production import settings as production_settings
+    from ai_anime.api.routes.production import sketch as production_sketch
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.api.routes.verification import episode_checks as verification_routes
     from ai_anime.modules.asset_world.infrastructure import (
         beat_viewer as beat_viewer_adapter,
         image_settings as image_settings_adapter,
@@ -492,7 +490,7 @@ def _seed_labels(project_dir: Path) -> None:
 
 
 def _seed_stage_files(project_dir: Path) -> None:
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
     from ai_anime.shared.utils.path_resolver import canonical_scene_master_path
 
     master = canonical_scene_master_path(project_dir, _SCENE)

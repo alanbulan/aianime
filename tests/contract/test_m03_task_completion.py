@@ -27,8 +27,8 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     runtime = tmp_path / "runtime"
 
     import ai_anime.api.deps as deps
-    import ai_anime.config as config
-    import ai_anime.project_config as project_config
+    import ai_anime.shared.runtime_paths as config
+    import ai_anime.modules.project_workspace.infrastructure.project_config as project_config
     import ai_anime.shared.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
@@ -78,9 +78,11 @@ def _completion_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     ctx = _completion_context(tmp_path, monkeypatch)
 
-    from ai_anime.api import auth as api_auth
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import episodes, scripts, tasks
+    from ai_anime.api.routes.narrative_planning import episodes
+    from ai_anime.api.routes.narrative_planning import scripts
+    from ai_anime.api.routes.task_execution import tasks
     from ai_anime.modules.task_execution.infrastructure.runners import graph_build as _graph_build  # noqa: F401
     from ai_anime.modules.task_execution.infrastructure.runners import script as _script  # noqa: F401
     from ai_anime.modules.task_execution.public import register_project_task_runner
@@ -187,7 +189,7 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         }
 
     async def fake_seedance2_prompt_for_panel(**kwargs):
-        from ai_anime.modules.seedance2_i2v.models import dump_seedance2_config
+        from ai_anime.modules.production.application.seedance2_config import dump_seedance2_config
 
         return dump_seedance2_config(
             {
@@ -203,7 +205,7 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(scripts, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(tasks, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
         fake_seedance2_prompt_for_panel,
     )
 
@@ -235,7 +237,7 @@ def _wait_for_task(
     beat_num: int | None = None,
     timeout_s: float = 5.0,
 ):
-    from ai_anime.task_state import get_task_manager
+    from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
     manager = get_task_manager()
     deadline = time.monotonic() + timeout_s

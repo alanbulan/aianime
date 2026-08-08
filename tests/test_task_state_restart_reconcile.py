@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_state import TaskStateManager
+from ai_anime.modules.task_execution.infrastructure.task_state import TaskStateManager
 
 pytestmark = pytest.mark.m07
 

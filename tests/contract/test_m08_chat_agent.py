@@ -27,7 +27,7 @@ def test_ce_agent_key_routes_are_not_mounted(monkeypatch) -> None:
 
 def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.api.routes import chat_http as chat_http_routes
+    from ai_anime.api.routes.ai_assistant import http as chat_http_routes
     from ai_anime.shared.ports import registry
 
     class NoOpChatWorkerLifecycle:
@@ -65,7 +65,7 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
 
 def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.api import chat_session
+    from ai_anime.api.routes.ai_assistant import session as chat_session
     from ai_anime.shared.ports import registry
 
     class NoOpPrewarmer:
@@ -90,8 +90,8 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
 
 def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:
     from ai_anime.api.app import create_app
-    from ai_anime.api import auth as api_auth
-    from ai_anime.api import chat_session
+    from ai_anime.api.routes.ai_assistant import session as chat_session
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
     from ai_anime.shared.ports import registry
 
     async def _reject_browser_session(_raw_cookie: str | None) -> dict:

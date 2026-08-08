@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.modules.knowledge_graph import CogneeStore
+from ai_anime.modules.knowledge_graph.public import CogneeStore
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 

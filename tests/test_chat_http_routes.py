@@ -3,12 +3,12 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from ai_anime.api.chat_schemas import (
+from ai_anime.api.routes.ai_assistant.schemas import (
     ChatNotificationIn,
     ChatScopePayload,
     ChatUiEventIn,
 )
-from ai_anime.api.routes import chat_http as chat_http_routes
+from ai_anime.api.routes.ai_assistant import http as chat_http_routes
 
 
 @pytest.fixture

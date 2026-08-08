@@ -171,16 +171,14 @@ class _FakeTaskBackend:
 @pytest.fixture()
 def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.shared import ports as app_ports
-    from ai_anime import project_config
-    from ai_anime.api import auth as api_auth
+    from ai_anime.api.routes.identity_access import dependencies as api_auth
+    from ai_anime.modules.project_workspace.infrastructure import project_config
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import (
-        characters,
-        production_audio,
-        projects,
-        props,
-        styles,
-    )
+    from ai_anime.api.routes.asset_world import characters
+    from ai_anime.api.routes.production import audio as production_audio
+    from ai_anime.api.routes.project_workspace import projects
+    from ai_anime.api.routes.asset_world import props
+    from ai_anime.api.routes.asset_world import styles
     from ai_anime.modules.asset_world.infrastructure import character_voice_storage
     from ai_anime.modules.asset_world.infrastructure import (
         image_settings as image_settings_adapter,
@@ -206,9 +204,6 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     source_audio.parent.mkdir(parents=True, exist_ok=True)
     source_audio.write_bytes(b"voice-source")
 
-    monkeypatch.setattr(
-        project_config, "OUTPUT_DIR", tmp_path / "output", raising=False
-    )
     monkeypatch.setattr(project_config, "STATE_DIR", tmp_path / "state", raising=False)
     monkeypatch.setattr(
         image_settings_adapter,
@@ -335,17 +330,15 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         Path(kwargs["output_path"]).write_bytes(_png_bytes())
         return {"success": True}
 
-    import ai_anime.modules.generators as generators_pkg
-    from ai_anime.modules.generators import image_generator
-    from ai_anime.modules.generators import public as generators_public
+    import ai_anime.modules.production.public as generators_public
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        image_generator,
+    )
 
     monkeypatch.setattr(
         image_generator,
         "generate_character_reference_unified",
         fake_character_reference,
-    )
-    monkeypatch.setattr(
-        generators_pkg, "generate_character_reference_unified", fake_character_reference
     )
     monkeypatch.setattr(
         generators_public,
@@ -375,7 +368,7 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(StyleService, "save_custom_style", lambda *_, **__: True)
     monkeypatch.setattr(StyleService, "delete_custom_style", lambda *_, **__: True)
 
-    from ai_anime.modules.generators import style_analyzer
+    from ai_anime.modules.production.infrastructure.media_generation import style_analyzer
 
     class FakeStyleAnalyzer:
         async def analyze(self, content: bytes, *, mime_type: str):

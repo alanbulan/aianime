@@ -14,7 +14,7 @@ from ai_anime.modules.production.public import (
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _int_list(value) -> list[int]:
@@ -278,8 +278,8 @@ async def _run_sketch_generation_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.config import get_sketch_generation_config
-    from ai_anime.modules.generators.public import (
+    from ai_anime.modules.production.public import get_sketch_generation_config
+    from ai_anime.modules.production.public import (
         NanoBananaGridGenerator,
         REGEN_MODE_CONFIGS,
         SKETCH_DEFAULT_MODE_KEY,
@@ -287,7 +287,7 @@ async def _run_sketch_generation_async(
         sketch_pass1_mode_key,
         sketch_scene_grid_split,
     )
-    from ai_anime.modules.generators.public import save_grid_and_split
+    from ai_anime.modules.production.public import save_grid_and_split
     from ai_anime.shared.utils.path_resolver import PathResolver, compute_scoped_grid_filename
 
     payload = envelope.get("payload") or {}
@@ -624,7 +624,7 @@ async def _run_control_frame_to_sketch_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    from ai_anime.modules.director_world.public import convert_control_frame_to_sketch
+    from ai_anime.modules.asset_world.public import convert_control_frame_to_sketch
     from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}

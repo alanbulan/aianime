@@ -27,7 +27,7 @@ from ai_anime.modules.task_execution.public import project_task_state_key
 from ai_anime.shared.infrastructure.video_encoding import (
     ffmpeg_video_encoding_args,
 )
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
 def _log(manager, ctx: ProjectContext, envelope: dict[str, Any], message: str) -> None:
@@ -103,7 +103,7 @@ async def _run_single_video_async(
     manager = get_task_manager()
     _log(manager, ctx, envelope, f"开始生成 Beat {beat_num} 视频")
 
-    from ai_anime.modules.generators.public import (
+    from ai_anime.modules.production.public import (
         ShotReference,
         create_video_generator,
     )
@@ -155,7 +155,7 @@ async def _run_single_video_async(
 
     seedance2_references = []
     if uses_seedance2:
-        from ai_anime.modules.seedance2_i2v.public import (
+        from ai_anime.modules.production.public import (
             Seedance2I2VMode,
             prepare_seedance2_generation_inputs,
         )
@@ -405,7 +405,7 @@ async def _run_video_generation_async(
             else "VIDEO_IMAGE_TO_VIDEO"
         )
         if is_seedance2_model(video_model) and model_role != "VIDEO_FIRST_LAST_FRAME":
-            from ai_anime.modules.seedance2_i2v.public import (
+            from ai_anime.modules.production.public import (
                 Seedance2I2VMode,
                 parse_seedance2_config,
             )
@@ -675,7 +675,7 @@ async def _run_global_optimize_video_async(
 ) -> dict[str, Any]:
     import os
 
-    from ai_anime.modules.agents.public import (
+    from ai_anime.modules.production.public import (
         get_global_video_optimizer,
         prepare_global_optimizer_input,
     )

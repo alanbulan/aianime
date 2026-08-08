@@ -24,7 +24,7 @@ from ai_anime.modules.creative_canvas.infrastructure.paths import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.project_media import make_static_url_for_context
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.public import get_task_manager
 
 TaskManagerFactory = Callable[[], Any]
 StaticUrlBuilder = Callable[[ProjectContext, str, str | Path | None], str]

@@ -7,8 +7,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from ai_anime.api.props_schemas import PropReferenceGenerateRequest, PropUpdate
-from ai_anime.api.scenes_schemas import (
+from ai_anime.api.routes.asset_world.props_schemas import PropReferenceGenerateRequest, PropUpdate
+from ai_anime.api.routes.asset_world.scenes_schemas import (
     PanoSphereCorrection,
     PanoViewerCorrection,
     ScenePanoGenerateRequest,
@@ -228,7 +228,7 @@ def _png_bytes(size: tuple[int, int] = (4, 2)) -> bytes:
 
 
 def test_stage_manifest_prefers_sog_sidecar_for_ply_manifest(tmp_path):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     stage_dir = stage_manifest.stage_dir(tmp_path, "Hall")
     stage_dir.mkdir(parents=True)
@@ -254,8 +254,8 @@ def test_stage_manifest_prefers_sog_sidecar_for_ply_manifest(tmp_path):
 
 @pytest.mark.asyncio
 async def test_list_scenes_returns_master_reverse_and_pano_urls(tmp_path, monkeypatch):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall_雪夜",
@@ -336,7 +336,7 @@ async def test_list_scenes_returns_master_reverse_and_pano_urls(tmp_path, monkey
 
 @pytest.mark.asyncio
 async def test_list_scenes_marks_derived_scene_base(tmp_path, monkeypatch):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore(
         [
@@ -363,7 +363,7 @@ async def test_list_scenes_marks_derived_scene_base(tmp_path, monkeypatch):
 async def test_list_scenes_does_not_infer_derived_base_from_underscore_name(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore([NovelScene(name="地下"), NovelScene(name="地下_主控室")])
     _patch_project(monkeypatch, scenes, tmp_path, store)
@@ -403,8 +403,8 @@ async def test_derived_scene_guard_uses_structured_base_scene_id(tmp_path):
 async def test_create_scene_composes_structured_variant_and_time_name(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.api.scenes_schemas import SceneCreate
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.api.routes.asset_world.scenes_schemas import SceneCreate
 
     store = _SceneStore([NovelScene(name="卫生间")])
     _patch_project(monkeypatch, scenes, tmp_path, store)
@@ -433,7 +433,7 @@ async def test_create_scene_composes_structured_variant_and_time_name(
 async def test_preview_scene_plate_explains_render_and_seedance_resolution(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     master_path = tmp_path / "assets" / "scenes" / "卫生间_漏水_夜" / "master.png"
     master_path.parent.mkdir(parents=True)
@@ -484,7 +484,7 @@ async def test_preview_scene_plate_explains_render_and_seedance_resolution(
 async def test_preview_scene_plate_relights_when_planned_time_plate_has_no_image(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore(
         [
@@ -521,7 +521,7 @@ async def test_preview_scene_plate_relights_when_planned_time_plate_has_no_image
 
 @pytest.mark.asyncio
 async def test_preview_scene_plate_explains_relight_fallback(tmp_path, monkeypatch):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore([NovelScene(name="卫生间"), NovelScene(name="卫生间_夜")])
     _patch_project(monkeypatch, scenes, tmp_path, store)
@@ -555,7 +555,7 @@ async def test_preview_scene_plate_explains_relight_fallback(tmp_path, monkeypat
 async def test_preview_scene_plate_beat_time_overrides_scene_ref_time(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     master_path = tmp_path / "assets" / "scenes" / "卫生间_漏水_白天" / "master.png"
     master_path.parent.mkdir(parents=True)
@@ -588,8 +588,8 @@ async def test_preview_scene_plate_beat_time_overrides_scene_ref_time(
 async def test_update_scene_pano_correction_persists_and_returns_manifest(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -636,8 +636,8 @@ async def test_update_scene_pano_correction_persists_and_returns_manifest(
 
 @pytest.mark.asyncio
 async def test_scene_viewer_manifests_return_typed_contracts(tmp_path, monkeypatch):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -689,7 +689,7 @@ async def test_scene_viewer_manifests_return_typed_contracts(tmp_path, monkeypat
         pano["source"]["url"]
         == "/static/projects/proj_demo/director_worlds/Hall/v1/pano_360.png"
     )
-    from ai_anime.modules.director_world.paths import fs_url
+    from ai_anime.modules.asset_world.public import fs_url
 
     assert pano["source"]["fs"] == fs_url(pano_dir / "pano_360.png")
     assert pano["correction"]["front_yaw_deg"] == 45
@@ -783,8 +783,8 @@ async def test_scene_viewer_manifests_return_typed_contracts(tmp_path, monkeypat
 async def test_scene_director_world_manifest_returns_pano_only_source_without_3gs(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -833,8 +833,8 @@ async def test_scene_director_world_manifest_returns_pano_only_source_without_3g
 async def test_scene_director_world_save_restores_active_source_and_snapshot(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -904,8 +904,8 @@ async def test_scene_director_world_save_restores_active_source_and_snapshot(
 async def test_list_scenes_reports_saved_scene_director_world_pano_source(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -947,8 +947,8 @@ async def test_list_scenes_reports_saved_scene_director_world_pano_source(
 async def test_scene_director_world_manifest_returns_saved_empty_world_without_3gs(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -994,7 +994,7 @@ async def test_scene_director_world_manifest_returns_saved_empty_world_without_3
 
 
 def test_clear_scene_director_world_keeps_remaining_source_active(tmp_path):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     stage_manifest.save_scene_director_world(
         tmp_path,
@@ -1026,7 +1026,7 @@ def test_clear_scene_director_world_keeps_remaining_source_active(tmp_path):
 
 
 def test_clear_scene_director_world_canonicalizes_versioned_legacy_source_id(tmp_path):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     canonical_master = "legacy:master:sog:/static/master.sog"
     versioned_master = "legacy:master:sog:/static/master.sog?v=123#frag"
@@ -1058,7 +1058,7 @@ def test_clear_scene_director_world_canonicalizes_versioned_legacy_source_id(tmp
 
 
 def test_save_scene_director_world_source_preserves_other_active_source(tmp_path):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     pano_snapshot = {"schemaVersion": 1, "world": {"activeSourceId": "scene-pano:Hall"}}
     master_snapshot = {
@@ -1096,7 +1096,7 @@ def test_save_scene_director_world_source_preserves_other_active_source(tmp_path
 def test_save_scene_director_world_source_does_not_promote_when_active_is_empty(
     tmp_path,
 ):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     master_snapshot = {
         "schemaVersion": 1,
@@ -1125,8 +1125,8 @@ def test_save_scene_director_world_source_does_not_promote_when_active_is_empty(
 async def test_save_scene_director_world_source_route_preserves_active_source(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(name="Hall")
     store = _SceneStore([scene])
@@ -1171,7 +1171,7 @@ async def test_save_scene_director_world_source_route_preserves_active_source(
 def test_save_scene_director_world_source_canonicalizes_versioned_legacy_source_ids(
     tmp_path,
 ):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     reverse_snapshot = {
         "schemaVersion": 1,
@@ -1233,7 +1233,7 @@ def test_save_scene_director_world_source_canonicalizes_versioned_legacy_source_
 
 
 def test_get_scene_director_world_prefers_newest_canonical_duplicate(tmp_path):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     older_snapshot = {
         "schemaVersion": 1,
@@ -1274,7 +1274,7 @@ def test_get_scene_director_world_prefers_newest_canonical_duplicate(tmp_path):
 def test_get_scene_director_world_prefers_unversioned_duplicate_when_saved_at_ties(
     tmp_path,
 ):
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     canonical_master = "legacy:master:sog:/static/master.sog"
     canonical_snapshot = {
@@ -1314,8 +1314,8 @@ def test_get_scene_director_world_prefers_unversioned_duplicate_when_saved_at_ti
 async def test_upload_scene_pano_validates_ratio_and_updates_manifest(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(name="Hall")
     _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
@@ -1340,7 +1340,7 @@ async def test_upload_scene_pano_validates_ratio_and_updates_manifest(
 async def test_upload_scene_pano_rejects_non_equirectangular_image(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     scene = NovelScene(name="Hall")
     _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
@@ -1363,8 +1363,8 @@ async def test_upload_scene_pano_rejects_non_equirectangular_image(
 async def test_upload_scene_custom_package_updates_custom_manifest_slot(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(name="Hall")
     _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
@@ -1395,8 +1395,8 @@ async def test_upload_scene_custom_package_updates_custom_manifest_slot(
 async def test_upload_scene_custom_package_streams_sog_without_full_read(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(name="Hall")
     _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
@@ -1423,7 +1423,7 @@ async def test_upload_scene_custom_package_streams_sog_without_full_read(
 async def test_generate_scene_pano_returns_scope_and_falls_back_to_text(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     scene = NovelScene(name="Hall", environment_prompt="wide hall")
     _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
@@ -1446,8 +1446,8 @@ async def test_generate_scene_pano_returns_scope_and_falls_back_to_text(
 async def test_generate_scene_3gs_ply_routes_match_nicegui_task_params(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(name="Hall", environment_prompt="wide hall")
     scene_dir = tmp_path / "assets" / "scenes" / "Hall"
@@ -1489,7 +1489,7 @@ async def test_generate_scene_3gs_ply_routes_match_nicegui_task_params(
 async def test_generate_scene_reference_assets_default_to_project_style(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     scene = NovelScene(name="Hall", environment_prompt="wide hall")
     _patch_project(monkeypatch, scenes, tmp_path, _SceneStore([scene]))
@@ -1507,8 +1507,8 @@ async def test_generate_scene_reference_assets_default_to_project_style(
 
 @pytest.mark.asyncio
 async def test_update_scene_renames_record_and_asset_directories(tmp_path, monkeypatch):
-    from ai_anime.api.routes import scenes
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.api.routes.asset_world import scenes
+    from ai_anime.modules.asset_world.public import stage_manifest
 
     scene = NovelScene(
         name="Hall", scene_type="interior", environment_prompt="wide hall"
@@ -1544,7 +1544,7 @@ async def test_update_scene_renames_record_and_asset_directories(tmp_path, monke
 async def test_update_scene_rejects_renaming_base_scene_with_derived_scenes(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore(
         [
@@ -1571,7 +1571,7 @@ async def test_update_scene_rejects_renaming_base_scene_with_derived_scenes(
 async def test_delete_scene_rejects_base_scene_with_derived_scenes(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore(
         [
@@ -1595,7 +1595,7 @@ async def test_delete_scene_rejects_base_scene_with_derived_scenes(
 
 @pytest.mark.asyncio
 async def test_delete_scene_allows_leaf_scene_plate(tmp_path, monkeypatch):
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore(
         [
@@ -1626,7 +1626,7 @@ async def test_build_scenes_allows_supplement_when_derived_scenes_exist(
     tmp_path, monkeypatch
 ):
     from ai_anime.shared import ports as ai_anime_ports
-    from ai_anime.api.routes import scenes
+    from ai_anime.api.routes.asset_world import scenes
 
     store = _SceneStore(
         [
@@ -1672,7 +1672,7 @@ async def test_build_scenes_allows_supplement_when_derived_scenes_exist(
 
 @pytest.mark.asyncio
 async def test_list_props_returns_reference_url(tmp_path, monkeypatch):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     prop = NovelProp(name="Sword", visual_prompt="silver sword")
     store = _PropStore([prop])
@@ -1697,7 +1697,7 @@ async def test_list_props_returns_reference_url(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_list_props_defaults_to_global_props(tmp_path, monkeypatch):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     episode = NovelEpisode(
         number=2,
@@ -1730,7 +1730,7 @@ async def test_list_props_defaults_to_global_props(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_list_props_scope_all_includes_episode_local_props(tmp_path, monkeypatch):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     episode = NovelEpisode(
         number=2,
@@ -1769,7 +1769,7 @@ async def test_list_props_scope_all_includes_episode_local_props(tmp_path, monke
 async def test_list_props_scope_local_only_returns_episode_local_props(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     episode = NovelEpisode(
         number=2,
@@ -1803,7 +1803,7 @@ async def test_list_props_scope_local_only_returns_episode_local_props(
 
 @pytest.mark.asyncio
 async def test_asset_references_match_beat_asset_ids(monkeypatch, tmp_path):
-    from ai_anime.api.routes import assets
+    from ai_anime.api.routes.asset_world import assets
 
     class Store:
         async def initialize(self):
@@ -1887,7 +1887,7 @@ async def test_asset_references_match_beat_asset_ids(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_update_prop_renames_record_and_asset_directory(tmp_path, monkeypatch):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     prop = NovelProp(name="Sword", visual_prompt="silver sword")
     prop_dir = tmp_path / "assets" / "props" / "Sword"
@@ -1915,7 +1915,7 @@ async def test_update_prop_renames_record_and_asset_directory(tmp_path, monkeypa
 
 @pytest.mark.asyncio
 async def test_generate_prop_reference_returns_scope(tmp_path, monkeypatch):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     prop = NovelProp(name="Sword", visual_prompt="silver sword")
     _patch_project(monkeypatch, props, tmp_path, _PropStore([prop]))
@@ -1933,7 +1933,7 @@ async def test_generate_prop_reference_returns_scope(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_batch_generate_prop_references_starts_batch_task(tmp_path, monkeypatch):
-    from ai_anime.api.routes import props
+    from ai_anime.api.routes.asset_world import props
 
     _patch_project(monkeypatch, props, tmp_path, _PropStore([]))
 

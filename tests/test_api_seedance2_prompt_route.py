@@ -102,7 +102,7 @@ def _client(
     ctx=None,
     usage_meter=None,
 ):
-    from ai_anime.api.routes import scripts
+    from ai_anime.api.routes.narrative_planning import scripts
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.modules.narrative_planning import composition
 
@@ -188,7 +188,7 @@ def test_generate_seedance2_prompt_updates_config_json(monkeypatch, tmp_path):
         return saved_json
 
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
         _generate_seedance2_prompt_for_panel,
     )
     client, store = _client(
@@ -264,7 +264,7 @@ def test_generate_seedance2_prompt_reserves_feature_credit_and_confirms(
         return saved_json
 
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
         _generate_seedance2_prompt_for_panel,
     )
     usage_meter = DummyUsageMeter()
@@ -320,7 +320,7 @@ def test_generate_seedance2_prompt_refunds_feature_credit_on_failure(
         raise ValueError("seedance2 prompt invalid")
 
     monkeypatch.setattr(
-        "ai_anime.modules.seedance2_i2v.public.generate_seedance2_prompt_for_panel",
+        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
         _generate_seedance2_prompt_for_panel,
     )
     usage_meter = DummyUsageMeter()
@@ -448,7 +448,7 @@ def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
 
     from ai_anime.shared import ports
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.api.routes import scripts
+    from ai_anime.api.routes.narrative_planning import scripts
 
     ctx = _project_ctx(tmp_path)
     store = DummySqliteStore(
@@ -551,11 +551,11 @@ async def test_generate_beat_video_prompt_does_not_save_fallback_on_agent_failur
             raise RuntimeError("model unavailable")
 
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.get_global_video_optimizer",
+        "ai_anime.modules.production.public.get_global_video_optimizer",
         lambda: FakeOptimizer(),
     )
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public._build_color_appearance_map",
+        "ai_anime.modules.production.public.build_color_appearance_map",
         lambda *args, **kwargs: {"#00ff00 GREEN": {"appearance": "黑衣男子"}},
     )
 
@@ -618,11 +618,11 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
             return {"beat_number": 1, "video_mode": "first_frame", "prompt": "superpower prompt"}
 
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public._build_color_appearance_map",
+        "ai_anime.modules.production.public.build_color_appearance_map",
         fake_build_color_appearance_map,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.agents.public.get_global_video_optimizer",
+        "ai_anime.modules.production.public.get_global_video_optimizer",
         lambda: FakeOptimizer(),
     )
     store = DummySqliteStore(

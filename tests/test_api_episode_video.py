@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.api.production_video_schemas import VideoComposeRequest
+from ai_anime.api.routes.production.video_schemas import VideoComposeRequest
 from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
     EpisodeBeatsMissing,
@@ -15,7 +15,7 @@ from ai_anime.modules.production.public import (
 
 @pytest.mark.asyncio
 async def test_compose_video_maps_request_and_scheduled_task(monkeypatch) -> None:
-    from ai_anime.api.routes import production_video
+    from ai_anime.api.routes.production import video as production_video
 
     context = SimpleNamespace(output_dir=Path("project"), project_id="proj-1")
     commands: list[tuple[object, ComposeEpisodeVideoCommand]] = []
@@ -80,7 +80,7 @@ async def test_compose_video_maps_request_and_scheduled_task(monkeypatch) -> Non
 
 @pytest.mark.asyncio
 async def test_compose_video_keeps_no_beats_error_envelope(monkeypatch) -> None:
-    from ai_anime.api.routes import production_video
+    from ai_anime.api.routes.production import video as production_video
 
     async def resolve_project(*_args, **_kwargs):
         return SimpleNamespace(ctx=object())
@@ -104,7 +104,7 @@ async def test_compose_video_keeps_no_beats_error_envelope(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_final_video_maps_application_status(monkeypatch) -> None:
-    from ai_anime.api.routes import production_video
+    from ai_anime.api.routes.production import video as production_video
 
     context = object()
 

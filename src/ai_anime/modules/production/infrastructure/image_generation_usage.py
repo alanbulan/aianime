@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_anime.image_request_usage import (
+from ai_anime.modules.model_usage.public import (
     count_image_scope_attempts,
     get_image_usage_summary,
 )

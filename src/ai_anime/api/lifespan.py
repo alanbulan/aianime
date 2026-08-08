@@ -34,11 +34,11 @@ async def startup_application(application: FastAPI) -> None:
         container = application_container(application)
         await container.lifecycle.on_startup(register_as_worker=True)
 
-        from ai_anime.sqlite_pragmas import litestream_enabled
+        from ai_anime.shared.infrastructure.sqlite_pragmas import litestream_enabled
 
         if litestream_enabled():
             from ai_anime.modules.backup.public import migrate_state_tree
-            from ai_anime.config import STATE_DIR
+            from ai_anime.shared.runtime_paths import STATE_DIR
 
             try:
                 await asyncio.to_thread(migrate_state_tree, Path(STATE_DIR))

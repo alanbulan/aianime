@@ -20,7 +20,7 @@ class _ScriptEpisodeStore:
 
 
 def _script_client(monkeypatch, tmp_path, identity_ids: list[str]):
-    from ai_anime.api.routes import scripts
+    from ai_anime.api.routes.narrative_planning import scripts
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -90,6 +90,6 @@ def test_script_generate_starts_script_writer_when_identity_plan_exists(
 
 
 def test_pipeline_script_step_uses_script_writer_task_type():
-    from ai_anime.api.routes.pipeline import _STEP_MAP
+    from ai_anime.api.routes.task_execution.pipeline import _STEP_MAP
 
     assert _STEP_MAP["script"][0] == "script_writer"

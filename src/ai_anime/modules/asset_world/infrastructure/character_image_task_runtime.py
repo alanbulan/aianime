@@ -11,7 +11,7 @@ from ai_anime.modules.asset_world.domain.character_assets import (
     safe_character_asset_name,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.public import get_task_manager
 
 
 def _strip_known_style_prefix(prompt: str) -> str:
@@ -72,7 +72,7 @@ async def execute_character_image_task(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime.project_config import load_project_config_file
+    from ai_anime.modules.project_workspace.public import load_project_config_file
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
@@ -172,7 +172,7 @@ async def _generate_character_portrait(
     scope: str,
     update,
 ) -> Path:
-    from ai_anime.modules.generators.public import generate_character_reference_unified
+    from ai_anime.modules.production.public import generate_character_reference_unified
 
     face_prompt = str(character.face_prompt or "").strip()
     if not face_prompt:
@@ -217,7 +217,7 @@ async def _generate_identity_portrait(
     scope: str,
     update,
 ) -> Path:
-    from ai_anime.modules.generators.public import generate_character_reference_unified
+    from ai_anime.modules.production.public import generate_character_reference_unified
 
     identity = _find_identity(character, identity_id, identity_name)
     if identity is None:
@@ -272,7 +272,7 @@ async def _generate_identity_image(
     scope: str,
     update,
 ) -> Path:
-    from ai_anime.modules.generators.public import generate_identity_image_unified
+    from ai_anime.modules.production.public import generate_identity_image_unified
     from ai_anime.shared.utils.path_resolver import (
         compute_identity_costume_path,
         compute_identity_portrait_path,

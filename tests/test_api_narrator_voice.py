@@ -20,14 +20,13 @@ class DummyStore:
 
 
 def _client(monkeypatch, tmp_path):
-    from ai_anime import project_config
-    from ai_anime.api.routes import projects
+    from ai_anime.modules.project_workspace.infrastructure import project_config
+    from ai_anime.api.routes.project_workspace import projects
 
     project_dir = tmp_path / "output" / "admin" / "demo"
     project_dir.mkdir(parents=True)
     state_root = tmp_path / "state"
     monkeypatch.setattr(project_config, "STATE_DIR", state_root)
-    monkeypatch.setattr(project_config, "OUTPUT_DIR", tmp_path / "output")
 
     fake_ctx = SimpleNamespace(
         project_id="demo",

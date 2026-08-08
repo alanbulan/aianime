@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from ai_anime.api.routes import tasks as tasks_route
+from ai_anime.api.routes.task_execution import tasks as tasks_route
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.task_state import TaskStateManager
+from ai_anime.modules.task_execution.infrastructure.task_state import TaskStateManager
 
 pytestmark = pytest.mark.m07
 
@@ -39,7 +39,7 @@ async def test_legacy_global_task_routes_are_not_registered():
     import httpx
     from fastapi import FastAPI
 
-    from ai_anime.api.routes.tasks import router
+    from ai_anime.api.routes.task_execution.tasks import router
 
     app = FastAPI()
     app.include_router(router)
@@ -69,7 +69,7 @@ async def test_project_task_list_reads_only_resolved_project(tmp_path, monkeypat
         return ctx
 
     monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
 
     response = await tasks_route.list_project_tasks("proj_123", user={"username": "bob"})
 
@@ -130,7 +130,7 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
         "ai_anime.modules.project_workspace.public.count_project_task_eligible_users",
         fake_count_project_task_eligible_users,
     )
-    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
 
     response = await tasks_route.get_project_task_limits("proj_123", user={"username": "bob"})
 
@@ -155,7 +155,7 @@ async def test_project_task_limits_reports_project_and_user_lane_capacity(
 
 def test_project_task_serialization_exposes_localized_display_name() -> None:
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     task = TaskState(
         task_id="task_scene",
@@ -173,7 +173,7 @@ def test_project_task_serialization_exposes_localized_display_name() -> None:
 
 def test_project_task_serialization_prefers_business_display_name() -> None:
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     task = TaskState(
         task_id="task_canvas",
@@ -197,7 +197,7 @@ def test_project_task_serialization_prefers_business_display_name() -> None:
 
 def test_project_task_serialization_treats_stale_full_progress_as_completed() -> None:
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     task = TaskState(
         task_id="task_3gs",
@@ -218,7 +218,7 @@ def test_project_task_serialization_treats_stale_full_progress_as_completed() ->
 
 def test_project_task_serialization_normalizes_timestamp_fields_to_utc_z() -> None:
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     task = TaskState(
         task_id="task_time",
@@ -254,7 +254,7 @@ async def test_project_task_clear_completed_uses_editor_role(tmp_path, monkeypat
         return ctx
 
     monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
 
     response = await tasks_route.clear_project_completed_tasks("proj_123", user={"username": "bob"})
 
@@ -288,7 +288,7 @@ async def test_project_task_clear_completed_removes_stale_full_progress(
         return ctx
 
     monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr("ai_anime.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
 
     response = await tasks_route.clear_project_completed_tasks("proj_123", user={"username": "bob"})
 

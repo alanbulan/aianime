@@ -20,12 +20,10 @@ from ai_anime.modules.production.application.director_control_sketch import (
 
 
 def _client(monkeypatch, tmp_path, config: dict | None = None):
-    from ai_anime.api.routes import (
-        asset_world_viewer,
-        production_pool,
-        production_settings,
-        production_sketch,
-    )
+    from ai_anime.api.routes.asset_world import viewer as asset_world_viewer
+    from ai_anime.api.routes.production import pool as production_pool
+    from ai_anime.api.routes.production import settings as production_settings
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     saved: list[dict] = []
     current_config = dict(config or {})
@@ -332,7 +330,7 @@ def test_director_control_frame_status_reports_missing_and_ready(monkeypatch, tm
 
 def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_path):
     client, _saved = _client(monkeypatch, tmp_path)
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     context = object()
 
@@ -411,7 +409,7 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
     monkeypatch, tmp_path
 ):
     client, _saved = _client(monkeypatch, tmp_path)
-    from ai_anime.api.routes import production_sketch
+    from ai_anime.api.routes.production import sketch as production_sketch
 
     context = object()
 
@@ -556,7 +554,7 @@ def test_beat_viewer_manifests_include_context_and_destinations(monkeypatch, tmp
         assert context.project_id == "proj_demo"
         return store
 
-    from ai_anime.modules.director_world import stage_manifest
+    from ai_anime.modules.asset_world.public import stage_manifest
     from ai_anime.modules.asset_world.infrastructure import beat_viewer
 
     monkeypatch.setattr(
@@ -706,7 +704,7 @@ def test_director_stage_overlay_loads_inherits_and_saves(monkeypatch, tmp_path):
     async def fake_make_sqlite_store_for_context(context: ProjectContext):
         return store
 
-    from ai_anime.modules.director_world.store import save_beat_blocking
+    from ai_anime.modules.asset_world.public import save_beat_blocking
     from ai_anime.shared.infrastructure import project_stores
 
     monkeypatch.setattr(
@@ -1309,7 +1307,7 @@ def test_sketch_regen_queue_migrates_react_items_out_of_nicegui_legacy_key(
 
 
 def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_path):
-    from ai_anime.image_request_usage import record_image_request
+    from ai_anime.modules.model_usage.public import record_image_request
 
     client, _saved = _client(monkeypatch, tmp_path)
     for idx in range(3):
@@ -1363,7 +1361,7 @@ def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_pa
 def test_image_generation_guard_password_verification_matches_nicegui(
     monkeypatch, tmp_path
 ):
-    from ai_anime.image_request_usage import record_image_request
+    from ai_anime.modules.model_usage.public import record_image_request
 
     monkeypatch.setenv("PROMPT_EXPORT_PASSWORD", "secret")
     client, _saved = _client(monkeypatch, tmp_path)
@@ -1411,7 +1409,10 @@ def test_image_generation_guard_password_verification_matches_nicegui(
 
 
 def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp_path):
-    from ai_anime.modules.generators import nanobanana_grid, pool_indexer
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        nanobanana_grid,
+        pool_indexer,
+    )
 
     client, _saved = _client(monkeypatch, tmp_path)
     calls: dict[str, object] = {}
@@ -1460,7 +1461,10 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
 def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(
     monkeypatch, tmp_path
 ):
-    from ai_anime.modules.generators import nanobanana_grid, pool_indexer
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        nanobanana_grid,
+        pool_indexer,
+    )
 
     client, _saved = _client(monkeypatch, tmp_path)
     ep_grids_dir = tmp_path / "grids" / "ep001"

@@ -1,6 +1,6 @@
 import pytest
 
-from ai_anime.modules.seedance2_i2v.models import (
+from ai_anime.modules.production.application.seedance2_config import (
     Seedance2I2VMode,
     Seedance2VideoConfig,
     dump_seedance2_config,

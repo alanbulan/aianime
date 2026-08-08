@@ -27,8 +27,8 @@ async def generate_single_beat_video_prompt(
     next_beat: dict[str, Any] | None,
     language: str,
 ) -> str:
-    from ai_anime.modules.agents.public import (
-        _build_color_appearance_map,
+    from ai_anime.modules.production.public import (
+        build_color_appearance_map,
         get_global_video_optimizer,
     )
     from ai_anime.shared.utils.path_resolver import PathResolver
@@ -48,7 +48,7 @@ async def generate_single_beat_video_prompt(
         else dict(character)
         for character in (store.get_all_characters() or [])
     ]
-    character_color_map = _build_color_appearance_map(
+    character_color_map = build_color_appearance_map(
         all_beats,
         characters,
         str(output_dir),
@@ -77,7 +77,9 @@ async def generate_single_beat_keyframe_prompt(
     next_beat: dict[str, Any],
     language: str,
 ) -> str:
-    from ai_anime.modules.agents.public import get_keyframe_prompt_builder
+    from ai_anime.modules.narrative_planning.infrastructure.keyframe_prompt_builder import (
+        get_keyframe_prompt_builder,
+    )
     from ai_anime.modules.narrative_planning.application.script_models import (
         format_beat_narration,
     )

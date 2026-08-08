@@ -198,7 +198,7 @@ def _project_scope_resolver(project_dir):
 
 @pytest.mark.asyncio
 async def test_upload_success_includes_format_check_in_data(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(ingest, "resolve_project_scope", _project_scope_resolver(tmp_path))
     text = "第一章 开始\n场次：1\n地点：人类城池\n时间：日\n角色：甲\n甲：到了。"
@@ -218,7 +218,7 @@ async def test_upload_success_includes_format_check_in_data(tmp_path, monkeypatc
 
 @pytest.mark.asyncio
 async def test_upload_empty_preview_includes_blocking_format_check_at_top_level(tmp_path, monkeypatch):
-    from ai_anime.api.routes import ingest
+    from ai_anime.api.routes.story_intake import ingest
 
     monkeypatch.setattr(ingest, "resolve_project_scope", _project_scope_resolver(tmp_path))
     upload = UploadFile(file=io.BytesIO(b""), filename="empty.txt")

@@ -13,7 +13,7 @@ from ai_anime.modules.task_execution.public import (
 )
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.public import project_task_state_key
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ def _publish_freezone_splat_result(
 def run_stage_asset(
     envelope: dict[str, Any], ctx: ProjectContext
 ) -> dict[str, Any] | None:
-    from ai_anime import stage_asset_tasks
+    import ai_anime.modules.asset_world.public as asset_world
     from ai_anime.shared.project_media import make_static_url_for_context
 
     payload = envelope.get("payload") or {}
@@ -92,21 +92,21 @@ def run_stage_asset(
 
     if step == "splat_collision":
         ply_param = params.get("ply_path")
-        result = stage_asset_tasks.run_splat_collision(
+        result = asset_world.run_splat_collision(
             project_dir,
             scene_name,
             Path(ply_param) if ply_param else None,
             progress_callback=update,
         )
     elif step == "upload_scene_package":
-        result = stage_asset_tasks.upload_scene_package(
+        result = asset_world.upload_scene_package(
             project_dir,
             scene_name,
             Path(params["src_asset"]),
             target_name=params.get("target_name"),
         )
     elif step == "pano_sharp":
-        result = stage_asset_tasks.run_pano_sharp(
+        result = asset_world.run_pano_sharp(
             project_dir,
             scene_name,
             pano_path=Path(params["pano_path"]) if params.get("pano_path") else None,
@@ -130,7 +130,7 @@ def run_stage_asset(
         )
     elif step == "single_face_sharp":
         image_path_param = params.get("image_path")
-        result = stage_asset_tasks.run_single_face_sharp(
+        result = asset_world.run_single_face_sharp(
             project_dir,
             scene_name,
             source_kind=params.get("source_kind", "master"),
@@ -147,7 +147,7 @@ def run_stage_asset(
             progress_callback=update,
         )
     elif step == "voxel_world_from_360":
-        result = stage_asset_tasks.run_voxel_world_from_360(
+        result = asset_world.run_voxel_world_from_360(
             project_dir,
             scene_name,
             description=params.get("description", ""),
@@ -159,7 +159,7 @@ def run_stage_asset(
     elif step in {"pano_from_master", "pano_from_text"}:
         source = "master" if step == "pano_from_master" else "text"
         artifact_dir = params.get("artifact_dir")
-        result = stage_asset_tasks.run_scene_360(
+        result = asset_world.run_scene_360(
             project_dir,
             scene_name,
             source=source,
@@ -226,7 +226,7 @@ def run_freezone_image_to_3gs(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime import stage_asset_tasks
+    import ai_anime.modules.asset_world.public as asset_world
     from ai_anime.modules.creative_canvas.public import creative_canvas_job_workspace
 
     payload = envelope.get("payload") or {}
@@ -273,7 +273,7 @@ def run_freezone_image_to_3gs(
     update(0.10, "准备 Freezone 3GS 输出目录...")
 
     if source_kind == "pano":
-        result = stage_asset_tasks.run_pano_sharp(
+        result = asset_world.run_pano_sharp(
             project_dir,
             scene_id,
             pano_path=source_path,
@@ -298,7 +298,7 @@ def run_freezone_image_to_3gs(
             progress_callback=update,
         )
     else:
-        result = stage_asset_tasks.run_single_face_sharp(
+        result = asset_world.run_single_face_sharp(
             project_dir,
             scene_id,
             image_path=source_path,

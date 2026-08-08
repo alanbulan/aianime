@@ -27,7 +27,7 @@ def _import_celery_tasks(monkeypatch):
 
 def test_task_serialization_exposes_error_code() -> None:
     from ai_anime.modules.task_execution.public import serialize_project_task
-    from ai_anime.task_state import TaskState
+    from ai_anime.modules.task_execution.infrastructure.task_state import TaskState
 
     task = TaskState(
         task_id="task_1",

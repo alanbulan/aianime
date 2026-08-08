@@ -142,7 +142,7 @@ async def test_status_projects_panel_state_and_closes_store(
         current_prompt_inputs_hash="new",
     )
     monkeypatch.setattr(
-        seedance2_panel.panel_service,
+        seedance2_panel.seedance2_panel_service,
         "build_seedance2_video_panel_state",
         lambda **_kwargs: state,
     )
@@ -328,7 +328,11 @@ async def test_asset_operations_preserve_arguments_and_return_status(
             return True
         return Path(context.output_dir) / "result"
 
-    monkeypatch.setattr(seedance2_panel.panel_service, service_method, operation)
+    monkeypatch.setattr(
+        seedance2_panel.seedance2_panel_service,
+        service_method,
+        operation,
+    )
     monkeypatch.setattr(
         gateway,
         "_status_response",
@@ -368,7 +372,7 @@ async def test_operation_exception_still_closes_store(
         raise RuntimeError("operation failed")
 
     monkeypatch.setattr(
-        seedance2_panel.panel_service,
+        seedance2_panel.seedance2_panel_service,
         "save_seedance2_uploaded_asset",
         fail,
     )

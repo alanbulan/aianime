@@ -14,7 +14,7 @@ def _reset_modules():
 
     registry._PORTS.clear()
     registry._BOOTSTRAPPED = False
-    api_auth = importlib.import_module("ai_anime.api.auth")
+    api_auth = importlib.import_module("ai_anime.api.routes.identity_access.dependencies")
     return registry, ports, api_auth
 
 

@@ -25,7 +25,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Imports from project
 # ---------------------------------------------------------------------------
-from ai_anime.modules.generators.prompt_builder import (
+from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
     CharacterConfig,
     PromptComponents,
     PromptMode,
@@ -77,7 +77,7 @@ def discover_projects() -> List[Tuple[str, Path]]:
 
 async def _load_project_data_async(project_name: str, project_dir: Path):
     """Load characters, beats, sketch_colors from Neo4j via CogneeStore."""
-    from ai_anime.modules.knowledge_graph.store import CogneeStore
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     store = CogneeStore(project_name, output_dir=str(project_dir))
     try:

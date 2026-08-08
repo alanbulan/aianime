@@ -36,8 +36,8 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     runtime = tmp_path / "runtime"
 
     import ai_anime.api.deps as deps
-    import ai_anime.config as config
-    import ai_anime.project_config as project_config
+    import ai_anime.shared.runtime_paths as config
+    import ai_anime.modules.project_workspace.infrastructure.project_config as project_config
     import ai_anime.shared.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):

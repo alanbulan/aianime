@@ -7,13 +7,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from ai_anime import config as app_config
 from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_sdk
 from ai_anime.modules.ai_assistant.infrastructure.hermes import (
     hermes_workspace as hw,
 )
-from ai_anime.model_access_policy import configure_model_access
-from ai_anime.model_gateway_settings import MODE_BYOK, MODE_CLOUD
+from ai_anime.modules.model_usage.public import configure_model_access
+from ai_anime.modules.model_usage.public import MODE_BYOK, MODE_CLOUD
 
 
 def _enabled_toolsets(config: str) -> list[str]:
@@ -48,7 +47,6 @@ def isolated_workspace(tmp_path, monkeypatch):
     state_root = repo_root / "state"
     state_root.mkdir(parents=True)
     monkeypatch.setattr(hw, "AI_ANIME_ROOT", repo_root)
-    monkeypatch.setattr(app_config, "STATE_DIR", str(state_root))
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_root))

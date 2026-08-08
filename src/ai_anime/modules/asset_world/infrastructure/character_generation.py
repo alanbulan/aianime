@@ -33,7 +33,7 @@ class UnifiedSynchronousCharacterGeneration:
         output_dir: str | Path,
         options: CharacterGenerationOptions,
     ) -> Path | None:
-        from ai_anime.modules.generators.public import (
+        from ai_anime.modules.production.public import (
             generate_character_reference_unified,
         )
 
@@ -64,7 +64,7 @@ class UnifiedSynchronousCharacterGeneration:
         project_dir: Path,
         options: CharacterGenerationOptions,
     ) -> Path | None:
-        from ai_anime.modules.generators.public import generate_character_reference_unified
+        from ai_anime.modules.production.public import generate_character_reference_unified
 
         target = canonical_identity_portrait_path(
             project_dir,
@@ -158,7 +158,7 @@ class UnifiedSynchronousCharacterGeneration:
         options: CharacterGenerationOptions,
         usage_scope: str,
     ) -> Any:
-        from ai_anime.modules.generators.public import generate_identity_image_unified
+        from ai_anime.modules.production.public import generate_identity_image_unified
 
         return await generate_identity_image_unified(
             character_name=character.name,

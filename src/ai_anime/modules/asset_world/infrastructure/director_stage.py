@@ -8,8 +8,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.director_world.public import (
+from ai_anime.modules.asset_world.infrastructure.director_world.paths import (
     beat_blocking_path,
+)
+from ai_anime.modules.asset_world.infrastructure.director_world.store import (
     load_beat_blocking,
     save_beat_blocking,
 )

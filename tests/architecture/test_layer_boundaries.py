@@ -10,7 +10,9 @@ PACKAGE_ROOT = REPO_ROOT / "src" / "ai_anime"
 TASK_RUNNERS_ROOT = (
     PACKAGE_ROOT / "modules" / "task_execution" / "infrastructure" / "runners"
 )
-ASSET_WORLD_VIEWER_ROUTE = PACKAGE_ROOT / "api" / "routes" / "asset_world_viewer.py"
+ASSET_WORLD_VIEWER_ROUTE = (
+    PACKAGE_ROOT / "api" / "routes" / "asset_world" / "viewer.py"
+)
 LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
 LEGACY_FREEZONE_ROUTE = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
 LEGACY_FREEZONE_HELPERS = PACKAGE_ROOT / "freezone" / "route_helpers.py"
@@ -105,15 +107,74 @@ def test_non_api_code_does_not_add_reverse_api_dependencies() -> None:
 
 
 def test_verification_http_adapter_lives_in_api_layer() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "verification.py"
+    routes = tuple(
+        PACKAGE_ROOT / "api" / "routes" / "verification" / name
+        for name in ("beat_checks.py", "episode_checks.py", "sketch_quality.py")
+    )
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
 
-    assert route.exists()
+    assert all(route.exists() for route in routes)
     assert not LEGACY_VERIFICATION_ROUTE.exists()
-    assert "ai_anime.api.auth" in _imports(route)
-    assert "ai_anime.api.deps" in _imports(route)
-    assert "ai_anime.modules.verification" in route.read_text(encoding="utf-8")
-    assert "verification.router" in api_router.read_text(encoding="utf-8")
+    assert all(
+        "ai_anime.api.routes.identity_access.dependencies" in _imports(route)
+        for route in routes
+    )
+    assert all("ai_anime.api.deps" in _imports(route) for route in routes)
+    assert all(
+        "ai_anime.modules.verification.public" in _imports(route) for route in routes
+    )
+    assert "verification.create_router()" in api_router.read_text(encoding="utf-8")
+
+
+def test_backend_root_and_api_routes_remain_grouped_by_context() -> None:
+    assert {path.name for path in PACKAGE_ROOT.glob("*.py")} == {
+        "__init__.py",
+        "cli.py",
+        "desktop_server.py",
+        "sqlite_store.py",
+    }
+
+    api_root = PACKAGE_ROOT / "api"
+    assert {path.name for path in api_root.glob("*.py")} == {
+        "__init__.py",
+        "app.py",
+        "deps.py",
+        "exception_handlers.py",
+        "file_delivery.py",
+        "lifespan.py",
+        "logging_config.py",
+    }
+
+    routes_root = api_root / "routes"
+    assert {path.name for path in routes_root.glob("*.py")} == {"__init__.py"}
+
+    expected_contexts = {
+        "ai_assistant",
+        "asset_world",
+        "creative_canvas",
+        "identity_access",
+        "model_usage",
+        "narrative_planning",
+        "platform_release",
+        "production",
+        "project_workspace",
+        "story_intake",
+        "task_execution",
+        "verification",
+    }
+    assert {
+        path.name
+        for path in routes_root.iterdir()
+        if path.is_dir() and path.name != "__pycache__"
+    } == expected_contexts
+
+    registry_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
+        encoding="utf-8"
+    )
+    for context in expected_contexts:
+        context_entry = routes_root / context / "__init__.py"
+        assert "def create_router(" in context_entry.read_text(encoding="utf-8")
+        assert f"{context}.create_router(" in registry_source
 
 
 def test_route_modules_do_not_add_cross_route_dependencies() -> None:
@@ -121,9 +182,18 @@ def test_route_modules_do_not_add_cross_route_dependencies() -> None:
     routes_root = PACKAGE_ROOT / "api" / "routes"
     for path in _python_files(routes_root):
         relative = _relative(path)
+        source_parts = path.relative_to(routes_root).parts
+        if len(source_parts) < 2:
+            continue
+        source_context = source_parts[0]
         for imported in _imports(path):
-            if imported.startswith("ai_anime.api.routes."):
-                actual[(relative, imported)] += 1
+            prefix = "ai_anime.api.routes."
+            if not imported.startswith(prefix):
+                continue
+            target_context = imported.removeprefix(prefix).split(".", 1)[0]
+            if target_context in {source_context, "identity_access"}:
+                continue
+            actual[(relative, imported)] += 1
 
     _assert_ratchet(actual, LEGACY_ROUTE_IMPORT_MAX)
 
@@ -134,23 +204,23 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     root_source = ""
     cases = (
         (
-            "asset_world_viewer_schemas.py",
-            "routes/asset_world_viewer.py",
+            "routes/asset_world/viewer_schemas.py",
+            "routes/asset_world/viewer.py",
             ("BeatBackgroundAnchorUpdate",),
         ),
         (
-            "content_schemas.py",
-            "routes/content.py",
+            "routes/narrative_planning/content_schemas.py",
+            "routes/narrative_planning/content.py",
             ("ContentUpdateRequest", "RewriteGenerateRequest"),
         ),
         (
-            "production_sketch_schemas.py",
-            "routes/production_sketch.py",
+            "routes/production/sketch_schemas.py",
+            "routes/production/sketch.py",
             ("SketchGenerateRequest",),
         ),
         (
-            "production_settings_schemas.py",
-            "routes/production_settings.py",
+            "routes/production/settings_schemas.py",
+            "routes/production/settings.py",
             (
                 "OperatorPasswordVerifyRequest",
                 "RenderSettingsUpdate",
@@ -160,43 +230,43 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "production_audio_schemas.py",
-            "routes/production_audio.py",
+            "routes/production/audio_schemas.py",
+            "routes/production/audio.py",
             ("TTSGenerateRequest", "TTSPreviewRequest"),
         ),
         (
-            "styles_schemas.py",
-            "routes/styles.py",
+            "routes/asset_world/styles_schemas.py",
+            "routes/asset_world/styles.py",
             ("StylePreviewRequest",),
         ),
         (
-            "props_schemas.py",
-            "routes/props.py",
+            "routes/asset_world/props_schemas.py",
+            "routes/asset_world/props.py",
             ("PropCreate", "PropReferenceGenerateRequest", "PropUpdate"),
         ),
         (
-            "canvas_assets_schemas.py",
-            "routes/canvas/assets.py",
+            "routes/creative_canvas/assets_schemas.py",
+            "routes/creative_canvas/assets.py",
             ("CreateIdentityAssetRequest",),
         ),
         (
-            "canvas_media_schemas.py",
-            "routes/canvas/media.py",
+            "routes/creative_canvas/media_schemas.py",
+            "routes/creative_canvas/media.py",
             ("FreezoneThreeDViewerScreenshotRequest",),
         ),
         (
-            "canvas_presets_schemas.py",
-            "routes/canvas/presets.py",
+            "routes/creative_canvas/presets_schemas.py",
+            "routes/creative_canvas/presets.py",
             ("PresetCanvasRequest",),
         ),
         (
-            "canvas_commits_schemas.py",
-            "routes/canvas/commits.py",
+            "routes/creative_canvas/commits_schemas.py",
+            "routes/creative_canvas/commits.py",
             ("ImpactRequest", "PushRequest"),
         ),
         (
-            "canvas_projections_schemas.py",
-            "routes/canvas/projections.py",
+            "routes/creative_canvas/projections_schemas.py",
+            "routes/creative_canvas/projections.py",
             (
                 "ProjectionPresetCanvasRequest",
                 "ProjectionRemoveRequest",
@@ -204,13 +274,13 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "episodes_schemas.py",
-            "routes/episodes.py",
+            "routes/narrative_planning/episodes_schemas.py",
+            "routes/narrative_planning/episodes.py",
             ("EpisodePlanRequest", "EpisodeUpdate", "InsertManualShotRequest"),
         ),
         (
-            "production_pool_schemas.py",
-            "routes/production_pool.py",
+            "routes/production/pool_schemas.py",
+            "routes/production/pool.py",
             (
                 "GridCutRequest",
                 "GridSketchPreviewRequest",
@@ -219,8 +289,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "production_render_schemas.py",
-            "routes/production_render.py",
+            "routes/production/render_schemas.py",
+            "routes/production/render.py",
             (
                 "BeatsRegenerateRequest",
                 "GridRegenerateRequest",
@@ -231,8 +301,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "production_video_schemas.py",
-            "routes/production_video.py",
+            "routes/production/video_schemas.py",
+            "routes/production/video.py",
             (
                 "GlobalOptimizeRequest",
                 "Seedance2AssetAudioTrimRequest",
@@ -243,8 +313,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "scripts_schemas.py",
-            "routes/scripts.py",
+            "routes/narrative_planning/scripts_schemas.py",
+            "routes/narrative_planning/scripts.py",
             (
                 "BeatUpdate",
                 "BeatVideoPromptGenerateRequest",
@@ -254,8 +324,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "scenes_schemas.py",
-            "routes/scenes.py",
+            "routes/asset_world/scenes_schemas.py",
+            "routes/asset_world/scenes.py",
             (
                 "PanoSphereCorrection",
                 "PanoViewerCorrection",
@@ -266,27 +336,27 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "canvas_documents_schemas.py",
-            "routes/canvas/documents.py",
+            "routes/creative_canvas/documents_schemas.py",
+            "routes/creative_canvas/documents.py",
             ("CanvasPayload",),
         ),
         (
-            "voice_schemas.py",
-            "routes/characters.py",
+            "routes/asset_world/voice_schemas.py",
+            "routes/asset_world/characters.py",
             ("CharacterVoiceRecordRequest", "CharacterVoiceTrimRequest"),
         ),
         (
-            "voice_schemas.py",
-            "routes/projects.py",
+            "routes/project_workspace/schemas.py",
+            "routes/project_workspace/projects.py",
             (
-                "CharacterVoiceRecordRequest",
                 "NarratorVoiceCopyRequest",
+                "NarratorVoiceRecordRequest",
                 "NarratorVoiceTrimRequest",
             ),
         ),
         (
-            "characters_schemas.py",
-            "routes/characters.py",
+            "routes/asset_world/characters_schemas.py",
+            "routes/asset_world/characters.py",
             (
                 "AssetImageSourceSelectionRequest",
                 "CharacterAssetRestoreRequest",
@@ -300,18 +370,18 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "projects_schemas.py",
-            "routes/projects.py",
+            "routes/project_workspace/schemas.py",
+            "routes/project_workspace/projects.py",
             ("ProjectCreate", "ProjectUpdate"),
         ),
         (
-            "canvas_text_schemas.py",
-            "routes/canvas/text.py",
+            "routes/creative_canvas/text_schemas.py",
+            "routes/creative_canvas/text.py",
             ("FreezoneStoryScriptGenerateRequest", "FreezoneTextTranslateRequest"),
         ),
         (
-            "canvas_audio_schemas.py",
-            "routes/canvas/audio.py",
+            "routes/creative_canvas/audio_schemas.py",
+            "routes/creative_canvas/audio.py",
             (
                 "FreezoneAudioMusicRequest",
                 "FreezoneAudioSpeechRequest",
@@ -319,8 +389,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "canvas_skills_schemas.py",
-            "routes/canvas/skills.py",
+            "routes/creative_canvas/skills_schemas.py",
+            "routes/creative_canvas/skills.py",
             (
                 "FreezoneFrameFromContextRequest",
                 "FreezoneScene360Request",
@@ -328,8 +398,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "canvas_image_schemas.py",
-            "routes/canvas/image.py",
+            "routes/creative_canvas/image_schemas.py",
+            "routes/creative_canvas/image.py",
             (
                 "FreezoneCharacterMultiViewRequest",
                 "FreezoneEditRequest",
@@ -353,8 +423,8 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             ),
         ),
         (
-            "canvas_video_schemas.py",
-            "routes/canvas/video.py",
+            "routes/creative_canvas/video_schemas.py",
+            "routes/creative_canvas/video.py",
             (
                 "FreezoneAnalyzeShotsRequest",
                 "FreezoneAnalyzeVideoStoryRequest",
@@ -383,14 +453,14 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
         for model_name in model_names:
             assert f"class {model_name}(" not in root_source
             assert f"class {model_name}(BaseModel):" in adapter_source
-        module_name = schema_path.removesuffix(".py")
+        module_name = schema_path.removesuffix(".py").replace("/", ".")
         assert f"ai_anime.api.{module_name}" in _imports(route)
         assert "ai_anime.api.schemas" not in _imports(route)
 
-    characters_source = (PACKAGE_ROOT / "api" / "characters_schemas.py").read_text(
+    characters_source = (PACKAGE_ROOT / "api" / "routes/asset_world/characters_schemas.py").read_text(
         encoding="utf-8"
     )
-    projects_source = (PACKAGE_ROOT / "api" / "projects_schemas.py").read_text(
+    projects_source = (PACKAGE_ROOT / "api" / "routes/project_workspace/schemas.py").read_text(
         encoding="utf-8"
     )
     assert "CharacterAssetKind = Literal[" not in root_source
@@ -402,30 +472,30 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     assert "FREEZONE_DEFAULT_IMAGE_MODEL =" not in root_source
     assert not (PACKAGE_ROOT / "api" / "canvas_schema_defaults.py").exists()
 
-    canvas_mark_source = (PACKAGE_ROOT / "api" / "canvas_mark_schemas.py").read_text(
+    canvas_mark_source = (PACKAGE_ROOT / "api" / "routes/creative_canvas/mark_schemas.py").read_text(
         encoding="utf-8"
     )
     assert "class FreezoneVideoMark(" not in root_source
     assert "class FreezoneVideoMark(BaseModel):" in canvas_mark_source
-    for schema_path in ("canvas_image_schemas.py", "canvas_video_schemas.py"):
+    for schema_path in ("routes/creative_canvas/image_schemas.py", "routes/creative_canvas/video_schemas.py"):
         schema = PACKAGE_ROOT / "api" / schema_path
-        assert "ai_anime.api.canvas_mark_schemas" in _imports(schema)
+        assert "ai_anime.api.routes.creative_canvas.mark_schemas" in _imports(schema)
 
-    canvas_job_source = (PACKAGE_ROOT / "api" / "canvas_job_schemas.py").read_text(
+    canvas_job_source = (PACKAGE_ROOT / "api" / "routes/creative_canvas/job_schemas.py").read_text(
         encoding="utf-8"
     )
     for model_name in ("FreezoneJobAcceptedData", "FreezoneJobAcceptedResponse"):
         assert f"class {model_name}(" not in root_source
         assert f"class {model_name}(BaseModel):" in canvas_job_source
     for route_path in (
-        "routes/canvas/audio.py",
-        "routes/canvas/image.py",
-        "routes/canvas/skills.py",
-        "routes/canvas/text.py",
-        "routes/canvas/video.py",
+        "routes/creative_canvas/audio.py",
+        "routes/creative_canvas/image.py",
+        "routes/creative_canvas/skills.py",
+        "routes/creative_canvas/text.py",
+        "routes/creative_canvas/video.py",
     ):
         route = PACKAGE_ROOT / "api" / route_path
-        assert "ai_anime.api.canvas_job_schemas" in _imports(route)
+        assert "ai_anime.api.routes.creative_canvas.job_schemas" in _imports(route)
 
 
 def test_legacy_generation_route_is_removed() -> None:
@@ -435,7 +505,7 @@ def test_legacy_generation_route_is_removed() -> None:
 
     assert not LEGACY_GENERATION_ROUTE.exists()
     assert "generation.router" not in api_router_source
-    assert "asset_world_viewer.router" in api_router_source
+    assert "asset_world.create_router()" in api_router_source
 
 
 def test_legacy_freezone_route_helpers_are_removed() -> None:
@@ -600,7 +670,9 @@ def test_narrative_planning_callers_use_the_public_api() -> None:
     failures: list[str] = []
 
     for path in _python_files(PACKAGE_ROOT):
-        if path.is_relative_to(narrative_module):
+        if path.is_relative_to(narrative_module) or path == (
+            PACKAGE_ROOT / "sqlite_store.py"
+        ):
             continue
         relative = _relative(path)
         for imported in _imports(path):
@@ -620,7 +692,9 @@ def test_asset_world_callers_use_the_public_api() -> None:
     failures: list[str] = []
 
     for path in _python_files(PACKAGE_ROOT):
-        if path.is_relative_to(asset_world_module):
+        if path.is_relative_to(asset_world_module) or path == (
+            PACKAGE_ROOT / "sqlite_store.py"
+        ):
             continue
         relative = _relative(path)
         for imported in _imports(path):
@@ -707,6 +781,22 @@ def test_backup_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
+def test_backup_implementation_is_layered() -> None:
+    backup_module = PACKAGE_ROOT / "modules" / "backup"
+    root_implementations = sorted(
+        path.name
+        for path in backup_module.glob("*.py")
+        if path.name not in {"__init__.py", "public.py"}
+    )
+
+    assert root_implementations == []
+    assert (backup_module / "application" / "restore_plan.py").is_file()
+    assert (backup_module / "infrastructure" / "files_sync.py").is_file()
+    assert (backup_module / "infrastructure" / "sqlite_snapshots.py").is_file()
+    assert (backup_module / "infrastructure" / "wal_migrator.py").is_file()
+    assert (backup_module / "presentation" / "cli.py").is_file()
+
+
 def test_bootstrap_callers_use_the_public_api() -> None:
     bootstrap_module = PACKAGE_ROOT / "modules" / "bootstrap"
     failures: list[str] = []
@@ -726,10 +816,10 @@ def test_bootstrap_callers_use_the_public_api() -> None:
 
 
 def test_chat_websocket_transport_stays_in_api_layer() -> None:
-    transport = PACKAGE_ROOT / "api" / "chat_websocket.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    transport = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "websocket.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     transport_source = transport.read_text(encoding="utf-8")
     session_source = session_adapter.read_text(encoding="utf-8")
     turn_source = turn_adapter.read_text(encoding="utf-8")
@@ -737,9 +827,9 @@ def test_chat_websocket_transport_stays_in_api_layer() -> None:
 
     assert "fastapi" in _imports(transport)
     assert "ai_anime.modules.ai_assistant.public" in _imports(transport)
-    assert "ai_anime.api.chat_websocket" in _imports(session_adapter)
-    assert "ai_anime.api.chat_websocket" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_websocket" not in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.websocket" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.websocket" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.websocket" not in _imports(route)
     for owned_operation in (
         "async def send_json_best_effort(",
         "async def _chat_heartbeat(",
@@ -769,9 +859,9 @@ def test_chat_websocket_transport_stays_in_api_layer() -> None:
 
 
 def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
-    auth = PACKAGE_ROOT / "api" / "auth.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    auth = PACKAGE_ROOT / "api" / "routes" / "identity_access" / "dependencies.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     contract_tests = REPO_ROOT / "tests" / "contract" / "test_m08_chat_agent.py"
     auth_source = auth.read_text(encoding="utf-8")
     session_source = session_adapter.read_text(encoding="utf-8")
@@ -779,8 +869,8 @@ def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
     contract_test_source = contract_tests.read_text(encoding="utf-8")
 
     assert "ai_anime.modules.identity_access.public" in _imports(auth)
-    assert "ai_anime.api.auth" in _imports(session_adapter)
-    assert "ai_anime.api.auth" not in _imports(route)
+    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(session_adapter)
+    assert "ai_anime.api.routes.identity_access.dependencies" not in _imports(route)
     assert "async def get_websocket_user(" in auth_source
     for owned_operation in (
         'websocket.headers.get("Authorization", "").strip()',
@@ -811,21 +901,21 @@ def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
 
 
 def test_chat_websocket_session_stays_in_api_adapter() -> None:
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     session_tests = REPO_ROOT / "tests" / "test_chat_session.py"
     session_source = session_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert session_tests.exists()
     assert "fastapi" in _imports(session_adapter)
-    assert "ai_anime.api.auth" in _imports(session_adapter)
-    assert "ai_anime.api.chat_scope" in _imports(session_adapter)
-    assert "ai_anime.api.chat_schemas" in _imports(session_adapter)
-    assert "ai_anime.api.chat_turns" in _imports(session_adapter)
-    assert "ai_anime.api.chat_websocket" in _imports(session_adapter)
+    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.scope" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.turns" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.websocket" in _imports(session_adapter)
     assert "ai_anime.modules.ai_assistant.public" in _imports(session_adapter)
-    assert "ai_anime.api.chat_session" in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.session" in _imports(route)
     for owned_operation in (
         "async def run_chat_session(",
         "await websocket.accept()",
@@ -846,21 +936,24 @@ def test_chat_websocket_session_stays_in_api_adapter() -> None:
 
 
 def test_chat_http_endpoints_stay_in_dedicated_route() -> None:
-    http_route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
-    websocket_route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    http_route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
+    websocket_route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     router_registry = PACKAGE_ROOT / "api" / "v1" / "router.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     legacy_tests = REPO_ROOT / "tests" / "test_chat_service_user_agent_scope.py"
     http_source = http_route.read_text(encoding="utf-8")
     websocket_source = websocket_route.read_text(encoding="utf-8")
     registry_source = router_registry.read_text(encoding="utf-8")
+    context_source = (
+        PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "__init__.py"
+    ).read_text(encoding="utf-8")
 
     assert route_tests.exists()
     assert not legacy_tests.exists()
     assert "fastapi" in _imports(http_route)
-    assert "ai_anime.api.auth" in _imports(http_route)
-    assert "ai_anime.api.chat_access" in _imports(http_route)
-    assert "ai_anime.api.chat_schemas" in _imports(http_route)
+    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(http_route)
+    assert "ai_anime.api.routes.ai_assistant.access" in _imports(http_route)
+    assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(http_route)
     assert "ai_anime.modules.ai_assistant.public" in _imports(http_route)
     for owned_endpoint in (
         '@router.post("/chat/cancel")',
@@ -874,16 +967,17 @@ def test_chat_http_endpoints_stay_in_dedicated_route() -> None:
         assert owned_endpoint not in websocket_source
     assert '@router.websocket("/chat/ws")' in websocket_source
     assert '@router.websocket("/chat/ws")' not in http_source
-    assert 'router.include_router(chat_http.router, tags=["chat"])' in registry_source
-    assert 'router.include_router(chat.router, tags=["chat"])' in registry_source
+    assert "ai_assistant.create_router()" in registry_source
+    assert 'router.include_router(http.router, tags=["chat"])' in context_source
+    assert 'router.include_router(chat.router, tags=["chat"])' in context_source
 
 
 def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
-    access = PACKAGE_ROOT / "api" / "chat_access.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
-    http_route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
-    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
+    access = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "access.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
+    http_route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "scope.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
     access_tests = REPO_ROOT / "tests" / "test_chat_access.py"
     notification_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     access_source = access.read_text(encoding="utf-8")
@@ -898,10 +992,10 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     assert "ai_anime.modules.ai_assistant.public" in _imports(access)
     assert "ai_anime.modules.model_usage.public" in _imports(access)
     assert "ai_anime.modules.project_workspace.public" in _imports(access)
-    assert "ai_anime.api.chat_access" not in _imports(route)
-    assert "ai_anime.api.chat_access" in _imports(http_route)
-    assert "ai_anime.api.chat_access" in _imports(scope_adapter)
-    assert "ai_anime.api.chat_access" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.access" not in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.access" in _imports(http_route)
+    assert "ai_anime.api.routes.ai_assistant.access" in _imports(scope_adapter)
+    assert "ai_anime.api.routes.ai_assistant.access" in _imports(turn_adapter)
     for owned_rule in (
         '_AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"',
         "async def project_context_for_scope(",
@@ -933,9 +1027,9 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
 
 
 def test_chat_scope_projection_stays_in_api_adapter() -> None:
-    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "scope.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     scope_tests = REPO_ROOT / "tests" / "test_chat_scope.py"
     legacy_route_tests = REPO_ROOT / "tests" / "test_chat_route_prewarm.py"
     scope_source = scope_adapter.read_text(encoding="utf-8")
@@ -945,12 +1039,12 @@ def test_chat_scope_projection_stays_in_api_adapter() -> None:
     assert scope_tests.exists()
     assert not legacy_route_tests.exists()
     assert "fastapi" in _imports(scope_adapter)
-    assert "ai_anime.api.chat_access" in _imports(scope_adapter)
-    assert "ai_anime.api.chat_websocket" in _imports(scope_adapter)
+    assert "ai_anime.api.routes.ai_assistant.access" in _imports(scope_adapter)
+    assert "ai_anime.api.routes.ai_assistant.websocket" in _imports(scope_adapter)
     assert "ai_anime.modules.ai_assistant.public" in _imports(scope_adapter)
     assert "ai_anime.modules.project_workspace.public" in _imports(scope_adapter)
-    assert "ai_anime.api.chat_scope" in _imports(session_adapter)
-    assert "ai_anime.api.chat_scope" not in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.scope" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.scope" not in _imports(route)
     for owned_operation in (
         "async def _history(",
         "async def send_scope_changed(",
@@ -978,11 +1072,11 @@ def test_chat_scope_projection_stays_in_api_adapter() -> None:
 
 
 def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
-    schemas = PACKAGE_ROOT / "api" / "chat_schemas.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
-    http_route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
+    schemas = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "schemas.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
+    http_route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
     schemas_source = schemas.read_text(encoding="utf-8")
     session_source = session_adapter.read_text(encoding="utf-8")
     turn_source = turn_adapter.read_text(encoding="utf-8")
@@ -991,10 +1085,10 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
 
     assert "pydantic" in _imports(schemas)
     assert "ai_anime.modules.ai_assistant.public" in _imports(schemas)
-    assert "ai_anime.api.chat_schemas" in _imports(session_adapter)
-    assert "ai_anime.api.chat_schemas" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_schemas" not in _imports(route)
-    assert "ai_anime.api.chat_schemas" in _imports(http_route)
+    assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.schemas" not in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(http_route)
     for schema in (
         "ChatScopePayload",
         "ChatAttachmentIn",
@@ -1027,9 +1121,9 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
 
 
 def test_chat_error_events_stay_in_api_adapter() -> None:
-    errors = PACKAGE_ROOT / "api" / "chat_errors.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    errors = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "errors.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     errors_source = errors.read_text(encoding="utf-8")
     turn_source = turn_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
@@ -1037,8 +1131,8 @@ def test_chat_error_events_stay_in_api_adapter() -> None:
     assert "fastapi" not in _imports(errors)
     assert "ai_anime.modules.ai_assistant.public" in _imports(errors)
     assert "ai_anime.modules.model_usage.public" in _imports(errors)
-    assert "ai_anime.api.chat_errors" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_errors" not in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.errors" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.errors" not in _imports(route)
     for owned_rule in (
         "def chat_exception_event(",
         "当前用户已有 AI 对话正在处理中",
@@ -1063,9 +1157,9 @@ def test_chat_error_events_stay_in_api_adapter() -> None:
 
 
 def test_chat_turn_dispatch_stays_in_api_adapter() -> None:
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     turn_tests = REPO_ROOT / "tests" / "test_chat_turns.py"
     turn_source = turn_adapter.read_text(encoding="utf-8")
     session_source = session_adapter.read_text(encoding="utf-8")
@@ -1073,13 +1167,13 @@ def test_chat_turn_dispatch_stays_in_api_adapter() -> None:
 
     assert turn_tests.exists()
     assert "fastapi" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_access" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_errors" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_schemas" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_websocket" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.access" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.errors" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(turn_adapter)
+    assert "ai_anime.api.routes.ai_assistant.websocket" in _imports(turn_adapter)
     assert "ai_anime.modules.ai_assistant.public" in _imports(turn_adapter)
-    assert "ai_anime.api.chat_turns" in _imports(session_adapter)
-    assert "ai_anime.api.chat_turns" not in _imports(route)
+    assert "ai_anime.api.routes.ai_assistant.turns" in _imports(session_adapter)
+    assert "ai_anime.api.routes.ai_assistant.turns" not in _imports(route)
     for owned_operation in (
         "async def dispatch_chat_turn(",
         "async def _stream_project_turn(",
@@ -1101,7 +1195,7 @@ def test_chat_turn_dispatch_stays_in_api_adapter() -> None:
 def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
     public = PACKAGE_ROOT / "modules" / "ai_assistant" / "public.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
     service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
     hermes_replies = (
         PACKAGE_ROOT
@@ -1509,7 +1603,7 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     history = module / "infrastructure" / "sqlite_chat_history.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "scope.py"
     legacy_store = PACKAGE_ROOT / "chat" / "store.py"
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -1575,7 +1669,7 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     application_source = application.read_text(encoding="utf-8")
     deterministic_replies_source = deterministic_replies.read_text(encoding="utf-8")
@@ -1635,8 +1729,8 @@ def test_ai_assistant_owns_scoped_chat_message_orchestration() -> None:
     application = module / "application" / "scoped_chat_messages.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
-    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "scope.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -1737,7 +1831,7 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     lifecycle_source = lifecycle.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
@@ -1792,7 +1886,7 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
     ports_source = ports.read_text(encoding="utf-8")
     prewarmer_source = prewarmer.read_text(encoding="utf-8")
     lifecycle_source = lifecycle.read_text(encoding="utf-8")
@@ -1830,10 +1924,10 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
     application = module / "application" / "chat_worker_lifecycle.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
-    http_route = PACKAGE_ROOT / "api" / "routes" / "chat_http.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    scope_adapter = PACKAGE_ROOT / "api" / "chat_scope.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
+    http_route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    scope_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "scope.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -1878,8 +1972,8 @@ def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
     application = module / "application" / "hermes_home_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -2018,7 +2112,7 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_tests = (
         REPO_ROOT
         / "tests"
@@ -2072,8 +2166,8 @@ def test_ai_assistant_owns_project_chat_turn_orchestration() -> None:
     application = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    turn_adapter = PACKAGE_ROOT / "api" / "chat_turns.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -2117,8 +2211,8 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     composition = module / "composition.py"
     public = module / "public.py"
     service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
-    session_adapter = PACKAGE_ROOT / "api" / "chat_session.py"
-    route = PACKAGE_ROOT / "api" / "routes" / "chat.py"
+    session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -2324,7 +2418,7 @@ def test_model_usage_callers_use_the_public_api() -> None:
 
 
 def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "model_credits.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "model_usage" / "credits.py"
     composition = PACKAGE_ROOT / "modules" / "model_usage" / "composition.py"
     registered_quote = (
         PACKAGE_ROOT
@@ -2435,7 +2529,13 @@ def test_model_usage_owns_runtime_provider_instrumentation() -> None:
         PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "local_usage.py"
     )
     public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
-    cognee_config = PACKAGE_ROOT / "modules" / "knowledge_graph" / "config.py"
+    cognee_config = (
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "config.py"
+    )
     provider_source = provider.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
 
@@ -2471,7 +2571,7 @@ def test_noop_release_notifications_route_is_removed() -> None:
 
 
 def test_runtime_config_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "config.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "platform_release" / "runtime_config.py"
     source = route.read_text(encoding="utf-8")
 
     assert source.count("runtime_config_queries().current()") == 1
@@ -2482,9 +2582,9 @@ def test_runtime_config_route_delegates_to_application() -> None:
 
 
 def test_project_file_routes_delegate_to_platform_release() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "files.py"
-    shared_adapter = PACKAGE_ROOT / "api" / "project_file_delivery.py"
-    platform_routes = PACKAGE_ROOT / "api" / "platform_routes.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "project_workspace" / "files.py"
+    shared_adapter = PACKAGE_ROOT / "api" / "file_delivery.py"
+    platform_routes = PACKAGE_ROOT / "api" / "routes" / "platform_release" / "runtime.py"
     route_source = route.read_text(encoding="utf-8")
     platform_source = platform_routes.read_text(encoding="utf-8")
 
@@ -2493,13 +2593,13 @@ def test_project_file_routes_delegate_to_platform_release() -> None:
     assert "def _serve_or_redirect_to_oss(" not in route_source
     assert "def preview_project_media_file(" not in route_source
     assert "ai_anime.modules.platform_release.public" in _imports(shared_adapter)
-    assert "ai_anime.api.routes.files" not in _imports(platform_routes)
-    assert "ai_anime.api.project_file_delivery" in _imports(platform_routes)
+    assert "ai_anime.api.routes.project_workspace.files" not in _imports(platform_routes)
+    assert "ai_anime.api.file_delivery" in _imports(platform_routes)
     assert platform_source.count("serve_project_file(") == 1
 
 
 def test_freezone_skill_catalog_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "skills.py"
     legacy_route = LEGACY_FREEZONE_ROUTE
     legacy_catalog = PACKAGE_ROOT / "freezone" / "skill_registry.py"
     catalog_application = (
@@ -2590,7 +2690,7 @@ def test_freezone_skill_catalog_route_delegates_to_application() -> None:
     }
     assert "SKILL_SCHEMA_VERSION" in skill_catalog_imports
     assert "DEFAULT_CREATIVE_CANVAS_IMAGE_MODEL" not in presets_source
-    assert "freezone_skills.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert "freezone.router" not in api_router_source
     assert not legacy_catalog.exists()
 
@@ -2610,7 +2710,7 @@ def test_freezone_skill_catalog_route_delegates_to_application() -> None:
 
 
 def test_freezone_staging_prop_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "skills.py"
     legacy_route = LEGACY_FREEZONE_ROUTE
     application = (
         PACKAGE_ROOT / "modules" / "creative_canvas" / "application" / "staging_prop.py"
@@ -2660,7 +2760,7 @@ def test_freezone_staging_prop_route_delegates_to_application() -> None:
 
 
 def test_freezone_job_result_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "jobs.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "jobs.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT / "modules" / "creative_canvas" / "application" / "job_results.py"
@@ -2689,7 +2789,7 @@ def test_freezone_job_result_route_delegates_to_application() -> None:
     assert "class LocalCreativeCanvasJobResultReader" in adapter_source
     assert "LocalCreativeCanvasJobResultReader()" in composition_source
     assert "def creative_canvas_job_result_queries(" in public_source
-    assert "freezone_jobs.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert '"/projects/{project}/freezone/jobs/{task_type}/{job_id}/result"' not in (
         legacy_source
     )
@@ -2729,7 +2829,7 @@ def test_freezone_job_result_route_delegates_to_application() -> None:
 
 
 def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "skills.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT
@@ -2823,8 +2923,8 @@ def test_freezone_mainline_generation_routes_delegate_to_application() -> None:
 
 
 def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
-    image_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
-    video_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    image_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
+    video_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "video.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     image_source = image_route.read_text(encoding="utf-8")
@@ -2834,8 +2934,8 @@ def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
 
     assert image_source.count("generation_catalog_queries().") == 2
     assert video_source.count("generation_catalog_queries().") == 1
-    assert "freezone_image.router" in api_router_source
-    assert "freezone_video.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     for handler_name in (
         "freezone_image_camera_options",
         "freezone_image_style_templates",
@@ -2861,7 +2961,7 @@ def test_freezone_generation_catalog_routes_delegate_to_application() -> None:
 
 
 def test_freezone_video_processing_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "video.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT
@@ -3053,7 +3153,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
 
 
 def test_freezone_video_generation_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "video.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     domain = (
         PACKAGE_ROOT / "modules" / "creative_canvas" / "domain" / "video_generation.py"
@@ -3139,7 +3239,7 @@ def test_freezone_video_generation_routes_delegate_to_application() -> None:
 
 
 def test_freezone_video_asset_library_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "video.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     domain = (
         PACKAGE_ROOT
@@ -3233,7 +3333,7 @@ def test_freezone_video_asset_library_routes_delegate_to_application() -> None:
 
 
 def test_freezone_mark_detection_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     source = route.read_text(encoding="utf-8")
@@ -3246,7 +3346,7 @@ def test_freezone_mark_detection_route_delegates_to_application() -> None:
     assert source.count("creative_canvas_mark_detection_use_cases().detect(") == 1
     assert "DetectCreativeCanvasMarkCommand" in source
     assert "CreativeCanvasMarkSelection" in source
-    assert "freezone_image.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert "async def freezone_mark_detect(" not in legacy_source
     assert "FreezoneMarkDetectRequest" not in legacy_source
     assert "FreezoneMarkDetectResponse" not in legacy_source
@@ -3260,7 +3360,7 @@ def test_freezone_mark_detection_route_delegates_to_application() -> None:
 
 
 def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     runner = TASK_RUNNERS_ROOT / "freezone.py"
     source = route.read_text(encoding="utf-8")
@@ -3290,7 +3390,7 @@ def test_freezone_reverse_prompt_route_delegates_to_application() -> None:
 
 
 def test_freezone_audio_generation_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "audio.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "audio.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     application = (
@@ -3331,7 +3431,7 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
     assert source.count("creative_canvas_audio_generation_use_cases().") == 2
     assert "StartCreativeCanvasSpeechGenerationCommand" in source
     assert "StartCreativeCanvasMusicGenerationCommand" in source
-    assert "freezone_audio.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     for legacy_implementation in (
         "async def freezone_audio_speech(",
         "async def freezone_audio_eleven_music(",
@@ -3365,7 +3465,7 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
 
 
 def test_freezone_audio_library_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "audio.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "audio.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT
@@ -3432,7 +3532,7 @@ def test_freezone_audio_library_routes_delegate_to_application() -> None:
 
 
 def test_freezone_canvas_document_queries_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "documents.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "documents.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     application = (
@@ -3482,7 +3582,7 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
     )
 
     assert source.count("creative_canvas_document_queries().") == 5
-    assert "freezone_documents.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     for legacy_handler in (
         "async def list_canvases(",
         "async def get_canvas(",
@@ -3528,8 +3628,10 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
 
 
 def test_freezone_canvas_document_writes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "documents.py"
-    errors = PACKAGE_ROOT / "api" / "canvas_errors.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "documents.py"
+    errors = (
+        PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "errors.py"
+    )
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT
@@ -3600,7 +3702,7 @@ def test_freezone_canvas_document_writes_delegate_to_application() -> None:
 
 
 def test_freezone_canvas_preset_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "presets.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "presets.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     application = (
@@ -3649,7 +3751,7 @@ def test_freezone_canvas_preset_route_delegates_to_application() -> None:
     ):
         assert legacy_implementation not in legacy_source
 
-    assert "freezone_presets.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert route_source.count("creative_canvas_preset_use_cases().create(") == 1
     assert "class CreativeCanvasPresetUseCases" in application_source
     assert "class LocalCreativeCanvasPresetBuilder" in adapter_source
@@ -3687,7 +3789,7 @@ def test_freezone_canvas_preset_route_delegates_to_application() -> None:
 
 
 def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "commits.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "commits.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     legacy_slots = PACKAGE_ROOT / "freezone" / "slots.py"
@@ -3746,7 +3848,7 @@ def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
     assert slot_contracts.exists()
     assert slot_storage.exists()
 
-    assert "freezone_commits.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert route_source.count("creative_canvas_slot_commit_use_cases().impact(") == 1
     assert route_source.count("creative_canvas_slot_commit_use_cases().commit(") == 1
     skill_run_source = (
@@ -3789,7 +3891,7 @@ def test_freezone_canvas_commit_routes_delegate_to_application() -> None:
 
 
 def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "assets.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "assets.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     application = (
@@ -3855,7 +3957,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
     ):
         assert legacy_implementation not in legacy_source
 
-    assert "freezone_assets.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert route_source.count("creative_canvas_asset_use_cases().") == 5
     assert "class ListCreativeCanvasAssetsQuery" in application_source
     assert "class ListCreativeCanvasBeatContextAssetsQuery" in application_source
@@ -3916,7 +4018,7 @@ def test_freezone_canvas_asset_routes_delegate_to_application() -> None:
 
 
 def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "projections.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "projections.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     application = (
@@ -3972,7 +4074,7 @@ def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
     ):
         assert legacy_handler not in legacy_source
 
-    assert "freezone_projections.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert route_source.count("creative_canvas_projection_use_cases().") == 4
     assert "class CreativeCanvasProjectionUseCases" in application_source
     assert "class LocalCreativeCanvasProjectionGateway" in adapter_source
@@ -4046,8 +4148,8 @@ def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
 
 def test_freezone_canvas_events_delegate_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
-    preset_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "presets.py"
-    projection_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "projections.py"
+    preset_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "presets.py"
+    projection_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "projections.py"
     domain = (
         PACKAGE_ROOT / "modules" / "creative_canvas" / "domain" / "canvas_events.py"
     )
@@ -4093,7 +4195,7 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
     public_source = public.read_text(encoding="utf-8")
 
     skill_route_source = (
-        PACKAGE_ROOT / "api" / "routes" / "canvas" / "skills.py"
+        PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "skills.py"
     ).read_text(encoding="utf-8")
     skill_run_source = (
         PACKAGE_ROOT / "modules" / "creative_canvas" / "application" / "skill_runs.py"
@@ -4139,7 +4241,7 @@ def test_freezone_canvas_events_delegate_to_application() -> None:
 
 
 def test_freezone_text_processing_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "text.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "text.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     application = (
@@ -4169,7 +4271,7 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
     runner = TASK_RUNNERS_ROOT / "freezone.py"
-    schemas = PACKAGE_ROOT / "api" / "canvas_text_schemas.py"
+    schemas = PACKAGE_ROOT / "api" / "routes/creative_canvas/text_schemas.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
@@ -4193,7 +4295,7 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
     assert source.count("creative_canvas_text_processing_use_cases().") == 2
     assert "StartCreativeCanvasTextTranslationCommand" in source
     assert "StartCreativeCanvasStoryScriptCommand" in source
-    assert "freezone_text.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     for legacy_handler in (
         "async def freezone_text_translate(",
         "async def freezone_story_script_generate(",
@@ -4269,7 +4371,7 @@ def test_freezone_text_processing_routes_delegate_to_application() -> None:
 
 
 def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     runner = TASK_RUNNERS_ROOT / "stage_asset.py"
     source = route.read_text(encoding="utf-8")
@@ -4299,7 +4401,7 @@ def test_freezone_image_to_three_gs_route_delegates_to_application() -> None:
 
 
 def test_freezone_image_editing_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     prompt_rules = (
         PACKAGE_ROOT
@@ -4400,7 +4502,7 @@ def test_freezone_image_editing_routes_delegate_to_application() -> None:
 
 
 def test_freezone_image_generation_route_and_skill_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "image.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     model_adapter = (
         PACKAGE_ROOT
@@ -4447,7 +4549,7 @@ def test_freezone_image_generation_route_and_skill_delegate_to_application() -> 
 
 
 def test_freezone_bootstrap_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "bootstrap.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "bootstrap.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     source = route.read_text(encoding="utf-8")
@@ -4456,7 +4558,7 @@ def test_freezone_bootstrap_route_delegates_to_application() -> None:
 
     assert source.count("creative_canvas_bootstrap_use_cases().initialize(") == 1
     assert "InitializeCreativeCanvasCommand" in source
-    assert "freezone_bootstrap.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert "async def init_freezone(" not in legacy_source
     assert "def _canvas_actor_id(" not in legacy_source
     assert "TAG_FREEZONE_BOOTSTRAP" not in legacy_source
@@ -4473,7 +4575,7 @@ def test_freezone_bootstrap_route_delegates_to_application() -> None:
 
 
 def test_freezone_media_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "media.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "media.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
     source = route.read_text(encoding="utf-8")
@@ -4483,7 +4585,7 @@ def test_freezone_media_routes_delegate_to_application() -> None:
     assert source.count("creative_canvas_media_use_cases().") == 2
     assert "StoreCreativeCanvasUploadCommand" in source
     assert "SaveCreativeCanvasScreenshotCommand" in source
-    assert "freezone_media.router" in api_router_source
+    assert "creative_canvas.create_router()" in api_router_source
     assert "async def freezone_upload(" not in legacy_source
     assert "async def freezone_three_d_viewer_screenshot(" not in legacy_source
     assert "TAG_FREEZONE_MEDIA" not in legacy_source
@@ -4502,7 +4604,7 @@ def test_freezone_media_routes_delegate_to_application() -> None:
 
 
 def test_production_sketch_edit_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     source = route.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "sketch_pose_service.py").exists()
@@ -4539,14 +4641,14 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
 
 
 def test_production_image_settings_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "settings.py"
     source = route.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
 
     assert "production_image_settings_use_cases" in source
-    assert "production_settings.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     for handler_name in (
         "get_render_settings",
         "update_render_settings",
@@ -4578,7 +4680,7 @@ def test_production_image_settings_routes_delegate_to_application() -> None:
 
 
 def test_production_sketch_regen_queue_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "settings.py"
     source = route.read_text(encoding="utf-8")
     route_start = source.index("async def get_sketch_regen_queue(")
     route_end = source.index("async def get_sketch_image_usage(", route_start)
@@ -4603,7 +4705,7 @@ def test_production_sketch_regen_queue_routes_delegate_to_application() -> None:
 
 
 def test_production_image_usage_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_settings.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "settings.py"
     source = route.read_text(encoding="utf-8")
     route_start = source.index("async def get_sketch_image_usage(")
     route_source = source[route_start:]
@@ -4612,7 +4714,11 @@ def test_production_image_usage_routes_delegate_to_application() -> None:
     assert "ImageGenerationGuardQuery" in route_source
     assert "def _image_generation_guard_payload(" not in source
     assert "def get_image_scope_warning(" not in (
-        PACKAGE_ROOT / "image_request_usage.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "image_request_usage.py"
     ).read_text(encoding="utf-8")
     for implementation_detail in (
         "get_image_usage_summary",
@@ -4625,7 +4731,7 @@ def test_production_image_usage_routes_delegate_to_application() -> None:
 
 
 def test_production_episode_video_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
     source = route.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
@@ -4634,7 +4740,7 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
     assert source.count("episode_video_use_cases().") == 2
     assert "ComposeEpisodeVideoCommand" in source
     assert "EpisodeBeatsMissing" in source
-    assert "production_video.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     for handler_name in ("compose_video", "get_final_video"):
         assert f"async def {handler_name}(" in source
     for implementation_detail in (
@@ -4651,14 +4757,14 @@ def test_production_episode_video_routes_delegate_to_application() -> None:
 
 
 def test_production_episode_export_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_export.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "export.py"
     source = route.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
     )
 
     assert source.count("episode_export_use_cases().") == 3
-    assert "production_export.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     for handler_name in ("export_srt", "export_final_video", "export_zip"):
         assert f"async def {handler_name}(" in source
     for implementation_detail in (
@@ -4676,7 +4782,7 @@ def test_production_episode_export_routes_delegate_to_application() -> None:
 
 
 def test_production_episode_audio_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_audio.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "audio.py"
     source = route.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
         encoding="utf-8"
@@ -4684,7 +4790,7 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
 
     assert source.count("episode_audio_use_cases().") == 2
     assert "GenerateEpisodeAudioCommand" in source
-    assert "production_audio.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     for handler_name in (
         "generate_tts",
         "preview_tts",
@@ -4708,7 +4814,7 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
 
 
 def test_production_video_pool_routes_and_runner_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_pool.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "pool.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
     legacy_indexer = PACKAGE_ROOT / "generators" / "video_pool_indexer.py"
     models = PACKAGE_ROOT / "models.py"
@@ -4720,7 +4826,7 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
 
     assert source.count("video_pool_use_cases().") == 2
     assert "VideoPoolEntryUnavailable" in source
-    assert "production_pool.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     for handler_name in ("list_video_pool", "select_video_pool"):
         assert f"async def {handler_name}(" in source
     for implementation_detail in (
@@ -4739,7 +4845,7 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
 
 
 def test_production_grid_pool_routes_delegate_to_application() -> None:
-    pool_route = PACKAGE_ROOT / "api" / "routes" / "production_pool.py"
+    pool_route = PACKAGE_ROOT / "api" / "routes" / "production" / "pool.py"
     pool_source = pool_route.read_text(encoding="utf-8")
     route_start = pool_source.index("async def list_grids(")
     route_source = pool_source[route_start:]
@@ -4808,14 +4914,24 @@ def test_production_grid_pool_persistence_models_have_one_owner() -> None:
         / "infrastructure"
         / "grid_pool_models.py"
     )
-    pool_indexer = PACKAGE_ROOT / "modules" / "generators" / "pool_indexer.py"
+    pool_indexer = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "pool_indexer.py"
+    )
     legacy_source = _removed_models_source(legacy_models)
     pool_source = pool_models.read_text(encoding="utf-8")
 
     for model_name in ("GridEntry", "PoolImage", "PoolIndex"):
         assert f"class {model_name}(" not in legacy_source
         assert f"class {model_name}(BaseModel):" in pool_source
-    assert "ai_anime.modules.production.public" in _imports(pool_indexer)
+    assert (
+        "ai_anime.modules.production.infrastructure.grid_pool_models"
+        in _imports(pool_indexer)
+    )
 
 
 def test_legacy_models_module_is_removed() -> None:
@@ -4846,7 +4962,7 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
         / "infrastructure"
         / "beat_prompt_generators.py"
     )
-    global_optimizer = PACKAGE_ROOT / "modules" / "agents" / "global_video_optimizer.py"
+    global_optimizer = PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "global_video_optimizer.py"
     legacy_source = _removed_models_source(legacy_models)
     model_source = script_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -4878,13 +4994,25 @@ def test_narrative_planning_event_model_has_one_owner() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
     cognee_store = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py"
     )
     event_extractor = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "event_extractor.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "event_extractor.py"
     )
     cognee_pipeline = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "pipeline.py"
     )
     cognee_package = (
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
@@ -4909,17 +5037,33 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
         / "episode_planning_models.py"
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    sqlite_repository = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "infrastructure"
+        / "sqlite_narrative.py"
+    )
     cognee_pipeline = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "pipeline.py"
     )
     cognee_package = (
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     )
-    callers = (
-        PACKAGE_ROOT / "modules" / "agents" / "episode_planner.py",
-        PACKAGE_ROOT / "modules" / "agents" / "identity_planner.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "sqlite_store.py",
+    internal_callers = (
+        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "episode_planner_agent.py",
+        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "identity_planner_agent.py",
+    )
+    external_callers = (
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
         cognee_pipeline,
     )
 
@@ -4928,8 +5072,17 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
         encoding="utf-8"
     )
     assert '"NovelEpisode"' in public.read_text(encoding="utf-8")
-    for caller in callers:
+    for caller in internal_callers:
+        assert (
+            "ai_anime.modules.narrative_planning.application.episode_planning_models"
+            in _imports(caller)
+        )
+    for caller in external_callers:
         assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
+    assert (
+        "ai_anime.modules.narrative_planning.application.episode_planning_models"
+        in _imports(sqlite_repository)
+    )
     assert "NovelEpisode" not in cognee_package.read_text(encoding="utf-8")
     assert "NovelEpisode as _NovelEpisode" in cognee_pipeline.read_text(
         encoding="utf-8"
@@ -4950,15 +5103,29 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
     owner_source = episode_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     callers = (
-        PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "modules" / "director_world" / "sync_global_props.py",
+        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "asset_compiler_agent.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "director_world"
+        / "sync_global_props.py",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
         / "infrastructure"
         / "preset_contexts.py",
-        PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "nanobanana_grid.py",
         PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "prop_catalog.py",
         PACKAGE_ROOT / "shared" / "utils" / "asset_resolver.py",
     )
@@ -4985,6 +5152,13 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         / "beat_models.py"
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
+    sqlite_repository = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "infrastructure"
+        / "sqlite_narrative.py"
+    )
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     internal_callers = tuple(
         PACKAGE_ROOT / "modules" / "narrative_planning" / "application" / name
@@ -4998,16 +5172,33 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         )
     )
     external_callers = (
-        PACKAGE_ROOT / "api" / "episodes_schemas.py",
-        PACKAGE_ROOT / "api" / "scripts_schemas.py",
-        PACKAGE_ROOT / "api" / "routes" / "assets.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py",
-        PACKAGE_ROOT / "modules" / "generators" / "prompt_builder.py",
-        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
-        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "prompt.py",
-        PACKAGE_ROOT / "sqlite_store.py",
+        PACKAGE_ROOT / "api" / "routes/narrative_planning/episodes_schemas.py",
+        PACKAGE_ROOT / "api" / "routes/narrative_planning/scripts_schemas.py",
+        PACKAGE_ROOT / "api" / "routes" / "asset_world" / "assets.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "pipeline.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "nanobanana_grid.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "prompt_builder.py",
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_assets.py",
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_prompt.py",
     )
     legacy_source = _removed_models_source(legacy_models)
     owner_source = beat_models.read_text(encoding="utf-8")
@@ -5039,6 +5230,9 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
     assert "NovelVisualBeat" not in cognee_package.read_text(encoding="utf-8")
     for caller in external_callers:
         assert "ai_anime.modules.narrative_planning.public" in _imports(caller)
+    assert "ai_anime.modules.narrative_planning.application.beat_models" in _imports(
+        sqlite_repository
+    )
 
 
 def test_asset_world_style_config_has_one_owner() -> None:
@@ -5079,15 +5273,31 @@ def test_asset_world_character_models_have_one_owner() -> None:
         / "infrastructure"
         / "character_identity.py"
     )
+    sqlite_repository = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "sqlite_assets.py"
+    )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
-    cognee_pipeline = PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py"
+    cognee_pipeline = (
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "pipeline.py"
+    )
     external_callers = (
-        PACKAGE_ROOT / "modules" / "agents" / "identity_planner.py",
+        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "identity_planner_agent.py",
         cognee_pipeline,
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "sqlite_store.py",
-        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_assets.py",
     )
     owner_source = character_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -5096,7 +5306,7 @@ def test_asset_world_character_models_have_one_owner() -> None:
     for model_name in ("CharacterIdentity", "NovelCharacter"):
         assert f"class {model_name}(BaseModel):" in owner_source
         assert f'"{model_name}"' in public_source
-    for caller in (character_catalog, character_identity):
+    for caller in (character_catalog, character_identity, sqlite_repository):
         assert "ai_anime.modules.asset_world.application.character_models" in _imports(
             caller
         )
@@ -5127,19 +5337,36 @@ def test_asset_world_prop_model_has_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "prop_catalog.py"
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
+    sqlite_repository = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "sqlite_assets.py"
+    )
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
-        PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "sqlite_store.py",
-        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "assets.py",
+        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "asset_compiler_agent.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "pipeline.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_assets.py",
     )
 
     assert "class NovelProp(" not in _removed_models_source(legacy_models)
     assert "class NovelProp(BaseModel):" in prop_models.read_text(encoding="utf-8")
     assert "ai_anime.modules.asset_world.application.prop_models" in _imports(
         prop_catalog
+    )
+    assert "ai_anime.modules.asset_world.application.prop_models" in _imports(
+        sqlite_repository
     )
     assert "ai_anime.modules.asset_world.application.prop_models" in _imports(public)
     assert '"NovelProp"' in public.read_text(encoding="utf-8")
@@ -5160,11 +5387,26 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "asset_world" / "application" / "scene_viewer.py"
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
+    sqlite_repository = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "sqlite_assets.py"
+    )
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
-        PACKAGE_ROOT / "modules" / "agents" / "asset_compiler.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "pipeline.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
+        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "asset_compiler_agent.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "pipeline.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
@@ -5177,9 +5419,10 @@ def test_asset_world_scene_model_has_one_owner() -> None:
         / "preset_payload.py",
         PACKAGE_ROOT
         / "modules"
-        / "generators"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
         / "scene_reference_images.py",
-        PACKAGE_ROOT / "sqlite_store.py",
         PACKAGE_ROOT / "shared" / "utils" / "asset_resolver.py",
     )
     legacy_source = _removed_models_source(legacy_models)
@@ -5204,6 +5447,9 @@ def test_asset_world_scene_model_has_one_owner() -> None:
     assert "ai_anime.modules.asset_world.application.scene_models" in _imports(
         scene_viewer
     )
+    assert "ai_anime.modules.asset_world.application.scene_models" in _imports(
+        sqlite_repository
+    )
     assert "ai_anime.modules.asset_world.application.scene_models" in _imports(public)
     for symbol in ("NovelScene", "build_scene_effective_prompt"):
         assert f'"{symbol}"' in public_source
@@ -5216,6 +5462,13 @@ def test_production_detected_refs_have_one_owner() -> None:
     legacy_models = PACKAGE_ROOT / "models.py"
     owner = PACKAGE_ROOT / "modules" / "production" / "domain" / "detected_refs.py"
     public = PACKAGE_ROOT / "modules" / "production" / "public.py"
+    sqlite_repository = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "infrastructure"
+        / "sqlite_narrative.py"
+    )
     internal_callers = (
         PACKAGE_ROOT / "modules" / "production" / "domain" / "sketch_color.py",
         PACKAGE_ROOT
@@ -5224,18 +5477,27 @@ def test_production_detected_refs_have_one_owner() -> None:
         / "domain"
         / "sketch_marker_detection.py",
         PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "sketch_pose.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "prompt_builder.py",
     )
     external_callers = (
-        PACKAGE_ROOT / "api" / "routes" / "assets.py",
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "store.py",
-        PACKAGE_ROOT / "sqlite_store.py",
+        PACKAGE_ROOT / "api" / "routes" / "asset_world" / "assets.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "knowledge_graph"
+        / "infrastructure"
+        / "store.py",
+        sqlite_repository,
         PACKAGE_ROOT / "modules" / "asset_world" / "application" / "scene_viewer.py",
         PACKAGE_ROOT
         / "modules"
         / "narrative_planning"
         / "application"
         / "literal_script_writing.py",
-        PACKAGE_ROOT / "modules" / "generators" / "prompt_builder.py",
     )
     constants = ("NO_CHARACTER_MARKER", "NO_PROP_MARKER")
     functions = (
@@ -5284,12 +5546,68 @@ def test_production_detected_refs_have_one_owner() -> None:
     assert not legacy_imports, "\n".join(legacy_imports)
 
 
+def test_seedance2_capability_is_owned_by_production() -> None:
+    production = PACKAGE_ROOT / "modules" / "production"
+    legacy = PACKAGE_ROOT / "modules" / "seedance2_i2v"
+    owners = (
+        production / "application" / "seedance2_config.py",
+        production / "domain" / "seedance2_dialogue.py",
+        production / "infrastructure" / "seedance2_assets.py",
+        production / "infrastructure" / "seedance2_panel_service.py",
+        production / "infrastructure" / "seedance2_pipeline.py",
+        production / "infrastructure" / "seedance2_prompt.py",
+        production / "infrastructure" / "seedance2_voice.py",
+        production / "infrastructure" / "seedance2_voice_records.py",
+        production / "infrastructure" / "seedance2_voice_references.py",
+        production / "infrastructure" / "indextts2_beat_audio_task.py",
+    )
+    public_source = (production / "public.py").read_text(encoding="utf-8")
+
+    assert not list(legacy.rglob("*.py"))
+    assert all(path.is_file() for path in owners)
+    for export in (
+        "Seedance2I2VMode",
+        "generate_seedance2_prompt_for_panel",
+        "prepare_seedance2_generation_inputs",
+        "run_indextts2_beat_audio_generation",
+    ):
+        assert f'"{export}"' in public_source
+
+
+def test_agent_implementations_are_owned_by_business_contexts() -> None:
+    modules = PACKAGE_ROOT / "modules"
+    legacy = modules / "agents"
+    narrative = modules / "narrative_planning"
+    production = modules / "production"
+    owners = (
+        narrative / "infrastructure" / "asset_compiler_agent.py",
+        narrative / "infrastructure" / "content_rewriter_agent.py",
+        narrative / "infrastructure" / "episode_planner_agent.py",
+        narrative / "infrastructure" / "identity_planner_agent.py",
+        narrative / "infrastructure" / "keyframe_prompt_builder.py",
+        production / "infrastructure" / "global_video_optimizer.py",
+    )
+    narrative_public = (narrative / "public.py").read_text(encoding="utf-8")
+    production_public = (production / "public.py").read_text(encoding="utf-8")
+
+    assert not list(legacy.rglob("*.py"))
+    assert all(path.is_file() for path in owners)
+    for export in ("AssetCompiler", "EpisodePlannerAgent", "IdentityPlanner"):
+        assert f'"{export}"' in narrative_public
+    for export in (
+        "build_color_appearance_map",
+        "get_global_video_optimizer",
+        "prepare_global_optimizer_input",
+    ):
+        assert f'"{export}"' in production_public
+
+
 def test_production_video_models_use_the_commercial_catalog_contract() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
-    video_schemas = PACKAGE_ROOT / "api" / "production_video_schemas.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
+    video_schemas = PACKAGE_ROOT / "api" / "routes/production/video_schemas.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
     seedance_pipeline = (
-        PACKAGE_ROOT / "modules" / "seedance2_i2v" / "pipeline.py"
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_pipeline.py"
     )
     source = route.read_text(encoding="utf-8")
 
@@ -5319,7 +5637,7 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
 
 
 def test_production_global_video_optimization_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
     source = route.read_text(encoding="utf-8")
 
@@ -5343,7 +5661,7 @@ def test_production_global_video_optimization_route_delegates_to_application() -
 
 
 def test_production_sketch_generation_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     sketch_runner = TASK_RUNNERS_ROOT / "sketch.py"
     source = route.read_text(encoding="utf-8")
     handler_source = _function_source(route, "generate_sketches")
@@ -5353,7 +5671,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
 
     assert source.count("sketch_generation_use_cases().") == 1
     assert "GenerateSketchesCommand" in handler_source
-    assert "production_sketch.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     assert "async def generate_sketches(" in handler_source
     for implementation_detail in (
         "load_project_config",
@@ -5377,7 +5695,7 @@ def test_production_sketch_generation_route_delegates_to_application() -> None:
 
 
 def test_production_director_control_sketch_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     freezone = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     sketch_runner = TASK_RUNNERS_ROOT / "sketch.py"
     source = route.read_text(encoding="utf-8")
@@ -5404,7 +5722,7 @@ def test_production_director_control_sketch_route_delegates_to_application() -> 
 
 
 def test_production_selected_regeneration_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "render.py"
     render_runner = TASK_RUNNERS_ROOT / "render.py"
     source = route.read_text(encoding="utf-8")
 
@@ -5437,7 +5755,7 @@ def test_production_selected_regeneration_routes_delegate_to_application() -> No
 
 
 def test_production_manual_sketch_regeneration_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     source = route.read_text(encoding="utf-8")
     handler_source = _function_source(route, "generate_missing_manual_sketches")
 
@@ -5465,7 +5783,7 @@ def test_production_manual_sketch_regeneration_route_delegates_to_application() 
 
 
 def test_production_grid_regeneration_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "render.py"
     render_runner = TASK_RUNNERS_ROOT / "render.py"
     source = route.read_text(encoding="utf-8")
 
@@ -5494,8 +5812,8 @@ def test_production_grid_regeneration_route_delegates_to_application() -> None:
 
 
 def test_production_render_plan_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_render.py"
-    schemas = PACKAGE_ROOT / "api" / "production_render_schemas.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "render.py"
+    schemas = PACKAGE_ROOT / "api" / "routes/production/render_schemas.py"
     render_plan_package = PACKAGE_ROOT / "render_plan"
     source = route.read_text(encoding="utf-8")
     api_router_source = (PACKAGE_ROOT / "api" / "v1" / "router.py").read_text(
@@ -5506,7 +5824,7 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
     assert "BuildRenderPlanCommand" in source
     assert "ExecuteRenderPlanCommand" in source
     assert "RenderPlanGrid" in source
-    assert "production_render.router" in api_router_source
+    assert "production.create_router()" in api_router_source
     for handler_name in ("render_plan", "render_execute"):
         assert f"async def {handler_name}(" in source
     for helper_name in (
@@ -5550,7 +5868,7 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
 
 
 def test_production_seedance2_panel_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
     source = route.read_text(encoding="utf-8")
 
     assert source.count("seedance2_panel_use_cases().") == 5
@@ -5578,7 +5896,7 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
 
 
 def test_production_single_video_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_video.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
     source = route.read_text(encoding="utf-8")
 
@@ -5643,11 +5961,15 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
 
 def test_production_sketch_color_rules_have_one_owner() -> None:
     nanobanana = (
-        PACKAGE_ROOT / "modules" / "generators" / "nanobanana_grid.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "nanobanana_grid.py"
     )
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     callers = {
-        nanobanana: "global_prop_marker_colors",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
@@ -5668,6 +5990,9 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
     assert "def _color_assignment_requires_full_sketch_clean(" not in (
         route.read_text(encoding="utf-8")
     )
+    assert "global_prop_marker_colors" in nanobanana.read_text(encoding="utf-8")
+    assert "ai_anime.modules.production.domain.sketch_color" in _imports(nanobanana)
+    assert "ai_anime.modules.production.public" not in _imports(nanobanana)
     for path, public_name in callers.items():
         source = path.read_text(encoding="utf-8")
         assert public_name in source
@@ -5676,7 +6001,7 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
 
 
 def test_production_sketch_color_assignment_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     source = route.read_text(encoding="utf-8")
 
     assert source.count("sketch_marker_use_cases().assign_colors") == 1
@@ -5703,7 +6028,7 @@ def test_production_sketch_color_assignment_route_delegates_to_application() -> 
 
 
 def test_production_sketch_marker_detection_route_delegates_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "production_sketch.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     production_public = PACKAGE_ROOT / "modules" / "production" / "public.py"
     models = PACKAGE_ROOT / "models.py"
     domain = (
@@ -5763,7 +6088,7 @@ def test_asset_world_style_layers_do_not_depend_on_fastapi() -> None:
 
 
 def test_asset_world_style_route_remains_an_http_adapter() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "styles.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "styles.py"
     imported_modules = _imports(route)
     source = route.read_text(encoding="utf-8")
 
@@ -5783,7 +6108,7 @@ def test_asset_world_style_route_remains_an_http_adapter() -> None:
 
 
 def test_asset_world_character_voice_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
     assert "character_voice_use_cases" in source
@@ -5802,7 +6127,7 @@ def test_asset_world_character_voice_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_character_catalog_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
     assert "character_catalog_use_cases" in source
@@ -5818,7 +6143,7 @@ def test_asset_world_character_catalog_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_prop_catalog_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "props.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "props.py"
     source = route.read_text(encoding="utf-8")
 
     assert "prop_catalog_use_cases" in source
@@ -5838,7 +6163,7 @@ def test_asset_world_prop_catalog_routes_delegate_to_application() -> None:
 
 def test_episode_prop_promotion_uses_asset_world_public_api() -> None:
     callers = (
-        PACKAGE_ROOT / "api" / "routes" / "episodes.py",
+        PACKAGE_ROOT / "api" / "routes" / "narrative_planning" / "episodes.py",
         TASK_RUNNERS_ROOT / "episode_assets.py",
     )
 
@@ -5899,9 +6224,11 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
         / "production"
         / "infrastructure"
         / "generation_context.py",
-        PACKAGE_ROOT / "modules" / "agents" / "global_video_optimizer.py",
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "global_video_optimizer.py",
         PACKAGE_ROOT
         / "modules"
+        / "asset_world"
+        / "infrastructure"
         / "director_world"
         / "control_frame_to_sketch.py",
         PACKAGE_ROOT
@@ -5915,12 +6242,15 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
     for path in callers:
         source = path.read_text(encoding="utf-8")
         assert "build_character_map_for_grid" in source
-        assert "ai_anime.modules.asset_world.public" in _imports(path)
+        if "director_world" in path.parts:
+            assert "ai_anime.modules.asset_world.composition" in _imports(path)
+        else:
+            assert "ai_anime.modules.asset_world.public" in _imports(path)
         assert "ai_anime.services.character_ref_service" not in source
 
 
 def test_removed_character_auto_promotion_service_does_not_return() -> None:
-    planner = PACKAGE_ROOT / "modules" / "agents" / "identity_planner.py"
+    planner = PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "identity_planner_agent.py"
     source = planner.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "character_promotion_service.py").exists()
@@ -5929,7 +6259,7 @@ def test_removed_character_auto_promotion_service_does_not_return() -> None:
 
 
 def test_asset_world_prop_task_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "props.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "props.py"
     source = route.read_text(encoding="utf-8")
 
     assert "prop_task_use_cases" in source
@@ -5944,7 +6274,7 @@ def test_asset_world_prop_task_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_scene_catalog_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py"
     source = route.read_text(encoding="utf-8")
 
     assert "scene_catalog_use_cases" in source
@@ -5964,7 +6294,7 @@ def test_asset_world_scene_catalog_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_scene_task_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py"
     source = route.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(route))
     task_adapters = "\n".join(
@@ -5999,7 +6329,7 @@ def test_asset_world_scene_task_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_scene_media_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py"
     source = route.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(route))
     media_adapters = "\n".join(
@@ -6033,7 +6363,7 @@ def test_asset_world_scene_media_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_scene_viewer_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "scenes.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py"
     source = route.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(route))
     viewer_adapters = "\n".join(
@@ -6147,8 +6477,8 @@ def test_asset_world_beat_director_stage_routes_delegate_to_application() -> Non
         "_director_overlay_status_payload",
         "_decode_png_data_url",
         "_director_control_frame_export_payload",
-        "ai_anime.modules.director_world.store",
-        "ai_anime.modules.director_world.paths",
+        "ai_anime.modules.asset_world.infrastructure.director_world.store",
+        "ai_anime.modules.asset_world.infrastructure.director_world.paths",
     ):
         assert legacy_implementation not in source
     assert "def _beat_scene_name(" not in source
@@ -6205,7 +6535,9 @@ def test_asset_world_background_anchor_routes_delegate_to_application() -> None:
 
 def test_asset_routes_share_one_project_media_url_builder() -> None:
     route_sources = {
-        name: (PACKAGE_ROOT / "api" / "routes" / name).read_text(encoding="utf-8")
+        name: (
+            PACKAGE_ROOT / "api" / "routes" / "asset_world" / name
+        ).read_text(encoding="utf-8")
         for name in ("characters.py", "props.py", "scenes.py")
     }
     beat_viewer_route_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
@@ -6227,8 +6559,8 @@ def test_asset_routes_share_one_project_media_url_builder() -> None:
 
 
 def test_asset_world_character_identity_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
-    canvas_route = PACKAGE_ROOT / "api" / "routes" / "canvas" / "assets.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
+    canvas_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "assets.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT
@@ -6268,7 +6600,7 @@ def test_asset_world_character_identity_routes_delegate_to_application() -> None
 
 
 def test_asset_world_character_asset_history_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
     assert "character_asset_history_use_cases" in source
@@ -6286,7 +6618,7 @@ def test_asset_world_character_asset_history_routes_delegate_to_application() ->
 
 
 def test_asset_world_character_image_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
     assert "character_image_use_cases" in source
@@ -6303,12 +6635,12 @@ def test_asset_world_character_image_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_image_settings_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
-    props_source = (PACKAGE_ROOT / "api" / "routes" / "props.py").read_text(
+    props_source = (PACKAGE_ROOT / "api" / "routes" / "asset_world" / "props.py").read_text(
         encoding="utf-8"
     )
-    scenes_source = (PACKAGE_ROOT / "api" / "routes" / "scenes.py").read_text(
+    scenes_source = (PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py").read_text(
         encoding="utf-8"
     )
 
@@ -6342,7 +6674,7 @@ def test_asset_world_image_settings_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_character_task_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
     assert "character_task_use_cases" in source
@@ -6355,7 +6687,7 @@ def test_asset_world_character_task_routes_delegate_to_application() -> None:
 
 
 def test_asset_world_character_generation_routes_delegate_to_application() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "characters.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
     assert "character_generation_use_cases" in source
@@ -6389,14 +6721,14 @@ def test_asset_world_character_image_runner_is_an_adapter() -> None:
 
 
 def test_narrative_script_route_remains_an_http_adapter() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "scripts.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "narrative_planning" / "scripts.py"
     imported_modules = _imports(route)
     forbidden_imports = {
         imported
         for imported in imported_modules
         if imported == "ai_anime.shared.ports"
         or imported == "ai_anime.task_identity"
-        or imported.startswith("ai_anime.modules.seedance2_i2v")
+        or imported.startswith("ai_anime.modules.production.infrastructure.seedance2")
     }
     source = route.read_text(encoding="utf-8")
     forbidden_calls = {
@@ -6415,7 +6747,7 @@ def test_narrative_script_route_remains_an_http_adapter() -> None:
 
 
 def test_narrative_episode_route_remains_an_http_adapter() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "episodes.py"
+    route = PACKAGE_ROOT / "api" / "routes" / "narrative_planning" / "episodes.py"
     imported_modules = _imports(route)
     source = route.read_text(encoding="utf-8")
 

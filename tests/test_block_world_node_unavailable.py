@@ -7,14 +7,18 @@ import pytest
 
 def test_block_world_module_imports_in_ce_base():
     # Import-safe in CE base (stdlib + sibling palette modules; no node needed to import).
-    from ai_anime.modules.director_world import block_world_builder
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        block_world_builder,
+    )
 
     assert hasattr(block_world_builder, "BlockWorldUnavailable")
     assert hasattr(block_world_builder, "node_available")
 
 
 def test_node_available_reflects_shutil_which(monkeypatch):
-    from ai_anime.modules.director_world import block_world_builder
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        block_world_builder,
+    )
 
     monkeypatch.setattr(shutil, "which", lambda name: None)
     assert block_world_builder.node_available() is False
@@ -24,7 +28,9 @@ def test_node_available_reflects_shutil_which(monkeypatch):
 
 
 def test_execute_build_code_without_node_raises_typed(monkeypatch):
-    from ai_anime.modules.director_world import block_world_builder
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        block_world_builder,
+    )
 
     monkeypatch.setattr(shutil, "which", lambda name: None)
 
@@ -35,7 +41,9 @@ def test_execute_build_code_without_node_raises_typed(monkeypatch):
 
 
 def test_block_world_unavailable_is_handled_task_failure():
-    from ai_anime.modules.director_world.block_world_builder import BlockWorldUnavailable
+    from ai_anime.modules.asset_world.infrastructure.director_world.block_world_builder import (
+        BlockWorldUnavailable,
+    )
     from ai_anime.modules.task_execution.application.project_task_execution import (
         project_task_failure_for_exception,
     )
@@ -52,26 +60,28 @@ def test_block_world_unavailable_is_handled_task_failure():
 def test_run_voxel_world_missing_node_fails_before_subprocess(tmp_path, monkeypatch):
     from PIL import Image
 
-    from ai_anime import stage_asset_tasks
-    from ai_anime.modules.director_world import block_world_builder
+    from ai_anime.modules.asset_world.infrastructure.director_world import (
+        block_world_builder,
+        voxel_world_tasks,
+    )
 
     layout = tmp_path / "spatial_layout.png"
     Image.new("RGB", (8, 8), "white").save(layout)
 
     monkeypatch.setattr(
-        stage_asset_tasks,
+        voxel_world_tasks,
         "compute_scene_spatial_layout_path",
         lambda *_a, **_k: str(layout),
     )
     monkeypatch.setattr(block_world_builder, "node_available", lambda: False)
     monkeypatch.setattr(
-        stage_asset_tasks,
-        "run_project_subprocess",
+        voxel_world_tasks,
+        "run_project_model_subprocess",
         lambda *_args, **_kwargs: pytest.fail("voxel subprocess should not be spawned"),
     )
 
     with pytest.raises(block_world_builder.BlockWorldUnavailable) as exc:
-        stage_asset_tasks.run_voxel_world_from_360(
+        voxel_world_tasks.run_voxel_world_from_360(
             tmp_path,
             "scene_a",
         )

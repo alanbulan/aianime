@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, AsyncIterator
 
 from fastapi import Depends
 
-from ai_anime.api.auth import get_api_user
+from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     require_project_home_node,
@@ -25,7 +25,7 @@ from ai_anime.shared.project_media import (
 )
 
 if TYPE_CHECKING:
-    from ai_anime.modules.knowledge_graph import CogneeStore
+    from ai_anime.modules.knowledge_graph.public import CogneeStore
     from ai_anime.sqlite_store import SQLiteStore
 
 

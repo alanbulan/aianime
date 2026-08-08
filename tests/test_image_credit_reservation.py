@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.modules.generators import image_generator
+from ai_anime.modules.production.infrastructure.media_generation import image_generator
 from ai_anime.modules.model_usage.public import InsufficientCreditsError
 
 pytestmark = pytest.mark.m04

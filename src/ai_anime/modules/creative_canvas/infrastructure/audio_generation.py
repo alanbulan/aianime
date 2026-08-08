@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.generators.public import IndexTTS2Client
-from ai_anime.model_audio_transport import write_model_audio_speech
+from ai_anime.modules.production.public import IndexTTS2Client
+from ai_anime.modules.model_usage.public import write_model_audio_speech
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasGeneratedAudio,
 )
@@ -16,11 +16,11 @@ from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
     USER_VOICE_SCOPE,
 )
 from ai_anime.modules.creative_canvas.infrastructure.paths import outputs_dir
-from ai_anime.project_config import (
+from ai_anime.modules.project_workspace.public import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.modules.seedance2_i2v.public import (
+from ai_anime.modules.production.public import (
     build_reference_audio_url,
     file_sha256,
     narration_style_prompt,

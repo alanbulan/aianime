@@ -6,8 +6,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ai_anime.config import IMAGE_DEFAULT_STYLE as PROP_REF_DEFAULT_STYLE
-from ai_anime.modules.generators.public import build_prop_reference_prompt
+from ai_anime.modules.production.public import (
+    IMAGE_DEFAULT_STYLE as PROP_REF_DEFAULT_STYLE,
+)
+from ai_anime.modules.production.public import build_prop_reference_prompt
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.creative_canvas.domain import (
@@ -274,7 +276,7 @@ async def build_beat_preset_context(
             sketch_colors = {}
 
     try:
-        from ai_anime.project_config import load_project_config_file
+        from ai_anime.modules.project_workspace.public import load_project_config_file
 
         project_config = load_project_config_file(username, project) if project else {}
     except Exception:
@@ -477,8 +479,11 @@ def _project_style_meta(
     username: str, project: str, project_dir: Path
 ) -> dict[str, str]:
     try:
-        from ai_anime.config import IMAGE_DEFAULT_STYLE, get_style_preset
-        from ai_anime.project_config import load_project_config
+        from ai_anime.modules.production.public import (
+            IMAGE_DEFAULT_STYLE,
+            get_style_preset,
+        )
+        from ai_anime.modules.project_workspace.public import load_project_config
 
         project_config = load_project_config(username, project)
         style_id = str(
@@ -542,11 +547,14 @@ async def build_asset_preset_context(
         portrait_prompt = str(getattr(char, "face_prompt", "") or "").strip()
         char_age_group = str(getattr(char, "age_group", "") or "youth")
         try:
-            from ai_anime.config import IMAGE_DEFAULT_STYLE, get_style_preset
-            from ai_anime.modules.generators.public import (
+            from ai_anime.modules.production.public import (
+                IMAGE_DEFAULT_STYLE,
+                get_style_preset,
+            )
+            from ai_anime.modules.production.public import (
                 NanoBananaCharacterGenerator,
             )
-            from ai_anime.project_config import load_project_config
+            from ai_anime.modules.project_workspace.public import load_project_config
 
             project_config = load_project_config(username, project)
             project_style = str(
@@ -1094,7 +1102,7 @@ async def build_asset_preset_context(
         if effective_description:
             prop_profile["description"] = effective_description
         try:
-            from ai_anime.project_config import load_project_config_file
+            from ai_anime.modules.project_workspace.public import load_project_config_file
 
             project_config = (
                 load_project_config_file(username, project) if project else {}

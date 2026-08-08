@@ -12,9 +12,9 @@ from ai_anime.modules.project_workspace.infrastructure.local_registry import (
 def local_registry(monkeypatch, tmp_path):
     state = tmp_path / "state"
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state))
-    import ai_anime.config as config
+    import ai_anime.modules.project_workspace.infrastructure.local_registry as registry_module
 
-    monkeypatch.setattr(config, "STATE_DIR", str(state), raising=False)
+    monkeypatch.setattr(registry_module, "STATE_DIR", str(state))
     return SQLiteProjectRegistry()
 
 

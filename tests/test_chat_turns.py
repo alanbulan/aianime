@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import ai_anime.api.chat_turns as chat_turns
-from ai_anime.api.chat_schemas import (
+import ai_anime.api.routes.ai_assistant.turns as chat_turns
+from ai_anime.api.routes.ai_assistant.schemas import (
     ChatAttachmentIn,
     ChatMessageIn,
     ChatScopePayload,

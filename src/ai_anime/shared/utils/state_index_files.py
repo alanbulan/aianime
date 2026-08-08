@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
-from ai_anime.config import OUTPUT_DIR, STATE_DIR
+from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
 
 try:
     import fcntl

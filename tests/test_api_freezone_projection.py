@@ -10,8 +10,8 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture()
 def projection_client(monkeypatch, tmp_path):
-    from ai_anime.api.auth import get_api_user
-    from ai_anime.api.routes.canvas import projections
+    from ai_anime.api.routes.identity_access.dependencies import get_api_user
+    from ai_anime.api.routes.creative_canvas import projections
 
     project_dir = tmp_path / "project"
     project_dir.mkdir(parents=True, exist_ok=True)

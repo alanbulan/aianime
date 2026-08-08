@@ -4,7 +4,7 @@ from pydantic_ai.exceptions import UnexpectedModelBehavior
 from pydantic_ai.messages import ModelResponse, RetryPromptPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
-from ai_anime.modules.agents.identity_planner import (
+from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import (
     AppearanceDescription,
     EpisodeIdentityRequirements,
     IdentityPlanner,

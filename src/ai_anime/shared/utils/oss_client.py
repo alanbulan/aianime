@@ -13,6 +13,9 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Optional
 
+from ai_anime.shared import oss_settings
+from ai_anime.shared.runtime_paths import OUTPUT_DIR
+
 logger = logging.getLogger("ai_anime.oss_client")
 
 _bucket_lock = threading.Lock()
@@ -32,14 +35,12 @@ def _monotonic() -> float:
 
 
 def _read_creds() -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
-    from ai_anime import config
-
-    endpoint = getattr(config, "OSS_PUBLIC_ENDPOINT", None) or getattr(config, "OSS_ENDPOINT", None)
+    endpoint = oss_settings.OSS_PUBLIC_ENDPOINT or oss_settings.OSS_ENDPOINT
     return (
         endpoint,
-        getattr(config, "OSS_BUCKET", None),
-        getattr(config, "OSS_ACCESS_KEY_ID", None),
-        getattr(config, "OSS_ACCESS_KEY_SECRET", None),
+        oss_settings.OSS_BUCKET,
+        oss_settings.OSS_ACCESS_KEY_ID,
+        oss_settings.OSS_ACCESS_KEY_SECRET,
     )
 
 
@@ -76,16 +77,14 @@ def get_bucket():
 def local_path_to_key(local_path: str | Path) -> Optional[str]:
     """Map an ``OUTPUT_DIR`` local path to an OSS object key."""
 
-    from ai_anime import config
-
     try:
         path = Path(local_path).resolve()
-        root = Path(config.OUTPUT_DIR).resolve()
+        root = Path(OUTPUT_DIR).resolve()
         rel = path.relative_to(root)
     except Exception:
         return None
     rel_key = "/".join(rel.parts)
-    prefix = str(getattr(config, "OSS_OBJECT_PREFIX", "") or "").strip("/")
+    prefix = str(oss_settings.OSS_OBJECT_PREFIX or "").strip("/")
     return f"{prefix}/{rel_key}" if prefix else rel_key
 
 
@@ -139,14 +138,12 @@ def maybe_presign_existing_output(
 ) -> Optional[str]:
     """Presign an ``OUTPUT_DIR`` file only if the OSS object already exists."""
 
-    from ai_anime import config
-
     key = local_path_to_key(local_path)
     if key is None:
         return None
     if not object_exists(key):
         return None
-    expire_seconds = int(expires or getattr(config, "OSS_PRESIGN_EXPIRES", 900))
+    expire_seconds = int(expires or oss_settings.OSS_PRESIGN_EXPIRES)
     return presign_get(key, expire_seconds)
 
 
@@ -171,14 +168,12 @@ def presign_or_upload_output(
 ) -> Optional[str]:
     """Presign an OUTPUT_DIR file, uploading it first if the object is missing."""
 
-    from ai_anime import config
-
     key = local_path_to_key(local_path)
     if key is None:
         return None
     if not object_exists(key) and not upload_output_object(local_path, key):
         return None
-    expire_seconds = int(expires or getattr(config, "OSS_PRESIGN_EXPIRES", 900))
+    expire_seconds = int(expires or oss_settings.OSS_PRESIGN_EXPIRES)
     return presign_get(key, expire_seconds)
 
 
@@ -211,9 +206,7 @@ def _head_last_modified_ts(head_result) -> float | None:
 
 
 def _static_object_ready(local_path: str | Path, key: str, version_key: int) -> bool:
-    from ai_anime import config
-
-    if not getattr(config, "OSS_STATIC_REQUIRE_READY", True):
+    if not oss_settings.OSS_STATIC_REQUIRE_READY:
         return True
 
     cache_key = (key, int(version_key))
@@ -233,8 +226,11 @@ def _static_object_ready(local_path: str | Path, key: str, version_key: int) -> 
     except OSError:
         return False
 
-    attempts = max(1, int(getattr(config, "OSS_STATIC_READY_PROBE_ATTEMPTS", 3)))
-    probe_delay = max(0.0, float(getattr(config, "OSS_STATIC_READY_PROBE_DELAY_SECONDS", 0.15)))
+    attempts = max(1, int(oss_settings.OSS_STATIC_READY_PROBE_ATTEMPTS))
+    probe_delay = max(
+        0.0,
+        float(oss_settings.OSS_STATIC_READY_PROBE_DELAY_SECONDS),
+    )
 
     for attempt in range(attempts):
         try:
@@ -259,9 +255,7 @@ def _static_object_ready(local_path: str | Path, key: str, version_key: int) -> 
 
 
 def maybe_presign_static(local_path: str | Path, version_key: int) -> Optional[str]:
-    from ai_anime import config
-
-    if not getattr(config, "STATIC_VIA_OSS", False):
+    if not oss_settings.STATIC_VIA_OSS:
         return None
     key = local_path_to_key(local_path)
     if key is None:
@@ -271,19 +265,17 @@ def maybe_presign_static(local_path: str | Path, version_key: int) -> Optional[s
     return presign_get_cached(
         key,
         int(version_key),
-        int(getattr(config, "OSS_STATIC_PRESIGN_EXPIRES", 3600)),
+        int(oss_settings.OSS_STATIC_PRESIGN_EXPIRES),
     )
 
 
 def maybe_presign_download(local_path: str | Path) -> Optional[str]:
-    from ai_anime import config
-
-    if not getattr(config, "DOWNLOAD_VIA_OSS", False):
+    if not oss_settings.DOWNLOAD_VIA_OSS:
         return None
     key = local_path_to_key(local_path)
     if key is None:
         return None
-    return presign_get(key, int(getattr(config, "OSS_PRESIGN_EXPIRES", 900)))
+    return presign_get(key, int(oss_settings.OSS_PRESIGN_EXPIRES))
 
 
 def _reset_for_tests() -> None:

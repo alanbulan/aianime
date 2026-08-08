@@ -5,10 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from ai_anime.modules.director_world.public import (
+from ai_anime.modules.asset_world.infrastructure.director_world import stage_manifest
+from ai_anime.modules.asset_world.infrastructure.director_world.paths import (
     blockings_dir,
     fs_url,
-    stage_manifest,
 )
 from ai_anime.modules.asset_world.application.dto import SceneViewerAssetState
 from ai_anime.shared.utils.path_resolver import compute_scene_master_path

@@ -3,7 +3,9 @@ from pathlib import Path
 
 
 def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
-    from ai_anime.modules.generators.prompt_builder import default_ethnicity_instruction
+    from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
+        default_ethnicity_instruction,
+    )
 
     instruction = default_ethnicity_instruction("Chinese")
 
@@ -17,7 +19,7 @@ def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
 
 
 def test_character_default_ethnicity_instruction_allows_explicit_foreign_descriptions():
-    from ai_anime.modules.generators.nanobanana_character import (
+    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_character import (
         _default_ethnicity_instruction,
     )
 
@@ -37,8 +39,12 @@ def test_character_default_ethnicity_instruction_allows_explicit_foreign_descrip
 
 def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
     files = [
-        Path("src/ai_anime/modules/generators/prompt_builder.py"),
-        Path("src/ai_anime/modules/generators/nanobanana_character.py"),
+        Path(
+            "src/ai_anime/modules/production/infrastructure/media_generation/prompt_builder.py"
+        ),
+        Path(
+            "src/ai_anime/modules/production/infrastructure/media_generation/nanobanana_character.py"
+        ),
     ]
     forbidden_literals = [
         "East Asian facial features",

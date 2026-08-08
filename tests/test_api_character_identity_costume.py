@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import UploadFile
 
-from ai_anime.api.characters_schemas import IdentityCreate
+from ai_anime.api.routes.asset_world.characters_schemas import IdentityCreate
 from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 
 
@@ -88,7 +88,7 @@ def _write_png(path: Path, color: tuple[int, int, int]) -> bytes:
 async def test_delete_identity_costume_removes_file_and_clears_store(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     costume_path = tmp_path / "assets" / "characters" / "秦" / "identities" / "少年_costume.png"
     costume_path.parent.mkdir(parents=True)
@@ -120,7 +120,7 @@ async def test_delete_identity_costume_removes_file_and_clears_store(
 async def test_delete_identity_costume_is_idempotent_when_file_missing(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     identity = CharacterIdentity(
         identity_id="秦_少年",
@@ -146,7 +146,7 @@ async def test_delete_identity_costume_is_idempotent_when_file_missing(
 
 @pytest.mark.asyncio
 async def test_add_identity_persists_age_group(tmp_path, monkeypatch):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     character = NovelCharacter(name="秦")
     store = _CharacterStore(character)
@@ -170,7 +170,7 @@ async def test_add_identity_persists_age_group(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_upload_identity_costume_returns_project_context_url(tmp_path, monkeypatch):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     identity = CharacterIdentity(
         identity_id="秦_少年",
@@ -216,7 +216,7 @@ async def test_upload_identity_costume_returns_project_context_url(tmp_path, mon
 
 @pytest.mark.asyncio
 async def test_upload_identity_portrait_returns_project_context_url(tmp_path, monkeypatch):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     identity = CharacterIdentity(
         identity_id="秦_少年",
@@ -266,7 +266,7 @@ async def test_upload_identity_portrait_returns_project_context_url(tmp_path, mo
 
 @pytest.mark.asyncio
 async def test_upload_identity_image_backs_up_existing_file(tmp_path, monkeypatch):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     identity = CharacterIdentity(
         identity_id="秦_少年",
@@ -298,7 +298,7 @@ async def test_upload_identity_image_backs_up_existing_file(tmp_path, monkeypatc
 
 @pytest.mark.asyncio
 async def test_character_asset_history_lists_backups(tmp_path, monkeypatch):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     identity = CharacterIdentity(
         identity_id="秦_少年",
@@ -333,7 +333,7 @@ async def test_character_asset_history_lists_backups(tmp_path, monkeypatch):
 async def test_restore_character_asset_history_backs_up_current_and_restores_backup(
     tmp_path, monkeypatch
 ):
-    from ai_anime.api.routes import characters
+    from ai_anime.api.routes.asset_world import characters
 
     identity = CharacterIdentity(
         identity_id="秦_少年",

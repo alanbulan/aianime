@@ -7,13 +7,13 @@ from typing import Mapping
 import pytest
 from pydantic import ValidationError
 
-from ai_anime.api.canvas_video_schemas import (
+from ai_anime.api.routes.creative_canvas.video_schemas import (
     FreezoneImageToVideoRequest,
     FreezoneKeyframeVideoRequest,
     FreezoneVideoGenRequest,
 )
-from ai_anime.api.routes.canvas import video as video_routes
-from ai_anime.model_access_policy import configure_model_access
+from ai_anime.api.routes.creative_canvas import video as video_routes
+from ai_anime.modules.model_usage.public import configure_model_access
 from ai_anime.modules.creative_canvas.application.task_submission import (
     CreativeCanvasTaskReceipt,
     CreativeCanvasTaskSubmission,

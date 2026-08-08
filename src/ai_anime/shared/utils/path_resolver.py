@@ -13,6 +13,12 @@ from ai_anime.modules.task_execution.public import selection_scope
 from ai_anime.shared.utils.state_index_files import resolve_state_index_path
 
 
+def safe_path_name(value: str, *, fallback: str = "scene") -> str:
+    safe = re.sub(r"[/\\:*?\"<>|]+", "_", str(value or "").strip())
+    safe = safe.strip().strip(".")
+    return safe or fallback
+
+
 def _scene_dir(project_dir: Path, scene_name: str) -> Path:
     return project_dir / "assets" / "scenes" / scene_name
 

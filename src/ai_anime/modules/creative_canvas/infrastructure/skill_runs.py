@@ -58,7 +58,7 @@ from ai_anime.shared.project_media import (
     make_static_url_for_context,
     resolve_project_media_path,
 )
-from ai_anime.task_state import get_task_manager
+from ai_anime.modules.task_execution.public import get_task_manager
 from ai_anime.shared.utils.background_anchor import copy_to_beat_selected_background
 from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -221,7 +221,7 @@ class LocalCreativeCanvasSkillWorkspace(CreativeCanvasSkillWorkspace):
         aspect_ratio: str,
         model: str,
     ) -> str:
-        from ai_anime.modules.generators.public import (
+        from ai_anime.modules.production.public import (
             PromptMode,
             UnifiedPromptBuilder,
             create_prompt_context,

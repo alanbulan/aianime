@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 def test_scene_360_command_has_no_provider_override(monkeypatch, tmp_path):
-    from ai_anime import stage_asset_tasks
+    from ai_anime.modules.asset_world.infrastructure.director_world import scene_360_tasks
 
     captured: dict[str, object] = {}
 
@@ -13,11 +13,11 @@ def test_scene_360_command_has_no_provider_override(monkeypatch, tmp_path):
         (generation_dir / "scene_panorama_2to1.png").write_bytes(b"image")
         return type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
-    monkeypatch.setattr(stage_asset_tasks, "run_project_model_subprocess", fake_run)
-    monkeypatch.setattr(stage_asset_tasks, "_reserve_scene_360_model_call", lambda *a, **k: "")
-    monkeypatch.setattr(stage_asset_tasks, "_confirm_scene_360_model_call", lambda *a, **k: None)
+    monkeypatch.setattr(scene_360_tasks, "run_project_model_subprocess", fake_run)
+    monkeypatch.setattr(scene_360_tasks, "_reserve_scene_360_model_call", lambda *a, **k: "")
+    monkeypatch.setattr(scene_360_tasks, "_confirm_scene_360_model_call", lambda *a, **k: None)
 
-    result = stage_asset_tasks.run_scene_360(
+    result = scene_360_tasks.run_scene_360(
         tmp_path,
         "scene",
         source="text",
