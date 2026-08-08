@@ -15,8 +15,8 @@ desktop/
 │  ├─ commercial-model-access.ts 普通版 Cloud / 专业版 BYOK 访问模型
 │  ├─ commercial-model-proxy.ts  云端模型请求代理（仅 Cloud 中转路径）
 │  ├─ commercial-contracts.ts    商业响应 DTO 与校验
-│  ├─ commercial-artifact.ts     更新制品下载与校验
-│  ├─ commercial-trust.ts        内置许可与制品 Ed25519 公钥
+│  ├─ commercial-updater.ts      electron-updater 与商业发布的适配
+│  ├─ commercial-trust.ts        内置离线租约 Ed25519 公钥
 │  ├─ secure-file-store.ts       BYOK 密文等敏感数据的本地加密存储
 │  ├─ hermes-runtime.ts          内置 Hermes ACP 进程管理
 │  └─ preload.cts                contextBridge 白名单 IPC（不暴露 token/私钥/raw fetch）
@@ -53,11 +53,11 @@ pnpm --dir desktop package:mac    # 在 Apple Silicon Mac 上生成 DMG 与 ZIP
 
 打包链路依次执行：应用图标生成、对应平台的 LGPL FFmpeg 拉取与校验、前端 CE 构建、Electron 主进程编译、后端 PyInstaller、Hermes 运行时 PyInstaller，最后 electron-builder 出包。Windows 目标为 x64；macOS 目标为 Apple Silicon arm64、macOS 15 及以上。PyInstaller sidecar 不能跨系统或跨架构生成，因此两种安装包必须分别在对应宿主系统构建。
 
-发布构建强制平台签名：Windows 需要 `CSC_LINK` / `CSC_KEY_PASSWORD`，macOS 需要 Developer ID 与 notarization 凭据。完成平台签名后执行 `pnpm run release:metadata -- <artifact> <target> <arch> <installer-kind>` 生成云端发布元数据；私钥路径和 key id 通过 `AI_ANIME_ARTIFACT_SIGNING_PRIVATE_KEY_FILE`、`AI_ANIME_ARTIFACT_SIGNATURE_KEY_ID` 提供。
+打包不强制开发者证书：Windows 可直接生成无证书 NSIS，macOS 使用 ad-hoc 签名。`electron-builder` 同时生成 `latest.yml` / `latest-mac.yml`，客户端由 `electron-updater` 完成下载、SHA-512 校验和安装。
 
 ## 安全边界
 
-- JWT、设备私钥、离线租约、BYOK 持久化密文和更新制品只存在于 Electron 主进程；渲染进程只拿到可展示的会话摘要和业务 DTO。
+- JWT、设备私钥、离线租约、BYOK 持久化密文和更新 feed 请求头只存在于 Electron 主进程；渲染进程只拿到可展示的会话摘要和业务 DTO。
 - `preload.cts` 只暴露白名单 IPC，不提供任意 URL 请求能力。
 - 本地 FastAPI sidecar 只绑定 loopback 随机端口，桌面进程令牌用于阻止本机其他进程直接调用。
 

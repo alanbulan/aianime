@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
-  downloadCommercialArtifact,
-  installCommercialArtifact,
+  downloadCommercialUpdate,
+  installCommercialUpdate,
   useCommercialRelease,
 } from "@/modules/platform_release/composition";
 
@@ -23,9 +23,9 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
     if (!artifactId || isInstalling) return;
     setInstallState("downloading");
     try {
-      const result = await downloadCommercialArtifact(artifactId);
+      await downloadCommercialUpdate(artifactId);
       setInstallState("installing");
-      await installCommercialArtifact(result);
+      await installCommercialUpdate();
       setInstallState("idle");
       await release.refetch();
     } catch {

@@ -22,8 +22,8 @@ const COMMERCIAL_CHANNELS = {
   modelCatalog: "desktop:commercial:model-catalog",
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
-  downloadArtifact: "desktop:commercial:download-artifact",
-  installArtifact: "desktop:commercial:install-artifact",
+  downloadUpdate: "desktop:commercial:download-update",
+  installUpdate: "desktop:commercial:install-update",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
   refreshLicenseLease: "desktop:commercial:refresh-license-lease",
@@ -83,9 +83,8 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     announcements: (limit = 20) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.announcements, limit),
     checkRelease: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.checkRelease),
-    downloadArtifact: (artifactId: string | number) =>
-      ipcRenderer.invoke(COMMERCIAL_CHANNELS.downloadArtifact, artifactId),
-    installArtifact: (input: { filePath: string; sha256: string }) =>
-      ipcRenderer.invoke(COMMERCIAL_CHANNELS.installArtifact, input),
+    downloadUpdate: (artifactId: string | number) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.downloadUpdate, artifactId),
+    installUpdate: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.installUpdate),
   }),
 });

@@ -17,7 +17,6 @@ import {
   projectCommercialModelCatalog,
   projectCommercialQuota,
   selectReleaseArtifactId,
-  type CommercialArtifactDownloadSnapshot,
   type CommercialAuthorizationSnapshot,
   type CommercialModelCapabilitySnapshot,
 } from "./commercial-contracts.js";
@@ -35,11 +34,6 @@ import {
   type CommercialModelCatalogQuery,
   type CommercialSessionSummary,
 } from "./commercial-api-client.js";
-
-export interface CommercialInstallArtifactInput {
-  filePath: string;
-  sha256: string;
-}
 
 export interface IpcInvokeEventLike {
   sender: { id: number };
@@ -66,8 +60,8 @@ export const COMMERCIAL_CHANNELS = {
   modelCatalog: "desktop:commercial:model-catalog",
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
-  downloadArtifact: "desktop:commercial:download-artifact",
-  installArtifact: "desktop:commercial:install-artifact",
+  downloadUpdate: "desktop:commercial:download-update",
+  installUpdate: "desktop:commercial:install-update",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
   refreshLicenseLease: "desktop:commercial:refresh-license-lease",
@@ -95,17 +89,10 @@ interface RegisterCommercialIpcOptions {
     modelCapabilities: readonly CommercialModelCapabilitySnapshot[],
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
-  releaseArtifactDownloader?: (
-    metadata: CommercialArtifactDownloadSnapshot,
-  ) => Promise<{
-    filePath: string;
-    fileName: string;
-    sizeBytes: number;
-    sha256: string;
-  }>;
-  installArtifact?: (
-    input: CommercialInstallArtifactInput,
-  ) => Promise<void>;
+  releaseUpdater?: {
+    download(artifactId: string | number): Promise<{ version: string }>;
+    install(): void;
+  };
   /**
    * keyId -> PEM SPKI public keys for offline lease verification. When empty,
    * every lease stays `verifiedOffline: false` (fail-closed).
@@ -375,25 +362,18 @@ export function registerCommercialIpc(
       options.arch,
     ),
   );
-  handle(COMMERCIAL_CHANNELS.downloadArtifact, async (input) => {
+  handle(COMMERCIAL_CHANNELS.downloadUpdate, async (input) => {
     const artifactId = requiredIdentifier(input, "artifactId");
-    const metadata = await requireClient().releaseArtifactDownload(artifactId);
-    if (!options.releaseArtifactDownloader) {
-      throw new CommercialApiError("客户端尚未配置制品下载与校验器");
+    if (!options.releaseUpdater) {
+      throw new CommercialApiError("客户端尚未配置更新器");
     }
-    return options.releaseArtifactDownloader(metadata);
+    return options.releaseUpdater.download(artifactId);
   });
-  handle(COMMERCIAL_CHANNELS.installArtifact, async (input) => {
-    const value = requiredRecord(input, "install artifact");
-    const filePath = requiredText(value.filePath, "filePath");
-    const sha256 = requiredText(value.sha256, "sha256");
-    if (!/^[0-9a-f]{64}$/.test(sha256)) {
-      throw new CommercialApiError("安装程序 SHA-256 摘要无效");
+  handle(COMMERCIAL_CHANNELS.installUpdate, () => {
+    if (!options.releaseUpdater) {
+      throw new CommercialApiError("客户端尚未配置更新器");
     }
-    if (!options.installArtifact) {
-      throw new CommercialApiError("客户端尚未配置安装器");
-    }
-    await options.installArtifact({ filePath, sha256 });
+    options.releaseUpdater.install();
   });
 
   return client;

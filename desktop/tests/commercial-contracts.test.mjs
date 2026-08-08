@@ -81,7 +81,7 @@ test("release artifact selection returns null when no artifact matches", () => {
   assert.equal(projected.artifactId, null);
 });
 
-test("release artifact selection prefers the installable macOS DMG", () => {
+test("release artifact selection prefers the macOS updater ZIP", () => {
   const projected = selectReleaseArtifactId(
     {
       available: true,
@@ -107,7 +107,7 @@ test("release artifact selection prefers the installable macOS DMG", () => {
     "arm64",
   );
 
-  assert.equal(projected.artifactId, "mac-dmg");
+  assert.equal(projected.artifactId, "mac-zip");
 });
 
 test("PROFESSIONAL BYOK requires both server capability and device activation", () => {

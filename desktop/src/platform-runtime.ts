@@ -52,12 +52,3 @@ export function packagedVideoCodec(
   if (platform === "darwin") return "h264_videotoolbox";
   return "libx264";
 }
-
-export function releaseInstallerCommand(
-  filePath: string,
-  platform: NodeJS.Platform = process.platform,
-): { command: string; args: string[] } {
-  return platform === "darwin"
-    ? { command: "/usr/bin/open", args: [filePath] }
-    : { command: filePath, args: [] };
-}

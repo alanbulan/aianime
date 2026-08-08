@@ -17,6 +17,7 @@ export type {
   CommercialModelRequest,
   CommercialPublicLogo,
   CommercialReleaseQuery,
+  CommercialReleaseUpdateFeed,
   CommercialSessionStore,
   CommercialSessionSummary,
   CommercialTenant,
@@ -28,8 +29,4 @@ export {
   COMMERCIAL_CHANNELS,
   registerCommercialIpc,
 } from "./commercial-ipc.js";
-export type {
-  CommercialInstallArtifactInput,
-  IpcInvokeEventLike,
-  IpcMainLike,
-} from "./commercial-ipc.js";
+export type { IpcInvokeEventLike, IpcMainLike } from "./commercial-ipc.js";

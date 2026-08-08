@@ -169,80 +169,21 @@ function authenticatedClient(fetchImpl, options = {}) {
   });
 }
 
-test("release artifact download projects and validates the gateway contract", async () => {
-  const artifact = {
-    url: "https://files.gateway.test/shared/token",
-    fileName: "toonflow-1.1.0-x64.exe",
-    contentType: "application/octet-stream",
-    sha256: "a".repeat(64),
-    sizeBytes: 98234123,
-    signatureKeyId: "artifact-2026-08-v1",
-    signature: "artifact-signature",
-    expiresAt: "2026-07-23T10:15:00Z",
-  };
-  const calls = [];
-  const client = authenticatedClient(async (url, init) => {
-    calls.push({ url: String(url), init });
-    return Response.json(artifact);
+test("release update feed keeps the access token in the main process", async () => {
+  const client = authenticatedClient(async () => {
+    throw new Error("releaseUpdateFeed must not make a network request");
   });
 
-  const result = await client.releaseArtifactDownload(1201);
+  const feed = await client.releaseUpdateFeed(1201);
 
-  assert.deepEqual(result, artifact);
   assert.equal(
-    calls[0].url,
-    "https://gateway.test/api/v1/client/releases/artifacts/1201/download",
+    feed.url,
+    "https://gateway.test/api/v1/client/releases/updater/?artifactId=1201",
   );
-  assert.equal(
-    new Headers(calls[0].init.headers).get("Authorization"),
-    "Bearer client-jwt",
-  );
-});
-
-test("release artifact download rejects invalid sha256", async () => {
-  const client = authenticatedClient(async () =>
-    Response.json({
-      url: "https://files.gateway.test/shared/token",
-      fileName: "installer.exe",
-      contentType: "application/octet-stream",
-      sha256: "not-hex",
-      sizeBytes: 100,
-      signature: "sig",
-    }),
-  );
-  await assert.rejects(
-    () => client.releaseArtifactDownload(1),
-    /sha256/,
-  );
-});
-
-test("release artifact download requires a key id and HTTPS URL", async () => {
-  const artifact = {
-    url: "https://files.gateway.test/shared/token",
-    fileName: "installer.exe",
-    contentType: "application/octet-stream",
-    sha256: "a".repeat(64),
-    sizeBytes: 100,
-    signature: "sig",
-    expiresAt: "2099-01-01T00:00:00Z",
-  };
-  const withoutKeyId = authenticatedClient(async () => Response.json(artifact));
-  await assert.rejects(
-    () => withoutKeyId.releaseArtifactDownload(1),
-    /signatureKeyId/,
-  );
-
-  const overPlainHttp = authenticatedClient(async () =>
-    Response.json({
-      ...artifact,
-      url: "http://files.gateway.test/shared/token",
-      signatureKeyId: "artifact-test-v1",
-    }),
-  );
-  await assert.rejects(
-    () => overPlainHttp.releaseArtifactDownload(1),
-    /https/,
-  );
+  assert.deepEqual(feed.requestHeaders, {
+    Authorization: "Bearer client-jwt",
+    "Cache-Control": "no-cache",
+  });
 });
 
 test("public Logo is bounded and returned as a renderer-safe data URL", async () => {

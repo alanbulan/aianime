@@ -6,12 +6,12 @@ attention: low
 
 ## User-facing Highlights (zh)
 
-- **可信更新**: 客户端内置可轮换的 Ed25519 制品与许可公钥，只安装本次会话已验签的更新文件。
-- **发布门禁**: Windows 发布包强制 Authenticode，macOS 发布包强制 Developer ID、Hardened Runtime 与 notarization。
-- **安装稳定性**: 修复更新临时目录判断，并在启动安装器前重新校验文件哈希与平台签名。
+- **标准更新**: 使用 electron-updater 完成版本检查、下载、SHA-512 校验和安装。
+- **简化发布**: Windows 可直接生成 NSIS，macOS 使用 ad-hoc 签名，打包不再强制开发者凭据。
+- **云端接入**: 更新只需现有 Gateway 托管 `latest*.yml` 和对应安装包。
 
 ## User-facing Highlights (en)
 
-- **Trusted updates**: The client pins rotatable Ed25519 artifact and lease keys and installs only artifacts verified in the current session.
-- **Release gates**: Windows releases require Authenticode; macOS releases require Developer ID, Hardened Runtime, and notarization.
-- **Install stability**: Artifact temp-path validation is corrected, and hashes plus platform signatures are checked again before launch.
+- **Standard updater**: electron-updater now handles version checks, downloads, SHA-512 verification, and installation.
+- **Simplified packaging**: Windows can produce NSIS packages directly, while macOS uses ad-hoc signing without mandatory developer credentials.
+- **Cloud integration**: The existing Gateway only needs to host `latest*.yml` and their matching installers.

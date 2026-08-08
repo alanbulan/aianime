@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
-  downloadCommercialArtifact,
-  installCommercialArtifact,
+  downloadCommercialUpdate,
+  installCommercialUpdate,
   subscribeOpenVersionUpdateDialog,
   useCommercialRelease,
 } from "@/modules/platform_release/composition";
@@ -33,9 +33,9 @@ export function VersionUpdateDialog() {
     if (!artifactId || isInstalling) return;
     setInstallState("downloading");
     try {
-      const result = await downloadCommercialArtifact(artifactId);
+      await downloadCommercialUpdate(artifactId);
       setInstallState("installing");
-      await installCommercialArtifact(result);
+      await installCommercialUpdate();
       setInstallState("idle");
       setOpen(false);
     } catch {

@@ -25,8 +25,8 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 以下内容不能据此视为已经完成线上验收：
 
 - 尚未使用真实租户账号执行登录、许可激活、扣费、生成、公告和版本更新的完整在线联调。
-- 客户端已内置可轮换的许可与制品公钥；对应私钥尚需导入云端 Secret，并按固定 key id 产出签名。
-- Windows 受信任代码签名证书和 macOS Developer ID/notarization 凭据尚未配置，不能把当前无签名安装包作为自动更新制品。
+- 离线租约私钥尚需导入云端 Secret，并按固定 key id 产出签名。
+- 云端尚需提供 `latest.yml` / `latest-mac.yml` 和安装包字节接口，未上线该合同前自动更新不能完成真实下载。
 - Windows 与 macOS 安装包必须分别在对应宿主系统构建；当前配置不支持在 Windows 上交叉生成 macOS sidecar。
 
 因此，“调用链已接线”和“生产环境已验收”必须分开判断。
@@ -346,7 +346,7 @@ Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个�
 | SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.test.ts` | Agent、消息、存储、WebSocket 和视图所有权 |
 | UI 颜色 | `frontend/src/__tests__/architecture/ui-color-literals.test.ts` | 不新增未登记的硬编码 UI 色值 |
 | 主题对比度 | `frontend/src/__tests__/architecture/theme-contrast.test.ts` | 正文不低于 4.5:1，关键边界不低于 3:1 |
-| Electron 商业合同 | `desktop/tests/*.test.mjs` | JWT、设备身份、许可、模型代理、制品和跨平台路径 |
+| Electron 商业合同 | `desktop/tests/*.test.mjs` | JWT、设备身份、许可、模型代理、标准更新器和跨平台路径 |
 
 门禁通过只证明已纳入规则的边界没有回退，不能替代真实 Gateway 联调、安装包冒烟或人工工作流验收。
 
@@ -374,6 +374,7 @@ pnpm --dir desktop package:win
 
 ```text
 AI-anime-<version>-x64-setup.exe
+latest.yml
 ```
 
 ### macOS arm64
@@ -389,18 +390,19 @@ pnpm --dir desktop package:mac
 ```text
 AI-anime-<version>-macos-arm64.dmg
 AI-anime-<version>-macos-arm64.zip
+latest-mac.yml
 ```
 
-当前 macOS 最低版本为 15.0。发布到外部测试前还应完成 Apple Developer ID 签名和 notarization；仓库没有内置开发者证书。
+当前 macOS 最低版本为 15.0。Windows 允许无证书打包，macOS 使用本地 ad-hoc 签名，两者都不需要在打包机配置开发者账号或证书。系统仍可能显示来源提示，但不再阻止构建。
 
-发布命令现在强制平台签名：Windows 由 `CSC_LINK` / `CSC_KEY_PASSWORD` 提供 Authenticode 证书；macOS 由 Developer ID 和 Apple notarization 凭据提供签名。平台签名完成后使用 `pnpm --dir desktop release:metadata -- ...` 生成云端发布所需的 SHA-256、大小、key id 和 Ed25519 签名，完整顺序见云端交接文档。
+更新由 `electron-updater` 处理。`electron-builder` 会生成 `latest.yml` / `latest-mac.yml`，云端直接托管 YAML 和对应安装包，具体接口见 [云端交接文档](docs/cloud-integration-handoff.md)。
 
 ### 发布前检查
 
 - `pyproject.toml` 与 `desktop/package.json` 版本一致。
 - `src/ai_anime/release-notes.md` 的版本标记一致。
 - Windows 和 macOS 分别完成干净安装、启动、登录、生成、退出和更新检查。
-- 记录安装包文件名、字节数、SHA-256、签名和目标平台。
+- 记录安装包文件名、字节数、目标平台和对应 `latest*.yml`。
 - 不上传 `secure/`、用户数据、日志、`.env`、JWT、API Key 或私钥。
 
 ## 11. 代码来源与上游同步

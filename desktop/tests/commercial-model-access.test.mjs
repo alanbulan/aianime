@@ -447,6 +447,49 @@ test("release checks use Electron-owned version, platform, and architecture", as
   });
 });
 
+test("release update commands delegate only the selected artifact id", async () => {
+  const handlers = new Map();
+  const downloaded = [];
+  let installs = 0;
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: { baseUrl: "https://gateway.test" },
+    deviceIdentity: {},
+    modelAccessStore: {},
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.5",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async () => undefined,
+    onLoggedOut: async () => undefined,
+    releaseUpdater: {
+      download: async (artifactId) => {
+        downloaded.push(artifactId);
+        return { version: "1.1.6" };
+      },
+      install: () => {
+        installs += 1;
+      },
+    },
+  });
+
+  const downloadUpdate = handlers.get(COMMERCIAL_CHANNELS.downloadUpdate);
+  const installUpdate = handlers.get(COMMERCIAL_CHANNELS.installUpdate);
+  assert.deepEqual(
+    await downloadUpdate({ sender: { id: 1 } }, "artifact-1"),
+    { version: "1.1.6" },
+  );
+  await installUpdate({ sender: { id: 1 } });
+
+  assert.deepEqual(downloaded, ["artifact-1"]);
+  assert.equal(installs, 1);
+});
+
 test("BYOK configuration is normalized and survives encrypted-store reload", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-"));
   t.after(() => rm(directory, { recursive: true, force: true }));

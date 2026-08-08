@@ -78,16 +78,10 @@ interface AIAnimeCommercialBridge {
   }) => Promise<unknown>;
   announcements: (limit?: number) => Promise<unknown>;
   checkRelease: () => Promise<unknown>;
-  downloadArtifact: (artifactId: string | number) => Promise<{
-    filePath: string;
-    fileName: string;
-    sizeBytes: number;
-    sha256: string;
-  }>;
-  installArtifact: (input: {
-    filePath: string;
-    sha256: string;
-  }) => Promise<void>;
+  downloadUpdate: (
+    artifactId: string | number,
+  ) => Promise<{ version: string }>;
+  installUpdate: () => Promise<void>;
 }
 
 interface AIAnimeDesktopBridge {

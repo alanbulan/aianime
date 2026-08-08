@@ -65,14 +65,9 @@ describe("commercial release contract", () => {
     expect(checkRelease).toHaveBeenCalledWith();
   });
 
-  it("downloads and installs a release artifact through the Electron bridge", async () => {
-    const downloadArtifact = vi.fn().mockResolvedValue({
-      filePath: "C:\\temp\\ai-anime-artifact-1\\installer.exe",
-      fileName: "installer.exe",
-      sizeBytes: 123,
-      sha256: "a".repeat(64),
-    });
-    const installArtifact = vi.fn().mockResolvedValue(undefined);
+  it("downloads and installs an update through the Electron bridge", async () => {
+    const downloadUpdate = vi.fn().mockResolvedValue({ version: "1.1.6" });
+    const installUpdate = vi.fn().mockResolvedValue(undefined);
     window.aiAnimeDesktop = {
       commercial: {
         checkRelease: vi.fn().mockResolvedValue({
@@ -81,21 +76,18 @@ describe("commercial release contract", () => {
           reason: null,
           artifactId: null,
         }),
-        downloadArtifact,
-        installArtifact,
+        downloadUpdate,
+        installUpdate,
       } as unknown as AIAnimeCommercialBridge,
     } as AIAnimeDesktopBridge;
 
-    const result = await electronCommercialReleaseGateway.downloadArtifact(
+    await electronCommercialReleaseGateway.downloadUpdate(
       "artifact-1",
     );
-    await electronCommercialReleaseGateway.installArtifact(result);
+    await electronCommercialReleaseGateway.installUpdate();
 
-    expect(downloadArtifact).toHaveBeenCalledWith("artifact-1");
-    expect(installArtifact).toHaveBeenCalledWith({
-      filePath: result.filePath,
-      sha256: result.sha256,
-    });
+    expect(downloadUpdate).toHaveBeenCalledWith("artifact-1");
+    expect(installUpdate).toHaveBeenCalledWith();
   });
 
   it("renders the blocking page for a required update", async () => {

@@ -4,6 +4,9 @@ copyright: Copyright (c) 2026 AI anime
 asar: true
 directories:
   output: release
+publish:
+  provider: generic
+  url: https://aianime.122-193-11-199.sslip.io/api/v1/client/releases/updater/
 files:
   - dist/**/*
   - package.json
@@ -20,7 +23,6 @@ extraResources:
     to: hermes-assets
 win:
   icon: build/icon.png
-  forceCodeSigning: true
   target:
     - target: nsis
       arch:
@@ -29,10 +31,10 @@ win:
 mac:
   icon: build/icon.png
   category: public.app-category.graphics-design
-  forceCodeSigning: true
-  hardenedRuntime: true
+  identity: "-"
+  hardenedRuntime: false
   minimumSystemVersion: 15.0.0
-  notarize: true
+  notarize: false
   target:
     - target: dmg
       arch:

@@ -1,6 +1,5 @@
 import { createCommercialAnnouncementQueries } from "@/modules/platform_release/application/commercial-announcement-queries";
 import { createCommercialReleaseQueries } from "@/modules/platform_release/application/commercial-release-queries";
-import type { CommercialReleaseInstallerResult } from "@/modules/platform_release/application/commercial-release-ports";
 import type { QueryClient } from "@tanstack/react-query";
 import { requestChunkLoadRecovery } from "@/modules/platform_release/application/chunk-load-recovery";
 import { markUpdateAvailable } from "@/modules/platform_release/application/update-availability";
@@ -23,16 +22,14 @@ const commercialReleaseQueries = createCommercialReleaseQueries(
 export const { useCommercialAnnouncements } = commercialAnnouncementQueries;
 export const { useCommercialRelease } = commercialReleaseQueries;
 
-export function downloadCommercialArtifact(
+export function downloadCommercialUpdate(
   artifactId: string | number,
-): Promise<CommercialReleaseInstallerResult> {
-  return electronCommercialReleaseGateway.downloadArtifact(artifactId);
+): Promise<{ version: string }> {
+  return electronCommercialReleaseGateway.downloadUpdate(artifactId);
 }
 
-export function installCommercialArtifact(
-  result: CommercialReleaseInstallerResult,
-): Promise<void> {
-  return electronCommercialReleaseGateway.installArtifact(result);
+export function installCommercialUpdate(): Promise<void> {
+  return electronCommercialReleaseGateway.installUpdate();
 }
 
 export function seedCommercialBootstrapRelease(

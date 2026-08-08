@@ -321,54 +321,6 @@ function projectCommercialRelease(value: unknown) {
   };
 }
 
-export interface CommercialArtifactDownloadSnapshot {
-  url: string;
-  fileName: string;
-  contentType: string;
-  sha256: string;
-  sizeBytes: number;
-  signatureKeyId: string;
-  signature: string;
-  expiresAt: string;
-}
-
-export function projectReleaseArtifactDownload(
-  value: unknown,
-): CommercialArtifactDownloadSnapshot {
-  const artifact = requiredRecord(value, "artifact download");
-  const url = requiredText(artifact.url, "artifact.url");
-  let parsedUrl: URL;
-  try {
-    parsedUrl = new URL(url);
-  } catch {
-    throw new Error("artifact.url must be a valid URL");
-  }
-  if (parsedUrl.protocol !== "https:") {
-    throw new Error("artifact.url must use https");
-  }
-  const sha256 = requiredText(artifact.sha256, "artifact.sha256");
-  if (!/^[0-9a-f]{64}$/.test(sha256)) {
-    throw new Error("artifact.sha256 must be a lowercase 64-char hex digest");
-  }
-  const sizeBytes = artifact.sizeBytes;
-  if (typeof sizeBytes !== "number" || !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0) {
-    throw new Error("artifact.sizeBytes must be a positive safe integer");
-  }
-  return {
-    url,
-    fileName: requiredText(artifact.fileName, "artifact.fileName"),
-    contentType: requiredText(artifact.contentType, "artifact.contentType"),
-    sha256,
-    sizeBytes,
-    signatureKeyId: requiredText(
-      artifact.signatureKeyId,
-      "artifact.signatureKeyId",
-    ),
-    signature: requiredText(artifact.signature, "artifact.signature"),
-    expiresAt: requiredText(artifact.expiresAt, "artifact.expiresAt"),
-  };
-}
-
 /**
  * Selects the artifact matching the running platform/arch from a release-check
  * response and attaches its id, so the renderer can download the correct
@@ -415,7 +367,7 @@ export function selectReleaseArtifactId(
 
 function preferredInstallerKind(target: string): string | null {
   if (target === "windows") return "nsis";
-  if (target === "macos") return "dmg";
+  if (target === "macos") return "zip";
   return null;
 }
 

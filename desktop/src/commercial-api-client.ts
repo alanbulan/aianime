@@ -3,11 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { CommercialDeviceSigner } from "./commercial-device.js";
-import {
-  authorizationDeviceId,
-  projectReleaseArtifactDownload,
-  type CommercialArtifactDownloadSnapshot,
-} from "./commercial-contracts.js";
+import { authorizationDeviceId } from "./commercial-contracts.js";
 import {
   clearEncryptedFile,
   readEncryptedJsonFile,
@@ -78,6 +74,11 @@ export interface CommercialReleaseQuery {
   currentVersion: string;
   target: string;
   arch: string;
+}
+
+export interface CommercialReleaseUpdateFeed {
+  url: string;
+  requestHeaders: Readonly<Record<string, string>>;
 }
 
 export interface CommercialLicenseActivationInput {
@@ -500,15 +501,22 @@ export class CommercialApiClient {
     });
   }
 
-  async releaseArtifactDownload(
+  async releaseUpdateFeed(
     artifactId: Identifier,
-  ): Promise<CommercialArtifactDownloadSnapshot> {
-    return projectReleaseArtifactDownload(
-      await this.authenticatedJson(
-        "GET",
-        `/api/v1/client/releases/artifacts/${encodeURIComponent(String(requiredIdentifier(artifactId, "artifactId")))}/download`,
-      ),
+  ): Promise<CommercialReleaseUpdateFeed> {
+    const session = await this.requireFreshSession();
+    const url = new URL("/api/v1/client/releases/updater/", `${this.baseUrl}/`);
+    url.searchParams.set(
+      "artifactId",
+      String(requiredIdentifier(artifactId, "artifactId")),
     );
+    return {
+      url: url.toString(),
+      requestHeaders: {
+        Authorization: `Bearer ${session.accessToken}`,
+        "Cache-Control": "no-cache",
+      },
+    };
   }
 
   private async authenticatedJson(
