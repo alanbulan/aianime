@@ -327,8 +327,9 @@ export interface CommercialArtifactDownloadSnapshot {
   contentType: string;
   sha256: string;
   sizeBytes: number;
+  signatureKeyId: string;
   signature: string;
-  expiresAt?: string;
+  expiresAt: string;
 }
 
 export function projectReleaseArtifactDownload(
@@ -342,8 +343,8 @@ export function projectReleaseArtifactDownload(
   } catch {
     throw new Error("artifact.url must be a valid URL");
   }
-  if (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") {
-    throw new Error("artifact.url must be http(s)");
+  if (parsedUrl.protocol !== "https:") {
+    throw new Error("artifact.url must use https");
   }
   const sha256 = requiredText(artifact.sha256, "artifact.sha256");
   if (!/^[0-9a-f]{64}$/.test(sha256)) {
@@ -359,8 +360,12 @@ export function projectReleaseArtifactDownload(
     contentType: requiredText(artifact.contentType, "artifact.contentType"),
     sha256,
     sizeBytes,
+    signatureKeyId: requiredText(
+      artifact.signatureKeyId,
+      "artifact.signatureKeyId",
+    ),
     signature: requiredText(artifact.signature, "artifact.signature"),
-    ...optionalTextProperty("expiresAt", artifact.expiresAt),
+    expiresAt: requiredText(artifact.expiresAt, "artifact.expiresAt"),
   };
 }
 

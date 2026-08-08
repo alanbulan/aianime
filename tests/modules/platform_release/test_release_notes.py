@@ -37,6 +37,6 @@ attention: medium
 
 def test_repository_release_notes_match_package_version() -> None:
     body = Path("src/ai_anime/release-notes.md").read_text(encoding="utf-8")
-    validate_version_marker(body, "1.1.4")
-    assert parse_release_notes(body, "v1.1.4", locale="zh").items
-    assert parse_release_notes(body, "v1.1.4", locale="en").items
+    validate_version_marker(body, "1.1.5")
+    assert parse_release_notes(body, "v1.1.5", locale="zh").items
+    assert parse_release_notes(body, "v1.1.5", locale="en").items

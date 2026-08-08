@@ -176,6 +176,7 @@ test("release artifact download projects and validates the gateway contract", as
     contentType: "application/octet-stream",
     sha256: "a".repeat(64),
     sizeBytes: 98234123,
+    signatureKeyId: "artifact-2026-08-v1",
     signature: "artifact-signature",
     expiresAt: "2026-07-23T10:15:00Z",
   };
@@ -212,6 +213,35 @@ test("release artifact download rejects invalid sha256", async () => {
   await assert.rejects(
     () => client.releaseArtifactDownload(1),
     /sha256/,
+  );
+});
+
+test("release artifact download requires a key id and HTTPS URL", async () => {
+  const artifact = {
+    url: "https://files.gateway.test/shared/token",
+    fileName: "installer.exe",
+    contentType: "application/octet-stream",
+    sha256: "a".repeat(64),
+    sizeBytes: 100,
+    signature: "sig",
+    expiresAt: "2099-01-01T00:00:00Z",
+  };
+  const withoutKeyId = authenticatedClient(async () => Response.json(artifact));
+  await assert.rejects(
+    () => withoutKeyId.releaseArtifactDownload(1),
+    /signatureKeyId/,
+  );
+
+  const overPlainHttp = authenticatedClient(async () =>
+    Response.json({
+      ...artifact,
+      url: "http://files.gateway.test/shared/token",
+      signatureKeyId: "artifact-test-v1",
+    }),
+  );
+  await assert.rejects(
+    () => overPlainHttp.releaseArtifactDownload(1),
+    /https/,
   );
 });
 

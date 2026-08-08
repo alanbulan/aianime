@@ -219,22 +219,23 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.bootstrap, async (input) => {
     const device = await options.deviceIdentity.summary();
     const query = parseBootstrapQuery(input);
-    const bootstrap = projectCommercialBootstrap(
-      await requireClient().bootstrap({
-        ...query,
-        devicePublicKeyHash: device.publicKeyHash,
-        currentVersion: query.currentVersion ?? options.clientVersion,
-        target: query.target ?? options.platform,
-        arch: query.arch ?? options.arch,
-      }),
-    );
+    const rawBootstrap = await requireClient().bootstrap({
+      ...query,
+      devicePublicKeyHash: device.publicKeyHash,
+      currentVersion: query.currentVersion ?? options.clientVersion,
+      target: query.target ?? options.platform,
+      arch: query.arch ?? options.arch,
+    });
+    const bootstrap = projectCommercialBootstrap(rawBootstrap);
+    const rawAuthorization = optionalRecord(rawBootstrap).softwareAuthorization;
     currentAuthorization = bootstrap.softwareAuthorization
       ? verifyAuthorizationLease(
-          bootstrap,
+          rawAuthorization,
           bootstrap.softwareAuthorization,
           options,
         )
       : null;
+    bootstrap.softwareAuthorization = currentAuthorization;
     cloudModelAssignments = defaultCloudTextModelAssignments(bootstrap.models);
     updateModelCapabilities(bootstrap.models);
     const access = await options.modelAccessStore.load();

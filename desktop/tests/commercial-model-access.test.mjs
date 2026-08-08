@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync, sign } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -251,6 +252,82 @@ test("Bootstrap exposes the selected BYOK catalog instead of cloud SKUs", async 
     { modelId: "cloud/text-standard", role: "TEXT" },
   ]);
   assert.equal(synchronized.at(-1).allowsCustomModels, true);
+});
+
+test("bootstrap verifies the raw offline lease before projecting it", async () => {
+  const handlers = new Map();
+  const keyId = "lease-test-v1";
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const payloadJson = JSON.stringify({
+    keyId,
+    licenseId: "license-1",
+    devicePublicKeyHash: "public-key-hash",
+    editionType: "PROFESSIONAL",
+    allowsCustomModels: true,
+  });
+  const lease = {
+    id: "lease-1",
+    expiresAt: "2099-01-01T00:00:00Z",
+    keyId,
+    payloadJson,
+    signature: sign(null, Buffer.from(payloadJson, "utf8"), privateKey).toString(
+      "base64",
+    ),
+  };
+
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.example.test",
+      bootstrap: async () => ({
+        softwareAuthorization: {
+          license: {
+            id: "license-1",
+            editionType: "PROFESSIONAL",
+            allowsCustomModels: true,
+          },
+          device: { id: "device-1" },
+          activation: { id: "activation-1" },
+          lease,
+        },
+        personalQuota: null,
+        models: null,
+        release: null,
+        warnings: [],
+      }),
+    },
+    deviceIdentity: {
+      summary: async () => ({
+        publicKey: "public-key",
+        publicKeyHash: "public-key-hash",
+      }),
+    },
+    modelAccessStore: {
+      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+    },
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.5",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async () => undefined,
+    onLoggedOut: async () => undefined,
+    leaseSigningKeys: {
+      [keyId]: publicKey.export({ type: "spki", format: "pem" }),
+    },
+    devicePublicKeyHash: "public-key-hash",
+  });
+
+  const bootstrap = handlers.get(COMMERCIAL_CHANNELS.bootstrap);
+  const result = await bootstrap({ sender: { id: 1 } }, {});
+
+  assert.equal(result.softwareAuthorization.lease.verifiedOffline, true);
+  assert.equal("payloadJson" in result.softwareAuthorization.lease, false);
+  assert.equal("signature" in result.softwareAuthorization.lease, false);
 });
 
 test("video catalog synchronization sends only projected duration capabilities", async () => {

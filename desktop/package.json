@@ -1,6 +1,6 @@
 {
   "name": "@ai-anime/desktop",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "AI manga production desktop client",
   "author": "alanbulan",
   "private": true,
@@ -15,6 +15,7 @@
     "runtime:hermes": "uv sync --project hermes-runtime --locked",
     "runtime:icon": "electron scripts/generate-icon.cjs",
     "runtime:ffmpeg": "node scripts/prepare-ffmpeg.mjs",
+    "release:metadata": "node scripts/create-release-metadata.mjs",
     "build": "pnpm run build:renderer && pnpm run build:main",
     "dev": "electron scripts/dev-entry.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",

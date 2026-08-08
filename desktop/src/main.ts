@@ -1,9 +1,7 @@
 // Copyright (c) 2026 AI anime
 
-import { join, resolve, sep } from "node:path";
+import { join, resolve } from "node:path";
 import { hostname, tmpdir } from "node:os";
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import {
   app,
@@ -29,8 +27,15 @@ import {
 import {
   ArtifactVerificationError,
   downloadAndVerifyReleaseArtifact,
+  isReleaseArtifactTempPath,
+  sha256File,
+  verifyEd25519ArtifactSignature,
   verifyWindowsAuthenticodeSignature,
 } from "./commercial-artifact.js";
+import {
+  COMMERCIAL_ARTIFACT_SIGNING_KEYS,
+  COMMERCIAL_LEASE_SIGNING_KEYS,
+} from "./commercial-trust.js";
 import { releaseInstallerCommand } from "./platform-runtime.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -183,12 +188,14 @@ async function setDesktopSessionCookie(
   });
 }
 
-function registerCommercialGatewayIpc(
+async function registerCommercialGatewayIpc(
   localBackend: LocalBackend,
   client: CommercialApiClient,
   deviceIdentity: EncryptedFileCommercialDeviceIdentity,
   modelAccessStore: EncryptedFileCommercialModelAccessStore,
-): void {
+): Promise<void> {
+  const device = await deviceIdentity.summary();
+  const verifiedReleaseArtifacts = new Map<string, string>();
   registerCommercialIpc({
     ipcMain,
     client,
@@ -230,40 +237,50 @@ function registerCommercialGatewayIpc(
         localBackend.baseUrl,
         AUTH_COOKIE_NAME,
       ),
-    releaseArtifactDownloader: async (metadata) =>
-      downloadAndVerifyReleaseArtifact(metadata, {
-        verifySignature: () => {
-          throw new ArtifactVerificationError(
-            "未配置制品签名公钥，拒绝安装",
-          );
-        },
+    releaseArtifactDownloader: async (metadata) => {
+      const result = await downloadAndVerifyReleaseArtifact(metadata, {
+        verifySignature: (data, artifact) =>
+          verifyEd25519ArtifactSignature(
+            COMMERCIAL_ARTIFACT_SIGNING_KEYS,
+            data,
+            artifact,
+          ),
         verifyAuthenticode: (filePath) =>
           verifyWindowsAuthenticodeSignature(filePath),
-      }),
+      });
+      verifiedReleaseArtifacts.set(resolve(result.filePath), result.sha256);
+      return result;
+    },
     installArtifact: async ({ filePath, sha256 }) => {
       const resolved = resolve(filePath);
-      const artifactRoot = resolve(tmpdir(), "ai-anime-artifact-");
-      if (!resolved.startsWith(`${artifactRoot}${sep}`)) {
+      if (!isReleaseArtifactTempPath(resolved, tmpdir())) {
         throw new ArtifactVerificationError(
           "安装程序路径不在制品下载目录内",
         );
       }
-      const bytes = await readFile(resolved);
-      const digest = createHash("sha256").update(bytes).digest("hex");
-      if (digest !== sha256) {
+      const verifiedSha256 = verifiedReleaseArtifacts.get(resolved);
+      if (!verifiedSha256 || verifiedSha256 !== sha256) {
+        throw new ArtifactVerificationError(
+          "安装程序未经过本次会话的制品验签",
+        );
+      }
+      const digest = await sha256File(resolved);
+      if (digest !== verifiedSha256) {
         throw new ArtifactVerificationError(
           "安装程序 SHA-256 与下载结果不一致",
         );
       }
+      await verifyWindowsAuthenticodeSignature(resolved);
       const installer = releaseInstallerCommand(resolved);
       const child = spawn(installer.command, installer.args, {
         detached: true,
         stdio: "ignore",
       });
       child.unref();
+      verifiedReleaseArtifacts.delete(resolved);
     },
-    // 制品签名公钥未配置前，离线租约一律保持未验证（fail-closed）。
-    leaseSigningKeys: {},
+    leaseSigningKeys: COMMERCIAL_LEASE_SIGNING_KEYS,
+    devicePublicKeyHash: device.publicKeyHash,
   });
 }
 
@@ -305,7 +322,7 @@ async function startApplication(): Promise<void> {
   try {
     await backend.start();
     installBackendHeader(backend);
-    registerCommercialGatewayIpc(
+    await registerCommercialGatewayIpc(
       backend,
       client,
       deviceIdentity,

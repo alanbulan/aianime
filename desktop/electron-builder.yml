@@ -20,6 +20,7 @@ extraResources:
     to: hermes-assets
 win:
   icon: build/icon.png
+  forceCodeSigning: true
   target:
     - target: nsis
       arch:
@@ -28,7 +29,10 @@ win:
 mac:
   icon: build/icon.png
   category: public.app-category.graphics-design
+  forceCodeSigning: true
+  hardenedRuntime: true
   minimumSystemVersion: 15.0.0
+  notarize: true
   target:
     - target: dmg
       arch:

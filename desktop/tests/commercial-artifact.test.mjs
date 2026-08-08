@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import {
   createHash,
+  createPublicKey,
   generateKeyPairSync,
   sign,
 } from "node:crypto";
@@ -14,9 +15,15 @@ import test from "node:test";
 import {
   ArtifactVerificationError,
   downloadAndVerifyReleaseArtifact,
+  isReleaseArtifactTempPath,
+  sha256File,
   verifyEd25519ArtifactSignature,
   verifyWindowsAuthenticodeSignature,
 } from "../src/commercial-artifact.ts";
+import {
+  COMMERCIAL_ARTIFACT_SIGNING_KEYS,
+  COMMERCIAL_LEASE_SIGNING_KEYS,
+} from "../src/commercial-trust.ts";
 
 const payload = Buffer.from("AI anime artifact payload for verification", "utf8");
 
@@ -27,7 +34,9 @@ function signedMetadata(overrides = {}) {
     contentType: "application/octet-stream",
     sha256: createHash("sha256").update(payload).digest("hex"),
     sizeBytes: payload.byteLength,
+    signatureKeyId: "artifact-test-v1",
     signature: "sig",
+    expiresAt: "2099-01-01T00:00:00Z",
     ...overrides,
   };
 }
@@ -38,7 +47,10 @@ function ed25519Fixture() {
   const metadata = signedMetadata({
     signature: sign(null, payload, privateKey).toString("base64"),
   });
-  return { publicKeyPem, metadata };
+  return {
+    publicKeys: { [metadata.signatureKeyId]: publicKeyPem },
+    metadata,
+  };
 }
 
 async function responseFromBytes(bytes) {
@@ -70,14 +82,14 @@ function responseWithHeader(bytes, contentLength) {
 }
 
 test("downloads and verifies a signed artifact then leaves the verified file", async () => {
-  const { publicKeyPem, metadata } = ed25519Fixture();
+  const { publicKeys, metadata } = ed25519Fixture();
   const tempDir = await mkdtemp(join(tmpdir(), "ai-anime-artifact-test-"));
   try {
     const result = await downloadAndVerifyReleaseArtifact(metadata, {
       fetchImpl: async () => responseFromBytes(payload),
       tempDir,
       verifySignature: (data, meta) =>
-        verifyEd25519ArtifactSignature(publicKeyPem, data, meta),
+        verifyEd25519ArtifactSignature(publicKeys, data, meta),
     });
     assert.equal(result.fileName, metadata.fileName);
     assert.equal(result.sha256, metadata.sha256);
@@ -95,7 +107,7 @@ test("downloads and verifies a signed artifact then leaves the verified file", a
 });
 
 test("rejects an artifact whose sha256 does not match and cleans up", async () => {
-  const { publicKeyPem, metadata } = ed25519Fixture();
+  const { publicKeys, metadata } = ed25519Fixture();
   metadata.sha256 = "b".repeat(64);
   const tempDir = await mkdtemp(join(tmpdir(), "ai-anime-artifact-test-"));
   await assert.rejects(
@@ -104,7 +116,7 @@ test("rejects an artifact whose sha256 does not match and cleans up", async () =
         fetchImpl: async () => responseFromBytes(payload),
         tempDir,
         verifySignature: (data, meta) =>
-          verifyEd25519ArtifactSignature(publicKeyPem, data, meta),
+          verifyEd25519ArtifactSignature(publicKeys, data, meta),
       }),
     /SHA-256/,
   );
@@ -113,7 +125,7 @@ test("rejects an artifact whose sha256 does not match and cleans up", async () =
 });
 
 test("rejects a content-length mismatch before writing", async () => {
-  const { publicKeyPem, metadata } = ed25519Fixture();
+  const { publicKeys, metadata } = ed25519Fixture();
   const tempDir = await mkdtemp(join(tmpdir(), "ai-anime-artifact-test-"));
   await assert.rejects(
     () =>
@@ -122,7 +134,7 @@ test("rejects a content-length mismatch before writing", async () => {
           responseWithHeader(payload, payload.byteLength + 1),
         tempDir,
         verifySignature: (data, meta) =>
-          verifyEd25519ArtifactSignature(publicKeyPem, data, meta),
+          verifyEd25519ArtifactSignature(publicKeys, data, meta),
       }),
     /长度/,
   );
@@ -131,7 +143,7 @@ test("rejects a content-length mismatch before writing", async () => {
 });
 
 test("rejects when the stream exceeds the declared size", async () => {
-  const { publicKeyPem, metadata } = ed25519Fixture();
+  const { publicKeys, metadata } = ed25519Fixture();
   metadata.sizeBytes = 4;
   const tempDir = await mkdtemp(join(tmpdir(), "ai-anime-artifact-test-"));
   const stream = ReadableStream.from([
@@ -144,7 +156,7 @@ test("rejects when the stream exceeds the declared size", async () => {
         fetchImpl: async () => new Response(stream),
         tempDir,
         verifySignature: (data, meta) =>
-          verifyEd25519ArtifactSignature(publicKeyPem, data, meta),
+          verifyEd25519ArtifactSignature(publicKeys, data, meta),
       }),
     /超过网关声明大小/,
   );
@@ -174,14 +186,14 @@ test("rejects an invalid signature and cleans up", async () => {
 });
 
 test("rejects an expired download link", async () => {
-  const { publicKeyPem, metadata } = ed25519Fixture();
+  const { publicKeys, metadata } = ed25519Fixture();
   metadata.expiresAt = "2020-01-01T00:00:00Z";
   await assert.rejects(
     () =>
       downloadAndVerifyReleaseArtifact(metadata, {
         fetchImpl: async () => responseFromBytes(payload),
         verifySignature: (data, meta) =>
-          verifyEd25519ArtifactSignature(publicKeyPem, data, meta),
+          verifyEd25519ArtifactSignature(publicKeys, data, meta),
       }),
     /已过期/,
   );
@@ -201,6 +213,48 @@ test("fails closed when no verification key is configured", async () => {
       }),
     /未配置制品签名公钥/,
   );
+});
+
+test("rejects an unknown artifact signature key id", () => {
+  const { metadata } = ed25519Fixture();
+  assert.throws(
+    () => verifyEd25519ArtifactSignature({}, payload, metadata),
+    /未配置制品签名公钥/,
+  );
+});
+
+test("recognizes only direct files inside generated artifact directories", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "ai-anime-temp-root-"));
+  try {
+    const artifactDirectory = join(tempDir, "ai-anime-artifact-Ab12cd");
+    const artifactPath = join(artifactDirectory, "installer.exe");
+    assert.equal(isReleaseArtifactTempPath(artifactPath, tempDir), true);
+    assert.equal(
+      isReleaseArtifactTempPath(join(artifactDirectory, "nested", "installer.exe"), tempDir),
+      false,
+    );
+    assert.equal(
+      isReleaseArtifactTempPath(join(tempDir, "installer.exe"), tempDir),
+      false,
+    );
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("hashes an installed artifact without loading it through the renderer", async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), "ai-anime-hash-test-"));
+  const filePath = join(tempDir, "installer.exe");
+  try {
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(filePath, payload);
+    assert.equal(
+      await sha256File(filePath),
+      createHash("sha256").update(payload).digest("hex"),
+    );
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
 });
 
 test("windows authenticode accepts a Valid signature and rejects invalid output", async () => {
@@ -253,4 +307,30 @@ test("windows authenticode is skipped on non-windows platforms", async () => {
     },
   });
   assert.equal(ran, false);
+});
+
+test("production trust roots and package signing gates remain configured", async () => {
+  assert.deepEqual(Object.keys(COMMERCIAL_ARTIFACT_SIGNING_KEYS), [
+    "artifact-2026-08-v1",
+  ]);
+  assert.deepEqual(Object.keys(COMMERCIAL_LEASE_SIGNING_KEYS), [
+    "lease-2026-08-v1",
+  ]);
+  for (const publicKeyPem of [
+    ...Object.values(COMMERCIAL_ARTIFACT_SIGNING_KEYS),
+    ...Object.values(COMMERCIAL_LEASE_SIGNING_KEYS),
+  ]) {
+    assert.equal(createPublicKey(publicKeyPem).asymmetricKeyType, "ed25519");
+  }
+
+  const builderConfig = await readFile(
+    new URL("../electron-builder.yml", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    builderConfig.match(/forceCodeSigning: true/g)?.length,
+    2,
+  );
+  assert.match(builderConfig, /hardenedRuntime: true/);
+  assert.match(builderConfig, /notarize: true/);
 });

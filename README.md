@@ -25,8 +25,8 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 以下内容不能据此视为已经完成线上验收：
 
 - 尚未使用真实租户账号执行登录、许可激活、扣费、生成、公告和版本更新的完整在线联调。
-- `desktop/src/main.ts` 中 `leaseSigningKeys` 仍为空，离线租约会按 fail-closed 保持未验证。
-- 更新制品签名公钥尚未配置，下载后安装会按 fail-closed 拒绝执行。
+- 客户端已内置可轮换的许可与制品公钥；对应私钥尚需导入云端 Secret，并按固定 key id 产出签名。
+- Windows 受信任代码签名证书和 macOS Developer ID/notarization 凭据尚未配置，不能把当前无签名安装包作为自动更新制品。
 - Windows 与 macOS 安装包必须分别在对应宿主系统构建；当前配置不支持在 Windows 上交叉生成 macOS sidecar。
 
 因此，“调用链已接线”和“生产环境已验收”必须分开判断。
@@ -251,10 +251,12 @@ React module
 1. 实现 `/api/v1/config/public` 和 `/api/v1/config/logo`，后者返回真实图片字节，并统一读取 query 中的 `tenantCode`。
 2. 修正 Captcha GET query 契约，保持与客户端和集成文档一致。
 3. 提供隔离测试租户、普通版账号、专业版账号，以及许可、设备激活和额度数据。
-4. 配置离线租约 `keyId -> Ed25519 SPKI PEM` 公钥。
-5. 配置更新制品 Ed25519 公钥，并确保 Gateway 返回 `sha256`、`sizeBytes`、`signature` 和有效下载 URL。
+4. 将本机 `state/commercial-signing/` 下两把私钥导入云端 Secret，分别使用固定的许可与制品 key id；公钥已内置客户端。
+5. Gateway 制品下载合同增加 `signatureKeyId`，并返回 `sha256`、`sizeBytes`、`signature` 和有效 HTTPS 下载 URL。
 6. 发布记录同时提供 `windows/x86_64` 与 `macos/arm64` 签名制品。
 7. 使用测试账号验证 Cloud 模型转发、BYOK、401 单飞刷新、幂等键、取消流和实际扣费一致。
+
+可直接交给云端实施的字段、JSON 示例、密钥位置和发布顺序见 [云端接入与安全更新交接](docs/cloud-integration-handoff.md)。
 
 ## 6. 本地认证与模型路径
 
@@ -390,6 +392,8 @@ AI-anime-<version>-macos-arm64.zip
 ```
 
 当前 macOS 最低版本为 15.0。发布到外部测试前还应完成 Apple Developer ID 签名和 notarization；仓库没有内置开发者证书。
+
+发布命令现在强制平台签名：Windows 由 `CSC_LINK` / `CSC_KEY_PASSWORD` 提供 Authenticode 证书；macOS 由 Developer ID 和 Apple notarization 凭据提供签名。平台签名完成后使用 `pnpm --dir desktop release:metadata -- ...` 生成云端发布所需的 SHA-256、大小、key id 和 Ed25519 签名，完整顺序见云端交接文档。
 
 ### 发布前检查
 

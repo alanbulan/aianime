@@ -2,12 +2,13 @@
 
 import { createHash, createPublicKey, verify } from "node:crypto";
 import {
+  createReadStream,
   createWriteStream,
   type WriteStream,
 } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import type { CommercialArtifactDownloadSnapshot } from "./commercial-contracts.js";
 
@@ -49,6 +50,30 @@ export interface ArtifactDownloadOptions {
   verifyAuthenticode?: (filePath: string) => void | Promise<void>;
 }
 
+export async function sha256File(filePath: string): Promise<string> {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(filePath)) {
+    hash.update(chunk);
+  }
+  return hash.digest("hex");
+}
+
+export function isReleaseArtifactTempPath(
+  filePath: string,
+  tempDirectory = tmpdir(),
+): boolean {
+  const relativePath = relative(resolve(tempDirectory), resolve(filePath));
+  if (!relativePath || isAbsolute(relativePath)) return false;
+  const segments = relativePath.split(sep);
+  const directory = segments[0] ?? "";
+  return (
+    segments.length === 2 &&
+    directory.startsWith("ai-anime-artifact-") &&
+    directory.length > "ai-anime-artifact-".length &&
+    Boolean(segments[1])
+  );
+}
+
 function assertValidArtifactMetadata(
   metadata: CommercialArtifactDownloadSnapshot,
   now: () => number,
@@ -66,11 +91,9 @@ function assertValidArtifactMetadata(
   if (!metadata.signature) {
     throw new ArtifactVerificationError("制品缺少签名");
   }
-  if (metadata.expiresAt) {
-    const expiresAtMs = Date.parse(metadata.expiresAt);
-    if (!Number.isFinite(expiresAtMs) || expiresAtMs <= now()) {
-      throw new ArtifactVerificationError("制品下载链接已过期");
-    }
+  const expiresAtMs = Date.parse(metadata.expiresAt);
+  if (!Number.isFinite(expiresAtMs) || expiresAtMs <= now()) {
+    throw new ArtifactVerificationError("制品下载链接已过期");
   }
 }
 
@@ -200,19 +223,30 @@ export async function downloadAndVerifyReleaseArtifact(
  * The signature is over the raw downloaded bytes (base64 in the metadata).
  */
 export function verifyEd25519ArtifactSignature(
-  publicKeyPem: string,
+  publicKeys: Readonly<Record<string, string>>,
   data: Buffer,
   metadata: CommercialArtifactDownloadSnapshot,
 ): void {
-  if (!publicKeyPem.trim()) {
-    throw new ArtifactVerificationError("未配置制品签名公钥，拒绝安装");
+  const publicKeyPem = publicKeys[metadata.signatureKeyId];
+  if (!publicKeyPem?.trim()) {
+    throw new ArtifactVerificationError(
+      `未配置制品签名公钥：${metadata.signatureKeyId}`,
+    );
   }
-  const publicKey = createPublicKey({
-    key: publicKeyPem,
-    format: "pem",
-    type: "spki",
-  });
+  let publicKey;
+  try {
+    publicKey = createPublicKey({
+      key: publicKeyPem,
+      format: "pem",
+      type: "spki",
+    });
+  } catch {
+    throw new ArtifactVerificationError("制品签名公钥无效");
+  }
   const signature = Buffer.from(metadata.signature, "base64");
+  if (signature.byteLength !== 64) {
+    throw new ArtifactVerificationError("制品签名编码无效");
+  }
   let valid = false;
   try {
     valid = verify(null, data, publicKey, signature);
@@ -279,9 +313,9 @@ export async function verifyWindowsAuthenticodeSignature(
   const run = options.run ?? defaultAuthenticodeRun;
   const escapedPath = filePath.replace(/'/g, "''");
   const command =
-    "Get-AuthenticodeSignature -LiteralPath '" +
+    "Import-Module (Join-Path $PSHOME 'Modules\\Microsoft.PowerShell.Security\\Microsoft.PowerShell.Security.psd1') -ErrorAction Stop; Get-AuthenticodeSignature -LiteralPath '" +
     escapedPath +
-    "' | Select-Object -Property Status,@{Name='Publisher';Expression={$_.SignerCertificate.Subject}} | ConvertTo-Json -Compress";
+    "' | Select-Object -Property @{Name='Status';Expression={$_.Status.ToString()}},@{Name='Publisher';Expression={$_.SignerCertificate.Subject}} | ConvertTo-Json -Compress";
   const result = await run("powershell.exe", [
     "-NoProfile",
     "-NonInteractive",
