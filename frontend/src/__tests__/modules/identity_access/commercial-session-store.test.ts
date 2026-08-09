@@ -8,12 +8,18 @@ import { createCommercialAuthStore } from "@/modules/identity_access/application
 import type {
   CommercialPublicConfig,
   CommercialSession,
+  CommercialUserProfile,
 } from "@/modules/identity_access/domain/commercial-session";
 
 const session: CommercialSession = {
   authenticated: true,
   expiresAtEpochMs: 10_000,
-  user: { id: 1001, username: "client_user", nickname: "客户端用户" },
+  user: {
+    id: 1001,
+    username: "client_user",
+    nickname: "客户端用户",
+    email: "client@example.com",
+  },
   tenant: { id: 11, code: "customer-a", name: "客户 A", isSystem: false },
 };
 
@@ -21,6 +27,20 @@ const publicConfig: CommercialPublicConfig = {
   system: { siteName: "Enlectron" },
   login: { captchaEnabled: false, rememberMe: true },
   register: { enabled: false },
+};
+
+const profile: CommercialUserProfile = {
+  id: 1001,
+  username: "client_user",
+  nickname: "客户端用户",
+  email: "client@example.com",
+  phone: "13800000000",
+  gender: 0,
+  avatar: "",
+  status: 1,
+  deptId: 0,
+  deptName: "",
+  profileDescription: "分镜创作者",
 };
 
 function createPreference(initial = "") {
@@ -55,6 +75,27 @@ function createGateway(
     restoreSession: vi.fn(async () => null),
     login: vi.fn(async () => session),
     logout: vi.fn(async () => ({ remoteRevoked: true })),
+    fetchProfile: vi.fn(async () => profile),
+    updateProfile: vi.fn(async (input) => ({ ...profile, ...input })),
+    fetchAvatar: vi.fn(async () => ({
+      contentType: "image/png",
+      dataUrl: "data:image/png;base64,AA==",
+    })),
+    uploadAvatar: vi.fn(async () => ({
+      profile: { ...profile, avatar: "/api/v1/user/avatar" },
+      avatar: {
+        contentType: "image/png",
+        dataUrl: "data:image/png;base64,AA==",
+      },
+    })),
+    deleteAvatar: vi.fn(async () => ({ profile: { ...profile, avatar: "" } })),
+    changePassword: vi.fn(async () => undefined),
+    sendPasswordResetCode: vi.fn(async () => undefined),
+    verifyPasswordResetCode: vi.fn(async () => ({
+      resetTicket: "reset-ticket",
+      expiresIn: 600,
+    })),
+    resetPassword: vi.fn(async () => undefined),
     ...overrides,
   };
 }
@@ -139,10 +180,56 @@ describe("commercial auth store", () => {
     expect(store.getState().session).toBeNull();
   });
 
+  it("hydrates a protected avatar through Electron instead of using its relative path", async () => {
+    const fetchAvatar = vi.fn(async () => ({
+      contentType: "image/png",
+      dataUrl: "data:image/png;base64,AA==",
+    }));
+    const gateway = createGateway({
+      restoreSession: vi.fn(async () => session),
+      fetchProfile: vi.fn(async () => ({
+        ...profile,
+        avatar: "/api/v1/user/avatar",
+      })),
+      fetchAvatar,
+    });
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
+
+    await store.getState().initialize();
+
+    expect(fetchAvatar).toHaveBeenCalledOnce();
+    expect(store.getState().avatarDataUrl).toBe("data:image/png;base64,AA==");
+    expect(store.getState().profile?.avatar).toBe("/api/v1/user/avatar");
+  });
+
+  it("uses one tenant across the three-step password reset contract", async () => {
+    const gateway = createGateway();
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
+
+    await store.getState().sendPasswordResetCode("client@example.com");
+    await store.getState().verifyPasswordResetCode("client@example.com", "123456");
+    await store.getState().resetPassword("reset-ticket", "NewPassword123");
+
+    expect(gateway.sendPasswordResetCode).toHaveBeenCalledWith(
+      "customer-a",
+      "client@example.com",
+    );
+    expect(gateway.verifyPasswordResetCode).toHaveBeenCalledWith(
+      "customer-a",
+      "client@example.com",
+      "123456",
+    );
+    expect(gateway.resetPassword).toHaveBeenCalledWith(
+      "customer-a",
+      "reset-ticket",
+      "NewPassword123",
+    );
+  });
+
   it("registers only when enabled and injects the current captcha", async () => {
     const registrationConfig: CommercialPublicConfig = {
       ...publicConfig,
-      login: { captchaEnabled: true, captchaType: "image", rememberMe: true },
+      login: { captchaEnabled: true, rememberMe: true },
       register: { enabled: true },
     };
     const register = vi.fn(async () => undefined);
@@ -196,7 +283,7 @@ describe("commercial auth store", () => {
   it("injects the current captcha key and refreshes it after a failed login", async () => {
     const captchaConfig: CommercialPublicConfig = {
       ...publicConfig,
-      login: { captchaEnabled: true, captchaType: "image", rememberMe: true },
+      login: { captchaEnabled: true, rememberMe: true },
     };
     const login = vi.fn(async () => {
       throw new Error("invalid captcha");

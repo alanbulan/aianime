@@ -28,6 +28,20 @@ interface AIAnimeCommercialSession {
   tenant: AIAnimeCommercialTenant;
 }
 
+interface AIAnimeCommercialUserProfile {
+  id: string | number;
+  username: string;
+  nickname: string;
+  email: string;
+  phone: string;
+  gender: 0 | 1 | 2;
+  avatar: string;
+  status: number;
+  deptId: string | number;
+  deptName: string;
+  profileDescription: string;
+}
+
 interface AIAnimeCommercialLoginInput {
   tenantCode: string;
   username: string;
@@ -65,6 +79,42 @@ interface AIAnimeCommercialBridge {
   session: () => Promise<AIAnimeCommercialSession | null>;
   login: (input: AIAnimeCommercialLoginInput) => Promise<AIAnimeCommercialSession>;
   logout: () => Promise<{ remoteRevoked: boolean }>;
+  profile: () => Promise<AIAnimeCommercialUserProfile>;
+  updateProfile: (input: {
+    nickname: string;
+    email: string;
+    phone: string;
+    gender: 0 | 1 | 2;
+    profileDescription: string;
+  }) => Promise<AIAnimeCommercialUserProfile>;
+  avatar: () => Promise<{ contentType: string; dataUrl: string }>;
+  uploadAvatar: (input: {
+    fileName: string;
+    contentType: string;
+    bytes: Uint8Array;
+  }) => Promise<{
+    profile: AIAnimeCommercialUserProfile;
+    avatar: { contentType: string; dataUrl: string };
+  }>;
+  deleteAvatar: () => Promise<{ profile: AIAnimeCommercialUserProfile }>;
+  changePassword: (input: {
+    oldPassword: string;
+    newPassword: string;
+  }) => Promise<void>;
+  sendPasswordResetCode: (input: {
+    tenantCode: string;
+    email: string;
+  }) => Promise<void>;
+  verifyPasswordResetCode: (input: {
+    tenantCode: string;
+    email: string;
+    code: string;
+  }) => Promise<{ resetTicket: string; expiresIn: number }>;
+  resetPassword: (input: {
+    tenantCode: string;
+    resetTicket: string;
+    newPassword: string;
+  }) => Promise<void>;
   bootstrap: (query: {
     modelOperation?: string;
     currentVersion?: string;

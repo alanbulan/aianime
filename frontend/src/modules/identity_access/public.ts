@@ -24,11 +24,13 @@ export type {
 } from "@/modules/identity_access/application/commercial-session-store";
 export type {
   CommercialLoginInput,
+  CommercialProfileUpdateInput,
   CommercialPublicConfig,
   CommercialRegistrationInput,
   CommercialSession,
   CommercialTenant,
   CommercialUser,
+  CommercialUserProfile,
 } from "@/modules/identity_access/domain/commercial-session";
 export type { CurrentUser } from "@/modules/identity_access/domain/session";
 export { CommercialAccountSection } from "@/modules/identity_access/presentation/CommercialAccountSection";

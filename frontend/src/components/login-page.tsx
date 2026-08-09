@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  ArrowLeft,
   Eye,
   EyeOff,
   KeyRound,
@@ -26,7 +27,8 @@ import {
 } from "@/modules/identity_access/public";
 import { useRegionStore } from "@/shared/stores/region-store";
 
-type AuthView = "login" | "register" | "authorize";
+type AuthView = "login" | "register" | "authorize" | "forgot";
+type PasswordResetStep = "request" | "verify" | "reset";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -61,6 +63,15 @@ export function LoginPage() {
   );
   const commercialLogin = useCommercialAuthStore((state) => state.login);
   const commercialRegister = useCommercialAuthStore((state) => state.register);
+  const sendPasswordResetCode = useCommercialAuthStore(
+    (state) => state.sendPasswordResetCode,
+  );
+  const verifyPasswordResetCode = useCommercialAuthStore(
+    (state) => state.verifyPasswordResetCode,
+  );
+  const resetCommercialPassword = useCommercialAuthStore(
+    (state) => state.resetPassword,
+  );
   const regionId = useRegionStore((state) => state.selectedRegionId);
   const [view, setView] = useState<AuthView>("login");
   const [username, setUsername] = useState("");
@@ -70,6 +81,10 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [authorizationCode, setAuthorizationCode] = useState("");
   const [captchaCode, setCaptchaCode] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [resetTicket, setResetTicket] = useState("");
+  const [passwordResetStep, setPasswordResetStep] =
+    useState<PasswordResetStep>("request");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -139,6 +154,39 @@ export function LoginPage() {
     setError(null);
     setSuccess(null);
     try {
+      if (commercialConfigured && view === "forgot") {
+        if (passwordResetStep === "request") {
+          await sendPasswordResetCode(email);
+          setPasswordResetStep("verify");
+          setSuccess(t("auth.resetCodeSent"));
+          return;
+        }
+        if (passwordResetStep === "verify") {
+          const verification = await verifyPasswordResetCode(
+            email,
+            verificationCode,
+          );
+          setResetTicket(verification.resetTicket);
+          setPasswordResetStep("reset");
+          setSuccess(t("auth.resetCodeVerified"));
+          return;
+        }
+        if (password !== confirmPassword) {
+          throw new Error(t("auth.passwordMismatch"));
+        }
+        if (password.length < 8 || password.length > 128) {
+          throw new Error(t("auth.resetPasswordLength"));
+        }
+        await resetCommercialPassword(resetTicket, password);
+        setView("login");
+        setPasswordResetStep("request");
+        setVerificationCode("");
+        setResetTicket("");
+        setPassword("");
+        setConfirmPassword("");
+        setSuccess(t("auth.passwordResetSucceeded"));
+        return;
+      }
       if (commercialConfigured && view === "register") {
         if (password !== confirmPassword) {
           throw new Error(t("auth.passwordMismatch"));
@@ -250,7 +298,7 @@ export function LoginPage() {
 
           <RegionSelector />
 
-          {commercialConfigured && registrationEnabled ? (
+          {commercialConfigured && registrationEnabled && view !== "forgot" ? (
             <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
               <AuthModeButton
                 active={view === "login"}
@@ -325,7 +373,87 @@ export function LoginPage() {
                 />
               </Field>
             ) : null}
-            {commercialConfigured || view === "login" ? (
+            {commercialConfigured && view === "forgot" ? (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-medium">{t("auth.resetPassword")}</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t(`auth.resetSteps.${passwordResetStep}`)}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setView("login");
+                      setPasswordResetStep("request");
+                      setVerificationCode("");
+                      setResetTicket("");
+                      setError(null);
+                      setSuccess(null);
+                    }}
+                  >
+                    <ArrowLeft />
+                    {t("auth.backToLogin")}
+                  </Button>
+                </div>
+                {passwordResetStep === "request" ? (
+                  <Field label={t("auth.email")} htmlFor="reset-email">
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder={t("auth.emailPlaceholder")}
+                      required
+                    />
+                  </Field>
+                ) : passwordResetStep === "verify" ? (
+                  <>
+                    <Field label={t("auth.email")} htmlFor="verified-email">
+                      <Input id="verified-email" value={email} readOnly />
+                    </Field>
+                    <Field label={t("auth.emailCode")} htmlFor="reset-code">
+                      <Input
+                        id="reset-code"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={verificationCode}
+                        onChange={(event) => setVerificationCode(event.target.value)}
+                        placeholder={t("auth.emailCodePlaceholder")}
+                        required
+                      />
+                    </Field>
+                  </>
+                ) : (
+                  <>
+                    <Field label={t("auth.newPassword")} htmlFor="reset-password">
+                      <Input
+                        id="reset-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        required
+                      />
+                    </Field>
+                    <Field label={t("auth.confirmPassword")} htmlFor="reset-confirm-password">
+                      <Input
+                        id="reset-confirm-password"
+                        type="password"
+                        autoComplete="new-password"
+                        value={confirmPassword}
+                        onChange={(event) => setConfirmPassword(event.target.value)}
+                        required
+                      />
+                    </Field>
+                  </>
+                )}
+              </>
+            ) : commercialConfigured || view === "login" ? (
               <>
                 <Field label={t("auth.username")} htmlFor="username">
                   <Input
@@ -453,6 +581,22 @@ export function LoginPage() {
                     <span>{t("auth.remember")}</span>
                   </label>
                 ) : null}
+                {commercialConfigured && view === "login" ? (
+                  <button
+                    type="button"
+                    className="ml-auto block text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setView("forgot");
+                      setPasswordResetStep("request");
+                      setPassword("");
+                      setConfirmPassword("");
+                      setError(null);
+                      setSuccess(null);
+                    }}
+                  >
+                    {t("auth.forgot")}
+                  </button>
+                ) : null}
               </>
             ) : (
               <Field label={t("auth.authorizationCode")} htmlFor="authorization-code">
@@ -482,13 +626,22 @@ export function LoginPage() {
                 needsRegion ||
                 commercialAvailability === "unknown" ||
                 (commercialConfigured && !tenantCode) ||
-                (commercialPublicConfig?.login.captchaEnabled && !captchaCode.trim())
+                (commercialPublicConfig?.login.captchaEnabled &&
+                  view !== "forgot" &&
+                  !captchaCode.trim()) ||
+                (view === "forgot" &&
+                  ((passwordResetStep === "request" && !email.trim()) ||
+                    (passwordResetStep === "verify" && !verificationCode.trim()) ||
+                    (passwordResetStep === "reset" &&
+                      (!password || !confirmPassword))))
               }
               title={needsRegion ? t("region.picker.required") : undefined}
             >
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
               {submitting
                 ? t("auth.authenticating")
+                : commercialConfigured && view === "forgot"
+                  ? t(`auth.resetActions.${passwordResetStep}`)
                 : commercialConfigured && view === "register"
                   ? t("auth.registerButton")
                   : commercialConfigured || view === "login"

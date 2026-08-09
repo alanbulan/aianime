@@ -18,6 +18,8 @@ const MODEL_TIMEOUT_MS = 30 * 60_000;
 const REFRESH_SKEW_MS = 60_000;
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const MAX_CAPTCHA_BYTES = 512 * 1024;
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+const AVATAR_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 export const COMMERCIAL_GATEWAY_URL = "https://aianime.122-193-11-199.sslip.io";
 
 type Identifier = string | number;
@@ -29,6 +31,44 @@ export interface CommercialUser {
   nickname?: string;
   email?: string;
   avatar?: string;
+}
+
+export interface CommercialUserProfile {
+  id: Identifier;
+  username: string;
+  nickname: string;
+  email: string;
+  phone: string;
+  gender: 0 | 1 | 2;
+  avatar: string;
+  status: number;
+  deptId: Identifier;
+  deptName: string;
+  profileDescription: string;
+}
+
+export interface CommercialProfileUpdateInput {
+  nickname: string;
+  email: string;
+  phone: string;
+  gender: 0 | 1 | 2;
+  profileDescription: string;
+}
+
+export interface CommercialAvatarUploadInput {
+  fileName: string;
+  contentType: string;
+  bytes: Uint8Array;
+}
+
+export interface CommercialProtectedImage {
+  contentType: string;
+  dataUrl: string;
+}
+
+export interface CommercialPasswordResetVerification {
+  resetTicket: string;
+  expiresIn: number;
 }
 
 export interface CommercialTenant {
@@ -163,6 +203,7 @@ interface RequestOptions {
   query?: Record<string, QueryValue>;
   body?: unknown;
   rawBody?: Uint8Array;
+  formData?: FormData;
   contentType?: string;
   token?: string;
   deviceId?: Identifier;
@@ -304,7 +345,7 @@ export class CommercialApiClient {
     const body = compactObject({
       tenantCode: requiredText(input.tenantCode, "tenantCode"),
       username: requiredText(input.username, "username"),
-      password: requiredText(input.password, "password"),
+      password: requiredRawText(input.password, "password"),
       rememberMe: input.rememberMe,
       captchaKey: optionalText(input.captchaKey),
       captchaCode: optionalText(input.captchaCode),
@@ -367,6 +408,130 @@ export class CommercialApiClient {
       await this.clearSession();
     }
     return { remoteRevoked };
+  }
+
+  async currentProfile(): Promise<CommercialUserProfile> {
+    const profile = parseUserProfile(
+      await this.authenticatedJson("GET", "/api/v1/user/profile"),
+    );
+    const session = await this.requireSession();
+    await this.replaceSession({
+      ...session,
+      user: {
+        id: profile.id,
+        username: profile.username,
+        ...(profile.nickname ? { nickname: profile.nickname } : {}),
+        ...(profile.email ? { email: profile.email } : {}),
+        ...(profile.avatar ? { avatar: profile.avatar } : {}),
+      },
+    });
+    return profile;
+  }
+
+  async updateProfile(
+    input: CommercialProfileUpdateInput,
+  ): Promise<CommercialUserProfile> {
+    await this.authenticatedJson("PUT", "/api/v1/user/profile", {
+      body: {
+        nickname: boundedText(input.nickname, "nickname", 64),
+        email: boundedText(input.email, "email", 255),
+        phone: boundedText(input.phone, "phone", 32),
+        gender: profileGender(input.gender),
+        profileDescription: boundedText(
+          input.profileDescription,
+          "profileDescription",
+          1_000,
+        ),
+      },
+    });
+    return this.currentProfile();
+  }
+
+  async currentAvatar(): Promise<CommercialProtectedImage> {
+    const response = await this.authenticatedResponse(
+      "GET",
+      "/api/v1/user/avatar",
+      { accept: "image/*" },
+    );
+    await assertSuccessfulResponse(response);
+    return protectedImageData(response, "头像");
+  }
+
+  async uploadAvatar(input: CommercialAvatarUploadInput): Promise<unknown> {
+    const contentType = requiredText(input.contentType, "contentType").toLowerCase();
+    if (!AVATAR_CONTENT_TYPES.has(contentType)) {
+      throw new CommercialApiError("头像只支持 JPEG、PNG 或 WebP");
+    }
+    const bytes = Buffer.from(input.bytes);
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_AVATAR_BYTES) {
+      throw new CommercialApiError("头像大小必须在 1 字节到 5 MiB 之间");
+    }
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new Blob([bytes], { type: contentType }),
+      requiredText(input.fileName, "fileName"),
+    );
+    return this.authenticatedJson("POST", "/api/v1/user/avatar", { formData });
+  }
+
+  async deleteAvatar(): Promise<void> {
+    await this.authenticatedJson("DELETE", "/api/v1/user/avatar");
+  }
+
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await this.authenticatedJson("PUT", "/api/v1/user/password", {
+      body: {
+        oldPassword: requiredRawText(oldPassword, "oldPassword"),
+        newPassword: requiredRawText(newPassword, "newPassword"),
+      },
+    });
+    await this.clearSession();
+  }
+
+  async sendPasswordResetCode(tenantCode: string, email: string): Promise<void> {
+    await this.requestJson("POST", "/api/v1/auth/email-code", {
+      body: {
+        tenantCode: requiredText(tenantCode, "tenantCode"),
+        email: requiredText(email, "email"),
+        scene: "reset",
+      },
+    });
+  }
+
+  async verifyPasswordResetCode(
+    tenantCode: string,
+    email: string,
+    code: string,
+  ): Promise<CommercialPasswordResetVerification> {
+    const response = requiredRecord(
+      await this.requestJson("POST", "/api/v1/auth/reset-password/verify", {
+        body: {
+          tenantCode: requiredText(tenantCode, "tenantCode"),
+          email: requiredText(email, "email"),
+          code: requiredText(code, "code"),
+        },
+      }),
+      "password reset verification",
+    );
+    return {
+      resetTicket: requiredText(response.resetTicket, "resetTicket"),
+      expiresIn: positiveNumber(response.expiresIn, "expiresIn"),
+    };
+  }
+
+  async resetPassword(
+    tenantCode: string,
+    resetTicket: string,
+    newPassword: string,
+  ): Promise<void> {
+    await this.requestJson("POST", "/api/v1/auth/reset-password", {
+      body: {
+        tenantCode: requiredText(tenantCode, "tenantCode"),
+        resetTicket: requiredText(resetTicket, "resetTicket"),
+        newPassword: requiredRawText(newPassword, "newPassword"),
+      },
+    });
   }
 
   bootstrap(
@@ -833,8 +998,10 @@ export class CommercialApiClient {
     if (options.deviceId !== undefined) {
       headers.set("X-Device-Id", String(options.deviceId));
     }
-    let body: string | Uint8Array | undefined;
-    if (options.rawBody !== undefined) {
+    let body: BodyInit | undefined;
+    if (options.formData !== undefined) {
+      body = options.formData;
+    } else if (options.rawBody !== undefined) {
       headers.set(
         "Content-Type",
         options.contentType ?? "application/octet-stream",
@@ -925,6 +1092,71 @@ function parseTenant(value: unknown): CommercialTenant {
     name: requiredText(tenant.name, "tenant.name"),
     ...(tenant.isSystem === undefined ? {} : { isSystem: tenant.isSystem }),
   };
+}
+
+function parseUserProfile(value: unknown): CommercialUserProfile {
+  const profile = requiredRecord(value, "user profile");
+  return {
+    id: requiredIdentifier(profile.id, "profile.id"),
+    username: requiredText(profile.username, "profile.username"),
+    nickname: stringValue(profile.nickname, "profile.nickname"),
+    email: stringValue(profile.email, "profile.email"),
+    phone: stringValue(profile.phone, "profile.phone"),
+    gender: profileGender(profile.gender),
+    avatar: stringValue(profile.avatar, "profile.avatar"),
+    status: requiredInteger(profile.status, "profile.status"),
+    deptId: requiredIdentifier(profile.deptId, "profile.deptId"),
+    deptName: stringValue(profile.deptName, "profile.deptName"),
+    profileDescription: stringValue(
+      profile.profileDescription,
+      "profile.profileDescription",
+    ),
+  };
+}
+
+async function protectedImageData(
+  response: Response,
+  name: string,
+): Promise<CommercialProtectedImage> {
+  const contentType = (response.headers.get("content-type") ?? "")
+    .split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (!contentType || !AVATAR_CONTENT_TYPES.has(contentType)) {
+    throw new CommercialApiError(`Gateway 返回的${name}格式无效`, {
+      status: response.status,
+    });
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.byteLength === 0 || bytes.byteLength > MAX_AVATAR_BYTES) {
+    throw new CommercialApiError(`Gateway 返回的${name}大小无效`, {
+      status: response.status,
+    });
+  }
+  return {
+    contentType,
+    dataUrl: `data:${contentType};base64,${bytes.toString("base64")}`,
+  };
+}
+
+function stringValue(value: unknown, name: string): string {
+  if (typeof value !== "string") {
+    throw new CommercialApiError(`${name} 必须是字符串`);
+  }
+  return value;
+}
+
+function boundedText(value: unknown, name: string, maxLength: number): string {
+  const text = stringValue(value, name).trim();
+  if (text.length > maxLength) {
+    throw new CommercialApiError(`${name} 不能超过 ${maxLength} 个字符`);
+  }
+  return text;
+}
+
+function profileGender(value: unknown): 0 | 1 | 2 {
+  if (value === 0 || value === 1 || value === 2) return value;
+  throw new CommercialApiError("gender 只能为 0、1 或 2");
 }
 
 function toSessionSummary(session: StoredCommercialSession): CommercialSessionSummary {

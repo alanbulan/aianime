@@ -22,6 +22,33 @@ export interface CommercialSession {
   tenant: CommercialTenant;
 }
 
+export interface CommercialUserProfile {
+  id: CommercialIdentifier;
+  username: string;
+  nickname: string;
+  email: string;
+  phone: string;
+  gender: 0 | 1 | 2;
+  avatar: string;
+  status: number;
+  deptId: CommercialIdentifier;
+  deptName: string;
+  profileDescription: string;
+}
+
+export interface CommercialProfileUpdateInput {
+  nickname: string;
+  email: string;
+  phone: string;
+  gender: 0 | 1 | 2;
+  profileDescription: string;
+}
+
+export interface CommercialPasswordResetVerification {
+  resetTicket: string;
+  expiresIn: number;
+}
+
 export interface CommercialLoginInput {
   tenantCode: string;
   username: string;
@@ -51,7 +78,6 @@ export interface CommercialPublicConfig {
   };
   login: {
     captchaEnabled: boolean;
-    captchaType?: string;
     rememberMe: boolean;
   };
   register?: {
@@ -103,6 +129,38 @@ export function parseCommercialSession(value: unknown): CommercialSession {
   };
 }
 
+export function parseCommercialUserProfile(
+  value: unknown,
+): CommercialUserProfile {
+  const profile = record(value, "commercial user profile");
+  return {
+    id: identifier(profile.id, "profile.id"),
+    username: text(profile.username, "profile.username"),
+    nickname: stringValue(profile.nickname, "profile.nickname"),
+    email: stringValue(profile.email, "profile.email"),
+    phone: stringValue(profile.phone, "profile.phone"),
+    gender: gender(profile.gender),
+    avatar: stringValue(profile.avatar, "profile.avatar"),
+    status: integer(profile.status, "profile.status"),
+    deptId: identifier(profile.deptId, "profile.deptId"),
+    deptName: stringValue(profile.deptName, "profile.deptName"),
+    profileDescription: stringValue(
+      profile.profileDescription,
+      "profile.profileDescription",
+    ),
+  };
+}
+
+export function parsePasswordResetVerification(
+  value: unknown,
+): CommercialPasswordResetVerification {
+  const verification = record(value, "password reset verification");
+  return {
+    resetTicket: text(verification.resetTicket, "resetTicket"),
+    expiresIn: positiveNumber(verification.expiresIn, "expiresIn"),
+  };
+}
+
 export function parseCommercialPublicConfig(
   value: unknown,
 ): CommercialPublicConfig {
@@ -128,7 +186,6 @@ export function parseCommercialPublicConfig(
     login: {
       captchaEnabled,
       rememberMe,
-      ...optionalTextProperty("captchaType", login.captchaType),
     },
     ...(registerEnabled === undefined
       ? {}
@@ -205,6 +262,11 @@ function text(value: unknown, name: string): string {
   return normalized;
 }
 
+function stringValue(value: unknown, name: string): string {
+  if (typeof value !== "string") throw new Error(`${name} must be a string`);
+  return value;
+}
+
 function identifier(value: unknown, name: string): CommercialIdentifier {
   if (typeof value === "string" && value.trim()) return value;
   if (typeof value === "number" && Number.isSafeInteger(value)) return value;
@@ -223,6 +285,16 @@ function positiveInteger(value: unknown, name: string): number {
     throw new Error(`${name} must be a positive integer`);
   }
   return Number(value);
+}
+
+function integer(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value)) throw new Error(`${name} must be an integer`);
+  return Number(value);
+}
+
+function gender(value: unknown): 0 | 1 | 2 {
+  if (value === 0 || value === 1 || value === 2) return value;
+  throw new Error("profile.gender must be 0, 1, or 2");
 }
 
 function booleanValue(value: unknown, name: string): boolean {

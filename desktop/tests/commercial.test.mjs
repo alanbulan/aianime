@@ -291,6 +291,152 @@ test("public captcha is converted to a bounded renderer-safe image", async () =>
   assert.equal(Object.hasOwn(captcha, "svg"), false);
 });
 
+test("account profile and protected avatar stay behind the main-process bearer token", async () => {
+  const calls = [];
+  const profile = {
+    id: 1001,
+    username: "client_user",
+    nickname: "客户端用户",
+    email: "client@example.com",
+    phone: "13800000000",
+    gender: 0,
+    avatar: "/api/v1/user/avatar",
+    status: 1,
+    deptId: 0,
+    deptName: "",
+    profileDescription: "分镜创作者",
+  };
+  const client = authenticatedClient(async (url, init) => {
+    calls.push({ url: String(url), init });
+    if (String(url).endsWith("/api/v1/user/avatar")) {
+      return new Response(Uint8Array.from([0x89, 0x50, 0x4e, 0x47]), {
+        headers: { "Content-Type": "image/png" },
+      });
+    }
+    return Response.json(profile);
+  });
+
+  assert.deepEqual(await client.currentProfile(), profile);
+  assert.deepEqual(await client.currentAvatar(), {
+    contentType: "image/png",
+    dataUrl: "data:image/png;base64,iVBORw==",
+  });
+
+  for (const call of calls) {
+    const headers = new Headers(call.init.headers);
+    assert.equal(headers.get("Authorization"), "Bearer client-jwt");
+    assert.equal(headers.has("X-Device-Id"), false);
+  }
+});
+
+test("profile replacement and avatar upload use the documented request bodies", async () => {
+  const calls = [];
+  const profile = {
+    id: 1001,
+    username: "client_user",
+    nickname: "新昵称",
+    email: "client@example.com",
+    phone: "13800000000",
+    gender: 2,
+    avatar: "/api/v1/user/avatar",
+    status: 1,
+    deptId: 0,
+    deptName: "",
+    profileDescription: "新简介",
+  };
+  const client = authenticatedClient(async (url, init) => {
+    calls.push({ url: String(url), init });
+    if (init.method === "PUT") return Response.json({ code: 0, message: "ok" });
+    if (init.method === "POST") {
+      return Response.json({
+        avatar: "/api/v1/user/avatar",
+        contentType: "image/png",
+        sizeBytes: 4,
+      });
+    }
+    return Response.json(profile);
+  });
+
+  await client.updateProfile({
+    nickname: "新昵称",
+    email: "client@example.com",
+    phone: "13800000000",
+    gender: 2,
+    profileDescription: "新简介",
+  });
+  await client.uploadAvatar({
+    fileName: "avatar.png",
+    contentType: "image/png",
+    bytes: Uint8Array.from([0x89, 0x50, 0x4e, 0x47]),
+  });
+
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    nickname: "新昵称",
+    email: "client@example.com",
+    phone: "13800000000",
+    gender: 2,
+    profileDescription: "新简介",
+  });
+  const avatarCall = calls.find((call) => call.init.method === "POST");
+  assert.ok(avatarCall.init.body instanceof FormData);
+  assert.equal(avatarCall.init.body.get("file").type, "image/png");
+  assert.equal(new Headers(avatarCall.init.headers).has("Content-Type"), false);
+});
+
+test("password change revokes the stored session and public reset uses three steps", async () => {
+  const calls = [];
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: 3_601_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async (url, init) => {
+      calls.push({ url: String(url), init });
+      if (String(url).endsWith("/reset-password/verify")) {
+        return Response.json({ resetTicket: "single-use-ticket", expiresIn: 600 });
+      }
+      return Response.json({ success: true });
+    },
+  });
+
+  await client.changePassword(" Old password ", " New password ");
+  assert.equal(store.value, null);
+  await client.sendPasswordResetCode("customer-a", "client@example.com");
+  assert.deepEqual(
+    await client.verifyPasswordResetCode("customer-a", "client@example.com", "123456"),
+    { resetTicket: "single-use-ticket", expiresIn: 600 },
+  );
+  await client.resetPassword("customer-a", "single-use-ticket", " New password ");
+
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    oldPassword: " Old password ",
+    newPassword: " New password ",
+  });
+  assert.deepEqual(JSON.parse(calls[1].init.body), {
+    tenantCode: "customer-a",
+    email: "client@example.com",
+    scene: "reset",
+  });
+  assert.deepEqual(JSON.parse(calls[2].init.body), {
+    tenantCode: "customer-a",
+    email: "client@example.com",
+    code: "123456",
+  });
+  assert.deepEqual(JSON.parse(calls[3].init.body), {
+    tenantCode: "customer-a",
+    resetTicket: "single-use-ticket",
+    newPassword: " New password ",
+  });
+});
+
 test("plain HTTP is restricted to loopback or the single approved Gateway", () => {
   assert.doesNotThrow(
     () =>

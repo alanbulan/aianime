@@ -7,9 +7,11 @@ import type {
 import type {
   CommercialCaptcha,
   CommercialLoginInput,
+  CommercialProfileUpdateInput,
   CommercialPublicConfig,
   CommercialRegistrationInput,
   CommercialSession,
+  CommercialUserProfile,
 } from "@/modules/identity_access/domain/commercial-session";
 
 export type CommercialAvailability = "unknown" | "unconfigured" | "configured";
@@ -21,6 +23,8 @@ export interface CommercialAuthState {
   publicConfig: CommercialPublicConfig | null;
   logoDataUrl: string | null;
   captcha: CommercialCaptcha | null;
+  profile: CommercialUserProfile | null;
+  avatarDataUrl: string | null;
   initialize: () => Promise<void>;
   setTenantCode: (tenantCode: string) => void;
   loadPublicConfig: (tenantCode?: string) => Promise<CommercialPublicConfig>;
@@ -28,6 +32,19 @@ export interface CommercialAuthState {
   register: (input: CommercialRegistrationInput) => Promise<void>;
   login: (input: CommercialLoginInput) => Promise<CommercialSession>;
   logout: () => Promise<void>;
+  loadProfile: () => Promise<CommercialUserProfile>;
+  updateProfile: (
+    input: CommercialProfileUpdateInput,
+  ) => Promise<CommercialUserProfile>;
+  uploadAvatar: (file: File) => Promise<void>;
+  deleteAvatar: () => Promise<void>;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
+  sendPasswordResetCode: (email: string) => Promise<void>;
+  verifyPasswordResetCode: (
+    email: string,
+    code: string,
+  ) => Promise<{ resetTicket: string; expiresIn: number }>;
+  resetPassword: (resetTicket: string, newPassword: string) => Promise<void>;
 }
 
 export type CommercialAuthStore = UseBoundStore<StoreApi<CommercialAuthState>>;
@@ -45,6 +62,8 @@ export function createCommercialAuthStore(
     publicConfig: null,
     logoDataUrl: null,
     captcha: null,
+    profile: null,
+    avatarDataUrl: null,
     initialize: async () => {
       if (get().availability !== "unknown") return;
       if (initializeInFlight) return initializeInFlight;
@@ -56,6 +75,7 @@ export function createCommercialAuthStore(
         }
         const session = await gateway.restoreSession();
         set({ availability: "configured", session });
+        if (session) await get().loadProfile().catch(() => undefined);
       })();
       try {
         await initializeInFlight;
@@ -87,9 +107,6 @@ export function createCommercialAuthStore(
       }
       let captcha: CommercialCaptcha | null = null;
       if (publicConfig.login.captchaEnabled) {
-        if ((publicConfig.login.captchaType ?? "image") !== "image") {
-          throw new Error("Gateway 尚未提供滑块验证码客户端契约");
-        }
         captcha = await gateway.fetchCaptcha(tenantCode);
       }
       tenantPreference.write(tenantCode);
@@ -159,6 +176,7 @@ export function createCommercialAuthStore(
         });
         tenantPreference.write(tenantCode);
         set({ availability: "configured", tenantCode, session, captcha: null });
+        await get().loadProfile().catch(() => undefined);
         return session;
       } catch (error) {
         if (publicConfig.login.captchaEnabled) {
@@ -171,8 +189,95 @@ export function createCommercialAuthStore(
       try {
         await gateway.logout();
       } finally {
-        set({ session: null });
+        set({ session: null, profile: null, avatarDataUrl: null });
       }
     },
+    loadProfile: async () => {
+      const profile = await gateway.fetchProfile();
+      let avatarDataUrl: string | null = null;
+      if (profile.avatar) {
+        try {
+          avatarDataUrl = (await gateway.fetchAvatar()).dataUrl;
+        } catch {
+          avatarDataUrl = null;
+        }
+      }
+      set((state) => ({
+        profile,
+        avatarDataUrl,
+        session: mergeProfileIntoSession(state.session, profile),
+      }));
+      return profile;
+    },
+    updateProfile: async (input) => {
+      const profile = await gateway.updateProfile(input);
+      set((state) => ({
+        profile,
+        session: mergeProfileIntoSession(state.session, profile),
+      }));
+      return profile;
+    },
+    uploadAvatar: async (file) => {
+      if (!file.type || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        throw new Error("Avatar must be JPEG, PNG, or WebP");
+      }
+      if (file.size < 1 || file.size > 5 * 1024 * 1024) {
+        throw new Error("Avatar must be no larger than 5 MiB");
+      }
+      const result = await gateway.uploadAvatar({
+        fileName: file.name,
+        contentType: file.type,
+        bytes: new Uint8Array(await file.arrayBuffer()),
+      });
+      set((state) => ({
+        profile: result.profile,
+        avatarDataUrl: result.avatar.dataUrl,
+        session: mergeProfileIntoSession(state.session, result.profile),
+      }));
+    },
+    deleteAvatar: async () => {
+      const result = await gateway.deleteAvatar();
+      set((state) => ({
+        profile: result.profile,
+        avatarDataUrl: null,
+        session: mergeProfileIntoSession(state.session, result.profile),
+      }));
+    },
+    changePassword: async (oldPassword, newPassword) => {
+      await gateway.changePassword(oldPassword, newPassword);
+      set({ session: null, profile: null, avatarDataUrl: null });
+    },
+    sendPasswordResetCode: async (email) => {
+      await gateway.sendPasswordResetCode(get().tenantCode.trim(), email.trim());
+    },
+    verifyPasswordResetCode: (email, code) =>
+      gateway.verifyPasswordResetCode(
+        get().tenantCode.trim(),
+        email.trim(),
+        code.trim(),
+      ),
+    resetPassword: (resetTicket, newPassword) =>
+      gateway.resetPassword(
+        get().tenantCode.trim(),
+        resetTicket,
+        newPassword,
+      ),
   }));
+}
+
+function mergeProfileIntoSession(
+  session: CommercialSession | null,
+  profile: CommercialUserProfile,
+): CommercialSession | null {
+  if (!session) return null;
+  return {
+    ...session,
+    user: {
+      id: profile.id,
+      username: profile.username,
+      ...(profile.nickname ? { nickname: profile.nickname } : {}),
+      ...(profile.email ? { email: profile.email } : {}),
+      ...(profile.avatar ? { avatar: profile.avatar } : {}),
+    },
+  };
 }

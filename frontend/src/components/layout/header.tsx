@@ -68,6 +68,10 @@ export function Header() {
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
   const { username } = useAuthStore();
   const commercialSession = useCommercialAuthStore((state) => state.session);
+  const commercialProfile = useCommercialAuthStore((state) => state.profile);
+  const commercialAvatarDataUrl = useCommercialAuthStore(
+    (state) => state.avatarDataUrl,
+  );
   const queryClient = useQueryClient();
   // 退出登录是 SPA 内部跳转（不刷新页面），必须一并清掉 React Query 缓存和
   // 用户级 zustand/localStorage 状态，否则换账号登录后 projectSummaries 等
@@ -80,13 +84,15 @@ export function Header() {
   const setLanguage = useAppStore((s) => s.setLanguage);
   const showLogout = authRequired();
   const ceRuntime = isCeRuntime();
-  const commercialUser = ceRuntime ? commercialSession?.user : null;
+  const commercialUser = ceRuntime
+    ? commercialProfile ?? commercialSession?.user
+    : null;
   const displayName =
     commercialUser?.nickname || commercialUser?.username || username || "User";
   const accountUsername = commercialUser?.username || username || null;
   const accountEmail = commercialUser?.email || null;
   const accountTenant = ceRuntime ? commercialSession?.tenant.name ?? null : null;
-  const avatarUrl = commercialUser?.avatar || localAvatarUrl;
+  const avatarUrl = ceRuntime ? commercialAvatarDataUrl : localAvatarUrl;
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
   const activeLanguage = (i18n.resolvedLanguage ?? i18n.language).startsWith("zh")
     ? "zh"

@@ -10,9 +10,13 @@ export {
 export type {
   CommercialBootstrapQuery,
   CommercialCaptcha,
+  CommercialAvatarUploadInput,
   CommercialGatewayStatus,
   CommercialLicenseActivationInput,
   CommercialLoginInput,
+  CommercialPasswordResetVerification,
+  CommercialProfileUpdateInput,
+  CommercialProtectedImage,
   CommercialModelCatalogQuery,
   CommercialModelRequest,
   CommercialPublicLogo,
@@ -22,6 +26,7 @@ export type {
   CommercialSessionSummary,
   CommercialTenant,
   CommercialUser,
+  CommercialUserProfile,
   SecureStorageAdapter,
   StoredCommercialSession,
 } from "./commercial-api-client.js";

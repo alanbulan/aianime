@@ -1,6 +1,6 @@
 # 云端接入交接
 
-客户端 `1.1.6` 固定使用 `https://aianime.122-193-11-199.sslip.io`。更新已改为 `electron-updater` 标准流程，云端不需要新增独立更新服务，只需在现有 Gateway 中提供版本判断、YAML 和安装包下载。
+客户端 `1.1.7` 固定使用 `https://aianime.122-193-11-199.sslip.io`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；Windows x86_64 NSIS `1.1.7` 已完成本地构建和制品校验，等待上传并创建新的可选更新记录。
 
 ## 1. 登录首屏
 
@@ -19,7 +19,6 @@ GET /api/v1/auth/captcha?tenantCode=customer-a
   "system": { "siteName": "AI anime" },
   "login": {
     "captchaEnabled": true,
-    "captchaType": "image",
     "rememberMe": true
   },
   "register": { "enabled": false }
@@ -36,7 +35,7 @@ Logo 返回原始图片字节，`Content-Type` 必须为 `image/*`，大小为 1
 
 2026-08-09 使用隔离测试租户实测：`config/public` 和图形验证码均返回 `200`，客户端登录与会话恢复成功。该租户公开配置中的 Logo 为空，因此 Logo 二进制接口返回 `404`；客户端现在只在公开配置明确给出 Logo 时请求该可选接口。
 
-登录页已接入图形验证码和注册。若云端公开配置会返回 `captchaType=slider`、`verifyEmail=true` 或 `verifyPhone=true`，还必须提供滑块、邮箱、短信和重置密码的完整请求/响应 JSON、验证票据如何带入注册/重置请求、票据有效期及错误码；当前接口文档只有路径，客户端不会猜测字段。
+登录页已接入图形验证码和注册；旧滑块坐标验证码不再属于客户端合同。账户资料、头像、改密和三步忘记密码均通过 Electron IPC 接入：受保护头像由主进程携带 Bearer Token 读取，校验 MIME/大小后只向渲染进程返回 `data:` URL；改密成功后清除本地 JWT 和工作区 Cookie 并回到登录页。
 
 ## 2. 离线租约
 
@@ -48,7 +47,7 @@ state/commercial-signing/lease-2026-08-v1-private.pem
 
 云端密钥 id 为 `lease-2026-08-v1`，签名内容是响应中 `payloadJson` 的原始 UTF-8 字节。响应必须同时返回 `payloadJson`、Base64 `signature` 和 `keyId`。
 
-当前真实租约返回 `keyId=local-dev-license-v1`，到期时间为 `2026-08-08T06:11:19Z`，客户端结果为 `verifiedOffline=false`。云端必须改用上述受信任私钥和固定 key id，并签发未过期租约；不要继续返回本地开发 key id。
+当前真实租约返回 `keyId=lease-2026-08-v1`，有效期至 `2026-08-16T12:09:16Z`；客户端已使用内置 SPKI 公钥对 `payloadJson` 原始 UTF-8 字节完成 Ed25519 验签。
 
 ## 3. 模型调用联调
 
@@ -102,7 +101,7 @@ Authorization: Bearer <access-token>
 
 Windows 更新构件使用 `nsis`，macOS 更新构件必须使用 `zip`。DMG 用于 macOS 首次安装，可以同时保存，但不能代替更新用 ZIP。
 
-当前真实版本检查返回 `no published update for target`。这表示接口在线但尚无发布记录；Windows 安装包生成后需按第 6 节上传并发布。
+Windows `1.1.6` 已发布为可选更新：`versionId=a56d3729-734e-4327-b212-2b543789b6da`，`artifactId=4909537b-deb7-4a29-9b08-5040627489f9`，`required=false`。EXE 大小为 `498536378`，SHA-256 为 `3ED7EEE0887334BF83B84C07C16155DBB098A3930FD7A22D28FF5F5362D21612`。
 
 ## 5. 标准更新接口
 
@@ -161,15 +160,16 @@ desktop/release/AI-anime-<version>-x64-setup.exe
 desktop/release/latest.yml
 ```
 
-2026-08-09 已生成 Windows `1.1.6`：
+2026-08-09 已生成待发布的 Windows `1.1.7`：
 
 ```text
-AI-anime-1.1.6-x64-setup.exe
-size: 498536378
-sha256: 3ED7EEE0887334BF83B84C07C16155DBB098A3930FD7A22D28FF5F5362D21612
+AI-anime-1.1.7-x64-setup.exe
+size: 501616156
+sha256: 1210B78A45B37DAA001D33874A57CEB0228FC0F773CEA5B9FB4BEE62A730940D
+sha512: poWQjS4I2nSQCxjGkqoiVJdVgDXkNa5CyZozjK2hH18T0kLKoe4IBe6qeA0vIZsQa5q5zlJkX/g3MsRlUS4fnQ==
 ```
 
-`latest.yml` 中的文件名、大小和 electron-builder SHA-512 已与安装包复核一致。该构件未使用 Authenticode 证书，云端可直接用于测试分发，但 Windows 会显示未知发布者。
+`latest.yml` 中的版本、文件名、大小和 electron-builder SHA-512 已与 `1.1.7` 安装包复核一致，`releaseDate` 为 `2026-08-09T15:21:34.739Z`。该构件未使用 Authenticode 证书，云端可直接用于测试分发，但 Windows 会显示未知发布者。`1.1.6` 已发布记录及其 `versionId`、`artifactId` 和校验值保留在第 4 节，不能复用于 `1.1.7`。
 
 macOS 打包：
 
@@ -189,7 +189,7 @@ desktop/release/latest-mac.yml
 
 ## 7. 联调验收
 
-云端需准备隔离测试租户、普通版账号、专业版账号，以及可激活许可、设备名额和非零测试额度。更新验收覆盖：
+云端需准备隔离测试租户、普通版账号、专业版账号，以及可激活许可、设备名额和非零测试额度。Windows 更新已完成第 1、2 项协议验收；完整产品验收仍覆盖：
 
 1. `1.1.5` 查到 `1.1.6` 可选更新。
 2. 客户端下载后自动退出并启动安装。

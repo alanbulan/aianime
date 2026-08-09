@@ -3,6 +3,8 @@ import {
   parseCommercialCaptcha,
   parseCommercialPublicConfig,
   parseCommercialSession,
+  parseCommercialUserProfile,
+  parsePasswordResetVerification,
 } from "@/modules/identity_access/domain/commercial-session";
 import {
   getCommercialBridge,
@@ -54,5 +56,74 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
   },
   logout() {
     return invokeCommercial(() => requireCommercialBridge().logout());
+  },
+  async fetchProfile() {
+    return parseCommercialUserProfile(
+      await invokeCommercial(() => requireCommercialBridge().profile()),
+    );
+  },
+  async updateProfile(input) {
+    return parseCommercialUserProfile(
+      await invokeCommercial(() =>
+        requireCommercialBridge().updateProfile(input),
+      ),
+    );
+  },
+  async fetchAvatar() {
+    const avatar = await invokeCommercial(() =>
+      requireCommercialBridge().avatar(),
+    );
+    if (
+      !avatar.contentType.startsWith("image/") ||
+      !avatar.dataUrl.startsWith(`data:${avatar.contentType};base64,`)
+    ) {
+      throw new Error("Commercial Gateway returned an invalid protected avatar");
+    }
+    return avatar;
+  },
+  async uploadAvatar(input) {
+    const result = await invokeCommercial(() =>
+      requireCommercialBridge().uploadAvatar(input),
+    );
+    return {
+      profile: parseCommercialUserProfile(result.profile),
+      avatar: result.avatar,
+    };
+  },
+  async deleteAvatar() {
+    const result = await invokeCommercial(() =>
+      requireCommercialBridge().deleteAvatar(),
+    );
+    return { profile: parseCommercialUserProfile(result.profile) };
+  },
+  changePassword(oldPassword, newPassword) {
+    return invokeCommercial(() =>
+      requireCommercialBridge().changePassword({ oldPassword, newPassword }),
+    );
+  },
+  sendPasswordResetCode(tenantCode, email) {
+    return invokeCommercial(() =>
+      requireCommercialBridge().sendPasswordResetCode({ tenantCode, email }),
+    );
+  },
+  async verifyPasswordResetCode(tenantCode, email, code) {
+    return parsePasswordResetVerification(
+      await invokeCommercial(() =>
+        requireCommercialBridge().verifyPasswordResetCode({
+          tenantCode,
+          email,
+          code,
+        }),
+      ),
+    );
+  },
+  resetPassword(tenantCode, resetTicket, newPassword) {
+    return invokeCommercial(() =>
+      requireCommercialBridge().resetPassword({
+        tenantCode,
+        resetTicket,
+        newPassword,
+      }),
+    );
   },
 };

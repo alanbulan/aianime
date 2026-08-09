@@ -18,6 +18,15 @@ const COMMERCIAL_CHANNELS = {
   session: "desktop:commercial:session",
   login: "desktop:commercial:login",
   logout: "desktop:commercial:logout",
+  profile: "desktop:commercial:profile",
+  updateProfile: "desktop:commercial:update-profile",
+  avatar: "desktop:commercial:avatar",
+  uploadAvatar: "desktop:commercial:upload-avatar",
+  deleteAvatar: "desktop:commercial:delete-avatar",
+  changePassword: "desktop:commercial:change-password",
+  sendPasswordResetCode: "desktop:commercial:send-password-reset-code",
+  verifyPasswordResetCode: "desktop:commercial:verify-password-reset-code",
+  resetPassword: "desktop:commercial:reset-password",
   bootstrap: "desktop:commercial:bootstrap",
   quotaBalance: "desktop:commercial:quota-balance",
   modelCatalog: "desktop:commercial:model-catalog",
@@ -71,6 +80,21 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     session: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.session),
     login: (input: unknown) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.login, input),
     logout: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.logout),
+    profile: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.profile),
+    updateProfile: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.updateProfile, input),
+    avatar: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.avatar),
+    uploadAvatar: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.uploadAvatar, input),
+    deleteAvatar: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.deleteAvatar),
+    changePassword: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.changePassword, input),
+    sendPasswordResetCode: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.sendPasswordResetCode, input),
+    verifyPasswordResetCode: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.verifyPasswordResetCode, input),
+    resetPassword: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.resetPassword, input),
     bootstrap: (query: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.bootstrap, query),
     currentLicense: () =>

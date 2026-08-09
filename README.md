@@ -2,6 +2,8 @@
 
 AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
+当前客户端版本：`1.1.7`。
+
 当前发布目标：
 
 | 平台 | 架构 | 最低系统 | 安装包 |
@@ -17,17 +19,17 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 
 - Electron 启停 FastAPI sidecar，并用随机桌面令牌保护本机接口。
 - React 通过 FastAPI 完成本地项目、剧集、资产、画布、任务和生成工作流。
-- 商业登录、会话刷新、许可、额度、模型目录、公告和版本更新通过 Electron IPC 访问真实 Gateway 路径。
+- 商业登录、账户资料、受保护头像、密码重置、许可、额度、模型目录、公告和版本更新通过 Electron IPC 访问真实 Gateway 路径。
 - 普通版 Cloud 模型请求经 Electron 本地模型代理转发到 Gateway；专业版 BYOK 由用户配置标准模型接口。
 - Windows x64 与 macOS arm64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
 - 旧 `agents`、`director_world`、`generators`、`seedance2_i2v` Python 路径已经退役；Backup、Knowledge Graph 和 Verification 已按实际职责分层。
 - 真实租户登录、会话恢复、许可、模型目录、文本生成和额度结算已闭环；文本调用返回预期结果，个人额度从 `960` 扣减到 `940`。
 
-以下内容尚未完成线上验收：
+当前线上状态补充：
 
 - `CODEX_SMOKE_IMAGE` 已进入真实 Gateway，但供应商返回 HTTP `404`；云端需修正图片供应商 Base URL、生成路径或模型映射。
-- 当前租约使用未受信任且已过期的 `local-dev-license-v1`，离线验签为 `false`；云端需改用客户端受信任的 `lease-2026-08-v1` 签名。
-- 版本检查当前返回目标平台没有已发布版本；云端尚需发布 `latest.yml` / `latest-mac.yml` 和对应安装包。
+- 当前租约已使用受信任的 `lease-2026-08-v1`，有效期至 `2026-08-16T12:09:16Z`，客户端可用内置 SPKI 公钥完成 Ed25519 验签。
+- Windows `1.1.6` 已作为可选更新发布；`1.1.5` 可正确检查、下载并通过 YAML SHA-512 校验。macOS 更新仍需对应平台构件后再验收。
 - 视频和音频 SKU 已出现在真实目录中，但本轮未消耗额度调用，不能标记为在线验收通过。
 - Windows 与 macOS 安装包必须分别在对应宿主系统构建；当前配置不支持在 Windows 上交叉生成 macOS sidecar。
 
@@ -214,6 +216,10 @@ React module
 | 登录 | `POST /api/v1/client/auth/login` | 登录页 |
 | Token 刷新 | `POST /api/v1/client/auth/refresh` | Electron 会话自动刷新 |
 | 退出 | `POST /api/v1/client/auth/logout` | 账号菜单/会话清理 |
+| 当前资料 / 更新资料 | `GET/PUT /api/v1/user/profile` | 设置 -> 账户资料 |
+| 头像读取 / 上传 / 删除 | `GET/POST/DELETE /api/v1/user/avatar` | Electron 鉴权读取并向页面返回安全 Data URL |
+| 修改密码 | `PUT /api/v1/user/password` | 设置 -> 修改密码，成功后强制重新登录 |
+| 忘记密码 | `POST /api/v1/auth/email-code`、`/reset-password/verify`、`/reset-password` | 登录页三步重置流程 |
 | Bootstrap | `GET /api/v1/client/bootstrap` | 路由进入前初始化 |
 | 当前许可 | `GET /api/v1/client/licenses/current` | 权益状态 |
 | 激活 Challenge | `POST /api/v1/client/licenses/challenge` | 设备激活 |
@@ -237,10 +243,10 @@ React module
 
 以下接口没有伪装成“已接入”：
 
-- 滑块验证码、短信/邮箱验证码和重置密码：接口总览只有路径，没有请求字段、响应字段、验证票据及错误合同。客户端已按完整合同实现图形验证码和注册；其余流程必须由云端补齐合同并提供有效测试租户后再接，不能在客户端猜字段。
+- 滑块验证码旧方案已从合同和客户端删除；登录与注册只消费现有图形验证码。忘记密码按“发送邮箱验证码 -> 换取一次性票据 -> 设置新密码”三步合同接入。
 - 通用文件对象：当前项目素材由本地 sidecar 管理，图片/音频/视频模型的 multipart 已经由受控模型代理上传，没有独立云盘或跨设备素材用例，因此不增加没有消费者的文件管理页面。
 - `GET /api/v1/client/releases/artifacts/{id}/download`：标准桌面更新已统一使用 `electron-updater` Feed，不再维护第二套手写下载链。
-- `/api/v1/account/avatar`：不在云端客户端合同中，本地 FastAPI 也没有该路由；遗留上传弹窗和无效 GET/POST 调用已删除。头像只读取真实登录/会话响应中的 `avatar`，没有头像时显示用户名首字母。
+- 头像只使用 `/api/v1/user/avatar`。远程相对路径和 JWT 保留在 Electron 主进程，渲染进程只接收经过 MIME/大小校验的 `data:` URL。
 
 本地 FastAPI 原有的 `/api/v1/release-notifications` 只返回空 feed，渲染层也不消费；该虚假接口已删除。公告和版本更新只走真实商业 Gateway。
 
@@ -256,15 +262,13 @@ React module
 | 模型目录 / 单 SKU | 4 个真实 SKU，详情可读取 | `TEXT`、`IMAGE`、`VIDEO`、`AUDIO` 已进入页面；三个目录接口均携带 `X-Device-Id` |
 | 文本模型 `DEMO_TEXT` | 返回预期文本；两条 Invocation 成功 | 助手两阶段真实调用成功，额度 `960 -> 940` |
 | 图片模型 `CODEX_SMOKE_IMAGE` | Gateway 返回 `provider returned HTTP 404` | 客户端路由与配额回滚正确，云端供应商配置错误 |
-| 离线租约 | 已过期，`verifiedOffline=false` | 云端返回的 key id 不受客户端信任 |
-| 版本检查 | `no published update for target` | 更新接口在线，但没有可下载发布记录 |
+| 离线租约 | `keyId=lease-2026-08-v1`，有效期至 `2026-08-16T12:09:16Z` | 客户端 Ed25519 验签通过 |
+| Windows 版本检查 | `1.1.5 -> 1.1.6`，`required=false` | YAML 与 EXE 原样返回，无 JSON/HTML/重定向，SHA-512 校验通过 |
 
-云端只需处理以下发布阻塞：
+当前剩余线上验收项：
 
 1. 修复 `CODEX_SMOKE_IMAGE` 对应供应商的 Base URL、`/v1/images/generations` 路径或模型映射，并用同一 SKU 复测成功结果。
-2. 将 `state/commercial-signing/lease-2026-08-v1-private.pem` 导入云端 Secret，使用 `keyId=lease-2026-08-v1` 对 `payloadJson` 原始 UTF-8 字节签名并签发未过期租约。
-3. 发布记录同时提供 `windows/x86_64` NSIS、`macos/arm64` ZIP/DMG 和对应 `electron-updater` YAML。
-4. 若要求桌面支持滑块、短信、邮箱或重置密码，先补齐请求/响应 JSON、验证票据传递方式、有效期和错误码；当前文档只有路径，客户端不会猜字段。
+2. 在 macOS 宿主机生成并发布 `macos/arm64` ZIP/DMG 与 `latest-mac.yml` 后完成该平台验收。
 
 可直接交给云端实施的字段、JSON 示例、密钥位置和发布顺序见 [云端接入与安全更新交接](docs/cloud-integration-handoff.md)。
 

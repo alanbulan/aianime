@@ -40,6 +40,7 @@ import {
   type CommercialInvocationQuery,
   type CommercialLoginInput,
   type CommercialModelCatalogQuery,
+  type CommercialProfileUpdateInput,
   type CommercialRegistrationInput,
   type CommercialSessionSummary,
 } from "./commercial-api-client.js";
@@ -65,6 +66,15 @@ export const COMMERCIAL_CHANNELS = {
   session: "desktop:commercial:session",
   login: "desktop:commercial:login",
   logout: "desktop:commercial:logout",
+  profile: "desktop:commercial:profile",
+  updateProfile: "desktop:commercial:update-profile",
+  avatar: "desktop:commercial:avatar",
+  uploadAvatar: "desktop:commercial:upload-avatar",
+  deleteAvatar: "desktop:commercial:delete-avatar",
+  changePassword: "desktop:commercial:change-password",
+  sendPasswordResetCode: "desktop:commercial:send-password-reset-code",
+  verifyPasswordResetCode: "desktop:commercial:verify-password-reset-code",
+  resetPassword: "desktop:commercial:reset-password",
   bootstrap: "desktop:commercial:bootstrap",
   quotaBalance: "desktop:commercial:quota-balance",
   modelCatalog: "desktop:commercial:model-catalog",
@@ -130,6 +140,17 @@ export function registerCommercialIpc(
   let modelCapabilityCatalogVersion = "";
   let modelAccessHydrated = false;
   let modelAccessHydration: Promise<void> | null = null;
+
+  const clearAuthenticatedState = async (): Promise<void> => {
+    await options.onLoggedOut();
+    currentAuthorization = null;
+    cloudModelAssignments = [];
+    modelCapabilities.clear();
+    modelCapabilityCatalogVersion = "";
+    modelAccessHydrated = false;
+    modelAccessHydration = null;
+    await synchronizeModelAccess();
+  };
 
   const updateModelCapabilities = (
     catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
@@ -212,15 +233,60 @@ export function registerCommercialIpc(
   });
   handle(COMMERCIAL_CHANNELS.logout, async () => {
     const result = client ? await client.logout() : { remoteRevoked: false };
-    await options.onLoggedOut();
-    currentAuthorization = null;
-    cloudModelAssignments = [];
-    modelCapabilities.clear();
-    modelCapabilityCatalogVersion = "";
-    modelAccessHydrated = false;
-    modelAccessHydration = null;
-    await synchronizeModelAccess();
+    await clearAuthenticatedState();
     return result;
+  });
+  handle(COMMERCIAL_CHANNELS.profile, () => requireClient().currentProfile());
+  handle(COMMERCIAL_CHANNELS.updateProfile, (input) =>
+    requireClient().updateProfile(parseProfileUpdateInput(input)),
+  );
+  handle(COMMERCIAL_CHANNELS.avatar, () => requireClient().currentAvatar());
+  handle(COMMERCIAL_CHANNELS.uploadAvatar, async (input) => {
+    const upload = requiredRecord(input, "avatar upload");
+    await requireClient().uploadAvatar({
+      fileName: requiredText(upload.fileName, "fileName"),
+      contentType: requiredText(upload.contentType, "contentType"),
+      bytes: requiredBytes(upload.bytes, "bytes"),
+    });
+    return {
+      profile: await requireClient().currentProfile(),
+      avatar: await requireClient().currentAvatar(),
+    };
+  });
+  handle(COMMERCIAL_CHANNELS.deleteAvatar, async () => {
+    await requireClient().deleteAvatar();
+    return { profile: await requireClient().currentProfile() };
+  });
+  handle(COMMERCIAL_CHANNELS.changePassword, async (input) => {
+    const body = requiredRecord(input, "change password");
+    await requireClient().changePassword(
+      requiredRawText(body.oldPassword, "oldPassword"),
+      requiredRawText(body.newPassword, "newPassword"),
+    );
+    await clearAuthenticatedState();
+  });
+  handle(COMMERCIAL_CHANNELS.sendPasswordResetCode, async (input) => {
+    const body = requiredRecord(input, "send password reset code");
+    await requireClient().sendPasswordResetCode(
+      requiredText(body.tenantCode, "tenantCode"),
+      requiredText(body.email, "email"),
+    );
+  });
+  handle(COMMERCIAL_CHANNELS.verifyPasswordResetCode, (input) => {
+    const body = requiredRecord(input, "verify password reset code");
+    return requireClient().verifyPasswordResetCode(
+      requiredText(body.tenantCode, "tenantCode"),
+      requiredText(body.email, "email"),
+      requiredText(body.code, "code"),
+    );
+  });
+  handle(COMMERCIAL_CHANNELS.resetPassword, async (input) => {
+    const body = requiredRecord(input, "reset password");
+    await requireClient().resetPassword(
+      requiredText(body.tenantCode, "tenantCode"),
+      requiredText(body.resetTicket, "resetTicket"),
+      requiredRawText(body.newPassword, "newPassword"),
+    );
   });
   const loadCurrentLicense = async (): Promise<unknown> => {
     const device = await options.deviceIdentity.summary();
@@ -767,6 +833,37 @@ function parseRegistrationInput(value: unknown): CommercialRegistrationInput {
     ...(captchaKey ? { captchaKey } : {}),
     ...(captchaCode ? { captchaCode } : {}),
   };
+}
+
+function parseProfileUpdateInput(value: unknown): CommercialProfileUpdateInput {
+  const input = requiredRecord(value, "profile update");
+  const gender = requiredInteger(input.gender, "gender");
+  if (gender !== 0 && gender !== 1 && gender !== 2) {
+    throw new CommercialApiError("gender 只能为 0、1 或 2");
+  }
+  return {
+    nickname: textField(input.nickname, "nickname"),
+    email: textField(input.email, "email"),
+    phone: textField(input.phone, "phone"),
+    gender,
+    profileDescription: textField(
+      input.profileDescription,
+      "profileDescription",
+    ),
+  };
+}
+
+function textField(value: unknown, name: string): string {
+  if (typeof value !== "string") {
+    throw new CommercialApiError(`${name} 必须是字符串`);
+  }
+  return value;
+}
+
+function requiredBytes(value: unknown, name: string): Uint8Array {
+  if (value instanceof Uint8Array) return value;
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  throw new CommercialApiError(`${name} 必须是字节数组`);
 }
 
 function parseBootstrapQuery(value: unknown): CommercialBootstrapQuery {
