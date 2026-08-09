@@ -8,6 +8,7 @@ import type {
   CommercialCaptcha,
   CommercialLoginInput,
   CommercialPublicConfig,
+  CommercialRegistrationInput,
   CommercialSession,
 } from "@/modules/identity_access/domain/commercial-session";
 
@@ -24,6 +25,7 @@ export interface CommercialAuthState {
   setTenantCode: (tenantCode: string) => void;
   loadPublicConfig: (tenantCode?: string) => Promise<CommercialPublicConfig>;
   refreshCaptcha: () => Promise<CommercialCaptcha>;
+  register: (input: CommercialRegistrationInput) => Promise<void>;
   login: (input: CommercialLoginInput) => Promise<CommercialSession>;
   logout: () => Promise<void>;
 }
@@ -76,10 +78,12 @@ export function createCommercialAuthStore(
       if (!tenantCode) throw new Error("Tenant code is required");
       const publicConfig = await gateway.fetchPublicConfig(tenantCode);
       let logoDataUrl: string | null = null;
-      try {
-        logoDataUrl = (await gateway.fetchPublicLogo(tenantCode)).dataUrl;
-      } catch {
-        // Branding remains usable when the optional binary Logo is unavailable.
+      if (publicConfig.system.logo) {
+        try {
+          logoDataUrl = (await gateway.fetchPublicLogo(tenantCode)).dataUrl;
+        } catch {
+          // Branding remains usable when the optional binary Logo is unavailable.
+        }
       }
       let captcha: CommercialCaptcha | null = null;
       if (publicConfig.login.captchaEnabled) {
@@ -98,6 +102,41 @@ export function createCommercialAuthStore(
       const captcha = await gateway.fetchCaptcha(tenantCode);
       set({ captcha });
       return captcha;
+    },
+    register: async (input) => {
+      const tenantCode = input.tenantCode.trim();
+      const state = get();
+      let publicConfig = state.publicConfig;
+      if (!publicConfig || state.tenantCode !== tenantCode) {
+        publicConfig = await state.loadPublicConfig(tenantCode);
+      }
+      if (!publicConfig.register?.enabled) {
+        throw new Error("Registration is disabled for this tenant");
+      }
+      if (
+        publicConfig.register.verifyEmail ||
+        publicConfig.register.verifyPhone
+      ) {
+        throw new Error("Registration verification contract is unavailable");
+      }
+      const captcha = get().captcha;
+      if (publicConfig.login.captchaEnabled && !input.captchaCode?.trim()) {
+        throw new Error("Captcha code is required");
+      }
+      try {
+        await gateway.register({
+          ...input,
+          tenantCode,
+          ...(publicConfig.login.captchaEnabled && captcha
+            ? { captchaKey: captcha.key, captchaCode: input.captchaCode!.trim() }
+            : {}),
+        });
+      } catch (error) {
+        if (publicConfig.login.captchaEnabled) {
+          await get().refreshCaptcha().catch(() => undefined);
+        }
+        throw error;
+      }
     },
     login: async (input) => {
       const tenantCode = input.tenantCode.trim();

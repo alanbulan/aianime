@@ -1,20 +1,32 @@
-import { ArrowRight, Eye, EyeOff, KeyRound, LoaderCircle, RefreshCw, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LoaderCircle,
+  RefreshCw,
+  UserPlus,
+  UserRound,
+} from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { gsap } from "gsap";
 import { RegionSelector } from "@/components/region-selector";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
 import { clusterConfig } from "@/shared/cluster-config";
 import {
   useAuthStore,
   useCommercialAuthStore,
+  type CommercialPublicConfig,
 } from "@/modules/identity_access/public";
 import { useRegionStore } from "@/shared/stores/region-store";
 
-type AuthView = "login" | "authorize";
+type AuthView = "login" | "register" | "authorize";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -34,6 +46,9 @@ export function LoginPage() {
     (state) => state.publicConfig,
   );
   const commercialCaptcha = useCommercialAuthStore((state) => state.captcha);
+  const commercialLogoDataUrl = useCommercialAuthStore(
+    (state) => state.logoDataUrl,
+  );
   const initializeCommercial = useCommercialAuthStore(
     (state) => state.initialize,
   );
@@ -45,17 +60,28 @@ export function LoginPage() {
     (state) => state.refreshCaptcha,
   );
   const commercialLogin = useCommercialAuthStore((state) => state.login);
+  const commercialRegister = useCommercialAuthStore((state) => state.register);
   const regionId = useRegionStore((state) => state.selectedRegionId);
   const [view, setView] = useState<AuthView>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
   const [authorizationCode, setAuthorizationCode] = useState("");
   const [captchaCode, setCaptchaCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const needsRegion = clusterConfig.mode === "multi-region" && !regionId;
   const commercialConfigured = commercialAvailability === "configured";
+  const registrationEnabled = Boolean(
+    commercialPublicConfig?.register?.enabled &&
+      !commercialPublicConfig.register.verifyEmail &&
+      !commercialPublicConfig.register.verifyPhone,
+  );
 
   useEffect(() => {
     void initializeCommercial().catch((reason: unknown) => {
@@ -111,13 +137,45 @@ export function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
+    setSuccess(null);
     try {
-      if (commercialConfigured) {
+      if (commercialConfigured && view === "register") {
+        if (password !== confirmPassword) {
+          throw new Error(t("auth.passwordMismatch"));
+        }
+        const passwordError = validateCommercialPassword(
+          password,
+          commercialPublicConfig?.password,
+          t,
+        );
+        if (passwordError) throw new Error(passwordError);
+        await commercialRegister({
+          tenantCode,
+          username: username.trim(),
+          password,
+          ...(nickname.trim() ? { nickname: nickname.trim() } : {}),
+          ...(email.trim() ? { email: email.trim() } : {}),
+          ...(commercialPublicConfig?.login.captchaEnabled
+            ? { captchaCode }
+            : {}),
+        });
+        setView("login");
+        setPassword("");
+        setConfirmPassword("");
+        setCaptchaCode("");
+        setSuccess(t("auth.registrationSucceeded"));
+        if (commercialPublicConfig?.login.captchaEnabled) {
+          await refreshCommercialCaptcha().catch(() => undefined);
+        }
+        return;
+      } else if (commercialConfigured) {
         await commercialLogin({
           tenantCode,
           username: username.trim(),
           password,
-          rememberMe: true,
+          rememberMe: commercialPublicConfig?.login.rememberMe
+            ? rememberMe
+            : false,
           ...(commercialPublicConfig?.login.captchaEnabled
             ? { captchaCode }
             : {}),
@@ -163,23 +221,59 @@ export function LoginPage() {
 
       <section
         ref={panelRef}
-        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center border-l border-border bg-background px-8 text-foreground shadow-xl sm:px-12"
+        className="absolute inset-y-0 right-0 z-10 flex w-full max-w-[460px] items-center overflow-y-auto border-l border-border bg-background px-8 py-8 text-foreground shadow-xl sm:px-12"
       >
         <div className="w-full">
           <div className="mb-7">
-            <h1 className="text-2xl font-semibold">{t("auth.accessTitle")}</h1>
+            {commercialConfigured && commercialLogoDataUrl ? (
+              <img
+                src={commercialLogoDataUrl}
+                alt=""
+                className="mb-4 h-10 w-auto max-w-48 object-contain object-left"
+              />
+            ) : null}
+            <h1 className="text-2xl font-semibold">
+              {commercialConfigured && commercialPublicConfig?.system.siteName
+                ? commercialPublicConfig.system.siteName
+                : t("auth.accessTitle")}
+            </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {t(
-                commercialConfigured
-                  ? "auth.commercialAccessSubtitle"
-                  : "auth.accessSubtitle",
-              )}
+              {commercialConfigured && commercialPublicConfig?.system.siteDescription
+                ? commercialPublicConfig.system.siteDescription
+                : t(
+                    commercialConfigured
+                      ? "auth.commercialAccessSubtitle"
+                      : "auth.accessSubtitle",
+                  )}
             </p>
           </div>
 
           <RegionSelector />
 
-          {commercialConfigured ? null : (
+          {commercialConfigured && registrationEnabled ? (
+            <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
+              <AuthModeButton
+                active={view === "login"}
+                icon={<UserRound className="size-4" />}
+                label={t("auth.passwordLogin")}
+                onClick={() => {
+                  setView("login");
+                  setError(null);
+                  setSuccess(null);
+                }}
+              />
+              <AuthModeButton
+                active={view === "register"}
+                icon={<UserPlus className="size-4" />}
+                label={t("auth.register")}
+                onClick={() => {
+                  setView("register");
+                  setError(null);
+                  setSuccess(null);
+                }}
+              />
+            </div>
+          ) : commercialConfigured ? null : (
             <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
               <AuthModeButton
                 active={view === "login"}
@@ -211,8 +305,10 @@ export function LoginPage() {
                   value={tenantCode}
                   onChange={(event) => {
                     setTenantCode(event.target.value);
+                    setView("login");
                     setCaptchaCode("");
                     setError(null);
+                    setSuccess(null);
                   }}
                   onBlur={() => {
                     if (!tenantCode.trim() || commercialPublicConfig) return;
@@ -241,12 +337,40 @@ export function LoginPage() {
                     required
                   />
                 </Field>
+                {commercialConfigured && view === "register" ? (
+                  <>
+                    <Field label={t("auth.nickname")} htmlFor="nickname">
+                      <Input
+                        id="nickname"
+                        autoComplete="name"
+                        value={nickname}
+                        onChange={(event) => setNickname(event.target.value)}
+                        placeholder={t("auth.nicknamePlaceholder")}
+                      />
+                    </Field>
+                    <Field label={t("auth.email")} htmlFor="registration-email">
+                      <Input
+                        id="registration-email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder={t("auth.emailPlaceholder")}
+                        required={commercialPublicConfig?.register?.verifyEmail === true}
+                      />
+                    </Field>
+                  </>
+                ) : null}
                 <Field label={t("auth.password")} htmlFor="password">
                   <div className="relative">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
+                      autoComplete={
+                        commercialConfigured && view === "register"
+                          ? "new-password"
+                          : "current-password"
+                      }
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder={t("auth.passwordPlaceholder")}
@@ -263,6 +387,19 @@ export function LoginPage() {
                     </button>
                   </div>
                 </Field>
+                {commercialConfigured && view === "register" ? (
+                  <Field label={t("auth.confirmPassword")} htmlFor="confirm-password">
+                    <Input
+                      id="confirm-password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      placeholder={t("auth.passwordPlaceholder")}
+                      required
+                    />
+                  </Field>
+                ) : null}
                 {commercialPublicConfig?.login.captchaEnabled ? (
                   <Field label={t("auth.captcha")} htmlFor="captcha-code">
                     <div className="grid grid-cols-[minmax(0,1fr)_136px] gap-2">
@@ -305,6 +442,17 @@ export function LoginPage() {
                     </div>
                   </Field>
                 ) : null}
+                {commercialConfigured &&
+                view === "login" &&
+                commercialPublicConfig?.login.rememberMe ? (
+                  <label className="flex min-h-8 cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+                    <Checkbox
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    />
+                    <span>{t("auth.remember")}</span>
+                  </label>
+                ) : null}
               </>
             ) : (
               <Field label={t("auth.authorizationCode")} htmlFor="authorization-code">
@@ -319,8 +467,11 @@ export function LoginPage() {
               </Field>
             )}
 
-            <div className="h-5 text-sm text-destructive" role="alert">
-              {error}
+            <div
+              className={`min-h-5 text-sm ${error ? "text-destructive" : "text-success"}`}
+              role={error ? "alert" : "status"}
+            >
+              {error ?? success}
             </div>
 
             <Button
@@ -338,9 +489,11 @@ export function LoginPage() {
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
               {submitting
                 ? t("auth.authenticating")
-                : commercialConfigured || view === "login"
-                  ? t("auth.loginButton")
-                  : t("auth.authorizeButton")}
+                : commercialConfigured && view === "register"
+                  ? t("auth.registerButton")
+                  : commercialConfigured || view === "login"
+                    ? t("auth.loginButton")
+                    : t("auth.authorizeButton")}
             </Button>
           </form>
         </div>
@@ -393,4 +546,31 @@ function Field({
       {children}
     </div>
   );
+}
+
+function validateCommercialPassword(
+  password: string,
+  policy: CommercialPublicConfig["password"],
+  t: TFunction,
+): string | null {
+  if (!policy) return null;
+  if (password.length < policy.minLength || password.length > policy.maxLength) {
+    return t("auth.passwordLength", {
+      min: policy.minLength,
+      max: policy.maxLength,
+    });
+  }
+  if (policy.requireUppercase && !/[A-Z]/.test(password)) {
+    return t("auth.passwordRequiresUppercase");
+  }
+  if (policy.requireLowercase && !/[a-z]/.test(password)) {
+    return t("auth.passwordRequiresLowercase");
+  }
+  if (policy.requireNumber && !/\d/.test(password)) {
+    return t("auth.passwordRequiresNumber");
+  }
+  if (policy.requireSpecial && !/[^A-Za-z0-9]/.test(password)) {
+    return t("auth.passwordRequiresSpecial");
+  }
+  return null;
 }

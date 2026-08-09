@@ -18,6 +18,7 @@ import { LocalBackend } from "../src/backend.ts";
 import { EncryptedFileCommercialDeviceIdentity } from "../src/commercial-device.ts";
 import { CommercialModelProxy } from "../src/commercial-model-proxy.ts";
 import { EncryptedFileCommercialModelAccessStore } from "../src/commercial-model-access.ts";
+import { saveCommercialInvocationResult } from "../src/commercial-invocation-result.ts";
 import {
   CommercialApiClient,
   EncryptedFileCommercialSessionStore,
@@ -173,11 +174,13 @@ function registerCommercialGatewayIpc(
       access,
       allowsCustomModels,
       cloudModelAssignments,
+      modelCapabilities,
     ) =>
       localBackend.configureModelAccess({
         allowsCustomModels,
         mode: allowsCustomModels ? access.mode : "cloud",
         cloudModelAssignments: [...cloudModelAssignments],
+        modelCapabilities: [...modelCapabilities],
         ...(allowsCustomModels && access.mode === "byok"
           ? {
               byokBaseUrl: access.byokBaseUrl,
@@ -192,6 +195,13 @@ function registerCommercialGatewayIpc(
           session.defaultSession.cookies.remove(origin, AUTH_COOKIE_NAME),
         ),
       ),
+    saveInvocationResult: (id) =>
+      saveCommercialInvocationResult(client, id, async (suggestedName) => {
+        const result = mainWindow
+          ? await dialog.showSaveDialog(mainWindow, { defaultPath: suggestedName })
+          : await dialog.showSaveDialog({ defaultPath: suggestedName });
+        return result.canceled ? null : result.filePath ?? null;
+      }),
   });
 }
 

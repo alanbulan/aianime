@@ -118,6 +118,16 @@ export function createCommercialModelAccessQueries(
     });
   }
 
+  function useCommercialModelDetails(sku: string | null, enabled = true) {
+    const normalizedSku = sku?.trim() ?? "";
+    return useQuery({
+      queryKey: queryKeys.commercialModel(normalizedSku),
+      queryFn: () => gateway.fetchModelDetails(normalizedSku),
+      enabled: enabled && Boolean(normalizedSku),
+      staleTime: CATALOG_STALE_TIME_MS,
+    });
+  }
+
   function useCommercialModelAccessStatus(enabled = true) {
     return useQuery({
       queryKey: queryKeys.commercialModelAccess(),
@@ -171,6 +181,7 @@ export function createCommercialModelAccessQueries(
     useClearByok,
     useCommercialModelAccessStatus,
     useCommercialModelCatalog,
+    useCommercialModelDetails,
     useCommercialQuota,
     useConfigureByok,
     useSelectCloudModels,

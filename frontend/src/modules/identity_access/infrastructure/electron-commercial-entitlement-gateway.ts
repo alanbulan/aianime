@@ -1,20 +1,33 @@
 import type { CommercialEntitlementGateway } from "@/modules/identity_access/application/commercial-entitlement-ports";
 import { parseCommercialEntitlement } from "@/modules/identity_access/domain/commercial-entitlement";
-
-function bridge(): AIAnimeCommercialBridge {
-  const commercial = window.aiAnimeDesktop?.commercial;
-  if (!commercial) throw new Error("Commercial Gateway requires the Electron desktop app");
-  return commercial;
-}
+import {
+  invokeCommercial,
+  requireCommercialBridge,
+} from "@/shared/commercial-bridge";
 
 export const electronCommercialEntitlementGateway: CommercialEntitlementGateway = {
   async current() {
-    return parseCommercialEntitlement(await bridge().currentLicense());
+    return parseCommercialEntitlement(
+      await invokeCommercial(() => requireCommercialBridge().currentLicense()),
+    );
   },
   async activateCurrentDevice() {
-    return parseCommercialEntitlement(await bridge().activateLicense());
+    return parseCommercialEntitlement(
+      await invokeCommercial(() => requireCommercialBridge().activateLicense()),
+    );
   },
   async refreshLease() {
-    return parseCommercialEntitlement(await bridge().refreshLicenseLease());
+    return parseCommercialEntitlement(
+      await invokeCommercial(() =>
+        requireCommercialBridge().refreshLicenseLease(),
+      ),
+    );
+  },
+  async deactivateCurrentDevice(reason) {
+    return parseCommercialEntitlement(
+      await invokeCommercial(() =>
+        requireCommercialBridge().deactivateLicense(reason),
+      ),
+    );
   },
 };

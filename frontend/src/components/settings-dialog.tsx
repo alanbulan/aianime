@@ -7,11 +7,13 @@ import {
   Cpu,
   Eye,
   EyeOff,
+  History,
   KeyRound,
   Loader2,
   Plus,
   ShieldCheck,
   Trash2,
+  UserRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,14 +34,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { useCommercialEntitlementStore } from "@/modules/identity_access/public";
+import {
+  CommercialAccountSection,
+  useCommercialEntitlementStore,
+} from "@/modules/identity_access/public";
 import {
   BYOK_MODEL_ROLES,
+  CommercialInvocationSection,
   useClearByok,
   useCommercialModelAccessStatus,
   useCommercialModelCatalog,
+  useCommercialModelDetails,
   useConfigureByok,
   useSelectCloudModels,
   type ByokModelAssignment,
@@ -74,6 +81,7 @@ const BYOK_ROLE_LABEL_KEYS: Record<ByokModelRole, string> = {
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation();
   const bridgeAvailable = Boolean(window.aiAnimeDesktop?.commercial);
+  const [tab, setTab] = useState("account");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -85,11 +93,53 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <DialogTitle>{t("settings.title")}</DialogTitle>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1">
-          <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
-            <ModelAccessSection open={open} bridgeAvailable={bridgeAvailable} />
-          </ScrollArea>
-        </div>
+        <Tabs
+          value={tab}
+          onValueChange={(value) => value && setTab(value)}
+          className="min-h-0 flex-1 gap-0"
+        >
+          <TabsList
+            variant="line"
+            className="h-10 w-full justify-start border-b border-border px-5"
+          >
+            <TabsTrigger value="account" className="flex-none px-3">
+              <UserRound />
+              {t("settings.tabs.account")}
+            </TabsTrigger>
+            <TabsTrigger value="models" className="flex-none px-3">
+              <Cpu />
+              {t("settings.tabs.models")}
+            </TabsTrigger>
+            <TabsTrigger value="invocations" className="flex-none px-3">
+              <History />
+              {t("settings.tabs.invocations")}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="account" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
+              <CommercialAccountSection
+                active={open && tab === "account"}
+                bridgeAvailable={bridgeAvailable}
+              />
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="models" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
+              <ModelAccessSection
+                open={open && tab === "models"}
+                bridgeAvailable={bridgeAvailable}
+              />
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="invocations" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
+              <CommercialInvocationSection
+                active={open && tab === "invocations"}
+                bridgeAvailable={bridgeAvailable}
+              />
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
 
         <div className="flex justify-end border-t border-border px-5 py-3.5">
           <DialogClose render={<Button variant="outline" size="sm" />}>
@@ -453,6 +503,8 @@ function ModelCatalogPanel({
 }) {
   const { t } = useTranslation();
   const models = items ?? [];
+  const [selectedSku, setSelectedSku] = useState<string | null>(null);
+  const details = useCommercialModelDetails(selectedSku, Boolean(selectedSku));
 
   return (
     <div className={cn("border-y border-border py-3", className)}>
@@ -479,7 +531,7 @@ function ModelCatalogPanel({
         return (
           <div
             key={String(model.id)}
-            className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-border/70 px-1 py-2 first-of-type:border-t-0"
+            className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto_1.5rem] items-center gap-3 border-t border-border/70 px-1 py-2 first-of-type:border-t-0"
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
@@ -492,6 +544,16 @@ function ModelCatalogPanel({
                 ? t(`settings.modelAccess.roles.${roleKey}`)
                 : model.operation}
             </span>
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="ghost"
+              title={t("settings.modelAccess.showDetails")}
+              aria-label={t("settings.modelAccess.showDetails")}
+              onClick={() => setSelectedSku(model.code)}
+            >
+              <Eye />
+            </Button>
           </div>
         );
       })}
@@ -500,7 +562,90 @@ function ModelCatalogPanel({
           {errorMessage(error, t("settings.modelAccess.catalogFailed"))}
         </p>
       ) : null}
+      {selectedSku ? (
+        <ModelDetailsPanel
+          model={details.data}
+          loading={details.isLoading}
+          error={details.error}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function ModelDetailsPanel({
+  model,
+  loading,
+  error,
+}: {
+  model: CommercialModelCatalogItem | undefined;
+  loading: boolean;
+  error: unknown;
+}) {
+  const { t } = useTranslation();
+  if (loading) {
+    return (
+      <div className="flex h-16 items-center justify-center text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <p className="border-t border-border px-1 py-3 text-xs text-destructive">
+        {errorMessage(error, t("settings.modelAccess.detailsFailed"))}
+      </p>
+    );
+  }
+  if (!model) return null;
+  return (
+    <div className="mt-2 border-t border-border px-1 pt-3">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+        <DetailValue label={t("settings.modelAccess.modelCode")} value={model.code} />
+        <DetailValue label={t("settings.modelAccess.operation")} value={model.operation} />
+        <DetailValue
+          label={t("settings.modelAccess.unitsPerCall")}
+          value={model.unitsPerCall === undefined ? "-" : String(model.unitsPerCall)}
+        />
+        <DetailValue label={t("settings.modelAccess.status")} value={model.status ?? "-"} />
+      </div>
+      <JsonDetails
+        label={t("settings.modelAccess.capabilities")}
+        value={model.capabilities}
+      />
+      <JsonDetails
+        label={t("settings.modelAccess.parameterSchema")}
+        value={model.parameterSchema}
+      />
+    </div>
+  );
+}
+
+function DetailValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="truncate text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function JsonDetails({
+  label,
+  value,
+}: {
+  label: string;
+  value: Record<string, unknown>;
+}) {
+  return (
+    <details className="mt-3 border-t border-border/70 pt-2">
+      <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+        {label}
+      </summary>
+      <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all bg-muted/45 p-2 text-[11px] text-foreground">
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    </details>
   );
 }
 

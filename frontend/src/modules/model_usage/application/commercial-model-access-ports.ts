@@ -1,6 +1,7 @@
 import type {
   ByokModelAssignment,
   CommercialModelCatalog,
+  CommercialModelCatalogItem,
   CommercialModelAccessStatus,
   CommercialQuota,
 } from "@/modules/model_usage/domain/commercial-model-access";
@@ -8,6 +9,7 @@ import type {
 export interface CommercialModelAccessGateway {
   fetchQuota(): Promise<CommercialQuota>;
   fetchCatalog(operation?: string): Promise<CommercialModelCatalog>;
+  fetchModelDetails(sku: string): Promise<CommercialModelCatalogItem>;
   fetchAccessStatus(): Promise<CommercialModelAccessStatus>;
   configureByok(input: {
     baseUrl: string;

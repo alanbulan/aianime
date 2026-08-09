@@ -54,6 +54,16 @@ export interface CommercialLoginInput {
   captchaCode?: string;
 }
 
+export interface CommercialRegistrationInput {
+  tenantCode: string;
+  username: string;
+  password: string;
+  nickname?: string;
+  email?: string;
+  captchaKey?: string;
+  captchaCode?: string;
+}
+
 export interface CommercialBootstrapQuery {
   modelOperation?: string;
   currentVersion?: string;
@@ -68,6 +78,14 @@ interface CommercialBootstrapRequestQuery extends CommercialBootstrapQuery {
 export interface CommercialModelCatalogQuery {
   operation?: string;
   catalogVersion?: string;
+}
+
+export interface CommercialInvocationQuery {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  operation?: string;
+  modelSkuCode?: string;
 }
 
 export interface CommercialReleaseQuery {
@@ -147,6 +165,7 @@ interface RequestOptions {
   rawBody?: Uint8Array;
   contentType?: string;
   token?: string;
+  deviceId?: Identifier;
   accept?: string;
 }
 
@@ -304,6 +323,20 @@ export class CommercialApiClient {
     return toSessionSummary(session);
   }
 
+  async register(input: CommercialRegistrationInput): Promise<void> {
+    await this.requestJson("POST", "/api/v1/auth/register", {
+      body: compactObject({
+        tenantCode: requiredText(input.tenantCode, "tenantCode"),
+        username: requiredText(input.username, "username"),
+        password: requiredRawText(input.password, "password"),
+        nickname: optionalText(input.nickname),
+        email: optionalText(input.email),
+        captchaKey: optionalText(input.captchaKey),
+        captchaCode: optionalText(input.captchaCode),
+      }),
+    });
+  }
+
   async restoreSession(): Promise<CommercialSessionSummary | null> {
     const session = await this.loadSession();
     if (!session) return null;
@@ -336,7 +369,10 @@ export class CommercialApiClient {
     return { remoteRevoked };
   }
 
-  bootstrap(query: CommercialBootstrapRequestQuery): Promise<unknown> {
+  bootstrap(
+    query: CommercialBootstrapRequestQuery,
+    deviceId?: Identifier,
+  ): Promise<unknown> {
     return this.authenticatedJson("GET", "/api/v1/client/bootstrap", {
       query: compactObject({
         devicePublicKeyHash: optionalText(query.devicePublicKeyHash),
@@ -345,6 +381,7 @@ export class CommercialApiClient {
         target: optionalText(query.target),
         arch: optionalText(query.arch),
       }),
+      ...(deviceId === undefined ? {} : { deviceId }),
     });
   }
 
@@ -352,13 +389,25 @@ export class CommercialApiClient {
     return this.authenticatedJson("GET", "/api/v1/client/quota/balance");
   }
 
-  modelCatalog(query: CommercialModelCatalogQuery = {}): Promise<unknown> {
+  modelCatalog(
+    query: CommercialModelCatalogQuery = {},
+    deviceId?: Identifier,
+  ): Promise<unknown> {
     return this.authenticatedJson("GET", "/api/v1/client/models", {
       query: compactObject({
         operation: optionalText(query.operation),
         catalogVersion: optionalText(query.catalogVersion),
       }),
+      ...(deviceId === undefined ? {} : { deviceId }),
     });
+  }
+
+  modelDetails(sku: string, deviceId?: Identifier): Promise<unknown> {
+    return this.authenticatedJson(
+      "GET",
+      `/api/v1/client/models/${encodeURIComponent(requiredText(sku, "sku"))}`,
+      deviceId === undefined ? {} : { deviceId },
+    );
   }
 
   currentLicense(devicePublicKeyHash: string): Promise<unknown> {
@@ -442,6 +491,20 @@ export class CommercialApiClient {
     );
   }
 
+  deactivateLicense(activationId: Identifier, reason: string): Promise<unknown> {
+    return this.authenticatedJson(
+      "POST",
+      "/api/v1/client/licenses/deactivate",
+      {
+        body: {
+          activationId: requiredIdentifier(activationId, "activationId"),
+          reason: requiredText(reason, "reason"),
+          confirmed: true,
+        },
+      },
+    );
+  }
+
   async modelRequest(input: CommercialModelRequest): Promise<Response> {
     const method = requiredText(input.method, "method").toUpperCase();
     const path = normalizeModelPath(input.path);
@@ -489,6 +552,47 @@ export class CommercialApiClient {
       "/api/v1/client/announcements/active",
       { query: { limit } },
     );
+  }
+
+  listInvocations(query: CommercialInvocationQuery = {}): Promise<unknown> {
+    return this.authenticatedJson(
+      "GET",
+      "/api/v1/client/relay/invocations",
+      {
+        query: compactObject({
+          page: query.page,
+          pageSize: query.pageSize,
+          status: optionalText(query.status),
+          operation: optionalText(query.operation),
+          modelSkuCode: optionalText(query.modelSkuCode),
+        }),
+      },
+    );
+  }
+
+  invocationDetails(id: Identifier): Promise<unknown> {
+    return this.authenticatedJson(
+      "GET",
+      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}`,
+    );
+  }
+
+  cancelInvocation(id: Identifier, reason: string): Promise<unknown> {
+    return this.authenticatedJson(
+      "POST",
+      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}/cancel`,
+      { body: { reason: requiredText(reason, "reason") } },
+    );
+  }
+
+  async invocationResult(id: Identifier): Promise<Response> {
+    const response = await this.authenticatedResponse(
+      "GET",
+      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}/result`,
+      { accept: "application/octet-stream" },
+    );
+    await assertSuccessfulResponse(response);
+    return response;
   }
 
   checkRelease(query: CommercialReleaseQuery): Promise<unknown> {
@@ -726,6 +830,9 @@ export class CommercialApiClient {
     }
     const headers = new Headers({ Accept: options.accept ?? "application/json" });
     if (options.token) headers.set("Authorization", `Bearer ${options.token}`);
+    if (options.deviceId !== undefined) {
+      headers.set("X-Device-Id", String(options.deviceId));
+    }
     let body: string | Uint8Array | undefined;
     if (options.rawBody !== undefined) {
       headers.set(
@@ -896,7 +1003,7 @@ export function requiredText(value: unknown, name: string): string {
   return text;
 }
 
-function requiredRawText(value: unknown, name: string): string {
+export function requiredRawText(value: unknown, name: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new CommercialApiError(`${name} 不能为空`);
   }

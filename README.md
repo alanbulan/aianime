@@ -13,7 +13,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 
 ## 1. 当前可交付状态
 
-代码和离线测试已经覆盖以下链路：
+代码、离线测试和真实 Gateway 联调已经覆盖以下链路：
 
 - Electron 启停 FastAPI sidecar，并用随机桌面令牌保护本机接口。
 - React 通过 FastAPI 完成本地项目、剧集、资产、画布、任务和生成工作流。
@@ -21,12 +21,14 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 - 普通版 Cloud 模型请求经 Electron 本地模型代理转发到 Gateway；专业版 BYOK 由用户配置标准模型接口。
 - Windows x64 与 macOS arm64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
 - 旧 `agents`、`director_world`、`generators`、`seedance2_i2v` Python 路径已经退役；Backup、Knowledge Graph 和 Verification 已按实际职责分层。
+- 真实租户登录、会话恢复、许可、模型目录、文本生成和额度结算已闭环；文本调用返回预期结果，个人额度从 `960` 扣减到 `940`。
 
-以下内容不能据此视为已经完成线上验收：
+以下内容尚未完成线上验收：
 
-- 尚未使用真实租户账号执行登录、许可激活、扣费、生成、公告和版本更新的完整在线联调。
-- 离线租约私钥尚需导入云端 Secret，并按固定 key id 产出签名。
-- 云端尚需提供 `latest.yml` / `latest-mac.yml` 和安装包字节接口，未上线该合同前自动更新不能完成真实下载。
+- `CODEX_SMOKE_IMAGE` 已进入真实 Gateway，但供应商返回 HTTP `404`；云端需修正图片供应商 Base URL、生成路径或模型映射。
+- 当前租约使用未受信任且已过期的 `local-dev-license-v1`，离线验签为 `false`；云端需改用客户端受信任的 `lease-2026-08-v1` 签名。
+- 版本检查当前返回目标平台没有已发布版本；云端尚需发布 `latest.yml` / `latest-mac.yml` 和对应安装包。
+- 视频和音频 SKU 已出现在真实目录中，但本轮未消耗额度调用，不能标记为在线验收通过。
 - Windows 与 macOS 安装包必须分别在对应宿主系统构建；当前配置不支持在 Windows 上交叉生成 macOS sidecar。
 
 因此，“调用链已接线”和“生产环境已验收”必须分开判断。
@@ -208,6 +210,7 @@ React module
 | 公共租户配置 | `GET /api/v1/config/public` | 登录页 |
 | 租户 Logo | `GET /api/v1/config/logo` | 登录页 |
 | 图形验证码 | `GET /api/v1/auth/captcha` | 登录页 |
+| 用户注册 | `POST /api/v1/auth/register` | 登录页（按租户公开配置显示） |
 | 登录 | `POST /api/v1/client/auth/login` | 登录页 |
 | Token 刷新 | `POST /api/v1/client/auth/refresh` | Electron 会话自动刷新 |
 | 退出 | `POST /api/v1/client/auth/logout` | 账号菜单/会话清理 |
@@ -216,45 +219,52 @@ React module
 | 激活 Challenge | `POST /api/v1/client/licenses/challenge` | 设备激活 |
 | 许可激活 | `POST /api/v1/client/licenses/activate` | 设备激活 |
 | 租约刷新 | `POST /api/v1/client/licenses/lease/refresh` | 权益续期 |
+| 设备停用 | `POST /api/v1/client/licenses/deactivate` | 设置 -> 账户与设备（二次确认） |
 | 额度余额 | `GET /api/v1/client/quota/balance` | 额度展示 |
 | 模型目录 | `GET /api/v1/client/models` | 模型选择与能力过滤 |
+| 单模型详情 | `GET /api/v1/client/models/{sku}` | 设置 -> 模型详情 |
+| Invocation 列表/详情 | `GET /api/v1/client/relay/invocations*` | 设置 -> 调用记录 |
+| Invocation 取消 | `POST /api/v1/client/relay/invocations/{id}/cancel` | 调用记录中的可取消任务 |
+| Invocation 结果 | `GET /api/v1/client/relay/invocations/{id}/result` | 系统保存对话框流式落盘 |
 | 公告 | `GET /api/v1/client/announcements/active` | 通知中心 |
 | 版本检查 | `GET /api/v1/client/releases/check` | 更新提示/强制升级 |
-| 制品下载授权 | `GET /api/v1/client/releases/artifacts/{id}/download` | 更新下载 |
+| 标准更新 Feed/构件 | `GET /api/v1/client/releases/updater/*` | `electron-updater` 下载与安装 |
 | 模型协议 | `/v1/*`、`/v1beta/*` | Electron 本地模型代理 |
 
 上表表示代码调用链和合同测试存在，不表示远端生产数据已经在线验收。
 
 ### 5.2 当前版本明确不消费
 
-当前桌面没有注册、找回密码、短信/邮箱验证码、滑块验证码、设备停用、单模型详情、Invocation 列表/详情/取消和通用文件对象上传 UI。对应 Gateway 能力即使存在，也不属于本版本桌面必需接口。
+以下接口没有伪装成“已接入”：
 
-此前仅在 `CommercialApiClient` 中存在、但没有 IPC/UI 消费者的 Invocation 查询和文件上传下载 helper 已删除。需要这些能力时，应先定义产品用例和 renderer-safe DTO，再补 application port、IPC 和主进程适配，不应只增加一个未消费的 HTTP 方法。
+- 滑块验证码、短信/邮箱验证码和重置密码：接口总览只有路径，没有请求字段、响应字段、验证票据及错误合同。客户端已按完整合同实现图形验证码和注册；其余流程必须由云端补齐合同并提供有效测试租户后再接，不能在客户端猜字段。
+- 通用文件对象：当前项目素材由本地 sidecar 管理，图片/音频/视频模型的 multipart 已经由受控模型代理上传，没有独立云盘或跨设备素材用例，因此不增加没有消费者的文件管理页面。
+- `GET /api/v1/client/releases/artifacts/{id}/download`：标准桌面更新已统一使用 `electron-updater` Feed，不再维护第二套手写下载链。
+- `/api/v1/account/avatar`：不在云端客户端合同中，本地 FastAPI 也没有该路由；遗留上传弹窗和无效 GET/POST 调用已删除。头像只读取真实登录/会话响应中的 `avatar`，没有头像时显示用户名首字母。
 
 本地 FastAPI 原有的 `/api/v1/release-notifications` 只返回空 feed，渲染层也不消费；该虚假接口已删除。公告和版本更新只走真实商业 Gateway。
 
-### 5.3 云端联调前必须补齐
+### 5.3 真实联调结果与云端待处理
 
-2026-08-08 对固定 Gateway 做了无凭据、只读探测：
+2026-08-09 使用隔离测试租户对固定 Gateway 和桌面开发实例执行了真实联调。凭据只用于本机测试，未写入仓库：
 
 | 探测项 | 结果 | 判断 |
 | --- | --- | --- |
 | 根路径与 TLS | `200`，证书校验通过 | 服务在线 |
-| `GET /api/v1/config/public?tenantCode=platform` | `404` | 云端未实现登录页公共配置 |
-| `GET /api/v1/config/logo?tenantCode=platform` | `404` | 云端未实现租户 Logo |
-| `GET /api/v1/auth/captcha?tenantCode=platform` | `400`，`field \"tenantCode\" is not set` | 云端没有按合同读取 GET query |
-| `GET /api/v1/client/bootstrap`（无令牌） | `401` | 认证门禁存在 |
-| `GET /api/v1/client/releases/check`（无令牌） | `401` | 认证门禁存在 |
+| 公开配置 / 图形验证码 | `200` / `200` | 登录前置接口可用；租户未配置 Logo 时服务端 `404`，客户端不再发起该可选请求 |
+| 登录 / 会话恢复 / Bootstrap | 成功，Bootstrap `warnings=[]` | JWT、安全持久化、许可和设备链路可用 |
+| 模型目录 / 单 SKU | 4 个真实 SKU，详情可读取 | `TEXT`、`IMAGE`、`VIDEO`、`AUDIO` 已进入页面；三个目录接口均携带 `X-Device-Id` |
+| 文本模型 `DEMO_TEXT` | 返回预期文本；两条 Invocation 成功 | 助手两阶段真实调用成功，额度 `960 -> 940` |
+| 图片模型 `CODEX_SMOKE_IMAGE` | Gateway 返回 `provider returned HTTP 404` | 客户端路由与配额回滚正确，云端供应商配置错误 |
+| 离线租约 | 已过期，`verifiedOffline=false` | 云端返回的 key id 不受客户端信任 |
+| 版本检查 | `no published update for target` | 更新接口在线，但没有可下载发布记录 |
 
-客户端调用链已经接到真实 Gateway，但登录首屏依赖的三个云端接口尚未闭环，因此当前不能声明商业登录和更新链路已完成线上验收。云端需要：
+云端只需处理以下发布阻塞：
 
-1. 实现 `/api/v1/config/public` 和 `/api/v1/config/logo`，后者返回真实图片字节，并统一读取 query 中的 `tenantCode`。
-2. 修正 Captcha GET query 契约，保持与客户端和集成文档一致。
-3. 提供隔离测试租户、普通版账号、专业版账号，以及许可、设备激活和额度数据。
-4. 将本机 `state/commercial-signing/` 下两把私钥导入云端 Secret，分别使用固定的许可与制品 key id；公钥已内置客户端。
-5. Gateway 制品下载合同增加 `signatureKeyId`，并返回 `sha256`、`sizeBytes`、`signature` 和有效 HTTPS 下载 URL。
-6. 发布记录同时提供 `windows/x86_64` 与 `macos/arm64` 签名制品。
-7. 使用测试账号验证 Cloud 模型转发、BYOK、401 单飞刷新、幂等键、取消流和实际扣费一致。
+1. 修复 `CODEX_SMOKE_IMAGE` 对应供应商的 Base URL、`/v1/images/generations` 路径或模型映射，并用同一 SKU 复测成功结果。
+2. 将 `state/commercial-signing/lease-2026-08-v1-private.pem` 导入云端 Secret，使用 `keyId=lease-2026-08-v1` 对 `payloadJson` 原始 UTF-8 字节签名并签发未过期租约。
+3. 发布记录同时提供 `windows/x86_64` NSIS、`macos/arm64` ZIP/DMG 和对应 `electron-updater` YAML。
+4. 若要求桌面支持滑块、短信、邮箱或重置密码，先补齐请求/响应 JSON、验证票据传递方式、有效期和错误码；当前文档只有路径，客户端不会猜字段。
 
 可直接交给云端实施的字段、JSON 示例、密钥位置和发布顺序见 [云端接入与安全更新交接](docs/cloud-integration-handoff.md)。
 

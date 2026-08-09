@@ -51,6 +51,7 @@ function createGateway(
       key: "captcha-key",
       imageDataUrl: "data:image/svg+xml;base64,PHN2Zy8+",
     })),
+    register: vi.fn(async () => undefined),
     restoreSession: vi.fn(async () => null),
     login: vi.fn(async () => session),
     logout: vi.fn(async () => ({ remoteRevoked: true })),
@@ -99,6 +100,7 @@ describe("commercial auth store", () => {
     });
 
     expect(gateway.fetchPublicConfig).toHaveBeenCalledWith("customer-a");
+    expect(gateway.fetchPublicLogo).not.toHaveBeenCalled();
     expect(gateway.login).toHaveBeenCalledWith({
       tenantCode: "customer-a",
       username: "client_user",
@@ -111,6 +113,21 @@ describe("commercial auth store", () => {
     expect(preference.write).toHaveBeenCalledWith("customer-a");
   });
 
+  it("loads the optional tenant logo only when public config advertises it", async () => {
+    const gateway = createGateway({
+      fetchPublicConfig: vi.fn(async () => ({
+        ...publicConfig,
+        system: { ...publicConfig.system, logo: "/api/v1/config/logo" },
+      })),
+    });
+    const store = createCommercialAuthStore(gateway, createPreference());
+
+    await store.getState().loadPublicConfig("customer-a");
+
+    expect(gateway.fetchPublicLogo).toHaveBeenCalledWith("customer-a");
+    expect(store.getState().logoDataUrl).toBe("data:image/png;base64,AA==");
+  });
+
   it("clears the summary after logout", async () => {
     const gateway = createGateway({ restoreSession: vi.fn(async () => session) });
     const store = createCommercialAuthStore(gateway, createPreference());
@@ -120,6 +137,60 @@ describe("commercial auth store", () => {
 
     expect(gateway.logout).toHaveBeenCalledOnce();
     expect(store.getState().session).toBeNull();
+  });
+
+  it("registers only when enabled and injects the current captcha", async () => {
+    const registrationConfig: CommercialPublicConfig = {
+      ...publicConfig,
+      login: { captchaEnabled: true, captchaType: "image", rememberMe: true },
+      register: { enabled: true },
+    };
+    const register = vi.fn(async () => undefined);
+    const gateway = createGateway({
+      fetchPublicConfig: vi.fn(async () => registrationConfig),
+      register,
+    });
+    const store = createCommercialAuthStore(gateway, createPreference());
+
+    await store.getState().register({
+      tenantCode: "customer-a",
+      username: "new-user",
+      password: "Secret123",
+      nickname: "New User",
+      captchaCode: "ABCD",
+    });
+
+    expect(register).toHaveBeenCalledWith({
+      tenantCode: "customer-a",
+      username: "new-user",
+      password: "Secret123",
+      nickname: "New User",
+      captchaKey: "captcha-key",
+      captchaCode: "ABCD",
+    });
+  });
+
+  it("does not submit registration when an undefined verification flow is required", async () => {
+    const register = vi.fn(async () => undefined);
+    const gateway = createGateway({
+      fetchPublicConfig: vi.fn(async () => ({
+        ...publicConfig,
+        register: { enabled: true, verifyEmail: true },
+      })),
+      register,
+    });
+    const store = createCommercialAuthStore(gateway, createPreference());
+
+    await expect(
+      store.getState().register({
+        tenantCode: "customer-a",
+        username: "new-user",
+        password: "Secret123",
+        email: "new@example.com",
+      }),
+    ).rejects.toThrow("Registration verification contract is unavailable");
+
+    expect(register).not.toHaveBeenCalled();
   });
 
   it("injects the current captcha key and refreshes it after a failed login", async () => {

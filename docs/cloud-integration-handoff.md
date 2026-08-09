@@ -4,12 +4,12 @@
 
 ## 1. 登录首屏
 
-三个接口都从 GET query 读取 `tenantCode`：
+三个接口都从 GET query 读取 `tenantCode`。下方 `customer-a` 是占位示例，部署方必须提供真实编码，不能把租户显示名称“默认租户”或字符串 `default` 当作编码：
 
 ```http
-GET /api/v1/config/public?tenantCode=platform
-GET /api/v1/config/logo?tenantCode=platform
-GET /api/v1/auth/captcha?tenantCode=platform
+GET /api/v1/config/public?tenantCode=customer-a
+GET /api/v1/config/logo?tenantCode=customer-a
+GET /api/v1/auth/captcha?tenantCode=customer-a
 ```
 
 公共配置最小响应：
@@ -34,6 +34,10 @@ Logo 返回原始图片字节，`Content-Type` 必须为 `image/*`，大小为 1
 
 登录继续使用 `POST /api/v1/client/auth/login`，请求中的 `captchaKey` 与 `captchaCode` 必须和上述验证码校验。
 
+2026-08-09 使用隔离测试租户实测：`config/public` 和图形验证码均返回 `200`，客户端登录与会话恢复成功。该租户公开配置中的 Logo 为空，因此 Logo 二进制接口返回 `404`；客户端现在只在公开配置明确给出 Logo 时请求该可选接口。
+
+登录页已接入图形验证码和注册。若云端公开配置会返回 `captchaType=slider`、`verifyEmail=true` 或 `verifyPhone=true`，还必须提供滑块、邮箱、短信和重置密码的完整请求/响应 JSON、验证票据如何带入注册/重置请求、票据有效期及错误码；当前接口文档只有路径，客户端不会猜测字段。
+
 ## 2. 离线租约
 
 离线租约仍使用现有 Ed25519 密钥：
@@ -44,7 +48,25 @@ state/commercial-signing/lease-2026-08-v1-private.pem
 
 云端密钥 id 为 `lease-2026-08-v1`，签名内容是响应中 `payloadJson` 的原始 UTF-8 字节。响应必须同时返回 `payloadJson`、Base64 `signature` 和 `keyId`。
 
-## 3. 版本检查
+当前真实租约返回 `keyId=local-dev-license-v1`，到期时间为 `2026-08-08T06:11:19Z`，客户端结果为 `verifiedOffline=false`。云端必须改用上述受信任私钥和固定 key id，并签发未过期租约；不要继续返回本地开发 key id。
+
+## 3. 模型调用联调
+
+模型目录、单 SKU 详情和 Bootstrap 均需携带当前激活设备的 `X-Device-Id`。客户端已统一处理，不要在云端为缺少设备头放宽授权。
+
+2026-08-09 真实结果：
+
+| 项目 | 结果 |
+| --- | --- |
+| 模型目录 | `DEMO_TEXT`、`CODEX_SMOKE_IMAGE`、`CODEX_SMOKE_VIDEO`、`CODEX_SMOKE_AUDIO` |
+| 文本 | `DEMO_TEXT` 成功，助手两阶段产生两条成功 Invocation，额度 `960 -> 940` |
+| 图片 | `CODEX_SMOKE_IMAGE` 请求 `/v1/images/generations`，Invocation `73c319d6-e807-4e5d-9c39-76bd15d58109` 返回 `provider returned HTTP 404` |
+| 图片配额 | 预占已释放，额度保持 `940`，客户端回滚正确 |
+| 视频 / 音频 | 目录可见，但本轮未调用，不视为已验收 |
+
+云端需要修复 `CODEX_SMOKE_IMAGE` 对应供应商 Base URL、图片生成路径或模型映射，然后用同一 SKU 验证能返回真实图片字节或 URL。客户端无需改路由。
+
+## 4. 版本检查
 
 ```http
 GET /api/v1/client/releases/check?currentVersion=1.1.5&target=windows&arch=x86_64
@@ -80,7 +102,9 @@ Authorization: Bearer <access-token>
 
 Windows 更新构件使用 `nsis`，macOS 更新构件必须使用 `zip`。DMG 用于 macOS 首次安装，可以同时保存，但不能代替更新用 ZIP。
 
-## 4. 标准更新接口
+当前真实版本检查返回 `no published update for target`。这表示接口在线但尚无发布记录；Windows 安装包生成后需按第 6 节上传并发布。
+
+## 5. 标准更新接口
 
 客户端会请求以下地址：
 
@@ -122,7 +146,7 @@ releaseDate: '2026-08-08T12:30:00.000Z'
 
 不要手工重算或修改 `sha512`。客户端会由 `electron-updater` 自动校验。
 
-## 5. 发布方式
+## 6. 发布方式
 
 Windows 打包：
 
@@ -136,6 +160,16 @@ pnpm --dir desktop package:win
 desktop/release/AI-anime-<version>-x64-setup.exe
 desktop/release/latest.yml
 ```
+
+2026-08-09 已生成 Windows `1.1.5`：
+
+```text
+AI-anime-1.1.5-x64-setup.exe
+size: 496998172
+sha256: 459EC2B0F7568EC0AC56C52ADD9FE6779D39383B9F5ED9981FC3030081D6A31F
+```
+
+`latest.yml` 中的文件名、大小和 electron-builder SHA-512 已与安装包复核一致。该构件未使用 Authenticode 证书，云端可直接用于测试分发，但 Windows 会显示未知发布者。
 
 macOS 打包：
 
@@ -153,7 +187,7 @@ desktop/release/latest-mac.yml
 
 客户端已关闭差分下载，因此云端暂时不需要提供 blockmap。发布时先上传文件和 YAML，再创建发布记录，最后设为可见。
 
-## 6. 联调验收
+## 7. 联调验收
 
 云端需准备隔离测试租户、普通版账号、专业版账号，以及可激活许可、设备名额和非零测试额度。更新验收覆盖：
 

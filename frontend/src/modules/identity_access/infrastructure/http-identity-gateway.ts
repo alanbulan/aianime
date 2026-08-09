@@ -59,28 +59,4 @@ export const httpIdentityGateway: IdentityGateway = {
     const body = await request<OkResponse<CurrentUser>>("/api/v1/auth/me");
     return body.data;
   },
-  async getAvatarUrl() {
-    try {
-      const response = await fetch("/api/v1/account/avatar", {
-        credentials: "include",
-        signal: regionAbortController().signal,
-      });
-      if (!response.ok) return undefined;
-      const body = (await response.json()) as {
-        data?: { avatar_url?: string | null };
-      };
-      return body.data?.avatar_url ?? null;
-    } catch {
-      return undefined;
-    }
-  },
-  async uploadAvatar(file) {
-    const form = new FormData();
-    form.append("file", file);
-    const body = await request<OkResponse<{ avatar_url?: string | null }>>(
-      "/api/v1/account/avatar",
-      { method: "POST", body: form },
-    );
-    return body.data.avatar_url ?? null;
-  },
 };

@@ -4,41 +4,55 @@ import {
   parseCommercialPublicConfig,
   parseCommercialSession,
 } from "@/modules/identity_access/domain/commercial-session";
-
-function bridge(): AIAnimeCommercialBridge {
-  const commercial = window.aiAnimeDesktop?.commercial;
-  if (!commercial) throw new Error("Commercial Gateway requires the Electron desktop app");
-  return commercial;
-}
+import {
+  getCommercialBridge,
+  invokeCommercial,
+  requireCommercialBridge,
+} from "@/shared/commercial-bridge";
 
 export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
   async status() {
-    const commercial = window.aiAnimeDesktop?.commercial;
+    const commercial = getCommercialBridge();
     return commercial
-      ? commercial.status()
+      ? invokeCommercial(() => commercial.status())
       : { configured: false, gatewayOrigin: "" };
   },
   async fetchPublicConfig(tenantCode) {
-    return parseCommercialPublicConfig(await bridge().publicConfig(tenantCode));
+    return parseCommercialPublicConfig(
+      await invokeCommercial(() =>
+        requireCommercialBridge().publicConfig(tenantCode),
+      ),
+    );
   },
   async fetchPublicLogo(tenantCode) {
-    const logo = await bridge().publicLogo(tenantCode);
+    const logo = await invokeCommercial(() =>
+      requireCommercialBridge().publicLogo(tenantCode),
+    );
     if (!logo.contentType.startsWith("image/") || !logo.dataUrl.startsWith("data:image/")) {
       throw new Error("Commercial Gateway returned an invalid public Logo");
     }
     return logo;
   },
   async fetchCaptcha(tenantCode) {
-    return parseCommercialCaptcha(await bridge().publicCaptcha(tenantCode));
+    return parseCommercialCaptcha(
+      await invokeCommercial(() =>
+        requireCommercialBridge().publicCaptcha(tenantCode),
+      ),
+    );
+  },
+  register(input) {
+    return invokeCommercial(() => requireCommercialBridge().register(input));
   },
   async restoreSession() {
-    const session = await bridge().session();
+    const session = await invokeCommercial(() => requireCommercialBridge().session());
     return session ? parseCommercialSession(session) : null;
   },
   async login(input) {
-    return parseCommercialSession(await bridge().login(input));
+    return parseCommercialSession(
+      await invokeCommercial(() => requireCommercialBridge().login(input)),
+    );
   },
   logout() {
-    return bridge().logout();
+    return invokeCommercial(() => requireCommercialBridge().logout());
   },
 };

@@ -12,7 +12,6 @@ const projectSummariesState = vi.hoisted(() => ({
 const authState = vi.hoisted(() => ({
   username: "dev-user" as string | null,
   validateSession: vi.fn<() => Promise<boolean>>(),
-  refreshAvatar: vi.fn<() => Promise<void>>(),
 }));
 
 vi.mock("@tanstack/react-router", () => ({

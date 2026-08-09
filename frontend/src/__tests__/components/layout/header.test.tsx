@@ -51,7 +51,6 @@ vi.mock("react-i18next", () => ({
       ({
         "app.logoHomeTooltip": "Home",
         "header.account.open": "Open account",
-        "header.account.changeAvatar": "Change avatar",
         "header.account.selectLanguage": "Select language",
         "header.account.languageChinese": "Chinese",
         "header.account.languageEnglish": "English",
@@ -66,6 +65,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/modules/identity_access/public", () => ({
+  CommercialAccountSection: () => null,
   logoutAllSessions: () => authState.logout(),
   useAuthStore: () => authState,
   useCommercialAuthStore: (

@@ -22,7 +22,6 @@ export function useAppLayoutController() {
   const navigate = useNavigate();
   const username = useAuthStore((state) => state.username);
   const validateSession = useAuthStore((state) => state.validateSession);
-  const refreshAvatar = useAuthStore((state) => state.refreshAvatar);
   const [validated, setValidated] = useState(false);
   const validatedUsernameRef = useRef<string | null>(null);
   const params = useParams({ strict: false }) as { project?: string };
@@ -53,10 +52,6 @@ export function useAppLayoutController() {
       window.removeEventListener("resize", onResize);
     };
   }, []);
-
-  useEffect(() => {
-    if (username) void refreshAvatar();
-  }, [username, refreshAvatar]);
 
   useEffect(() => {
     useRegionStore.getState().sanitizeAgainstConfig();

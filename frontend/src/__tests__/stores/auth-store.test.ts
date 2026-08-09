@@ -8,15 +8,9 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-// `login()` 成功后会顺带 void refreshAvatar() 打一发 `/api/v1/account/avatar`
-// (EE 头像端点;getCurrentUser 不再搭这趟便车,改由 App 顶层独立触发)。这些
-// 去重/缓存断言只关心 `/auth/me` 被打了几次,所以按 URL 过滤,别把 avatar 那一发算进来。
 function authMeCallCount(fetchMock: ReturnType<typeof vi.fn>): number {
   return fetchMock.mock.calls.filter(([url]) => String(url).includes("/auth/me")).length;
 }
-
-// 非 /auth/me 的请求(如 /account/avatar)统一返回 ok:false,让 refreshAvatar 静默早退。
-const avatarMiss = { ok: false, json: async () => ({}) };
 
 describe("auth-store", () => {
   it("starts with null state", () => {
@@ -100,9 +94,7 @@ describe("auth-store", () => {
     const fetchPromise = new Promise<{ ok: true; json: () => Promise<unknown> }>((resolve) => {
       resolveFetch = resolve;
     });
-    const fetchMock = vi.fn().mockImplementation((url: string) =>
-      String(url).includes("/auth/me") ? fetchPromise : Promise.resolve(avatarMiss),
-    );
+    const fetchMock = vi.fn().mockReturnValue(fetchPromise);
     global.fetch = fetchMock;
 
     const first = useAuthStore.getState().validateSession();
@@ -136,19 +128,13 @@ describe("auth-store", () => {
 
   it("reuses a recent successful validateSession result", async () => {
     useAuthStore.setState({ username: "admin", role: "admin" });
-    const fetchMock = vi.fn().mockImplementation((url: string) =>
-      Promise.resolve(
-        String(url).includes("/auth/me")
-          ? {
-              ok: true,
-              json: async () => ({
-                ok: true,
-                data: { username: "admin", role: "admin", credit_balance: 10 },
-              }),
-            }
-          : avatarMiss,
-      ),
-    );
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: { username: "admin", role: "admin", credit_balance: 10 },
+      }),
+    });
     global.fetch = fetchMock;
 
     await expect(useAuthStore.getState().validateSession()).resolves.toBe(true);
@@ -159,19 +145,13 @@ describe("auth-store", () => {
 
   it("shares the recent /auth/me result between validateSession and getCurrentUser", async () => {
     useAuthStore.setState({ username: "admin", role: "admin" });
-    const fetchMock = vi.fn().mockImplementation((url: string) =>
-      Promise.resolve(
-        String(url).includes("/auth/me")
-          ? {
-              ok: true,
-              json: async () => ({
-                ok: true,
-                data: { username: "admin", role: "admin", credit_balance: 42 },
-              }),
-            }
-          : avatarMiss,
-      ),
-    );
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: { username: "admin", role: "admin", credit_balance: 42 },
+      }),
+    });
     global.fetch = fetchMock;
 
     await expect(useAuthStore.getState().validateSession()).resolves.toBe(true);

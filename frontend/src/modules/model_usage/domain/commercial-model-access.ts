@@ -12,6 +12,8 @@ export interface CommercialModelCatalogItem {
   capabilities: Record<string, unknown>;
   parameterSchema: Record<string, unknown>;
   unitsPerCall?: number;
+  clientVisible?: boolean;
+  status?: string;
   isDefault?: boolean;
 }
 
@@ -132,22 +134,31 @@ export function parseCommercialModelCatalog(
   }
   return {
     catalogVersion: text(root.catalogVersion, "catalogVersion"),
-    items: root.items.map((value, index) => {
-      const item = record(value, `models[${index}]`);
-      return {
-        id: identifier(item.id, `models[${index}].id`),
-        code: text(item.code, `models[${index}].code`),
-        displayName: text(item.displayName, `models[${index}].displayName`),
-        operation: text(item.operation, `models[${index}].operation`),
-        capabilities: jsonRecord(item.capabilityJson, "capabilityJson"),
-        parameterSchema: jsonRecord(
-          item.parameterSchemaJson,
-          "parameterSchemaJson",
-        ),
-        ...optionalNumber("unitsPerCall", item.unitsPerCall),
-        ...optionalBoolean("isDefault", item.isDefault),
-      };
-    }),
+    items: root.items.map((item, index) =>
+      parseCommercialModelCatalogItem(item, `models[${index}]`),
+    ),
+  };
+}
+
+export function parseCommercialModelCatalogItem(
+  value: unknown,
+  name = "model",
+): CommercialModelCatalogItem {
+  const item = record(value, name);
+  return {
+    id: identifier(item.id, `${name}.id`),
+    code: text(item.code, `${name}.code`),
+    displayName: text(item.displayName, `${name}.displayName`),
+    operation: text(item.operation, `${name}.operation`),
+    capabilities: jsonRecord(item.capabilityJson, `${name}.capabilityJson`),
+    parameterSchema: jsonRecord(
+      item.parameterSchemaJson,
+      `${name}.parameterSchemaJson`,
+    ),
+    ...optionalNumber("unitsPerCall", item.unitsPerCall),
+    ...optionalBoolean("clientVisible", item.clientVisible),
+    ...optionalText("status", item.status),
+    ...optionalBoolean("isDefault", item.isDefault),
   };
 }
 
@@ -234,4 +245,9 @@ function optionalBoolean<K extends string>(key: K, value: unknown) {
   return typeof value === "boolean"
     ? ({ [key]: value } as Record<K, boolean>)
     : {};
+}
+
+function optionalText<K extends string>(key: K, value: unknown) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized ? ({ [key]: normalized } as Record<K, string>) : {};
 }

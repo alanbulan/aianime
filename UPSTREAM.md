@@ -9,7 +9,7 @@
 | `origin` | `https://gitee.com/mingcheng_software/ai-manga-desktop.git` | 明程软件主仓，日常开发与发布代码推送到这里 |
 | `upstream` | `https://github.com/dramaclaw/dramaclaw.git` | 原始项目上游，只用于拉取和评估更新 |
 
-上游最后审查基线：`30efddcccc58d0106bfe35a5db08c8541aa0c694`（上游提交时间 2026-08-07）。2026-08-08 已执行 `git fetch upstream --prune`，`upstream/main` 仍指向该提交，因此本次没有新增同步项。
+上游最后审查基线：`30efddcccc58d0106bfe35a5db08c8541aa0c694`（上游提交时间 2026-08-07）。2026-08-09 已执行 `git fetch upstream --prune`，`upstream/main` 仍指向该提交，因此本次没有新增同步项。
 
 ## 上游同步流程
 

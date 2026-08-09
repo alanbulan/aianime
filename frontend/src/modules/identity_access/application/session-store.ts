@@ -31,9 +31,6 @@ export interface AuthState {
   getCurrentUser: (
     options?: GetCurrentUserOptions,
   ) => Promise<CurrentUser | null>;
-  setAvatarUrl: (url: string | null) => void;
-  refreshAvatar: () => Promise<void>;
-  uploadAvatar: (file: File) => Promise<void>;
   reset: () => void;
 }
 
@@ -80,15 +77,21 @@ export function createAuthStore(
           const user = await gateway.login(username, password);
           cachedCurrentUser = user;
           lastSuccessfulValidationAt = Date.now();
-          set({ username: user.username, role: user.role });
-          void get().refreshAvatar();
+          set({
+            username: user.username,
+            role: user.role,
+            avatarUrl: user.avatar_url ?? null,
+          });
         },
         authorize: async (code) => {
           const user = await gateway.authorize(code);
           cachedCurrentUser = user;
           lastSuccessfulValidationAt = Date.now();
-          set({ username: user.username, role: user.role });
-          void get().refreshAvatar();
+          set({
+            username: user.username,
+            role: user.role,
+            avatarUrl: user.avatar_url ?? null,
+          });
         },
         logout: async () => {
           try {
@@ -115,7 +118,11 @@ export function createAuthStore(
                 const user = await gateway.getCurrentUser();
                 cachedCurrentUser = user;
                 lastSuccessfulValidationAt = Date.now();
-                set({ username: user.username, role: user.role });
+                set({
+                  username: user.username,
+                  role: user.role,
+                  avatarUrl: user.avatar_url ?? null,
+                });
                 return {
                   user,
                   authFailure: false,
@@ -161,22 +168,6 @@ export function createAuthStore(
         },
         validateSession: async (): Promise<boolean> =>
           Boolean(await get().getCurrentUser()),
-        setAvatarUrl: (url) => {
-          if (cachedCurrentUser) {
-            cachedCurrentUser = { ...cachedCurrentUser, avatar_url: url };
-          }
-          set({ avatarUrl: url });
-        },
-        refreshAvatar: async () => {
-          const avatarUrl = await gateway.getAvatarUrl();
-          if (avatarUrl !== undefined) {
-            get().setAvatarUrl(avatarUrl);
-          }
-        },
-        uploadAvatar: async (file) => {
-          const avatarUrl = await gateway.uploadAvatar(file);
-          get().setAvatarUrl(avatarUrl);
-        },
         reset: () => {
           clearCurrentUserCache();
           set({ username: null, role: null, avatarUrl: null });

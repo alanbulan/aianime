@@ -1,26 +1,32 @@
 import type { CommercialReleaseGateway } from "@/modules/platform_release/application/commercial-release-ports";
 import { parseCommercialReleaseStatus } from "@/modules/platform_release/domain/commercial-release";
+import {
+  invokeCommercial,
+  requireCommercialBridge,
+} from "@/shared/commercial-bridge";
 
 export const electronCommercialReleaseGateway: CommercialReleaseGateway = {
   async check() {
-    const commercial = window.aiAnimeDesktop?.commercial;
-    if (!commercial) {
-      throw new Error("Commercial Gateway requires the Electron desktop app");
-    }
-    return parseCommercialReleaseStatus(await commercial.checkRelease());
+    return parseCommercialReleaseStatus(
+      await invokeCommercial(() => requireCommercialBridge().checkRelease()),
+    );
   },
   async downloadUpdate(artifactId) {
-    const commercial = window.aiAnimeDesktop?.commercial;
-    if (!commercial?.downloadUpdate) {
+    const commercial = requireCommercialBridge(
+      "Update download requires the Electron desktop app",
+    );
+    if (!commercial.downloadUpdate) {
       throw new Error("Update download requires the Electron desktop app");
     }
-    return commercial.downloadUpdate(artifactId);
+    return invokeCommercial(() => commercial.downloadUpdate(artifactId));
   },
   async installUpdate() {
-    const commercial = window.aiAnimeDesktop?.commercial;
-    if (!commercial?.installUpdate) {
+    const commercial = requireCommercialBridge(
+      "Update install requires the Electron desktop app",
+    );
+    if (!commercial.installUpdate) {
       throw new Error("Update install requires the Electron desktop app");
     }
-    await commercial.installUpdate();
+    await invokeCommercial(() => commercial.installUpdate());
   },
 };

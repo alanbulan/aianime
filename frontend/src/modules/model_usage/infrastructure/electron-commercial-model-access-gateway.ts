@@ -1,35 +1,53 @@
 import type { CommercialModelAccessGateway } from "@/modules/model_usage/application/commercial-model-access-ports";
 import {
   parseCommercialModelCatalog,
+  parseCommercialModelCatalogItem,
   parseCommercialModelAccessStatus,
   parseCommercialQuota,
 } from "@/modules/model_usage/domain/commercial-model-access";
-
-function bridge(): AIAnimeCommercialBridge {
-  const commercial = window.aiAnimeDesktop?.commercial;
-  if (!commercial) throw new Error("Commercial Gateway requires the Electron desktop app");
-  return commercial;
-}
+import {
+  invokeCommercial,
+  requireCommercialBridge,
+} from "@/shared/commercial-bridge";
 
 export const electronCommercialModelAccessGateway: CommercialModelAccessGateway = {
   async fetchQuota() {
-    return parseCommercialQuota(await bridge().quotaBalance());
+    return parseCommercialQuota(
+      await invokeCommercial(() => requireCommercialBridge().quotaBalance()),
+    );
   },
   async fetchCatalog(operation) {
     return parseCommercialModelCatalog(
-      await bridge().modelCatalog(operation ? { operation } : {}),
+      await invokeCommercial(() =>
+        requireCommercialBridge().modelCatalog(operation ? { operation } : {}),
+      ),
+    );
+  },
+  async fetchModelDetails(sku) {
+    return parseCommercialModelCatalogItem(
+      await invokeCommercial(() => requireCommercialBridge().modelDetails(sku)),
     );
   },
   async fetchAccessStatus() {
-    return parseCommercialModelAccessStatus(await bridge().modelAccessStatus());
+    return parseCommercialModelAccessStatus(
+      await invokeCommercial(() => requireCommercialBridge().modelAccessStatus()),
+    );
   },
   async configureByok(input) {
-    return parseCommercialModelAccessStatus(await bridge().configureByok(input));
+    return parseCommercialModelAccessStatus(
+      await invokeCommercial(() =>
+        requireCommercialBridge().configureByok(input),
+      ),
+    );
   },
   async selectCloud() {
-    return parseCommercialModelAccessStatus(await bridge().selectCloudModels());
+    return parseCommercialModelAccessStatus(
+      await invokeCommercial(() => requireCommercialBridge().selectCloudModels()),
+    );
   },
   async clearByok() {
-    return parseCommercialModelAccessStatus(await bridge().clearByok());
+    return parseCommercialModelAccessStatus(
+      await invokeCommercial(() => requireCommercialBridge().clearByok()),
+    );
   },
 };

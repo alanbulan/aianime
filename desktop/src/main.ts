@@ -17,6 +17,7 @@ import { LocalBackend } from "./backend.js";
 import { EncryptedFileCommercialDeviceIdentity } from "./commercial-device.js";
 import { CommercialModelProxy } from "./commercial-model-proxy.js";
 import { EncryptedFileCommercialModelAccessStore } from "./commercial-model-access.js";
+import { saveCommercialInvocationResult } from "./commercial-invocation-result.js";
 import {
   CommercialApiClient,
   EncryptedFileCommercialSessionStore,
@@ -230,6 +231,13 @@ async function registerCommercialGatewayIpc(
         AUTH_COOKIE_NAME,
       ),
     releaseUpdater,
+    saveInvocationResult: (id) =>
+      saveCommercialInvocationResult(client, id, async (suggestedName) => {
+        const result = mainWindow
+          ? await dialog.showSaveDialog(mainWindow, { defaultPath: suggestedName })
+          : await dialog.showSaveDialog({ defaultPath: suggestedName });
+        return result.canceled ? null : result.filePath ?? null;
+      }),
     leaseSigningKeys: COMMERCIAL_LEASE_SIGNING_KEYS,
     devicePublicKeyHash: device.publicKeyHash,
   });

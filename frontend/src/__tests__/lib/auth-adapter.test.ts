@@ -54,30 +54,6 @@ describe("httpIdentityGateway", () => {
     );
   });
 
-  it("uploads avatars through the identity gateway", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        ok: true,
-        data: { avatar_url: "/static/avatars/alice/avatar.png" },
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    const file = new File(["image"], "avatar.png", { type: "image/png" });
-
-    await expect(httpIdentityGateway.uploadAvatar(file)).resolves.toBe(
-      "/static/avatars/alice/avatar.png",
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/account/avatar",
-      expect.objectContaining({
-        method: "POST",
-        credentials: "include",
-        body: expect.any(FormData),
-      }),
-    );
-  });
-
   it("preserves an HTTP status when the error response has no JSON body", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 502 }));
 

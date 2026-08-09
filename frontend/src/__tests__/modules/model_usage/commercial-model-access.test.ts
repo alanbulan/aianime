@@ -3,9 +3,38 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseCommercialModelAccessStatus,
+  parseCommercialModelCatalogItem,
   resolveRequiredCatalogModelCode,
   type CommercialModelCatalog,
 } from "@/modules/model_usage/domain/commercial-model-access";
+
+describe("commercial model details", () => {
+  it("projects renderer-safe capability and parameter JSON", () => {
+    expect(
+      parseCommercialModelCatalogItem({
+        id: "sku-1",
+        code: "cloud-text-standard",
+        displayName: "Cloud text",
+        operation: "TEXT",
+        capabilityJson: '{"stream":true}',
+        parameterSchemaJson: '{"temperature":{"type":"number"}}',
+        unitsPerCall: 10,
+        clientVisible: true,
+        status: "ACTIVE",
+      }),
+    ).toEqual({
+      id: "sku-1",
+      code: "cloud-text-standard",
+      displayName: "Cloud text",
+      operation: "TEXT",
+      capabilities: { stream: true },
+      parameterSchema: { temperature: { type: "number" } },
+      unitsPerCall: 10,
+      clientVisible: true,
+      status: "ACTIVE",
+    });
+  });
+});
 
 const baseStatus = {
   mode: "byok",

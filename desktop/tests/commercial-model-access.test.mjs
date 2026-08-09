@@ -42,6 +42,100 @@ const passthroughSecureStorage = {
 const user = { id: 1, username: "client" };
 const tenant = { id: 2, code: "customer-a", name: "Customer A" };
 
+test("commercial auth IPC preserves exact password text", async () => {
+  const handlers = new Map();
+  const calls = [];
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.test",
+      register: async (input) => calls.push({ type: "register", input }),
+      login: async (input) => {
+        calls.push({ type: "login", input });
+        return {
+          authenticated: true,
+          expiresAtEpochMs: 10_000,
+          user,
+          tenant,
+        };
+      },
+      currentLicense: async () => ({
+        license: {
+          id: "license-1",
+          editionType: "PROFESSIONAL",
+          allowsCustomModels: true,
+        },
+        device: { id: "2217d912-c377-42de-b2eb-759cf172bae2" },
+        activation: { id: "activation-1" },
+        lease: null,
+      }),
+      modelCatalog: async () => ({
+        catalogVersion: "catalog-v1",
+        items: [],
+      }),
+    },
+    deviceIdentity: {
+      summary: async () => ({ publicKeyHash: "public-key-hash" }),
+    },
+    modelAccessStore: {
+      load: async () => ({
+        schemaVersion: 2,
+        mode: "cloud",
+        byokBaseUrl: "",
+        byokApiKey: "",
+        byokModelAssignments: [],
+      }),
+    },
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.5",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async () => undefined,
+    onLoggedOut: async () => undefined,
+  });
+
+  await handlers.get(COMMERCIAL_CHANNELS.register)(
+    { sender: { id: 1 } },
+    {
+      tenantCode: " customer-a ",
+      username: " client ",
+      password: " Secret 123 ",
+    },
+  );
+  await handlers.get(COMMERCIAL_CHANNELS.login)(
+    { sender: { id: 1 } },
+    {
+      tenantCode: " customer-a ",
+      username: " client ",
+      password: " Secret 123 ",
+    },
+  );
+
+  assert.deepEqual(calls, [
+    {
+      type: "register",
+      input: {
+        tenantCode: "customer-a",
+        username: "client",
+        password: " Secret 123 ",
+      },
+    },
+    {
+      type: "login",
+      input: {
+        tenantCode: "customer-a",
+        username: "client",
+        password: " Secret 123 ",
+      },
+    },
+  ]);
+});
+
 test("missing restored cloud session clears the local workspace session", async () => {
   const handlers = new Map();
   let authenticated = 0;
@@ -56,7 +150,9 @@ test("missing restored cloud session clears the local workspace session", async 
       restoreSession: async () => null,
     },
     deviceIdentity: {},
-    modelAccessStore: {},
+    modelAccessStore: {
+      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+    },
     deviceName: "DESKTOP-01",
     platform: "windows",
     arch: "x86_64",
@@ -76,6 +172,103 @@ test("missing restored cloud session clears the local workspace session", async 
   assert.equal(await restoreSession({ sender: { id: 1 } }), null);
   assert.equal(authenticated, 0);
   assert.equal(loggedOut, 1);
+});
+
+test("restored sessions hydrate the complete cloud model access once", async () => {
+  const handlers = new Map();
+  const synchronized = [];
+  const deviceId = "2217d912-c377-42de-b2eb-759cf172bae2";
+  let licenseCalls = 0;
+  let catalogCalls = 0;
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.example.test",
+      restoreSession: async () => ({
+        authenticated: true,
+        expiresAtEpochMs: 10_000,
+        user,
+        tenant,
+      }),
+      currentLicense: async () => {
+        licenseCalls += 1;
+        return {
+          license: {
+            id: "license-1",
+            editionType: "PROFESSIONAL",
+            allowsCustomModels: true,
+          },
+          device: { id: deviceId },
+          activation: { id: "activation-1" },
+          lease: null,
+        };
+      },
+      modelCatalog: async (query, receivedDeviceId) => {
+        catalogCalls += 1;
+        assert.deepEqual(query, {});
+        assert.equal(receivedDeviceId, deviceId);
+        return {
+          catalogVersion: "catalog-v1",
+          items: [
+            {
+              id: "text-1",
+              code: "DEMO_TEXT",
+              displayName: "Demo Text",
+              operation: "TEXT",
+              isDefault: true,
+            },
+            {
+              id: "image-1",
+              code: "DEMO_IMAGE",
+              displayName: "Demo Image",
+              operation: "IMAGE",
+              isDefault: true,
+            },
+            {
+              id: "video-1",
+              code: "DEMO_VIDEO",
+              displayName: "Demo Video",
+              operation: "VIDEO",
+              isDefault: true,
+            },
+          ],
+        };
+      },
+    },
+    deviceIdentity: {
+      summary: async () => ({ publicKeyHash: "public-key-hash" }),
+    },
+    modelAccessStore: {
+      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+    },
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.5",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async (
+      _access,
+      _allowsCustomModels,
+      assignments,
+    ) => synchronized.push(assignments),
+    onLoggedOut: async () => undefined,
+  });
+
+  const restoreSession = handlers.get(COMMERCIAL_CHANNELS.session);
+  await restoreSession({ sender: { id: 1 } });
+  await restoreSession({ sender: { id: 1 } });
+
+  assert.equal(licenseCalls, 1);
+  assert.equal(catalogCalls, 1);
+  assert.deepEqual(synchronized.at(-1), [
+    { modelId: "DEMO_TEXT", role: "TEXT" },
+    { modelId: "DEMO_IMAGE", role: "IMAGE_GENERATION" },
+    { modelId: "DEMO_VIDEO", role: "VIDEO_TEXT_TO_VIDEO" },
+  ]);
 });
 
 test("standard authorization hides persisted BYOK details from the renderer", async () => {
@@ -333,6 +526,8 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
 test("video catalog synchronization sends only projected duration capabilities", async () => {
   const handlers = new Map();
   const synchronized = [];
+  const catalogDeviceIds = [];
+  const deviceId = "2217d912-c377-42de-b2eb-759cf172bae2";
   registerCommercialIpc({
     ipcMain: {
       handle: (channel, listener) => handlers.set(channel, listener),
@@ -340,30 +535,60 @@ test("video catalog synchronization sends only projected duration capabilities",
     },
     client: {
       baseUrl: "https://gateway.example.test",
-      modelCatalog: async () => ({
-        catalogVersion: "video-v1",
-        items: [
-          {
-            id: "video-1",
-            code: "cloud/video-standard",
-            displayName: "Cloud Video",
-            operation: "VIDEO",
-            capabilityJson: JSON.stringify({
-              referenceAudioMinSeconds: 1.8,
-              referenceAudioMaxSeconds: 15.2,
-              referenceAudioTotalMinSeconds: 2,
-              referenceAudioTotalMaxSeconds: 15.2,
-              referenceVideoMinSeconds: 3,
-              referenceVideoMaxSeconds: 10,
-              referenceVideoTotalMinSeconds: 5,
-              referenceVideoTotalMaxSeconds: 20,
-              providerSecret: "must-not-cross-process-boundary",
-            }),
-          },
-        ],
+      currentLicense: async () => ({
+        license: {
+          id: "license-1",
+          editionType: "PROFESSIONAL",
+          allowsCustomModels: true,
+        },
+        device: { id: deviceId },
+        activation: { id: "activation-1" },
+        lease: null,
       }),
+      modelCatalog: async ({ operation }, receivedDeviceId) => {
+        catalogDeviceIds.push(receivedDeviceId);
+        return (
+          operation === "TEXT"
+            ? {
+                catalogVersion: "catalog-v1",
+                items: [
+                  {
+                    id: "text-1",
+                    code: "cloud/text-standard",
+                    displayName: "Cloud Text",
+                    operation: "TEXT",
+                  },
+                ],
+              }
+            : {
+                catalogVersion: "catalog-v1",
+                items: [
+                  {
+                    id: "video-1",
+                    code: "cloud/video-standard",
+                    displayName: "Cloud Video",
+                    operation: "VIDEO",
+                    capabilityJson: JSON.stringify({
+                      supportedModes: ["textToVideo", "firstLastFrame"],
+                      referenceAudioMinSeconds: 1.8,
+                      referenceAudioMaxSeconds: 15.2,
+                      referenceAudioTotalMinSeconds: 2,
+                      referenceAudioTotalMaxSeconds: 15.2,
+                      referenceVideoMinSeconds: 3,
+                      referenceVideoMaxSeconds: 10,
+                      referenceVideoTotalMinSeconds: 5,
+                      referenceVideoTotalMaxSeconds: 20,
+                      providerSecret: "must-not-cross-process-boundary",
+                    }),
+                  },
+                ],
+              }
+        );
+      },
     },
-    deviceIdentity: {},
+    deviceIdentity: {
+      summary: async () => ({ publicKeyHash: "public-key-hash" }),
+    },
     modelAccessStore: {
       load: async () => ({ schemaVersion: 2, mode: "cloud" }),
     },
@@ -376,16 +601,23 @@ test("video catalog synchronization sends only projected duration capabilities",
     onModelAccessChanged: async (
       _access,
       _allowsCustomModels,
-      _cloudModelAssignments,
+      cloudModelAssignments,
       modelCapabilities,
-    ) => synchronized.push(modelCapabilities),
+    ) => synchronized.push({ cloudModelAssignments, modelCapabilities }),
     onLoggedOut: async () => undefined,
   });
 
   const modelCatalog = handlers.get(COMMERCIAL_CHANNELS.modelCatalog);
+  await modelCatalog({ sender: { id: 1 } }, { operation: "TEXT" });
   await modelCatalog({ sender: { id: 1 } }, { operation: "VIDEO" });
 
-  assert.deepEqual(synchronized.at(-1), [
+  assert.deepEqual(catalogDeviceIds, [deviceId, deviceId]);
+  assert.deepEqual(synchronized.at(-1).cloudModelAssignments, [
+    { modelId: "cloud/text-standard", role: "TEXT" },
+    { modelId: "cloud/video-standard", role: "VIDEO_TEXT_TO_VIDEO" },
+    { modelId: "cloud/video-standard", role: "VIDEO_FIRST_LAST_FRAME" },
+  ]);
+  assert.deepEqual(synchronized.at(-1).modelCapabilities, [
     {
       modelId: "cloud/video-standard",
       referenceAudioMinSeconds: 1.8,

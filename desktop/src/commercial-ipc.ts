@@ -3,18 +3,24 @@
 import { verifyOfflineLease } from "./commercial-lease.js";
 import type { CommercialDeviceSigner } from "./commercial-device.js";
 import {
+  BYOK_MODEL_ROLES,
   fetchByokModelCatalog,
   type ByokModelAssignment,
+  type ByokModelRole,
   type CommercialModelAccessStatus,
   type EncryptedFileCommercialModelAccessStore,
   type StoredCommercialModelAccess,
 } from "./commercial-model-access.js";
 import {
   authorizationActivationId,
+  authorizationDeviceId,
   authorizationLicenseId,
   projectCommercialAuthorization,
   projectCommercialBootstrap,
+  projectCommercialInvocationDetails,
+  projectCommercialInvocationList,
   projectCommercialModelCatalog,
+  projectCommercialModelCatalogItem,
   projectCommercialQuota,
   selectReleaseArtifactId,
   type CommercialAuthorizationSnapshot,
@@ -27,11 +33,14 @@ import {
   optionalText,
   requiredIdentifier,
   requiredInteger,
+  requiredRawText,
   requiredRecord,
   requiredText,
   type CommercialBootstrapQuery,
+  type CommercialInvocationQuery,
   type CommercialLoginInput,
   type CommercialModelCatalogQuery,
+  type CommercialRegistrationInput,
   type CommercialSessionSummary,
 } from "./commercial-api-client.js";
 
@@ -52,12 +61,18 @@ export const COMMERCIAL_CHANNELS = {
   publicConfig: "desktop:commercial:public-config",
   publicLogo: "desktop:commercial:public-logo",
   publicCaptcha: "desktop:commercial:public-captcha",
+  register: "desktop:commercial:register",
   session: "desktop:commercial:session",
   login: "desktop:commercial:login",
   logout: "desktop:commercial:logout",
   bootstrap: "desktop:commercial:bootstrap",
   quotaBalance: "desktop:commercial:quota-balance",
   modelCatalog: "desktop:commercial:model-catalog",
+  modelDetails: "desktop:commercial:model-details",
+  invocationList: "desktop:commercial:invocation-list",
+  invocationDetails: "desktop:commercial:invocation-details",
+  cancelInvocation: "desktop:commercial:cancel-invocation",
+  saveInvocationResult: "desktop:commercial:save-invocation-result",
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
   downloadUpdate: "desktop:commercial:download-update",
@@ -65,6 +80,7 @@ export const COMMERCIAL_CHANNELS = {
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
   refreshLicenseLease: "desktop:commercial:refresh-license-lease",
+  deactivateLicense: "desktop:commercial:deactivate-license",
   modelAccessStatus: "desktop:commercial:model-access-status",
   configureByok: "desktop:commercial:configure-byok",
   selectCloudModels: "desktop:commercial:select-cloud-models",
@@ -93,6 +109,9 @@ interface RegisterCommercialIpcOptions {
     download(artifactId: string | number): Promise<{ version: string }>;
     install(): void;
   };
+  saveInvocationResult?: (
+    id: string | number,
+  ) => Promise<{ saved: boolean; fileName?: string }>;
   /**
    * keyId -> PEM SPKI public keys for offline lease verification. When empty,
    * every lease stays `verifiedOffline: false` (fail-closed).
@@ -109,6 +128,8 @@ export function registerCommercialIpc(
   let cloudModelAssignments: ByokModelAssignment[] = [];
   const modelCapabilities = new Map<string, CommercialModelCapabilitySnapshot>();
   let modelCapabilityCatalogVersion = "";
+  let modelAccessHydrated = false;
+  let modelAccessHydration: Promise<void> | null = null;
 
   const updateModelCapabilities = (
     catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
@@ -151,14 +172,24 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.publicCaptcha, (input) =>
     requireClient().publicCaptcha(requiredText(input, "tenantCode")),
   );
+  handle(COMMERCIAL_CHANNELS.register, (input) =>
+    requireClient().register(parseRegistrationInput(input)),
+  );
   handle(COMMERCIAL_CHANNELS.session, async () => {
-    currentAuthorization = null;
-    cloudModelAssignments = [];
-    modelCapabilities.clear();
-    modelCapabilityCatalogVersion = "";
     const session = await requireClient().restoreSession();
-    if (session) await options.onAuthenticated(session);
-    else await options.onLoggedOut();
+    if (session) {
+      await options.onAuthenticated(session);
+      await hydrateModelAccess();
+    } else {
+      currentAuthorization = null;
+      cloudModelAssignments = [];
+      modelCapabilities.clear();
+      modelCapabilityCatalogVersion = "";
+      modelAccessHydrated = false;
+      modelAccessHydration = null;
+      await synchronizeModelAccess();
+      await options.onLoggedOut();
+    }
     return session;
   });
   handle(COMMERCIAL_CHANNELS.login, async (input) => {
@@ -166,10 +197,13 @@ export function registerCommercialIpc(
     cloudModelAssignments = [];
     modelCapabilities.clear();
     modelCapabilityCatalogVersion = "";
+    modelAccessHydrated = false;
+    modelAccessHydration = null;
     await synchronizeModelAccess();
     const session = await requireClient().login(parseLoginInput(input));
     try {
       await options.onAuthenticated(session);
+      await hydrateModelAccess();
     } catch (error) {
       await requireClient().logout();
       throw error;
@@ -183,6 +217,8 @@ export function registerCommercialIpc(
     cloudModelAssignments = [];
     modelCapabilities.clear();
     modelCapabilityCatalogVersion = "";
+    modelAccessHydrated = false;
+    modelAccessHydration = null;
     await synchronizeModelAccess();
     return result;
   });
@@ -202,6 +238,9 @@ export function registerCommercialIpc(
     await synchronizeModelAccess();
     return currentAuthorization;
   };
+  const ensureCurrentAuthorization = async (): Promise<CommercialAuthorizationSnapshot> =>
+    currentAuthorization ??
+    publishAuthorization(await loadCurrentLicense());
 
   handle(COMMERCIAL_CHANNELS.bootstrap, async (input) => {
     const device = await options.deviceIdentity.summary();
@@ -212,7 +251,9 @@ export function registerCommercialIpc(
       currentVersion: query.currentVersion ?? options.clientVersion,
       target: query.target ?? options.platform,
       arch: query.arch ?? options.arch,
-    });
+    }, currentAuthorization?.device
+      ? authorizationDeviceId(currentAuthorization)
+      : undefined);
     const bootstrap = projectCommercialBootstrap(rawBootstrap);
     const rawAuthorization = optionalRecord(rawBootstrap).softwareAuthorization;
     currentAuthorization = bootstrap.softwareAuthorization
@@ -223,7 +264,11 @@ export function registerCommercialIpc(
         )
       : null;
     bootstrap.softwareAuthorization = currentAuthorization;
-    cloudModelAssignments = defaultCloudTextModelAssignments(bootstrap.models);
+    cloudModelAssignments = updateCloudModelAssignments(
+      cloudModelAssignments,
+      bootstrap.models,
+      query.modelOperation ?? "TEXT",
+    );
     updateModelCapabilities(bootstrap.models);
     const access = await options.modelAccessStore.load();
     if (
@@ -250,25 +295,64 @@ export function registerCommercialIpc(
   );
   handle(COMMERCIAL_CHANNELS.modelCatalog, async (input) => {
     const query = parseModelCatalogQuery(input);
+    const authorization = await ensureCurrentAuthorization();
     const access = await options.modelAccessStore.load();
     if (
-      authorizationAllowsByok(currentAuthorization) &&
+      authorizationAllowsByok(authorization) &&
       access.mode === "byok"
     ) {
       return fetchByokModelCatalog(access, query.operation);
     }
     const catalog = projectCommercialModelCatalog(
-      await requireClient().modelCatalog(query),
+      await requireClient().modelCatalog(
+        query,
+        authorizationDeviceId(authorization),
+      ),
     );
     updateModelCapabilities(catalog);
-    if (
-      query.operation?.trim().toUpperCase() === "TEXT" ||
-      catalog.items.some((item) => item.operation.trim().toUpperCase() === "TEXT")
-    ) {
-      cloudModelAssignments = defaultCloudTextModelAssignments(catalog);
-    }
+    cloudModelAssignments = updateCloudModelAssignments(
+      cloudModelAssignments,
+      catalog,
+      query.operation,
+    );
     await synchronizeModelAccess();
     return catalog;
+  });
+  handle(COMMERCIAL_CHANNELS.modelDetails, async (input) => {
+    const authorization = await ensureCurrentAuthorization();
+    return projectCommercialModelCatalogItem(
+      await requireClient().modelDetails(
+        requiredText(input, "sku"),
+        authorizationDeviceId(authorization),
+      ),
+    );
+  });
+  handle(COMMERCIAL_CHANNELS.invocationList, async (input) =>
+    projectCommercialInvocationList(
+      await requireClient().listInvocations(parseInvocationQuery(input)),
+    ),
+  );
+  handle(COMMERCIAL_CHANNELS.invocationDetails, async (input) =>
+    projectCommercialInvocationDetails(
+      await requireClient().invocationDetails(requiredIdentifier(input, "id")),
+    ),
+  );
+  handle(COMMERCIAL_CHANNELS.cancelInvocation, async (input) => {
+    const body = requiredRecord(input, "cancel invocation");
+    const id = requiredIdentifier(body.id, "id");
+    await requireClient().cancelInvocation(
+      id,
+      requiredText(body.reason, "reason"),
+    );
+    return projectCommercialInvocationDetails(
+      await requireClient().invocationDetails(id),
+    );
+  });
+  handle(COMMERCIAL_CHANNELS.saveInvocationResult, async (input) => {
+    if (!options.saveInvocationResult) {
+      throw new CommercialApiError("客户端尚未配置调用结果保存器");
+    }
+    return options.saveInvocationResult(requiredIdentifier(input, "id"));
   });
   handle(COMMERCIAL_CHANNELS.currentLicense, async () =>
     publishAuthorization(await loadCurrentLicense()),
@@ -290,9 +374,18 @@ export function registerCommercialIpc(
     await requireClient().refreshLicenseLease(authorizationActivationId(current));
     return publishAuthorization(await loadCurrentLicense());
   });
+  handle(COMMERCIAL_CHANNELS.deactivateLicense, async (input) => {
+    const current = await loadCurrentLicense();
+    await requireClient().deactivateLicense(
+      authorizationActivationId(current),
+      requiredText(input, "reason"),
+    );
+    return publishAuthorization(await loadCurrentLicense());
+  });
   handle(COMMERCIAL_CHANNELS.modelAccessStatus, async () => {
+    const authorization = await ensureCurrentAuthorization();
     const access = await options.modelAccessStore.load();
-    const allowsCustomModels = authorizationAllowsByok(currentAuthorization);
+    const allowsCustomModels = authorizationAllowsByok(authorization);
     return rendererModelAccessStatus(
       options.modelAccessStore.status(access),
       allowsCustomModels,
@@ -387,6 +480,46 @@ export function registerCommercialIpc(
       [...modelCapabilities.values()],
     );
   }
+
+  async function hydrateModelAccess(): Promise<void> {
+    if (modelAccessHydrated) return;
+    if (modelAccessHydration) return modelAccessHydration;
+    modelAccessHydration = (async () => {
+      try {
+        const authorization = await ensureCurrentAuthorization();
+        const access = await options.modelAccessStore.load();
+        if (
+          !authorizationAllowsByok(authorization) ||
+          access.mode !== "byok"
+        ) {
+          const catalog = projectCommercialModelCatalog(
+            await requireClient().modelCatalog(
+              {},
+              authorizationDeviceId(authorization),
+            ),
+          );
+          updateModelCapabilities(catalog);
+          cloudModelAssignments = updateCloudModelAssignments(
+            cloudModelAssignments,
+            catalog,
+          );
+        }
+        await synchronizeModelAccess();
+        modelAccessHydrated = true;
+      } catch (error) {
+        await synchronizeModelAccess();
+        console.warn(
+          "[commercial] model access initialization failed:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    })();
+    try {
+      await modelAccessHydration;
+    } finally {
+      modelAccessHydration = null;
+    }
+  }
 }
 
 const REFERENCE_DURATION_CAPABILITY_FIELDS = [
@@ -431,21 +564,119 @@ function mergeModelCapabilities(
   }
 }
 
-function defaultCloudTextModelAssignments(
+const CLOUD_ROLES_BY_OPERATION: Readonly<
+  Record<string, readonly ByokModelRole[]>
+> = {
+  TEXT: ["TEXT"],
+  IMAGE: ["IMAGE_GENERATION", "IMAGE_EDIT"],
+  VIDEO: [
+    "VIDEO_TEXT_TO_VIDEO",
+    "VIDEO_IMAGE_TO_VIDEO",
+    "VIDEO_FIRST_LAST_FRAME",
+    "VIDEO_IMAGE_REFERENCE",
+    "VIDEO_ALL_REFERENCE",
+    "VIDEO_EDIT",
+  ],
+  AUDIO: ["AUDIO_SPEECH", "AUDIO_VOICE_CLONE", "AUDIO_MUSIC"],
+  EMBEDDING: ["EMBEDDING"],
+  RERANK: ["RERANK"],
+  MODERATION: ["MODERATION"],
+};
+
+const CLOUD_ROLE_MODES: Readonly<
+  Partial<Record<ByokModelRole, readonly string[]>>
+> = {
+  IMAGE_GENERATION: ["TEXT_TO_IMAGE", "IMAGE_GENERATION"],
+  IMAGE_EDIT: ["IMAGE_EDIT", "EDIT"],
+  VIDEO_TEXT_TO_VIDEO: ["TEXT_TO_VIDEO"],
+  VIDEO_IMAGE_TO_VIDEO: ["FIRST_FRAME", "IMAGE_TO_VIDEO"],
+  VIDEO_FIRST_LAST_FRAME: ["FIRST_LAST_FRAME"],
+  VIDEO_IMAGE_REFERENCE: ["IMAGE_REFERENCE", "REFERENCE_IMAGE"],
+  VIDEO_ALL_REFERENCE: ["ALL_REFERENCE"],
+  VIDEO_EDIT: ["VIDEO_EDIT", "EDIT"],
+  AUDIO_SPEECH: ["SPEECH", "TEXT_TO_SPEECH", "SPEECH_SYNTHESIS"],
+  AUDIO_VOICE_CLONE: ["VOICE_CLONE"],
+  AUDIO_MUSIC: ["MUSIC", "TEXT_TO_MUSIC", "MUSIC_GENERATION"],
+};
+
+function updateCloudModelAssignments(
+  current: readonly ByokModelAssignment[],
   catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
+  requestedOperation?: string,
 ): ByokModelAssignment[] {
-  if (!catalog) return [];
-  const textModels = catalog.items.filter(
-    (item) => item.operation.trim().toUpperCase() === "TEXT",
+  const operations = new Set(
+    (catalog?.items ?? []).map((item) => item.operation.trim().toUpperCase()),
   );
-  const defaults = textModels.filter((item) => item.isDefault === true);
-  const selected =
-    defaults.length === 1
-      ? defaults[0]
-      : defaults.length === 0 && textModels.length === 1
-        ? textModels[0]
-        : null;
-  return selected ? [{ modelId: selected.code, role: "TEXT" }] : [];
+  const normalizedRequestedOperation = requestedOperation?.trim().toUpperCase();
+  if (normalizedRequestedOperation) operations.add(normalizedRequestedOperation);
+  if (operations.size === 0) return [...current];
+
+  const replacedRoles = new Set<ByokModelRole>();
+  for (const operation of operations) {
+    for (const role of CLOUD_ROLES_BY_OPERATION[operation] ?? []) {
+      replacedRoles.add(role);
+    }
+  }
+  const next = current.filter((item) => !replacedRoles.has(item.role));
+  if (!catalog) return next;
+
+  for (const role of replacedRoles) {
+    const candidates = catalog.items.filter((item) =>
+      catalogItemSupportsRole(item, role),
+    );
+    const defaults = candidates.filter((item) => item.isDefault === true);
+    const selected =
+      defaults.length === 1
+        ? defaults[0]
+        : defaults.length === 0 && candidates.length === 1
+          ? candidates[0]
+          : null;
+    if (selected) next.push({ modelId: selected.code, role });
+  }
+  return next.sort(
+    (left, right) =>
+      BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role),
+  );
+}
+
+function catalogItemSupportsRole(
+  item: ReturnType<typeof projectCommercialModelCatalog>["items"][number],
+  role: ByokModelRole,
+): boolean {
+  const operation = item.operation.trim().toUpperCase();
+  if (!(CLOUD_ROLES_BY_OPERATION[operation] ?? []).includes(role)) return false;
+  const roleModes = CLOUD_ROLE_MODES[role];
+  if (!roleModes) return true;
+
+  const modes = catalogItemModes(item.capabilityJson);
+  if (modes.length > 0) {
+    return roleModes.some((mode) => modes.includes(mode));
+  }
+  return role === "IMAGE_GENERATION" || role === "VIDEO_TEXT_TO_VIDEO";
+}
+
+function catalogItemModes(capabilityJson: string | undefined): string[] {
+  if (!capabilityJson) return [];
+  let value: unknown;
+  try {
+    value = JSON.parse(capabilityJson);
+  } catch {
+    return [];
+  }
+  const capabilities = optionalRecord(value);
+  const rawModes =
+    capabilities.supportedModes ?? capabilities.modes ?? capabilities.audioModes;
+  if (!Array.isArray(rawModes)) return [];
+  return rawModes
+    .filter((mode): mode is string => typeof mode === "string")
+    .map((mode) =>
+      mode
+        .trim()
+        .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+        .toUpperCase()
+        .replaceAll(/[^A-Z0-9]+/g, "_"),
+    )
+    .filter(Boolean);
 }
 
 function authorizationAllowsByok(
@@ -514,8 +745,25 @@ function parseLoginInput(value: unknown): CommercialLoginInput {
   return {
     tenantCode: requiredText(input.tenantCode, "tenantCode"),
     username: requiredText(input.username, "username"),
-    password: requiredText(input.password, "password"),
+    password: requiredRawText(input.password, "password"),
     ...(rememberMe === undefined ? {} : { rememberMe }),
+    ...(captchaKey ? { captchaKey } : {}),
+    ...(captchaCode ? { captchaCode } : {}),
+  };
+}
+
+function parseRegistrationInput(value: unknown): CommercialRegistrationInput {
+  const input = requiredRecord(value, "registration");
+  const nickname = optionalText(input.nickname);
+  const email = optionalText(input.email);
+  const captchaKey = optionalText(input.captchaKey);
+  const captchaCode = optionalText(input.captchaCode);
+  return {
+    tenantCode: requiredText(input.tenantCode, "tenantCode"),
+    username: requiredText(input.username, "username"),
+    password: requiredRawText(input.password, "password"),
+    ...(nickname ? { nickname } : {}),
+    ...(email ? { email } : {}),
     ...(captchaKey ? { captchaKey } : {}),
     ...(captchaCode ? { captchaCode } : {}),
   };
@@ -542,5 +790,30 @@ function parseModelCatalogQuery(value: unknown): CommercialModelCatalogQuery {
   return {
     ...(operation ? { operation } : {}),
     ...(catalogVersion ? { catalogVersion } : {}),
+  };
+}
+
+function parseInvocationQuery(value: unknown): CommercialInvocationQuery {
+  const input = optionalRecord(value);
+  const page = input.page === undefined ? undefined : requiredInteger(input.page, "page");
+  const pageSize =
+    input.pageSize === undefined
+      ? undefined
+      : requiredInteger(input.pageSize, "pageSize");
+  if (page !== undefined && page < 1) {
+    throw new CommercialApiError("page 必须大于等于 1");
+  }
+  if (pageSize !== undefined && (pageSize < 1 || pageSize > 100)) {
+    throw new CommercialApiError("pageSize 必须是 1 到 100 之间的整数");
+  }
+  const status = optionalText(input.status);
+  const operation = optionalText(input.operation);
+  const modelSkuCode = optionalText(input.modelSkuCode);
+  return {
+    ...(page === undefined ? {} : { page }),
+    ...(pageSize === undefined ? {} : { pageSize }),
+    ...(status ? { status } : {}),
+    ...(operation ? { operation } : {}),
+    ...(modelSkuCode ? { modelSkuCode } : {}),
   };
 }

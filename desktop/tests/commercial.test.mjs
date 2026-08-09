@@ -86,6 +86,40 @@ test("login persists the secret but returns only a renderer-safe summary", async
   assert.equal(new Headers(calls[0].init.headers).has("Authorization"), false);
 });
 
+test("public registration sends only the documented account fields", async () => {
+  const calls = [];
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: new MemorySessionStore(),
+    fetchImpl: async (url, init) => {
+      calls.push({ url: String(url), init });
+      return new Response(null, { status: 204 });
+    },
+  });
+
+  await client.register({
+    tenantCode: "customer-a",
+    username: "new-user",
+    password: "Secret123",
+    nickname: "New User",
+    email: "new@example.com",
+    captchaKey: "captcha-key",
+    captchaCode: "ABCD",
+  });
+
+  assert.equal(calls[0].url, "https://gateway.test/api/v1/auth/register");
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    tenantCode: "customer-a",
+    username: "new-user",
+    password: "Secret123",
+    nickname: "New User",
+    email: "new@example.com",
+    captchaKey: "captcha-key",
+    captchaCode: "ABCD",
+  });
+  assert.equal(new Headers(calls[0].init.headers).has("Authorization"), false);
+});
+
 test("concurrent authenticated calls single-flight an expiring token refresh", async () => {
   const calls = [];
   const store = new MemorySessionStore();
@@ -168,6 +202,46 @@ function authenticatedClient(fetchImpl, options = {}) {
     ...options,
   });
 }
+
+test("commercial model catalog and details send the activated device id", async () => {
+  const calls = [];
+  const client = authenticatedClient(async (url, init) => {
+    calls.push({ url: String(url), init });
+    return Response.json({ catalogVersion: "catalog-v1", items: [] });
+  });
+  const deviceId = "2217d912-c377-42de-b2eb-759cf172bae2";
+
+  await client.modelCatalog({ operation: "TEXT" }, deviceId);
+  await client.modelDetails("DEMO_TEXT", deviceId);
+  await client.bootstrap(
+    {
+      devicePublicKeyHash: "public-key-hash",
+      currentVersion: "1.1.5",
+      target: "windows",
+      arch: "x86_64",
+    },
+    deviceId,
+  );
+
+  assert.equal(
+    calls[0].url,
+    "https://gateway.test/api/v1/client/models?operation=TEXT",
+  );
+  assert.equal(
+    calls[1].url,
+    "https://gateway.test/api/v1/client/models/DEMO_TEXT",
+  );
+  assert.equal(
+    calls[2].url,
+    "https://gateway.test/api/v1/client/bootstrap?devicePublicKeyHash=public-key-hash&currentVersion=1.1.5&target=windows&arch=x86_64",
+  );
+  for (const call of calls) {
+    assert.equal(
+      new Headers(call.init.headers).get("X-Device-Id"),
+      deviceId,
+    );
+  }
+});
 
 test("release update feed keeps the access token in the main process", async () => {
   const client = authenticatedClient(async () => {

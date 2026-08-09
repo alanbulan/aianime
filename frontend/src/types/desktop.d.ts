@@ -37,6 +37,16 @@ interface AIAnimeCommercialLoginInput {
   captchaCode?: string;
 }
 
+interface AIAnimeCommercialRegistrationInput {
+  tenantCode: string;
+  username: string;
+  password: string;
+  nickname?: string;
+  email?: string;
+  captchaKey?: string;
+  captchaCode?: string;
+}
+
 interface AIAnimeByokModelAssignment {
   modelId: string;
   role: string;
@@ -51,6 +61,7 @@ interface AIAnimeCommercialBridge {
   publicCaptcha: (
     tenantCode: string,
   ) => Promise<{ key: string; imageDataUrl: string }>;
+  register: (input: AIAnimeCommercialRegistrationInput) => Promise<void>;
   session: () => Promise<AIAnimeCommercialSession | null>;
   login: (input: AIAnimeCommercialLoginInput) => Promise<AIAnimeCommercialSession>;
   logout: () => Promise<{ remoteRevoked: boolean }>;
@@ -63,6 +74,7 @@ interface AIAnimeCommercialBridge {
   currentLicense: () => Promise<unknown>;
   activateLicense: () => Promise<unknown>;
   refreshLicenseLease: () => Promise<unknown>;
+  deactivateLicense: (reason: string) => Promise<unknown>;
   modelAccessStatus: () => Promise<unknown>;
   configureByok: (input: {
     baseUrl: string;
@@ -76,6 +88,22 @@ interface AIAnimeCommercialBridge {
     operation?: string;
     catalogVersion?: string;
   }) => Promise<unknown>;
+  modelDetails: (sku: string) => Promise<unknown>;
+  invocationList: (query: {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    operation?: string;
+    modelSkuCode?: string;
+  }) => Promise<unknown>;
+  invocationDetails: (id: string | number) => Promise<unknown>;
+  cancelInvocation: (input: {
+    id: string | number;
+    reason: string;
+  }) => Promise<unknown>;
+  saveInvocationResult: (
+    id: string | number,
+  ) => Promise<{ saved: boolean; fileName?: string }>;
   announcements: (limit?: number) => Promise<unknown>;
   checkRelease: () => Promise<unknown>;
   downloadUpdate: (

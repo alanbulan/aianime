@@ -19,6 +19,7 @@ export interface CommercialEntitlementState {
   refresh: () => Promise<CommercialEntitlement>;
   activateCurrentDevice: () => Promise<CommercialEntitlement>;
   refreshLease: () => Promise<CommercialEntitlement>;
+  deactivateCurrentDevice: (reason: string) => Promise<CommercialEntitlement>;
   reset: () => void;
 }
 
@@ -67,6 +68,8 @@ export function createCommercialEntitlementStore(
     refresh: () => run(gateway.current, set),
     activateCurrentDevice: () => run(gateway.activateCurrentDevice, set),
     refreshLease: () => run(gateway.refreshLease, set),
+    deactivateCurrentDevice: (reason) =>
+      run(() => gateway.deactivateCurrentDevice(reason), set),
     reset: () => set({ status: "idle", entitlement: null, error: null }),
   }));
 }

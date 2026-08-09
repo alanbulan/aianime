@@ -9,7 +9,6 @@ import {
   Bell,
   Bolt,
   Building2,
-  Camera,
   Check,
   ChevronRight,
   Languages,
@@ -18,7 +17,6 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AvatarUploadDialog } from "@/components/avatar-upload-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -55,7 +53,6 @@ export function Header() {
   const params = useParams({ strict: false }) as { project?: string };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [accountPanelOpen, setAccountPanelOpen] = useState(false);
   const [accountPanelVisible, setAccountPanelVisible] = useState(false);
   const [settingsWarningBubbleDismissed, setSettingsWarningBubbleDismissed] = useState(false);
@@ -202,11 +199,6 @@ export function Header() {
     setNotificationOpen(true);
   };
 
-  const openAvatarDialog = () => {
-    closeAccountPanelNow();
-    setAvatarDialogOpen(true);
-  };
-
   const actions = (
     <div
       className={`flex items-center justify-end gap-1 ${
@@ -344,7 +336,6 @@ export function Header() {
               accountTenant={accountTenant}
               accountUsername={accountUsername}
               displayName={displayName}
-              onChangeAvatar={openAvatarDialog}
               onLanguageChange={switchLanguage}
               onClose={scheduleCloseAccountPanel}
               onEnter={openAccountPanel}
@@ -356,12 +347,6 @@ export function Header() {
             document.body,
           )
         : null}
-      <AvatarUploadDialog
-        avatarInitial={avatarInitial}
-        displayName={displayName}
-        open={avatarDialogOpen}
-        onOpenChange={setAvatarDialogOpen}
-      />
       <NotificationDrawer
         open={notificationOpen}
         onOpenChange={setNotificationOpen}
@@ -450,7 +435,6 @@ function AccountPanel({
   avatarInitial,
   avatarUrl,
   displayName,
-  onChangeAvatar,
   onLanguageChange,
   onClose,
   onEnter,
@@ -466,7 +450,6 @@ function AccountPanel({
   avatarInitial: string;
   avatarUrl: string | null;
   displayName: string;
-  onChangeAvatar: () => void;
   onLanguageChange: (lang: "zh" | "en") => void;
   onClose: () => void;
   onEnter: () => void;
@@ -526,13 +509,6 @@ function AccountPanel({
           </div>
         ) : null}
         <div className="space-y-0.5">
-          {!isCeRuntime() ? (
-            <AccountMenuRow
-              icon={<Camera className="size-3.5" />}
-              label={t("header.account.changeAvatar")}
-              onClick={onChangeAvatar}
-            />
-          ) : null}
           <AccountMenuRow
             active={languageOpen}
             icon={<Languages className="size-3.5" />}

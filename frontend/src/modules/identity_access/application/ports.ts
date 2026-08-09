@@ -5,6 +5,4 @@ export interface IdentityGateway {
   authorize(code: string): Promise<CurrentUser>;
   logout(): Promise<void>;
   getCurrentUser(): Promise<CurrentUser>;
-  getAvatarUrl(): Promise<string | null | undefined>;
-  uploadAvatar(file: File): Promise<string | null>;
 }

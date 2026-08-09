@@ -64,20 +64,42 @@ export interface CommercialQuotaSnapshot {
   }>;
 }
 
+export interface CommercialModelCatalogItemSnapshot {
+  id: Identifier;
+  code: string;
+  displayName: string;
+  operation: string;
+  capabilityJson?: string;
+  parameterSchemaJson?: string;
+  unitsPerCall?: number;
+  clientVisible?: boolean;
+  status?: string;
+  isDefault?: boolean;
+}
+
 export interface CommercialModelCatalogSnapshot {
   catalogVersion: string;
-  items: Array<{
-    id: Identifier;
-    code: string;
-    displayName: string;
-    operation: string;
-    capabilityJson?: string;
-    parameterSchemaJson?: string;
-    unitsPerCall?: number;
-    clientVisible?: boolean;
-    status?: string;
-    isDefault?: boolean;
-  }>;
+  items: CommercialModelCatalogItemSnapshot[];
+}
+
+export interface CommercialInvocationSnapshot {
+  id: Identifier;
+  status: string;
+  operation?: string;
+  modelSkuCode?: string;
+  quotaStatus?: string;
+  requestId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
+  errorMessage?: string;
+}
+
+export interface CommercialInvocationListSnapshot {
+  items: CommercialInvocationSnapshot[];
+  total: number;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface CommercialModelCapabilitySnapshot {
@@ -254,24 +276,73 @@ export function projectCommercialModelCatalog(
   }
   return {
     catalogVersion: requiredText(root.catalogVersion, "catalogVersion"),
-    items: root.items.map((value, index) => {
-      const item = requiredRecord(value, `models[${index}]`);
-      return {
-        id: identifier(item.id, `models[${index}].id`),
-        code: requiredText(item.code, `models[${index}].code`),
-        displayName: requiredText(
-          item.displayName,
-          `models[${index}].displayName`,
-        ),
-        operation: requiredText(item.operation, `models[${index}].operation`),
-        ...optionalTextProperty("capabilityJson", item.capabilityJson),
-        ...optionalTextProperty("parameterSchemaJson", item.parameterSchemaJson),
-        ...optionalNumberProperty("unitsPerCall", item.unitsPerCall),
-        ...optionalBooleanProperty("clientVisible", item.clientVisible),
-        ...optionalTextProperty("status", item.status),
-        ...optionalBooleanProperty("isDefault", item.isDefault),
-      };
-    }),
+    items: root.items.map((value, index) =>
+      projectCommercialModelCatalogItem(value, `models[${index}]`),
+    ),
+  };
+}
+
+export function projectCommercialModelCatalogItem(
+  value: unknown,
+  name = "model",
+): CommercialModelCatalogItemSnapshot {
+  const item = requiredRecord(value, name);
+  return {
+    id: identifier(item.id, `${name}.id`),
+    code: requiredText(item.code, `${name}.code`),
+    displayName: requiredText(item.displayName, `${name}.displayName`),
+    operation: requiredText(item.operation, `${name}.operation`),
+    ...optionalTextProperty("capabilityJson", item.capabilityJson),
+    ...optionalTextProperty("parameterSchemaJson", item.parameterSchemaJson),
+    ...optionalNumberProperty("unitsPerCall", item.unitsPerCall),
+    ...optionalBooleanProperty("clientVisible", item.clientVisible),
+    ...optionalTextProperty("status", item.status),
+    ...optionalBooleanProperty("isDefault", item.isDefault),
+  };
+}
+
+export function projectCommercialInvocationList(
+  value: unknown,
+): CommercialInvocationListSnapshot {
+  const root = requiredRecord(value, "invocation list");
+  if (!Array.isArray(root.items)) {
+    throw new Error("invocation list items must be an array");
+  }
+  return {
+    items: root.items.map((item, index) =>
+      projectCommercialInvocation(item, `invocations[${index}]`),
+    ),
+    total: nonNegativeInteger(root.total, "total"),
+    ...optionalIntegerProperty("page", root.page),
+    ...optionalIntegerProperty("pageSize", root.pageSize),
+  };
+}
+
+export function projectCommercialInvocationDetails(value: unknown): {
+  invocation: CommercialInvocationSnapshot;
+} {
+  const root = requiredRecord(value, "invocation details");
+  return {
+    invocation: projectCommercialInvocation(root.invocation, "invocation"),
+  };
+}
+
+function projectCommercialInvocation(
+  value: unknown,
+  name: string,
+): CommercialInvocationSnapshot {
+  const invocation = requiredRecord(value, name);
+  return {
+    id: identifier(invocation.id, `${name}.id`),
+    status: requiredText(invocation.status, `${name}.status`),
+    ...optionalTextProperty("operation", invocation.operation),
+    ...optionalTextProperty("modelSkuCode", invocation.modelSkuCode),
+    ...optionalTextProperty("quotaStatus", invocation.quotaStatus),
+    ...optionalTextProperty("requestId", invocation.requestId),
+    ...optionalTextProperty("createdAt", invocation.createdAt),
+    ...optionalTextProperty("updatedAt", invocation.updatedAt),
+    ...optionalTextProperty("completedAt", invocation.completedAt),
+    ...optionalTextProperty("errorMessage", invocation.errorMessage),
   };
 }
 
@@ -419,6 +490,13 @@ function nonNegativeNumber(value: unknown, name: string): number {
     throw new Error(`${name} must be a non-negative number`);
   }
   return value;
+}
+
+function nonNegativeInteger(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return Number(value);
 }
 
 function optionalTextProperty<K extends string>(key: K, value: unknown) {

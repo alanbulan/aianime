@@ -31,6 +31,16 @@ export interface CommercialLoginInput {
   captchaCode?: string;
 }
 
+export interface CommercialRegistrationInput {
+  tenantCode: string;
+  username: string;
+  password: string;
+  nickname?: string;
+  email?: string;
+  captchaKey?: string;
+  captchaCode?: string;
+}
+
 export interface CommercialPublicConfig {
   system: {
     siteName: string;
@@ -49,6 +59,14 @@ export interface CommercialPublicConfig {
     verifyEmail?: boolean;
     verifyPhone?: boolean;
     needAudit?: boolean;
+  };
+  password?: {
+    minLength: number;
+    maxLength: number;
+    requireUppercase: boolean;
+    requireLowercase: boolean;
+    requireNumber: boolean;
+    requireSpecial: boolean;
   };
 }
 
@@ -92,6 +110,7 @@ export function parseCommercialPublicConfig(
   const system = record(config.system, "commercial system config");
   const login = record(config.login, "commercial login config");
   const registerConfig = optionalRecord(config.register);
+  const passwordConfig = optionalRecord(config.password);
   const captchaEnabled = booleanValue(
     login.captchaEnabled,
     "login.captchaEnabled",
@@ -119,6 +138,28 @@ export function parseCommercialPublicConfig(
             ...optionalBooleanProperty("verifyEmail", registerConfig.verifyEmail),
             ...optionalBooleanProperty("verifyPhone", registerConfig.verifyPhone),
             ...optionalBooleanProperty("needAudit", registerConfig.needAudit),
+          },
+        }),
+    ...(passwordConfig.minLength === undefined
+      ? {}
+      : {
+          password: {
+            minLength: positiveInteger(
+              passwordConfig.minLength,
+              "password.minLength",
+            ),
+            maxLength: positiveInteger(
+              passwordConfig.maxLength,
+              "password.maxLength",
+            ),
+            requireUppercase:
+              optionalBoolean(passwordConfig.requireUppercase) ?? false,
+            requireLowercase:
+              optionalBoolean(passwordConfig.requireLowercase) ?? false,
+            requireNumber:
+              optionalBoolean(passwordConfig.requireNumber) ?? false,
+            requireSpecial:
+              optionalBoolean(passwordConfig.requireSpecial) ?? false,
           },
         }),
   };
@@ -175,6 +216,13 @@ function positiveNumber(value: unknown, name: string): number {
     throw new Error(`${name} must be a positive number`);
   }
   return value;
+}
+
+function positiveInteger(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return Number(value);
 }
 
 function booleanValue(value: unknown, name: string): boolean {
