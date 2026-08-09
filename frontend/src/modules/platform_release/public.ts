@@ -1,6 +1,7 @@
 export {
   installChunkLoadRecovery,
   installVersionUpdateWatch,
+  openVersionUpdateDialog,
   seedCommercialBootstrapRelease,
   useCommercialAnnouncements,
   useCommercialRelease,
@@ -10,6 +11,7 @@ export { AppUpdateAvailable } from "@/modules/platform_release/presentation/AppU
 export { AppUpdateRequired } from "@/modules/platform_release/presentation/AppUpdateRequired";
 export { VersionUpdateDialog } from "@/modules/platform_release/presentation/VersionUpdateDialog";
 export { CommercialUpdateRequired } from "@/modules/platform_release/presentation/CommercialUpdateRequired";
+export { CommercialUpdateSettingsSection } from "@/modules/platform_release/presentation/CommercialUpdateSettingsSection";
 export { isChunkLoadError } from "@/modules/platform_release/domain/runtime-update";
 export type { CommercialReleaseStatus } from "@/modules/platform_release/domain/commercial-release";
 export type {

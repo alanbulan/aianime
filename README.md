@@ -2,7 +2,7 @@
 
 AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
-当前客户端版本：`1.1.7`。
+当前客户端版本：`1.1.8`。
 
 当前发布目标：
 

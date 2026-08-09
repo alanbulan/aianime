@@ -95,6 +95,38 @@ function installBackendHeader(localBackend: LocalBackend): void {
   );
 }
 
+function installMediaPermissions(localBackend: LocalBackend): void {
+  const isTrustedWindow = (senderId: number | undefined): boolean =>
+    Boolean(
+      senderId !== undefined &&
+        mainWindow &&
+        !mainWindow.isDestroyed() &&
+        mainWindow.webContents.id === senderId,
+    );
+
+  session.defaultSession.setPermissionCheckHandler(
+    (webContents, permission, requestingOrigin, details) =>
+      permission === "media" &&
+      details.mediaType === "audio" &&
+      details.isMainFrame &&
+      isTrustedWindow(webContents?.id) &&
+      isSameOrigin(requestingOrigin, localBackend.baseUrl),
+  );
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback, details) => {
+      const mediaTypes = "mediaTypes" in details ? details.mediaTypes : undefined;
+      callback(
+        permission === "media" &&
+          details.isMainFrame &&
+          isTrustedWindow(webContents.id) &&
+          isSameOrigin(details.requestingUrl, localBackend.baseUrl) &&
+          mediaTypes?.length === 1 &&
+          mediaTypes[0] === "audio",
+      );
+    },
+  );
+}
+
 async function createMainWindow(localBackend: LocalBackend): Promise<void> {
   const window = new BrowserWindow({
     title: "AI anime",
@@ -281,6 +313,7 @@ async function startApplication(): Promise<void> {
   try {
     await backend.start();
     installBackendHeader(backend);
+    installMediaPermissions(backend);
     await registerCommercialGatewayIpc(
       backend,
       client,

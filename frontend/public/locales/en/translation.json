@@ -146,6 +146,17 @@
     "voiceInput": "Voice input",
     "stopVoice": "Stop voice input",
     "listening": "Listening...",
+    "transcribing": "Transcribing locally...",
+    "voiceUnavailable": "The microphone is unavailable on this device",
+    "voiceInsecureContext": "This page is not allowed to use the microphone",
+    "voiceRecordFailed": "Recording failed. Try again.",
+    "voiceNoSpeech": "No speech was detected",
+    "voiceStart": {
+      "permission_denied": "Microphone access is blocked in system settings",
+      "device_missing": "No microphone was detected",
+      "device_busy": "The microphone is being used by another app",
+      "unknown": "Could not start the microphone"
+    },
     "open": "Open",
     "download": "Download",
     "copyLink": "Copy link",
@@ -3547,6 +3558,13 @@
       "deactivateReason": "User deactivated the current device from the desktop app",
       "deactivated": "This device is deactivated",
       "deactivateFailed": "Device deactivation failed"
+    },
+    "update": {
+      "title": "App updates",
+      "currentVersion": "Current version: {{version}}",
+      "check": "Check for updates",
+      "checking": "Checking",
+      "upToDate": "You're running the latest version"
     },
     "invocations": {
       "title": "Cloud model invocations",

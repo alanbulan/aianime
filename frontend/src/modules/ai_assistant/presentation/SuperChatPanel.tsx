@@ -52,7 +52,7 @@ export function SuperChatPanel({
     appendNotification: chat.appendNotification,
     t,
   });
-  const { recording, toggleSpeech } = useSpeechInputController({
+  const { recording, transcribing, toggleSpeech } = useSpeechInputController({
     onTranscript: setDraft,
   });
   const {
@@ -240,6 +240,7 @@ export function SuperChatPanel({
         fileUploadEnabled: ENABLE_SUPERCHAT_FILE_UPLOAD,
         queuedMessages,
         recording,
+        transcribing,
         selectedHistoryMessageIndex,
         selectedQueuedMessageId,
         shellRef: composerShellRef,

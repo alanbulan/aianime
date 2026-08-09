@@ -145,7 +145,18 @@
     "raw": "原始数据",
     "voiceInput": "语音输入",
     "stopVoice": "停止语音输入",
-    "listening": "Listening...",
+    "listening": "正在录音…",
+    "transcribing": "正在本地转写…",
+    "voiceUnavailable": "当前设备无法访问麦克风",
+    "voiceInsecureContext": "当前页面环境不允许使用麦克风",
+    "voiceRecordFailed": "录音失败，请重试",
+    "voiceNoSpeech": "未识别到语音内容",
+    "voiceStart": {
+      "permission_denied": "没有麦克风权限，请在系统设置中允许访问",
+      "device_missing": "未检测到可用麦克风",
+      "device_busy": "麦克风正被其他应用占用",
+      "unknown": "无法启动麦克风"
+    },
     "open": "打开",
     "download": "下载",
     "copyLink": "复制链接",
@@ -3547,6 +3558,13 @@
       "deactivateReason": "用户主动从桌面客户端停用当前设备",
       "deactivated": "当前设备已停用",
       "deactivateFailed": "设备停用失败"
+    },
+    "update": {
+      "title": "应用更新",
+      "currentVersion": "当前版本：{{version}}",
+      "check": "检查更新",
+      "checking": "正在检查",
+      "upToDate": "当前已是最新版本"
     },
     "invocations": {
       "title": "云端模型调用",

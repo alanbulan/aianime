@@ -49,6 +49,13 @@ from ai_anime.modules.ai_assistant.application.project_assistant_replies import 
 from ai_anime.modules.ai_assistant.application.project_chat_turns import (
     ProjectChatTurns,
 )
+from ai_anime.modules.ai_assistant.application.speech_transcription import (
+    SpeechTranscript,
+    SpeechTranscriber,
+    SpeechTranscription,
+    SpeechTranscriptionFailed,
+    SpeechTranscriptionUnavailable,
+)
 
 __all__ = [
     "AgentPromptContext",
@@ -73,5 +80,10 @@ __all__ = [
     "ProjectChatTurns",
     "ProjectChatMessages",
     "ScopedChatMessages",
+    "SpeechTranscript",
+    "SpeechTranscriber",
+    "SpeechTranscription",
+    "SpeechTranscriptionFailed",
+    "SpeechTranscriptionUnavailable",
     "UserPreferences",
 ]

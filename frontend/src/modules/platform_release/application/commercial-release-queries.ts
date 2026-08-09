@@ -9,7 +9,7 @@ export function createCommercialReleaseQueries(gateway: CommercialReleaseGateway
       queryKey: queryKeys.commercialRelease(),
       queryFn: () => gateway.check(),
       enabled,
-      staleTime: Number.POSITIVE_INFINITY,
+      staleTime: 15 * 60 * 1000,
       retry: false,
       refetchOnWindowFocus: false,
     });

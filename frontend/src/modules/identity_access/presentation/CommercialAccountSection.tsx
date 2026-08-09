@@ -503,17 +503,26 @@ function InfoRow({
   value: string;
   detail?: string;
 }) {
+  const visibleDetail = distinctInfoDetail(value, detail);
+
   return (
     <div className="grid min-h-12 grid-cols-[9rem_minmax(0,1fr)] items-center gap-4 py-2.5">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="min-w-0 text-right">
         <p className="truncate text-sm text-foreground">{value}</p>
-        {detail ? (
-          <p className="truncate text-[11px] text-muted-foreground">{detail}</p>
+        {visibleDetail ? (
+          <p className="truncate text-[11px] text-muted-foreground">{visibleDetail}</p>
         ) : null}
       </div>
     </div>
   );
+}
+
+export function distinctInfoDetail(
+  value: string,
+  detail: string | undefined,
+): string | undefined {
+  return detail?.trim() === value.trim() ? undefined : detail;
 }
 
 function InlineNotice({ children }: React.PropsWithChildren) {

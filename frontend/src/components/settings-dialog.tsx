@@ -55,6 +55,7 @@ import {
   type CommercialModelCatalogItem,
   type CommercialModelAccessMode,
 } from "@/modules/model_usage/public";
+import { CommercialUpdateSettingsSection } from "@/modules/platform_release/public";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -119,6 +120,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <TabsContent value="account" className="min-h-0 overflow-hidden">
             <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
               <CommercialAccountSection
+                active={open && tab === "account"}
+                bridgeAvailable={bridgeAvailable}
+              />
+              <CommercialUpdateSettingsSection
                 active={open && tab === "account"}
                 bridgeAvailable={bridgeAvailable}
               />
@@ -403,7 +408,13 @@ function ModelAccessSection({
                         className="w-full"
                         aria-label={t("settings.modelAccess.modelRole")}
                       >
-                        <SelectValue />
+                        <SelectValue>
+                          {() =>
+                            t(
+                              `settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[assignment.role]}`,
+                            )
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent align="end">
                         {BYOK_MODEL_ROLES.map((role) => (

@@ -41,6 +41,7 @@ export type ChatComposerProps = {
   isFreezoneLayout: boolean;
   queuedMessages: QueuedMessageItem[];
   recording: boolean;
+  transcribing: boolean;
   selectedHistoryMessageIndex: number | null;
   selectedQueuedMessageId: string | null;
   shellRef: RefObject<HTMLDivElement | null>;
@@ -77,6 +78,7 @@ export function ChatComposer({
   isFreezoneLayout,
   queuedMessages,
   recording,
+  transcribing,
   selectedHistoryMessageIndex,
   selectedQueuedMessageId,
   shellRef,
@@ -280,10 +282,16 @@ export function ChatComposer({
             )}
           </div>
           <div className="flex shrink-0 items-end gap-1.5">
-            {recording && (
+            {(recording || transcribing) && (
               <div className="mr-1 flex items-center gap-1.5 text-sm text-primary">
                 <span className="size-2 animate-pulse rounded-full bg-primary" />
-                <span>{t("aiAssistant.listening")}</span>
+                <span>
+                  {t(
+                    transcribing
+                      ? "aiAssistant.transcribing"
+                      : "aiAssistant.listening",
+                  )}
+                </span>
               </div>
             )}
             <Button
@@ -293,7 +301,7 @@ export function ChatComposer({
                 "size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground",
                 recording && "text-primary",
               )}
-              disabled={!connected}
+              disabled={!connected || transcribing}
               onClick={onToggleSpeech}
               aria-label={recording
                 ? t("aiAssistant.stopVoice")

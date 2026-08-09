@@ -4,7 +4,9 @@ import test from "node:test";
 import {
   bundledBackendPath,
   bundledFfmpegPath,
+  bundledWhisperModelPath,
   developmentFfmpegPath,
+  developmentWhisperModelPath,
   executableName,
   packagedVideoCodec,
 } from "../src/platform-runtime.ts";
@@ -27,6 +29,14 @@ test("packaged runtime paths use platform-native executable names", () => {
   assert.equal(
     developmentFfmpegPath("/repo/desktop", "darwin"),
     "/repo/desktop/runtime/ffmpeg/ffmpeg",
+  );
+  assert.equal(
+    bundledWhisperModelPath("C:\\resources", "win32"),
+    "C:\\resources\\whisper\\faster-whisper-base",
+  );
+  assert.equal(
+    developmentWhisperModelPath("/repo/desktop", "darwin"),
+    "/repo/desktop/runtime/whisper/faster-whisper-base",
   );
 });
 

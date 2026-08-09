@@ -1,62 +1,117 @@
 // Copyright (c) 2026 AI anime
-import {
-  useCallback,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  onresult: ((event: {
-    results: ArrayLike<ArrayLike<{ transcript: string; isFinal?: boolean }>>;
-  }) => void) | null;
-  onend: (() => void) | null;
+import { backendErrorToastMessage } from "@/shared/api/errors";
+import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
+import {
+  VoiceRecorderStartError,
+  type VoiceRecorder,
+} from "@/shared/voice-recording/voice-recorder";
+import { transcribeLocalSpeech } from "@/modules/ai_assistant/infrastructure/localSpeechTranscriptionGateway";
+
+type SpeechInputStatus = "idle" | "recording" | "transcribing";
+
+type SpeechInputDependencies = {
+  createRecorder: () => VoiceRecorder;
+  transcribe: (dataUrl: string) => Promise<string>;
 };
 
-function createSpeechRecognition(): SpeechRecognitionLike | null {
-  const candidate = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  };
-  const Ctor = candidate.SpeechRecognition ?? candidate.webkitSpeechRecognition;
-  return Ctor ? new Ctor() : null;
-}
+const defaultDependencies: SpeechInputDependencies = {
+  createRecorder: createBrowserVoiceRecorder,
+  transcribe: transcribeLocalSpeech,
+};
 
 export function useSpeechInputController({
   onTranscript,
+  dependencies = defaultDependencies,
 }: {
   onTranscript: (text: string) => void;
+  dependencies?: SpeechInputDependencies;
 }) {
-  const [recording, setRecording] = useState(false);
-  const speechRef = useRef<SpeechRecognitionLike | null>(null);
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<SpeechInputStatus>("idle");
+  const recorderRef = useRef<VoiceRecorder | null>(null);
+
+  useEffect(
+    () => () => {
+      recorderRef.current?.dispose();
+      recorderRef.current = null;
+    },
+    [],
+  );
 
   const toggleSpeech = useCallback(() => {
-    if (recording) {
-      speechRef.current?.stop();
-      setRecording(false);
+    if (status === "transcribing") return;
+    if (status === "recording") {
+      setStatus("transcribing");
+      recorderRef.current?.stop();
       return;
     }
-    const recognition = createSpeechRecognition();
-    if (!recognition) return;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "zh-CN";
-    recognition.onresult = (event) => {
-      let text = "";
-      for (let index = 0; index < event.results.length; index += 1) {
-        text += event.results[index][0]?.transcript ?? "";
-      }
-      onTranscript(text);
-    };
-    recognition.onend = () => setRecording(false);
-    speechRef.current = recognition;
-    setRecording(true);
-    recognition.start();
-  }, [onTranscript, recording]);
 
-  return { recording, toggleSpeech };
+    const recorder = dependencies.createRecorder();
+    const availability = recorder.availability();
+    if (availability !== "available") {
+      toast.error(
+        t(
+          availability === "insecure_context"
+            ? "aiAssistant.voiceInsecureContext"
+            : "aiAssistant.voiceUnavailable",
+        ),
+      );
+      recorder.dispose();
+      return;
+    }
+
+    recorderRef.current = recorder;
+    setStatus("recording");
+    void recorder
+      .start({
+        onComplete: (recording) => {
+          setStatus("transcribing");
+          void dependencies
+            .transcribe(recording.dataUrl)
+            .then((text) => {
+              if (text) {
+                onTranscript(text);
+              } else {
+                toast.error(t("aiAssistant.voiceNoSpeech"));
+              }
+            })
+            .catch((error: unknown) => {
+              const errorWithCause = error as { cause?: unknown };
+              const cause =
+                error instanceof Error && errorWithCause.cause instanceof Error
+                  ? errorWithCause.cause
+                  : error;
+              toast.error(backendErrorToastMessage(cause, t));
+            })
+            .finally(() => {
+              recorderRef.current = null;
+              setStatus("idle");
+            });
+        },
+        onFailure: () => {
+          recorderRef.current = null;
+          setStatus("idle");
+          toast.error(t("aiAssistant.voiceRecordFailed"));
+        },
+      })
+      .catch((error: unknown) => {
+        recorderRef.current = null;
+        setStatus("idle");
+        const key =
+          error instanceof VoiceRecorderStartError
+            ? `aiAssistant.voiceStart.${error.reason}`
+            : "aiAssistant.voiceStart.unknown";
+        toast.error(t(key));
+      });
+  }, [dependencies, onTranscript, status, t]);
+
+  return {
+    recording: status === "recording",
+    transcribing: status === "transcribing",
+    toggleSpeech,
+  };
 }

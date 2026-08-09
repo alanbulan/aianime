@@ -62,6 +62,7 @@ function viewProps(
       fileUploadEnabled: false,
       queuedMessages: [],
       recording: false,
+      transcribing: false,
       selectedHistoryMessageIndex: null,
       selectedQueuedMessageId: null,
       shellRef: createRef<HTMLDivElement>(),

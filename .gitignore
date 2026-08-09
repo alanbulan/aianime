@@ -24,4 +24,5 @@ node_modules/
 /desktop/hermes-runtime/.pyinstaller/
 /desktop/hermes-runtime/dist/
 /desktop/.ffmpeg-cache/
+/desktop/.whisper-cache/
 /desktop/runtime/

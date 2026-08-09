@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "@/lib/query-keys";
@@ -23,6 +23,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 import { CommercialUpdateRequired } from "@/modules/platform_release/presentation/CommercialUpdateRequired";
+import { seedCommercialBootstrapRelease } from "@/modules/platform_release/composition";
 
 describe("commercial release contract", () => {
   afterEach(() => {
@@ -63,6 +64,43 @@ describe("commercial release contract", () => {
     });
     expect(checkRelease).toHaveBeenCalledOnce();
     expect(checkRelease).toHaveBeenCalledWith();
+  });
+
+  it("rechecks after Bootstrap seeds a release without an artifact id", async () => {
+    const checkRelease = vi.fn().mockResolvedValue({
+      available: true,
+      required: false,
+      reason: "new-version",
+      artifactId: "artifact-1.1.7",
+    });
+    window.aiAnimeDesktop = {
+      commercial: { checkRelease } as unknown as AIAnimeCommercialBridge,
+    } as AIAnimeDesktopBridge;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    seedCommercialBootstrapRelease(queryClient, {
+      release: {
+        available: true,
+        required: false,
+        reason: "new-version",
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CommercialUpdateRequired enabled={true} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(checkRelease).toHaveBeenCalledOnce());
+    expect(queryClient.getQueryData(queryKeys.commercialRelease())).toEqual({
+      available: true,
+      required: false,
+      reason: "new-version",
+      artifactId: "artifact-1.1.7",
+    });
   });
 
   it("downloads and installs an update through the Electron bridge", async () => {

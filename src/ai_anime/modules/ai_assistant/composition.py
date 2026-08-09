@@ -15,6 +15,7 @@ from ai_anime.modules.ai_assistant.application import (
     ProjectChatMessages,
     ProjectMedia,
     ScopedChatMessages,
+    SpeechTranscription,
 )
 from ai_anime.modules.ai_assistant.infrastructure import (
     FileChatRunLocks,
@@ -23,6 +24,7 @@ from ai_anime.modules.ai_assistant.infrastructure import (
     HttpDisplayFallbackGateway,
     LocalHermesRuntime,
     LocalProjectMediaFiles,
+    LocalSpeechTranscriber,
     SQLiteChatHistory,
 )
 
@@ -38,6 +40,7 @@ _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
 _project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
 _scoped_chat_messages = ScopedChatMessages(_chat_history, _project_chat_messages)
+_speech_transcription = SpeechTranscription(LocalSpeechTranscriber())
 _deterministic_project_replies = DeterministicProjectReplies(_project_chat_messages)
 _hermes_home_replies = HermesHomeReplies(_hermes_runtime, _chat_history)
 _hermes_project_replies = HermesProjectReplies(
@@ -98,3 +101,7 @@ def get_project_chat_turns() -> ProjectChatTurns:
 
 def get_scoped_chat_messages() -> ScopedChatMessages:
     return _scoped_chat_messages
+
+
+def get_speech_transcription() -> SpeechTranscription:
+    return _speech_transcription

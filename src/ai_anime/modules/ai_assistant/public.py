@@ -9,6 +9,10 @@ from ai_anime.modules.ai_assistant.application import (
     HermesRuntimePrewarmer,
     ProjectChatTurns,
     ScopedChatMessages,
+    SpeechTranscript,
+    SpeechTranscription,
+    SpeechTranscriptionFailed,
+    SpeechTranscriptionUnavailable,
 )
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
@@ -138,12 +142,24 @@ def get_scoped_chat_messages() -> ScopedChatMessages:
     return resolve()
 
 
+def get_speech_transcription() -> SpeechTranscription:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_speech_transcription as resolve,
+    )
+
+    return resolve()
+
+
 __all__ = [
     "ChatWorkerLifecycle",
     "HermesHomeReplies",
     "HermesRuntimePrewarmer",
     "ProjectChatTurns",
     "ScopedChatMessages",
+    "SpeechTranscript",
+    "SpeechTranscription",
+    "SpeechTranscriptionFailed",
+    "SpeechTranscriptionUnavailable",
     "ChatScope",
     "InteractiveChatScopeKind",
     "append_tool_ui_specs",
@@ -161,6 +177,7 @@ __all__ = [
     "get_hermes_home_replies",
     "get_project_chat_turns",
     "get_scoped_chat_messages",
+    "get_speech_transcription",
     "infer_display_tool_call_from_text",
     "is_display_tool_name",
     "normalize_json_render_reply",

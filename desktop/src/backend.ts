@@ -10,7 +10,9 @@ import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
 import {
   bundledBackendPath,
   bundledFfmpegPath,
+  bundledWhisperModelPath,
   developmentFfmpegPath,
+  developmentWhisperModelPath,
   packagedVideoCodec,
 } from "./platform-runtime.js";
 
@@ -29,6 +31,7 @@ interface BackendLaunch {
   args: string[];
   frontendDist?: string;
   ffmpegPath?: string;
+  whisperModelPath?: string;
 }
 
 interface LocalBackendOptions {
@@ -103,6 +106,9 @@ export class LocalBackend {
         AI_ANIME_MODEL_ADMIN_TOKEN: this.modelAdminToken,
         HERMES_CLI_PATH: hermesRuntime.cliPath,
         AI_ANIME_HERMES_ASSETS_DIR: hermesRuntime.assetsPath,
+        ...(launch.whisperModelPath
+          ? { AI_ANIME_WHISPER_MODEL_DIR: launch.whisperModelPath }
+          : {}),
         PYTHONUNBUFFERED: "1",
       },
       windowsHide: true,
@@ -192,11 +198,13 @@ export class LocalBackend {
       if (!existsSync(executable)) throw new Error(`bundled backend not found: ${executable}`);
       if (!existsSync(frontendDist)) throw new Error(`bundled frontend not found: ${frontendDist}`);
       const ffmpegPath = bundledFfmpegPath(process.resourcesPath);
+      const whisperModelPath = bundledWhisperModelPath(process.resourcesPath);
       return {
         command: executable,
         args: [],
         frontendDist,
         ...(existsSync(ffmpegPath) ? { ffmpegPath } : {}),
+        ...(existsSync(whisperModelPath) ? { whisperModelPath } : {}),
       };
     }
 
@@ -209,12 +217,16 @@ export class LocalBackend {
     }
     const configuredFfmpeg = process.env.FFMPEG_PATH?.trim();
     const developmentFfmpeg = developmentFfmpegPath(app.getAppPath());
+    const developmentWhisperModel = developmentWhisperModelPath(app.getAppPath());
     const ffmpegPath = configuredFfmpeg || (existsSync(developmentFfmpeg) ? developmentFfmpeg : undefined);
     return {
       command: process.env.AI_ANIME_UV_COMMAND?.trim() || "uv",
       args: ["run", "python", "-m", "ai_anime.desktop_server"],
       ...(frontendDist ? { frontendDist } : {}),
       ...(ffmpegPath ? { ffmpegPath } : {}),
+      ...(existsSync(developmentWhisperModel)
+        ? { whisperModelPath: developmentWhisperModel }
+        : {}),
     };
   }
 

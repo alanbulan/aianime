@@ -17,6 +17,8 @@ extraResources:
     to: backend
   - from: runtime/ffmpeg
     to: bin
+  - from: runtime/whisper
+    to: whisper
   - from: hermes-runtime/dist/hermes-acp
     to: hermes/hermes-acp
   - from: ../.hermes
@@ -31,6 +33,8 @@ win:
 mac:
   icon: build/icon.png
   category: public.app-category.graphics-design
+  extendInfo:
+    NSMicrophoneUsageDescription: AI anime 使用麦克风在本机将语音转换为文字。
   identity: "-"
   hardenedRuntime: false
   minimumSystemVersion: 15.0.0

@@ -18,6 +18,9 @@ from ai_anime.modules.ai_assistant.infrastructure.project_media_files import (
 from ai_anime.modules.ai_assistant.infrastructure.sqlite_chat_history import (
     SQLiteChatHistory,
 )
+from ai_anime.modules.ai_assistant.infrastructure.local_speech_transcriber import (
+    LocalSpeechTranscriber,
+)
 from ai_anime.modules.ai_assistant.infrastructure.user_preferences import (
     FileUserPreferences,
 )
@@ -29,5 +32,6 @@ __all__ = [
     "HttpDisplayFallbackGateway",
     "LocalHermesRuntime",
     "LocalProjectMediaFiles",
+    "LocalSpeechTranscriber",
     "SQLiteChatHistory",
 ]

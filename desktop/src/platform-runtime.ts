@@ -45,6 +45,29 @@ export function developmentFfmpegPath(
   );
 }
 
+export function bundledWhisperModelPath(
+  resourcesPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    resourcesPath,
+    "whisper",
+    "faster-whisper-base",
+  );
+}
+
+export function developmentWhisperModelPath(
+  appPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    appPath,
+    "runtime",
+    "whisper",
+    "faster-whisper-base",
+  );
+}
+
 export function packagedVideoCodec(
   platform: NodeJS.Platform = process.platform,
 ): string {

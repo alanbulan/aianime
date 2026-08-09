@@ -28,6 +28,7 @@ function props(overrides: Partial<ComposerProps> = {}): ComposerProps {
     isFreezoneLayout: false,
     queuedMessages: [],
     recording: false,
+    transcribing: false,
     selectedHistoryMessageIndex: null,
     selectedQueuedMessageId: null,
     shellRef: createRef<HTMLDivElement>(),

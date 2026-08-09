@@ -24,10 +24,12 @@ datas += collect_data_files(
     ],
 )
 datas += collect_data_files("litellm.litellm_core_utils.tokenizers")
+datas += collect_data_files("faster_whisper")
 datas += copy_metadata("genai-prices")
 datas += copy_metadata("pydantic-ai-slim")
 hiddenimports = collect_submodules("ai_anime")
 hiddenimports += collect_submodules("litellm.litellm_core_utils.tokenizers")
+hiddenimports += collect_submodules("faster_whisper")
 
 analysis = Analysis(
     [str(Path(SPECPATH) / "entrypoint.py")],

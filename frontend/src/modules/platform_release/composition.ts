@@ -6,6 +6,7 @@ import { markUpdateAvailable } from "@/modules/platform_release/application/upda
 import { installBrowserChunkLoadRecovery } from "@/modules/platform_release/infrastructure/browser-chunk-load-recovery";
 import { installBrowserVersionUpdateWatch } from "@/modules/platform_release/infrastructure/browser-version-update-watch";
 import { subscribeOpenVersionUpdateDialog as subscribeBrowserOpenVersionUpdateDialog } from "@/modules/platform_release/infrastructure/browser-version-update-dialog-events";
+import { openVersionUpdateDialog as openBrowserVersionUpdateDialog } from "@/modules/platform_release/infrastructure/browser-version-update-dialog-events";
 import { BUILD_ID } from "@/lib/app-version";
 import { queryKeys } from "@/lib/query-keys";
 import { parseCommercialBootstrapRelease } from "@/modules/platform_release/domain/commercial-release";
@@ -38,9 +39,15 @@ export function seedCommercialBootstrapRelease(
 ) {
   const release = parseCommercialBootstrapRelease(value);
   if (release) {
-    queryClient.setQueryData(queryKeys.commercialRelease(), release);
+    const queryKey = queryKeys.commercialRelease();
+    queryClient.setQueryData(queryKey, release);
+    void queryClient.invalidateQueries({ queryKey });
   }
   return release;
+}
+
+export function openVersionUpdateDialog(): void {
+  openBrowserVersionUpdateDialog();
 }
 
 export function installChunkLoadRecovery(): () => void {
