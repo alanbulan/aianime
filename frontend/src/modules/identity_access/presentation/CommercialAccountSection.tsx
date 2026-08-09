@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useCommercialEntitlementStore } from "@/modules/identity_access/composition";
+import { commercialValueLabel } from "@/shared/commercial-value-label";
 
 export function CommercialAccountSection({
   active,
@@ -110,17 +111,29 @@ export function CommercialAccountSection({
                 entitlement.license?.versionCode ??
                 t("settings.account.unassigned")
               }
-              detail={entitlement.license?.editionType}
+              detail={commercialValueLabel(
+                t,
+                "edition",
+                entitlement.license?.editionType,
+              )}
             />
             <InfoRow
               label={t("settings.account.licenseStatus")}
-              value={entitlement.license?.status ?? t("settings.account.unknown")}
+              value={
+                entitlement.license?.status
+                  ? commercialValueLabel(t, "status", entitlement.license.status)
+                  : t("settings.account.unknown")
+              }
               detail={formatDate(entitlement.license?.expiresAt)}
             />
             <InfoRow
               label={t("settings.account.device")}
               value={entitlement.device?.name ?? t("settings.account.notActivated")}
-              detail={entitlement.activation?.status ?? entitlement.device?.status}
+              detail={commercialValueLabel(
+                t,
+                "status",
+                entitlement.activation?.status ?? entitlement.device?.status,
+              )}
             />
             <InfoRow
               label={t("settings.account.activatedAt")}

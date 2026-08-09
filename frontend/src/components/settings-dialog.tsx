@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { commercialValueLabel } from "@/shared/commercial-value-label";
 import {
   CommercialAccountSection,
   useCommercialEntitlementStore,
@@ -542,7 +543,7 @@ function ModelCatalogPanel({
             <span className="max-w-40 truncate text-[11px] text-muted-foreground">
               {roleKey
                 ? t(`settings.modelAccess.roles.${roleKey}`)
-                : model.operation}
+                : commercialValueLabel(t, "operation", model.operation)}
             </span>
             <Button
               type="button"
@@ -602,12 +603,18 @@ function ModelDetailsPanel({
     <div className="mt-2 border-t border-border px-1 pt-3">
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
         <DetailValue label={t("settings.modelAccess.modelCode")} value={model.code} />
-        <DetailValue label={t("settings.modelAccess.operation")} value={model.operation} />
+        <DetailValue
+          label={t("settings.modelAccess.operation")}
+          value={commercialValueLabel(t, "operation", model.operation)}
+        />
         <DetailValue
           label={t("settings.modelAccess.unitsPerCall")}
           value={model.unitsPerCall === undefined ? "-" : String(model.unitsPerCall)}
         />
-        <DetailValue label={t("settings.modelAccess.status")} value={model.status ?? "-"} />
+        <DetailValue
+          label={t("settings.modelAccess.status")}
+          value={commercialValueLabel(t, "status", model.status)}
+        />
       </div>
       <JsonDetails
         label={t("settings.modelAccess.capabilities")}

@@ -41,6 +41,10 @@ import {
   type CommercialInvocation,
   type CommercialInvocationId,
 } from "@/modules/model_usage/domain/commercial-invocation";
+import {
+  commercialValueLabel,
+  type CommercialValueGroup,
+} from "@/shared/commercial-value-label";
 
 const PAGE_SIZE = 20;
 
@@ -82,6 +86,7 @@ export function CommercialInvocationSection({
         <div className="flex items-center gap-2">
           <InvocationFilter
             label={t("settings.invocations.status")}
+            valueGroup="status"
             value={status}
             values={["", "PENDING", "RUNNING", "SUCCEEDED", "FAILED", "CANCELLED"]}
             onChange={(value) => {
@@ -91,6 +96,7 @@ export function CommercialInvocationSection({
           />
           <InvocationFilter
             label={t("settings.invocations.operation")}
+            valueGroup="operation"
             value={operation}
             values={["", "TEXT", "IMAGE", "VIDEO", "AUDIO"]}
             onChange={(value) => {
@@ -245,11 +251,13 @@ export function CommercialInvocationSection({
 
 function InvocationFilter({
   label,
+  valueGroup,
   value,
   values,
   onChange,
 }: {
   label: string;
+  valueGroup: CommercialValueGroup;
   value: string;
   values: string[];
   onChange: (value: string) => void;
@@ -263,7 +271,9 @@ function InvocationFilter({
       <SelectContent align="end">
         {values.map((item) => (
           <SelectItem key={item || "ALL"} value={item || "ALL"}>
-            {item || t("settings.invocations.all")}
+            {item
+              ? commercialValueLabel(t, valueGroup, item)
+              : t("settings.invocations.all")}
           </SelectItem>
         ))}
       </SelectContent>
@@ -297,7 +307,9 @@ function InvocationRow({
           </div>
           <p className="truncate text-[11px] text-muted-foreground">
             {formatDate(invocation.createdAt) ?? String(invocation.id)}
-            {invocation.quotaStatus ? ` · ${invocation.quotaStatus}` : ""}
+            {invocation.quotaStatus
+              ? ` · ${commercialValueLabel(t, "quota", invocation.quotaStatus)}`
+              : ""}
           </p>
         </div>
         <div className="flex items-center gap-1">
@@ -337,10 +349,23 @@ function InvocationDetails({
   if (!invocation) return null;
   const fields = [
     [t("settings.invocations.id"), String(invocation.id)],
-    [t("settings.invocations.status"), invocation.status],
-    [t("settings.invocations.operation"), invocation.operation],
+    [
+      t("settings.invocations.status"),
+      commercialValueLabel(t, "status", invocation.status),
+    ],
+    [
+      t("settings.invocations.operation"),
+      invocation.operation
+        ? commercialValueLabel(t, "operation", invocation.operation)
+        : undefined,
+    ],
     [t("settings.invocations.model"), invocation.modelSkuCode],
-    [t("settings.invocations.quotaStatus"), invocation.quotaStatus],
+    [
+      t("settings.invocations.quotaStatus"),
+      invocation.quotaStatus
+        ? commercialValueLabel(t, "quota", invocation.quotaStatus)
+        : undefined,
+    ],
     [t("settings.invocations.requestId"), invocation.requestId],
     [t("settings.invocations.createdAt"), formatDate(invocation.createdAt)],
     [t("settings.invocations.completedAt"), formatDate(invocation.completedAt)],
@@ -366,13 +391,18 @@ function InvocationDetails({
 }
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const normalized = status.trim().toUpperCase();
   const tone = normalized === "SUCCEEDED" || normalized === "SUCCESS" || normalized === "COMPLETED"
     ? "bg-success/10 text-success"
     : normalized === "FAILED" || normalized === "CANCELLED" || normalized === "CANCELED"
       ? "bg-destructive/10 text-destructive"
       : "bg-warning/10 text-warning";
-  return <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${tone}`}>{status}</span>;
+  return (
+    <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${tone}`}>
+      {commercialValueLabel(t, "status", status)}
+    </span>
+  );
 }
 
 function InlineNotice({ children }: React.PropsWithChildren) {

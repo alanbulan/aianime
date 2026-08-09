@@ -3430,6 +3430,50 @@
       "models": "Models",
       "invocations": "Invocations"
     },
+    "values": {
+      "edition": {
+        "STANDARD": "Standard",
+        "PROFESSIONAL": "Professional"
+      },
+      "operation": {
+        "TEXT": "Text",
+        "IMAGE": "Image",
+        "VIDEO": "Video",
+        "AUDIO": "Audio",
+        "EMBEDDING": "Embedding",
+        "RERANK": "Rerank",
+        "MODERATION": "Moderation"
+      },
+      "status": {
+        "ACTIVE": "Active",
+        "INACTIVE": "Inactive",
+        "ENABLED": "Enabled",
+        "DISABLED": "Disabled",
+        "PENDING": "Pending",
+        "RUNNING": "Running",
+        "SUCCEEDED": "Succeeded",
+        "SUCCESS": "Success",
+        "COMPLETED": "Completed",
+        "FAILED": "Failed",
+        "CANCELLED": "Cancelled",
+        "CANCELED": "Canceled",
+        "ACTIVATED": "Activated",
+        "DEACTIVATED": "Deactivated",
+        "REVOKED": "Revoked",
+        "EXPIRED": "Expired",
+        "SUSPENDED": "Suspended",
+        "ONLINE": "Online",
+        "OFFLINE": "Offline"
+      },
+      "quota": {
+        "PENDING": "Pending",
+        "RESERVED": "Reserved",
+        "SETTLED": "Settled",
+        "CHARGED": "Charged",
+        "RELEASED": "Released",
+        "REFUNDED": "Refunded"
+      }
+    },
     "account": {
       "title": "License and current device",
       "desktopRequired": "Account and device details are available in the Electron desktop app",

@@ -1,17 +1,19 @@
 ---
-version: 1.1.5
+version: 1.1.6
 attention: low
 ---
-# v1.1.5
+# v1.1.6
 
 ## User-facing Highlights (zh)
 
-- **标准更新**: 使用 electron-updater 完成版本检查、下载、SHA-512 校验和安装。
-- **简化发布**: Windows 可直接生成 NSIS，macOS 使用 ad-hoc 签名，打包不再强制开发者凭据。
-- **云端接入**: 更新只需现有 Gateway 托管 `latest*.yml` 和对应安装包。
+- **商业账户**: 补齐注册、许可设备管理、模型详情和云端调用记录页面。
+- **模型权限**: 修复会话恢复后模型角色丢失，并为模型目录、详情和 Bootstrap 携带激活设备 ID。
+- **中文展示**: 许可、设备、调用状态、模型类型和额度状态不再直接显示英文枚举。
+- **接口清理**: 删除没有本地或云端合同支撑的旧头像上传请求，已有账户头像仍按登录会话字段展示。
 
 ## User-facing Highlights (en)
 
-- **Standard updater**: electron-updater now handles version checks, downloads, SHA-512 verification, and installation.
-- **Simplified packaging**: Windows can produce NSIS packages directly, while macOS uses ad-hoc signing without mandatory developer credentials.
-- **Cloud integration**: The existing Gateway only needs to host `latest*.yml` and their matching installers.
+- **Commercial account**: Adds registration, license and device management, model details, and cloud invocation history.
+- **Model authorization**: Keeps model roles after session restore and sends the activated device ID for model catalog, detail, and Bootstrap requests.
+- **Localized display**: License, device, invocation, model operation, and quota states now use localized labels instead of raw enums.
+- **Contract cleanup**: Removes the legacy avatar upload request that had no local or cloud contract while continuing to display avatars returned by the login session.

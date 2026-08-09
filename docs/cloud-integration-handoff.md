@@ -1,6 +1,6 @@
 # 云端接入交接
 
-客户端 `1.1.5` 固定使用 `https://aianime.122-193-11-199.sslip.io`。更新已改为 `electron-updater` 标准流程，云端不需要新增独立更新服务，只需在现有 Gateway 中提供版本判断、YAML 和安装包下载。
+客户端 `1.1.6` 固定使用 `https://aianime.122-193-11-199.sslip.io`。更新已改为 `electron-updater` 标准流程，云端不需要新增独立更新服务，只需在现有 Gateway 中提供版本判断、YAML 和安装包下载。
 
 ## 1. 登录首屏
 
@@ -137,11 +137,11 @@ Authorization: Bearer <access-token>
 version: 1.1.6
 files:
   - url: AI-anime-1.1.6-x64-setup.exe
-    sha512: <electron-builder 生成的值>
-    size: 490381098
+    sha512: we5t3fiW5vWwffLMCD7vqR2YPHZ3MUdw+IltAYpwsrWe8iJpZ30myJxSWLq2Gw2VyiQlOIvuXt9c6tChvqYTZw==
+    size: 498536378
 path: AI-anime-1.1.6-x64-setup.exe
-sha512: <electron-builder 生成的值>
-releaseDate: '2026-08-08T12:30:00.000Z'
+sha512: we5t3fiW5vWwffLMCD7vqR2YPHZ3MUdw+IltAYpwsrWe8iJpZ30myJxSWLq2Gw2VyiQlOIvuXt9c6tChvqYTZw==
+releaseDate: '2026-08-09T09:37:42.433Z'
 ```
 
 不要手工重算或修改 `sha512`。客户端会由 `electron-updater` 自动校验。
@@ -161,12 +161,12 @@ desktop/release/AI-anime-<version>-x64-setup.exe
 desktop/release/latest.yml
 ```
 
-2026-08-09 已生成 Windows `1.1.5`：
+2026-08-09 已生成 Windows `1.1.6`：
 
 ```text
-AI-anime-1.1.5-x64-setup.exe
-size: 496998172
-sha256: 459EC2B0F7568EC0AC56C52ADD9FE6779D39383B9F5ED9981FC3030081D6A31F
+AI-anime-1.1.6-x64-setup.exe
+size: 498536378
+sha256: 3ED7EEE0887334BF83B84C07C16155DBB098A3930FD7A22D28FF5F5362D21612
 ```
 
 `latest.yml` 中的文件名、大小和 electron-builder SHA-512 已与安装包复核一致。该构件未使用 Authenticode 证书，云端可直接用于测试分发，但 Windows 会显示未知发布者。

@@ -3430,6 +3430,50 @@
       "models": "模型",
       "invocations": "调用记录"
     },
+    "values": {
+      "edition": {
+        "STANDARD": "标准版",
+        "PROFESSIONAL": "专业版"
+      },
+      "operation": {
+        "TEXT": "文本",
+        "IMAGE": "图片",
+        "VIDEO": "视频",
+        "AUDIO": "音频",
+        "EMBEDDING": "向量",
+        "RERANK": "内容重排",
+        "MODERATION": "内容审核"
+      },
+      "status": {
+        "ACTIVE": "有效",
+        "INACTIVE": "未启用",
+        "ENABLED": "已启用",
+        "DISABLED": "已停用",
+        "PENDING": "等待中",
+        "RUNNING": "进行中",
+        "SUCCEEDED": "已成功",
+        "SUCCESS": "成功",
+        "COMPLETED": "已完成",
+        "FAILED": "已失败",
+        "CANCELLED": "已取消",
+        "CANCELED": "已取消",
+        "ACTIVATED": "已激活",
+        "DEACTIVATED": "已停用",
+        "REVOKED": "已撤销",
+        "EXPIRED": "已过期",
+        "SUSPENDED": "已暂停",
+        "ONLINE": "在线",
+        "OFFLINE": "离线"
+      },
+      "quota": {
+        "PENDING": "待处理",
+        "RESERVED": "已预占",
+        "SETTLED": "已结算",
+        "CHARGED": "已扣减",
+        "RELEASED": "已释放",
+        "REFUNDED": "已退回"
+      }
+    },
     "account": {
       "title": "许可与当前设备",
       "desktopRequired": "账户与设备信息仅在 Electron 桌面端可用",
@@ -3492,7 +3536,7 @@
     "modelAccess": {
       "title": "模型访问",
       "cloud": "云端模型",
-      "byok": "BYOK",
+      "byok": "自定义模型",
       "availableModels": "授权模型",
       "modelCount": "{{count}} 个可用模型",
       "noModels": "当前授权没有可用模型",
@@ -3506,7 +3550,7 @@
       "capabilities": "能力参数",
       "parameterSchema": "请求参数结构",
       "baseUrl": "标准接口地址",
-      "apiKey": "API Key（可选）",
+      "apiKey": "接口密钥（可选）",
       "baseUrlRequired": "请输入标准模型接口地址",
       "modelAssignments": "模型用途",
       "modelId": "模型 ID",
