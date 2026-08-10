@@ -82,5 +82,7 @@ test("Gitee workflow auto-triggers master and guards release commits", () => {
   assert.match(workflow, /step: build@nodejs/);
   assert.match(workflow, /precise:\s*\n\s*- master/);
   assert.match(workflow, /chore\(release\): 自动升级版本至 v/);
+  assert.match(workflow, /GITEE_PUSH_PRIVATE_KEY/);
+  assert.match(workflow, /git@gitee\.com:mingcheng_software\/ai-manga-desktop\.git/);
   assert.match(workflow, /git push origin HEAD:master/);
 });

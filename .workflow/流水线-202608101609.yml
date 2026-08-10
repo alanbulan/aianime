@@ -16,15 +16,25 @@ stages:
     - node --version
     - |
       set -eu
-      case "${GITEE_COMMIT_MESSAGE:-}" in
+      CURRENT_SUBJECT=$(git log -1 --format=%s)
+      case "${CURRENT_SUBJECT}" in
         "chore(release): 自动升级版本至 v"*)
           echo "当前提交是流水线生成的版本提交，不再次递增版本。"
           exit 0
           ;;
       esac
 
-      git fetch origin master
-      git checkout -B master origin/master
+      if [ -z "${GITEE_PUSH_PRIVATE_KEY:-}" ]; then
+        echo "缺少 Gitee Go 保密变量 GITEE_PUSH_PRIVATE_KEY，无法将自动版本提交写回仓库。"
+        exit 2
+      fi
+
+      mkdir -p "${HOME}/.ssh"
+      printf '%s\n' "${GITEE_PUSH_PRIVATE_KEY}" | tr -d '\r' > "${HOME}/.ssh/id_ed25519"
+      chmod 600 "${HOME}/.ssh/id_ed25519"
+      ssh-keyscan gitee.com >> "${HOME}/.ssh/known_hosts"
+      git remote set-url origin git@gitee.com:mingcheng_software/ai-manga-desktop.git
+      git checkout -B master
       node scripts/release/bump-version.mjs --patch --auto
       VERSION=$(node -p "require('./desktop/package.json').version")
 
