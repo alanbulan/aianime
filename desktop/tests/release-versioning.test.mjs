@@ -79,10 +79,16 @@ test("Gitee workflow auto-triggers master and guards release commits", () => {
     join(process.cwd(), "..", ".workflow", "流水线-202608101609.yml"),
     "utf8",
   );
+  assert.match(workflow, /step: build@gcc/);
   assert.match(workflow, /step: build@nodejs/);
   assert.match(workflow, /precise:\s*\n\s*- master/);
   assert.match(workflow, /chore\(release\): 自动升级版本至 v/);
-  assert.match(workflow, /GITEE_PUSH_PRIVATE_KEY/);
-  assert.match(workflow, /git@gitee\.com:mingcheng_software\/ai-manga-desktop\.git/);
-  assert.match(workflow, /git push origin HEAD:master/);
+  assert.match(workflow, /pnpm --dir desktop test/);
+  assert.match(workflow, /pnpm --dir frontend test/);
+  assert.match(workflow, /pnpm --dir frontend build:ce/);
+  assert.match(workflow, /uv run pytest/);
+  assert.match(workflow, /AI_MANGA_PUSH_TOKEN/);
+  assert.match(workflow, /GIT_ASKPASS/);
+  assert.match(workflow, /https:\/\/gitee\.com\/mingcheng_software\/ai-manga-desktop\.git/);
+  assert.match(workflow, /push origin HEAD:master/);
 });

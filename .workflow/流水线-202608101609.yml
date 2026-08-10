@@ -3,6 +3,70 @@ name: desktop-auto-version
 displayName: Electron 桌面端自动版本与更新记录
 stages:
 - stage:
+  name: test_build
+  displayName: 自动测试与前端测试版构建
+  strategy: naturally
+  trigger: auto
+  steps:
+  - step: build@gcc
+    name: quality_gate
+    displayName: Electron、前端与 Python 质量门
+    gccVersion: 10.3
+    commands:
+    - |
+      set -eu
+      CURRENT_SUBJECT=$(git log -1 --format=%s)
+      case "${CURRENT_SUBJECT}" in
+        "chore(release): 自动升级版本至 v"*)
+          echo "当前提交是流水线生成的版本提交，不重复测试。"
+          mkdir -p frontend/dist
+          printf '%s\n' "版本提交已在来源提交的流水线中通过全部质量门。" > frontend/dist/PIPELINE_GUARD.txt
+          exit 0
+          ;;
+      esac
+
+      NODE_VERSION=22.14.0
+      mkdir -p .ci-runtime
+      wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz" -O ".ci-runtime/node-v${NODE_VERSION}-linux-x64.tar.gz"
+      wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" -O .ci-runtime/SHASUMS256.txt
+      grep " node-v${NODE_VERSION}-linux-x64.tar.gz$" .ci-runtime/SHASUMS256.txt > .ci-runtime/node.sha256
+      (cd .ci-runtime && sha256sum -c node.sha256)
+      tar -xzf ".ci-runtime/node-v${NODE_VERSION}-linux-x64.tar.gz" -C .ci-runtime
+      export PATH="${PWD}/.ci-runtime/node-v${NODE_VERSION}-linux-x64/bin:${HOME}/.local/bin:${PATH}"
+
+      corepack enable
+      corepack prepare pnpm@11.5.0 --activate
+      wget -qO- https://astral.sh/uv/install.sh | sh
+      node --version
+      pnpm --version
+      uv --version
+
+      pnpm --dir desktop install --frozen-lockfile
+      pnpm --dir desktop test
+      pnpm --dir desktop typecheck
+      pnpm --dir frontend install --frozen-lockfile
+      pnpm --dir frontend test
+      pnpm --dir frontend typecheck
+      pnpm --dir frontend build:ce
+      uv sync --locked --group dev
+      uv run pytest -q \
+        tests/modules/ai_assistant/test_hermes_project_replies.py \
+        tests/modules/ai_assistant/test_tool_errors.py \
+        tests/modules/platform_release/test_release_notes.py \
+        tests/test_commercial_video_gateway.py \
+        tests/test_hermes_assets.py
+    artifacts:
+    - name: FRONTEND_TEST_BUILD
+      path:
+      - frontend/dist
+      type: .tar.gz
+    notify: []
+    strategy:
+      retry: "0"
+      resource:
+        cpu: "2"
+        memory: "4"
+- stage:
   name: version_release
   displayName: 自动递增版本
   strategy: naturally
@@ -24,18 +88,28 @@ stages:
           ;;
       esac
 
-      if [ -z "${GITEE_PUSH_PRIVATE_KEY:-}" ]; then
-        echo "缺少 Gitee Go 保密变量 GITEE_PUSH_PRIVATE_KEY，无法将自动版本提交写回仓库。"
+      if [ -z "${AI_MANGA_PUSH_TOKEN:-}" ]; then
+        echo "缺少 Gitee Go 密文变量 AI_MANGA_PUSH_TOKEN，无法将自动版本提交写回仓库。"
         exit 2
       fi
 
-      mkdir -p "${HOME}/.ssh"
-      printf '%s\n' "${GITEE_PUSH_PRIVATE_KEY}" | tr -d '\r' > "${HOME}/.ssh/id_ed25519"
-      chmod 600 "${HOME}/.ssh/id_ed25519"
-      ssh-keyscan gitee.com >> "${HOME}/.ssh/known_hosts"
-      git remote set-url origin git@gitee.com:mingcheng_software/ai-manga-desktop.git
+      SOURCE_COMMIT=$(git rev-parse HEAD)
+      AI_MANGA_PUSH_USERNAME="${AI_MANGA_PUSH_USERNAME:-wurulan}"
+      export AI_MANGA_PUSH_USERNAME AI_MANGA_PUSH_TOKEN
+      ASKPASS_PATH="${HOME}/.ai-manga-gitee-askpass.sh"
+      cat > "${ASKPASS_PATH}" <<'EOF'
+      #!/bin/sh
+      case "$1" in
+        *Username*) printf '%s\n' "${AI_MANGA_PUSH_USERNAME}" ;;
+        *) printf '%s\n' "${AI_MANGA_PUSH_TOKEN}" ;;
+      esac
+      EOF
+      chmod 700 "${ASKPASS_PATH}"
+      trap 'rm -f "${ASKPASS_PATH}"' EXIT
+
+      git remote set-url origin https://gitee.com/mingcheng_software/ai-manga-desktop.git
       git checkout -B master
-      node scripts/release/bump-version.mjs --patch --auto
+      GITEE_COMMIT="${SOURCE_COMMIT}" node scripts/release/bump-version.mjs --patch --auto
       VERSION=$(node -p "require('./desktop/package.json').version")
 
       git config user.name "Gitee Go"
@@ -43,10 +117,11 @@ stages:
       git add README.md pyproject.toml uv.lock desktop/package.json frontend/vite.config.ts src/ai_anime/release-notes.md docs/cloud-integration-handoff.md
       git commit \
         -m "chore(release): 自动升级版本至 v${VERSION}" \
-        -m "来源提交：${GITEE_COMMIT:-unknown}" \
+        -m "来源提交：${SOURCE_COMMIT}" \
         -m "流水线构建：${GITEE_PIPELINE_BUILD_NUMBER:-unknown}" \
-        -m "已同步 Python、Electron、前端兜底版本、锁文件和中英文更新记录。"
-      git push origin HEAD:master
+        -m "质量门：Electron 测试与类型检查、前端测试与正式构建、Python 关键路径测试全部通过。" \
+        -m "版本同步：Python、Electron、前端兜底版本、锁文件、README、云端交接文档和中英文更新记录已统一更新。"
+      GIT_ASKPASS="${ASKPASS_PATH}" GIT_TERMINAL_PROMPT=0 git -c credential.helper= push origin HEAD:master
     notify: []
     strategy:
       retry: "0"
