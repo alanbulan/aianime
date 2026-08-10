@@ -94,6 +94,10 @@ test("Gitee workflow auto-triggers master and guards release commits", () => {
   );
   assert.match(workflow, /--with pytest==9\.1\.1/);
   assert.match(workflow, /AI_MANGA_PUSH_TOKEN/);
+  assert.match(
+    workflow,
+    /variables:\s*\n\s*global:\s*\n\s*- AI_MANGA_PUSH_TOKEN\s*\n\s*- AI_MANGA_PUSH_USERNAME/,
+  );
   assert.match(workflow, /GIT_ASKPASS/);
   assert.match(workflow, /https:\/\/gitee\.com\/mingcheng_software\/ai-manga-desktop\.git/);
   assert.match(workflow, /push origin HEAD:master/);

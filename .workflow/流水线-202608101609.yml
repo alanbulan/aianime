@@ -149,3 +149,7 @@ triggers:
 notify: []
 strategy:
   blocking: true
+variables:
+  global:
+  - AI_MANGA_PUSH_TOKEN
+  - AI_MANGA_PUSH_USERNAME
