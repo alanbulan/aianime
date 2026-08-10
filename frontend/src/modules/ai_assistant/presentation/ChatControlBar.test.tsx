@@ -2,6 +2,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const toastSuccess = vi.hoisted(() => vi.fn());
+
+vi.mock("sonner", () => ({ toast: { success: toastSuccess } }));
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
@@ -42,6 +46,7 @@ function chatModel(overrides: Record<string, unknown> = {}) {
 describe("SuperChat control bar", () => {
   afterEach(() => {
     document.getElementById("superchat-header-controls")?.remove();
+    toastSuccess.mockReset();
   });
 
   it("renders transport state and forwards instance and model selection", () => {
@@ -99,6 +104,7 @@ describe("SuperChat control bar", () => {
     expect(chat.setSettings).toHaveBeenNthCalledWith(1, {
       showToolEvents: true,
     });
+    expect(toastSuccess).toHaveBeenCalledWith("aiAssistant.toolEventsShown");
     expect(chat.setSettings).toHaveBeenNthCalledWith(2, {
       showStructuredSourceWhileStreaming: true,
     });

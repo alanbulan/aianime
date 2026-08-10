@@ -22,6 +22,10 @@ const commercialState = vi.hoisted(() => ({
   },
 }));
 const resetUserSessionStateMock = vi.hoisted(() => vi.fn());
+const releaseState = vi.hoisted(() => ({
+  announcements: [] as Array<{ id: string; title: string; body: string }>,
+  release: { available: false, required: false, reason: null, artifactId: null },
+}));
 
 vi.mock("@/lib/reset-region-state", () => ({
   resetUserSessionState: resetUserSessionStateMock,
@@ -35,6 +39,16 @@ vi.mock("@/lib/runtime-config", () => ({
 vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/model_usage/public")>()),
   useModelGatewayConfig: () => ({ data: undefined }),
+}));
+
+vi.mock("@/modules/platform_release/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/platform_release/public")>()),
+  useCommercialAnnouncements: () => ({
+    data: { items: releaseState.announcements, total: releaseState.announcements.length },
+    isLoading: false,
+    error: null,
+  }),
+  useCommercialRelease: () => ({ data: releaseState.release }),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -66,6 +80,9 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/modules/identity_access/public", () => ({
   CommercialAccountSection: () => null,
+  CommercialLicenseSection: () => null,
+  CommercialProfileSection: () => null,
+  CommercialSecuritySection: () => null,
   logoutAllSessions: () => authState.logout(),
   useAuthStore: () => authState,
   useCommercialAuthStore: (
@@ -129,6 +146,14 @@ describe("Header runtime gating", () => {
     commercialState.session = null;
     authState.logout.mockReset();
     resetUserSessionStateMock.mockReset();
+    releaseState.announcements = [];
+    releaseState.release = {
+      available: false,
+      required: false,
+      reason: null,
+      artifactId: null,
+    };
+    window.localStorage.clear();
   });
 
   it("does not repeat the product brand below the desktop title bar", () => {
@@ -207,5 +232,38 @@ describe("Header runtime gating", () => {
       expect(resetUserSessionStateMock).toHaveBeenCalled();
     });
     expect(authState.logout).toHaveBeenCalled();
+  });
+
+  it("clears the unread dot after opening notifications and lights it for a new item", async () => {
+    const actionsHost = document.createElement("div");
+    actionsHost.id = "desktop-title-bar-actions";
+    document.body.append(actionsHost);
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: { commercial: {} },
+    });
+    releaseState.announcements = [
+      { id: "announcement-1", title: "Notice", body: "Body" },
+    ];
+
+    const first = renderHeader();
+    const bell = await screen.findByRole("button", { name: "header.notifications" });
+    expect(bell.querySelector(".bg-destructive")).not.toBeNull();
+
+    fireEvent.click(bell);
+    await waitFor(() => {
+      expect(bell.querySelector(".bg-destructive")).toBeNull();
+    });
+
+    first.unmount();
+    releaseState.announcements = [
+      { id: "announcement-2", title: "New notice", body: "New body" },
+    ];
+    renderHeader();
+    const nextBell = await screen.findByRole("button", {
+      name: "header.notifications",
+    });
+    expect(nextBell.querySelector(".bg-destructive")).not.toBeNull();
+    actionsHost.remove();
   });
 });

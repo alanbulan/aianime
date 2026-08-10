@@ -9,6 +9,9 @@ const WINDOW_CHANNELS = {
   isMaximized: "desktop:window:is-maximized",
   maximizedChanged: "desktop:window:maximized-changed",
 };
+const CLIPBOARD_CHANNELS = {
+  writeText: "desktop:clipboard:write-text",
+};
 const COMMERCIAL_CHANNELS = {
   status: "desktop:commercial:status",
   publicConfig: "desktop:commercial:public-config",
@@ -57,6 +60,9 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
       ipcRenderer.on(WINDOW_CHANNELS.maximizedChanged, handler);
       return () => ipcRenderer.removeListener(WINDOW_CHANNELS.maximizedChanged, handler);
     },
+  }),
+  clipboard: Object.freeze({
+    writeText: (value) => ipcRenderer.invoke(CLIPBOARD_CHANNELS.writeText, value),
   }),
   commercial: Object.freeze({
     status: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.status),

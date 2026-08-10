@@ -170,6 +170,9 @@ interface AIAnimeDesktopBridge {
     node: string;
   }>;
   windowControls: Readonly<AIAnimeWindowControls>;
+  clipboard: Readonly<{
+    writeText: (value: string) => Promise<void>;
+  }>;
   commercial?: Readonly<AIAnimeCommercialBridge>;
 }
 

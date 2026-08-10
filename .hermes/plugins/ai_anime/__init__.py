@@ -316,6 +316,7 @@ def _request(method: str, path: str, *, query: Any = None, body: Any = None) -> 
         "User-Agent": "ai_anime-plugin/0.1.0",
     }
     token = os.environ.get("AI_ANIME_AGENT_TOKEN", "").strip()
+    desktop_token = os.environ.get("AI_ANIME_DESKTOP_TOKEN", "").strip()
     if not token:
         if not _ce_owner_mode():
             _token()  # raise the standard "AI_ANIME_AGENT_TOKEN is not set" error
@@ -324,6 +325,8 @@ def _request(method: str, path: str, *, query: Any = None, body: Any = None) -> 
         _enforce_ce_owner_target(_base_url())
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    if desktop_token:
+        headers["X-AI-Anime-Desktop-Token"] = desktop_token
     if body is not None:
         payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
         headers["Content-Type"] = "application/json"

@@ -1,19 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+// Copyright (c) 2026 AI anime
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import {
-  Camera,
-  KeyRound,
   Laptop,
   Loader2,
   RefreshCw,
-  Save,
   ShieldCheck,
-  Trash2,
   Unplug,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -26,24 +21,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  useAuthStore,
-  useCommercialAuthStore,
-  useCommercialEntitlementStore,
-} from "@/modules/identity_access/composition";
+import { useCommercialEntitlementStore } from "@/modules/identity_access/composition";
 import { commercialValueLabel } from "@/shared/commercial-value-label";
-import { resetUserSessionState } from "@/lib/reset-region-state";
 
-export function CommercialAccountSection({
+export function CommercialLicenseSection({
   active,
   bridgeAvailable,
 }: {
@@ -51,8 +32,6 @@ export function CommercialAccountSection({
   bridgeAvailable: boolean;
 }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const status = useCommercialEntitlementStore((state) => state.status);
   const entitlement = useCommercialEntitlementStore((state) => state.entitlement);
   const error = useCommercialEntitlementStore((state) => state.error);
@@ -64,44 +43,12 @@ export function CommercialAccountSection({
   const deactivate = useCommercialEntitlementStore(
     (state) => state.deactivateCurrentDevice,
   );
-  const profile = useCommercialAuthStore((state) => state.profile);
-  const avatarDataUrl = useCommercialAuthStore((state) => state.avatarDataUrl);
-  const loadProfile = useCommercialAuthStore((state) => state.loadProfile);
-  const updateProfile = useCommercialAuthStore((state) => state.updateProfile);
-  const uploadAvatar = useCommercialAuthStore((state) => state.uploadAvatar);
-  const deleteAvatar = useCommercialAuthStore((state) => state.deleteAvatar);
-  const changePassword = useCommercialAuthStore((state) => state.changePassword);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [nickname, setNickname] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [gender, setGender] = useState<0 | 1 | 2>(0);
-  const [profileDescription, setProfileDescription] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!active || !bridgeAvailable || status !== "idle") return;
     void refresh().catch(() => undefined);
   }, [active, bridgeAvailable, refresh, status]);
-
-  useEffect(() => {
-    if (!active || !bridgeAvailable) return;
-    void loadProfile().catch(() => undefined);
-  }, [active, bridgeAvailable, loadProfile]);
-
-  useEffect(() => {
-    if (!profile) return;
-    setNickname(profile.nickname);
-    setEmail(profile.email);
-    setPhone(profile.phone);
-    setGender(profile.gender);
-    setProfileDescription(profile.profileDescription);
-  }, [profile]);
 
   const run = async (
     operation: () => Promise<unknown>,
@@ -121,217 +68,25 @@ export function CommercialAccountSection({
   }
 
   return (
-    <section className="space-y-5 px-5 py-5">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-sm font-medium text-foreground">
-            {t("settings.account.profileTitle")}
-          </h3>
-          <div className="flex items-center gap-2">
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (!file) return;
-                void uploadAvatar(file)
-                  .then(() => toast.success(t("settings.account.avatarUpdated")))
-                  .catch((uploadError: unknown) =>
-                    toast.error(
-                      errorMessage(
-                        uploadError,
-                        t("settings.account.avatarUpdateFailed"),
-                      ),
-                    ),
-                  );
-              }}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => avatarInputRef.current?.click()}
-            >
-              <Camera />
-              {t("settings.account.changeAvatar")}
-            </Button>
-            {avatarDataUrl ? (
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="ghost"
-                title={t("settings.account.deleteAvatar")}
-                aria-label={t("settings.account.deleteAvatar")}
-                onClick={() =>
-                  void run(
-                    deleteAvatar,
-                    t("settings.account.avatarDeleted"),
-                    t("settings.account.avatarDeleteFailed"),
-                  )
-                }
-              >
-                <Trash2 />
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 border-y border-border py-3">
-          <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-sm text-muted-foreground">
-            {avatarDataUrl ? (
-              <img src={avatarDataUrl} alt="" className="size-full object-cover" />
-            ) : (
-              (profile?.nickname || profile?.username || "?").slice(0, 1).toUpperCase()
-            )}
+    <section className="space-y-5 px-6 py-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Laptop className="size-4" />
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">
-              {profile?.username ?? "-"}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {profile?.deptName || t("settings.account.noDepartment")}
+          <div>
+            <h3 className="text-sm font-medium text-foreground">
+              {t("settings.account.title")}
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("settings.account.licenseHint")}
             </p>
           </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ProfileField label={t("settings.account.nickname")}>
-            <Input value={nickname} maxLength={64} onChange={(event) => setNickname(event.target.value)} />
-          </ProfileField>
-          <ProfileField label={t("settings.account.email")}>
-            <Input type="email" value={email} maxLength={255} onChange={(event) => setEmail(event.target.value)} />
-          </ProfileField>
-          <ProfileField label={t("settings.account.phone")}>
-            <Input value={phone} maxLength={32} onChange={(event) => setPhone(event.target.value)} />
-          </ProfileField>
-          <ProfileField label={t("settings.account.gender")}>
-            <Select value={String(gender)} onValueChange={(value) => setGender(Number(value) as 0 | 1 | 2)}>
-              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">{t("settings.account.genderUnknown")}</SelectItem>
-                <SelectItem value="1">{t("settings.account.genderMale")}</SelectItem>
-                <SelectItem value="2">{t("settings.account.genderFemale")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </ProfileField>
-        </div>
-        <ProfileField label={t("settings.account.profileDescription")}>
-          <Textarea
-            value={profileDescription}
-            maxLength={1000}
-            onChange={(event) => setProfileDescription(event.target.value)}
-          />
-        </ProfileField>
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            size="sm"
-            disabled={!profile || savingProfile}
-            onClick={() => {
-              setSavingProfile(true);
-              void updateProfile({ nickname, email, phone, gender, profileDescription })
-                .then(() => toast.success(t("settings.account.profileSaved")))
-                .catch((saveError: unknown) =>
-                  toast.error(errorMessage(saveError, t("settings.account.profileSaveFailed"))),
-                )
-                .finally(() => setSavingProfile(false));
-            }}
-          >
-            {savingProfile ? <Loader2 className="animate-spin" /> : <Save />}
-            {t("settings.account.saveProfile")}
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-3 border-t border-border pt-5">
-        <div className="flex items-center gap-2">
-          <KeyRound className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium text-foreground">
-            {t("settings.account.changePassword")}
-          </h3>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Input
-            type="password"
-            autoComplete="current-password"
-            value={oldPassword}
-            onChange={(event) => setOldPassword(event.target.value)}
-            placeholder={t("settings.account.oldPassword")}
-            aria-label={t("settings.account.oldPassword")}
-          />
-          <Input
-            type="password"
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={(event) => setNewPassword(event.target.value)}
-            placeholder={t("settings.account.newPassword")}
-            aria-label={t("settings.account.newPassword")}
-          />
-          <Input
-            type="password"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            placeholder={t("settings.account.confirmPassword")}
-            aria-label={t("settings.account.confirmPassword")}
-          />
-        </div>
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={changingPassword || !oldPassword || !newPassword || !confirmPassword}
-            onClick={() => {
-              if (newPassword !== confirmPassword) {
-                toast.error(t("settings.account.passwordMismatch"));
-                return;
-              }
-              if (newPassword.length < 8 || newPassword.length > 128) {
-                toast.error(t("settings.account.passwordLength"));
-                return;
-              }
-              setChangingPassword(true);
-              void changePassword(oldPassword, newPassword)
-                .then(async () => {
-                  useAuthStore.getState().reset();
-                  useCommercialEntitlementStore.getState().reset();
-                  resetUserSessionState({ queryClient });
-                  toast.success(t("settings.account.passwordChanged"));
-                  await navigate({ to: "/login", replace: true });
-                })
-                .catch((passwordError: unknown) =>
-                  toast.error(
-                    errorMessage(
-                      passwordError,
-                      t("settings.account.passwordChangeFailed"),
-                    ),
-                  ),
-                )
-                .finally(() => setChangingPassword(false));
-            }}
-          >
-            {changingPassword ? <Loader2 className="animate-spin" /> : <KeyRound />}
-            {t("settings.account.changePassword")}
-          </Button>
-        </div>
-      </div>
-
-      <div className="border-t border-border pt-5">
-        <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Laptop className="size-4 text-muted-foreground" />
-          <h3 className="text-sm font-medium text-foreground">
-            {t("settings.account.title")}
-          </h3>
         </div>
         <Button
           type="button"
-          size="icon-sm"
-          variant="ghost"
+          size="icon"
+          variant="outline"
           title={t("settings.account.refresh")}
           aria-label={t("settings.account.refresh")}
           disabled={status === "loading"}
@@ -345,14 +100,14 @@ export function CommercialAccountSection({
         >
           <RefreshCw className={status === "loading" ? "animate-spin" : ""} />
         </Button>
-        </div>
+      </div>
 
       {status === "loading" && !entitlement ? (
         <div className="flex h-28 items-center justify-center text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
         </div>
       ) : null}
-      {error ? <InlineNotice>{error}</InlineNotice> : null}
+      {error ? <InlineNotice compact>{error}</InlineNotice> : null}
 
       {entitlement ? (
         <>
@@ -400,12 +155,12 @@ export function CommercialAccountSection({
             />
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-1">
             {entitlement.capabilities.deviceActivated ? (
               <>
                 <Button
                   type="button"
-                  size="sm"
+                  size="default"
                   variant="outline"
                   disabled={status === "loading" || !entitlement.lease}
                   onClick={() =>
@@ -421,7 +176,7 @@ export function CommercialAccountSection({
                 </Button>
                 <Button
                   type="button"
-                  size="sm"
+                  size="default"
                   variant="destructive"
                   disabled={status === "loading"}
                   onClick={() => setConfirmDeactivate(true)}
@@ -433,7 +188,7 @@ export function CommercialAccountSection({
             ) : entitlement.license ? (
               <Button
                 type="button"
-                size="sm"
+                size="default"
                 disabled={status === "loading"}
                 onClick={() =>
                   void run(
@@ -477,21 +232,14 @@ export function CommercialAccountSection({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      </div>
     </section>
   );
 }
 
-function ProfileField({
-  children,
-  label,
-}: React.PropsWithChildren<{ label: string }>) {
-  return (
-    <label className="space-y-1.5 text-xs text-muted-foreground">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
+export function CommercialAccountSection(
+  props: React.ComponentProps<typeof CommercialLicenseSection>,
+) {
+  return <CommercialLicenseSection {...props} />;
 }
 
 function InfoRow({
@@ -506,12 +254,14 @@ function InfoRow({
   const visibleDetail = distinctInfoDetail(value, detail);
 
   return (
-    <div className="grid min-h-12 grid-cols-[9rem_minmax(0,1fr)] items-center gap-4 py-2.5">
+    <div className="grid min-h-14 grid-cols-[9rem_minmax(0,1fr)] items-center gap-4 py-3">
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="min-w-0 text-right">
         <p className="truncate text-sm text-foreground">{value}</p>
         {visibleDetail ? (
-          <p className="truncate text-[11px] text-muted-foreground">{visibleDetail}</p>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            {visibleDetail}
+          </p>
         ) : null}
       </div>
     </div>
@@ -525,9 +275,18 @@ export function distinctInfoDetail(
   return detail?.trim() === value.trim() ? undefined : detail;
 }
 
-function InlineNotice({ children }: React.PropsWithChildren) {
+function InlineNotice({
+  children,
+  compact = false,
+}: React.PropsWithChildren<{ compact?: boolean }>) {
   return (
-    <div className="mx-5 mt-5 border-y border-warning/35 bg-warning/10 px-3 py-3 text-xs text-warning">
+    <div
+      className={
+        compact
+          ? "border-y border-warning/35 bg-warning/10 px-3 py-3 text-xs text-warning"
+          : "mx-6 mt-6 border-y border-warning/35 bg-warning/10 px-3 py-3 text-xs text-warning"
+      }
+    >
       {children}
     </div>
   );

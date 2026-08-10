@@ -1,6 +1,8 @@
 export {
   installChunkLoadRecovery,
   installVersionUpdateWatch,
+  loadReadNotificationKeys,
+  markNotificationKeysRead,
   openVersionUpdateDialog,
   seedCommercialBootstrapRelease,
   useCommercialAnnouncements,

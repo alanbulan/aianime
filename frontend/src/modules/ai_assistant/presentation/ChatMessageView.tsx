@@ -16,6 +16,7 @@ import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import { UiSpecRenderer } from "@/modules/ai_assistant/presentation/SpecMediaGal
 import type { SpecMediaDetail } from "@/modules/ai_assistant/presentation/SpecMediaModals";
 import { useAiAvatarUrl } from "@/modules/ai_assistant/presentation/useAiAvatarUrl";
 import { cn } from "@/lib/utils";
+import { writeTextToClipboard } from "@/shared/platform/text-clipboard";
 
 function PlainMessageText({ text }: { text: string }) {
   const paragraphs = normalizeMessageText(text)
@@ -231,6 +233,7 @@ export function StructuredRenderer({
   blocks: StructuredBlock[];
   onOpenMedia?: (detail: SpecMediaDetail) => void;
 }) {
+  const { t } = useTranslation();
   if (blocks.length === 0) return null;
   return (
     <div className="mt-3 flex w-full min-w-0 max-w-full flex-col items-stretch gap-3">
@@ -257,8 +260,12 @@ export function StructuredRenderer({
               <Button
                 variant="ghost"
                 size="icon-xs"
-                onClick={() => navigator.clipboard?.writeText(JSON.stringify(block.value, null, 2)).catch(() => undefined)}
-                aria-label="Copy JSON"
+                onClick={() => {
+                  void writeTextToClipboard(JSON.stringify(block.value, null, 2))
+                    .then(() => toast.success(t("aiAssistant.copySuccess")))
+                    .catch(() => toast.error(t("aiAssistant.copyFailed")));
+                }}
+                aria-label={t("aiAssistant.copyJson")}
               >
                 <Copy className="size-3" />
               </Button>
@@ -303,7 +310,12 @@ export const MessageBubble = memo(function MessageBubble({
     deferStructuredRender && !isUser && !isTool && looksLikeStructuredRenderText(message.text);
   const { displayText, blocks } = extractStructuredBlocks(message);
   const copyText = async () => {
-    await navigator.clipboard?.writeText(message.text).catch(() => undefined);
+    try {
+      await writeTextToClipboard(message.text);
+      toast.success(t("aiAssistant.copySuccess"));
+    } catch {
+      toast.error(t("aiAssistant.copyFailed"));
+    }
   };
   const speak = () => {
     if (!("speechSynthesis" in window)) return;
@@ -326,7 +338,7 @@ export const MessageBubble = memo(function MessageBubble({
         size="icon-xs"
         className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={copyText}
-        aria-label="Copy"
+        aria-label={t("aiAssistant.copy")}
       >
         <Copy className={cn("size-3.5", isUser && userActionIconClass)} />
       </Button>
@@ -421,7 +433,7 @@ export const MessageBubble = memo(function MessageBubble({
             size="icon-xs"
             className="opacity-70 hover:opacity-100"
             onClick={copyText}
-            aria-label="Copy"
+            aria-label={t("aiAssistant.copy")}
           >
             <Copy className="size-3" />
           </Button>

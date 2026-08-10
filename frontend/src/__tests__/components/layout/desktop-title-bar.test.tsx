@@ -29,6 +29,9 @@ describe("DesktopTitleBar", () => {
         isMaximized: vi.fn().mockResolvedValue(false),
         onMaximizedChange: vi.fn().mockReturnValue(unsubscribe),
       },
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
     };
 
     useAppStore.setState({ theme: "system" });

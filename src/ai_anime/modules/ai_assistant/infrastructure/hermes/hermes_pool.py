@@ -418,6 +418,9 @@ class HermesPool:
             env["AI_ANIME_PROJECT"] = project_id
         if project_env:
             env.update(project_env)
+        desktop_token = os.environ.get("AI_ANIME_DESKTOP_TOKEN", "").strip()
+        if desktop_token:
+            env["AI_ANIME_DESKTOP_TOKEN"] = desktop_token
         api_key, _base_url = effective_gateway_credentials()
         if api_key:
             env["NEWAPI_API_KEY"] = api_key

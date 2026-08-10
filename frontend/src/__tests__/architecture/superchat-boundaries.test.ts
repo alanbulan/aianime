@@ -988,7 +988,7 @@ describe("SuperChat boundaries", () => {
     );
   });
 
-  it("keeps browser speech recognition in a dedicated controller", () => {
+  it("keeps local speech recording and transcription in dedicated adapters", () => {
     const speechController = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1007,6 +1007,13 @@ describe("SuperChat boundaries", () => {
       ),
       "utf8",
     );
+    const gateway = readFileSync(
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/infrastructure/localSpeechTranscriptionGateway.ts",
+      ),
+      "utf8",
+    );
 
     expect(panel).toContain(
       'from "@/modules/ai_assistant/presentation/useSpeechInputController";',
@@ -1015,16 +1022,22 @@ describe("SuperChat boundaries", () => {
       'from "@/modules/ai_assistant/public";',
     );
     for (const ownedOperation of [
-      "type SpeechRecognitionLike =",
-      "function createSpeechRecognition(",
+      'type SpeechInputStatus = "idle" | "recording" | "transcribing";',
+      "type SpeechInputDependencies =",
       "export function useSpeechInputController(",
-      "const speechRef = useRef<SpeechRecognitionLike | null>(null);",
-      "recognition.onresult =",
-      "recognition.onend =",
+      "const recorderRef = useRef<VoiceRecorder | null>(null);",
+      ".transcribe(recording.dataUrl)",
+      "recorderRef.current?.stop();",
     ]) {
       expect(speechController).toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
+    expect(speechController).toContain(
+      'from "@/modules/ai_assistant/composition";',
+    );
+    expect(gateway).toContain('api/v1/chat/speech/transcribe');
+    expect(gateway).toContain("dataUrlToBlob(dataUrl)");
+    expect(gateway).not.toContain("fetch(dataUrl)");
     expect(speechController).not.toContain("useSuperChat");
     expect(panel).not.toContain("SpeechRecognition");
     expect(panel).not.toContain("speechRef");

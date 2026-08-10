@@ -9,7 +9,7 @@ import {
   VoiceRecorderStartError,
   type VoiceRecorder,
 } from "@/shared/voice-recording/voice-recorder";
-import { transcribeLocalSpeech } from "@/modules/ai_assistant/infrastructure/localSpeechTranscriptionGateway";
+import { transcribeLocalSpeech } from "@/modules/ai_assistant/composition";
 
 type SpeechInputStatus = "idle" | "recording" | "transcribing";
 

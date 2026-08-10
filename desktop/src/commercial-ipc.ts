@@ -243,14 +243,19 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.avatar, () => requireClient().currentAvatar());
   handle(COMMERCIAL_CHANNELS.uploadAvatar, async (input) => {
     const upload = requiredRecord(input, "avatar upload");
+    const contentType = requiredText(upload.contentType, "contentType").toLowerCase();
+    const bytes = requiredBytes(upload.bytes, "bytes");
     await requireClient().uploadAvatar({
       fileName: requiredText(upload.fileName, "fileName"),
-      contentType: requiredText(upload.contentType, "contentType"),
-      bytes: requiredBytes(upload.bytes, "bytes"),
+      contentType,
+      bytes,
     });
     return {
       profile: await requireClient().currentProfile(),
-      avatar: await requireClient().currentAvatar(),
+      avatar: {
+        contentType,
+        dataUrl: `data:${contentType};base64,${Buffer.from(bytes).toString("base64")}`,
+      },
     };
   });
   handle(COMMERCIAL_CHANNELS.deleteAvatar, async () => {

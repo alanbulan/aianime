@@ -136,6 +136,60 @@ test("commercial auth IPC preserves exact password text", async () => {
   ]);
 });
 
+test("avatar upload previews the accepted local bytes without an immediate remote reread", async () => {
+  const handlers = new Map();
+  const uploads = [];
+  let avatarReads = 0;
+  const profile = { id: 1, username: "client", avatar: "/api/v1/user/avatar" };
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.test",
+      uploadAvatar: async (input) => uploads.push(input),
+      currentProfile: async () => profile,
+      currentAvatar: async () => {
+        avatarReads += 1;
+        throw new Error("new object is not readable yet");
+      },
+    },
+    deviceIdentity: {},
+    modelAccessStore: {},
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.9",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async () => undefined,
+    onLoggedOut: async () => undefined,
+  });
+
+  const bytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
+  const result = await handlers.get(COMMERCIAL_CHANNELS.uploadAvatar)(
+    { sender: { id: 1 } },
+    {
+      fileName: "avatar.png",
+      contentType: "IMAGE/PNG",
+      bytes,
+    },
+  );
+
+  assert.equal(uploads.length, 1);
+  assert.equal(uploads[0].contentType, "image/png");
+  assert.deepEqual(uploads[0].bytes, bytes);
+  assert.equal(avatarReads, 0);
+  assert.deepEqual(result, {
+    profile,
+    avatar: {
+      contentType: "image/png",
+      dataUrl: "data:image/png;base64,iVBORw==",
+    },
+  });
+});
+
 test("missing restored cloud session clears the local workspace session", async () => {
   const handlers = new Map();
   let authenticated = 0;

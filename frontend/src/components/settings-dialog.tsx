@@ -9,8 +9,10 @@ import {
   EyeOff,
   History,
   KeyRound,
+  Laptop,
   Loader2,
   Plus,
+  RefreshCw,
   ShieldCheck,
   Trash2,
   UserRound,
@@ -38,7 +40,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { commercialValueLabel } from "@/shared/commercial-value-label";
 import {
-  CommercialAccountSection,
+  CommercialLicenseSection,
+  CommercialProfileSection,
+  CommercialSecuritySection,
   useCommercialEntitlementStore,
 } from "@/modules/identity_access/public";
 import {
@@ -83,13 +87,13 @@ const BYOK_ROLE_LABEL_KEYS: Record<ByokModelRole, string> = {
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation();
   const bridgeAvailable = Boolean(window.aiAnimeDesktop?.commercial);
-  const [tab, setTab] = useState("account");
+  const [tab, setTab] = useState("profile");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="flex h-[min(82vh,760px)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-lg border border-border bg-background p-0 ring-0 sm:max-w-[760px]"
+        className="flex h-[min(84vh,780px)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden rounded-lg border border-border bg-background p-0 ring-0 sm:max-w-[840px]"
       >
         <DialogHeader className="border-b border-border px-5 py-4">
           <DialogTitle>{t("settings.title")}</DialogTitle>
@@ -102,11 +106,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         >
           <TabsList
             variant="line"
-            className="h-10 w-full justify-start border-b border-border px-5"
+            className="h-11 w-full justify-start gap-1 overflow-x-auto border-b border-border px-5"
           >
-            <TabsTrigger value="account" className="flex-none px-3">
+            <TabsTrigger value="profile" className="flex-none px-3">
               <UserRound />
-              {t("settings.tabs.account")}
+              {t("settings.tabs.profile")}
+            </TabsTrigger>
+            <TabsTrigger value="license" className="flex-none px-3">
+              <Laptop />
+              {t("settings.tabs.license")}
             </TabsTrigger>
             <TabsTrigger value="models" className="flex-none px-3">
               <Cpu />
@@ -116,15 +124,24 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <History />
               {t("settings.tabs.invocations")}
             </TabsTrigger>
+            <TabsTrigger value="update" className="flex-none px-3">
+              <RefreshCw />
+              {t("settings.tabs.update")}
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="account" className="min-h-0 overflow-hidden">
+          <TabsContent value="profile" className="min-h-0 overflow-hidden">
             <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
-              <CommercialAccountSection
-                active={open && tab === "account"}
+              <CommercialProfileSection
+                active={open && tab === "profile"}
                 bridgeAvailable={bridgeAvailable}
               />
-              <CommercialUpdateSettingsSection
-                active={open && tab === "account"}
+              <CommercialSecuritySection bridgeAvailable={bridgeAvailable} />
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="license" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
+              <CommercialLicenseSection
+                active={open && tab === "license"}
                 bridgeAvailable={bridgeAvailable}
               />
             </ScrollArea>
@@ -141,6 +158,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
               <CommercialInvocationSection
                 active={open && tab === "invocations"}
+                bridgeAvailable={bridgeAvailable}
+              />
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent value="update" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
+              <CommercialUpdateSettingsSection
+                active={open && tab === "update"}
                 bridgeAvailable={bridgeAvailable}
               />
             </ScrollArea>

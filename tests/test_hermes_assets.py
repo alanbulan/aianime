@@ -20,4 +20,6 @@ def test_ai_anime_hermes_assets_are_bundled_and_use_current_contract_names():
     assert "name: ai_anime" in skill.read_text(encoding="utf-8")
     assert '"ai_anime_pipeline_status"' in plugin_text
     assert 'requires_env=["AI_ANIME_API_URL", "AI_ANIME_AGENT_TOKEN"]' in plugin_text
+    assert 'os.environ.get("AI_ANIME_DESKTOP_TOKEN", "").strip()' in plugin_text
+    assert 'headers["X-AI-Anime-Desktop-Token"] = desktop_token' in plugin_text
     assert "dramaclaw" not in plugin_text.lower()

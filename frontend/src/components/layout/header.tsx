@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, useParams } from "@tanstack/react-router";
@@ -38,6 +38,8 @@ import { authRequired, isCeRuntime } from "@/lib/runtime-config";
 import { resetUserSessionState } from "@/lib/reset-region-state";
 import { useModelGatewayConfig } from "@/modules/model_usage/public";
 import {
+  loadReadNotificationKeys,
+  markNotificationKeysRead,
   useCommercialAnnouncements,
   useCommercialRelease,
 } from "@/modules/platform_release/public";
@@ -90,6 +92,10 @@ export function Header() {
   const displayName =
     commercialUser?.nickname || commercialUser?.username || username || "User";
   const accountUsername = commercialUser?.username || username || null;
+  const notificationReadScope = accountUsername || "local";
+  const [readNotificationKeys, setReadNotificationKeys] = useState<Set<string>>(
+    () => loadReadNotificationKeys(notificationReadScope),
+  );
   const accountEmail = commercialUser?.email || null;
   const accountTenant = ceRuntime ? commercialSession?.tenant.name ?? null : null;
   const avatarUrl = ceRuntime ? commercialAvatarDataUrl : localAvatarUrl;
@@ -101,9 +107,21 @@ export function Header() {
   const commercialEnabled = Boolean(window.aiAnimeDesktop?.commercial);
   const commercialAnnouncements = useCommercialAnnouncements(commercialEnabled);
   const commercialRelease = useCommercialRelease(commercialEnabled);
-  const hasUnreadNotification =
-    (commercialAnnouncements.data?.items.length ?? 0) > 0 ||
-    Boolean(commercialRelease.data?.available);
+  const notificationKeys = useMemo(
+    () => [
+      ...(commercialAnnouncements.data?.items ?? []).map(
+        (item) => `announcement:${item.id}`,
+      ),
+      ...(commercialRelease.data?.available
+        ? [`release:${commercialRelease.data.artifactId ?? "available"}`]
+        : []),
+    ],
+    [commercialAnnouncements.data?.items, commercialRelease.data],
+  );
+  const notificationKeySignature = notificationKeys.join("\n");
+  const hasUnreadNotification = notificationKeys.some(
+    (key) => !readNotificationKeys.has(key),
+  );
   const gatewayConfig = modelGatewayConfig.data?.data;
   const hasSettingsWarning = Boolean(
     ceRuntime &&
@@ -130,6 +148,17 @@ export function Header() {
       isDesktop ? document.getElementById("desktop-title-bar-actions") : null,
     );
   }, [isDesktop]);
+
+  useEffect(() => {
+    setReadNotificationKeys(loadReadNotificationKeys(notificationReadScope));
+  }, [notificationReadScope]);
+
+  useEffect(() => {
+    if (!notificationOpen || notificationKeys.length === 0) return;
+    setReadNotificationKeys(
+      markNotificationKeysRead(notificationReadScope, notificationKeys),
+    );
+  }, [notificationKeySignature, notificationKeys, notificationOpen, notificationReadScope]);
 
 
   useEffect(() => {
@@ -202,6 +231,11 @@ export function Header() {
 
   const openNotifications = () => {
     closeAccountPanelNow();
+    if (notificationKeys.length > 0) {
+      setReadNotificationKeys(
+        markNotificationKeysRead(notificationReadScope, notificationKeys),
+      );
+    }
     setNotificationOpen(true);
   };
 

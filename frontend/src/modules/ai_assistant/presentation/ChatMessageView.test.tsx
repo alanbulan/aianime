@@ -95,7 +95,7 @@ describe("SuperChat chat message view", () => {
     expect(screen.queryByText("hero.png")).toBeNull();
     expect(screen.queryByText("scene.mp4")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    fireEvent.click(screen.getByRole("button", { name: "aiAssistant.copy" }));
     fireEvent.click(screen.getByRole("button", { name: "Details" }));
     fireEvent.click(screen.getByRole("button", { name: "Pin" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
@@ -197,7 +197,7 @@ describe("SuperChat chat message view", () => {
 
     expect(screen.getByText("count")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Copy JSON" }));
+    fireEvent.click(screen.getByRole("button", { name: "aiAssistant.copyJson" }));
     fireEvent.click(screen.getByRole("button", { name: "open-spec-media" }));
 
     await waitFor(() => {

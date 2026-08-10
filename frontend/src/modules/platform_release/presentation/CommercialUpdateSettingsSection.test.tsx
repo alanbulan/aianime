@@ -29,6 +29,8 @@ describe("Commercial update settings entry", () => {
       artifactId: null,
     });
     window.aiAnimeDesktop = {
+      platform: "win32",
+      versions: { electron: "43.2.0", chrome: "0", node: "0" },
       commercial: { checkRelease } as unknown as AIAnimeCommercialBridge,
     } as AIAnimeDesktopBridge;
     const queryClient = new QueryClient({
@@ -42,6 +44,19 @@ describe("Commercial update settings entry", () => {
     );
 
     await waitFor(() => expect(checkRelease).toHaveBeenCalledOnce());
+    expect(screen.getByText("AI anime")).toBeInTheDocument();
+    expect(
+      screen.getByText("settings.update.platformWindows"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Electron 43.2.0")).toBeInTheDocument();
+    expect(
+      screen.getByText("settings.update.releaseChannelStable"),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByText("settings.update.statusUpToDate"),
+      ).toBeInTheDocument(),
+    );
     fireEvent.click(
       screen.getByRole("button", { name: "settings.update.check" }),
     );

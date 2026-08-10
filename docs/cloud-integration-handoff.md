@@ -1,6 +1,6 @@
 # 云端接入交接
 
-客户端 `1.1.8` 固定使用 `https://aianime.122-193-11-199.sslip.io`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；`1.1.7` 已由发布方上传云端，`1.1.8` 已完成本地构建和制品校验，等待上传并创建新的可选更新记录。
+客户端 `1.1.10` 固定使用 `https://aianime.122-193-11-199.sslip.io`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；`1.1.7` 已由发布方上传云端，`1.1.10` 已完成本地构建和制品校验，等待上传并创建新的可选更新记录。
 
 ## 1. 登录首屏
 
@@ -181,6 +181,17 @@ sha512: fcNOF4UWbUyNUhqrGymDRWM63G5Po6WAyFvddnqng03MP9iWMTdudNkSkOUlRLmLRjf4/RzP
 ```
 
 `latest.yml` 中的版本、文件名、大小和 electron-builder SHA-512 已与 `1.1.8` 安装包复核一致，`releaseDate` 为 `2026-08-09T16:39:00.152Z`。本版本随包携带 Faster Whisper base 模型和 CPU 本地推理运行库，因此安装包体积较 `1.1.7` 增加；发布时必须同时上传新的 EXE 与 `latest.yml`，不能复用旧版本清单。
+
+2026-08-10 已生成待发布的 Windows `1.1.10`：
+
+```text
+AI-anime-1.1.10-x64-setup.exe
+size: 680418776
+sha256: 12EB0E8AECBCA1D5627D828A4AF0DEE939BF4D37DA3C5DEF2D002C6996003BEC
+sha512: FhPVvBqHQegmo6O1ZOzRitmM6JQqlt/Yh470sDxY/gffNNrynn8f7Vx5ENFGyOmZ4iRp1zSsPElbix80q9UFiw==
+```
+
+`latest.yml` 中的版本、文件名、大小和 electron-builder SHA-512 已与 `1.1.10` 安装包复核一致，`releaseDate` 为 `2026-08-10T04:53:45.853Z`。本版本继续随包携带 Faster Whisper base 模型、FFmpeg、本地后端和 Hermes 运行时；发布时必须同时上传新的 EXE、`.blockmap` 与 `latest.yml`。该构件未使用 Authenticode 证书，Windows 会显示未知发布者。
 
 macOS 打包：
 

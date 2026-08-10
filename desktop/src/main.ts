@@ -5,6 +5,7 @@ import { hostname } from "node:os";
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -38,6 +39,9 @@ const WINDOW_CHANNELS = {
   close: "desktop:window:close",
   isMaximized: "desktop:window:is-maximized",
   maximizedChanged: "desktop:window:maximized-changed",
+} as const;
+const CLIPBOARD_CHANNELS = {
+  writeText: "desktop:clipboard:write-text",
 } as const;
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self';",
@@ -187,6 +191,15 @@ function registerWindowIpc(): void {
   });
   ipcMain.handle(WINDOW_CHANNELS.isMaximized, (event) => {
     return activeWindow(event.sender.id)?.isMaximized() ?? false;
+  });
+  ipcMain.handle(CLIPBOARD_CHANNELS.writeText, (event, value: unknown) => {
+    if (!activeWindow(event.sender.id)) {
+      throw new Error("clipboard sender is not the active desktop window");
+    }
+    if (typeof value !== "string") {
+      throw new TypeError("clipboard value must be a string");
+    }
+    clipboard.writeText(value);
   });
 }
 

@@ -7,13 +7,15 @@ import { SettingsDialog } from "@/components/settings-dialog";
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) =>
-      key === "settings.tabs.models"
-        ? "模型"
-        : key === "settings.modelAccess.modelRole"
-          ? "模型用途"
-          : key === "settings.modelAccess.roles.videoFirstLastFrame"
-            ? "视频:首尾帧"
-            : key,
+      ({
+        "settings.tabs.profile": "账户与安全",
+        "settings.tabs.license": "许可与设备",
+        "settings.tabs.models": "模型",
+        "settings.tabs.invocations": "调用记录",
+        "settings.tabs.update": "关于与更新",
+        "settings.modelAccess.modelRole": "模型用途",
+        "settings.modelAccess.roles.videoFirstLastFrame": "视频:首尾帧",
+      } as Record<string, string>)[key] ?? key,
   }),
 }));
 
@@ -33,6 +35,9 @@ vi.mock("@/modules/identity_access/public", () => {
   };
   return {
     CommercialAccountSection: () => null,
+    CommercialLicenseSection: () => null,
+    CommercialProfileSection: () => null,
+    CommercialSecuritySection: () => null,
     useCommercialEntitlementStore: (
       selector: (value: typeof state) => unknown,
     ) => selector(state),
@@ -79,6 +84,25 @@ vi.mock("@/modules/platform_release/public", () => ({
 }));
 
 describe("SettingsDialog", () => {
+  it("按商业设置中心分类展示独立页签", () => {
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: { commercial: {} },
+    });
+
+    render(<SettingsDialog open onOpenChange={vi.fn()} />);
+
+    for (const name of [
+      "账户与安全",
+      "许可与设备",
+      "模型",
+      "调用记录",
+      "关于与更新",
+    ]) {
+      expect(screen.getByRole("tab", { name })).toBeInTheDocument();
+    }
+  });
+
   it("在模型用途选中后继续显示本地化标签", async () => {
     Object.defineProperty(window, "aiAnimeDesktop", {
       configurable: true,

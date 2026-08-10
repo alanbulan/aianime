@@ -34,3 +34,6 @@ export type {
 } from "@/modules/identity_access/domain/commercial-session";
 export type { CurrentUser } from "@/modules/identity_access/domain/session";
 export { CommercialAccountSection } from "@/modules/identity_access/presentation/CommercialAccountSection";
+export { CommercialLicenseSection } from "@/modules/identity_access/presentation/CommercialAccountSection";
+export { CommercialProfileSection } from "@/modules/identity_access/presentation/CommercialProfileSection";
+export { CommercialSecuritySection } from "@/modules/identity_access/presentation/CommercialSecuritySection";

@@ -41,6 +41,9 @@ import {
 import {
   createSuperChatSocketSession,
 } from "@/modules/ai_assistant/infrastructure/socketSession";
+import {
+  transcribeLocalSpeech as transcribeLocalSpeechThroughGateway,
+} from "@/modules/ai_assistant/infrastructure/localSpeechTranscriptionGateway";
 
 const chatSessionPorts: ChatSessionPorts = {
   appendChatNotification,
@@ -81,3 +84,5 @@ export function useIngestAutomationController(
     ports: ingestAutomationPorts,
   });
 }
+
+export const transcribeLocalSpeech = transcribeLocalSpeechThroughGateway;

@@ -104,6 +104,7 @@ def test_hermes_worker_receives_effective_newapi_key_without_mutating_host_env(
     from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_pool
 
     monkeypatch.delenv("NEWAPI_API_KEY", raising=False)
+    monkeypatch.setenv("AI_ANIME_DESKTOP_TOKEN", "desktop-token")
     monkeypatch.setattr(
         hermes_pool,
         "effective_gateway_credentials",
@@ -130,6 +131,7 @@ def test_hermes_worker_receives_effective_newapi_key_without_mutating_host_env(
     )
 
     assert env["NEWAPI_API_KEY"] == "worker-only-key"
+    assert env["AI_ANIME_DESKTOP_TOKEN"] == "desktop-token"
     assert "NEWAPI_API_KEY" not in os.environ
     if os.name == "nt":
         assert env["HERMES_HOME"] == str(tmp_path)

@@ -3,6 +3,7 @@ import { Braces, ListTree, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import type {
@@ -54,6 +55,9 @@ export function ControlBar({
       : transportStatus === "reconnecting"
         ? t("aiAssistant.reconnecting")
         : t("aiAssistant.disconnected");
+  const toolEventsLabel = chat.settings.showToolEvents
+    ? t("aiAssistant.hideToolEvents")
+    : t("aiAssistant.showToolEvents");
   return (
     <div
       className={cn(
@@ -115,11 +119,21 @@ export function ControlBar({
       <Button
         variant="ghost"
         size="icon-sm"
-        onClick={() => chat.setSettings({ showToolEvents: !chat.settings.showToolEvents })}
+        onClick={() => {
+          const showToolEvents = !chat.settings.showToolEvents;
+          chat.setSettings({ showToolEvents });
+          toast.success(
+            t(
+              showToolEvents
+                ? "aiAssistant.toolEventsShown"
+                : "aiAssistant.toolEventsHidden",
+            ),
+          );
+        }}
         aria-pressed={chat.settings.showToolEvents}
-        aria-label={t("aiAssistant.showToolEvents")}
-        title={t("aiAssistant.showToolEvents")}
-        className={chat.settings.showToolEvents ? "text-primary" : "text-muted-foreground"}
+        aria-label={toolEventsLabel}
+        title={toolEventsLabel}
+        className={chat.settings.showToolEvents ? "bg-muted text-primary" : "text-muted-foreground"}
       >
         <ListTree className="size-4" />
       </Button>

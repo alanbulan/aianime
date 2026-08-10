@@ -285,13 +285,11 @@ export function ChatComposer({
             {(recording || transcribing) && (
               <div className="mr-1 flex items-center gap-1.5 text-sm text-primary">
                 <span className="size-2 animate-pulse rounded-full bg-primary" />
-                <span>
-                  {t(
-                    transcribing
-                      ? "aiAssistant.transcribing"
-                      : "aiAssistant.listening",
-                  )}
-                </span>
+                 <span>
+                  {transcribing
+                    ? t("aiAssistant.transcribing")
+                    : t("aiAssistant.listening")}
+                 </span>
               </div>
             )}
             <Button

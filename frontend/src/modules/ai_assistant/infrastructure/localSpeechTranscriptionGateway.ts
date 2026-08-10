@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { api } from "@/shared/api/transport";
+import { dataUrlToBlob } from "@/shared/media/data-url";
 
 type SpeechTranscriptionResponse = {
   ok: boolean;
@@ -9,7 +10,7 @@ type SpeechTranscriptionResponse = {
 };
 
 export async function transcribeLocalSpeech(dataUrl: string): Promise<string> {
-  const audio = await fetch(dataUrl).then((response) => response.blob());
+  const audio = dataUrlToBlob(dataUrl);
   const body = new FormData();
   body.append("audio", audio, recordingFileName(audio.type));
   const response = await api

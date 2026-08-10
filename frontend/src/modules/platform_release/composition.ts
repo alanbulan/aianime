@@ -12,6 +12,10 @@ import { queryKeys } from "@/lib/query-keys";
 import { parseCommercialBootstrapRelease } from "@/modules/platform_release/domain/commercial-release";
 import { electronCommercialAnnouncementGateway } from "@/modules/platform_release/infrastructure/electron-commercial-announcement-gateway";
 import { electronCommercialReleaseGateway } from "@/modules/platform_release/infrastructure/electron-commercial-release-gateway";
+export {
+  loadReadNotificationKeys,
+  markNotificationKeysRead,
+} from "@/modules/platform_release/infrastructure/notification-read-storage";
 
 const commercialAnnouncementQueries = createCommercialAnnouncementQueries(
   electronCommercialAnnouncementGateway,

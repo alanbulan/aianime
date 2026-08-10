@@ -1,19 +1,23 @@
 ---
-version: 1.1.8
+version: 1.1.10
 attention: low
 ---
-# v1.1.8
+# v1.1.10
 
 ## User-facing Highlights (zh)
 
-- **本地语音转写**: 麦克风输入改用随应用打包的 Faster Whisper 本地 sidecar，在 Windows 与 macOS 上离线完成普通话转写，不再依赖浏览器或云端语音服务。
-- **更新检测**: 启动后强制执行真实版本检查，避免 Bootstrap 缓存遮蔽云端新版本；账户设置新增“检查更新”入口和检查状态反馈。
-- **显示修复**: 账户、设备信息不再重复显示完全相同的值与明细，自定义模型用途选中后继续显示本地化名称。
-- **权限边界**: Electron 仅允许本地主窗口申请麦克风音频权限，并补充 macOS 麦克风用途声明；录音数据只提交至受桌面令牌保护的本机接口。
+- **助手会话修复**: Hermes 业务工具同时携带桌面令牌和用户 Agent 令牌，已登录账号不再被误判为“桌面会话校验失败”。
+- **本地语音修复**: 录音数据改为内存解码后提交至随应用打包的 Faster Whisper sidecar，避免被 Electron CSP 拦截；Windows 与 macOS 继续使用本地离线转写。
+- **通知与操作反馈**: 通知中心按账号持久化已读状态，查看后红点立即消失，新公告仍会提醒；复制文本与 JSON 改走可信 Electron 剪贴板并显示成功或失败结果。
+- **工具事件入口**: 右上角工具事件按钮增加明确的开启/关闭状态与提示，解决点击后无可见反馈的问题。
+- **账户与更新界面**: 点击头像框即可更换头像；账户资料与修改密码合并展示，许可设备和应用更新独立分类；更新页展示应用、平台、运行时、渠道和检查方式等详细信息。
+- **本地化与布局**: 下拉筛选的已选值保持中文显示，修复账户/许可信息重复渲染，并放宽资料保存与密码操作区的布局间距。
 
 ## User-facing Highlights (en)
 
-- **Local speech transcription**: Replaces browser speech recognition with a bundled Faster Whisper sidecar for offline Mandarin transcription on Windows and macOS.
-- **Update discovery**: Forces a real release check after Bootstrap hydration and adds a visible manual check-for-updates action with status feedback.
-- **Rendering fixes**: Suppresses duplicate account and device details, while keeping selected custom-model purposes localized.
-- **Permission boundary**: Grants audio-only microphone access to the trusted local main window and adds the required macOS usage description.
+- **Assistant session fix**: Hermes business tools now send both the desktop token and user Agent token, preventing authenticated users from being rejected by desktop-session validation.
+- **Local speech fix**: Recorded audio is decoded in memory before being sent to the bundled Faster Whisper sidecar, avoiding Electron CSP blocking while keeping transcription offline on Windows and macOS.
+- **Notification and action feedback**: Read state is persisted per account, the unread dot clears after viewing, and new announcements still alert; text and JSON copy now use the trusted Electron clipboard with success or failure feedback.
+- **Tool activity control**: The header tool-events control now has clear enabled/disabled styling and confirmation feedback.
+- **Account and update UI**: Avatar replacement is integrated into the avatar frame, profile and password settings are grouped together, and the update page provides detailed app, platform, runtime, channel, and check information.
+- **Localization and layout**: Selected filter values remain localized, duplicate account/license rendering is removed, and profile/password action spacing is improved.
