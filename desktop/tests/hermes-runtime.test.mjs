@@ -29,7 +29,8 @@ test("development and packaged Hermes paths are deterministic", () => {
 test("runtime resolution requires both the ACP binary and managed assets", async () => {
   const root = await mkdtemp(join(tmpdir(), "ai-anime-hermes-"));
   const repositoryRoot = join(root, "repo");
-  const cliPath = developmentHermesCliPath(repositoryRoot, "win32");
+  const platform = process.platform;
+  const cliPath = developmentHermesCliPath(repositoryRoot, platform);
   const assetsPath = join(repositoryRoot, ".hermes");
   try {
     await mkdir(dirname(cliPath), { recursive: true });
@@ -40,7 +41,7 @@ test("runtime resolution requires both the ACP binary and managed assets", async
         packaged: false,
         repositoryRoot,
         resourcesPath: root,
-        platform: "win32",
+        platform,
       }),
       { cliPath, assetsPath },
     );
