@@ -43,6 +43,10 @@ from ai_anime.modules.ai_assistant.domain import (
 )
 
 logger = logging.getLogger(__name__)
+HERMES_EMPTY_RESPONSE_MESSAGE = (
+    "助手运行时没有返回有效内容。请重试当前指令；如果仍然出现此提示，"
+    "请检查文本模型配置和本地运行日志。"
+)
 
 
 class HermesProjectReplies:
@@ -195,7 +199,10 @@ class HermesProjectReplies:
                     continue
                 if event.type == "tool_update":
                     if event.raw is not None:
-                        mapped_chat_error = tool_chat_error(event.raw)
+                        mapped_chat_error = tool_chat_error(
+                            event.raw,
+                            tool_name=current_tool_name,
+                        )
                         if (
                             mapped_chat_error
                             and mapped_chat_error not in seen_tool_chat_errors
@@ -296,7 +303,7 @@ class HermesProjectReplies:
                     )
 
             if not assistant_text.strip():
-                assistant_text = "(hermes returned no content)"
+                assistant_text = HERMES_EMPTY_RESPONSE_MESSAGE
             if not tool_ui_specs and not fallback_tool_ui_specs:
                 inferred_display_call = infer_display_tool_call_from_text(
                     prompt,
@@ -324,7 +331,7 @@ class HermesProjectReplies:
                 result_message = self._project_messages.append_assistant(
                     username,
                     project,
-                    "(hermes returned no content)",
+                    HERMES_EMPTY_RESPONSE_MESSAGE,
                     [],
                     project_dir=project_dir,
                     project_state_dir=project_state_dir,

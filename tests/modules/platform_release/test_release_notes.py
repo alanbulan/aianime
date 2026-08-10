@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from ai_anime.modules.platform_release.domain import (
@@ -36,7 +37,11 @@ attention: medium
 
 
 def test_repository_release_notes_match_package_version() -> None:
+    project = Path("pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^version = "([^"]+)"', project, re.MULTILINE)
+    assert match is not None
+    version = match.group(1)
     body = Path("src/ai_anime/release-notes.md").read_text(encoding="utf-8")
-    validate_version_marker(body, "1.1.10")
-    assert parse_release_notes(body, "v1.1.10", locale="zh").items
-    assert parse_release_notes(body, "v1.1.10", locale="en").items
+    validate_version_marker(body, version)
+    assert parse_release_notes(body, f"v{version}", locale="zh").items
+    assert parse_release_notes(body, f"v{version}", locale="en").items

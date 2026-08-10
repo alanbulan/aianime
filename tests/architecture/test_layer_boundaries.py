@@ -1389,7 +1389,8 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     assert "def tool_chat_error(" in domain_source
     assert "redact_secrets" in domain_source
     assert "tool_chat_error" in public_source
-    assert "tool_chat_error(event.raw)" in hermes_replies_source
+    assert "tool_chat_error(" in hermes_replies_source
+    assert "tool_name=current_tool_name" in hermes_replies_source
     assert "tool_chat_error" not in service_source
     for legacy_implementation in (
         "def _extract_tool_chat_error(",

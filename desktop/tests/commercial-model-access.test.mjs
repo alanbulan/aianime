@@ -1099,6 +1099,37 @@ test("local model proxy forwards multipart, Anthropic, and Range protocol data",
   );
 });
 
+test("local model proxy rejects HTML returned by the video content endpoint", async (t) => {
+  const client = {
+    async modelRequest() {
+      return new Response("<!doctype html><html></html>", {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8" },
+      });
+    },
+  };
+  const device = {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  };
+  const proxy = new CommercialModelProxy(client, device);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/videos/video-html/content`, {
+    headers: { Authorization: `Bearer ${proxy.token}` },
+  });
+
+  assert.equal(response.status, 502);
+  const payload = await response.json();
+  assert.match(payload.error.message, /返回了非视频内容：text\/html/);
+});
+
 test("local model proxy aborts an upstream stream when the local client disconnects", async (t) => {
   let upstreamSignal;
   let resolveAborted;

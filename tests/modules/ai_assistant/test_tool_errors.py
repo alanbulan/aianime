@@ -93,3 +93,42 @@ def test_extract_tool_chat_error_maps_ok_false_without_error_text():
         tool_chat_error(payload)
         == "任务执行失败：接口返回 ok=false，但没有提供具体错误原因。"
     )
+
+
+def test_successful_task_list_does_not_promote_historical_failure_to_chat_error():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "completed",
+        "result": json.dumps(
+            {
+                "ok": True,
+                "status_code": 200,
+                "data": [
+                    {
+                        "status": "failed",
+                        "error": "历史图片任务失败",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+    }
+
+    assert tool_chat_error(payload, tool_name="ai_anime_list_tasks") is None
+
+
+def test_failed_task_list_request_still_surfaces_transport_error():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "completed",
+        "result": {
+            "ok": False,
+            "status_code": 401,
+            "error": "desktop session rejected",
+        },
+    }
+
+    assert (
+        tool_chat_error(payload, tool_name="ai_anime_list_tasks")
+        == "任务执行失败：desktop session rejected"
+    )

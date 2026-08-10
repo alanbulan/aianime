@@ -471,16 +471,19 @@ async def test_video_download_resumes_existing_partial_file(
     generator = _generator(monkeypatch)
     output = tmp_path / "result.mp4"
     partial = generator._download_partial_path(output, "invocation-resume")
-    partial.write_bytes(b"abc")
+    partial.write_bytes(b"\x00\x00\x00\x18ftyp")
     requested_headers: list[dict[str, str]] = []
 
     class _Content:
         async def iter_chunked(self, _size: int):
-            yield b"def"
+            yield b"mp42video"
 
     class _Response:
         status = 206
-        headers = {"Content-Range": "bytes 3-5/6"}
+        headers = {
+            "Content-Range": "bytes 8-16/17",
+            "Content-Type": "video/mp4",
+        }
         content = _Content()
 
         async def __aenter__(self):
@@ -507,6 +510,56 @@ async def test_video_download_resumes_existing_partial_file(
 
     await generator._download_content("invocation-resume", str(output))
 
-    assert output.read_bytes() == b"abcdef"
+    assert output.read_bytes() == b"\x00\x00\x00\x18ftypmp42video"
     assert not partial.exists()
-    assert requested_headers[0]["Range"] == "bytes=3-"
+    assert requested_headers[0]["Range"] == "bytes=8-"
+
+
+@pytest.mark.asyncio
+async def test_video_download_rejects_html_returned_as_completed_content(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    generator = _generator(monkeypatch)
+    output = tmp_path / "result.mp4"
+    partial = generator._download_partial_path(output, "invocation-html")
+
+    class _Content:
+        async def iter_chunked(self, _size: int):
+            yield b"<!doctype html><html><body>gateway frontend</body></html>"
+
+    class _Response:
+        status = 200
+        headers = {
+            "Content-Type": "text/html; charset=utf-8",
+            "x-request-id": "request-html",
+        }
+        content = _Content()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+    class _Session:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        def get(self, _url: str, *, headers: dict[str, str]):
+            return _Response()
+
+    monkeypatch.setattr(video_module.aiohttp, "ClientSession", _Session)
+
+    with pytest.raises(CommercialVideoError, match="非视频内容: text/html") as exc_info:
+        await generator._download_content("invocation-html", str(output))
+
+    assert exc_info.value.request_id == "request-html"
+    assert not output.exists()
+    assert not partial.exists()

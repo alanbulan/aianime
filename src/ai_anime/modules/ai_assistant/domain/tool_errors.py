@@ -12,6 +12,15 @@ from ai_anime.modules.ai_assistant.domain.chat_presentation import (
 from ai_anime.shared.utils.error_redaction import redact_secrets
 
 
+_READ_ONLY_AGENT_TOOLS = {
+    "ai_anime_get",
+    "ai_anime_pipeline_status",
+    "ai_anime_list_tasks",
+    "ai_anime_get_task",
+    "ai_anime_get_episode_script",
+}
+
+
 def _normalize_error_text(text: object) -> str:
     raw = redact_secrets(str(text or "")).strip()
     raw = re.sub(r"\s+", " ", raw)
@@ -69,7 +78,9 @@ def _parse_jsonish(text: str) -> Any | None:
         return None
 
 
-def tool_chat_error(value: Any) -> str | None:
+def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
+    suppress_domain_failures = str(tool_name or "").strip() in _READ_ONLY_AGENT_TOOLS
+
     def visit(node: Any) -> str | None:
         if isinstance(node, str):
             decoded = _parse_jsonish(node)
@@ -88,6 +99,15 @@ def tool_chat_error(value: Any) -> str | None:
         chat_error = node.get("chat_error")
         if isinstance(chat_error, str) and chat_error.strip():
             return chat_error.strip()
+
+        status_code = node.get("status_code")
+        if (
+            suppress_domain_failures
+            and isinstance(status_code, int)
+            and 200 <= status_code < 300
+            and node.get("ok") is not False
+        ):
+            return None
 
         for key in ("error", "detail", "message"):
             mapped = _business_chat_error_from_text(node.get(key))

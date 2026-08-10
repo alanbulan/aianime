@@ -264,7 +264,11 @@ async def test_hermes_project_replies_persist_partial_reply_after_stream_failure
 async def test_hermes_project_replies_dedupe_tool_errors_and_display_fallbacks(
     monkeypatch,
 ):
-    monkeypatch.setattr(replies_module, "tool_chat_error", lambda _raw: "mapped error")
+    monkeypatch.setattr(
+        replies_module,
+        "tool_chat_error",
+        lambda _raw, **_kwargs: "mapped error",
+    )
     monkeypatch.setattr(
         replies_module,
         "extract_display_tool_call",
@@ -351,3 +355,21 @@ async def test_hermes_project_replies_recovers_inferred_display_call(monkeypatch
         )
     ]
     assert result["content"] == "normalized:正在展示第2集草图|specs:1"
+
+
+@pytest.mark.anyio
+async def test_hermes_project_replies_localizes_empty_runtime_response(monkeypatch):
+    monkeypatch.setattr(
+        replies_module, "infer_display_tool_call_from_text", lambda *_: None
+    )
+    replies, _thread, _runtime, _messages, _media, _sessions, _fallbacks = (
+        _build_replies([_event("complete", text="")])
+    )
+
+    async def on_event(_event_value):
+        return None
+
+    result = await replies.stream("alice", "project-a", "你好", on_event)
+
+    assert "助手运行时没有返回有效内容" in result["content"]
+    assert "hermes returned no content" not in result["content"]

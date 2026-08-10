@@ -108,6 +108,7 @@ export class CommercialModelProxy {
         devicePublicKeyHash: device.publicKeyHash,
         signal: abortController.signal,
       });
+      assertModelResponseContract(path, upstream);
       response.statusCode = upstream.status;
       for (const header of [
         "content-type",
@@ -155,6 +156,27 @@ export class CommercialModelProxy {
         }),
       );
     }
+  }
+}
+
+function assertModelResponseContract(path: string, response: Response): void {
+  const url = new URL(path, "http://model-proxy.local");
+  const isVideoContent = /^\/v1\/videos\/[^/]+\/content$/.test(url.pathname);
+  if (!isVideoContent || response.status < 200 || response.status >= 300) return;
+
+  const contentType = (response.headers.get("content-type") ?? "")
+    .split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (
+    contentType !== "video/mp4" &&
+    contentType !== "application/mp4" &&
+    contentType !== "application/octet-stream"
+  ) {
+    throw new CommercialApiError(
+      `云端视频结果接口返回了非视频内容${contentType ? `：${contentType}` : ""}`,
+      { status: 502 },
+    );
   }
 }
 

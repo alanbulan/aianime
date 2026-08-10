@@ -502,6 +502,33 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         task_digest = hashlib.sha256(task_id.encode("utf-8")).hexdigest()[:16]
         return output.with_name(f".{output.name}.{task_digest}.part")
 
+    @staticmethod
+    def _validate_downloaded_video(
+        path: Path,
+        *,
+        content_type: str,
+        request_id: str,
+    ) -> None:
+        normalized_type = content_type.split(";", 1)[0].strip().lower()
+        if normalized_type and normalized_type not in {
+            "video/mp4",
+            "application/mp4",
+            "application/octet-stream",
+        }:
+            raise CommercialVideoError(
+                f"视频结果接口返回了非视频内容: {normalized_type}",
+                status=200,
+                request_id=request_id,
+            )
+        with path.open("rb") as stream:
+            header = stream.read(64)
+        if len(header) < 12 or b"ftyp" not in header[:32]:
+            raise CommercialVideoError(
+                "视频结果不是有效的 MP4 文件",
+                status=200,
+                request_id=request_id,
+            )
+
     async def _download_content(self, task_id: str, output_path: str) -> None:
         output = Path(output_path)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -519,6 +546,10 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                         f"{self.base_url}/videos/{quote(task_id, safe='')}/content",
                         headers=headers,
                     ) as response:
+                        response_request_id = self._request_id(response.headers)
+                        response_content_type = str(
+                            response.headers.get("Content-Type") or ""
+                        )
                         if not 200 <= response.status < 300:
                             text = await response.text()
                             try:
@@ -554,6 +585,15 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                                     stream.write(chunk)
                     if not partial.is_file() or partial.stat().st_size <= 0:
                         raise CommercialVideoError("视频内容下载结果为空")
+                    try:
+                        self._validate_downloaded_video(
+                            partial,
+                            content_type=response_content_type,
+                            request_id=response_request_id,
+                        )
+                    except CommercialVideoError:
+                        partial.unlink(missing_ok=True)
+                        raise
                     os.replace(partial, output)
                     return
                 except (aiohttp.ClientError, asyncio.TimeoutError, CommercialVideoError) as exc:
