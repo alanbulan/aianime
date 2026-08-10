@@ -6,7 +6,10 @@ import { commercialValueLabel } from "@/shared/commercial-value-label";
 const translations: Record<string, string> = {
   "settings.values.edition.PROFESSIONAL": "专业版",
   "settings.values.operation.IMAGE": "图片",
+  "settings.values.quota.COMMITTED": "已提交",
+  "settings.values.quota.DISPATCHING": "调度中",
   "settings.values.quota.RELEASED": "已释放",
+  "settings.values.quota.REVIEW_REQUIRED": "需复核",
   "settings.values.status.SUCCEEDED": "已成功",
 };
 
@@ -19,6 +22,9 @@ describe("commercial value labels", () => {
     expect(commercialValueLabel(t, "operation", "IMAGE")).toBe("图片");
     expect(commercialValueLabel(t, "status", "SUCCEEDED")).toBe("已成功");
     expect(commercialValueLabel(t, "quota", "released")).toBe("已释放");
+    expect(commercialValueLabel(t, "quota", "dispatching")).toBe("调度中");
+    expect(commercialValueLabel(t, "quota", "committed")).toBe("已提交");
+    expect(commercialValueLabel(t, "quota", "review_required")).toBe("需复核");
   });
 
   it("keeps unknown service values visible and handles empty values", () => {

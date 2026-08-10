@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,11 @@ from ai_anime.modules.task_execution.public import (
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.public import project_task_state_key
 from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
+
+_IMAGE_PROGRESS_HEARTBEAT_SECONDS = 2.0
+_IMAGE_PROGRESS_ESTIMATE_SECONDS = 60.0
+_IMAGE_PROGRESS_START = 0.1
+_IMAGE_PROGRESS_CEILING = 0.9
 
 
 def _run_cancellable(
@@ -39,6 +45,7 @@ def _update(
     current_task: str,
     *,
     episode: int = 0,
+    append_log: bool = True,
 ) -> None:
     get_task_manager().update_progress_for_project(
         ctx,
@@ -47,8 +54,54 @@ def _update(
         scope=scope,
         progress=progress,
         current_task=current_task,
-        logs=[current_task],
+        logs=[current_task] if append_log else None,
     )
+
+
+async def _image_progress_heartbeat(
+    ctx: ProjectContext,
+    task_type: str,
+    scope: str,
+    current_task: str,
+) -> None:
+    loop = asyncio.get_running_loop()
+    started_at = loop.time()
+    while True:
+        await asyncio.sleep(_IMAGE_PROGRESS_HEARTBEAT_SECONDS)
+        elapsed = max(0.0, loop.time() - started_at)
+        progress = min(
+            _IMAGE_PROGRESS_CEILING,
+            _IMAGE_PROGRESS_START
+            + (elapsed / _IMAGE_PROGRESS_ESTIMATE_SECONDS)
+            * (_IMAGE_PROGRESS_CEILING - _IMAGE_PROGRESS_START),
+        )
+        _update(
+            ctx,
+            task_type,
+            scope,
+            progress,
+            current_task,
+            append_log=False,
+        )
+
+
+async def _await_image_with_progress(
+    awaitable,
+    *,
+    ctx: ProjectContext,
+    task_type: str,
+    scope: str,
+    current_task: str,
+):
+    heartbeat = asyncio.create_task(
+        _image_progress_heartbeat(ctx, task_type, scope, current_task)
+    )
+    try:
+        return await awaitable
+    finally:
+        heartbeat.cancel()
+        with suppress(asyncio.CancelledError):
+            await heartbeat
 
 
 def _append_node_history(
@@ -128,25 +181,31 @@ async def _run_freezone_gen_async(
     job_id = str(payload["job_id"])
     project_dir = Path(str(payload.get("project_dir") or ctx.output_dir))
     _update(ctx, task_type, job_id, 0.1, "调用图像生成器...")
-    out_path = await _await_with_cancel_watch(
-        creative_canvas_job_execution_use_cases().generate_image(
-            GenerateCreativeCanvasImageJobCommand(
-                project_dir=project_dir,
-                job_id=job_id,
-                prompt=str(payload.get("prompt") or ""),
-                aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
-                image_size=str(payload.get("image_size") or "2K"),
-                reference_paths=tuple(payload.get("reference_paths") or ()),
-                model=payload.get("model"),
-                quality=payload.get("quality"),
-                output_task_type=task_type,
-            )
+    out_path = await _await_image_with_progress(
+        _await_with_cancel_watch(
+            creative_canvas_job_execution_use_cases().generate_image(
+                GenerateCreativeCanvasImageJobCommand(
+                    project_dir=project_dir,
+                    job_id=job_id,
+                    prompt=str(payload.get("prompt") or ""),
+                    aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
+                    image_size=str(payload.get("image_size") or "2K"),
+                    reference_paths=tuple(payload.get("reference_paths") or ()),
+                    model=payload.get("model"),
+                    quality=payload.get("quality"),
+                    output_task_type=task_type,
+                )
+            ),
+            project_id=ctx.project_id,
+            task_type=task_type,
+            episode=0,
+            task_id=str(envelope.get("__run_task_id") or ""),
+            scope=job_id,
         ),
-        project_id=ctx.project_id,
+        ctx=ctx,
         task_type=task_type,
-        episode=0,
-        task_id=str(envelope.get("__run_task_id") or ""),
         scope=job_id,
+        current_task="云端正在生成图片...",
     )
     rel = out_path.relative_to(project_dir).as_posix()
     result = {
@@ -184,28 +243,34 @@ async def _run_freezone_edit_async(
     job_id = str(payload["job_id"])
     project_dir = Path(str(payload.get("project_dir") or ctx.output_dir))
     _update(ctx, task_type, job_id, 0.1, "调用图像编辑器...")
-    out_path = await _await_with_cancel_watch(
-        creative_canvas_job_execution_use_cases().edit_image(
-            EditCreativeCanvasImageJobCommand(
-                project_dir=project_dir,
-                job_id=job_id,
-                prompt=str(payload.get("prompt") or ""),
-                base_path=str(payload["base_path"]),
-                extra_reference_paths=tuple(
-                    payload.get("extra_reference_paths") or ()
-                ),
-                aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
-                image_size=str(payload.get("image_size") or "2K"),
-                model=payload.get("model"),
-                quality=payload.get("quality"),
-                output_task_type=task_type,
-            )
+    out_path = await _await_image_with_progress(
+        _await_with_cancel_watch(
+            creative_canvas_job_execution_use_cases().edit_image(
+                EditCreativeCanvasImageJobCommand(
+                    project_dir=project_dir,
+                    job_id=job_id,
+                    prompt=str(payload.get("prompt") or ""),
+                    base_path=str(payload["base_path"]),
+                    extra_reference_paths=tuple(
+                        payload.get("extra_reference_paths") or ()
+                    ),
+                    aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
+                    image_size=str(payload.get("image_size") or "2K"),
+                    model=payload.get("model"),
+                    quality=payload.get("quality"),
+                    output_task_type=task_type,
+                )
+            ),
+            project_id=ctx.project_id,
+            task_type=task_type,
+            episode=0,
+            task_id=str(envelope.get("__run_task_id") or ""),
+            scope=job_id,
         ),
-        project_id=ctx.project_id,
+        ctx=ctx,
         task_type=task_type,
-        episode=0,
-        task_id=str(envelope.get("__run_task_id") or ""),
         scope=job_id,
+        current_task="云端正在编辑图片...",
     )
     rel = out_path.relative_to(project_dir).as_posix()
     result = {

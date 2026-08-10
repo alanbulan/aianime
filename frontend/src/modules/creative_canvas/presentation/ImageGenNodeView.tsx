@@ -109,6 +109,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     count,
     canAutoCommitOnGenerate,
     isGenerating,
+    generationProgress,
     generationError,
     generationErrorRequestId,
     cameraSelection,
@@ -452,6 +453,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
 
         {isGenerating && !historyPreviewUrl && (
           <NodeGenerationOverlay
+            progress={generationProgress}
             startedAt={data.generationStartedAt ?? null}
             durationMs={data.generationDurationMs}
             hasBackground={Boolean(visiblePreviewUrl)}

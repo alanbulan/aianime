@@ -23,6 +23,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -164,14 +173,6 @@ export function CommercialInvocationSection({
         ))}
       </div>
 
-      {selectedId !== null ? (
-        <InvocationDetails
-          invocation={details.data}
-          loading={details.isLoading}
-          error={details.error}
-        />
-      ) : null}
-
       <div className="flex items-center justify-end gap-2">
         <span className="text-[11px] text-muted-foreground">
           {t("settings.invocations.page", { page, pageCount })}
@@ -199,6 +200,37 @@ export function CommercialInvocationSection({
           <ChevronRight />
         </Button>
       </div>
+
+      <Dialog
+        open={selectedId !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedId(null);
+        }}
+      >
+        <DialogContent
+          className="max-h-[80vh] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-2xl"
+          showCloseButton={false}
+        >
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle>{t("settings.invocations.detailsTitle")}</DialogTitle>
+            <DialogDescription className="text-xs">
+              {t("settings.invocations.detailsDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto px-5 py-4">
+            <InvocationDetails
+              invocation={details.data}
+              loading={details.isLoading}
+              error={details.error}
+            />
+          </div>
+          <DialogFooter className="border-t border-border px-5 py-3">
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              {t("common.close")}
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog
         open={cancelTarget !== null}
@@ -371,8 +403,7 @@ function InvocationDetails({
     [t("settings.invocations.completedAt"), formatDate(invocation.completedAt)],
   ].filter((field): field is [string, string] => Boolean(field[1]));
   return (
-    <div className="border-y border-border py-3">
-      <h4 className="mb-2 text-xs font-medium text-foreground">{t("settings.invocations.details")}</h4>
+    <div>
       <dl className="grid grid-cols-[8rem_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">
         {fields.map(([label, value]) => (
           <div key={label} className="contents">

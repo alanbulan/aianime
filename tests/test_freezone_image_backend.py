@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -2834,6 +2835,52 @@ async def test_freezone_celery_runner_records_node_history(
     )
     json.dumps(result)
     assert result["generation_history_record"]["result"] is not result
+
+
+@pytest.mark.asyncio
+async def test_freezone_celery_runner_advances_image_progress_while_waiting(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import freezone as freezone_runner
+
+    ctx = _project_ctx(tmp_path)
+    project_dir = ctx.output_dir
+    output = project_dir / "freezone" / "_outputs" / "freezone_gen" / "job_progress.png"
+    _write_image(output)
+    progress_updates: list[float] = []
+
+    class FakeJobExecution:
+        async def generate_image(self, _command):
+            await asyncio.sleep(0.04)
+            return output
+
+    class FakeTaskManager:
+        def update_progress_for_project(self, *_args, **kwargs):
+            progress_updates.append(float(kwargs["progress"]))
+
+    monkeypatch.setattr(
+        "ai_anime.modules.creative_canvas.public.creative_canvas_job_execution_use_cases",
+        lambda: FakeJobExecution(),
+    )
+    monkeypatch.setattr(freezone_runner, "get_task_manager", lambda: FakeTaskManager())
+    monkeypatch.setattr(freezone_runner, "_IMAGE_PROGRESS_HEARTBEAT_SECONDS", 0.01)
+    monkeypatch.setattr(freezone_runner, "_IMAGE_PROGRESS_ESTIMATE_SECONDS", 0.05)
+
+    await freezone_runner._run_freezone_gen_async(
+        {
+            "payload": {
+                "job_id": "job_progress",
+                "project_dir": str(project_dir),
+                "prompt": "generate",
+            }
+        },
+        ctx,
+    )
+
+    assert progress_updates[0] == 0.1
+    assert max(progress_updates) > 0.1
+    assert max(progress_updates) <= 0.9
 
 
 @pytest.mark.asyncio

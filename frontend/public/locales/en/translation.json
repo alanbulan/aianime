@@ -3508,6 +3508,9 @@
       "quota": {
         "PENDING": "Pending",
         "RESERVED": "Reserved",
+        "DISPATCHING": "Dispatching",
+        "COMMITTED": "Committed",
+        "REVIEW_REQUIRED": "Review required",
         "SETTLED": "Settled",
         "CHARGED": "Charged",
         "RELEASED": "Released",
@@ -3609,6 +3612,8 @@
       "loadFailed": "Failed to load invocations",
       "empty": "No invocations match the current filters",
       "details": "View details",
+      "detailsTitle": "Invocation details",
+      "detailsDescription": "Review the status, quota, and request information for this cloud model invocation.",
       "detailsFailed": "Failed to load invocation details",
       "cancel": "Cancel invocation",
       "cancelTitle": "Cancel this invocation?",

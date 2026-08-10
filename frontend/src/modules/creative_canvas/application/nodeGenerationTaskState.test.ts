@@ -6,8 +6,8 @@ import {
   type CanvasNodeGenerationTask,
 } from "./nodeGenerationTaskState";
 
-function task(status: string): CanvasNodeGenerationTask {
-  return { status };
+function task(status: string, progress?: number): CanvasNodeGenerationTask {
+  return { status, ...(progress === undefined ? {} : { progress }) };
 }
 
 describe("resolveNodeGenerationTaskState", () => {
@@ -64,12 +64,21 @@ describe("resolveNodeGenerationTaskState", () => {
   it("uses an active task as the authoritative generating state", () => {
     expect(resolveNodeGenerationTaskState({
       data: { generationTaskKey: "task-1" },
-      task: task("running"),
+      task: task("running", 0.33),
       taskCenterHydrated: true,
     })).toEqual(expect.objectContaining({
       isGenerating: true,
       taskIsActive: true,
+      progress: 0.33,
     }));
+  });
+
+  it("clamps task progress before exposing it to the node overlay", () => {
+    expect(resolveNodeGenerationTaskState({
+      data: { generationTaskKey: "task-1" },
+      task: task("running", 1.4),
+      taskCenterHydrated: true,
+    }).progress).toBe(1);
   });
 
   it("stops generating when the registered task is terminal", () => {

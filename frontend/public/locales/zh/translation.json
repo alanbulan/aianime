@@ -3508,6 +3508,9 @@
       "quota": {
         "PENDING": "待处理",
         "RESERVED": "已预占",
+        "DISPATCHING": "调度中",
+        "COMMITTED": "已提交",
+        "REVIEW_REQUIRED": "需复核",
         "SETTLED": "已结算",
         "CHARGED": "已扣减",
         "RELEASED": "已释放",
@@ -3609,6 +3612,8 @@
       "loadFailed": "调用记录加载失败",
       "empty": "没有符合条件的调用记录",
       "details": "查看详情",
+      "detailsTitle": "调用详情",
+      "detailsDescription": "查看本次云端模型调用的状态、额度和请求信息。",
       "detailsFailed": "调用详情加载失败",
       "cancel": "取消调用",
       "cancelTitle": "取消这次调用？",

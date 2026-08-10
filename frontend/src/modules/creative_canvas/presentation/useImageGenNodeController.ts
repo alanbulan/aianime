@@ -324,7 +324,7 @@ export function createUseImageGenNodeController({
     autoCommitOnGenerate &&
     isSystemManagedNodeData(data);
   const effectiveCount = canAutoCommitOnGenerate ? 1 : count;
-  const { isGenerating } = useNodeGenerationTaskState(data);
+  const { isGenerating, progress: generationProgress } = useNodeGenerationTaskState(data);
   const generationError =
     typeof data.generationError === 'string' && data.generationError.length > 0
       ? data.generationError
@@ -1296,6 +1296,7 @@ export function createUseImageGenNodeController({
     count,
     canAutoCommitOnGenerate,
     isGenerating,
+    generationProgress,
     generationError,
     generationErrorDetails,
     generationErrorRequestId,

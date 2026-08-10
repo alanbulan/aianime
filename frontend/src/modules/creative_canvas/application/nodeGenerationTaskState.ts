@@ -2,6 +2,7 @@
 
 export interface CanvasNodeGenerationTask {
   status: string;
+  progress?: number;
   error?: string | null;
 }
 
@@ -24,6 +25,7 @@ export interface NodeGenerationTaskState {
   waitingForTaskRecord: boolean;
   optimisticOnly: boolean;
   isGenerating: boolean;
+  progress: number | null;
 }
 
 export interface ResolveNodeGenerationTaskStateParams {
@@ -71,6 +73,11 @@ export function resolveNodeGenerationTaskState({
     !task &&
     (!taskCenterHydrated || recentlyStarted);
   const optimisticOnly = localGenerating && taskKey.length === 0;
+  const taskProgress = task?.progress;
+  const progress =
+    typeof taskProgress === "number" && Number.isFinite(taskProgress)
+      ? Math.max(0, Math.min(1, taskProgress))
+      : null;
 
   return {
     taskKey,
@@ -79,5 +86,6 @@ export function resolveNodeGenerationTaskState({
     waitingForTaskRecord,
     optimisticOnly,
     isGenerating: taskIsActive || waitingForTaskRecord || optimisticOnly,
+    progress,
   };
 }
