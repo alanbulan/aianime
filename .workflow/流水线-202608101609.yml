@@ -45,7 +45,7 @@ stages:
       pnpm --dir desktop test
       pnpm --dir desktop typecheck
       pnpm --dir frontend install --frozen-lockfile
-      pnpm --dir frontend test
+      pnpm --dir frontend test:architecture
       pnpm --dir frontend typecheck
       pnpm --dir frontend build:ce
       uv sync --locked --group dev
@@ -119,7 +119,7 @@ stages:
         -m "chore(release): 自动升级版本至 v${VERSION}" \
         -m "来源提交：${SOURCE_COMMIT}" \
         -m "流水线构建：${GITEE_PIPELINE_BUILD_NUMBER:-unknown}" \
-        -m "质量门：Electron 测试与类型检查、前端测试与正式构建、Python 关键路径测试全部通过。" \
+        -m "质量门：Electron 测试与类型检查、前端架构回归与正式构建、Python 关键路径测试全部通过。" \
         -m "版本同步：Python、Electron、前端兜底版本、锁文件、README、云端交接文档和中英文更新记录已统一更新。"
       GIT_ASKPASS="${ASKPASS_PATH}" GIT_TERMINAL_PROMPT=0 git -c credential.helper= push origin HEAD:master
     notify: []
