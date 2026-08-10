@@ -48,8 +48,19 @@ stages:
       pnpm --dir frontend test:architecture
       pnpm --dir frontend typecheck
       pnpm --dir frontend build:ce
-      uv sync --locked --group dev
-      uv run pytest -q \
+      export PYTHONPATH="${PWD}/src"
+      uv run --isolated --no-project --python 3.12 \
+        --with pytest==9.1.1 \
+        --with pytest-asyncio==1.4.0 \
+        --with anyio==4.14.0 \
+        --with aiohttp==3.14.1 \
+        --with httpx==0.28.1 \
+        --with pydantic==2.13.4 \
+        --with packaging==24.2 \
+        --with rich==14.3.4 \
+        --with python-dotenv==1.2.2 \
+        --with aiosqlite==0.22.1 \
+        pytest -q \
         tests/modules/ai_assistant/test_hermes_project_replies.py \
         tests/modules/ai_assistant/test_tool_errors.py \
         tests/modules/platform_release/test_release_notes.py \
