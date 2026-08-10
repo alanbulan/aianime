@@ -81,6 +81,7 @@ test("Gitee workflow auto-triggers master and guards release commits", () => {
   );
   assert.match(workflow, /step: build@gcc/);
   assert.match(workflow, /step: build@nodejs/);
+  assert.match(workflow, /NODE_VERSION=24\.13\.0/);
   assert.match(workflow, /precise:\s*\n\s*- master/);
   assert.match(workflow, /chore\(release\): 自动升级版本至 v/);
   assert.match(workflow, /pnpm --dir desktop test/);
