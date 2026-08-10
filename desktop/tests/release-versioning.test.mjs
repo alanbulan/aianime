@@ -88,6 +88,10 @@ test("Gitee workflow auto-triggers master and guards release commits", () => {
   assert.match(workflow, /pnpm --dir frontend test:architecture/);
   assert.match(workflow, /pnpm --dir frontend build:ce/);
   assert.match(workflow, /uv run --isolated --no-project --python 3\.12/);
+  assert.match(
+    workflow,
+    /UV_DEFAULT_INDEX="https:\/\/mirrors\.aliyun\.com\/pypi\/simple"/,
+  );
   assert.match(workflow, /--with pytest==9\.1\.1/);
   assert.match(workflow, /AI_MANGA_PUSH_TOKEN/);
   assert.match(workflow, /GIT_ASKPASS/);

@@ -2799,15 +2799,16 @@ async def _call_newapi_image_api(
             return None, "", f"AI anime API Images response missing b64_json/url: {first}"
     except httpx.HTTPStatusError as exc:
         body = (exc.response.text or "")[:2000]
+        status_code = exc.response.status_code
         response_headers = getattr(exc.response, "headers", {}) or {}
         safe_headers = _newapi_safe_header_summary(response_headers)
         request_id = _newapi_request_id_from_headers(response_headers) or provider_request_id
         await _refund(
             reservation_id,
             "newapi_image_api",
-            f"HTTP {exc.response.status_code}",
+            f"HTTP {status_code}",
             request_id=request_id,
-            http_status=exc.response.status_code,
+            http_status=status_code,
             headers=safe_headers,
         )
         error_context = _newapi_context_for_error(request_context)
@@ -2818,15 +2819,24 @@ async def _call_newapi_image_api(
         )
         logger.warning(
             "AI anime API image failed: status=%s; %s%s; body=%s",
-            exc.response.status_code,
+            status_code,
             header_context,
             error_context,
             body,
         )
+        if status_code in {502, 503, 504}:
+            request_reference = f"，请求编号：{request_id}" if request_id else ""
+            reason = "请求超时" if status_code == 504 else "暂时不可用"
+            return (
+                None,
+                "",
+                f"云端图片生成服务{reason}（HTTP {status_code}）"
+                f"{request_reference}，请稍后重新执行。",
+            )
         return (
             None,
             "",
-            f"HTTP {exc.response.status_code}: {header_context}{error_context}; body={body}",
+            f"HTTP {status_code}: {header_context}{error_context}; body={body}",
         )
     except Exception as exc:
         await _refund(

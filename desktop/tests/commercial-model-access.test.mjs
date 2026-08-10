@@ -1250,6 +1250,99 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   );
 });
 
+test("cloud model retries transient gateway failures with the same idempotency key", async () => {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: Date.now() + 3_600_000,
+    user,
+    tenant,
+  };
+  const calls = [];
+  let modelAttempts = 0;
+  const client = new CommercialApiClient({
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    sessionStore: store,
+    fetchImpl: async (url, init) => {
+      const call = { url: String(url), init };
+      calls.push(call);
+      if (call.url.includes("/api/v1/client/licenses/current")) {
+        return Response.json({ device: { id: "device-42" } });
+      }
+      if (call.url.endsWith("/v1/images/generations")) {
+        modelAttempts += 1;
+        return modelAttempts < 3
+          ? new Response("gateway timeout", { status: 504 })
+          : Response.json({ data: [{ b64_json: "aW1hZ2U=" }] });
+      }
+      throw new Error(`unexpected request ${call.url}`);
+    },
+  });
+
+  const response = await client.modelRequest({
+    method: "POST",
+    path: "/v1/images/generations",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "cloud-image-standard", prompt: "cat" }),
+    devicePublicKeyHash: "device-public-key-hash",
+  });
+
+  assert.equal(response.status, 200);
+  const modelCalls = calls.filter((call) =>
+    call.url.endsWith("/v1/images/generations"),
+  );
+  assert.equal(modelCalls.length, 3);
+  assert.equal(
+    new Headers(modelCalls[1].init.headers).get("Idempotency-Key"),
+    new Headers(modelCalls[0].init.headers).get("Idempotency-Key"),
+  );
+  assert.equal(
+    new Headers(modelCalls[2].init.headers).get("Idempotency-Key"),
+    new Headers(modelCalls[0].init.headers).get("Idempotency-Key"),
+  );
+});
+
+test("cloud model returns the final gateway failure after bounded retries", async () => {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: Date.now() + 3_600_000,
+    user,
+    tenant,
+  };
+  let modelAttempts = 0;
+  const client = new CommercialApiClient({
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    sessionStore: store,
+    fetchImpl: async (url) => {
+      const target = String(url);
+      if (target.includes("/api/v1/client/licenses/current")) {
+        return Response.json({ device: { id: "device-42" } });
+      }
+      if (target.endsWith("/v1/images/generations")) {
+        modelAttempts += 1;
+        return new Response("gateway timeout", { status: 504 });
+      }
+      throw new Error(`unexpected request ${target}`);
+    },
+  });
+
+  const response = await client.modelRequest({
+    method: "POST",
+    path: "/v1/images/generations",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "cloud-image-standard", prompt: "cat" }),
+    devicePublicKeyHash: "device-public-key-hash",
+  });
+
+  assert.equal(response.status, 504);
+  assert.equal(modelAttempts, 3);
+});
+
 test("cloud model transport validates protocol-specific request headers", async () => {
   const store = new MemorySessionStore();
   store.value = {

@@ -49,6 +49,7 @@ stages:
       pnpm --dir frontend typecheck
       pnpm --dir frontend build:ce
       export PYTHONPATH="${PWD}/src"
+      export UV_DEFAULT_INDEX="https://mirrors.aliyun.com/pypi/simple"
       uv run --isolated --no-project --python 3.12 \
         --with pytest==9.1.1 \
         --with pytest-asyncio==1.4.0 \

@@ -748,7 +748,10 @@ def test_newapi_image_http_5xx_does_not_retry_in_app(monkeypatch):
 
     assert image_bytes is None
     assert "HTTP 502" in error
-    assert "request_id=req-fail" in error
+    assert "云端图片生成服务暂时不可用" in error
+    assert "请求编号：req-fail" in error
+    assert "http://newapi.test" not in error
+    assert "bad_response" not in error
     assert attempts == 1
 
 

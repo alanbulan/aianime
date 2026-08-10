@@ -15,6 +15,8 @@ export type { SecureStorageAdapter } from "./secure-file-store.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MODEL_TIMEOUT_MS = 30 * 60_000;
+const MODEL_TRANSIENT_MAX_ATTEMPTS = 3;
+const MODEL_TRANSIENT_STATUSES = new Set([502, 503, 504]);
 const REFRESH_SKEW_MS = 60_000;
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const MAX_CAPTCHA_BYTES = 512 * 1024;
@@ -686,15 +688,30 @@ export class CommercialApiClient {
           new Headers(input.headers).get("Idempotency-Key") ?? randomUUID(),
         )
       : null;
-    const execute = (token: string) =>
-      this.requestModelResponse({
-        ...input,
-        method,
-        path,
-        token,
-        deviceId,
-        idempotencyKey,
-      });
+    const execute = async (token: string) => {
+      let response: Response | null = null;
+      for (let attempt = 1; attempt <= MODEL_TRANSIENT_MAX_ATTEMPTS; attempt += 1) {
+        response = await this.requestModelResponse({
+          ...input,
+          method,
+          path,
+          token,
+          deviceId,
+          idempotencyKey,
+        });
+        if (
+          !MODEL_TRANSIENT_STATUSES.has(response.status) ||
+          attempt === MODEL_TRANSIENT_MAX_ATTEMPTS
+        ) {
+          return response;
+        }
+        await response.body?.cancel();
+      }
+      if (response === null) {
+        throw new CommercialApiError("云端模型请求未执行");
+      }
+      return response;
+    };
     let response = await execute(session.accessToken);
     if (response.status !== 401) return response;
 
