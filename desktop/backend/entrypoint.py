@@ -72,10 +72,16 @@ def _verify_litellm_resources() -> bool:
 
 def _run_runtime_smoke_check() -> int:
     """Verify packaged graph storage, Cognee resources, and UTF-8 output."""
+    from ai_anime.modules.knowledge_graph.infrastructure.config import (
+        _install_ladybug_windows_path_compatibility,
+    )
     from ladybug import Connection, Database
 
+    _install_ladybug_windows_path_compatibility()
     with TemporaryDirectory(prefix="ai-anime-backend-smoke-") as root:
-        database = Database(str(Path(root) / "graph.lbug"))
+        database_path = Path(root) / "中文项目" / "graph.lbug"
+        database_path.parent.mkdir(parents=True, exist_ok=True)
+        database = Database(str(database_path))
         connection = Connection(database)
         try:
             result = connection.execute("RETURN 1 AS value")
@@ -83,17 +89,19 @@ def _run_runtime_smoke_check() -> int:
         finally:
             connection.close()
             database.close()
+        unicode_database_created = database_path.is_file()
 
     cognee_resources = _verify_cognee_resources()
     payload = {
         "ok": value == 1,
         "ladybug": True,
+        "ladybug_unicode_path": unicode_database_created,
         "unicode": "中文 ⚠",
         "litellm_resources": _verify_litellm_resources(),
         **cognee_resources,
     }
     print(f"AI_ANIME_BACKEND_SMOKE {json.dumps(payload, ensure_ascii=False)}")
-    return 0 if payload["ok"] else 1
+    return 0 if payload["ok"] and payload["ladybug_unicode_path"] else 1
 
 
 if __name__ == "__main__":

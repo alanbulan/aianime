@@ -45,6 +45,7 @@ load_dotenv(override=False)
 COGNEE_EMBEDDING_TIMEOUT_SECONDS = float(os.getenv("COGNEE_EMBEDDING_TIMEOUT", "600"))
 _embedding_gateway_patch_installed = False
 _litellm_embedding_header_patch_installed = False
+_ladybug_windows_path_patch_installed = False
 _embedding_headers_capture: contextvars.ContextVar[dict[str, str] | None] = (
     contextvars.ContextVar("ai_anime_embedding_headers_capture", default=None)
 )
@@ -201,6 +202,53 @@ def _apply_cognee_runtime_defaults() -> None:
     )
     if graph_config_module and hasattr(graph_config_module, "get_graph_config"):
         graph_config_module.get_graph_config.cache_clear()
+
+
+def _ladybug_native_database_path(database_path: object) -> object:
+    """Encode non-ASCII Windows paths for Ladybug's narrow native binding."""
+    if os.name != "nt" or not isinstance(database_path, str) or database_path.isascii():
+        return database_path
+    try:
+        return database_path.encode("mbcs")
+    except UnicodeEncodeError as exc:
+        raise RuntimeError(
+            "Ladybug 图数据库无法访问当前项目路径：路径包含 Windows 系统编码不支持的字符"
+        ) from exc
+
+
+def _install_ladybug_windows_path_compatibility() -> None:
+    """Keep logical paths as Unicode while passing native Windows paths as MBCS bytes."""
+    global _ladybug_windows_path_patch_installed
+    if os.name != "nt" or _ladybug_windows_path_patch_installed:
+        return
+
+    database_module = importlib.import_module("ladybug.database")
+    database_cls = getattr(database_module, "Database")
+    original_init_pybind_database = database_cls.init_pybind_database
+    if getattr(
+        original_init_pybind_database,
+        "_ai_anime_windows_path_patch",
+        False,
+    ):
+        _ladybug_windows_path_patch_installed = True
+        return
+
+    @wraps(original_init_pybind_database)
+    def patched_init_pybind_database(self):
+        logical_path = self.database_path
+        native_path = _ladybug_native_database_path(logical_path)
+        if native_path is logical_path:
+            return original_init_pybind_database(self)
+
+        self.database_path = native_path
+        try:
+            return original_init_pybind_database(self)
+        finally:
+            self.database_path = logical_path
+
+    patched_init_pybind_database._ai_anime_windows_path_patch = True
+    database_cls.init_pybind_database = patched_init_pybind_database
+    _ladybug_windows_path_patch_installed = True
 
 
 def _patch_cognee_embedding_timeout() -> None:
@@ -719,6 +767,7 @@ def init_cognee(
 
     if not COGNEE_AVAILABLE:
         raise ImportError("cognee is not installed. Run: pip install cognee")
+    _install_ladybug_windows_path_compatibility()
     if cognee_gateway_restart_required():
         raise RuntimeError(
             "模型网关配置已更新，Cognee 仍持有启动时的旧配置；"

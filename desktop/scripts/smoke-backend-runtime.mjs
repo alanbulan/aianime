@@ -44,6 +44,7 @@ const payload = JSON.parse(line.slice(marker.length));
 if (
   payload.ok !== true ||
   payload.ladybug !== true ||
+  payload.ladybug_unicode_path !== true ||
   payload.unicode !== "中文 ⚠" ||
   payload.litellm_resources !== true ||
   payload.cognee_prompts !== true ||
@@ -55,5 +56,5 @@ if (
 }
 
 console.log(
-  `Packaged backend Ladybug/Cognee/UTF-8 smoke check passed (${payload.prompt_count} prompts, ${payload.migration_count} migrations).`,
+  `Packaged backend Ladybug Unicode path/Cognee/UTF-8 smoke check passed (${payload.prompt_count} prompts, ${payload.migration_count} migrations).`,
 );

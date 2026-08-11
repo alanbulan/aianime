@@ -26,6 +26,9 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(spec, /collect_submodules\("ladybug"\)/);
   assert.match(entrypoint, /--runtime-smoke-check/);
   assert.match(entrypoint, /from ladybug import Connection, Database/);
+  assert.match(entrypoint, /_install_ladybug_windows_path_compatibility/);
+  assert.match(entrypoint, /"中文项目" \/ "graph\.lbug"/);
+  assert.match(entrypoint, /"ladybug_unicode_path": unicode_database_created/);
   assert.match(entrypoint, /from cognee\.infrastructure\.llm\.prompts import render_prompt/);
   assert.match(entrypoint, /for prompt_file in prompt_files/);
   assert.match(entrypoint, /cognee_root \/ "alembic" \/ "versions"/);

@@ -1,9 +1,32 @@
-"""Cognee keeps startup credentials until the CE process restarts."""
+"""Cognee runtime compatibility and gateway refresh behavior."""
 
+import os
 import uuid
 from types import SimpleNamespace
 
 import pytest
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Ladybug Unicode path issue is Windows-only")
+def test_ladybug_native_binding_supports_chinese_project_paths(tmp_path):
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
+    from ladybug import Connection, Database
+
+    nv_config._install_ladybug_windows_path_compatibility()
+    database_path = tmp_path / "中文项目" / "graph.pkl"
+    database_path.parent.mkdir(parents=True)
+
+    database = Database(str(database_path))
+    connection = Connection(database)
+    try:
+        result = connection.execute("RETURN 1 AS value")
+        assert result.get_next()[0] == 1
+    finally:
+        connection.close()
+        database.close()
+
+    assert database.database_path == str(database_path)
+    assert database_path.is_file()
 
 
 def test_first_ce_gateway_configuration_does_not_require_restart(monkeypatch):
