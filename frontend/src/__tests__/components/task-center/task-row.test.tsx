@@ -31,6 +31,7 @@ describe("TaskRow", () => {
       onClick: vi.fn(),
     });
     expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.getByText("Writing beats...")).toBeInTheDocument();
   });
 
   it("fires onClick", () => {

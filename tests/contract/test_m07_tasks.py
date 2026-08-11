@@ -99,6 +99,59 @@ def test_tasks_routes_are_covered_by_openapi_contract():
         assert any(status in operation["responses"] for status in ("200", "204"))
 
 
+@pytest.mark.parametrize(
+    "task_type",
+    [
+        "ingest_fast",
+        "build_characters",
+        "character_portrait",
+        "script_writer",
+        "single_video",
+        "audio_generation_indextts2",
+        "freezone_gen",
+    ],
+)
+def test_every_project_task_type_promotes_progress_steps_to_logs(tmp_path, task_type):
+    ctx = _ctx(tmp_path)
+    manager = TaskStateManager()
+    task = manager.create_task_for_project(ctx, task_type, 1, status="running")
+
+    manager.update_progress_for_project(
+        ctx,
+        task_type,
+        1,
+        progress=0.2,
+        current_task="读取并校验任务输入",
+        expected_task_id=task.task_id,
+    )
+    manager.update_progress_for_project(
+        ctx,
+        task_type,
+        1,
+        progress=0.4,
+        current_task="读取并校验任务输入",
+        logs=["远程模型调用已完成"],
+        expected_task_id=task.task_id,
+    )
+    manager.update_progress_for_project(
+        ctx,
+        task_type,
+        1,
+        progress=0.7,
+        current_task="整理并保存生成结果",
+        expected_task_id=task.task_id,
+    )
+
+    updated = manager.get_task_for_project(ctx, task_type, 1)
+    assert updated is not None
+    assert updated.current_task == "整理并保存生成结果"
+    assert updated.logs == [
+        "读取并校验任务输入",
+        "远程模型调用已完成",
+        "整理并保存生成结果",
+    ]
+
+
 @pytest.fixture(autouse=True)
 def _task_ports(monkeypatch):
     monkeypatch.setattr(registry, "_PORTS", dict(registry._PORTS))

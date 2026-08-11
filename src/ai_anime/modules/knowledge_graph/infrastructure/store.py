@@ -17,7 +17,12 @@ from importlib import import_module
 from uuid import UUID
 
 # 重要：必须先导入 config，在 cognee 被导入之前设置环境变量
-from .config import apply_cognee_project_storage_context, init_cognee  # noqa: F401
+from .config import (  # noqa: F401
+    apply_cognee_project_storage_context,
+    init_cognee,
+    reset_cognee_model_call_activity_callback,
+    set_cognee_model_call_activity_callback,
+)
 
 from ai_anime.shared.env_guard import preserve_st_env
 
@@ -383,12 +388,85 @@ class CogneeStore:
         stage_name: str,
         operation: Callable[[], Awaitable[Any]],
         log: Callable[[str], None],
+        report: Callable[[float, str], None] | None = None,
+        progress_start: float = 0.0,
+        progress_end: float = 1.0,
     ) -> Any:
         """Run one pipeline attempt without replaying remote model writes."""
         self._set_cognee_context()
-        result = await operation()
-        self._ensure_pipeline_run_succeeded(result, stage_name)
-        return result
+        loop = asyncio.get_running_loop()
+        started_at = loop.time()
+        last_reported_at = 0.0
+        current_progress = progress_start
+        activity = {
+            "text_completed": 0,
+            "embedding_batches": 0,
+            "embedding_items": 0,
+            "in_flight": 0,
+        }
+
+        def publish_progress(*, force: bool = False) -> None:
+            nonlocal last_reported_at, current_progress
+            if report is None:
+                return
+            now = loop.time()
+            if not force and now - last_reported_at < 1.0:
+                return
+            elapsed = max(0, int(now - started_at))
+            completed_calls = activity["text_completed"] + activity["embedding_batches"]
+            span = max(0.0, progress_end - progress_start)
+            activity_gain = min(span * 0.72, completed_calls * 0.012)
+            heartbeat_gain = min(span * 0.18, (elapsed // 5) * 0.004)
+            current_progress = min(
+                max(progress_start, progress_end - 0.01),
+                max(current_progress, progress_start + 0.02 + activity_gain + heartbeat_gain),
+            )
+            report(
+                current_progress,
+                f"{stage_name}（阶段进度估算）：文本模型已完成 "
+                f"{activity['text_completed']} 次，向量已完成 "
+                f"{activity['embedding_batches']} 批/{activity['embedding_items']} 条，"
+                f"当前并发 {activity['in_flight']} 路，已耗时 {elapsed} 秒",
+            )
+            last_reported_at = now
+
+        def on_model_activity(kind: str, status: str, item_count: int) -> None:
+            if status == "started":
+                activity["in_flight"] += 1
+            else:
+                activity["in_flight"] = max(0, activity["in_flight"] - 1)
+            if status == "completed":
+                if kind == "embedding":
+                    activity["embedding_batches"] += 1
+                    activity["embedding_items"] += item_count
+                else:
+                    activity["text_completed"] += 1
+            first_completed_kind = status == "completed" and (
+                (kind == "text" and activity["text_completed"] == 1)
+                or (kind == "embedding" and activity["embedding_batches"] == 1)
+            )
+            publish_progress(force=first_completed_kind)
+
+        async def publish_heartbeat() -> None:
+            while True:
+                await asyncio.sleep(5)
+                publish_progress(force=True)
+
+        activity_token = set_cognee_model_call_activity_callback(on_model_activity)
+        heartbeat_task = asyncio.create_task(publish_heartbeat()) if report else None
+        try:
+            publish_progress(force=True)
+            result = await operation()
+            self._ensure_pipeline_run_succeeded(result, stage_name)
+            return result
+        finally:
+            reset_cognee_model_call_activity_callback(activity_token)
+            if heartbeat_task is not None:
+                heartbeat_task.cancel()
+                try:
+                    await heartbeat_task
+                except asyncio.CancelledError:
+                    pass
 
     async def _ensure_db(self):
         """确保数据库连接已建立。
@@ -602,12 +680,11 @@ class CogneeStore:
         log("Step 2/3: 构建知识图谱（这可能需要几分钟）...")
         await self._run_cognee_pipeline_with_retry(
             stage_name="知识图谱构建",
-            operation=lambda: cognee.cognify(
-                datasets=[self.dataset_name],
-                chunks_per_batch=1,
-                data_per_batch=1,
-            ),
+            operation=lambda: cognee.cognify(datasets=[self.dataset_name]),
             log=log,
+            report=report,
+            progress_start=0.3,
+            progress_end=0.7,
         )
         log("知识图谱构建完成")
 
@@ -618,6 +695,9 @@ class CogneeStore:
             stage_name="向量索引创建",
             operation=lambda: cognee.memify(dataset=self.dataset_name),
             log=log,
+            report=report,
+            progress_start=0.7,
+            progress_end=0.98,
         )
         log("向量索引创建完成")
 

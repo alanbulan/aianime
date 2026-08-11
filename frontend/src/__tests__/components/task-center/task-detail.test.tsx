@@ -10,7 +10,11 @@ import {
   RouterProvider,
   createMemoryHistory,
 } from "@tanstack/react-router";
-import { TaskDetail, formatLocalTaskTime } from "@/components/task-center/task-detail";
+import {
+  TaskDetail,
+  formatLocalTaskTime,
+  formatTaskElapsed,
+} from "@/components/task-center/task-detail";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
@@ -38,6 +42,13 @@ beforeAll(async () => {
               },
               result: { label: "Result" },
               error: { label: "Error" },
+              current: {
+                label: "Current execution",
+                elapsed: "Elapsed {{duration}}",
+                progress: "Task progress",
+                liveLogs: "Live execution logs",
+                logCount: "{{count}} lines",
+              },
               logs: { placeholder: "No log output yet." },
             },
             status: {
@@ -98,6 +109,12 @@ describe("TaskDetail", () => {
     expect(formatLocalTaskTime("not-a-date")).toBe("not-a-date");
   });
 
+  it("formats task elapsed time as a stable clock duration", () => {
+    expect(
+      formatTaskElapsed("2026-06-04T08:00:00Z", "2026-06-04T09:02:03Z"),
+    ).toBe("01:02:03");
+  });
+
   it("shows select-prompt when nothing selected", async () => {
     const { findByText } = renderDetail();
     expect(await findByText(/select a task/i)).toBeInTheDocument();
@@ -116,6 +133,9 @@ describe("TaskDetail", () => {
     const { findByText } = renderDetail();
     expect(await findByText(/^created$/i)).toBeInTheDocument();
     expect(await findByText("task-id-a")).toBeInTheDocument();
+    expect(await findByText(/current execution/i)).toBeInTheDocument();
+    expect(await findByText(/live execution logs/i)).toBeInTheDocument();
+    expect(await findByText(/\[14:32:51\] start/)).toBeInTheDocument();
   });
 
   it("renders error block when task.error present", async () => {

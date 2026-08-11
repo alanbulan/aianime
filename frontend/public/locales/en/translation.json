@@ -1355,6 +1355,13 @@
       "error": {
         "label": "Error"
       },
+      "current": {
+        "label": "Current execution",
+        "elapsed": "Elapsed {{duration}}",
+        "progress": "Task progress",
+        "liveLogs": "Live execution logs",
+        "logCount": "{{count}} lines"
+      },
       "logs": {
         "placeholder": "No log output yet."
       }

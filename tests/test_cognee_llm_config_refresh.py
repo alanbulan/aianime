@@ -1,10 +1,89 @@
 """Cognee runtime compatibility and gateway refresh behavior."""
 
+import asyncio
 import os
 import uuid
 from types import SimpleNamespace
 
 import pytest
+
+
+def test_embedding_dimension_contract_is_sent_to_gateway():
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
+
+    kwargs = {"dimensions": 4096}
+
+    expected = nv_config._apply_embedding_dimension_contract(kwargs, 1024)
+
+    assert expected == 1024
+    assert kwargs["dimensions"] == 1024
+
+
+def test_embedding_dimension_contract_rejects_wrong_remote_vector_size():
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
+
+    response = {"data": [{"embedding": [0.0] * 4096}]}
+
+    with pytest.raises(RuntimeError, match="返回 4096 维向量"):
+        nv_config._validate_embedding_dimension_contract(response, 1024)
+
+
+def test_embedding_dimension_contract_accepts_matching_remote_vector_size():
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
+
+    response = SimpleNamespace(
+        data=[SimpleNamespace(embedding=[0.0] * 1024)],
+    )
+
+    nv_config._validate_embedding_dimension_contract(response, 1024)
+
+
+@pytest.mark.asyncio
+async def test_embedding_gateway_keeps_parallel_call_dimensions_isolated():
+    from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
+
+    started_dimensions: list[int] = []
+    both_started = asyncio.Event()
+
+    async def original_aembedding(*_args, **kwargs):
+        dimensions = int(kwargs["dimensions"])
+        started_dimensions.append(dimensions)
+        if len(started_dimensions) == 2:
+            both_started.set()
+        await asyncio.wait_for(both_started.wait(), timeout=1)
+        return SimpleNamespace(
+            data=[SimpleNamespace(embedding=[0.0] * dimensions)],
+        )
+
+    async def call_with_dimensions(dimensions: int) -> int:
+        context = {
+            "dimensions": dimensions,
+            "headers": {},
+            "request_id": "",
+            "response_id": "",
+        }
+        token = nv_config._embedding_gateway_call_context.set(context)
+        try:
+            response = await nv_config._call_cognee_embedding_gateway(
+                original_aembedding,
+                (),
+                {
+                    "model": "cloud-embedding",
+                    "input": ["content"],
+                    "dimensions": 4096,
+                },
+            )
+            return len(response.data[0].embedding)
+        finally:
+            nv_config._embedding_gateway_call_context.reset(token)
+
+    actual_dimensions = await asyncio.gather(
+        call_with_dimensions(1024),
+        call_with_dimensions(2048),
+    )
+
+    assert sorted(started_dimensions) == [1024, 2048]
+    assert sorted(actual_dimensions) == [1024, 2048]
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Ladybug Unicode path issue is Windows-only")

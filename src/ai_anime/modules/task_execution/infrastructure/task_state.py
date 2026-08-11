@@ -723,13 +723,21 @@ class TaskStateManager:
             )
             return
 
+        previous_current_task = state.current_task
         state.status = "running"
         if progress is not None:
             state.progress = progress
         if current_task is not None:
             state.current_task = current_task
-        if logs:
-            state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
+        progress_logs = list(logs or [])
+        if (
+            current_task
+            and current_task != previous_current_task
+            and current_task not in progress_logs
+        ):
+            progress_logs.append(current_task)
+        if progress_logs:
+            state.logs = self._merge_logs(state.logs, progress_logs, self.MAX_LOGS)
         if metadata is not None:
             state.metadata = self._merge_task_metadata(state.metadata, metadata)
             state.result = self._merge_metadata_into_result(state.result, state.metadata)
@@ -795,6 +803,7 @@ class TaskStateManager:
             )
             return
 
+        previous_current_task = state.current_task
         state.status = status
         if status in {"completed", "failed", "cancelled"} and not state.completed_at:
             state.completed_at = utc_now_iso()
@@ -802,8 +811,15 @@ class TaskStateManager:
             state.progress = progress
         if current_task is not None:
             state.current_task = current_task
-        if logs:
-            state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
+        progress_logs = list(logs or [])
+        if (
+            current_task
+            and current_task != previous_current_task
+            and current_task not in progress_logs
+        ):
+            progress_logs.append(current_task)
+        if progress_logs:
+            state.logs = self._merge_logs(state.logs, progress_logs, self.MAX_LOGS)
         if metadata is not None:
             state.metadata = self._merge_task_metadata(state.metadata, metadata)
             state.result = self._merge_metadata_into_result(state.result, state.metadata)

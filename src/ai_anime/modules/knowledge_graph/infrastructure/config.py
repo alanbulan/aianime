@@ -16,6 +16,7 @@ import uuid
 import warnings
 from functools import wraps
 from pathlib import Path
+from typing import Callable
 
 from dotenv import load_dotenv
 
@@ -49,6 +50,12 @@ _ladybug_windows_path_patch_installed = False
 _embedding_headers_capture: contextvars.ContextVar[dict[str, str] | None] = (
     contextvars.ContextVar("ai_anime_embedding_headers_capture", default=None)
 )
+_embedding_gateway_call_context: contextvars.ContextVar[dict[str, object] | None] = (
+    contextvars.ContextVar("ai_anime_embedding_gateway_call", default=None)
+)
+_model_call_activity_callback: contextvars.ContextVar[
+    Callable[[str, str, int], None] | None
+] = contextvars.ContextVar("ai_anime_cognee_model_call_activity", default=None)
 _KEYLESS_MODEL_ACCESS_PLACEHOLDER = "ai-anime-no-auth"
 logger = logging.getLogger(__name__)
 
@@ -74,6 +81,36 @@ def _with_litellm_idempotency_header(kwargs: dict) -> dict:
     return {**kwargs, "extra_headers": extra_headers}
 
 
+def set_cognee_model_call_activity_callback(
+    callback: Callable[[str, str, int], None] | None,
+):
+    """Observe real Cognee model calls in the current async context."""
+    return _model_call_activity_callback.set(callback)
+
+
+def reset_cognee_model_call_activity_callback(token) -> None:
+    _model_call_activity_callback.reset(token)
+
+
+def _notify_model_call_activity(kind: str, status: str, item_count: int) -> None:
+    callback = _model_call_activity_callback.get()
+    if callback is None:
+        return
+    try:
+        callback(kind, status, max(1, int(item_count)))
+    except Exception as exc:
+        logger.debug("failed to publish Cognee model call activity: %s", exc)
+
+
+def _model_call_item_count(operation_name: str, kwargs: dict) -> int:
+    if operation_name != "aembedding":
+        return 1
+    inputs = kwargs.get("input")
+    if isinstance(inputs, (list, tuple)):
+        return max(1, len(inputs))
+    return 1
+
+
 def _install_litellm_operation_idempotency(litellm_module: object | None = None) -> None:
     """Give each LiteLLM text/embedding operation one stable retry key."""
     module = litellm_module or importlib.import_module("litellm")
@@ -88,12 +125,22 @@ def _install_litellm_operation_idempotency(litellm_module: object | None = None)
         async def wrapped_operation(
             *args,
             __operation=operation,
+            __operation_name=operation_name,
             **kwargs,
         ):
-            return await __operation(
-                *args,
-                **_with_litellm_idempotency_header(kwargs),
-            )
+            kind = "embedding" if __operation_name == "aembedding" else "text"
+            item_count = _model_call_item_count(__operation_name, kwargs)
+            _notify_model_call_activity(kind, "started", item_count)
+            try:
+                response = await __operation(
+                    *args,
+                    **_with_litellm_idempotency_header(kwargs),
+                )
+            except BaseException:
+                _notify_model_call_activity(kind, "failed", item_count)
+                raise
+            _notify_model_call_activity(kind, "completed", item_count)
+            return response
 
         wrapped_operation._ai_anime_idempotency_wrapper = True
         setattr(module, operation_name, wrapped_operation)
@@ -496,6 +543,78 @@ def _embedding_response_trace(
     return request_id, response_id
 
 
+def _apply_embedding_dimension_contract(kwargs: dict, dimensions: object) -> int | None:
+    """Keep the remote embedding response aligned with the local vector schema."""
+    try:
+        expected_dimensions = int(dimensions)
+    except (TypeError, ValueError):
+        return None
+    if expected_dimensions <= 0:
+        return None
+    kwargs["dimensions"] = expected_dimensions
+    return expected_dimensions
+
+
+def _embedding_vectors(response: object) -> list[list[float]]:
+    data = response.get("data") if isinstance(response, dict) else getattr(response, "data", None)
+    if not isinstance(data, (list, tuple)):
+        return []
+    vectors: list[list[float]] = []
+    for item in data:
+        vector = item.get("embedding") if isinstance(item, dict) else getattr(item, "embedding", None)
+        if isinstance(vector, list):
+            vectors.append(vector)
+    return vectors
+
+
+def _validate_embedding_dimension_contract(
+    response: object,
+    expected_dimensions: int | None,
+) -> None:
+    if expected_dimensions is None:
+        return
+    actual_dimensions = sorted({len(vector) for vector in _embedding_vectors(response)})
+    if not actual_dimensions or actual_dimensions == [expected_dimensions]:
+        return
+    actual_text = "/".join(str(value) for value in actual_dimensions)
+    raise RuntimeError(
+        f"嵌入模型返回 {actual_text} 维向量，但本地知识图谱索引配置为 "
+        f"{expected_dimensions} 维。请求已携带 dimensions={expected_dimensions}，"
+        "请确认模型网关支持并遵守 OpenAI embeddings 的 dimensions 参数。"
+    )
+
+
+async def _call_cognee_embedding_gateway(
+    original_aembedding,
+    args: tuple,
+    kwargs: dict,
+):
+    call_context = _embedding_gateway_call_context.get()
+    if call_context is None:
+        return await original_aembedding(*args, **kwargs)
+
+    kwargs.setdefault("custom_llm_provider", "openai")
+    raw_model = str(kwargs.get("model") or "").strip()
+    if raw_model:
+        kwargs["model"] = _normalize_openai_compatible_model(raw_model)
+    expected_dimensions = _apply_embedding_dimension_contract(
+        kwargs,
+        call_context.get("dimensions", kwargs.get("dimensions")),
+    )
+    response = await original_aembedding(*args, **kwargs)
+    _validate_embedding_dimension_contract(response, expected_dimensions)
+
+    context_headers = call_context.get("headers")
+    captured_headers = context_headers if isinstance(context_headers, dict) else {}
+    _attach_embedding_response_headers(response, captured_headers)
+    request_id, response_id = _embedding_response_trace(response, captured_headers)
+    if request_id and not call_context.get("request_id"):
+        call_context["request_id"] = request_id
+    if response_id and not call_context.get("response_id"):
+        call_context["response_id"] = response_id
+    return response
+
+
 def _patch_cognee_embedding_gateway() -> None:
     """Force Cognee LiteLLM embeddings through the newAPI OpenAI-compatible gateway."""
     global _embedding_gateway_patch_installed
@@ -515,6 +634,19 @@ def _patch_cognee_embedding_gateway() -> None:
         return
 
     original_embed_text = engine_cls.embed_text
+    litellm = _mod.litellm
+    original_aembedding = litellm.aembedding
+
+    @wraps(original_aembedding)
+    async def gateway_aembedding(*args, **kwargs):
+        return await _call_cognee_embedding_gateway(
+            original_aembedding,
+            args,
+            kwargs,
+        )
+
+    gateway_aembedding._ai_anime_idempotency_wrapper = True
+    litellm.aembedding = gateway_aembedding
 
     async def patched_embed_text(self, text):
         provider = str(getattr(self, "provider", "") or "").strip().lower()
@@ -522,50 +654,23 @@ def _patch_cognee_embedding_gateway() -> None:
         if provider not in {"custom", "openai"} or not endpoint:
             return await original_embed_text(self, text)
 
-        litellm = _mod.litellm
-        original_aembedding = litellm.aembedding
-
-        async def gateway_aembedding(*args, **kwargs):
-            kwargs.setdefault("custom_llm_provider", "openai")
-            raw_model = str(kwargs.get("model") or "").strip()
-            if raw_model:
-                kwargs["model"] = _normalize_openai_compatible_model(raw_model)
-            if os.getenv("COGNEE_EMBEDDING_SEND_DIMENSIONS", "false").lower() not in (
-                "1",
-                "true",
-                "yes",
-                "on",
-            ):
-                # dimensions 仍用于本地向量库 sizing；默认不传给 newAPI 上游。
-                kwargs.pop("dimensions", None)
-            response = await original_aembedding(*args, **kwargs)
-            _attach_embedding_response_headers(response, captured_headers)
-            nonlocal captured_request_id, captured_response_id
-            request_id, response_id = _embedding_response_trace(
-                response, captured_headers
-            )
-            captured_request_id = captured_request_id or request_id
-            captured_response_id = captured_response_id or response_id
-            return response
-
-        litellm.aembedding = gateway_aembedding
         _install_litellm_embedding_header_capture()
         captured_headers: dict[str, str] = {}
-        captured_request_id = ""
-        captured_response_id = ""
-        token = _embedding_headers_capture.set(captured_headers)
+        call_context: dict[str, object] = {
+            "dimensions": getattr(self, "dimensions", None),
+            "headers": captured_headers,
+            "request_id": "",
+            "response_id": "",
+        }
+        headers_token = _embedding_headers_capture.set(captured_headers)
+        gateway_token = _embedding_gateway_call_context.set(call_context)
         raw_model = str(
             getattr(self, "model", "") or os.getenv("EMBEDDING_MODEL", "")
         ).strip()
-        model = _normalize_openai_compatible_model(raw_model)
-        billing_model = _billing_model_name(raw_model or model)
-        original_model = getattr(self, "model", None)
+        billing_model = _billing_model_name(raw_model)
         reservation_id = ""
         active_token = None
         try:
-            if model:
-                self.model = model
-
             try:
                 reservation_id = (
                     await get_usage_meter().reserve_current_model_call_credit(
@@ -607,22 +712,21 @@ def _patch_cognee_embedding_gateway() -> None:
                         "failed to reset Cognee reservation context: %s",
                         reset_error,
                     )
-            if original_model is not None:
-                self.model = original_model
-            _embedding_headers_capture.reset(token)
-            litellm.aembedding = original_aembedding
+            _embedding_gateway_call_context.reset(gateway_token)
+            _embedding_headers_capture.reset(headers_token)
         if reservation_id:
             try:
                 request_id = (
-                    captured_request_id
+                    str(call_context.get("request_id") or "")
                     or captured_headers.get("x-request-id")
                     or captured_headers.get("x-newapi-request-id")
                     or captured_headers.get("x-oneapi-request-id")
                     or ""
                 )
                 metadata = {"source": "cognee_embedding_gateway"}
-                if captured_response_id:
-                    metadata["response_id"] = captured_response_id
+                response_id = str(call_context.get("response_id") or "")
+                if response_id:
+                    metadata["response_id"] = response_id
                 await get_usage_meter().bump_model_call(
                     user_id=None,
                     model=billing_model,

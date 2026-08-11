@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTaskCenterStore } from "@/modules/task_execution/public";
 import { TaskLogs } from "./task-logs";
@@ -8,9 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   displayLabel,
+  isActive,
   type TaskState,
 } from "@/modules/task_execution/public";
 import { taskErrorMessage } from "@/modules/task_execution/public";
+import { Progress } from "@/components/ui/progress";
 
 export function formatLocalTaskTime(value?: string | null): string {
   if (!value) return "—";
@@ -31,6 +33,22 @@ export function formatLocalTaskTime(value?: string | null): string {
   const hours = String(Math.floor(absOffset / 60)).padStart(2, "0");
   const minutes = String(absOffset % 60).padStart(2, "0");
   return `${formatted} UTC${sign}${hours}:${minutes}`;
+}
+
+export function formatTaskElapsed(
+  createdAt: string,
+  endedAt: string | null | undefined,
+  nowMs: number = Date.now(),
+): string {
+  const startedMs = Date.parse(createdAt);
+  if (!Number.isFinite(startedMs)) return "—";
+  const parsedEnd = endedAt ? Date.parse(endedAt) : Number.NaN;
+  const endMs = Number.isFinite(parsedEnd) ? parsedEnd : nowMs;
+  const totalSeconds = Math.max(0, Math.floor((endMs - startedMs) / 1000));
+  const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
 }
 
 function stringField(value: unknown, key: string): string {
@@ -142,6 +160,15 @@ export function TaskDetail() {
     () => (selectedTaskKey ? tasksMap.get(selectedTaskKey) ?? null : null),
     [selectedTaskKey, tasksMap],
   );
+  const taskIsActive = task ? isActive(task) : false;
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    setNowMs(Date.now());
+    if (!taskIsActive) return undefined;
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [task?.task_key, taskIsActive]);
 
   if (!task) {
     return (
@@ -159,6 +186,12 @@ export function TaskDetail() {
   const skillId = metadataField(task, "skill_id");
   const canvasId = metadataField(task, "canvas_id");
   const nodeId = metadataField(task, "node_id");
+  const progressPercent = Math.round(Math.max(0, Math.min(1, task.progress)) * 100);
+  const elapsed = formatTaskElapsed(
+    task.created_at,
+    taskIsActive ? null : task.completed_at || task.updated_at,
+    nowMs,
+  );
   const debugRows = [
     ["task_key", task.task_key],
     ["task_id", task.task_id],
@@ -210,14 +243,34 @@ export function TaskDetail() {
             </div>
           </div>
           {(task.current_task || task.progress > 0) ? (
-            <div className="mt-3 rounded bg-muted p-2">
-              <div className="text-muted-foreground">当前状态</div>
-              <div className="mt-1">{task.current_task || t(`taskCenter.status.${task.status}`)}</div>
-              <div className="mt-1 font-mono text-[11px] text-muted-foreground">
-                {Math.round(task.progress * 100)}%
+            <div className="mt-3 rounded border border-border bg-muted p-2.5">
+              <div className="flex items-center justify-between gap-3 text-muted-foreground">
+                <span>{t("taskCenter.detail.current.label")}</span>
+                <span className="font-mono text-[11px] tabular-nums">
+                  {t("taskCenter.detail.current.elapsed", { duration: elapsed })}
+                </span>
+              </div>
+              <div className="mt-1.5 whitespace-pre-wrap font-medium">
+                {task.current_task || t(`taskCenter.status.${task.status}`)}
+              </div>
+              <Progress value={progressPercent} className="mt-2" />
+              <div className="mt-1 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
+                <span>{t("taskCenter.detail.current.progress")}</span>
+                <span>{progressPercent}%</span>
               </div>
             </div>
           ) : null}
+          <div className="mt-3">
+            <div className="mb-1.5 flex items-center justify-between text-muted-foreground">
+              <span>{t("taskCenter.detail.current.liveLogs")}</span>
+              <span className="font-mono text-[11px] tabular-nums">
+                {t("taskCenter.detail.current.logCount", { count: task.logs.length })}
+              </span>
+            </div>
+            <div className="h-36 overflow-hidden rounded border border-border bg-background">
+              <TaskLogs task={task} />
+            </div>
+          </div>
           {providerId ? (
             <div className="mt-3 rounded bg-muted p-2 font-mono text-[11px]">
               {t("taskCenter.detail.meta.providerTaskId")}: {providerId}

@@ -62,7 +62,14 @@ export function TaskRow({
       <span className={cn("w-3 shrink-0 text-center", STATUS_COLOR[task.status])}>
         {STATUS_ICON[task.status]}
       </span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate">{label}</span>
+        {task.current_task ? (
+          <span className="truncate text-[10px] text-muted-foreground">
+            {task.current_task}
+          </span>
+        ) : null}
+      </span>
       {task.status === "running" && (
         <div className="flex shrink-0 items-center gap-1.5">
           <div className="w-16">

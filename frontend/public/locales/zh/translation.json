@@ -1355,6 +1355,13 @@
       "error": {
         "label": "错误"
       },
+      "current": {
+        "label": "当前执行",
+        "elapsed": "耗时 {{duration}}",
+        "progress": "任务进度",
+        "liveLogs": "实时执行日志",
+        "logCount": "{{count}} 条"
+      },
       "logs": {
         "placeholder": "暂无日志输出。"
       }
