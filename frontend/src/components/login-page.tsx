@@ -29,6 +29,7 @@ import { useRegionStore } from "@/shared/stores/region-store";
 
 type AuthView = "login" | "register" | "authorize" | "forgot";
 type PasswordResetStep = "request" | "verify" | "reset";
+const REMEMBERED_PASSWORD_MASK = "••••••••••••";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -48,6 +49,9 @@ export function LoginPage() {
     (state) => state.publicConfig,
   );
   const commercialCaptcha = useCommercialAuthStore((state) => state.captcha);
+  const rememberedCommercialLogin = useCommercialAuthStore(
+    (state) => state.rememberedLogin,
+  );
   const commercialLogoDataUrl = useCommercialAuthStore(
     (state) => state.logoDataUrl,
   );
@@ -62,6 +66,9 @@ export function LoginPage() {
     (state) => state.refreshCaptcha,
   );
   const commercialLogin = useCommercialAuthStore((state) => state.login);
+  const commercialLoginRemembered = useCommercialAuthStore(
+    (state) => state.loginRemembered,
+  );
   const commercialRegister = useCommercialAuthStore((state) => state.register);
   const sendPasswordResetCode = useCommercialAuthStore(
     (state) => state.sendPasswordResetCode,
@@ -87,6 +94,8 @@ export function LoginPage() {
     useState<PasswordResetStep>("request");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [usingRememberedPassword, setUsingRememberedPassword] = useState(false);
+  const appliedRememberedLoginRef = useRef("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -103,6 +112,25 @@ export function LoginPage() {
       setError(reason instanceof Error ? reason.message : t("auth.loginFailed"));
     });
   }, [initializeCommercial, t]);
+
+  useEffect(() => {
+    if (!commercialConfigured || !rememberedCommercialLogin || view !== "login") {
+      return;
+    }
+    const key = `${rememberedCommercialLogin.tenantCode}\n${rememberedCommercialLogin.username}`;
+    if (appliedRememberedLoginRef.current === key) return;
+    appliedRememberedLoginRef.current = key;
+    setTenantCode(rememberedCommercialLogin.tenantCode);
+    setUsername(rememberedCommercialLogin.username);
+    setPassword(REMEMBERED_PASSWORD_MASK);
+    setRememberMe(true);
+    setUsingRememberedPassword(true);
+  }, [
+    commercialConfigured,
+    rememberedCommercialLogin,
+    setTenantCode,
+    view,
+  ]);
 
   useEffect(() => {
     if (
@@ -217,17 +245,28 @@ export function LoginPage() {
         }
         return;
       } else if (commercialConfigured) {
-        await commercialLogin({
-          tenantCode,
-          username: username.trim(),
-          password,
-          rememberMe: commercialPublicConfig?.login.rememberMe
-            ? rememberMe
-            : false,
-          ...(commercialPublicConfig?.login.captchaEnabled
-            ? { captchaCode }
-            : {}),
-        });
+        const shouldRemember = commercialPublicConfig?.login.rememberMe
+          ? rememberMe
+          : false;
+        const canUseRememberedPassword = Boolean(
+          usingRememberedPassword
+          && rememberedCommercialLogin
+          && tenantCode.trim() === rememberedCommercialLogin.tenantCode
+          && username.trim() === rememberedCommercialLogin.username,
+        );
+        if (canUseRememberedPassword) {
+          await commercialLoginRemembered(shouldRemember, captchaCode);
+        } else {
+          await commercialLogin({
+            tenantCode,
+            username: username.trim(),
+            password,
+            rememberMe: shouldRemember,
+            ...(commercialPublicConfig?.login.captchaEnabled
+              ? { captchaCode }
+              : {}),
+          });
+        }
         const user = await getCurrentUser({ clearOnNetworkFailure: false });
         if (!user) throw new Error(t("auth.workspaceSessionFailed"));
       } else if (view === "login") {
@@ -306,6 +345,7 @@ export function LoginPage() {
                 label={t("auth.passwordLogin")}
                 onClick={() => {
                   setView("login");
+                  appliedRememberedLoginRef.current = "";
                   setError(null);
                   setSuccess(null);
                 }}
@@ -316,6 +356,8 @@ export function LoginPage() {
                 label={t("auth.register")}
                 onClick={() => {
                   setView("register");
+                  if (usingRememberedPassword) setPassword("");
+                  setUsingRememberedPassword(false);
                   setError(null);
                   setSuccess(null);
                 }}
@@ -353,6 +395,7 @@ export function LoginPage() {
                   value={tenantCode}
                   onChange={(event) => {
                     setTenantCode(event.target.value);
+                    setUsingRememberedPassword(false);
                     setView("login");
                     setCaptchaCode("");
                     setError(null);
@@ -388,6 +431,7 @@ export function LoginPage() {
                     variant="ghost"
                     onClick={() => {
                       setView("login");
+                      appliedRememberedLoginRef.current = "";
                       setPasswordResetStep("request");
                       setVerificationCode("");
                       setResetTicket("");
@@ -460,7 +504,10 @@ export function LoginPage() {
                     id="username"
                     autoComplete="username"
                     value={username}
-                    onChange={(event) => setUsername(event.target.value)}
+                    onChange={(event) => {
+                      setUsername(event.target.value);
+                      setUsingRememberedPassword(false);
+                    }}
                     placeholder={t("auth.usernamePlaceholder")}
                     required
                   />
@@ -500,7 +547,10 @@ export function LoginPage() {
                           : "current-password"
                       }
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        setUsingRememberedPassword(false);
+                      }}
                       placeholder={t("auth.passwordPlaceholder")}
                       className="pr-10"
                       required
@@ -587,6 +637,7 @@ export function LoginPage() {
                     className="ml-auto block text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       setView("forgot");
+                      setUsingRememberedPassword(false);
                       setPasswordResetStep("request");
                       setPassword("");
                       setConfirmPassword("");

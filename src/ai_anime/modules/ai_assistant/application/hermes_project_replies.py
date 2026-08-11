@@ -75,6 +75,7 @@ class HermesProjectReplies:
         prompt: str,
         on_event: ChatEventSink,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
@@ -161,6 +162,7 @@ class HermesProjectReplies:
                 project,
                 final_text,
                 media,
+                turn_id=turn_id,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )
@@ -333,6 +335,7 @@ class HermesProjectReplies:
                     project,
                     HERMES_EMPTY_RESPONSE_MESSAGE,
                     [],
+                    turn_id=turn_id,
                     project_dir=project_dir,
                     project_state_dir=project_state_dir,
                 )

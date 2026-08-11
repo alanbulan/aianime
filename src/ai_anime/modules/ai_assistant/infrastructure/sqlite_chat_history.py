@@ -237,6 +237,7 @@ class SQLiteChatHistory:
         content: str,
         media: list[dict[str, Any]] | None = None,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
@@ -249,7 +250,13 @@ class SQLiteChatHistory:
             )
         )
         try:
-            message = self._insert_message(conn, role, content, media)
+            message = self._insert_message(
+                conn,
+                role,
+                content,
+                media,
+                turn_id=turn_id,
+            )
             conn.commit()
             return message
         finally:
@@ -473,9 +480,9 @@ class SQLiteChatHistory:
         try:
             rows = conn.execute(
                 """
-                SELECT id, role, content, media_json, created_at
+                SELECT id, role, content, media_json, turn_id, created_at
                   FROM (
-                        SELECT id, role, content, media_json, created_at
+                        SELECT id, role, content, media_json, turn_id, created_at
                           FROM chat_messages
                          WHERE role <> 'trace'
                          ORDER BY id DESC
@@ -493,6 +500,7 @@ class SQLiteChatHistory:
                 "role": str(row["role"]),
                 "content": str(row["content"]),
                 "media": json.loads(row["media_json"] or "[]"),
+                **({"turn_id": str(row["turn_id"])} if row["turn_id"] else {}),
                 "created_at": str(row["created_at"]),
             }
             for row in rows

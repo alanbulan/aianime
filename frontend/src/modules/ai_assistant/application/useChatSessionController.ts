@@ -22,6 +22,8 @@ import { upsertAssistantMessage } from "@/modules/ai_assistant/application/messa
 import { sortMessages } from "@/modules/ai_assistant/application/messageTimeline";
 import { useSuperChatFrameController } from "@/modules/ai_assistant/application/useFrameController";
 
+const TURN_HISTORY_RECONCILIATION_MS = 30_000;
+
 export type ChatSessionSocketOptions = {
   scope: ChatScope;
   onFrame: (frame: ServerFrame) => void;
@@ -281,6 +283,17 @@ export function useChatSessionController({
       }
     };
   }, [createSuperChatSocketSession, desiredScope, handleFrame]);
+
+  useEffect(() => {
+    if (!connected || !busy || !activeTurnId) return;
+    const expectedTurnId = activeTurnId;
+    const timer = window.setTimeout(() => {
+      if (activeTurnIdRef.current === expectedTurnId) {
+        requestHistory();
+      }
+    }, TURN_HISTORY_RECONCILIATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [activeTurnId, busy, connected, requestHistory]);
 
   const send = useCallback((
     text: string,

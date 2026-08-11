@@ -58,6 +58,12 @@ export interface CommercialLoginInput {
   captchaCode?: string;
 }
 
+export interface CommercialRememberedLogin {
+  tenantCode: string;
+  username: string;
+  hasPassword: true;
+}
+
 export interface CommercialRegistrationInput {
   tenantCode: string;
   username: string;
@@ -99,6 +105,20 @@ export interface CommercialPublicConfig {
 export interface CommercialCaptcha {
   key: string;
   imageDataUrl: string;
+}
+
+export function parseCommercialRememberedLogin(
+  value: unknown,
+): CommercialRememberedLogin {
+  const login = record(value, "remembered commercial login");
+  if (login.hasPassword !== true) {
+    throw new Error("Remembered commercial login is missing its password marker");
+  }
+  return {
+    tenantCode: text(login.tenantCode, "rememberedLogin.tenantCode"),
+    username: text(login.username, "rememberedLogin.username"),
+    hasPassword: true,
+  };
 }
 
 export function parseCommercialCaptcha(value: unknown): CommercialCaptcha {

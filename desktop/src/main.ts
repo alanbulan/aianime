@@ -21,6 +21,7 @@ import { EncryptedFileCommercialModelAccessStore } from "./commercial-model-acce
 import { saveCommercialInvocationResult } from "./commercial-invocation-result.js";
 import {
   CommercialApiClient,
+  EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
   registerCommercialIpc,
   resolveCommercialGatewayUrl,
@@ -304,6 +305,10 @@ async function startApplication(): Promise<void> {
     baseUrl: resolveCommercialGatewayUrl(),
     sessionStore: new EncryptedFileCommercialSessionStore(
       join(secureDirectory, "commercial-session.bin"),
+      safeStorage,
+    ),
+    rememberedLoginStore: new EncryptedFileCommercialRememberedLoginStore(
+      join(secureDirectory, "commercial-remembered-login.bin"),
       safeStorage,
     ),
   });

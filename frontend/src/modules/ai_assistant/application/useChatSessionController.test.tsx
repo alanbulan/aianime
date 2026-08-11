@@ -157,4 +157,27 @@ describe("useChatSessionController", () => {
     expect(result.current.activeTurnId).toBeNull();
     expect(result.current.busy).toBe(false);
   });
+
+  it("requests a history snapshot when an active turn has not finalized", () => {
+    const harness = createHarness();
+    const { result } = renderHook(() =>
+      useChatSessionController({
+        project: "project-a",
+        displayName: "Alice",
+        ports: harness.ports,
+      }),
+    );
+    act(() => vi.advanceTimersByTime(50));
+    act(() => {
+      result.current.send("继续之前的任务");
+    });
+    harness.send.mockClear();
+
+    act(() => vi.advanceTimersByTime(30_000));
+
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "scope.set",
+      scope: { kind: "project", id: "project-a" },
+    });
+  });
 });

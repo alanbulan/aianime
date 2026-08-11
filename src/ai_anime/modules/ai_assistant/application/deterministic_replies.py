@@ -26,6 +26,7 @@ class DeterministicProjectReplies:
         content: str,
         on_event: ChatEventSink,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
@@ -35,6 +36,7 @@ class DeterministicProjectReplies:
             project,
             content,
             [],
+            turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )

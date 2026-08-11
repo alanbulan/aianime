@@ -95,6 +95,7 @@ class StubProjectMessages:
         content,
         media,
         *,
+        turn_id=None,
         project_dir=None,
         project_state_dir=None,
     ):
@@ -104,6 +105,7 @@ class StubProjectMessages:
                 project,
                 content,
                 media,
+                turn_id,
                 project_dir,
                 project_state_dir,
             )
@@ -195,6 +197,7 @@ async def test_hermes_project_replies_stream_and_persist_visible_events(
         "project-a",
         "question",
         on_event,
+        turn_id="turn-1",
         project_dir=tmp_path / "output",
         project_state_dir=tmp_path / "state",
     )
@@ -226,6 +229,7 @@ async def test_hermes_project_replies_stream_and_persist_visible_events(
         )
     ]
     assert emitted[-1] == {"type": "done", "message": result}
+    assert messages.appended_assistants[0][4] == "turn-1"
 
 
 @pytest.mark.anyio
@@ -252,12 +256,14 @@ async def test_hermes_project_replies_persist_partial_reply_after_stream_failure
             "project-a",
             "question",
             disconnected_sink,
+            turn_id="turn-partial",
             project_dir=tmp_path / "output",
             project_state_dir=tmp_path / "state",
         )
 
     assert len(messages.appended_assistants) == 1
     assert messages.appended_assistants[0][2] == "normalized:Partial answer"
+    assert messages.appended_assistants[0][4] == "turn-partial"
 
 
 @pytest.mark.anyio

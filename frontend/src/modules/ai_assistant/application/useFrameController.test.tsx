@@ -138,6 +138,67 @@ describe("useSuperChatFrameController", () => {
     expect(options.setStreamText).toHaveBeenLastCalledWith("");
   });
 
+  it("ends the active turn as soon as the persisted assistant message arrives", () => {
+    const recentlyCompleted = { current: null as string | null };
+    const markTurnInactive = vi.fn((turnId?: string | null) => {
+      recentlyCompleted.current = turnId ?? null;
+    });
+    const options = createOptions({
+      activeTurnIdRef: { current: "turn-1" },
+      recentlyCompletedTurnIdRef: recentlyCompleted,
+      markTurnInactive,
+    });
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "assistant.message",
+      turn_id: "turn-1",
+      message: {
+        id: "assistant-1",
+        role: "assistant",
+        content: "已经完成",
+        turn_id: "turn-1",
+        created_at: "2026-08-11T19:23:14+08:00",
+      },
+    }));
+
+    expect(markTurnInactive).toHaveBeenCalledWith("turn-1");
+    expect(applyLastMessageUpdate(options, [])).toContainEqual(expect.objectContaining({
+      id: "assistant-1",
+      text: "已经完成",
+      turnId: "turn-1",
+    }));
+
+    act(() => result.current({ type: "chat.done", turn_id: "turn-1" }));
+    expect(options.finalizeStream).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a persisted completed turn even while the busy flag is stale", () => {
+    const current = [message("local-user", "user", "继续", 100, "turn-1")];
+    const options = createOptions({
+      messagesRef: { current },
+      activeTurnIdRef: { current: "turn-1" },
+    });
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "scope.changed",
+      scope: { kind: "project", id: "project-a" },
+      history: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          content: "已经完成",
+          turn_id: "turn-1",
+          created_at: "2026-08-11T19:23:14+08:00",
+        },
+      ],
+      busy: true,
+    }));
+
+    expect(options.markTurnInactive).toHaveBeenCalledWith("turn-1");
+  });
+
   it("ignores cancelled deltas and clears cancellation only on done", () => {
     const cancelled = new Set(["turn-1"]);
     const options = createOptions({

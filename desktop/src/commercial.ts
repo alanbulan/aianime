@@ -4,6 +4,7 @@ export {
   COMMERCIAL_GATEWAY_URL,
   CommercialApiClient,
   CommercialApiError,
+  EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
   resolveCommercialGatewayUrl,
 } from "./commercial-api-client.js";
@@ -14,6 +15,9 @@ export type {
   CommercialGatewayStatus,
   CommercialLicenseActivationInput,
   CommercialLoginInput,
+  CommercialRememberedLoginInput,
+  CommercialRememberedLoginStore,
+  CommercialRememberedLoginSummary,
   CommercialPasswordResetVerification,
   CommercialProfileUpdateInput,
   CommercialProtectedImage,
@@ -29,6 +33,7 @@ export type {
   CommercialUserProfile,
   SecureStorageAdapter,
   StoredCommercialSession,
+  StoredCommercialRememberedLogin,
 } from "./commercial-api-client.js";
 export {
   COMMERCIAL_CHANNELS,

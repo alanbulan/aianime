@@ -2,6 +2,7 @@ import type { CommercialIdentityGateway } from "@/modules/identity_access/applic
 import {
   parseCommercialCaptcha,
   parseCommercialPublicConfig,
+  parseCommercialRememberedLogin,
   parseCommercialSession,
   parseCommercialUserProfile,
   parsePasswordResetVerification,
@@ -49,9 +50,22 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
     const session = await invokeCommercial(() => requireCommercialBridge().session());
     return session ? parseCommercialSession(session) : null;
   },
+  async rememberedLogin() {
+    const login = await invokeCommercial(() =>
+      requireCommercialBridge().rememberedLogin(),
+    );
+    return login ? parseCommercialRememberedLogin(login) : null;
+  },
   async login(input) {
     return parseCommercialSession(
       await invokeCommercial(() => requireCommercialBridge().login(input)),
+    );
+  },
+  async loginRemembered(input) {
+    return parseCommercialSession(
+      await invokeCommercial(() =>
+        requireCommercialBridge().loginRemembered(input),
+      ),
     );
   },
   logout() {

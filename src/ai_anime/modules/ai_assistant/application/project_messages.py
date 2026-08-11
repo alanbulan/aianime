@@ -66,6 +66,11 @@ class ProjectChatMessages:
                     "id": int(message["id"]),
                     "role": role,
                     "content": content,
+                    **(
+                        {"turn_id": str(message["turn_id"])}
+                        if message.get("turn_id")
+                        else {}
+                    ),
                     "media": filter_markdown_duplicate_media(
                         content,
                         merged_media,
@@ -132,6 +137,7 @@ class ProjectChatMessages:
         project: str,
         content: str,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
@@ -140,6 +146,7 @@ class ProjectChatMessages:
             project,
             "user",
             content,
+            turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )
@@ -151,6 +158,7 @@ class ProjectChatMessages:
         content: str,
         media: list[dict[str, Any]] | None = None,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
@@ -160,6 +168,7 @@ class ProjectChatMessages:
             "assistant",
             redact_local_filesystem_paths(content),
             media,
+            turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )

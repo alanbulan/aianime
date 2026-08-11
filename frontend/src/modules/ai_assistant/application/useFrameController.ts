@@ -95,12 +95,15 @@ export function useSuperChatFrameController({
           );
         });
         const activeTurnId = activeTurnIdRef.current;
-        if (frame.busy === true && currentTurnIsLive(activeTurnId, currentMessages)) {
+        if (
+          activeTurnId
+          && turnCompletedInHistory(activeTurnId, history, currentMessages)
+        ) {
+          markTurnInactive(activeTurnId);
+        } else if (frame.busy === true && currentTurnIsLive(activeTurnId, currentMessages)) {
           setBusy(true);
         } else if (activeTurnId) {
-          if (turnCompletedInHistory(activeTurnId, history, currentMessages)) {
-            markTurnInactive(activeTurnId);
-          } else if (!currentTurnIsLive(activeTurnId, currentMessages)) {
+          if (!currentTurnIsLive(activeTurnId, currentMessages)) {
             markTurnInactive(activeTurnId);
           } else {
             setBusy(true);
@@ -195,15 +198,32 @@ export function useSuperChatFrameController({
         setStreamText("");
         break;
       }
-      case "assistant.message":
+      case "assistant.message": {
+        const turnId =
+          (typeof frame.turn_id === "string" && frame.turn_id.trim()
+            ? frame.turn_id
+            : null)
+          ?? activeTurnIdRef.current
+          ?? pendingClientTurnIdRef.current;
+        if (turnId && cancelledTurnIdsRef.current.has(turnId)) break;
         setMessages((current) =>
           upsertServerAssistantMessage(
             current,
             frame.message,
-            typeof frame.turn_id === "string" ? frame.turn_id : undefined,
+            turnId ?? undefined,
           ),
         );
+        if (
+          turnId
+          && (
+            turnId === activeTurnIdRef.current
+            || turnId === pendingClientTurnIdRef.current
+          )
+        ) {
+          markTurnInactive(turnId);
+        }
         break;
+      }
       case "tool.call":
         if (
           typeof frame.turn_id === "string"
@@ -238,6 +258,12 @@ export function useSuperChatFrameController({
         ) {
           cancelledTurnIdsRef.current.delete(frame.turn_id);
           markTurnInactive(frame.turn_id);
+          break;
+        }
+        if (
+          typeof frame.turn_id === "string"
+          && recentlyCompletedTurnIdRef.current === frame.turn_id
+        ) {
           break;
         }
         finalizeStream();

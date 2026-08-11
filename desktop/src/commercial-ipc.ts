@@ -39,6 +39,7 @@ import {
   type CommercialBootstrapQuery,
   type CommercialInvocationQuery,
   type CommercialLoginInput,
+  type CommercialRememberedLoginInput,
   type CommercialModelCatalogQuery,
   type CommercialProfileUpdateInput,
   type CommercialRegistrationInput,
@@ -64,7 +65,9 @@ export const COMMERCIAL_CHANNELS = {
   publicCaptcha: "desktop:commercial:public-captcha",
   register: "desktop:commercial:register",
   session: "desktop:commercial:session",
+  rememberedLogin: "desktop:commercial:remembered-login",
   login: "desktop:commercial:login",
+  loginRemembered: "desktop:commercial:login-remembered",
   logout: "desktop:commercial:logout",
   profile: "desktop:commercial:profile",
   updateProfile: "desktop:commercial:update-profile",
@@ -213,6 +216,9 @@ export function registerCommercialIpc(
     }
     return session;
   });
+  handle(COMMERCIAL_CHANNELS.rememberedLogin, () =>
+    requireClient().rememberedLogin(),
+  );
   handle(COMMERCIAL_CHANNELS.login, async (input) => {
     currentAuthorization = null;
     cloudModelAssignments = [];
@@ -222,6 +228,26 @@ export function registerCommercialIpc(
     modelAccessHydration = null;
     await synchronizeModelAccess();
     const session = await requireClient().login(parseLoginInput(input));
+    try {
+      await options.onAuthenticated(session);
+      await hydrateModelAccess();
+    } catch (error) {
+      await requireClient().logout();
+      throw error;
+    }
+    return session;
+  });
+  handle(COMMERCIAL_CHANNELS.loginRemembered, async (input) => {
+    currentAuthorization = null;
+    cloudModelAssignments = [];
+    modelCapabilities.clear();
+    modelCapabilityCatalogVersion = "";
+    modelAccessHydrated = false;
+    modelAccessHydration = null;
+    await synchronizeModelAccess();
+    const session = await requireClient().loginRemembered(
+      parseRememberedLoginInput(input),
+    );
     try {
       await options.onAuthenticated(session);
       await hydrateModelAccess();
@@ -854,6 +880,23 @@ function parseLoginInput(value: unknown): CommercialLoginInput {
     tenantCode: requiredText(input.tenantCode, "tenantCode"),
     username: requiredText(input.username, "username"),
     password: requiredRawText(input.password, "password"),
+    ...(rememberMe === undefined ? {} : { rememberMe }),
+    ...(captchaKey ? { captchaKey } : {}),
+    ...(captchaCode ? { captchaCode } : {}),
+  };
+}
+
+function parseRememberedLoginInput(
+  value: unknown,
+): CommercialRememberedLoginInput {
+  const input = requiredRecord(value, "remembered login");
+  const rememberMe = input.rememberMe;
+  if (rememberMe !== undefined && typeof rememberMe !== "boolean") {
+    throw new CommercialApiError("rememberMe 必须是布尔值");
+  }
+  const captchaKey = optionalText(input.captchaKey);
+  const captchaCode = optionalText(input.captchaCode);
+  return {
     ...(rememberMe === undefined ? {} : { rememberMe }),
     ...(captchaKey ? { captchaKey } : {}),
     ...(captchaCode ? { captchaCode } : {}),

@@ -64,6 +64,14 @@ describe("AI Assistant message timeline primitives", () => {
     expect(turnCompletedInHistory("turn-1", completedHistory.slice(0, 1), current)).toBe(false);
     expect(turnCompletedInHistory("turn-missing", completedHistory, current)).toBe(false);
   });
+
+  it("detects completion directly from a persisted turn id", () => {
+    const history = [
+      message("backend-assistant", "assistant", "已完成", 120, "turn-1"),
+    ];
+
+    expect(turnCompletedInHistory("turn-1", history, [])).toBe(true);
+  });
 });
 
 describe("mergeHistorySnapshot", () => {

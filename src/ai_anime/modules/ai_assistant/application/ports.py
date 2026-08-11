@@ -85,6 +85,7 @@ class ChatHistory(Protocol):
         content: str,
         media: list[dict[str, Any]] | None = None,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]: ...

@@ -24,6 +24,7 @@ export type {
 } from "@/modules/identity_access/application/commercial-session-store";
 export type {
   CommercialLoginInput,
+  CommercialRememberedLogin,
   CommercialProfileUpdateInput,
   CommercialPublicConfig,
   CommercialRegistrationInput,

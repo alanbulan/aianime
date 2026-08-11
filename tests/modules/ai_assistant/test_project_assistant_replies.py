@@ -39,10 +39,13 @@ class StubDeterministicReplies:
         content,
         on_event,
         *,
+        turn_id=None,
         project_dir=None,
         project_state_dir=None,
     ):
-        self.calls.append((username, project, content, project_dir, project_state_dir))
+        self.calls.append(
+            (username, project, content, turn_id, project_dir, project_state_dir)
+        )
         await asyncio.sleep(0)
         return {"role": "assistant", "content": content}
 
@@ -59,10 +62,13 @@ class StubHermesReplies:
         prompt,
         on_event,
         *,
+        turn_id=None,
         project_dir=None,
         project_state_dir=None,
     ):
-        self.calls.append((username, project, prompt, project_dir, project_state_dir))
+        self.calls.append(
+            (username, project, prompt, turn_id, project_dir, project_state_dir)
+        )
         await asyncio.sleep(0)
         if self.error is not None:
             raise self.error
@@ -103,6 +109,7 @@ filename: novel.docx
         "project-a",
         prompt,
         _ignore_event,
+        turn_id="turn-1",
         project_dir=tmp_path / "output",
         project_state_dir=tmp_path / "state",
     )
@@ -111,6 +118,7 @@ filename: novel.docx
     assert "新建项目" not in result["content"]
     assert hermes.calls == []
     assert deterministic.calls[0][3:] == (
+        "turn-1",
         tmp_path / "output",
         tmp_path / "state",
     )
@@ -129,6 +137,7 @@ async def test_project_assistant_replies_dispatches_guided_prompt_to_hermes():
         "project-a",
         "帮我写一个复仇短剧",
         _ignore_event,
+        turn_id="turn-2",
     )
 
     assert result["content"] == "hermes reply"
@@ -136,6 +145,7 @@ async def test_project_assistant_replies_dispatches_guided_prompt_to_hermes():
     assert len(hermes.calls) == 1
     assert hermes.calls[0][2].startswith("[AI_ANIME_SCRIPT_UPLOAD_GUIDANCE]\n")
     assert hermes.calls[0][2].endswith("用户原话：帮我写一个复仇短剧")
+    assert hermes.calls[0][3] == "turn-2"
     assert locks.released == [("alice", "project-a", "lock-1")]
 
 

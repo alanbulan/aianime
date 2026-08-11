@@ -85,12 +85,14 @@ def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
         "admin",
         "show-1",
         "第一段",
+        turn_id="turn-1",
         project_dir=project_dir,
     )
     messages.append_assistant(
         "admin",
         "show-1",
         "第一段第二段\nimages/frame.png",
+        turn_id="turn-2",
         project_dir=project_dir,
     )
 
@@ -104,6 +106,7 @@ def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
         "第一段",
         "第二段\nimages/frame.png",
     ]
+    assert [message["turn_id"] for message in history] == ["turn-1", "turn-2"]
     assert [item["path"] for item in history[-1]["media"]] == ["images/frame.png"]
 
 

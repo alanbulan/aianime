@@ -17,10 +17,13 @@ class StubProjectReplies:
         prompt,
         on_event,
         *,
+        turn_id=None,
         project_dir=None,
         project_state_dir=None,
     ):
-        self.calls.append((username, project, prompt, project_dir, project_state_dir))
+        self.calls.append(
+            (username, project, prompt, turn_id, project_dir, project_state_dir)
+        )
         for event in self.events:
             await on_event(event)
         if self.error is not None:
@@ -38,11 +41,12 @@ class StubProjectMessages:
         project,
         content,
         *,
+        turn_id=None,
         project_dir=None,
         project_state_dir=None,
     ):
         self.appended.append(
-            (username, project, content, project_dir, project_state_dir)
+            (username, project, content, turn_id, project_dir, project_state_dir)
         )
         return {"role": "user", "content": content}
 
@@ -97,12 +101,14 @@ async def test_project_chat_turns_persists_user_and_projects_reply_events(tmp_pa
             "alice",
             "project-a",
             "继续处理",
+            "turn-1",
             tmp_path / "output",
             tmp_path / "state",
         )
     ]
     assert replies.calls[0][0:2] == ("alice", "project-a")
     assert replies.calls[0][2].startswith("继续处理\n\n[CHAT_ATTACHMENTS]")
+    assert replies.calls[0][3] == "turn-1"
     assert "fileName=script.txt" in replies.calls[0][2]
     assert [event["type"] for event in emitted] == [
         "thread.started",

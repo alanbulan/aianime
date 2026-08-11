@@ -7,6 +7,7 @@ import type {
 import type {
   CommercialCaptcha,
   CommercialLoginInput,
+  CommercialRememberedLogin,
   CommercialProfileUpdateInput,
   CommercialPublicConfig,
   CommercialRegistrationInput,
@@ -19,6 +20,7 @@ export type CommercialAvailability = "unknown" | "unconfigured" | "configured";
 export interface CommercialAuthState {
   availability: CommercialAvailability;
   session: CommercialSession | null;
+  rememberedLogin: CommercialRememberedLogin | null;
   tenantCode: string;
   publicConfig: CommercialPublicConfig | null;
   logoDataUrl: string | null;
@@ -31,6 +33,10 @@ export interface CommercialAuthState {
   refreshCaptcha: () => Promise<CommercialCaptcha>;
   register: (input: CommercialRegistrationInput) => Promise<void>;
   login: (input: CommercialLoginInput) => Promise<CommercialSession>;
+  loginRemembered: (
+    rememberMe: boolean,
+    captchaCode?: string,
+  ) => Promise<CommercialSession>;
   logout: () => Promise<void>;
   loadProfile: () => Promise<CommercialUserProfile>;
   updateProfile: (
@@ -58,6 +64,7 @@ export function createCommercialAuthStore(
   return create<CommercialAuthState>((set, get) => ({
     availability: "unknown",
     session: null,
+    rememberedLogin: null,
     tenantCode: tenantPreference.read(),
     publicConfig: null,
     logoDataUrl: null,
@@ -70,11 +77,16 @@ export function createCommercialAuthStore(
       initializeInFlight = (async () => {
         const status = await gateway.status();
         if (!status.configured) {
-          set({ availability: "unconfigured", session: null });
+          set({
+            availability: "unconfigured",
+            session: null,
+            rememberedLogin: null,
+          });
           return;
         }
         const session = await gateway.restoreSession();
-        set({ availability: "configured", session });
+        const rememberedLogin = await gateway.rememberedLogin();
+        set({ availability: "configured", session, rememberedLogin });
         if (session) await get().loadProfile().catch(() => undefined);
       })();
       try {
@@ -175,7 +187,19 @@ export function createCommercialAuthStore(
             : {}),
         });
         tenantPreference.write(tenantCode);
-        set({ availability: "configured", tenantCode, session, captcha: null });
+        set({
+          availability: "configured",
+          tenantCode,
+          session,
+          captcha: null,
+          rememberedLogin: input.rememberMe
+            ? {
+                tenantCode,
+                username: input.username.trim(),
+                hasPassword: true,
+              }
+            : null,
+        });
         await get().loadProfile().catch(() => undefined);
         return session;
       } catch (error) {
@@ -185,11 +209,57 @@ export function createCommercialAuthStore(
         throw error;
       }
     },
+    loginRemembered: async (rememberMe, captchaCode) => {
+      const rememberedLogin = get().rememberedLogin;
+      if (!rememberedLogin) throw new Error("没有可用的已保存登录信息");
+      let publicConfig = get().publicConfig;
+      if (!publicConfig || get().tenantCode !== rememberedLogin.tenantCode) {
+        publicConfig = await get().loadPublicConfig(rememberedLogin.tenantCode);
+      }
+      const captcha = get().captcha;
+      if (publicConfig.login.captchaEnabled && !captchaCode?.trim()) {
+        throw new Error("Captcha code is required");
+      }
+      try {
+        const session = await gateway.loginRemembered({
+          rememberMe,
+          ...(publicConfig.login.captchaEnabled && captcha
+            ? { captchaKey: captcha.key, captchaCode: captchaCode!.trim() }
+            : {}),
+        });
+        tenantPreference.write(rememberedLogin.tenantCode);
+        set({
+          availability: "configured",
+          tenantCode: rememberedLogin.tenantCode,
+          session,
+          captcha: null,
+          rememberedLogin: rememberMe ? rememberedLogin : null,
+        });
+        await get().loadProfile().catch(() => undefined);
+        return session;
+      } catch (error) {
+        if (publicConfig.login.captchaEnabled) {
+          await get().refreshCaptcha().catch(() => undefined);
+        }
+        const available = await gateway.rememberedLogin().catch(() => null);
+        set({ rememberedLogin: available });
+        throw error;
+      }
+    },
     logout: async () => {
+      let rememberedLogin = get().rememberedLogin;
       try {
         await gateway.logout();
       } finally {
-        set({ session: null, profile: null, avatarDataUrl: null });
+        rememberedLogin = await gateway.rememberedLogin().catch(
+          () => rememberedLogin,
+        );
+        set({
+          session: null,
+          rememberedLogin,
+          profile: null,
+          avatarDataUrl: null,
+        });
       }
     },
     loadProfile: async () => {
@@ -256,12 +326,14 @@ export function createCommercialAuthStore(
         email.trim(),
         code.trim(),
       ),
-    resetPassword: (resetTicket, newPassword) =>
-      gateway.resetPassword(
+    resetPassword: async (resetTicket, newPassword) => {
+      await gateway.resetPassword(
         get().tenantCode.trim(),
         resetTicket,
         newPassword,
-      ),
+      );
+      set({ rememberedLogin: null });
+    },
   }));
 }
 

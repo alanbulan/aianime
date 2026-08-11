@@ -51,6 +51,7 @@ class ProjectChatTurns:
             username,
             project,
             text,
+            turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )
@@ -137,6 +138,7 @@ class ProjectChatTurns:
                 project,
                 agent_text,
                 on_reply_event,
+                turn_id=turn_id,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )

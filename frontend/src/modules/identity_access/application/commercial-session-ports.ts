@@ -1,6 +1,7 @@
 import type {
   CommercialCaptcha,
   CommercialLoginInput,
+  CommercialRememberedLogin,
   CommercialPasswordResetVerification,
   CommercialProfileUpdateInput,
   CommercialPublicConfig,
@@ -18,7 +19,13 @@ export interface CommercialIdentityGateway {
   fetchCaptcha(tenantCode: string): Promise<CommercialCaptcha>;
   register(input: CommercialRegistrationInput): Promise<void>;
   restoreSession(): Promise<CommercialSession | null>;
+  rememberedLogin(): Promise<CommercialRememberedLogin | null>;
   login(input: CommercialLoginInput): Promise<CommercialSession>;
+  loginRemembered(input: {
+    rememberMe: boolean;
+    captchaKey?: string;
+    captchaCode?: string;
+  }): Promise<CommercialSession>;
   logout(): Promise<{ remoteRevoked: boolean }>;
   fetchProfile(): Promise<CommercialUserProfile>;
   updateProfile(input: CommercialProfileUpdateInput): Promise<CommercialUserProfile>;

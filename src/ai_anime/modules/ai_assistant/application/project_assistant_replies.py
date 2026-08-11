@@ -40,6 +40,7 @@ class ProjectAssistantReplies:
         prompt: str,
         on_event: ChatEventSink,
         *,
+        turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
@@ -55,6 +56,7 @@ class ProjectAssistantReplies:
                     project,
                     deterministic,
                     on_event,
+                    turn_id=turn_id,
                     project_dir=project_dir,
                     project_state_dir=project_state_dir,
                 )
@@ -64,6 +66,7 @@ class ProjectAssistantReplies:
                 project,
                 model_prompt,
                 on_event,
+                turn_id=turn_id,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
             )

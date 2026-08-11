@@ -73,7 +73,9 @@ function createGateway(
     })),
     register: vi.fn(async () => undefined),
     restoreSession: vi.fn(async () => null),
+    rememberedLogin: vi.fn(async () => null),
     login: vi.fn(async () => session),
+    loginRemembered: vi.fn(async () => session),
     logout: vi.fn(async () => ({ remoteRevoked: true })),
     fetchProfile: vi.fn(async () => profile),
     updateProfile: vi.fn(async (input) => ({ ...profile, ...input })),
@@ -178,6 +180,44 @@ describe("commercial auth store", () => {
 
     expect(gateway.logout).toHaveBeenCalledOnce();
     expect(store.getState().session).toBeNull();
+  });
+
+  it("keeps the encrypted remembered login available after an explicit logout", async () => {
+    const rememberedLogin = {
+      tenantCode: "customer-a",
+      username: "client_user",
+      hasPassword: true as const,
+    };
+    const gateway = createGateway({
+      restoreSession: vi.fn(async () => session),
+      rememberedLogin: vi.fn(async () => rememberedLogin),
+    });
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
+    await store.getState().initialize();
+
+    await store.getState().logout();
+
+    expect(store.getState().session).toBeNull();
+    expect(store.getState().rememberedLogin).toEqual(rememberedLogin);
+  });
+
+  it("signs in with the saved password without exposing it to the renderer", async () => {
+    const rememberedLogin = {
+      tenantCode: "customer-a",
+      username: "client_user",
+      hasPassword: true as const,
+    };
+    const gateway = createGateway({
+      rememberedLogin: vi.fn(async () => rememberedLogin),
+    });
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
+    await store.getState().initialize();
+
+    const result = await store.getState().loginRemembered(true);
+
+    expect(gateway.loginRemembered).toHaveBeenCalledWith({ rememberMe: true });
+    expect(result).toEqual(session);
+    expect(store.getState().session).toEqual(session);
   });
 
   it("hydrates a protected avatar through Electron instead of using its relative path", async () => {

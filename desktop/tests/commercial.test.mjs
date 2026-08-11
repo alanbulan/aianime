@@ -28,6 +28,8 @@ class MemorySessionStore {
   }
 }
 
+class MemoryRememberedLoginStore extends MemorySessionStore {}
+
 const passthroughSecureStorage = {
   isEncryptionAvailable: () => true,
   encryptString: (value) => Buffer.from(value, "utf8"),
@@ -91,6 +93,32 @@ test("login persists the secret but returns only a renderer-safe summary", async
     rememberMe: true,
   });
   assert.equal(new Headers(calls[0].init.headers).has("Authorization"), false);
+});
+
+test("remembered credentials stay encrypted outside the renderer session", async () => {
+  const sessionStore = new MemorySessionStore();
+  const rememberedLoginStore = new MemoryRememberedLoginStore();
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore,
+    rememberedLoginStore,
+    now: () => 1_000,
+    fetchImpl: async () => Response.json(loginResponse),
+  });
+
+  await client.login({
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+    rememberMe: true,
+  });
+
+  assert.deepEqual(await client.rememberedLogin(), {
+    tenantCode: "customer-a",
+    username: "client_user",
+    hasPassword: true,
+  });
+  assert.equal(rememberedLoginStore.value.password, "secret");
 });
 
 test("login without remember-me keeps the session only for the current process", async () => {
@@ -360,6 +388,43 @@ test("logout clears the local secret when remote revocation is offline", async (
 
   assert.deepEqual(await client.logout(), { remoteRevoked: false });
   assert.equal(store.value, null);
+});
+
+test("explicit logout clears the token but preserves remembered credentials", async () => {
+  const sessionStore = new MemorySessionStore();
+  const rememberedLoginStore = new MemoryRememberedLoginStore();
+  sessionStore.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: 3_601_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+    rememberMe: true,
+    rememberedLogin: {
+      tenantCode: "customer-a",
+      username: "client_user",
+      password: "secret",
+    },
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore,
+    rememberedLoginStore,
+    fetchImpl: async () => {
+      throw new Error("offline");
+    },
+  });
+
+  assert.deepEqual(await client.logout(), { remoteRevoked: false });
+  assert.equal(sessionStore.value, null);
+  assert.deepEqual(rememberedLoginStore.value, {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+  });
 });
 
 function authenticatedClient(fetchImpl, options = {}) {

@@ -96,6 +96,18 @@ export interface CommercialLoginInput {
   captchaCode?: string;
 }
 
+export interface CommercialRememberedLoginInput {
+  rememberMe?: boolean;
+  captchaKey?: string;
+  captchaCode?: string;
+}
+
+export interface CommercialRememberedLoginSummary {
+  tenantCode: string;
+  username: string;
+  hasPassword: true;
+}
+
 export interface CommercialRegistrationInput {
   tenantCode: string;
   username: string;
@@ -171,6 +183,14 @@ interface RememberedCommercialLogin {
   password: string;
 }
 
+export interface StoredCommercialRememberedLogin {
+  schemaVersion: 1;
+  gatewayOrigin: string;
+  tenantCode: string;
+  username: string;
+  password: string;
+}
+
 export interface StoredCommercialSession {
   schemaVersion: 1;
   gatewayOrigin: string;
@@ -188,9 +208,16 @@ export interface CommercialSessionStore {
   clear(): Promise<void>;
 }
 
+export interface CommercialRememberedLoginStore {
+  load(): Promise<StoredCommercialRememberedLogin | null>;
+  save(login: StoredCommercialRememberedLogin): Promise<void>;
+  clear(): Promise<void>;
+}
+
 interface CommercialClientOptions {
   baseUrl: string;
   sessionStore: CommercialSessionStore;
+  rememberedLoginStore?: CommercialRememberedLoginStore;
   fetchImpl?: typeof fetch;
   now?: () => number;
 }
@@ -284,18 +311,59 @@ export class EncryptedFileCommercialSessionStore
   }
 }
 
+export class EncryptedFileCommercialRememberedLoginStore
+  implements CommercialRememberedLoginStore
+{
+  constructor(
+    private readonly filePath: string,
+    private readonly secureStorage: SecureStorageAdapter,
+  ) {}
+
+  async load(): Promise<StoredCommercialRememberedLogin | null> {
+    try {
+      return await readEncryptedJsonFile(
+        this.filePath,
+        this.secureStorage,
+        parseStoredRememberedLogin,
+      );
+    } catch (error) {
+      if (error instanceof CommercialApiError) throw error;
+      throw new CommercialApiError(
+        error instanceof Error ? error.message : "无法读取已记住的登录信息",
+      );
+    }
+  }
+
+  async save(login: StoredCommercialRememberedLogin): Promise<void> {
+    try {
+      await writeEncryptedJsonFile(this.filePath, this.secureStorage, login);
+    } catch (error) {
+      throw new CommercialApiError(
+        error instanceof Error ? error.message : "无法保存登录信息",
+      );
+    }
+  }
+
+  async clear(): Promise<void> {
+    await clearEncryptedFile(this.filePath);
+  }
+}
+
 export class CommercialApiClient {
   readonly baseUrl: string;
   private readonly sessionStore: CommercialSessionStore;
+  private readonly rememberedLoginStore: CommercialRememberedLoginStore | undefined;
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
   private sessionCache: StoredCommercialSession | null | undefined;
+  private rememberedLoginCache: StoredCommercialRememberedLogin | null | undefined;
   private refreshInFlight: Promise<StoredCommercialSession> | null = null;
   private activeDeviceId: Identifier | null = null;
 
   constructor(options: CommercialClientOptions) {
     this.baseUrl = normalizeGatewayBaseUrl(options.baseUrl);
     this.sessionStore = options.sessionStore;
+    this.rememberedLoginStore = options.rememberedLoginStore;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? Date.now;
   }
@@ -375,11 +443,55 @@ export class CommercialApiClient {
     );
     try {
       await this.replaceSession(session);
+      if (session.rememberedLogin) {
+        await this.saveRememberedLogin(session.rememberedLogin);
+      } else {
+        await this.clearRememberedLogin();
+      }
     } catch (error) {
+      await this.clearSession().catch(() => undefined);
       await this.revokeToken(response.accessToken).catch(() => undefined);
       throw error;
     }
     return toSessionSummary(session);
+  }
+
+  async rememberedLogin(): Promise<CommercialRememberedLoginSummary | null> {
+    const remembered = await this.loadRememberedLogin();
+    if (!remembered) return null;
+    return {
+      tenantCode: remembered.tenantCode,
+      username: remembered.username,
+      hasPassword: true,
+    };
+  }
+
+  async loginRemembered(
+    input: CommercialRememberedLoginInput = {},
+  ): Promise<CommercialSessionSummary> {
+    const remembered = await this.loadRememberedLogin();
+    if (!remembered) {
+      throw new CommercialApiError("没有可用的已保存登录信息", { status: 401 });
+    }
+    try {
+      return await this.login({
+        tenantCode: remembered.tenantCode,
+        username: remembered.username,
+        password: remembered.password,
+        rememberMe: input.rememberMe !== false,
+        ...(input.captchaKey === undefined
+          ? {}
+          : { captchaKey: input.captchaKey }),
+        ...(input.captchaCode === undefined
+          ? {}
+          : { captchaCode: input.captchaCode }),
+      });
+    } catch (error) {
+      if (isPermanentLoginFailure(error)) {
+        await this.clearRememberedLogin();
+      }
+      throw error;
+    }
   }
 
   async register(input: CommercialRegistrationInput): Promise<void> {
@@ -407,6 +519,9 @@ export class CommercialApiClient {
     } catch (error) {
       if (isAuthenticationFailure(error) || isPermanentLoginFailure(error)) {
         await this.clearSession();
+        if (isPermanentLoginFailure(error)) {
+          await this.clearRememberedLogin();
+        }
         return null;
       }
       return toSessionSummary(session);
@@ -426,6 +541,9 @@ export class CommercialApiClient {
     } catch {
       remoteRevoked = false;
     } finally {
+      if (session?.rememberedLogin) {
+        await this.saveRememberedLogin(session.rememberedLogin);
+      }
       await this.clearSession();
     }
     return { remoteRevoked };
@@ -501,12 +619,26 @@ export class CommercialApiClient {
   }
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    const session = await this.requireSession();
+    const remembered = await this.loadRememberedLogin();
+    const normalizedNewPassword = requiredRawText(newPassword, "newPassword");
     await this.authenticatedJson("PUT", "/api/v1/user/password", {
       body: {
         oldPassword: requiredRawText(oldPassword, "oldPassword"),
-        newPassword: requiredRawText(newPassword, "newPassword"),
+        newPassword: normalizedNewPassword,
       },
     });
+    if (
+      remembered
+      && remembered.tenantCode === session.tenant.code
+      && remembered.username === session.user.username
+    ) {
+      await this.saveRememberedLogin({
+        tenantCode: remembered.tenantCode,
+        username: remembered.username,
+        password: normalizedNewPassword,
+      });
+    }
     await this.clearSession();
   }
 
@@ -553,6 +685,10 @@ export class CommercialApiClient {
         newPassword: requiredRawText(newPassword, "newPassword"),
       },
     });
+    const remembered = await this.loadRememberedLogin();
+    if (remembered?.tenantCode === tenantCode.trim()) {
+      await this.clearRememberedLogin();
+    }
   }
 
   bootstrap(
@@ -964,15 +1100,25 @@ export class CommercialApiClient {
         return session;
       } catch (error) {
         if (!isAuthenticationFailure(error)) throw error;
-        if (!previous.rememberedLogin) {
+        const storedRememberedLogin = await this.loadRememberedLogin();
+        const rememberedLogin = previous.rememberedLogin
+          ?? (storedRememberedLogin
+            ? {
+                tenantCode: storedRememberedLogin.tenantCode,
+                username: storedRememberedLogin.username,
+                password: storedRememberedLogin.password,
+              }
+            : undefined);
+        if (!rememberedLogin) {
           await this.clearSession();
           throw error;
         }
         try {
-          return await this.reauthenticate(previous.rememberedLogin);
+          return await this.reauthenticate(rememberedLogin);
         } catch (reauthenticationError) {
           if (isPermanentLoginFailure(reauthenticationError)) {
             await this.clearSession();
+            await this.clearRememberedLogin();
           }
           throw reauthenticationError;
         }
@@ -1001,6 +1147,7 @@ export class CommercialApiClient {
       rememberedLogin,
     );
     await this.replaceSession(session);
+    await this.saveRememberedLogin(rememberedLogin);
     return session;
   }
 
@@ -1039,7 +1186,43 @@ export class CommercialApiClient {
       return null;
     }
     this.sessionCache = session;
+    if (session?.rememberedLogin) {
+      await this.saveRememberedLogin(session.rememberedLogin);
+    }
     return session;
+  }
+
+  private async loadRememberedLogin(): Promise<StoredCommercialRememberedLogin | null> {
+    if (!this.rememberedLoginStore) return null;
+    if (this.rememberedLoginCache !== undefined) return this.rememberedLoginCache;
+    const remembered = await this.rememberedLoginStore.load();
+    if (remembered && remembered.gatewayOrigin !== this.baseUrl) {
+      await this.rememberedLoginStore.clear();
+      this.rememberedLoginCache = null;
+      return null;
+    }
+    this.rememberedLoginCache = remembered;
+    return remembered;
+  }
+
+  private async saveRememberedLogin(
+    login: RememberedCommercialLogin,
+  ): Promise<void> {
+    if (!this.rememberedLoginStore) return;
+    const stored: StoredCommercialRememberedLogin = {
+      schemaVersion: 1,
+      gatewayOrigin: this.baseUrl,
+      tenantCode: login.tenantCode,
+      username: login.username,
+      password: login.password,
+    };
+    await this.rememberedLoginStore.save(stored);
+    this.rememberedLoginCache = stored;
+  }
+
+  private async clearRememberedLogin(): Promise<void> {
+    this.rememberedLoginCache = null;
+    await this.rememberedLoginStore?.clear();
   }
 
   private async replaceSession(session: StoredCommercialSession): Promise<void> {
@@ -1163,6 +1346,22 @@ function parseStoredSession(value: unknown): StoredCommercialSession {
     tenant: parseTenant(session.tenant),
     ...(rememberMe === undefined ? {} : { rememberMe }),
     ...(rememberedLogin ? { rememberedLogin } : {}),
+  };
+}
+
+function parseStoredRememberedLogin(
+  value: unknown,
+): StoredCommercialRememberedLogin {
+  const login = requiredRecord(value, "stored remembered login");
+  if (login.schemaVersion !== 1) {
+    throw new CommercialApiError("不支持的已记住登录信息版本");
+  }
+  return {
+    schemaVersion: 1,
+    gatewayOrigin: requiredText(login.gatewayOrigin, "gatewayOrigin"),
+    tenantCode: requiredText(login.tenantCode, "tenantCode"),
+    username: requiredText(login.username, "username"),
+    password: requiredRawText(login.password, "password"),
   };
 }
 

@@ -51,6 +51,12 @@ interface AIAnimeCommercialLoginInput {
   captchaCode?: string;
 }
 
+interface AIAnimeCommercialRememberedLogin {
+  tenantCode: string;
+  username: string;
+  hasPassword: true;
+}
+
 interface AIAnimeCommercialRegistrationInput {
   tenantCode: string;
   username: string;
@@ -77,7 +83,13 @@ interface AIAnimeCommercialBridge {
   ) => Promise<{ key: string; imageDataUrl: string }>;
   register: (input: AIAnimeCommercialRegistrationInput) => Promise<void>;
   session: () => Promise<AIAnimeCommercialSession | null>;
+  rememberedLogin: () => Promise<AIAnimeCommercialRememberedLogin | null>;
   login: (input: AIAnimeCommercialLoginInput) => Promise<AIAnimeCommercialSession>;
+  loginRemembered: (input: {
+    rememberMe?: boolean;
+    captchaKey?: string;
+    captchaCode?: string;
+  }) => Promise<AIAnimeCommercialSession>;
   logout: () => Promise<{ remoteRevoked: boolean }>;
   profile: () => Promise<AIAnimeCommercialUserProfile>;
   updateProfile: (input: {

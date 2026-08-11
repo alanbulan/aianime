@@ -88,6 +88,9 @@ export function turnCompletedInHistory(
   history: ChatMessage[],
   current: ChatMessage[],
 ): boolean {
+  if (history.some((entry) => entry.role === "assistant" && entry.turnId === turnId)) {
+    return true;
+  }
   const localUser = current.find(
     (entry) => entry.turnId === turnId && entry.role === "user",
   );
