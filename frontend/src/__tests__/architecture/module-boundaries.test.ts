@@ -13353,6 +13353,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
+        "@/components/ui/alert-dialog",
         "./canvasBrowserViewModel",
       ]),
     );
