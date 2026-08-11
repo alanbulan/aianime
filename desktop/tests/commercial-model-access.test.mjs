@@ -1343,7 +1343,7 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   );
 });
 
-test("cloud model retries transient gateway failures with the same idempotency key", async () => {
+test("cloud model writes do not blindly replay transient gateway failures", async () => {
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
@@ -1366,9 +1366,7 @@ test("cloud model retries transient gateway failures with the same idempotency k
       }
       if (call.url.endsWith("/v1/images/generations")) {
         modelAttempts += 1;
-        return modelAttempts < 3
-          ? new Response("gateway timeout", { status: 504 })
-          : Response.json({ data: [{ b64_json: "aW1hZ2U=" }] });
+        return new Response("gateway timeout", { status: 504 });
       }
       throw new Error(`unexpected request ${call.url}`);
     },
@@ -1382,22 +1380,18 @@ test("cloud model retries transient gateway failures with the same idempotency k
     devicePublicKeyHash: "device-public-key-hash",
   });
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 504);
   const modelCalls = calls.filter((call) =>
     call.url.endsWith("/v1/images/generations"),
   );
-  assert.equal(modelCalls.length, 3);
-  assert.equal(
-    new Headers(modelCalls[1].init.headers).get("Idempotency-Key"),
+  assert.equal(modelCalls.length, 1);
+  assert.match(
     new Headers(modelCalls[0].init.headers).get("Idempotency-Key"),
-  );
-  assert.equal(
-    new Headers(modelCalls[2].init.headers).get("Idempotency-Key"),
-    new Headers(modelCalls[0].init.headers).get("Idempotency-Key"),
+    /^[0-9a-f-]{36}$/,
   );
 });
 
-test("cloud model returns the final gateway failure after bounded retries", async () => {
+test("cloud model reads still retry transient gateway failures", async () => {
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
@@ -1413,26 +1407,24 @@ test("cloud model returns the final gateway failure after bounded retries", asyn
     sessionStore: store,
     fetchImpl: async (url) => {
       const target = String(url);
-      if (target.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
-      }
-      if (target.endsWith("/v1/images/generations")) {
+      if (target.endsWith("/v1/models")) {
         modelAttempts += 1;
-        return new Response("gateway timeout", { status: 504 });
+        return modelAttempts < 3
+          ? new Response("gateway timeout", { status: 504 })
+          : Response.json({ data: [] });
       }
       throw new Error(`unexpected request ${target}`);
     },
   });
 
   const response = await client.modelRequest({
-    method: "POST",
-    path: "/v1/images/generations",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "cloud-image-standard", prompt: "cat" }),
+    method: "GET",
+    path: "/v1/models",
+    headers: {},
     devicePublicKeyHash: "device-public-key-hash",
   });
 
-  assert.equal(response.status, 504);
+  assert.equal(response.status, 200);
   assert.equal(modelAttempts, 3);
 });
 

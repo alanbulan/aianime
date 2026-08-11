@@ -135,7 +135,46 @@ async def test_successful_ingest_persists_novel_content(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypatch):
+async def test_ingest_limits_cognee_cloud_batches(tmp_path, monkeypatch):
+    from ai_anime.modules.knowledge_graph.infrastructure import store as store_module
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
+
+    novel = tmp_path / "novel.txt"
+    novel.write_text("第一章\n春深不见旧门红。\n", encoding="utf-8")
+
+    store = object.__new__(CogneeStore)
+    store.dataset_name = "test_ds"
+    store.text_model = "test-text-model"
+    store.embedding_model = "test-embedding-model"
+    store.embedding_dimensions = 1024
+    monkeypatch.setattr(store, "save_novel_content", lambda _content: None)
+    monkeypatch.setattr(store, "_set_cognee_context", lambda *a, **k: None)
+    monkeypatch.setattr(store_module, "init_cognee", lambda *a, **k: None)
+
+    async def fake_add(*_args, **_kwargs):
+        return None
+
+    cognify_kwargs: dict = {}
+
+    async def fake_cognify(*_args, **kwargs):
+        cognify_kwargs.update(kwargs)
+        return SimpleNamespace(status=_FakeCompletedPipelineStatus(), payload=None)
+
+    async def fake_memify(*_args, **_kwargs):
+        return SimpleNamespace(status=_FakeCompletedPipelineStatus(), payload=None)
+
+    monkeypatch.setattr(store_module.cognee, "add", fake_add)
+    monkeypatch.setattr(store_module.cognee, "cognify", fake_cognify)
+    monkeypatch.setattr(store_module.cognee, "memify", fake_memify)
+
+    await store.ingest_novel_fast(str(novel), rebuild=False)
+
+    assert cognify_kwargs["chunks_per_batch"] == 1
+    assert cognify_kwargs["data_per_batch"] == 1
+
+
+@pytest.mark.asyncio
+async def test_cognee_pipeline_runs_successful_operation_once(monkeypatch):
     from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     store = object.__new__(CogneeStore)
@@ -146,18 +185,13 @@ async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypat
         context_calls += 1
 
     monkeypatch.setattr(store, "_set_cognee_context", count_context)
-    results = [
-        SimpleNamespace(status=_FakePipelineStatus(), payload="temporary provider error"),
-        SimpleNamespace(status=_FakeCompletedPipelineStatus(), payload=None),
-    ]
     attempts = 0
     logs: list[str] = []
 
     async def operation():
         nonlocal attempts
-        result = results[attempts]
         attempts += 1
-        return result
+        return SimpleNamespace(status=_FakeCompletedPipelineStatus(), payload=None)
 
     await store._run_cognee_pipeline_with_retry(
         stage_name="知识图谱构建",
@@ -165,13 +199,13 @@ async def test_cognee_pipeline_retry_succeeds_after_one_pipeline_error(monkeypat
         log=logs.append,
     )
 
-    assert attempts == 2
-    assert context_calls == 2
-    assert any("知识图谱构建失败，准备重试" in item for item in logs)
+    assert attempts == 1
+    assert context_calls == 1
+    assert logs == []
 
 
 @pytest.mark.asyncio
-async def test_cognee_pipeline_retry_raises_after_second_pipeline_error(monkeypatch):
+async def test_cognee_pipeline_failure_is_not_blindly_replayed(monkeypatch):
     from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
     store = object.__new__(CogneeStore)
@@ -197,7 +231,7 @@ async def test_cognee_pipeline_retry_raises_after_second_pipeline_error(monkeypa
             log=logs.append,
         )
 
-    assert attempts == 2
-    assert context_calls == 2
-    assert "provider error 2" in str(exc_info.value)
-    assert any("知识图谱构建失败，准备重试" in item for item in logs)
+    assert attempts == 1
+    assert context_calls == 1
+    assert "provider error 1" in str(exc_info.value)
+    assert logs == []

@@ -709,7 +709,14 @@ export class CommercialApiClient {
       : null;
     const execute = async (token: string) => {
       let response: Response | null = null;
-      for (let attempt = 1; attempt <= MODEL_TRANSIENT_MAX_ATTEMPTS; attempt += 1) {
+      // 模型写请求已经进入服务端幂等协议。收到 502/503/504 后直接重放，
+      // 可能命中仍在处理且尚无可复用结果的 Invocation，并把原始故障覆盖成 409。
+      // 写请求保留原始响应，由上层决定是否按 Invocation 状态恢复；
+      // 只有无副作用的读取可以自动重试。
+      const maxAttempts = isModelWriteMethod(method)
+        ? 1
+        : MODEL_TRANSIENT_MAX_ATTEMPTS;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         response = await this.requestModelResponse({
           ...input,
           method,
@@ -720,7 +727,7 @@ export class CommercialApiClient {
         });
         if (
           !MODEL_TRANSIENT_STATUSES.has(response.status) ||
-          attempt === MODEL_TRANSIENT_MAX_ATTEMPTS
+          attempt === maxAttempts
         ) {
           return response;
         }

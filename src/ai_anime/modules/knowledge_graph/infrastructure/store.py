@@ -384,25 +384,11 @@ class CogneeStore:
         operation: Callable[[], Awaitable[Any]],
         log: Callable[[str], None],
     ) -> Any:
-        """Run a Cognee pipeline stage once, retrying one transient failure."""
-        last_error: Exception | None = None
-        for attempt in range(2):
-            self._set_cognee_context()
-            try:
-                result = await operation()
-                self._ensure_pipeline_run_succeeded(result, stage_name)
-                return result
-            except Exception as exc:
-                last_error = exc
-                if attempt == 0:
-                    log(f"{stage_name}失败，准备重试(1/1): {exc}")
-                    await asyncio.sleep(0)
-                    continue
-                raise
-
-        if last_error is not None:
-            raise last_error
-        raise RuntimeError(f"{stage_name}失败: unknown error")
+        """Run one pipeline attempt without replaying remote model writes."""
+        self._set_cognee_context()
+        result = await operation()
+        self._ensure_pipeline_run_succeeded(result, stage_name)
+        return result
 
     async def _ensure_db(self):
         """确保数据库连接已建立。
@@ -616,7 +602,11 @@ class CogneeStore:
         log("Step 2/3: 构建知识图谱（这可能需要几分钟）...")
         await self._run_cognee_pipeline_with_retry(
             stage_name="知识图谱构建",
-            operation=lambda: cognee.cognify(datasets=[self.dataset_name]),
+            operation=lambda: cognee.cognify(
+                datasets=[self.dataset_name],
+                chunks_per_batch=1,
+                data_per_batch=1,
+            ),
             log=log,
         )
         log("知识图谱构建完成")

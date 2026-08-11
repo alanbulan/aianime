@@ -29,6 +29,7 @@ async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dic
 
     task = IngestionTask.from_backend_payload(envelope.get("payload") or {})
     manager = get_task_manager()
+    current_progress = 0.0
 
     store = await make_cognee_store_for_context(
         ctx,
@@ -37,13 +38,25 @@ async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dic
     )
 
     def update(progress: float, task: str) -> None:
+        nonlocal current_progress
+        current_progress = max(current_progress, progress)
         manager.update_progress_for_project(
             ctx,
             "ingest_fast",
             0,
-            progress=progress,
+            progress=current_progress,
             current_task=task,
             logs=[task],
+        )
+
+    def append_log(message: str) -> None:
+        manager.update_progress_for_project(
+            ctx,
+            "ingest_fast",
+            0,
+            progress=current_progress,
+            current_task=message,
+            logs=[message],
         )
 
     try:
@@ -51,7 +64,7 @@ async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dic
             str(task.novel_path),
             rebuild=bool(task.config.get("rebuild", False)),
             on_progress=update,
-            on_log=lambda message: update(0.0, message),
+            on_log=append_log,
         )
         return {
             **result,
