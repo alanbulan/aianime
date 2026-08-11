@@ -17,7 +17,6 @@ import {
 import {
   buildCanvasBrowserSections,
   canDeleteCanvasSummary,
-  displayNameForCanvasSummary,
   findDuplicateCanvasName,
   userCreatedCanvasId,
   type CanvasDisplaySummary,
@@ -88,8 +87,6 @@ export function useCanvasBrowserController({
 
   const restoreMainline = async () => {
     if (!onRestoreMainlineDefault) return;
-    const ok = window.confirm(t("freezone.canvases.restoreConfirm"));
-    if (!ok) return;
     setRestoringMainline(true);
     try {
       await onRestoreMainlineDefault();
@@ -145,9 +142,6 @@ export function useCanvasBrowserController({
 
   const deleteCanvas = async (item: CanvasDisplaySummary) => {
     if (!canDeleteCanvasSummary(item, username)) return;
-    const name = displayNameForCanvasSummary(item, t);
-    const ok = window.confirm(t("freezone.canvases.deleteConfirm", { name }));
-    if (!ok) return;
     setDeletingCanvasId(item.id);
     setLocalError(null);
     try {

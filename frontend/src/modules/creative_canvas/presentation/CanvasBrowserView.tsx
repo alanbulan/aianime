@@ -24,6 +24,16 @@ import {
 import { useTranslation } from "react-i18next";
 
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   PERSONAL_CANVAS_DISPLAY_NAME,
   canDeleteCanvasSummary,
   canvasKindFromSummary,
@@ -85,6 +95,10 @@ export function CanvasBrowserView({
   const { t } = useTranslation();
   const [expandedMembers, setExpandedMembers] = useState(false);
   const [expandedOther, setExpandedOther] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CanvasDisplaySummary | null>(
+    null,
+  );
   const currentCanvasInMembers = sections.memberCanvases.some(
     (item) => item.id === currentCanvasId,
   );
@@ -110,7 +124,7 @@ export function CanvasBrowserView({
     event: ReactMouseEvent<HTMLButtonElement>,
   ) => {
     event.stopPropagation();
-    void onRestoreMainline();
+    setRestoreDialogOpen(true);
   };
 
   const handleCreateCanvas = (event: FormEvent<HTMLFormElement>) => {
@@ -175,7 +189,7 @@ export function CanvasBrowserView({
                 username,
               )}
               deleting={deletingCanvasId === sections.defaultCanvas.id}
-              onDelete={onDeleteCanvas}
+              onDelete={setDeleteTarget}
             />
 
             {sections.memberCanvases.length > 0 && (
@@ -201,7 +215,7 @@ export function CanvasBrowserView({
                     onRestoreMainline={handleRestoreMainlineClick}
                     canDelete={canDeleteCanvasSummary(item, username)}
                     deleting={deletingCanvasId === item.id}
-                    onDelete={onDeleteCanvas}
+                    onDelete={setDeleteTarget}
                   />
                 ))}
               </CollapsibleCanvasSection>
@@ -230,7 +244,7 @@ export function CanvasBrowserView({
                     onRestoreMainline={handleRestoreMainlineClick}
                     canDelete={canDeleteCanvasSummary(item, username)}
                     deleting={deletingCanvasId === item.id}
-                    onDelete={onDeleteCanvas}
+                    onDelete={setDeleteTarget}
                   />
                 ))}
               </CollapsibleCanvasSection>
@@ -238,6 +252,65 @@ export function CanvasBrowserView({
           </>
         )}
       </div>
+
+      <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("freezone.canvases.restoreDialogTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("freezone.canvases.restoreConfirm")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setRestoreDialogOpen(false);
+                void onRestoreMainline();
+              }}
+            >
+              {t("freezone.canvases.restore")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("freezone.canvases.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget
+                ? t("freezone.canvases.deleteConfirm", {
+                    name: displayNameForCanvasSummary(deleteTarget, t),
+                  })
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                const target = deleteTarget;
+                setDeleteTarget(null);
+                if (target) void onDeleteCanvas(target);
+              }}
+            >
+              {t("freezone.canvases.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

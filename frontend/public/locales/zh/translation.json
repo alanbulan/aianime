@@ -222,6 +222,7 @@
       "createDuplicate": "已存在名为「{{name}}」的画布",
       "createFailed": "新建画布失败：{{message}}",
       "userCreatedName": "{{user}} · {{name}}",
+      "restoreDialogTitle": "同步主线画布",
       "restoreConfirm": "同步主线视图会按当前项目事实重建这张主线画布的 preset 层；你手动添加的节点和普通连线会保留。继续？",
       "restoreTitle": "按当前主流程事实重建这张主线画布的 preset 层",
       "restore": "同步",

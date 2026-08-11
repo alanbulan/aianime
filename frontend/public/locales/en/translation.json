@@ -222,6 +222,7 @@
       "createDuplicate": "A canvas named \"{{name}}\" already exists.",
       "createFailed": "Failed to create canvas: {{message}}",
       "userCreatedName": "{{user}} · {{name}}",
+      "restoreDialogTitle": "Sync mainline canvas",
       "restoreConfirm": "Syncing the mainline view will rebuild this mainline canvas preset layer from the current project facts. Manually added nodes and normal edges will be preserved. Continue?",
       "restoreTitle": "Rebuild this mainline canvas preset layer from current mainline facts",
       "restore": "Sync",

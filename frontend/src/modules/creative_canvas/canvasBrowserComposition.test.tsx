@@ -78,7 +78,6 @@ describe("canvas browser controller", () => {
     mocks.createCanvas.mockReset().mockResolvedValue(undefined);
     mocks.deleteCanvas.mockReset().mockResolvedValue(undefined);
     mocks.writeUrl.mockReset();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   it("refetches the canvas catalog when the reload token changes", async () => {
@@ -155,7 +154,7 @@ describe("canvas browser controller", () => {
     expect(result.current.deletingCanvasId).toBeNull();
   });
 
-  it("confirms and restores the current mainline canvas", async () => {
+  it("restores the current mainline canvas after presentation confirmation", async () => {
     const onRestoreMainlineDefault = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(
       () =>
@@ -171,9 +170,6 @@ describe("canvas browser controller", () => {
       await result.current.restoreMainline();
     });
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      "freezone.canvases.restoreConfirm",
-    );
     expect(onRestoreMainlineDefault).toHaveBeenCalledTimes(1);
     expect(result.current.restoringMainline).toBe(false);
   });

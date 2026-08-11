@@ -98,7 +98,7 @@ describe("CanvasBrowserView", () => {
     expect(screen.queryByText("成员画布")).not.toBeInTheDocument();
   });
 
-  it("wires restore and delete actions for the current non-personal canvas", () => {
+  it("confirms restore and delete actions with the application dialog", () => {
     const current = canvas("asset_1", { canvas_scope: "asset" });
     const onRestoreMainline = vi.fn();
     const onDeleteCanvas = vi.fn();
@@ -122,7 +122,20 @@ describe("CanvasBrowserView", () => {
     );
 
     fireEvent.click(screen.getByTitle("freezone.canvases.restoreTitle"));
+    expect(onRestoreMainline).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("freezone.canvases.restoreDialogTitle"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "freezone.canvases.restore" }),
+    );
+
     fireEvent.click(screen.getByTitle("freezone.canvases.deleteTitle"));
+    expect(onDeleteCanvas).not.toHaveBeenCalled();
+    expect(screen.getByText("freezone.canvases.deleteConfirm")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "freezone.canvases.delete" }),
+    );
 
     expect(onRestoreMainline).toHaveBeenCalledTimes(1);
     expect(onDeleteCanvas).toHaveBeenCalledWith(current);

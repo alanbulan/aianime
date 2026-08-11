@@ -87,6 +87,7 @@ function ProjectCard({
   summary,
   size = "md",
   canManageGrants,
+  showOwnership,
   onOpen,
   onOpenCanvas,
   onPreload,
@@ -96,6 +97,7 @@ function ProjectCard({
   summary: ProjectSummary;
   size?: "md" | "sm";
   canManageGrants: boolean;
+  showOwnership: boolean;
   onOpen: () => void;
   onOpenCanvas: () => void;
   onPreload?: () => void;
@@ -337,10 +339,19 @@ function ProjectCard({
 
         {!isDeleted && (
           <div className="mt-3.5 flex min-w-0 items-center justify-between gap-1.5 text-[10px] leading-none text-muted-foreground/80">
-            <div className="ml-[5%] flex min-w-0 items-center gap-1.5" title={ownershipMetaLabel}>
-              <span className="min-w-0 truncate">{visibleOwnershipLabel}</span>
-              {!isShared ? <span className="sr-only">{roleLabel}</span> : null}
-            </div>
+            {showOwnership ? (
+              <div
+                className="ml-[5%] flex min-w-0 items-center gap-1.5"
+                title={ownershipMetaLabel}
+              >
+                <span className="min-w-0 truncate">
+                  {visibleOwnershipLabel}
+                </span>
+                {!isShared ? (
+                  <span className="sr-only">{roleLabel}</span>
+                ) : null}
+              </div>
+            ) : null}
             {isActive && canManageGrants ? (
               <button
                 type="button"
@@ -438,6 +449,7 @@ function DashboardTabStrip({
 function ProjectRow({
   summary,
   canManageGrants,
+  showOwnership,
   onOpen,
   onOpenCanvas,
   onPreload,
@@ -446,6 +458,7 @@ function ProjectRow({
 }: {
   summary: ProjectSummary;
   canManageGrants: boolean;
+  showOwnership: boolean;
   onOpen: () => void;
   onOpenCanvas: () => void;
   onPreload?: () => void;
@@ -541,12 +554,16 @@ function ProjectRow({
         >
           {summary.name}
         </h3>
-        <span className="hidden shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
-          {sourceLabel}
-        </span>
-        <span className="hidden shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
-          {roleLabel}
-        </span>
+        {showOwnership ? (
+          <>
+            <span className="hidden shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
+              {sourceLabel}
+            </span>
+            <span className="hidden shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary sm:inline">
+              {roleLabel}
+            </span>
+          </>
+        ) : null}
         {isArchived && (
           <span className="hidden shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
             {t("project.archivedBadge")}
@@ -1282,6 +1299,7 @@ export function ProjectDashboardView({
                     <ProjectRow
                       summary={summary}
                       canManageGrants={canManageProjectGrants(summary)}
+                      showOwnership={sharingEnabled}
                       onOpen={() => openProject(projectRouteParam(summary))}
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
@@ -1293,6 +1311,7 @@ export function ProjectDashboardView({
                       summary={summary}
                       size="md"
                       canManageGrants={canManageProjectGrants(summary)}
+                      showOwnership={sharingEnabled}
                       onOpen={() => openProject(projectRouteParam(summary))}
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
@@ -1310,6 +1329,7 @@ export function ProjectDashboardView({
                       key={projectRouteParam(summary)}
                       summary={summary}
                       canManageGrants={canManageProjectGrants(summary)}
+                      showOwnership={sharingEnabled}
                       onOpen={() => openProject(projectRouteParam(summary))}
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
@@ -1322,6 +1342,7 @@ export function ProjectDashboardView({
                       summary={summary}
                       size="md"
                       canManageGrants={canManageProjectGrants(summary)}
+                      showOwnership={sharingEnabled}
                       onOpen={() => openProject(projectRouteParam(summary))}
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}

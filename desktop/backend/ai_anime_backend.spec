@@ -13,6 +13,23 @@ source_root = repo_root / "src"
 
 datas = collect_data_files("ai_anime", include_py_files=False)
 datas += collect_data_files(
+    "cognee",
+    include_py_files=False,
+    excludes=[
+        ".cognee_system/**",
+        ".cognee_cache/**",
+        ".data_storage/**",
+        "tests/**",
+        "modules/notebooks/**",
+        "eval_framework/**",
+    ],
+)
+datas += collect_data_files(
+    "cognee",
+    includes=["alembic/**/*.py"],
+    include_py_files=True,
+)
+datas += collect_data_files(
     "litellm",
     includes=[
         "anthropic_beta_headers_config.json",

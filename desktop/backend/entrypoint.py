@@ -14,8 +14,64 @@ def _configure_standard_streams() -> None:
             reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
+def _verify_cognee_resources() -> dict[str, int | bool]:
+    """Load every packaged Cognee prompt and verify migration resources."""
+    from cognee.infrastructure.llm.prompts import render_prompt
+    from cognee.root_dir import get_absolute_path
+
+    cognee_root = Path(get_absolute_path("."))
+    prompt_directory = Path(get_absolute_path("./infrastructure/llm/prompts"))
+    prompt_files = sorted(prompt_directory.glob("*.txt"))
+    if len(prompt_files) < 50:
+        raise RuntimeError(
+            f"Incomplete Cognee prompt package: expected at least 50, found {len(prompt_files)}"
+        )
+
+    for prompt_file in prompt_files:
+        render_prompt(prompt_file.name, {})
+
+    required_resources = (
+        cognee_root / "alembic.ini",
+        cognee_root / "alembic" / "env.py",
+        cognee_root / "alembic" / "script.py.mako",
+        cognee_root / "infrastructure" / "llm" / "extraction" / "texts.json",
+        cognee_root
+        / "tasks"
+        / "entity_completion"
+        / "entity_extractors"
+        / "regex_entity_config.json",
+    )
+    missing_resources = [str(path) for path in required_resources if not path.is_file()]
+    if missing_resources:
+        raise RuntimeError(f"Missing Cognee runtime resources: {missing_resources}")
+
+    migration_files = sorted((cognee_root / "alembic" / "versions").glob("*.py"))
+    if len(migration_files) < 20:
+        raise RuntimeError(
+            f"Incomplete Cognee migration package: expected at least 20, found {len(migration_files)}"
+        )
+
+    return {
+        "cognee_prompts": True,
+        "prompt_count": len(prompt_files),
+        "cognee_migrations": True,
+        "migration_count": len(migration_files),
+    }
+
+
+def _verify_litellm_resources() -> bool:
+    """Verify the LiteLLM endpoint catalog used by the model router."""
+    import litellm.containers
+
+    containers_root = Path(litellm.containers.__file__).resolve().parent
+    endpoints_file = containers_root / "endpoints.json"
+    if not endpoints_file.is_file():
+        raise RuntimeError(f"Missing LiteLLM endpoint catalog: {endpoints_file}")
+    return True
+
+
 def _run_runtime_smoke_check() -> int:
-    """Verify that the packaged graph database can load and execute a query."""
+    """Verify packaged graph storage, Cognee resources, and UTF-8 output."""
     from ladybug import Connection, Database
 
     with TemporaryDirectory(prefix="ai-anime-backend-smoke-") as root:
@@ -28,7 +84,14 @@ def _run_runtime_smoke_check() -> int:
             connection.close()
             database.close()
 
-    payload = {"ok": value == 1, "ladybug": True, "unicode": "中文 ⚠"}
+    cognee_resources = _verify_cognee_resources()
+    payload = {
+        "ok": value == 1,
+        "ladybug": True,
+        "unicode": "中文 ⚠",
+        "litellm_resources": _verify_litellm_resources(),
+        **cognee_resources,
+    }
     print(f"AI_ANIME_BACKEND_SMOKE {json.dumps(payload, ensure_ascii=False)}")
     return 0 if payload["ok"] else 1
 
