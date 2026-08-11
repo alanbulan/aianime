@@ -14,7 +14,7 @@ export type PendingProjectAction =
   | { kind: "delete"; project: string; name: string }
   | { kind: "purge"; project: string; name: string };
 
-export const PROJECT_NAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+export const PROJECT_NAME_PATTERN = /^[\p{L}\p{N}_]+$/u;
 
 export function isValidProjectName(name: string): boolean {
   return PROJECT_NAME_PATTERN.test(name) && !name.startsWith("_");

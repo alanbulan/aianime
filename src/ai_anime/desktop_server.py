@@ -117,9 +117,18 @@ def emit_event(event: str, **payload: object) -> None:
     )
 
 
+def validate_tokenizer_runtime() -> None:
+    """Fail fast when the packaged tiktoken encoding plugins are missing."""
+    import tiktoken
+
+    if "cl100k_base" not in tiktoken.list_encoding_names():
+        raise RuntimeError("packaged tiktoken runtime is missing cl100k_base")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     options = parse_options(argv)
     configure_environment(options)
+    validate_tokenizer_runtime()
     listener = create_listening_socket(options.host, options.port)
     bound_port = int(listener.getsockname()[1])
     configure_local_api_environment(options.host, bound_port)

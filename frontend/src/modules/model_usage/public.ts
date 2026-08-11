@@ -23,11 +23,15 @@ export type {
   CommercialModelCatalog,
   CommercialModelCatalogItem,
   CommercialModelAccessMode,
+  CommercialModelCatalogSource,
   CommercialModelAccessStatus,
   CommercialQuota,
   CommercialModelUsageBootstrap,
 } from "@/modules/model_usage/domain/commercial-model-access";
-export { BYOK_MODEL_ROLES } from "@/modules/model_usage/domain/commercial-model-access";
+export {
+  BYOK_MODEL_ROLES,
+  commercialModelRoles,
+} from "@/modules/model_usage/domain/commercial-model-access";
 export { resolveRequiredCatalogModelCode } from "@/modules/model_usage/domain/commercial-model-access";
 export {
   canCancelCommercialInvocation,

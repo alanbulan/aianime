@@ -47,6 +47,7 @@ import {
 } from "@/modules/identity_access/public";
 import {
   BYOK_MODEL_ROLES,
+  commercialModelRoles,
   CommercialInvocationSection,
   useClearByok,
   useCommercialModelAccessStatus,
@@ -204,17 +205,26 @@ function ModelAccessSection({
   const customAllowed = Boolean(entitlement?.capabilities.allowsCustomModels);
   const [selectedMode, setSelectedMode] =
     useState<CommercialModelAccessMode>("cloud");
-  const catalog = useCommercialModelCatalog(
+  const cloudCatalog = useCommercialModelCatalog(
+    undefined,
+    open && bridgeAvailable && cloudAllowed,
+    "cloud",
+  );
+  const byokCatalog = useCommercialModelCatalog(
     undefined,
     open &&
       bridgeAvailable &&
-      cloudAllowed &&
-      (selectedMode === "cloud" ||
-        (customAllowed && Boolean(access.data?.byokConfigured))),
+      selectedMode === "byok" &&
+      customAllowed &&
+      Boolean(access.data?.byokConfigured),
+    "active",
   );
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [modelAssignments, setModelAssignments] = useState<
+    ByokModelAssignment[]
+  >([]);
+  const [cloudModelAssignments, setCloudModelAssignments] = useState<
     ByokModelAssignment[]
   >([]);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -228,6 +238,7 @@ function ModelAccessSection({
   useEffect(() => {
     if (access.data) {
       setModelAssignments(access.data.byokModelAssignments);
+      setCloudModelAssignments(access.data.cloudModelAssignments ?? []);
     }
   }, [access.data]);
 
@@ -236,7 +247,7 @@ function ModelAccessSection({
     setSelectedMode(mode);
     try {
       if (mode === "cloud") {
-        await selectCloud.mutateAsync();
+        await selectCloud.mutateAsync(undefined);
       } else if (access.data?.byokConfigured && baseUrl) {
         await configureByok.mutateAsync({ baseUrl });
       }
@@ -267,6 +278,29 @@ function ModelAccessSection({
       setApiKey("");
       setShowApiKey(false);
       toast.success(t("settings.modelAccess.saved"));
+    } catch (error) {
+      toast.error(errorMessage(error, t("settings.modelAccess.saveFailed")));
+    }
+  };
+
+  const saveCloudModels = async () => {
+    const roles = BYOK_MODEL_ROLES.filter((role) =>
+      (cloudCatalog.data?.items ?? []).some((model) =>
+        commercialModelRoles(model).includes(role),
+      ),
+    );
+    const assignments = resolveCloudAssignments(
+      cloudCatalog.data?.items ?? [],
+      cloudModelAssignments,
+    );
+    if (roles.some((role) => !assignments.some((item) => item.role === role))) {
+      toast.error(t("settings.modelAccess.cloudModelRequired"));
+      return;
+    }
+    try {
+      const status = await selectCloud.mutateAsync(assignments);
+      setCloudModelAssignments(status.cloudModelAssignments);
+      toast.success(t("settings.modelAccess.cloudSaved"));
     } catch (error) {
       toast.error(errorMessage(error, t("settings.modelAccess.saveFailed")));
     }
@@ -331,8 +365,16 @@ function ModelAccessSection({
 
       {cloudAllowed ? (
         <>
+          <div className="mt-5 rounded-md border border-border bg-muted/30 px-4 py-3">
+            <p className="text-sm font-medium text-foreground">
+              {t("settings.modelAccess.sourceTitle")}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {t("settings.modelAccess.sourceDescription")}
+            </p>
+          </div>
           <Tabs
-            className="mt-5"
+            className="mt-4"
             value={selectedMode}
             onValueChange={(value) =>
               void changeMode(value as CommercialModelAccessMode)
@@ -353,11 +395,15 @@ function ModelAccessSection({
           </Tabs>
 
           {selectedMode === "cloud" ? (
-            <ModelCatalogPanel
+            <CloudModelAssignmentPanel
               className="mt-5"
-              items={catalog.data?.items}
-              loading={catalog.isLoading}
-              error={catalog.error}
+              items={cloudCatalog.data?.items}
+              assignments={cloudModelAssignments}
+              loading={cloudCatalog.isLoading}
+              error={cloudCatalog.error}
+              saving={selectCloud.isPending}
+              onAssignmentsChange={setCloudModelAssignments}
+              onSave={() => void saveCloudModels()}
             />
           ) : customAllowed ? (
             <div className="mt-5 space-y-3 border-y border-border py-4">
@@ -469,10 +515,10 @@ function ModelAccessSection({
                 ))}
               </div>
               {access.data?.byokConfigured ? (
-                <ModelCatalogPanel
-                  items={catalog.data?.items}
-                  loading={catalog.isLoading}
-                  error={catalog.error}
+                <ByokCatalogStatus
+                  items={byokCatalog.data?.items}
+                  loading={byokCatalog.isLoading}
+                  error={byokCatalog.error}
                 />
               ) : null}
               <div className="flex justify-end gap-2 pt-1">
@@ -527,19 +573,31 @@ function ModelAccessSection({
   );
 }
 
-function ModelCatalogPanel({
+function CloudModelAssignmentPanel({
   className,
   items,
+  assignments,
   loading,
   error,
+  saving,
+  onAssignmentsChange,
+  onSave,
 }: {
   className?: string;
   items?: readonly CommercialModelCatalogItem[];
+  assignments: readonly ByokModelAssignment[];
   loading: boolean;
   error: unknown;
+  saving: boolean;
+  onAssignmentsChange: (assignments: ByokModelAssignment[]) => void;
+  onSave: () => void;
 }) {
   const { t } = useTranslation();
   const models = items ?? [];
+  const resolvedAssignments = resolveCloudAssignments(models, assignments);
+  const roles = BYOK_MODEL_ROLES.filter((role) =>
+    models.some((model) => commercialModelRoles(model).includes(role)),
+  );
   const [selectedSku, setSelectedSku] = useState<string | null>(null);
   const details = useCommercialModelDetails(selectedSku, Boolean(selectedSku));
 
@@ -547,7 +605,7 @@ function ModelCatalogPanel({
     <div className={cn("border-y border-border py-3", className)}>
       <div className="flex min-h-8 items-center justify-between gap-3 px-1">
         <span className="text-xs font-medium text-foreground">
-          {t("settings.modelAccess.availableModels")}
+          {t("settings.modelAccess.cloudAssignments")}
         </span>
         {loading ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
@@ -562,32 +620,60 @@ function ModelCatalogPanel({
           {t("settings.modelAccess.noModels")}
         </p>
       ) : null}
-      {models.map((model) => {
-        const operation = model.operation.trim().toUpperCase() as ByokModelRole;
-        const roleKey = BYOK_ROLE_LABEL_KEYS[operation];
+      {!loading && roles.length > 0 ? (
+        <p className="px-1 pb-3 text-xs leading-5 text-muted-foreground">
+          {t("settings.modelAccess.cloudAssignmentsDescription")}
+        </p>
+      ) : null}
+      {roles.map((role) => {
+        const options = models.filter((model) =>
+          commercialModelRoles(model).includes(role),
+        );
+        const selected = resolvedAssignments.find((item) => item.role === role);
         return (
           <div
-            key={String(model.id)}
-            className="grid min-h-12 grid-cols-[minmax(0,1fr)_auto_1.5rem] items-center gap-3 border-t border-border/70 px-1 py-2 first-of-type:border-t-0"
+            key={role}
+            className="grid min-h-12 grid-cols-[minmax(9rem,0.7fr)_minmax(0,1fr)_2rem] items-center gap-3 border-t border-border/70 px-1 py-2"
           >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {model.displayName}
-              </p>
-              <p className="truncate text-[11px] text-muted-foreground">{model.code}</p>
-            </div>
-            <span className="max-w-40 truncate text-[11px] text-muted-foreground">
-              {roleKey
-                ? t(`settings.modelAccess.roles.${roleKey}`)
-                : commercialValueLabel(t, "operation", model.operation)}
-            </span>
+            <Label className="text-xs text-foreground">
+              {t(`settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`)}
+            </Label>
+            <Select
+              value={selected?.modelId ?? ""}
+              onValueChange={(modelId) => {
+                if (!modelId) return;
+                onAssignmentsChange([
+                  ...resolvedAssignments.filter((item) => item.role !== role),
+                  { modelId, role },
+                ]);
+              }}
+            >
+              <SelectTrigger className="w-full" aria-label={t("settings.modelAccess.cloudModelForRole", {
+                role: t(`settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`),
+              })}>
+                <SelectValue>
+                  {() =>
+                    options.find((model) => model.code === selected?.modelId)
+                      ?.displayName ?? selected?.modelId ?? ""
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                {options.map((model) => (
+                  <SelectItem key={String(model.id)} value={model.code}>
+                    {model.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               type="button"
               size="icon-xs"
               variant="ghost"
               title={t("settings.modelAccess.showDetails")}
               aria-label={t("settings.modelAccess.showDetails")}
-              onClick={() => setSelectedSku(model.code)}
+              disabled={!selected}
+              onClick={() => selected && setSelectedSku(selected.modelId)}
             >
               <Eye />
             </Button>
@@ -599,14 +685,110 @@ function ModelCatalogPanel({
           {errorMessage(error, t("settings.modelAccess.catalogFailed"))}
         </p>
       ) : null}
-      {selectedSku ? (
-        <ModelDetailsPanel
-          model={details.data}
-          loading={details.isLoading}
-          error={details.error}
-        />
+      {!loading && !error && roles.length > 0 ? (
+        <div className="flex justify-end px-1 pt-3">
+          <Button type="button" size="sm" disabled={saving} onClick={onSave}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Cloud className="size-4" />}
+            {t("settings.modelAccess.saveCloud")}
+          </Button>
+        </div>
+      ) : null}
+      <ModelDetailsDialog
+        sku={selectedSku}
+        model={details.data}
+        loading={details.isLoading}
+        error={details.error}
+        onOpenChange={(nextOpen) => !nextOpen && setSelectedSku(null)}
+      />
+    </div>
+  );
+}
+
+function ByokCatalogStatus({
+  items,
+  loading,
+  error,
+}: {
+  items?: readonly CommercialModelCatalogItem[];
+  loading: boolean;
+  error: unknown;
+}) {
+  const { t } = useTranslation();
+  const models = items ?? [];
+  return (
+    <div className="rounded-md border border-border bg-muted/20 px-3 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-foreground">
+          {t("settings.modelAccess.byokValidation")}
+        </span>
+        {loading ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
+      </div>
+      {error ? (
+        <p className="mt-2 text-xs leading-5 text-destructive">
+          {errorMessage(error, t("settings.modelAccess.byokValidationFailed"))}
+        </p>
+      ) : !loading ? (
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          {models.length > 0
+            ? t("settings.modelAccess.byokValidationPassed", { count: models.length })
+            : t("settings.modelAccess.byokValidationEmpty")}
+        </p>
       ) : null}
     </div>
+  );
+}
+
+function resolveCloudAssignments(
+  models: readonly CommercialModelCatalogItem[],
+  current: readonly ByokModelAssignment[],
+): ByokModelAssignment[] {
+  return BYOK_MODEL_ROLES.flatMap((role) => {
+    const candidates = models.filter((model) =>
+      commercialModelRoles(model).includes(role),
+    );
+    if (candidates.length === 0) return [];
+    const existing = current.find(
+      (assignment) =>
+        assignment.role === role &&
+        candidates.some((model) => model.code === assignment.modelId),
+    );
+    if (existing) return [existing];
+    const defaults = candidates.filter((model) => model.isDefault === true);
+    const selected = defaults.length === 1 ? defaults[0] : candidates.length === 1 ? candidates[0] : null;
+    return selected ? [{ modelId: selected.code, role }] : [];
+  });
+}
+
+function ModelDetailsDialog({
+  sku,
+  model,
+  loading,
+  error,
+  onOpenChange,
+}: {
+  sku: string | null;
+  model: CommercialModelCatalogItem | undefined;
+  loading: boolean;
+  error: unknown;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Dialog open={Boolean(sku)} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[min(76vh,680px)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[680px]">
+        <DialogHeader className="border-b border-border px-5 py-4">
+          <DialogTitle>{model?.displayName ?? t("settings.modelAccess.modelDetails")}</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="min-h-0 flex-1 px-5 py-4">
+          <ModelDetailsPanel model={model} loading={loading} error={error} />
+        </ScrollArea>
+        <div className="flex justify-end border-t border-border px-5 py-3">
+          <DialogClose render={<Button type="button" size="sm" variant="outline" />}>
+            {t("settings.close")}
+          </DialogClose>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -629,14 +811,14 @@ function ModelDetailsPanel({
   }
   if (error) {
     return (
-      <p className="border-t border-border px-1 py-3 text-xs text-destructive">
+      <p className="px-1 py-3 text-xs text-destructive">
         {errorMessage(error, t("settings.modelAccess.detailsFailed"))}
       </p>
     );
   }
   if (!model) return null;
   return (
-    <div className="mt-2 border-t border-border px-1 pt-3">
+    <div className="px-1">
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
         <DetailValue label={t("settings.modelAccess.modelCode")} value={model.code} />
         <DetailValue

@@ -335,13 +335,15 @@ export function registerCommercialIpc(
         )
       : null;
     bootstrap.softwareAuthorization = currentAuthorization;
+    const access = await options.modelAccessStore.load();
     cloudModelAssignments = updateCloudModelAssignments(
-      cloudModelAssignments,
+      (access.cloudModelAssignments ?? []).length > 0
+        ? access.cloudModelAssignments ?? []
+        : cloudModelAssignments,
       bootstrap.models,
       query.modelOperation ?? "TEXT",
     );
     updateModelCapabilities(bootstrap.models);
-    const access = await options.modelAccessStore.load();
     if (
       authorizationAllowsByok(currentAuthorization) &&
       access.mode === "byok"
@@ -365,10 +367,11 @@ export function registerCommercialIpc(
     projectCommercialQuota(await requireClient().quotaBalance()),
   );
   handle(COMMERCIAL_CHANNELS.modelCatalog, async (input) => {
-    const query = parseModelCatalogQuery(input);
+    const { source, query } = parseModelCatalogQuery(input);
     const authorization = await ensureCurrentAuthorization();
     const access = await options.modelAccessStore.load();
     if (
+      source !== "cloud" &&
       authorizationAllowsByok(authorization) &&
       access.mode === "byok"
     ) {
@@ -461,6 +464,7 @@ export function registerCommercialIpc(
       options.modelAccessStore.status(access),
       allowsCustomModels,
       requireClient().baseUrl,
+      cloudModelAssignments,
     );
   });
   handle(COMMERCIAL_CHANNELS.configureByok, async (input) => {
@@ -492,15 +496,32 @@ export function registerCommercialIpc(
       options.modelAccessStore.status(access),
       true,
       requireClient().baseUrl,
+      cloudModelAssignments,
     );
   });
-  handle(COMMERCIAL_CHANNELS.selectCloudModels, async () => {
-    const access = await options.modelAccessStore.selectCloud();
+  handle(COMMERCIAL_CHANNELS.selectCloudModels, async (input) => {
+    const body = optionalRecord(input);
+    if (
+      body.modelAssignments !== undefined &&
+      !Array.isArray(body.modelAssignments)
+    ) {
+      throw new CommercialApiError("modelAssignments 必须是数组");
+    }
+    const requestedAssignments = body.modelAssignments as
+      | ByokModelAssignment[]
+      | undefined;
+    const access = await options.modelAccessStore.selectCloud(
+      requestedAssignments,
+    );
+    if (requestedAssignments !== undefined || cloudModelAssignments.length === 0) {
+      cloudModelAssignments = [...(access.cloudModelAssignments ?? [])];
+    }
     await synchronizeModelAccess();
     return rendererModelAccessStatus(
       options.modelAccessStore.status(access),
       authorizationAllowsByok(currentAuthorization),
       requireClient().baseUrl,
+      cloudModelAssignments,
     );
   });
   handle(COMMERCIAL_CHANNELS.clearByok, async () => {
@@ -510,6 +531,7 @@ export function registerCommercialIpc(
       options.modelAccessStore.status(access),
       authorizationAllowsByok(currentAuthorization),
       requireClient().baseUrl,
+      cloudModelAssignments,
     );
   });
   handle(COMMERCIAL_CHANNELS.announcements, (input) =>
@@ -559,6 +581,7 @@ export function registerCommercialIpc(
       try {
         const authorization = await ensureCurrentAuthorization();
         const access = await options.modelAccessStore.load();
+        cloudModelAssignments = [...(access.cloudModelAssignments ?? [])];
         if (
           !authorizationAllowsByok(authorization) ||
           access.mode !== "byok"
@@ -695,9 +718,16 @@ function updateCloudModelAssignments(
     const candidates = catalog.items.filter((item) =>
       catalogItemSupportsRole(item, role),
     );
+    const currentSelection = current.find(
+      (item) =>
+        item.role === role &&
+        candidates.some((candidate) => candidate.code === item.modelId),
+    );
     const defaults = candidates.filter((item) => item.isDefault === true);
     const selected =
-      defaults.length === 1
+      currentSelection
+        ? candidates.find((item) => item.code === currentSelection.modelId) ?? null
+        : defaults.length === 1
         ? defaults[0]
         : defaults.length === 0 && candidates.length === 1
           ? candidates[0]
@@ -760,13 +790,20 @@ function rendererModelAccessStatus(
   status: CommercialModelAccessStatus,
   allowsCustomModels: boolean,
   gatewayOrigin: string,
+  cloudModelAssignments: readonly ByokModelAssignment[],
 ) {
   if (allowsCustomModels) {
-    return { ...status, allowsCustomModels: true, gatewayOrigin };
+    return {
+      ...status,
+      cloudModelAssignments: [...cloudModelAssignments],
+      allowsCustomModels: true,
+      gatewayOrigin,
+    };
   }
   return {
     ...status,
     mode: "cloud" as const,
+    cloudModelAssignments: [...cloudModelAssignments],
     byokConfigured: false,
     byokBaseUrl: "",
     byokApiKeyPreview: "",
@@ -885,13 +922,23 @@ function parseBootstrapQuery(value: unknown): CommercialBootstrapQuery {
   };
 }
 
-function parseModelCatalogQuery(value: unknown): CommercialModelCatalogQuery {
+function parseModelCatalogQuery(value: unknown): {
+  source: "active" | "cloud";
+  query: CommercialModelCatalogQuery;
+} {
   const input = optionalRecord(value);
   const operation = optionalText(input.operation);
   const catalogVersion = optionalText(input.catalogVersion);
+  const requestedSource = optionalText(input.source)?.toLowerCase() ?? "";
+  if (requestedSource && requestedSource !== "active" && requestedSource !== "cloud") {
+    throw new CommercialApiError("模型目录来源无效");
+  }
   return {
-    ...(operation ? { operation } : {}),
-    ...(catalogVersion ? { catalogVersion } : {}),
+    source: requestedSource === "cloud" ? "cloud" : "active",
+    query: {
+      ...(operation ? { operation } : {}),
+      ...(catalogVersion ? { catalogVersion } : {}),
+    },
   };
 }
 

@@ -182,6 +182,7 @@ class HermesPool:
         scope_kind: str,
         project_id: str | None,
         resume_session_id: str | None = None,
+        allow_stored_resume: bool = True,
     ) -> _WorkerSlot:
         cli_path = _hermes_cli_path()
         if cli_path is None or not cli_path.is_file():
@@ -219,7 +220,11 @@ class HermesPool:
         )
         session_id = (
             resume_session_id
-            or self._session_id_for(username, scope_kind, project_id)
+            or (
+                self._session_id_for(username, scope_kind, project_id)
+                if allow_stored_resume
+                else None
+            )
             or ""
         ).strip()
         thread = (
@@ -287,21 +292,26 @@ class HermesPool:
         Track the replacement before closing the old slot so a cancelled request
         cannot leave the fresh token unmanaged.
         """
-        self._remember_session(slot)
+        gateway_changed = reason == "model-gateway-change"
+        if not gateway_changed:
+            self._remember_session(slot)
         same_scope = self._scope_key(
             slot.scope_kind, slot.project_id
         ) == self._scope_key(
             scope_kind,
             project_id,
         )
-        resume_session_id = slot.thread.id if same_scope else None
+        resume_session_id = slot.thread.id if same_scope and not gateway_changed else None
         replacement = await self._spawn_locked(
             slot.username,
             model=model if model is not None else slot.model,
             scope_kind=scope_kind,
             project_id=project_id,
             resume_session_id=resume_session_id,
+            allow_stored_resume=not gateway_changed,
         )
+        if gateway_changed:
+            self._session_ids.pop(slot.username, None)
         _log.info(
             "rotating hermes worker for user=%s old_agent_session=%s new_agent_session=%s reason=%s",
             slot.username,
@@ -310,7 +320,9 @@ class HermesPool:
             reason,
         )
         self._slots[slot.username] = replacement
-        await asyncio.shield(self._close_slot(slot))
+        await asyncio.shield(
+            self._close_slot(slot, remember_session=not gateway_changed)
+        )
         return replacement
 
     async def _update_scope_locked(
@@ -439,8 +451,14 @@ class HermesPool:
         await self._close_slot(victim)
         self._slots.pop(victim.username, None)
 
-    async def _close_slot(self, slot: _WorkerSlot) -> None:
-        self._remember_session(slot)
+    async def _close_slot(
+        self,
+        slot: _WorkerSlot,
+        *,
+        remember_session: bool = True,
+    ) -> None:
+        if remember_session:
+            self._remember_session(slot)
         try:
             await slot.thread.close()
         except Exception as e:

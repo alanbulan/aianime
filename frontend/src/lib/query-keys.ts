@@ -109,8 +109,8 @@ export const queryKeys = {
   ttsVoices: (p: string) => ["projects", p, "tts", "voices"] as const,
   modelGateway: () => ["model-gateway", "config"] as const,
   commercialQuota: () => ["commercial", "quota"] as const,
-  commercialModels: (operation: string) =>
-    ["commercial", "models", operation] as const,
+  commercialModels: (operation: string, source = "active") =>
+    ["commercial", "models", source, operation] as const,
   commercialModel: (sku: string) =>
     ["commercial", "models", "detail", sku] as const,
   commercialInvocations: (query: {

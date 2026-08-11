@@ -30,6 +30,7 @@ datas += copy_metadata("pydantic-ai-slim")
 hiddenimports = collect_submodules("ai_anime")
 hiddenimports += collect_submodules("litellm.litellm_core_utils.tokenizers")
 hiddenimports += collect_submodules("faster_whisper")
+hiddenimports += collect_submodules("tiktoken_ext")
 
 analysis = Analysis(
     [str(Path(SPECPATH) / "entrypoint.py")],

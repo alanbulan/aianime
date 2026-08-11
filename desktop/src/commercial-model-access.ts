@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 
 import {
-  clearEncryptedFile,
   readEncryptedJsonFile,
   writeEncryptedJsonFile,
   type SecureStorageAdapter,
@@ -35,8 +34,9 @@ export interface ByokModelAssignment {
 }
 
 export interface StoredCommercialModelAccess {
-  schemaVersion: 2;
+  schemaVersion: 3;
   mode: CommercialModelAccessMode;
+  cloudModelAssignments: ByokModelAssignment[];
   byokBaseUrl: string;
   byokApiKey: string;
   byokModelAssignments: ByokModelAssignment[];
@@ -44,6 +44,7 @@ export interface StoredCommercialModelAccess {
 
 export interface CommercialModelAccessStatus {
   mode: CommercialModelAccessMode;
+  cloudModelAssignments: ByokModelAssignment[];
   byokConfigured: boolean;
   byokBaseUrl: string;
   byokApiKeyPreview: string;
@@ -202,8 +203,9 @@ export class EncryptedFileCommercialModelAccessStore {
     const previous = await this.load();
     const apiKey = input.apiKey?.trim() || previous.byokApiKey;
     const next: StoredCommercialModelAccess = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       mode: "byok",
+      cloudModelAssignments: previous.cloudModelAssignments ?? [],
       byokBaseUrl: normalizeByokBaseUrl(input.baseUrl),
       byokApiKey: apiKey,
       byokModelAssignments:
@@ -216,17 +218,31 @@ export class EncryptedFileCommercialModelAccessStore {
     return next;
   }
 
-  async selectCloud(): Promise<StoredCommercialModelAccess> {
+  async selectCloud(
+    modelAssignments?: ByokModelAssignment[],
+  ): Promise<StoredCommercialModelAccess> {
     const previous = await this.load();
-    const next = { ...previous, mode: "cloud" as const };
+    const next = {
+      ...previous,
+      schemaVersion: 3 as const,
+      mode: "cloud" as const,
+      cloudModelAssignments:
+        modelAssignments === undefined
+          ? previous.cloudModelAssignments ?? []
+          : normalizeModelAssignments(modelAssignments),
+    };
     await writeEncryptedJsonFile(this.filePath, this.secureStorage, next);
     this.cache = next;
     return next;
   }
 
   async clearByok(): Promise<StoredCommercialModelAccess> {
-    await clearEncryptedFile(this.filePath);
-    const next = defaultModelAccess();
+    const previous = await this.load();
+    const next: StoredCommercialModelAccess = {
+      ...defaultModelAccess(),
+      cloudModelAssignments: previous.cloudModelAssignments ?? [],
+    };
+    await writeEncryptedJsonFile(this.filePath, this.secureStorage, next);
     this.cache = next;
     return next;
   }
@@ -234,6 +250,9 @@ export class EncryptedFileCommercialModelAccessStore {
   status(value: StoredCommercialModelAccess): CommercialModelAccessStatus {
     return {
       mode: value.mode,
+      cloudModelAssignments: (value.cloudModelAssignments ?? []).map((item) => ({
+        ...item,
+      })),
       byokConfigured: Boolean(value.byokBaseUrl),
       byokBaseUrl: value.byokBaseUrl,
       byokApiKeyPreview: maskSecret(value.byokApiKey),
@@ -246,8 +265,9 @@ export class EncryptedFileCommercialModelAccessStore {
 
 function defaultModelAccess(): StoredCommercialModelAccess {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     mode: "cloud",
+    cloudModelAssignments: [],
     byokBaseUrl: "",
     byokApiKey: "",
     byokModelAssignments: [],
@@ -259,7 +279,11 @@ function parseStoredModelAccess(value: unknown): StoredCommercialModelAccess {
     throw new Error("model access record must be an object");
   }
   const record = value as Record<string, unknown>;
-  if (record.schemaVersion !== 1 && record.schemaVersion !== 2) {
+  if (
+    record.schemaVersion !== 1 &&
+    record.schemaVersion !== 2 &&
+    record.schemaVersion !== 3
+  ) {
     throw new Error("不支持的模型访问配置版本");
   }
   const mode = record.mode;
@@ -274,26 +298,34 @@ function parseStoredModelAccess(value: unknown): StoredCommercialModelAccess {
     throw new Error("BYOK 模式缺少 Base URL");
   }
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     mode,
+    cloudModelAssignments:
+      record.schemaVersion === 3
+        ? normalizeModelAssignments(record.cloudModelAssignments)
+        : [],
     byokBaseUrl,
     byokApiKey:
       typeof record.byokApiKey === "string" ? record.byokApiKey.trim() : "",
     byokModelAssignments:
-      record.schemaVersion === 2
+      record.schemaVersion === 2 || record.schemaVersion === 3
         ? normalizeByokModelAssignments(record.byokModelAssignments)
         : [],
   };
 }
 
 function normalizeByokModelAssignments(value: unknown): ByokModelAssignment[] {
+  return normalizeModelAssignments(value);
+}
+
+function normalizeModelAssignments(value: unknown): ByokModelAssignment[] {
   if (!Array.isArray(value)) {
     throw new Error("BYOK 模型用途必须是数组");
   }
   if (value.length > MAX_BYOK_MODEL_ASSIGNMENTS) {
     throw new Error(`BYOK 模型用途最多 ${MAX_BYOK_MODEL_ASSIGNMENTS} 项`);
   }
-  const unique = new Map<string, ByokModelAssignment>();
+  const unique = new Map<ByokModelRole, ByokModelAssignment>();
   value.forEach((item, index) => {
     const record = requiredRecord(item, `BYOK model assignment[${index}]`);
     const modelId = String(record.modelId ?? "").trim();
@@ -305,11 +337,11 @@ function normalizeByokModelAssignments(value: unknown): ByokModelAssignment[] {
       throw new Error(`BYOK model assignment[${index}].role 无效`);
     }
     const assignment = { modelId, role: role as ByokModelRole };
-    unique.set(`${modelId}\u0000${role}`, assignment);
+    unique.set(assignment.role, assignment);
   });
   return Array.from(unique.values()).sort(
     (left, right) =>
-      left.modelId.localeCompare(right.modelId) || left.role.localeCompare(right.role),
+      BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role),
   );
 }
 

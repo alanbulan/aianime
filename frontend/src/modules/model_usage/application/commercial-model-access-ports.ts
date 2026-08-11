@@ -3,12 +3,16 @@ import type {
   CommercialModelCatalog,
   CommercialModelCatalogItem,
   CommercialModelAccessStatus,
+  CommercialModelCatalogSource,
   CommercialQuota,
 } from "@/modules/model_usage/domain/commercial-model-access";
 
 export interface CommercialModelAccessGateway {
   fetchQuota(): Promise<CommercialQuota>;
-  fetchCatalog(operation?: string): Promise<CommercialModelCatalog>;
+  fetchCatalog(
+    operation?: string,
+    source?: CommercialModelCatalogSource,
+  ): Promise<CommercialModelCatalog>;
   fetchModelDetails(sku: string): Promise<CommercialModelCatalogItem>;
   fetchAccessStatus(): Promise<CommercialModelAccessStatus>;
   configureByok(input: {
@@ -16,6 +20,8 @@ export interface CommercialModelAccessGateway {
     apiKey?: string;
     modelAssignments?: ByokModelAssignment[];
   }): Promise<CommercialModelAccessStatus>;
-  selectCloud(): Promise<CommercialModelAccessStatus>;
+  selectCloud(
+    modelAssignments?: ByokModelAssignment[],
+  ): Promise<CommercialModelAccessStatus>;
   clearByok(): Promise<CommercialModelAccessStatus>;
 }

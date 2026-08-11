@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  commercialModelRoles,
   parseCommercialModelAccessStatus,
   parseCommercialModelCatalogItem,
   resolveRequiredCatalogModelCode,
@@ -34,6 +35,22 @@ describe("commercial model details", () => {
       status: "ACTIVE",
     });
   });
+
+  it("projects one cloud model into its explicit supported purposes", () => {
+    const model = parseCommercialModelCatalogItem({
+      id: "video-1",
+      code: "video-model",
+      displayName: "Video model",
+      operation: "VIDEO",
+      capabilityJson: '{"supportedModes":["FIRST_FRAME","FIRST_LAST_FRAME"]}',
+      parameterSchemaJson: "{}",
+    });
+
+    expect(commercialModelRoles(model)).toEqual([
+      "VIDEO_IMAGE_TO_VIDEO",
+      "VIDEO_FIRST_LAST_FRAME",
+    ]);
+  });
 });
 
 const baseStatus = {
@@ -58,6 +75,21 @@ describe("commercial model access status", () => {
     ).toEqual([
       { modelId: "speech-model", role: "AUDIO_SPEECH" },
       { modelId: "speech-model", role: "AUDIO_VOICE_CLONE" },
+    ]);
+  });
+
+  it("projects cloud selections independently from BYOK assignments", () => {
+    const status = parseCommercialModelAccessStatus({
+      ...baseStatus,
+      cloudModelAssignments: [{ modelId: "cloud-text", role: "TEXT" }],
+      byokModelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+    });
+
+    expect(status.cloudModelAssignments).toEqual([
+      { modelId: "cloud-text", role: "TEXT" },
+    ]);
+    expect(status.byokModelAssignments).toEqual([
+      { modelId: "byok-text", role: "TEXT" },
     ]);
   });
 

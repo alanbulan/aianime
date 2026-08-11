@@ -391,6 +391,7 @@ test("standard authorization hides persisted BYOK details from the renderer", as
     byokBaseUrl: "",
     byokApiKeyPreview: "",
     byokModelAssignments: [],
+    cloudModelAssignments: [],
     allowsCustomModels: false,
     gatewayOrigin: "http://122.193.11.199:8889",
   });
@@ -499,6 +500,74 @@ test("Bootstrap exposes the selected BYOK catalog instead of cloud SKUs", async 
     { modelId: "cloud/text-standard", role: "TEXT" },
   ]);
   assert.equal(synchronized.at(-1).allowsCustomModels, true);
+});
+
+test("explicit cloud catalog requests do not reuse the active BYOK catalog", async () => {
+  const handlers = new Map();
+  let cloudCatalogCalls = 0;
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.example.test",
+      currentLicense: async () => ({
+        license: {
+          id: "license-1",
+          editionType: "PROFESSIONAL",
+          allowsCustomModels: true,
+        },
+        device: { id: "device-1" },
+        activation: { id: "activation-1" },
+        lease: null,
+      }),
+      modelCatalog: async () => {
+        cloudCatalogCalls += 1;
+        return {
+          catalogVersion: "cloud-v1",
+          items: [
+            {
+              id: "cloud-text",
+              code: "cloud-text",
+              displayName: "Cloud text",
+              operation: "TEXT",
+              isDefault: true,
+            },
+          ],
+        };
+      },
+    },
+    deviceIdentity: {
+      summary: async () => ({ publicKeyHash: "public-key-hash" }),
+    },
+    modelAccessStore: {
+      load: async () => ({
+        schemaVersion: 3,
+        mode: "byok",
+        cloudModelAssignments: [],
+        byokBaseUrl: "https://byok.example/v1",
+        byokApiKey: "secret",
+        byokModelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+      }),
+    },
+    deviceName: "DESKTOP-01",
+    platform: "windows",
+    arch: "x86_64",
+    clientVersion: "1.1.12",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async () => undefined,
+    onLoggedOut: async () => undefined,
+  });
+
+  const result = await handlers.get(COMMERCIAL_CHANNELS.modelCatalog)(
+    { sender: { id: 1 } },
+    { source: "cloud" },
+  );
+
+  assert.equal(cloudCatalogCalls, 1);
+  assert.equal(result.items[0].code, "cloud-text");
 });
 
 test("bootstrap verifies the raw offline lease before projecting it", async () => {
@@ -809,10 +878,34 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
     byokConfigured: true,
     byokBaseUrl: "https://models.example.test/openai/v1",
     byokApiKeyPreview: "user...-key",
+    cloudModelAssignments: [],
     byokModelAssignments: [
       { modelId: "image-model-a", role: "IMAGE_GENERATION" },
     ],
   });
+});
+
+test("cloud model selections survive source switches and clearing BYOK", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, "model-access.bin");
+  const store = new EncryptedFileCommercialModelAccessStore(
+    filePath,
+    passthroughSecureStorage,
+  );
+  const cloudAssignments = [{ modelId: "cloud-text", role: "TEXT" }];
+
+  await store.selectCloud(cloudAssignments);
+  await store.configureByok({
+    baseUrl: "https://models.example.test/v1",
+    apiKey: "byok-secret",
+    modelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+  });
+  const cleared = await store.clearByok();
+
+  assert.equal(cleared.mode, "cloud");
+  assert.equal(cleared.byokApiKey, "");
+  assert.deepEqual(cleared.cloudModelAssignments, cloudAssignments);
 });
 
 test("BYOK Base URL rejects embedded credentials and query parameters", async (t) => {

@@ -33,7 +33,7 @@ from ai_anime.modules.project_workspace.domain import (
 )
 
 logger = logging.getLogger("ai_anime.project_workspace")
-PROJECT_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+$")
+PROJECT_NAME_RE = re.compile(r"^\w+$", re.UNICODE)
 
 
 def validate_project_name(name: str) -> None:

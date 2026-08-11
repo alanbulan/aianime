@@ -12,6 +12,7 @@ import type { ByokModelAssignment } from "@/modules/model_usage/domain/commercia
 import {
   parseCommercialModelUsageBootstrap,
   type CommercialModelCatalog,
+  type CommercialModelCatalogSource,
 } from "@/modules/model_usage/domain/commercial-model-access";
 
 const CATALOG_STALE_TIME_MS = 60_000;
@@ -33,29 +34,45 @@ export function createCommercialModelAccessQueries(
     catalogRequests.clear();
   }
 
-  function cacheCatalog(operation: string, catalog: CommercialModelCatalog) {
-    catalogCache.set(operation, { catalog, updatedAt: Date.now() });
+  const catalogCacheKey = (
+    operation: string,
+    source: CommercialModelCatalogSource,
+  ) => `${source}:${operation}`;
+
+  function cacheCatalog(
+    operation: string,
+    source: CommercialModelCatalogSource,
+    catalog: CommercialModelCatalog,
+  ) {
+    catalogCache.set(catalogCacheKey(operation, source), {
+      catalog,
+      updatedAt: Date.now(),
+    });
   }
 
-  async function loadCommercialModelCatalog(operation?: string) {
+  async function loadCommercialModelCatalog(
+    operation?: string,
+    source: CommercialModelCatalogSource = "active",
+  ) {
     const normalizedOperation = normalizeOperation(operation);
-    const cached = catalogCache.get(normalizedOperation);
+    const key = catalogCacheKey(normalizedOperation, source);
+    const cached = catalogCache.get(key);
     if (cached && Date.now() - cached.updatedAt < CATALOG_STALE_TIME_MS) {
       return cached.catalog;
     }
-    const active = catalogRequests.get(normalizedOperation);
+    const active = catalogRequests.get(key);
     if (active) return active;
     const request = gateway
-      .fetchCatalog(normalizedOperation || undefined)
+      .fetchCatalog(normalizedOperation || undefined, source)
       .then((catalog) => {
-        cacheCatalog(normalizedOperation, catalog);
+        cacheCatalog(normalizedOperation, source, catalog);
         return catalog;
       });
-    catalogRequests.set(normalizedOperation, request);
+    catalogRequests.set(key, request);
     try {
       return await request;
     } finally {
-      catalogRequests.delete(normalizedOperation);
+      catalogRequests.delete(key);
     }
   }
 
@@ -67,9 +84,9 @@ export function createCommercialModelAccessQueries(
     }
     if (!bootstrap.catalog) return bootstrap;
 
-    cacheCatalog("", bootstrap.catalog);
+    cacheCatalog("", "active", bootstrap.catalog);
     queryClient.setQueryData(
-      queryKeys.commercialModels(""),
+      queryKeys.commercialModels("", "active"),
       bootstrap.catalog,
     );
     const operations = new Set(
@@ -83,8 +100,11 @@ export function createCommercialModelAccessQueries(
           (item) => item.operation.trim().toUpperCase() === operation,
         ),
       };
-      cacheCatalog(operation, catalog);
-      queryClient.setQueryData(queryKeys.commercialModels(operation), catalog);
+      cacheCatalog(operation, "active", catalog);
+      queryClient.setQueryData(
+        queryKeys.commercialModels(operation, "active"),
+        catalog,
+      );
     }
     return bootstrap;
   }
@@ -108,11 +128,16 @@ export function createCommercialModelAccessQueries(
     });
   }
 
-  function useCommercialModelCatalog(operation?: string, enabled = true) {
+  function useCommercialModelCatalog(
+    operation?: string,
+    enabled = true,
+    source: CommercialModelCatalogSource = "active",
+  ) {
     const normalizedOperation = normalizeOperation(operation);
     return useQuery({
-      queryKey: queryKeys.commercialModels(normalizedOperation),
-      queryFn: () => loadCommercialModelCatalog(normalizedOperation || undefined),
+      queryKey: queryKeys.commercialModels(normalizedOperation, source),
+      queryFn: () =>
+        loadCommercialModelCatalog(normalizedOperation || undefined, source),
       enabled,
       staleTime: CATALOG_STALE_TIME_MS,
     });
@@ -155,7 +180,8 @@ export function createCommercialModelAccessQueries(
   function useSelectCloudModels() {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: () => gateway.selectCloud(),
+      mutationFn: (modelAssignments?: ByokModelAssignment[]) =>
+        gateway.selectCloud(modelAssignments),
       onSuccess: (status) => {
         queryClient.setQueryData(queryKeys.commercialModelAccess(), status);
         publishModelAccessChange(queryClient);

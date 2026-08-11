@@ -75,7 +75,14 @@ test("login persists the secret but returns only a renderer-safe summary", async
   assert.equal(summary.user.username, "client_user");
   assert.equal(summary.expiresAtEpochMs, 3_601_000);
   assert.equal(Object.hasOwn(summary, "accessToken"), false);
+  assert.equal(Object.hasOwn(summary, "rememberedLogin"), false);
   assert.equal(store.value.accessToken, "client-jwt");
+  assert.equal(store.value.rememberMe, true);
+  assert.deepEqual(store.value.rememberedLogin, {
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+  });
   assert.equal(calls[0].url, "https://gateway.test/api/v1/client/auth/login");
   assert.deepEqual(JSON.parse(calls[0].init.body), {
     tenantCode: "customer-a",
@@ -84,6 +91,33 @@ test("login persists the secret but returns only a renderer-safe summary", async
     rememberMe: true,
   });
   assert.equal(new Headers(calls[0].init.headers).has("Authorization"), false);
+});
+
+test("login without remember-me keeps the session only for the current process", async () => {
+  const store = new MemorySessionStore();
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async () => Response.json(loginResponse),
+  });
+
+  const session = await client.login({
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+    rememberMe: false,
+  });
+
+  assert.equal(store.value, null);
+  assert.deepEqual(await client.restoreSession(), session);
+  const restartedClient = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async () => Response.json(loginResponse),
+  });
+  assert.equal(await restartedClient.restoreSession(), null);
 });
 
 test("public registration sends only the documented account fields", async () => {
@@ -160,6 +194,150 @@ test("concurrent authenticated calls single-flight an expiring token refresh", a
     assert.equal(new Headers(call.init.headers).get("Authorization"), "Bearer new-jwt");
   }
   assert.equal(store.value.accessToken, "new-jwt");
+});
+
+test("remembered login automatically reauthenticates after refresh is rejected", async () => {
+  const calls = [];
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "expired-jwt",
+    expiresAtEpochMs: 1_500,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+    rememberMe: true,
+    rememberedLogin: {
+      tenantCode: "customer-a",
+      username: "client_user",
+      password: "secret",
+    },
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async (url, init) => {
+      calls.push({ url: String(url), init });
+      if (String(url).endsWith("/api/v1/client/auth/refresh")) {
+        return Response.json({ message: "expired" }, { status: 401 });
+      }
+      return Response.json({ ...loginResponse, accessToken: "renewed-jwt" });
+    },
+  });
+
+  const session = await client.restoreSession();
+
+  assert.equal(session.user.username, "client_user");
+  assert.equal(store.value.accessToken, "renewed-jwt");
+  assert.deepEqual(
+    calls.map((call) => call.url),
+    [
+      "https://gateway.test/api/v1/client/auth/refresh",
+      "https://gateway.test/api/v1/client/auth/login",
+    ],
+  );
+  assert.deepEqual(JSON.parse(calls[1].init.body), {
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+    rememberMe: true,
+  });
+});
+
+test("remembered login recovers an unexpired token invalidated by a server restart", async () => {
+  const calls = [];
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "invalidated-jwt",
+    expiresAtEpochMs: 3_601_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+    rememberMe: true,
+    rememberedLogin: {
+      tenantCode: "customer-a",
+      username: "client_user",
+      password: "secret",
+    },
+  };
+  const profile = {
+    id: 1001,
+    username: "client_user",
+    nickname: "客户端用户",
+    email: "client@example.com",
+    phone: "13800000000",
+    gender: 0,
+    avatar: "",
+    status: 1,
+    deptId: 0,
+    deptName: "",
+    profileDescription: "",
+  };
+  let profileAttempts = 0;
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async (url, init) => {
+      const href = String(url);
+      calls.push({ url: href, init });
+      if (href.endsWith("/api/v1/user/profile")) {
+        profileAttempts += 1;
+        return profileAttempts === 1
+          ? Response.json({ message: "unknown token" }, { status: 401 })
+          : Response.json(profile);
+      }
+      if (href.endsWith("/api/v1/client/auth/refresh")) {
+        return Response.json({ message: "unknown token" }, { status: 401 });
+      }
+      return Response.json({ ...loginResponse, accessToken: "restarted-jwt" });
+    },
+  });
+
+  assert.deepEqual(await client.currentProfile(), profile);
+  assert.equal(store.value.accessToken, "restarted-jwt");
+  assert.deepEqual(
+    calls.map((call) => call.url),
+    [
+      "https://gateway.test/api/v1/user/profile",
+      "https://gateway.test/api/v1/client/auth/refresh",
+      "https://gateway.test/api/v1/client/auth/login",
+      "https://gateway.test/api/v1/user/profile",
+    ],
+  );
+});
+
+test("transient refresh failures preserve the encrypted remembered session", async () => {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "existing-jwt",
+    expiresAtEpochMs: 1_500,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+    rememberMe: true,
+    rememberedLogin: {
+      tenantCode: "customer-a",
+      username: "client_user",
+      password: "secret",
+    },
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async () =>
+      Response.json({ message: "temporarily unavailable" }, { status: 503 }),
+  });
+
+  const session = await client.restoreSession();
+
+  assert.equal(session.user.username, "client_user");
+  assert.equal(store.value.accessToken, "existing-jwt");
+  assert.equal(store.value.rememberedLogin.password, "secret");
 });
 
 test("logout clears the local secret when remote revocation is offline", async () => {
@@ -479,6 +657,12 @@ test("encrypted session storage atomically replaces an existing file", async (t)
     expiresAtEpochMs: 1_000,
     user: loginResponse.user,
     tenant: loginResponse.tenant,
+    rememberMe: true,
+    rememberedLogin: {
+      tenantCode: "customer-a",
+      username: "client_user",
+      password: "secret",
+    },
   };
   const second = { ...first, accessToken: "second-jwt", expiresAtEpochMs: 2_000 };
 
@@ -490,6 +674,7 @@ test("encrypted session storage atomically replaces an existing file", async (t)
   assert.equal(restored.expiresAtEpochMs, 2_000);
   assert.equal(restored.user.username, "client_user");
   assert.equal(restored.tenant.code, "customer-a");
+  assert.equal(restored.rememberedLogin.password, "secret");
 });
 
 test("device identity survives re-instantiation and signs the exact challenge", async (t) => {

@@ -131,12 +131,15 @@ interface AIAnimeCommercialBridge {
     apiKey?: string;
     modelAssignments?: AIAnimeByokModelAssignment[];
   }) => Promise<unknown>;
-  selectCloudModels: () => Promise<unknown>;
+  selectCloudModels: (input?: {
+    modelAssignments?: AIAnimeByokModelAssignment[];
+  }) => Promise<unknown>;
   clearByok: () => Promise<unknown>;
   quotaBalance: () => Promise<unknown>;
   modelCatalog: (query: {
     operation?: string;
     catalogVersion?: string;
+    source?: "active" | "cloud";
   }) => Promise<unknown>;
   modelDetails: (sku: string) => Promise<unknown>;
   invocationList: (query: {

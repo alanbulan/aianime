@@ -245,7 +245,7 @@ async def test_hermes_pool_rotates_closed_thread(
 
 
 @pytest.mark.asyncio
-async def test_hermes_pool_rotates_and_resumes_when_gateway_changes(
+async def test_hermes_pool_rotates_without_resuming_when_gateway_changes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -263,7 +263,46 @@ async def test_hermes_pool_rotates_and_resumes_when_gateway_changes(
         await pool.close_all()
 
     assert second is not first
-    assert second.id == first.id == "session-1"
-    assert calls == [("start", None), ("resume", "session-1")]
+    assert first.id == "session-1"
+    assert second.id == "session-2"
+    assert calls == [("start", None), ("start", None)]
     assert fake_auth.created == 2
     assert fake_auth.revoked == ["token-1", "token-2"]
+
+
+@pytest.mark.asyncio
+async def test_gateway_change_discards_saved_sessions_for_other_projects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pool, calls, _fake_auth, gateway = _patch_fake_hermes_pool(tmp_path, monkeypatch)
+
+    try:
+        first = await pool.get_for_user(
+            "alice", scope_kind="project", project_id="project_a"
+        )
+        second = await pool.get_for_user(
+            "alice", scope_kind="project", project_id="project_b"
+        )
+        gateway["fingerprint"] = "gateway-2"
+        third = await pool.get_for_user(
+            "alice", scope_kind="project", project_id="project_b"
+        )
+        fourth = await pool.get_for_user(
+            "alice", scope_kind="project", project_id="project_a"
+        )
+    finally:
+        await pool.close_all()
+
+    assert [first.id, second.id, third.id, fourth.id] == [
+        "session-1",
+        "session-2",
+        "session-3",
+        "session-4",
+    ]
+    assert calls == [
+        ("start", None),
+        ("start", None),
+        ("start", None),
+        ("start", None),
+    ]

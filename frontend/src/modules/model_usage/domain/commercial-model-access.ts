@@ -28,6 +28,7 @@ export interface CommercialModelUsageBootstrap {
 }
 
 export type CommercialModelAccessMode = "cloud" | "byok";
+export type CommercialModelCatalogSource = "active" | "cloud";
 
 export const BYOK_MODEL_ROLES = [
   "TEXT",
@@ -58,6 +59,7 @@ export interface CommercialModelAccessStatus {
   mode: CommercialModelAccessMode;
   allowsCustomModels: boolean;
   gatewayOrigin: string;
+  cloudModelAssignments: ByokModelAssignment[];
   byokConfigured: boolean;
   byokBaseUrl: string;
   byokApiKeyPreview: string;
@@ -75,6 +77,10 @@ export function parseCommercialModelAccessStatus(
     mode: root.mode,
     allowsCustomModels: root.allowsCustomModels === true,
     gatewayOrigin: text(root.gatewayOrigin, "gatewayOrigin"),
+    cloudModelAssignments: parseModelAssignments(
+      root.cloudModelAssignments,
+      "cloudModelAssignments",
+    ),
     byokConfigured: root.byokConfigured === true,
     byokBaseUrl:
       typeof root.byokBaseUrl === "string" ? root.byokBaseUrl.trim() : "",
@@ -89,24 +95,93 @@ export function parseCommercialModelAccessStatus(
 }
 
 function parseByokModelAssignments(value: unknown): ByokModelAssignment[] {
+  return parseModelAssignments(value, "byokModelAssignments");
+}
+
+function parseModelAssignments(
+  value: unknown,
+  name: string,
+): ByokModelAssignment[] {
   if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) {
-    throw new Error("byokModelAssignments must be an array");
+    throw new Error(`${name} must be an array`);
   }
   return value.map((item, index) => {
-    const assignment = record(item, `byokModelAssignments[${index}]`);
-    const role = text(assignment.role, `byokModelAssignments[${index}].role`);
+    const assignment = record(item, `${name}[${index}]`);
+    const role = text(assignment.role, `${name}[${index}].role`);
     if (!(BYOK_MODEL_ROLES as readonly string[]).includes(role)) {
-      throw new Error(`byokModelAssignments[${index}].role is invalid`);
+      throw new Error(`${name}[${index}].role is invalid`);
     }
     return {
-      modelId: text(
-        assignment.modelId,
-        `byokModelAssignments[${index}].modelId`,
-      ),
+      modelId: text(assignment.modelId, `${name}[${index}].modelId`),
       role: role as ByokModelRole,
     };
   });
+}
+
+const ROLES_BY_OPERATION: Readonly<Record<string, readonly ByokModelRole[]>> = {
+  TEXT: ["TEXT"],
+  IMAGE: ["IMAGE_GENERATION", "IMAGE_EDIT"],
+  VIDEO: [
+    "VIDEO_TEXT_TO_VIDEO",
+    "VIDEO_IMAGE_TO_VIDEO",
+    "VIDEO_FIRST_LAST_FRAME",
+    "VIDEO_IMAGE_REFERENCE",
+    "VIDEO_ALL_REFERENCE",
+    "VIDEO_EDIT",
+  ],
+  AUDIO: ["AUDIO_SPEECH", "AUDIO_VOICE_CLONE", "AUDIO_MUSIC"],
+  EMBEDDING: ["EMBEDDING"],
+  RERANK: ["RERANK"],
+  MODERATION: ["MODERATION"],
+};
+
+const MODES_BY_ROLE: Readonly<
+  Partial<Record<ByokModelRole, readonly string[]>>
+> = {
+  IMAGE_GENERATION: ["TEXT_TO_IMAGE", "IMAGE_GENERATION"],
+  IMAGE_EDIT: ["IMAGE_EDIT", "EDIT"],
+  VIDEO_TEXT_TO_VIDEO: ["TEXT_TO_VIDEO"],
+  VIDEO_IMAGE_TO_VIDEO: ["FIRST_FRAME", "IMAGE_TO_VIDEO"],
+  VIDEO_FIRST_LAST_FRAME: ["FIRST_LAST_FRAME"],
+  VIDEO_IMAGE_REFERENCE: ["IMAGE_REFERENCE", "REFERENCE_IMAGE"],
+  VIDEO_ALL_REFERENCE: ["ALL_REFERENCE"],
+  VIDEO_EDIT: ["VIDEO_EDIT", "EDIT"],
+  AUDIO_SPEECH: ["SPEECH", "TEXT_TO_SPEECH", "SPEECH_SYNTHESIS"],
+  AUDIO_VOICE_CLONE: ["VOICE_CLONE"],
+  AUDIO_MUSIC: ["MUSIC", "TEXT_TO_MUSIC", "MUSIC_GENERATION"],
+};
+
+export function commercialModelRoles(
+  item: CommercialModelCatalogItem,
+): ByokModelRole[] {
+  const operation = item.operation.trim().toUpperCase();
+  const roles = ROLES_BY_OPERATION[operation] ?? [];
+  const rawModes = item.capabilities.supportedModes ?? item.capabilities.modes;
+  const modes = Array.isArray(rawModes)
+    ? rawModes
+        .filter((value): value is string => typeof value === "string")
+        .map(normalizeMode)
+    : [];
+  return roles.filter((role) => {
+    const requiredModes = MODES_BY_ROLE[role];
+    if (!requiredModes || modes.length === 0) {
+      return (
+        !requiredModes ||
+        role === "IMAGE_GENERATION" ||
+        role === "VIDEO_TEXT_TO_VIDEO"
+      );
+    }
+    return requiredModes.some((mode) => modes.includes(mode));
+  });
+}
+
+function normalizeMode(value: string): string {
+  return value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_");
 }
 
 export function parseCommercialQuota(value: unknown): CommercialQuota {

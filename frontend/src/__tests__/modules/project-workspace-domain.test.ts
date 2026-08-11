@@ -18,8 +18,10 @@ const project = (
 describe("Project Workspace domain", () => {
   it("keeps project-name validation aligned with the backend", () => {
     expect(isValidProjectName("story_01")).toBe(true);
+    expect(isValidProjectName("我的漫剧_01")).toBe(true);
     expect(isValidProjectName("_hidden")).toBe(false);
     expect(isValidProjectName("story one")).toBe(false);
+    expect(isValidProjectName("故事/第一集")).toBe(false);
     expect(isValidProjectName("")).toBe(false);
   });
 

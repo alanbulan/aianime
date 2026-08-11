@@ -203,6 +203,19 @@ async def test_create_rejects_invalid_name_before_writing(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_create_accepts_chinese_name(tmp_path):
+    service, registry, storage, _audit = _service(tmp_path)
+
+    await service.create(
+        RequesterIdentity(user_id="user-1", username="alice"),
+        name="我的漫剧_01",
+    )
+
+    assert storage.initialized
+    assert registry.deleted_uncommitted == []
+
+
+@pytest.mark.asyncio
 async def test_create_compensates_registry_and_files_when_initialization_fails(
     tmp_path,
 ):

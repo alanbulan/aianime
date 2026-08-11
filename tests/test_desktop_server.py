@@ -10,6 +10,7 @@ from ai_anime.desktop_server import (
     configure_local_api_environment,
     create_listening_socket,
     parse_options,
+    validate_tokenizer_runtime,
 )
 
 
@@ -68,6 +69,20 @@ def test_desktop_socket_uses_an_available_port() -> None:
         assert int(listener.getsockname()[1]) > 0
     finally:
         listener.close()
+
+
+def test_desktop_tokenizer_runtime_contains_cl100k_base() -> None:
+    validate_tokenizer_runtime()
+
+
+def test_desktop_tokenizer_runtime_rejects_missing_cl100k_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import tiktoken
+
+    monkeypatch.setattr(tiktoken, "list_encoding_names", lambda: ["gpt2"])
+    with pytest.raises(RuntimeError, match="missing cl100k_base"):
+        validate_tokenizer_runtime()
 
 
 def test_desktop_dynamic_port_is_visible_before_agent_composition(

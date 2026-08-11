@@ -16,10 +16,13 @@ export const electronCommercialModelAccessGateway: CommercialModelAccessGateway 
       await invokeCommercial(() => requireCommercialBridge().quotaBalance()),
     );
   },
-  async fetchCatalog(operation) {
+  async fetchCatalog(operation, source = "active") {
     return parseCommercialModelCatalog(
       await invokeCommercial(() =>
-        requireCommercialBridge().modelCatalog(operation ? { operation } : {}),
+        requireCommercialBridge().modelCatalog({
+          ...(operation ? { operation } : {}),
+          source,
+        }),
       ),
     );
   },
@@ -40,9 +43,11 @@ export const electronCommercialModelAccessGateway: CommercialModelAccessGateway 
       ),
     );
   },
-  async selectCloud() {
+  async selectCloud(modelAssignments) {
     return parseCommercialModelAccessStatus(
-      await invokeCommercial(() => requireCommercialBridge().selectCloudModels()),
+      await invokeCommercial(() =>
+        requireCommercialBridge().selectCloudModels({ modelAssignments }),
+      ),
     );
   },
   async clearByok() {

@@ -165,6 +165,12 @@ export interface CommercialGatewayStatus {
   gatewayOrigin: string;
 }
 
+interface RememberedCommercialLogin {
+  tenantCode: string;
+  username: string;
+  password: string;
+}
+
 export interface StoredCommercialSession {
   schemaVersion: 1;
   gatewayOrigin: string;
@@ -172,6 +178,8 @@ export interface StoredCommercialSession {
   expiresAtEpochMs: number;
   user: CommercialUser;
   tenant: CommercialTenant;
+  rememberMe?: boolean;
+  rememberedLogin?: RememberedCommercialLogin;
 }
 
 export interface CommercialSessionStore {
@@ -344,10 +352,13 @@ export class CommercialApiClient {
   }
 
   async login(input: CommercialLoginInput): Promise<CommercialSessionSummary> {
+    const tenantCode = requiredText(input.tenantCode, "tenantCode");
+    const username = requiredText(input.username, "username");
+    const password = requiredRawText(input.password, "password");
     const body = compactObject({
-      tenantCode: requiredText(input.tenantCode, "tenantCode"),
-      username: requiredText(input.username, "username"),
-      password: requiredRawText(input.password, "password"),
+      tenantCode,
+      username,
+      password,
       rememberMe: input.rememberMe,
       captchaKey: optionalText(input.captchaKey),
       captchaCode: optionalText(input.captchaCode),
@@ -356,7 +367,12 @@ export class CommercialApiClient {
       body,
     });
     const response = parseLoginResponse(value);
-    const session = this.createStoredSession(response);
+    const session = this.createStoredSession(
+      response,
+      input.rememberMe === true
+        ? { tenantCode, username, password }
+        : undefined,
+    );
     try {
       await this.replaceSession(session);
     } catch (error) {
@@ -388,9 +404,12 @@ export class CommercialApiClient {
     }
     try {
       return toSessionSummary(await this.refreshSession(session));
-    } catch {
-      await this.clearSession();
-      return null;
+    } catch (error) {
+      if (isAuthenticationFailure(error) || isPermanentLoginFailure(error)) {
+        await this.clearSession();
+        return null;
+      }
+      return toSessionSummary(session);
     }
   }
 
@@ -910,39 +929,82 @@ export class CommercialApiClient {
   ): Promise<StoredCommercialSession> {
     if (this.refreshInFlight) return this.refreshInFlight;
     this.refreshInFlight = (async () => {
-      const value = await this.requestJson("POST", "/api/v1/client/auth/refresh", {
-        token: previous.accessToken,
-        body: { accessToken: previous.accessToken },
-      });
-      const response = parseRefreshResponse(value);
-      const session: StoredCommercialSession = {
-        schemaVersion: 1,
-        gatewayOrigin: this.baseUrl,
-        accessToken: response.accessToken,
-        expiresAtEpochMs: this.now() + response.expiresIn * 1000,
-        user: response.user ?? previous.user,
-        tenant: response.tenant ?? previous.tenant,
-      };
-      await this.replaceSession(session);
-      return session;
+      try {
+        const value = await this.requestJson(
+          "POST",
+          "/api/v1/client/auth/refresh",
+          {
+            token: previous.accessToken,
+            body: { accessToken: previous.accessToken },
+          },
+        );
+        const response = parseRefreshResponse(value);
+        const session: StoredCommercialSession = {
+          schemaVersion: 1,
+          gatewayOrigin: this.baseUrl,
+          accessToken: response.accessToken,
+          expiresAtEpochMs: this.now() + response.expiresIn * 1000,
+          user: response.user ?? previous.user,
+          tenant: response.tenant ?? previous.tenant,
+          ...(previous.rememberMe === undefined
+            ? {}
+            : { rememberMe: previous.rememberMe }),
+          ...(previous.rememberedLogin
+            ? { rememberedLogin: previous.rememberedLogin }
+            : {}),
+        };
+        await this.replaceSession(session);
+        return session;
+      } catch (error) {
+        if (!isAuthenticationFailure(error)) throw error;
+        if (!previous.rememberedLogin) {
+          await this.clearSession();
+          throw error;
+        }
+        try {
+          return await this.reauthenticate(previous.rememberedLogin);
+        } catch (reauthenticationError) {
+          if (isPermanentLoginFailure(reauthenticationError)) {
+            await this.clearSession();
+          }
+          throw reauthenticationError;
+        }
+      }
     })();
     try {
       return await this.refreshInFlight;
-    } catch (error) {
-      if (error instanceof CommercialApiError && error.status === 401) {
-        await this.clearSession();
-      }
-      throw error;
     } finally {
       this.refreshInFlight = null;
     }
+  }
+
+  private async reauthenticate(
+    rememberedLogin: RememberedCommercialLogin,
+  ): Promise<StoredCommercialSession> {
+    const value = await this.requestJson("POST", "/api/v1/client/auth/login", {
+      body: {
+        tenantCode: rememberedLogin.tenantCode,
+        username: rememberedLogin.username,
+        password: rememberedLogin.password,
+        rememberMe: true,
+      },
+    });
+    const session = this.createStoredSession(
+      parseLoginResponse(value),
+      rememberedLogin,
+    );
+    await this.replaceSession(session);
+    return session;
   }
 
   private async revokeToken(token: string): Promise<void> {
     await this.requestJson("POST", "/api/v1/client/auth/logout", { token });
   }
 
-  private createStoredSession(response: LoginResponse): StoredCommercialSession {
+  private createStoredSession(
+    response: LoginResponse,
+    rememberedLogin?: RememberedCommercialLogin,
+  ): StoredCommercialSession {
     return {
       schemaVersion: 1,
       gatewayOrigin: this.baseUrl,
@@ -950,6 +1012,8 @@ export class CommercialApiClient {
       expiresAtEpochMs: this.now() + response.expiresIn * 1000,
       user: response.user,
       tenant: response.tenant,
+      rememberMe: Boolean(rememberedLogin),
+      ...(rememberedLogin ? { rememberedLogin } : {}),
     };
   }
 
@@ -972,7 +1036,11 @@ export class CommercialApiClient {
   }
 
   private async replaceSession(session: StoredCommercialSession): Promise<void> {
-    await this.sessionStore.save(session);
+    if (session.rememberMe === false) {
+      await this.sessionStore.clear();
+    } else {
+      await this.sessionStore.save(session);
+    }
     this.sessionCache = session;
   }
 
@@ -1074,6 +1142,11 @@ function parseStoredSession(value: unknown): StoredCommercialSession {
   if (session.schemaVersion !== 1) {
     throw new CommercialApiError("不支持的云端会话存储版本");
   }
+  const rememberMe = session.rememberMe;
+  if (rememberMe !== undefined && typeof rememberMe !== "boolean") {
+    throw new CommercialApiError("stored session.rememberMe 必须是布尔值");
+  }
+  const rememberedLogin = parseRememberedLogin(session.rememberedLogin);
   return {
     schemaVersion: 1,
     gatewayOrigin: requiredText(session.gatewayOrigin, "gatewayOrigin"),
@@ -1081,6 +1154,18 @@ function parseStoredSession(value: unknown): StoredCommercialSession {
     expiresAtEpochMs: positiveNumber(session.expiresAtEpochMs, "expiresAtEpochMs"),
     user: parseUser(session.user),
     tenant: parseTenant(session.tenant),
+    ...(rememberMe === undefined ? {} : { rememberMe }),
+    ...(rememberedLogin ? { rememberedLogin } : {}),
+  };
+}
+
+function parseRememberedLogin(value: unknown): RememberedCommercialLogin | undefined {
+  if (value === undefined) return undefined;
+  const login = requiredRecord(value, "stored session.rememberedLogin");
+  return {
+    tenantCode: requiredText(login.tenantCode, "rememberedLogin.tenantCode"),
+    username: requiredText(login.username, "rememberedLogin.username"),
+    password: requiredRawText(login.password, "rememberedLogin.password"),
   };
 }
 
@@ -1183,6 +1268,23 @@ function toSessionSummary(session: StoredCommercialSession): CommercialSessionSu
     user: session.user,
     tenant: session.tenant,
   };
+}
+
+function isAuthenticationFailure(error: unknown): boolean {
+  return (
+    error instanceof CommercialApiError &&
+    (error.status === 401 || error.status === 403)
+  );
+}
+
+function isPermanentLoginFailure(error: unknown): boolean {
+  return (
+    error instanceof CommercialApiError &&
+    (error.status === 400 ||
+      error.status === 401 ||
+      error.status === 403 ||
+      error.status === 422)
+  );
 }
 
 function normalizeGatewayBaseUrl(value: string): string {

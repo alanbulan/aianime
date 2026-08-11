@@ -116,8 +116,8 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelAccessStatus),
     configureByok: (input: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.configureByok, input),
-    selectCloudModels: () =>
-      ipcRenderer.invoke(COMMERCIAL_CHANNELS.selectCloudModels),
+    selectCloudModels: (input?: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.selectCloudModels, input),
     clearByok: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.clearByok),
     quotaBalance: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.quotaBalance),
     modelCatalog: (query: unknown) =>
