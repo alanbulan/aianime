@@ -1108,6 +1108,50 @@ test("local model proxy authenticates callers and strips credential authority", 
   );
 });
 
+test("local model proxy does not reuse an upstream length after fetch decodes the body", async (t) => {
+  const payload = JSON.stringify({
+    choices: [{ message: { content: "远端模型已成功返回完整内容" } }],
+  });
+  const client = {
+    async modelRequest() {
+      // Node fetch 会自动解压上游正文，但 Response 仍可能保留压缩正文的
+      // Content-Encoding / Content-Length。这里模拟 fetch 解压后的形态。
+      return new Response(payload, {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Encoding": "gzip",
+          "Content-Length": "8",
+        },
+      });
+    },
+  };
+  const device = {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  };
+  const proxy = new CommercialModelProxy(client, device);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "cloud-text-standard", messages: [] }),
+  });
+
+  assert.equal(response.headers.get("content-encoding"), null);
+  assert.equal(response.headers.get("content-length"), null);
+  assert.equal(await response.text(), payload);
+});
+
 test("local model proxy forwards multipart, Anthropic, and Range protocol data", async (t) => {
   const calls = [];
   const client = {

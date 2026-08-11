@@ -110,9 +110,9 @@ export class CommercialModelProxy {
       });
       assertModelResponseContract(path, upstream);
       response.statusCode = upstream.status;
+      const hasResponseBody = Boolean(upstream.body) && method !== "HEAD";
       for (const header of [
         "content-type",
-        "content-length",
         "content-disposition",
         "cache-control",
         "etag",
@@ -125,10 +125,16 @@ export class CommercialModelProxy {
         const value = upstream.headers.get(header);
         if (value) response.setHeader(header, value);
       }
-      if (!upstream.body || method === "HEAD") {
+      if (!hasResponseBody) {
+        const contentLength = upstream.headers.get("content-length");
+        if (contentLength) response.setHeader("content-length", contentLength);
         response.end();
         return;
       }
+
+      // Node fetch 会自动解压 gzip/br 响应，但仍可能保留上游压缩正文的
+      // Content-Length。正文经过 fetch 后必须由本地 HTTP 服务重新分帧，
+      // 否则多出的字节会污染同一 keep-alive 连接上的下一条响应。
       const bodyStream = Readable.fromWeb(upstream.body as never);
       bodyStream.once("error", (error) => {
         if (!response.destroyed) response.destroy(error);
