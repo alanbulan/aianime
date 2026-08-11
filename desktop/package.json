@@ -10,7 +10,7 @@
   "scripts": {
     "build:main": "tsc -p tsconfig.json",
     "build:renderer": "pnpm --dir ../frontend build:ce",
-    "build:backend": "uv run --project .. --group desktop pyinstaller --clean --noconfirm --distpath backend-dist --workpath .pyinstaller backend/ai_anime_backend.spec",
+    "build:backend": "uv run --project .. --group desktop pyinstaller --clean --noconfirm --distpath backend-dist --workpath .pyinstaller backend/ai_anime_backend.spec && node scripts/smoke-backend-runtime.mjs",
     "build:hermes": "uv run --project hermes-runtime --locked --group build pyinstaller --clean --noconfirm --distpath hermes-runtime/dist --workpath hermes-runtime/.pyinstaller hermes-runtime/hermes_acp.spec",
     "runtime:hermes": "uv sync --project hermes-runtime --locked",
     "runtime:icon": "electron scripts/generate-icon.cjs",

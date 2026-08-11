@@ -109,6 +109,8 @@ export class LocalBackend {
         ...(launch.whisperModelPath
           ? { AI_ANIME_WHISPER_MODEL_DIR: launch.whisperModelPath }
           : {}),
+        PYTHONIOENCODING: "utf-8",
+        PYTHONUTF8: "1",
         PYTHONUNBUFFERED: "1",
       },
       windowsHide: true,
