@@ -19,7 +19,7 @@ requires-dist = ["click", "imageio", "matplotlib", "pillow-heif", "plyfile", "sc
 
 [[package]]
 name = "ai-anime"
-version = "1.1.19"
+version = "1.1.20"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
