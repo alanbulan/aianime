@@ -371,10 +371,10 @@ class HermesSdkThread:
                 {"sessionId": self.id, "cwd": str(self._cwd), "mcpServers": []},
             )
             resp, _ = await self._read_until_id(req_id, SESSION_NEW_TIMEOUT)
-            if resp and "error" not in resp:
+            if resp and "error" not in resp and resp.get("result") is not None:
                 return
             _log.warning("session/load failed, falling back to session/new: %s",
-                         resp.get("error") if resp else "timeout")
+                         (resp.get("error") or "empty result") if resp else "timeout")
             self._is_new = True
 
         req_id = await self._send(

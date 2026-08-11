@@ -24,6 +24,7 @@ datas += collect_data_files(
     ],
 )
 datas += collect_data_files("litellm.litellm_core_utils.tokenizers")
+datas += collect_data_files("litellm.containers")
 datas += collect_data_files("faster_whisper")
 datas += copy_metadata("genai-prices")
 datas += copy_metadata("pydantic-ai-slim")

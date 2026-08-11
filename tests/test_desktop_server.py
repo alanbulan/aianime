@@ -4,12 +4,14 @@ from pathlib import Path
 
 import pytest
 
+from ai_anime import desktop_server
 from ai_anime.desktop_server import (
     DesktopOptions,
     configure_environment,
     configure_local_api_environment,
     create_listening_socket,
     parse_options,
+    validate_litellm_runtime,
     validate_tokenizer_runtime,
 )
 
@@ -83,6 +85,23 @@ def test_desktop_tokenizer_runtime_rejects_missing_cl100k_base(
     monkeypatch.setattr(tiktoken, "list_encoding_names", lambda: ["gpt2"])
     with pytest.raises(RuntimeError, match="missing cl100k_base"):
         validate_tokenizer_runtime()
+
+
+def test_desktop_litellm_runtime_contains_container_endpoints() -> None:
+    validate_litellm_runtime()
+
+
+def test_desktop_litellm_runtime_rejects_missing_container_endpoints(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        desktop_server,
+        "_litellm_endpoints_path",
+        lambda: tmp_path / "missing" / "endpoints.json",
+    )
+    with pytest.raises(RuntimeError, match="containers/endpoints.json"):
+        validate_litellm_runtime()
 
 
 def test_desktop_dynamic_port_is_visible_before_agent_composition(

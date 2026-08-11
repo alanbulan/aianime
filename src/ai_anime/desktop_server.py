@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import socket
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
@@ -125,10 +127,31 @@ def validate_tokenizer_runtime() -> None:
         raise RuntimeError("packaged tiktoken runtime is missing cl100k_base")
 
 
+def _litellm_endpoints_path() -> Path | None:
+    bundle_root = getattr(sys, "_MEIPASS", None)
+    if bundle_root:
+        return Path(bundle_root) / "litellm" / "containers" / "endpoints.json"
+    spec = importlib.util.find_spec("litellm")
+    if spec is None or not spec.submodule_search_locations:
+        return None
+    package_root = Path(next(iter(spec.submodule_search_locations)))
+    return package_root / "containers" / "endpoints.json"
+
+
+def validate_litellm_runtime() -> None:
+    """Fail fast when LiteLLM's generated endpoint manifest was not bundled."""
+    endpoints_path = _litellm_endpoints_path()
+    if endpoints_path is None or not endpoints_path.is_file():
+        raise RuntimeError(
+            "packaged LiteLLM runtime is missing containers/endpoints.json"
+        )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     options = parse_options(argv)
     configure_environment(options)
     validate_tokenizer_runtime()
+    validate_litellm_runtime()
     listener = create_listening_socket(options.host, options.port)
     bound_port = int(listener.getsockname()[1])
     configure_local_api_environment(options.host, bound_port)
