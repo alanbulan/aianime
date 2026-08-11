@@ -209,6 +209,28 @@ def test_model_gateway_status_never_exposes_cloud_proxy_credentials(
     assert "desktop-proxy-token" not in json.dumps(status)
 
 
+def test_model_gateway_status_exposes_active_role_defaults_without_secrets(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_CLOUD,
+        cloud_model_assignments=[
+            {"modelId": "cloud-text", "role": "TEXT"},
+            {"modelId": "cloud-embedding", "role": "EMBEDDING"},
+        ],
+    )
+
+    status = build_model_gateway_status()
+
+    assert status["roleDefaults"] == {
+        "EMBEDDING": "cloud-embedding",
+        "TEXT": "cloud-text",
+    }
+
+
 def test_embedding_configuration_uses_only_the_selected_model_access_transport(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path,

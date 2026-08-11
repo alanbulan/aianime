@@ -19,9 +19,9 @@
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | `POST` | `/projects/{project}/ingest/upload` | 上传小说 (multipart) |
-| `POST` | `/projects/{project}/ingest/start` | 启动摄入 `{"filename":"...", "rebuild":false}` [ASYNC]；已摄入项目覆盖重建必须二次确认后传 `{"rebuild":true}` |
+| `POST` | `/projects/{project}/ingest/start` | 启动摄入 `{"filename":"...", "textModel":"...", "embeddingModel":"...", "rebuild":false}` [ASYNC]；助手必须调用 `ai_anime_start_ingest`，由工具按当前云端/BYOK 分配补齐模型；已摄入项目覆盖重建必须二次确认后传 `rebuild=true` |
 
-摄入 API 只允许以上两个路径。`ingest_fast` 是后端任务类型，不是 HTTP 路由；不要调用或推断 `/ingest/init`、`/ingest/setup`、`/ingest_script`、`/ingest_fast`、`/projects/{project}/ingest` 或其它 ingest 变体。遇到这些路径的 404 时，不要解释为摄入模块未启用，应改用上表真实路由。
+摄入 API 只允许以上两个路径。助手启动摄入时禁止使用通用 `ai_anime_post`，只能调用 `ai_anime_start_ingest(filename="...")`。`ingest_fast` 是后端任务类型，不是 HTTP 路由；不要调用或推断 `/ingest/init`、`/ingest/setup`、`/ingest_script`、`/ingest_fast`、`/projects/{project}/ingest` 或其它 ingest 变体。遇到这些路径的 404 时，不要解释为摄入模块未启用，应改用上表真实路由。
 
 ## 角色
 

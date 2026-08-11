@@ -31,6 +31,10 @@ INGEST_PATH_ERROR = (
     "/projects/{project}/ingest/start; ingest_fast is a task_type, not an endpoint; "
     "do not infer /ingest/init, /ingest/setup, /ingest_script, or /ingest_fast."
 )
+INGEST_START_TOOL_ERROR = (
+    "POST /projects/{project}/ingest/start is only available through "
+    "ai_anime_start_ingest; do not call it with ai_anime_post."
+)
 TEXT_CONTENT_FILTER_CHAT_ERROR = (
     "模型内容安全过滤拦截了本次文本生成，请调整原文或改写稿中的敏感描述后重试。"
 )
@@ -606,7 +610,18 @@ def _handle_get(args: dict[str, Any], **_: Any) -> str:
 
 def _handle_post(args: dict[str, Any], **_: Any) -> str:
     try:
-        return tool_result(_request("POST", str(args.get("path") or ""), query=args.get("query"), body=args.get("body")))
+        path = str(args.get("path") or "")
+        normalized_path = _normalize_api_path(path)
+        if _is_ingest_start_path(normalized_path):
+            return tool_error(INGEST_START_TOOL_ERROR)
+        return tool_result(
+            _request(
+                "POST",
+                normalized_path,
+                query=args.get("query"),
+                body=args.get("body"),
+            )
+        )
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -753,6 +768,100 @@ def _handle_list_ingest_uploads(args: dict[str, Any], **_: Any) -> str:
                     "upload_dir_available": True,
                 },
             }
+        )
+    except Exception as exc:
+        return tool_error(str(exc))
+
+
+def _is_ingest_start_path(path: str) -> bool:
+    parts = [part for part in path.strip("/").split("/") if part]
+    return (
+        len(parts) == 6
+        and parts[:3] == ["api", "v1", "projects"]
+        and parts[4:] == ["ingest", "start"]
+    )
+
+
+def _ingest_start_failure(error: str, chat_error: str) -> str:
+    return tool_result(
+        {
+            "ok": False,
+            "error": error,
+            "chat_error": chat_error,
+            "agent_instruction": (
+                "Reply to the user with chat_error in natural Chinese. "
+                "Do not call another write tool in this turn."
+            ),
+        }
+    )
+
+
+def _handle_start_ingest(args: dict[str, Any], **_: Any) -> str:
+    """Start story ingestion with the active TEXT and EMBEDDING assignments."""
+    try:
+        project = _project_from_args(args)
+        filename = str(args.get("filename") or "").strip()
+        if not filename:
+            raise ValueError("filename is required")
+
+        text_model = str(
+            args.get("text_model") or args.get("textModel") or ""
+        ).strip()
+        embedding_model = str(
+            args.get("embedding_model") or args.get("embeddingModel") or ""
+        ).strip()
+        if not text_model or not embedding_model:
+            config_response = _request("GET", "/api/v1/model-gateway/config")
+            if config_response.get("ok") is False:
+                return _ingest_start_failure(
+                    "model_gateway_config_unavailable",
+                    "无法读取当前模型配置，小说摄入任务尚未启动。请先在「设置 → 模型」确认模型配置后重试。",
+                )
+            config = config_response.get("data")
+            role_defaults = (
+                config.get("roleDefaults")
+                if isinstance(config, dict)
+                else None
+            )
+            if not isinstance(role_defaults, dict):
+                role_defaults = {}
+            text_model = text_model or str(role_defaults.get("TEXT") or "").strip()
+            embedding_model = embedding_model or str(
+                role_defaults.get("EMBEDDING") or ""
+            ).strip()
+
+        missing_roles = [
+            label
+            for label, value in (
+                ("文本生成", text_model),
+                ("向量嵌入", embedding_model),
+            )
+            if not value
+        ]
+        if missing_roles:
+            return _ingest_start_failure(
+                "ingest_model_assignment_missing",
+                (
+                    "小说摄入任务尚未启动：当前缺少"
+                    f"{'、'.join(missing_roles)}模型。请先在「设置 → 模型」为对应用途选择模型后重试。"
+                ),
+            )
+
+        body: dict[str, Any] = {
+            "filename": filename,
+            "textModel": text_model,
+            "embeddingModel": embedding_model,
+            "rebuild": bool(args.get("rebuild", False)),
+        }
+        spine_template = str(args.get("spine_template") or "").strip()
+        if spine_template:
+            body["spine_template"] = spine_template
+        return tool_result(
+            _request(
+                "POST",
+                f"/api/v1/projects/{project}/ingest/start",
+                body=body,
+            )
         )
     except Exception as exc:
         return tool_error(str(exc))
@@ -1710,6 +1819,7 @@ _PATH_PROPS = {
             "AI anime relative API path. Must start with /api/v1/ or /projects/. "
             "Absolute URLs are rejected. Ingest routes are only "
             "/projects/{project}/ingest/upload and /projects/{project}/ingest/start; "
+            "use ai_anime_start_ingest instead of ai_anime_post for ingest/start; "
             "ingest_fast is a task_type, not an endpoint."
         ),
     },
@@ -1737,7 +1847,13 @@ TOOLS = (
     ),
     (
         "ai_anime_post",
-        _schema("ai_anime_post", "Call a AI anime POST API path without using curl.", {**_PATH_PROPS, "body": {"type": "object"}}, ["path"]),
+        _schema(
+            "ai_anime_post",
+            "Call a AI anime POST API path without using curl. Do not use this for "
+            "/projects/{project}/ingest/start; use ai_anime_start_ingest.",
+            {**_PATH_PROPS, "body": {"type": "object"}},
+            ["path"],
+        ),
         _handle_post,
     ),
     (
@@ -1818,6 +1934,45 @@ TOOLS = (
             },
         ),
         _handle_list_ingest_uploads,
+    ),
+    (
+        "ai_anime_start_ingest",
+        _schema(
+            "ai_anime_start_ingest",
+            "Start novel/script ingestion from a file already returned by "
+            "ai_anime_list_ingest_uploads. Use THIS instead of ai_anime_post. The tool "
+            "fills textModel and embeddingModel from the active cloud/BYOK role "
+            "assignments, then calls the strict /projects/{project}/ingest/start API.",
+            {
+                "project_id": {
+                    "type": "string",
+                    "description": "Project id. Defaults to AI_ANIME_PROJECT_ID.",
+                },
+                "filename": {
+                    "type": "string",
+                    "description": "Exact uploaded filename returned by ai_anime_list_ingest_uploads.",
+                },
+                "rebuild": {
+                    "type": "boolean",
+                    "description": "Rebuild existing ingestion data. Default: false.",
+                },
+                "spine_template": {
+                    "type": "string",
+                    "enum": ["drama", "narrated"],
+                    "description": "Optional narrative spine template.",
+                },
+                "text_model": {
+                    "type": "string",
+                    "description": "Optional explicit TEXT model override.",
+                },
+                "embedding_model": {
+                    "type": "string",
+                    "description": "Optional explicit EMBEDDING model override.",
+                },
+            },
+            ["filename"],
+        ),
+        _handle_start_ingest,
     ),
     (
         "ai_anime_build_characters",

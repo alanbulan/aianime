@@ -28,15 +28,18 @@ Body: multipart/form-data, file=novel.txt
 ### Step 2: 摄入 [ASYNC -> ingest_fast, ep=0]
 
 ```
-POST /projects/$PID/ingest/start
-Body: {"filename": "novel.txt", "rebuild": false}
+专用工具: ai_anime_start_ingest(filename="novel.txt", rebuild=false)
+实际 POST /projects/$PID/ingest/start
+Body: {"filename": "novel.txt", "textModel": "<当前 TEXT 分配>", "embeddingModel": "<当前 EMBEDDING 分配>", "rebuild": false}
 
 已摄入项目覆盖重建只能在二次确认后调用:
-Body: {"filename": "novel.txt", "rebuild": true}
+专用工具: ai_anime_start_ingest(filename="novel.txt", rebuild=true)
 
 GET /projects/$PID/tasks/ingest_fast/0
 SSE /projects/$PID/tasks/ingest_fast/0/stream
 ```
+
+启动摄入禁止使用通用 `ai_anime_post`。专用工具会读取当前云端/BYOK 用途分配并提交完整请求体；缺少 TEXT 或 EMBEDDING 分配时会明确报错且不会启动任务。
 
 ### Step 3: 配置项目 [SYNC]
 

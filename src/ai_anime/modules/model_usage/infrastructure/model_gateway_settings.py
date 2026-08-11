@@ -69,6 +69,7 @@ def get_effective_newapi_config() -> EffectiveNewApiConfig:
 
 
 def build_model_gateway_status() -> dict[str, Any]:
+    access = runtime_model_access()
     effective = get_effective_newapi_config()
     cloud_base_url = normalize_relay_base_url(
         os.environ.get("AI_ANIME_CLOUD_PROXY_BASE_URL", "")
@@ -78,8 +79,12 @@ def build_model_gateway_status() -> dict[str, Any]:
         effective.base_url
         and (effective.mode == MODE_BYOK or effective.api_key)
     )
+    role_defaults: dict[str, str] = {}
+    for assignment in access.model_assignments:
+        role_defaults.setdefault(assignment.role, assignment.model_id)
     return {
         "mode": effective.mode,
+        "roleDefaults": role_defaults,
         "effective": {
             "source": effective.source,
             "configured": effective_configured,

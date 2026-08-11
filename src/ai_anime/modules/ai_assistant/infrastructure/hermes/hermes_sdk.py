@@ -64,6 +64,7 @@ _AI_ANIME_WRITE_TOOLS = {
     "ai_anime_post",
     "ai_anime_patch",
     "ai_anime_delete",
+    "ai_anime_start_ingest",
     "ai_anime_build_characters",
     "ai_anime_plan_episodes",
     "ai_anime_generate_script",
@@ -280,6 +281,10 @@ class HermesSdkThread:
         # JSON-RPC stdio. Whichever runs first pays the cold start; the other
         # awaits it and then proceeds against the ready session.
         self._setup_lock = asyncio.Lock()
+        # Serializes the entire ACP stdio exchange. Background warm() calls
+        # and prompt streams share one subprocess stdout and must never read it
+        # concurrently.
+        self._turn_lock = asyncio.Lock()
 
     def _next_id(self) -> int:
         self._req_counter += 1
@@ -410,11 +415,16 @@ class HermesSdkThread:
         so the first real message hits a ready session. Failures are logged, not
         raised — a failed warm just means the first stream() pays the cold start.
         """
-        if self._closed:
-            return
         try:
-            await self._prepare()
-            _log.info("hermes worker warmed for user=%s session=%s", self._username, self.id)
+            async with self._turn_lock:
+                if self._closed:
+                    return
+                await self._prepare()
+                _log.info(
+                    "hermes worker warmed for user=%s session=%s",
+                    self._username,
+                    self.id,
+                )
         except Exception as e:  # noqa: BLE001 - best-effort prewarm
             _log.warning("hermes warm() failed for user=%s: %s", self._username, e)
 
@@ -428,8 +438,11 @@ class HermesSdkThread:
         if self._closed:
             raise RuntimeError("HermesSdkThread is closed")
 
-        await self._prepare()
+        await self._turn_lock.acquire()
         try:
+            if self._closed:
+                raise RuntimeError("HermesSdkThread is closed")
+            await self._prepare()
             assert self._proc is not None and self._proc.stdout is not None
             # Compose prompt blocks (ACP supports rich content; we send plain text).
             text = prompt
@@ -568,7 +581,7 @@ class HermesSdkThread:
         finally:
             # Don't kill subprocess here — caller may want to send more prompts.
             # HermesPool handles cleanup on idle / shutdown.
-            pass
+            self._turn_lock.release()
 
     def _translate_notification(self, msg: dict, turn_id: str) -> ChatBackendEvent | None:
         """Map ACP session/update notifications to ChatBackendEvent.
