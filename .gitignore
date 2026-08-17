@@ -30,3 +30,10 @@ node_modules/
 /desktop/.ffmpeg-cache/
 /desktop/.whisper-cache/
 /desktop/runtime/
+
+# 本地测试、构建缓存和样例产物
+/.sharp-*/
+/.tmp-7z-case-test/
+/alice/
+/desktop/.sharp-*/
+/frontend/.dist-stale-before-*/
