@@ -96,7 +96,14 @@ describe("script workflow canonical contract", () => {
     expect(scriptPageSources).not.toContain("refreshScript");
     expect(scriptPageSources).not.toContain("loadScript");
     expect(scriptPageSources).not.toContain("FolderOpen");
-    expect(scriptView).toContain("modeLiteral");
+    expect(scriptView).toContain('value="duration"');
+    expect(scriptView).toContain('value="literal"');
+    expect(scriptView).toContain("rhythmDuration");
+    expect(scriptView).toContain("rhythmLiteral");
+    expect(scriptController).toContain("rhythm: scriptMode");
+    expect(scriptController).toContain(
+      "target_duration_total: targetDurationTotal",
+    );
     expect(scriptPageSources).not.toContain("useRawContent");
     expect(scriptPageSources).not.toContain("useAdaptedContent");
     expect(scriptPageSources).not.toContain("useGenerateStaging");

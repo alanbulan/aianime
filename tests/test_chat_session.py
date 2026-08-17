@@ -34,7 +34,7 @@ class RecordingPrewarmer:
     def __init__(self):
         self.calls = []
 
-    async def prewarm(self, username, *, project):
+    async def prewarm(self, username, *, project, conversation_id="main"):
         self.calls.append((username, project))
 
 
@@ -91,13 +91,17 @@ async def test_run_chat_session_dispatches_message_in_current_scope(monkeypatch)
 
 
 @pytest.mark.anyio
-async def test_run_chat_session_syncs_and_prewarms_requested_scope(monkeypatch):
+async def test_run_chat_session_skips_reprewarm_for_same_scope_history_refresh(monkeypatch):
     websocket = RecordingWebSocket(
         [
             {
                 "type": "scope.set",
                 "scope": {"kind": "project", "id": "project-a"},
-            }
+            },
+            {
+                "type": "scope.set",
+                "scope": {"kind": "project", "id": "project-a"},
+            },
         ]
     )
     scope_calls = []
@@ -124,7 +128,7 @@ async def test_run_chat_session_syncs_and_prewarms_requested_scope(monkeypatch):
 
     home_scope = ChatScope(kind="home")
     project_scope = ChatScope(kind="project", id="project-a")
-    assert scope_calls == [home_scope, project_scope]
+    assert scope_calls == [home_scope, project_scope, project_scope]
     assert lifecycle_calls == [("alice", project_scope)]
     assert prewarmer.calls == [("alice", "project-a")]
 
@@ -158,4 +162,79 @@ async def test_run_chat_session_reports_unsupported_event_before_runtime_disconn
 
     assert websocket.events == [
         {"type": "error", "message": "unsupported event: unknown"}
+    ]
+
+
+@pytest.mark.anyio
+async def test_run_chat_session_deletes_requested_conversation(monkeypatch):
+    websocket = RecordingWebSocket(
+        [
+            {
+                "type": "conversation.delete",
+                "scope": {
+                    "kind": "project",
+                    "id": "project-a",
+                    "conversationId": "chat_2",
+                },
+                "conversationId": "chat_2",
+            }
+        ]
+    )
+    deleted = []
+    forgotten = []
+
+    async def authenticate(_websocket):
+        return {"username": "alice"}
+
+    async def send_scope(_websocket, _user, _username, scope):
+        return scope
+
+    async def project_context(_user, _scope):
+        return None
+
+    class RecordingMessages:
+        def delete_conversation(self, username, scope, **_kwargs):
+            deleted.append((username, scope))
+            return True
+
+        def list_conversations(self, _username, _scope, **_kwargs):
+            return [{"id": "main", "title": "新会话"}]
+
+    class RecordingLifecycle:
+        def is_busy(self, _username):
+            return False
+
+        async def forget_conversation(self, username, scope):
+            forgotten.append((username, scope))
+
+    monkeypatch.setattr(chat_session, "get_websocket_user", authenticate)
+    monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
+    monkeypatch.setattr(
+        chat_session.chat_access,
+        "project_context_for_scope",
+        project_context,
+    )
+    monkeypatch.setattr(chat_session, "scoped_chat_messages", RecordingMessages())
+    monkeypatch.setattr(chat_session, "chat_worker_lifecycle", RecordingLifecycle())
+    monkeypatch.setattr(
+        chat_session,
+        "hermes_runtime_prewarmer",
+        RecordingPrewarmer(),
+    )
+
+    await chat_session.run_chat_session(websocket)
+
+    target = ChatScope(
+        kind="project",
+        id="project-a",
+        conversation_id="chat_2",
+    )
+    assert deleted == [("alice", target)]
+    assert forgotten == [("alice", target)]
+    assert websocket.events == [
+        {
+            "type": "conversation.deleted",
+            "conversationId": "chat_2",
+            "conversations": [{"id": "main", "title": "新会话"}],
+        }
     ]

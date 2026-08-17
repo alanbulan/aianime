@@ -15,6 +15,8 @@ def _event(event_type, **values):
         turn_id=values.get("turn_id"),
         text=values.get("text"),
         name=values.get("name"),
+        success=values.get("success"),
+        error=values.get("error"),
         raw=values.get("raw"),
     )
 
@@ -38,8 +40,10 @@ class StubHermesRuntime:
         self.thread = thread
         self.calls = []
 
-    async def get_for_user(self, username, *, scope_kind, project_id):
-        self.calls.append((username, scope_kind, project_id))
+    async def get_for_user(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.calls.append((username, scope_kind, project_id, conversation_id))
         return self.thread
 
 
@@ -62,6 +66,7 @@ class StubProjectMessages:
         *,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         return self.previous_assistants
 
@@ -72,6 +77,7 @@ class StubProjectMessages:
         *,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         return self.previous_traces
 
@@ -83,9 +89,17 @@ class StubProjectMessages:
         *,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.appended_traces.append(
-            (username, project, contents, project_dir, project_state_dir)
+            (
+                username,
+                project,
+                contents,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
         )
 
     def append_assistant(
@@ -98,6 +112,7 @@ class StubProjectMessages:
         turn_id=None,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.appended_assistants.append(
             (
@@ -108,6 +123,7 @@ class StubProjectMessages:
                 turn_id,
                 project_dir,
                 project_state_dir,
+                conversation_id,
             )
         )
         return {"id": 1, "role": "assistant", "content": content, "media": media}
@@ -202,7 +218,7 @@ async def test_hermes_project_replies_stream_and_persist_visible_events(
         project_state_dir=tmp_path / "state",
     )
 
-    assert runtime.calls == [("alice", "project", "project-a")]
+    assert runtime.calls == [("alice", "project", "project-a", "main")]
     assert thread.calls == [("context:alice:project-a:question", "project-a")]
     assert [event["type"] for event in emitted] == [
         "thread_started",
@@ -218,6 +234,7 @@ async def test_hermes_project_replies_stream_and_persist_visible_events(
             ["trace"],
             tmp_path / "output",
             tmp_path / "state",
+            "main",
         )
     ]
     assert media.calls == [
@@ -379,3 +396,33 @@ async def test_hermes_project_replies_localizes_empty_runtime_response(monkeypat
 
     assert "助手运行时没有返回有效内容" in result["content"]
     assert "hermes returned no content" not in result["content"]
+
+
+@pytest.mark.anyio
+async def test_hermes_project_replies_hides_recovered_skill_lookup_failure(monkeypatch):
+    monkeypatch.setattr(
+        replies_module, "infer_display_tool_call_from_text", lambda *_: None
+    )
+    replies, _thread, _runtime, _messages, _media, _sessions, _fallbacks = (
+        _build_replies(
+            [
+                _event(
+                    "tool_update",
+                    text="  failed",
+                    name="skill_view",
+                    error="Skill not found",
+                    raw={"status": "failed", "error": "Skill not found"},
+                ),
+                _event("complete", text="你好！有什么我可以帮你处理的吗？"),
+            ]
+        )
+    )
+    emitted = []
+
+    async def on_event(event):
+        emitted.append(event)
+
+    result = await replies.stream("alice", "project-a", "你好", on_event)
+
+    assert result["content"] == "normalized:你好！有什么我可以帮你处理的吗？"
+    assert not any(event["type"] == "assistant_delta" for event in emitted)

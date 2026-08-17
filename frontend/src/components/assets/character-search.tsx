@@ -36,7 +36,7 @@ export function CharacterSearch({
           aria-label="Clear character search"
           className="absolute right-1 top-1/2 size-6 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           size="icon-xs"
-          title="Clear character search"
+          data-ui-tooltip="Clear character search"
           type="button"
           variant="ghost"
           onClick={() => onValueChange("")}

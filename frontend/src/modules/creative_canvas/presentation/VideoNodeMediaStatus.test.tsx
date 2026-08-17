@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -52,8 +53,7 @@ describe("VideoNodeMediaStatus", () => {
     const { container } = render(
       <VideoGeneratingState
         previewImageUrl="preview.png"
-        startedAt={Date.now() - 1000}
-        durationMs={10_000}
+        progress={0.1}
       />,
     );
 
@@ -77,7 +77,7 @@ describe("VideoNodeMediaStatus", () => {
     );
 
     expect(screen.getByText("provider rejected request")).toBeInTheDocument();
-    expect(screen.getByTitle("req-123")).toHaveTextContent("req-123");
+    expect(getByUiTooltip("req-123")).toHaveTextContent("req-123");
     fireEvent.click(screen.getByRole("button", { name: "重新生成" }));
 
     expect(onRegenerate).toHaveBeenCalledOnce();

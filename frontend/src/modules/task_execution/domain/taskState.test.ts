@@ -6,6 +6,8 @@ import {
   displayLabel,
   isActive,
   isTerminal,
+  taskProgressPercent,
+  taskProgressRatio,
 } from "@/modules/task_execution/public";
 
 describe("isTerminal", () => {
@@ -36,6 +38,18 @@ describe("ageMs", () => {
     const task = sampleTask({ updated_at: "2026-04-18T14:33:12Z" });
     const now = new Date("2026-04-18T14:33:42Z").getTime();
     expect(ageMs(task, now)).toBe(30_000);
+  });
+});
+
+describe("task progress", () => {
+  it("uses one clamped progress value for every task presentation", () => {
+    expect(taskProgressRatio(sampleTask({ progress: -0.2 }))).toBe(0);
+    expect(taskProgressPercent(sampleTask({ progress: 0.424 }))).toBe(42);
+    expect(taskProgressPercent(sampleTask({ progress: 1.2 }))).toBe(100);
+  });
+
+  it("always presents a completed task as 100 percent", () => {
+    expect(taskProgressPercent(sampleTask({ status: "completed", progress: 0.42 }))).toBe(100);
   });
 });
 

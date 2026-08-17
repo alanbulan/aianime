@@ -42,6 +42,13 @@ import {
 import type { CanvasVideoComposeResolution } from "../domain/videoCompose";
 import type { ComposeTimelineState } from "../domain/videoComposeTimeline";
 import type { VideoComposeClipReference } from "../domain/videoComposeTimelineEdits";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   VideoComposeTrackRow,
@@ -272,56 +279,70 @@ export function VideoComposeModalView({
                     {t("videoCompose.exportDialog.title")}
                   </h3>
                   <div className="space-y-3">
-                    <label className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-xs text-text-muted">
                         {t("videoCompose.exportDialog.location")}
                       </span>
-                      <select
+                      <Select
                         value={exportPanel.dialog.location}
-                        onChange={(event) =>
-                          exportPanel.onDialogLocationChange(
-                            event.target.value as VideoComposeExportLocation,
-                          )
-                        }
-                        className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
+                        onValueChange={(value) => {
+                          if (value) {
+                            exportPanel.onDialogLocationChange(
+                              value as VideoComposeExportLocation,
+                            );
+                          }
+                        }}
                       >
-                        <option value="local">
-                          {t("videoCompose.exportToLocal")}
-                        </option>
-                        <option value="canvas">
-                          {t("videoCompose.exportToCanvas")}
-                        </option>
-                      </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
+                        <SelectTrigger
+                          className="min-w-[160px] bg-muted text-sm text-foreground"
+                          aria-label={t("videoCompose.exportDialog.location")}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent align="end">
+                          <SelectItem value="local">
+                            {t("videoCompose.exportToLocal")}
+                          </SelectItem>
+                          <SelectItem value="canvas">
+                            {t("videoCompose.exportToCanvas")}
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-xs text-text-muted">
                         {t("videoCompose.exportDialog.resolution")}
                       </span>
-                      <select
+                      <Select
                         value={exportPanel.dialog.resolution}
-                        onChange={(event) =>
-                          exportPanel.onDialogResolutionChange(
-                            event.target.value as CanvasVideoComposeResolution,
-                          )
-                        }
-                        className="min-w-[160px] rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-foreground outline-none focus:border-primary/45"
+                        onValueChange={(value) => {
+                          if (value) {
+                            exportPanel.onDialogResolutionChange(
+                              value as CanvasVideoComposeResolution,
+                            );
+                          }
+                        }}
                       >
-                        <option value="720p">720P</option>
-                        <option value="1080p">1080P</option>
-                      </select>
-                    </label>
-                    <label className="flex items-center justify-between gap-3">
+                        <SelectTrigger
+                          className="min-w-[160px] bg-muted text-sm text-foreground"
+                          aria-label={t("videoCompose.exportDialog.resolution")}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent align="end">
+                          <SelectItem value="720p">720P</SelectItem>
+                          <SelectItem value="1080p">1080P</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-xs text-text-muted">
                         {t("videoCompose.exportDialog.format")}
                       </span>
-                      <select
-                        value="mp4"
-                        disabled
-                        className="min-w-[160px] cursor-not-allowed rounded-md border border-border bg-muted px-3 py-1.5 text-sm text-muted-foreground opacity-70 outline-none"
-                      >
-                        <option value="mp4">MP4</option>
-                      </select>
-                    </label>
+                      <div className="flex h-8 min-w-[160px] items-center rounded-lg border border-input bg-muted px-2.5 text-sm text-muted-foreground opacity-70">
+                        MP4
+                      </div>
+                    </div>
                   </div>
                   <div className="mt-5 flex justify-end gap-2">
                     <button

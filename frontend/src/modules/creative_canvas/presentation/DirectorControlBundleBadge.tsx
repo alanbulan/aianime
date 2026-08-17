@@ -27,7 +27,7 @@ export function DirectorControlBundleBadge({ bundle }: { bundle: unknown }) {
   return (
     <div
       className="pointer-events-none absolute left-3 top-3 z-10 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-md border border-warning/40 bg-popover/95 px-2 py-1 text-[11px] font-medium leading-none text-warning shadow-sm backdrop-blur"
-      title={t("node.directorControlBundle.tooltip", { defaultValue: "完整导演合成资产，包含合成图、纯背景和元数据；缩略图显示合成图" })}
+      data-ui-tooltip={t("node.directorControlBundle.tooltip", { defaultValue: "完整导演合成资产，包含合成图、纯背景和元数据；缩略图显示合成图" })}
     >
       <Boxes className="size-3.5 shrink-0" />
       <span className="truncate">{t("node.directorControlBundle.badge", { defaultValue: "导演合成" })}</span>

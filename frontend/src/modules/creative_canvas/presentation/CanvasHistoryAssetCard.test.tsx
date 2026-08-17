@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -49,7 +50,7 @@ describe('CanvasHistoryAssetCard', () => {
 
     fireEvent.click(screen.getByText('canvas.history.view'));
     fireEvent.click(screen.getByText('canvas.history.use'));
-    fireEvent.click(screen.getByTitle('canvas.history.delete'));
+    fireEvent.click(getByUiTooltip('canvas.history.delete'));
     fireEvent.doubleClick(screen.getByText('image prompt'));
     expect(onView).toHaveBeenCalledOnce();
     expect(onUse).toHaveBeenCalledOnce();
@@ -97,7 +98,7 @@ describe('CanvasHistoryAssetCard', () => {
 
     expect(screen.getByRole('button', { name: 'canvas.history.play' })).toBeInTheDocument();
     fireEvent.click(screen.getByText('canvas.history.use'));
-    fireEvent.click(screen.getByTitle('canvas.history.delete'));
+    fireEvent.click(getByUiTooltip('canvas.history.delete'));
     expect(onUse).toHaveBeenCalledOnce();
     expect(onDelete).toHaveBeenCalledOnce();
     expect(screen.queryByText('canvas.history.view')).not.toBeInTheDocument();

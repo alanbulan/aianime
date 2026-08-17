@@ -14,12 +14,14 @@
 
 import os
 import time
-from typing import Optional
+from typing import Mapping, Optional
 
 from ai_anime.modules.production.infrastructure.media_generation_settings import (
+    IMAGE_DEFAULT_STYLE,
+    ImageReferenceInput,
+    apply_style_reference,
     get_grid_generation_config,
     get_style_preset,
-    IMAGE_DEFAULT_STYLE,
 )
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
@@ -45,14 +47,19 @@ def build_prop_reference_prompt(
     style_keywords: str = "",
     style: str | None = None,
     project_dir: str = "",
+    *,
+    style_preset: Mapping[str, object] | None = None,
 ) -> str:
     """Build the exact prompt used for prop reference-sheet generation."""
     if style is None:
         style = IMAGE_DEFAULT_STYLE
 
-    style_preset = get_style_preset(style, project_dir=project_dir or None)
-    preset_style = style_preset.get("style_instructions", "")
-    preset_negative = style_preset.get("avoid_instructions", "")
+    resolved_style = style_preset or get_style_preset(
+        style,
+        project_dir=project_dir or None,
+    )
+    preset_style = resolved_style.get("style_instructions", "")
+    preset_negative = resolved_style.get("avoid_instructions", "")
 
     all_style = ", ".join(filter(None, [preset_style, style_keywords]))
     all_negative = preset_negative
@@ -129,13 +136,19 @@ async def generate_prop_reference(
 
     resolved_model = _prop_reference_image_model(model)
     config = get_grid_generation_config(model_override=resolved_model)
+    style_preset = get_style_preset(style, project_dir=project_dir or None)
     prompt = build_prop_reference_prompt(
         visual_prompt=visual_prompt,
         style_keywords=style_keywords,
         style=style,
         project_dir=project_dir,
+        style_preset=style_preset,
     )
-
+    prompt, references = apply_style_reference(
+        prompt,
+        None,
+        style_preset,
+    )
     print(f"[PropRefGen] 生成道具三视图: {visual_prompt[:60]}...")
     print(f"[PropRefGen] Model: {resolved_model}")
 
@@ -145,6 +158,7 @@ async def generate_prop_reference(
             output_path=output_path,
             model=resolved_model,
             quality=config.get("openai_image_quality", "medium"),
+            reference_images=references,
         )
 
         elapsed = time.time() - start_time
@@ -167,12 +181,13 @@ async def _generate_via_newapi(
     output_path: str,
     model: str,
     quality: str = "medium",
+    reference_images: list[ImageReferenceInput] | None = None,
 ) -> Optional[str]:
     """通过当前商业图片模型生成道具参考图。"""
 
     image_bytes, _text_content, error_text = await _call_newapi_image_api(
-        model=model,
         prompt=prompt,
+        reference_images=reference_images or None,
         image_config={
             "aspect_ratio": PROP_REF_ASPECT_RATIO,
             "image_size": normalize_image_size(PROP_REF_IMAGE_SIZE),

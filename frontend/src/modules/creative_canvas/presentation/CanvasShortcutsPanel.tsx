@@ -157,7 +157,7 @@ export function CanvasShortcutsPanel({ onClose }: CanvasShortcutsPanelProps) {
                     ))}
                     {row.noteIcons ? (
                       <span
-                        title={row.noteKey ? t(row.noteKey) : undefined}
+                        data-ui-tooltip={row.noteKey ? t(row.noteKey) : undefined}
                         aria-label={row.noteKey ? t(row.noteKey) : undefined}
                         className="inline-flex items-center gap-1 text-foreground/65"
                       >

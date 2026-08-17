@@ -469,7 +469,7 @@ export function createMultiSelectionToolbar({
               disabled={deletableIds.length === 0}
               className={`${MULTI_TOOLBAR_BUTTON_CLASS} hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50`}
               onClick={handleBatchDelete}
-              title={
+              data-ui-tooltip={
                 deletableIds.length === 0
                   ? '所选节点均为主线锁定节点，不可删除'
                   : `删除 ${deletableIds.length} 个节点`

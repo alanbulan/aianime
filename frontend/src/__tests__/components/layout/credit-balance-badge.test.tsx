@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { cloneElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
@@ -17,6 +18,10 @@ const commercialState = vi.hoisted(() => ({
   session: null as { authenticated: true } | null,
   allowsCloudModels: false,
   balance: 7300,
+}));
+const refreshState = vi.hoisted(() => ({
+  currentUser: vi.fn(),
+  commercial: vi.fn(),
 }));
 
 vi.mock("@/lib/runtime-config", () => ({
@@ -43,7 +48,9 @@ vi.mock("@/modules/identity_access/public", () => ({
           }
         : undefined,
     isError: currentUserState.isError,
+    isFetching: false,
     isLoading: currentUserState.isLoading,
+    refetch: refreshState.currentUser,
   }),
   useCommercialAuthStore: (
     selector: (state: { availability: string; session: unknown }) => unknown,
@@ -67,6 +74,8 @@ vi.mock("@/modules/model_usage/public", () => ({
     data: enabled ? { spendableUnits: commercialState.balance } : undefined,
     isLoading: false,
     isError: false,
+    isFetching: false,
+    refetch: refreshState.commercial,
   }),
 }));
 
@@ -75,7 +84,11 @@ vi.mock("@/modules/model_usage/public", () => ({
 vi.mock("@/components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: React.PropsWithChildren) => <>{children}</>,
   Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
-  TooltipTrigger: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  TooltipTrigger: ({
+    children,
+    render,
+  }: React.PropsWithChildren<{ render?: React.ReactElement }>) =>
+    render ? cloneElement(render, undefined, children) : <>{children}</>,
   TooltipContent: ({ children }: React.PropsWithChildren) => <>{children}</>,
 }));
 
@@ -84,6 +97,8 @@ vi.mock("react-i18next", () => ({
     t: (key: string) =>
       ({
         "credits.balance": "当前积分余额",
+        "credits.refreshBalance": "刷新积分余额",
+        "credits.refreshHint": "点击刷新",
         "credits.short": "积分",
       })[key] ?? key,
   }),
@@ -111,13 +126,15 @@ describe("CreditBalanceBadge", () => {
     commercialState.session = null;
     commercialState.allowsCloudModels = false;
     commercialState.balance = 7300;
+    refreshState.currentUser.mockReset();
+    refreshState.commercial.mockReset();
   });
 
   it("renders the current credit balance", async () => {
     renderBadge();
 
     expect(screen.getByText("1,234")).toBeInTheDocument();
-    expect(screen.getByText("当前积分余额: 1,234")).toBeInTheDocument();
+    expect(document.body).toHaveTextContent("当前积分余额: 1,234 · 点击刷新");
   });
 
   it("renders nothing when logged out", () => {
@@ -146,5 +163,17 @@ describe("CreditBalanceBadge", () => {
 
     expect(screen.getByText("7,300")).toBeInTheDocument();
     expect(screen.queryByText("1,234")).not.toBeInTheDocument();
+  });
+
+  it("manually refreshes the commercial quota from the header badge", () => {
+    runtimeState.isCeRuntime = true;
+    commercialState.availability = "configured";
+    commercialState.session = { authenticated: true };
+    commercialState.allowsCloudModels = true;
+
+    renderBadge();
+    fireEvent.click(screen.getByRole("button", { name: "刷新积分余额" }));
+
+    expect(refreshState.commercial).toHaveBeenCalledOnce();
   });
 });

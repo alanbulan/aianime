@@ -48,8 +48,6 @@ class ProjectSettings(Protocol):
         username: str,
         project_name: str,
         *,
-        text_model: str,
-        embedding_model: str,
         spine_template: SpineTemplate | None,
     ) -> None: ...
 

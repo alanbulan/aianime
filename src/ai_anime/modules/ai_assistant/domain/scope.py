@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any, Literal, cast
 
 ChatScopeKind = Literal["home", "project", "asset", "task"]
@@ -13,6 +14,7 @@ InteractiveChatScopeKind = Literal["home", "project"]
 class ChatScope:
     kind: ChatScopeKind
     id: str | None = None
+    conversation_id: str = "main"
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any] | None) -> "ChatScope":
@@ -26,7 +28,22 @@ class ChatScope:
             scope_id = None
         if kind != "home" and not scope_id:
             raise ValueError(f"scope id is required for {kind}")
-        return cls(kind=cast(ChatScopeKind, kind), id=scope_id)
+        raw_conversation_id = payload.get(
+            "conversationId",
+            payload.get("conversation_id", "main"),
+        )
+        conversation_id = str(raw_conversation_id or "main").strip() or "main"
+        if re.fullmatch(r"[A-Za-z0-9_-]{1,64}", conversation_id) is None:
+            raise ValueError("invalid conversation id")
+        return cls(
+            kind=cast(ChatScopeKind, kind),
+            id=scope_id,
+            conversation_id=conversation_id,
+        )
 
     def to_dict(self) -> dict[str, str | None]:
-        return {"kind": self.kind, "id": self.id}
+        return {
+            "kind": self.kind,
+            "id": self.id,
+            "conversationId": self.conversation_id,
+        }

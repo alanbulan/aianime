@@ -12,6 +12,7 @@ _ASSISTANT_TURN_LABEL_RE = re.compile(
 _COMPLETION_NOTICES = frozenset(
     {
         "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。",
+        "当前步骤已提交或完成。为避免重复操作，本轮没有继续执行后续写入；请确认当前结果后再推进下一步。",
         "刚才这一步没有成功启动任务。请先根据返回的错误补齐前置条件；如果是配音缺少声线，可以到「资产库」上传或录制缺失声线后再继续。",
     }
 )
@@ -248,7 +249,9 @@ def _attachment_context_block(
         return ""
     lines = [
         "[CHAT_ATTACHMENTS]",
-        "The browser sent these attachment records with the user message.",
+        "The browser sent these attachment records with the user message. "
+        "A project-relative path may be passed only to an ai_anime tool that "
+        "explicitly accepts an attachment path.",
     ]
     for index, attachment in enumerate(attachments, 1):
         lines.append("")

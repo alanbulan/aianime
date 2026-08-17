@@ -1,17 +1,21 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SketchSection } from "@/modules/production/sketch-section-composition";
 import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
+import type { ThreeDDirectorCaptureMeta } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 
 const markSeenMock = vi.fn();
 const stageManifestMock = vi.fn();
 const backgroundAnchorsMock = vi.fn();
+const backgroundRefetchMock = vi.fn();
 const updateBackgroundAnchorMock = vi.fn();
 const uploadBackgroundAnchorMock = vi.fn();
 const directorStatusMock = vi.fn();
+const directorStatusRefetchMock = vi.fn();
 const directorConvertMock = vi.fn();
 const taskStartMock = vi.fn();
 const regenerateSketchMock = vi.fn();
@@ -33,8 +37,10 @@ vi.mock("react-i18next", () => ({
       if (key === "episode.workbench.sketch.convertDirectorFailed") return "启动失败";
       if (key === "episode.workbench.sketch.openDirectorWorld") return "导演世界";
       if (key === "episode.workbench.sketch.chooseBackground") return "背景";
+      if (key === "episode.workbench.sketch.backgroundSceneLabel") return "当前关联场景";
       if (key === "episode.workbench.sketch.poseEdit") return "姿势编辑";
       if (key === "episode.workbench.sketch.cropEdit") return "裁剪保存";
+      if (key === "episode.workbench.render.backgroundAnchorLabels.master") return "场景正面";
       return key;
     },
   }),
@@ -93,7 +99,7 @@ vi.mock("@/modules/production/composition", () => ({
       isPending: false,
     }),
     useSketchCropDialogController: ({ open }: { open: boolean }) => ({ open }),
-    useSketchPoseEditorDialogController: () => ({}),
+    useSketchPoseEditorDialogController: ({ open }: { open: boolean }) => ({ open }),
 }));
 
 vi.mock("@/modules/model_usage/public", () => ({
@@ -146,18 +152,49 @@ vi.mock("@/shared/hooks/use-now", () => ({
   useNow: () => 1_717_000_000_000,
 }));
 
-vi.mock("@/modules/production/presentation/SketchPoseEditorDialogView", () => ({
-  SketchPoseEditorDialogView: () => null,
-}));
-
 vi.mock("@/modules/production/presentation/SketchCropDialogView", () => ({
   SketchCropDialogView: ({ open }: { open: boolean }) =>
     open ? <div data-testid="sketch-crop-dialog" /> : null,
 }));
 
+vi.mock("@/modules/production/presentation/SketchPoseEditorDialogView", () => ({
+  SketchPoseEditorDialogView: ({ controller }: { controller: { open: boolean } }) =>
+    controller.open ? <div data-testid="sketch-pose-editor-dialog" /> : null,
+}));
+
 vi.mock("@/features/viewer-kit/three-d/ThreeDDirectorDialog", () => ({
-  ThreeDDirectorDialog: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="three-d-director-dialog" /> : null,
+  ThreeDDirectorDialog: ({
+    onSubmitDirectorCombined,
+    open,
+  }: {
+    onSubmitDirectorCombined?: (
+      blob: Blob,
+      meta: ThreeDDirectorCaptureMeta,
+    ) => void | Promise<void>;
+    open: boolean;
+  }) =>
+    open ? (
+      <div data-testid="three-d-director-dialog">
+        <button
+          type="button"
+          onClick={() =>
+            void onSubmitDirectorCombined?.(new Blob(["combined"]), {
+              controlFrameBundle: {
+                schema_version: "director_control_bundle_v1",
+                dir: "director_control_frames/ep001/beat_04",
+                paths: {},
+                rel_paths: { combined: "director_control_frames/ep001/beat_04/combined.png" },
+              },
+              kind: "combined",
+              snapshot: {} as ThreeDDirectorCaptureMeta["snapshot"],
+              source: { source_kind: "master" },
+            })
+          }
+        >
+          提交当前视图
+        </button>
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/shared/stores/seen-pool-store", () => ({
@@ -202,6 +239,10 @@ describe("SketchSection", () => {
         sketch_url: "/static/sketches/ep001/beat_04.png",
       },
     });
+    backgroundRefetchMock.mockReset();
+    backgroundRefetchMock.mockResolvedValue({ data: undefined });
+    directorStatusRefetchMock.mockReset();
+    directorStatusRefetchMock.mockResolvedValue({ data: undefined });
     stageManifestMock.mockReturnValue({
       data: {
         ok: true,
@@ -220,6 +261,24 @@ describe("SketchSection", () => {
         },
       },
       isLoading: false,
+      refetch: vi.fn().mockResolvedValue({
+        data: {
+          ok: true,
+          data: {
+            viewer_kind: "three_d_director",
+            mode: "beat",
+            project: "demo",
+            scene_id: "地下室",
+            display_name: "地下室",
+            source: {
+              ply_url: "/static/director_worlds/scene/master_sharp.ply",
+              source_kind: "master",
+            },
+            palette: { actors: [], props: [], anonymous_colors: [] },
+            allowed_destinations: ["view", "beat_selected_background"],
+          },
+        },
+      }),
     });
     uploadBackgroundAnchorMock.mockReset();
     uploadBackgroundAnchorMock.mockResolvedValue({ ok: true, data: {} });
@@ -236,7 +295,7 @@ describe("SketchSection", () => {
         },
       },
       isLoading: false,
-      refetch: vi.fn(),
+      refetch: backgroundRefetchMock,
     });
     updateBackgroundAnchorMock.mockReset();
     updateBackgroundAnchorMock.mockResolvedValue({
@@ -253,6 +312,7 @@ describe("SketchSection", () => {
         },
       },
       isLoading: false,
+      refetch: directorStatusRefetchMock,
     });
     directorConvertMock.mockReset();
     taskStartMock.mockReset();
@@ -274,7 +334,7 @@ describe("SketchSection", () => {
       />,
     );
 
-    expect(screen.getByTitle("陆辰 · 青年时期")).toBeInTheDocument();
+    expect(getByUiTooltip("陆辰 · 青年时期")).toBeInTheDocument();
     expect(screen.getByText("羊皮笔记本")).toBeInTheDocument();
     expect(screen.getByText("强光手电")).toBeInTheDocument();
   });
@@ -309,7 +369,7 @@ describe("SketchSection", () => {
     expect(screen.getAllByText("羊皮笔记本")).toHaveLength(1);
   });
 
-  it("shows beat Director World and single-beat background actions", () => {
+  it("shows beat Director World and single-beat background actions", async () => {
     render(
       <SketchSection
         beat={makeBeat()}
@@ -326,8 +386,33 @@ describe("SketchSection", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /导演世界/ }));
 
-    expect(stageManifestMock).toHaveBeenLastCalledWith("demo", 1, 4, true);
-    expect(screen.getByTestId("three-d-director-dialog")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(stageManifestMock).toHaveBeenLastCalledWith("demo", 1, 4, true);
+      expect(screen.getByTestId("three-d-director-dialog")).toBeInTheDocument();
+    });
+  });
+
+  it("refreshes Director status and background anchors after the existing screenshot flow commits", async () => {
+    render(
+      <SketchSection
+        beat={makeBeat()}
+        project="demo"
+        episode={1}
+        images={[]}
+        assignments={{}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /导演世界/ }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "提交当前视图" })).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole("button", { name: "提交当前视图" }));
+
+    await waitFor(() => {
+      expect(directorStatusRefetchMock).toHaveBeenCalledTimes(1);
+      expect(backgroundRefetchMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("promotes a pool-only sketch before opening crop", async () => {
@@ -367,6 +452,22 @@ describe("SketchSection", () => {
     expect(screen.getByTestId("sketch-crop-dialog")).toBeInTheDocument();
   });
 
+  it("从草图操作区打开真实人体关节编辑", () => {
+    render(
+      <SketchSection
+        beat={makeBeat()}
+        project="demo"
+        episode={1}
+        images={[]}
+        assignments={{}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /姿势编辑/ }));
+
+    expect(screen.getByTestId("sketch-pose-editor-dialog")).toBeInTheDocument();
+  });
+
   it("refetches single-beat backgrounds before opening the dialog", async () => {
     const refetch = vi.fn().mockResolvedValue({
       data: {
@@ -400,7 +501,42 @@ describe("SketchSection", () => {
     fireEvent.click(screen.getByRole("button", { name: /背景/ }));
 
     await waitFor(() => expect(refetch).toHaveBeenCalled());
-    expect(await screen.findByText("master")).toBeInTheDocument();
+    expect(await screen.findByText("场景正面")).toBeInTheDocument();
+  });
+
+  it("shows the linked scene without adding a second background workflow", async () => {
+    const refetch = vi.fn().mockResolvedValue({
+      data: {
+        ok: true,
+        data: {
+          sceneId: "学校走廊",
+          canChoose: true,
+          currentAnchor: "master",
+          anchors: [
+            { id: "master", label: "master", exists: false, url: null },
+          ],
+          error: "",
+        },
+      },
+    });
+    backgroundAnchorsMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      refetch,
+    });
+    render(
+      <SketchSection
+        beat={makeBeat({ scene_ref: { scene_id: "学校走廊" } })}
+        project="demo"
+        episode={1}
+        images={[]}
+        assignments={{}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /背景/ }));
+    expect(await screen.findByText("学校走廊")).toBeInTheDocument();
+    expect(screen.getByText("场景正面")).toBeInTheDocument();
   });
 
   it("shows director control preview and conversion action when combined frame is ready", () => {

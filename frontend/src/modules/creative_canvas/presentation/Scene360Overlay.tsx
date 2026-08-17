@@ -207,7 +207,7 @@ export function createScene360Overlay({
             type="button"
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-dark/70 text-text-muted transition-colors hover:bg-bg-dark hover:text-text-dark"
             onClick={onClose}
-            title={t('scene360.exit')}
+            data-ui-tooltip={t('scene360.exit')}
           >
             <X className="h-4 w-4" />
           </button>
@@ -229,7 +229,7 @@ export function createScene360Overlay({
             className={`${NODE_GENERATE_BUTTON_BASE_CLASS} shrink-0 ${NODE_GENERATE_BUTTON_ENABLED_CLASS}`}
             onClick={handleSubmit}
             disabled={!selectedModel}
-            title={t('scene360.submit')}
+            data-ui-tooltip={t('scene360.submit')}
           >
             <ArrowUp className="h-4 w-4" />
           </button>
@@ -276,7 +276,7 @@ function AspectRatioDropdown({ value, onChange, label }: AspectRatioDropdownProp
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={label}
-        title={label}
+        data-ui-tooltip={label}
         onClick={(event) => {
           event.stopPropagation();
           setIsOpen((prev) => !prev);

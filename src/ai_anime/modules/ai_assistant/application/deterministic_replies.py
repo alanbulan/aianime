@@ -29,6 +29,7 @@ class DeterministicProjectReplies:
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         content = redact_local_filesystem_paths(content)
         message = self._project_messages.append_assistant(
@@ -39,6 +40,7 @@ class DeterministicProjectReplies:
             turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
         )
         await emit_chat_event_best_effort(
             on_event,

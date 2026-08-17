@@ -23,7 +23,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       size="icon-sm"
       className={cn("text-muted-foreground hover:text-foreground", className)}
       aria-label={`${t("theme.toggle")}: ${currentLabel}`}
-      title={`${t("theme.toggle")}: ${currentLabel}`}
+      data-ui-tooltip={`${t("theme.toggle")}: ${currentLabel}`}
       onClick={() => setTheme(nextTheme)}
     >
       <Icon className="size-4" />

@@ -173,7 +173,8 @@ function CompactOpsPanel({
             />
             <button
               type="button"
-              title="取消引用此素材"
+              aria-label="取消引用此素材"
+              data-ui-tooltip="取消引用此素材"
               className="nodrag absolute right-0 top-0 z-10 hidden h-4 w-4 items-center justify-center rounded-bl-md bg-media/75 text-media-foreground transition-colors hover:bg-destructive group-hover:flex"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={(event) => {
@@ -214,7 +215,8 @@ function CompactOpsPanel({
           <button
             type="button"
             disabled={controller.submitDisabled}
-            title={t('node.textNode.submit')}
+            aria-label={t('node.textNode.submit')}
+            data-ui-tooltip={t('node.textNode.submit')}
             onClick={(event) => {
               event.stopPropagation();
               controller.submit();
@@ -266,7 +268,8 @@ function WritingOpsPanel({
       <div className="flex shrink-0 items-center justify-end gap-1 px-3 py-2">
         <button
           type="button"
-          title={t('node.textNode.translate')}
+          aria-label={t('node.textNode.translate')}
+          data-ui-tooltip={t('node.textNode.translate')}
           onClick={(event) => {
             event.stopPropagation();
             void controller.translate();
@@ -401,9 +404,7 @@ export function TextAnnotationNodeView({
             )}
             {controller.isGenerating ? (
               <NodeGenerationOverlay
-                startedAt={controller.data.generationStartedAt}
-                durationMs={controller.reversePromptDurationMs}
-                hasBackground={controller.hasUserContent}
+                progress={controller.generationProgress}
               />
             ) : null}
           </div>

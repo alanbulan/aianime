@@ -177,7 +177,6 @@ class IndexTTS2Client:
         try:
             transport_result = await write_model_audio_speech(
                 output_path=output_path,
-                model=self.model,
                 model_role="AUDIO_VOICE_CLONE",
                 input_text=prompt,
                 metadata=metadata,

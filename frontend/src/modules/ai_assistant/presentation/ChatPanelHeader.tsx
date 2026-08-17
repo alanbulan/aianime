@@ -14,26 +14,18 @@ export type ChatPanelHeaderProps = {
   chat: ChatControlBarModel;
   isFreezoneLayout: boolean;
   onRequestClose?: () => void;
-  searchOpen: boolean;
-  onToggleSearch: () => void;
 };
 
 export function ChatPanelHeader({
   chat,
   isFreezoneLayout,
   onRequestClose,
-  searchOpen,
-  onToggleSearch,
 }: ChatPanelHeaderProps) {
   const { t } = useTranslation();
 
   if (!isFreezoneLayout) {
     return (
-      <HeaderControlPortal
-        chat={chat}
-        searchOpen={searchOpen}
-        onToggleSearch={onToggleSearch}
-      />
+      <HeaderControlPortal chat={chat} />
     );
   }
 
@@ -64,12 +56,7 @@ export function ChatPanelHeader({
           </span>
         </div>
       </div>
-      <ControlBar
-        chat={chat}
-        compact
-        searchOpen={searchOpen}
-        onToggleSearch={onToggleSearch}
-      />
+      <ControlBar chat={chat} compact />
       {onRequestClose && (
         <Button
           type="button"
@@ -77,7 +64,7 @@ export function ChatPanelHeader({
           size="icon-sm"
           onClick={onRequestClose}
           aria-label={t("freezone.chat.close")}
-          title={t("freezone.chat.close")}
+          data-ui-tooltip={t("freezone.chat.close")}
           className="text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />

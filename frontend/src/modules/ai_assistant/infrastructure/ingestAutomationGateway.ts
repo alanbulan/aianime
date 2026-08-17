@@ -2,7 +2,6 @@
 import type { AttachmentBlob } from "@/modules/ai_assistant/domain/ingestAutomation";
 import { readPipelineStatus } from "@/modules/narrative_planning/public";
 import {
-  loadDefaultKnowledgeModels,
   startStoryIngestion,
   uploadStoryDocument,
   type StartedIngestion,
@@ -24,10 +23,8 @@ export async function startNovelIngest(
   filename: string,
   options: { rebuild?: boolean } = {},
 ): Promise<StartedIngestion> {
-  const models = await loadDefaultKnowledgeModels();
   return startStoryIngestion(project, {
     filename,
-    ...models,
     rebuild: options.rebuild ?? false,
   });
 }

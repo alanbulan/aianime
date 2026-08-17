@@ -66,14 +66,8 @@ Output ONLY the transition prompt in Chinese. 4–6 句, ~50–90 字.
 def create_keyframe_prompt_builder_agent(language: str = "en") -> Agent:
     """创建首尾帧过渡提示词生成 Agent。"""
     from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
-    from ai_anime.modules.model_usage.public import (
-        DEFAULT_VIDEO_PROMPT_OPTIMIZER_MODEL,
-    )
 
-    model = get_newapi_text_pydantic_model(
-        "KEYFRAME_PROMPT_MODEL",
-        DEFAULT_VIDEO_PROMPT_OPTIMIZER_MODEL,
-    )
+    model = get_newapi_text_pydantic_model()
     return Agent(model, system_prompt=KEYFRAME_PROMPT_BUILDER_INSTRUCTIONS_EN, output_type=str, name="Keyframe Prompt Builder")
 
 

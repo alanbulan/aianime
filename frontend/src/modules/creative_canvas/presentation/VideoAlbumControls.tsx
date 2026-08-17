@@ -26,7 +26,7 @@ export function VideoAlbumDeck({
             key={`album-deck-${index}`}
             role="button"
             tabIndex={-1}
-            title="展开画册"
+            data-ui-tooltip="展开画册"
             onClick={(event) => {
               event.stopPropagation();
               onExpand();
@@ -73,7 +73,7 @@ export function VideoAlbumToggleButton({
         onToggle();
       }}
       onPointerDown={(event) => event.stopPropagation()}
-      title={`展开 ${totalSlots} 条生成结果`}
+      data-ui-tooltip={`展开 ${totalSlots} 条生成结果`}
       className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-media/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-media-foreground shadow-lg backdrop-blur-sm transition-colors hover:bg-media/85 group-hover:inline-flex"
     >
       {pendingCount > 0
@@ -143,7 +143,7 @@ export function VideoAlbumGallery({
               key={`album-cell-${index}`}
               role="button"
               tabIndex={-1}
-              title="点击设为主视频"
+              data-ui-tooltip="点击设为主视频"
               onClick={(event) => {
                 event.stopPropagation();
                 const start = pointerDownPositionRef.current;
@@ -185,7 +185,7 @@ export function VideoAlbumGallery({
                   event.stopPropagation();
                   onApply(url);
                 }}
-                title="把这条视频作为独立视频节点放到画布上"
+                data-ui-tooltip="把这条视频作为独立视频节点放到画布上"
                 className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-media/70 px-2.5 text-[12px] font-medium text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
               >
                 <UploadIcon className="h-3.5 w-3.5" />
@@ -197,7 +197,7 @@ export function VideoAlbumGallery({
                   event.stopPropagation();
                   void onDownload(url, index);
                 }}
-                title="下载这条视频"
+                data-ui-tooltip="下载这条视频"
                 className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-media/70 text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
               >
                 <Download className="h-3.5 w-3.5" />

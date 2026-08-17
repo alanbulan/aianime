@@ -175,20 +175,29 @@ function registerCommercialGatewayIpc(
       allowsCustomModels,
       cloudModelAssignments,
       modelCapabilities,
-    ) =>
-      localBackend.configureModelAccess({
+    ) => {
+      commercialModelProxy?.configureRouting({
+        access,
         allowsCustomModels,
-        mode: allowsCustomModels ? access.mode : "cloud",
-        cloudModelAssignments: [...cloudModelAssignments],
+        cloudModelAssignments,
+      });
+      const modelAssignments = [
+        ...cloudModelAssignments,
+        ...(allowsCustomModels
+          ? access.byokProviders.flatMap((provider) =>
+              provider.enabled
+                ? provider.modelAssignments.filter((assignment) => assignment.enabled)
+                : [],
+            )
+          : []),
+      ];
+      return localBackend.configureModelAccess({
+        allowsCustomModels,
+        mode: "mixed",
+        modelAssignments,
         modelCapabilities: [...modelCapabilities],
-        ...(allowsCustomModels && access.mode === "byok"
-          ? {
-              byokBaseUrl: access.byokBaseUrl,
-              byokApiKey: access.byokApiKey,
-              modelAssignments: access.byokModelAssignments,
-            }
-          : {}),
-      }),
+      });
+    },
     onLoggedOut: () =>
       Promise.all(
         origins.map((origin) =>

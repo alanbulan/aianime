@@ -19,7 +19,10 @@ export const TASK_TYPES = {
   CHARACTER_PORTRAIT: "character_portrait",
   IDENTITY_IMAGE: "identity_image",
   IDENTITY_PORTRAIT: "identity_portrait",
+  STYLE_PREVIEW: "style_preview",
   // Script
+  SCRIPT_WORKFLOW: "script_workflow",
+  PRODUCTION_WORKFLOW: "production_workflow",
   SCRIPT_WRITER: "script_writer",
   LITERAL_SCRIPT_WRITER: "literal_script_writer",
   BEAT_VIDEO_PROMPT: "beat_video_prompt",
@@ -34,6 +37,7 @@ export const TASK_TYPES = {
   BATCH_SKETCH: "batch_sketch",
   SKETCH_REGEN: "sketch_regen",
   GRID_REGENERATE: "grid_regenerate",
+  AI_IDENTITY_DETECTION: "ai_identity_detection",
   // Audio
   AUDIO_GENERATION: "audio_generation",
   AUDIO_GENERATION_INDEXTTS2: "audio_generation_indextts2",

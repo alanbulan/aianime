@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import {
   downloadCommercialUpdate,
   installCommercialUpdate,
+  subscribeCommercialUpdateDownloadProgress,
+  type CommercialUpdateDownloadProgress,
   useCommercialRelease,
 } from "@/modules/platform_release/composition";
+import { CommercialUpdateProgressView } from "@/modules/platform_release/presentation/CommercialUpdateProgress";
 
 export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
   const { t } = useTranslation();
@@ -15,12 +18,15 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
   const [installState, setInstallState] = useState<
     "idle" | "downloading" | "installing" | "error"
   >("idle");
+  const [downloadProgress, setDownloadProgress] =
+    useState<CommercialUpdateDownloadProgress | null>(null);
   const artifactId = release.data?.artifactId ?? null;
   const isInstalling =
     installState === "downloading" || installState === "installing";
 
   const handleInstall = useCallback(async () => {
     if (!artifactId || isInstalling) return;
+    setDownloadProgress(null);
     setInstallState("downloading");
     try {
       await downloadCommercialUpdate(artifactId);
@@ -32,6 +38,11 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
       setInstallState("error");
     }
   }, [artifactId, isInstalling, release]);
+
+  useEffect(
+    () => subscribeCommercialUpdateDownloadProgress(setDownloadProgress),
+    [],
+  );
 
   if (!release.data?.required) return null;
 
@@ -58,6 +69,9 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
         ) : null}
         {artifactId !== null ? (
           <div className="mt-6 space-y-2">
+            {installState === "downloading" ? (
+              <CommercialUpdateProgressView progress={downloadProgress} />
+            ) : null}
             <Button
               type="button"
               className="h-10 min-w-40 rounded-[8px]"
@@ -67,13 +81,17 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
               {isInstalling ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               ) : null}
-              {t(
-                isInstalling
-                  ? installState === "downloading"
-                    ? "app.commercialUpdate.downloading"
-                    : "app.commercialUpdate.installing"
-                  : "app.commercialUpdate.downloadAndInstall",
-              )}
+              {isInstalling && installState === "downloading" && downloadProgress
+                ? t("app.commercialUpdate.downloadingWithPercent", {
+                    percent: Math.round(downloadProgress.percent),
+                  })
+                : t(
+                    isInstalling
+                      ? installState === "downloading"
+                        ? "app.commercialUpdate.downloading"
+                        : "app.commercialUpdate.installing"
+                      : "app.commercialUpdate.downloadAndInstall",
+                  )}
             </Button>
             <Button
               type="button"

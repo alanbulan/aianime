@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -360,12 +359,29 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         avoid_instructions="flat",
         style_tag="LIVE",
     )
+    style_records = {custom_style.id: custom_style}
     monkeypatch.setattr(
-        StyleService, "list_all_styles", lambda **_: [custom_style.model_dump()]
+        StyleService,
+        "list_all_styles",
+        lambda **_: [style.model_dump() for style in style_records.values()],
     )
-    monkeypatch.setattr(StyleService, "get_style", lambda style_id, **_: custom_style)
+    monkeypatch.setattr(
+        StyleService,
+        "get_style",
+        lambda style_id, **_: style_records.get(style_id),
+    )
     monkeypatch.setattr(StyleService, "get_preset", lambda style_id: None)
-    monkeypatch.setattr(StyleService, "save_custom_style", lambda *_, **__: True)
+
+    def save_custom_style(style_id, config, **_):
+        style_records[style_id] = config
+        return True
+
+    monkeypatch.setattr(StyleService, "save_custom_style", save_custom_style)
+    monkeypatch.setattr(
+        StyleService,
+        "update_custom_style_preview",
+        lambda *_, **__: True,
+    )
     monkeypatch.setattr(StyleService, "delete_custom_style", lambda *_, **__: True)
 
     from ai_anime.modules.production.infrastructure.media_generation import style_analyzer
@@ -696,6 +712,15 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
         )
     )
     _assert_ok(
+        client.put(
+            "/api/v1/styles/fresh_style",
+            json={
+                "name": "新风格（已更新）",
+                "config": {"style_instructions": "updated cinematic"},
+            },
+        )
+    )
+    _assert_ok(
         client.delete("/api/v1/styles/fresh_style", params={"project": _PROJECT})
     )
     assert (
@@ -744,15 +769,15 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/tts/generate", json={}
         ).status_code
-        == 410
+        == 404
     )
     assert (
         client.post(
             f"/api/v1/projects/{_PROJECT}/tts/preview", json={"text": "hello"}
         ).status_code
-        == 410
+        == 404
     )
-    assert client.get(f"/api/v1/projects/{_PROJECT}/tts/voices").status_code == 410
+    assert client.get(f"/api/v1/projects/{_PROJECT}/tts/voices").status_code == 404
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate",
@@ -837,7 +862,7 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
     ]
 
 
-def test_m04_legacy_tts_routes_return_410_with_indextts2_hint(m04_client_factory):
+def test_m04_removed_tts_routes_are_not_registered(m04_client_factory):
     client, _backend, _project_dir = m04_client_factory("inline")
 
     responses = [
@@ -847,5 +872,4 @@ def test_m04_legacy_tts_routes_return_410_with_indextts2_hint(m04_client_factory
     ]
 
     for response in responses:
-        assert response.status_code == 410
-        assert "IndexTTS2" in json.dumps(response.json(), ensure_ascii=False)
+        assert response.status_code == 404

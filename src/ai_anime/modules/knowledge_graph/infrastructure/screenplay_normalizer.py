@@ -153,7 +153,7 @@ def _create_screenplay_normalizer_agent():
     )
 
     return Agent(
-        get_newapi_text_pydantic_model("SCREENPLAY_NORMALIZER_MODEL", "gemini-3.5-flash"),
+        get_newapi_text_pydantic_model(),
         system_prompt=SCREENPLAY_NORMALIZER_SYSTEM_PROMPT,
         model_settings=get_newapi_text_pydantic_model_settings(
             "SCREENPLAY_NORMALIZER_THINKING_LEVEL",

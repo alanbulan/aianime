@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { createRef, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -120,16 +121,16 @@ describe('Pano360ViewerNodeView', () => {
     controller.data.imageUrl = '/pano.png';
     render(<Pano360ViewerNodeView controller={controller} />);
 
-    fireEvent.click(screen.getByTitle('当前视角截图'));
-    fireEvent.click(screen.getByTitle('4 大视角截图'));
-    fireEvent.click(screen.getByTitle('12 大视角截图'));
+    fireEvent.click(getByUiTooltip('当前视角截图'));
+    fireEvent.click(getByUiTooltip('4 大视角截图'));
+    fireEvent.click(getByUiTooltip('12 大视角截图'));
     fireEvent.click(
-      screen.getByTitle('用作背景源(写入本 beat selected_background)'),
+      getByUiTooltip('用作背景源(写入本 beat selected_background)'),
     );
-    fireEvent.click(screen.getByTitle('缩小'));
-    fireEvent.click(screen.getByTitle('向左'));
-    fireEvent.click(screen.getByTitle('进入全屏'));
-    fireEvent.click(screen.getByTitle('收起控制面板'));
+    fireEvent.click(getByUiTooltip('缩小'));
+    fireEvent.click(getByUiTooltip('向左'));
+    fireEvent.click(getByUiTooltip('进入全屏'));
+    fireEvent.click(getByUiTooltip('收起控制面板'));
 
     expect(controller.snapCurrent).toHaveBeenCalledOnce();
     expect(controller.snap2x2).toHaveBeenCalledOnce();

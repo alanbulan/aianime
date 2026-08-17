@@ -8,15 +8,23 @@ class StubHermesPool:
         self.thread = object()
         self.calls = []
 
-    async def get_for_user(self, username, *, scope_kind, project_id):
-        self.calls.append(("get", username, scope_kind, project_id))
+    async def get_for_user(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.calls.append(("get", username, scope_kind, project_id, conversation_id))
         return self.thread
 
-    async def prewarm(self, username, *, scope_kind, project_id):
-        self.calls.append(("prewarm", username, scope_kind, project_id))
+    async def prewarm(self, username, *, scope_kind, project_id, conversation_id):
+        self.calls.append(
+            ("prewarm", username, scope_kind, project_id, conversation_id)
+        )
 
-    async def set_scope_for_user(self, username, *, scope_kind, project_id):
-        self.calls.append(("set_scope", username, scope_kind, project_id))
+    async def set_scope_for_user(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.calls.append(
+            ("set_scope", username, scope_kind, project_id, conversation_id)
+        )
         return True
 
     async def close_user(self, username):
@@ -50,8 +58,8 @@ async def test_local_hermes_runtime_delegates_worker_lifecycle():
     assert scope_updated is True
     assert closed is True
     assert pool.calls == [
-        ("get", "alice", "project", "project-a"),
-        ("prewarm", "alice", "project", "project-a"),
-        ("set_scope", "alice", "home", None),
+        ("get", "alice", "project", "project-a", "main"),
+        ("prewarm", "alice", "project", "project-a", "main"),
+        ("set_scope", "alice", "home", None, "main"),
         ("close", "alice"),
     ]

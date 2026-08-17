@@ -1,10 +1,11 @@
 // Copyright (c) 2026 AI anime
-import { AppWindow, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { BrandMark } from "@/components/brand";
 import { APP_VERSION } from "@/lib/app-version";
 import {
   openVersionUpdateDialog,
@@ -60,7 +61,7 @@ export function CommercialUpdateSettingsSection({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
-            <AppWindow className="size-5" aria-hidden />
+            <BrandMark className="size-7" />
           </span>
           <div className="min-w-0">
             <h3 className="text-base font-medium text-foreground">

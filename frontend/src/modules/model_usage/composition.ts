@@ -25,6 +25,7 @@ export const {
   clearCommercialModelCatalogCache,
   loadCommercialModelCatalog,
   useClearByok,
+  useDiscoverByokProviderModels,
   useCommercialModelAccessStatus,
   useCommercialModelCatalog,
   useCommercialModelDetails,

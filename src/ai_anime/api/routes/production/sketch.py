@@ -12,7 +12,6 @@ from ai_anime.modules.production.public import (
     AssignProjectSketchColorsCommand,
     CropCurrentSketchCommand,
     CurrentSketchMissing,
-    DetectProjectSketchMarkersCommand,
     DirectorControlSketchUnavailable,
     GenerateDirectorControlSketchCommand,
     GenerateMissingManualSketchesCommand,
@@ -21,19 +20,21 @@ from ai_anime.modules.production.public import (
     SaveSketchEditorCommand,
     SketchBeatMissing,
     SketchColorMarkersMissing,
+    SketchColorPersistenceFailed,
     SketchCropRejected,
     SketchEditorQuery,
     SketchEditorSaveRejected,
     SketchGenerationRejected,
     SketchEpisodeBeatsMissing,
-    SketchMarkerDetectionFailed,
-    SketchMarkerDetectionRejected,
+    ScheduleSketchMarkerDetectionCommand,
+    SketchCropSourceQuery,
     SketchPoseCandidatesMissing,
     director_control_sketch_use_cases,
     manual_sketch_regeneration_use_cases,
     production_image_settings_use_cases,
     sketch_editing_use_cases,
     sketch_generation_use_cases,
+    sketch_marker_detection_task_use_cases,
     sketch_marker_use_cases,
 )
 
@@ -106,6 +107,8 @@ async def assign_sketch_colors(
             "ok": False,
             "error": "No identity or global prop markers found in beats",
         }
+    except SketchColorPersistenceFailed as exc:
+        return {"ok": False, "error": str(exc)}
 
     return {"ok": True, "data": result.as_dict()}
 
@@ -116,19 +119,13 @@ async def detect_sketch_identities(
     episode_num: int,
     user: dict = Depends(get_api_user),
 ):
-    """Detect identity and prop color markers in episode sketches."""
+    """Queue identity and prop marker detection for episode sketches."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    try:
-        result = await sketch_marker_use_cases().detect(
-            resolved.ctx,
-            DetectProjectSketchMarkersCommand(episode_num=episode_num),
-        )
-    except SketchMarkerDetectionRejected as exc:
-        return {"ok": False, "error": str(exc)}
-    except SketchMarkerDetectionFailed as exc:
-        return {"ok": False, "error": f"AI detection failed: {exc}"}
-
-    return {"ok": True, "data": result.as_dict()}
+    scheduled = await sketch_marker_detection_task_use_cases().schedule(
+        resolved.ctx,
+        ScheduleSketchMarkerDetectionCommand(episode_num=episode_num),
+    )
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post(
@@ -162,6 +159,33 @@ async def director_control_to_sketch(
             "data": exc.status.data,
         }
     return {"ok": True, **scheduled.as_dict()}
+
+
+@router.get(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/crop-source"
+)
+async def get_sketch_crop_source(
+    project: str,
+    episode_num: int,
+    beat_num: int,
+    user: dict = Depends(get_api_user),
+):
+    """Return canonical sketch dimensions without invoking pose detection."""
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
+    try:
+        source = sketch_editing_use_cases().load_crop_source(
+            resolved.ctx,
+            SketchCropSourceQuery(
+                episode_num=episode_num,
+                beat_num=beat_num,
+            ),
+        )
+    except CurrentSketchMissing as exc:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": str(exc)},
+        )
+    return {"ok": True, "data": source.as_dict()}
 
 
 @router.get(

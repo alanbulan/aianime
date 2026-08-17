@@ -1,11 +1,44 @@
 // Copyright (c) 2026 AI anime
 import { normalizeMessage } from "@/modules/ai_assistant/domain/message";
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
+import {
+  buildToolMessage,
+  mergeToolMessageState,
+} from "@/modules/ai_assistant/domain/toolMessage";
+
+function historyEntryMessages(source: unknown): ChatMessage[] {
+  const message = normalizeMessage(source);
+  if (!message) return [];
+  if (!source || typeof source !== "object") return [message];
+  const uiEvents = (source as Record<string, unknown>).ui_events;
+  if (!Array.isArray(uiEvents) || uiEvents.length === 0) return [message];
+
+  const toolMessages: ChatMessage[] = [];
+  for (const event of uiEvents) {
+    if (!event || typeof event !== "object") continue;
+    const kind = String((event as Record<string, unknown>).type || "");
+    if (kind !== "tool.call" && kind !== "tool.result") continue;
+    const next = buildToolMessage(kind, event);
+    const existingIndex = next.toolCallId
+      ? toolMessages.findIndex((item) => item.toolCallId === next.toolCallId)
+      : -1;
+    if (existingIndex >= 0) {
+      toolMessages[existingIndex] = mergeToolMessageState(
+        toolMessages[existingIndex],
+        next,
+      );
+    } else {
+      toolMessages.push(next);
+    }
+  }
+
+  return message.role === "assistant"
+    ? [...toolMessages, message]
+    : [message, ...toolMessages];
+}
 
 export function normalizeHistory(messages: unknown[]): ChatMessage[] {
-  return messages
-    .map((message) => normalizeMessage(message))
-    .filter((message): message is ChatMessage => Boolean(message));
+  return messages.flatMap(historyEntryMessages);
 }
 
 function normalizedText(text: string): string {

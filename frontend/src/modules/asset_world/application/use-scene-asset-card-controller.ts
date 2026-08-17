@@ -236,7 +236,10 @@ export function createUseSceneAssetCardController(
 
     const handleGeneratePano = async (source: ScenePanoSource) => {
       try {
-        const response = await generatePano.mutateAsync({ source });
+        const response = await generatePano.mutateAsync({
+          source,
+          model: imageSourceSelection,
+        });
         if (isErrorDataResponse(response)) {
           toast.error(response.error);
           return;
@@ -331,6 +334,10 @@ export function createUseSceneAssetCardController(
         const result = await stageManifest.refetch();
         if (result.error) {
           toast.error(backendErrorToastMessage(result.error, t));
+          return;
+        }
+        if (result.data?.ok !== true) {
+          toast.error(result.data?.error ?? t("common.error"));
           return;
         }
         setStageDialogOpen(true);

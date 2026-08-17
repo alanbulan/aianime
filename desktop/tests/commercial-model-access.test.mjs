@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -8,8 +9,12 @@ import test from "node:test";
 import {
   EncryptedFileCommercialModelAccessStore,
   fetchByokModelCatalog,
+  fetchByokProviderModelIds,
 } from "../src/commercial-model-access.ts";
-import { CommercialModelProxy } from "../src/commercial-model-proxy.ts";
+import {
+  CommercialModelProxy,
+  modelRoutingSnapshot,
+} from "../src/commercial-model-proxy.ts";
 import {
   COMMERCIAL_CHANNELS,
   CommercialApiClient,
@@ -38,6 +43,23 @@ const passthroughSecureStorage = {
   encryptString: (value) => Buffer.from(value, "utf8"),
   decryptString: (value) => value.toString("utf8"),
 };
+
+function configureCloudProxy(proxy, assignments) {
+  proxy.configureRouting({
+    allowsCustomModels: false,
+    cloudModelAssignments: assignments.map(({ modelId, role }) => ({
+      modelId,
+      role,
+      priority: 100,
+      enabled: true,
+    })),
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [],
+    },
+  });
+}
 
 const user = { id: 1, username: "client" };
 const tenant = { id: 2, code: "customer-a", name: "Customer A" };
@@ -205,7 +227,11 @@ test("missing restored cloud session clears the local workspace session", async 
     },
     deviceIdentity: {},
     modelAccessStore: {
-      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+      load: async () => ({
+        schemaVersion: 4,
+        cloudModelAssignments: [],
+        byokProviders: [],
+      }),
     },
     deviceName: "DESKTOP-01",
     platform: "windows",
@@ -296,7 +322,11 @@ test("restored sessions hydrate the complete cloud model access once", async () 
       summary: async () => ({ publicKeyHash: "public-key-hash" }),
     },
     modelAccessStore: {
-      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+      load: async () => ({
+        schemaVersion: 4,
+        cloudModelAssignments: [],
+        byokProviders: [],
+      }),
     },
     deviceName: "DESKTOP-01",
     platform: "windows",
@@ -319,20 +349,40 @@ test("restored sessions hydrate the complete cloud model access once", async () 
   assert.equal(licenseCalls, 1);
   assert.equal(catalogCalls, 1);
   assert.deepEqual(synchronized.at(-1), [
-    { modelId: "DEMO_TEXT", role: "TEXT" },
-    { modelId: "DEMO_IMAGE", role: "IMAGE_GENERATION" },
-    { modelId: "DEMO_VIDEO", role: "VIDEO_TEXT_TO_VIDEO" },
+    { modelId: "DEMO_TEXT", role: "TEXT", priority: 100, enabled: true },
+    {
+      modelId: "DEMO_IMAGE",
+      role: "IMAGE_GENERATION",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "DEMO_VIDEO",
+      role: "VIDEO_TEXT_TO_VIDEO",
+      priority: 100,
+      enabled: true,
+    },
   ]);
 });
 
 test("standard authorization hides persisted BYOK details from the renderer", async () => {
   const handlers = new Map();
   const storedAccess = {
-    schemaVersion: 2,
-    mode: "byok",
-    byokBaseUrl: "https://byok.example/v1",
-    byokApiKey: "user-secret",
-    byokModelAssignments: [{ modelId: "user-text", role: "TEXT" }],
+    schemaVersion: 4,
+    cloudModelAssignments: [],
+    byokProviders: [
+      {
+        id: "provider-one",
+        name: "Provider One",
+        baseUrl: "https://byok.example/v1",
+        apiKey: "user-secret",
+        enabled: true,
+        priority: 10,
+        modelAssignments: [
+          { modelId: "user-text", role: "TEXT", priority: 10, enabled: true },
+        ],
+      },
+    ],
   };
   registerCommercialIpc({
     ipcMain: {
@@ -361,11 +411,21 @@ test("standard authorization hides persisted BYOK details from the renderer", as
     modelAccessStore: {
       load: async () => storedAccess,
       status: () => ({
-        mode: "byok",
+        mode: "mixed",
         byokConfigured: true,
-        byokBaseUrl: storedAccess.byokBaseUrl,
-        byokApiKeyPreview: "user...cret",
-        byokModelAssignments: storedAccess.byokModelAssignments,
+        cloudModelAssignments: [],
+        byokProviders: [
+          {
+            id: "provider-one",
+            name: "Provider One",
+            baseUrl: "https://byok.example/v1",
+            apiKeyPreview: "user...cret",
+            configured: true,
+            enabled: true,
+            priority: 10,
+            modelAssignments: storedAccess.byokProviders[0].modelAssignments,
+          },
+        ],
       }),
     },
     deviceName: "DESKTOP-01",
@@ -386,37 +446,38 @@ test("standard authorization hides persisted BYOK details from the renderer", as
   const status = await modelAccessStatus({ sender: { id: 1 } });
 
   assert.deepEqual(status, {
-    mode: "cloud",
+    mode: "mixed",
     byokConfigured: false,
-    byokBaseUrl: "",
-    byokApiKeyPreview: "",
-    byokModelAssignments: [],
+    byokProviders: [],
     cloudModelAssignments: [],
     allowsCustomModels: false,
     gatewayOrigin: "http://122.193.11.199:8889",
   });
 });
 
-test("Bootstrap exposes the selected BYOK catalog instead of cloud SKUs", async (t) => {
-  const originalFetch = globalThis.fetch;
-  const byokCalls = [];
-  globalThis.fetch = async (url, init) => {
-    byokCalls.push({ url: String(url), init });
-    return Response.json({ data: [{ id: "user-text-model" }] });
-  };
-  t.after(() => {
-    globalThis.fetch = originalFetch;
-  });
-
+test("Bootstrap merges configured BYOK models with cloud SKUs", async () => {
   const handlers = new Map();
   const synchronized = [];
   const access = {
-    schemaVersion: 2,
-    mode: "byok",
-    byokBaseUrl: "https://byok.example/v1",
-    byokApiKey: "user-secret",
-    byokModelAssignments: [
-      { modelId: "user-text-model", role: "TEXT" },
+    schemaVersion: 4,
+    cloudModelAssignments: [],
+    byokProviders: [
+      {
+        id: "provider-one",
+        name: "Provider One",
+        baseUrl: "https://byok.example/v1",
+        apiKey: "user-secret",
+        enabled: true,
+        priority: 20,
+        modelAssignments: [
+          {
+            modelId: "user-text-model",
+            role: "TEXT",
+            priority: 20,
+            enabled: true,
+          },
+        ],
+      },
     ],
   };
   registerCommercialIpc({
@@ -487,17 +548,18 @@ test("Bootstrap exposes the selected BYOK catalog instead of cloud SKUs", async 
   assert.equal(typeof bootstrap, "function");
   const result = await bootstrap({ sender: { id: 1 } }, {});
 
-  assert.equal(result.models.items.length, 1);
-  assert.equal(result.models.items[0].code, "user-text-model");
-  assert.equal(result.models.items[0].operation, "TEXT");
-  assert.equal(byokCalls.length, 1);
-  assert.equal(byokCalls[0].url, "https://byok.example/v1/models");
-  assert.equal(
-    new Headers(byokCalls[0].init.headers).get("Authorization"),
-    "Bearer user-secret",
+  assert.deepEqual(
+    result.models.items.map((item) => item.code),
+    ["cloud/text-standard", "user-text-model"],
   );
+  assert.equal(result.models.items[1].operation, "TEXT");
   assert.deepEqual(synchronized.at(-1).cloudModelAssignments, [
-    { modelId: "cloud/text-standard", role: "TEXT" },
+    {
+      modelId: "cloud/text-standard",
+      role: "TEXT",
+      priority: 100,
+      enabled: true,
+    },
   ]);
   assert.equal(synchronized.at(-1).allowsCustomModels, true);
 });
@@ -622,7 +684,11 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
       }),
     },
     modelAccessStore: {
-      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+      load: async () => ({
+        schemaVersion: 4,
+        cloudModelAssignments: [],
+        byokProviders: [],
+      }),
     },
     deviceName: "DESKTOP-01",
     platform: "windows",
@@ -713,7 +779,11 @@ test("video catalog synchronization sends only projected duration capabilities",
       summary: async () => ({ publicKeyHash: "public-key-hash" }),
     },
     modelAccessStore: {
-      load: async () => ({ schemaVersion: 2, mode: "cloud" }),
+      load: async () => ({
+        schemaVersion: 4,
+        cloudModelAssignments: [],
+        byokProviders: [],
+      }),
     },
     deviceName: "DESKTOP-01",
     platform: "windows",
@@ -736,9 +806,24 @@ test("video catalog synchronization sends only projected duration capabilities",
 
   assert.deepEqual(catalogDeviceIds, [deviceId, deviceId]);
   assert.deepEqual(synchronized.at(-1).cloudModelAssignments, [
-    { modelId: "cloud/text-standard", role: "TEXT" },
-    { modelId: "cloud/video-standard", role: "VIDEO_TEXT_TO_VIDEO" },
-    { modelId: "cloud/video-standard", role: "VIDEO_FIRST_LAST_FRAME" },
+    {
+      modelId: "cloud/text-standard",
+      role: "TEXT",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "cloud/video-standard",
+      role: "VIDEO_TEXT_TO_VIDEO",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "cloud/video-standard",
+      role: "VIDEO_FIRST_LAST_FRAME",
+      priority: 100,
+      enabled: true,
+    },
   ]);
   assert.deepEqual(synchronized.at(-1).modelCapabilities, [
     {
@@ -855,10 +940,18 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
   );
 
   const configured = await first.configureByok({
+    providerId: "provider-one",
+    name: "Provider One",
     baseUrl: "https://models.example.test/openai/",
     apiKey: "user-secret-key",
+    priority: 25,
     modelAssignments: [
-      { modelId: "image-model-a", role: "IMAGE_GENERATION" },
+      {
+        modelId: "image-model-a",
+        role: "IMAGE_GENERATION",
+        priority: 30,
+        enabled: true,
+      },
     ],
   });
   const second = new EncryptedFileCommercialModelAccessStore(
@@ -867,25 +960,45 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
   );
   const restored = await second.load();
 
-  assert.equal(configured.mode, "byok");
-  assert.equal(restored.byokBaseUrl, "https://models.example.test/openai/v1");
-  assert.equal(restored.byokApiKey, "user-secret-key");
-  assert.deepEqual(restored.byokModelAssignments, [
-    { modelId: "image-model-a", role: "IMAGE_GENERATION" },
+  assert.equal(configured.schemaVersion, 5);
+  assert.equal(restored.byokProviders[0].baseUrl, "https://models.example.test/openai/v1");
+  assert.equal(restored.byokProviders[0].apiKey, "user-secret-key");
+  assert.deepEqual(restored.byokProviders[0].modelAssignments, [
+    {
+      modelId: "image-model-a",
+      role: "IMAGE_GENERATION",
+      priority: 30,
+      enabled: true,
+    },
   ]);
   assert.deepEqual(second.status(restored), {
-    mode: "byok",
+    mode: "mixed",
     byokConfigured: true,
-    byokBaseUrl: "https://models.example.test/openai/v1",
-    byokApiKeyPreview: "user...-key",
     cloudModelAssignments: [],
-    byokModelAssignments: [
-      { modelId: "image-model-a", role: "IMAGE_GENERATION" },
+    byokProviders: [
+      {
+        id: "provider-one",
+        name: "Provider One",
+        protocol: "OPENAI_COMPATIBLE",
+        baseUrl: "https://models.example.test/openai/v1",
+        apiKeyPreview: "user...-key",
+        configured: true,
+        enabled: true,
+        priority: 25,
+        modelAssignments: [
+          {
+            modelId: "image-model-a",
+            role: "IMAGE_GENERATION",
+            priority: 30,
+            enabled: true,
+          },
+        ],
+      },
     ],
   });
 });
 
-test("cloud model selections survive source switches and clearing BYOK", async (t) => {
+test("cloud model selections survive configuring and clearing BYOK providers", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const filePath = join(directory, "model-access.bin");
@@ -893,18 +1006,23 @@ test("cloud model selections survive source switches and clearing BYOK", async (
     filePath,
     passthroughSecureStorage,
   );
-  const cloudAssignments = [{ modelId: "cloud-text", role: "TEXT" }];
+  const cloudAssignments = [
+    { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
+  ];
 
   await store.selectCloud(cloudAssignments);
   await store.configureByok({
+    providerId: "provider-one",
     baseUrl: "https://models.example.test/v1",
     apiKey: "byok-secret",
-    modelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+    modelAssignments: [
+      { modelId: "byok-text", role: "TEXT", priority: 20, enabled: true },
+    ],
   });
-  const cleared = await store.clearByok();
+  const cleared = await store.clearByok("provider-one");
 
-  assert.equal(cleared.mode, "cloud");
-  assert.equal(cleared.byokApiKey, "");
+  assert.equal(cleared.schemaVersion, 5);
+  assert.deepEqual(cleared.byokProviders, []);
   assert.deepEqual(cleared.cloudModelAssignments, cloudAssignments);
 });
 
@@ -925,20 +1043,26 @@ test("BYOK Base URL rejects embedded credentials and query parameters", async (t
   );
 });
 
-test("BYOK model catalog calls only the user endpoint with the user key", async () => {
+test("BYOK provider model list calls only the selected endpoint with its key", async () => {
   const calls = [];
-  const catalog = await fetchByokModelCatalog(
+  const result = await fetchByokProviderModelIds(
     {
-      schemaVersion: 2,
-      mode: "byok",
-      byokBaseUrl: "https://models.example.test/openai/v1",
-      byokApiKey: "user-secret-key",
-      byokModelAssignments: [
-        { modelId: "image-model-a", role: "IMAGE_GENERATION" },
-        { modelId: "image-model-a", role: "IMAGE_EDIT" },
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "provider-one",
+          name: "Provider One",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "https://models.example.test/openai/v1",
+          apiKey: "user-secret-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [],
+        },
       ],
     },
-    "IMAGE",
+    "provider-one",
     async (url, init) => {
       calls.push({ url: String(url), init });
       return Response.json({
@@ -958,28 +1082,64 @@ test("BYOK model catalog calls only the user endpoint with the user key", async 
     "Bearer user-secret-key",
   );
   assert.deepEqual(
-    catalog.items.map((item) => item.code),
-    ["image-model-a"],
+    result.models,
+    ["image-model-a", "image-model-b"],
   );
-  assert.equal(catalog.items[0].operation, "IMAGE");
-  assert.deepEqual(JSON.parse(catalog.items[0].capabilityJson), {
-    supportedModes: ["IMAGE_EDIT", "TEXT_TO_IMAGE"],
-  });
-  assert.match(catalog.catalogVersion, /^byok-[0-9a-f]{16}$/);
-  assert.equal(JSON.stringify(catalog).includes("user-secret-key"), false);
+  assert.match(result.catalogVersion, /^byok-[0-9a-f]{16}$/);
+  assert.equal(JSON.stringify(result).includes("user-secret-key"), false);
+});
+
+test("BYOK model discovery accepts an unsaved provider form without persisting it", async () => {
+  const access = {
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [],
+  };
+  const calls = [];
+
+  const result = await fetchByokProviderModelIds(
+    access,
+    {
+      providerId: "provider-draft",
+      name: "Draft Provider",
+      protocol: "OPENAI_COMPATIBLE",
+      baseUrl: "https://draft.example.test",
+      apiKey: "draft-secret",
+    },
+    async (url, init) => {
+      calls.push({ url: String(url), headers: new Headers(init.headers) });
+      return Response.json({ data: [{ id: "draft-model" }] });
+    },
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, "https://draft.example.test/v1/models");
+  assert.equal(calls[0].headers.get("Authorization"), "Bearer draft-secret");
+  assert.deepEqual(result.models, ["draft-model"]);
+  assert.equal(result.providerId, "provider-draft");
+  assert.deepEqual(access.byokProviders, []);
 });
 
 test("BYOK model catalog supports a keyless standard endpoint", async () => {
   let authorization = "not-called";
-  const catalog = await fetchByokModelCatalog(
+  const result = await fetchByokProviderModelIds(
     {
-      schemaVersion: 2,
-      mode: "byok",
-      byokBaseUrl: "http://127.0.0.1:11434/v1",
-      byokApiKey: "",
-      byokModelAssignments: [{ modelId: "local-model", role: "TEXT" }],
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "local",
+          name: "Local",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "http://127.0.0.1:11434/v1",
+          apiKey: "",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [],
+        },
+      ],
     },
-    "TEXT",
+    "local",
     async (_url, init) => {
       authorization = new Headers(init.headers).get("Authorization");
       return Response.json({ data: [{ id: "local-model" }] });
@@ -987,23 +1147,122 @@ test("BYOK model catalog supports a keyless standard endpoint", async () => {
   );
 
   assert.equal(authorization, null);
-  assert.equal(catalog.items[0].code, "local-model");
+  assert.deepEqual(result.models, ["local-model"]);
+});
+
+test("BYOK model discovery uses native Anthropic and Gemini protocols", async () => {
+  const calls = [];
+  const access = {
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [
+      {
+        id: "anthropic",
+        name: "Anthropic",
+        protocol: "ANTHROPIC",
+        baseUrl: "https://api.anthropic.test/v1",
+        apiKey: "anthropic-key",
+        enabled: true,
+        priority: 10,
+        modelAssignments: [],
+      },
+      {
+        id: "gemini",
+        name: "Gemini",
+        protocol: "GEMINI",
+        baseUrl: "https://generativelanguage.test/v1beta",
+        apiKey: "gemini-key",
+        enabled: true,
+        priority: 20,
+        modelAssignments: [],
+      },
+    ],
+  };
+  const fetchImpl = async (url, init) => {
+    calls.push({ url: String(url), headers: new Headers(init.headers) });
+    return String(url).includes("anthropic")
+      ? Response.json({ data: [{ id: "claude-sonnet" }] })
+      : Response.json({ models: [{ name: "models/gemini-2.5-pro" }] });
+  };
+
+  const anthropic = await fetchByokProviderModelIds(
+    access,
+    "anthropic",
+    fetchImpl,
+  );
+  const gemini = await fetchByokProviderModelIds(access, "gemini", fetchImpl);
+
+  assert.deepEqual(anthropic.models, ["claude-sonnet"]);
+  assert.deepEqual(gemini.models, ["gemini-2.5-pro"]);
+  assert.equal(calls[0].url, "https://api.anthropic.test/v1/models");
+  assert.equal(calls[0].headers.get("X-Api-Key"), "anthropic-key");
+  assert.equal(calls[0].headers.get("Anthropic-Version"), "2023-06-01");
+  assert.equal(
+    calls[1].url,
+    "https://generativelanguage.test/v1beta/models?pageSize=1000",
+  );
+  assert.equal(calls[1].headers.get("X-Goog-Api-Key"), "gemini-key");
+});
+
+test("native BYOK protocols reject non-text role assignments", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = new EncryptedFileCommercialModelAccessStore(
+    join(directory, "model-access.bin"),
+    passthroughSecureStorage,
+  );
+
+  await assert.rejects(
+    store.configureByok({
+      providerId: "anthropic",
+      protocol: "ANTHROPIC",
+      baseUrl: "https://api.anthropic.com",
+      apiKey: "secret",
+      modelAssignments: [
+        {
+          modelId: "claude-sonnet",
+          role: "IMAGE_GENERATION",
+          priority: 10,
+          enabled: true,
+        },
+      ],
+    }),
+    /仅支持文本模型用途/,
+  );
 });
 
 test("BYOK video roles expose requested modes without conflating first frame and image reference", async () => {
   const catalog = await fetchByokModelCatalog(
     {
-      schemaVersion: 2,
-      mode: "byok",
-      byokBaseUrl: "https://models.example.test/v1",
-      byokApiKey: "key",
-      byokModelAssignments: [
-        { modelId: "video-model", role: "VIDEO_IMAGE_TO_VIDEO" },
-        { modelId: "video-model", role: "VIDEO_IMAGE_REFERENCE" },
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "provider-one",
+          name: "Provider One",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "https://models.example.test/v1",
+          apiKey: "key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "video-model",
+              role: "VIDEO_IMAGE_TO_VIDEO",
+              priority: 10,
+              enabled: true,
+            },
+            {
+              modelId: "video-model",
+              role: "VIDEO_IMAGE_REFERENCE",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+        },
       ],
     },
     "VIDEO",
-    async () => Response.json({ data: [{ id: "video-model" }] }),
   );
 
   assert.deepEqual(JSON.parse(catalog.items[0].capabilityJson), {
@@ -1015,23 +1274,618 @@ test("BYOK catalog operation filters assignments instead of relabeling models", 
   let called = false;
   const catalog = await fetchByokModelCatalog(
     {
-      schemaVersion: 2,
-      mode: "byok",
-      byokBaseUrl: "https://models.example.test/v1",
-      byokApiKey: "secret",
-      byokModelAssignments: [
-        { modelId: "image-only", role: "IMAGE_GENERATION" },
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "provider-one",
+          name: "Provider One",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "https://models.example.test/v1",
+          apiKey: "secret",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "image-only",
+              role: "IMAGE_GENERATION",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+        },
       ],
     },
     "VIDEO",
-    async () => {
-      called = true;
-      return Response.json({ data: [{ id: "image-only" }] });
-    },
   );
 
   assert.equal(called, false);
   assert.deepEqual(catalog.items, []);
+});
+
+test("global model priority outranks the model id carried by a task", async (t) => {
+  const providerCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    providerCalls.push(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.end(JSON.stringify({ choices: [{ message: { content: "BYOK" } }] }));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  const cloudCalls = [];
+  const routing = {
+    allowsCustomModels: true,
+    cloudModelAssignments: [
+      { modelId: "cloud-text", role: "TEXT", priority: 100, enabled: true },
+    ],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "byok-first",
+          name: "BYOK First",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `http://127.0.0.1:${address.port}/v1`,
+          apiKey: "byok-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            { modelId: "byok-text", role: "TEXT", priority: 1, enabled: true },
+          ],
+        },
+      ],
+    },
+  };
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        cloudCalls.push(input);
+        return Response.json({ choices: [{ message: { content: "cloud" } }] });
+      },
+    },
+    {
+      async summary() {
+        return {
+          schemaVersion: 1,
+          publicKey: "public-key",
+          publicKeyHash: "device-public-key-hash",
+        };
+      },
+    },
+  );
+  proxy.configureRouting(routing);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "cloud-text", messages: [] }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-source"), "byok");
+  assert.equal(response.headers.get("x-ai-anime-route-model"), "byok-text");
+  assert.equal(response.headers.get("x-ai-anime-route-role"), "TEXT");
+  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "1");
+  assert.equal((await response.json()).choices[0].message.content, "BYOK");
+  assert.deepEqual(providerCalls.map((call) => call.model), ["byok-text"]);
+  assert.equal(cloudCalls.length, 0);
+  assert.deepEqual(
+    modelRoutingSnapshot(routing).filter((item) => item.role === "TEXT"),
+    [
+      { modelId: "byok-text", role: "TEXT", priority: 1, enabled: true },
+      { modelId: "cloud-text", role: "TEXT", priority: 2, enabled: true },
+    ],
+  );
+});
+
+test("BYOK authentication errors stay visible and never spend the cloud fallback", async (t) => {
+  const providerServer = createServer((_request, response) => {
+    response.statusCode = 401;
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.end(JSON.stringify({ error: { message: "invalid BYOK key" } }));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  const cloudCalls = [];
+  const audit = [];
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        cloudCalls.push(input);
+        return Response.json({ choices: [{ message: { content: "cloud" } }] });
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+    (entry) => audit.push(entry),
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [
+      { modelId: "cloud-text", role: "TEXT", priority: 100, enabled: true },
+    ],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "byok-first",
+          name: "BYOK First",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `http://127.0.0.1:${address.port}/v1`,
+          apiKey: "invalid-key",
+          enabled: true,
+          priority: 100,
+          modelAssignments: [
+            { modelId: "byok-text", role: "TEXT", priority: 1, enabled: true },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "cloud-text", messages: [] }),
+  });
+
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get("x-ai-anime-route-source"), "byok");
+  assert.equal(cloudCalls.length, 0);
+  assert.ok(
+    audit.some(
+      (entry) =>
+        entry.event === "route_attempt" &&
+        entry.source === "byok" &&
+        entry.status === 401 &&
+        entry.outcome === "rejected",
+    ),
+  );
+});
+
+test("mixed model proxy rejects calls that cannot enter a configured role", async (t) => {
+  const proxy = new CommercialModelProxy(
+    { async modelRequest() { return Response.json({}); } },
+    { async summary() { return { publicKeyHash: "hash" }; } },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: false,
+    cloudModelAssignments: [],
+    access: { schemaVersion: 5, cloudModelAssignments: [], byokProviders: [] },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const missingRoute = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "unconfigured", messages: [] }),
+  });
+  assert.equal(missingRoute.status, 422);
+  assert.match((await missingRoute.json()).error.message, /没有可用路由/);
+
+  const unknownRole = await fetch(`${proxy.baseUrl}/unknown-model-path`, {
+    headers: { Authorization: `Bearer ${proxy.token}` },
+  });
+  assert.equal(unknownRole.status, 422);
+  assert.match((await unknownRole.json()).error.message, /拒绝绕过统一路由/);
+});
+
+test("mixed model proxy retries each route before falling back by priority", async (t) => {
+  const providerCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    providerCalls.push({
+      authorization: request.headers.authorization,
+      idempotencyKey: request.headers["idempotency-key"],
+      model: payload.model,
+      path: request.url,
+    });
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    if (payload.model === "provider-one-text") {
+      response.statusCode = 429;
+      response.end(JSON.stringify({ error: { message: "provider one busy" } }));
+      return;
+    }
+    response.end(
+      JSON.stringify({ choices: [{ message: { content: "provider two ok" } }] }),
+    );
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+  const providerBaseUrl = `http://127.0.0.1:${address.port}/v1`;
+
+  const cloudCalls = [];
+  const client = {
+    async modelRequest(input) {
+      cloudCalls.push({
+        body: JSON.parse(String(input.body)),
+        idempotencyKey: new Headers(input.headers).get("Idempotency-Key"),
+      });
+      return Response.json(
+        { error: { message: "cloud busy" } },
+        { status: 503 },
+      );
+    },
+  };
+  const device = {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  };
+  const proxy = new CommercialModelProxy(client, device);
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [
+      { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
+    ],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "provider-one",
+          name: "Provider One",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: providerBaseUrl,
+          apiKey: "provider-one-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "provider-one-text",
+              role: "TEXT",
+              priority: 20,
+              enabled: true,
+            },
+          ],
+        },
+        {
+          id: "provider-two",
+          name: "Provider Two",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: providerBaseUrl,
+          apiKey: "provider-two-key",
+          enabled: true,
+          priority: 20,
+          modelAssignments: [
+            {
+              modelId: "provider-two-text",
+              role: "TEXT",
+              priority: 30,
+              enabled: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "TEXT",
+    },
+    body: JSON.stringify({ model: "router-placeholder", messages: [] }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "7");
+  assert.equal((await response.json()).choices[0].message.content, "provider two ok");
+  assert.deepEqual(cloudCalls.map((call) => call.body.model), [
+    "cloud-text",
+    "cloud-text",
+    "cloud-text",
+  ]);
+  const idempotencyKeys = [
+    ...cloudCalls.map((call) => call.idempotencyKey),
+    ...providerCalls.map((call) => call.idempotencyKey),
+  ];
+  assert.match(idempotencyKeys[0], /^[0-9a-f-]{36}$/);
+  assert.equal(new Set(idempotencyKeys).size, 1);
+  assert.deepEqual(providerCalls.map(({ idempotencyKey: _, ...call }) => call), [
+    {
+      authorization: "Bearer provider-one-key",
+      model: "provider-one-text",
+      path: "/v1/chat/completions",
+    },
+    {
+      authorization: "Bearer provider-one-key",
+      model: "provider-one-text",
+      path: "/v1/chat/completions",
+    },
+    {
+      authorization: "Bearer provider-one-key",
+      model: "provider-one-text",
+      path: "/v1/chat/completions",
+    },
+    {
+      authorization: "Bearer provider-two-key",
+      model: "provider-two-text",
+      path: "/v1/chat/completions",
+    },
+  ]);
+});
+
+test("Anthropic BYOK is called directly and translated to OpenAI chat format", async (t) => {
+  const calls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    calls.push({
+      path: request.url,
+      apiKey: request.headers["x-api-key"],
+      version: request.headers["anthropic-version"],
+      payload,
+    });
+    if (payload.stream) {
+      response.setHeader("Content-Type", "text/event-stream");
+      response.end(
+        [
+          'event: message_start\ndata: {"type":"message_start","message":{"id":"msg-stream","model":"claude-sonnet"}}',
+          'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"流式成功"}}',
+          'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}',
+          'event: message_stop\ndata: {"type":"message_stop"}',
+          "",
+        ].join("\n\n"),
+      );
+      return;
+    }
+    response.setHeader("Content-Type", "application/json");
+    response.end(
+      JSON.stringify({
+        id: "msg-1",
+        model: "claude-sonnet",
+        stop_reason: "end_turn",
+        content: [{ type: "text", text: "Anthropic 成功" }],
+        usage: { input_tokens: 7, output_tokens: 3 },
+      }),
+    );
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+  const proxy = new CommercialModelProxy(
+    { async modelRequest() { throw new Error("cloud must not be called"); } },
+    {
+      async summary() {
+        return { schemaVersion: 1, publicKey: "key", publicKeyHash: "hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "anthropic",
+          name: "Anthropic",
+          protocol: "ANTHROPIC",
+          baseUrl: `http://127.0.0.1:${address.port}/v1`,
+          apiKey: "anthropic-secret",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            { modelId: "claude-sonnet", role: "TEXT", priority: 10, enabled: true },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const request = (stream) =>
+    fetch(`${proxy.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${proxy.token}`,
+        "Content-Type": "application/json",
+        "X-AI-Anime-Model-Role": "TEXT",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet",
+        stream,
+        max_tokens: 512,
+        messages: [
+          { role: "system", content: "系统提示" },
+          { role: "user", content: "你好" },
+        ],
+      }),
+    });
+  const response = await request(false);
+  const payload = await response.json();
+  assert.equal(payload.choices[0].message.content, "Anthropic 成功");
+  assert.equal(payload.usage.total_tokens, 10);
+  assert.equal(calls[0].path, "/v1/messages");
+  assert.equal(calls[0].apiKey, "anthropic-secret");
+  assert.equal(calls[0].version, "2023-06-01");
+  assert.equal(calls[0].payload.model, "claude-sonnet");
+  assert.equal(calls[0].payload.system, "系统提示");
+  assert.deepEqual(calls[0].payload.messages, [
+    { role: "user", content: [{ type: "text", text: "你好" }] },
+  ]);
+
+  const streamResponse = await request(true);
+  const streamText = await streamResponse.text();
+  assert.equal(streamResponse.headers.get("content-type"), "text/event-stream; charset=utf-8");
+  assert.match(streamText, /流式成功/);
+  assert.match(streamText, /chat\.completion\.chunk/);
+  assert.match(streamText, /data: \[DONE\]/);
+});
+
+test("Gemini BYOK is called directly and translated to OpenAI chat format", async (t) => {
+  const calls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    calls.push({
+      path: request.url,
+      apiKey: request.headers["x-goog-api-key"],
+      payload,
+    });
+    response.setHeader("Content-Type", "application/json");
+    response.end(
+      JSON.stringify({
+        candidates: [
+          {
+            content: { parts: [{ text: "Gemini 成功" }], role: "model" },
+            finishReason: "STOP",
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 4,
+          candidatesTokenCount: 2,
+          totalTokenCount: 6,
+        },
+      }),
+    );
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+  const proxy = new CommercialModelProxy(
+    { async modelRequest() { throw new Error("cloud must not be called"); } },
+    {
+      async summary() {
+        return { schemaVersion: 1, publicKey: "key", publicKeyHash: "hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "gemini",
+          name: "Gemini",
+          protocol: "GEMINI",
+          baseUrl: `http://127.0.0.1:${address.port}/v1beta`,
+          apiKey: "gemini-secret",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            { modelId: "gemini-2.5-pro", role: "TEXT", priority: 10, enabled: true },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "TEXT",
+    },
+    body: JSON.stringify({
+      model: "gemini-2.5-pro",
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: "系统提示" },
+        { role: "user", content: "你好" },
+      ],
+    }),
+  });
+  const payload = await response.json();
+  assert.equal(payload.choices[0].message.content, "Gemini 成功");
+  assert.equal(payload.usage.total_tokens, 6);
+  assert.equal(
+    calls[0].path,
+    "/v1beta/models/gemini-2.5-pro:generateContent",
+  );
+  assert.equal(calls[0].apiKey, "gemini-secret");
+  assert.deepEqual(calls[0].payload.systemInstruction, {
+    parts: [{ text: "系统提示" }],
+  });
+  assert.equal(
+    calls[0].payload.generationConfig.responseMimeType,
+    "application/json",
+  );
+  assert.deepEqual(calls[0].payload.contents, [
+    { role: "user", parts: [{ text: "你好" }] },
+  ]);
 });
 
 test("local model proxy authenticates callers and strips credential authority", async (t) => {
@@ -1052,6 +1906,9 @@ test("local model proxy authenticates callers and strips credential authority", 
     },
   };
   const proxy = new CommercialModelProxy(client, device);
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-text-standard", role: "TEXT" },
+  ]);
   await proxy.start();
   t.after(() => proxy.stop());
 
@@ -1135,6 +1992,9 @@ test("local model proxy does not reuse an upstream length after fetch decodes th
     },
   };
   const proxy = new CommercialModelProxy(client, device);
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-text-standard", role: "TEXT" },
+  ]);
   await proxy.start();
   t.after(() => proxy.stop());
 
@@ -1181,6 +2041,11 @@ test("local model proxy forwards multipart, Anthropic, and Range protocol data",
     },
   };
   const proxy = new CommercialModelProxy(client, device);
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-image-standard", role: "IMAGE_EDIT" },
+    { modelId: "cloud-text-standard", role: "TEXT" },
+    { modelId: "cloud-video-standard", role: "VIDEO_TEXT_TO_VIDEO" },
+  ]);
   await proxy.start();
   t.after(() => proxy.stop());
 
@@ -1194,11 +2059,11 @@ test("local model proxy forwards multipart, Anthropic, and Range protocol data",
     body: imageEdit,
   });
   assert.equal(multipartResponse.status, 200);
-  assert.equal(Buffer.isBuffer(calls[0].body), true);
-  assert.match(
-    new Headers(calls[0].headers).get("Content-Type"),
-    /^multipart\/form-data; boundary=/,
-  );
+  assert.equal(calls[0].body instanceof FormData, true);
+  assert.equal(calls[0].body.get("model"), "cloud-image-standard");
+  assert.equal(calls[0].body.get("prompt"), "edit");
+  assert.equal(calls[0].body.get("image") instanceof Blob, true);
+  assert.equal(new Headers(calls[0].headers).get("Content-Type"), null);
 
   const anthropicResponse = await fetch(`${proxy.baseUrl}/messages`, {
     method: "POST",
@@ -1255,6 +2120,9 @@ test("local model proxy rejects HTML returned by the video content endpoint", as
     },
   };
   const proxy = new CommercialModelProxy(client, device);
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-video-standard", role: "VIDEO_TEXT_TO_VIDEO" },
+  ]);
   await proxy.start();
   t.after(() => proxy.stop());
 
@@ -1297,6 +2165,9 @@ test("local model proxy aborts an upstream stream when the local client disconne
     },
   };
   const proxy = new CommercialModelProxy(client, device);
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-text-standard", role: "TEXT" },
+  ]);
   await proxy.start();
   t.after(() => proxy.stop());
 

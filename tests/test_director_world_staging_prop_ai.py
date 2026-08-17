@@ -1,6 +1,20 @@
 from __future__ import annotations
 
+import pytest
+
 from ai_anime.modules.asset_world.infrastructure.director_world import staging_prop_ai
+from ai_anime.modules.model_usage.public import configure_model_access
+
+
+@pytest.fixture(autouse=True)
+def _text_route() -> None:
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[{"modelId": "router-text", "role": "TEXT"}],
+    )
+    yield
+    configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 def test_generate_ai_staging_prop_uses_director_world_shape_hints(monkeypatch) -> None:
@@ -20,10 +34,8 @@ def test_generate_ai_staging_prop_uses_director_world_shape_hints(monkeypatch) -
         }
 
     monkeypatch.setattr(staging_prop_ai, "run_staging_prop_agent", fake_run_staging_prop_agent)
-
     result = staging_prop_ai.generate_ai_staging_prop(
         {
-            "model": "test-model",
             "scene_id": "面馆",
             "user_hint": "让男青年骑一匹马",
             "crosshair_target": {"position": [1, 0, 2]},
@@ -31,10 +43,10 @@ def test_generate_ai_staging_prop_uses_director_world_shape_hints(monkeypatch) -
     )
 
     assert result["ok"] is True
-    assert result["model"] == "test-model"
+    assert result["model"] == "router-text"
     assert result["prop"]["shape_hint"] == "quadruped_mount"
     assert result["prop"]["attachment_points"][0]["kind"] == "mount"
-    assert captured["model"] == "test-model"
+    assert "model" not in captured
     assert "让男青年骑一匹马" in captured["task"]
 
 
@@ -43,7 +55,6 @@ def test_generate_ai_staging_prop_falls_back_to_shape_hint_inference(monkeypatch
         return {"name": "一匹马"}
 
     monkeypatch.setattr(staging_prop_ai, "run_staging_prop_agent", fake_run_staging_prop_agent)
-
     result = staging_prop_ai.generate_ai_staging_prop(
         {"user_hint": "让他骑马", "crosshair_target": {}}
     )
@@ -51,11 +62,3 @@ def test_generate_ai_staging_prop_falls_back_to_shape_hint_inference(monkeypatch
     assert result["prop"]["semantic_label"] == "horse"
     assert result["prop"]["shape_hint"] == "quadruped_mount"
     assert result["prop"]["relation_intent"] == "mount_actor"
-
-
-def test_resolve_model_defaults_to_staging_prop_dc_alias(monkeypatch) -> None:
-    monkeypatch.delenv("STAGING_PROP_MODEL", raising=False)
-
-    model = staging_prop_ai.resolve_model({})
-
-    assert model == "ai-anime-staging-prop-planner-LLM"

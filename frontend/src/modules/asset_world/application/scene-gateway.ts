@@ -145,6 +145,7 @@ export interface SceneGateway {
     project: string,
     name: string,
     source: ScenePanoSource,
+    model?: string,
   ): Promise<AssetTaskResponse | AssetErrorResponse>;
   scheduleStagePly(
     project: string,

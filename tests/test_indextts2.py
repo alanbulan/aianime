@@ -11,9 +11,15 @@ def _configured_model_access(monkeypatch):
 
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "newapi-test-key")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://newapi.test/v1")
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "index-tts-2", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
     yield
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 class _FakeResponse:
@@ -248,7 +254,7 @@ async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_indextts2_supports_keyless_byok(monkeypatch, tmp_path):
+async def test_indextts2_routes_provider_through_desktop_proxy(monkeypatch, tmp_path):
     import httpx
     import ai_anime.modules.production.infrastructure.media_generation.indextts2 as indextts2
 
@@ -265,9 +271,7 @@ async def test_indextts2_supports_keyless_byok(monkeypatch, tmp_path):
 
     configure_model_access(
         allows_custom_models=True,
-        mode="byok",
-        byok_base_url="http://127.0.0.1:11434/v1",
-        byok_api_key="",
+        mode="mixed",
         model_assignments=[
             {"modelId": "local-index-tts", "role": "AUDIO_VOICE_CLONE"},
         ],
@@ -288,5 +292,5 @@ async def test_indextts2_supports_keyless_byok(monkeypatch, tmp_path):
     )
 
     assert result.success is True
-    assert _FakeAsyncClient.calls[0][1] == "http://127.0.0.1:11434/v1/audio/speech"
-    assert "Authorization" not in _FakeAsyncClient.calls[0][2]
+    assert _FakeAsyncClient.calls[0][1] == "http://newapi.test/v1/audio/speech"
+    assert _FakeAsyncClient.calls[0][2]["Authorization"] == "Bearer newapi-test-key"

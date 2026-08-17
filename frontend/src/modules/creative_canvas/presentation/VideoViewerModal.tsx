@@ -150,7 +150,7 @@ export function VideoViewerModal({
           type="button"
           className={`pointer-events-auto ${MEDIA_VIEWER_CLOSE_BUTTON_CLASS}`}
           onClick={onClose}
-          title={t('common.close', '关闭')}
+          data-ui-tooltip={t('common.close', '关闭')}
         >
           <X className={MEDIA_VIEWER_CLOSE_ICON_CLASS} />
         </button>

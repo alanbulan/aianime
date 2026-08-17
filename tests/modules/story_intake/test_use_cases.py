@@ -63,23 +63,19 @@ class FakeStoryDocuments:
 
 class FakeProjectSettings:
     def __init__(self) -> None:
-        self.calls: list[dict[str, str | None]] = []
+        self.calls: list[dict[str, str]] = []
 
     def set_ingestion_configuration(
         self,
         username,
         project_name,
         *,
-        text_model,
-        embedding_model,
         spine_template,
     ):
         self.calls.append(
             {
                 "username": username,
                 "project_name": project_name,
-                "text_model": text_model,
-                "embedding_model": embedding_model,
                 "spine_template": spine_template,
             }
         )
@@ -146,8 +142,6 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         context,
         StartIngestionCommand(
             filename="novel.txt",
-            text_model="cloud-text-standard",
-            embedding_model="cloud-embedding-standard",
             rebuild=True,
             spine_template="narrated",
         ),
@@ -157,8 +151,6 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         {
             "username": "alice",
             "project_name": "demo",
-            "text_model": "cloud-text-standard",
-            "embedding_model": "cloud-embedding-standard",
             "spine_template": "narrated",
         }
     ]
@@ -167,10 +159,6 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
     assert task_context is context
     assert task.backend_payload() == {
         "novel_path": str(tmp_path / "uploads" / "novel.txt"),
-        "models": {
-            "text": "cloud-text-standard",
-            "embedding": "cloud-embedding-standard",
-        },
         "config": {"rebuild": True, "spine_template": "narrated"},
         "billing": {"billable_chars": 12, "billing_quantity": 12},
     }
@@ -201,8 +189,6 @@ async def test_start_ingestion_rejects_legacy_document_over_import_limit(tmp_pat
             _scope(tmp_path),
             StartIngestionCommand(
                 filename="novel.txt",
-                text_model="cloud-text-standard",
-                embedding_model="cloud-embedding-standard",
             ),
         )
 

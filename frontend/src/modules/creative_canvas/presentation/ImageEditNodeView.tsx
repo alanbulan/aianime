@@ -35,6 +35,13 @@ import { ReferenceDetachButton } from './ReferenceDetachButton';
 import { ReferenceTextChip } from './ReferenceTextChip';
 import { resolveImageDisplayUrl } from '../domain/imageData';
 import { UiButton } from '@/components/ui';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 function PromptWithHighlights({
   prompt,
@@ -180,7 +187,7 @@ export function ImageEditNodeView({
                   event.stopPropagation();
                   controller.focusPrompt();
                 }}
-                title="从素材库拖入图片，或从图片节点点击 AI 改图自动连接"
+                data-ui-tooltip="从素材库拖入图片，或从图片节点点击 AI 改图自动连接"
               >
                 <UploadCloud className="h-4 w-4" />
                 连接参考图
@@ -225,7 +232,7 @@ export function ImageEditNodeView({
               event.stopPropagation();
               controller.focusPrompt();
             }}
-            title="聚焦 prompt"
+            data-ui-tooltip="聚焦 prompt"
           >
             <Maximize2 className="h-4 w-4" />
           </button>
@@ -356,7 +363,7 @@ export function ImageEditNodeView({
                 event.stopPropagation();
                 controller.openAssetLibrary();
               }}
-              title="从资产库选择参考图（人物 / 场景 / 道具）"
+              data-ui-tooltip="从资产库选择参考图（人物 / 场景 / 道具）"
             >
               资产库
             </button>
@@ -380,7 +387,7 @@ export function ImageEditNodeView({
                   event.stopPropagation();
                   controller.insertImageReference(index);
                 }}
-                title={`插入 ${item.label}`}
+                data-ui-tooltip={`插入 ${item.label}`}
               >
                 <CanvasNodeImage
                   src={item.displayUrl}
@@ -560,21 +567,34 @@ function InlineCapabilityParamControl({
 }) {
   if (param.type === 'enum') {
     return (
-      <label className="nodrag block min-w-0 text-[10px] text-text-muted">
+      <div
+        className="nodrag block min-w-0 text-[10px] text-text-muted"
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <span className="mb-1 block truncate">{param.label}</span>
-        <select
+        <Select
           value={stringifyParamValue(value ?? param.defaultValue)}
-          onChange={(event) => onChange(event.target.value)}
-          onMouseDown={(event) => event.stopPropagation()}
-          className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none"
+          onValueChange={(nextValue) => {
+            if (nextValue !== null) onChange(nextValue);
+          }}
         >
-          {(param.options ?? []).map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+          <SelectTrigger
+            size="sm"
+            className="w-full bg-background text-xs text-foreground"
+            aria-label={param.label}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {(param.options ?? []).map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     );
   }
 

@@ -18,7 +18,11 @@ def test_chat_exception_event_maps_busy_turn():
     assert result == {
         "type": "chat.busy",
         "turn_id": "turn-1",
-        "scope": {"kind": "project", "id": "project-a"},
+        "scope": {
+            "kind": "project",
+            "id": "project-a",
+            "conversationId": "main",
+        },
         "message": "当前用户已有 AI 对话正在处理中，请稍后再试",
     }
 

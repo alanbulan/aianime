@@ -17,6 +17,7 @@ describe("commercial model catalog cache", () => {
       configureByok: vi.fn(),
       selectCloud: vi.fn(),
       clearByok: vi.fn(),
+      fetchByokProviderModels: vi.fn(),
     });
 
     await expect(queries.loadCommercialModelCatalog("TEXT", "active")).resolves.toMatchObject({

@@ -78,6 +78,7 @@ class _WorkerSlot:
     model: str | None = None
     scope_kind: str = "home"
     project_id: str | None = None
+    conversation_id: str = "main"
     gateway_fingerprint: str = ""
     last_used: float = field(default_factory=time.time)
 
@@ -98,7 +99,10 @@ class HermesPool:
         token_renew_skew_secs: int = DEFAULT_TOKEN_RENEW_SKEW_SECS,
     ) -> None:
         self._slots: dict[str, _WorkerSlot] = {}
-        self._session_ids: dict[str, dict[tuple[str, str | None], str]] = {}
+        self._session_ids: dict[
+            str,
+            dict[tuple[str, str | None, str], str],
+        ] = {}
         self._lock = asyncio.Lock()
         self._idle_kill_secs = idle_kill_secs
         self._max_workers = max_workers
@@ -115,6 +119,7 @@ class HermesPool:
         model: str | None = None,
         scope_kind: str = "home",
         project_id: str | None = None,
+        conversation_id: str = "main",
     ) -> HermesSdkThread:
         """Lazily create / return the per-user hermes thread.
 
@@ -130,6 +135,7 @@ class HermesPool:
                         model=model,
                         scope_kind=scope_kind,
                         project_id=project_id,
+                        conversation_id=conversation_id,
                         reason="thread-closed",
                     )
                 elif slot.gateway_fingerprint != effective_gateway_fingerprint():
@@ -138,6 +144,7 @@ class HermesPool:
                         model=model,
                         scope_kind=scope_kind,
                         project_id=project_id,
+                        conversation_id=conversation_id,
                         reason="model-gateway-change",
                     )
                 elif self._token_needs_renewal(slot):
@@ -146,14 +153,20 @@ class HermesPool:
                         model=model,
                         scope_kind=scope_kind,
                         project_id=project_id,
+                        conversation_id=conversation_id,
                         reason="agent-session-renewal",
                     )
-                elif slot.scope_kind != scope_kind or slot.project_id != project_id:
+                elif (
+                    slot.scope_kind != scope_kind
+                    or slot.project_id != project_id
+                    or slot.conversation_id != conversation_id
+                ):
                     slot = await self._rotate_slot_locked(
                         slot,
                         model=model,
                         scope_kind=scope_kind,
                         project_id=project_id,
+                        conversation_id=conversation_id,
                         reason="scope-env-change",
                     )
                 else:
@@ -167,6 +180,7 @@ class HermesPool:
                 model=model,
                 scope_kind=scope_kind,
                 project_id=project_id,
+                conversation_id=conversation_id,
             )
             self._slots[username] = slot
             # Ensure background reaper is running
@@ -181,6 +195,7 @@ class HermesPool:
         model: str | None,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str,
         resume_session_id: str | None = None,
         allow_stored_resume: bool = True,
     ) -> _WorkerSlot:
@@ -221,7 +236,12 @@ class HermesPool:
         session_id = (
             resume_session_id
             or (
-                self._session_id_for(username, scope_kind, project_id)
+                self._session_id_for(
+                    username,
+                    scope_kind,
+                    project_id,
+                    conversation_id,
+                )
                 if allow_stored_resume
                 else None
             )
@@ -245,6 +265,7 @@ class HermesPool:
             model=model,
             scope_kind=scope_kind,
             project_id=project_id,
+            conversation_id=conversation_id,
             gateway_fingerprint=effective_gateway_fingerprint(),
         )
 
@@ -253,18 +274,27 @@ class HermesPool:
         return slot.token.exp <= renew_at
 
     @staticmethod
-    def _scope_key(scope_kind: str, project_id: str | None) -> tuple[str, str | None]:
+    def _scope_key(
+        scope_kind: str,
+        project_id: str | None,
+        conversation_id: str = "main",
+    ) -> tuple[str, str | None, str]:
         kind = (scope_kind or "home").strip() or "home"
-        return kind, project_id if kind != "home" else None
+        return (
+            kind,
+            project_id if kind != "home" else None,
+            str(conversation_id or "main").strip() or "main",
+        )
 
     def _session_id_for(
         self,
         username: str,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str = "main",
     ) -> str | None:
         return self._session_ids.get(username, {}).get(
-            self._scope_key(scope_kind, project_id)
+            self._scope_key(scope_kind, project_id, conversation_id)
         )
 
     def _remember_session(self, slot: _WorkerSlot) -> None:
@@ -272,7 +302,11 @@ class HermesPool:
         if not session_id:
             return
         self._session_ids.setdefault(slot.username, {})[
-            self._scope_key(slot.scope_kind, slot.project_id)
+            self._scope_key(
+                slot.scope_kind,
+                slot.project_id,
+                slot.conversation_id,
+            )
         ] = session_id
 
     async def _rotate_slot_locked(
@@ -282,6 +316,7 @@ class HermesPool:
         model: str | None,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str,
         reason: str,
     ) -> _WorkerSlot:
         """Replace a running worker with a fresh token/session.
@@ -296,10 +331,11 @@ class HermesPool:
         if not gateway_changed:
             self._remember_session(slot)
         same_scope = self._scope_key(
-            slot.scope_kind, slot.project_id
+            slot.scope_kind, slot.project_id, slot.conversation_id
         ) == self._scope_key(
             scope_kind,
             project_id,
+            conversation_id,
         )
         resume_session_id = slot.thread.id if same_scope and not gateway_changed else None
         replacement = await self._spawn_locked(
@@ -307,6 +343,7 @@ class HermesPool:
             model=model if model is not None else slot.model,
             scope_kind=scope_kind,
             project_id=project_id,
+            conversation_id=conversation_id,
             resume_session_id=resume_session_id,
             allow_stored_resume=not gateway_changed,
         )
@@ -330,6 +367,7 @@ class HermesPool:
         slot: _WorkerSlot,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str = "main",
     ) -> None:
         await update_agent_session_scope(
             slot.token.value,
@@ -499,12 +537,45 @@ class HermesPool:
             await self._close_slot(slot)
             return True
 
+    async def forget_conversation(
+        self,
+        username: str,
+        *,
+        scope_kind: str,
+        project_id: str | None,
+        conversation_id: str,
+    ) -> bool:
+        """Remove both the persisted and active Hermes session for one chat."""
+        target_key = self._scope_key(scope_kind, project_id, conversation_id)
+        async with self._lock:
+            removed = False
+            sessions = self._session_ids.get(username)
+            if sessions is not None:
+                removed = sessions.pop(target_key, None) is not None
+                if not sessions:
+                    self._session_ids.pop(username, None)
+
+            slot = self._slots.get(username)
+            if slot is None:
+                return removed
+            slot_key = self._scope_key(
+                slot.scope_kind,
+                slot.project_id,
+                slot.conversation_id,
+            )
+            if slot_key != target_key:
+                return removed
+            self._slots.pop(username, None)
+            await self._close_slot(slot, remember_session=False)
+            return True
+
     async def prewarm(
         self,
         username: str,
         *,
         scope_kind: str = "home",
         project_id: str | None = None,
+        conversation_id: str = "main",
     ) -> None:
         """Proactively spawn + warm the user's worker for the given scope.
 
@@ -516,7 +587,10 @@ class HermesPool:
         """
         try:
             thread = await self.get_for_user(
-                username, scope_kind=scope_kind, project_id=project_id
+                username,
+                scope_kind=scope_kind,
+                project_id=project_id,
+                conversation_id=conversation_id,
             )
         except Exception as e:  # noqa: BLE001 - prewarm must never break chat
             _log.debug("prewarm get_for_user failed for user=%s: %s", username, e)
@@ -531,6 +605,7 @@ class HermesPool:
         *,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str = "main",
     ) -> bool:
         """Update an already-running worker's server-side active scope."""
         async with self._lock:

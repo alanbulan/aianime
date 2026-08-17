@@ -60,14 +60,12 @@ export function VideoGenerationHistoryPreview({
 
 export interface VideoGeneratingStateProps {
   previewImageUrl: string | null;
-  startedAt: number | null;
-  durationMs?: number;
+  progress?: number | null;
 }
 
 export function VideoGeneratingState({
   previewImageUrl,
-  startedAt,
-  durationMs,
+  progress = null,
 }: VideoGeneratingStateProps) {
   return (
     <div className="relative h-full w-full">
@@ -80,9 +78,7 @@ export function VideoGeneratingState({
         />
       ) : null}
       <NodeGenerationOverlay
-        startedAt={startedAt}
-        durationMs={durationMs}
-        hasBackground={Boolean(previewImageUrl)}
+        progress={progress}
       />
     </div>
   );
@@ -117,7 +113,7 @@ export function VideoGenerationErrorState({
           <span className="shrink-0 text-[10px] text-destructive">请求ID</span>
           <code
             className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"
-            title={requestId}
+            data-ui-tooltip={requestId}
           >
             {requestId}
           </code>

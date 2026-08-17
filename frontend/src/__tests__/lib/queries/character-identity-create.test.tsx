@@ -44,7 +44,7 @@ describe("identity create query hook", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/identities",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

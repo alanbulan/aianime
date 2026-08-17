@@ -121,7 +121,7 @@ export function CommercialProfileSection({
           />
           <label
             htmlFor={avatarPending ? undefined : avatarInputId}
-            title={t("settings.account.changeAvatar")}
+            data-ui-tooltip={t("settings.account.changeAvatar")}
             role="button"
             tabIndex={avatarPending ? -1 : 0}
             aria-label={t("settings.account.changeAvatar")}
@@ -174,7 +174,7 @@ export function CommercialProfileSection({
             size="icon"
             variant="ghost"
             disabled={avatarPending}
-            title={t("settings.account.deleteAvatar")}
+            data-ui-tooltip={t("settings.account.deleteAvatar")}
             aria-label={t("settings.account.deleteAvatar")}
             onClick={() => {
               setAvatarPending(true);

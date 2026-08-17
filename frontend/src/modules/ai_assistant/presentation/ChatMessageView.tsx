@@ -1,8 +1,13 @@
 // Copyright (c) 2026 AI anime
 import {
+  CheckCircle2,
+  ChevronRight,
+  CircleX,
   Copy,
   File as FileIcon,
   Image,
+  ListTodo,
+  LoaderCircle,
   Maximize2,
   Pin,
   PinOff,
@@ -33,6 +38,7 @@ import type {
   ChatAttachment,
   ChatMessage,
 } from "@/modules/ai_assistant/domain/contracts";
+import { toolDisplayName } from "@/modules/ai_assistant/domain/toolDisplayName";
 import {
   extractStructuredBlocks,
   isUiSpec,
@@ -121,6 +127,166 @@ function MessageText({
   return markdown
     ? <MarkdownMessageText text={text} />
     : <PlainMessageText text={text} />;
+}
+
+function toolValueText(value: unknown): string {
+  if (value === undefined || value === null || value === "") return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function ToolActivityCard({
+  message,
+  historical = false,
+  grouped = false,
+}: {
+  message: ChatMessage;
+  historical?: boolean;
+  grouped?: boolean;
+}) {
+  const { t } = useTranslation();
+  const state = message.toolState ?? "success";
+  const title = toolDisplayName(message.toolName ?? message.text.split("\n", 1)[0] ?? "");
+  const input = toolValueText(message.toolInput);
+  const output = toolValueText(message.toolOutput);
+  const error = toolValueText(message.toolError);
+  const stateLabel = state === "running"
+    ? t("aiAssistant.toolRunning", "执行中")
+    : state === "error"
+      ? t("aiAssistant.toolFailed", "失败")
+      : t("aiAssistant.toolCompleted", "已完成");
+
+  return (
+    <div className="min-w-[280px] max-w-full" data-tool-state={state}>
+      {historical ? (
+        <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {t("aiAssistant.historyTool")}
+        </div>
+      ) : null}
+      <div className={cn("flex items-center gap-2", !grouped && "pr-24")}>
+        {state === "running" ? (
+          <LoaderCircle className="size-4 animate-spin text-primary" />
+        ) : state === "error" ? (
+          <CircleX className="size-4 text-destructive" />
+        ) : (
+          <CheckCircle2 className="size-4 text-success" />
+        )}
+        <div className="min-w-0 flex-1 truncate font-medium">{title}</div>
+        <Badge
+          variant="outline"
+          className={cn(
+            "h-5 shrink-0 rounded-md px-1.5 text-[10px]",
+            state === "error" && "border-destructive/30 bg-destructive/8 text-destructive",
+            state === "success" && "border-success/30 bg-success/8 text-success",
+          )}
+        >
+          {stateLabel}
+        </Badge>
+      </div>
+
+      {error ? (
+        <div className="mt-2 rounded-md border border-destructive/20 bg-destructive/8 px-2.5 py-2 text-xs leading-5 text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      {input || output ? (
+        <details className="group/tool-details mt-2 rounded-md border border-border/70 bg-background/55">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground outline-none hover:text-foreground">
+            <ChevronRight className="size-3.5 transition-transform group-open/tool-details:rotate-90" />
+            {t("aiAssistant.toolDetails", "查看调用详情")}
+          </summary>
+          <div className="space-y-2 border-t border-border/70 px-2.5 py-2">
+            {input ? (
+              <ToolDetailValue label={t("aiAssistant.toolInput", "输入")} value={input} />
+            ) : null}
+            {output ? (
+              <ToolDetailValue label={t("aiAssistant.toolOutput", "输出")} value={output} />
+            ) : null}
+          </div>
+        </details>
+      ) : state === "running" ? (
+        <div className="mt-1.5 text-xs text-muted-foreground">
+          {t("aiAssistant.toolWaiting", "正在等待工具返回结果…")}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function ToolExecutionList({ messages }: { messages: ChatMessage[] }) {
+  const { t } = useTranslation();
+  if (messages.length === 0) return null;
+  let completed = 0;
+  let failed = 0;
+  for (const message of messages) {
+    if (message.toolState === "success") completed += 1;
+    else if (message.toolState === "error") failed += 1;
+  }
+  const running = messages.length - completed - failed;
+
+  return (
+    <section
+      className="ml-14 overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+      aria-label={t("aiAssistant.toolPlan", "任务执行清单")}
+    >
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/45 px-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+          <ListTodo className="size-4 shrink-0 text-primary" />
+          <span>{t("aiAssistant.toolPlan", "任务执行清单")}</span>
+        </div>
+        <div className="shrink-0 text-xs text-muted-foreground">
+          {running > 0
+            ? t("aiAssistant.toolPlanProgress", {
+                defaultValue: "{{completed}}/{{total}} 已完成",
+                completed,
+                total: messages.length,
+              })
+            : failed > 0
+              ? t("aiAssistant.toolPlanFailed", {
+                  defaultValue: "{{failed}} 项失败",
+                  failed,
+                })
+              : t("aiAssistant.toolPlanDone", {
+                  defaultValue: "{{total}} 项已完成",
+                  total: messages.length,
+                })}
+        </div>
+      </header>
+      <div className="divide-y divide-border">
+        {messages.map((message, index) => (
+          <div
+            key={message.id}
+            className="flex gap-2 px-3 py-3 [contain-intrinsic-size:auto_96px] [content-visibility:auto]"
+          >
+            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+              {index + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <ToolActivityCard message={message} grouped />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ToolDetailValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <pre className="max-h-56 max-w-full overflow-auto whitespace-pre-wrap break-all rounded bg-muted px-2 py-1.5 font-mono text-[11px] leading-4 text-foreground">
+        {value}
+      </pre>
+    </div>
+  );
 }
 
 function HighlightedErrorText({ text }: { text: string }) {
@@ -474,13 +640,9 @@ export const MessageBubble = memo(function MessageBubble({
             <X className="size-3" />
           </Button>
         </div>
-        {(isTool || (message.displayName && !isUser)) && (
+        {!isTool && message.displayName && !isUser && (
           <div className="mb-1 flex items-center gap-2 pr-28">
-            {isTool ? (
-              <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[10px] uppercase">
-                {isHistoricalTool ? t("aiAssistant.historyTool") : t("aiAssistant.tool")}
-              </Badge>
-            ) : message.displayName && !isUser ? (
+            {message.displayName && !isUser ? (
               <div className="text-[11px] font-medium text-muted-foreground">
                 {message.displayName}
               </div>
@@ -488,7 +650,9 @@ export const MessageBubble = memo(function MessageBubble({
           </div>
         )}
         <AttachmentList attachments={message.attachments} />
-        {shouldWaitForStructuredRender ? (
+        {isTool ? (
+          <ToolActivityCard message={message} historical={isHistoricalTool} />
+        ) : shouldWaitForStructuredRender ? (
           <div className="flex items-center gap-2 py-1 text-sm text-muted-foreground" aria-live="polite">
             <span>{t("aiAssistant.waitingStructuredRender")}</span>
             <DotsIndicator />

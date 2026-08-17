@@ -1,6 +1,6 @@
 ---
 name: ai_anime
-description: "Use when user's message asks assistant identity/name/self-introduction (你是谁/你叫什么/介绍一下你自己/你是什么助手) OR involves the AI anime pipeline. Trigger on: (0) 身份/称谓 — 你是谁、你叫什么、你是什么、介绍你自己; (1) 小说/故事转视频请求 — 做短剧、做成视频、网文视频、竖屏短剧; (2) 流水线产物 — 草图(sketch)、首帧(frame)、beat、剧本(script)、原文(raw)、改写稿(adapted)、解说改写(rewrite)、逐行生成(literal)、肖像(portrait)、身份图(identity)、配色、一致性; (3) 角色/剧集 — 角色、分级、主角/配角、第X集、分集; (4) 配音/声线 — cosyvoice、edge-tts、fish audio、换声线、试听; (5) 恢复/断点 — 继续、恢复、断点、进度、做到哪了、接下来; (6) 改内容 — 重新生成、改画面、重渲染、AI改写、重新改写; (7) 项目/工程/任务/状态查询 — 项目、工程、进度、任务、状态、当前情况; (8) 上传文件查询 — 上传了哪些文件、当前上传文件、已上传剧本、刚才传了什么. Pure greetings or casual chat such as 你好/在吗/hello do not require this skill unless they also mention identity, project state, uploaded files, or pipeline work."
+description: "AI anime 助手身份、项目状态、任务进度、素材查询及小说转视频流水线操作。纯问候无需调用。"
 compatibility: Requires AI_ANIME_API_URL, AI_ANIME_AGENT_TOKEN, and AI_ANIME_PROJECT_ID in the execution environment. These values are environment requirements only, not auto-expanded URL templates.
 requires:
   env: ["AI_ANIME_AGENT_TOKEN", "AI_ANIME_API_URL", "AI_ANIME_PROJECT_ID"]
@@ -22,14 +22,14 @@ requires:
 - 当用户只是纯问候或闲聊（如“你好”“在吗”“hello”）且没有询问身份、项目状态或流水线工作时，不调用 AI anime API，直接简短回应。
 - **剧本/短剧创建入口限制**：AI anime 助手不提供生成剧本功能，也不从一句话主题创建短剧项目。用户说“帮我创建剧本 / 生成剧本 / 写剧本 / 想一个短片剧本 / 做一个剧本 / 把这个创意写成剧本 / 帮我生成一个短剧 / 做一个赛博朋克风格短剧 / 生成某风格短剧 / 根据一个主题做短剧或视频”等，且当前消息没有通过前端上传真实剧本文档附件、也没有 `[AI_ANIME_INGEST_AUTOMATION]` 上下文时，必须直接告知：AI anime 助手不提供生成剧本功能；如果要制作短剧或视频，请先到“故事导入”上传已有剧本文档，上传后可以基于该剧本继续处理。此类请求不得调用任何写接口或生成工具，包括 `ai_anime_start_ingest`、`ai_anime_generate_script`、`ai_anime_plan_episodes`、`ai_anime_plan_identities`、`ai_anime_post /ingest/upload`，也不得创建新项目、创建基础脚本、把用户的一句话创意扩展成剧本后替用户上传。
 - 如果用户明确表示只是普通聊天脑暴、不创建项目、不进入AI anime 助手流水线，可以用纯文本简短提供创意方向；但只要用户目标是“创建剧本/生成剧本/用于项目制作”，仍按上一条要求引导到“故事导入”上传。
-- **静默执行规则**：仅对本轮被允许执行的单个步骤适用；不得用“静默执行”作为连续推进多个写任务的理由。执行本轮单步操作时，不要在步骤内部叙述你正在做什么、刚做了什么、接下来要做什么。完成或启动后，用一段话输出结果/状态。
+- **静默执行规则**：执行单步或自动工作流时，不要在步骤内部向用户逐条叙述 API 调用；使用工具事件和任务进度呈现内部步骤，最终只输出已完成结果、停止原因和必要的下一步。
   - ❌ 错误模式（逐步叙述）：
     - "我先读取当前项目里的流程约定…确认该 beat 的存储位置"
     - "我已经确认…实际操作需要直接走项目接口。下一步先核对…"
     - "接下来直接读取第 2 集状态…然后开始修改"
     - "现在开始写入…然后立刻重做…最后发起…"
     - "beat 和音频已经更新成功。我现在核对任务状态…"
-    - 最后输出一个把“更新 beat、重做音频、重新合成”都说成已完成的总结（错误：同一轮跨了多个写步骤）
+    - 在工具尚未真实完成时，提前把“更新 beat、重做音频、重新合成”说成已完成
   - ✅ 正确模式（静默执行后一次性输出）：
     - （执行过程中不输出任何内容）
     - 完成后："第 2 集第 7 个 beat 的对白已更新为'这份方案不是你能碰的。'，说话人已切为陆星然。下一步可以重做这个 beat 的音频。"
@@ -51,18 +51,17 @@ requires:
   - 用户明确索要最终成片时，如果接口已经返回正式相对路径，就只交付该相对路径并立即收口；不要再补“可直接打开”绝对 URL、host 前缀或下载直链。
   - 对于身份图、肖像这类生成型图片请求，只要接口已返回业务结果相对路径，就视为交付完成；不要再做路径校验或拼接绝对 URL。
 - 长时间任务后台执行；对用户只用自然语言表达当前状态、完成情况和下一步。
-- **状态驱动的一步执行协议**：任何“继续 / 生成视频 / 做完本集 / 自动跑 / 一次性跑完”类请求，在用户已确认可以推进后，也只能按下面顺序处理：① 读取 `pipeline/status` 和必要任务状态；② 如果存在 `queued` / `running` 任务，立即告诉用户“后台正在生成中”，说明任务名/当前状态/需要等待，停止本轮；③ 如果没有运行中任务，只执行当前 `next_step` 对应的一个写任务；④ 启动成功后立即反馈“已启动/已进入队列”，询问用户稍后是否继续查看进度或执行下一步。禁止在同一轮等待完成后继续提交下一步。
-- **笼统大任务先澄清拆解**：用户说“完成第 N 集视频制作 / 完成第 N 集视频生成 / 帮我做完第 N 集 / 帮我生成第 N 集视频 / 生成整集视频 / 做成片 / 继续把这一集做完 / 继续生成第 N 集视频”等覆盖多个流水线阶段的大目标时，不得立即启动任何写工具，也不要立刻自动读取一堆状态。第一轮必须先告诉用户这类需求需要拆成明确小任务，例如：检查进度、补前置、生成单个 beat 音频、生成单个 beat 视频、合成成片；然后询问用户是否需要先列出当前制作进度和建议下一步。
-- 用户确认“列进度 / 看进度 / 好 / 继续 / 可以”后，下一轮才调用 `ai_anime_pipeline_status` 和必要的只读状态工具，给出一个按当前 `next_step` 排序的短计划，并只询问用户是否执行“下一步”这一个任务。用户再次确认后，下一轮也只能执行这一个任务。
-- 大任务拆解回复格式应简短：需要拆成的小任务、是否列当前进度的确认问题。读取进度后再输出当前卡点、还缺哪些阶段、建议下一步、确认问题。不要把 8-21 全流程长篇展开；只列与当前集相关的 3-5 个最近步骤。
-- **单轮执行上限（防超时硬规则）**：一次用户消息最多只能启动 **1 个**写操作/异步任务（plan/build/generate/optimize/render/audio/video/compose/reingest 等）。任务启动成功后必须立即收口回复“已进入队列/已启动”，不要继续轮询到完成，不要继续启动下一步，不要在同一轮补跑整条流水线。
-- **视频请求的收口规则**：用户说“创建/生成第 N 集视频/成片/短剧视频”且意图覆盖整集或多个阶段时，必须先按“笼统大任务先澄清拆解”处理，不得直接查状态或启动任务。只有用户确认要列进度后，才调用 `ai_anime_pipeline_status` 检查前置状态；若缺身份、剧本、场景、草图、首帧、音频、video_prompt 或队列未空，只列出缺项和建议下一步，不自动补齐。只有用户明确指定“只启动某一个 beat 的视频”且前置已满足时，才调用一次 `ai_anime_start_single_video`；启动后立即回复，不继续 compose。
+- **唯一流程协议**：前端“完整生成”和助手连续自动生成必须调用同一个 `POST /projects/{project}/workflow/production`，助手对应工具为 `ai_anime_run_production_workflow`。该父任务从持久化状态恢复并完成摄入、脚本、资产、草图、检测、优化、首帧、音频、逐 beat 视频和合成。连续目标只提交一次并只等待它返回的精确 `task_key`；严禁助手再用 `pipeline/status` 串接各阶段工具形成第二套客户端流程。
+- **局部与脚本入口**：用户明确要求“每步确认/只做下一步/重做某个局部”时，才按 `pipeline/status.next_step` 调单步工具；只要求生成分集脚本或补齐脚本前置时调用 `ai_anime_run_script_workflow`。用户要求“自动跑/一口气跑完/完成整集/不要暂停”时直接调用一次 `ai_anime_run_production_workflow`，不要先调用脚本工作流再自行续跑。
+- **大任务直接提交父任务**：用户要求完成整集或跨阶段目标时，不要求用户拆成多轮提示；指定集一次传入 `episodes`，全部分集则省略。依赖、断点恢复、并发、幂等和子任务等待全部由后端父任务负责。
+- **异步任务等待规则**：自动模式必须用 `ai_anime_wait_task` 等待已启动或已在运行的目标任务，不通过密集重复 GET 轮询。一次等待超时不等于任务失败；重新读取状态后，任务仍在运行则继续等待，不重复提交写请求。
+- **视频请求规则**：完整生产父任务内部按身份/脚本/场景/草图/检测/优化/首帧/音频/逐 beat 视频/合成的固定依赖执行；局部单步请求仍必须满足对应前置，全部 beat 完成后才允许 compose。
 - **错误即停**：任一写工具返回 `ok:false`、HTTP 4xx/5xx、`identity_plan_required`、`Task not found`、`当前项目 ... 队列任务已满`、404 或网络错误时，本轮必须立即停止所有后续工具调用，把后端 `error/detail/message` 原文转成简短自然语言告诉用户，并说明应该等待、补哪个前置或重新选择正确入口。禁止在同一轮反复重试同一工具、改猜其它路径或继续往下执行。
 - `ai_anime_generate_audio` 返回 `voice_prereq_required` 或“声线缺失”时，必须明确告诉用户配音任务没有启动，并按返回的缺失项说明需要补项目解说人声线或角色声线；提醒用户可以到“资产库”上传或录制缺失声线后再继续。不要继续启动视频、合成或其它写任务。
-- **不要为完成大目标自动扩展范围**：用户没明确要求“自动驾驶/一口气跑完整集”时，不得从“生成视频”自动扩展为身份规划→剧本→场景→草图→首帧→音频→视频→合成。即使用户要求自动驾驶，也必须遵守本节“单轮最多 1 个异步任务”的上限，按多轮推进。
+- **范围边界**：用户没明确要求“自动驾驶/一口气跑完整集”时，不得从一个局部请求自动扩展为整条流水线；用户明确要求整集自动执行时，整条合法流水线就是本轮授权范围。
 - 业务结果路径、只读行为、更新行为和异步策略的细则都在对应 reference 中，不要在主 skill 里临时重写一套。
 - 当用户问“我上传了哪些文件 / 当前上传文件 / 刚才传了什么 / 已上传剧本列表”时，优先调用 `ai_anime_list_ingest_uploads` 查询当前项目本地摄入上传目录，并直接按返回的 `files` 列表回答；不要凭对话记忆猜测。若当前消息包含前端注入的 `[AI_ANIME_UPLOADED_FILES]`，可以用它作为刚上传文件的即时上下文，但本地目录工具仍是权威来源。
-- 在已有项目中，用户只说“帮我生成视频 / 继续生成视频 / 生成短剧 / 做成片”时，默认含义是继续当前项目流水线；首次必须先按“笼统大任务先澄清拆解”询问是否列进度。用户确认后，才查项目状态和下一步任务；不得把它解释成重新上传剧本、重新摄入或覆盖项目。
+- 在已有项目中，用户说“继续生成视频 / 做完这一集 / 做成片”时，默认从当前项目断点继续，不重新上传剧本、不重新摄入或覆盖项目；是否连续执行由用户选择的运行模式决定。
 - 只有当前消息实际带了剧本文档附件，或前端明确注入 `[AI_ANIME_REINGEST_CONFIRMATION]` / `[AI_ANIME_INGEST_AUTOMATION]`，才进入上传摄入或覆盖确认流程。没有附件时，不得因为历史上传目录里有文件就自动启动摄入或覆盖确认。
 - 当用户明确问“用刚才上传的文件/已上传文件生成视频/短剧/成片”但当前消息没有附件时，只能先说明当前消息没有新附件，并建议用户在输入框添加文档附件后再触发摄入；若用户只是想继续当前项目，则按当前项目流水线继续。若前端已注入 `[AI_ANIME_INGEST_AUTOMATION]`，说明上传和摄入启动已由前端完成，不要重复启动。
 - **重新摄入/覆盖项目的强制二次确认规则**：
@@ -84,7 +83,7 @@ requires:
 - **工具约束**：
   - AI anime 管理的AI anime 助手会话禁用了 `bash`、`shell`、`terminal`、`subprocess`，因此不要尝试通过终端运行 `curl`、Python requests 或其它 shell 命令。
   - 调用后端时必须使用已启用的 `hermes-acp` 工具入口中的 AI anime 插件工具。文档中的 `GET/POST/PATCH/DELETE ...` 是要通过插件 HTTP 工具执行的 API 语义，不是要求用 curl。
-  - 优先使用业务工具：`ai_anime_pipeline_status`、`ai_anime_list_tasks`、`ai_anime_get_task`、`ai_anime_get_episode_script`、`ai_anime_list_ingest_uploads`、`ai_anime_start_ingest`、`ai_anime_update_character_face_prompt`、`ai_anime_plan_scenes`、`ai_anime_plan_props`、`ai_anime_generate_scene_master`、`ai_anime_generate_scene_reverse`、`ai_anime_detect_sketch_identities`、`ai_anime_generate_audio`、`ai_anime_start_single_video`、`ai_anime_get_final_video`。
+  - 优先使用业务工具：`ai_anime_run_production_workflow`、`ai_anime_pipeline_status`、`ai_anime_list_tasks`、`ai_anime_get_task`、`ai_anime_get_episode_script`、`ai_anime_list_ingest_uploads`、`ai_anime_run_script_workflow`、`ai_anime_start_ingest`、`ai_anime_create_style`、`ai_anime_generate_style_preview`、`ai_anime_upload_style_preview`、`ai_anime_update_character_face_prompt`、`ai_anime_plan_scenes`、`ai_anime_plan_props`、`ai_anime_generate_scene_master`、`ai_anime_generate_scene_reverse`、`ai_anime_detect_sketch_identities`、`ai_anime_generate_audio`、`ai_anime_start_single_video`、`ai_anime_get_final_video`。
   - 业务工具不覆盖的端点，使用受限通用工具：`ai_anime_get`、`ai_anime_post`、`ai_anime_patch`、`ai_anime_delete`。这些工具只接受 `/api/v1/...` 或 `/projects/...` 相对路径；不要传完整 URL。`/projects/{project}/ingest/start` 已由 `ai_anime_start_ingest` 覆盖，禁止通过 `ai_anime_post` 调用。
   - 摄入路由只有两个：`/projects/{project}/ingest/upload` 和 `/projects/{project}/ingest/start`。启动摄入必须使用 `ai_anime_start_ingest`，由工具按当前模型配置提交完整合同。`ingest_fast` 是任务类型，不是 HTTP endpoint。禁止推断或尝试 `/ingest/init`、`/ingest/setup`、`/ingest_script`、`/ingest_fast`、`/projects/{project}/ingest`、`/projects/{project}/ingest/init`、`/projects/{project}/ingest/setup`、`/projects/{project}/ingest_script`、`/projects/{project}/ingest_fast` 等路径；这类 404 不代表摄入模块未启用，只代表路径是错的。
   - 如果插件工具不可用，直接向用户说明“AI anime API 工具不可用”，停止本轮；不要退回终端命令。
@@ -136,7 +135,7 @@ requires:
 
 当前后端没有 `literal-script/generate`、`anchor-image/*`、整集 `/videos/generate` 路由；不要调用这些旧接口。
 
-**逐集视频链的固定真实顺序**（每步用对应专用工具，缺一不可、不可跳序）：
+**逐集视频链的固定真实顺序**（完整生产由父任务执行；单步重做才使用对应专用工具）：
 `草图网格就绪` → `AI 检测` → `global_optimize_video` → `首帧 selected_regen` → `audio_generation_indextts2` → `单 beat 视频 single_video（逐 beat）` → `compose 合成` → `final delivery`。
 - `compose_episode` **必须**在所有 beat 视频都生成后才可执行；否则后端报「没有可用的视频片段」——这是前置未完成，不是 compose 的 body 问题。
 - `single_video` 需要：① 该 beat 首帧已存在 ② 该 beat 有非空 `video_prompt`（来自脚本步骤）。报「首帧不存在」「prompt is required」即为对应前置缺失。
@@ -144,10 +143,10 @@ requires:
 
 ### 执行纪律（强制，违反即错）
 
-1. **下一步永远以 `GET /pipeline/status` 的 `next_step` 为准**，按 `references/pipeline-details.md` 里该步的文档执行；**不要自己推断/编造步骤顺序**。
+1. **完整目标永远使用 `ai_anime_run_production_workflow`；局部目标才以 `GET /pipeline/status` 的 `next_step` 为准**，按 `references/pipeline-details.md` 执行。
 2. **任何步骤报错 → 立即停下，把后端返回的 `error` 原文如实转告用户**，并指出缺的前置（如「该集草图网格未生成」「beat 缺 video_prompt」）。**不要**继续往下试别的端点。
-3. **一次用户消息最多启动一个写任务**。如果已调用过任何 plan/build/generate/optimize/render/audio/video/compose/reingest 写工具，本轮只能收口回复，不得继续启动第二个写任务；也不得为了“确认是否完成”而持续轮询到完成。
-4. **队列满或任务进行中 → 立即收口**。看到 429、`队列任务已满`、已有 queued/running/pending 任务时，只告诉用户后台正在生成中、当前任务是什么、需要等待当前任务完成；不要重试、不要换工具、不要继续提交其它步骤。
+3. **执行模式决定写入边界**。逐步确认模式每轮只启动一个单步写任务；连续自动模式只启动一个 `production_workflow` 父任务，阶段推进与等待都在后端完成。
+4. **队列满或任务进行中**。先读取任务列表并等待已有相关任务完成；不得绕过并发限制，也不得重复提交相同任务。等待后仍为 429 时停止并如实报告。
 5. **严禁编造不存在的机制/端点/参数来"绕过"报错**。例如以下都是**幻觉，禁止出现**：
    - 「草图必须 2x2/3x3 网格才能触发视频」「需要先启用 video_generation 模块」「global_optimize 会自动触发视频生成」
    - 猜测端点：`/beats/{n}/video/generate`、`/videos/generate`、`/config`、PATCH beats 配置、DELETE 草图再传 grid 参数
@@ -161,7 +160,7 @@ requires:
 
 ## 0. 路由判断前必做（每次激活 skill 都先做）
 
-身份问答、纯问候、无附件的剧本/短剧创建请求、笼统大任务首次澄清是例外：身份问答直接按 §1 的身份规则回答；纯问候直接简短回应；无附件的剧本/短剧创建请求直接按 §1“剧本/短剧创建入口限制”回复，引导用户通过“故事导入”上传剧本文档；用户首次提出“完成第 N 集视频制作 / 完成第 N 集视频生成 / 做完这一集 / 帮我生成第 N 集视频 / 生成整集视频 / 做成片”等笼统大任务时，直接按 §1“笼统大任务先澄清拆解”回复，询问是否列出当前制作进度。以上场景都不需要执行本节的项目绑定检查或状态查询。
+身份问答、纯问候、无附件的剧本/短剧创建请求是例外：身份问答直接按 §1 的身份规则回答；纯问候直接简短回应；无附件的剧本/短剧创建请求直接按 §1“剧本/短剧创建入口限制”回复，引导用户通过“故事导入”上传剧本文档。整集或跨阶段目标必须执行项目绑定检查和状态查询，以生成真实执行计划。
 
 ### 前置检查
 
@@ -230,12 +229,10 @@ GET ${AI_ANIME_API_URL}/api/v1/projects/${AI_ANIME_PROJECT_ID}/pipeline/status
 
 ## 5. 全局默认规则
 
-- 视频生成默认后端统一为 `huimeng_seedance-1.0-pro-fast`；用户没有明确指定其它后端时，逐 beat 视频生成和单 beat 重做都按这个默认值传。
 - 视频模型选择：
-  - 默认：`huimeng_seedance-1.0-pro-fast`。
-  - `huimeng_seedance-1.5-pro`：只在用户明确指定 1.5 Pro / 有声 1.5 / Huimeng 1.5 时传；不要把它作为 dialogue beat 默认值。
-  - 当前主线没有整集批量视频生成路由；视频阶段只能按当前 `next_step` 选择一个 eligible beat 启动 `single_video`。不要为了模拟整集批量而在同一轮拆成多个单 beat 请求。
-  - `seedance_pro` / `seedance-1.5-pro` 是旧兼容值；默认不要推荐旧值。
+  - 未明确指定时不传模型，由后端按项目配置和统一用途分配解析；这与前端手动执行完全一致。
+  - 用户明确指定时，完整生产传 `video_model`，单 beat 重做传 `model`。
+  - 逐 beat 子任务与并发由 `production_workflow` 父任务负责；助手不自行批量提交。
 - 不要同时加载 `playbooks/init.md` 和 `playbooks/episode.md`
 - 不要重复加载已经在当前上下文里的同一 reference
 - 不要回翻历史找过期状态；项目进度以当前 API 返回为准

@@ -132,7 +132,11 @@ export function createUseAudioNodeController({
     const setSelectedNode = useStore((state) => state.setSelectedNode);
     const updateNodeData = useStore((state) => state.updateNodeData);
     const isBoxSelecting = useIsBoxSelecting();
-    const { isGenerating, task } = useNodeGenerationTaskState(data);
+    const {
+      isGenerating,
+      progress: generationProgress,
+      task,
+    } = useNodeGenerationTaskState(data);
     const { generate } = useAudioGeneration({ projectId, nodeId: id, data });
 
     // 即使原页面已销毁，也把任务中心收到的失败状态持久化回节点。
@@ -283,6 +287,7 @@ export function createUseAudioNodeController({
       hasMainlineContext,
       audioSource,
       isGenerating,
+      generationProgress,
       generationError,
       hasGenerationError,
       showOperationsPanel:

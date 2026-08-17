@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import shutil
-import sys
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +25,12 @@ from ai_anime.modules.model_usage.public import DEFAULT_SCENE_SPATIAL_CONTRACT_M
 from ai_anime.shared.utils.path_resolver import (
     compute_scene_master_path,
     compute_scene_reverse_master_path,
+)
+from ai_anime.modules.asset_world.infrastructure.director_world.worker_runtime import (
+    SCENE_360_BUILDER_MODULE,
+    SCENE_OVERLAP_ANALYZER_MODULE,
+    SCENE_SPATIAL_CONTRACT_MODULE,
+    worker_command,
 )
 
 logger = logging.getLogger(__name__)
@@ -268,9 +273,7 @@ def run_scene_360(
     )
 
     cmd = [
-        sys.executable,
-        "-m",
-        "ai_anime.modules.asset_world.infrastructure.director_world.scene_360_builder",
+        *worker_command(SCENE_360_BUILDER_MODULE),
         "--scene-name",
         scene_id,
         "--output-dir",
@@ -338,9 +341,7 @@ def run_scene_360(
                 if needs_analysis and model_access_configured():
                     report(0.12, "分析 master/reverse 侧边 overlap 和 continuation...")
                     analyzer_cmd = [
-                        sys.executable,
-                        "-m",
-                        "ai_anime.modules.asset_world.infrastructure.director_world.scene_overlap_analyzer",
+                        *worker_command(SCENE_OVERLAP_ANALYZER_MODULE),
                         "--scene-name",
                         scene_id,
                         "--master",
@@ -391,9 +392,7 @@ def run_scene_360(
                 if needs_contract and model_access_configured():
                     report(0.14, f"分析 master/reverse 空间合同 ({spatial_contract_model})...")
                     contract_cmd = [
-                        sys.executable,
-                        "-m",
-                        "ai_anime.modules.asset_world.infrastructure.director_world.scene_spatial_contract",
+                        *worker_command(SCENE_SPATIAL_CONTRACT_MODULE),
                         "--scene-name",
                         scene_id,
                         "--master",

@@ -38,6 +38,9 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     import ai_anime.api.deps as deps
     import ai_anime.shared.runtime_paths as config
     import ai_anime.modules.project_workspace.infrastructure.project_config as project_config
+    import ai_anime.modules.project_workspace.infrastructure.local_registry as local_registry
+    import ai_anime.modules.project_workspace.infrastructure.project_directories as project_directories
+    import ai_anime.modules.project_workspace.infrastructure.workspace_storage as workspace_storage
     import ai_anime.shared.utils.project_paths as project_paths
 
     for module in (config, deps, project_paths):
@@ -46,6 +49,9 @@ def _patch_roots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         monkeypatch.setattr(module, "RUNTIME_DIR", str(runtime), raising=False)
     monkeypatch.setattr(project_config, "OUTPUT_DIR", str(state), raising=False)
     monkeypatch.setattr(project_config, "STATE_DIR", str(state), raising=False)
+    monkeypatch.setattr(local_registry, "STATE_DIR", str(state))
+    monkeypatch.setattr(project_directories, "OUTPUT_DIR", str(output))
+    monkeypatch.setattr(workspace_storage, "OUTPUT_DIR", str(output))
 
 
 class _RejectingAuthPort:

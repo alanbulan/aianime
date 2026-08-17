@@ -21,7 +21,7 @@ from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
     user_audio_voices_index_path,
 )
 from ai_anime.modules.model_usage.public import configure_model_access
-from ai_anime.modules.model_usage.public import MODE_CLOUD
+from ai_anime.modules.model_usage.public import MODE_MIXED
 from ai_anime.modules.model_usage.infrastructure import model_gateway_settings
 
 
@@ -51,9 +51,9 @@ class FakeTTSGenerator:
 
 @pytest.fixture(autouse=True)
 def _reset_model_access() -> None:
-    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    configure_model_access(allows_custom_models=False, mode=MODE_MIXED)
     yield
-    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    configure_model_access(allows_custom_models=False, mode=MODE_MIXED)
 
 
 def _isolate_settings_db(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -276,10 +276,9 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
     assert result.voice_source == "audio-music-1"
     assert calls == [
         {
-                "output_path": freezone_audio_eleven_music_output_path(tmp_path, "music-1"),
-                "model": "audio-music-1",
-                "model_role": "AUDIO_MUSIC",
-                "input_text": "Mysterious original soundtrack, rainforest.",
+            "output_path": freezone_audio_eleven_music_output_path(tmp_path, "music-1"),
+            "model_role": "AUDIO_MUSIC",
+            "input_text": "Mysterious original soundtrack, rainforest.",
             "response_format": "mp3",
             "metadata": {
                 "music_length_ms": 30_000,

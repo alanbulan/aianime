@@ -47,12 +47,26 @@ describe("commercial invocations", () => {
           id: "invocation-2",
           status: "FAILED",
           errorMessage: "upstream unavailable",
+          quotaStatus: "COMMITTED",
+          reservationId: "reservation-2",
+          reservedUnits: 10,
+          chargedUnits: 8,
+          refundedUnits: 2,
+          balanceBefore: 960,
+          balanceAfter: 952,
         },
       }),
     ).toEqual({
       id: "invocation-2",
       status: "FAILED",
       errorMessage: "upstream unavailable",
+      quotaStatus: "COMMITTED",
+      reservationId: "reservation-2",
+      reservedUnits: 10,
+      chargedUnits: 8,
+      refundedUnits: 2,
+      balanceBefore: 960,
+      balanceAfter: 952,
     });
   });
 

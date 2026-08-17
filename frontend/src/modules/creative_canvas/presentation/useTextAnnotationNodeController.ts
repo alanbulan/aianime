@@ -182,7 +182,8 @@ export function createUseTextAnnotationNodeController({
       null,
       { surface: 'canvas' },
     );
-    const { isGenerating } = useNodeGenerationTaskState(data);
+    const { isGenerating, progress: generationProgress } =
+      useNodeGenerationTaskState(data);
     const isReferenceOnly = Boolean(data.referenceOnly);
     const isSystemManaged = isSystemManagedNodeData(data);
     const isCompactView = isCompactTextAnnotationView(
@@ -585,6 +586,7 @@ export function createUseTextAnnotationNodeController({
       title,
       size,
       isGenerating,
+      generationProgress,
       isSystemManaged,
       isCompactView,
       isEditingContent,

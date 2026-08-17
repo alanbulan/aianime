@@ -20,7 +20,11 @@ node_modules/
 /desktop/dist/
 /desktop/release/
 /desktop/backend-dist/
+/desktop/.package-size-probe/
+/desktop/world-runtime-dist/
+/desktop/runtime-release/
 /desktop/.pyinstaller/
+/desktop/.pyinstaller-world/
 /desktop/hermes-runtime/.pyinstaller/
 /desktop/hermes-runtime/dist/
 /desktop/.ffmpeg-cache/

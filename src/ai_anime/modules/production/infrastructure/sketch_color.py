@@ -22,7 +22,7 @@ class DomainSketchColorAssigner:
     ) -> dict[str, str]:
         return assign_identity_sketch_colors(
             characters,
-            episode_beats=beats,
+            episode_beats=beats or None,
             existing_colors=existing_colors,
         )
 

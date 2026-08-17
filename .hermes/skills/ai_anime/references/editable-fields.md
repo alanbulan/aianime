@@ -14,19 +14,11 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 | `narration_style` | string | `first_person`, `third_person` | `first_person` |
 | `ethnicity` | string | `Chinese`, `Japanese`, `Korean`, `Western` | `Chinese` |
 | `rhythm` | string | `fast`, `medium`, `slow` | `medium` |
-| `tts_provider` | string | `cosyvoice`, `edge` | `cosyvoice` |
-| `tts_model` | string | `cosyvoice-v3-flash` 等 | `cosyvoice-v3-flash` |
-| `tts_voice` | string | `longanling_v3`, `zh-CN-XiaoxiaoNeural` 等 | `longanling_v3` |
 | `grid_mode` | string | `3x3` 等 | `3x3` |
-| `grid_model` | string | `nanobanana` | `nanobanana` |
-| `video_backend` | string | `huimeng_seedance-1.0-pro-fast`, `huimeng_seedance-1.5-pro`, `seedance_fast`, `seedance_pro`, `seedance_pro_silent`, `comfyui`, `wan26`, `ltx23` | `huimeng_seedance-1.0-pro-fast` |
-| `video_resolution` | string | `720x1280`, `1080x1920` | `720x1280` |
+| `video_model` | string | 当前模型目录返回的视频模型 ID | 空时由后端按用途分配解析 |
+| `video_resolution` | string | `720p`, `1080p`, `720x1280`, `1080x1920`, `1280x720`, `1920x1080` | `720p` |
 
-`video_backend` 选择规则：
-- `huimeng_seedance-1.0-pro-fast`：默认值；用户没有明确指定其它后端时，逐 beat 视频生成和单 beat 重做都用它。
-- `huimeng_seedance-1.5-pro`：只在用户明确指定 1.5 Pro / 有声 1.5 / Huimeng 1.5 时传，不作为默认值。
-- 已知限制：当前主线没有整集批量视频生成路由；不要把整集拆成多个单 beat 请求来模拟批量内分流。同一轮最多只启动一个 eligible beat 的 `single_video`。
-- `seedance_fast`、`seedance_pro`、`seedance_pro_silent` 是旧兼容值；默认不要推荐旧值。
+视频选择规则：完整生产可传 `video_model`，单 beat 局部生成传 `model`；都未指定时由后端解析项目配置和用途分配。逐步确认模式一次只启动一个 eligible beat；连续完整生产只提交一个 `production_workflow` 父任务，由后端逐 beat 调度，助手不得自行批量提交。
 
 ## 角色
 
@@ -102,14 +94,25 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 
 ## 风格
 
-**查看**: `GET /styles`（列表）、`GET /styles/{id}`（详情）
-**创建**: `POST /styles`
-**删除**: `DELETE /styles/{id}`（仅自定义风格）
-**预览**: 直接输出 `/static/style-examples/{style_id}.jpg`（OSS 上，前端自动签名加载）
+**查看**: `GET /api/v1/styles`（列表）、`GET /api/v1/styles/{id}`（详情）；项目助手会自动携带当前项目作用域。
+**创建**: 只调用 `ai_anime_create_style`；内部风格 ID 由服务端生成，不要让用户补 ID。`config` 必须一次性填写规范字段 `label`、`style_instructions`、`avoid_instructions`、`style_tag`、`style_family`、`animation_subtype`。`style_instructions` 只描述渲染媒介、线条、色板、光照、纹理、镜头感、调色和完成度；人物身份、面孔、年龄、服装、道具、场景内容和构图由具体生成任务提供，不能写进全局风格。不得自行发明配置键。用户要求同时生成参考图时，在同一次调用传 `create_preview=true` 与 `preview_prompt`；用户附图时传 `[CHAT_ATTACHMENTS]` 中的 `attachment_path`，不要另起第二个写工具。参考图会作为所有后续生图请求的最后一张风格参考，只控制渲染媒介、线条、色板、光照、材质、纹理和完成度；人物身份、服装、场景、道具与构图必须服从排在前面的任务素材。自动生成参考图必须是单一无人物环境，不得包含人脸、身体、剪影、角色板或拼贴布局。
+**补参考图**: 已有风格缺少参考图时只调用 `ai_anime_generate_style_preview`。该工具通过任务中心异步生成并只更新 `preview_path`；禁止再次调用 `ai_anime_create_style`，也禁止重写已有风格配置。
+**删除**: `DELETE /api/v1/styles/{id}`（仅自定义风格）
+**预览**: 创建工具或参考图任务已经返回成功时不再读取验证；只有用户明确要求查看已有风格参考图时，才读取 `/api/v1/styles/{id}/preview`。
 
 ```json
 // 创建
-{"id": "my_style", "name": "My Style", "label": "自定义", "config": {...}}
+{
+  "name": "My Style",
+  "config": {
+    "label": "自定义",
+    "style_instructions": "完整描述渲染媒介、线条、色板、光照、纹理、镜头感、调色和完成度，并服从具体人物与场景描述",
+    "avoid_instructions": "完整描述需要避免的视觉特征和瑕疵",
+    "style_tag": "CUSTOM STYLE",
+    "style_family": "animation",
+    "animation_subtype": "2d"
+  }
+}
 ```
 
 ## 场景
@@ -162,10 +165,8 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 
 | 操作 | API | 说明 |
 |------|-----|------|
-| 整集音频 | `POST /projects/{project}/episodes/{ep}/audio/generate` | [ASYNC: audio_generation_indextts2]，当前主线使用 |
+| 整集音频 | `POST /projects/{project}/episodes/{ep}/audio/generate` | [ASYNC: audio_generation_indextts2] |
 | 重做单 beat | `POST /projects/{project}/episodes/{ep}/beats/{beat}/audio` | 同步，直接返回 |
-
-旧 `/tts/generate`、`/tts/preview`、`/tts/voices` 已移除，不要调用。
 
 ## 导出
 

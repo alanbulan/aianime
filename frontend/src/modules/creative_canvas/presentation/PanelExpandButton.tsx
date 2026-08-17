@@ -22,7 +22,7 @@ export function PanelExpandButton({
   return (
     <button
       type="button"
-      title={label}
+      data-ui-tooltip={label}
       aria-label={label}
       onClick={(event) => {
         event.stopPropagation();

@@ -45,7 +45,7 @@ export function VoiceSelectionModalView({
             type="button"
             onClick={onClose}
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            title="关闭"
+            data-ui-tooltip="关闭"
           >
             <X className="h-4 w-4" />
           </button>

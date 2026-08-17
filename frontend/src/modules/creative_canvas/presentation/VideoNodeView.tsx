@@ -268,7 +268,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
           data.heightPx > 0 ? (
             <div
               className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-media-foreground/10 bg-media/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-media-foreground/70 backdrop-blur-sm"
-              title={t('node.videoNode.resolution')}
+              data-ui-tooltip={t('node.videoNode.resolution')}
             >
               <VideoIcon className="h-3 w-3 text-media-foreground/45" />
               {data.widthPx}×{data.heightPx}
@@ -319,13 +319,12 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
           />
         ) : isGenerating ? (
           <VideoGeneratingState
+            progress={controller.generationProgress}
             previewImageUrl={
               data.previewImageUrl
                 ? resolveImageDisplayUrl(data.previewImageUrl)
                 : null
             }
-            startedAt={data.generationStartedAt ?? null}
-            durationMs={data.generationDurationMs}
           />
         ) : hasGenerationError ? (
           <VideoGenerationErrorState
@@ -564,7 +563,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
               />
               <button
                 type="button"
-                title="翻译提示词（中英文互译）"
+                data-ui-tooltip="翻译提示词（中英文互译）"
                 disabled={
                   isTranslatingPrompt ||
                   isGenerating ||
@@ -596,7 +595,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
               <button
                 type="button"
                 disabled={submitDisabled}
-                title={
+                data-ui-tooltip={
                   isGenerating
                     ? t('node.videoNode.submitBusy')
                     : t('node.videoNode.submit')

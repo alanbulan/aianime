@@ -2634,11 +2634,15 @@ async def test_character_asset_preset_style_lookup_uses_project_context(
         }
 
     monkeypatch.setattr(
-        "ai_anime.modules.project_workspace.infrastructure.project_config.load_project_config",
+        "ai_anime.modules.project_workspace.public.load_project_config",
         fake_load_project_config,
     )
     monkeypatch.setattr(
         "ai_anime.modules.production.infrastructure.media_generation_settings.get_style_preset",
+        fake_get_style_preset,
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.get_style_preset",
         fake_get_style_preset,
     )
 
@@ -2672,7 +2676,6 @@ async def test_character_asset_preset_style_lookup_uses_project_context(
     assert captured["style"] == "custom_style"
     assert captured["kwargs"] == {
         "username": "admin",
-        "project": "demo",
         "project_dir": str(tmp_path),
     }
     portrait_prompt = context["generation_context"]["portrait"]["prompt"]

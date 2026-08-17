@@ -30,7 +30,11 @@ export function ThemedToaster() {
       offset={topOffset}
       toastOptions={{
         style: {
-          "--width": "auto",
+          // Sonner renders each toast absolutely inside the toaster.  An `auto`
+          // width therefore collapses the centering container and makes short
+          // messages appear offset.  A stable responsive width keeps every
+          // toast centered against the application viewport.
+          "--width": "min(420px, calc(100vw - 32px))",
           minWidth: 0,
         } as CSSProperties,
         className:

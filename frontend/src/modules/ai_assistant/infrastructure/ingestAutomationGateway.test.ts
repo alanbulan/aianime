@@ -2,13 +2,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
-  loadDefaultKnowledgeModels,
   readPipelineStatus,
   startStoryIngestion,
   uploadStoryDocument,
 } = vi.hoisted(
   () => ({
-    loadDefaultKnowledgeModels: vi.fn(),
     readPipelineStatus: vi.fn(),
     startStoryIngestion: vi.fn(),
     uploadStoryDocument: vi.fn(),
@@ -17,7 +15,6 @@ const {
 
 vi.mock("@/modules/narrative_planning/public", () => ({ readPipelineStatus }));
 vi.mock("@/modules/story_intake/public", () => ({
-  loadDefaultKnowledgeModels,
   startStoryIngestion,
   uploadStoryDocument,
 }));
@@ -31,11 +28,6 @@ import {
 describe("SuperChat ingest automation gateway", () => {
   beforeEach(() => {
     readPipelineStatus.mockReset();
-    loadDefaultKnowledgeModels.mockReset();
-    loadDefaultKnowledgeModels.mockResolvedValue({
-      textModel: "cloud-text-standard",
-      embeddingModel: "cloud-embedding-standard",
-    });
     startStoryIngestion.mockReset();
     uploadStoryDocument.mockReset();
   });
@@ -71,8 +63,6 @@ describe("SuperChat ingest automation gateway", () => {
     await expect(startNovelIngest("project-a", "story.txt")).resolves.toBe(started);
     expect(startStoryIngestion).toHaveBeenLastCalledWith("project-a", {
       filename: "story.txt",
-      textModel: "cloud-text-standard",
-      embeddingModel: "cloud-embedding-standard",
       rebuild: false,
     });
 
@@ -81,8 +71,6 @@ describe("SuperChat ingest automation gateway", () => {
     ).resolves.toBe(started);
     expect(startStoryIngestion).toHaveBeenLastCalledWith("project-a", {
       filename: "story.txt",
-      textModel: "cloud-text-standard",
-      embeddingModel: "cloud-embedding-standard",
       rebuild: true,
     });
   });

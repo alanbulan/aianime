@@ -53,17 +53,10 @@ class _CreativeCanvasStoryScriptResult(BaseModel):
     )
 
 
-def _create_translation_agent(model: str) -> Agent:
+def _create_translation_agent() -> Agent:
     from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
-    from ai_anime.modules.model_usage.public import require_model_role
 
-    clean_model = str(model or "").strip()
-    require_model_role(clean_model, "TEXT")
-    transport_model = get_newapi_text_pydantic_model(
-        "FREEZONE_TRANSLATION_MODEL",
-        clean_model,
-        model_name_override=clean_model,
-    )
+    transport_model = get_newapi_text_pydantic_model()
     return Agent(
         transport_model,
         system_prompt=CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT,
@@ -94,17 +87,10 @@ async def _run_agent_with_readable_json_errors(
             ) from exc
         raise
 
-def _create_story_script_agent(model: str) -> Agent:
+def _create_story_script_agent() -> Agent:
     from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
-    from ai_anime.modules.model_usage.public import require_model_role
 
-    clean_model = str(model or "").strip()
-    require_model_role(clean_model, "TEXT")
-    llm_model = get_newapi_text_pydantic_model(
-        "FREEZONE_STORY_SCRIPT_MODEL",
-        clean_model,
-        model_name_override=clean_model,
-    )
+    llm_model = get_newapi_text_pydantic_model()
     return Agent(
         llm_model,
         system_prompt=CREATIVE_CANVAS_STORY_SCRIPT_SYSTEM_PROMPT,
@@ -128,7 +114,7 @@ async def translate_creative_canvas_text(
         node_type=node_type,
     )
     response = await _run_agent_with_readable_json_errors(
-        _create_translation_agent(model),
+        _create_translation_agent(),
         task,
         label="翻译",
     )
@@ -157,7 +143,7 @@ async def generate_creative_canvas_story_script(
         prompt=prompt,
     )
     response = await _run_agent_with_readable_json_errors(
-        _create_story_script_agent(model),
+        _create_story_script_agent(),
         task,
         label="故事脚本",
     )

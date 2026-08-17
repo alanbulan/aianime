@@ -6,8 +6,6 @@ from types import SimpleNamespace
 import pytest
 
 from ai_anime.api.routes.narrative_planning.episodes_schemas import EpisodeUpdate
-from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-from ai_anime.modules.asset_world.public import NovelProp
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 pytestmark = pytest.mark.m03
@@ -55,79 +53,6 @@ class _EpisodeStore:
         return None
 
 
-class _CogneeEpisodeStore:
-    def __init__(self, episode: NovelEpisode):
-        self.episode = episode
-        self.loaded = False
-        self.sqlite_store = _PropRecordingStore()
-
-    async def load_graph_state(self):
-        self.loaded = True
-
-    def get_all_episodes(self):
-        return [self.episode]
-
-    def get_all_characters(self):
-        character = NovelCharacter(name="秦")
-        character.identities = [
-            CharacterIdentity(
-                character_name="秦",
-                identity_id="秦_青年",
-                identity_name="青年",
-                appearance_details="青衣",
-            )
-        ]
-        return [character]
-
-    def get_cached_prop(self, name: str):
-        return self.sqlite_store.cached_props.get(name)
-
-
-class _PropRecordingStore:
-    def __init__(self):
-        self.cached_props: dict[str, NovelProp] = {}
-        self.added_props: list[NovelProp] = []
-
-    async def list_props(self):
-        return list(self.cached_props.values())
-
-    async def add_prop(self, prop: NovelProp):
-        self.cached_props[prop.name] = prop
-        self.added_props.append(prop)
-
-
-class _FakeAssetCompiler:
-    def __init__(self, store: _CogneeEpisodeStore):
-        self.store = store
-
-    async def compile_episode_scenes(self, episode, on_log=None):
-        if on_log:
-            on_log("planned scenes")
-        scene_menu = [{"scene_id": "宫门"}]
-        self.store.episode.scene_menu = scene_menu
-        return self.store.episode.scene_menu, 1
-
-    async def compile_episode_props(self, episode, on_log=None):
-        if on_log:
-            on_log("planned props")
-        prop_menu = [{"prop_id": "玉佩", "prop_type": "object"}]
-        self.store.episode.prop_menu = prop_menu
-        return self.store.episode.prop_menu
-
-
-class _FakeIdentityPlanner:
-    def __init__(self, store: _CogneeEpisodeStore):
-        self.store = store
-
-    async def plan_single_episode(self, episode, on_log=None):
-        if on_log:
-            on_log("planned identity")
-        self.store.episode.identity_ids = ["秦_青年"]
-        self.store.episode.character_names = ["秦"]
-        self.store.episode.identity_default_map = {"秦": "秦_青年"}
-        return 0, 1
-
-
 def _patch_project_and_store(
     monkeypatch: pytest.MonkeyPatch,
     module,
@@ -158,31 +83,6 @@ def _patch_project_and_store(
     monkeypatch.setattr(module, "make_sqlite_store_for_context", make_store)
 
 
-def _patch_project_and_cognee_store(
-    monkeypatch: pytest.MonkeyPatch,
-    module,
-    project_dir: Path,
-    store: _CogneeEpisodeStore,
-) -> None:
-    async def resolve_project_scope(project: str, user: dict, required_role: str = "viewer"):
-        return SimpleNamespace(
-            ctx=None,
-            username=user.get("username", "admin"),
-            project_name=project,
-            project_dir=project_dir,
-            output_dir=str(project_dir),
-            state_dir=str(project_dir),
-            runtime_dir=str(project_dir),
-        )
-
-    async def make_store(username: str, project: str):
-        return store
-
-    monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
-    monkeypatch.setattr(module, "make_cognee_store", make_store)
-    monkeypatch.setattr(module, "AssetCompiler", _FakeAssetCompiler, raising=False)
-
-
 def _patch_celery_episode_asset_planner(
     monkeypatch: pytest.MonkeyPatch,
     module,
@@ -209,8 +109,6 @@ def _patch_celery_episode_asset_planner(
             queue="node.node_a.default",
         )
 
-    async def fail_if_sync_store_is_used(*args, **kwargs):
-        raise AssertionError("episode asset planning must enqueue a Celery task")
     monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
     import ai_anime.shared.ports as runtime_ports
 
@@ -219,7 +117,6 @@ def _patch_celery_episode_asset_planner(
         "get_task_backend",
         lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
     )
-    monkeypatch.setattr(module, "make_cognee_store_for_context", fail_if_sync_store_is_used)
     return calls
 
 
@@ -401,8 +298,6 @@ async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
             queue="node.node_a.default",
         )
 
-    async def fail_if_sync_store_is_used(*args, **kwargs):
-        raise AssertionError("identity planning API must enqueue a Celery task")
     monkeypatch.setattr(episodes, "resolve_project_scope", resolve_project_scope)
     import ai_anime.shared.ports as runtime_ports
 
@@ -411,8 +306,6 @@ async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
         "get_task_backend",
         lambda: SimpleNamespace(enqueue_project_task=enqueue_project_task),
     )
-    monkeypatch.setattr(episodes, "make_cognee_store", fail_if_sync_store_is_used)
-
     response = await episodes.plan_episode_identities(
         project="proj_123",
         episode_num=1,
@@ -435,35 +328,6 @@ async def test_plan_episode_identities_enqueues_celery_task(monkeypatch):
             "payload": {"episode": 1},
         }
     ]
-
-
-@pytest.mark.asyncio
-async def test_plan_episode_scenes_returns_updated_episode_detail(tmp_path, monkeypatch):
-    from ai_anime.api.routes.narrative_planning import episodes
-    episode = NovelEpisode(number=1, title="第一集", beat_source_text="第一行")
-    store = _CogneeEpisodeStore(episode)
-    _patch_project_and_cognee_store(monkeypatch, episodes, tmp_path, store)
-
-    response = await episodes.plan_episode_scenes(
-        project="demo",
-        episode_num=1,
-        user={"username": "admin"},
-    )
-
-    assert response["ok"] is True
-    assert store.loaded is True
-    assert response["data"]["kind"] == "scene"
-    assert response["data"]["new_count"] == 1
-    assert response["data"]["total_count"] == 1
-    expected_menu_item = {
-        "scene_id": "宫门",
-        "base_scene_id": "",
-        "variant_id": "",
-        "time_of_day": "",
-    }
-    assert response["data"]["scene_menu"] == [expected_menu_item]
-    assert response["data"]["episode"]["scene_menu"] == [expected_menu_item]
-    assert response["data"]["logs"] == ["planned scenes"]
 
 
 @pytest.mark.asyncio
@@ -499,49 +363,6 @@ async def test_plan_episode_scenes_enqueues_celery_task(monkeypatch):
             "payload": {"episode": 4, "asset_kind": "scene"},
         }
     ]
-
-
-@pytest.mark.asyncio
-async def test_plan_episode_props_returns_updated_episode_detail(tmp_path, monkeypatch):
-    from ai_anime.api.routes.narrative_planning import episodes
-    episode = NovelEpisode(number=1, title="第一集", beat_source_text="第一行")
-    store = _CogneeEpisodeStore(episode)
-    _patch_project_and_cognee_store(monkeypatch, episodes, tmp_path, store)
-
-    response = await episodes.plan_episode_props(
-        project="demo",
-        episode_num=1,
-        user={"username": "admin"},
-    )
-
-    assert response["ok"] is True
-    assert store.loaded is True
-    assert response["data"]["kind"] == "prop"
-    assert response["data"]["total_count"] == 1
-    assert response["data"]["prop_menu"] == [
-        {
-            "prop_id": "玉佩",
-            "prop_type": "object",
-            "visual_prompt": "",
-            "description": "",
-            "owner_identity_id": "",
-            "marker_color": "",
-        }
-    ]
-    assert response["data"]["episode"]["prop_menu"] == [
-        {
-            "prop_id": "玉佩",
-            "prop_type": "object",
-            "visual_prompt": "",
-            "description": "",
-            "owner_identity_id": "",
-            "marker_color": "",
-        }
-    ]
-    assert response["data"]["logs"] == ["planned props"]
-    assert [prop.name for prop in store.sqlite_store.added_props] == ["玉佩"]
-    assert store.sqlite_store.cached_props["玉佩"].prop_type == "object"
-    assert store.get_cached_prop("玉佩") is not None
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 
 import pytest
 
@@ -94,6 +95,81 @@ def test_run_single_face_sharp_missing_sharp_fails_before_subprocess(tmp_path, m
         )
 
     assert exc.value.error_code == "SHARP_3D_UNAVAILABLE"
+
+
+def test_pano_sharp_worker_command_uses_packaged_world_runtime(tmp_path, monkeypatch):
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
+
+    runtime = tmp_path / "ai-anime-world-runtime.exe"
+    runtime.write_bytes(b"runtime")
+    monkeypatch.setenv("AI_ANIME_WORLD_RUNTIME_BIN", str(runtime))
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+
+    assert pano_splat_tasks._pano_sharp_command() == [str(runtime)]
+
+
+def test_pano_sharp_worker_command_rejects_incomplete_frozen_package(monkeypatch):
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
+
+    monkeypatch.delenv("AI_ANIME_WORLD_RUNTIME_BIN", raising=False)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+
+    with pytest.raises(RuntimeError, match="设置 → 环境依赖"):
+        pano_splat_tasks._pano_sharp_command()
+
+
+def test_pano_sharp_worker_command_uses_python_module_when_not_frozen(monkeypatch):
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
+
+    monkeypatch.delattr(sys, "frozen", raising=False)
+    monkeypatch.delenv("AI_ANIME_WORLD_RUNTIME_BIN", raising=False)
+
+    assert pano_splat_tasks._pano_sharp_command() == [
+        sys.executable,
+        "-m",
+        "ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp",
+    ]
+
+
+def test_sharp_progress_distinguishes_first_download_from_cached_model(tmp_path, monkeypatch):
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
+
+    monkeypatch.setenv("TORCH_HOME", str(tmp_path))
+    first_message = pano_splat_tasks._sharp_start_message("master", "auto")
+
+    assert "首次下载 SHARP 模型（约 2.81 GB" in first_message
+    assert "GPU 优先" in first_message
+
+    checkpoint = pano_splat_tasks._sharp_checkpoint_path()
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"cached")
+
+    cached_message = pano_splat_tasks._sharp_start_message("master", "auto")
+    assert "加载已缓存的 SHARP 模型" in cached_message
+    assert "首次下载" not in cached_message
+
+
+def test_sharp_device_is_read_from_worker_output():
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_splat_tasks
+
+    output = "Running SHARP on 1 cubemap face(s), face_size=768, internal_size=1536, device=cuda\n"
+    assert pano_splat_tasks._sharp_device_from_output(output) == "cuda"
+
+
+def test_sharp_checkpoint_prefers_domestic_mirror_with_upstream_fallback():
+    from ai_anime.modules.asset_world.infrastructure.director_world import pano_sharp
+
+    if pano_sharp.SHARP_DOMESTIC_MODEL_URL:
+        assert pano_sharp._sharp_model_download_urls(
+            pano_sharp.SHARP_DOMESTIC_MODEL_URL
+        ) == (
+            pano_sharp.SHARP_DOMESTIC_MODEL_URL,
+            pano_sharp.SHARP_UPSTREAM_MODEL_URL,
+        )
+    else:
+        assert pano_sharp.DEFAULT_MODEL_URL == pano_sharp.SHARP_UPSTREAM_MODEL_URL
+    custom = "https://mirror.example.cn/sharp.pt"
+    assert pano_sharp._sharp_model_download_urls(custom) == (custom,)
 
 
 

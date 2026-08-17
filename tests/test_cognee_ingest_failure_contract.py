@@ -214,8 +214,8 @@ async def test_cognee_pipeline_reports_real_model_call_activity(monkeypatch):
 
     async def operation():
         nv_config._notify_model_call_activity("text", "started", 1)
-        nv_config._notify_model_call_activity("text", "completed", 1)
         nv_config._notify_model_call_activity("embedding", "started", 3)
+        nv_config._notify_model_call_activity("text", "completed", 1)
         nv_config._notify_model_call_activity("embedding", "completed", 3)
         return SimpleNamespace(status=_FakeCompletedPipelineStatus(), payload=None)
 
@@ -232,6 +232,11 @@ async def test_cognee_pipeline_reports_real_model_call_activity(monkeypatch):
     assert any("文本模型已完成 1 次" in message for _, message in updates)
     assert any("向量已完成 1 批/3 条" in message for _, message in updates)
     assert all("阶段进度估算" in message for _, message in updates)
+    assert any("活跃请求 0 路" in message for _, message in updates)
+    assert any("本阶段峰值并发 2 路" in message for _, message in updates)
+    assert any("失败请求 0 次" in message for _, message in updates)
+    assert all("当前并发" not in message for _, message in updates)
+    assert all("已耗时" not in message for _, message in updates)
 
 
 @pytest.mark.asyncio

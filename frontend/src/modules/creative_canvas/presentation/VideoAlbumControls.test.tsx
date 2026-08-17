@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { getAllByUiTooltip, getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -18,7 +19,7 @@ describe("VideoAlbumControls", () => {
       </div>,
     );
 
-    const deckEdges = screen.getAllByTitle("展开画册");
+    const deckEdges = getAllByUiTooltip("展开画册");
     expect(deckEdges).toHaveLength(3);
     fireEvent.click(deckEdges[0]);
     expect(onExpand).toHaveBeenCalledOnce();
@@ -38,7 +39,7 @@ describe("VideoAlbumControls", () => {
       />,
     );
 
-    const toggle = screen.getByTitle("展开 4 条生成结果");
+    const toggle = getByUiTooltip("展开 4 条生成结果");
     expect(toggle).toHaveTextContent("1/4");
     fireEvent.click(toggle);
     expect(onToggle).toHaveBeenCalledOnce();
@@ -71,7 +72,7 @@ describe("VideoAlbumControls", () => {
       "/resolved/first.mp4",
     );
 
-    const cells = screen.getAllByTitle("点击设为主视频");
+    const cells = getAllByUiTooltip("点击设为主视频");
     const gallery = screen.getByText("画册 · 3 条").parentElement!;
     fireEvent.pointerDown(gallery, { clientX: 0, clientY: 0 });
     fireEvent.click(cells[1], { clientX: 10, clientY: 0 });
@@ -83,9 +84,9 @@ describe("VideoAlbumControls", () => {
 
     onSetMain.mockClear();
     fireEvent.click(
-      within(cells[1]).getByTitle("把这条视频作为独立视频节点放到画布上"),
+      getByUiTooltip("把这条视频作为独立视频节点放到画布上", cells[1]),
     );
-    fireEvent.click(within(cells[1]).getByTitle("下载这条视频"));
+    fireEvent.click(getByUiTooltip("下载这条视频", cells[1]));
     expect(onApply).toHaveBeenCalledWith("second.mp4");
     expect(onDownload).toHaveBeenCalledWith("second.mp4", 1);
     expect(onSetMain).not.toHaveBeenCalled();

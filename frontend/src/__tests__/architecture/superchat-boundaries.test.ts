@@ -248,6 +248,8 @@ describe("SuperChat boundaries", () => {
       "export function isNovelAttachment(",
       "export function isAllowedScriptUpload(",
       "export function isAllowedScriptDragItem(",
+      "export function isAllowedChatUpload(",
+      "export function isAllowedChatDragItem(",
       "export function isOverwriteChoice(",
       "export function isFinalOverwriteConfirmation(",
       "export function dataUrlToAttachmentBlob(",
@@ -267,6 +269,7 @@ describe("SuperChat boundaries", () => {
       "VIDEO_CREATION_RE",
       "UPLOADED_FILES_QUERY_RE",
       "NOVEL_ATTACHMENT_EXTENSIONS",
+      "CHAT_IMAGE_ATTACHMENT_EXTENSIONS",
       "INLINE_TEXT_ATTACHMENT_LIMIT",
     ]) {
       expect(domain).toContain(ownedConstant);
@@ -1817,6 +1820,10 @@ describe("SuperChat boundaries", () => {
       resolve(SRC_ROOT, "modules/ai_assistant/application/messageProjection.ts"),
       "utf8",
     );
+    const toolMessage = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/toolMessage.ts"),
+      "utf8",
+    );
     const hook = readFileSync(
       resolve(
         SRC_ROOT,
@@ -1845,9 +1852,9 @@ describe("SuperChat boundaries", () => {
     }
     for (const privateRule of [
       "function resultText(",
-      "function buildToolMessage(",
+      "export function buildToolMessage(",
     ]) {
-      expect(projection).toContain(privateRule);
+      expect(toolMessage).toContain(privateRule);
       expect(hook).not.toContain(privateRule);
     }
     expect(projection).toContain(

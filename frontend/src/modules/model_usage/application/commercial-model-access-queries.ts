@@ -8,7 +8,11 @@ import {
 import { queryKeys } from "@/lib/query-keys";
 import type { CommercialModelAccessGateway } from "@/modules/model_usage/application/commercial-model-access-ports";
 import { COMMERCIAL_MODEL_ACCESS_CHANGED_EVENT } from "@/modules/model_usage/application/commercial-model-access-events";
-import type { ByokModelAssignment } from "@/modules/model_usage/domain/commercial-model-access";
+import type {
+  ByokModelAssignment,
+  ByokProviderModelDiscoveryInput,
+  ByokProviderProtocol,
+} from "@/modules/model_usage/domain/commercial-model-access";
 import {
   parseCommercialModelUsageBootstrap,
   type CommercialModelCatalog,
@@ -124,7 +128,10 @@ export function createCommercialModelAccessQueries(
       queryKey: queryKeys.commercialQuota(),
       queryFn: () => gateway.fetchQuota(),
       enabled,
-      staleTime: 30_000,
+      staleTime: 10_000,
+      refetchInterval: enabled ? 15_000 : false,
+      refetchIntervalInBackground: false,
+      refetchOnWindowFocus: "always",
     });
   }
 
@@ -165,8 +172,13 @@ export function createCommercialModelAccessQueries(
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (input: {
+        providerId?: string;
+        name?: string;
+        protocol?: ByokProviderProtocol;
         baseUrl: string;
         apiKey?: string;
+        enabled?: boolean;
+        priority?: number;
         modelAssignments?: ByokModelAssignment[];
       }) =>
         gateway.configureByok(input),
@@ -192,11 +204,18 @@ export function createCommercialModelAccessQueries(
   function useClearByok() {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: () => gateway.clearByok(),
+      mutationFn: (providerId?: string) => gateway.clearByok(providerId),
       onSuccess: (status) => {
         queryClient.setQueryData(queryKeys.commercialModelAccess(), status);
         publishModelAccessChange(queryClient);
       },
+    });
+  }
+
+  function useDiscoverByokProviderModels() {
+    return useMutation({
+      mutationFn: (input: ByokProviderModelDiscoveryInput) =>
+        gateway.fetchByokProviderModels(input),
     });
   }
 
@@ -205,6 +224,7 @@ export function createCommercialModelAccessQueries(
     loadCommercialModelCatalog,
     seedCommercialBootstrap,
     useClearByok,
+    useDiscoverByokProviderModels,
     useCommercialModelAccessStatus,
     useCommercialModelCatalog,
     useCommercialModelDetails,

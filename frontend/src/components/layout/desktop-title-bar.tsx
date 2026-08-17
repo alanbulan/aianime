@@ -99,7 +99,7 @@ function TitleBarButton({
           : "text-muted-foreground hover:bg-accent hover:text-foreground"
       }`}
       aria-label={label}
-      title={label}
+      data-ui-tooltip={label}
       onClick={onClick}
     >
       {children}

@@ -31,7 +31,14 @@ import numpy as np
 from PIL import Image
 
 
-DEFAULT_MODEL_URL = "https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt"
+SHARP_DOMESTIC_MODEL_URL = os.environ.get("AI_ANIME_SHARP_MODEL_URL", "").strip()
+SHARP_UPSTREAM_MODEL_URL = (
+    "https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt"
+)
+DEFAULT_MODEL_URL = (
+    SHARP_DOMESTIC_MODEL_URL
+    or SHARP_UPSTREAM_MODEL_URL
+)
 DA2_HUB_ID = "haodongli/DA-2"
 DA2_MAX_DISTANCE = 20.0
 DA2_CONFIG = {
@@ -1069,11 +1076,28 @@ def downsample_gaussians(gaussians, max_gaussians: int):
     )
 
 
+def _sharp_model_download_urls(model_url: str) -> tuple[str, ...]:
+    urls = [model_url]
+    if SHARP_DOMESTIC_MODEL_URL and model_url == SHARP_DOMESTIC_MODEL_URL:
+        urls.append(SHARP_UPSTREAM_MODEL_URL)
+    return tuple(dict.fromkeys(urls))
+
+
 def build_sharp_model(model_url: str, device: torch.device):
     from sharp.models import PredictorParams, create_predictor
 
-    print(f"Loading SHARP checkpoint: {model_url}", flush=True)
-    state_dict = torch.hub.load_state_dict_from_url(model_url, progress=True)
+    state_dict = None
+    last_error: Exception | None = None
+    for candidate in _sharp_model_download_urls(model_url):
+        print(f"Loading SHARP checkpoint: {candidate}", flush=True)
+        try:
+            state_dict = torch.hub.load_state_dict_from_url(candidate, progress=True)
+            break
+        except Exception as exc:
+            last_error = exc
+            print(f"SHARP checkpoint source failed: {candidate}: {exc}", flush=True)
+    if state_dict is None:
+        raise RuntimeError("All SHARP checkpoint download sources failed") from last_error
     predictor = create_predictor(PredictorParams())
     predictor.load_state_dict(state_dict)
     predictor.eval()

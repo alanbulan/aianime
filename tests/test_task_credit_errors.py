@@ -131,6 +131,19 @@ def test_project_task_timeout_is_independent_from_celery_hard_limit(monkeypatch)
     )
 
     assert project_task_timeout_seconds() == 30 * 60
+    assert project_task_timeout_seconds("script_writer") == 2 * 60 * 60
+    assert project_task_timeout_seconds("literal_script_writer") == 2 * 60 * 60
+
+
+def test_project_task_timeout_environment_override_applies_to_script_writer(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_TASK_TIMEOUT_S", "900")
+    from ai_anime.modules.task_execution.infrastructure.project_task_runtime import (
+        project_task_timeout_seconds,
+    )
+
+    assert project_task_timeout_seconds("script_writer") == 900
 
 
 def test_celery_task_failure_maps_cooperative_task_timeout(monkeypatch) -> None:

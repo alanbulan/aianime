@@ -118,8 +118,6 @@ async def make_sqlite_store_for_context(ctx: ProjectContext) -> SQLiteStore:
 async def make_cognee_store_for_context(
     ctx: ProjectContext,
     *,
-    text_model: str | None = None,
-    embedding_model: str | None = None,
     embedding_dimensions: int | None = None,
     load_graph_state: bool = False,
 ) -> CogneeStore:
@@ -130,8 +128,6 @@ async def make_cognee_store_for_context(
         ctx.owner_project_label,
         output_dir=str(ctx.output_dir),
         state_dir=str(ctx.state_dir),
-        text_model=text_model,
-        embedding_model=embedding_model,
         embedding_dimensions=embedding_dimensions,
     )
     await store.initialize()

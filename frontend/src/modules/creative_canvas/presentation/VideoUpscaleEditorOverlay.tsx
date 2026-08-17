@@ -206,7 +206,7 @@ export function createVideoUpscaleEditorOverlay({
 
                 <span
                   className="inline-flex h-7 items-center rounded px-1 text-xs font-medium text-foreground/75"
-                  title={t('node.videoUpscale.panel.frameInterpolationLockedHint')}
+                  data-ui-tooltip={t('node.videoUpscale.panel.frameInterpolationLockedHint')}
                 >
                   {t('node.videoUpscale.panel.frameInterpolationNone')}
                 </span>
@@ -219,7 +219,7 @@ export function createVideoUpscaleEditorOverlay({
                   type="button"
                   className="h-7 rounded px-1.5 text-xs font-medium text-foreground/75 transition-colors hover:bg-muted hover:text-foreground"
                   onClick={handleCancel}
-                  title={t('common.cancel')}
+                  data-ui-tooltip={t('common.cancel')}
                 >
                   {t('common.cancel')}
                 </button>
@@ -232,7 +232,7 @@ export function createVideoUpscaleEditorOverlay({
                       ? NODE_GENERATE_BUTTON_DISABLED_CLASS
                       : NODE_GENERATE_BUTTON_ENABLED_CLASS
                   }`}
-                  title={t('node.videoUpscale.panel.submit')}
+                  data-ui-tooltip={t('node.videoUpscale.panel.submit')}
                 >
                   <ArrowUp className="h-4 w-4" />
                 </button>

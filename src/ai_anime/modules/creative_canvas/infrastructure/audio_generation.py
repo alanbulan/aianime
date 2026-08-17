@@ -373,7 +373,6 @@ async def generate_freezone_audio_eleven_music(
         )
         await write_model_audio_speech(
             output_path=output_path,
-            model=model_name,
             model_role="AUDIO_MUSIC",
             input_text=clean_prompt,
             response_format=response_format,

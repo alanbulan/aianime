@@ -23,6 +23,8 @@ const MAX_CAPTCHA_BYTES = 512 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const AVATAR_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 export const COMMERCIAL_GATEWAY_URL = "https://aianime.122-193-11-199.sslip.io";
+export const COMMERCIAL_RUNTIME_DEPENDENCIES_URL =
+  `${COMMERCIAL_GATEWAY_URL}/api/v1/client/runtime-dependencies`;
 
 type Identifier = string | number;
 type QueryValue = string | number | boolean | null | undefined;

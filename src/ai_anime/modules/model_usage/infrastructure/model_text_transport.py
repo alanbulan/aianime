@@ -23,7 +23,6 @@ class ModelTextTransportError(RuntimeError):
 
 async def request_model_chat_content(
     *,
-    model: str,
     messages: list[dict[str, Any]],
     max_tokens: int,
     temperature: float = 0.0,
@@ -32,26 +31,23 @@ async def request_model_chat_content(
 ) -> str:
     """Return message content from one standard ``/chat/completions`` call."""
     from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
-        require_model_role,
+        resolve_model_for_role,
     )
     from ai_anime.modules.model_usage.infrastructure.model_runtime import (
         get_model_access_json_transport,
     )
 
-    clean_model = str(model or "").strip()
-    if not clean_model:
-        raise ValueError("text model is required")
     if not messages:
         raise ValueError("text model messages are required")
     if int(max_tokens) <= 0:
         raise ValueError("max_tokens must be positive")
-    require_model_role(clean_model, "TEXT")
+    effective_model = resolve_model_for_role("TEXT")
 
-    base_url, transport_headers = get_model_access_json_transport()
+    base_url, transport_headers = get_model_access_json_transport("TEXT")
     headers = dict(transport_headers)
     headers["Idempotency-Key"] = str(uuid.uuid4())
     payload: dict[str, Any] = {
-        "model": clean_model,
+        "model": effective_model,
         "temperature": float(temperature),
         "max_tokens": int(max_tokens),
         "messages": messages,

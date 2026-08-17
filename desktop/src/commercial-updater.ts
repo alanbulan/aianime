@@ -9,6 +9,13 @@ interface UpdateCheckResultLike {
   updateInfo: { version: string };
 }
 
+interface UpdateDownloadProgressLike {
+  percent: number;
+  transferred: number;
+  total: number;
+  bytesPerSecond: number;
+}
+
 export interface ElectronUpdaterLike {
   autoDownload: boolean;
   autoInstallOnAppQuit: boolean;
@@ -19,25 +26,44 @@ export interface ElectronUpdaterLike {
   checkForUpdates(): Promise<UpdateCheckResultLike | null>;
   downloadUpdate(): Promise<string[]>;
   quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void;
+  on?(
+    event: "download-progress",
+    listener: (progress: UpdateDownloadProgressLike) => void,
+  ): unknown;
 }
 
 export interface CommercialUpdateDownloadResult {
   version: string;
 }
 
+export interface CommercialUpdateDownloadProgress {
+  percent: number;
+  transferred: number;
+  total: number;
+  bytesPerSecond: number;
+}
+
 export class CommercialDesktopUpdater {
   private downloadedVersion: string | null = null;
+  private downloading = false;
 
   constructor(
     private readonly updater: ElectronUpdaterLike,
     private readonly resolveFeed: (
       artifactId: Identifier,
     ) => Promise<CommercialReleaseUpdateFeed>,
+    private readonly onDownloadProgress?: (
+      progress: CommercialUpdateDownloadProgress,
+    ) => void,
   ) {
     updater.autoDownload = false;
     updater.autoInstallOnAppQuit = false;
     updater.disableDifferentialDownload = true;
     updater.disableWebInstaller = true;
+    updater.on?.("download-progress", (progress) => {
+      if (!this.downloading) return;
+      this.onDownloadProgress?.(normalizeDownloadProgress(progress));
+    });
   }
 
   async download(
@@ -57,9 +83,14 @@ export class CommercialDesktopUpdater {
       throw new Error("云端未返回可安装的新版本");
     }
 
-    const downloadedFiles = await this.updater.downloadUpdate();
-    if (downloadedFiles.length === 0) {
-      throw new Error("更新包下载失败");
+    this.downloading = true;
+    try {
+      const downloadedFiles = await this.updater.downloadUpdate();
+      if (downloadedFiles.length === 0) {
+        throw new Error("更新包下载失败");
+      }
+    } finally {
+      this.downloading = false;
     }
     this.downloadedVersion = check.updateInfo.version;
     return { version: check.updateInfo.version };
@@ -72,4 +103,28 @@ export class CommercialDesktopUpdater {
     this.downloadedVersion = null;
     this.updater.quitAndInstall(false, true);
   }
+}
+
+function normalizeDownloadProgress(
+  progress: UpdateDownloadProgressLike,
+): CommercialUpdateDownloadProgress {
+  return {
+    percent: finiteBounded(progress.percent, 0, 100),
+    transferred: finiteBounded(
+      progress.transferred,
+      0,
+      Number.MAX_SAFE_INTEGER,
+    ),
+    total: finiteBounded(progress.total, 0, Number.MAX_SAFE_INTEGER),
+    bytesPerSecond: finiteBounded(
+      progress.bytesPerSecond,
+      0,
+      Number.MAX_SAFE_INTEGER,
+    ),
+  };
+}
+
+function finiteBounded(value: number, minimum: number, maximum: number): number {
+  if (!Number.isFinite(value)) return minimum;
+  return Math.min(maximum, Math.max(minimum, value));
 }

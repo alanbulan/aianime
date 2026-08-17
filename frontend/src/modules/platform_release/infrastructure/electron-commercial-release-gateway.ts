@@ -1,5 +1,9 @@
 import type { CommercialReleaseGateway } from "@/modules/platform_release/application/commercial-release-ports";
-import { parseCommercialReleaseStatus } from "@/modules/platform_release/domain/commercial-release";
+import {
+  parseCommercialReleaseStatus,
+  parseCommercialUpdateDownloadProgress,
+  type CommercialUpdateDownloadProgress,
+} from "@/modules/platform_release/domain/commercial-release";
 import {
   invokeCommercial,
   requireCommercialBridge,
@@ -30,3 +34,36 @@ export const electronCommercialReleaseGateway: CommercialReleaseGateway = {
     await invokeCommercial(() => commercial.installUpdate());
   },
 };
+
+const downloadProgressListeners = new Set<
+  (progress: CommercialUpdateDownloadProgress) => void
+>();
+let detachDownloadProgressBridge: (() => void) | null = null;
+
+export function subscribeElectronCommercialUpdateDownloadProgress(
+  listener: (progress: CommercialUpdateDownloadProgress) => void,
+): () => void {
+  downloadProgressListeners.add(listener);
+  const bridge = window.aiAnimeDesktop?.commercial;
+  if (!detachDownloadProgressBridge && bridge?.onUpdateDownloadProgress) {
+    detachDownloadProgressBridge = bridge.onUpdateDownloadProgress((value) => {
+      let progress: CommercialUpdateDownloadProgress;
+      try {
+        progress = parseCommercialUpdateDownloadProgress(value);
+      } catch {
+        return;
+      }
+      for (const currentListener of downloadProgressListeners) {
+        currentListener(progress);
+      }
+    });
+  }
+
+  return () => {
+    downloadProgressListeners.delete(listener);
+    if (downloadProgressListeners.size === 0 && detachDownloadProgressBridge) {
+      detachDownloadProgressBridge();
+      detachDownloadProgressBridge = null;
+    }
+  };
+}

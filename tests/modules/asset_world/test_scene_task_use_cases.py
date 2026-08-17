@@ -80,10 +80,12 @@ class _Assets:
         masters: set[str] | None = None,
         reverse_masters: set[str] | None = None,
         panos: set[str] | None = None,
+        stage_available: bool = True,
     ) -> None:
         self.masters = masters or set()
         self.reverse_masters = reverse_masters or set()
         self.panos = panos or set()
+        self.stage_available = stage_available
 
     def has_master(self, _project_dir: Path, scene_name: str) -> bool:
         return scene_name in self.masters
@@ -93,6 +95,13 @@ class _Assets:
 
     def has_pano(self, _project_dir: Path, scene_name: str) -> bool:
         return scene_name in self.panos
+
+    def stage_generation_capability(self, _step: str) -> tuple[bool, str]:
+        return (
+            (True, "")
+            if self.stage_available
+            else (False, "当前桌面安装包未包含本地 SHARP/3DGS 运行组件")
+        )
 
 
 def _context():
@@ -345,6 +354,30 @@ async def test_pano_3gs_requires_pano_asset(tmp_path: Path) -> None:
             project_dir=tmp_path,
             scene_name="大殿",
         )
+
+
+@pytest.mark.asyncio
+async def test_3gs_rejects_before_queue_when_runtime_is_not_packaged(
+    tmp_path: Path,
+) -> None:
+    scheduler = _Scheduler()
+    use_cases = SceneTaskUseCases(
+        scheduler,
+        _Assets(masters={"大殿"}, stage_available=False),
+    )
+
+    with pytest.raises(
+        SceneGenerationRejected,
+        match="未包含本地 SHARP/3DGS 运行组件",
+    ):
+        await use_cases.schedule_single_face_3gs(
+            repository=_Repository([_Scene(name="大殿")]),
+            task_context=_context(),
+            project_dir=tmp_path,
+            scene_name="大殿",
+            source_kind="master",
+        )
+    assert scheduler.stage_task is None
 
 
 @pytest.mark.asyncio

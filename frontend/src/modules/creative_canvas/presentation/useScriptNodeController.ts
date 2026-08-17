@@ -175,7 +175,8 @@ export function createUseScriptNodeController({
       nodeId: id,
       enabled: isNodeSelected,
     });
-    const { isGenerating } = useNodeGenerationTaskState(data);
+    const { isGenerating, progress: generationProgress } =
+      useNodeGenerationTaskState(data);
     const hasGenerationSource = hasScriptGenerationSource(prompt, references);
     const submitDisabled = isGenerating || !hasGenerationSource;
     const showOperationsPanel =
@@ -404,6 +405,7 @@ export function createUseScriptNodeController({
       historyRecords,
       historyLoading,
       isGenerating,
+      generationProgress,
       isTranslating,
       isFullscreen,
       panelExpanded,

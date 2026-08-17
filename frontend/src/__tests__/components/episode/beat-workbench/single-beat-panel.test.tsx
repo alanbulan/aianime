@@ -203,6 +203,10 @@ describe("SingleBeatPanel", () => {
       "src",
       "/sketch.png",
     );
+    expect(screen.getByRole("img", { name: "Preview" }).parentElement).toHaveClass(
+      "top-[var(--desktop-title-bar-height,0px)]",
+      "bottom-9",
+    );
 
     await user.click(screen.getByRole("button", { name: "关闭" }));
     expect(screen.queryByRole("img", { name: "Preview" })).not.toBeInTheDocument();

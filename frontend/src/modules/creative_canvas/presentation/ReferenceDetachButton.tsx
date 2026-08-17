@@ -24,7 +24,7 @@ export function ReferenceDetachButton({ nodeId, onDetach, className }: Reference
     <span
       role="button"
       tabIndex={-1}
-      title="取消引用此素材"
+      data-ui-tooltip="取消引用此素材"
       className={
         className ??
         'nodrag absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-media/70 text-media-foreground shadow-sm ring-1 ring-media-foreground/15 transition-colors hover:bg-destructive group-hover:flex'

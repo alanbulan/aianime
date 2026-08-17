@@ -11,8 +11,8 @@ import {
 import { useAppStore } from "@/modules/project_workspace/public";
 import {
   displayLabel,
+  taskProgressPercent,
   type StreamHealth,
-  type TaskState,
 } from "@/modules/task_execution/public";
 import { RegionBadge } from "@/components/layout/region-badge";
 import { APP_VERSION } from "@/lib/app-version";
@@ -35,12 +35,6 @@ function relativeLabel(iso: string, now: number = Date.now()): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
   return `${h}h ago`;
-}
-
-function taskProgress(task: TaskState | null | undefined): number {
-  if (!task) return 0;
-  if (task.status === "completed") return 100;
-  return Math.max(0, Math.min(100, Math.round((task.progress || 0) * 100)));
 }
 
 export function TaskStatusBar() {
@@ -83,7 +77,7 @@ export function TaskStatusBar() {
 
   const primaryKey = leading?.task_key ?? lastDone?.task_key ?? null;
   const progressTask = leading ?? lastDone ?? null;
-  const progress = taskProgress(progressTask);
+  const progress = progressTask ? taskProgressPercent(progressTask) : 0;
   const progressTone = progressTask?.status === "failed"
     ? "bg-destructive/55"
     : progressTask?.status === "completed"
@@ -185,7 +179,7 @@ export function TaskStatusBar() {
         ) : null}
         <span
           className="shrink-0 font-normal tabular-nums text-muted-foreground"
-          title={APP_VERSION}
+          data-ui-tooltip={APP_VERSION}
         >
           {APP_VERSION}
         </span>

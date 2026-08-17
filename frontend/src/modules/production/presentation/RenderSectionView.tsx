@@ -321,7 +321,7 @@ export function RenderSectionView({
                 onClick={() => void onOpenFreezone()}
                 disabled={freezonePending}
                 className="gap-1"
-                title={t("episode.workbench.render.openFreezoneTip")}
+                data-ui-tooltip={t("episode.workbench.render.openFreezoneTip")}
               >
                 {freezonePending ? (
                   <Loader2 className="size-3 animate-spin" />
@@ -397,7 +397,7 @@ function RenderRelightBadge({
     const label = `Relight 到 ${timeOfDay.trim() || "指定时间"}`;
     return (
       <span
-        title="Relight：按 beat 时间重新打光，不改变场景结构。"
+        data-ui-tooltip="Relight：按 beat 时间重新打光，不改变场景结构。"
         className={cn(
           RELIGHT_BADGE_CLASS,
           "border-warning/35 bg-warning/10 text-warning",
@@ -410,7 +410,7 @@ function RenderRelightBadge({
   }
   return (
     <span
-      title="锁图光：使用场景图自带光线，不重新打光。"
+      data-ui-tooltip="锁图光：使用场景图自带光线，不重新打光。"
       className={cn(
         RELIGHT_BADGE_CLASS,
         "border-success/30 bg-success/10 text-success",
@@ -636,7 +636,7 @@ function RenderBackgroundReferencePanel({
                     variant="outline"
                     disabled={disabled || !item.exists || choosing}
                     onClick={() => void onChoose(item.id)}
-                    title={item.path || itemLabel}
+                    data-ui-tooltip={item.path || itemLabel}
                     className={cn(
                       "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted/50 disabled:text-muted-foreground/55",
                       isActive &&
@@ -654,7 +654,7 @@ function RenderBackgroundReferencePanel({
                       size="icon-xs"
                       variant="outline"
                       aria-label={cropActionLabel}
-                      title={cropActionLabel}
+                      data-ui-tooltip={cropActionLabel}
                       disabled={
                         disabled || !item.exists || croppingAnchorId !== null
                       }

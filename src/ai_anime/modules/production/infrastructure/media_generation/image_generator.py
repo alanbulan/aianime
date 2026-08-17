@@ -13,6 +13,7 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
     IMAGE_DEFAULT_HEIGHT,
     IMAGE_DEFAULT_STYLE,
     IMAGE_DEFAULT_WIDTH,
+    apply_style_reference,
     get_style_preset,
 )
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
@@ -47,7 +48,7 @@ async def _generate_commercial_image(
     *,
     model: str,
     prompt: str,
-    reference_images: list[tuple[bytes, str]] | None,
+    reference_images: list[tuple[bytes, str] | tuple[str, bytes, str]] | None,
     aspect_ratio: str,
 ) -> tuple[bytes | None, str]:
     from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
@@ -55,7 +56,6 @@ async def _generate_commercial_image(
     )
 
     image_bytes, _text, error = await _call_newapi_image_api(
-        model=model,
         prompt=prompt,
         reference_images=reference_images,
         image_config={"aspect_ratio": aspect_ratio, "image_size": "1K"},
@@ -110,9 +110,14 @@ class CommercialImageGenerator:
             prompt_parts.append(f"Avoid: {avoid}")
         resolved_prompt = ", ".join(part for part in prompt_parts if part)
 
-        references: list[tuple[bytes, str]] = []
+        references: list[tuple[bytes, str] | tuple[str, bytes, str]] = []
         if reference_image and Path(reference_image).is_file():
             references.append((Path(reference_image).read_bytes(), _mime_type(reference_image)))
+        resolved_prompt, references = apply_style_reference(
+            resolved_prompt,
+            references,
+            style_preset,
+        )
 
         try:
             image_bytes, error = await _generate_commercial_image(

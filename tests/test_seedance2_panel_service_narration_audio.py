@@ -21,7 +21,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
     from ai_anime.modules.production.infrastructure.seedance2_panel_service import build_seedance2_video_panel_state
 
-    monkeypatch.setattr(pc, "OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
     project_dir = tmp_path / "output" / "alice" / "project"
     frame = project_dir / "frames" / "ep001" / "beat_01.png"
     scene = project_dir / "assets" / "scenes" / "旧书店" / "master.png"

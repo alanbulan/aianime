@@ -31,20 +31,24 @@ type ButtonVariant = 'primary' | 'muted' | 'ghost';
 
 type ButtonSize = 'sm' | 'md';
 
-interface UiButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface UiTooltipAttributes {
+  'data-ui-tooltip'?: string;
+}
+
+interface UiButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>, UiTooltipAttributes {
   variant?: ButtonVariant;
   size?: ButtonSize;
 }
 
-interface UiIconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface UiIconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>, UiTooltipAttributes {
   active?: boolean;
 }
 
-interface UiChipButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface UiChipButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'title'>, UiTooltipAttributes {
   active?: boolean;
 }
 
-interface UiCheckboxProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
+interface UiCheckboxProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'title'>, UiTooltipAttributes {
   checked: boolean;
   onCheckedChange?: (checked: boolean) => void;
 }
@@ -99,7 +103,11 @@ export function UiButton({
   );
 }
 
-export function UiIconButton({ className = '', active = false, ...props }: UiIconButtonProps) {
+export function UiIconButton({
+  className = '',
+  active = false,
+  ...props
+}: UiIconButtonProps) {
   return (
     <button
       className={`inline-flex h-10 w-10 items-center justify-center border ui-field transition-colors ${active ? 'border-primary/45 bg-primary/12 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'} ${className}`}

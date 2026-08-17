@@ -14,6 +14,14 @@ const hookMocks = vi.hoisted(() => ({
   globalOnError: undefined as ((error: string) => void) | undefined,
   globalStart: vi.fn(),
   globalStarted: false,
+  identityOnComplete: undefined as ((result: unknown) => void) | undefined,
+  identityOnError: undefined as ((error: string) => void) | undefined,
+  identityStart: vi.fn(),
+  identityStarted: false,
+  productionOnComplete: undefined as ((result: unknown) => void) | undefined,
+  productionOnError: undefined as ((error: string) => void) | undefined,
+  productionStart: vi.fn(),
+  productionStarted: false,
   toastError: vi.fn(),
   toastInfo: vi.fn(),
   toastLoading: vi.fn(() => "toast-1"),
@@ -23,6 +31,7 @@ const hookMocks = vi.hoisted(() => ({
 vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: (options: {
     key: { taskType: string };
+    onComplete?: (result: unknown) => void;
     onError?: (error: string) => void;
   }) => {
     if (options.key.taskType === "global_optimize_video") {
@@ -30,6 +39,22 @@ vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(awai
       return {
         start: hookMocks.globalStart,
         started: hookMocks.globalStarted,
+      };
+    }
+    if (options.key.taskType === "ai_identity_detection") {
+      hookMocks.identityOnComplete = options.onComplete;
+      hookMocks.identityOnError = options.onError;
+      return {
+        start: hookMocks.identityStart,
+        started: hookMocks.identityStarted,
+      };
+    }
+    if (options.key.taskType === "production_workflow") {
+      hookMocks.productionOnComplete = options.onComplete;
+      hookMocks.productionOnError = options.onError;
+      return {
+        start: hookMocks.productionStart,
+        started: hookMocks.productionStarted,
       };
     }
     return {
@@ -66,6 +91,7 @@ const assignColors = vi.fn();
 const detectIdentities = vi.fn();
 const generateAudio = vi.fn();
 const globalOptimize = vi.fn();
+const productionWorkflow = vi.fn();
 const onSketchAspectRatioChange = vi.fn();
 const updateRenderSettings = vi.fn();
 const updateSketchSettings = vi.fn();
@@ -84,6 +110,10 @@ const generateAudioMutation = {
 const globalOptimizeMutation = {
   isPending: false,
   mutateAsync: globalOptimize,
+};
+const productionWorkflowMutation = {
+  isPending: false,
+  mutateAsync: productionWorkflow,
 };
 const renderSettingsQuery = {
   data: {
@@ -158,6 +188,7 @@ const useBatchBarController = createUseBatchBarController(
     useDetectIdentities: () => detectIdentitiesMutation,
     useGenerateAudio: () => generateAudioMutation,
     useGlobalOptimize: () => globalOptimizeMutation,
+    useProductionWorkflow: () => productionWorkflowMutation,
     useRenderSettings: () => renderSettingsQuery,
     useSketchSettings: () => sketchSettingsQuery,
     useUpdateRenderSettings: () => updateRenderSettingsMutation,
@@ -212,6 +243,7 @@ beforeEach(() => {
   detectIdentities.mockReset();
   generateAudio.mockReset();
   globalOptimize.mockReset();
+  productionWorkflow.mockReset();
   onSketchAspectRatioChange.mockReset();
   updateRenderSettings.mockReset();
   updateSketchSettings.mockReset();
@@ -220,6 +252,14 @@ beforeEach(() => {
   hookMocks.globalOnError = undefined;
   hookMocks.globalStart.mockReset();
   hookMocks.globalStarted = false;
+  hookMocks.identityOnComplete = undefined;
+  hookMocks.identityOnError = undefined;
+  hookMocks.identityStart.mockReset();
+  hookMocks.identityStarted = false;
+  hookMocks.productionOnComplete = undefined;
+  hookMocks.productionOnError = undefined;
+  hookMocks.productionStart.mockReset();
+  hookMocks.productionStarted = false;
   hookMocks.toastError.mockReset();
   hookMocks.toastInfo.mockReset();
   hookMocks.toastLoading.mockClear();
@@ -228,6 +268,7 @@ beforeEach(() => {
   detectIdentitiesMutation.isPending = false;
   generateAudioMutation.isPending = false;
   globalOptimizeMutation.isPending = false;
+  productionWorkflowMutation.isPending = false;
   updateRenderSettingsMutation.isPending = false;
   updateSketchSettingsMutation.isPending = false;
 });
@@ -383,26 +424,45 @@ describe("BatchBar controller", () => {
     });
   });
 
-  it("reports populated, empty, rejected, and failed identity detection", async () => {
+  it("starts and tracks the canonical production workflow", async () => {
+    productionWorkflow.mockResolvedValue({
+      ok: true,
+      task_type: "production_workflow",
+      message: "完整生产工作流已进入任务中心",
+      scope: "production-scope",
+    });
+    const { result } = renderHook(() =>
+      useBatchBarController(defaultOptions),
+    );
+
+    await act(async () => result.current.onRunProductionWorkflow());
+
+    expect(productionWorkflow).toHaveBeenCalledTimes(1);
+    expect(hookMocks.productionStart).toHaveBeenCalledWith({
+      scope: "production-scope",
+    });
+    expect(hookMocks.toastSuccess).toHaveBeenCalledWith(
+      "完整生产工作流已进入任务中心",
+    );
+
+    act(() => hookMocks.productionOnComplete?.({}));
+    expect(hookMocks.toastSuccess).toHaveBeenLastCalledWith(
+      "episode.workbench.batch.productionWorkflowCompleted",
+    );
+
+    act(() => hookMocks.productionOnError?.("父任务失败"));
+    expect(result.current.errorDialog).toEqual({
+      title: "episode.workbench.batch.productionWorkflowTitle",
+      description: "父任务失败",
+    });
+  });
+
+  it("queues identity detection and reports task completion or failure", async () => {
     detectIdentities
       .mockResolvedValueOnce({
         ok: true,
-        data: {
-          detections: {},
-          total_beats: 3,
-          total_identities: 2,
-          total_props: 1,
-          review_message: "review",
-        },
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        data: {
-          detections: {},
-          total_beats: 3,
-          total_identities: 0,
-          total_props: 0,
-        },
+        scope: "identity-detection:ep001",
+        message: "检测任务已入队",
       })
       .mockResolvedValueOnce({ ok: false, error: "检测被拒绝" })
       .mockRejectedValueOnce(new Error("network"));
@@ -411,26 +471,28 @@ describe("BatchBar controller", () => {
     );
 
     await act(async () => result.current.onDetectIdentities());
-    expect(hookMocks.toastSuccess).toHaveBeenCalledWith(
-      "detected:3:2:1\nreview",
-      { id: "toast-1" },
-    );
-
-    await act(async () => result.current.onDetectIdentities());
-    expect(hookMocks.toastInfo).toHaveBeenCalledWith(
-      "episode.workbench.batch.aiDetectEmpty\nepisode.workbench.batch.aiDetectReview",
-      { id: "toast-1" },
-    );
-
-    await act(async () => result.current.onDetectIdentities());
-    expect(hookMocks.toastError).toHaveBeenCalledWith("检测被拒绝", {
-      id: "toast-1",
+    expect(hookMocks.identityStart).toHaveBeenCalledWith({
+      scope: "identity-detection:ep001",
     });
+    expect(hookMocks.toastSuccess).toHaveBeenCalledWith("检测任务已入队");
+
+    act(() =>
+      hookMocks.identityOnComplete?.({
+        total_beats: 3,
+        total_identities: 2,
+        total_props: 1,
+      }),
+    );
+    expect(hookMocks.toastSuccess).toHaveBeenLastCalledWith("detected:3:2:1");
 
     await act(async () => result.current.onDetectIdentities());
-    expect(hookMocks.toastError).toHaveBeenCalledWith("network", {
-      id: "toast-1",
-    });
+    expect(hookMocks.toastError).toHaveBeenCalledWith("检测被拒绝");
+
+    await act(async () => result.current.onDetectIdentities());
+    expect(hookMocks.toastError).toHaveBeenCalledWith("network");
+
+    act(() => hookMocks.identityOnError?.("任务执行失败"));
+    expect(hookMocks.toastError).toHaveBeenLastCalledWith("任务执行失败");
   });
 
   it("forces color reassignment and reports its result", async () => {

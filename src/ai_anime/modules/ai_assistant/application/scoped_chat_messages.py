@@ -37,6 +37,7 @@ class ScopedChatMessages:
                 content,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=scope.conversation_id,
             )
         return self._history.append_message(
             username,
@@ -51,12 +52,24 @@ class ScopedChatMessages:
         scope: ChatScope,
         turn_id: str,
         event: dict[str, Any],
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
+        project_kwargs = {
+            key: value
+            for key, value in {
+                "project_dir": project_dir,
+                "project_state_dir": project_state_dir,
+            }.items()
+            if value is not None
+        }
         return self._history.append_ui_event(
             username,
             scope,
             turn_id,
             event,
+            **project_kwargs,
         )
 
     def list(
@@ -73,8 +86,39 @@ class ScopedChatMessages:
                 str(scope.id),
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=scope.conversation_id,
             )
         return self._history.list_messages(username, scope)
+
+    def list_conversations(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._history.list_conversations(
+            username,
+            scope,
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+        )
+
+    def delete_conversation(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool:
+        return self._history.delete_conversation(
+            username,
+            scope,
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+        )
 
 
 __all__ = ["ScopedChatMessages"]

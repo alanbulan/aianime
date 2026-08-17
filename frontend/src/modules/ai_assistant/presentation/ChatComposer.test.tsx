@@ -158,6 +158,43 @@ describe("SuperChat Composer view", () => {
     expect(focus).toHaveBeenCalledTimes(2);
   });
 
+  it("adds images pasted from the clipboard without replacing the draft", () => {
+    const onAddFiles = vi.fn();
+    render(<ChatComposer {...props({
+      fileUploadEnabled: true,
+      onAddFiles,
+    })} />);
+    const image = new File(["image"], "clipboard.png", { type: "image/png" });
+    const text = new File(["text"], "notes.txt", { type: "text/plain" });
+
+    const accepted = fireEvent.paste(screen.getByRole("textbox"), {
+      clipboardData: {
+        items: [
+          { kind: "file", type: image.type, getAsFile: () => image },
+          { kind: "file", type: text.type, getAsFile: () => text },
+        ],
+      },
+    });
+
+    expect(accepted).toBe(false);
+    expect(onAddFiles).toHaveBeenCalledWith([image]);
+  });
+
+  it("keeps ordinary text paste unchanged", () => {
+    const onAddFiles = vi.fn();
+    render(<ChatComposer {...props({
+      fileUploadEnabled: true,
+      onAddFiles,
+    })} />);
+
+    const accepted = fireEvent.paste(screen.getByRole("textbox"), {
+      clipboardData: { items: [] },
+    });
+
+    expect(accepted).toBe(true);
+    expect(onAddFiles).not.toHaveBeenCalled();
+  });
+
   it("forwards speech, send, abort, and focus-state actions", () => {
     const onDraftFocusChange = vi.fn();
     const idleProps = props({ onDraftFocusChange });

@@ -581,10 +581,7 @@ def create_seedance2_prompt_composer_agent():
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(
-            "SEEDANCE2_PROMPT_COMPOSER_MODEL",
-            "gemini-3.5-flash",
-        ),
+        get_newapi_text_pydantic_model(),
         system_prompt=SEEDANCE2_COMPOSER_SYSTEM_PROMPT,
         output_type=str,
         name="Seedance 2.0 Prompt Composer",

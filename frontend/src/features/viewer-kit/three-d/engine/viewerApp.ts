@@ -990,8 +990,9 @@ export async function createViewerApp(options: ViewerAppOptions): Promise<Viewer
   }
 
   // ---------- 占位放置 / 截图 ----------
-  // Phase 2a：导演态 actor / prop / staging 还没有后端资产管线，先用原色 primitive
-  // 在「准星所指地面」位置放置占位；准星 = 屏幕中央 = 相机正前方。
+  // 导演控制层：人物使用可动画的标准 mannequin；道具与场面调度使用带身份色的
+  // 语义形状代理。它们只进入控制图和元数据，不冒充最终成片的 3D 资产。
+  // 在「准星所指地面」位置放置控制代理；准星 = 屏幕中央 = 相机正前方。
   const markers: Record<MarkerKind, pc.Entity[]> = { actor: [], prop: [], staging: [] };
   // 每个 marker 创建时用的 hex 颜色，保存 / 恢复 scene snapshot 用。
   // 直接读 material.diffuse 也行，但 mannequin 是多 bone 多材质，记录原 hex 简单可靠。

@@ -76,7 +76,7 @@ export function AssetCommitHandle({ node }: { node: CanvasNode }) {
       <button
         type="button"
         onPointerDown={handlePointerDown}
-        title="按住拖到左侧素材库,替换同类型素材"
+        data-ui-tooltip="按住拖到左侧素材库,替换同类型素材"
         className={`${NODE_SIDE_ACTION_BUTTON_CLASS} active:cursor-grabbing`}
         style={{ cursor: 'grab' }}
       >

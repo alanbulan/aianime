@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,7 +28,9 @@ vi.mock('./NodeHeader', () => ({
 }));
 
 vi.mock('./NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: () => <div>generation-overlay</div>,
+  NodeGenerationOverlay: ({ progress }: { progress?: number | null }) => (
+    <div>generation-overlay:{progress ?? 'indeterminate'}</div>
+  ),
 }));
 
 vi.mock('./RegenerateButton', () => ({
@@ -118,6 +121,7 @@ function createController(): ScriptNodeController {
     historyRecords: [],
     historyLoading: false,
     isGenerating: false,
+    generationProgress: null,
     isTranslating: false,
     isFullscreen: false,
     panelExpanded: false,
@@ -150,6 +154,16 @@ function createController(): ScriptNodeController {
 }
 
 describe('ScriptNodeView', () => {
+  it('passes the task-center progress to the generation overlay', () => {
+    const controller = createController();
+    controller.isGenerating = true;
+    controller.generationProgress = 0.42;
+
+    render(<ScriptNodeView controller={controller} />);
+
+    expect(screen.getByText('generation-overlay:0.42')).toBeInTheDocument();
+  });
+
   it('renders empty actions and forwards node, title, and action commands', () => {
     const controller = createController();
     const { container } = render(<ScriptNodeView controller={controller} />);
@@ -223,12 +237,12 @@ describe('ScriptNodeView', () => {
     fireEvent.change(screen.getByDisplayValue('剧情提示'), {
       target: { value: '新提示' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '翻译（中英文互译）' }));
-    fireEvent.click(screen.getByRole('button', { name: '生成' }));
+    fireEvent.click(getByUiTooltip('翻译（中英文互译）'));
+    fireEvent.click(getByUiTooltip('生成'));
     fireEvent.click(screen.getByRole('button', { name: 'expand-panel' }));
     fireEvent.click(screen.getByRole('button', { name: 'restore-history' }));
-    fireEvent.mouseEnter(screen.getByTitle('参考视频'));
-    fireEvent.mouseLeave(screen.getByTitle('参考视频'));
+    fireEvent.mouseEnter(getByUiTooltip('参考视频'));
+    fireEvent.mouseLeave(getByUiTooltip('参考视频'));
 
     expect(controller.changePrompt).toHaveBeenCalledWith('新提示');
     expect(controller.translate).toHaveBeenCalledOnce();

@@ -5,10 +5,20 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 pytestmark = pytest.mark.m04
+
+
+def test_episode_audio_request_rejects_removed_tts_fields() -> None:
+    from ai_anime.api.routes.production.audio_schemas import (
+        EpisodeAudioGenerateRequest,
+    )
+
+    with pytest.raises(ValidationError):
+        EpisodeAudioGenerateRequest.model_validate({"provider": "old-provider"})
 
 
 class _FakeStore:
@@ -248,48 +258,13 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
     ]
 
 
-@pytest.mark.asyncio
-async def test_legacy_tts_generate_endpoint_is_gone():
-    from ai_anime.api.routes.production.audio_schemas import TTSGenerateRequest
+def test_removed_tts_routes_are_not_registered():
     from ai_anime.api.routes.production import audio as production_audio
 
-    with pytest.raises(HTTPException) as exc:
-        await production_audio.generate_tts(
-            project="demo",
-            episode_num=3,
-            body=TTSGenerateRequest(),
-            user={"username": "alice"},
-        )
+    app = FastAPI()
+    app.include_router(production_audio.router)
+    client = TestClient(app)
 
-    assert exc.value.status_code == 410
-    assert "/audio/generate" in str(exc.value.detail)
-
-
-@pytest.mark.asyncio
-async def test_legacy_tts_preview_endpoint_is_gone():
-    from ai_anime.api.routes.production.audio_schemas import TTSPreviewRequest
-    from ai_anime.api.routes.production import audio as production_audio
-
-    with pytest.raises(HTTPException) as exc:
-        await production_audio.preview_tts(
-            project="demo",
-            body=TTSPreviewRequest(text="hello"),
-            user={"username": "alice"},
-        )
-
-    assert exc.value.status_code == 410
-    assert "IndexTTS2" in str(exc.value.detail)
-
-
-@pytest.mark.asyncio
-async def test_legacy_tts_voices_endpoint_is_gone():
-    from ai_anime.api.routes.production import audio as production_audio
-
-    with pytest.raises(HTTPException) as exc:
-        await production_audio.list_tts_voices(
-            project="demo",
-            user={"username": "alice"},
-        )
-
-    assert exc.value.status_code == 410
-    assert "IndexTTS2" in str(exc.value.detail)
+    assert client.post("/projects/demo/episodes/3/tts/generate", json={}).status_code == 404
+    assert client.post("/projects/demo/tts/preview", json={"text": "hello"}).status_code == 404
+    assert client.get("/projects/demo/tts/voices").status_code == 404

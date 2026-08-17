@@ -9,8 +9,8 @@ class StubHermesRuntime:
         self.error = error
         self.calls = []
 
-    async def prewarm(self, username, *, scope_kind, project_id):
-        self.calls.append((username, scope_kind, project_id))
+    async def prewarm(self, username, *, scope_kind, project_id, conversation_id):
+        self.calls.append((username, scope_kind, project_id, conversation_id))
         if self.error is not None:
             raise self.error
 
@@ -28,7 +28,7 @@ async def test_hermes_runtime_prewarmer_warms_project_scope():
         project="project-a",
     )
 
-    assert runtime.calls == [("alice", "project", "project-a")]
+    assert runtime.calls == [("alice", "project", "project-a", "main")]
 
 
 @pytest.mark.anyio
@@ -37,7 +37,7 @@ async def test_hermes_runtime_prewarmer_warms_home_scope():
 
     await HermesRuntimePrewarmer(runtime).prewarm("alice")
 
-    assert runtime.calls == [("alice", "home", None)]
+    assert runtime.calls == [("alice", "home", None, "main")]
 
 
 @pytest.mark.anyio
@@ -49,4 +49,4 @@ async def test_hermes_runtime_prewarmer_ignores_runtime_failure():
         project="project-a",
     )
 
-    assert runtime.calls == [("alice", "project", "project-a")]
+    assert runtime.calls == [("alice", "project", "project-a", "main")]

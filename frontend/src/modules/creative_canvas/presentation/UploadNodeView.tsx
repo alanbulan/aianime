@@ -78,7 +78,7 @@ export function UploadNodeView({
               controller.pickFile();
             }}
             onPointerDown={(event) => event.stopPropagation()}
-            title={
+            data-ui-tooltip={
               controller.imageOnly
                 ? '上传图片'
                 : (t('node.upload.hint') ?? '上传资源')
@@ -136,7 +136,7 @@ export function UploadNodeView({
             void controller.openDirectorStage();
           }}
           onPointerDown={(event) => event.stopPropagation()}
-          title={t('viewer.threeD.openDirectorWorldTitle')}
+          data-ui-tooltip={t('viewer.threeD.openDirectorWorldTitle')}
           className="nodrag absolute bottom-2 right-2 z-[6] inline-flex h-7 items-center gap-1.5 rounded-md border border-primary/55 bg-primary px-2.5 text-[11px] font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {controller.directorStageBusy ? (

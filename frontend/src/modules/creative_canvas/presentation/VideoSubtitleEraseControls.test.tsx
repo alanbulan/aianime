@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { fireEvent, render, screen } from "@testing-library/react";
+import { getByUiTooltip, queryByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
+import { fireEvent, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -145,14 +146,14 @@ describe("VideoSubtitleEraseControls", () => {
       />,
     );
 
-    fireEvent.click(screen.getByTitle("node.videoNode.subtitleErase.exit"));
+    fireEvent.click(getByUiTooltip("node.videoNode.subtitleErase.exit"));
     fireEvent.click(
-      screen.getByTitle("node.videoNode.subtitleErase.tools.reset"),
+      getByUiTooltip("node.videoNode.subtitleErase.tools.reset"),
     );
     expect(onExit).toHaveBeenCalledOnce();
     expect(onResetBox).toHaveBeenCalledOnce();
     expect(
-      screen.getByTitle("node.videoNode.subtitleErase.submit"),
+      getByUiTooltip("node.videoNode.subtitleErase.submit"),
     ).toBeDisabled();
 
     rerender(
@@ -166,9 +167,9 @@ describe("VideoSubtitleEraseControls", () => {
       />,
     );
     expect(
-      screen.queryByTitle("node.videoNode.subtitleErase.tools.reset"),
+      queryByUiTooltip("node.videoNode.subtitleErase.tools.reset"),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTitle("node.videoNode.subtitleErase.submit"));
+    fireEvent.click(getByUiTooltip("node.videoNode.subtitleErase.submit"));
     expect(onSubmit).toHaveBeenCalledOnce();
   });
 });

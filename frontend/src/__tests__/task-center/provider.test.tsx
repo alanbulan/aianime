@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CancelledError } from "@tanstack/query-core";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -84,6 +84,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
+  cleanup();
   useAuthStore.setState({ username: null, role: null });
 });
 
@@ -115,7 +116,7 @@ describe("TaskCenterProvider", () => {
   it("does NOT open a stream when logged out (no username)", async () => {
     useAuthStore.setState({ username: null });
     render(<Harness />);
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(MockEventSource.instances.length).toBe(0);
     });
   });
@@ -127,7 +128,7 @@ describe("TaskCenterProvider", () => {
       ),
     );
     render(<Harness />);
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(useTaskCenterStore.getState().isHydrated).toBe(true);
       expect(MockEventSource.instances.length).toBe(1);
     });
@@ -151,7 +152,7 @@ describe("TaskCenterProvider", () => {
       </Harness>,
     );
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(useTaskCenterStore.getState().isHydrated).toBe(true);
       expect(MockEventSource.instances.length).toBe(1);
     });
@@ -172,7 +173,7 @@ describe("TaskCenterProvider", () => {
     });
     const { unmount } = render(<Harness queryClient={queryClient} />);
 
-    await vi.waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
+    await waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
     expect(queryClient.getQueryData(queryKeys.tasks("demo"))).toBeDefined();
 
     unmount();
@@ -191,7 +192,7 @@ describe("TaskCenterProvider", () => {
 
     render(<Harness queryClient={queryClient} />);
 
-    await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
     expect(
       errorSpy.mock.calls.some((call) => call[0] === "[task-center] hydrate failed"),
     ).toBe(false);
@@ -213,14 +214,14 @@ describe("TaskCenterProvider", () => {
     });
     render(<Harness queryClient={queryClient} />);
 
-    await vi.waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
+    await waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
     expect(queryClient.getQueryData(queryKeys.tasks("demo"))).toBeDefined();
 
     act(() => {
       useAuthStore.setState({ username: null, role: null });
     });
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(queryClient.getQueryData(queryKeys.tasks("demo"))).toBeUndefined();
     });
   });
@@ -228,7 +229,7 @@ describe("TaskCenterProvider", () => {
   it("⌘J keypress toggles taskPanelOpen (not in form fields)", async () => {
     server.use(http.get("*/api/v1/projects/demo/tasks", () => HttpResponse.json({ ok: true, data: [] })));
     render(<Harness />);
-    await vi.waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
+    await waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "j", metaKey: true }));
     });
@@ -246,7 +247,7 @@ describe("TaskCenterProvider", () => {
         <input data-testid="inp" />
       </Harness>,
     );
-    await vi.waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
+    await waitFor(() => expect(useTaskCenterStore.getState().isHydrated).toBe(true));
     const inp = screen.getByTestId("inp") as HTMLInputElement;
     act(() => {
       inp.focus();
@@ -272,7 +273,7 @@ describe("TaskCenterProvider", () => {
     const { toast } = await import("sonner");
     const spy = vi.spyOn(toast, "success");
     render(<Harness />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
     // Transition running → completed BEFORE any heartbeat. Must fire.
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -294,7 +295,7 @@ describe("TaskCenterProvider", () => {
       ),
     );
     render(<Harness />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
     // Close snapshot window via heartbeat
     act(() => {
       MockEventSource.instances[0].dispatch("heartbeat", { ts: "now" });
@@ -345,7 +346,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -366,6 +367,51 @@ describe("TaskCenterProvider", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.episodes("demo") });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.episodeDetail("demo", 1),
+    });
+  });
+
+  it("invalidates the style list when a style preview task completes", async () => {
+    server.use(
+      http.get("*/api/v1/projects/demo/tasks", () =>
+        HttpResponse.json({
+          ok: true,
+          data: [
+            sampleTask({
+              task_id: "style-preview-1",
+              task_key: "task:style_preview:alice:demo:0:style_preview__test",
+              task_type: "style_preview",
+              episode: 0,
+              scope: "style_preview__test",
+              status: "running",
+            }),
+          ],
+        }),
+      ),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    render(<Harness queryClient={queryClient} />);
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+
+    act(() => {
+      MockEventSource.instances[0].dispatch(
+        "task_updated",
+        sampleTask({
+          task_id: "style-preview-1",
+          task_key: "task:style_preview:alice:demo:0:style_preview__test",
+          task_type: "style_preview",
+          episode: 0,
+          scope: "style_preview__test",
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        }),
+      );
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.styles("demo"),
     });
   });
 
@@ -392,7 +438,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -436,7 +482,7 @@ describe("TaskCenterProvider", () => {
       });
       const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
       render(<Harness queryClient={queryClient} />);
-      await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+      await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
       act(() => {
         MockEventSource.instances[0].dispatch(
@@ -479,7 +525,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -537,7 +583,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch("task_updated", completedTask);
@@ -587,7 +633,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -633,7 +679,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -682,7 +728,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -725,7 +771,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -768,7 +814,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -812,7 +858,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -855,7 +901,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(
@@ -901,7 +947,7 @@ describe("TaskCenterProvider", () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     render(<Harness queryClient={queryClient} />);
-    await vi.waitFor(() => expect(MockEventSource.instances.length).toBe(1));
+    await waitFor(() => expect(MockEventSource.instances.length).toBe(1));
 
     act(() => {
       MockEventSource.instances[0].dispatch(

@@ -70,6 +70,65 @@ interface AIAnimeCommercialRegistrationInput {
 interface AIAnimeByokModelAssignment {
   modelId: string;
   role: string;
+  priority: number;
+  enabled: boolean;
+}
+
+type AIAnimeByokProviderProtocol =
+  | "OPENAI_COMPATIBLE"
+  | "ANTHROPIC"
+  | "GEMINI";
+
+interface AIAnimeCommercialUpdateDownloadProgress {
+  percent: number;
+  transferred: number;
+  total: number;
+  bytesPerSecond: number;
+}
+
+type AIAnimeRuntimeDependencyState =
+  | "unsupported"
+  | "not-installed"
+  | "incomplete"
+  | "ready"
+  | "installing";
+
+interface AIAnimeRuntimeDependencyStatus {
+  id: "world";
+  supported: boolean;
+  installed: boolean;
+  healthy: boolean;
+  installing: boolean;
+  state: AIAnimeRuntimeDependencyState;
+  platform: string;
+  arch: string;
+  accelerator: string;
+  version?: string;
+  downloadSizeBytes?: number;
+  installedSizeBytes?: number;
+  message: string;
+}
+
+interface AIAnimeRuntimeDependencyProgress {
+  phase:
+    | "manifest"
+    | "downloading"
+    | "verifying"
+    | "extracting"
+    | "checking"
+    | "complete";
+  message: string;
+  transferredBytes?: number;
+  totalBytes?: number;
+  percent?: number;
+}
+
+interface AIAnimeRuntimeDependencyBridge {
+  status: () => Promise<AIAnimeRuntimeDependencyStatus>;
+  install: () => Promise<AIAnimeRuntimeDependencyStatus>;
+  onProgress: (
+    listener: (progress: AIAnimeRuntimeDependencyProgress) => void,
+  ) => () => void;
 }
 
 interface AIAnimeCommercialBridge {
@@ -139,14 +198,26 @@ interface AIAnimeCommercialBridge {
   deactivateLicense: (reason: string) => Promise<unknown>;
   modelAccessStatus: () => Promise<unknown>;
   configureByok: (input: {
+    providerId?: string;
+    name?: string;
+    protocol?: AIAnimeByokProviderProtocol;
     baseUrl: string;
     apiKey?: string;
+    enabled?: boolean;
+    priority?: number;
     modelAssignments?: AIAnimeByokModelAssignment[];
   }) => Promise<unknown>;
   selectCloudModels: (input?: {
     modelAssignments?: AIAnimeByokModelAssignment[];
   }) => Promise<unknown>;
-  clearByok: () => Promise<unknown>;
+  clearByok: (input?: { providerId?: string }) => Promise<unknown>;
+  byokProviderModels: (input: {
+    providerId?: string;
+    name?: string;
+    protocol?: AIAnimeByokProviderProtocol;
+    baseUrl: string;
+    apiKey?: string;
+  }) => Promise<unknown>;
   quotaBalance: () => Promise<unknown>;
   modelCatalog: (query: {
     operation?: string;
@@ -174,6 +245,9 @@ interface AIAnimeCommercialBridge {
   downloadUpdate: (
     artifactId: string | number,
   ) => Promise<{ version: string }>;
+  onUpdateDownloadProgress: (
+    listener: (progress: AIAnimeCommercialUpdateDownloadProgress) => void,
+  ) => () => void;
   installUpdate: () => Promise<void>;
 }
 
@@ -188,6 +262,7 @@ interface AIAnimeDesktopBridge {
   clipboard: Readonly<{
     writeText: (value: string) => Promise<void>;
   }>;
+  runtimeDependencies?: Readonly<AIAnimeRuntimeDependencyBridge>;
   commercial?: Readonly<AIAnimeCommercialBridge>;
 }
 

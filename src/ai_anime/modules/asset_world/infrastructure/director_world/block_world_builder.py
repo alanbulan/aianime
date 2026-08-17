@@ -343,16 +343,9 @@ def call_openai_chat(
     use_catalog_default: bool = False,
 ) -> str:
     from ai_anime.modules.model_usage.public import get_model_access_openai_client
-    from ai_anime.modules.model_usage.public import (
-        resolve_internal_model_for_role,
-        resolve_model_for_role,
-    )
+    from ai_anime.modules.model_usage.public import resolve_model_for_role
 
-    effective_model = (
-        resolve_internal_model_for_role(model, "TEXT")
-        if use_catalog_default
-        else resolve_model_for_role(model, "TEXT")
-    )
+    effective_model = resolve_model_for_role("TEXT")
 
     user_content: str | list[dict[str, Any]]
     resolved_image_paths = image_paths or ([image_path] if image_path is not None else [])
@@ -365,7 +358,7 @@ def call_openai_chat(
     else:
         user_content = user_prompt
 
-    with get_model_access_openai_client() as client:
+    with get_model_access_openai_client(role="TEXT") as client:
         response = client.chat.completions.create(
             model=effective_model,
             messages=[

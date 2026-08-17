@@ -13,6 +13,44 @@
 
 ---
 
+## 完整生产唯一入口
+
+用户要求完整生成、自动完成整集或全部分集时，只调用：
+
+```
+ai_anime_run_production_workflow(
+  episodes=[1],          # 省略表示全部已规划分集
+  filename="novel.txt", # 仅尚未摄入时需要
+  target_beats=18        # 用户明确指定镜头数时传
+)
+
+实际 POST /projects/$PID/workflow/production
+```
+
+该父任务内部调用与前端手动操作相同的应用用例，按断点完成脚本图、世界资产、草图、AI 检测、全局优化、首帧、音频、逐 beat 视频和合成。助手只等待父 `production_workflow` 的精确 `task_key`，不得按下文单步接口再编排一条完整流程。
+
+---
+
+## 脚本生产图唯一入口
+
+助手执行摄入、角色提取、分集规划、身份规划、场景规划和分集脚本时，统一使用：
+
+```
+ai_anime_run_script_workflow(
+  mode="through",
+  target="script",
+  episodes=[1],          # 省略表示处理全部已规划分集
+  filename="novel.txt", # 仅尚未摄入时需要，必须来自上传列表
+  max_parallel=4
+)
+
+实际 POST /projects/$PID/workflow/scripts
+```
+
+依赖图固定为 `摄入 → 角色 → 分集 →（身份规划 || 场景规划）→ 分集脚本`。`mode="through"` 补齐目标之前所有缺失节点；`mode="single"` 只执行目标节点，缺前置时直接返回缺项。所有节点都进入任务中心，调用方只等待父 `script_workflow` 的精确 `task_key`。
+
+---
+
 ## 当前项目准备阶段
 
 项目创建由前端/系统完成，AI anime 助手不会调用 `POST /projects`。以下步骤均要求
@@ -29,8 +67,7 @@ Body: multipart/form-data, file=novel.txt
 
 ```
 专用工具: ai_anime_start_ingest(filename="novel.txt", rebuild=false)
-实际 POST /projects/$PID/ingest/start
-Body: {"filename": "novel.txt", "textModel": "<当前 TEXT 分配>", "embeddingModel": "<当前 EMBEDDING 分配>", "rebuild": false}
+实际由 /projects/$PID/workflow/scripts 的 ingest 单节点启动摄入任务
 
 已摄入项目覆盖重建只能在二次确认后调用:
 专用工具: ai_anime_start_ingest(filename="novel.txt", rebuild=true)
@@ -56,8 +93,7 @@ Body: {"visual_style": "...", "narration_style": "...", "ethnicity": "...", "rhy
 ```
 ai_anime_build_characters            # 触发提取（项目默认取 AI_ANIME_PROJECT_ID）
 
-ai_anime_get_task(task_type="build_characters", episode=0)   # 轮询状态
-SSE /projects/$PID/tasks/build_characters/0/stream            # 或流式
+ai_anime_wait_task(task_key="<触发结果中的 task_key>")       # 等待精确任务
 ```
 
 完成后用：
@@ -118,11 +154,21 @@ Body: {"style": "...", "ethnicity": "...", "model": "nanobanana"}
 
 ## 逐集生成阶段
 
-### Step 8: 身份规划 [SYNC]
+### Step 8a: 身份规划 [ASYNC -> identity_planner]
 
 ```
-POST /projects/$PID/episodes/$EP/identities/plan
+ai_anime_plan_identities(episode=$EP)
+实际由 /projects/$PID/workflow/scripts 的 identities 单节点启动
 ```
+
+### Step 8b: 场景规划 [ASYNC -> episode_scene_planner]
+
+```
+ai_anime_plan_scenes(episode=$EP)
+实际由 /projects/$PID/workflow/scripts 的 scenes 单节点启动
+```
+
+Step 8a 与 Step 8b 只依赖分集规划，允许并行；分集脚本必须等待两者都完成。
 
 ### Step 9: 身份图生成 [SYNC]
 
@@ -155,14 +201,12 @@ GET /projects/$PID/episodes/$EP/adapted-content
 
 ### Step 10b: 剧本生成 [ASYNC -> script_writer]
 
-当前后端没有 `/literal-script/generate`。使用实际存在的：
+助手使用前置感知的图入口，不直接调用底层脚本写接口：
 
 ```
-POST /projects/$PID/episodes/$EP/script/generate
-Body: {"narration_style": "first_person"}
-
-GET /projects/$PID/tasks/script_writer/$EP
-SSE /projects/$PID/tasks/script_writer/$EP/stream
+ai_anime_generate_script(episode=$EP)
+实际 POST /projects/$PID/workflow/scripts
+Body: {"mode":"through","target":"script","episodes":[$EP]}
 ```
 
 完成后验证：
@@ -174,11 +218,11 @@ GET /projects/$PID/episodes/$EP/beats
 
 不要要求 `script_mode == "literal_source"`；当前后端不保证该字段。
 
-### Step 11: 场景 / 道具上下文 [SYNC/ASYNC]
+### Step 11: 场景参考资产 / 道具上下文 [SYNC/ASYNC]
 
 当前后端没有 `anchor-image/*`、`scene_anchor` task，也没有 `/episodes/$EP/scenes/snapshot-sync`。不要调用这些路径。
 
-可用场景 API：
+本集 `scene_menu` 已在 Step 8b 生成。后续可用场景资产 API：
 
 ```
 GET /projects/$PID/scenes
@@ -208,7 +252,7 @@ POST /projects/$PID/props/$PROP_NAME/delete
 POST /projects/$PID/episodes/$EP/sketches/assign-colors
 
 POST /projects/$PID/episodes/$EP/sketches/generate
-Body: {"style": "...", "model": "nanobanana", "grid_index": 0, "sketch_location_grouping": true}
+Body: {"style": "...", "grid_index": 0, "sketch_scene_grouping": true, "aspect_ratio": "2:3", "image_generation_selection": "..."}
 
 GET /projects/$PID/tasks/sketch_generation/$EP?scope=grid_0
 SSE /projects/$PID/tasks/sketch_generation/$EP/stream?scope=grid_0
@@ -222,10 +266,13 @@ SSE /projects/$PID/tasks/sketch_generation/$EP/stream?scope=grid_0
 GET /projects/$PID/episodes/$EP/grids
 ```
 
-### Step 12.3: AI 身份检测 [SYNC]
+### Step 12.3: AI 身份检测 [ASYNC -> ai_identity_detection]
 
 ```
 POST /projects/$PID/episodes/$EP/sketches/detect-identities
+
+GET /projects/$PID/tasks/ai_identity_detection/$EP
+SSE /projects/$PID/tasks/ai_identity_detection/$EP/stream
 ```
 
 ### Step 12.5: 全局视频优化 [ASYNC -> global_optimize_video]
@@ -250,7 +297,7 @@ SSE /projects/$PID/tasks/selected_regen/$EP/stream
 
 ### Step 14: 音频生成 [ASYNC -> audio_generation_indextts2]
 
-当前主线只使用 `audio/generate`。旧 `/tts/generate` 已移除，不要调用。
+音频生成统一使用 `audio/generate`。
 
 ```
 POST /projects/$PID/episodes/$EP/audio/generate
@@ -270,13 +317,13 @@ POST /projects/$PID/episodes/$EP/beats/$BEAT/audio
 
 当前后端没有 `/projects/$PID/episodes/$EP/videos/generate` 整集批量视频路由。
 
-**单轮限制**：本步骤一次用户消息最多启动 1 个 beat 的 `single_video` 任务。用户首次说“完成第 N 集视频生成 / 生成第 N 集视频 / 整集视频”这类笼统目标时，先按主 skill 的“大任务先澄清拆解”回复，不读取状态、不启动任务。用户确认要列进度后，才读取 beats 和 pipeline 状态，只说明缺哪些前置或建议先启动哪个 beat；不要在同一轮遍历所有 beat，不要连续 POST 多个 beat，也不要启动后继续 compose。
+**执行规则**：逐步确认模式一次启动 1 个 beat 的 `single_video` 任务。连续自动模式由 `production_workflow` 父任务找出缺失 beat、服从队列准入并等待各子任务终态，助手不得批量提交。全部成功后才进入 compose。
 
 生成单个 beat 视频：
 
 ```
 POST /projects/$PID/episodes/$EP/beats/$BEAT/video
-Body: {"resolution": "720x1280", "video_backend": "huimeng_seedance-1.0-pro-fast"}
+Body: {"resolution": "720x1280", "model": "<当前可用视频模型 ID>"}
 
 GET /projects/$PID/tasks/single_video/$EP?beat_num=$BEAT
 SSE /projects/$PID/tasks/single_video/$EP/stream?beat_num=$BEAT
@@ -284,11 +331,11 @@ SSE /projects/$PID/tasks/single_video/$EP/stream?beat_num=$BEAT
 
 启动接口返回 `ok:false` 或 HTTP 错误时，直接向用户反馈接口错误。启动成功后如果任务状态为 `failed` / `cancelled`，直接向用户反馈 `task.error`、`error_code` 或最近日志中的失败原因；不要把失败收口成“已重做完成”。
 
-如果用户要求“整集生成视频片段”，先 `GET /projects/$PID/episodes/$EP/beats`，选择第一个未完成且前置满足的 beat，最多启动这一个 beat；如果没有满足前置的 beat，只汇报缺项。不要调用不存在的 `/videos/generate`。
+如果用户要求完整生成整集，调用 `ai_anime_run_production_workflow(episodes=[$EP])`。只有明确的局部逐 beat 操作才先读取 beats 并提交当前 beat。不要调用不存在的 `/videos/generate`。
 
 ### Step 16: 合成 [ASYNC -> compose_episode]
 
-合成只能在本集所有 beat 视频都已完成后启动。启动 `compose_episode` 后立即收口；不要在同一轮先启动视频再启动合成，也不要等待合成完成后继续展示成片。
+合成只能在本集所有 beat 视频都已完成后启动。逐步确认模式启动后收口；连续自动模式等待 compose 完成后继续展示正式成片。
 
 ```
 POST /projects/$PID/episodes/$EP/videos/compose

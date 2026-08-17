@@ -1,22 +1,19 @@
 # 运行模式（两种）
 
 用户在配置完成后（init.md 决策树第 5 步）选择运行模式。两种模式共用同一套
-pipeline 步骤顺序与专用工具，只是「是否每步解释并确认」不同；两种模式都不能在一轮里连续启动多个写任务。
+后端业务用例；逐步确认模式调用单步入口，自动推进模式调用唯一的完整生产入口。
 
 模式由用户本轮明确表达决定，并在本会话内保持：
 - 用户说「每步确认 / 一步步 / 手动 / 每步问我」→ **逐步确认模式**（见下）
-- 用户说「一次性 / 全自动 / 自动驾驶 / 一口气跑完 / 不用问我」→ **自动推进模式（每轮一步）**；这些说法只表示下次“继续”时不重复解释流程，不表示本轮可以跑完整集
-- 用户没说 → 默认先问一句「要我**每步确认**还是**自动推进（每轮一步）**？」，问完按回答走
+- 用户说「一次性 / 全自动 / 自动驾驶 / 一口气跑完 / 不用问我」→ **连续自动推进模式**
+- 用户没说且目标只涉及一个局部步骤 → 默认逐步确认；用户明确要求完成整集或跨阶段目标 → 默认连续自动推进
 
-大任务例外：用户说「完成第 N 集视频制作 / 完成第 N 集视频生成 / 做完这一集 / 帮我生成第 N 集视频 / 生成整集视频 / 做成片」这类跨多个阶段的目标时，即使用户没有明确要求每步确认，也必须先进入“拆解确认”：
+整集目标的固定入口：
 
-1. 第一轮不要启动写工具，也不要先自动查完整状态。
-2. 先告诉用户需要拆成明确小任务，例如检查进度、补前置、生成单个 beat 音频、生成单个 beat 视频、合成成片。
-3. 询问用户是否需要先列出当前制作进度和建议下一步，然后结束本轮。
-4. 用户确认后，下一轮只读查询 `pipeline/status` 和必要状态。
-5. 用 3-5 条列出当前卡点、缺失阶段和建议下一步。
-6. 只询问是否执行下一步这一个任务。
-7. 用户再次确认后，下一轮最多启动这一个任务，启动后收口。
+1. 调用一次 `ai_anime_run_production_workflow`；指定集传 `episodes=[...]`，全部分集省略 `episodes`。
+2. 只等待返回的 `production_workflow` 父 `task_key`，不得先调脚本工作流或逐阶段工具。
+3. 父任务从持久化状态恢复，调用与前端手动操作相同的业务用例，并负责依赖、并发和子任务终态。
+4. 到目标完成后展示正式产物；父任务失败、人工素材缺失、覆盖确认或用户取消时停止并报告真实错误。
 
 ---
 
@@ -57,26 +54,28 @@ pipeline 步骤顺序与专用工具，只是「是否每步解释并确认」�
 > 从 **Step 3 配置项目起**，每个写操作步骤都单独确认。
 
 每集制作（episode.md，对每一集 N 重复）：
-8. 身份规划 `ai_anime_plan_identities`(ep=N) →
-9. 身份图生成 `ai_anime_generate_identity_image`(逐身份) →
-10. 脚本生成 `ai_anime_generate_script`(ep=N) →
-11. 场景规划 `ai_anime_plan_scenes`(ep=N) →
-12. 道具规划 `ai_anime_plan_props`(ep=N) →
-13. 场景参考图 `ai_anime_generate_scene_master` / `ai_anime_generate_scene_reverse`(按本集场景需要逐个生成) →
-14. 草图生成 `ai_anime_generate_sketches`(ep=N) →
-15. AI 检测 `ai_anime_detect_sketch_identities`(ep=N) →
-16. 全局视频优化 `ai_anime_optimize_video_global`(ep=N) →
-17. 首帧生成 `ai_anime_render_first_frames`(ep=N) →
-18. 音频生成 `ai_anime_generate_audio`(ep=N) →
-19. 单 beat 视频 `ai_anime_start_single_video`(逐 beat) →
-20. 合成导出 `ai_anime_compose_episode`(ep=N) →
-21. 最终成片展示 `ai_anime_get_final_video`(ep=N)
+8a. 身份规划 `ai_anime_plan_identities`(ep=N) ┐
+8b. 场景规划 `ai_anime_plan_scenes`(ep=N) ┘ 两者无依赖，可并行 →
+9. 脚本生成 `ai_anime_generate_script`(ep=N)，必须等待 8a 与 8b →
+10. 身份图生成 `ai_anime_generate_identity_image`(逐身份) →
+11. 道具规划 `ai_anime_plan_props`(ep=N) →
+12. 场景参考图 `ai_anime_generate_scene_master` / `ai_anime_generate_scene_reverse`(按本集场景需要逐个生成) →
+13. 草图生成 `ai_anime_generate_sketches`(ep=N) →
+14. AI 检测 `ai_anime_detect_sketch_identities`(ep=N) →
+15. 全局视频优化 `ai_anime_optimize_video_global`(ep=N) →
+16. 首帧生成 `ai_anime_render_first_frames`(ep=N) →
+17. 音频生成 `ai_anime_generate_audio`(ep=N) →
+18. 单 beat 视频 `ai_anime_start_single_video`(逐 beat) →
+19. 合成导出 `ai_anime_compose_episode`(ep=N) →
+20. 最终成片展示 `ai_anime_get_final_video`(ep=N)
+
+> 上述逐项工具用于单步确认。用户要求补齐脚本全部前置、指定多集或整章时，不逐项调用 8a/8b/9，统一使用 `ai_anime_run_script_workflow`。
 
 每完成一集，问「继续做第 N+1 集吗？」再进入下一集。
 
 ### 状态回执（每步执行后）
 
-- 触发后最多做一次必要的 `ai_anime_get_task(task_type=..., episode=...)` 状态查询
+- 触发后只把创建结果返回的精确 `task_key` 交给 `ai_anime_get_task` 或 `ai_anime_wait_task`
 - 若状态为 queued/running：告诉用户后台正在生成中，等待完成后再继续；不要轮询到 completed
 - 成功：按下表读取或展示完成数据；不要只说“完成”
 - 失败：报 `task.error` / `error_code`，**停在该步**，不要自动重试或跳过
@@ -110,13 +109,13 @@ pipeline 步骤顺序与专用工具，只是「是否每步解释并确认」�
 
 ---
 
-## 模式二：自动推进模式（bounded auto）
+## 模式二：连续自动推进模式（continuous auto）
 
-自动推进不是单轮跑完整集。为了避免聊天超时和队列拥塞，自动推进也必须遵守：
+连续自动推进只提交并等待一个父任务：
 
-- 一次用户消息最多启动 1 个写操作/异步任务。
-- 启动任务成功后立即收口，告诉用户“已进入队列/已启动”，并提示下一步等任务完成后继续。
-- 不在同一轮等待长任务完成，不继续提交下一步。
-- 任何失败、429、前置缺失、任务不存在、404 或网络错误都立即停止并反馈错误原文。
-
-自动推进的含义是：用户下次说“继续”时，按 `pipeline/status.next_step` 自动选择下一步，不需要每步重新解释流程；但每轮仍只推进一个任务。
+- 只调用一次 `ai_anime_run_production_workflow`，只对返回的父 `task_key` 使用 `ai_anime_wait_task`。
+- 等待超时后读取同一父任务；仍在 queued/running 则继续等待，绝不重复提交。
+- 后端父任务是前端与助手共用的唯一编排器，负责状态恢复、依赖、并发、子任务等待和最终合成。
+- 禁止根据 `pipeline/status.next_step` 在助手侧循环调用草图、检测、优化、首帧、音频、视频和合成工具。
+- 任何 failed/cancelled、HTTP 4xx/5xx、无法自动补齐的素材或配置前置都立即停止，并显示已完成 Todo、失败步骤和真实错误。
+- 到整集 compose 完成后调用正式媒体展示工具交付成片，不要求用户再发“继续”。

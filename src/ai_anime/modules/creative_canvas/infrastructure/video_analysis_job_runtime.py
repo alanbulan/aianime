@@ -123,7 +123,6 @@ class FfmpegCreativeCanvasVideoAnalysisJobRuntime:
                     for path in command.frame_paths
                     if Path(path).exists()
                 ),
-                model_override=command.model,
             )
         )
         if not text:

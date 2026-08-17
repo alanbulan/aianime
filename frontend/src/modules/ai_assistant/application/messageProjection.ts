@@ -4,6 +4,10 @@ import type {
   ChatMessage,
   ServerFrame,
 } from "@/modules/ai_assistant/domain/contracts";
+import {
+  buildToolMessage,
+  mergeToolMessageState,
+} from "@/modules/ai_assistant/domain/toolMessage";
 import { sortMessages } from "@/modules/ai_assistant/application/messageTimeline";
 
 const EXECUTABLE_HIDDEN_TOOL_NAMES = new Set(["freezone_emit_canvas_command"]);
@@ -63,35 +67,6 @@ export function upsertServerAssistantMessage(
   return sortMessages([...withoutTransient, mergedMessage]);
 }
 
-function resultText(result: unknown): string {
-  if (typeof result === "string") return result;
-  if (!result || typeof result !== "object") return "";
-  const value = result as Record<string, unknown>;
-  if (typeof value.text === "string") return value.text;
-  return JSON.stringify(result, null, 2);
-}
-
-function buildToolMessage(kind: string, payload: unknown): ChatMessage {
-  const data = payload && typeof payload === "object"
-    ? (payload as Record<string, unknown>)
-    : {};
-  const label =
-    typeof data.name === "string"
-      ? data.name
-      : typeof data.message === "string"
-        ? data.message
-        : kind;
-  const body = "result" in data ? resultText(data.result) : JSON.stringify(payload, null, 2);
-  return {
-    id: `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    role: "tool",
-    text: body ? `${label}\n\n${body}` : label,
-    turnId: typeof data.turn_id === "string" ? data.turn_id : undefined,
-    timestamp: Date.now(),
-    raw: payload,
-  };
-}
-
 export function appendToolMessage(
   messages: ChatMessage[],
   kind: string,
@@ -126,23 +101,19 @@ export function upsertToolMessage(
   payload: unknown,
 ): ChatMessage[] {
   const nextMessage = buildToolMessage(kind, payload);
-  if (!nextMessage.turnId) return sortMessages([...messages, nextMessage]);
-
-  const existingIndex = messages.findIndex(
-    (message) => message.role === "tool" && message.turnId === nextMessage.turnId,
-  );
-  if (existingIndex < 0) return sortMessages([...messages, nextMessage]);
-
-  return sortMessages(
-    messages.map((message, index) =>
-      index === existingIndex
-        ? {
-          ...message,
-          text: nextMessage.text,
-          timestamp: nextMessage.timestamp,
-          raw: nextMessage.raw,
-        }
-        : message,
-    ),
-  );
+  const existingByCallId = nextMessage.toolCallId
+    ? messages.findIndex(
+        (message) => message.role === "tool" && message.toolCallId === nextMessage.toolCallId,
+      )
+    : -1;
+  if (existingByCallId >= 0) {
+    return sortMessages(
+      messages.map((message, index) =>
+        index === existingByCallId
+          ? mergeToolMessageState(message, nextMessage)
+          : message,
+      ),
+    );
+  }
+  return sortMessages([...messages, nextMessage]);
 }

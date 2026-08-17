@@ -23,9 +23,11 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from ai_anime.modules.production.infrastructure.media_generation_settings import (
+    IMAGE_DEFAULT_STYLE,
+    ImageReferenceInput,
+    apply_style_reference,
     get_grid_generation_config,
     get_style_preset,
-    IMAGE_DEFAULT_STYLE,
 )
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.modules.model_usage.public import (
@@ -148,9 +150,7 @@ class NanoBananaCharacterGenerator:
             if not resolved_model:
                 raise ValueError("character image model is required")
             config = get_grid_generation_config(model_override=resolved_model)
-        self.access_mode = str(config.get("access_mode") or "cloud").strip().lower()
-        if self.access_mode not in {"cloud", "byok"}:
-            raise ValueError("商业模型访问模式必须是 cloud 或 byok")
+        self.access_mode = "mixed"
         self.model = config["model"]
         self.openai_image_quality = config.get("openai_image_quality", "medium")
 
@@ -220,7 +220,11 @@ class NanoBananaCharacterGenerator:
                 negative_keywords=negative_keywords,
                 ethnicity=ethnicity,
             )
-
+            front_prompt, style_references = apply_style_reference(
+                front_prompt,
+                None,
+                style_preset,
+            )
             # 保存 prompt 到文件（审计用）
             if output_dir:
                 if project_dir:
@@ -263,6 +267,7 @@ class NanoBananaCharacterGenerator:
                 prompt=front_prompt,
                 output_path=portrait_ref_path,
                 image_size="0.5K",
+                reference_images=style_references,
             )
 
             if portrait_bytes and portrait_ref_path:
@@ -423,6 +428,20 @@ class NanoBananaCharacterGenerator:
                 has_costume_reference=has_costume_ref,
             )
 
+            references: list[ImageReferenceInput] = []
+            if reference_image_path and os.path.exists(reference_image_path):
+                references.append(self._named_image_reference(reference_image_path))
+            else:
+                print(f"[NanoBanana Character] 无参考图，从文字描述独立生成")
+            if costume_image_path and os.path.exists(costume_image_path):
+                references.append(self._named_image_reference(costume_image_path))
+                print(f"[NanoBanana Character] 已加载服装参考图: {costume_image_path}")
+            prompt, references = apply_style_reference(
+                prompt,
+                references,
+                style_preset,
+            )
+
             # 保存 prompt 到文件（审计用）
             prompt_file = None
             if output_path:
@@ -468,21 +487,6 @@ class NanoBananaCharacterGenerator:
                 )
                 usage_recorded = True
 
-            # 加载参考图（年龄变体等无参考图场景允许为空）
-            ref_image_bytes = None
-            if reference_image_path and os.path.exists(reference_image_path):
-                with open(reference_image_path, "rb") as f:
-                    ref_image_bytes = f.read()
-            else:
-                print(f"[NanoBanana Character] 无参考图，从文字描述独立生成")
-
-            # 加载服装参考图（如果有）
-            costume_image_bytes = None
-            if costume_image_path and os.path.exists(costume_image_path):
-                with open(costume_image_path, "rb") as f:
-                    costume_image_bytes = f.read()
-                print(f"[NanoBanana Character] 已加载服装参考图: {costume_image_path}")
-
             # 统一流程：生成 body 到临时文件 → 拼接 portrait → 删 temp
             aspect_ratio = "16:9"  # 4面板: 全脸+正+三分+背面
             image_size = "1K"
@@ -491,15 +495,12 @@ class NanoBananaCharacterGenerator:
             temp_body_path = output_path.replace(".png", "_body_temp.png")
             print(f"[NanoBanana Character] 生成{body_label}到临时文件: {temp_body_path}")
 
-            image_bytes = await self._generate_with_reference(
+            image_bytes = await self._generate_single_image(
                 prompt=prompt,
                 output_path=temp_body_path,
-                reference_image_bytes=ref_image_bytes,
-                reference_image_name=reference_image_path,
                 aspect_ratio=aspect_ratio,
                 image_size=image_size,
-                additional_image_bytes=[costume_image_bytes] if costume_image_bytes else None,
-                additional_image_names=[costume_image_path] if costume_image_bytes else None,
+                reference_images=references,
             )
 
             if image_bytes:
@@ -663,6 +664,11 @@ MUST AVOID:
 - Do NOT add busy backgrounds
 - Do NOT include multiple characters
 """
+            prompt, style_references = apply_style_reference(
+                prompt,
+                None,
+                style_preset,
+            )
 
             # 保存 prompt 到文件（审计用）
             if output_dir:
@@ -685,6 +691,7 @@ MUST AVOID:
                 output_path=composite_path,
                 aspect_ratio="16:9",
                 image_size="1K",
+                reference_images=style_references,
             )
             if not image_bytes:
                 return CharacterReferenceResult(
@@ -1013,14 +1020,14 @@ STRICT REQUIREMENTS (MUST AVOID):
         output_path: Optional[str] = None,
         aspect_ratio: str = "3:4",
         image_size: str = "1K",
+        reference_images: list[ImageReferenceInput] | None = None,
     ) -> Optional[bytes]:
-        """通过当前商业模型访问生成单张无参考图图像。"""
+        """通过当前商业模型访问生成单张图像。"""
         try:
             print(f"[NanoBanana Character] 调用商业图片模型 ({self.model})...")
             image_bytes, _text_response, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt,
-                reference_images=None,
+                reference_images=reference_images or None,
                 image_config={
                     "aspect_ratio": aspect_ratio,
                     "image_size": image_size,
@@ -1055,73 +1062,10 @@ STRICT REQUIREMENTS (MUST AVOID):
             print(f"[NanoBanana Character] 生成失败: {e}")
             return None
 
-    async def _generate_with_reference(
-        self,
-        prompt: str,
-        output_path: Optional[str] = None,
-        reference_image_bytes: bytes = None,
-        reference_image_name: str = "",
-        aspect_ratio: str = "3:4",
-        image_size: str = "1K",
-        additional_image_bytes: list = None,
-        additional_image_names: list[str] = None,
-    ) -> Optional[bytes]:
-        """通过当前商业模型访问执行带参考图的身份锁定生成。"""
-
-        def _named_image_ref(data: bytes, name: str) -> tuple[str, bytes, str]:
-            filename = Path(str(name or "")).name or "reference.png"
-            mime_type = mimetypes.guess_type(filename)[0] or "image/png"
-            if not mime_type.startswith("image/"):
-                mime_type = "image/png"
-            return filename, data, mime_type
-
-        try:
-            ref_images = []
-            if reference_image_bytes:
-                ref_images.append(_named_image_ref(reference_image_bytes, reference_image_name))
-            additional_names = list(additional_image_names or [])
-            for idx, image_bytes_item in enumerate(additional_image_bytes or []):
-                ref_images.append(
-                    _named_image_ref(
-                        image_bytes_item,
-                        additional_names[idx] if idx < len(additional_names) else "",
-                    )
-                )
-            print(f"[NanoBanana Character] 调用商业图片模型 ({self.model})（带参考图）...")
-            image_bytes, _text_response, error_detail = await _call_newapi_image_api(
-                model=self.model,
-                prompt=prompt,
-                reference_images=ref_images or None,
-                image_config={
-                    "aspect_ratio": aspect_ratio,
-                    "image_size": image_size,
-                    "quality": normalize_image_quality(
-                        self.openai_image_quality,
-                        default="medium",
-                    ),
-                },
-            )
-            if not image_bytes and error_detail:
-                raise RuntimeError(error_detail)
-
-            if not image_bytes:
-                print("[NanoBanana Character] API 未返回图像数据")
-                return None
-
-            # 保存文件
-            if output_path:
-                output_dir = os.path.dirname(output_path)
-                if output_dir:
-                    os.makedirs(output_dir, exist_ok=True)
-                with open(output_path, "wb") as f:
-                    f.write(image_bytes)
-
-            return image_bytes
-
-        except Exception as e:
-            if is_insufficient_credits_error(e):
-                raise
-            if isinstance(e, RuntimeError):
-                raise
-            print(f"[NanoBanana Character] 生成失败: {e}")
-            return None
+    @staticmethod
+    def _named_image_reference(path_value: str) -> ImageReferenceInput:
+        path = Path(path_value)
+        mime_type = mimetypes.guess_type(path.name)[0] or "image/png"
+        if not mime_type.startswith("image/"):
+            mime_type = "image/png"
+        return path.name, path.read_bytes(), mime_type

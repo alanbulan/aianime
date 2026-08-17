@@ -68,7 +68,7 @@ export function RegionSelector() {
 
   return (
     <Select
-      value={selected ?? undefined}
+      value={selected ?? ""}
       onValueChange={(id) => {
         if (typeof id !== "string") return;
         selectRegion(id);

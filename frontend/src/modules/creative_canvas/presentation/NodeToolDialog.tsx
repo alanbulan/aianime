@@ -509,7 +509,7 @@ export function createNodeToolDialog({
                 disabled={isProcessing || !sourceImageUrl}
                 className={VISUAL_TOOL_CONFIRM_CLASS}
                 aria-label={isProcessing ? t('toolDialog.processing') : t('toolDialog.apply')}
-                title={isProcessing ? t('toolDialog.processing') : t('toolDialog.apply')}
+                data-ui-tooltip={isProcessing ? t('toolDialog.processing') : t('toolDialog.apply')}
               >
                 {t('toolDialog.confirm')}
               </button>

@@ -8,9 +8,15 @@ from ai_anime.modules.verification.infrastructure import sketch_visual_gate
 
 @pytest.fixture(autouse=True)
 def _reset_model_access() -> None:
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "cloud-vision-sku", "role": "TEXT"},
+        ],
+    )
     yield
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 @pytest.mark.asyncio
@@ -32,11 +38,10 @@ async def test_visual_gate_uses_shared_model_transport_without_provider_credenti
     result = await sketch_visual_gate._ask_vlm_once(
         image_bytes=b"image",
         prompt="review",
-        model="cloud-vision-sku",
     )
 
     assert result == '{"bad_pose": "no"}'
-    assert captured["model"] == "cloud-vision-sku"
+    assert "model" not in captured
     assert captured["max_tokens"] == 512
     assert captured["timeout_seconds"] == 60.0
     assert "provider" not in captured
@@ -45,12 +50,11 @@ async def test_visual_gate_uses_shared_model_transport_without_provider_credenti
 
 
 @pytest.mark.asyncio
-async def test_visual_gate_replaces_the_cloud_task_sku_in_byok_mode(monkeypatch):
+async def test_visual_gate_does_not_forward_a_task_model(monkeypatch):
     captured = {}
     configure_model_access(
         allows_custom_models=True,
-        mode="byok",
-        byok_base_url="https://models.example.test/v1",
+        mode="mixed",
         model_assignments=[{"modelId": "user-vision-model", "role": "TEXT"}],
     )
     async def fake_request_model_chat_content(**kwargs):
@@ -66,7 +70,6 @@ async def test_visual_gate_replaces_the_cloud_task_sku_in_byok_mode(monkeypatch)
     await sketch_visual_gate._ask_vlm_once(
         image_bytes=b"image",
         prompt="review",
-        model="cloud-vision-task-sku",
     )
 
-    assert captured["model"] == "user-vision-model"
+    assert "model" not in captured

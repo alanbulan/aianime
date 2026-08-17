@@ -9,7 +9,8 @@ import {
 } from "@/modules/ai_assistant/public";
 
 const HOUR_MS = 60 * 60 * 1000;
-const NOW = 10 * HOUR_MS;
+const DAY_MS = 24 * HOUR_MS;
+const NOW = 2 * DAY_MS;
 const ACTIVE_TURN_PREFIX = "superchat:active-turn:";
 
 function activeTurnKey(scopeKey: string): string {
@@ -61,10 +62,21 @@ describe("AI Assistant active turn storage", () => {
     expect(loadPendingActiveTurn("invalid-shape", [])).toBeNull();
   });
 
-  it("removes snapshots older than one hour", () => {
+  it("keeps long workflows for a day and removes older snapshots", () => {
     localStorage.setItem(
       activeTurnKey("project-a"),
-      JSON.stringify({ turnId: "turn-1", startedAt: NOW - HOUR_MS - 1 }),
+      JSON.stringify({ turnId: "turn-1", startedAt: NOW - HOUR_MS }),
+    );
+
+    expect(
+      loadPendingActiveTurn("project-a", [
+        message("user-1", "user", "turn-1", "开始生成"),
+      ]),
+    ).not.toBeNull();
+
+    localStorage.setItem(
+      activeTurnKey("project-a"),
+      JSON.stringify({ turnId: "turn-1", startedAt: NOW - DAY_MS - 1 }),
     );
 
     expect(

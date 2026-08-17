@@ -149,7 +149,7 @@ describe("CharacterImageSourceSelect", () => {
         "http://localhost:3000/api/v1/projects/demo/image-source-selection/character",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          patchBody = await request.json();
+          patchBody = await request.clone().json();
           currentSelection = "portrait";
           return HttpResponse.json({
             ok: true,

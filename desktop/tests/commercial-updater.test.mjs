@@ -12,6 +12,10 @@ function fakeUpdater(overrides = {}) {
     requestHeaders: null,
     feed: null,
     installed: null,
+    progressListener: null,
+    on(event, listener) {
+      if (event === "download-progress") this.progressListener = listener;
+    },
     setFeedURL(value) {
       this.feed = value;
     },
@@ -22,6 +26,12 @@ function fakeUpdater(overrides = {}) {
       };
     },
     async downloadUpdate() {
+      this.progressListener?.({
+        percent: 42.4,
+        transferred: 424,
+        total: 1000,
+        bytesPerSecond: 100,
+      });
       return ["C:\\updates\\AI-anime-1.1.6-x64-setup.exe"];
     },
     quitAndInstall(isSilent, isForceRunAfter) {
@@ -34,13 +44,14 @@ function fakeUpdater(overrides = {}) {
 test("configures electron-updater and completes the standard update flow", async () => {
   const updater = fakeUpdater();
   const resolvedArtifactIds = [];
+  const progressEvents = [];
   const service = new CommercialDesktopUpdater(updater, async (artifactId) => {
     resolvedArtifactIds.push(artifactId);
     return {
       url: "https://gateway.test/api/v1/client/releases/updater/?artifactId=7",
       requestHeaders: { Authorization: "Bearer token" },
     };
-  });
+  }, (progress) => progressEvents.push(progress));
 
   assert.equal(updater.autoDownload, false);
   assert.equal(updater.autoInstallOnAppQuit, false);
@@ -57,6 +68,14 @@ test("configures electron-updater and completes the standard update flow", async
   assert.deepEqual(updater.requestHeaders, {
     Authorization: "Bearer token",
   });
+  assert.deepEqual(progressEvents, [
+    {
+      percent: 42.4,
+      transferred: 424,
+      total: 1000,
+      bytesPerSecond: 100,
+    },
+  ]);
 
   service.install();
   assert.deepEqual(updater.installed, {

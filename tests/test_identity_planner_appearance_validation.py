@@ -160,7 +160,7 @@ async def test_generate_appearance_retries_twice_then_accepts_valid_output(monke
     }
     captured_messages = []
     model = _sequenced_appearance_model([invalid, invalid, valid], captured_messages)
-    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda _env: model))
+    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda: model))
     planner = IdentityPlanner(EmptyIdentityStore())
 
     result = await planner._generate_appearance("林知微", "少女时期", "", "回忆场景")
@@ -182,7 +182,7 @@ async def test_generate_appearance_raises_after_three_invalid_outputs(monkeypatc
     }
     captured_messages = []
     model = _sequenced_appearance_model([invalid], captured_messages)
-    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda _env: model))
+    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda: model))
     planner = IdentityPlanner(EmptyIdentityStore())
 
     with pytest.raises(UnexpectedModelBehavior, match="maximum.*retries"):
@@ -209,7 +209,7 @@ async def test_generate_appearance_retries_non_string_tool_output(monkeypatch):
     }
     captured_messages = []
     model = _sequenced_appearance_model([invalid, valid], captured_messages)
-    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda _env: model))
+    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda: model))
     planner = IdentityPlanner(EmptyIdentityStore())
 
     result = await planner._generate_appearance("林知微", "战斗装", "", "动作场景")
@@ -235,7 +235,7 @@ async def test_generate_appearance_retries_fields_missing_for_planned_age(monkey
     }
     captured_messages = []
     model = _sequenced_appearance_model([ordinary, ordinary, age_variant], captured_messages)
-    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda _env: model))
+    monkeypatch.setattr(IdentityPlanner, "_identity_model", staticmethod(lambda: model))
     planner = IdentityPlanner(EmptyIdentityStore())
 
     result = await planner._generate_appearance(

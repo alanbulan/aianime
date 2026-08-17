@@ -105,6 +105,7 @@ class SceneTaskUseCases:
         source_kind: str,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
+        self._require_stage_capability("single_face_sharp")
         source = str(source_kind or "master").strip().lower()
         if source == "reverse":
             if not self._assets.has_reverse_master(project_dir, scene.name):
@@ -142,6 +143,7 @@ class SceneTaskUseCases:
         scene_name: str,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
+        self._require_stage_capability("pano_sharp")
         if not self._assets.has_pano(project_dir, scene.name):
             raise SceneGenerationRejected(
                 "缺少 pano_360.png，请先上传或生成 360 全景"
@@ -247,6 +249,11 @@ class SceneTaskUseCases:
             source=source,
             message=message,
         )
+
+    def _require_stage_capability(self, step: str) -> None:
+        available, message = self._assets.stage_generation_capability(step)
+        if not available:
+            raise SceneGenerationRejected(message)
 
     @staticmethod
     def _require_context(

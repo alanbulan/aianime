@@ -430,7 +430,7 @@ class AssetCompiler:
                 source_text, episode, log
             )
         if not scene_menu:
-            raise ValueError("未识别到任何场景，请先生成逐行解说工作稿或补充场次地点")
+            raise ValueError("未识别到任何场景，请补充分集中的场次地点信息")
 
         report(0.55, "编译道具资产...")
         prop_menu = await self._compile_props(scene_blocks, episode, log)
@@ -479,7 +479,7 @@ class AssetCompiler:
                 source_text, episode, log
             )
         if not scene_menu:
-            raise ValueError("未识别到任何场景，请先生成逐行解说工作稿或补充场次地点")
+            raise ValueError("未识别到任何场景，请补充分集中的场次地点信息")
 
         report(0.85, "写入本集场景规划...")
         for scene in pending_scenes:
@@ -552,10 +552,7 @@ class AssetCompiler:
             existing_lines.append("；".join(part for part in parts if part))
 
         agent = Agent(
-            get_newapi_text_pydantic_model(
-                "EPISODE_SCENE_RECONCILE_MODEL",
-                "gemini-3.5-flash",
-            ),
+            get_newapi_text_pydantic_model(),
             system_prompt=BASE_SCENE_RECONCILE_PROMPT,
             model_settings=get_newapi_text_pydantic_model_settings(
                 "EPISODE_SCENE_RECONCILE_THINKING_LEVEL",
@@ -866,10 +863,7 @@ class AssetCompiler:
 {excerpt}
 """
         agent = Agent(
-            get_newapi_text_pydantic_model(
-                "NARRATED_SCENE_ASSET_MODEL",
-                "gemini-3.5-flash",
-            ),
+            get_newapi_text_pydantic_model(),
             system_prompt=NARRATED_SCENE_PROMPT,
             model_settings=get_newapi_text_pydantic_model_settings(
                 "NARRATED_SCENE_ASSET_THINKING_LEVEL",
@@ -883,12 +877,26 @@ class AssetCompiler:
             },
             name="解说剧场景资产规划师",
         )
-        try:
-            result = await agent.run(task)
-            return list(result.output.scenes or [])
-        except Exception as exc:
-            log(f"  解说场景分析失败，改用文本规则兜底: {exc}")
-            return []
+        last_error = ""
+        for attempt in range(2):
+            try:
+                retry_note = (
+                    "\n\n上一轮没有产出任何场景。请重新检查地点词、室内外信息和环境描写，"
+                    "至少返回一个有原文依据的场景。"
+                    if attempt
+                    else ""
+                )
+                result = await agent.run(f"{task}{retry_note}")
+                scenes = list(result.output.scenes or [])
+                if scenes:
+                    return scenes
+                last_error = "模型返回空场景列表"
+            except Exception as exc:
+                last_error = str(exc)
+            if attempt == 0:
+                log(f"  场景分析未产出有效结果，自动重试一次: {last_error}")
+        log(f"  场景分析失败，改用文本规则兜底: {last_error}")
+        return []
 
     async def _enrich_scene_prompt_from_block(
         self,
@@ -949,10 +957,7 @@ class AssetCompiler:
 {block_text}
 """
         agent = Agent(
-            get_newapi_text_pydantic_model(
-                "EPISODE_SCENE_PLANNER_MODEL",
-                "gemini-3.5-flash",
-            ),
+            get_newapi_text_pydantic_model(),
             system_prompt=DERIVED_SCENE_PROMPT,
             model_settings=get_newapi_text_pydantic_model_settings(
                 "EPISODE_SCENE_PLANNER_THINKING_LEVEL",
@@ -1114,10 +1119,7 @@ class AssetCompiler:
 {candidate_section}
 """
         agent = Agent(
-            get_newapi_text_pydantic_model(
-                "EPISODE_PROP_PLANNER_MODEL",
-                "gemini-3.5-flash",
-            ),
+            get_newapi_text_pydantic_model(),
             system_prompt=BLOCK_PROP_PROMPT,
             model_settings=get_newapi_text_pydantic_model_settings(
                 "EPISODE_PROP_PLANNER_THINKING_LEVEL",

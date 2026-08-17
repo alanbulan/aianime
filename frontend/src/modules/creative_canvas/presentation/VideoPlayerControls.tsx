@@ -111,7 +111,7 @@ export function VideoPlayerControls({
           togglePlay();
         }}
         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-media-foreground/90 transition-colors hover:bg-media-foreground/10 hover:text-media-foreground"
-        title={
+        data-ui-tooltip={
           isPlaying
             ? t("node.videoNode.player.pause", { defaultValue: "暂停" })
             : t("node.videoNode.player.play", { defaultValue: "播放" })
@@ -148,7 +148,7 @@ export function VideoPlayerControls({
         type="button"
         onClick={toggleMute}
         className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-media-foreground/90 transition-colors hover:bg-media-foreground/10 hover:text-media-foreground"
-        title={
+        data-ui-tooltip={
           isMuted
             ? t("node.videoNode.player.unmute", { defaultValue: "取消静音" })
             : t("node.videoNode.player.mute", { defaultValue: "静音" })
@@ -170,7 +170,7 @@ export function VideoPlayerControls({
           type="button"
           disabled={isCapturingFrame}
           onClick={() => onCapture("current")}
-          title={t("node.videoNode.frame.captureCurrent")}
+          data-ui-tooltip={t("node.videoNode.frame.captureCurrent")}
           className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
             isCapturingFrame
               ? "cursor-not-allowed text-media-foreground/45"

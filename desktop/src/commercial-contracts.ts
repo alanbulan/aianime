@@ -88,6 +88,12 @@ export interface CommercialInvocationSnapshot {
   operation?: string;
   modelSkuCode?: string;
   quotaStatus?: string;
+  reservationId?: Identifier;
+  reservedUnits?: number;
+  chargedUnits?: number;
+  refundedUnits?: number;
+  balanceBefore?: number;
+  balanceAfter?: number;
   requestId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -338,6 +344,12 @@ function projectCommercialInvocation(
     ...optionalTextProperty("operation", invocation.operation),
     ...optionalTextProperty("modelSkuCode", invocation.modelSkuCode),
     ...optionalTextProperty("quotaStatus", invocation.quotaStatus),
+    ...optionalIdentifierProperty("reservationId", invocation.reservationId),
+    ...optionalNumberProperty("reservedUnits", invocation.reservedUnits),
+    ...optionalNumberProperty("chargedUnits", invocation.chargedUnits),
+    ...optionalNumberProperty("refundedUnits", invocation.refundedUnits),
+    ...optionalNumberProperty("balanceBefore", invocation.balanceBefore),
+    ...optionalNumberProperty("balanceAfter", invocation.balanceAfter),
     ...optionalTextProperty("requestId", invocation.requestId),
     ...optionalTextProperty("createdAt", invocation.createdAt),
     ...optionalTextProperty("updatedAt", invocation.updatedAt),

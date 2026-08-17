@@ -537,13 +537,13 @@ function AccountPanel({
             {accountEmail ? (
               <div className="flex min-w-0 items-center gap-2">
                 <Mail className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate" title={accountEmail}>{accountEmail}</span>
+                <span className="truncate" data-ui-tooltip={accountEmail}>{accountEmail}</span>
               </div>
             ) : null}
             {accountTenant ? (
               <div className="flex min-w-0 items-center gap-2">
                 <Building2 className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate" title={accountTenant}>{accountTenant}</span>
+                <span className="truncate" data-ui-tooltip={accountTenant}>{accountTenant}</span>
               </div>
             ) : null}
           </div>

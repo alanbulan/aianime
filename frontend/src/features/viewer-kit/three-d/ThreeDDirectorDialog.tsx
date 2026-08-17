@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { UI_CONTENT_OVERLAY_INSET_CLASS } from "@/components/ui/motion";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { useViewerImmersiveBody } from "../useViewerImmersiveBody";
 import type { ViewerPurpose } from "../viewerPurpose";
@@ -72,6 +73,7 @@ type FrameAspect = "16:9" | "2:3" | "9:16" | "1:1" | "4:3";
 type ToolMode = "actor" | "prop" | "staging";
 type CaptureKind = "combined" | "env_only";
 type CaptureDestination = "download" | "selected_background" | "canvas_screenshot_node" | "director_combined";
+type DirectorWorldScope = "beat" | "scene" | "freezone";
 const DIRECTOR_CONTROL_FRAME_MAX_LONG_EDGE = 1280;
 const SOURCE_CALIBRATION_RANGES = {
   default: {
@@ -746,12 +748,23 @@ function captureFilename(manifest: DirectorStageManifest, kind: CaptureKind) {
   return `${manifest.scene_id}_${kind}_${timestamp}.png`;
 }
 
+function directorWorldScope(
+  viewerPurpose: ViewerPurpose | undefined,
+  manifestMode: DirectorStageManifest["mode"],
+): DirectorWorldScope {
+  if (viewerPurpose === "asset") return "scene";
+  if (viewerPurpose === "freezone") return "freezone";
+  if (viewerPurpose === "beat") return "beat";
+  return manifestMode === "beat" ? "beat" : "scene";
+}
+
 export function ThreeDDirectorDialog({
   open,
   onOpenChange,
   manifest,
   title,
   description,
+  viewerPurpose,
   autoCommitDirectorCombined = false,
   onCaptureSelectedBackground,
   onCaptureCanvasNode,
@@ -781,7 +794,10 @@ export function ThreeDDirectorDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="inset-0 left-0 top-0 h-dvh w-dvw max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-0 ring-0 data-open:zoom-in-100 data-closed:zoom-out-100 sm:max-w-none"
+        className={cn(
+          UI_CONTENT_OVERLAY_INSET_CLASS,
+          "h-auto w-dvw max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-0 ring-0 data-open:zoom-in-100 data-closed:zoom-out-100 sm:max-w-none",
+        )}
         overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-none"
         showCloseButton={false}
       >
@@ -791,6 +807,7 @@ export function ThreeDDirectorDialog({
         </DialogHeader>
         <ThreeDDirectorSurface
           manifest={effectiveManifest}
+          viewerPurpose={viewerPurpose}
           onCaptureSelectedBackground={onCaptureSelectedBackground}
           onCaptureCanvasNode={onCaptureCanvasNode}
           onSubmitDirectorCombined={onSubmitDirectorCombined}
@@ -809,6 +826,7 @@ export function ThreeDDirectorDialog({
 
 function ThreeDDirectorSurface({
   manifest,
+  viewerPurpose,
   onCaptureSelectedBackground,
   onCaptureCanvasNode,
   onSubmitDirectorCombined,
@@ -821,6 +839,7 @@ function ThreeDDirectorSurface({
   onClose,
 }: {
   manifest: DirectorStageManifest;
+  viewerPurpose?: ViewerPurpose;
   onCaptureSelectedBackground?: (blob: Blob, meta: ThreeDDirectorCaptureMeta) => void | Promise<void>;
   onCaptureCanvasNode?: (blob: Blob, meta: ThreeDDirectorCaptureMeta) => void | Promise<void>;
   onSubmitDirectorCombined?: (blob: Blob, meta: ThreeDDirectorCaptureMeta) => void | Promise<void>;
@@ -833,6 +852,8 @@ function ThreeDDirectorSurface({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const scope = directorWorldScope(viewerPurpose, manifest.mode);
+  const scopeLabel = t(`viewer.threeD.scope.${scope}Label`);
   const viewerRef = useRef<ViewerApp | null>(null);
   const exportControlFramesRef = useRef<(() => void) | null>(null);
   const saveDirectorStateRef = useRef<(() => void) | null>(null);
@@ -844,7 +865,7 @@ function ThreeDDirectorSurface({
   const [error, setError] = useState<string | null>(null);
   const [sceneBusy, setSceneBusy] = useState(false);
   const [sceneStatus, setSceneStatus] = useState<string | null>(
-    initialScene ? "已恢复上次保存的场景" : null,
+    initialScene ? t("viewer.threeD.statusMessages.scopeRestored", { scope: scopeLabel }) : null,
   );
   const lastRestoredSourceIdRef = useRef<string | null>(null);
   const initialSceneRef = useRef(initialScene);
@@ -1167,7 +1188,7 @@ function ThreeDDirectorSurface({
         lastRestoredSourceIdRef.current = sourceId;
       }
       await onSaveScene(snapshot, sourceId);
-      const savedMessage = t("viewer.threeD.statusMessages.sceneSaved");
+      const savedMessage = t("viewer.threeD.statusMessages.scopeSaved", { scope: scopeLabel });
       setSceneStatus(savedMessage);
       toast.success(savedMessage);
     } catch (saveError) {
@@ -1175,13 +1196,13 @@ function ThreeDDirectorSurface({
     } finally {
       setSceneBusy(false);
     }
-  }, [activeSource?.id, activeSourceId, onSaveScene, t]);
+  }, [activeSource?.id, activeSourceId, onSaveScene, scopeLabel, t]);
 
   useEffect(() => {
-    if (!registerSaveSceneHandler || !onSaveScene || manifest.mode === "beat") return;
+    if (!registerSaveSceneHandler || !onSaveScene || scope === "beat") return;
     registerSaveSceneHandler(handleSaveScene);
     return () => registerSaveSceneHandler(null);
-  }, [handleSaveScene, manifest.mode, onSaveScene, registerSaveSceneHandler]);
+  }, [handleSaveScene, onSaveScene, registerSaveSceneHandler, scope]);
 
   const handleClearScene = useCallback(async () => {
     if (!onClearScene) return;
@@ -1198,13 +1219,13 @@ function ThreeDDirectorSurface({
       }
       viewerRef.current?.clearMarkers();
       await onClearScene(sourceId);
-      setSceneStatus(t("viewer.threeD.statusMessages.sceneCleared"));
+      setSceneStatus(t("viewer.threeD.statusMessages.scopeCleared", { scope: scopeLabel }));
     } catch (clearError) {
       setError(clearError instanceof Error ? clearError.message : String(clearError));
     } finally {
       setSceneBusy(false);
     }
-  }, [activeSource?.id, activeSourceId, onClearScene, t]);
+  }, [activeSource?.id, activeSourceId, onClearScene, scopeLabel, t]);
 
   useEffect(() => {
     if (!viewer) return undefined;
@@ -2113,10 +2134,26 @@ function ThreeDDirectorSurface({
     >
       {!panelHidden && (
         <aside className="min-h-0 overflow-y-auto border-r border-border bg-card/95 px-4 pb-4 pt-0 text-[12px] backdrop-blur-sm">
-          <div className="sticky top-0 z-20 -mx-4 mb-2 flex items-center justify-between gap-3 border-b border-border bg-card/95 px-4 pb-3 pt-5 backdrop-blur-xl">
+          <div className="sticky top-0 z-20 -mx-4 mb-2 flex items-center justify-between gap-2 border-b border-border bg-card/95 px-4 pb-3 pt-5 backdrop-blur-xl">
             <div className="min-w-0">
               <div className="truncate text-[15px] font-semibold leading-5 text-foreground">{t("viewer.threeD.directorWorld")}</div>
             </div>
+            {manifest.mode === "beat" && autoCommitDirectorCombined && onSubmitDirectorCombined ? (
+              <Button
+                type="button"
+                size="sm"
+                className="ml-auto h-7 shrink-0 gap-1.5 rounded-[9px] px-2.5 text-[11px]"
+                onClick={() => void capture("combined", "director_combined")}
+                disabled={!viewer || captureBusy !== null}
+              >
+                {captureBusy === "combined" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Camera className="size-3.5" />
+                )}
+                {t("viewer.threeD.saveAndApplyCurrentBeat")}
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="ghost"
@@ -2127,6 +2164,15 @@ function ThreeDDirectorSurface({
             >
               <X className="size-3" />
             </Button>
+          </div>
+
+          <div className="mb-3 rounded-[12px] border border-primary/20 bg-primary/5 px-3 py-2.5">
+            <div className="text-[12px] font-semibold text-foreground">
+              {scopeLabel}
+            </div>
+            <p className="mt-1 text-[11px] leading-[1.65] text-muted-foreground">
+              {t(`viewer.threeD.scope.${scope}Description`)}
+            </p>
           </div>
 
           <PanelSection title={t("viewer.threeD.sections.stage")}>
@@ -2257,6 +2303,9 @@ function ThreeDDirectorSurface({
         </PanelSection>
 
         <PanelSection title={t("viewer.threeD.sections.add")}>
+          <p className="mb-3 text-[11px] leading-[1.65] text-muted-foreground">
+            {t("viewer.threeD.controlProxyHint")}
+          </p>
           <div className="rounded-[12px] border border-border bg-muted px-3 py-2 text-[12px] text-muted-foreground">
             {t("viewer.threeD.currentCreate", {
               type: toolMode === "actor" ? t("viewer.threeD.actor") : toolMode === "prop" ? t("viewer.threeD.prop") : t("viewer.threeD.staging"),
@@ -2527,7 +2576,7 @@ function ThreeDDirectorSurface({
 
         <PanelSection title={t("viewer.threeD.sections.output")}>
           <div className="grid gap-2">
-            {manifest.mode === "beat" && manifest.allowed_destinations.includes("beat_selected_background") && onCaptureSelectedBackground && (
+            {manifest.mode === "beat" && manifest.allowed_destinations.includes("beat_selected_background") && onCaptureSelectedBackground && !(autoCommitDirectorCombined && onSubmitDirectorCombined) && (
               <Button
                 size="sm"
                 onClick={() => void capture("env_only", "selected_background")}
@@ -2539,7 +2588,7 @@ function ThreeDDirectorSurface({
                   : t("viewer.threeD.useEnvAsBackground")}
               </Button>
             )}
-            {manifest.mode === "beat" && onSubmitDirectorCombined && (
+            {manifest.mode === "beat" && onSubmitDirectorCombined && !autoCommitDirectorCombined && (
               <Button
                 size="sm"
                 onClick={() => void capture("combined", "director_combined")}
@@ -2564,7 +2613,7 @@ function ThreeDDirectorSurface({
                 {t("viewer.threeD.panoOutputToCanvasNode")}
               </Button>
             )}
-            {manifest.mode !== "beat" && onSaveScene && (
+            {scope !== "beat" && onSaveScene && (
               <Button
                 size="sm"
                 variant="outline"
@@ -2576,10 +2625,10 @@ function ThreeDDirectorSurface({
                 ) : (
                   <Move3D className="size-3.5" />
                 )}
-                {t("viewer.threeD.saveScene")}
+                {t(scope === "scene" ? "viewer.threeD.saveSceneTemplate" : "viewer.threeD.saveCanvasDraft")}
               </Button>
             )}
-            {manifest.mode !== "beat" && onClearScene && hasSavedSceneForActiveSource && (
+            {scope !== "beat" && onClearScene && hasSavedSceneForActiveSource && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -2587,7 +2636,7 @@ function ThreeDDirectorSurface({
                 disabled={!viewer || sceneBusy}
               >
                 <Trash2 className="size-3.5" />
-                {t("viewer.threeD.clearScene")}
+                {t(scope === "scene" ? "viewer.threeD.clearSceneTemplate" : "viewer.threeD.clearCanvasDraft")}
               </Button>
             )}
             {sceneStatus && (

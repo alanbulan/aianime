@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any
 
@@ -132,7 +133,6 @@ async def _run_single_video_async(
     if single_resolution and not uses_seedance2:
         gen_kwargs["resolution"] = str(single_resolution)
     video_gen = create_video_generator(
-        model=video_model,
         model_role=str(config.get("model_role") or ""),
         **gen_kwargs,
     )
@@ -225,6 +225,15 @@ async def _run_single_video_async(
     result = await video_gen.generate(**generate_kwargs)
     if result.status.value != "done":
         raise RuntimeError(result.error or "视频生成失败")
+
+    if _normalize_embedded_audio(
+        video_path,
+        timeout_seconds=remaining_timeout_seconds(
+            envelope,
+            default_seconds=10 * 60,
+        ),
+    ):
+        on_log("已校正视频内置音轨响度")
 
     video_pool_id = None
     try:
@@ -330,7 +339,58 @@ def _video_has_audio_stream(
         )
     except subprocess.TimeoutExpired as exc:
         raise TaskTimedOut(timeout_seconds=timeout_seconds) from exc
+    except (OSError, subprocess.SubprocessError):
+        return False
     return result.returncode == 0 and bool(result.stdout.strip())
+
+
+def _normalize_embedded_audio(
+    video_path: Path,
+    *,
+    timeout_seconds: int | None = 10 * 60,
+) -> bool:
+    """Normalize provider audio while copying the video stream unchanged."""
+
+    if not _video_has_audio_stream(
+        video_path,
+        timeout_seconds=min(timeout_seconds or 30, 30),
+    ):
+        return False
+    ffmpeg = os.environ.get("FFMPEG_PATH", "ffmpeg")
+    normalized_path = video_path.with_name(
+        f".{video_path.stem}.audio-normalized{video_path.suffix}"
+    )
+    result = run_project_subprocess(
+        [
+            ffmpeg,
+            "-y",
+            "-i",
+            str(video_path),
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0",
+            "-c:v",
+            "copy",
+            "-af",
+            "loudnorm=I=-16:TP=-1.5:LRA=11",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-movflags",
+            "+faststart",
+            str(normalized_path),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=timeout_seconds,
+    )
+    if result.returncode != 0 or not normalized_path.is_file():
+        normalized_path.unlink(missing_ok=True)
+        return False
+    normalized_path.replace(video_path)
+    return True
 
 
 async def _run_video_generation_async(

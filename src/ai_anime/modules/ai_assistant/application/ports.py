@@ -27,6 +27,7 @@ class HermesRuntime(Protocol):
         *,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str = "main",
     ) -> HermesThread: ...
 
     async def prewarm(
@@ -35,6 +36,7 @@ class HermesRuntime(Protocol):
         *,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str = "main",
     ) -> None: ...
 
     async def set_scope_for_user(
@@ -43,9 +45,19 @@ class HermesRuntime(Protocol):
         *,
         scope_kind: str,
         project_id: str | None,
+        conversation_id: str = "main",
     ) -> bool: ...
 
     async def close_user(self, username: str) -> bool: ...
+
+    async def forget_conversation(
+        self,
+        username: str,
+        *,
+        scope_kind: str,
+        project_id: str | None,
+        conversation_id: str,
+    ) -> bool: ...
 
 
 class ChatHistory(Protocol):
@@ -67,6 +79,9 @@ class ChatHistory(Protocol):
         scope: ChatScope,
         turn_id: str,
         event: dict[str, Any],
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]: ...
 
     def list_messages(
@@ -88,6 +103,7 @@ class ChatHistory(Protocol):
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]: ...
 
     def append_project_trace_messages(
@@ -98,6 +114,7 @@ class ChatHistory(Protocol):
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[dict[str, Any]]: ...
 
     def list_project_messages(
@@ -108,6 +125,7 @@ class ChatHistory(Protocol):
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
         limit: int = 50,
+        conversation_id: str = "main",
     ) -> list[dict[str, Any]]: ...
 
     def list_project_trace_contents(
@@ -117,6 +135,7 @@ class ChatHistory(Protocol):
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[str]: ...
 
     def replace_project_trace_messages(
@@ -127,7 +146,49 @@ class ChatHistory(Protocol):
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> None: ...
+
+    def list_conversations(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_conversation_title(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> str: ...
+
+    def set_conversation_title(
+        self,
+        username: str,
+        scope: ChatScope,
+        title: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool: ...
+
+    def delete_conversation(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool: ...
+
+
+class ChatTitleGenerator(Protocol):
+    async def generate(self, first_user_message: str) -> str: ...
 
 
 class JsonRenderErrors(Protocol):
@@ -153,6 +214,15 @@ class ProjectMediaFiles(Protocol):
         project: str,
         project_dir: Path,
         relative_path: str,
+    ) -> str: ...
+
+    def persist_inline_chat_image(
+        self,
+        project_dir: Path,
+        *,
+        content: str,
+        filename: str | None,
+        mime_type: str | None,
     ) -> str: ...
 
 

@@ -78,12 +78,14 @@ class HermesProjectReplies:
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         agent_prompt = self._prompt_context.build(username, project, prompt)
         thread = await self._runtime.get_for_user(
             username,
             scope_kind="project" if project else "home",
             project_id=project or None,
+            conversation_id=conversation_id,
         )
         previous_assistant = (
             self._project_messages.assistant_contents(
@@ -91,6 +93,7 @@ class HermesProjectReplies:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
             if project
             else []
@@ -101,6 +104,7 @@ class HermesProjectReplies:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
             if project
             else []
@@ -150,6 +154,7 @@ class HermesProjectReplies:
                     split_trace_contents(final_tool_text),
                     project_dir=project_dir,
                     project_state_dir=project_state_dir,
+                    conversation_id=conversation_id,
                 )
             media = self._project_media.extract(
                 final_text,
@@ -165,6 +170,7 @@ class HermesProjectReplies:
                 turn_id=turn_id,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
             return persisted_message
 
@@ -200,11 +206,19 @@ class HermesProjectReplies:
                     )
                     continue
                 if event.type == "tool_update":
-                    if event.raw is not None:
+                    event_tool_name = event.name or current_tool_name
+                    event_tool_hidden = is_hidden_chat_tool_event(
+                        event_tool_name,
+                        event.text,
+                    )
+                    tool_event_error = event.error
+                    if event.raw is not None and not event_tool_hidden:
                         mapped_chat_error = tool_chat_error(
                             event.raw,
-                            tool_name=current_tool_name,
+                            tool_name=event_tool_name,
                         )
+                        if mapped_chat_error:
+                            tool_event_error = mapped_chat_error
                         if (
                             mapped_chat_error
                             and mapped_chat_error not in seen_tool_chat_errors
@@ -272,14 +286,8 @@ class HermesProjectReplies:
                                 )
                     if event.name:
                         current_tool_name = event.name
-                        current_tool_hidden = is_hidden_chat_tool_event(
-                            event.name,
-                            event.text,
-                        )
-                    if current_tool_hidden or is_hidden_chat_tool_event(
-                        current_tool_name,
-                        event.text,
-                    ):
+                        current_tool_hidden = event_tool_hidden
+                    if current_tool_hidden or event_tool_hidden:
                         continue
                     tool_text += str(event.text or "") + "\n"
                     display_tool_text = strip_streamed_assistant_replay(
@@ -287,12 +295,27 @@ class HermesProjectReplies:
                         previous_trace,
                     )
                     if display_tool_text.strip():
+                        tool_call_id = getattr(event, "tool_call_id", None)
+                        tool_phase = getattr(event, "tool_phase", None)
+                        tool_input = getattr(event, "tool_input", None)
+                        tool_output = getattr(event, "tool_output", None)
                         await emit_chat_event_best_effort(
                             on_event,
                             {
                                 "type": "tool_update",
                                 "text": display_tool_text,
-                                "name": current_tool_name,
+                                "name": event_tool_name,
+                                "tool_call_id": tool_call_id,
+                                "tool_phase": tool_phase,
+                                "input": tool_input,
+                                "output": tool_output,
+                                "success": (
+                                    False
+                                    if tool_event_error
+                                    else event.success
+                                ),
+                                "error": tool_event_error,
+                                "raw": event.raw,
                             },
                         )
                     continue
@@ -338,6 +361,7 @@ class HermesProjectReplies:
                     turn_id=turn_id,
                     project_dir=project_dir,
                     project_state_dir=project_state_dir,
+                    conversation_id=conversation_id,
                 )
                 persisted_message = result_message
             await emit_chat_event_best_effort(

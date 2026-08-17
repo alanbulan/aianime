@@ -15,7 +15,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -26,17 +25,14 @@ import aiosqlite
 
 from ai_anime.modules.model_usage.public import (
     model_access_configured,
-    resolve_internal_model_for_role,
     resolve_model_for_role,
 )
 from ai_anime.modules.model_usage.public import (
-    DEFAULT_FREEZONE_VISION_MODEL,
     request_model_chat_content,
 )
 from ai_anime.modules.verification.infrastructure import failure_registry
 
 
-DEFAULT_GATE_MODEL = DEFAULT_FREEZONE_VISION_MODEL
 
 
 @dataclass
@@ -176,23 +172,15 @@ def _extract_json_object(text: str) -> dict[str, Any] | None:
         return None
 
 
-def _resolve_gate_model() -> str:
-    """Resolve the platform model SKU without selecting an upstream provider."""
-    return (os.environ.get("SKETCH_GATE_MODEL") or "").strip() or DEFAULT_GATE_MODEL
-
-
 async def _ask_vlm_once(
     *,
     image_bytes: bytes,
     prompt: str,
-    model: str,
     max_tokens: int = 512,
 ) -> str:
-    effective_model = resolve_model_for_role(model, "TEXT")
     b64 = base64.b64encode(image_bytes).decode("ascii")
     data_url = f"data:image/png;base64,{b64}"
     return await request_model_chat_content(
-        model=effective_model,
         temperature=0.0,
         max_tokens=max_tokens,
         timeout_seconds=60.0,
@@ -213,7 +201,6 @@ async def gate_single_cell(
     cell_path: Path,
     beat_number: int,
     active_modes: list[dict[str, Any]],
-    model: str,
     spatial_contract: dict[str, Any] | None = None,
     reference_paths: list[Path] | None = None,
     review_image_path: Path | None = None,
@@ -240,7 +227,6 @@ async def gate_single_cell(
         raw = await _ask_vlm_once(
             image_bytes=_read_cell_bytes(image_path),
             prompt=prompt,
-            model=model,
         )
     except Exception as exc:  # noqa: BLE001
         verdict.error = f"vlm call failed: {exc}"
@@ -265,7 +251,6 @@ async def gate_candidate_cells(
     summary_path: Path,
     defs_db: aiosqlite.Connection,
     project_hits_db: aiosqlite.Connection | None = None,
-    model: str | None = None,
 ) -> GateResult:
     """Run the visual gate against every candidate cell in `summary_path`.
 
@@ -286,12 +271,7 @@ async def gate_candidate_cells(
             "No gate_enabled failure modes registered; seed the registry first"
         )
 
-    explicit_model = str(model or "").strip()
-    resolved_model = (
-        resolve_model_for_role(explicit_model, "TEXT")
-        if explicit_model
-        else resolve_internal_model_for_role(_resolve_gate_model(), "TEXT")
-    )
+    resolved_model = resolve_model_for_role("TEXT")
     if not model_access_configured():
         raise RuntimeError("Visual gate model access is not configured")
 
@@ -328,7 +308,6 @@ async def gate_candidate_cells(
                 cell_path=cell_path,
                 beat_number=beat_number,
                 active_modes=active_modes,
-                model=resolved_model,
                 spatial_contract=spatial_contracts.get(beat_number),
                 reference_paths=reference_paths,
                 review_image_path=audit_dir / f"gate_sheet_beat_{beat_number}_{ts}.jpg",

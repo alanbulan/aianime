@@ -39,6 +39,9 @@ from ai_anime.modules.production.application.sketch_color import (
 from ai_anime.modules.production.application.sketch_marker_detection import (
     SketchMarkerDetectionUseCases,
 )
+from ai_anime.modules.production.application.sketch_marker_detection_task import (
+    SketchMarkerDetectionTaskUseCases,
+)
 from ai_anime.modules.production.application.sketch_markers import (
     SketchMarkerUseCases,
 )
@@ -120,6 +123,9 @@ from ai_anime.modules.production.infrastructure.sketch_editing import (
 from ai_anime.modules.production.infrastructure.sketch_marker_detection import (
     GlobalVideoOptimizerSketchMarkerDetector,
     LocalSketchMarkerDetectionFiles,
+)
+from ai_anime.modules.production.infrastructure.sketch_marker_detection_task import (
+    TaskExecutionSketchMarkerDetectionScheduler,
 )
 from ai_anime.modules.production.infrastructure.sketch_markers import (
     SqliteProductionSketchMarkerWorkspace,
@@ -409,6 +415,14 @@ def sketch_marker_use_cases() -> SketchMarkerUseCases:
             GlobalVideoOptimizerSketchMarkerDetector(),
             get_usage_meter(),
         ),
+    )
+
+
+def sketch_marker_detection_task_use_cases() -> SketchMarkerDetectionTaskUseCases:
+    return SketchMarkerDetectionTaskUseCases(
+        TaskExecutionSketchMarkerDetectionScheduler(
+            project_task_submission_use_cases()
+        )
     )
 
 

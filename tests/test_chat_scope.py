@@ -27,6 +27,11 @@ async def test_send_scope_changed_returns_none_when_client_disconnected(monkeypa
 
     monkeypatch.setattr(chat_scope, "_history", history)
     monkeypatch.setattr(
+        chat_scope.scoped_chat_messages,
+        "list_conversations",
+        lambda *_args, **_kwargs: [],
+    )
+    monkeypatch.setattr(
         chat_scope.chat_worker_lifecycle, "is_busy", lambda _user: False
     )
 
@@ -59,6 +64,11 @@ async def test_missing_project_reports_error_and_falls_back_home(monkeypatch):
     )
     monkeypatch.setattr(chat_scope, "_history", history)
     monkeypatch.setattr(
+        chat_scope.scoped_chat_messages,
+        "list_conversations",
+        lambda *_args, **_kwargs: [],
+    )
+    monkeypatch.setattr(
         chat_scope.chat_worker_lifecycle, "is_busy", lambda _user: False
     )
 
@@ -74,8 +84,13 @@ async def test_missing_project_reports_error_and_falls_back_home(monkeypatch):
         {"type": "error", "message": "项目不存在或已删除，已切回首页聊天。"},
         {
             "type": "scope.changed",
-            "scope": {"kind": "home", "id": None},
+            "scope": {
+                "kind": "home",
+                "id": None,
+                "conversationId": "main",
+            },
             "history": [{"role": "assistant", "content": "home"}],
+            "conversations": [],
             "busy": False,
         },
     ]
@@ -113,6 +128,11 @@ async def test_scope_changed_projects_authorized_history_and_busy_state(
         project_context,
     )
     monkeypatch.setattr(chat_scope.scoped_chat_messages, "list", list_messages)
+    monkeypatch.setattr(
+        chat_scope.scoped_chat_messages,
+        "list_conversations",
+        lambda *_args, **_kwargs: [],
+    )
     monkeypatch.setattr(chat_scope.chat_worker_lifecycle, "is_busy", lambda _user: True)
     scope = ChatScope(kind="project", id="project-a")
 
@@ -133,8 +153,13 @@ async def test_scope_changed_projects_authorized_history_and_busy_state(
     assert websocket.events == [
         {
             "type": "scope.changed",
-            "scope": {"kind": "project", "id": "project-a"},
+            "scope": {
+                "kind": "project",
+                "id": "project-a",
+                "conversationId": "main",
+            },
             "history": [{"role": "assistant", "content": "project"}],
+            "conversations": [],
             "busy": True,
         }
     ]

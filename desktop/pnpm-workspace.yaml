@@ -4,6 +4,7 @@ packages:
 allowBuilds:
   electron: true
   electron-winstaller: false
+  webgpu: false
 
 minimumReleaseAgeExclude:
   - electron@43.2.0

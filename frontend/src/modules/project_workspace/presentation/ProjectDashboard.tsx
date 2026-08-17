@@ -1,11 +1,15 @@
 // Copyright (c) 2026 AI anime
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArchiveRestore,
   BookOpen,
   Brush,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  ImagePlus,
   FolderOpen,
   LayoutGrid,
   List as ListIcon,
@@ -53,6 +57,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getProjectCover, NOISE_DATA_URI } from "@/lib/project-cover";
 import { formatRelativeTime } from "@/lib/relative-time";
+import { resolveMediaUrl } from "@/lib/media-url";
 import {
   canDeleteProject,
   isSharedProject,
@@ -92,6 +97,7 @@ function ProjectCard({
   onOpenCanvas,
   onPreload,
   onShare,
+  onEditProfile,
   onAction,
 }: {
   summary: ProjectSummary;
@@ -102,13 +108,21 @@ function ProjectCard({
   onOpenCanvas: () => void;
   onPreload?: () => void;
   onShare: () => void;
+  onEditProfile: () => void;
   onAction: (action: ProjectLifecycleAction) => void;
 }) {
   const { t } = useTranslation();
+  const displayName = summary.displayName || summary.name;
   const { initial, primary } = useMemo(
-    () => getProjectCover(summary.name),
-    [summary.name],
+    () => getProjectCover(displayName),
+    [displayName],
   );
+  const coverUrl = summary.coverPath
+    ? `/api/v1/projects/${encodeURIComponent(summary.id)}/media/${summary.coverPath
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}`
+    : null;
   const isActive = summary.status === "active";
   const isArchived = summary.status === "archived";
   const isDeleted = summary.status === "deleted";
@@ -158,7 +172,7 @@ function ProjectCard({
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       className={cn(
-        "group relative flex h-full flex-col rounded-lg border border-border bg-card transition-all duration-300 ease-out",
+        "group relative flex h-full flex-col rounded-lg border border-border bg-card transition-all duration-300 ease-out [contain-intrinsic-size:auto_204px] [content-visibility:auto]",
         PROJECT_CARD_MIN_HEIGHT_CLASS,
         sm ? "p-2 pt-4" : "p-3 pt-5",
         clickable &&
@@ -175,13 +189,23 @@ function ProjectCard({
             isDeleted && "grayscale",
           )}
         >
-          <ProjectFolder
-            color={primary}
-            initial={initial}
-            width="100%"
-            size={sm ? 0.92 : 1}
-            className="translate-y-1"
-          />
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt=""
+              decoding="async"
+              loading="lazy"
+              className="absolute inset-0 size-full rounded-lg object-cover shadow-sm"
+            />
+          ) : (
+            <ProjectFolder
+              color={primary}
+              initial={initial}
+              width="100%"
+              size={sm ? 0.92 : 1}
+              className="translate-y-1"
+            />
+          )}
           {isArchived && (
             <div className="absolute bottom-2 right-2 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm backdrop-blur-sm">
               {t("project.archivedBadge")}
@@ -192,9 +216,9 @@ function ProjectCard({
         <div className="flex w-full items-start justify-between gap-1">
           <h3
             className="ml-[5%] min-w-0 truncate text-sm font-semibold text-foreground"
-            title={summary.name}
+            data-ui-tooltip={displayName}
           >
-            {summary.name}
+            {displayName}
           </h3>
           <div
             data-project-menu
@@ -217,7 +241,7 @@ function ProjectCard({
                 side="right"
                 align="start"
                 sideOffset={8}
-                className="w-32 rounded-md border border-border p-1 shadow-xl [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
+                className="w-max min-w-40 rounded-md border border-border p-1 shadow-xl [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
               >
                 <DropdownMenuGroup>
                   {isActive && (
@@ -231,6 +255,10 @@ function ProjectCard({
                       >
                         <Brush className="size-4" />
                         {t("project.actions.openFreezone")}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={onEditProfile}>
+                        <ImagePlus className="size-4" />
+                        {t("project.actions.editProfile")}
                       </DropdownMenuItem>
                       {canLifecycle && (
                         <>
@@ -342,7 +370,7 @@ function ProjectCard({
             {showOwnership ? (
               <div
                 className="ml-[5%] flex min-w-0 items-center gap-1.5"
-                title={ownershipMetaLabel}
+                data-ui-tooltip={ownershipMetaLabel}
               >
                 <span className="min-w-0 truncate">
                   {visibleOwnershipLabel}
@@ -454,6 +482,7 @@ function ProjectRow({
   onOpenCanvas,
   onPreload,
   onShare,
+  onEditProfile,
   onAction,
 }: {
   summary: ProjectSummary;
@@ -463,13 +492,21 @@ function ProjectRow({
   onOpenCanvas: () => void;
   onPreload?: () => void;
   onShare: () => void;
+  onEditProfile: () => void;
   onAction: (action: ProjectLifecycleAction) => void;
 }) {
   const { t } = useTranslation();
+  const displayName = summary.displayName || summary.name;
   const { gradient, initial } = useMemo(
-    () => getProjectCover(summary.name),
-    [summary.name],
+    () => getProjectCover(displayName),
+    [displayName],
   );
+  const coverUrl = summary.coverPath
+    ? `/api/v1/projects/${encodeURIComponent(summary.id)}/media/${summary.coverPath
+        .split("/")
+        .map(encodeURIComponent)
+        .join("/")}`
+    : null;
   const isActive = summary.status === "active";
   const isArchived = summary.status === "archived";
   const isDeleted = summary.status === "deleted";
@@ -514,7 +551,7 @@ function ProjectRow({
       role={clickable ? "button" : undefined}
       tabIndex={clickable ? 0 : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-3 transition-colors",
+        "group flex items-center gap-3 rounded-lg border border-border bg-card px-3.5 py-3 transition-colors [contain-intrinsic-size:auto_66px] [content-visibility:auto]",
         clickable &&
           "cursor-pointer hover:border-primary/35",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
@@ -527,8 +564,17 @@ function ProjectRow({
           "relative size-10 shrink-0 overflow-hidden rounded-[9px]",
           isDeleted && "grayscale",
         )}
-        style={{ background: gradient }}
+        style={{ background: coverUrl ? undefined : gradient }}
       >
+        {coverUrl && (
+          <img
+            src={coverUrl}
+            alt=""
+            decoding="async"
+            loading="lazy"
+            className="absolute inset-0 size-full object-cover"
+          />
+        )}
         <div
           aria-hidden
           className="absolute inset-0 mix-blend-overlay opacity-[0.08]"
@@ -537,7 +583,7 @@ function ProjectRow({
             backgroundSize: "200px 200px",
           }}
         />
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className={cn("absolute inset-0 flex items-center justify-center", coverUrl && "hidden")}>
           <span
             className="text-lg font-bold leading-none text-media-foreground/95 drop-shadow-md"
             style={{ fontFeatureSettings: '"cv01", "ss03"' }}
@@ -550,9 +596,9 @@ function ProjectRow({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <h3
           className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground"
-          title={summary.name}
+          data-ui-tooltip={displayName}
         >
-          {summary.name}
+          {displayName}
         </h3>
         {showOwnership ? (
           <>
@@ -624,7 +670,7 @@ function ProjectRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-32 rounded-md border border-border p-1 shadow-xl [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
+            className="w-max min-w-40 rounded-md border border-border p-1 shadow-xl [&_[data-slot=dropdown-menu-item]]:min-h-8 [&_[data-slot=dropdown-menu-item]]:gap-2 [&_[data-slot=dropdown-menu-item]]:rounded-sm [&_[data-slot=dropdown-menu-item]]:px-2 [&_[data-slot=dropdown-menu-item]]:py-1.5 [&_[data-slot=dropdown-menu-item]]:text-xs [&_[data-slot=dropdown-menu-item]:focus]:bg-accent [&_[data-slot=dropdown-menu-item]:focus]:text-accent-foreground [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:bg-destructive/10 [&_[data-slot=dropdown-menu-item][data-variant=destructive]:focus]:text-destructive [&_[data-slot=dropdown-menu-item]_svg]:size-3.5"
           >
             <DropdownMenuGroup>
               {isActive && (
@@ -638,6 +684,10 @@ function ProjectRow({
                   >
                     <Brush className="size-4" />
                     {t("project.actions.openFreezone")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onEditProfile}>
+                    <ImagePlus className="size-4" />
+                    {t("project.actions.editProfile")}
                   </DropdownMenuItem>
                   {canLifecycle && (
                     <>
@@ -749,7 +799,7 @@ function ViewToggle({
             role="tab"
             aria-selected={active}
             aria-label={t(labelKey)}
-            title={t(labelKey)}
+            data-ui-tooltip={t(labelKey)}
             onClick={() => onChange(v)}
             className={cn(
               "inline-flex h-6 items-center justify-center rounded-full px-2 font-normal transition-colors",
@@ -1016,6 +1066,196 @@ function DeleteDialog({
   );
 }
 
+function ProjectProfileDialog({
+  controller,
+}: {
+  controller: ProjectDashboardController;
+}) {
+  const { t } = useTranslation();
+  const {
+    profileCandidateHasMore,
+    profileCandidateLoadedPage,
+    profileCandidatePage,
+    profileCandidateTotal,
+    profileCandidateTotalPages,
+    profileCandidates,
+    profileCandidatesFetching,
+    profileCandidatesLoading,
+    profileName,
+    profilePending,
+    profileProject,
+    saveProjectProfile,
+    selectProjectCover,
+    setProfileName,
+    setProfileCandidatePage,
+    setProfileProject,
+    uploadProjectCover,
+  } = controller;
+
+  return (
+    <Dialog
+      open={Boolean(profileProject)}
+      onOpenChange={(open) => {
+        if (!open) setProfileProject(null);
+      }}
+    >
+      <DialogContent className="grid h-[min(760px,calc(100vh-4rem))] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{t("project.profile.title")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {t("project.profile.description")}
+          </p>
+        </DialogHeader>
+        <div className="ui-scrollbar min-h-0 space-y-5 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+          <div className="space-y-2">
+            <label htmlFor="project-display-name" className="text-sm font-medium">
+              {t("project.profile.displayName")}
+            </label>
+            <Input
+              id="project-display-name"
+              value={profileName}
+              maxLength={80}
+              onChange={(event) => setProfileName(event.currentTarget.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("project.profile.displayNameHint")}
+            </p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-sm font-medium">
+                  {t("project.profile.cover")}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("project.profile.coverHint")}
+                </p>
+              </div>
+              <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium hover:bg-accent">
+                <Camera className="size-4" />
+                {t("project.profile.upload")}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) void uploadProjectCover(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
+            {profileCandidatesLoading ? (
+              <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                {t("common.loading")}
+              </div>
+            ) : profileCandidates.length > 0 ? (
+              <div className="relative" aria-busy={profileCandidatesFetching}>
+                <AnimatePresence initial={false} mode="wait">
+                  <motion.div
+                    key={profileCandidateLoadedPage}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.16, ease: "easeOut" }}
+                    className="grid grid-cols-3 gap-2 sm:grid-cols-5"
+                  >
+                    {profileCandidates.map((candidate) => (
+                      <button
+                        key={candidate.path}
+                        type="button"
+                        disabled={profilePending}
+                        className="group overflow-hidden rounded-md border border-border bg-card text-left transition-colors hover:border-primary disabled:pointer-events-none disabled:opacity-60"
+                        onClick={() => void selectProjectCover(candidate.path)}
+                      >
+                        <img
+                          src={resolveMediaUrl(candidate.url) ?? candidate.url}
+                          alt=""
+                          decoding="async"
+                          loading="lazy"
+                          className="aspect-video w-full object-cover"
+                        />
+                        <span className="block truncate px-2 py-1.5 text-[11px] text-muted-foreground group-hover:text-foreground">
+                          {candidate.name}
+                        </span>
+                      </button>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
+                <AnimatePresence>
+                  {profileCandidatesFetching ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-background/45 backdrop-blur-[1px]"
+                    >
+                      <Loader2 className="size-5 animate-spin text-primary" />
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="rounded-md border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
+                {t("project.profile.noHistory")}
+              </div>
+            )}
+            {profileCandidateTotal > 0 ? (
+              <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {t("project.profile.pageSummary", {
+                    page: profileCandidatePage,
+                    totalPages: profileCandidateTotalPages,
+                    total: profileCandidateTotal,
+                  })}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={profileCandidatePage <= 1 || profileCandidatesFetching}
+                    onClick={() =>
+                      setProfileCandidatePage(Math.max(1, profileCandidatePage - 1))
+                    }
+                  >
+                    <ChevronLeft className="size-4" />
+                    {t("project.profile.previousPage")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!profileCandidateHasMore || profileCandidatesFetching}
+                    onClick={() => setProfileCandidatePage(profileCandidatePage + 1)}
+                  >
+                    {t("project.profile.nextPage")}
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <DialogFooter className="border-t border-border pt-4">
+          <Button variant="outline" onClick={() => setProfileProject(null)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            disabled={profilePending || !profileName.trim()}
+            onClick={() => void saveProjectProfile()}
+          >
+            {profilePending && <Loader2 className="size-4 animate-spin" />}
+            {t("common.save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ProjectDashboardView({
   controller,
   shareController,
@@ -1043,6 +1283,7 @@ export function ProjectDashboardView({
     openCanvas,
     openProject,
     pending,
+    profileProject,
     preloadProject,
     search,
     searchInputRef,
@@ -1050,6 +1291,7 @@ export function ProjectDashboardView({
     setCurrentTab,
     setNewName,
     setPending,
+    setProfileProject,
     setSearch,
     setShareProject,
     setSort,
@@ -1304,6 +1546,7 @@ export function ProjectDashboardView({
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
                       onShare={() => setShareProject(summary)}
+                      onEditProfile={() => setProfileProject(summary)}
                       onAction={(action) => onAction(summary, action)}
                     />
                   ) : (
@@ -1316,6 +1559,7 @@ export function ProjectDashboardView({
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
                       onShare={() => setShareProject(summary)}
+                      onEditProfile={() => setProfileProject(summary)}
                       onAction={(action) => onAction(summary, action)}
                     />
                   )}
@@ -1334,6 +1578,7 @@ export function ProjectDashboardView({
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
                       onShare={() => setShareProject(summary)}
+                      onEditProfile={() => setProfileProject(summary)}
                       onAction={(action) => onAction(summary, action)}
                     />
                   ) : (
@@ -1347,6 +1592,7 @@ export function ProjectDashboardView({
                       onOpenCanvas={() => openCanvas(projectRouteParam(summary))}
                       onPreload={() => preloadProject(projectRouteParam(summary))}
                       onShare={() => setShareProject(summary)}
+                      onEditProfile={() => setProfileProject(summary)}
                       onAction={(action) => onAction(summary, action)}
                     />
                   ),
@@ -1383,6 +1629,10 @@ export function ProjectDashboardView({
         onOpenChange={(open) => {
           if (!open) setShareProject(null);
         }}
+      />
+      <ProjectProfileDialog
+        controller={controller}
+        key={profileProject?.id ?? "closed"}
       />
     </div>
   );

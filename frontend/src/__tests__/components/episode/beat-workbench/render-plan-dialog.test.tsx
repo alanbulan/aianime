@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { findByUiTooltip, getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -334,8 +335,8 @@ describe("RenderPlanDialog — /plan happy path", () => {
 
     // Two plan entries → two location labels ("闹市街头", "公园") visible.
     await waitFor(() => {
-      expect(screen.getByTitle("闹市街头")).toBeInTheDocument();
-      expect(screen.getByTitle("公园")).toBeInTheDocument();
+      expect(getByUiTooltip("闹市街头")).toBeInTheDocument();
+      expect(getByUiTooltip("公园")).toBeInTheDocument();
     });
   });
 
@@ -374,7 +375,7 @@ describe("RenderPlanDialog — /plan happy path", () => {
       </Wrapper>,
     );
 
-    await screen.findByTitle("闹市街头");
+    await findByUiTooltip("闹市街头");
     expect(
       screen.queryByRole("combobox", { name: "episode.renderPlan.strategy" }),
     ).not.toBeInTheDocument();

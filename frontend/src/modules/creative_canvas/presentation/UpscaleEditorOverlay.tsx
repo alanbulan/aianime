@@ -228,7 +228,7 @@ export function createUpscaleEditorOverlay({
             type="button"
             className="text-xs text-text-muted transition-colors hover:text-text-dark"
             onClick={handleCancel}
-            title={t('upscaleEditor.cancel')}
+            data-ui-tooltip={t('upscaleEditor.cancel')}
           >
             {t('common.cancel')}
           </button>
@@ -263,7 +263,7 @@ export function createUpscaleEditorOverlay({
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedModel}
             className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
-            title={t('upscaleEditor.submit')}
+            data-ui-tooltip={t('upscaleEditor.submit')}
           >
             <ArrowUp className="h-4 w-4" />
           </button>

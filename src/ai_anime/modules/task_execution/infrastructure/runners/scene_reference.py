@@ -29,7 +29,7 @@ async def _run_scene_reference_asset(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
-    from ai_anime.modules.production.public import IMAGE_DEFAULT_STYLE, get_style_preset
+    from ai_anime.modules.production.public import IMAGE_DEFAULT_STYLE
     from ai_anime.modules.production.public import generate_scene_reference_image
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
@@ -72,26 +72,13 @@ async def _run_scene_reference_asset(
             base_scene = await store.sqlite_store.get_scene(base_scene_id)
 
         style_id = (style or IMAGE_DEFAULT_STYLE).strip() or IMAGE_DEFAULT_STYLE
-        preset = get_style_preset(
-            style_id,
-            username=ctx.owner_username,
-            project=ctx.project_name,
-            project_dir=str(output_dir),
-        )
-        style_prompt = str(preset.get("style_instructions", "") or "").strip()
-        avoid_instructions = str(preset.get("avoid_instructions", "") or "").strip()
-        style_label = preset.get("label") or style_id
-        style_name = f"{style_label} ({style_id})"
-
         update(0.40, f"调用图像模型生成 {kind}...")
         output_path = await generate_scene_reference_image(
             project_dir=output_dir,
             scene=scene,
             kind=kind,  # type: ignore[arg-type]
             model=model,
-            style_name=style_name,
-            style_prompt=style_prompt,
-            avoid_instructions=avoid_instructions,
+            style_id=style_id,
             base_scene=base_scene,
         )
         if kind == "spatial_layout":
@@ -101,7 +88,7 @@ async def _run_scene_reference_asset(
             "scene_name": scene_name,
             "kind": kind,
             "path": str(output_path),
-            "style": style_name,
+            "style": style_id,
         }
     finally:
         await store.close()

@@ -40,7 +40,7 @@ export function createUseStyleDetailController(
   ) {
     const { isProjectDefault, onClearSelection, project, style } = options;
     const { t } = useTranslation();
-    const createStyle = queries.useCreateStyle();
+    const updateStyle = queries.useUpdateStyle();
     const deleteStyle = queries.useDeleteStyle();
     const updateProject = dependencies.useUpdateProject(project);
     const preset = isPresetStyle(style);
@@ -49,6 +49,7 @@ export function createUseStyleDetailController(
     const [editingName, setEditingName] = useState(style.name);
     const [nameEditOpen, setNameEditOpen] = useState(false);
     const [nameEditValue, setNameEditValue] = useState(style.name);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [showJson, setShowJson] = useState(false);
     const [jsonText, setJsonText] = useState("");
     const [jsonError, setJsonError] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export function createUseStyleDetailController(
       setEditingName(style.name);
       setNameEditOpen(false);
       setNameEditValue(style.name);
+      setDeleteConfirmOpen(false);
       setShowJson(false);
       setJsonError(null);
       setJsonText(JSON.stringify(buildStyleSavePayload(original, style), null, 2));
@@ -94,10 +96,9 @@ export function createUseStyleDetailController(
       }
 
       try {
-        await createStyle.mutateAsync({
+        await updateStyle.mutateAsync({
           id: style.id,
           name: editingName.trim() || style.name,
-          project,
           config,
         });
         toast.success(t("styles.styleSaved"));
@@ -118,11 +119,9 @@ export function createUseStyleDetailController(
     };
 
     const handleDelete = async () => {
-      if (!confirm(t("styles.confirmDelete", { name: style.label || style.name }))) {
-        return;
-      }
       try {
-        await deleteStyle.mutateAsync({ styleId: style.id, project });
+        await deleteStyle.mutateAsync({ styleId: style.id });
+        setDeleteConfirmOpen(false);
         toast.success(t("styles.deleted"));
         onClearSelection();
       } catch {
@@ -159,10 +158,9 @@ export function createUseStyleDetailController(
       const trimmed = nameEditValue.trim();
       if (!trimmed) return;
       try {
-        await createStyle.mutateAsync({
+        await updateStyle.mutateAsync({
           id: style.id,
           name: trimmed,
-          project,
           config: buildStyleSavePayload(fields, style),
         });
         setEditingName(trimmed);
@@ -175,7 +173,8 @@ export function createUseStyleDetailController(
 
     return {
       applyPending: updateProject.isPending,
-      createPending: createStyle.isPending,
+      savePending: updateStyle.isPending,
+      deleteConfirmOpen,
       deletePending: deleteStyle.isPending,
       dirty,
       editingName,
@@ -202,6 +201,7 @@ export function createUseStyleDetailController(
         ? dependencies.stylePreviewUrl(style.id)
         : style.preview_url,
       setJsonEditorOpen,
+      setDeleteConfirmOpen,
       setNameEditOpen,
       setNameEditValue,
       showJson,

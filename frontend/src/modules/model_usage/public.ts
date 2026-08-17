@@ -8,6 +8,7 @@ export {
   useConfigureByok,
   useSelectCloudModels,
   useClearByok,
+  useDiscoverByokProviderModels,
   useCancelCommercialInvocation,
   useCommercialInvocationDetails,
   useCommercialInvocations,
@@ -19,7 +20,10 @@ export {
 } from "@/modules/model_usage/composition";
 export type {
   ByokModelAssignment,
+  ByokProviderModelDiscoveryInput,
   ByokModelRole,
+  ByokProviderProtocol,
+  ByokProviderStatus,
   CommercialModelCatalog,
   CommercialModelCatalogItem,
   CommercialModelAccessMode,
@@ -30,6 +34,7 @@ export type {
 } from "@/modules/model_usage/domain/commercial-model-access";
 export {
   BYOK_MODEL_ROLES,
+  BYOK_PROVIDER_PROTOCOLS,
   commercialModelRoles,
 } from "@/modules/model_usage/domain/commercial-model-access";
 export { resolveRequiredCatalogModelCode } from "@/modules/model_usage/domain/commercial-model-access";

@@ -80,7 +80,7 @@ export function ContextPromptPaletteButton({
         ref={triggerRef}
         type="button"
         className={NODE_CONTEXT_CONTROL_TRIGGER_CLASS}
-        title={t("node.imageGen.contextPalette.button")}
+        data-ui-tooltip={t("node.imageGen.contextPalette.button")}
         aria-label={t("node.imageGen.contextPalette.button")}
         aria-expanded={open}
         onClick={(event) => {
@@ -148,7 +148,7 @@ function PaletteSection({
               ? "inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-muted px-2 py-1 text-[11px] text-foreground/84 transition-colors hover:border-foreground/25 hover:bg-accent hover:text-foreground"
               : "inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-foreground/84 transition-colors hover:border-foreground/25 hover:bg-accent hover:text-foreground"
             }
-            title={entry.named ? `${entry.label} · ${entry.color}` : entry.color}
+            data-ui-tooltip={entry.named ? `${entry.label} · ${entry.color}` : entry.color}
             aria-label={entry.named ? `${entry.label} · ${entry.color}` : entry.color}
             onClick={() => onInsert(entry)}
           >

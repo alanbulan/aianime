@@ -1,5 +1,26 @@
 // Copyright (c) 2026 AI anime
 import "@testing-library/jest-dom/vitest";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+
+if (!i18next.isInitialized) {
+  void i18next.use(initReactI18next).init({
+    lng: "zh",
+    fallbackLng: "zh",
+    initAsync: false,
+    interpolation: { escapeValue: false },
+    resources: { zh: { translation: {} } },
+  });
+}
+
+// jsdom does not implement scrolling. Components may legitimately request it
+// after a dialog opens, so provide the browser method instead of logging a
+// false failure during otherwise unrelated interaction tests.
+Object.defineProperty(window, "scrollTo", {
+  value: () => undefined,
+  writable: true,
+  configurable: true,
+});
 
 // jsdom v29 + Node.js >=22 exposes a broken localStorage (plain object without
 // Storage methods) when --localstorage-file is not set. Provide a spec-compliant

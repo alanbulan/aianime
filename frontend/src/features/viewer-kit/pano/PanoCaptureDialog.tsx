@@ -7,6 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GLASS_DIALOG_EMPTY_BODY_CLASS } from "@/lib/dialog-styles";
+import { UI_CONTENT_OVERLAY_INSET_CLASS } from "@/components/ui/motion";
+import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { useViewerImmersiveBody } from "../useViewerImmersiveBody";
 import type { ViewerPurpose } from "../viewerPurpose";
@@ -40,7 +42,10 @@ export function PanoCaptureDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="inset-0 left-0 top-0 h-dvh w-dvw max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-0 ring-0 data-open:zoom-in-100 data-closed:zoom-out-100 sm:max-w-none"
+        className={cn(
+          UI_CONTENT_OVERLAY_INSET_CLASS,
+          "h-auto w-dvw max-w-none translate-x-0 translate-y-0 overflow-hidden rounded-none border-0 p-0 ring-0 data-open:zoom-in-100 data-closed:zoom-out-100 sm:max-w-none",
+        )}
         overlayClassName="bg-scrim supports-backdrop-filter:backdrop-blur-none"
         showCloseButton={false}
       >

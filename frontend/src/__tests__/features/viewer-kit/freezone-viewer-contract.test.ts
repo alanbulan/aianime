@@ -100,7 +100,8 @@ describe("freezone viewer contracts", () => {
     expect(model).toContain("!hasMainlineContexts(");
     expect(model).toContain("if (isSceneDirectorWorldNode(data)) return null;");
     expect(controller).toContain("resolveThreeDWorldBeatContext(data, contexts)");
-    expect(view).toContain("viewerPurpose={beatContext ? 'beat' : 'freezone'}");
+    // 画布节点本身始终是自由画布草稿；即使关联 Beat，也只能通过显式输出动作提交到 Beat。
+    expect(view).toContain('viewerPurpose="freezone"');
     expect(model).toContain("canvas_screenshot_node");
     expect(model).toContain("beat_selected_background");
     expect(view).toContain("beatContext ? controller.submitDirectorCombined : undefined");

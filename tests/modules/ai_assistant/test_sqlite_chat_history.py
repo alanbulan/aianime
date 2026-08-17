@@ -1,5 +1,5 @@
-import sqlite3
 from pathlib import Path
+from unittest.mock import ANY
 
 import pytest
 
@@ -83,21 +83,12 @@ def test_project_chat_storage_creates_missing_resolved_state_dir(
     assert not (tmp_path / "state" / "admin" / "show-1").exists()
 
 
-def test_project_database_path_migrates_legacy_database_and_sidecars(
+def test_project_database_path_uses_current_state_layout(
     monkeypatch,
     tmp_path,
 ):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     project_dir = tmp_path / "output" / "admin" / "show-1"
-    legacy_database = project_dir / ".chat" / "chat.db"
-    legacy_database.parent.mkdir(parents=True)
-    expected_contents = {
-        "": b"database",
-        "-wal": b"write-ahead-log",
-        "-shm": b"shared-memory",
-    }
-    for suffix, content in expected_contents.items():
-        Path(f"{legacy_database}{suffix}").write_bytes(content)
 
     database = SQLiteChatHistory().project_db_for(
         "admin",
@@ -105,45 +96,109 @@ def test_project_database_path_migrates_legacy_database_and_sidecars(
         project_dir=project_dir,
     )
 
-    for suffix, content in expected_contents.items():
-        assert Path(f"{database}{suffix}").read_bytes() == content
-        assert not Path(f"{legacy_database}{suffix}").exists()
-    assert not legacy_database.parent.exists()
+    assert database == tmp_path / "state" / "admin" / "show-1" / "chat.db"
+    assert not database.exists()
 
 
-def test_existing_message_table_is_migrated_in_place(monkeypatch, tmp_path):
-    state_root = tmp_path / "state"
-    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_root))
-    database = state_root / "alice" / "_home" / "chat.db"
-    database.parent.mkdir(parents=True)
-    with sqlite3.connect(database) as connection:
-        connection.execute(
-            """
-            CREATE TABLE chat_messages (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              role TEXT NOT NULL,
-              content TEXT NOT NULL,
-              media_json TEXT NOT NULL DEFAULT '[]',
-              created_at TEXT NOT NULL
-            )
-            """
-        )
-
+def test_project_conversations_share_one_database_and_keep_history_isolated(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     history = SQLiteChatHistory()
-    history.append_message("alice", ChatScope(kind="home"), "user", "hello")
 
-    with sqlite3.connect(database) as connection:
-        columns = {
-            row[1] for row in connection.execute("PRAGMA table_info(chat_messages)")
+    history.append_project_message(
+        "alice",
+        "show-1",
+        "user",
+        "主会话",
+        conversation_id="main",
+    )
+    history.append_project_message(
+        "alice",
+        "show-1",
+        "user",
+        "分支会话",
+        conversation_id="chat_2",
+    )
+
+    database = history.project_db_for("alice", "show-1")
+    assert database.exists()
+    assert list(database.parent.glob("*.db")) == [database]
+    assert [
+        message["content"]
+        for message in history.list_project_messages(
+            "alice", "show-1", conversation_id="main"
+        )
+    ] == ["主会话"]
+    assert [
+        message["content"]
+        for message in history.list_project_messages(
+            "alice", "show-1", conversation_id="chat_2"
+        )
+    ] == ["分支会话"]
+
+
+def test_conversation_title_is_stored_once_and_used_by_listing(monkeypatch, tmp_path):
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    history = SQLiteChatHistory()
+    scope = ChatScope(
+        kind="project",
+        id="show-1",
+        conversation_id="chat_2",
+    )
+    history.append_message("alice", scope, "user", "原始首条消息")
+
+    assert history.get_conversation_title("alice", scope) == ""
+    assert history.set_conversation_title("alice", scope, "模型生成标题") is True
+    assert history.set_conversation_title("alice", scope, "不应覆盖") is False
+    assert history.get_conversation_title("alice", scope) == "模型生成标题"
+    assert history.list_conversations(
+        "alice",
+        ChatScope(kind="project", id="show-1"),
+    ) == [
+        {
+            "id": "chat_2",
+            "title": "模型生成标题",
+            "updatedAt": ANY,
+            "messageCount": 1,
         }
-        tables = {
-            row[0]
-            for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table'"
-            )
-        }
-    assert {"turn_id", "metadata_json"} <= columns
-    assert {"chat_messages", "chat_ui_events", "chat_settings"} <= tables
+    ]
+
+
+def test_delete_conversation_removes_only_the_selected_conversation(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    history = SQLiteChatHistory()
+    base = ChatScope(kind="project", id="show-1")
+    branch = ChatScope(
+        kind="project",
+        id="show-1",
+        conversation_id="chat_2",
+    )
+    history.append_message("alice", base, "user", "保留")
+    branch_message = history.append_message(
+        "alice",
+        branch,
+        "assistant",
+        "删除",
+        turn_id="turn-2",
+    )
+    history.append_ui_event(
+        "alice",
+        branch,
+        "turn-2",
+        {"type": "task.completed", "message_id": branch_message["id"]},
+    )
+
+    assert history.delete_conversation("alice", branch) is True
+    assert history.list_messages("alice", branch) == []
+    assert [
+        item["id"] for item in history.list_conversations("alice", base)
+    ] == ["main"]
+    assert history.list_messages("alice", base)[0]["content"] == "保留"
 
 
 def test_visible_history_hides_trace_and_strips_assistant_replay(
@@ -260,6 +315,49 @@ def test_ui_events_are_attached_to_the_matching_assistant_turn(
             "turn_id": "turn-1",
             "created_at": event["created_at"],
             "task_id": "task-1",
+        }
+    ]
+
+
+def test_project_ui_events_use_project_state_database_and_survive_refresh(tmp_path):
+    history = SQLiteChatHistory()
+    project_state_dir = tmp_path / "project-state"
+    scope = ChatScope(kind="project", id="show-1")
+    history.append_project_message(
+        "alice",
+        "show-1",
+        "user",
+        "自动生成整集",
+        turn_id="turn-1",
+        project_state_dir=project_state_dir,
+    )
+    event = history.append_ui_event(
+        "alice",
+        scope,
+        "turn-1",
+        {
+            "type": "tool.call",
+            "tool_call_id": "call-1",
+            "name": "ai_anime_pipeline_status",
+        },
+        project_state_dir=project_state_dir,
+    )
+
+    messages = history.list_project_messages(
+        "alice",
+        "show-1",
+        project_state_dir=project_state_dir,
+    )
+
+    assert project_state_dir.joinpath("chat.db").is_file()
+    assert messages[0]["ui_events"] == [
+        {
+            "id": event["id"],
+            "type": "tool.call",
+            "turn_id": "turn-1",
+            "created_at": event["created_at"],
+            "tool_call_id": "call-1",
+            "name": "ai_anime_pipeline_status",
         }
     ]
 

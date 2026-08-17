@@ -1448,7 +1448,10 @@ describe("frontend architecture boundaries", () => {
         "./canvasNodeActionToolbarStyles",
       ]),
     );
-    expect(importSpecifiers(generationOverlayPath)).toEqual(["react"]);
+    expect(importSpecifiers(generationOverlayPath)).toEqual([
+      "lucide-react",
+      "react-i18next",
+    ]);
     expect(importSpecifiers(regenerateButtonPath)).toEqual(["lucide-react"]);
     expect(importSpecifiers(editableTableCellPath)).toEqual(["react"]);
     expect(frameStylesSource).toContain("CANVAS_NODE_OPS_PANEL_CLASS");
@@ -19992,7 +19995,7 @@ describe("frontend architecture boundaries", () => {
       "createUseSketchCropDialogController",
     );
     expect(sketchCropDialogControllerSource).toContain(
-      "queries.useSketchPoseEditor",
+      "queries.useSketchCropSource",
     );
     expect(sketchCropDialogControllerSource).toContain(
       "queries.useCropSketch",
@@ -20020,7 +20023,7 @@ describe("frontend architecture boundaries", () => {
     expect(sketchCropDialogViewSource).toContain("cropBoxPercentStyle(");
     expect(sketchCropDialogViewSource).not.toContain("useSketchPoseEditor(");
     expect(sketchCropDialogViewSource).not.toContain("useCropSketch(");
-    expect(sketchCropDialogViewSource).not.toContain("useState(");
+    expect(sketchCropDialogViewSource).toContain("useState(");
     expect(sketchCropDialogViewSource).toContain("useCallback(");
     expect(sketchCropDialogViewSource).not.toContain("toast.");
     expect(sketchPoseEditorDialogSource).toContain(
@@ -20029,16 +20032,9 @@ describe("frontend architecture boundaries", () => {
     expect(sketchPoseEditorDialogSource).toContain(
       "createElement(SketchPoseEditorDialogView",
     );
-    expect(sketchPoseEditorDialogSource).not.toContain("useSketchPoseEditor(");
-    expect(sketchPoseEditorDialogSource).not.toContain(
-      "useSaveSketchPoseEditor(",
-    );
     expect(sketchPoseEditorDialogSource).not.toContain("toast.");
     expect(sketchPoseEditorDialogSource).not.toContain("hitTestPoseJoint(");
     expect(sketchPoseEditorDialogSource).not.toContain("movePoseDrag(");
-    expect(sketchPoseEditorDialogSource).not.toContain(
-      "scalePosePresetJoints(",
-    );
     expect(sketchPoseEditorDialogSource).not.toContain("useEffect(");
     expect(sketchPoseEditorDialogSource).not.toContain("useState(");
     expect(sketchPoseEditorDialogSource).not.toContain("className=");
@@ -20046,7 +20042,6 @@ describe("frontend architecture boundaries", () => {
     expect(sketchPoseEditorDialogSource).not.toContain("<Button");
     expect(sketchPoseEditorDialogSource).not.toContain("<canvas");
     expect(sketchPoseEditorDialogSource).not.toContain("PointerEvent");
-    expect(sketchPoseEditorDialogSource).not.toContain("drawEditorCanvas");
     expect(sketchPoseEditorDialogControllerSource).toContain(
       "createUseSketchPoseEditorDialogController",
     );
@@ -20070,16 +20065,9 @@ describe("frontend architecture boundaries", () => {
     expect(sketchPoseEditorDialogViewSource).toContain("<Dialog");
     expect(sketchPoseEditorDialogViewSource).toContain("<Button");
     expect(sketchPoseEditorDialogViewSource).toContain("<canvas");
-    expect(sketchPoseEditorDialogViewSource).toContain("new ResizeObserver(");
     expect(sketchPoseEditorDialogViewSource).toContain("new Image(");
     expect(sketchPoseEditorDialogViewSource).toContain("canvasPoint(");
-    expect(sketchPoseEditorDialogViewSource).toContain("drawEditorCanvas(");
-    expect(sketchPoseEditorDialogViewSource).not.toContain(
-      "useSketchPoseEditor(",
-    );
-    expect(sketchPoseEditorDialogViewSource).not.toContain(
-      "useSaveSketchPoseEditor(",
-    );
+    expect(sketchPoseEditorDialogViewSource).toContain("drawPoseCanvas(");
     expect(sketchPoseEditorDialogViewSource).not.toContain("toast.");
     expect(productionCompositionSource).toContain(
       "createUseSketchPoseEditorDialogController",

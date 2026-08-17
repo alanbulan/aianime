@@ -1,5 +1,7 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ThreeDWorldNodeController } from './useThreeDWorldNodeController';
@@ -33,7 +35,9 @@ vi.mock('./NodeHeader', () => ({
 }));
 
 vi.mock('./NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: () => <div>generation-overlay</div>,
+  NodeGenerationOverlay: ({ progress }: { progress?: number | null }) => (
+    <div>generation-overlay:{progress ?? 'indeterminate'}</div>
+  ),
 }));
 
 vi.mock('./ReferenceDetachButton', () => ({
@@ -140,6 +144,7 @@ function createController(): ThreeDWorldNodeController {
     title: '导演世界',
     nodeContexts: [],
     isGenerating: false,
+    generationProgress: null,
     hasUpstream: true,
     referenceImages: [
       { nodeId: 'image-a', url: '/a.png', displayName: '图片 A' },
@@ -189,7 +194,8 @@ function createController(): ThreeDWorldNodeController {
 }
 
 describe('ThreeDWorldNodeView', () => {
-  it('renders the selected editor and forwards node, source, and history commands', () => {
+  it('renders the selected editor and forwards node, source, and history commands', async () => {
+    const user = userEvent.setup();
     const controller = createController();
     render(<ThreeDWorldNodeView controller={controller} />);
 
@@ -199,16 +205,17 @@ describe('ThreeDWorldNodeView', () => {
         name: 'viewer.threeD.enterDirectorWorld',
       }),
     );
-    const reference = screen.getByTitle('引用上游图片');
+    const reference = getByUiTooltip('引用上游图片');
     fireEvent.click(reference);
     fireEvent.mouseEnter(reference);
-    fireEvent.change(
-      screen.getByRole('combobox', { name: '3DGS 来源类型' }),
-      { target: { value: 'pano' } },
+    await user.click(screen.getByRole('combobox', { name: '3DGS 来源类型' }));
+    await user.click(screen.getByRole('option', { name: 'nodeToolbar.image360' }));
+    await user.click(
+      screen.getByRole('combobox', {
+        name: 'nodeToolbar.directorWorldReferenceImage',
+      }),
     );
-    fireEvent.change(screen.getAllByRole('combobox')[0], {
-      target: { value: 'image-b' },
-    });
+    await user.click(screen.getByRole('option', { name: '图片 B' }));
     fireEvent.click(
       screen.getByRole('button', {
         name: /nodeToolbar.generateDirectorWorld/,
@@ -240,6 +247,7 @@ describe('ThreeDWorldNodeView', () => {
     const controller = createController();
     controller.beatContext = { episode: 1, beat: 2 };
     controller.isGenerating = true;
+    controller.generationProgress = 0.42;
     controller.preview = {
       ...controller.preview,
       previewUrl: '/combined.png',
@@ -251,12 +259,12 @@ describe('ThreeDWorldNodeView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'submit-combined' }));
     fireEvent.click(screen.getByRole('button', { name: 'capture-canvas' }));
 
-    expect(screen.getByAltText('导演世界缩略图')).toHaveAttribute(
+    expect(screen.getByAltText('viewer.threeD.directorWorld')).toHaveAttribute(
       'src',
       '/combined.png',
     );
-    expect(screen.getByText('generation-overlay')).toBeInTheDocument();
-    expect(screen.getByText('dialog:beat')).toBeInTheDocument();
+    expect(screen.getByText('generation-overlay:0.42')).toBeInTheDocument();
+    expect(screen.getByText('dialog:freezone')).toBeInTheDocument();
     expect(controller.captureSelectedBackground).toHaveBeenCalled();
     expect(controller.submitDirectorCombined).toHaveBeenCalled();
     expect(controller.captureCanvasNode).toHaveBeenCalled();

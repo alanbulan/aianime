@@ -12,7 +12,7 @@ from ai_anime.modules.ai_assistant.infrastructure.hermes import (
     hermes_workspace as hw,
 )
 from ai_anime.modules.model_usage.public import configure_model_access
-from ai_anime.modules.model_usage.public import MODE_BYOK, MODE_CLOUD
+from ai_anime.modules.model_usage.public import MODE_MIXED
 
 
 def _enabled_toolsets(config: str) -> list[str]:
@@ -36,7 +36,7 @@ def _ai_anime_provider(config: dict) -> dict:
     return next(
         item
         for item in config["custom_providers"]
-        if item.get("name") == "ai_anime"
+        if item.get("name") == "custom"
     )
 
 
@@ -57,8 +57,8 @@ def isolated_workspace(tmp_path, monkeypatch):
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "root-key")
     configure_model_access(
         allows_custom_models=False,
-        mode=MODE_CLOUD,
-        cloud_model_assignments=[
+        mode=MODE_MIXED,
+        model_assignments=[
             {"modelId": "cloud-text-default", "role": "TEXT"},
         ],
     )
@@ -81,7 +81,7 @@ def isolated_workspace(tmp_path, monkeypatch):
     monkeypatch.delenv("HERMES_MODEL_API_MODE", raising=False)
     monkeypatch.delenv("HERMES_MODEL_CONTEXT_LENGTH", raising=False)
     yield repo_root
-    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    configure_model_access(allows_custom_models=False, mode=MODE_MIXED)
 
 
 @pytest.fixture
@@ -157,26 +157,14 @@ def test_hermes_detects_content_filter_error_text():
 def test_hermes_classifies_ai_anime_write_tools():
     assert hermes_sdk._is_ai_anime_write_tool("ai_anime_generate_script")
     assert hermes_sdk._is_ai_anime_write_tool("ai_anime_start_single_video")
+    assert hermes_sdk._is_ai_anime_write_tool("ai_anime_run_production_workflow")
+    assert hermes_sdk._is_ai_anime_write_tool("ai_anime_create_style")
     assert not hermes_sdk._is_ai_anime_write_tool("ai_anime_pipeline_status")
     assert not hermes_sdk._is_ai_anime_write_tool("ai_anime_get_task")
 
 
-def test_hermes_allows_read_tools_after_write_task():
-    assert not hermes_sdk._should_stop_after_write_tool(
-        "ai_anime_generate_script",
-        "ai_anime_pipeline_status",
-    )
-    assert not hermes_sdk._should_stop_after_write_tool(
-        "ai_anime_generate_script",
-        "ai_anime_get_task",
-    )
-
-
-def test_hermes_stops_second_write_tool_after_write_task():
-    assert hermes_sdk._should_stop_after_write_tool(
-        "ai_anime_generate_script",
-        "ai_anime_start_single_video",
-    )
+def test_hermes_turn_tool_limit_supports_multi_step_episode_workflows():
+    assert hermes_sdk.TURN_TOOL_CALL_LIMIT >= 512
 
 
 def test_hermes_detects_failed_tool_update():
@@ -185,17 +173,110 @@ def test_hermes_detects_failed_tool_update():
     assert not hermes_sdk._is_failed_tool_update({"status": "completed"})
 
 
-def test_hermes_does_not_mark_read_task_failure_as_first_write_failure():
-    assert not hermes_sdk._should_mark_first_write_failed(
-        "ai_anime_generate_script",
-        "ai_anime_get_task",
-        {"result": {"status": "failed", "error": "render failed"}},
+def test_hermes_tool_update_outcome_preserves_failure_detail():
+    success, error = hermes_sdk._tool_update_outcome(
+        {"status": "failed", "error": "远端模型调用失败"}
     )
-    assert hermes_sdk._should_mark_first_write_failed(
-        "ai_anime_generate_script",
-        "ai_anime_generate_script",
-        {"result": {"ok": False, "error": "identity_plan_required"}},
+
+    assert success is False
+    assert error == "远端模型调用失败"
+
+
+def test_hermes_tool_update_outcome_marks_completion():
+    assert hermes_sdk._tool_update_outcome({"status": "completed"}) == (
+        True,
+        None,
     )
+
+
+def test_hermes_read_tool_outcome_ignores_historical_failed_task():
+    update = {
+        "status": "completed",
+        "result": {
+            "ok": True,
+            "data": [{"status": "failed", "error": "历史任务失败"}],
+        },
+    }
+
+    assert hermes_sdk._tool_update_outcome(
+        update,
+        tool_name="ai_anime_list_tasks",
+    ) == (True, None)
+
+
+def test_hermes_correlates_parallel_tool_updates_by_call_id():
+    thread = hermes_sdk.HermesSdkThread(
+        cli_path=Path("hermes"),
+        cwd=Path("."),
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "tool_call",
+                    "toolCallId": "call-read",
+                    "title": "ai_anime_list_tasks",
+                }
+            },
+        },
+        "turn-1",
+    )
+
+    event = thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "tool_call_update",
+                    "toolCallId": "call-read",
+                    "status": "completed",
+                    "result": {
+                        "ok": True,
+                        "data": [{"status": "failed"}],
+                    },
+                }
+            },
+        },
+        "turn-1",
+    )
+
+    assert event is not None
+    assert event.name == "ai_anime_list_tasks"
+    assert event.success is True
+    assert event.error is None
+
+
+def test_hermes_translates_tool_failure_status():
+    thread = hermes_sdk.HermesSdkThread(
+        cli_path=Path("hermes"),
+        cwd=Path("."),
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    event = thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "tool_call_update",
+                    "status": "failed",
+                    "error": "远端模型调用失败",
+                }
+            },
+        },
+        "turn-1",
+    )
+
+    assert event is not None
+    assert event.success is False
+    assert event.error == "远端模型调用失败"
 
 
 def test_state_root_prefers_env(monkeypatch, tmp_path):
@@ -218,7 +299,7 @@ def test_hermes_assets_root_prefers_bundled_directory(monkeypatch, tmp_path):
     assert hw._hermes_assets_root() == assets
 
 
-def test_fresh_config_uses_cloud_catalog_and_keeps_newapi_transport(
+def test_fresh_config_uses_router_catalog_and_keeps_proxy_transport(
     isolated_workspace, repo_skills, repo_plugins, monkeypatch
 ):
     (isolated_workspace / ".env").write_text(
@@ -241,43 +322,39 @@ def test_fresh_config_uses_cloud_catalog_and_keeps_newapi_transport(
 
     assert "  default: cloud-text-default" in config
     parsed = yaml.safe_load(config)
-    assert parsed["model"]["provider"] == "custom:ai_anime"
+    assert parsed["model"]["provider"] == "custom:custom"
     assert parsed["model"]["default"] == "cloud-text-default"
     assert parsed["model"]["context_length"] == 65536
     assert "api_key" not in parsed["model"]
     provider = _ai_anime_provider(parsed)
     assert provider == {
-        "name": "ai_anime",
+        "name": "custom",
         "base_url": "http://127.0.0.1:45678/v1",
         "key_env": "NEWAPI_API_KEY",
         "api_mode": "responses",
     }
 
 
-def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
+def test_existing_config_syncs_router_model_without_persisting_provider_keys(
     isolated_workspace, repo_skills, repo_plugins
 ):
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="http://old-gateway/v1",
-        byok_api_key="old-key",
+        mode=MODE_MIXED,
         model_assignments=[{"modelId": "old-text", "role": "TEXT"}],
     )
     home = hw.ensure_user_hermes_workspace("admin")
     config_path = home / "config.yaml"
     first = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     assert "api_key" not in first["model"]
-    assert _ai_anime_provider(first)["base_url"] == "http://old-gateway/v1"
+    assert _ai_anime_provider(first)["base_url"] == "http://127.0.0.1:45678/v1"
     assert "old-key" not in config_path.read_text(encoding="utf-8")
 
     config = config_path.read_text(encoding="utf-8") + "\ncustom_block:\n  keep: true\n"
     config_path.write_text(config, encoding="utf-8")
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="http://new-gateway/v1",
-        byok_api_key="rotated-key",
+        mode=MODE_MIXED,
         model_assignments=[{"modelId": "new-text", "role": "TEXT"}],
     )
 
@@ -285,10 +362,24 @@ def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
     parsed = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
     assert "api_key" not in parsed["model"]
-    assert _ai_anime_provider(parsed)["base_url"] == "http://new-gateway/v1"
+    assert _ai_anime_provider(parsed)["base_url"] == "http://127.0.0.1:45678/v1"
     assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
     assert "rotated-key" not in config_path.read_text(encoding="utf-8")
     assert parsed["custom_block"]["keep"] is True
+    assert parsed["compression"] == {
+        "enabled": True,
+        "threshold": 0.75,
+        "target_ratio": 0.20,
+        "protect_last_n": 20,
+        "protect_first_n": 3,
+        "abort_on_summary_failure": True,
+        "in_place": True,
+    }
+    assert parsed["auxiliary"]["compression"] == {
+        "provider": "custom:custom",
+        "model": "new-text",
+        "timeout": 300,
+    }
     assert _enabled_toolsets(config_path.read_text(encoding="utf-8")) == [
         "hermes-acp",
         "memory",
@@ -299,7 +390,7 @@ def test_existing_config_syncs_endpoint_without_persisting_rotated_key(
     assert reparsed["enabled_toolsets"] == ["hermes-acp", "memory"]
 
 
-def test_hermes_uses_selected_byok_before_root_env(
+def test_hermes_uses_highest_priority_router_text_model_before_root_env(
     isolated_workspace, repo_skills, repo_plugins
 ):
     (isolated_workspace / ".env").write_text(
@@ -308,10 +399,11 @@ def test_hermes_uses_selected_byok_before_root_env(
     )
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="http://custom-gateway/v1",
-        byok_api_key="custom-key",
-        model_assignments=[{"modelId": "custom-text", "role": "TEXT"}],
+        mode=MODE_MIXED,
+        model_assignments=[
+            {"modelId": "cloud-text", "role": "TEXT", "priority": 20},
+            {"modelId": "custom-text", "role": "TEXT", "priority": 10},
+        ],
     )
 
     home = hw.ensure_user_hermes_workspace("admin")
@@ -319,7 +411,7 @@ def test_hermes_uses_selected_byok_before_root_env(
     env_text = (home / ".env").read_text(encoding="utf-8")
 
     assert "api_key" not in parsed["model"]
-    assert _ai_anime_provider(parsed)["base_url"] == "http://custom-gateway/v1"
+    assert _ai_anime_provider(parsed)["base_url"] == "http://127.0.0.1:45678/v1"
     assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
     assert parsed["model"]["default"] == "custom-text"
     assert "custom-key" not in (home / "config.yaml").read_text(encoding="utf-8")
@@ -327,13 +419,13 @@ def test_hermes_uses_selected_byok_before_root_env(
     assert "root-key" not in env_text
 
 
-def test_hermes_uses_the_cloud_catalog_text_default(
+def test_hermes_uses_the_mixed_router_text_default(
     isolated_workspace, repo_skills, repo_plugins
 ):
     configure_model_access(
         allows_custom_models=False,
-        mode=MODE_CLOUD,
-        cloud_model_assignments=[
+        mode=MODE_MIXED,
+        model_assignments=[
             {"modelId": "cloud-text-default", "role": "TEXT"},
         ],
     )
@@ -347,14 +439,12 @@ def test_hermes_uses_the_cloud_catalog_text_default(
     )
 
 
-def test_hermes_keyless_byok_omits_key_environment_contract(
+def test_hermes_keyless_provider_still_uses_authenticated_desktop_proxy(
     isolated_workspace, repo_skills, repo_plugins
 ):
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="http://127.0.0.1:11434/v1",
-        byok_api_key="",
+        mode=MODE_MIXED,
         model_assignments=[{"modelId": "local-text", "role": "TEXT"}],
     )
 
@@ -362,8 +452,8 @@ def test_hermes_keyless_byok_omits_key_environment_contract(
     parsed = yaml.safe_load((home / "config.yaml").read_text(encoding="utf-8"))
     provider = _ai_anime_provider(parsed)
 
-    assert provider["base_url"] == "http://127.0.0.1:11434/v1"
-    assert "key_env" not in provider
+    assert provider["base_url"] == "http://127.0.0.1:45678/v1"
+    assert provider["key_env"] == "NEWAPI_API_KEY"
     assert "api_key" not in provider
     assert parsed["model"]["default"] == "local-text"
 
@@ -424,7 +514,7 @@ custom_providers:
     text = (home / "config.yaml").read_text(encoding="utf-8")
     config = yaml.safe_load(text)
 
-    assert config["model"]["provider"] == "custom:ai_anime"
+    assert config["model"]["provider"] == "custom:custom"
     assert "api_key" not in config["model"]
     assert "legacy-key" not in text
     assert any(
@@ -464,7 +554,7 @@ def test_legacy_config_gets_default_plugin_block(isolated_workspace, repo_skills
     assert _enabled_toolsets(config) == ["hermes-acp"]
     assert "plugins:\n  enabled:\n    - ai_anime" in config
     assert parsed["model"]["default"] == "cloud-text-default"
-    assert parsed["model"]["provider"] == "custom:ai_anime"
+    assert parsed["model"]["provider"] == "custom:custom"
     assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
 
 

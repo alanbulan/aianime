@@ -9,6 +9,7 @@ import { EmptyState } from "./empty-state";
 import { cn } from "@/lib/utils";
 
 const FILTERS: Filter[] = ["all", "running", "failed", "done"];
+const TASK_ROW_HEIGHT = 52;
 
 function filterTasks(arr: TaskState[], filter: Filter): TaskState[] {
   switch (filter) {
@@ -74,7 +75,7 @@ export function TaskList() {
   const rowVirtualizer = useVirtualizer({
     count: tasks.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 36,
+    estimateSize: () => TASK_ROW_HEIGHT,
     overscan: 8,
   });
 
@@ -118,6 +119,7 @@ export function TaskList() {
                     height: vi.size,
                     transform: `translateY(${vi.start}px)`,
                   }}
+                  className="overflow-hidden"
                 >
                   <TaskRow
                     task={task}

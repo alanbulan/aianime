@@ -2,6 +2,7 @@ appId: com.ai-anime.desktop
 productName: AI anime
 copyright: Copyright (c) 2026 AI anime
 asar: true
+compression: maximum
 directories:
   output: release
 publish:
@@ -19,6 +20,8 @@ extraResources:
     to: bin
   - from: runtime/whisper
     to: whisper
+  - from: scripts/install-runtime-dependency.ps1
+    to: installer/install-runtime-dependency.ps1
   - from: hermes-runtime/dist/hermes-acp
     to: hermes/hermes-acp
   - from: ../.hermes
@@ -48,6 +51,8 @@ mac:
         - arm64
   artifactName: AI-anime-${version}-macos-${arch}.${ext}
 nsis:
+  include: build/installer.nsh
+  differentialPackage: false
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true

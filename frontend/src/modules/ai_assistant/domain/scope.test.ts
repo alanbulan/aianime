@@ -12,12 +12,21 @@ describe("AI Assistant scope", () => {
     expect(scopeForProject("  project-a  ")).toEqual({
       kind: "project",
       id: "project-a",
+      conversationId: "main",
     });
   });
 
   it("maps missing or blank project names to home scope", () => {
-    expect(scopeForProject()).toEqual({ kind: "home", id: null });
-    expect(scopeForProject("   ")).toEqual({ kind: "home", id: null });
+    expect(scopeForProject()).toEqual({
+      kind: "home",
+      id: null,
+      conversationId: "main",
+    });
+    expect(scopeForProject("   ")).toEqual({
+      kind: "home",
+      id: null,
+      conversationId: "main",
+    });
   });
 
   it("builds a project session key only for a non-empty project ID", () => {
@@ -27,6 +36,11 @@ describe("AI Assistant scope", () => {
       .toBe("ai_anime:home:main");
     expect(scopeSessionKey({ kind: "home", id: null }))
       .toBe("ai_anime:home:main");
+    expect(scopeSessionKey({
+      kind: "project",
+      id: "project-a",
+      conversationId: "chat-2",
+    })).toBe("ai_anime:project:project-a:chat-2");
   });
 
   it("accepts only supported scope kinds", () => {
@@ -38,6 +52,7 @@ describe("AI Assistant scope", () => {
     expect(isChatScope({ kind: "asset", id: "asset-a" })).toBe(false);
     expect(isChatScope({ kind: "task", id: "task-a" })).toBe(false);
     expect(isChatScope({ kind: "unknown" })).toBe(false);
+    expect(isChatScope({ kind: "project", conversationId: "../bad" })).toBe(false);
   });
 
   it("matches home by kind and other scopes by normalized ID", () => {
@@ -57,6 +72,10 @@ describe("AI Assistant scope", () => {
     expect(scopeMatches(
       { kind: "project", id: "project-a" },
       { kind: "project", id: "project-b" },
+    )).toBe(false);
+    expect(scopeMatches(
+      { kind: "project", id: "project-a", conversationId: "chat-1" },
+      { kind: "project", id: "project-a", conversationId: "chat-2" },
     )).toBe(false);
   });
 });

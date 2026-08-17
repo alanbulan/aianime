@@ -8,6 +8,7 @@ import {
   buildAssetShareUrl,
 } from "@/modules/asset_world/application/useAssetsDeepLink";
 import type { AssetRefType } from "@/modules/asset_world/domain/character";
+import { writeTextToClipboard } from "@/shared/platform/text-clipboard";
 
 export function CopyAssetLinkButton({
   type,
@@ -22,7 +23,7 @@ export function CopyAssetLinkButton({
 
   async function handleCopy() {
     try {
-      await navigator.clipboard.writeText(buildAssetShareUrl(type, id));
+      await writeTextToClipboard(buildAssetShareUrl(type, id));
       toast.success(t("assets.common.linkCopied"));
     } catch {
       toast.error(t("common.error"));
@@ -36,7 +37,7 @@ export function CopyAssetLinkButton({
       variant="ghost"
       onClick={handleCopy}
       aria-label={t("assets.common.copyLink")}
-      title={t("assets.common.copyLink")}
+      data-ui-tooltip={t("assets.common.copyLink")}
       className={className}
     >
       <Link2 className="size-3.5" />

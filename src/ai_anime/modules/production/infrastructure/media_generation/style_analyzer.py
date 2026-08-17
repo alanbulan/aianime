@@ -73,7 +73,7 @@ Return ONLY valid JSON with no markdown formatting:
             or "gemini-3.5-flash"
         )
         self.agent = Agent(
-            get_newapi_text_pydantic_model("STYLE_ANALYZER_MODEL", self.model),
+            get_newapi_text_pydantic_model(),
             system_prompt="You analyze reference images and return reusable visual style settings.",
             output_type=StyleAnalysisResult,
             name="Style Analyzer",

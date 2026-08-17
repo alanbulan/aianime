@@ -9,10 +9,16 @@ export interface AiStagingPropResult {
   model?: string;
 }
 
-export type DirectorControlFrameSaveResult = Pick<
+export interface DirectorControlFrameSaveResult extends Pick<
   DirectorControlFrameBundle,
   "dir" | "paths" | "rel_paths" | "urls"
->;
+> {
+  background_anchor?: {
+    render_anchor_id?: string;
+    current_source?: string;
+    current_anchor?: string;
+  };
+}
 
 export interface BeatDirectorStageTarget {
   projectId: string;

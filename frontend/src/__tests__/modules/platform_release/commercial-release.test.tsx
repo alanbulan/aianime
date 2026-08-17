@@ -6,6 +6,7 @@ import { queryKeys } from "@/lib/query-keys";
 import {
   parseCommercialBootstrapRelease,
   parseCommercialReleaseStatus,
+  parseCommercialUpdateDownloadProgress,
 } from "@/modules/platform_release/domain/commercial-release";
 import { electronCommercialReleaseGateway } from "@/modules/platform_release/infrastructure/electron-commercial-release-gateway";
 
@@ -43,6 +44,25 @@ describe("commercial release contract", () => {
     expect(() =>
       parseCommercialReleaseStatus({ available: true, required: "yes" }),
     ).toThrow("commercial release.required must be a boolean");
+  });
+
+  it("normalizes Electron update download progress", () => {
+    expect(
+      parseCommercialUpdateDownloadProgress({
+        percent: 42.4,
+        transferred: 424,
+        total: 1000,
+        bytesPerSecond: 100,
+      }),
+    ).toEqual({
+      percent: 42.4,
+      transferred: 424,
+      total: 1000,
+      bytesPerSecond: 100,
+    });
+    expect(() =>
+      parseCommercialUpdateDownloadProgress({ percent: "42" }),
+    ).toThrow("percent must be a finite number");
   });
 
   it("checks releases through the no-argument Electron bridge", async () => {

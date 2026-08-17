@@ -38,6 +38,67 @@ class SketchColorMarkersMissing(Exception):
     pass
 
 
+class SketchColorPersistenceFailed(RuntimeError):
+    pass
+
+
+def assign_complete_episode_identity_colors(
+    color_assigner: ProductionSketchColorAssigner,
+    *,
+    characters: list[dict[str, Any]],
+    beats: list[dict[str, Any]],
+    episode: Any | None,
+    existing_colors: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Assign beat marker colors and fill every planned episode identity."""
+
+    colors = color_assigner.assign(
+        [],
+        beats,
+        existing_colors=existing_colors,
+    )
+    planned_identity_ids = {
+        str(identity_id or "").strip()
+        for identity_id in (getattr(episode, "identity_ids", None) or [])
+        if str(identity_id or "").strip()
+    }
+    missing_identity_ids = planned_identity_ids.difference(colors)
+    if not missing_identity_ids:
+        return colors
+
+    planned_characters: list[dict[str, Any]] = []
+    resolved_identity_ids: set[str] = set()
+    for character in characters:
+        identities = [
+            identity
+            for identity in (character.get("identities") or [])
+            if str(identity.get("identity_id") or "").strip()
+            in missing_identity_ids
+        ]
+        if identities:
+            planned_characters.append({**character, "identities": identities})
+            resolved_identity_ids.update(
+                str(identity.get("identity_id") or "").strip()
+                for identity in identities
+            )
+    unresolved = missing_identity_ids.difference(resolved_identity_ids)
+    if unresolved:
+        planned_characters.append(
+            {
+                "name": "",
+                "identities": [
+                    {"identity_id": identity_id}
+                    for identity_id in sorted(unresolved)
+                ],
+            }
+        )
+    return color_assigner.assign(
+        planned_characters,
+        [],
+        existing_colors=colors,
+    )
+
+
 class SketchColorAssignmentUseCases:
     def __init__(
         self,
@@ -60,13 +121,29 @@ class SketchColorAssignmentUseCases:
         output_dir: str | Path,
     ) -> SketchColorAssignmentResult:
         previous_colors = dict(store.get_sketch_colors(episode_num) or {})
-        identity_colors = self._color_assigner.assign(
-            [],
-            beats,
+        episode = self._episodes.episode_or_none(store, episode_num)
+        characters = [
+            {
+                "name": str(getattr(character, "name", "") or ""),
+                "identities": [
+                    {
+                        "identity_id": str(
+                            getattr(identity, "identity_id", "") or ""
+                        )
+                    }
+                    for identity in (getattr(character, "identities", None) or [])
+                    if str(getattr(identity, "identity_id", "") or "").strip()
+                ],
+            }
+            for character in (store.get_all_characters() or [])
+        ]
+        identity_colors = assign_complete_episode_identity_colors(
+            self._color_assigner,
+            characters=characters,
+            beats=beats,
+            episode=episode,
             existing_colors=previous_colors,
         )
-
-        episode = self._episodes.episode_or_none(store, episode_num)
         prop_menu = await self._prop_menus.for_episode(
             store,
             episode,
@@ -89,13 +166,22 @@ class SketchColorAssignmentUseCases:
         try:
             if identity_colors:
                 await store.set_sketch_colors(episode_num, identity_colors)
+                persisted_colors = dict(store.get_sketch_colors(episode_num) or {})
+                missing_persisted = set(identity_colors).difference(persisted_colors)
+                if missing_persisted:
+                    raise SketchColorPersistenceFailed(
+                        "身份配色写入后校验失败："
+                        + "、".join(sorted(missing_persisted))
+                    )
             if prop_colors and prop_menu:
                 await store.update_episode(
                     episode_num,
                     prop_menu=apply_prop_marker_colors(prop_menu, prop_colors),
                 )
-        except Exception:
-            pass
+        except SketchColorPersistenceFailed:
+            raise
+        except Exception as exc:
+            raise SketchColorPersistenceFailed(f"草图配色持久化失败：{exc}") from exc
 
         previous_markers = {
             **{

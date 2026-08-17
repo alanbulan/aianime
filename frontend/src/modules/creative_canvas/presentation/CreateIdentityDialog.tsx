@@ -1,10 +1,18 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   createIdentityAsset,
   listCharacters,
   type Character,
 } from "@/modules/asset_world/public";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CreateIdentityDialogProps {
   project: string;
@@ -15,12 +23,13 @@ interface CreateIdentityDialogProps {
   onSuccess: (message: string) => void;
 }
 
+const AGE_UNSPECIFIED = "__unspecified__";
 const AGE_OPTIONS = [
-  { value: "", label: "不指定年龄" },
-  { value: "child", label: "child" },
-  { value: "youth", label: "youth" },
-  { value: "middle", label: "middle" },
-  { value: "elder", label: "elder" },
+  { value: AGE_UNSPECIFIED, labelKey: "createIdentity.ageUnspecified" },
+  { value: "child", labelKey: "createIdentity.ageChild" },
+  { value: "youth", labelKey: "createIdentity.ageYouth" },
+  { value: "middle", labelKey: "createIdentity.ageMiddle" },
+  { value: "elder", labelKey: "createIdentity.ageElder" },
 ];
 
 export function CreateIdentityDialog({
@@ -31,6 +40,7 @@ export function CreateIdentityDialog({
   onClose,
   onSuccess,
 }: CreateIdentityDialogProps) {
+  const { t } = useTranslation();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loadingCharacters, setLoadingCharacters] = useState(true);
   const [character, setCharacter] = useState(defaultCharacter ?? "");
@@ -81,7 +91,10 @@ export function CreateIdentityDialog({
         face_prompt: facePrompt.trim(),
         age_group: ageGroup,
       });
-      onSuccess(`已创建身份 ${result.character} / ${result.identity_name}`);
+      onSuccess(t("createIdentity.created", {
+        character: result.character,
+        identity: result.identity_name,
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -94,9 +107,9 @@ export function CreateIdentityDialog({
       <div className="w-full max-w-2xl rounded-xl border border-border-default bg-surface shadow-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border-default flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-text">创建新 Identity</h2>
+            <h2 className="text-sm font-semibold text-text">{t("createIdentity.title")}</h2>
             <p className="text-xs text-text-muted mt-0.5">
-              从当前选中图片创建新的全局角色身份，不覆盖已有 canonical identity。
+              {t("createIdentity.description")}
             </p>
           </div>
           <button
@@ -113,82 +126,94 @@ export function CreateIdentityDialog({
             {previewUrl ? (
               <img
                 src={previewUrl}
-                alt="identity source"
+                alt={t("createIdentity.sourceImageAlt")}
                 className="w-full rounded object-contain max-h-56"
               />
             ) : (
               <div className="h-40 flex items-center justify-center text-xs text-text-muted">
-                无预览
+                {t("createIdentity.noPreview")}
               </div>
             )}
             <div className="text-[11px] text-text-muted mt-2 break-all">
-              source: {sourceUrl}
+              {t("createIdentity.source")}: {sourceUrl}
             </div>
           </div>
 
           <div className="space-y-3">
             <label className="block">
-              <span className="text-xs text-text-muted">角色</span>
-              <select
-                value={character}
-                onChange={(e) => setCharacter(e.target.value)}
+              <span className="text-xs text-text-muted">{t("createIdentity.character")}</span>
+              <Select
+                value={character || null}
+                onValueChange={(value) => {
+                  if (value) setCharacter(value);
+                }}
                 disabled={loadingCharacters}
-                className="mt-1 w-full rounded-md border border-border-default bg-bg-dark px-3 py-2 text-sm text-text"
               >
-                {characters.map((item) => (
-                  <option key={item.name} value={item.name}>
-                    {item.display_name || item.name}
-                  </option>
-                ))}
-                {character && !characters.some((item) => item.name === character) && (
-                  <option value={character}>{character}</option>
-                )}
-              </select>
+                <SelectTrigger className="mt-1 w-full bg-bg-dark text-sm text-text">
+                  <SelectValue placeholder={t("createIdentity.characterPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  {characters.map((item) => (
+                    <SelectItem key={item.name} value={item.name}>
+                      {item.display_name || item.name}
+                    </SelectItem>
+                  ))}
+                  {character && !characters.some((item) => item.name === character) && (
+                    <SelectItem value={character}>{character}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="block">
-              <span className="text-xs text-text-muted">身份名</span>
+              <span className="text-xs text-text-muted">{t("createIdentity.identityName")}</span>
               <input
                 value={identityName}
                 onChange={(e) => setIdentityName(e.target.value)}
-                placeholder="例如：老年时期、工装时期、战损时期"
+                placeholder={t("createIdentity.identityNamePlaceholder")}
                 className="mt-1 w-full rounded-md border border-border-default bg-bg-dark px-3 py-2 text-sm text-text"
               />
             </label>
 
             <label className="block">
-              <span className="text-xs text-text-muted">年龄段</span>
-              <select
-                value={ageGroup}
-                onChange={(e) => setAgeGroup(e.target.value)}
-                className="mt-1 w-full rounded-md border border-border-default bg-bg-dark px-3 py-2 text-sm text-text"
+              <span className="text-xs text-text-muted">{t("createIdentity.ageGroup")}</span>
+              <Select
+                value={ageGroup || AGE_UNSPECIFIED}
+                onValueChange={(value) => {
+                  if (value) setAgeGroup(value === AGE_UNSPECIFIED ? "" : value);
+                }}
               >
-                {AGE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="mt-1 w-full bg-bg-dark text-sm text-text">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  {AGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="block">
-              <span className="text-xs text-text-muted">服装/造型描述</span>
+              <span className="text-xs text-text-muted">{t("createIdentity.appearanceDetails")}</span>
               <textarea
                 value={appearanceDetails}
                 onChange={(e) => setAppearanceDetails(e.target.value)}
                 rows={3}
-                placeholder="该身份的服装、配饰、发型造型，不写动作。"
+                placeholder={t("createIdentity.appearancePlaceholder")}
                 className="mt-1 w-full rounded-md border border-border-default bg-bg-dark px-3 py-2 text-sm text-text"
               />
             </label>
 
             <label className="block">
-              <span className="text-xs text-text-muted">身份级脸部提示词（可选）</span>
+              <span className="text-xs text-text-muted">{t("createIdentity.facePrompt")}</span>
               <textarea
                 value={facePrompt}
                 onChange={(e) => setFacePrompt(e.target.value)}
                 rows={2}
-                placeholder="只有年龄变化很大时才填；默认复用角色 portrait。"
+                placeholder={t("createIdentity.facePromptPlaceholder")}
                 className="mt-1 w-full rounded-md border border-border-default bg-bg-dark px-3 py-2 text-sm text-text"
               />
             </label>
@@ -207,7 +232,7 @@ export function CreateIdentityDialog({
             onClick={onClose}
             className="px-3 py-1.5 rounded-md border border-border-default text-xs text-text-muted hover:text-text"
           >
-            取消
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -215,7 +240,7 @@ export function CreateIdentityDialog({
             disabled={!canSubmit}
             className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? "创建中..." : "创建 Identity"}
+            {submitting ? t("createIdentity.creating") : t("createIdentity.confirm")}
           </button>
         </div>
       </div>

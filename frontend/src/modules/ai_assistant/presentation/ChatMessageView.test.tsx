@@ -39,6 +39,7 @@ vi.mock("@/modules/ai_assistant/presentation/SpecMediaGallery", () => ({
 import {
   MessageBubble,
   StructuredRenderer,
+  ToolExecutionList,
 } from "./ChatMessageView";
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
 
@@ -125,19 +126,6 @@ describe("SuperChat chat message view", () => {
     );
   });
 
-  it("labels legacy trace envelopes as historical tools", () => {
-    render(
-      <MessageBubble
-        {...bubbleProps(
-          message("assistant", "tool output", { raw: { role: "trace" } }),
-        )}
-      />,
-    );
-
-    expect(screen.getByText("aiAssistant.historyTool")).toBeInTheDocument();
-    expect(screen.getByText("tool output")).toBeInTheDocument();
-  });
-
   it("highlights assistant error sentences and completion prefixes", () => {
     const props = bubbleProps(
       message("assistant", "生成封面失败，请稍后重试。继续其他步骤。"),
@@ -208,5 +196,28 @@ describe("SuperChat chat message view", () => {
       src: "/spec.png",
       title: "Spec media",
     });
+  });
+
+  it("renders multiple tool calls as a numbered execution checklist", () => {
+    render(
+      <ToolExecutionList
+        messages={[
+          message("tool", "", {
+            id: "tool-1",
+            toolName: "ai_anime_get",
+            toolState: "success",
+          }),
+          message("tool", "", {
+            id: "tool-2",
+            toolName: "ai_anime_post",
+            toolState: "running",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: "aiAssistant.toolPlan" })).toBeInTheDocument();
+    expect(screen.getByText("读取项目数据")).toBeInTheDocument();
+    expect(screen.getByText("提交项目操作")).toBeInTheDocument();
   });
 });

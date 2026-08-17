@@ -22,6 +22,9 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, string | number>, fallback?: string) => {
       if (fallback) return fallback;
+      if (key === "episode.workbench.sketch.cropAspect") {
+        return `裁剪 ${vars?.aspect ?? ""}`.trim();
+      }
       if (!vars) return key;
       return Object.entries(vars).reduce(
         (acc, [k, v]) => acc.replace(`{{${k}}}`, String(v)),
@@ -40,7 +43,7 @@ vi.mock("sonner", () => ({
 
 const useSketchCropDialogController = createUseSketchCropDialogController(
   {
-    useSketchPoseEditor: () => poseEditorQueryMock(),
+    useSketchCropSource: () => poseEditorQueryMock(),
     useCropSketch: () => ({
       mutateAsync: cropSketchMock,
       isPending: false,
@@ -70,14 +73,11 @@ describe("SketchCropDialog", () => {
           sketch_url: "/static/sketch.png",
           width: 569,
           height: 839,
-          candidates: [],
-          skeleton_edges: [],
-          pose_presets: {},
-          skeletons: [],
         },
       },
       error: null,
       isError: false,
+      refetch: vi.fn(),
     });
     cropSketchMock.mockReset();
     cropSketchMock.mockResolvedValue({ ok: true, data: {} });
@@ -178,10 +178,6 @@ describe("SketchCropDialog", () => {
           sketch_url: "/static/sketch.png",
           width: 569,
           height: 839,
-          candidates: [],
-          skeleton_edges: [],
-          pose_presets: {},
-          skeletons: [],
         },
       },
       dataUpdatedAt: 1717000000123,
@@ -210,6 +206,7 @@ describe("SketchCropDialog", () => {
       data: undefined,
       error: new Error("Beat 4 缺少当前草图"),
       isError: true,
+      refetch: vi.fn(),
     });
 
     render(
@@ -224,6 +221,30 @@ describe("SketchCropDialog", () => {
 
     expect(screen.getByText("Beat 4 缺少当前草图")).toBeInTheDocument();
     expect(screen.queryByText("Loading")).not.toBeInTheDocument();
+  });
+
+  it("shows rejected API responses and allows retry", async () => {
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    poseEditorQueryMock.mockReturnValue({
+      data: { ok: false, error: "草图契约校验失败" },
+      error: null,
+      isError: false,
+      refetch,
+    });
+
+    render(
+      <SketchCropDialog
+        open
+        onOpenChange={vi.fn()}
+        project="demo"
+        episode={1}
+        beatNum={4}
+      />,
+    );
+
+    expect(screen.getByText("草图契约校验失败")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "common.retry" }));
+    expect(refetch).toHaveBeenCalledOnce();
   });
 
   it("drags the fixed-aspect crop frame without changing its ratio", async () => {

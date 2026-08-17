@@ -18,8 +18,6 @@ class UploadStoryDocumentCommand:
 @dataclass(frozen=True)
 class StartIngestionCommand:
     filename: str
-    text_model: str
-    embedding_model: str
     rebuild: bool = False
     spine_template: SpineTemplate | None = None
 
@@ -34,8 +32,6 @@ class StoredStoryDocument:
 @dataclass(frozen=True)
 class IngestionTask:
     novel_path: Path
-    text_model: str
-    embedding_model: str
     config: dict[str, bool | str]
     billable_chars: int
 
@@ -48,11 +44,8 @@ class IngestionTask:
             if isinstance(value, (bool, str))
         }
         billing = dict(payload.get("billing") or {})
-        models = dict(payload.get("models") or {})
         return cls(
             novel_path=Path(str(payload["novel_path"])),
-            text_model=str(models["text"]),
-            embedding_model=str(models["embedding"]),
             config=config,
             billable_chars=int(billing.get("billable_chars") or 0),
         )
@@ -60,10 +53,6 @@ class IngestionTask:
     def backend_payload(self) -> dict[str, Any]:
         return {
             "novel_path": str(self.novel_path),
-            "models": {
-                "text": self.text_model,
-                "embedding": self.embedding_model,
-            },
             "config": dict(self.config),
             "billing": {
                 "billable_chars": self.billable_chars,

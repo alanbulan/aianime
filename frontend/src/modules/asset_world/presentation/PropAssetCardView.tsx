@@ -98,7 +98,7 @@ export function PropAssetCardView({
               onClick={onOpenFreezone}
               disabled={freezonePending}
               aria-label={t("assets.props.openFreezone")}
-              title={t("assets.props.openFreezoneTip")}
+              data-ui-tooltip={t("assets.props.openFreezoneTip")}
               className="flex size-[26px] items-center justify-center rounded-[8px] p-0 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground disabled:opacity-50"
             >
               {freezonePending ? (

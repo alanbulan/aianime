@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 import type {
@@ -295,6 +295,20 @@ const manifest: DirectorStageManifest = {
   allowed_destinations: ["view", "download", "beat_selected_background"],
 };
 
+afterEach(async () => {
+  await act(async () => {
+    cleanup();
+  });
+});
+
+async function renderDirectorDialog(ui: Parameters<typeof render>[0]) {
+  let result: ReturnType<typeof render> | undefined;
+  await act(async () => {
+    result = render(ui);
+  });
+  return result!;
+}
+
 describe("ThreeDDirectorDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -316,8 +330,8 @@ describe("ThreeDDirectorDialog", () => {
       camera: { azim: 0, elev: 0, distance: 1, focalPoint: [0, 0, 0] },
     });
   });
-  it("overrides the base small-dialog max width at the sm breakpoint", () => {
-    render(
+  it("overrides the base small-dialog max width at the sm breakpoint", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -328,8 +342,8 @@ describe("ThreeDDirectorDialog", () => {
     expect(screen.getByRole("dialog")).toHaveClass("sm:max-w-none");
   });
 
-  it("uses the full viewport instead of a centered floating dialog", () => {
-    render(
+  it("uses the full viewport instead of a centered floating dialog", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -338,13 +352,17 @@ describe("ThreeDDirectorDialog", () => {
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveClass("h-dvh");
+    expect(dialog).toHaveClass("h-auto");
+    expect(dialog).toHaveClass(
+      "top-[var(--desktop-title-bar-height,0px)]",
+    );
+    expect(dialog).toHaveClass("bottom-9");
     expect(dialog).toHaveClass("w-dvw");
     expect(dialog).toHaveClass("rounded-none");
   });
 
-  it("uses only the immersive viewer close control", () => {
-    render(
+  it("uses only the immersive viewer close control", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -419,8 +437,8 @@ describe("ThreeDDirectorDialog", () => {
     });
   });
 
-  it("does not blur the full Freezone canvas behind the WebGL viewer", () => {
-    render(
+  it("does not blur the full Freezone canvas behind the WebGL viewer", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -448,8 +466,8 @@ describe("ThreeDDirectorDialog", () => {
     expect(document.body).not.toHaveClass("ai-anime-viewer-immersive-active");
   });
 
-  it("does not stretch the frame guide away from the selected aspect ratio", () => {
-    render(
+  it("does not stretch the frame guide away from the selected aspect ratio", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -465,8 +483,8 @@ describe("ThreeDDirectorDialog", () => {
     expect(frame).toHaveStyle({ aspectRatio: "16 / 9" });
   });
 
-  it("shows the director world sidebar title without legacy beat metadata", () => {
-    render(
+  it("shows the director world sidebar title without legacy beat metadata", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -595,8 +613,8 @@ describe("ThreeDDirectorDialog", () => {
     });
   });
 
-  it("uses beat overlay saving instead of local world saving in beat mode", () => {
-    render(
+  it("uses beat overlay saving instead of local world saving in beat mode", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -653,8 +671,8 @@ describe("ThreeDDirectorDialog", () => {
     );
   });
 
-  it("deduplicates manifest source aliases in Director World sources", () => {
-    render(
+  it("deduplicates manifest source aliases in Director World sources", async () => {
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -1316,7 +1334,7 @@ describe("ThreeDDirectorDialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "viewer.threeD.saveScene" }));
+    await user.click(screen.getByRole("button", { name: "viewer.threeD.saveSceneTemplate" }));
 
     expect(onSaveScene).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1592,7 +1610,7 @@ describe("ThreeDDirectorDialog", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "viewer.threeD.clearScene" }));
+    await user.click(screen.getByRole("button", { name: "viewer.threeD.clearSceneTemplate" }));
 
     expect(viewerMock.clearMarkers).toHaveBeenCalled();
     expect(onClearScene).toHaveBeenCalledWith("director_pano");
@@ -1902,7 +1920,8 @@ describe("ThreeDDirectorDialog", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "viewer.threeD.submitCurrentViewAsDirectorCombined" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "viewer.threeD.saveAndApplyCurrentBeat" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "viewer.threeD.submitCurrentViewAsDirectorCombined" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "viewer.threeD.panoOutputToCanvasNode" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "viewer.threeD.useEnvAsBackground" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "viewer.threeD.submitCurrentViewAsBackground" })).not.toBeInTheDocument();
@@ -1910,7 +1929,7 @@ describe("ThreeDDirectorDialog", () => {
     expect(screen.getByRole("button", { name: "viewer.threeD.quickActions" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "viewer.threeD.actionExportTitle" })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "viewer.threeD.submitCurrentViewAsDirectorCombined" }));
+    await user.click(screen.getByRole("button", { name: "viewer.threeD.saveAndApplyCurrentBeat" }));
 
     await waitFor(() => {
       expect(saveBeatDirectorControlFrame).toHaveBeenCalledTimes(1);
@@ -2377,11 +2396,11 @@ describe("ThreeDDirectorDialog", () => {
     await waitFor(() => {
       expect(onSaveScene).toHaveBeenCalled();
     });
-    expect(toast.success).toHaveBeenCalledWith("viewer.threeD.statusMessages.sceneSaved");
+    expect(toast.success).toHaveBeenCalledWith("viewer.threeD.statusMessages.scopeSaved");
   });
 
   it("calibrates world rotation through the direction ball", async () => {
-    render(
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -2412,7 +2431,7 @@ describe("ThreeDDirectorDialog", () => {
   });
 
   it("continues direction ball dragging after pointer capture when buttons is zero", async () => {
-    render(
+    await renderDirectorDialog(
       <ThreeDDirectorDialog
         open
         onOpenChange={() => undefined}
@@ -2548,5 +2567,3 @@ describe("ThreeDDirectorDialog", () => {
     expect(screen.getByText("viewer.threeD.directorWorld")).toBeInTheDocument();
   });
 });
-
-cleanup();

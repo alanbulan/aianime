@@ -241,7 +241,7 @@ export function AudioOperationsPanelView({
         <button
           type="button"
           disabled={submitDisabled}
-          title="生成"
+          data-ui-tooltip="生成"
           onClick={submit}
           className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${
             submitDisabled
@@ -285,7 +285,7 @@ function IconButton({
   return (
     <button
       type="button"
-      title={title}
+      data-ui-tooltip={title}
       onClick={onClick}
       disabled={disabled}
       className={`${NODE_INLINE_ICON_BUTTON_CLASS} ${
@@ -451,7 +451,7 @@ function AudioVoiceSettingsPanel({
             </span>
             <button
               type="button"
-              title={
+              data-ui-tooltip={
                 copyState === 'success'
                   ? '已复制'
                   : copyState === 'error'
@@ -483,7 +483,7 @@ function AudioVoiceSettingsPanel({
           )}
           <button
             type="button"
-            title="切换音色"
+            data-ui-tooltip="切换音色"
             onClick={openVoiceModal}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted"
           >

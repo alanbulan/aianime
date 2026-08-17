@@ -86,7 +86,7 @@ function MiniThumb({
       onContextMenu={handleContextMenu}
       onClick={onAdd}
       className="group relative aspect-[4/3] cursor-pointer overflow-hidden rounded bg-muted border border-border hover:border-foreground/20 hover:bg-accent/60 hover:scale-[1.02] transition-all duration-350"
-      title={asset.label}
+      data-ui-tooltip={asset.label}
     >
       {showImage ? (
         <img

@@ -185,7 +185,7 @@ async def export_beat_director_stage_control_frame(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except BeatViewerSceneMissing as exc:
         return {"ok": False, "error": str(exc)}
-    except SceneViewerRejected as exc:
+    except (SceneViewerRejected, BackgroundAnchorRejected) as exc:
         return JSONResponse(
             status_code=400, content={"ok": False, "error": str(exc)}
         )

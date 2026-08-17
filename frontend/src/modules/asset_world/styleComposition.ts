@@ -11,5 +11,6 @@ export const {
   useDeleteStyle,
   useStyleDetail,
   useStyles,
+  useUpdateStyle,
   useUploadStylePreview,
 } = styleQueries;

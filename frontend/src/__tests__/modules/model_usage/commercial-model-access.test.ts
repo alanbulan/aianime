@@ -54,12 +54,12 @@ describe("commercial model details", () => {
 });
 
 const baseStatus = {
-  mode: "byok",
+  mode: "mixed",
   allowsCustomModels: true,
   gatewayOrigin: "http://122.193.11.199:8889",
   byokConfigured: true,
-  byokBaseUrl: "https://models.example.test/v1",
-  byokApiKeyPreview: "sk-a...test",
+  cloudModelAssignments: [],
+  byokProviders: [],
 };
 
 describe("commercial model access status", () => {
@@ -67,14 +67,24 @@ describe("commercial model access status", () => {
     expect(
       parseCommercialModelAccessStatus({
         ...baseStatus,
-        byokModelAssignments: [
-          { modelId: "speech-model", role: "AUDIO_SPEECH" },
-          { modelId: "speech-model", role: "AUDIO_VOICE_CLONE" },
-        ],
-      }).byokModelAssignments,
+        byokProviders: [{
+          id: "provider-a",
+          name: "Provider A",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "https://models.example.test/v1",
+          apiKeyPreview: "sk-a...test",
+          configured: true,
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            { modelId: "speech-model", role: "AUDIO_SPEECH", priority: 1 },
+            { modelId: "speech-model", role: "AUDIO_VOICE_CLONE", enabled: false },
+          ],
+        }],
+      }).byokProviders[0].modelAssignments,
     ).toEqual([
-      { modelId: "speech-model", role: "AUDIO_SPEECH" },
-      { modelId: "speech-model", role: "AUDIO_VOICE_CLONE" },
+      { modelId: "speech-model", role: "AUDIO_SPEECH", priority: 1, enabled: true },
+      { modelId: "speech-model", role: "AUDIO_VOICE_CLONE", priority: 101, enabled: false },
     ]);
   });
 
@@ -82,20 +92,27 @@ describe("commercial model access status", () => {
     const status = parseCommercialModelAccessStatus({
       ...baseStatus,
       cloudModelAssignments: [{ modelId: "cloud-text", role: "TEXT" }],
-      byokModelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+      byokProviders: [{
+        id: "provider-a",
+        name: "Provider A",
+        protocol: "OPENAI_COMPATIBLE",
+        baseUrl: "https://models.example.test/v1",
+        configured: true,
+        modelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+      }],
     });
 
     expect(status.cloudModelAssignments).toEqual([
-      { modelId: "cloud-text", role: "TEXT" },
+      { modelId: "cloud-text", role: "TEXT", priority: 100, enabled: true },
     ]);
-    expect(status.byokModelAssignments).toEqual([
-      { modelId: "byok-text", role: "TEXT" },
+    expect(status.byokProviders[0].modelAssignments).toEqual([
+      { modelId: "byok-text", role: "TEXT", priority: 100, enabled: true },
     ]);
   });
 
   it("treats a migrated status without assignments as an empty catalog", () => {
     expect(
-      parseCommercialModelAccessStatus(baseStatus).byokModelAssignments,
+      parseCommercialModelAccessStatus(baseStatus).byokProviders,
     ).toEqual([]);
   });
 
@@ -103,11 +120,18 @@ describe("commercial model access status", () => {
     expect(() =>
       parseCommercialModelAccessStatus({
         ...baseStatus,
-        byokModelAssignments: [
-          { modelId: "unknown-model", role: "PAGE_REQUESTED_OPERATION" },
-        ],
+        byokProviders: [{
+          id: "provider-a",
+          name: "Provider A",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "https://models.example.test/v1",
+          configured: true,
+          modelAssignments: [
+            { modelId: "unknown-model", role: "PAGE_REQUESTED_OPERATION" },
+          ],
+        }],
       }),
-    ).toThrow("byokModelAssignments[0].role is invalid");
+    ).toThrow("byokProviders[0].modelAssignments[0].role is invalid");
   });
 });
 

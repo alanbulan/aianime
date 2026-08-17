@@ -130,6 +130,53 @@ async def _wait_lane_idle(backend, lane: str, *, timeout: float = 3.0) -> None:
     assert backend.lane_snapshot()[lane]["active"] == 0
 
 
+@pytest.mark.asyncio
+async def test_workflow_parent_does_not_consume_default_child_capacity(
+    _task_ports,
+    tmp_path,
+) -> None:
+    ctx = _ctx(tmp_path)
+    backend = build_inline_task_backend()
+    release = threading.Event()
+
+    def runner(_envelope, _run_ctx):
+        release.wait(3)
+        return {"ok": True}
+
+    register_project_task_runner("l014_workflow_parent", runner)
+    register_project_task_runner("l014_workflow_child", runner)
+
+    try:
+        await backend.enqueue_project_task(
+            ctx,
+            task_type="l014_workflow_parent",
+            episode=0,
+            queue_kind="workflow",
+        )
+        for episode in range(1, 9):
+            await backend.enqueue_project_task(
+                ctx,
+                task_type="l014_workflow_child",
+                episode=episode,
+                queue_kind="default",
+            )
+
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            snapshot = backend.lane_snapshot()
+            if snapshot["workflow"]["active"] == 1 and snapshot["default"]["active"] == 8:
+                break
+            await asyncio.sleep(0.02)
+
+        snapshot = backend.lane_snapshot()
+        assert snapshot["workflow"]["active"] == 1
+        assert snapshot["default"]["active"] == 8
+    finally:
+        release.set()
+        await _wait_lane_idle(backend, "workflow")
+        await _wait_lane_idle(backend, "default")
+
+
 def _spawn_tree_script(tmp_path: Path) -> tuple[Path, Path]:
     pidfile = tmp_path / "process-tree.pid"
     script = tmp_path / "spawn_tree.py"

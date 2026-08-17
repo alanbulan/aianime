@@ -42,7 +42,7 @@ function VoiceActionButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      title={label}
+      data-ui-tooltip={label}
       className={cn(
         "text-muted-foreground hover:text-foreground",
         destructive && "hover:bg-destructive/10 hover:text-destructive",
@@ -160,7 +160,7 @@ export function CharacterVoicePanelView({
                           }}
                         />
                       )}
-                      <span className="truncate text-[11px] text-muted-foreground/70" title={actionSlot.path}>
+                      <span className="truncate text-[11px] text-muted-foreground/70" data-ui-tooltip={actionSlot.path}>
                         {actionSlot.path.split("/").pop()}
                       </span>
                       {Number.isFinite(duration) && (

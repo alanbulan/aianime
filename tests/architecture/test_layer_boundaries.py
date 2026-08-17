@@ -10,9 +10,7 @@ PACKAGE_ROOT = REPO_ROOT / "src" / "ai_anime"
 TASK_RUNNERS_ROOT = (
     PACKAGE_ROOT / "modules" / "task_execution" / "infrastructure" / "runners"
 )
-ASSET_WORLD_VIEWER_ROUTE = (
-    PACKAGE_ROOT / "api" / "routes" / "asset_world" / "viewer.py"
-)
+ASSET_WORLD_VIEWER_ROUTE = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "viewer.py"
 LEGACY_GENERATION_ROUTE = PACKAGE_ROOT / "api" / "routes" / "generation.py"
 LEGACY_FREEZONE_ROUTE = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
 LEGACY_FREEZONE_HELPERS = PACKAGE_ROOT / "freezone" / "route_helpers.py"
@@ -232,7 +230,7 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
         (
             "routes/production/audio_schemas.py",
             "routes/production/audio.py",
-            ("TTSGenerateRequest", "TTSPreviewRequest"),
+            ("EpisodeAudioGenerateRequest", "EpisodeAudioModelRequest"),
         ),
         (
             "routes/asset_world/styles_schemas.py",
@@ -457,12 +455,12 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
         assert f"ai_anime.api.{module_name}" in _imports(route)
         assert "ai_anime.api.schemas" not in _imports(route)
 
-    characters_source = (PACKAGE_ROOT / "api" / "routes/asset_world/characters_schemas.py").read_text(
-        encoding="utf-8"
-    )
-    projects_source = (PACKAGE_ROOT / "api" / "routes/project_workspace/schemas.py").read_text(
-        encoding="utf-8"
-    )
+    characters_source = (
+        PACKAGE_ROOT / "api" / "routes/asset_world/characters_schemas.py"
+    ).read_text(encoding="utf-8")
+    projects_source = (
+        PACKAGE_ROOT / "api" / "routes/project_workspace/schemas.py"
+    ).read_text(encoding="utf-8")
     assert "CharacterAssetKind = Literal[" not in root_source
     assert "CharacterAssetKind = Literal[" in characters_source
     assert "ProjectStatusFilter = Literal[" not in root_source
@@ -472,18 +470,21 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
     assert "FREEZONE_DEFAULT_IMAGE_MODEL =" not in root_source
     assert not (PACKAGE_ROOT / "api" / "canvas_schema_defaults.py").exists()
 
-    canvas_mark_source = (PACKAGE_ROOT / "api" / "routes/creative_canvas/mark_schemas.py").read_text(
-        encoding="utf-8"
-    )
+    canvas_mark_source = (
+        PACKAGE_ROOT / "api" / "routes/creative_canvas/mark_schemas.py"
+    ).read_text(encoding="utf-8")
     assert "class FreezoneVideoMark(" not in root_source
     assert "class FreezoneVideoMark(BaseModel):" in canvas_mark_source
-    for schema_path in ("routes/creative_canvas/image_schemas.py", "routes/creative_canvas/video_schemas.py"):
+    for schema_path in (
+        "routes/creative_canvas/image_schemas.py",
+        "routes/creative_canvas/video_schemas.py",
+    ):
         schema = PACKAGE_ROOT / "api" / schema_path
         assert "ai_anime.api.routes.creative_canvas.mark_schemas" in _imports(schema)
 
-    canvas_job_source = (PACKAGE_ROOT / "api" / "routes/creative_canvas/job_schemas.py").read_text(
-        encoding="utf-8"
-    )
+    canvas_job_source = (
+        PACKAGE_ROOT / "api" / "routes/creative_canvas/job_schemas.py"
+    ).read_text(encoding="utf-8")
     for model_name in ("FreezoneJobAcceptedData", "FreezoneJobAcceptedResponse"):
         assert f"class {model_name}(" not in root_source
         assert f"class {model_name}(BaseModel):" in canvas_job_source
@@ -869,7 +870,9 @@ def test_chat_websocket_auth_stays_in_api_auth_adapter() -> None:
     contract_test_source = contract_tests.read_text(encoding="utf-8")
 
     assert "ai_anime.modules.identity_access.public" in _imports(auth)
-    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(session_adapter)
+    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(
+        session_adapter
+    )
     assert "ai_anime.api.routes.identity_access.dependencies" not in _imports(route)
     assert "async def get_websocket_user(" in auth_source
     for owned_operation in (
@@ -909,7 +912,9 @@ def test_chat_websocket_session_stays_in_api_adapter() -> None:
 
     assert session_tests.exists()
     assert "fastapi" in _imports(session_adapter)
-    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(session_adapter)
+    assert "ai_anime.api.routes.identity_access.dependencies" in _imports(
+        session_adapter
+    )
     assert "ai_anime.api.routes.ai_assistant.scope" in _imports(session_adapter)
     assert "ai_anime.api.routes.ai_assistant.schemas" in _imports(session_adapter)
     assert "ai_anime.api.routes.ai_assistant.turns" in _imports(session_adapter)
@@ -999,7 +1004,7 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     for owned_rule in (
         '_AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"',
         "async def project_context_for_scope(",
-        "async def _requester_user_id(",
+        "def _requester_user_id(",
         "async def require_ai_assistant_access(",
         'required_role="viewer"',
         "get_usage_meter().require_feature_credit_balance(",
@@ -1019,7 +1024,7 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     assert "chat_access.project_context_for_scope(" not in route_source
     assert http_source.count("chat_access.project_context_for_scope(") == 2
     assert scope_source.count("chat_access.project_context_for_scope(") == 1
-    assert turn_source.count("chat_access.project_context_for_scope(") == 1
+    assert "chat_access.project_context_for_scope(" not in turn_source
     assert "chat_access.require_ai_assistant_access(" not in route_source
     assert turn_source.count("chat_access.require_ai_assistant_access(") == 1
     assert "_require_ai_assistant_access" not in access_test_source
@@ -1050,7 +1055,6 @@ def test_chat_scope_projection_stays_in_api_adapter() -> None:
         "async def send_scope_changed(",
         "except ProjectNotFound:",
         "scoped_chat_messages.list(",
-        "chat_worker_lifecycle.is_busy(",
         '"type": "scope.changed"',
         "项目不存在或已删除，已切回首页聊天。",
     ):
@@ -1063,7 +1067,6 @@ def test_chat_scope_projection_stays_in_api_adapter() -> None:
         "def _history(",
         "def _send_scope_changed(",
         "scoped_chat_messages.list(",
-        "chat_worker_lifecycle.is_busy(",
     ):
         assert removed_route_dependency not in route_source
         assert removed_route_dependency not in session_source
@@ -1113,7 +1116,7 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     assert "def _scope_from_model(" not in route_source
     assert "def _attachment_payloads(" not in route_source
     assert "to_chat_scope(" not in route_source
-    assert session_source.count("to_chat_scope(") == 1
+    assert session_source.count("to_chat_scope(") == 2
     assert http_source.count("to_chat_scope(") == 2
     assert turn_source.count("to_chat_scope(") == 1
     assert "attachment_payloads(" not in route_source
@@ -1196,7 +1199,14 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
     public = PACKAGE_ROOT / "modules" / "ai_assistant" / "public.py"
     turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     hermes_replies = (
         PACKAGE_ROOT
         / "modules"
@@ -1286,7 +1296,14 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     adapter = module / "infrastructure" / "json_render_errors.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1370,7 +1387,14 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     domain = module / "domain" / "tool_errors.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
@@ -1390,7 +1414,7 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     assert "redact_secrets" in domain_source
     assert "tool_chat_error" in public_source
     assert "tool_chat_error(" in hermes_replies_source
-    assert "tool_name=current_tool_name" in hermes_replies_source
+    assert "tool_name=event_tool_name" in hermes_replies_source
     assert "tool_chat_error" not in service_source
     for legacy_implementation in (
         "def _extract_tool_chat_error(",
@@ -1408,7 +1432,14 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
     fallback_application = module / "application" / "display_fallback.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     fallback_application_source = fallback_application.read_text(encoding="utf-8")
@@ -1458,7 +1489,14 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
     adapter = module / "infrastructure" / "display_fallback_gateway.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1531,7 +1569,14 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     adapter = module / "infrastructure" / "project_media_files.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1611,7 +1656,9 @@ def test_ai_assistant_owns_scoped_chat_history() -> None:
     scope_source = scope_adapter.read_text(encoding="utf-8")
 
     assert not legacy_store.exists()
-    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.store" not in _imports(scope_adapter)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.store" not in _imports(
+        scope_adapter
+    )
     assert "ai_anime.modules.ai_assistant.public" in _imports(scope_adapter)
     assert not {
         imported
@@ -1634,7 +1681,14 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
     history_source = (module / "infrastructure" / "sqlite_chat_history.py").read_text(
         encoding="utf-8"
     )
-    service_source = (PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py").read_text(encoding="utf-8")
+    service_source = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    ).read_text(encoding="utf-8")
 
     for operation in (
         "append_project_message",
@@ -1669,7 +1723,14 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     application_source = application.read_text(encoding="utf-8")
@@ -1790,16 +1851,21 @@ def test_ai_assistant_has_only_bundled_hermes_agent_runtime() -> None:
     assert all(not path.exists() for path in removed_paths)
     assert "claude-agent-sdk" not in project.read_text(encoding="utf-8")
     assert "AI_ANIME_CHAT_BACKEND" not in backend.read_text(encoding="utf-8")
-    assert "self._hermes_replies.stream(" in project_replies.read_text(
-        encoding="utf-8"
-    )
+    assert "self._hermes_replies.stream(" in project_replies.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     assert "LocalHermesRuntime()" in composition_source
     assert "LocalAgent" not in composition_source
 
 
 def test_chat_service_has_no_unreachable_assistant_entrypoints() -> None:
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     service_source = service.read_text(encoding="utf-8")
 
     assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
@@ -1831,7 +1897,14 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     local_state = module / "infrastructure" / "local_state.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     lifecycle_source = lifecycle.read_text(encoding="utf-8")
@@ -1886,7 +1959,14 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     adapter = module / "infrastructure" / "hermes_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
     ports_source = ports.read_text(encoding="utf-8")
     prewarmer_source = prewarmer.read_text(encoding="utf-8")
@@ -1901,7 +1981,10 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert "class HermesThread(Protocol):" in ports_source
     assert "class HermesRuntime(Protocol):" in ports_source
     assert "class LocalHermesRuntime:" in adapter_source
-    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool" in _imports(adapter)
+    assert (
+        "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool"
+        in _imports(adapter)
+    )
     assert "_hermes_runtime = LocalHermesRuntime()" in composition_source
     assert "def get_hermes_runtime(" not in composition_source
     assert "def get_hermes_runtime(" not in public_source
@@ -1909,13 +1992,19 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert '"HermesRuntime",' not in public_source
     assert "LocalHermesRuntime" not in public_source
     for caller in (service, session_adapter):
-        assert "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool" not in _imports(caller)
+        assert (
+            "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool"
+            not in _imports(caller)
+        )
     assert "hermes_runtime.get_for_user(" not in service_source
     assert home_replies_source.count("self._runtime.get_for_user(") == 1
     assert project_replies_source.count("self._runtime.get_for_user(") == 1
     assert "hermes_runtime.prewarm(" not in service_source
     assert prewarmer_source.count("self._runtime.prewarm(") == 1
-    assert "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool" not in _imports(session_adapter)
+    assert (
+        "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool"
+        not in _imports(session_adapter)
+    )
     assert lifecycle_source.count("self._runtime.set_scope_for_user(") == 1
     assert lifecycle_source.count("self._runtime.close_user(") == 1
 
@@ -1958,7 +2047,7 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
     assert "chat_worker_lifecycle.sync_scope(" not in route_source
     assert session_source.count("chat_worker_lifecycle.sync_scope(") == 1
     assert "chat_worker_lifecycle.is_busy(" not in route_source
-    assert "chat_worker_lifecycle.is_busy(" not in session_source
+    assert session_source.count("chat_worker_lifecycle.is_busy(") == 1
     assert scope_source.count("chat_worker_lifecycle.is_busy(") == 1
     assert "def _sync_running_agent_scope(" not in route_source
     assert "def _sync_running_agent_scope(" not in session_source
@@ -2026,7 +2115,14 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
     ports = module / "application" / "ports.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     application_source = application.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     chat_events_source = chat_events.read_text(encoding="utf-8")
@@ -2076,7 +2172,14 @@ def test_ai_assistant_owns_deterministic_project_replies() -> None:
     dispatcher = module / "application" / "project_assistant_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     application_source = application.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -2112,7 +2215,14 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_tests = (
         REPO_ROOT
@@ -2211,7 +2321,14 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     application = module / "application" / "hermes_runtime_prewarm.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
@@ -2233,14 +2350,13 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     assert "_hermes_runtime_prewarmer = HermesRuntimePrewarmer(" in composition_source
     assert "def get_hermes_runtime_prewarmer(" in composition_source
     assert "def get_hermes_runtime_prewarmer(" in public_source
-    assert (
-        "hermes_runtime_prewarmer = get_hermes_runtime_prewarmer()"
-        in session_source
-    )
+    assert "hermes_runtime_prewarmer = get_hermes_runtime_prewarmer()" in session_source
     assert "hermes_runtime_prewarmer" not in route_source
     assert session_source.count("hermes_runtime_prewarmer.prewarm(") == 2
     assert "def prewarm_chat_backend(" not in service_source
-    assert "ai_anime.modules.ai_assistant.infrastructure.hermes" not in _imports(session_adapter)
+    assert "ai_anime.modules.ai_assistant.infrastructure.hermes" not in _imports(
+        session_adapter
+    )
     assert "ai_anime.modules.ai_assistant.infrastructure.hermes" not in _imports(route)
     assert application_source.count("self._runtime.prewarm(") == 1
 
@@ -2251,7 +2367,14 @@ def test_ai_assistant_owns_page_agent_session_issuance() -> None:
     hermes_replies = module / "application" / "hermes_project_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     application_source = application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -2294,7 +2417,14 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     adapter = module / "infrastructure" / "user_preferences.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
@@ -2346,7 +2476,14 @@ def test_ai_assistant_owns_turn_guidance_rules() -> None:
     domain = module / "domain" / "turn_guidance.py"
     application = module / "application" / "project_assistant_replies.py"
     public = module / "public.py"
-    service = PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "service.py"
+    service = (
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "service.py"
+    )
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -2428,9 +2565,7 @@ def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
         / "infrastructure"
         / "registered_credit_quote.py"
     )
-    local_ports = (
-        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
-    )
+    local_ports = PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
     container = PACKAGE_ROOT / "modules" / "bootstrap" / "container.py"
     route_source = route.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
@@ -2483,9 +2618,7 @@ def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
     legacy_ports = PACKAGE_ROOT / "shared" / "ports" / "__init__.py"
-    local_ports = (
-        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
-    )
+    local_ports = PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
     container = PACKAGE_ROOT / "modules" / "bootstrap" / "container.py"
 
     assert not (PACKAGE_ROOT / "ports" / "usage.py").exists()
@@ -2531,11 +2664,7 @@ def test_model_usage_owns_runtime_provider_instrumentation() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
     cognee_config = (
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "config.py"
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "config.py"
     )
     provider_source = provider.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -2585,7 +2714,9 @@ def test_runtime_config_route_delegates_to_application() -> None:
 def test_project_file_routes_delegate_to_platform_release() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "project_workspace" / "files.py"
     shared_adapter = PACKAGE_ROOT / "api" / "file_delivery.py"
-    platform_routes = PACKAGE_ROOT / "api" / "routes" / "platform_release" / "runtime.py"
+    platform_routes = (
+        PACKAGE_ROOT / "api" / "routes" / "platform_release" / "runtime.py"
+    )
     route_source = route.read_text(encoding="utf-8")
     platform_source = platform_routes.read_text(encoding="utf-8")
 
@@ -2594,7 +2725,9 @@ def test_project_file_routes_delegate_to_platform_release() -> None:
     assert "def _serve_or_redirect_to_oss(" not in route_source
     assert "def preview_project_media_file(" not in route_source
     assert "ai_anime.modules.platform_release.public" in _imports(shared_adapter)
-    assert "ai_anime.api.routes.project_workspace.files" not in _imports(platform_routes)
+    assert "ai_anime.api.routes.project_workspace.files" not in _imports(
+        platform_routes
+    )
     assert "ai_anime.api.file_delivery" in _imports(platform_routes)
     assert platform_source.count("serve_project_file(") == 1
 
@@ -3018,9 +3151,7 @@ def test_freezone_video_processing_routes_delegate_to_application() -> None:
     job_result_adapter_source = job_result_adapter.read_text(encoding="utf-8")
     runner_source = runner.read_text(encoding="utf-8")
     execution_application_source = execution_application.read_text(encoding="utf-8")
-    video_composition_source = video_composition_adapter.read_text(
-        encoding="utf-8"
-    )
+    video_composition_source = video_composition_adapter.read_text(encoding="utf-8")
     video_erase_source = video_erase_adapter.read_text(encoding="utf-8")
 
     endpoint_paths = (
@@ -3630,9 +3761,7 @@ def test_freezone_canvas_document_queries_delegate_to_application() -> None:
 
 def test_freezone_canvas_document_writes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "documents.py"
-    errors = (
-        PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "errors.py"
-    )
+    errors = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "errors.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     application = (
         PACKAGE_ROOT
@@ -4150,7 +4279,9 @@ def test_freezone_canvas_projection_routes_delegate_to_application() -> None:
 def test_freezone_canvas_events_delegate_to_application() -> None:
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     preset_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "presets.py"
-    projection_route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "projections.py"
+    projection_route = (
+        PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "projections.py"
+    )
     domain = (
         PACKAGE_ROOT / "modules" / "creative_canvas" / "domain" / "canvas_events.py"
     )
@@ -4610,13 +4741,15 @@ def test_production_sketch_edit_routes_delegate_to_application() -> None:
 
     assert not (PACKAGE_ROOT / "services" / "sketch_pose_service.py").exists()
     assert "ai_anime.modules.production.public" in _imports(route)
-    assert source.count("sketch_editing_use_cases().") == 3
+    assert source.count("sketch_editing_use_cases().") == 4
     assert "SketchEditorQuery" in source
     assert "SaveSketchEditorCommand" in source
+    assert "SketchCropSourceQuery" in source
     assert "CropCurrentSketchCommand" in source
     for handler_name in (
         "get_sketch_pose_editor",
         "save_sketch_pose_editor",
+        "get_sketch_crop_source",
         "crop_current_sketch",
     ):
         assert f"async def {handler_name}(" in source
@@ -4792,14 +4925,12 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
     assert source.count("episode_audio_use_cases().") == 2
     assert "GenerateEpisodeAudioCommand" in source
     assert "production.create_router()" in api_router_source
-    for handler_name in (
-        "generate_tts",
-        "preview_tts",
-        "list_tts_voices",
-        "generate_audio",
-        "regenerate_beat_audio",
-    ):
+    for handler_name in ("generate_audio", "regenerate_beat_audio"):
         assert f"async def {handler_name}(" in source
+    for removed_handler in ("generate_tts", "preview_tts", "list_tts_voices"):
+        assert f"async def {removed_handler}(" not in source
+    for removed_path in ("/tts/generate", "/tts/preview", "/tts/voices"):
+        assert removed_path not in source
     assert "def _collect_audio_prereq_errors(" not in source
     assert "def _voice_prereq_error_response(" not in source
     for implementation_detail in (
@@ -4929,9 +5060,8 @@ def test_production_grid_pool_persistence_models_have_one_owner() -> None:
     for model_name in ("GridEntry", "PoolImage", "PoolIndex"):
         assert f"class {model_name}(" not in legacy_source
         assert f"class {model_name}(BaseModel):" in pool_source
-    assert (
-        "ai_anime.modules.production.infrastructure.grid_pool_models"
-        in _imports(pool_indexer)
+    assert "ai_anime.modules.production.infrastructure.grid_pool_models" in _imports(
+        pool_indexer
     )
 
 
@@ -4963,7 +5093,13 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
         / "infrastructure"
         / "beat_prompt_generators.py"
     )
-    global_optimizer = PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "global_video_optimizer.py"
+    global_optimizer = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "global_video_optimizer.py"
+    )
     legacy_source = _removed_models_source(legacy_models)
     model_source = script_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -4995,11 +5131,7 @@ def test_narrative_planning_event_model_has_one_owner() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "narrative_planning" / "public.py"
     cognee_store = (
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "store.py"
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py"
     )
     event_extractor = (
         PACKAGE_ROOT
@@ -5009,15 +5141,9 @@ def test_narrative_planning_event_model_has_one_owner() -> None:
         / "event_extractor.py"
     )
     cognee_pipeline = (
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "pipeline.py"
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "pipeline.py"
     )
-    cognee_package = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
-    )
+    cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
 
     assert "class NovelEvent(" not in _removed_models_source(legacy_models)
     assert "class NovelEvent(BaseModel):" in event_models.read_text(encoding="utf-8")
@@ -5046,25 +5172,23 @@ def test_narrative_planning_episode_model_has_one_owner() -> None:
         / "sqlite_narrative.py"
     )
     cognee_pipeline = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "pipeline.py"
+    )
+    cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
+    internal_callers = (
         PACKAGE_ROOT
         / "modules"
-        / "knowledge_graph"
+        / "narrative_planning"
         / "infrastructure"
-        / "pipeline.py"
-    )
-    cognee_package = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
-    )
-    internal_callers = (
-        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "episode_planner_agent.py",
-        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "identity_planner_agent.py",
+        / "episode_planner_agent.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "infrastructure"
+        / "identity_planner_agent.py",
     )
     external_callers = (
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         cognee_pipeline,
     )
 
@@ -5104,12 +5228,12 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
     owner_source = episode_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
     callers = (
-        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "asset_compiler_agent.py",
         PACKAGE_ROOT
         / "modules"
-        / "knowledge_graph"
+        / "narrative_planning"
         / "infrastructure"
-        / "store.py",
+        / "asset_compiler_agent.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         PACKAGE_ROOT
         / "modules"
         / "asset_world"
@@ -5176,16 +5300,8 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         PACKAGE_ROOT / "api" / "routes/narrative_planning/episodes_schemas.py",
         PACKAGE_ROOT / "api" / "routes/narrative_planning/scripts_schemas.py",
         PACKAGE_ROOT / "api" / "routes" / "asset_world" / "assets.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "pipeline.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "pipeline.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         PACKAGE_ROOT
         / "modules"
         / "production"
@@ -5198,8 +5314,16 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         / "infrastructure"
         / "media_generation"
         / "prompt_builder.py",
-        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_assets.py",
-        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_prompt.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "seedance2_assets.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "seedance2_prompt.py",
     )
     legacy_source = _removed_models_source(legacy_models)
     owner_source = beat_models.read_text(encoding="utf-8")
@@ -5275,30 +5399,26 @@ def test_asset_world_character_models_have_one_owner() -> None:
         / "character_identity.py"
     )
     sqlite_repository = (
-        PACKAGE_ROOT
-        / "modules"
-        / "asset_world"
-        / "infrastructure"
-        / "sqlite_assets.py"
+        PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "sqlite_assets.py"
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     cognee_pipeline = (
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "pipeline.py"
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "pipeline.py"
     )
     external_callers = (
-        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "identity_planner_agent.py",
-        cognee_pipeline,
         PACKAGE_ROOT
         / "modules"
-        / "knowledge_graph"
+        / "narrative_planning"
         / "infrastructure"
-        / "store.py",
-        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_assets.py",
+        / "identity_planner_agent.py",
+        cognee_pipeline,
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "seedance2_assets.py",
     )
     owner_source = character_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -5339,26 +5459,22 @@ def test_asset_world_prop_model_has_one_owner() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     sqlite_repository = (
-        PACKAGE_ROOT
-        / "modules"
-        / "asset_world"
-        / "infrastructure"
-        / "sqlite_assets.py"
+        PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "sqlite_assets.py"
     )
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
-        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "asset_compiler_agent.py",
         PACKAGE_ROOT
         / "modules"
-        / "knowledge_graph"
+        / "narrative_planning"
         / "infrastructure"
-        / "pipeline.py",
+        / "asset_compiler_agent.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "pipeline.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         PACKAGE_ROOT
         / "modules"
-        / "knowledge_graph"
+        / "production"
         / "infrastructure"
-        / "store.py",
-        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_assets.py",
+        / "seedance2_assets.py",
     )
 
     assert "class NovelProp(" not in _removed_models_source(legacy_models)
@@ -5389,25 +5505,17 @@ def test_asset_world_scene_model_has_one_owner() -> None:
     )
     public = PACKAGE_ROOT / "modules" / "asset_world" / "public.py"
     sqlite_repository = (
-        PACKAGE_ROOT
-        / "modules"
-        / "asset_world"
-        / "infrastructure"
-        / "sqlite_assets.py"
+        PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "sqlite_assets.py"
     )
     cognee_package = PACKAGE_ROOT / "modules" / "knowledge_graph" / "__init__.py"
     callers = (
-        PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "asset_compiler_agent.py",
         PACKAGE_ROOT
         / "modules"
-        / "knowledge_graph"
+        / "narrative_planning"
         / "infrastructure"
-        / "pipeline.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "store.py",
+        / "asset_compiler_agent.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "pipeline.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         PACKAGE_ROOT
         / "modules"
         / "creative_canvas"
@@ -5487,11 +5595,7 @@ def test_production_detected_refs_have_one_owner() -> None:
     )
     external_callers = (
         PACKAGE_ROOT / "api" / "routes" / "asset_world" / "assets.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "store.py",
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         sqlite_repository,
         PACKAGE_ROOT / "modules" / "asset_world" / "application" / "scene_viewer.py",
         PACKAGE_ROOT
@@ -5608,16 +5712,21 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
     video_schemas = PACKAGE_ROOT / "api" / "routes/production/video_schemas.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
     seedance_pipeline = (
-        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "seedance2_pipeline.py"
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "seedance2_pipeline.py"
     )
     source = route.read_text(encoding="utf-8")
 
     assert "video_backend" not in source
     assert "video_backend_catalog" not in source
-    assert "video_model=body.model" in source
+    assert "resolve_video_generation_model" in source
+    assert "video_model=video_model" in source
     video_schema_source = video_schemas.read_text(encoding="utf-8")
     assert "class SingleVideoRequest(" in video_schema_source
-    assert "model: str" in video_schema_source
+    assert "model: Optional[str] = None" in video_schema_source
     assert "backend" not in video_schema_source.lower()
     assert "is_seedance2_model" in video_runner.read_text(encoding="utf-8")
     assert "huimeng" not in seedance_pipeline.read_text(encoding="utf-8").lower()
@@ -5979,9 +6088,6 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "asset_world" / "composition.py": (
             "BRIDGMAN_CHARACTER_PALETTE"
         ),
-        TASK_RUNNERS_ROOT / "script.py": (
-            "assign_identity_sketch_colors"
-        ),
     }
 
     assert not (PACKAGE_ROOT / "generators" / "episode_optimizer.py").exists()
@@ -5999,6 +6105,16 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
         assert public_name in source
         assert "ai_anime.modules.production.public" in _imports(path)
         assert "ai_anime.modules.generators.episode_optimizer" not in _imports(path)
+    script_runner_source = (TASK_RUNNERS_ROOT / "script.py").read_text(encoding="utf-8")
+    assert "assign_identity_sketch_colors" not in script_runner_source
+    generation_context = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "application"
+        / "generation_context.py"
+    ).read_text(encoding="utf-8")
+    assert "assign_complete_episode_identity_colors" in generation_context
 
 
 def test_production_sketch_color_assignment_route_delegates_to_application() -> None:
@@ -6041,8 +6157,8 @@ def test_production_sketch_marker_detection_route_delegates_to_application() -> 
     )
     source = route.read_text(encoding="utf-8")
 
-    assert source.count("sketch_marker_use_cases().detect") == 1
-    assert "DetectProjectSketchMarkersCommand" in source
+    assert source.count("sketch_marker_detection_task_use_cases().schedule") == 1
+    assert "ScheduleSketchMarkerDetectionCommand" in source
     assert "async def detect_sketch_identities(" in source
     assert "sketch_marker_detection_use_cases" not in source
     assert "def _requester_user_id_for_billing(" not in source
@@ -6169,11 +6285,14 @@ def test_episode_prop_promotion_uses_asset_world_public_api() -> None:
     )
 
     assert not (PACKAGE_ROOT / "services" / "prop_promotion_service.py").exists()
-    for path in callers:
-        source = path.read_text(encoding="utf-8")
-        assert "promote_episode_props_to_global" in source
-        assert "ai_anime.modules.asset_world.public" in _imports(path)
-        assert "ai_anime.services.prop_promotion_service" not in source
+    route_source = callers[0].read_text(encoding="utf-8")
+    runner_source = callers[1].read_text(encoding="utf-8")
+    assert "promote_episode_props_to_global" not in route_source
+    assert "start_episode_asset_planning" in route_source
+    assert "promote_episode_props_to_global" in runner_source
+    assert "ai_anime.modules.asset_world.public" in _imports(callers[1])
+    assert "ai_anime.services.prop_promotion_service" not in route_source
+    assert "ai_anime.services.prop_promotion_service" not in runner_source
 
 
 def test_runtime_prop_menu_uses_one_asset_world_implementation() -> None:
@@ -6225,7 +6344,11 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
         / "production"
         / "infrastructure"
         / "generation_context.py",
-        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "global_video_optimizer.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "global_video_optimizer.py",
         PACKAGE_ROOT
         / "modules"
         / "asset_world"
@@ -6251,7 +6374,13 @@ def test_character_reference_map_uses_one_asset_world_implementation() -> None:
 
 
 def test_removed_character_auto_promotion_service_does_not_return() -> None:
-    planner = PACKAGE_ROOT / "modules" / "narrative_planning" / "infrastructure" / "identity_planner_agent.py"
+    planner = (
+        PACKAGE_ROOT
+        / "modules"
+        / "narrative_planning"
+        / "infrastructure"
+        / "identity_planner_agent.py"
+    )
     source = planner.read_text(encoding="utf-8")
 
     assert not (PACKAGE_ROOT / "services" / "character_promotion_service.py").exists()
@@ -6536,9 +6665,9 @@ def test_asset_world_background_anchor_routes_delegate_to_application() -> None:
 
 def test_asset_routes_share_one_project_media_url_builder() -> None:
     route_sources = {
-        name: (
-            PACKAGE_ROOT / "api" / "routes" / "asset_world" / name
-        ).read_text(encoding="utf-8")
+        name: (PACKAGE_ROOT / "api" / "routes" / "asset_world" / name).read_text(
+            encoding="utf-8"
+        )
         for name in ("characters.py", "props.py", "scenes.py")
     }
     beat_viewer_route_source = ASSET_WORLD_VIEWER_ROUTE.read_text(encoding="utf-8")
@@ -6638,12 +6767,12 @@ def test_asset_world_character_image_routes_delegate_to_application() -> None:
 def test_asset_world_image_settings_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
-    props_source = (PACKAGE_ROOT / "api" / "routes" / "asset_world" / "props.py").read_text(
-        encoding="utf-8"
-    )
-    scenes_source = (PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py").read_text(
-        encoding="utf-8"
-    )
+    props_source = (
+        PACKAGE_ROOT / "api" / "routes" / "asset_world" / "props.py"
+    ).read_text(encoding="utf-8")
+    scenes_source = (
+        PACKAGE_ROOT / "api" / "routes" / "asset_world" / "scenes.py"
+    ).read_text(encoding="utf-8")
 
     assert "image_settings_use_cases" in source
     assert source.count("character_generation_options(") == 6

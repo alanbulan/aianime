@@ -31,6 +31,7 @@ from ai_anime.modules.narrative_planning.public import (
     GenerateSeedancePromptCommand,
     IdentityPlanRequired,
     ProjectContextRequired,
+    ScenePlanRequired,
     SeedancePromptRejected,
     ScriptNotFound,
     ScriptStoreSyncFailed,
@@ -59,7 +60,9 @@ def _requester_user_id_for_billing(resolved: Any, user: dict) -> str:
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/script")
-async def get_script(project: str, episode_num: int, user: dict = Depends(get_api_user)):
+async def get_script(
+    project: str, episode_num: int, user: dict = Depends(get_api_user)
+):
     """获取指定集数的剧本。"""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
 
@@ -74,7 +77,9 @@ async def get_script(project: str, episode_num: int, user: dict = Depends(get_ap
             return {"ok": True, "data": script_data}
     except Exception as exc:
         logger.exception("从 store 读取剧本失败: episode=%s", episode_num)
-        raise HTTPException(status_code=500, detail=f"Script store read failed: {exc}") from exc
+        raise HTTPException(
+            status_code=500, detail=f"Script store read failed: {exc}"
+        ) from exc
 
     return {"ok": True, "data": None, "message": "Script not generated yet"}
 
@@ -87,6 +92,7 @@ async def generate_script(
     user: dict = Depends(get_api_user),
 ):
     """生成指定集数的剧本。"""
+    body = body or ScriptGenerateRequest()
     logger.info("[%s] EP%d generate_script", project, episode_num)
     resolved = await resolve_project_scope(project, user, required_role="editor")
     ctx = resolved.ctx
@@ -104,8 +110,10 @@ async def generate_script(
             task_context=ctx,
             output_dir=output_dir,
             episode_num=episode_num,
+            script_mode=body.rhythm,
+            target_duration_total=body.target_duration_total,
         )
-    except IdentityPlanRequired as exc:
+    except (IdentityPlanRequired, ScenePlanRequired) as exc:
         return {
             "ok": False,
             "code": exc.code,
@@ -149,15 +157,17 @@ async def update_beat(
     except (ScriptNotFound, BeatNotFound) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except BeatStoreUpdateFailed as exc:
-        logger.exception(
-            "Beat 保存失败: episode=%s beat=%s", episode_num, beat_num
-        )
-        raise HTTPException(status_code=500, detail=f"Beat store update failed: {exc}") from exc
+        logger.exception("Beat 保存失败: episode=%s beat=%s", episode_num, beat_num)
+        raise HTTPException(
+            status_code=500, detail=f"Beat store update failed: {exc}"
+        ) from exc
 
     return {"ok": True, "data": target}
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-prompt/generate")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-prompt/generate"
+)
 async def generate_beat_video_prompt(
     project: str,
     episode_num: int,
@@ -214,7 +224,9 @@ async def generate_beat_video_prompt(
         logger.exception(
             "Beat 视频提示词生成失败: episode=%s beat=%s", episode_num, beat_num
         )
-        raise HTTPException(status_code=500, detail=f"Beat video prompt generation failed: {exc}") from exc
+        raise HTTPException(
+            status_code=500, detail=f"Beat video prompt generation failed: {exc}"
+        ) from exc
 
     return {
         "ok": True,
@@ -222,7 +234,9 @@ async def generate_beat_video_prompt(
     }
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-prompt/generate")
+@router.post(
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-prompt/generate"
+)
 async def generate_seedance2_prompt(
     project: str,
     episode_num: int,
@@ -273,7 +287,9 @@ async def save_script(
 ):
     """保存（覆盖）指定集数的完整剧本。"""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    logger.info("[%s] EP%d save_script: %d beats", project, episode_num, len(body.beats))
+    logger.info(
+        "[%s] EP%d save_script: %d beats", project, episode_num, len(body.beats)
+    )
 
     store = (
         await make_cognee_store_for_context(resolved.ctx)

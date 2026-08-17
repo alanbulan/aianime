@@ -16,4 +16,11 @@ describe('NodeGenerationOverlay', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '33');
     expect(screen.getByText('33')).toBeInTheDocument();
   });
+
+  it('renders an indeterminate state instead of inventing progress', () => {
+    render(<NodeGenerationOverlay progress={null} />);
+
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+    expect(screen.queryByText('96')).not.toBeInTheDocument();
+  });
 });

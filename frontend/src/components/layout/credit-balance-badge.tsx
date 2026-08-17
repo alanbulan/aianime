@@ -44,6 +44,7 @@ export function CreditBalanceBadge() {
     : currentUser.data?.data.credit_balance;
   const isLoading = commercial ? cloudQuota.isLoading : currentUser.isLoading;
   const isError = commercial ? cloudQuota.isError : currentUser.isError;
+  const isFetching = commercial ? cloudQuota.isFetching : currentUser.isFetching;
   const language = i18n?.resolvedLanguage ?? i18n?.language ?? "en";
 
   if (
@@ -57,20 +58,30 @@ export function CreditBalanceBadge() {
     balance === undefined
       ? t("credits.balance")
       : `${t("credits.balance")}: ${formatFullCredits(balance, language)}`;
+  const handleRefresh = () => {
+    if (isFetching) return;
+    void (commercial ? cloudQuota.refetch() : currentUser.refetch());
+  };
 
   return (
     <TooltipProvider delay={80}>
       <Tooltip>
         <TooltipTrigger
           render={
-            <div
-              className="group/credits ml-1 flex h-9 min-w-0 cursor-default items-center gap-1 px-0.5 text-sm font-medium text-muted-foreground"
-              aria-label={t("credits.balance")}
+            <button
+              type="button"
+              className="group/credits ml-1 flex h-9 min-w-0 cursor-pointer items-center gap-1 px-0.5 text-sm font-medium text-muted-foreground disabled:cursor-wait"
+              aria-label={t("credits.refreshBalance")}
+              disabled={isFetching}
+              onClick={handleRefresh}
             />
           }
         >
           <span className="flex shrink-0 items-center">
-            <CreditSparkIcon className="size-[17px]" withHoverMotion />
+            <CreditSparkIcon
+              className={cn("size-[17px]", isFetching && "animate-pulse")}
+              withHoverMotion
+            />
           </span>
           <span className={cn("shrink-0 whitespace-nowrap text-[12px] leading-none tabular-nums", CREDIT_VALUE_CLASS)}>
             {isLoading || balance === undefined ? "--" : formatFullCredits(balance, language)}
@@ -82,7 +93,7 @@ export function CreditBalanceBadge() {
           showArrow={false}
           className="border border-border bg-popover text-popover-foreground shadow-lg"
         >
-          {tooltipLabel}
+          {tooltipLabel} · {t("credits.refreshHint")}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

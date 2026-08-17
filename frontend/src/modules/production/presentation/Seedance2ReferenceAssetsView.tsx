@@ -122,7 +122,7 @@ export function Seedance2ReferenceCropAssetsView({
                     data-seedance2-reference-tile
                     className={REFERENCE_TILE_CLASS}
                     style={{ aspectRatio }}
-                    title={asset.note || asset.label}
+                    data-ui-tooltip={asset.note || asset.label}
                   >
                     {assetImageSrc ? (
                       <img
@@ -302,7 +302,7 @@ export function Seedance2ReferenceAssetsView({
                       canInsertReference &&
                         "cursor-grab active:cursor-grabbing hover:shadow-xl",
                     )}
-                    title={asset.note || asset.label}
+                    data-ui-tooltip={asset.note || asset.label}
                   >
                     {assetImageSrc ? (
                       <img
@@ -387,7 +387,7 @@ export function Seedance2ReferenceAssetsView({
                             aria-label={t(
                               "episode.workbench.video.seedance2AssetCrop",
                             )}
-                            title={t(
+                            data-ui-tooltip={t(
                               "episode.workbench.video.seedance2AssetAudioTrim",
                             )}
                             onClick={() => controller.openTrim(asset)}

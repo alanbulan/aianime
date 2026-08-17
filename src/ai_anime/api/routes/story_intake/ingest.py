@@ -76,8 +76,6 @@ async def start_ingest(
             resolved.ctx,
             StartIngestionCommand(
                 filename=body.filename,
-                text_model=body.text_model,
-                embedding_model=body.embedding_model,
                 rebuild=body.rebuild,
                 spine_template=body.spine_template,
             ),

@@ -6,6 +6,7 @@ import {
 } from "react";
 import { currentTurnIsLive } from "@/modules/ai_assistant/domain/activeTurn";
 import type {
+  ChatConversation,
   ChatMessage,
   ChatScope,
   ServerFrame,
@@ -44,6 +45,7 @@ type FrameControllerOptions = {
   setConnecting: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string | null>>;
   setHistoryReady: Dispatch<SetStateAction<boolean>>;
+  setConversations: Dispatch<SetStateAction<ChatConversation[]>>;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   setBusy: Dispatch<SetStateAction<boolean>>;
   setStreamText: Dispatch<SetStateAction<string>>;
@@ -65,6 +67,7 @@ export function useSuperChatFrameController({
   setConnecting,
   setError,
   setHistoryReady,
+  setConversations,
   setMessages,
   setBusy,
   setStreamText,
@@ -81,6 +84,17 @@ export function useSuperChatFrameController({
         const frameScope = isChatScope(frame.scope) ? frame.scope : undefined;
         if (!scopeMatches(frameScope, desiredScope)) break;
         setHistoryReady(true);
+        setConversations(
+          Array.isArray(frame.conversations)
+            ? frame.conversations.filter((item): item is ChatConversation => (
+                Boolean(item)
+                && typeof item.id === "string"
+                && typeof item.title === "string"
+                && typeof item.updatedAt === "string"
+                && typeof item.messageCount === "number"
+              ))
+            : [],
+        );
         const history = normalizeHistory(Array.isArray(frame.history) ? frame.history : []);
         const currentMessages = messagesRef.current;
         const protectedTurnId = activeTurnIdRef.current ?? recentlyCompletedTurnIdRef.current;
@@ -100,7 +114,7 @@ export function useSuperChatFrameController({
           && turnCompletedInHistory(activeTurnId, history, currentMessages)
         ) {
           markTurnInactive(activeTurnId);
-        } else if (frame.busy === true && currentTurnIsLive(activeTurnId, currentMessages)) {
+        } else if (frame.busy === true) {
           setBusy(true);
         } else if (activeTurnId) {
           if (!currentTurnIsLive(activeTurnId, currentMessages)) {
@@ -113,6 +127,32 @@ export function useSuperChatFrameController({
           recentlyCompletedTurnIdRef.current = null;
           setStreamText("");
           setBusy(false);
+        }
+        break;
+      }
+      case "conversation.deleted": {
+        const deletedConversationId = typeof frame.conversationId === "string"
+          ? frame.conversationId
+          : "";
+        const nextConversations = Array.isArray(frame.conversations)
+          ? frame.conversations.filter((item): item is ChatConversation => (
+              Boolean(item)
+              && typeof item.id === "string"
+              && typeof item.title === "string"
+              && typeof item.updatedAt === "string"
+              && typeof item.messageCount === "number"
+            ))
+          : [];
+        setConversations(nextConversations);
+        if (deletedConversationId === desiredScope.conversationId) {
+          messagesRef.current = [];
+          streamTextRef.current = "";
+          recentlyCompletedTurnIdRef.current = null;
+          setMessages([]);
+          setStreamText("");
+          setHistoryReady(true);
+          setBusy(false);
+          setError(null);
         }
         break;
       }
@@ -301,6 +341,7 @@ export function useSuperChatFrameController({
     setConnecting,
     setError,
     setHistoryReady,
+    setConversations,
     setMessages,
     setStreamText,
     showToolEvents,

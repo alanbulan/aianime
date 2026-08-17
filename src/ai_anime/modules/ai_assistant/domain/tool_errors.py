@@ -105,8 +105,9 @@ def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
             suppress_domain_failures
             and isinstance(status_code, int)
             and 200 <= status_code < 300
-            and node.get("ok") is not False
         ):
+            return None
+        if suppress_domain_failures and node.get("ok") is True:
             return None
 
         for key in ("error", "detail", "message"):

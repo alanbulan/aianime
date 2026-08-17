@@ -26,7 +26,9 @@ vi.mock('./NodeHeader', () => ({
 }));
 
 vi.mock('./NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: () => <div>generation-overlay</div>,
+  NodeGenerationOverlay: ({ progress }: { progress?: number | null }) => (
+    <div>generation-overlay:{progress ?? 'indeterminate'}</div>
+  ),
 }));
 
 vi.mock('./RegenerateButton', () => ({
@@ -106,6 +108,7 @@ function createController(): AudioNodeController {
     hasMainlineContext: false,
     audioSource: '/voice.wav',
     isGenerating: false,
+    generationProgress: null,
     generationError: '',
     hasGenerationError: false,
     showOperationsPanel: false,
@@ -143,8 +146,9 @@ describe('AudioNodeView', () => {
     controller.audioSource = null;
     controller.data.audioUrl = null;
     controller.isGenerating = true;
+    controller.generationProgress = 0.42;
     const { rerender } = render(<AudioNodeView controller={controller} />);
-    expect(screen.getByText('generation-overlay')).toBeInTheDocument();
+    expect(screen.getByText('generation-overlay:0.42')).toBeInTheDocument();
 
     controller.isGenerating = false;
     controller.hasGenerationError = true;

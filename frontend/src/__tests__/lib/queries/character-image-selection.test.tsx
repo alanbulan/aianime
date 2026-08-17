@@ -95,7 +95,7 @@ describe("character image selection query hooks", () => {
         "http://localhost:3000/api/v1/projects/demo/image-source-selection/prop",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          patchBody = await request.json();
+          patchBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

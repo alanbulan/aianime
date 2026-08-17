@@ -300,6 +300,54 @@ async def test_compile_episode_scenes_uses_narrated_fallback_without_scene_heade
 
 
 @pytest.mark.asyncio
+async def test_narrated_scene_analysis_retries_one_valid_empty_response(monkeypatch):
+    import ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent as asset_compiler
+
+    calls: list[str] = []
+
+    class Agent:
+        def __init__(self, *_args, **_kwargs) -> None:
+            return None
+
+        async def run(self, task: str):
+            calls.append(task)
+            scenes = []
+            if len(calls) == 2:
+                scenes = [
+                    asset_compiler.NarratedSceneRequirement(
+                        scene_name="医院走廊",
+                        evidence_lines=["她冲进医院走廊。"],
+                    )
+                ]
+            return SimpleNamespace(output=SimpleNamespace(scenes=scenes))
+
+    monkeypatch.setattr(asset_compiler, "Agent", Agent)
+    monkeypatch.setattr(
+        asset_compiler,
+        "get_newapi_text_pydantic_model",
+        lambda: "text-model",
+    )
+    monkeypatch.setattr(
+        asset_compiler,
+        "get_newapi_text_pydantic_model_settings",
+        lambda *_args: {},
+    )
+    logs: list[str] = []
+    compiler = asset_compiler.AssetCompiler(_FakeCogneeStore())
+
+    result = await compiler._analyze_narrated_scene_requirements(
+        "她冲进医院走廊。",
+        SimpleNamespace(number=5, title="第五集"),
+        logs.append,
+    )
+
+    assert [scene.scene_name for scene in result] == ["医院走廊"]
+    assert len(calls) == 2
+    assert "上一轮没有产出任何场景" in calls[1]
+    assert any("自动重试一次" in message for message in logs)
+
+
+@pytest.mark.asyncio
 async def test_compile_scenes_promotes_stable_visual_states_to_pending_scenes(monkeypatch):
     import ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent as asset_compiler
 

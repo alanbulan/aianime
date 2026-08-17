@@ -361,7 +361,7 @@ export function createOutpaintEditorOverlay({
                 type="button"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 onClick={onClose}
-                title={t('outpaintEditor.exit')}
+                data-ui-tooltip={t('outpaintEditor.exit')}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -401,7 +401,7 @@ export function createOutpaintEditorOverlay({
                     ? NODE_GENERATE_BUTTON_DISABLED_CLASS
                     : NODE_GENERATE_BUTTON_ENABLED_CLASS
                 }`}
-                title={t('outpaintEditor.submit')}
+                data-ui-tooltip={t('outpaintEditor.submit')}
               >
                 <ArrowUp className="h-4 w-4" />
               </button>

@@ -60,6 +60,16 @@ async def send_scope_changed(
             "type": "scope.changed",
             "scope": scope.to_dict(),
             "history": await _history(username, scope, project_ctx=project_ctx),
+            "conversations": scoped_chat_messages.list_conversations(
+                username,
+                scope,
+                project_dir=(
+                    project_ctx.output_dir if project_ctx is not None else None
+                ),
+                project_state_dir=(
+                    project_ctx.state_dir if project_ctx is not None else None
+                ),
+            ),
             "busy": chat_worker_lifecycle.is_busy(username),
         },
     ):

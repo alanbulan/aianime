@@ -71,17 +71,27 @@ async def append_chat_ui_event(
 ) -> dict[str, Any]:
     username = str(user["username"])
     scope = to_chat_scope(payload.scope)
+    project_ctx = None
     if scope.kind == "project":
-        await chat_access.project_context_for_scope(user, scope)
+        project_ctx = await chat_access.project_context_for_scope(user, scope)
     turn_id = payload.turn_id.strip()
     if not turn_id:
         raise HTTPException(status_code=400, detail="turn_id is required")
     try:
+        project_kwargs = {
+            key: value
+            for key, value in {
+                "project_dir": getattr(project_ctx, "output_dir", None),
+                "project_state_dir": getattr(project_ctx, "state_dir", None),
+            }.items()
+            if value is not None
+        }
         event = scoped_chat_messages.append_ui_event(
             username,
             scope,
             turn_id,
             payload.event,
+            **project_kwargs,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

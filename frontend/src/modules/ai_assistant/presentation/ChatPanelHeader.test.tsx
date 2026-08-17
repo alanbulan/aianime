@@ -7,21 +7,13 @@ vi.mock("react-i18next", () => ({
 }));
 
 vi.mock("@/modules/ai_assistant/presentation/ChatControlBar", () => ({
-  ControlBar: ({
-    onToggleSearch,
-  }: {
-    onToggleSearch: () => void;
-  }) => (
-    <button type="button" data-testid="control-bar" onClick={onToggleSearch}>
+  ControlBar: () => (
+    <button type="button" data-testid="control-bar">
       control bar
     </button>
   ),
-  HeaderControlPortal: ({
-    onToggleSearch,
-  }: {
-    onToggleSearch: () => void;
-  }) => (
-    <button type="button" data-testid="header-portal" onClick={onToggleSearch}>
+  HeaderControlPortal: () => (
+    <button type="button" data-testid="header-portal">
       header portal
     </button>
   ),
@@ -56,32 +48,24 @@ function chatModel(
 
 describe("SuperChat panel header", () => {
   it("mounts desktop controls through the header portal", () => {
-    const onToggleSearch = vi.fn();
     render(
       <ChatPanelHeader
         chat={chatModel()}
         isFreezoneLayout={false}
-        searchOpen={false}
-        onToggleSearch={onToggleSearch}
       />,
     );
 
     expect(screen.getByTestId("header-portal")).toBeInTheDocument();
     expect(screen.queryByText("freezone.chat.title")).toBeNull();
-    fireEvent.click(screen.getByTestId("header-portal"));
-    expect(onToggleSearch).toHaveBeenCalledTimes(1);
   });
 
   it("renders freezone status, controls, and the optional close action", () => {
     const onRequestClose = vi.fn();
-    const onToggleSearch = vi.fn();
     render(
       <ChatPanelHeader
         chat={chatModel()}
         isFreezoneLayout
         onRequestClose={onRequestClose}
-        searchOpen
-        onToggleSearch={onToggleSearch}
       />,
     );
 
@@ -90,9 +74,7 @@ describe("SuperChat panel header", () => {
     expect(screen.getByTestId("control-bar")).toBeInTheDocument();
     expect(screen.queryByTestId("header-portal")).toBeNull();
 
-    fireEvent.click(screen.getByTestId("control-bar"));
     fireEvent.click(screen.getByRole("button", { name: "freezone.chat.close" }));
-    expect(onToggleSearch).toHaveBeenCalledTimes(1);
     expect(onRequestClose).toHaveBeenCalledTimes(1);
   });
 
@@ -101,8 +83,6 @@ describe("SuperChat panel header", () => {
       <ChatPanelHeader
         chat={chatModel({ connected: false, connecting: true })}
         isFreezoneLayout
-        searchOpen={false}
-        onToggleSearch={vi.fn()}
       />,
     );
     expect(screen.getByText("aiAssistant.reconnecting")).toBeInTheDocument();
@@ -111,8 +91,6 @@ describe("SuperChat panel header", () => {
       <ChatPanelHeader
         chat={chatModel({ connected: false })}
         isFreezoneLayout
-        searchOpen={false}
-        onToggleSearch={vi.fn()}
       />,
     );
     expect(screen.getByText("aiAssistant.disconnected")).toBeInTheDocument();

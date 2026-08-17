@@ -20,9 +20,18 @@ class StubProjectReplies:
         turn_id=None,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.calls.append(
-            (username, project, prompt, turn_id, project_dir, project_state_dir)
+            (
+                username,
+                project,
+                prompt,
+                turn_id,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
         )
         for event in self.events:
             await on_event(event)
@@ -34,21 +43,54 @@ class StubProjectReplies:
 class StubProjectMessages:
     def __init__(self):
         self.appended = []
+        self.ui_events = []
 
     def append_user(
         self,
         username,
         project,
         content,
+        media=None,
         *,
         turn_id=None,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.appended.append(
-            (username, project, content, turn_id, project_dir, project_state_dir)
+            (
+                username,
+                project,
+                content,
+                media,
+                turn_id,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
         )
         return {"role": "user", "content": content}
+
+    def prepare_user_attachments(
+        self,
+        _username,
+        _project,
+        attachments,
+        *,
+        project_dir=None,
+    ):
+        return attachments
+
+    def append_ui_event(
+        self,
+        username,
+        project,
+        turn_id,
+        event,
+        **kwargs,
+    ):
+        self.ui_events.append((username, project, turn_id, event, kwargs))
+        return event
 
 
 def _build_turns(events, *, error=None):
@@ -101,9 +143,11 @@ async def test_project_chat_turns_persists_user_and_projects_reply_events(tmp_pa
             "alice",
             "project-a",
             "继续处理",
+            attachments,
             "turn-1",
             tmp_path / "output",
             tmp_path / "state",
+            "main",
         )
     ]
     assert replies.calls[0][0:2] == ("alice", "project-a")
@@ -119,12 +163,71 @@ async def test_project_chat_turns_persists_user_and_projects_reply_events(tmp_pa
     ]
     assert emitted[0] == {
         "type": "thread.started",
-        "scope": {"kind": "project", "id": "project-a"},
+        "scope": {
+            "kind": "project",
+            "id": "project-a",
+            "conversationId": "main",
+        },
         "thread_id": "thread-1",
         "turn_id": "turn-1",
     }
     assert emitted[2]["name"] == "Search"
     assert emitted[2]["result"] == {"text": "working"}
+    assert messages.ui_events == [
+        (
+            "alice",
+            "project-a",
+            "turn-1",
+            {
+                "type": "tool.result",
+                "turn_id": "turn-1",
+                "tool_call_id": None,
+                "name": "Search",
+                "success": True,
+                "result": {"text": "working"},
+                "error": None,
+            },
+            {
+                "project_dir": tmp_path / "output",
+                "project_state_dir": tmp_path / "state",
+                "conversation_id": "main",
+            },
+        )
+    ]
+
+
+@pytest.mark.anyio
+async def test_project_chat_turns_preserves_failed_tool_status(tmp_path):
+    turns, _replies, _messages = _build_turns(
+        [
+            {
+                "type": "tool_update",
+                "name": "Generate",
+                "text": "failed",
+                "success": False,
+                "error": "远端模型调用失败",
+            }
+        ]
+    )
+    emitted = []
+
+    async def on_event(event):
+        emitted.append(event)
+
+    await turns.stream(
+        "alice",
+        ChatScope(kind="project", id="project-a"),
+        "生成",
+        [],
+        "turn-failed-tool",
+        on_event,
+        project_dir=tmp_path / "output",
+        project_state_dir=tmp_path / "state",
+    )
+
+    tool_result = next(item for item in emitted if item["type"] == "tool.result")
+    assert tool_result["success"] is False
+    assert tool_result["error"] == "远端模型调用失败"
 
 
 @pytest.mark.anyio
@@ -156,7 +259,11 @@ async def test_project_chat_turns_emits_final_delta_when_done_content_changed():
         {
             "type": "chat.done",
             "turn_id": "turn-2",
-            "scope": {"kind": "project", "id": "project-a"},
+            "scope": {
+                "kind": "project",
+                "id": "project-a",
+                "conversationId": "main",
+            },
         },
     ]
 

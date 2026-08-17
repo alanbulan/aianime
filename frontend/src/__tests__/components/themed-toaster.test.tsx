@@ -10,8 +10,18 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("sonner", () => ({
-  Toaster: ({ offset }: { offset: number }) => (
-    <div data-testid="toaster" data-offset={offset} />
+  Toaster: ({
+    offset,
+    toastOptions,
+  }: {
+    offset: number;
+    toastOptions: { style: Record<string, string> };
+  }) => (
+    <div
+      data-testid="toaster"
+      data-offset={offset}
+      data-width={toastOptions.style["--width"]}
+    />
   ),
 }));
 
@@ -33,6 +43,14 @@ describe("ThemedToaster", () => {
     expect(screen.getByTestId("toaster")).toHaveAttribute(
       "data-offset",
       expectedOffset,
+    );
+  });
+
+  it("uses a stable responsive width so top-center toasts are truly centered", () => {
+    render(<ThemedToaster />);
+    expect(screen.getByTestId("toaster")).toHaveAttribute(
+      "data-width",
+      "min(420px, calc(100vw - 32px))",
     );
   });
 });

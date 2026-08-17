@@ -8,6 +8,7 @@ from typing import Any
 from ai_anime.modules.ai_assistant.application.ports import ChatHistory
 from ai_anime.modules.ai_assistant.application.project_media import ProjectMedia
 from ai_anime.modules.ai_assistant.domain import (
+    ChatScope,
     filter_markdown_duplicate_media,
     merge_project_media_items,
     redact_local_filesystem_paths,
@@ -28,6 +29,7 @@ class ProjectChatMessages:
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
         limit: int = 50,
+        conversation_id: str = "main",
     ) -> list[dict[str, Any]]:
         stored_messages = self._history.list_project_messages(
             username,
@@ -35,6 +37,7 @@ class ProjectChatMessages:
             project_dir=project_dir,
             project_state_dir=project_state_dir,
             limit=limit,
+            conversation_id=conversation_id,
         )
         messages: list[dict[str, Any]] = []
         previous_assistants: list[str] = []
@@ -75,6 +78,11 @@ class ProjectChatMessages:
                         content,
                         merged_media,
                     ),
+                    **(
+                        {"ui_events": message["ui_events"]}
+                        if isinstance(message.get("ui_events"), list)
+                        else {}
+                    ),
                     "created_at": str(message["created_at"]),
                 }
             )
@@ -87,6 +95,7 @@ class ProjectChatMessages:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[str]:
         return [
             str(message.get("content") or "")
@@ -95,6 +104,7 @@ class ProjectChatMessages:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
             if message.get("role") == "assistant"
         ]
@@ -106,12 +116,14 @@ class ProjectChatMessages:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[str]:
         return self._history.list_project_trace_contents(
             username,
             project,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
         )
 
     def replace_traces(
@@ -122,6 +134,7 @@ class ProjectChatMessages:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> None:
         self._history.replace_project_trace_messages(
             username,
@@ -129,6 +142,7 @@ class ProjectChatMessages:
             messages,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
         )
 
     def append_user(
@@ -136,19 +150,38 @@ class ProjectChatMessages:
         username: str,
         project: str,
         content: str,
+        media: list[dict[str, Any]] | None = None,
         *,
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         return self._history.append_project_message(
             username,
             project,
             "user",
             content,
+            media,
             turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
+        )
+
+    def prepare_user_attachments(
+        self,
+        username: str,
+        project: str,
+        attachments: list[dict[str, Any]],
+        *,
+        project_dir: str | Path | None = None,
+    ) -> list[dict[str, Any]]:
+        return self._media.prepare_chat_attachments(
+            attachments,
+            username,
+            project,
+            project_dir=project_dir,
         )
 
     def append_assistant(
@@ -161,6 +194,7 @@ class ProjectChatMessages:
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         return self._history.append_project_message(
             username,
@@ -171,6 +205,7 @@ class ProjectChatMessages:
             turn_id=turn_id,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
         )
 
     def append_traces(
@@ -181,11 +216,37 @@ class ProjectChatMessages:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[dict[str, Any]]:
         return self._history.append_project_trace_messages(
             username,
             project,
             contents,
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
+        )
+
+    def append_ui_event(
+        self,
+        username: str,
+        project: str,
+        turn_id: str,
+        event: dict[str, Any],
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
+    ) -> dict[str, Any]:
+        return self._history.append_ui_event(
+            username,
+            ChatScope(
+                kind="project",
+                id=project,
+                conversation_id=conversation_id,
+            ),
+            turn_id,
+            event,
             project_dir=project_dir,
             project_state_dir=project_state_dir,
         )

@@ -32,6 +32,10 @@ from pydantic import BaseModel, Field
 
 from ai_anime.modules.production.infrastructure.media_generation_settings import (
     IMAGE_DEFAULT_STYLE,
+    STYLE_REFERENCE_IMAGE_KEY,
+    ImageReferenceInput,
+    apply_style_reference,
+    get_project_style_preset,
     get_style_preset,
 )
 from ai_anime.modules.model_usage.public import (
@@ -105,7 +109,17 @@ NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS = 1800.0
 def _newapi_safe_header_summary(headers: Any) -> dict[str, str]:
     if not headers:
         return {}
-    safe_keys = ("x-request-id", "x-newapi-request-id", "x-oneapi-request-id", "cf-ray", "date")
+    safe_keys = (
+        "x-request-id",
+        "x-newapi-request-id",
+        "x-oneapi-request-id",
+        "x-ai-anime-route-source",
+        "x-ai-anime-route-model",
+        "x-ai-anime-route-role",
+        "x-ai-anime-route-attempts",
+        "cf-ray",
+        "date",
+    )
     summary: dict[str, str] = {}
     for key in safe_keys:
         value = str(headers.get(key) or "").strip()
@@ -2320,6 +2334,8 @@ async def generate_text_to_image(
     image_size: str = "2K",
     quality: str | None = None,
     config: Optional[dict] = None,
+    project_dir: str | Path | None = None,
+    style: str | None = None,
 ) -> Path:
     """Generate one image through the current commercial model access."""
     return await _generate_image(
@@ -2330,6 +2346,8 @@ async def generate_text_to_image(
         image_size=image_size,
         quality=quality,
         config=config,
+        project_dir=project_dir,
+        style=style,
     )
 
 
@@ -2342,6 +2360,8 @@ async def generate_reference_edit_image(
     image_size: str = "2K",
     quality: str | None = None,
     config: Optional[dict] = None,
+    project_dir: str | Path | None = None,
+    style: str | None = None,
 ) -> Path:
     """Edit one image through the current commercial model access."""
     ref_paths = [path for path in reference_images if path and os.path.exists(path)]
@@ -2355,6 +2375,8 @@ async def generate_reference_edit_image(
         image_size=image_size,
         quality=quality,
         config=config,
+        project_dir=project_dir,
+        style=style,
     )
 
 
@@ -2367,14 +2389,34 @@ async def _generate_image(
     image_size: str,
     quality: str | None,
     config: Optional[dict],
+    project_dir: str | Path | None,
+    style: str | None,
 ) -> Path:
     """Shared body for text-only and image-edit single-image generation."""
     generator = NanoBananaGridGenerator(config=config)
     ref_paths = list(reference_image_paths or [])
-    ref_bytes = [Path(path).read_bytes() for path in ref_paths]
+    ref_bytes: list[bytes | tuple[str, bytes, str]] = [
+        Path(path).read_bytes() for path in ref_paths
+    ]
+    effective_prompt = prompt
+    if project_dir is not None:
+        _style_id, style_preset = get_project_style_preset(project_dir, style)
+        style_instructions = str(style_preset.get("style_instructions") or "").strip()
+        avoid_instructions = str(style_preset.get("avoid_instructions") or "").strip()
+        style_sections = []
+        if style_instructions and style_instructions not in effective_prompt:
+            style_sections.append(f"PROJECT VISUAL STYLE:\n{style_instructions}")
+        if avoid_instructions and avoid_instructions not in effective_prompt:
+            style_sections.append(f"AVOID:\n{avoid_instructions}")
+        if style_sections:
+            effective_prompt = f"{effective_prompt.rstrip()}\n\n" + "\n\n".join(style_sections)
+        effective_prompt, ref_bytes = apply_style_reference(
+            effective_prompt,
+            ref_bytes,
+            style_preset,
+        )
     image_bytes, _, error_detail = await _call_newapi_image_api(
-        model=generator.model,
-        prompt=prompt,
+        prompt=effective_prompt,
         reference_images=ref_bytes or None,
         image_config={
             "aspect_ratio": aspect_ratio,
@@ -2507,7 +2549,6 @@ def find_sketch_for_beat_range(
 
 async def _call_newapi_image_api(
     *,
-    model: str,
     prompt: str,
     reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]] | None = None,
     image_config: dict | None = None,
@@ -2517,14 +2558,13 @@ async def _call_newapi_image_api(
     import httpx
 
     from ai_anime.modules.model_usage.public import get_model_access_json_transport
-    from ai_anime.modules.model_usage.public import require_model_role
+    from ai_anime.modules.model_usage.public import resolve_model_for_role
 
-    clean_model = str(model or "").strip()
     model_role = "IMAGE_EDIT" if reference_images else "IMAGE_GENERATION"
-    require_model_role(clean_model, model_role)
+    clean_model = resolve_model_for_role(model_role)
 
     try:
-        endpoint, headers = get_model_access_json_transport()
+        endpoint, headers = get_model_access_json_transport(model_role)
     except ValueError as exc:
         return None, "", str(exc)
 
@@ -2827,11 +2867,13 @@ async def _call_newapi_image_api(
         if status_code in {502, 503, 504}:
             request_reference = f"，请求编号：{request_id}" if request_id else ""
             reason = "请求超时" if status_code == 504 else "暂时不可用"
+            route_attempts = str(response_headers.get("x-ai-anime-route-attempts") or "").strip()
+            attempts_text = f"，统一路由已尝试 {route_attempts} 次" if route_attempts else ""
             return (
                 None,
                 "",
                 f"云端图片生成服务{reason}（HTTP {status_code}）"
-                f"{request_reference}，请稍后重新执行。",
+                f"{request_reference}{attempts_text}。",
             )
         return (
             None,
@@ -2882,9 +2924,7 @@ class NanoBananaGridGenerator:
             raise ValueError("grid generator config with an explicit model is required")
         if not str(config.get("model") or "").strip():
             raise ValueError("grid generator model is required")
-        self.access_mode = str(config.get("access_mode") or "cloud").strip().lower()
-        if self.access_mode not in {"cloud", "byok"}:
-            raise ValueError("商业模型访问模式必须是 cloud 或 byok")
+        self.access_mode = "mixed"
         self.model = config["model"]
         self.image_quality = config.get("image_quality", config.get("openai_image_quality", "medium"))
         self.sketch_image_quality = config.get(
@@ -3271,6 +3311,15 @@ class NanoBananaGridGenerator:
                     error=msg,
                 )
 
+            runtime_style_preset = get_style_preset(
+                style,
+                project_dir=str(project_dir) if project_dir else None,
+            )
+            prompt, style_reference_images = apply_style_reference(
+                prompt,
+                None,
+                runtime_style_preset,
+            )
             print(f"[NanoBananaPro] 构建 Prompt 完成，共 {len(beats[:grid_capacity])} 个分镜")
 
             # 保存 prompt 到文件（审计用）
@@ -3434,6 +3483,18 @@ class NanoBananaGridGenerator:
                     audit_refs=submitted_refs,
                 )
 
+            self._append_style_reference_part(contents, style_reference_images)
+            if style_reference_images:
+                submitted_refs[:] = submitted_refs[: _STANDARD_IMAGE_MAX_FILES - 1]
+                submitted_refs.append(
+                    {
+                        "kind": "style",
+                        "base_id": style,
+                        "path": runtime_style_preset.get(STYLE_REFERENCE_IMAGE_KEY, ""),
+                        "bytes": len(style_reference_images[-1][1]),
+                    }
+                )
+
             if output_path:
                 grid_dir = Path(output_path).parent
                 prompts_dir = grid_dir / "prompts"
@@ -3504,7 +3565,6 @@ class NanoBananaGridGenerator:
                 include_mime=True,
             )
             image_bytes, _text, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -3622,8 +3682,10 @@ class NanoBananaGridGenerator:
         valid_character_map = filter_character_map_for_beats(character_map, beats)
 
         # 构建 ACTION_STORYBOARD prompt
+        action_project_dir = _infer_project_dir(output_path)
         style_family, animation_subtype = StyleService.get_style_branch(
-            style or IMAGE_DEFAULT_STYLE
+            style or IMAGE_DEFAULT_STYLE,
+            project_dir=action_project_dir,
         )
         ctx = create_prompt_context(
             mode=PromptMode.ACTION_STORYBOARD,
@@ -3636,9 +3698,19 @@ class NanoBananaGridGenerator:
             aspect_ratio=mode_cfg.get("aspect_ratio", "2:3"),
             style_family=style_family,
             animation_subtype=animation_subtype,
+            project_dir=str(action_project_dir) if action_project_dir else "",
         )
         builder = UnifiedPromptBuilder(ctx)
         prompt = builder.build()
+        action_style_preset = get_style_preset(
+            style,
+            project_dir=str(action_project_dir) if action_project_dir else None,
+        )
+        prompt, style_reference_images = apply_style_reference(
+            prompt,
+            None,
+            action_style_preset,
+        )
 
         # 保存 prompt
         if output_path:
@@ -3656,6 +3728,7 @@ class NanoBananaGridGenerator:
                     img_part = self._load_image_as_part(ref_path)
                     if img_part:
                         contents.append(img_part)
+            self._append_style_reference_part(contents, style_reference_images)
 
             # 调用 API
             image_size = mode_cfg.get("image_size", "1K")
@@ -3665,7 +3738,6 @@ class NanoBananaGridGenerator:
                 include_mime=True,
             )
             image_bytes, _, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -3736,6 +3808,7 @@ class NanoBananaGridGenerator:
         target_size: str = "1K",
         rows: int = 0,
         cols: int = 0,
+        style: str = IMAGE_DEFAULT_STYLE,
     ) -> GridGenerationResult:
         """Second pass: 保持分镜构图，转换宽高比（1:1 → 9:16）。
 
@@ -3806,6 +3879,17 @@ class NanoBananaGridGenerator:
             else:
                 prompt = reformat_instruction
 
+            reformat_project_dir = _infer_project_dir(output_path, source_path)
+            reformat_style_preset = get_style_preset(
+                style,
+                project_dir=str(reformat_project_dir) if reformat_project_dir else None,
+            )
+            prompt, style_reference_images = apply_style_reference(
+                prompt,
+                None,
+                reformat_style_preset,
+            )
+
             # 保存 Pass 2 prompt 到文件（审计用）
             output_stem = Path(output_path).stem  # e.g. "sketch_g0_5x5"
             pass2_prompt_file = source_dir / "prompts" / f"{output_stem}.prompt.txt"
@@ -3815,14 +3899,13 @@ class NanoBananaGridGenerator:
 
             ref_image = self._load_image_as_part(source_path)
             contents = [prompt, ref_image]
-
+            self._append_style_reference_part(contents, style_reference_images)
             print(f"[Reformat] 调用商业图片模型 ({self.model}) 转换 → {target_aspect} ...")
             prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
                 contents,
                 include_mime=True,
             )
             image_bytes, _text, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -4076,6 +4159,16 @@ class NanoBananaGridGenerator:
         else:
             raise RuntimeError("prepare_concurrent_request() 需要 sketch 或 sketch_dir 参数")
 
+        runtime_style_preset = get_style_preset(
+            style,
+            project_dir=str(project_dir) if project_dir else None,
+        )
+        prompt, style_reference_images = apply_style_reference(
+            prompt,
+            None,
+            runtime_style_preset,
+        )
+
         # 构建 contents
         contents = [prompt]
 
@@ -4115,6 +4208,8 @@ class NanoBananaGridGenerator:
                 allowed_kinds=None,
                 verbose=True,
             )
+
+        self._append_style_reference_part(contents, style_reference_images)
 
         # 确定 aspect_ratio 和 image_size
         if mode_key:
@@ -4174,7 +4269,6 @@ class NanoBananaGridGenerator:
             )
             try:
                 image_bytes, _, error_detail = await _call_newapi_image_api(
-                    model=self.model,
                     prompt=prompt,
                     reference_images=references or None,
                     image_config={
@@ -4640,8 +4734,8 @@ class NanoBananaGridGenerator:
 
             # 压缩为 JPEG（如果启用）
             if compress_quality and compress_quality > 0:
-                # 转为 RGB（JPEG 不支持 alpha）
-                if img.mode in ("RGBA", "P"):
+                # JPEG 只接受 RGB/L；统一转为 RGB，避免 LA/CMYK 等合法参考图被丢弃。
+                if img.mode != "RGB":
                     img = img.convert("RGB")
 
                 # 压缩到内存
@@ -4829,6 +4923,22 @@ class NanoBananaGridGenerator:
                     ref_bytes.append(item.inline_data.data)
         return prompt_text, ref_bytes
 
+    @staticmethod
+    def _append_style_reference_part(
+        contents: list,
+        style_reference_images: list[ImageReferenceInput],
+    ) -> None:
+        """Reserve the final image slot for the global style reference."""
+        if not style_reference_images:
+            return
+        filename, image_bytes, mime_type = style_reference_images[-1]
+        del filename
+        contents[:] = [
+            contents[0],
+            *contents[1:_STANDARD_IMAGE_MAX_FILES],
+            _InlineImagePart(image_bytes, mime_type),
+        ]
+
     def _crop_center_panel(self, image_path: str):
         """从 3 面板 sheet 裁出中间面板（正面全身）。"""
         from PIL import Image
@@ -4959,6 +5069,11 @@ class NanoBananaGridGenerator:
         if not temp_dir:
             temp_dir = "."
         os.makedirs(temp_dir, exist_ok=True)
+        panel_project_dir = _infer_project_dir(output_path, sketch_path)
+        panel_style_preset = get_style_preset(
+            style,
+            project_dir=str(panel_project_dir) if panel_project_dir else None,
+        )
 
         # 3. 准备并行任务 (使用 NanoBanana/Gemini)
         tasks = []
@@ -5018,7 +5133,6 @@ class NanoBananaGridGenerator:
             # 构建提示词：草图参考 + 角色定义 + 场景 + 风格
             char_section = "; ".join(char_descriptions) if char_descriptions else ""
             scene_desc = f"{scene_id}. {visual_desc}"
-            panel_project_dir = _infer_project_dir(output_path)
             style_finish = (
                 "Dynamic cinematic lighting, stylized animated finish, high detail."
                 if StyleService.is_animation_style(style, project_dir=panel_project_dir)
@@ -5043,6 +5157,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                 output_path=panel_output_path,
                 character_refs=panel_char_refs,  # 核心：传入角色参考图
                 target_aspect_ratio=target_ar,
+                style_preset=panel_style_preset,
             )
             tasks.append(task)
 
@@ -5106,6 +5221,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
         output_path: str,
         character_refs: List[str] = None,  # 角色参考图路径列表
         target_aspect_ratio: str = None,
+        style_preset: dict | None = None,
     ) -> Optional[str]:
         """通过当前商业模型访问渲染单个分镜切片。
 
@@ -5137,8 +5253,13 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                 contents,
                 include_mime=True,
             )
+            if style_preset:
+                prompt_text, ref_bytes = apply_style_reference(
+                    prompt_text,
+                    ref_bytes,
+                    style_preset,
+                )
             image_bytes, _, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -5225,8 +5346,12 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
                         getattr(ref_image.inline_data, "mime_type", "image/png") or "image/png",
                     )
                 )
+            prompt, ref_bytes = apply_style_reference(
+                prompt,
+                ref_bytes,
+                style_preset,
+            )
             image_bytes, _, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -5316,8 +5441,12 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                 contents,
                 include_mime=True,
             )
+            prompt_text, ref_bytes = apply_style_reference(
+                prompt_text,
+                ref_bytes,
+                style_config,
+            )
             image_bytes, _, error_detail = await _call_newapi_image_api(
-                model=self.model,
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={

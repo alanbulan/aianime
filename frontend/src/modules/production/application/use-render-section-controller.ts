@@ -149,6 +149,10 @@ export interface RenderSectionControllerDependencies {
 export interface RenderBackgroundAnchorsQuery {
   data?: AssetResponse<BeatBackgroundAnchors>;
   isLoading: boolean;
+  refetch(): Promise<{
+    data?: AssetResponse<BeatBackgroundAnchors>;
+    error?: unknown;
+  }>;
 }
 
 export interface UpdateRenderBackgroundMutation {
@@ -177,6 +181,10 @@ export interface ScenePlatePreviewQuery {
 
 export interface RenderDirectorStageQuery {
   data?: AssetResponse<DirectorStageManifest>;
+  refetch(): Promise<{
+    data?: AssetResponse<DirectorStageManifest>;
+    error?: unknown;
+  }>;
 }
 
 export interface RenderDirectorStatusQuery {
@@ -357,6 +365,7 @@ export function createUseRenderSectionController(
     const [croppingAnchorId, setCroppingAnchorId] =
       useState<string | null>(null);
     const [directorWorldOpen, setDirectorWorldOpen] = useState(false);
+    const [directorWorldOpening, setDirectorWorldOpening] = useState(false);
     const directorWorld = queries.useBeatDirectorStageManifest(
       options.project,
       options.episode,
@@ -617,6 +626,29 @@ export function createUseRenderSectionController(
       }
     };
 
+    const handleOpenDirectorWorld = async () => {
+      if (directorWorldOpening) return;
+      setDirectorWorldOpening(true);
+      try {
+        const result = await directorWorld.refetch();
+        if (result.error) {
+          toast.error(
+            result.error instanceof Error
+              ? result.error.message
+              : t("common.error"),
+          );
+          return;
+        }
+        if (result.data?.ok !== true) {
+          toast.error(result.data?.error ?? t("common.error"));
+          return;
+        }
+        setDirectorWorldOpen(true);
+      } finally {
+        setDirectorWorldOpening(false);
+      }
+    };
+
     const commitDirectorCapture = async (
       meta: RenderDirectorCaptureMeta,
     ) => {
@@ -630,7 +662,10 @@ export function createUseRenderSectionController(
           path: meta.controlFrameRelPath ?? bundle.rel_paths.combined,
         }),
       );
-      await directorControlStatus.refetch();
+      await Promise.all([
+        directorControlStatus.refetch(),
+        backgroundAnchors.refetch(),
+      ]);
       setDirectorWorldOpen(false);
     };
 
@@ -657,7 +692,9 @@ export function createUseRenderSectionController(
         onUpload: (file) => {
           void handleUploadBackground(file);
         },
-        onOpenDirectorWorld: () => setDirectorWorldOpen(true),
+        onOpenDirectorWorld: () => {
+          void handleOpenDirectorWorld();
+        },
       },
       beatNumber: options.beat.beat_number,
       candidates: candidateItems,

@@ -257,4 +257,26 @@ describe('useAssetLibraryModalController', () => {
     ]);
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it('requires an in-app confirmation before deleting an uploaded asset', async () => {
+    const uploaded = item('delete-me');
+    mocks.syncLibrary.mockResolvedValue([uploaded]);
+    const { result } = renderHook(() =>
+      useAssetLibraryModalController({
+        open: true,
+        project: 'project-delete',
+        onClose: vi.fn(),
+      }),
+    );
+    await waitFor(() => expect(result.current.isLoadingLibrary).toBe(false));
+
+    act(() => result.current.handleDeleteEntry(uploaded));
+    expect(result.current.deleteDialog.open).toBe(true);
+    expect(result.current.deleteDialog.name).toBe('delete-me');
+    expect(mocks.deleteItem).not.toHaveBeenCalled();
+
+    await act(async () => result.current.deleteDialog.confirm());
+    expect(mocks.deleteItem).toHaveBeenCalledWith('project-delete', 'delete-me');
+    expect(result.current.deleteDialog.open).toBe(false);
+  });
 });

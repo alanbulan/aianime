@@ -169,7 +169,7 @@ export function CanvasHistoryAssetCard({
               type="button"
               onClick={onDelete}
               aria-label={t('canvas.history.delete')}
-              title={t('canvas.history.delete')}
+              data-ui-tooltip={t('canvas.history.delete')}
               className="absolute right-2 top-2 z-30 flex h-7 w-7 items-center justify-center rounded-md bg-media/50 text-media-foreground/85 opacity-0 transition group-hover:opacity-100 hover:bg-destructive/80 hover:text-destructive-foreground"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -188,7 +188,7 @@ export function CanvasHistoryAssetCard({
               type="button"
               onClick={onDelete}
               aria-label={t('canvas.history.delete')}
-              title={t('canvas.history.delete')}
+              data-ui-tooltip={t('canvas.history.delete')}
               className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md bg-media/45 text-media-foreground/85 transition-colors hover:bg-destructive/80 hover:text-destructive-foreground"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -261,7 +261,7 @@ export function CanvasHistoryAssetCard({
         !selectionMode &&
         asset.prompt && (
           <div
-            title={asset.prompt}
+            data-ui-tooltip={asset.prompt}
             onDoubleClick={onOpenPrompt}
             className="line-clamp-[6] flex-none cursor-pointer select-none px-2.5 py-2 text-[12px] leading-snug text-foreground/75 transition-colors hover:text-foreground"
           >
@@ -271,7 +271,7 @@ export function CanvasHistoryAssetCard({
 
       {asset.kind === 'model' && !selectionMode && (
         <div
-          title={asset.label ?? t('viewer.threeD.directorWorld')}
+          data-ui-tooltip={asset.label ?? t('viewer.threeD.directorWorld')}
           onDoubleClick={asset.label ? onOpenPrompt : undefined}
           className="line-clamp-2 flex-none cursor-pointer select-none px-2.5 py-2 text-[12px] leading-snug text-foreground/75 transition-colors hover:text-foreground"
         >

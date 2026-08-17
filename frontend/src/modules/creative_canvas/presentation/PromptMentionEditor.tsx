@@ -102,14 +102,14 @@ function buildChipElement(candidate: MentionCandidate): HTMLElement {
   span.className = 'mention-chip';
   const label = mentionChipLabel(candidate);
   if (candidate.imageUrl) {
-    span.title = '双击替换引用';
+    span.dataset.uiTooltip = '双击替换引用';
     const img = document.createElement('img');
     img.src = candidate.imageUrl;
     img.alt = '';
     img.draggable = false;
     span.appendChild(img);
   } else if (candidate.videoUrl) {
-    span.title = '双击替换引用';
+    span.dataset.uiTooltip = '双击替换引用';
     // 没有静态首帧图时，用 muted 静止 <video> 显示首帧——与候选行 / 引用行一致。
     const video = document.createElement('video');
     video.src = candidate.videoUrl;
@@ -120,16 +120,16 @@ function buildChipElement(candidate: MentionCandidate): HTMLElement {
     span.appendChild(video);
   } else if (candidate.audioUrl) {
     // 音频没有缩略图：放一个可点击的 ▶/⏸ 播放按钮（::before 画图标，播放态由
-    // chip 上的 data-audio-playing 切换）。hover 时 title 给出完整文件名。
+    // chip 上的 data-audio-playing 切换）。悬浮气泡给出完整文件名。
     span.classList.add('mention-chip-audio');
-    span.title = `${label} · 点击播放`;
+    span.dataset.uiTooltip = `${label} · 点击播放`;
     const play = document.createElement('span');
     play.className = 'mention-chip-audio-play';
     play.dataset.audioPlay = '';
     play.setAttribute('aria-hidden', 'true');
     span.appendChild(play);
   } else {
-    span.title = '双击替换引用';
+    span.dataset.uiTooltip = '双击替换引用';
   }
   const labelEl = document.createElement('span');
   labelEl.className = 'mention-chip-label';

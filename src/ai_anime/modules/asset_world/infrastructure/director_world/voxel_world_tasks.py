@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import shutil
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -19,6 +18,10 @@ from ai_anime.modules.asset_world.infrastructure.director_world.paths import (
 )
 from ai_anime.modules.task_execution.public import run_project_model_subprocess
 from ai_anime.shared.utils.path_resolver import compute_scene_spatial_layout_path
+from ai_anime.modules.asset_world.infrastructure.director_world.worker_runtime import (
+    BLOCK_WORLD_BUILDER_MODULE,
+    worker_command,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -133,9 +136,7 @@ def run_voxel_world_from_360(
     )
 
     cmd = [
-        sys.executable,
-        "-m",
-        "ai_anime.modules.asset_world.infrastructure.director_world.block_world_builder",
+        *worker_command(BLOCK_WORLD_BUILDER_MODULE),
         "--description",
         full_description,
         "--output",

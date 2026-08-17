@@ -38,7 +38,7 @@ function resolveStyleLabel(
 export function ProjectStyleChip({ project, className }: ProjectStyleChipProps) {
   const { t } = useTranslation();
   const projectQuery = useProject(project);
-  const stylesQuery = useStyles(project);
+  const stylesQuery = useStyles();
   const styleId =
     projectQuery.data?.visual_style?.trim() || DEFAULT_VISUAL_STYLE;
   const styles = stylesQuery.data?.data ?? [];
@@ -53,7 +53,7 @@ export function ProjectStyleChip({ project, className }: ProjectStyleChipProps) 
   return (
     <span
       aria-label={displayLabel}
-      title={t("characters.projectStyle.configureHint")}
+      data-ui-tooltip={t("characters.projectStyle.configureHint")}
       className={cn(
         "rounded-md border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground",
         className,

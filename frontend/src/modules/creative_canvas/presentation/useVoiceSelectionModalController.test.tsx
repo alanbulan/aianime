@@ -147,8 +147,12 @@ describe('useVoiceSelectionModalController', () => {
     act(() => result.current.handleLibraryQueryChange('林夏'));
     act(() => result.current.updateLibraryJumpValue('3'));
 
-    rerender({ open: false });
-    rerender({ open: true });
+    await act(async () => {
+      rerender({ open: false });
+    });
+    await act(async () => {
+      rerender({ open: true });
+    });
 
     expect(result.current.libraryQuery).toBe('');
     expect(result.current.libraryPage.page).toBe(1);

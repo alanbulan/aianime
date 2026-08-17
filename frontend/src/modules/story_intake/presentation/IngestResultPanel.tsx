@@ -159,7 +159,7 @@ export function IngestResultPanel({
               value={
                 <span
                   className="block truncate text-sm font-semibold"
-                  title={previewFile?.filename}
+                  data-ui-tooltip={previewFile?.filename}
                 >
                   {previewFile?.filename ??
                     t("ingest.restoredFilename")}

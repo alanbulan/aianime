@@ -950,6 +950,9 @@ def test_director_stage_control_frame_export_writes_images_and_meta(
     target_dir = tmp_path / "director_control_frames" / "ep001" / "beat_04"
     assert (target_dir / "combined.png").read_bytes() == png_bytes
     assert (target_dir / "env_only.png").read_bytes() == png_bytes
+    assert (target_dir / "selected_background.png").read_bytes() == png_bytes
+    assert data["background_anchor"]["render_anchor_id"] == "selected_background"
+    assert data["background_anchor"]["current_source"] == "director_env_only"
     assert "actor_overlay_black" not in data["paths"]
     assert "actor_mask" not in data["paths"]
     assert "combined_layered_debug" not in data["paths"]
@@ -981,6 +984,11 @@ def test_director_stage_control_frame_export_writes_images_and_meta(
     assert (
         meta["paths"]["combined"]
         == "director_control_frames/ep001/beat_04/combined.png"
+    )
+    assert store.updates[-1]["scene_ref"]["render_anchor_id"] == "selected_background"
+    assert (
+        store.updates[-1]["scene_ref"]["render_anchor_source_id"]
+        == "director_env_only"
     )
 
 

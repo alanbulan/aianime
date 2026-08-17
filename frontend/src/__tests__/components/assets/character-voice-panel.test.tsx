@@ -154,7 +154,7 @@ describe("CharacterVoicePanel", () => {
     expect(screen.getByText("幼年（可选覆盖）")).toBeInTheDocument();
     expect(screen.getAllByText("→ 继承默认").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("voice_elder.wav")).toHaveAttribute(
-      "title",
+      "data-ui-tooltip",
       "assets/characters/秦/voices/voice_elder.wav",
     );
     expect(screen.getAllByRole("button", { name: "上传声音样本" })).toHaveLength(4);

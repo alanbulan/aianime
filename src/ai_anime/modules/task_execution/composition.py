@@ -179,7 +179,9 @@ def run_project_task_core_sync(
         subprocess_context=subprocess_context,
         runner_loader=ensure_builtin_runners_registered,
         runner_resolver=resolve_runner,
-        timeout_seconds=project_task_timeout_seconds(),
+        timeout_seconds=project_task_timeout_seconds(
+            str(envelope.get("task_type") or "")
+        ),
     )
 
 

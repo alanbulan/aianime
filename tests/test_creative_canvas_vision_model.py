@@ -16,9 +16,15 @@ from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
 
 @pytest.fixture(autouse=True)
 def _reset_model_access() -> None:
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "explicit-cloud-model", "role": "TEXT"},
+        ],
+    )
     yield
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 @pytest.mark.asyncio
@@ -27,22 +33,16 @@ async def test_vision_model_uses_cloud_catalog_assignment(
 ) -> None:
     captured: dict[str, object] = {}
 
-    def fake_get_model(model_env, default_model, **kwargs):
-        captured.update(
-            {
-                "model_env": model_env,
-                "default_model": default_model,
-                **kwargs,
-            }
-        )
+    def fake_get_model(**kwargs):
+        captured.update(kwargs)
         return TestModel(custom_output_text="视觉解析结果")
 
     monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_get_model)
     monkeypatch.setenv("FREEZONE_VISION_MODEL", "legacy-vision-model")
     configure_model_access(
         allows_custom_models=False,
-        mode="cloud",
-        cloud_model_assignments=[
+        mode="mixed",
+        model_assignments=[
             {"modelId": "cloud-text-default", "role": "TEXT"},
         ],
     )
@@ -54,48 +54,23 @@ async def test_vision_model_uses_cloud_catalog_assignment(
 
     assert model == "cloud-text-default"
     assert output == "视觉解析结果"
-    assert captured["model_env"] == "FREEZONE_VISION_MODEL"
-    assert captured["model_name_override"] == "cloud-text-default"
+    assert captured["timeout_seconds_override"] == 120.0
 
 
 @pytest.mark.asyncio
-async def test_vision_model_preserves_explicit_cloud_model(
+async def test_vision_model_ignores_task_environment_and_uses_router_assignment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def fake_get_model(_model_env, _default_model, **kwargs):
-        captured.update(kwargs)
-        return TestModel(custom_output_text="视觉解析结果")
-
-    monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_get_model)
-
-    model, _output = await call_creative_canvas_vision_model(
-        prompt="分析图片",
-        images=[CreativeCanvasVisionInput(data=b"image")],
-        model_override="explicit-cloud-model",
-    )
-
-    assert model == "explicit-cloud-model"
-    assert captured["model_name_override"] == "explicit-cloud-model"
-
-
-@pytest.mark.asyncio
-async def test_vision_model_maps_platform_model_to_byok_text_assignment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def fake_get_model(_model_env, _default_model, **kwargs):
+    def fake_get_model(**kwargs):
         captured.update(kwargs)
         return TestModel(custom_output_text="视觉解析结果")
 
     monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_get_model)
     configure_model_access(
         allows_custom_models=True,
-        mode="byok",
-        byok_base_url="https://byok.example/v1",
-        byok_api_key="secret",
+        mode="mixed",
         model_assignments=[
             {"modelId": "user-vision-model", "role": "TEXT"},
         ],
@@ -104,11 +79,10 @@ async def test_vision_model_maps_platform_model_to_byok_text_assignment(
     model, _output = await call_creative_canvas_vision_model(
         prompt="分析图片",
         images=[CreativeCanvasVisionInput(data=b"image")],
-        model_override="platform-vision-model",
     )
 
     assert model == "user-vision-model"
-    assert captured["model_name_override"] == "user-vision-model"
+    assert captured == {"timeout_seconds_override": 120.0}
 
 
 @pytest.mark.parametrize(

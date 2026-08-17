@@ -157,7 +157,7 @@ export function CanvasBrowserView({
               type="submit"
               disabled={creatingCanvas || !newCanvasName.trim()}
               className="inline-flex h-7 shrink-0 items-center justify-center rounded-md border border-border bg-card px-2.5 text-[11px] font-medium text-foreground/75 transition hover:border-foreground/25 hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
-              title={t("freezone.canvases.createTitle")}
+              data-ui-tooltip={t("freezone.canvases.createTitle")}
             >
               {creatingCanvas
                 ? t("freezone.canvases.createBusy")
@@ -356,7 +356,7 @@ function CollapsibleCanvasSection({
         onClick={onToggle}
         className="flex w-full items-center justify-between py-2 text-left text-xs font-semibold text-foreground/75 hover:text-foreground"
         aria-expanded={expanded}
-        title={expanded ? collapseTitle : expandTitle}
+        data-ui-tooltip={expanded ? collapseTitle : expandTitle}
       >
         <span>{title}</span>
         <span className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -414,7 +414,7 @@ function CanvasListItem({
           : "cursor-pointer opacity-60 hover:opacity-90")
       }
       aria-current={isCurrent ? "true" : undefined}
-      title={`${item.id} · ${relative} · ${(item.size / 1024).toFixed(1)} KB`}
+      data-ui-tooltip={`${item.id} · ${relative} · ${(item.size / 1024).toFixed(1)} KB`}
     >
       <div className="flex w-full min-w-0 items-center gap-4">
         <button
@@ -468,7 +468,7 @@ function CanvasListItem({
                   onClick={onRestoreMainline}
                   disabled={restoringMainline}
                   className="inline-flex h-6 items-center justify-center gap-1 rounded-md border border-border bg-muted px-2 text-[10px] font-medium text-foreground/75 transition hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:cursor-default disabled:opacity-50"
-                  title={t("freezone.canvases.restoreTitle")}
+                  data-ui-tooltip={t("freezone.canvases.restoreTitle")}
                 >
                   <RotateCcw className="h-3 w-3" />
                   {restoringMainline
@@ -485,7 +485,7 @@ function CanvasListItem({
                   }}
                   disabled={deleting}
                   className="inline-flex h-6 items-center justify-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2 text-[10px] font-medium text-destructive transition hover:border-destructive/45 hover:bg-destructive/20 disabled:opacity-50"
-                  title={t("freezone.canvases.deleteTitle")}
+                  data-ui-tooltip={t("freezone.canvases.deleteTitle")}
                 >
                   <Trash2 className="h-3 w-3" />
                   {deleting
@@ -504,7 +504,7 @@ function CanvasListItem({
             event.stopPropagation();
             onSwitch(sourceCanvasId);
           }}
-          title={t("freezone.canvases.sourceCanvasTitle", {
+          data-ui-tooltip={t("freezone.canvases.sourceCanvasTitle", {
             canvasId: sourceCanvasId,
           })}
           className="tap-button h-6 border-warning/35 px-2 text-[10px] text-warning hover:bg-warning/15 hover:text-warning"

@@ -58,11 +58,6 @@ def parse_args() -> argparse.Namespace:
         choices=["correction", "director"],
         help="Which pipeline phase this round belongs to (affects convergence_rounds.phase)",
     )
-    parser.add_argument(
-        "--model",
-        default=None,
-        help="VLM model id (default picks from env: openrouter=gemini-3.5-flash, google=gemini-3.5-flash)",
-    )
     return parser.parse_args()
 
 
@@ -91,7 +86,6 @@ async def main_async() -> int:
                     summary_path=summary_path,
                     defs_db=defs_db,
                     project_hits_db=project_db,
-                    model=args.model,
                 )
             except Exception as exc:  # noqa: BLE001
                 print(json.dumps({"ok": False, "error": str(exc)}))

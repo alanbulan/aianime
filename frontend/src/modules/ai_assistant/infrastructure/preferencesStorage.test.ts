@@ -20,7 +20,7 @@ describe("SuperChat settings storage", () => {
 
   it("returns defaults when settings are missing or malformed", () => {
     const defaults = {
-      showToolEvents: false,
+      showToolEvents: true,
       showStructuredSourceWhileStreaming: true,
     };
 

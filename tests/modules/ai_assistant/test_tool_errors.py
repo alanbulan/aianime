@@ -117,6 +117,36 @@ def test_successful_task_list_does_not_promote_historical_failure_to_chat_error(
     assert tool_chat_error(payload, tool_name="ai_anime_list_tasks") is None
 
 
+def test_successful_task_list_without_status_code_keeps_domain_failure_internal():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "completed",
+        "result": json.dumps(
+            {
+                "ok": True,
+                "data": [{"status": "failed", "error": "历史任务失败"}],
+            },
+            ensure_ascii=False,
+        ),
+    }
+
+    assert tool_chat_error(payload, tool_name="ai_anime_list_tasks") is None
+
+
+def test_read_only_domain_miss_does_not_mark_a_recovered_turn_failed():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "completed",
+        "result": {
+            "ok": False,
+            "status_code": 200,
+            "error": "Style 'custom_style' not found",
+        },
+    }
+
+    assert tool_chat_error(payload, tool_name="ai_anime_get") is None
+
+
 def test_failed_task_list_request_still_surfaces_transport_error():
     payload = {
         "sessionUpdate": "tool_call_update",

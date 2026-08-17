@@ -24,7 +24,7 @@ def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatc
         selected_reference_paths,
     )
 
-    monkeypatch.setattr(pc, "OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
     project_dir = tmp_path / "output" / "alice" / "project"
     frame = project_dir / "frames" / "ep001" / "beat_01.png"
     identity = project_dir / "assets" / "characters" / "秦" / "identities" / "青年.png"
@@ -366,7 +366,7 @@ def test_multimodal_narration_assets_use_project_narrator_voice_not_beat_audio(
         selected_reference_paths,
     )
 
-    monkeypatch.setattr(pc, "OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
     project_dir = tmp_path / "output" / "alice" / "project"
     _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
     _write_png(project_dir / "assets" / "scenes" / "兰州拉面馆" / "master.png")
@@ -413,7 +413,7 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
         selected_reference_paths,
     )
 
-    monkeypatch.setattr(pc, "OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
     monkeypatch.setattr(asset_mod, "probe_voice_sample_duration_seconds", lambda _path: 12.0)
     project_dir = tmp_path / "output" / "alice" / "project"
     _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
@@ -495,7 +495,7 @@ def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, 
         selected_reference_paths,
     )
 
-    monkeypatch.setattr(pc, "OUTPUT_DIR", tmp_path / "state")
+    monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
     project_dir = tmp_path / "output" / "alice" / "project"
     _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
     _write_png(project_dir / "assets" / "scenes" / "旧书店" / "master.png")

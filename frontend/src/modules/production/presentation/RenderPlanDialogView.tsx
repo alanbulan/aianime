@@ -135,7 +135,7 @@ function PlanCard({ entry }: { entry: PlanEntry }) {
           "truncate",
           multiScene ? "text-warning" : "text-success",
         )}
-        title={entry.location}
+        data-ui-tooltip={entry.location}
       >
         {entry.location || t("episode.renderPlan.unknownLocation")}
         {entry.padding_count > 0 && ` +${entry.padding_count}空`}

@@ -1,11 +1,18 @@
 // Copyright (c) 2026 AI anime
-import { Braces, ListTree, Search } from "lucide-react";
+import { Braces, History, ListTree, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   ModelEntry,
   RelayInstanceInfo,
@@ -32,13 +39,9 @@ export type ChatControlBarModel = {
 export function ControlBar({
   chat,
   compact = false,
-  searchOpen,
-  onToggleSearch,
 }: {
   chat: ChatControlBarModel;
   compact?: boolean;
-  searchOpen: boolean;
-  onToggleSearch: () => void;
 }) {
   const { t } = useTranslation();
   const hasInstances = chat.relayInstances.length > 0;
@@ -55,9 +58,6 @@ export function ControlBar({
       : transportStatus === "reconnecting"
         ? t("aiAssistant.reconnecting")
         : t("aiAssistant.disconnected");
-  const toolEventsLabel = chat.settings.showToolEvents
-    ? t("aiAssistant.hideToolEvents")
-    : t("aiAssistant.showToolEvents");
   return (
     <div
       className={cn(
@@ -66,59 +66,132 @@ export function ControlBar({
       )}
     >
       {!compact && (
-        <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground" title={chat.error || transportLabel}>
+        <div className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground" data-ui-tooltip={chat.error || transportLabel}>
           <span>{transportLabel}</span>
           <span>{t("aiAssistant.backendTransport")}</span>
         </div>
       )}
       {hasInstances && (
-        <select
+        <Select
           value={chat.selectedInstanceId}
-          onChange={(event) => chat.selectRelayInstance(event.target.value)}
-          className={cn(
-            "h-7 min-w-0 rounded-md border border-border bg-background px-2 text-xs outline-none disabled:opacity-50",
-            compact ? "w-28" : "flex-1",
-          )}
-          title={t("aiAssistant.instance")}
+          onValueChange={(value) => {
+            if (value) chat.selectRelayInstance(value);
+          }}
         >
-          {chat.relayInstances.map((instance) => (
-            <option key={instance.instanceId} value={instance.instanceId}>
-              {instance.instanceName || instance.instanceId}{instance.busy ? " *" : ""}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            size="sm"
+            className={cn("min-w-0 bg-background text-xs", compact ? "w-28" : "flex-1")}
+            data-ui-tooltip={t("aiAssistant.instance")}
+            aria-label={t("aiAssistant.instance")}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {chat.relayInstances.map((instance) => (
+              <SelectItem key={instance.instanceId} value={instance.instanceId}>
+                {instance.instanceName || instance.instanceId}{instance.busy ? " *" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
       {hasModels && (
-        <select
+        <Select
           value={chat.activeModel ?? ""}
-          onChange={(event) => chat.switchModel(event.target.value)}
+          onValueChange={(value) => {
+            if (value) chat.switchModel(value);
+          }}
           disabled={chat.modelsLoading}
-          className={cn(
-            "h-7 min-w-0 rounded-md border border-border bg-background px-2 text-xs outline-none disabled:opacity-50",
-            compact ? "w-28" : "flex-1",
-          )}
-          title={t("aiAssistant.model")}
         >
-          {chat.models.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.label || model.id}{model.reasoning ? " +" : ""}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            size="sm"
+            className={cn("min-w-0 bg-background text-xs", compact ? "w-28" : "flex-1")}
+            data-ui-tooltip={t("aiAssistant.model")}
+            aria-label={t("aiAssistant.model")}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="start">
+            {chat.models.map((model) => (
+              <SelectItem key={model.id} value={model.id}>
+                {model.label || model.id}{model.reasoning ? " +" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
+      {!compact && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => chat.setSettings({
+            showStructuredSourceWhileStreaming: !chat.settings.showStructuredSourceWhileStreaming,
+          })}
+          aria-pressed={chat.settings.showStructuredSourceWhileStreaming}
+          aria-label={t("aiAssistant.showStructuredSourceWhileStreaming")}
+          data-ui-tooltip={t("aiAssistant.showStructuredSourceWhileStreaming")}
+          className={chat.settings.showStructuredSourceWhileStreaming ? "text-primary" : "text-muted-foreground"}
+        >
+          <Braces className="size-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export function ChatPanelActions({
+  chat,
+  searchOpen,
+  onToggleSessions,
+  onToggleSearch,
+}: {
+  chat: ChatControlBarModel;
+  searchOpen: boolean;
+  onToggleSessions: () => void;
+  onToggleSearch: () => void;
+}) {
+  const { t } = useTranslation();
+  const toolEventsLabel = chat.settings.showToolEvents
+    ? t("aiAssistant.hideToolEvents")
+    : t("aiAssistant.showToolEvents");
+
+  return (
+    <div className="flex items-center gap-0.5 border-l border-border/70 pl-1">
       <Button
+        type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon"
+        className="size-8 text-muted-foreground"
+        onClick={onToggleSessions}
+        aria-label={t("aiAssistant.expandSessions")}
+        data-ui-tooltip={t("aiAssistant.expandSessions")}
+      >
+        <History className="size-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "size-8",
+          searchOpen ? "bg-muted text-primary" : "text-muted-foreground",
+        )}
         onClick={onToggleSearch}
         aria-label={t("aiAssistant.search")}
-        title={t("aiAssistant.search")}
-        className={searchOpen ? "text-primary" : "text-muted-foreground"}
+        data-ui-tooltip={t("aiAssistant.search")}
       >
         <Search className="size-4" />
       </Button>
       <Button
+        type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon"
+        className={cn(
+          "size-8",
+          chat.settings.showToolEvents
+            ? "bg-muted text-primary"
+            : "text-muted-foreground",
+        )}
         onClick={() => {
           const showToolEvents = !chat.settings.showToolEvents;
           chat.setSettings({ showToolEvents });
@@ -132,38 +205,18 @@ export function ControlBar({
         }}
         aria-pressed={chat.settings.showToolEvents}
         aria-label={toolEventsLabel}
-        title={toolEventsLabel}
-        className={chat.settings.showToolEvents ? "bg-muted text-primary" : "text-muted-foreground"}
+        data-ui-tooltip={toolEventsLabel}
       >
         <ListTree className="size-4" />
       </Button>
-      {!compact && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => chat.setSettings({
-            showStructuredSourceWhileStreaming: !chat.settings.showStructuredSourceWhileStreaming,
-          })}
-          aria-pressed={chat.settings.showStructuredSourceWhileStreaming}
-          aria-label={t("aiAssistant.showStructuredSourceWhileStreaming")}
-          title={t("aiAssistant.showStructuredSourceWhileStreaming")}
-          className={chat.settings.showStructuredSourceWhileStreaming ? "text-primary" : "text-muted-foreground"}
-        >
-          <Braces className="size-4" />
-        </Button>
-      )}
     </div>
   );
 }
 
 export function HeaderControlPortal({
   chat,
-  searchOpen,
-  onToggleSearch,
 }: {
   chat: ChatControlBarModel;
-  searchOpen: boolean;
-  onToggleSearch: () => void;
 }) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
 
@@ -173,12 +226,7 @@ export function HeaderControlPortal({
 
   if (!target) return null;
   return createPortal(
-    <ControlBar
-      chat={chat}
-      compact
-      searchOpen={searchOpen}
-      onToggleSearch={onToggleSearch}
-    />,
+    <ControlBar chat={chat} compact />,
     target,
   );
 }

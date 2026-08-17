@@ -121,6 +121,11 @@ function invalidateCompletedAssetQueries(
     return;
   }
 
+  if (task.task_type === TASK_TYPES.STYLE_PREVIEW) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.styles(projectId) });
+    return;
+  }
+
   if (
     task.task_type === "build_scenes" ||
     task.task_type === "scene_reference_asset" ||
@@ -329,6 +334,11 @@ export function TaskCenterProviderView({
           // duplicate terminal event for an already-terminal row is ignored.
           if (firstFreshObservation || sawRunning) {
             invalidateCompletedAssetQueries(queryClient, projectId, task);
+            if (isTerminal(task)) {
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.commercialQuota(),
+              });
+            }
           }
 
           if (source === "snapshot") return;

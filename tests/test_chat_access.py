@@ -69,7 +69,13 @@ async def test_chat_access_uses_home_user_and_feature_contract(monkeypatch):
             "feature_key": "ai_assistant_chat",
             "project_id": "",
             "resource_kind": "chat",
-            "metadata": {"scope": {"kind": "home", "id": None}},
+                "metadata": {
+                    "scope": {
+                        "kind": "home",
+                        "id": None,
+                        "conversationId": "main",
+                    }
+                },
         }
     ]
 
@@ -92,7 +98,11 @@ async def test_chat_access_uses_resolved_project_requester(monkeypatch):
     assert usage_meter.requests[0]["user_id"] == "requester-1"
     assert usage_meter.requests[0]["project_id"] == "project-a"
     assert usage_meter.requests[0]["metadata"] == {
-        "scope": {"kind": "project", "id": "project-a"}
+        "scope": {
+            "kind": "project",
+            "id": "project-a",
+            "conversationId": "main",
+        }
     }
 
 

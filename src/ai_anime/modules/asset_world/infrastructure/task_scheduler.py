@@ -13,6 +13,7 @@ from ai_anime.modules.asset_world.application.dto import (
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
+    StylePreviewGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import (
@@ -105,6 +106,18 @@ class TaskExecutionAssetTaskScheduler:
             task_context,
             task_type=task.task_type,
             payload=task.backend_payload(),
+        )
+
+    async def enqueue_style_preview(
+        self,
+        task_context: ProjectContext,
+        task: StylePreviewGenerationTask,
+    ) -> AssetTaskQueueReceipt:
+        return await self._enqueue(
+            task_context,
+            task_type=task.task_type,
+            payload=task.backend_payload(),
+            scope=task.scope,
         )
 
     async def _enqueue(

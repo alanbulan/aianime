@@ -79,17 +79,19 @@ export function ChatTimeline({
   useEffect(() => {
     const container = scrollRef.current;
     if (!container || turns.length < 2) return;
+    const turnElements = turns.map((turn) =>
+      container.querySelector(`[data-turn-id="${CSS.escape(turn.id)}"]`),
+    );
+    let animationFrame: number | null = null;
 
-    const handleScroll = () => {
+    const updateActiveTurn = () => {
       const containerRect = container.getBoundingClientRect();
       const targetY = containerRect.top + containerRect.height / 3;
       let closest = -1;
       let closestDistance = Infinity;
 
       for (let index = turns.length - 1; index >= 0; index -= 1) {
-        const element = container.querySelector(
-          `[data-turn-id="${CSS.escape(turns[index].id)}"]`,
-        );
+        const element = turnElements[index];
         if (!element) continue;
         const rect = element.getBoundingClientRect();
         const distance = Math.abs(rect.top - targetY);
@@ -101,9 +103,20 @@ export function ChatTimeline({
       setActiveIndex(closest);
     };
 
+    const handleScroll = () => {
+      if (animationFrame !== null) return;
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        updateActiveTurn();
+      });
+    };
+
     container.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => container.removeEventListener("scroll", handleScroll);
+    updateActiveTurn();
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
   }, [scrollRef, turns]);
 
   useEffect(() => {

@@ -115,6 +115,7 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
                     beat_source_text="第一章 启程\n秦王入宫。",
                     content_summary="确定性规划",
                     identity_ids=["秦_青年"],
+                    scene_menu=[{"scene_id": "宫殿"}],
                     key_events=["入宫"],
                     character_names=["秦"],
                 )

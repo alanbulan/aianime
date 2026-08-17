@@ -15,31 +15,36 @@ from ai_anime.modules.model_usage.public import (
     ModelAudioTransportError,
     write_model_audio_speech,
 )
-from ai_anime.modules.model_usage.public import MODE_BYOK, MODE_CLOUD
+from ai_anime.modules.model_usage.public import MODE_MIXED
 
 
 @pytest.fixture(autouse=True)
 def _reset_model_access(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "cloud-proxy-token")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "https://gateway.example/v1")
-    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_MIXED,
+        model_assignments=[
+            {"modelId": "cloud-audio", "role": "AUDIO_SPEECH"},
+            {"modelId": "cloud-audio", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
     yield
-    configure_model_access(allows_custom_models=False, mode=MODE_CLOUD)
+    configure_model_access(allows_custom_models=False, mode=MODE_MIXED)
 
 
 @pytest.mark.asyncio
-async def test_audio_transport_uses_selected_byok_and_raw_audio(tmp_path: Path) -> None:
+async def test_audio_transport_uses_unified_router_and_raw_audio(tmp_path: Path) -> None:
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="https://custom.example/v1",
-        byok_api_key="sk-custom-secret",
+        mode=MODE_MIXED,
         model_assignments=[
             {"modelId": "audio-model", "role": "AUDIO_MUSIC"},
         ],
     )
     with respx.mock(assert_all_called=True) as router:
-        route = router.post("https://custom.example/v1/audio/speech").mock(
+        route = router.post("https://gateway.example/v1/audio/speech").mock(
             return_value=Response(
                 200,
                 content=b"audio-bytes",
@@ -52,34 +57,31 @@ async def test_audio_transport_uses_selected_byok_and_raw_audio(tmp_path: Path) 
         output_path = tmp_path / "audio.mp3"
         result = await write_model_audio_speech(
             output_path=output_path,
-            model="audio-model",
             model_role="AUDIO_MUSIC",
             input_text="quiet piano",
         )
 
     assert output_path.read_bytes() == b"audio-bytes"
     assert result.request_id == "req_audio_1"
-    assert route.calls.last.request.headers["authorization"] == "Bearer sk-custom-secret"
+    assert route.calls.last.request.headers["authorization"] == "Bearer cloud-proxy-token"
     idempotency_key = route.calls.last.request.headers["idempotency-key"]
     assert str(uuid.UUID(idempotency_key)) == idempotency_key
 
 
 @pytest.mark.asyncio
-async def test_audio_transport_supports_keyless_byok_and_base64_json(
+async def test_audio_transport_keeps_provider_credentials_behind_router(
     tmp_path: Path,
 ) -> None:
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="http://127.0.0.1:11434/v1",
-        byok_api_key="",
+        mode=MODE_MIXED,
         model_assignments=[
             {"modelId": "local-audio", "role": "AUDIO_SPEECH"},
         ],
     )
     encoded = base64.b64encode(b"base64-audio").decode("ascii")
     with respx.mock(assert_all_called=True) as router:
-        route = router.post("http://127.0.0.1:11434/v1/audio/speech").mock(
+        route = router.post("https://gateway.example/v1/audio/speech").mock(
             return_value=Response(
                 200,
                 json={"id": "audio_1", "data": [{"b64_json": encoded}]},
@@ -88,14 +90,13 @@ async def test_audio_transport_supports_keyless_byok_and_base64_json(
         output_path = tmp_path / "audio.mp3"
         result = await write_model_audio_speech(
             output_path=output_path,
-            model="local-audio",
             model_role="AUDIO_SPEECH",
             input_text="test",
         )
 
     assert output_path.read_bytes() == b"base64-audio"
     assert result.response_id == "audio_1"
-    assert "authorization" not in route.calls.last.request.headers
+    assert route.calls.last.request.headers["authorization"] == "Bearer cloud-proxy-token"
 
 
 @pytest.mark.asyncio
@@ -116,7 +117,6 @@ async def test_audio_transport_downloads_json_url(tmp_path: Path) -> None:
         output_path = tmp_path / "audio.mp3"
         result = await write_model_audio_speech(
             output_path=output_path,
-            model="cloud-audio",
             model_role="AUDIO_SPEECH",
             input_text="test",
         )
@@ -138,7 +138,6 @@ async def test_audio_transport_http_error_exposes_safe_context(tmp_path: Path) -
         with pytest.raises(RuntimeError, match="HTTP 429") as exc_info:
             await write_model_audio_speech(
                 output_path=tmp_path / "audio.mp3",
-                model="cloud-audio",
                 model_role="AUDIO_VOICE_CLONE",
                 input_text="secret script text",
                 metadata={"audio_url": "private-reference"},
@@ -155,11 +154,10 @@ async def test_audio_transport_http_error_exposes_safe_context(tmp_path: Path) -
 
 
 @pytest.mark.asyncio
-async def test_audio_transport_rejects_unassigned_byok_role(tmp_path: Path) -> None:
+async def test_audio_transport_rejects_unassigned_router_role(tmp_path: Path) -> None:
     configure_model_access(
         allows_custom_models=True,
-        mode=MODE_BYOK,
-        byok_base_url="https://custom.example/v1",
+        mode=MODE_MIXED,
         model_assignments=[
             {"modelId": "audio-model", "role": "AUDIO_SPEECH"},
         ],
@@ -168,7 +166,6 @@ async def test_audio_transport_rejects_unassigned_byok_role(tmp_path: Path) -> N
     with pytest.raises(PermissionError, match="AUDIO_MUSIC"):
         await write_model_audio_speech(
             output_path=tmp_path / "audio.mp3",
-            model="audio-model",
             model_role="AUDIO_MUSIC",
             input_text="quiet piano",
         )
@@ -192,7 +189,6 @@ async def test_audio_transport_rejects_http_200_error_envelope(tmp_path: Path) -
         with pytest.raises(ModelAudioTransportError) as exc_info:
             await write_model_audio_speech(
                 output_path=tmp_path / "audio.mp3",
-                model="cloud-audio",
                 model_role="AUDIO_SPEECH",
                 input_text="test",
             )
@@ -214,7 +210,6 @@ async def test_audio_transport_wraps_timeout_without_request_payload(
         with pytest.raises(ModelAudioTransportError, match="timed out") as exc_info:
             await write_model_audio_speech(
                 output_path=tmp_path / "audio.mp3",
-                model="cloud-audio",
                 model_role="AUDIO_SPEECH",
                 input_text="secret script text",
             )
@@ -229,7 +224,6 @@ async def test_audio_transport_rejects_nested_transport_configuration(
     with pytest.raises(ValueError, match="transport field base_url"):
         await write_model_audio_speech(
             output_path=tmp_path / "audio.mp3",
-            model="cloud-audio",
             model_role="AUDIO_SPEECH",
             input_text="test",
             metadata={"provider": {"base_url": "https://bypass.example/v1"}},

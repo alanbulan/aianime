@@ -27,8 +27,16 @@ export interface CommercialModelUsageBootstrap {
   catalog: CommercialModelCatalog | null;
 }
 
-export type CommercialModelAccessMode = "cloud" | "byok";
+export type CommercialModelAccessMode = "mixed";
 export type CommercialModelCatalogSource = "active" | "cloud";
+
+export const BYOK_PROVIDER_PROTOCOLS = [
+  "OPENAI_COMPATIBLE",
+  "ANTHROPIC",
+  "GEMINI",
+] as const;
+
+export type ByokProviderProtocol = (typeof BYOK_PROVIDER_PROTOCOLS)[number];
 
 export const BYOK_MODEL_ROLES = [
   "TEXT",
@@ -53,6 +61,28 @@ export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
 export interface ByokModelAssignment {
   modelId: string;
   role: ByokModelRole;
+  priority: number;
+  enabled: boolean;
+}
+
+export interface ByokProviderStatus {
+  id: string;
+  name: string;
+  protocol: ByokProviderProtocol;
+  baseUrl: string;
+  apiKeyPreview: string;
+  configured: boolean;
+  enabled: boolean;
+  priority: number;
+  modelAssignments: ByokModelAssignment[];
+}
+
+export interface ByokProviderModelDiscoveryInput {
+  providerId?: string;
+  name?: string;
+  protocol: ByokProviderProtocol;
+  baseUrl: string;
+  apiKey?: string;
 }
 
 export interface CommercialModelAccessStatus {
@@ -61,16 +91,14 @@ export interface CommercialModelAccessStatus {
   gatewayOrigin: string;
   cloudModelAssignments: ByokModelAssignment[];
   byokConfigured: boolean;
-  byokBaseUrl: string;
-  byokApiKeyPreview: string;
-  byokModelAssignments: ByokModelAssignment[];
+  byokProviders: ByokProviderStatus[];
 }
 
 export function parseCommercialModelAccessStatus(
   value: unknown,
 ): CommercialModelAccessStatus {
   const root = record(value, "commercial model access status");
-  if (root.mode !== "cloud" && root.mode !== "byok") {
+  if (root.mode !== "mixed") {
     throw new Error("commercial model access mode is invalid");
   }
   return {
@@ -82,20 +110,44 @@ export function parseCommercialModelAccessStatus(
       "cloudModelAssignments",
     ),
     byokConfigured: root.byokConfigured === true,
-    byokBaseUrl:
-      typeof root.byokBaseUrl === "string" ? root.byokBaseUrl.trim() : "",
-    byokApiKeyPreview:
-      typeof root.byokApiKeyPreview === "string"
-        ? root.byokApiKeyPreview.trim()
-        : "",
-    byokModelAssignments: parseByokModelAssignments(
-      root.byokModelAssignments,
-    ),
+    byokProviders: parseByokProviders(root.byokProviders),
   };
 }
 
-function parseByokModelAssignments(value: unknown): ByokModelAssignment[] {
-  return parseModelAssignments(value, "byokModelAssignments");
+function parseByokProviders(value: unknown): ByokProviderStatus[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error("byokProviders must be an array");
+  return value.map((item, index) => {
+    const provider = record(item, `byokProviders[${index}]`);
+    return {
+      id: text(provider.id, `byokProviders[${index}].id`),
+      name: text(provider.name, `byokProviders[${index}].name`),
+      protocol: providerProtocol(
+        provider.protocol,
+        `byokProviders[${index}].protocol`,
+      ),
+      baseUrl: text(provider.baseUrl, `byokProviders[${index}].baseUrl`),
+      apiKeyPreview:
+        typeof provider.apiKeyPreview === "string"
+          ? provider.apiKeyPreview.trim()
+          : "",
+      configured: provider.configured === true,
+      enabled: provider.enabled !== false,
+      priority: positiveInteger(provider.priority, 100),
+      modelAssignments: parseModelAssignments(
+        provider.modelAssignments,
+        `byokProviders[${index}].modelAssignments`,
+      ),
+    };
+  });
+}
+
+function providerProtocol(value: unknown, name: string): ByokProviderProtocol {
+  const protocol = text(value, name);
+  if (!(BYOK_PROVIDER_PROTOCOLS as readonly string[]).includes(protocol)) {
+    throw new Error(`${name} is invalid`);
+  }
+  return protocol as ByokProviderProtocol;
 }
 
 function parseModelAssignments(
@@ -115,8 +167,18 @@ function parseModelAssignments(
     return {
       modelId: text(assignment.modelId, `${name}[${index}].modelId`),
       role: role as ByokModelRole,
+      priority: positiveInteger(assignment.priority, 100 + index),
+      enabled: assignment.enabled !== false,
     };
   });
+}
+
+function positiveInteger(value: unknown, fallback: number): number {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
+    throw new Error("priority must be a positive integer");
+  }
+  return Number(value);
 }
 
 const ROLES_BY_OPERATION: Readonly<Record<string, readonly ByokModelRole[]>> = {

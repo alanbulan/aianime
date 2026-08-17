@@ -534,7 +534,7 @@ function SelectableTokenGroup({
           onToggle(id);
         }}
         onPointerDown={(event) => event.stopPropagation()}
-        title={label}
+        data-ui-tooltip={label}
       >
         <Icon className="h-3 w-3 shrink-0" />
         {editableColors && isSelected && id !== emptyLabel ? (

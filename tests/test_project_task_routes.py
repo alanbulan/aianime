@@ -5,8 +5,30 @@ import pytest
 from ai_anime.api.routes.task_execution import tasks as tasks_route
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.infrastructure.task_state import TaskStateManager
+from ai_anime.modules.task_execution.infrastructure.admission_policy import (
+    global_lane_concurrency,
+    project_user_lane_active_limit,
+)
 
 pytestmark = pytest.mark.m07
+
+
+def test_default_user_task_limit_matches_local_executor(monkeypatch) -> None:
+    monkeypatch.delenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_DEFAULT_TASKS", raising=False)
+    monkeypatch.delenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_DEFAULT_TASKS", raising=False)
+
+    assert project_user_lane_active_limit("default") == 8
+    assert project_user_lane_active_limit("default") == global_lane_concurrency("default")
+
+
+def test_workflow_lane_serializes_each_project_without_using_default_slots(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("AI_ANIME_PROJECT_USER_MAX_ACTIVE_WORKFLOW_TASKS", raising=False)
+    monkeypatch.delenv("AI_ANIME_CE_GLOBAL_MAX_ACTIVE_WORKFLOW_TASKS", raising=False)
+
+    assert project_user_lane_active_limit("workflow") == 1
+    assert global_lane_concurrency("workflow") == 4
 
 
 def _ctx(
@@ -76,6 +98,41 @@ async def test_project_task_list_reads_only_resolved_project(tmp_path, monkeypat
     assert response["ok"] is True
     assert [task["project_id"] for task in response["data"]] == ["proj_123"]
     assert response["data"][0]["task_key"].startswith("task:single_video:project:proj_123:")
+
+
+@pytest.mark.asyncio
+async def test_project_task_status_uses_exact_creation_key(tmp_path, monkeypatch):
+    ctx = _ctx(tmp_path, role="viewer")
+    manager = TaskStateManager()
+    manager.create_task_for_project(
+        ctx,
+        "identity_image",
+        0,
+        scope="character:林晚晴:identity:学生时期",
+    )
+
+    async def fake_resolve_project_context(**kwargs):
+        return ctx
+
+    monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
+    task_key = (
+        "task:identity_image:project:proj_123:0:"
+        "character:林晚晴:identity:学生时期"
+    )
+
+    response = await tasks_route.get_project_task_by_key(
+        "proj_123",
+        task_key=task_key,
+        user={"username": "bob"},
+    )
+
+    assert response["ok"] is True
+    assert response["data"]["task_key"] == task_key
+    assert response["data"]["episode"] == 0
 
 
 @pytest.mark.asyncio

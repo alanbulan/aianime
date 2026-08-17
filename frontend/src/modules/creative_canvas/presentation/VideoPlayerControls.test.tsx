@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -87,8 +88,8 @@ describe("VideoPlayerControls", () => {
 
     expect(screen.getByText("0:05")).toBeInTheDocument();
     expect(screen.getByText("1:05")).toBeInTheDocument();
-    expect(screen.getByTitle("播放")).toBeInTheDocument();
-    expect(screen.getByTitle("静音")).toBeInTheDocument();
+    expect(getByUiTooltip("播放")).toBeInTheDocument();
+    expect(getByUiTooltip("静音")).toBeInTheDocument();
 
     act(() => {
       video.setPaused(false);
@@ -101,10 +102,10 @@ describe("VideoPlayerControls", () => {
       video.element.dispatchEvent(new Event("volumechange"));
     });
 
-    expect(screen.getByTitle("暂停")).toBeInTheDocument();
+    expect(getByUiTooltip("暂停")).toBeInTheDocument();
     expect(screen.getByText("0:12")).toBeInTheDocument();
     expect(screen.getByText("1:30")).toBeInTheDocument();
-    expect(screen.getByTitle("取消静音")).toBeInTheDocument();
+    expect(getByUiTooltip("取消静音")).toBeInTheDocument();
   });
 
   it("routes playback, seek, mute and frame capture interactions", () => {
@@ -121,7 +122,7 @@ describe("VideoPlayerControls", () => {
       </div>,
     );
 
-    fireEvent.click(screen.getByTitle("播放"));
+    fireEvent.click(getByUiTooltip("播放"));
     expect(video.play).toHaveBeenCalledOnce();
     expect(onParentClick).not.toHaveBeenCalled();
 
@@ -131,10 +132,10 @@ describe("VideoPlayerControls", () => {
     expect(video.element.currentTime).toBe(18);
     expect(screen.getByText("0:18")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle("静音"));
+    fireEvent.click(getByUiTooltip("静音"));
     expect(video.element.muted).toBe(true);
 
-    const captureButton = screen.getByTitle(
+    const captureButton = getByUiTooltip(
       "node.videoNode.frame.captureCurrent",
     );
     fireEvent.click(captureButton);

@@ -9,6 +9,8 @@ import {
   buildUploadedFilesContext,
   dataUrlToAttachmentBlob,
   hasVideoCreationIntent,
+  isAllowedChatDragItem,
+  isAllowedChatUpload,
   isAllowedScriptDragItem,
   isAllowedScriptUpload,
   isFinalOverwriteConfirmation,
@@ -34,6 +36,15 @@ describe("SuperChat ingest attachment rules", () => {
     expect(isAllowedScriptDragItem({ type: " TEXT/MARKDOWN " })).toBe(true);
     expect(isAllowedScriptDragItem({ type: "image/png" })).toBe(false);
     expect(isAllowedScriptDragItem({})).toBe(true);
+  });
+
+  it("accepts supported images only for the general chat composer", () => {
+    expect(isAllowedChatUpload(new File(["image"], "reference.png"))).toBe(true);
+    expect(isAllowedChatUpload(new File(["image"], "reference.avif"))).toBe(false);
+    expect(isAllowedChatUpload(new File(["story"], "story.docx"))).toBe(true);
+    expect(isAllowedChatDragItem({ type: "image/webp" })).toBe(true);
+    expect(isAllowedChatDragItem({ name: "reference.gif" })).toBe(true);
+    expect(isAllowedChatDragItem({ type: "application/pdf" })).toBe(false);
   });
 
   it("decodes a base64 data URL into an uploadable blob", () => {

@@ -23,7 +23,7 @@ export function RegenerateButton({
     <button
       type="button"
       disabled={isDisabled}
-      title={title ?? label}
+      data-ui-tooltip={title ?? label}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();

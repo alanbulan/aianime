@@ -61,6 +61,11 @@ class StubHistory:
     ):
         self.replaced = (username, project, messages, kwargs)
 
+    def append_ui_event(self, username, scope, turn_id, event, **kwargs):
+        item = (username, scope, turn_id, event, kwargs)
+        self.ui_event = item
+        return {"event": event}
+
 
 class UnusedMedia:
     def extract(self, *args, **kwargs):
@@ -143,6 +148,13 @@ def test_project_message_use_cases_delegate_user_and_trace_operations():
     traces = messages.trace_contents("alice", "project-a")
     replacement = [{"role": "trace", "content": "replacement"}]
     messages.replace_traces("alice", "project-a", replacement)
+    ui_event = messages.append_ui_event(
+        "alice",
+        "project-a",
+        "turn-1",
+        {"type": "tool.call"},
+        project_state_dir="state",
+    )
 
     assert user_message["role"] == "user"
     assert [message["content"] for message in trace_messages] == [
@@ -154,5 +166,18 @@ def test_project_message_use_cases_delegate_user_and_trace_operations():
         "alice",
         "project-a",
         replacement,
-        {"project_dir": None, "project_state_dir": None},
+        {
+            "project_dir": None,
+            "project_state_dir": None,
+            "conversation_id": "main",
+        },
+    )
+    assert ui_event == {"event": {"type": "tool.call"}}
+    assert history.ui_event[0] == "alice"
+    assert history.ui_event[1].id == "project-a"
+    assert history.ui_event[1].conversation_id == "main"
+    assert history.ui_event[2:] == (
+        "turn-1",
+        {"type": "tool.call"},
+        {"project_dir": None, "project_state_dir": "state"},
     )

@@ -171,10 +171,12 @@ describe("tool message projection", () => {
     expect(result[0]).toMatchObject({
       role: "tool",
       turnId: undefined,
+      toolName: "search",
+      toolState: "success",
+      toolOutput: { value: 1 },
       timestamp: NOW,
       raw: payload,
     });
-    expect(result[0]?.text).toContain("search\n\n{");
     expect(result[0]?.text).toContain('"value": 1');
   });
 
@@ -196,28 +198,39 @@ describe("tool message projection", () => {
     });
   });
 
-  it("updates the existing tool message for the same turn while preserving its ID", () => {
+  it("updates the existing tool message by its canonical call ID", () => {
     const current = [
       message("user-1", "user", "开始", 10, "turn-1"),
-      message("tool-existing", "tool", "旧结果", 20, "turn-1"),
+      {
+        ...message("tool-call-1", "tool", "旧结果", 20, "turn-1"),
+        toolCallId: "call-1",
+        toolName: "search",
+        toolState: "running" as const,
+        toolInput: { query: "关键词" },
+      },
       message("assistant-1", "assistant", "完成", 30, "turn-1"),
     ];
     const payload = {
       name: "search",
       result: "新结果",
       turn_id: "turn-1",
+      tool_call_id: "call-1",
     };
 
     const result = upsertToolMessage(current, "tool.result", payload);
 
     expect(result.map((item) => item.id)).toEqual([
       "user-1",
-      "tool-existing",
+      "tool-call-1",
       "assistant-1",
     ]);
     expect(result[1]).toMatchObject({
-      id: "tool-existing",
-      text: "search\n\n新结果",
+      id: "tool-call-1",
+      text: "新结果",
+      toolName: "search",
+      toolState: "success",
+      toolOutput: "新结果",
+      toolInput: { query: "关键词" },
       timestamp: NOW,
       raw: payload,
     });

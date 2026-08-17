@@ -213,7 +213,7 @@ export function SubtitleEraseOpsPanel({
       <button
         type="button"
         onClick={onExit}
-        title={t("node.videoNode.subtitleErase.exit")}
+        data-ui-tooltip={t("node.videoNode.subtitleErase.exit")}
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-dark/70 text-text-muted transition-colors hover:bg-bg-dark hover:text-text-dark"
       >
         <XIcon className="h-4 w-4" />
@@ -228,7 +228,7 @@ export function SubtitleEraseOpsPanel({
         <button
           type="button"
           onClick={onResetBox}
-          title={t("node.videoNode.subtitleErase.tools.reset")}
+          data-ui-tooltip={t("node.videoNode.subtitleErase.tools.reset")}
           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded px-1 text-text-dark/72 transition-colors hover:text-text-dark"
         >
           <RotateCcw className="h-4 w-4" />
@@ -245,7 +245,7 @@ export function SubtitleEraseOpsPanel({
         type="button"
         disabled={submitDisabled}
         onClick={onSubmit}
-        title={t("node.videoNode.subtitleErase.submit")}
+        data-ui-tooltip={t("node.videoNode.subtitleErase.submit")}
         className={`${NODE_GENERATE_BUTTON_BASE_CLASS} shrink-0 ${
           submitDisabled
             ? NODE_GENERATE_BUTTON_DISABLED_CLASS

@@ -20,6 +20,8 @@ import type {
   ProjectSummary,
 } from "@/modules/project_workspace/domain/project";
 
+const PROJECT_COVER_PAGE_SIZE = 15;
+
 export interface ProjectDashboardControllerOptions {
   currentTab: ProjectStatus;
   setCurrentTab(value: ProjectStatus): void;
@@ -50,6 +52,10 @@ export function createUseProjectDashboardController(
     const [shareProject, setShareProject] = useState<ProjectSummary | null>(
       null,
     );
+    const [profileProject, setProfileProjectState] =
+      useState<ProjectSummary | null>(null);
+    const [profileName, setProfileName] = useState("");
+    const [profileCandidatePage, setProfileCandidatePage] = useState(1);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     const allSummaries = queries.useAllProjectSummaries();
@@ -60,6 +66,16 @@ export function createUseProjectDashboardController(
     const softDelete = queries.useSoftDeleteProject();
     const restore = queries.useRestoreProject();
     const purge = queries.usePurgeProject();
+    const profileProjectId = profileProject?.id ?? "";
+    const profileConfig = queries.useUpdateProject(profileProjectId);
+    const profileCandidates = queries.useProjectCoverCandidates(
+      profileProjectId,
+      profileCandidatePage,
+      PROJECT_COVER_PAGE_SIZE,
+      Boolean(profileProject),
+    );
+    const uploadCover = queries.useUploadProjectCover(profileProjectId);
+    const selectCover = queries.useSelectProjectCover(profileProjectId);
 
     useEffect(() => {
       const focusSearch = (event: KeyboardEvent) => {
@@ -90,7 +106,9 @@ export function createUseProjectDashboardController(
         (project) =>
           project.status === status &&
           (!normalizedSearch ||
-            project.name.toLowerCase().includes(normalizedSearch)),
+            (project.displayName || project.name)
+              .toLowerCase()
+              .includes(normalizedSearch)),
       );
     const activeList = useMemo(
       () =>
@@ -217,6 +235,44 @@ export function createUseProjectDashboardController(
       setPending(null);
     };
 
+    const setProfileProject = (project: ProjectSummary | null) => {
+      setProfileProjectState(project);
+      setProfileName(project?.displayName || project?.name || "");
+      setProfileCandidatePage(1);
+    };
+
+    const saveProjectProfile = async () => {
+      const displayName = profileName.trim();
+      if (!profileProjectId || !displayName) return;
+      try {
+        await profileConfig.mutateAsync({ display_name: displayName });
+        toast.success(t("project.profile.saved"));
+        setProfileProject(null);
+      } catch {
+        toast.error(t("project.profile.saveFailed"));
+      }
+    };
+
+    const uploadProjectCover = async (file: File) => {
+      if (!profileProjectId) return;
+      try {
+        await uploadCover.mutateAsync(file);
+        toast.success(t("project.profile.coverSaved"));
+      } catch {
+        toast.error(t("project.profile.coverFailed"));
+      }
+    };
+
+    const selectProjectCover = async (sourcePath: string) => {
+      if (!profileProjectId) return;
+      try {
+        await selectCover.mutateAsync(sourcePath);
+        toast.success(t("project.profile.coverSaved"));
+      } catch {
+        toast.error(t("project.profile.coverFailed"));
+      }
+    };
+
     return {
       ...options,
       activeList,
@@ -231,18 +287,36 @@ export function createUseProjectDashboardController(
       newName,
       onAction,
       pending,
+      profileCandidateHasMore: profileCandidates.data?.hasMore ?? false,
+      profileCandidateLoadedPage: profileCandidates.data?.page ?? profileCandidatePage,
+      profileCandidatePage,
+      profileCandidateTotal: profileCandidates.data?.total ?? 0,
+      profileCandidateTotalPages: profileCandidates.data?.totalPages ?? 1,
+      profileCandidates: profileCandidates.data?.items ?? [],
+      profileCandidatesFetching: profileCandidates.isFetching,
+      profileCandidatesLoading: profileCandidates.isLoading,
+      profileName,
+      profilePending:
+        profileConfig.isPending || uploadCover.isPending || selectCover.isPending,
+      profileProject,
       search,
       searchInputRef,
       setCreateOpen,
       setNewName,
       setPending,
+      setProfileName,
+      setProfileCandidatePage,
+      setProfileProject,
       setSearch,
       setShareProject,
       setSort,
       shareProject,
       sort,
+      saveProjectProfile,
+      selectProjectCover,
       statusCounts,
       totalProjects,
+      uploadProjectCover,
       trimmedNewName,
       wasColdOnMount,
     };

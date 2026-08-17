@@ -43,6 +43,7 @@ class ProjectAssistantReplies:
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         run_lock_id = self._run_locks.acquire(username, project)
         heartbeat_task = asyncio.create_task(
@@ -59,6 +60,7 @@ class ProjectAssistantReplies:
                     turn_id=turn_id,
                     project_dir=project_dir,
                     project_state_dir=project_state_dir,
+                    conversation_id=conversation_id,
                 )
             model_prompt = script_creation_guidance_prompt(prompt) or prompt
             return await self._hermes_replies.stream(
@@ -69,6 +71,7 @@ class ProjectAssistantReplies:
                 turn_id=turn_id,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
         finally:
             heartbeat_task.cancel()

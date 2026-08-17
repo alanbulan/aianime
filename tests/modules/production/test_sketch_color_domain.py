@@ -65,6 +65,20 @@ def test_assign_sketch_colors_preserves_existing_when_identity_set_changes():
     assert colors["Hero_B"] not in set(existing.values())
 
 
+def test_assign_sketch_colors_includes_detected_identities_without_text_markers():
+    colors = assign_identity_sketch_colors(
+        characters=[],
+        episode_beats=[
+            {
+                "visual_description": "角色走进没有身份标记的走廊。",
+                "detected_identities": ["Hero_Student"],
+            }
+        ],
+    )
+
+    assert "Hero_Student" in colors
+
+
 def test_prop_marker_colors_preserve_existing_when_prop_set_changes():
     beats = [
         {"visual_description": "男人抱起[[新道具]]，旁边没有旧道具。"},

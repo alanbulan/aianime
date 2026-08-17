@@ -33,10 +33,24 @@ def splat_transform_executable() -> Path:
     if on_path:
         return Path(on_path)
     raise FileNotFoundError(
-        "splat-transform not found on PATH. Install it with "
-        "`npm install -g @playcanvas/splat-transform` "
-        "(or set AI_ANIME_SPLAT_TRANSFORM_BIN to its path)."
+        "splat-transform 未安装。桌面版请到“设置 → 环境依赖”检查并安装导演世界 "
+        "3D 运行环境；开发环境可设置 AI_ANIME_SPLAT_TRANSFORM_BIN。"
     )
+
+
+def _splat_transform_command() -> tuple[list[str], dict[str, str] | None]:
+    """Resolve the CLI invocation, including the packaged Node.js runtime."""
+    cli = splat_transform_executable()
+    if cli.suffix.lower() not in {".js", ".mjs", ".cjs"}:
+        return [str(cli)], None
+
+    configured_node = os.environ.get("AI_ANIME_SPLAT_TRANSFORM_NODE", "").strip()
+    node = configured_node or shutil.which("node")
+    if not node:
+        raise FileNotFoundError(
+            "splat-transform is packaged as JavaScript, but no Node runtime is available."
+        )
+    return [str(node), str(cli)], dict(os.environ)
 
 
 SCENE_PACKAGE_SUFFIXES = {".ply", ".sog", ".splat", ".ksplat"}
@@ -74,8 +88,8 @@ def _compress_ply_to_sog(
         raise FileNotFoundError(f"PLY not found for SOG compression: {src}")
     dest = Path(sog_path) if sog_path is not None else _sog_path_for_ply(src)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    cli = splat_transform_executable()
-    cmd = [str(cli), "-w"]
+    command_prefix, child_env = _splat_transform_command()
+    cmd = [*command_prefix, "-w"]
     iterations = str(os.environ.get("SOG_COMPRESSION_ITERATIONS") or "").strip()
     if iterations:
         cmd.extend(["-i", iterations])
@@ -92,6 +106,7 @@ def _compress_ply_to_sog(
         capture_output=True,
         text=True,
         timeout=int(timeout_seconds),
+        env=child_env,
     )
     if proc.returncode != 0 or not dest.exists():
         message = (proc.stderr or proc.stdout or "").strip()
@@ -191,7 +206,7 @@ def run_splat_collision(
         raise FileNotFoundError(f"PLY not found: {ply_path}")
 
     voxel_out = out_dir / "scene.voxel.json"
-    cli = splat_transform_executable()
+    command_prefix, child_env = _splat_transform_command()
 
     seed_pos = os.environ.get("STAGE_COLLISION_SEED_POS", "0,0,0").strip() or "0,0,0"
     profiles = [
@@ -286,7 +301,7 @@ def run_splat_collision(
     for idx, profile in enumerate(profiles):
         remove_fresh_outputs()
         cmd = [
-            str(cli),
+            *command_prefix,
             "-w",
             "-K",
             "--seed-pos",
@@ -306,6 +321,7 @@ def run_splat_collision(
             capture_output=True,
             text=True,
             timeout=600,
+            env=child_env,
         )
         if proc.returncode == 0:
             selected_profile = profile

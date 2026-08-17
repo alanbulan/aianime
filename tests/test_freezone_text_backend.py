@@ -95,7 +95,7 @@ async def test_translate_creative_canvas_text_trusts_model_detected_direction(
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
         "_create_translation_agent",
-        lambda model: captured.update(model=model) or FakeAgent(),
+        FakeAgent,
     )
 
     translated, source_language, target_language = await translate_creative_canvas_text(
@@ -106,7 +106,6 @@ async def test_translate_creative_canvas_text_trusts_model_detected_direction(
 
     assert "You must decide whether the dominant natural language" in captured["task"]
     assert "[CM_6932]" in captured["task"]
-    assert captured["model"] == "cloud-text-standard"
     assert translated == "生成一个 AI anime 节拍的故事板草图面板。"
     assert source_language == "en"
     assert target_language == "zh"
@@ -130,7 +129,7 @@ async def test_translate_creative_canvas_text_flips_invalid_same_language_result
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
         "_create_translation_agent",
-        lambda model: FakeAgent(),
+        FakeAgent,
     )
 
     translated, source_language, target_language = await translate_creative_canvas_text(
@@ -190,7 +189,7 @@ async def test_generate_creative_canvas_story_script_returns_plain_dict(
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
         "_create_story_script_agent",
-        lambda model: FakeAgent(),
+        FakeAgent,
     )
 
     result = await generate_creative_canvas_story_script(

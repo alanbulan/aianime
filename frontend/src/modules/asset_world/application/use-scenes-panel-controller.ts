@@ -63,6 +63,7 @@ export function createUseScenesPanelController(
     const scenesQuery = sceneQueries.useScenes(project);
     const createScene = sceneQueries.useCreateScene(project);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<SceneAsset | null>(null);
     const [editing, setEditing] = useState<SceneAsset | null>(null);
     const [draftSeed, setDraftSeed] =
       useState<Partial<ScenePayload> | null>(null);
@@ -201,15 +202,14 @@ export function createUseScenesPanelController(
       }
     };
 
-    const handleDelete = async (scene: SceneAsset) => {
-      if (!window.confirm(t("assets.scenes.confirmDelete", { name: scene.name }))) {
-        return;
-      }
-      const response = await deleteScene.mutateAsync(scene.name);
+    const confirmDelete = async () => {
+      if (!deleteTarget) return;
+      const response = await deleteScene.mutateAsync(deleteTarget.name);
       if (isErrorDataResponse(response)) {
         toast.error(response.error);
         return;
       }
+      setDeleteTarget(null);
       toast.success(t("assets.scenes.deleted"));
     };
 
@@ -275,7 +275,16 @@ export function createUseScenesPanelController(
           ? t("common.billingRuleNotConfiguredShort")
           : null),
       buildScenesPending: buildScenes.isPending,
-      deleteScene: handleDelete,
+      deleteDialog: {
+        confirm: confirmDelete,
+        name: deleteTarget?.name ?? "",
+        onOpenChange: (open: boolean) => {
+          if (!open && !deleteScene.isPending) setDeleteTarget(null);
+        },
+        open: Boolean(deleteTarget),
+        pending: deleteScene.isPending,
+      },
+      deleteScene: setDeleteTarget,
       dialog: {
         coOccurrence: editing
           ? referenceIndex.coOccurrenceForScene(editing.name)

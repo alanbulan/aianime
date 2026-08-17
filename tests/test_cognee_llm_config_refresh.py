@@ -17,6 +17,20 @@ def test_embedding_dimension_contract_is_sent_to_gateway():
 
     assert expected == 1024
     assert kwargs["dimensions"] == 1024
+    assert kwargs["allowed_openai_params"] == ["dimensions"]
+
+
+def test_litellm_accepts_dimension_for_openai_compatible_catalog_model():
+    from litellm.utils import get_optional_params_embeddings
+
+    optional_params = get_optional_params_embeddings(
+        model="embedding-qwenqwen3-vl-embedding-8b-dqev67imufeogbfb",
+        dimensions=1024,
+        custom_llm_provider="openai",
+        allowed_openai_params=["dimensions"],
+    )
+
+    assert optional_params["dimensions"] == 1024
 
 
 def test_embedding_dimension_contract_rejects_wrong_remote_vector_size():
@@ -47,6 +61,7 @@ async def test_embedding_gateway_keeps_parallel_call_dimensions_isolated():
 
     async def original_aembedding(*_args, **kwargs):
         dimensions = int(kwargs["dimensions"])
+        assert kwargs["allowed_openai_params"] == ["dimensions"]
         started_dimensions.append(dimensions)
         if len(started_dimensions) == 2:
             both_started.set()
@@ -129,10 +144,7 @@ def test_init_cognee_rejects_gateway_change_until_restart(monkeypatch):
 
     assert nv_config.cognee_gateway_restart_required() is True
     with pytest.raises(RuntimeError, match="请重启 AI anime"):
-        nv_config.init_cognee(
-            text_model="cloud-text-standard",
-            embedding_model="cloud-embedding-standard",
-        )
+        nv_config.init_cognee()
 
 
 def test_keyless_byok_transport_satisfies_cognee_without_forwarding_placeholder():

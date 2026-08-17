@@ -40,6 +40,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { SidebarListSkeleton, DetailPaneSkeleton } from "@/components/skeletons";
 import { CreditCostInline } from "@/components/credit-cost-inline";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ─── style constants (aligned with characters page) ─────────────────────────
 
@@ -289,7 +299,8 @@ export function StyleDetailView({
   const { t } = useTranslation();
   const {
     applyPending,
-    createPending,
+    savePending,
+    deleteConfirmOpen,
     deletePending,
     dirty,
     editingName,
@@ -308,6 +319,7 @@ export function StyleDetailView({
     preset,
     previewUrl,
     setJsonEditorOpen,
+    setDeleteConfirmOpen,
     setNameEditOpen,
     setNameEditValue,
     showJson,
@@ -373,10 +385,10 @@ export function StyleDetailView({
             <Button
               size="sm"
               onClick={handleRename}
-              disabled={createPending || !nameEditValue.trim()}
+              disabled={savePending || !nameEditValue.trim()}
               className="h-8 rounded-[8px] bg-primary px-3 text-xs font-normal text-primary-foreground shadow-none hover:bg-primary/90"
             >
-              {createPending ? (
+              {savePending ? (
                 <Loader2 className="size-3 animate-spin" />
               ) : null}
               {t("common.save", "保存")}
@@ -468,10 +480,10 @@ export function StyleDetailView({
         <Button
           size="sm"
           onClick={handleSave}
-          disabled={createPending || !dirty}
+          disabled={savePending || !dirty}
           className="h-7 gap-1.5 rounded-[8px] bg-primary px-3 text-xs font-normal text-primary-foreground shadow-none hover:bg-primary/85 active:bg-primary/75"
         >
-          {createPending ? (
+          {savePending ? (
             <Loader2 className="size-3 animate-spin" />
           ) : (
             <Save className="size-3" />
@@ -496,7 +508,7 @@ export function StyleDetailView({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleDelete}
+            onClick={() => setDeleteConfirmOpen(true)}
             disabled={deletePending}
             className="ml-auto gap-1.5 h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
@@ -509,6 +521,29 @@ export function StyleDetailView({
           </Button>
         )}
       </div>
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("styles.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("styles.confirmDelete", { name: style.label || style.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePending}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deletePending}
+              onClick={() => void handleDelete()}
+            >
+              {deletePending ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              {t("styles.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -627,7 +662,7 @@ export function CreateStyleDialogView({
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={analyzePending || !id.trim()}
-              title={!id.trim() ? t("styles.styleIdRequiredBeforeUpload") : undefined}
+              data-ui-tooltip={!id.trim() ? t("styles.styleIdRequiredBeforeUpload") : undefined}
               className="h-9 w-fit gap-1.5 rounded-[8px] border-border bg-transparent px-3 text-xs font-normal shadow-none hover:bg-muted"
             >
               {analyzePending ? (

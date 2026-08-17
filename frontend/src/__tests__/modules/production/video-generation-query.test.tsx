@@ -17,6 +17,7 @@ import {
   useGenerateBeatVideoPrompt,
   useGenerateSeedance2Prompt,
   useGlobalOptimize,
+  useProductionWorkflow,
   useRegenerateBeatVideo,
 } from "@/modules/production/public";
 import {
@@ -52,6 +53,38 @@ function makeBeat(): Beat {
   };
 }
 
+describe("canonical production workflow query", () => {
+  it("uses the shared production endpoint for one frontend episode action", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/workflow/production",
+        async ({ request }) => {
+          body = await request.clone().json();
+          return HttpResponse.json({
+            ok: true,
+            task_type: "production_workflow",
+            task_key: "production_workflow:0:scope",
+            message: "started",
+          });
+        },
+      ),
+    );
+
+    const { result } = renderHook(() => useProductionWorkflow("demo", 3), {
+      wrapper,
+    });
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(body).toEqual({ episodes: [3] });
+    expect(result.current.data).toMatchObject({
+      ok: true,
+      task_type: "production_workflow",
+    });
+  });
+});
+
 describe("Seedance2 prompt generation query", () => {
   it("posts current prompt reference and guidance to the per-beat endpoint", async () => {
     const queryClient = new QueryClient({
@@ -68,7 +101,7 @@ describe("Seedance2 prompt generation query", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/seedance2-prompt/generate",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {
@@ -161,7 +194,7 @@ describe("1.x beat video prompt generation query", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/video-prompt/generate",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {
@@ -202,7 +235,7 @@ describe("1.x beat video prompt generation query", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/video-prompt/generate",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {
@@ -267,7 +300,7 @@ describe("video generation commands", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/1/optimize/video-global",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             task_type: "global_optimize_video",
@@ -295,7 +328,7 @@ describe("video generation commands", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/6/video",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             task_type: "single_video",

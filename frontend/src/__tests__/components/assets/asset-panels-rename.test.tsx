@@ -16,6 +16,13 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 const taskControllerMock = vi.hoisted(() => vi.fn());
+const routerNavigateMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children }: { children: ReactNode }) => <a href="#">{children}</a>,
+  useNavigate: () => routerNavigateMock,
+  useSearch: () => ({}),
+}));
 
 vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: (opts: unknown) => taskControllerMock(opts),
@@ -245,7 +252,7 @@ describe("asset panel rename behavior", () => {
         }),
       ),
       http.patch("http://localhost:3000/api/v1/projects/demo/scenes/Hall", async ({ request }) => {
-        patchBody = await request.json();
+        patchBody = await request.clone().json();
         return HttpResponse.json({
           ok: true,
           data: { name: "GrandHall", scene_type: "interior", environment_prompt: "wide hall" },
@@ -274,7 +281,7 @@ describe("asset panel rename behavior", () => {
         HttpResponse.json({ ok: true, data: [] }),
       ),
       http.post("http://localhost:3000/api/v1/projects/demo/scenes", async ({ request }) => {
-        postBody = await request.json();
+        postBody = await request.clone().json();
         return HttpResponse.json({
           ok: true,
           data: { name: "Bathroom_Leak", scene_type: "exterior" },
@@ -481,7 +488,7 @@ describe("asset panel rename behavior", () => {
         }),
       ),
       http.post("http://localhost:3000/api/v1/projects/demo/scenes", async ({ request }) => {
-        postBody = await request.json();
+        postBody = await request.clone().json();
         return HttpResponse.json({
           ok: true,
           data: { name: "Hall_漏水_夜晚", scene_type: "interior" },
@@ -545,7 +552,7 @@ describe("asset panel rename behavior", () => {
     await screen.findByText("Hall_Snow");
     const buildButton = screen.getByRole("button", { name: "Build from graph" });
     expect(buildButton).not.toBeDisabled();
-    expect(buildButton).not.toHaveAttribute("title");
+    expect(buildButton).not.toHaveAttribute("data-ui-tooltip");
   });
 
   it("sends the edited prop name in PATCH payload", async () => {
@@ -558,7 +565,7 @@ describe("asset panel rename behavior", () => {
         }),
       ),
       http.patch("http://localhost:3000/api/v1/projects/demo/props/Sword", async ({ request }) => {
-        patchBody = await request.json();
+        patchBody = await request.clone().json();
         return HttpResponse.json({
           ok: true,
           data: { name: "MoonSword", prop_type: "weapon", visual_prompt: "moonlit sword" },
@@ -700,14 +707,36 @@ describe("asset panel rename behavior", () => {
         "http://localhost:3000/api/v1/projects/demo/scenes/Hall/director-stage/manifest",
         () =>
           HttpResponse.json({
-            ok: false,
-            error: "no 3gs",
+            ok: true,
+            data: {
+              viewer_kind: "three_d_director",
+              mode: "scene",
+              project: "demo",
+              scene_id: "Hall",
+              display_name: "Hall",
+              source: {
+                source_type: "pano360",
+                source_kind: "pano",
+                pano_url: "/static/projects/demo/director_worlds/Hall/v1/pano_360.png",
+              },
+              sources: [
+                {
+                  id: "scene-pano:Hall",
+                  source_type: "pano360",
+                  source_kind: "pano",
+                  label: "360",
+                  pano_url: "/static/projects/demo/director_worlds/Hall/v1/pano_360.png",
+                },
+              ],
+              palette: { actors: [], props: [], anonymous_colors: [] },
+              allowed_destinations: ["view", "scene_world"],
+            },
           }),
       ),
       http.post(
         "http://localhost:3000/api/v1/projects/demo/scenes/Hall/director-stage/world",
         async ({ request }) => {
-          saveBody = await request.json();
+          saveBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

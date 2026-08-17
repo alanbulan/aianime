@@ -36,7 +36,7 @@ describe("Production image grid queries", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/1/grids/2/sketch-preview",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {
@@ -88,7 +88,7 @@ describe("Production image grid queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/grids/2/cut",
         async ({ request }) => {
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: { grid_index: 2, added: 2, skipped: 0 },

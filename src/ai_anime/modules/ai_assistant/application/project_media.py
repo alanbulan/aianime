@@ -148,6 +148,42 @@ class ProjectMedia:
             )
         return normalized
 
+    def prepare_chat_attachments(
+        self,
+        attachments: list[dict[str, Any]],
+        username: str,
+        project: str,
+        *,
+        project_dir: str | Path | None = None,
+    ) -> list[dict[str, Any]]:
+        media_project_dir = self._files.resolve_project_dir(
+            username,
+            project,
+            project_dir,
+        )
+        prepared: list[dict[str, Any]] = []
+        for attachment in attachments:
+            item = dict(attachment)
+            content = str(item.get("content") or "")
+            mime_type = str(item.get("mimeType") or "")
+            if content.startswith("data:image/") or mime_type.startswith("image/"):
+                relative_path = self._files.persist_inline_chat_image(
+                    media_project_dir,
+                    content=content,
+                    filename=str(item.get("fileName") or "") or None,
+                    mime_type=mime_type or None,
+                )
+                item.pop("content", None)
+                item["type"] = "image"
+                item["path"] = relative_path
+                item["url"] = self._files.static_url(
+                    project,
+                    media_project_dir,
+                    relative_path,
+                )
+            prepared.append(item)
+        return prepared
+
     def _canonical_static_media(
         self,
         project: str,

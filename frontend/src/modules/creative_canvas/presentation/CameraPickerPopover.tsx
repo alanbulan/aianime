@@ -407,7 +407,7 @@ function Thumbnail({ src, label, kind, isSelected }: ThumbnailProps) {
   return (
     <div
       className={`flex items-center justify-center rounded bg-muted text-muted-foreground transition-opacity duration-100 ${sizeClass}`}
-      title={label}
+      data-ui-tooltip={label}
     >
       <FallbackIcon className={isSelected ? 'size-5' : 'size-4'} />
     </div>

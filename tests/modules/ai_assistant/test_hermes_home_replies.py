@@ -16,6 +16,9 @@ def _event(event_type, **values):
         turn_id=values.get("turn_id"),
         text=values.get("text"),
         name=values.get("name"),
+        success=values.get("success"),
+        error=values.get("error"),
+        raw=values.get("raw"),
     )
 
 
@@ -39,8 +42,10 @@ class StubHermesRuntime:
         self.thread = thread
         self.calls = []
 
-    async def get_for_user(self, username, *, scope_kind, project_id):
-        self.calls.append((username, scope_kind, project_id))
+    async def get_for_user(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.calls.append((username, scope_kind, project_id, conversation_id))
         return self.thread
 
 
@@ -133,7 +138,7 @@ async def test_hermes_home_replies_streams_and_persists_turn(monkeypatch):
     )
 
     assert get_hermes_home_replies() is get_hermes_home_replies()
-    assert runtime.calls == [("alice", "home", None)]
+    assert runtime.calls == [("alice", "home", None, "main")]
     assert thread.calls[0][1] is None
     assert thread.calls[0][0].startswith("继续处理\n\n[CHAT_ATTACHMENTS]")
     assert "fileName=script.txt" in thread.calls[0][0]
@@ -160,6 +165,81 @@ async def test_hermes_home_replies_streams_and_persists_turn(monkeypatch):
     assert emitted[3]["name"] == "CreateProject"
     assert emitted[3]["result"] == {"text": "working"}
     assert project_calls == [{"username": "alice"}, {"username": "alice"}]
+
+
+@pytest.mark.anyio
+async def test_hermes_home_replies_preserves_failed_tool_status(monkeypatch):
+    _stub_project_snapshots(monkeypatch, set(), set())
+    replies, _thread, _runtime, _history = _build_replies(
+        [
+            _event(
+                "tool_update",
+                name="Generate",
+                text="failed",
+                success=False,
+                error="远端模型调用失败",
+            ),
+            _event("complete", text="生成失败"),
+        ]
+    )
+    emitted = []
+
+    async def on_event(event):
+        emitted.append(event)
+
+    await replies.stream(
+        "alice",
+        ChatScope(kind="home"),
+        "生成",
+        [],
+        "turn-failed-tool",
+        on_event,
+    )
+
+    tool_result = next(item for item in emitted if item["type"] == "tool.result")
+    assert tool_result["success"] is False
+    assert tool_result["error"] == "远端模型调用失败"
+
+
+@pytest.mark.anyio
+async def test_hermes_home_replies_maps_nested_tool_result_failure(monkeypatch):
+    _stub_project_snapshots(monkeypatch, set(), set())
+    replies, _thread, _runtime, history = _build_replies(
+        [
+            _event(
+                "tool_update",
+                name="ai_anime_create_style",
+                text="completed",
+                success=True,
+                raw={
+                    "status": "completed",
+                    "content": [{"type": "text", "text": '{"ok":false,"error":"Style id is required"}'}],
+                },
+            ),
+            _event("complete", text="风格已经创建成功。"),
+        ]
+    )
+    emitted = []
+
+    async def on_event(event):
+        emitted.append(event)
+
+    await replies.stream(
+        "alice",
+        ChatScope(kind="home"),
+        "创建风格",
+        [],
+        "turn-nested-tool-failure",
+        on_event,
+    )
+
+    tool_result = next(item for item in emitted if item["type"] == "tool.result")
+    assert tool_result["success"] is False
+    assert tool_result["error"] == "任务执行失败：Style id is required"
+    assistant = next(
+        item[3] for item in history.appended if item[2] == "assistant"
+    )
+    assert assistant == "任务执行失败：Style id is required"
 
 
 @pytest.mark.anyio

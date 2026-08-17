@@ -20,7 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ScriptPageController } from "@/modules/narrative_planning/application/use-script-page-controller";
+import type {
+  ScriptGenerationMode,
+  ScriptPageController,
+} from "@/modules/narrative_planning/application/use-script-page-controller";
 
 export function ScriptPageView({
   controller,
@@ -38,6 +41,7 @@ export function ScriptPageView({
     generateButtonTitle,
     generateScriptCostDisplay,
     generating,
+    estimatedBeatCount,
     handleGenerateButtonClick,
     handleGenerateRewrite,
     handleIdentityChange,
@@ -56,6 +60,9 @@ export function ScriptPageView({
     onRewriteBeatCharsMinChange,
     onRewriteTargetBeatsBlur,
     onRewriteTargetBeatsChange,
+    onScriptModeChange,
+    onTargetDurationBlur,
+    onTargetDurationChange,
     pickerOpen,
     planIdentitiesCostDisplay,
     planPropsCostDisplay,
@@ -73,11 +80,15 @@ export function ScriptPageView({
     scenePlanning,
     scriptProgressLabel,
     scriptProgressPercent,
+    scriptMode,
     scriptTaskStarted,
     scriptTaskStopping,
     setPickerOpen,
     sourceSaving,
     sourceTextForEditor,
+    targetDurationLimits,
+    targetDurationTotal,
+    rhythmSeconds,
     episodeNumber,
   } = controller;
 
@@ -89,12 +100,65 @@ export function ScriptPageView({
           episode={episodeNumber}
           className="pr-1"
         />
-        <div className="inline-flex h-7 items-center gap-2 text-muted-foreground">
+        <div className="inline-flex items-center gap-2 text-muted-foreground">
           <span className="text-[11px]">{t("episode.script.modeLabel")}</span>
-          <span className="text-[11px] text-foreground/68">
-            {t("episode.script.modeLiteral").replace(/^模式[：:]\s*/, "")}
-          </span>
+          <Select
+            value={scriptMode}
+            disabled={generating || rewritePending}
+            onValueChange={(value) =>
+              onScriptModeChange(value as ScriptGenerationMode)
+            }
+          >
+            <SelectTrigger
+              className="h-7 w-28 rounded-[7px] px-2 text-xs"
+              aria-label={t("episode.script.modeLabel")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="duration">
+                {t("episode.script.rhythmDuration")}
+              </SelectItem>
+              <SelectItem value="literal">
+                {t("episode.script.rhythmLiteral")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+
+        {scriptMode === "duration" ? (
+          <div className="inline-flex h-7 items-center gap-2 text-[11px] text-muted-foreground">
+            <label className="inline-flex items-center gap-1.5">
+              <span className="shrink-0">
+                {t("episode.script.targetDuration")}
+              </span>
+              <Input
+                type="number"
+                min={targetDurationLimits.min}
+                max={targetDurationLimits.max}
+                step={15}
+                value={targetDurationTotal}
+                disabled={generating || rewritePending}
+                onChange={(event) =>
+                  onTargetDurationChange(event.target.value)
+                }
+                onBlur={onTargetDurationBlur}
+                className="h-7 w-16 rounded-[7px] px-2 text-xs tabular-nums"
+              />
+              <span>{t("episode.script.secondsUnit")}</span>
+            </label>
+            <span className="whitespace-nowrap text-foreground/60">
+              {t("episode.script.estimatedBeatCount", {
+                count: estimatedBeatCount,
+                seconds: rhythmSeconds,
+              })}
+            </span>
+          </div>
+        ) : (
+          <span className="text-[11px] text-foreground/60">
+            {t("episode.script.rhythmLiteralHint")}
+          </span>
+        )}
 
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {isNarratedProject && (
@@ -196,7 +260,7 @@ export function ScriptPageView({
             size="sm"
             onClick={handleGenerateButtonClick}
             disabled={generateButtonDisabled}
-            title={generateButtonTitle}
+            data-ui-tooltip={generateButtonTitle}
             className="h-7 gap-1.5 rounded-[7px] bg-primary px-2.5 text-xs font-normal text-primary-foreground shadow-none hover:bg-primary/85 active:bg-primary/75 [&_svg]:size-3.5"
           >
             {scriptTaskStarted ? (

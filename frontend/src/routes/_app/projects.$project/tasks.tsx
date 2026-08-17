@@ -19,6 +19,7 @@ import {
   useClearCompleted,
   useDeleteTask,
   useTasks,
+  taskProgressPercent,
 } from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,9 +170,9 @@ function TaskRow({
               <span className="shrink-0 truncate text-[11px] text-muted-foreground/80">
                 {task.current_task}
               </span>
-              <Progress value={task.progress * 100} className="shrink-0 w-28 h-[3px] [&>div]:h-[3px] [&>div]:gap-0" />
+              <Progress value={taskProgressPercent(task)} className="shrink-0 w-28 h-[3px] [&>div]:h-[3px] [&>div]:gap-0" />
               <span className="shrink-0 font-mono text-[11px] text-muted-foreground/70">
-                {Math.round(task.progress * 100)}%
+                {taskProgressPercent(task)}%
               </span>
             </div>
           ) : task.current_task ? (

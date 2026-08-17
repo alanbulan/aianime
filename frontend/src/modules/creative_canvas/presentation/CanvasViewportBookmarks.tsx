@@ -45,7 +45,7 @@ export function CanvasViewportBookmarks({
           <button
             key={index}
             type="button"
-            title={t(
+            data-ui-tooltip={t(
               filled
                 ? 'canvas.bookmarks.jumpTooltip'
                 : 'canvas.bookmarks.emptyTooltip',

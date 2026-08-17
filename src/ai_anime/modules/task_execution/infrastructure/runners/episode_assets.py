@@ -93,50 +93,56 @@ async def _run_episode_asset_planner(
         ctx,
         load_graph_state=True,
     )
+    try:
+        episode_obj = cognee_store.get_episode(episode)
+        if episode_obj is None:
+            raise ValueError(f"Episode {episode} not found")
 
-    episode_obj = cognee_store.get_episode(episode)
-    if episode_obj is None:
-        raise ValueError(f"Episode {episode} not found")
+        update(0.15, f"规划{label}资产...")
+        compiler = AssetCompiler(cognee_store)
 
-    update(0.15, f"规划{label}资产...")
-    compiler = AssetCompiler(cognee_store)
+        def on_log(message: str) -> None:
+            update(log=message)
 
-    def on_log(message: str) -> None:
-        update(log=message)
+        if asset_kind == "scene":
+            scene_menu, new_count = await compiler.compile_episode_scenes(
+                episode_obj,
+                on_log=on_log,
+                on_progress=lambda progress, task: update(0.15 + progress * 0.75, task),
+            )
+            scene_menu_data = _dump_items(scene_menu)
+            if not scene_menu_data:
+                raise ValueError("未识别到任何场景，请补充分集中的场次地点信息")
+            update(
+                0.95,
+                "场景规划完成",
+                f"场景 {new_count} 新建/{len(scene_menu_data)} 总计",
+            )
+            return {
+                "episode": episode,
+                "kind": "scene",
+                "new_count": new_count,
+                "total_count": len(scene_menu_data),
+                "scene_menu": scene_menu_data,
+            }
 
-    if asset_kind == "scene":
-        scene_menu, new_count = await compiler.compile_episode_scenes(
+        prop_menu = await compiler.compile_episode_props(
             episode_obj,
             on_log=on_log,
             on_progress=lambda progress, task: update(0.15 + progress * 0.75, task),
         )
-        scene_menu_data = _dump_items(scene_menu)
-        if not scene_menu_data:
-            raise ValueError("未识别到任何场景，请先生成逐行解说工作稿或补充场次地点")
-        update(0.95, "场景规划完成", f"场景 {new_count} 新建/{len(scene_menu_data)} 总计")
+        promoted_props = await promote_episode_props_to_global(cognee_store, prop_menu)
+        prop_menu_data = _dump_items(prop_menu)
+        update(0.95, "道具规划完成", f"道具 {len(prop_menu_data)} 总计")
         return {
             "episode": episode,
-            "kind": "scene",
-            "new_count": new_count,
-            "total_count": len(scene_menu_data),
-            "scene_menu": scene_menu_data,
+            "kind": "prop",
+            "total_count": len(prop_menu_data),
+            "auto_promoted_props": promoted_props,
+            "prop_menu": prop_menu_data,
         }
-
-    prop_menu = await compiler.compile_episode_props(
-        episode_obj,
-        on_log=on_log,
-        on_progress=lambda progress, task: update(0.15 + progress * 0.75, task),
-    )
-    promoted_props = await promote_episode_props_to_global(cognee_store, prop_menu)
-    prop_menu_data = _dump_items(prop_menu)
-    update(0.95, "道具规划完成", f"道具 {len(prop_menu_data)} 总计")
-    return {
-        "episode": episode,
-        "kind": "prop",
-        "total_count": len(prop_menu_data),
-        "auto_promoted_props": promoted_props,
-        "prop_menu": prop_menu_data,
-    }
+    finally:
+        await cognee_store.close()
 
 
 register_project_task_runner("episode_scene_planner", run_episode_asset_planner)

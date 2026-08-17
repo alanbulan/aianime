@@ -13,7 +13,7 @@ import type {
   SaveSketchPoseEditorCommand,
 } from "@/modules/production/domain/sketch-pose-editor";
 
-function invalidateSketchEditorQueries(
+function invalidateBeatImages(
   queryClient: QueryClient,
   project: string,
   episode: number,
@@ -21,6 +21,9 @@ function invalidateSketchEditorQueries(
 ) {
   queryClient.invalidateQueries({
     queryKey: queryKeys.sketchPoseEditor(project, episode, beatNum),
+  });
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.sketchCropSource(project, episode, beatNum),
   });
   queryClient.invalidateQueries({ queryKey: queryKeys.beats(project, episode) });
   queryClient.invalidateQueries({ queryKey: queryKeys.grids(project, episode) });
@@ -40,6 +43,7 @@ export function createSketchPoseEditorQueryHooks(
       queryFn: ({ signal }) =>
         gateway.getSketchPoseEditor(project, episode, beatNum, signal),
       enabled: !!project && episode > 0 && beatNum > 0 && enabled,
+      staleTime: 0,
     });
   }
 
@@ -49,13 +53,27 @@ export function createSketchPoseEditorQueryHooks(
       mutationFn: (command: SaveSketchPoseEditorCommand) =>
         gateway.saveSketchPoseEditor(project, episode, command),
       onSuccess: (_response, command) => {
-        invalidateSketchEditorQueries(
+        invalidateBeatImages(
           queryClient,
           project,
           episode,
           command.beatNum,
         );
       },
+    });
+  }
+
+  function useSketchCropSource(
+    project: string,
+    episode: number,
+    beatNum: number,
+    enabled: boolean,
+  ) {
+    return useQuery({
+      queryKey: queryKeys.sketchCropSource(project, episode, beatNum),
+      queryFn: ({ signal }) =>
+        gateway.getSketchCropSource(project, episode, beatNum, signal),
+      enabled: !!project && episode > 0 && beatNum > 0 && enabled,
     });
   }
 
@@ -65,7 +83,7 @@ export function createSketchPoseEditorQueryHooks(
       mutationFn: (command: CropSketchCommand) =>
         gateway.cropSketch(project, episode, command),
       onSuccess: (_response, command) => {
-        invalidateSketchEditorQueries(
+        invalidateBeatImages(
           queryClient,
           project,
           episode,
@@ -75,5 +93,10 @@ export function createSketchPoseEditorQueryHooks(
     });
   }
 
-  return { useSketchPoseEditor, useSaveSketchPoseEditor, useCropSketch };
+  return {
+    useCropSketch,
+    useSaveSketchPoseEditor,
+    useSketchPoseEditor,
+    useSketchCropSource,
+  };
 }

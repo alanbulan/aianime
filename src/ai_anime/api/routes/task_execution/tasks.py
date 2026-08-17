@@ -74,6 +74,23 @@ async def get_project_task_limits(project: str, user: dict = Depends(get_api_use
     }
 
 
+@router.get("/projects/{project}/tasks/status")
+async def get_project_task_by_key(
+    project: str,
+    task_key: str = Query(..., min_length=1, description="创建任务时返回的唯一任务键"),
+    user: dict = Depends(get_api_user),
+):
+    """使用任务创建响应中的唯一键查询状态。"""
+    ctx = await resolve_project_context(
+        user=user, project_id=project, required_role="viewer"
+    )
+    for task in project_task_use_cases().list_for_project(ctx):
+        payload = serialize_project_task(task, context=ctx)
+        if payload["task_key"] == task_key:
+            return {"ok": True, "data": payload}
+    return {"ok": True, "data": None, "message": "Task not found"}
+
+
 @router.delete("/projects/{project}/tasks/completed")
 async def clear_project_completed_tasks(
     project: str, user: dict = Depends(get_api_user)

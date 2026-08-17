@@ -29,9 +29,25 @@ class ChatWorkerLifecycle:
                 username,
                 scope_kind=scope.kind,
                 project_id=scope.id if scope.kind == "project" else None,
+                conversation_id=scope.conversation_id,
             )
         except Exception:
             return
+
+    async def forget_conversation(
+        self,
+        username: str,
+        scope: ChatScope,
+    ) -> bool:
+        try:
+            return await self._runtime.forget_conversation(
+                username,
+                scope_kind=scope.kind,
+                project_id=scope.id if scope.kind == "project" else None,
+                conversation_id=scope.conversation_id,
+            )
+        except Exception:
+            return False
 
     def is_busy(self, username: str) -> bool:
         return self._run_locks.is_active(username)

@@ -32,6 +32,12 @@ class ChatBackendEvent:
     turn_id: str | None = None
     text: str | None = None
     name: str | None = None
+    success: bool | None = None
+    error: str | None = None
+    tool_call_id: str | None = None
+    tool_phase: Literal["call", "result"] | None = None
+    tool_input: Any | None = None
+    tool_output: Any | None = None
     raw: Any | None = None
 
 _log = logging.getLogger(__name__)
@@ -40,30 +46,35 @@ _log = logging.getLogger(__name__)
 INITIALIZE_TIMEOUT = 30.0
 # How long to wait for hermes to produce a session/new response.
 SESSION_NEW_TIMEOUT = 90.0  # cold start runs startup probes (vision/aux); allow them to finish
-# Per-line stdout read timeout while streaming a prompt.
-STREAM_READ_TIMEOUT = 120.0
+# Maximum idle period between ACP frames while streaming a prompt. This is not
+# a whole-turn deadline: long tool workflows remain alive while they keep
+# reporting progress.
 try:
-    TURN_TOOL_CALL_LIMIT = max(1, int(os.environ.get("HERMES_TURN_TOOL_CALL_LIMIT", "20")))
+    STREAM_READ_TIMEOUT = max(
+        30.0,
+        float(os.environ.get("HERMES_STREAM_IDLE_TIMEOUT", "300")),
+    )
 except ValueError:
-    TURN_TOOL_CALL_LIMIT = 20
+    STREAM_READ_TIMEOUT = 300.0
+try:
+    TURN_TOOL_CALL_LIMIT = max(1, int(os.environ.get("HERMES_TURN_TOOL_CALL_LIMIT", "512")))
+except ValueError:
+    TURN_TOOL_CALL_LIMIT = 512
 TOOL_DETAIL_LIMIT = 1600
 CONTENT_FILTER_MESSAGE = (
     "本轮回复被模型网关的内容安全过滤拦截了，AI anime 助手没有拿到可用输出。"
     "请把需求拆得更具体，避免一次性要求完成整集或包含敏感/违规描述；"
     "也可以先让我只列当前制作进度和下一步。"
 )
-AI_ANIME_ONE_STEP_STOP_MESSAGE = (
-    "当前任务已开始处理。请稍后让我查看当前任务进度，或在任务完成后再继续下一步。"
-)
-AI_ANIME_WRITE_FAILED_STOP_MESSAGE = (
-    "刚才这一步没有成功启动任务。请先根据返回的错误补齐前置条件；"
-    "如果是配音缺少声线，可以到「资产库」上传或录制缺失声线后再继续。"
-)
-
 _AI_ANIME_WRITE_TOOLS = {
     "ai_anime_post",
     "ai_anime_patch",
     "ai_anime_delete",
+    "ai_anime_create_style",
+    "ai_anime_generate_style_preview",
+    "ai_anime_upload_style_preview",
+    "ai_anime_run_production_workflow",
+    "ai_anime_run_script_workflow",
     "ai_anime_start_ingest",
     "ai_anime_build_characters",
     "ai_anime_plan_episodes",
@@ -83,6 +94,14 @@ _AI_ANIME_WRITE_TOOLS = {
     "ai_anime_generate_portrait",
     "ai_anime_generate_identity_image",
     "ai_anime_start_single_video",
+}
+
+_AI_ANIME_READ_TOOLS = {
+    "ai_anime_get",
+    "ai_anime_pipeline_status",
+    "ai_anime_list_tasks",
+    "ai_anime_get_task",
+    "ai_anime_get_episode_script",
 }
 
 _TOOL_DETAIL_FIELDS = (
@@ -152,36 +171,77 @@ def _is_ai_anime_write_tool(name: object) -> bool:
     return str(name or "").strip() in _AI_ANIME_WRITE_TOOLS
 
 
-def _should_stop_after_write_tool(first_write_tool: str | None, next_tool_name: object) -> bool:
-    return first_write_tool is not None and _is_ai_anime_write_tool(next_tool_name)
-
-
-def _is_failed_tool_update(value: object) -> bool:
+def _is_failed_tool_update(
+    value: object,
+    *,
+    suppress_domain_failures: bool = False,
+) -> bool:
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw or raw[0] not in "[{":
+            return False
+        try:
+            return _is_failed_tool_update(
+                json.loads(raw),
+                suppress_domain_failures=suppress_domain_failures,
+            )
+        except json.JSONDecodeError:
+            return False
+    if isinstance(value, (list, tuple)):
+        return any(
+            _is_failed_tool_update(
+                item,
+                suppress_domain_failures=suppress_domain_failures,
+            )
+            for item in value
+        )
     if not isinstance(value, dict):
+        return False
+    status_code = value.get("status_code")
+    if suppress_domain_failures and (
+        value.get("ok") is True
+        or (
+            isinstance(status_code, int)
+            and 200 <= status_code < 300
+            and value.get("ok") is not False
+        )
+    ):
         return False
     status = str(value.get("status") or "").strip().lower()
     if status in {"failed", "error", "cancelled", "canceled"}:
         return True
-    for key in ("error", "message", "result"):
-        item = value.get(key)
-        if isinstance(item, dict):
-            if item.get("ok") is False:
-                return True
-            if str(item.get("status") or "").strip().lower() in {"failed", "error"}:
-                return True
+    if value.get("ok") is False:
+        return True
+    for key in ("error", "message", "result", "content", "data", "output"):
+        if _is_failed_tool_update(
+            value.get(key),
+            suppress_domain_failures=suppress_domain_failures,
+        ):
+            return True
     return False
 
 
-def _should_mark_first_write_failed(
-    first_write_tool: str | None,
-    active_tool_name: str | None,
-    update: object,
-) -> bool:
-    return (
-        first_write_tool is not None
-        and active_tool_name == first_write_tool
-        and _is_failed_tool_update(update)
-    )
+def _tool_update_outcome(
+    update: dict,
+    *,
+    tool_name: str | None = None,
+) -> tuple[bool | None, str | None]:
+    status = str(update.get("status") or "").strip().lower()
+    if _is_failed_tool_update(
+        update,
+        suppress_domain_failures=tool_name in _AI_ANIME_READ_TOOLS,
+    ):
+        detail = (
+            update.get("error")
+            or update.get("message")
+            or update.get("result")
+            or status
+            or "工具调用失败"
+        )
+        return False, _compact_tool_detail(detail)
+    if status in {"completed", "complete", "success", "succeeded"}:
+        return True, None
+    return None, None
 
 
 def _format_tool_call_text(update: dict, title: object) -> str:
@@ -276,6 +336,7 @@ class HermesSdkThread:
         self._req_counter = 0
         self._closed = False
         self._initialized = False
+        self._tool_names_by_call_id: dict[str, str] = {}
         # Serializes the spawn→initialize→session prologue so a background
         # warm() and the first real stream() can't interleave on the shared
         # JSON-RPC stdio. Whichever runs first pays the cold start; the other
@@ -299,6 +360,23 @@ class HermesSdkThread:
         self._proc.stdin.write(line.encode("utf-8"))
         await self._proc.stdin.drain()
         return req_id
+
+    async def _send_notification(self, method: str, params: dict[str, Any]) -> None:
+        if self._proc is None or self._proc.stdin is None:
+            return
+        msg = {"jsonrpc": "2.0", "method": method, "params": params}
+        self._proc.stdin.write((json.dumps(msg) + "\n").encode("utf-8"))
+        await self._proc.stdin.drain()
+
+    async def _cancel_prompt_and_close(self) -> None:
+        try:
+            await asyncio.wait_for(
+                self._send_notification("session/cancel", {"sessionId": self.id}),
+                timeout=1.0,
+            )
+        except (asyncio.TimeoutError, BrokenPipeError, ConnectionError, RuntimeError):
+            _log.debug("failed to notify Hermes about prompt cancellation", exc_info=True)
+        await self.close()
 
     async def _spawn(self) -> None:
         """Launch the hermes acp subprocess inside our sandbox."""
@@ -464,21 +542,27 @@ class HermesSdkThread:
             # Along the way emit assistant_delta / tool_update for any
             # session/update notifications hermes sends.
             assert self._proc.stdout is not None
-            deadline = asyncio.get_event_loop().time() + STREAM_READ_TIMEOUT
             tool_call_count = 0
-            first_write_tool: str | None = None
-            active_tool_name: str | None = None
-            first_write_failed = False
             while True:
-                remaining = max(0.1, deadline - asyncio.get_event_loop().time())
                 try:
                     line = await asyncio.wait_for(
-                        self._proc.stdout.readline(), timeout=remaining
+                        self._proc.stdout.readline(), timeout=STREAM_READ_TIMEOUT
                     )
                 except asyncio.TimeoutError:
+                    _log.warning(
+                        "Hermes prompt produced no ACP frames for %.0f seconds; "
+                        "cancelling worker session=%s turn=%s",
+                        STREAM_READ_TIMEOUT,
+                        self.id,
+                        turn_id,
+                    )
+                    await self._cancel_prompt_and_close()
                     yield ChatBackendEvent(
                         type="complete", thread_id=self.id, turn_id=turn_id,
-                        text="(hermes timed out)",
+                        text=(
+                            "AI anime 助手长时间没有返回任何进度，本轮已安全停止。"
+                            "你可以直接重试，上一轮不会继续在后台占用会话。"
+                        ),
                     )
                     return
                 if not line:
@@ -521,34 +605,6 @@ class HermesSdkThread:
                 if ev is not None:
                     if ev.type == "tool_update" and (ev.raw or {}).get("sessionUpdate") == "tool_call":
                         tool_call_count += 1
-                        tool_name = str(ev.name or "").strip()
-                        active_tool_name = tool_name
-                        if _should_stop_after_write_tool(first_write_tool, tool_name):
-                            stop_text = (
-                                AI_ANIME_WRITE_FAILED_STOP_MESSAGE
-                                if first_write_failed
-                                else AI_ANIME_ONE_STEP_STOP_MESSAGE
-                            )
-                            _log.warning(
-                                "Hermes turn attempted tool after write task: thread=%s turn=%s "
-                                "first_write=%s first_write_failed=%s next_tool=%s",
-                                self.id,
-                                turn_id,
-                                first_write_tool,
-                                first_write_failed,
-                                tool_name or "tool",
-                            )
-                            await self.close()
-                            yield ChatBackendEvent(
-                                type="complete",
-                                thread_id=self.id,
-                                turn_id=turn_id,
-                                text=stop_text,
-                            )
-                            return
-                        if _is_ai_anime_write_tool(tool_name):
-                            first_write_tool = tool_name
-                            first_write_failed = False
                         if tool_call_count > TURN_TOOL_CALL_LIMIT:
                             _log.warning(
                                 "Hermes turn exceeded tool call limit: thread=%s turn=%s limit=%s",
@@ -562,21 +618,11 @@ class HermesSdkThread:
                                 thread_id=self.id,
                                 turn_id=turn_id,
                                 text=(
-                                    "本轮操作已停止：AI anime 助手连续调用工具过多，可能在自动推进过大范围。"
-                                    "请缩小指令范围，例如只检查前置条件，或只启动一个具体 beat 的视频任务。"
+                                    "本轮操作已停止：AI anime 助手连续调用工具超过安全上限。"
+                                    "已保留已完成步骤和任务状态，请从当前进度继续。"
                                 ),
                             )
                             return
-                    elif (
-                        ev.type == "tool_update"
-                        and (ev.raw or {}).get("sessionUpdate") == "tool_call_update"
-                        and _should_mark_first_write_failed(
-                            first_write_tool,
-                            active_tool_name,
-                            ev.raw,
-                        )
-                    ):
-                        first_write_failed = True
                     yield ev
         finally:
             # Don't kill subprocess here — caller may want to send more prompts.
@@ -611,19 +657,62 @@ class HermesSdkThread:
         if kind == "tool_call":
             title = update.get("title") or update.get("kind") or "tool"
             tool_name, _body = _split_tool_title(title)
+            tool_call_id = str(update.get("toolCallId") or "").strip()
+            if tool_call_id:
+                self._tool_names_by_call_id[tool_call_id] = tool_name
             return ChatBackendEvent(
                 type="tool_update", thread_id=self.id, turn_id=turn_id,
                 text=_format_tool_call_text(update, title),
                 name=tool_name,
+                tool_call_id=tool_call_id or None,
+                tool_phase="call",
+                tool_input=(
+                    update.get("input")
+                    or update.get("arguments")
+                    or update.get("rawInput")
+                ),
                 raw=update,
             )
         if kind == "tool_call_update":
             status = update.get("status")
+            tool_call_id = str(update.get("toolCallId") or "").strip()
+            tool_name = self._tool_names_by_call_id.get(tool_call_id)
+            success, error = _tool_update_outcome(
+                update,
+                tool_name=tool_name,
+            )
+            if str(status or "").strip().lower() in {
+                "completed",
+                "complete",
+                "success",
+                "succeeded",
+                "failed",
+                "error",
+                "cancelled",
+                "canceled",
+            }:
+                self._tool_names_by_call_id.pop(tool_call_id, None)
             return ChatBackendEvent(
                 type="tool_update", thread_id=self.id, turn_id=turn_id,
                 text=f"  {status or 'updated'}",
+                name=tool_name,
+                success=success,
+                error=error,
+                tool_call_id=tool_call_id or None,
+                tool_phase="result",
+                tool_output=(
+                    update.get("result")
+                    if "result" in update
+                    else update.get("content")
+                ),
                 raw=update,
             )
+        if kind == "usage_update":
+            _log.debug("Hermes context usage update: %s", update)
+            return None
+        if kind == "session_info_update":
+            _log.info("Hermes session context updated: %s", update)
+            return None
         return None
 
     async def close(self) -> None:

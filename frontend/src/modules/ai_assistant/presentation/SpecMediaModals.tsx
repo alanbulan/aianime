@@ -121,7 +121,7 @@ export function SpecMediaDetailModal({
               if (downloadSrc) triggerDownload(downloadSrc);
             }}
             aria-label={t("aiAssistant.download")}
-            title={t("aiAssistant.download")}
+            data-ui-tooltip={t("aiAssistant.download")}
           >
             <Download className="size-6" />
           </button>
@@ -230,7 +230,7 @@ export function SpecMediaDetailModal({
                             })
                           }
                           className="block w-16 shrink-0 overflow-hidden rounded-lg border border-media-foreground/15 bg-media"
-                          title={candidate.label}
+                          data-ui-tooltip={candidate.label}
                         >
                           <img
                             src={candidate.src}

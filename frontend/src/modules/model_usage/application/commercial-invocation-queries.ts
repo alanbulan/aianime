@@ -67,6 +67,9 @@ export function createCommercialInvocationQueries(
         void queryClient.invalidateQueries({
           queryKey: ["commercial", "invocations"],
         });
+        void queryClient.invalidateQueries({
+          queryKey: queryKeys.commercialQuota(),
+        });
       },
     });
   }

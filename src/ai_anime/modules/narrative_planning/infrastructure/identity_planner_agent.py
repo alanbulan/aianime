@@ -368,8 +368,8 @@ class IdentityPlanner:
         return final_age_group
 
     @staticmethod
-    def _identity_model(model_env: str, default_model: str = "gemini-3.5-flash"):
-        return get_newapi_text_pydantic_model(model_env, default_model)
+    def _identity_model():
+        return get_newapi_text_pydantic_model()
 
     @staticmethod
     def _identity_model_settings(
@@ -589,7 +589,7 @@ class IdentityPlanner:
 """
 
             cast_agent = Agent(
-                self._identity_model("IDENTITY_PLANNER_CAST_MODEL"),
+                self._identity_model(),
                 model_settings=self._identity_model_settings(
                     "IDENTITY_PLANNER_CAST_THINKING_LEVEL",
                     "low",
@@ -816,7 +816,7 @@ class IdentityPlanner:
 """
         try:
             agent = Agent(
-                self._identity_model("IDENTITY_PLANNER_ANALYSIS_MODEL"),
+                self._identity_model(),
                 system_prompt=DEFAULT_IDENTITY_PROMPT,
                 model_settings=self._identity_model_settings(
                     "IDENTITY_PLANNER_ANALYSIS_THINKING_LEVEL",
@@ -897,7 +897,7 @@ class IdentityPlanner:
 """
         try:
             agent = Agent(
-                self._identity_model("IDENTITY_PLANNER_ANALYSIS_MODEL"),
+                self._identity_model(),
                 system_prompt=OTHER_IDENTITY_PROMPT,
                 model_settings=self._identity_model_settings(
                     "IDENTITY_PLANNER_ANALYSIS_THINKING_LEVEL",
@@ -1318,7 +1318,7 @@ class IdentityPlanner:
 
         try:
             appearance_agent = Agent(
-                self._identity_model("IDENTITY_PLANNER_APPEARANCE_MODEL"),
+                self._identity_model(),
                 system_prompt=APPEARANCE_GENERATION_PROMPT,
                 model_settings=self._identity_model_settings(
                     "IDENTITY_PLANNER_APPEARANCE_THINKING_LEVEL",

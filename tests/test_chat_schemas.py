@@ -13,11 +13,18 @@ from ai_anime.api.routes.ai_assistant.schemas import (
 @pytest.mark.parametrize(
     ("payload", "expected"),
     [
-        (None, {"kind": "home", "id": None}),
-        (ChatScopePayload(), {"kind": "home", "id": None}),
+        (None, {"kind": "home", "id": None, "conversationId": "main"}),
+        (
+            ChatScopePayload(),
+            {"kind": "home", "id": None, "conversationId": "main"},
+        ),
         (
             ChatScopePayload(kind="project", id="project-a"),
-            {"kind": "project", "id": "project-a"},
+            {
+                "kind": "project",
+                "id": "project-a",
+                "conversationId": "main",
+            },
         ),
     ],
 )

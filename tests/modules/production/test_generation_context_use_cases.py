@@ -37,15 +37,23 @@ class _Store:
 class _ColorAssigner:
     def __init__(self, colors: dict[str, str]) -> None:
         self.colors = colors
-        self.calls: list[tuple[list[dict[str, Any]], list[dict[str, Any]]]] = []
+        self.calls: list[dict[str, Any]] = []
 
     def assign(
         self,
         characters: list[dict[str, Any]],
         beats: list[dict[str, Any]],
+        *,
+        existing_colors: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        self.calls.append((characters, beats))
-        return self.colors
+        self.calls.append(
+            {
+                "characters": characters,
+                "beats": beats,
+                "existing_colors": existing_colors,
+            }
+        )
+        return existing_colors or self.colors
 
 
 class _Episodes:
@@ -102,7 +110,13 @@ async def test_build_character_map_reuses_persisted_sketch_colors() -> None:
             "use_detected_identities": True,
         }
     ]
-    assert colors.calls == []
+    assert colors.calls == [
+        {
+            "characters": [],
+            "beats": beats,
+            "existing_colors": {"林昭_青年": "#3366FF"},
+        }
+    ]
     assert store.saved == []
 
 
@@ -126,7 +140,13 @@ async def test_build_character_map_assigns_and_persists_missing_colors() -> None
         episode_num=2,
     )
 
-    assert colors.calls == [([{"name": "林昭"}], beats)]
+    assert colors.calls == [
+        {
+            "characters": [],
+            "beats": beats,
+            "existing_colors": None,
+        }
+    ]
     assert store.saved == [(2, assigned)]
     assert projector.map_calls[0]["sketch_colors"] == assigned
 

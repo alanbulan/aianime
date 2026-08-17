@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getAllByUiTooltip, getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { createRef } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -32,6 +33,12 @@ function controller(
     libraryError: null,
     isSyncing: false,
     deletingId: null,
+    deleteDialog: {
+      confirm: vi.fn(async () => undefined),
+      name: '',
+      onOpenChange: vi.fn(),
+      open: false,
+    },
     pendingUploads: [],
     isDragging: false,
     setIsDragging: vi.fn(),
@@ -110,9 +117,9 @@ describe('AssetLibraryModalView', () => {
     expect(setActiveTabKey).toHaveBeenCalledWith('video');
     fireEvent.click(screen.getByText('重新同步'));
     expect(handleSyncFromMainline).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getAllByTitle('选择')[0]);
+    fireEvent.click(getAllByUiTooltip('选择')[0]);
     expect(toggleSelect).toHaveBeenCalledWith('image:image-a');
-    fireEvent.click(screen.getByTitle('删除'));
+    fireEvent.click(getByUiTooltip('删除'));
     expect(handleDeleteEntry).toHaveBeenCalledWith(uploaded);
     fireEvent.click(screen.getByRole('button', { name: '确定' }));
     expect(handleConfirm).toHaveBeenCalledOnce();
@@ -161,7 +168,28 @@ describe('AssetLibraryModalView', () => {
 
     expect(screen.getByText('上传失败')).toBeInTheDocument();
     expect(screen.getByText('network unavailable')).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('移除'));
+    fireEvent.click(getByUiTooltip('移除'));
     expect(removePending).toHaveBeenCalledWith('pending-a');
+  });
+
+  it('renders the in-app deletion confirmation above the asset library', () => {
+    const confirm = vi.fn(async () => undefined);
+    render(
+      <AssetLibraryModalView
+        controller={controller({
+          deleteDialog: {
+            confirm,
+            name: '本地图片',
+            onOpenChange: vi.fn(),
+            open: true,
+          },
+        })}
+        resolveMediaUrl={resolveMediaUrl}
+      />,
+    );
+
+    expect(screen.getByText('确定要删除「本地图片」？删除后无法恢复。')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '删除' }));
+    expect(confirm).toHaveBeenCalledOnce();
   });
 });

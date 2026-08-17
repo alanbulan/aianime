@@ -25,7 +25,7 @@ from typing import Optional, List, Callable, TYPE_CHECKING
 from pydantic_ai import Agent
 from pydantic import BaseModel, Field
 
-from ai_anime.modules.model_usage.public import get_pydantic_model
+from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
 from ai_anime.modules.knowledge_graph.public import create_episode_planner_tools
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.shared.utils.logging import log_agent_start, log_agent_end
@@ -165,7 +165,7 @@ def create_episode_planner_agent(tools: List[Callable]) -> Agent:
         配置好的 Agent
     """
     return Agent(
-        get_pydantic_model(),
+        get_newapi_text_pydantic_model(),
         system_prompt=EPISODE_PLANNER_PROMPT,
         tools=tools,
         output_type=EpisodePlannerOutput,

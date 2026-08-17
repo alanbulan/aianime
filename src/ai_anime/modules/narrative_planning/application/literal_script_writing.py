@@ -399,10 +399,7 @@ class LiteralScriptWritingWorkflow:
     def agent(self) -> Agent:
         if self._agent is None:
             self._agent = Agent(
-                get_newapi_text_pydantic_model(
-                    "LITERAL_BEAT_META_MODEL",
-                    "gemini-3.5-flash",
-                ),
+                get_newapi_text_pydantic_model(),
                 system_prompt=LITERAL_SCRIPT_PROMPT,
                 model_settings=get_newapi_text_pydantic_model_settings(
                     "LITERAL_BEAT_META_THINKING_LEVEL",

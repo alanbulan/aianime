@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -313,6 +314,7 @@ beforeEach(() => {
   backgroundAnchorsMock.mockReset();
   backgroundAnchorsMock.mockReturnValue({
     isLoading: false,
+    refetch: vi.fn().mockResolvedValue({ data: undefined }),
     data: {
       ok: true,
       data: {
@@ -391,6 +393,24 @@ beforeEach(() => {
       },
     },
     isLoading: false,
+    refetch: vi.fn().mockResolvedValue({
+      data: {
+        ok: true,
+        data: {
+          viewer_kind: "three_d_director",
+          mode: "beat",
+          project: "demo",
+          scene_id: "地下室",
+          display_name: "地下室",
+          source: {
+            ply_url: "/static/director_worlds/scene/master_sharp.ply",
+            source_kind: "master",
+          },
+          palette: { actors: [], props: [], anonymous_colors: [] },
+          allowed_destinations: ["view", "beat_selected_background"],
+        },
+      },
+    }),
   });
   taskStartMock.mockReset();
   invalidateQueriesMock.mockReset();
@@ -438,7 +458,7 @@ describe("RenderSection", () => {
     );
 
     expect(screen.getByText("Relight 到 白天")).toBeInTheDocument();
-    expect(screen.getByTitle("Relight：按 beat 时间重新打光，不改变场景结构。")).toBeInTheDocument();
+    expect(getByUiTooltip("Relight：按 beat 时间重新打光，不改变场景结构。")).toBeInTheDocument();
     expect(screen.queryByText(/Seedance2/)).not.toBeInTheDocument();
   });
 
@@ -494,6 +514,7 @@ describe("RenderSection", () => {
     regenerateMock.mockResolvedValue({ ok: true, scope: "render-scope" });
     backgroundAnchorsMock.mockReturnValue({
       isLoading: false,
+      refetch: vi.fn().mockResolvedValue({ data: undefined }),
       data: {
         ok: true,
         data: {
@@ -655,6 +676,7 @@ describe("RenderSection", () => {
   it("uses current source instead of selected background slot for active render background", () => {
     backgroundAnchorsMock.mockReturnValue({
       isLoading: false,
+      refetch: vi.fn().mockResolvedValue({ data: undefined }),
       data: {
         ok: true,
         data: {

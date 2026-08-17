@@ -104,7 +104,7 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
 ):
     configure_model_access(
         allows_custom_models=False,
-        mode="cloud",
+        mode="mixed",
         model_capabilities=[
             {
                 "modelId": "cloud/video-standard",
@@ -132,7 +132,7 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
             "audio",
         ) == (1.8, 15.2, None, 15.2)
     finally:
-        configure_model_access(allows_custom_models=False, mode="cloud")
+        configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 class _FixedJobIds:

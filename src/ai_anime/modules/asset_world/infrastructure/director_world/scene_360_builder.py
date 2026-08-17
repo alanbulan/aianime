@@ -19,10 +19,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 from ai_anime.modules.production.public import (
     IMAGE_DEFAULT_STYLE,
+    apply_style_reference,
     get_style_preset,
 )
 from ai_anime.modules.production.public import _call_newapi_image_api
-from ai_anime.modules.model_usage.public import load_model_access_from_stdin
+from ai_anime.modules.model_usage.public import (
+    infer_project_output_dir,
+    load_model_access_from_stdin,
+)
 from ai_anime.shared.runtime_paths import OUTPUT_DIR
 
 # Demo defaults for standalone/manual runs. In production scene_360_tasks
@@ -103,7 +107,7 @@ def build_prompt(
     *,
     scene_name: str,
     scene_description: str,
-    style: str,
+    style_preset: dict,
     has_master: bool,
     has_reverse: bool = False,
     has_direction_guide: bool = False,
@@ -114,12 +118,10 @@ def build_prompt(
     overlap_prompt_insert: str = "",
     layer_mode: str = "full",
 ) -> str:
-    style_preset = get_style_preset(style, project_dir=str(PROJECT_DIR))
-    style_instructions = (
-        style_preset.get("gemini_style_instructions") or style_preset.get("style_keywords") or ""
-    )
-    avoid_instructions = (
-        style_preset.get("gemini_avoid_instructions") or style_preset.get("negative_prompt") or ""
+    style_instructions = str(style_preset.get("style_instructions") or "").strip()
+    avoid_instructions = str(style_preset.get("avoid_instructions") or "").strip()
+    has_style_reference = bool(
+        str(style_preset.get("style_reference_image_path") or "").strip()
     )
     reference_lines = ["INPUT IMAGE ROLES:"]
     if has_master:
@@ -230,12 +232,27 @@ def build_prompt(
                 "  topology and azimuth placement.",
             ]
         )
-    if not has_master and not has_reverse and not has_spatial_layout:
+    if has_style_reference:
         reference_lines.extend(
             [
-                "- No image reference is attached.",
-                "- Build the scene only from the scene description and project style preset.",
+                "- The final attached image is the GLOBAL STYLE REFERENCE.",
+                "- Copy only its rendering medium, linework, palette, lighting, materials, texture, and finish.",
+                "- Do NOT copy its people, faces, objects, scene layout, composition, camera, or text.",
             ]
+        )
+    if not has_master and not has_reverse and not has_spatial_layout:
+        reference_lines.extend(
+            (
+                [
+                    "- No scene identity or geometry reference is attached.",
+                    "- Build scene content from the scene description; use the final image only for visual style.",
+                ]
+                if has_style_reference
+                else [
+                    "- No image reference is attached.",
+                    "- Build the scene only from the scene description and project style preset.",
+                ]
+            )
         )
     reference_block = "\n".join(reference_lines)
     scene_description = clean_scene_description_for_360(scene_description)
@@ -774,6 +791,8 @@ async def run(args: argparse.Namespace) -> int:
     provider = "newapi"
     output_dir = repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    project_dir = infer_project_output_dir(output_dir) or PROJECT_DIR
+    style_preset = get_style_preset(args.style, project_dir=str(project_dir))
 
     master_refs: list[tuple[str, Path]] = []
     reference_images: list[tuple[str, bytes, str]] = []
@@ -915,14 +934,11 @@ async def run(args: argparse.Namespace) -> int:
         reference_images.append(image_tuple(layout_copy))
         has_spatial_layout_ref = True
 
-    if not reference_images:
-        reference_images = None  # type: ignore[assignment]
-
     provider_trace: dict[str, str] = {}
     prompt = build_prompt(
         scene_name=args.scene_name,
         scene_description=args.scene_description,
-        style=args.style,
+        style_preset=style_preset,
         has_master=has_master_ref,
         has_reverse=has_reverse_ref,
         has_direction_guide=has_direction_guide_ref,
@@ -933,6 +949,11 @@ async def run(args: argparse.Namespace) -> int:
         overlap_prompt_insert=overlap_prompt_insert,
         layer_mode=args.layer_mode,
     )
+    prompt, reference_images = apply_style_reference(
+        prompt,
+        reference_images,
+        style_preset,
+    )
     prompt_path = output_dir / "scene_360.prompt.txt"
     result_path = output_dir / "scene_panorama_2to1.png"
     manifest_path = output_dir / "scene_360_manifest.json"
@@ -942,7 +963,6 @@ async def run(args: argparse.Namespace) -> int:
     if not model:
         raise ValueError("scene 360 image model is required")
     image_bytes, _text, error = await _call_newapi_image_api(
-        model=model,
         prompt=prompt,
         reference_images=reference_images,
         image_config={

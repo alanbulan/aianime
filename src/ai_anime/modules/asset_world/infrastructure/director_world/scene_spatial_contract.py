@@ -17,11 +17,9 @@ from PIL import Image, ImageDraw, ImageFont
 from ai_anime.shared.runtime_paths import OUTPUT_DIR
 from ai_anime.modules.model_usage.public import (
     load_model_access_from_stdin,
-    resolve_internal_model_for_role,
     resolve_model_for_role,
 )
 from ai_anime.modules.model_usage.public import (
-    DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL,
     request_model_chat_content,
 )
 
@@ -33,7 +31,6 @@ DEFAULT_SCENE_DIR = PROJECT_DIR / "assets/scenes" / DEFAULT_SCENE_NAME
 DEFAULT_MASTER = DEFAULT_SCENE_DIR / "master.png"
 DEFAULT_REVERSE = DEFAULT_SCENE_DIR / "reverse_master.png"
 DEFAULT_OUTPUT_DIR = DEFAULT_SCENE_DIR / "scene_spatial_contract"
-DEFAULT_MODEL = DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
 SPATIAL_CONTRACT_SCHEMA_VERSION = "scene_spatial_contract_v8_topology_only_locks"
 
 
@@ -276,15 +273,9 @@ async def ask_model_access(
     *,
     image_path: Path,
     prompt: str,
-    model: str,
     max_tokens: int,
-    use_catalog_default: bool = False,
 ) -> str:
-    effective_model = (
-        resolve_internal_model_for_role(model, "TEXT")
-        if use_catalog_default
-        else resolve_model_for_role(model, "TEXT")
-    )
+    effective_model = resolve_model_for_role("TEXT")
     data_url = "data:image/jpeg;base64," + base64.b64encode(image_path.read_bytes()).decode("ascii")
     response_format = (
         {"type": "json_object"}
@@ -292,7 +283,6 @@ async def ask_model_access(
         else None
     )
     return await request_model_chat_content(
-        model=effective_model,
         temperature=0.0,
         max_tokens=max_tokens,
         timeout_seconds=120.0,
@@ -1000,18 +990,11 @@ async def run(args: argparse.Namespace) -> None:
     prompt = build_prompt(args.scene_name, overlap_analysis=overlap_analysis)
     (output_dir / "scene_spatial_contract.prompt.txt").write_text(prompt, encoding="utf-8")
 
-    explicit_model = str(args.model or "").strip()
-    selected_model = (
-        explicit_model
-        or os.environ.get("SCENE_SPATIAL_CONTRACT_MODEL", "").strip()
-        or DEFAULT_MODEL
-    )
+    selected_model = resolve_model_for_role("TEXT")
     raw_text = await ask_model_access(
         image_path=sheet_path,
         prompt=prompt,
-        model=selected_model,
         max_tokens=max(4000, int(args.max_tokens)),
-        use_catalog_default=not bool(explicit_model),
     )
     (output_dir / "scene_spatial_contract.raw_response.txt").write_text(raw_text, encoding="utf-8")
     contract = parse_json(raw_text)
@@ -1045,10 +1028,6 @@ def parse_args() -> argparse.Namespace:
         default="auto",
         dest="overlap_analysis",
         help="Path to overlap_continuation_analysis.json; use 'auto' to load scene default.",
-    )
-    parser.add_argument(
-        "--model",
-        default="",
     )
     parser.add_argument(
         "--max-tokens",

@@ -3,7 +3,9 @@ from pathlib import Path
 
 def test_fish_speech_prompt_field_and_agent_are_removed() -> None:
     sources = {
-        "script routes": Path("src/ai_anime/api/routes/scripts.py").read_text(encoding="utf-8"),
+        "script routes": Path(
+            "src/ai_anime/api/routes/narrative_planning/scripts.py"
+        ).read_text(encoding="utf-8"),
         "sqlite store": Path("src/ai_anime/sqlite_store.py").read_text(encoding="utf-8"),
         "character models": Path(
             "src/ai_anime/modules/asset_world/application/character_models.py"

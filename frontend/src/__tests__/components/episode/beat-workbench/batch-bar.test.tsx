@@ -30,6 +30,9 @@ beforeAll(async () => {
             script: { identityRequired: "需要身份规划" },
             workbench: {
               batch: {
+                productionWorkflow: "完整生成",
+                productionWorkflowTitle: "完整生成本集？",
+                productionWorkflowDesc: "从断点补齐并生成成片。",
                 rewriteScript: "重写脚本",
                 rewriteScriptTitle: "重写脚本？",
                 rewriteScriptDesc: "确认重写脚本？",
@@ -120,12 +123,14 @@ beforeAll(async () => {
 const {
   assignColorsMock,
   detectIdentitiesMock,
+  productionWorkflowMock,
   renderModelChangeMock,
   sketchAspectChangeMock,
   sketchModelChangeMock,
 } = vi.hoisted(() => ({
   assignColorsMock: vi.fn(),
   detectIdentitiesMock: vi.fn(),
+  productionWorkflowMock: vi.fn(),
   renderModelChangeMock: vi.fn(),
   sketchAspectChangeMock: vi.fn(),
   sketchModelChangeMock: vi.fn(),
@@ -146,6 +151,7 @@ function BatchBar({
     episodeAudioCostDisplay: "5",
     errorDialog: null,
     globalOptimizePending: false,
+    productionWorkflowPending: false,
     renderModel: {
       isLoading: false,
       isPending: false,
@@ -175,6 +181,7 @@ function BatchBar({
     onDismissError: vi.fn(),
     onGenerateAudio: vi.fn(),
     onGlobalOptimize: vi.fn(),
+    onRunProductionWorkflow: productionWorkflowMock,
     onReassignColors: assignColorsMock,
     onSketchAspectRatioChange: sketchAspectChangeMock,
   } as BatchBarController;
@@ -185,6 +192,7 @@ function BatchBar({
 beforeEach(() => {
   assignColorsMock.mockReset();
   detectIdentitiesMock.mockReset();
+  productionWorkflowMock.mockReset();
   renderModelChangeMock.mockReset();
   sketchAspectChangeMock.mockReset();
   sketchModelChangeMock.mockReset();
@@ -219,6 +227,27 @@ const DEFAULT_BEATS = [
 ];
 
 describe("BatchBar", () => {
+  it("exposes one complete-generation action", async () => {
+    const user = userEvent.setup();
+    render(
+      <I18nextProvider i18n={i18n}>
+        <BatchBar
+          project="demo"
+          episode={1}
+          beats={DEFAULT_BEATS}
+          videoModel="seedance"
+          sketchAspectRatio="2:3"
+          onSketchAspectRatioChange={vi.fn()}
+        />
+      </I18nextProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "完整生成" }));
+    await user.click(screen.getByRole("button", { name: "确认执行" }));
+
+    expect(productionWorkflowMock).toHaveBeenCalledTimes(1);
+  });
+
   it("hides whole-episode script rewrite from the batch toolbar", () => {
     render(
       <I18nextProvider i18n={i18n}>

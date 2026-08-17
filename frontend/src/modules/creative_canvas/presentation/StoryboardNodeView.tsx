@@ -160,7 +160,7 @@ const FrameCard = memo(function FrameCard({
             event.stopPropagation();
             onEditFrame(frame);
           }}
-          title="单独编辑此格"
+          data-ui-tooltip="单独编辑此格"
         >
           <SquareArrowOutUpRight className="h-3 w-3" />
         </button>
@@ -172,7 +172,7 @@ const FrameCard = memo(function FrameCard({
             event.stopPropagation();
             onTogglePicker(frame.id, event.clientX, event.clientY);
           }}
-          title="从输入图片替换"
+          data-ui-tooltip="从输入图片替换"
         >
           <ImagePlus className="h-3 w-3" />
         </button>
@@ -278,7 +278,7 @@ export function StoryboardNodeView({
                           item.imageUrl,
                         );
                       }}
-                      title={item.label}
+                      data-ui-tooltip={item.label}
                     >
                       <CanvasNodeImage
                         src={item.displayUrl}

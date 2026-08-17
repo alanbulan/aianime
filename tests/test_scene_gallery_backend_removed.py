@@ -25,7 +25,7 @@ def test_dead_grid_preview_backend_flow_is_removed() -> None:
 
 def test_shared_grid_backend_remains_for_grid_galleries() -> None:
     routes_root = Path("src/ai_anime/api/routes")
-    pool_source = Path("src/ai_anime/api/routes/production_pool.py").read_text(
+    pool_source = Path("src/ai_anime/api/routes/production/pool.py").read_text(
         encoding="utf-8"
     )
 

@@ -451,7 +451,7 @@ function EpisodePlanShortcut({
         onKeyDown={(event) => event.stopPropagation()}
         disabled={pending || disabled}
         aria-label={actionLabel}
-        title={actionLabel}
+        data-ui-tooltip={actionLabel}
         className="h-7 shrink-0 gap-1 rounded-[7px] bg-transparent px-2 text-[11px] font-normal text-foreground shadow-none transition-colors hover:bg-primary/12 hover:text-primary disabled:bg-transparent disabled:text-muted-foreground/50 [&_svg]:size-3"
       >
         {pending ? (

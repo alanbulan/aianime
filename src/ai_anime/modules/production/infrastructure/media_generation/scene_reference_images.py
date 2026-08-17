@@ -9,6 +9,11 @@ from typing import Literal
 from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
     _call_newapi_image_api,
 )
+from ai_anime.modules.production.infrastructure.media_generation_settings import (
+    IMAGE_DEFAULT_STYLE,
+    apply_style_reference,
+    get_style_preset,
+)
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
 
 SceneReferenceKind = Literal["master", "spatial_layout", "reverse_master"]
@@ -552,9 +557,7 @@ async def generate_scene_reference_image(
     scene: NovelScene,
     kind: SceneReferenceKind,
     model: str | None = None,
-    style_name: str = "",
-    style_prompt: str = "",
-    avoid_instructions: str = "",
+    style_id: str = "",
     base_scene: NovelScene | None = None,
 ) -> Path:
     """Generate one canonical scene reference image and return its path."""
@@ -592,18 +595,28 @@ async def generate_scene_reference_image(
             scene=scene,
         )
 
+    resolved_style_id = style_id.strip() or IMAGE_DEFAULT_STYLE
+    style_preset = get_style_preset(
+        resolved_style_id,
+        project_dir=str(project_dir),
+    )
+    style_label = style_preset.get("label") or resolved_style_id
     prompt = build_scene_reference_prompt(
         kind,
         scene,
-        style_name=style_name,
-        style_prompt=style_prompt,
-        avoid_instructions=avoid_instructions,
+        style_name=f"{style_label} ({resolved_style_id})",
+        style_prompt=str(style_preset.get("style_instructions") or "").strip(),
+        avoid_instructions=str(style_preset.get("avoid_instructions") or "").strip(),
         has_master_reference=has_master_reference,
         base_scene=base_scene,
     )
+    prompt, references = apply_style_reference(
+        prompt,
+        references,
+        style_preset,
+    )
     selected_model = _scene_image_model(kind, model)
     image_bytes, _text, error = await _call_newapi_image_api(
-        model=selected_model,
         prompt=prompt,
         reference_images=references or None,
         image_config=_scene_image_config(selected_model),

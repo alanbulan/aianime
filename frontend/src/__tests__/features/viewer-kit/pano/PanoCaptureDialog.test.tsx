@@ -63,7 +63,11 @@ describe("PanoCaptureDialog", () => {
     );
 
     const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveClass("h-dvh");
+    expect(dialog).toHaveClass("h-auto");
+    expect(dialog).toHaveClass(
+      "top-[var(--desktop-title-bar-height,0px)]",
+    );
+    expect(dialog).toHaveClass("bottom-9");
     expect(dialog).toHaveClass("w-dvw");
     expect(dialog).toHaveClass("sm:max-w-none");
     expect(document.querySelector('[data-slot="dialog-overlay"]')).toHaveClass(

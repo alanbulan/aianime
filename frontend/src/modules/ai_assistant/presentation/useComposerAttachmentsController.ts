@@ -3,8 +3,8 @@ import { useCallback, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent } from "react";
 
 import {
-  isAllowedScriptDragItem,
-  isAllowedScriptUpload,
+  isAllowedChatDragItem,
+  isAllowedChatUpload,
 } from "@/modules/ai_assistant/domain/ingestAutomation";
 import type { ChatAttachment } from "@/modules/ai_assistant/domain/contracts";
 
@@ -23,8 +23,8 @@ function resolveDragFileState(
   if (items.length === 0) return "valid";
   return items.every((item) => {
     const file = item.getAsFile();
-    if (file) return isAllowedScriptDragItem(file);
-    return isAllowedScriptDragItem({ type: item.type });
+    if (file) return isAllowedChatDragItem(file);
+    return isAllowedChatDragItem({ type: item.type });
   })
     ? "valid"
     : "invalid";
@@ -36,10 +36,10 @@ export function useComposerAttachmentsController(enabled: boolean) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
 
-  const addFiles = useCallback((files: FileList | null) => {
+  const addFiles = useCallback((files: FileList | readonly File[] | null) => {
     if (!files) return;
     Array.from(files).forEach((file) => {
-      if (!isAllowedScriptUpload(file)) return;
+      if (!isAllowedChatUpload(file)) return;
       const reader = new FileReader();
       reader.addEventListener("load", () => {
         const dataUrl = String(reader.result || "");

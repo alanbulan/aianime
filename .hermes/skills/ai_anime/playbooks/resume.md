@@ -8,7 +8,7 @@
 
 读取响应：
 - `global` 段：全局准备是否完成（ingested, configured, characters, episodes, portraits_done）
-- `episode_status` 段：当前集各步骤（identity_plan, identity_images, script, scene_anchors, sketches, coloring, global_optimize, first_frames, tts, video）
+- `episode_status` 段：当前集各步骤（identity_plan, identity_images, scene_plan, script, sketches, coloring, global_optimize, first_frames, tts, video）
   - 辅助任务 type：`content_rewriter`（解说改写）、`script_writer`（剧本生成）。这些辅助步骤通过 `GET /projects/{P}/tasks/{task_type}/{N}` 主动查
   - 当前后端没有场景锚图 `anchor-image/*` 和 `scene_anchor` task
 - `next_step` + `next_step_name`：从断点继续
@@ -17,8 +17,8 @@
 
 一进入 Step 10 区段，先 `GET /projects/{project}/episodes/{ep}/script` 读取脚本。这里只允许 project-scoped script 端点，禁止省略项目名的 `/episodes/{ep}/script` 简写：
 
-- `data` 为空 → 剧本尚未生成，应继续 `rewrite` 或 `script/generate`
-- `data` 非空 → 剧本已就绪，可进入 Step 11（场景/道具上下文）或 Step 12 草图
+- `data` 为空 → 剧本尚未生成；调用脚本生产图，由它检查并补齐身份规划和场景规划后再启动 `script_writer`
+- `data` 非空 → 剧本已就绪，可进入道具、场景参考图或草图阶段
 - 当前后端没有 `literal-script/generate`，不要用 `script_mode == "literal_source"` 作为硬判定
 
 ## 进度展示
@@ -26,10 +26,10 @@
 **进度表必须包含全部步骤**，按两段列出：
 
 **项目准备**：摄入、配置、角色、分集、分级、肖像
-**逐集阶段**：身份规划、身份图、解说改写、剧本生成、场景/道具、草图、配色+检测、全局优化、首帧、音频、视频、合成、成片展示
+**逐集阶段**：身份规划、场景规划、剧本生成、身份图、道具/场景参考图、草图、配色+检测、全局优化、首帧、音频、视频、合成、成片展示
 
 每步标记 ✅（完成）或 ❌（未完成）。直接从 `episode_status` 映射：
-- identity_plan → 身份规划, identity_images → 身份图
+- identity_plan → 身份规划, scene_plan → 场景规划, identity_images → 身份图
 - coloring → 配色+检测, global_optimize → 全局优化
 - 分级：API 不单独暴露。`portraits_done=true` 意味着分级已完成（肖像依赖分级）
 - 剧本：新主线下由“解说改写 + 逐行生成”两步取代旧展示口径，不再单列成公开主线步骤
@@ -48,11 +48,11 @@
 
 ## 恢复执行
 
-**运行模式优先（但所有模式都受一步执行协议限制）**：
+**运行模式优先**：
 - 若用户本会话已选 / 现在表示要**逐步确认模式** → `Read references/run-modes.md` 模式一，
   从断点起**每个写操作步骤前都停下问用户，一次只推进一步**。
-- 若用户选**自动推进模式** → 按 `pipeline/status.next_step` 自动选择当前一步，但每轮仍最多启动一个写任务，启动后立即收口；如果已有 queued/running 任务，立即告知后台正在生成中并停止。
-- 若用户只说「继续」且**未指定过模式** → 先问一句「每步确认还是自动推进（每轮一步）？」再决定（除非用户明显赶时间/已说过别问）。
+- 若用户选**连续自动推进模式** → 调用一次 `ai_anime_run_production_workflow`，由同一后端父任务从断点恢复；已有 `production_workflow` queued/running 时只等待该父任务，不提交第二个。
+- 若用户只说「继续」且**未指定过模式** → 按当前最近目标推进一个步骤；若用户说“做完/自动/不要暂停”，切换连续自动推进。
 
 先根据用户请求判断恢复模式：
 
@@ -62,9 +62,9 @@
   - 暂不直接推进
 - **用户已经明确要求继续 / 恢复 / 从这里开始**
   - 先依据 `next_step` 和任务状态判断当前一步
-  - 如果已有 queued/running 任务，只反馈“后台正在生成中”和当前任务状态，不推进下一步
-  - 如果没有运行中任务，只启动 `next_step` 对应的一个写任务，启动后立即收口
-  - 不把 continuation 当成自动续跑，不等待当前任务完成后继续启动下一步
+  - 如果已有 queued/running 任务，逐步确认模式只反馈状态；连续自动模式只等待已有完整生产父任务
+  - 如果没有运行中任务，逐步确认模式启动 `next_step`；连续自动模式只启动一次完整生产父任务
+  - continuation 不得重新执行已经 completed 的步骤
 
 恢复路由：
 
@@ -76,10 +76,9 @@
 当用户只说“继续 / 帮我继续 / 恢复”，且当前断点仍在全局阶段时：
 
 - 先找当前首个缺失的全局步骤
-- 默认只启动这个首个缺失全局步骤对应的一个写任务，或在同步步骤完成后立刻停止
-- 启动异步任务后立刻停止，不轮询到完成点，不继续下一步
-- 不在同一轮里继续自动推进下一个全局步骤
-- 不自动继续到 `POST /projects/{project}/episodes/plan`、批量肖像或逐集执行；即使用户明确要求整段自动跑完，也必须分多轮，每轮一个写任务
+- 默认按当前已选择的运行模式处理首个缺失全局步骤
+- 逐步确认模式启动异步任务后停止；连续自动模式交给完整生产父任务恢复至成片
+- 只有用户明确授权整段自动执行时，才允许继续到分集规划、批量肖像或逐集制作
 
 
 ## 单集 continuation 默认

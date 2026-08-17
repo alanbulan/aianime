@@ -60,7 +60,7 @@ analysis = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["torch", "torchvision", "tensorflow"],
+    excludes=["tensorflow", "torch", "torchvision", "sharp", "da2"],
     noarchive=False,
 )
 pyz = PYZ(analysis.pure)

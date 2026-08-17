@@ -89,6 +89,7 @@ export {
   useDeleteStyle,
   useStyleDetail,
   useStyles,
+  useUpdateStyle,
   useUploadStylePreview,
 } from "@/modules/asset_world/styleComposition";
 export {

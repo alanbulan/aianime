@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -61,7 +62,7 @@ describe("AssetLibraryAssetCard", () => {
     renderCard(asset("角色立绘"), { onAdd });
 
     expect(screen.getByAltText("角色立绘")).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle("加入画布"));
+    fireEvent.click(getByUiTooltip("加入画布"));
     expect(onAdd).toHaveBeenCalledTimes(1);
   });
 

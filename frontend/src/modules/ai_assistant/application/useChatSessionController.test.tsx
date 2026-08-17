@@ -90,6 +90,7 @@ describe("useChatSessionController", () => {
     expect(harness.getSocketOptions()?.scope).toEqual({
       kind: "project",
       id: "project-a",
+      conversationId: "main",
     });
 
     act(() => vi.advanceTimersByTime(50));
@@ -98,7 +99,7 @@ describe("useChatSessionController", () => {
     act(() => result.current.requestHistory());
     expect(harness.send).toHaveBeenCalledWith({
       type: "scope.set",
-      scope: { kind: "project", id: "project-a" },
+      scope: { kind: "project", id: "project-a", conversationId: "main" },
     });
 
     unmount();
@@ -140,7 +141,7 @@ describe("useChatSessionController", () => {
     );
     expect(harness.send).toHaveBeenCalledWith(expect.objectContaining({
       type: "chat.message",
-      scope: { kind: "project", id: "project-a" },
+      scope: { kind: "project", id: "project-a", conversationId: "main" },
       text: "cloud transport text",
       attachments: [{ id: "attachment-1", fileName: "story.txt" }],
     }));
@@ -173,11 +174,40 @@ describe("useChatSessionController", () => {
     });
     harness.send.mockClear();
 
-    act(() => vi.advanceTimersByTime(30_000));
+    act(() => vi.advanceTimersByTime(5_000));
 
     expect(harness.send).toHaveBeenCalledWith({
       type: "scope.set",
-      scope: { kind: "project", id: "project-a" },
+      scope: { kind: "project", id: "project-a", conversationId: "main" },
+    });
+  });
+
+  it("sends conversation deletion through the active project scope", () => {
+    const harness = createHarness();
+    const { result } = renderHook(() =>
+      useChatSessionController({
+        project: "project-a",
+        conversationId: "chat_2",
+        displayName: "Alice",
+        ports: harness.ports,
+      }),
+    );
+    act(() => vi.advanceTimersByTime(50));
+
+    let accepted = false;
+    act(() => {
+      accepted = result.current.deleteConversation("chat_2");
+    });
+
+    expect(accepted).toBe(true);
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "conversation.delete",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      conversationId: "chat_2",
     });
   });
 });

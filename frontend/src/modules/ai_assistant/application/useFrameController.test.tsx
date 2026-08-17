@@ -32,6 +32,7 @@ function createOptions(overrides: Partial<ControllerOptions> = {}): ControllerOp
     setConnecting: vi.fn(),
     setError: vi.fn(),
     setHistoryReady: vi.fn(),
+    setConversations: vi.fn(),
     setMessages: vi.fn(),
     setBusy: vi.fn(),
     setStreamText: vi.fn(),
@@ -106,6 +107,42 @@ describe("useSuperChatFrameController", () => {
     expect(options.setConnecting).toHaveBeenCalledWith(false);
     expect(options.setHistoryReady).not.toHaveBeenCalled();
     expect(options.setMessages).not.toHaveBeenCalled();
+  });
+
+  it("clears active conversation state after the server confirms deletion", () => {
+    const options = createOptions({
+      desiredScope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      messagesRef: {
+        current: [message("assistant-1", "assistant", "旧消息", 10)],
+      },
+      streamTextRef: { current: "流式内容" },
+    });
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "conversation.deleted",
+      conversationId: "chat_2",
+      conversations: [
+        {
+          id: "main",
+          title: "新会话",
+          updatedAt: "2026-08-14T12:00:00+08:00",
+          messageCount: 0,
+        },
+      ],
+    }));
+
+    expect(options.setConversations).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "main", title: "新会话" }),
+    ]);
+    expect(options.setMessages).toHaveBeenCalledWith([]);
+    expect(options.setStreamText).toHaveBeenCalledWith("");
+    expect(options.setHistoryReady).toHaveBeenCalledWith(true);
+    expect(options.setBusy).toHaveBeenCalledWith(false);
   });
 
   it("accumulates assistant deltas under the pending client turn", () => {

@@ -290,7 +290,7 @@ describe("styles page CE generation credit gating", () => {
   });
 
   it("renders the custom style preview in the list and detail panel", async () => {
-    const previewUrl = "/api/v1/projects/demo/media/assets/styles/custom/reference.png";
+    const previewUrl = "/api/v1/styles/custom/preview";
     styleQueryState.list = [
       {
         id: "custom",

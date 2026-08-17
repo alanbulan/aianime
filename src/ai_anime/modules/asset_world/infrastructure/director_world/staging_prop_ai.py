@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 import math
-import os
 import re
 import sys
 from typing import Any
@@ -12,7 +11,6 @@ from pydantic import BaseModel, Field
 
 from .paths import shape_hint_registry_path, shape_hints_dir
 
-STAGING_PROP_MODEL = "ai-anime-staging-prop-planner-LLM"
 STAGING_PROP_THINKING_LEVEL = "low"
 
 
@@ -218,18 +216,7 @@ SHAPE_HINT_DEFAULT_AFFORDANCES = {
 }
 
 
-def resolve_model(request: dict[str, Any]) -> str:
-    return (
-        str(request.get("model") or "").strip()
-        or os.environ.get("STAGING_PROP_MODEL")
-        or STAGING_PROP_MODEL
-    )
-
-
-def create_staging_prop_agent(
-    *,
-    model: str,
-):
+def create_staging_prop_agent():
     from pydantic_ai import Agent
 
     from ai_anime.modules.model_usage.public import (
@@ -246,11 +233,7 @@ def create_staging_prop_agent(
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(
-            "STAGING_PROP_MODEL",
-            STAGING_PROP_MODEL,
-            model_name_override=model,
-        ),
+        get_newapi_text_pydantic_model(),
         system_prompt=SYSTEM_PROMPT,
         output_type=StagingPropAgentOutput,
         output_retries=2,
@@ -261,10 +244,8 @@ def create_staging_prop_agent(
 
 async def run_staging_prop_agent(
     request: dict[str, Any],
-    *,
-    model: str,
 ) -> dict[str, Any]:
-    agent = create_staging_prop_agent(model=model)
+    agent = create_staging_prop_agent()
     response = await agent.run(build_user_prompt(request))
     return response.output.model_dump()
 
@@ -549,14 +530,11 @@ def normalize_prop(generated: dict[str, Any], request: dict[str, Any]) -> dict[s
 
 def generate_ai_staging_prop(request: dict[str, Any]) -> dict[str, Any]:
     load_dotenv_files()
-    model = resolve_model(request)
+    from ai_anime.modules.model_usage.public import resolve_model_for_role
 
-    generated = asyncio.run(
-        run_staging_prop_agent(
-            request,
-            model=model,
-        )
-    )
+    model = resolve_model_for_role("TEXT")
+
+    generated = asyncio.run(run_staging_prop_agent(request))
     prop = normalize_prop(generated, request)
     return {"ok": True, "prop": prop, "model": model}
 

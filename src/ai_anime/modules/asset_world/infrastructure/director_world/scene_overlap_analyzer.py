@@ -7,7 +7,6 @@ import argparse
 import asyncio
 import base64
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -17,11 +16,9 @@ from PIL import Image, ImageDraw, ImageFont
 from ai_anime.shared.runtime_paths import OUTPUT_DIR
 from ai_anime.modules.model_usage.public import (
     load_model_access_from_stdin,
-    resolve_internal_model_for_role,
     resolve_model_for_role,
 )
 from ai_anime.modules.model_usage.public import (
-    DEFAULT_SCENE_OVERLAP_MODEL,
     request_model_chat_content,
 )
 
@@ -33,7 +30,6 @@ DEFAULT_SCENE_DIR = PROJECT_DIR / "assets/scenes" / DEFAULT_SCENE_NAME
 DEFAULT_MASTER = DEFAULT_SCENE_DIR / "master.png"
 DEFAULT_REVERSE = DEFAULT_SCENE_DIR / "reverse_master.png"
 DEFAULT_OUTPUT_DIR = DEFAULT_SCENE_DIR / "overlap_continuation_test"
-DEFAULT_MODEL = DEFAULT_SCENE_OVERLAP_MODEL
 
 
 def load_env() -> None:
@@ -239,18 +235,10 @@ async def ask_model_access(
     *,
     image_path: Path,
     prompt: str,
-    model: str,
-    use_catalog_default: bool = False,
 ) -> str:
-    effective_model = (
-        resolve_internal_model_for_role(model, "TEXT")
-        if use_catalog_default
-        else resolve_model_for_role(model, "TEXT")
-    )
     image_bytes = image_path.read_bytes()
     data_url = "data:image/jpeg;base64," + base64.b64encode(image_bytes).decode("ascii")
     return await request_model_chat_content(
-        model=effective_model,
         temperature=0.0,
         max_tokens=2200,
         timeout_seconds=120.0,
@@ -439,17 +427,10 @@ async def run(args: argparse.Namespace) -> None:
     prompt = build_prompt(args.scene_name)
     (output_dir / "overlap_continuation_prompt.txt").write_text(prompt, encoding="utf-8")
 
-    explicit_model = str(args.model or "").strip()
-    selected_model = (
-        explicit_model
-        or os.environ.get("SCENE_OVERLAP_MODEL", "").strip()
-        or DEFAULT_MODEL
-    )
+    selected_model = resolve_model_for_role("TEXT")
     raw_text = await ask_model_access(
         image_path=sheet_path,
         prompt=prompt,
-        model=selected_model,
-        use_catalog_default=not bool(explicit_model),
     )
     (output_dir / "overlap_continuation_raw_response.txt").write_text(raw_text, encoding="utf-8")
     analysis = parse_json(raw_text)
@@ -478,7 +459,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--master", default=str(DEFAULT_MASTER))
     parser.add_argument("--reverse", default=str(DEFAULT_REVERSE))
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--model", default="")
     parser.add_argument("--edge-ratio", type=float, default=0.36)
     return parser.parse_args()
 

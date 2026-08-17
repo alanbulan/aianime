@@ -29,6 +29,9 @@ class SketchImageUseCases:
     def __init__(self, files: SketchImageFiles) -> None:
         self._files = files
 
+    def image_size(self, sketch_path: Path) -> tuple[int, int]:
+        return self._files.image_size(sketch_path)
+
     def crop(
         self,
         *,

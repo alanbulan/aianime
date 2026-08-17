@@ -490,7 +490,9 @@ def _project_style_meta(
             project_config.get("visual_style") or IMAGE_DEFAULT_STYLE
         ).strip()
         preset = get_style_preset(
-            style_id, username=username, project=project, project_dir=str(project_dir)
+            style_id,
+            username=username,
+            project_dir=str(project_dir),
         )
         label = str(preset.get("label") or style_id).strip()
         style_name = (
@@ -564,7 +566,6 @@ async def build_asset_preset_context(
             style_preset = get_style_preset(
                 project_style,
                 username=username,
-                project=project,
                 project_dir=str(project_dir),
             )
             style_keywords = style_preset.get("style_instructions", "")

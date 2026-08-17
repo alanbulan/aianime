@@ -21,7 +21,7 @@ from ai_anime.modules.production.infrastructure.media_generation.video_generator
 def _generator(
     monkeypatch: pytest.MonkeyPatch,
     *,
-    mode: str = "cloud",
+    mode: str = "mixed",
     base_url: str = "http://127.0.0.1:43123/v1",
     api_key: str = "loopback-token",
     model: str = "cloud-video-standard",
@@ -29,6 +29,11 @@ def _generator(
 ) -> CommercialVideoGenerator:
     from ai_anime.modules.model_usage import public as model_usage
 
+    model_usage.configure_model_access(
+        allows_custom_models=True,
+        mode="mixed",
+        model_assignments=[{"modelId": model, "role": model_role}],
+    )
     monkeypatch.setattr(
         model_usage,
         "get_effective_newapi_gateway_config",
@@ -38,27 +43,19 @@ def _generator(
             api_key=api_key,
         ),
     )
-    return CommercialVideoGenerator(model=model, model_role=model_role)
+    return CommercialVideoGenerator(model_role=model_role)
 
 
-def test_cloud_and_byok_headers_use_only_runtime_model_access(
+def test_video_headers_use_only_the_authenticated_desktop_router(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    cloud = _generator(monkeypatch)
-    assert cloud.access_mode == "cloud"
-    assert cloud.headers == {
+    generator = _generator(monkeypatch)
+    assert generator.access_mode == "mixed"
+    assert generator.headers == {
         "Accept": "application/json",
+        "X-AI-Anime-Model-Role": "VIDEO_TEXT_TO_VIDEO",
         "Authorization": "Bearer loopback-token",
     }
-
-    byok = _generator(
-        monkeypatch,
-        mode="byok",
-        base_url="https://models.example/v1",
-        api_key="",
-    )
-    assert byok.access_mode == "byok"
-    assert byok.headers == {"Accept": "application/json"}
 
 
 def test_text_video_builds_standard_json_payload(
@@ -325,7 +322,7 @@ async def test_submit_poll_download_returns_gateway_invocation_id_only(
 
 
 @pytest.mark.asyncio
-async def test_cloud_submit_recovery_reuses_the_same_idempotency_key(
+async def test_router_submit_failure_is_not_retried_by_client(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -335,18 +332,10 @@ async def test_cloud_submit_recovery_reuses_the_same_idempotency_key(
     async def request_json(method: str, path: str, **kwargs):
         if method == "POST":
             submitted_keys.append(kwargs["idempotency_key"])
-            if len(submitted_keys) == 1:
-                raise CommercialVideoError("upstream unavailable", status=502)
-            return {"id": "invocation-recovered"}, "request-recovered"
-        assert path == "videos/invocation-recovered"
-        return {"id": "invocation-recovered", "status": "completed"}, "request-poll"
-
-    async def download_content(_task_id: str, output_path: str) -> None:
-        Path(output_path).write_bytes(b"video")
+            raise CommercialVideoError("router unavailable", status=502)
+        raise AssertionError(path)
 
     monkeypatch.setattr(generator, "_request_json", request_json)
-    monkeypatch.setattr(generator, "_download_content", download_content)
-
     result = await generator.generate(
         image_path=None,
         prompt="生成视频",
@@ -354,42 +343,26 @@ async def test_cloud_submit_recovery_reuses_the_same_idempotency_key(
         max_polls=1,
     )
 
-    assert result.status is VideoGenStatus.DONE
-    assert submitted_keys[0] == submitted_keys[1]
+    assert result.status is VideoGenStatus.FAILED
+    assert result.error == "router unavailable"
+    assert len(submitted_keys) == 1
     assert str(uuid.UUID(submitted_keys[0])) == submitted_keys[0]
 
 
 @pytest.mark.asyncio
-async def test_byok_submit_failure_is_not_retried_by_client(
+async def test_direct_provider_mode_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    generator = _generator(
-        monkeypatch,
-        mode="byok",
-        base_url="https://models.example/v1",
-        api_key="custom-key",
-        model="custom-video",
-    )
-    attempts = 0
-
-    async def request_json(method: str, _path: str, **_kwargs):
-        nonlocal attempts
-        if method == "POST":
-            attempts += 1
-        raise CommercialVideoError("custom provider unavailable", status=502)
-
-    monkeypatch.setattr(generator, "_request_json", request_json)
-
-    result = await generator.generate(
-        image_path=None,
-        prompt="生成视频",
-        output_path=str(tmp_path / "byok.mp4"),
-    )
-
-    assert result.status is VideoGenStatus.FAILED
-    assert result.error == "custom provider unavailable"
-    assert attempts == 1
+    del tmp_path
+    with pytest.raises(ValueError, match="mixed"):
+        _generator(
+            monkeypatch,
+            mode="byok",
+            base_url="https://models.example/v1",
+            api_key="custom-key",
+            model="custom-video",
+        )
 
 
 @pytest.mark.asyncio

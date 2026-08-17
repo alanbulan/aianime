@@ -11,6 +11,7 @@ from ai_anime.modules.production.application.sketch_color import (
     SketchColorAssignmentResult,
     SketchColorAssignmentUseCases,
     SketchColorMarkersMissing,
+    SketchColorPersistenceFailed,
 )
 from ai_anime.modules.production.application.sketch_marker_detection import (
     DetectSketchMarkersCommand,
@@ -87,6 +88,7 @@ __all__ = [
     "AssignProjectSketchColorsCommand",
     "DetectProjectSketchMarkersCommand",
     "SketchColorMarkersMissing",
+    "SketchColorPersistenceFailed",
     "SketchColorAssignmentResult",
     "SketchEpisodeBeatsMissing",
     "SketchMarkerDetectionFailed",

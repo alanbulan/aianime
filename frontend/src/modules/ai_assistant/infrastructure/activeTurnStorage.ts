@@ -4,7 +4,7 @@ import { activeTurnIsPending } from "@/modules/ai_assistant/domain/activeTurn";
 import { safeLocalStorageSet } from "@/shared/localStorageQuota";
 
 const ACTIVE_TURN_PREFIX = "superchat:active-turn:";
-const ACTIVE_TURN_TTL_MS = 60 * 60 * 1000;
+const ACTIVE_TURN_TTL_MS = 24 * 60 * 60 * 1000;
 
 export type ActiveTurnSnapshot = {
   turnId: string;

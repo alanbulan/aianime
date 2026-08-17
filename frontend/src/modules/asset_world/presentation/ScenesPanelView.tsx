@@ -10,6 +10,16 @@ import {
 } from "@/components/assets/asset-search-box";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EMPTY_STATE_ACTION_BUTTON_CLASS } from "@/components/ui/empty-state-styles";
 import { HeaderRefreshButton } from "@/components/ui/header-refresh-button";
 import { SUBTLE_HEADER_ACTION_BUTTON_CLASS } from "@/components/ui/header-action-styles";
@@ -115,6 +125,7 @@ export function ScenesPanelView({
     allItems,
     buildScenesCostDisplay,
     buildScenesPending,
+    deleteDialog,
     gridRef,
     handleBuildScenes,
     isLoading,
@@ -266,7 +277,7 @@ export function ScenesPanelView({
                             variant="outline"
                             size="sm"
                             onClick={openNewPlate}
-                            title={t("assets.scenes.newPlateHint", {
+                            data-ui-tooltip={t("assets.scenes.newPlateHint", {
                               defaultValue:
                                 "场景变体即「同一个地点的不同状态」",
                             })}
@@ -304,6 +315,29 @@ export function ScenesPanelView({
         </div>
       )}
       {dialogContent}
+      <AlertDialog open={deleteDialog.open} onOpenChange={deleteDialog.onOpenChange}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("assets.scenes.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("assets.scenes.confirmDelete", { name: deleteDialog.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteDialog.pending}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteDialog.pending}
+              onClick={() => void deleteDialog.confirm()}
+            >
+              {deleteDialog.pending ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -9,12 +9,18 @@ import { app } from "electron";
 import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
 import {
   bundledBackendPath,
+  bundledWorldRuntimePath,
   bundledFfmpegPath,
   bundledWhisperModelPath,
+  bundledSplatTransformCliPath,
+  bundledSplatTransformNodePath,
+  developmentSplatTransformCliPath,
+  developmentSplatTransformNodePath,
   developmentFfmpegPath,
   developmentWhisperModelPath,
   packagedVideoCodec,
 } from "./platform-runtime.js";
+import type { InstalledWorldRuntimePaths } from "./platform-runtime.js";
 
 const EVENT_PREFIX = "AI_ANIME_DESKTOP ";
 const TOKEN_HEADER = "X-AI-Anime-Desktop-Token";
@@ -32,12 +38,16 @@ interface BackendLaunch {
   frontendDist?: string;
   ffmpegPath?: string;
   whisperModelPath?: string;
+  splatTransformCliPath?: string;
+  splatTransformNodePath?: string;
+  worldRuntimePath?: string;
 }
 
 interface LocalBackendOptions {
   repositoryRoot?: string;
   serveFrontend?: boolean;
   environment?: Readonly<Record<string, string>>;
+  runtimeDependencyPaths?: InstalledWorldRuntimePaths;
 }
 
 export class LocalBackend {
@@ -46,6 +56,7 @@ export class LocalBackend {
   private readonly configuredRepoRoot: string | undefined;
   private readonly serveFrontend: boolean;
   private readonly environment: Readonly<Record<string, string>>;
+  private readonly runtimeDependencyPaths: InstalledWorldRuntimePaths | undefined;
   private child: ChildProcessWithoutNullStreams | null = null;
   private logStream: WriteStream | null = null;
   private stopping = false;
@@ -55,6 +66,7 @@ export class LocalBackend {
     this.configuredRepoRoot = options.repositoryRoot;
     this.serveFrontend = options.serveFrontend ?? true;
     this.environment = options.environment ?? {};
+    this.runtimeDependencyPaths = options.runtimeDependencyPaths;
   }
 
   get baseUrl(): string {
@@ -101,6 +113,8 @@ export class LocalBackend {
       env: {
         ...process.env,
         ...(app.isPackaged ? { VIDEO_CODEC: packagedVideoCodec() } : {}),
+        HF_ENDPOINT: process.env.HF_ENDPOINT?.trim() || "https://hf-mirror.com",
+        HF_HUB_DISABLE_XET: process.env.HF_HUB_DISABLE_XET?.trim() || "1",
         ...this.environment,
         AI_ANIME_DESKTOP_TOKEN: this.token,
         AI_ANIME_MODEL_ADMIN_TOKEN: this.modelAdminToken,
@@ -108,6 +122,15 @@ export class LocalBackend {
         AI_ANIME_HERMES_ASSETS_DIR: hermesRuntime.assetsPath,
         ...(launch.whisperModelPath
           ? { AI_ANIME_WHISPER_MODEL_DIR: launch.whisperModelPath }
+          : {}),
+        ...(launch.splatTransformCliPath && launch.splatTransformNodePath
+          ? {
+              AI_ANIME_SPLAT_TRANSFORM_BIN: launch.splatTransformCliPath,
+              AI_ANIME_SPLAT_TRANSFORM_NODE: launch.splatTransformNodePath,
+            }
+          : {}),
+        ...(launch.worldRuntimePath
+          ? { AI_ANIME_WORLD_RUNTIME_BIN: launch.worldRuntimePath }
           : {}),
         PYTHONIOENCODING: "utf-8",
         PYTHONUTF8: "1",
@@ -158,11 +181,13 @@ export class LocalBackend {
 
   async configureModelAccess(input: {
     allowsCustomModels: boolean;
-    mode: "cloud" | "byok";
-    byokBaseUrl?: string;
-    byokApiKey?: string;
-    modelAssignments?: Array<{ modelId: string; role: string }>;
-    cloudModelAssignments?: Array<{ modelId: string; role: string }>;
+    mode: "mixed";
+    modelAssignments?: Array<{
+      modelId: string;
+      role: string;
+      priority: number;
+      enabled: boolean;
+    }>;
     modelCapabilities?: Array<{
       modelId: string;
       referenceAudioMinSeconds?: number;
@@ -201,12 +226,28 @@ export class LocalBackend {
       if (!existsSync(frontendDist)) throw new Error(`bundled frontend not found: ${frontendDist}`);
       const ffmpegPath = bundledFfmpegPath(process.resourcesPath);
       const whisperModelPath = bundledWhisperModelPath(process.resourcesPath);
+      const splatTransformCliPath = bundledSplatTransformCliPath(process.resourcesPath);
+      const splatTransformNodePath = bundledSplatTransformNodePath(process.resourcesPath);
+      const worldRuntimePath = bundledWorldRuntimePath(process.resourcesPath);
+      const installed = this.runtimeDependencyPaths;
+      const resolvedSplatTransformCliPath = installed?.splatTransformCliPath ?? splatTransformCliPath;
+      const resolvedSplatTransformNodePath = installed?.splatTransformNodePath ?? splatTransformNodePath;
+      const resolvedWorldRuntimePath = installed?.worldRuntimePath ?? worldRuntimePath;
       return {
         command: executable,
         args: [],
         frontendDist,
         ...(existsSync(ffmpegPath) ? { ffmpegPath } : {}),
         ...(existsSync(whisperModelPath) ? { whisperModelPath } : {}),
+        ...(installed || (existsSync(splatTransformCliPath) && existsSync(splatTransformNodePath))
+          ? {
+              splatTransformCliPath: resolvedSplatTransformCliPath,
+              splatTransformNodePath: resolvedSplatTransformNodePath,
+            }
+          : {}),
+        ...(installed || existsSync(worldRuntimePath)
+          ? { worldRuntimePath: resolvedWorldRuntimePath }
+          : {}),
       };
     }
 
@@ -220,6 +261,8 @@ export class LocalBackend {
     const configuredFfmpeg = process.env.FFMPEG_PATH?.trim();
     const developmentFfmpeg = developmentFfmpegPath(app.getAppPath());
     const developmentWhisperModel = developmentWhisperModelPath(app.getAppPath());
+    const developmentSplatTransformCli = developmentSplatTransformCliPath(app.getAppPath());
+    const developmentSplatTransformNode = developmentSplatTransformNodePath(app.getAppPath());
     const ffmpegPath = configuredFfmpeg || (existsSync(developmentFfmpeg) ? developmentFfmpeg : undefined);
     return {
       command: process.env.AI_ANIME_UV_COMMAND?.trim() || "uv",
@@ -228,6 +271,12 @@ export class LocalBackend {
       ...(ffmpegPath ? { ffmpegPath } : {}),
       ...(existsSync(developmentWhisperModel)
         ? { whisperModelPath: developmentWhisperModel }
+        : {}),
+      ...(existsSync(developmentSplatTransformCli) && existsSync(developmentSplatTransformNode)
+        ? {
+            splatTransformCliPath: developmentSplatTransformCli,
+            splatTransformNodePath: developmentSplatTransformNode,
+          }
         : {}),
     };
   }

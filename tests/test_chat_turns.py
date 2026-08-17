@@ -33,9 +33,6 @@ async def test_dispatch_chat_turn_streams_authorized_project_message(monkeypatch
 
     async def require_access(*, user, scope):
         access_calls.append(("require", user, scope))
-
-    async def project_context(user, scope):
-        access_calls.append(("context", user, scope))
         return project_ctx
 
     class StubProjectChatTurns:
@@ -73,11 +70,6 @@ async def test_dispatch_chat_turn_streams_authorized_project_message(monkeypatch
         "require_ai_assistant_access",
         require_access,
     )
-    monkeypatch.setattr(
-        chat_turns.chat_access,
-        "project_context_for_scope",
-        project_context,
-    )
     monkeypatch.setattr(chat_turns, "project_chat_turns", StubProjectChatTurns())
     monkeypatch.setattr(chat_turns, "stream_chat_turn", stream_turn)
 
@@ -105,7 +97,6 @@ async def test_dispatch_chat_turn_streams_authorized_project_message(monkeypatch
 
     assert access_calls == [
         ("require", user, scope),
-        ("context", user, scope),
     ]
     assert transport_calls == [(scope, "turn-1")]
     assert stream_calls == [
@@ -170,7 +161,7 @@ async def test_dispatch_chat_turn_maps_home_stream_failure(monkeypatch):
         {
             "type": "chat.busy",
             "turn_id": "turn-2",
-            "scope": {"kind": "home", "id": None},
+            "scope": {"kind": "home", "id": None, "conversationId": "main"},
             "message": "当前用户已有 AI 对话正在处理中",
         }
     ]

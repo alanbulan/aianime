@@ -72,7 +72,7 @@ function RegionBadgeInner() {
             ))}
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={!picking}
               onClick={async () => {

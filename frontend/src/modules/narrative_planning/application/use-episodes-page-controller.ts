@@ -16,6 +16,12 @@ import {
 import { backendErrorToastMessage, BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
 interface CharacterListQuery {
+  data?: {
+    data: readonly { identities?: readonly unknown[] | null }[];
+  };
+}
+
+interface AssetListQuery {
   data?: { data: readonly unknown[] };
 }
 
@@ -26,6 +32,8 @@ interface CreditCostQuery {
 
 export interface EpisodesPageControllerDependencies {
   useCharacters(project: string): CharacterListQuery;
+  useScenes(project: string): AssetListQuery;
+  useProps(project: string): AssetListQuery;
   useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
 }
 
@@ -69,6 +77,8 @@ export function createUseEpisodesPageController(
       isFetching: pipelineFetching,
     } = queries.usePipelineStatus(project);
     const { data: charactersResponse } = dependencies.useCharacters(project);
+    const { data: scenesResponse } = dependencies.useScenes(project);
+    const { data: propsResponse } = dependencies.useProps(project);
     const selectedEpisodeKey = selectedEpisodeNumber ?? 0;
     const { data: selectedEpisodeResponse } = queries.useEpisodeDetail(
       project,
@@ -99,7 +109,25 @@ export function createUseEpisodesPageController(
         ),
       [episodes, selectedEpisodeNumber, t],
     );
-    const stats = useMemo(() => deriveEpisodeStats(episodes), [episodes]);
+    const episodeStats = useMemo(() => deriveEpisodeStats(episodes), [episodes]);
+    const stats = useMemo(
+      () => ({
+        ...episodeStats,
+        totalIdentities:
+          charactersResponse?.data.reduce(
+            (sum, character) => sum + (character.identities?.length ?? 0),
+            0,
+          ) ?? episodeStats.totalIdentities,
+        totalScenes: scenesResponse?.data.length ?? episodeStats.totalScenes,
+        totalProps: propsResponse?.data.length ?? episodeStats.totalProps,
+      }),
+      [
+        charactersResponse?.data,
+        episodeStats,
+        propsResponse?.data.length,
+        scenesResponse?.data.length,
+      ],
+    );
     const totalCharacters = charactersResponse?.data.length ?? 0;
     const completedEpisodes = useMemo(
       () => pipelineEpisodes.filter((episode) => episode.compose).length,

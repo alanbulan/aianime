@@ -9,21 +9,15 @@ import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
 
 export const httpAssetWorldGateway: AssetWorldGateway = {
-  async listStyles(project, signal) {
+  async listStyles(signal) {
     return api
-      .get("api/v1/styles", {
-        ...(project ? { searchParams: { project } } : {}),
-        signal,
-      })
+      .get("api/v1/styles", { signal })
       .json<AssetDataResponse<Style[]>>();
   },
 
-  async getStyle(project, styleId, signal) {
+  async getStyle(styleId, signal) {
     return api
-      .get(p`api/v1/styles/${styleId}`, {
-        ...(project ? { searchParams: { project } } : {}),
-        signal,
-      })
+      .get(p`api/v1/styles/${styleId}`, { signal })
       .json<AssetDataResponse<Style>>();
   },
 
@@ -33,12 +27,15 @@ export const httpAssetWorldGateway: AssetWorldGateway = {
       .json<AssetResponse<{ id: string }>>();
   },
 
-  async deleteStyle(styleId, project) {
+  async updateStyle({ id, ...input }) {
     return api
-      .delete(
-        p`api/v1/styles/${styleId}`,
-        project ? { searchParams: { project } } : undefined,
-      )
+      .put(p`api/v1/styles/${id}`, { json: input })
+      .json<AssetResponse<{ id: string }>>();
+  },
+
+  async deleteStyle(styleId) {
+    return api
+      .delete(p`api/v1/styles/${styleId}`)
       .json<AssetDataResponse<unknown>>();
   },
 
@@ -53,12 +50,11 @@ export const httpAssetWorldGateway: AssetWorldGateway = {
       .json<AssetResponse<Record<string, unknown>>>();
   },
 
-  async uploadStylePreview(project, { file, styleId }) {
+  async uploadStylePreview({ file, styleId }) {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("style_id", styleId);
     return api
-      .post(p`api/v1/projects/${project}/styles/preview-upload`, {
+      .put(p`api/v1/styles/${styleId}/preview`, {
         body: formData,
         throwHttpErrors: false,
       })

@@ -85,6 +85,7 @@ function viewProps(
       onSubmit: vi.fn(),
       onToggleSpeech: vi.fn(),
     },
+    conversationDrawer: null,
     contextViews: {
       approvals: [],
       error: null,
@@ -126,8 +127,6 @@ function viewProps(
         },
         switchModel: vi.fn(),
       },
-      searchOpen: false,
-      onToggleSearch: vi.fn(),
     },
     isFreezoneLayout: false,
     messageArea: {

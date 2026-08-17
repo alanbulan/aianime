@@ -250,7 +250,8 @@ export function createUseThreeDWorldNodeController({
       () => projectThreeDWorldPanoSources(upstreamNodes),
       [upstreamNodes],
     );
-    const { isGenerating } = useNodeGenerationTaskState(data);
+    const { isGenerating, progress: generationProgress } =
+      useNodeGenerationTaskState(data);
     const contexts = useMemo(
       () =>
         validMainlineContexts(
@@ -698,6 +699,7 @@ export function createUseThreeDWorldNodeController({
       title,
       nodeContexts: (data as { mainline_context?: unknown }).mainline_context,
       isGenerating,
+      generationProgress,
       hasUpstream: Boolean(references.activeRef),
       referenceImages: references.referenceImages,
       selectedReferenceNodeId: references.selectedImageRef?.nodeId ?? null,

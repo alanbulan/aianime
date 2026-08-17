@@ -246,8 +246,8 @@ export function createSceneQueryHooks(gateway: SceneGateway) {
 
   function useGenerateScenePanoAsync(project: string, name: string) {
     return useMutation({
-      mutationFn: ({ source }: { source: ScenePanoSource }) =>
-        gateway.schedulePano(project, name, source),
+      mutationFn: ({ source, model }: { source: ScenePanoSource; model?: string }) =>
+        gateway.schedulePano(project, name, source, model),
     });
   }
 

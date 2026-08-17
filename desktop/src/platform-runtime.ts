@@ -22,6 +22,54 @@ export function bundledBackendPath(
   );
 }
 
+export function bundledWorldRuntimePath(
+  resourcesPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    resourcesPath,
+    "world-runtime",
+    executableName("ai-anime-world-runtime", platform),
+  );
+}
+
+export interface InstalledWorldRuntimePaths {
+  root: string;
+  worldRuntimePath: string;
+  splatTransformCliPath: string;
+  splatTransformNodePath: string;
+}
+
+export function installedWorldRuntimePaths(
+  userDataPath: string,
+  platform: NodeJS.Platform = process.platform,
+): InstalledWorldRuntimePaths {
+  const paths = pathApi(platform);
+  const root = paths.join(userDataPath, "dependencies", "world", "current");
+  return {
+    root,
+    worldRuntimePath: paths.join(
+      root,
+      "world-runtime",
+      executableName("ai-anime-world-runtime", platform),
+    ),
+    splatTransformCliPath: paths.join(
+      root,
+      "splat-transform",
+      "node_modules",
+      "@playcanvas",
+      "splat-transform",
+      "bin",
+      "cli.mjs",
+    ),
+    splatTransformNodePath: paths.join(
+      root,
+      "splat-transform",
+      executableName("node", platform),
+    ),
+  };
+}
+
 export function bundledFfmpegPath(
   resourcesPath: string,
   platform: NodeJS.Platform = process.platform,
@@ -53,6 +101,58 @@ export function bundledWhisperModelPath(
     resourcesPath,
     "whisper",
     "faster-whisper-base",
+  );
+}
+
+export function bundledSplatTransformCliPath(
+  resourcesPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    resourcesPath,
+    "splat-transform",
+    "node_modules",
+    "@playcanvas",
+    "splat-transform",
+    "bin",
+    "cli.mjs",
+  );
+}
+
+export function bundledSplatTransformNodePath(
+  resourcesPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    resourcesPath,
+    "splat-transform",
+    executableName("node", platform),
+  );
+}
+
+export function developmentSplatTransformCliPath(
+  appPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    appPath,
+    "node_modules",
+    "@playcanvas",
+    "splat-transform",
+    "bin",
+    "cli.mjs",
+  );
+}
+
+export function developmentSplatTransformNodePath(
+  appPath: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  return pathApi(platform).join(
+    appPath,
+    "runtime",
+    "splat-transform",
+    executableName("node", platform),
   );
 }
 

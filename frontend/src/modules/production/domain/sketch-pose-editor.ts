@@ -53,6 +53,13 @@ export interface SketchPoseEditorSaveResult {
   sketch_url: string;
 }
 
+export interface SketchCropSourceData {
+  beat_num: number;
+  sketch_url: string;
+  width: number;
+  height: number;
+}
+
 export interface SketchCrop {
   x: number;
   y: number;

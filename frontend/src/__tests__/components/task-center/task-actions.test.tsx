@@ -52,6 +52,7 @@ function renderActions(task: TaskState) {
   // route. The root component hosts TaskActions alongside an Outlet so child
   // route components (if any) can render without masking the action bar.
   const rootRoute = createRootRoute({
+    notFoundComponent: () => null,
     component: () => (
       <>
         <TaskActions task={task} />

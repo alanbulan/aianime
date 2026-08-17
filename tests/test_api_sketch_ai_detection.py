@@ -2,167 +2,24 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from PIL import Image
 
 
-class _DetectStore:
-    def __init__(
-        self,
-        beats: list[dict],
-        *,
-        sketch_colors: dict[str, str] | None = None,
-        script_sketch_colors: dict[str, str] | None = None,
-    ):
-        self.beats = beats
-        self.sketch_colors = (
-            {"Hero_Main": "#ff0000 RED"} if sketch_colors is None else sketch_colors
-        )
-        self.script_sketch_colors = (
-            {"Hero_Main": "#ff0000 RED"}
-            if script_sketch_colors is None
-            else script_sketch_colors
-        )
-        self.identity_writes: dict[int, list[str]] = {}
-        self.prop_writes: dict[int, list[str]] = {}
-        self.close_calls = 0
-
-    async def get_beats_as_dicts(self, episode_num: int):
-        assert episode_num == 1
-        return self.beats
-
-    def get_sketch_colors(self, episode_num: int):
-        assert episode_num == 1
-        return self.sketch_colors
-
-    async def get_script_as_dict(self, episode_num: int):
-        assert episode_num == 1
-        return {
-            "beats": self.beats,
-            "sketch_colors": self.script_sketch_colors,
-            "prop_menu": [],
-        }
-
-    def get_episode(self, episode_num: int):
-        assert episode_num == 1
-        return None
-
-    def get_all_characters(self):
-        return [{"name": "Hero", "identities": [{"identity_id": "Hero_Main"}]}]
-
-    async def set_beat_detected_identities(
-        self,
-        episode_number: int,
-        detections: dict[int, list[str]],
-    ):
-        assert episode_number == 1
-        self.identity_writes.update(detections)
-        return len(detections)
-
-    async def set_beat_detected_props(
-        self,
-        episode_number: int,
-        detections: dict[int, list[str]],
-    ):
-        assert episode_number == 1
-        self.prop_writes.update(detections)
-        return len(detections)
-
-    async def close(self) -> None:
-        self.close_calls += 1
-
-
-def _write_sketch(project_dir, beat_num: int, *, padded: bool = True) -> None:
-    sketches_dir = project_dir / "sketches" / "ep001"
-    sketches_dir.mkdir(parents=True, exist_ok=True)
-    suffix = f"{beat_num:02d}" if padded else str(beat_num)
-    Image.new("RGB", (8, 8), color=(beat_num % 255, 0, 0)).save(
-        sketches_dir / f"beat_{suffix}.png"
-    )
-
-
-class _UsageMeter:
-    def __init__(self):
-        self.reserve_calls: list[dict] = []
-        self.confirm_calls: list[tuple[str, dict | None]] = []
-        self.refund_calls: list[tuple[str, dict | None]] = []
-        self.contexts: list[dict] = []
-        self.clear_count = 0
-
-    async def reserve_feature_start_credits(self, **kwargs):
-        self.reserve_calls.append(kwargs)
-        return {
-            "id": "feature-reservation-1",
-            "cost": 7,
-            "reserved": True,
-            "feature_key": kwargs["feature_key"],
-        }
-
-    async def confirm_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata=None,
-    ):
-        self.confirm_calls.append((reservation_id, metadata))
-
-    async def refund_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata=None,
-    ):
-        self.refund_calls.append((reservation_id, metadata))
-
-    def set_llm_usage_context(
-        self,
-        user_id: str,
-        project_id: str = "",
-        resource_kind: str = "",
-        billing_metadata: dict | None = None,
-    ):
-        self.contexts.append(
-            {
-                "user_id": user_id,
-                "project_id": project_id,
-                "resource_kind": resource_kind,
-                "billing_metadata": billing_metadata or {},
-            }
-        )
-
-    def clear_llm_usage_context(self):
-        self.clear_count += 1
-
-
-def _client(
-    monkeypatch,
-    tmp_path,
-    store: _DetectStore,
-    calls: list[int],
-    *,
-    usage_meter=None,
-    ctx=None,
-):
-    from ai_anime.modules.production.infrastructure import global_video_optimizer
+def _client(monkeypatch, tmp_path, *, scheduled_payload: dict | None = None):
     from ai_anime.api.routes.production import sketch as production_sketch
-    from ai_anime.modules.production import composition
-    from ai_anime.modules.production.infrastructure import sketch_markers
     from ai_anime.modules.project_workspace.public import ProjectContext
 
-    project_id = str(getattr(ctx, "project_id", "project-demo") or "project-demo")
-    requester_user_id = str(
-        getattr(ctx, "requester_user_id", "user-alice") or "user-alice"
-    )
     context = ProjectContext(
-        project_id=project_id,
+        project_id="project-demo",
         project_name="demo",
         owner_type="user",
         owner_id="user-alice",
         owner_username="alice",
-        requester_user_id=requester_user_id,
+        requester_user_id="user-alice",
         requester_username="alice",
-        requester_principals=(("user", requester_user_id),),
+        requester_principals=(("user", "user-alice"),),
         effective_role="editor",
         home_node_id="local",
         output_dir=tmp_path,
@@ -170,32 +27,24 @@ def _client(
         runtime_dir=tmp_path / "_runtime",
         is_home_node=True,
     )
-
-    async def fake_make_sqlite_store_for_context(candidate):
-        assert candidate is context
-        return store
-
-    async def fake_detect_identities_by_ai(
-        *,
-        sketch_image_paths: list[str],
-        color_identity_map: dict[str, str],
-        total_beats: int,
-    ):
-        assert sketch_image_paths
-        assert color_identity_map == {"#ff0000 RED": "Hero_Main"}
-        calls.append(total_beats)
-        return {1: ["Hero_Main"]}
+    calls: dict[str, object] = {}
 
     async def fake_resolve_project_scope(project: str, user: dict, required_role: str):
-        assert project == "demo"
-        assert user == {"username": "alice"}
-        assert required_role == "editor"
-        return SimpleNamespace(
-            username="alice",
-            project_name="demo",
-            project_dir=tmp_path,
-            ctx=context,
-        )
+        calls["resolved"] = (project, user, required_role)
+        return SimpleNamespace(ctx=context)
+
+    class FakeUseCases:
+        async def schedule(self, candidate_context, command):
+            calls["scheduled"] = (candidate_context, command)
+            payload = scheduled_payload or {
+                "task_type": "ai_identity_detection",
+                "task_id": "task-detect-1",
+                "task_key": "task:ai_identity_detection:project:project-demo:episode:1",
+                "backend": "inline",
+                "queue": "default",
+                "message": "第 1 集 AI 角色检测已进入队列",
+            }
+            return SimpleNamespace(as_dict=lambda: payload)
 
     monkeypatch.setattr(
         production_sketch,
@@ -203,16 +52,9 @@ def _client(
         fake_resolve_project_scope,
     )
     monkeypatch.setattr(
-        sketch_markers.project_stores,
-        "make_sqlite_store_for_context",
-        fake_make_sqlite_store_for_context,
-    )
-    if usage_meter is not None:
-        monkeypatch.setattr(composition, "get_usage_meter", lambda: usage_meter)
-    monkeypatch.setattr(
-        global_video_optimizer,
-        "detect_identities_by_ai",
-        fake_detect_identities_by_ai,
+        production_sketch,
+        "sketch_marker_detection_task_use_cases",
+        lambda: FakeUseCases(),
     )
 
     app = FastAPI()
@@ -220,234 +62,79 @@ def _client(
     app.dependency_overrides[production_sketch.get_api_user] = lambda: {
         "username": "alice"
     }
-    return TestClient(app)
+    return TestClient(app), calls, context
 
 
-def test_detect_identities_accepts_single_sketch(monkeypatch, tmp_path):
-    store = _DetectStore([{"beat_number": 1, "visual_description": "{{Hero_Main}}"}])
-    calls: list[int] = []
-    _write_sketch(tmp_path, 1)
-    client = _client(monkeypatch, tmp_path, store, calls)
+def test_detect_identities_queues_background_task(monkeypatch, tmp_path):
+    client, calls, context = _client(monkeypatch, tmp_path)
 
     response = client.post(
         "/api/v1/projects/demo/episodes/1/sketches/detect-identities"
     )
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert calls == [1]
-    assert body["data"]["identity_detections"] == {"1": ["Hero_Main"]}
-    assert store.identity_writes == {1: ["Hero_Main"]}
-    assert store.close_calls == 1
+    assert response.json() == {
+        "ok": True,
+        "task_type": "ai_identity_detection",
+        "task_id": "task-detect-1",
+        "task_key": "task:ai_identity_detection:project:project-demo:episode:1",
+        "backend": "inline",
+        "queue": "default",
+        "message": "第 1 集 AI 角色检测已进入队列",
+    }
+    assert calls["resolved"] == ("demo", {"username": "alice"}, "editor")
+    scheduled_context, command = calls["scheduled"]
+    assert scheduled_context is context
+    assert command.episode_num == 1
 
 
-def test_detect_identities_reserves_feature_credit_and_marks_model_calls_included(
-    monkeypatch,
-    tmp_path,
-):
-    store = _DetectStore([{"beat_number": 1, "visual_description": "{{Hero_Main}}"}])
-    calls: list[int] = []
-    usage_meter = _UsageMeter()
-    ctx = SimpleNamespace(project_id="project-1", requester_user_id="user-1")
-    _write_sketch(tmp_path, 1)
-    client = _client(
-        monkeypatch,
-        tmp_path,
-        store,
-        calls,
-        usage_meter=usage_meter,
-        ctx=ctx,
+@pytest.mark.asyncio
+async def test_detection_scheduler_submits_project_task_with_episode_payload():
+    from ai_anime.modules.production.application.sketch_marker_detection_task import (
+        ScheduleSketchMarkerDetectionCommand,
     )
-
-    response = client.post(
-        "/api/v1/projects/demo/episodes/1/sketches/detect-identities"
+    from ai_anime.modules.production.infrastructure.sketch_marker_detection_task import (
+        TaskExecutionSketchMarkerDetectionScheduler,
     )
+    from ai_anime.modules.project_workspace.public import ProjectContext
 
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert usage_meter.reserve_calls == [
-        {
-            "user_id": "user-1",
-            "feature_key": "ai_identity_detection",
-            "project_id": "project-1",
-            "resource_kind": "sketch",
-            "task_type": "ai_identity_detection",
-            "metadata": {
-                "source": "sync_api",
-                "endpoint": "detect_sketch_identities",
-                "episode": 1,
-                "sketch_count": 1,
-            },
-            "require_price_rule": True,
-            "require_positive_cost": True,
-        }
-    ]
-    assert usage_meter.contexts[0]["billing_metadata"][
-        "model_call_credit_policy"
-    ] == "feature_included"
-    assert usage_meter.contexts[0]["billing_metadata"][
-        "feature_credit_reservation_id"
-    ] == "feature-reservation-1"
-    assert usage_meter.confirm_calls[0][0] == "feature-reservation-1"
-    assert usage_meter.refund_calls == []
-    assert usage_meter.clear_count == 1
-
-
-def test_detect_identities_refunds_feature_credit_when_ai_detection_fails(
-    monkeypatch,
-    tmp_path,
-):
-    from ai_anime.modules.production.infrastructure import global_video_optimizer
-
-    store = _DetectStore([{"beat_number": 1, "visual_description": "{{Hero_Main}}"}])
-    usage_meter = _UsageMeter()
-    _write_sketch(tmp_path, 1)
-    client = _client(
-        monkeypatch,
-        tmp_path,
-        store,
-        [],
-        usage_meter=usage_meter,
-        ctx=SimpleNamespace(project_id="project-1", requester_user_id="user-1"),
+    context = ProjectContext(
+        project_id="project-demo",
+        project_name="demo",
+        owner_type="user",
+        owner_id="user-alice",
+        owner_username="alice",
+        requester_user_id="user-alice",
+        requester_username="alice",
+        requester_principals=(("user", "user-alice"),),
+        effective_role="editor",
+        home_node_id="local",
+        output_dir="output",
+        state_dir="state",
+        runtime_dir="runtime",
+        is_home_node=True,
     )
+    captured: dict[str, object] = {}
 
-    async def fake_failed_detect_identities_by_ai(**kwargs):
-        raise RuntimeError("vision model failed")
+    class Submissions:
+        async def submit(self, candidate_context, submission):
+            captured["context"] = candidate_context
+            captured["submission"] = submission
+            return SimpleNamespace(
+                task_id="task-detect-2",
+                task_key="task-key-detect-2",
+                backend="celery",
+                queue="default",
+            )
 
-    monkeypatch.setattr(
-        global_video_optimizer,
-        "detect_identities_by_ai",
-        fake_failed_detect_identities_by_ai,
-    )
+    receipt = await TaskExecutionSketchMarkerDetectionScheduler(
+        Submissions()
+    ).enqueue(context, ScheduleSketchMarkerDetectionCommand(episode_num=3))
 
-    response = client.post("/api/v1/projects/demo/episodes/1/sketches/detect-identities")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is False
-    assert "vision model failed" in body["error"]
-    assert usage_meter.confirm_calls == []
-    assert usage_meter.refund_calls[0][0] == "feature-reservation-1"
-    assert usage_meter.clear_count == 1
-
-
-def test_detect_identities_accepts_unpadded_nicegui_sketch(monkeypatch, tmp_path):
-    store = _DetectStore([{"beat_number": 1, "visual_description": "{{Hero_Main}}"}])
-    calls: list[int] = []
-    _write_sketch(tmp_path, 1, padded=False)
-    client = _client(monkeypatch, tmp_path, store, calls)
-
-    response = client.post("/api/v1/projects/demo/episodes/1/sketches/detect-identities")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert calls == [1]
-    assert body["data"]["identity_detections"] == {"1": ["Hero_Main"]}
-
-
-def test_detect_identities_falls_back_to_script_sketch_colors(monkeypatch, tmp_path):
-    store = _DetectStore(
-        [{"beat_number": 1, "visual_description": "{{Hero_Main}}"}],
-        sketch_colors={},
-        script_sketch_colors={"Hero_Main": "#ff0000 RED"},
-    )
-    calls: list[int] = []
-    _write_sketch(tmp_path, 1)
-    client = _client(monkeypatch, tmp_path, store, calls)
-
-    response = client.post("/api/v1/projects/demo/episodes/1/sketches/detect-identities")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert calls == [1]
-    assert body["data"]["identity_detections"] == {"1": ["Hero_Main"]}
-
-
-def test_detect_identities_batches_more_than_twenty_five_sketches(monkeypatch, tmp_path):
-    beats = [
-        {"beat_number": beat_num, "visual_description": "{{Hero_Main}}"}
-        for beat_num in range(1, 27)
-    ]
-    store = _DetectStore(beats)
-    calls: list[int] = []
-    for beat_num in range(1, 27):
-        _write_sketch(tmp_path, beat_num)
-    client = _client(monkeypatch, tmp_path, store, calls)
-
-    response = client.post("/api/v1/projects/demo/episodes/1/sketches/detect-identities")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert calls == [25, 1]
-    assert body["data"]["identity_detections"]["1"] == ["Hero_Main"]
-    assert body["data"]["identity_detections"]["26"] == ["Hero_Main"]
-    assert body["data"]["identity_detections"]["2"] == ["__NO_CHARACTER__"]
-    assert len(body["data"]["identity_detections"]) == 26
-    assert store.identity_writes[1] == ["Hero_Main"]
-    assert store.identity_writes[26] == ["Hero_Main"]
-    assert store.identity_writes[2] == ["__NO_CHARACTER__"]
-
-
-def test_detect_identities_marks_empty_ai_result_as_no_character_and_no_prop(
-    monkeypatch, tmp_path
-):
-    from ai_anime.modules.production.infrastructure import global_video_optimizer
-
-    store = _DetectStore([{"beat_number": 1, "visual_description": ""}])
-    calls: list[int] = []
-    _write_sketch(tmp_path, 1)
-    client = _client(monkeypatch, tmp_path, store, calls)
-
-    async def fake_empty_detect_identities_by_ai(**kwargs):
-        calls.append(kwargs["total_beats"])
-        return {1: []}
-
-    monkeypatch.setattr(
-        global_video_optimizer,
-        "detect_identities_by_ai",
-        fake_empty_detect_identities_by_ai,
-    )
-
-    response = client.post("/api/v1/projects/demo/episodes/1/sketches/detect-identities")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert body["data"]["identity_detections"] == {"1": ["__NO_CHARACTER__"]}
-    assert body["data"]["prop_detections"] == {"1": ["__NO_PROP__"]}
-    assert "核对" in body["data"]["review_message"]
-    assert store.identity_writes == {1: ["__NO_CHARACTER__"]}
-    assert store.prop_writes == {1: ["__NO_PROP__"]}
-
-
-def test_detect_identities_marks_missing_ai_panel_result_as_no_character_and_no_prop(
-    monkeypatch, tmp_path
-):
-    from ai_anime.modules.production.infrastructure import global_video_optimizer
-
-    store = _DetectStore([{"beat_number": 1, "visual_description": ""}])
-    _write_sketch(tmp_path, 1)
-    client = _client(monkeypatch, tmp_path, store, [])
-
-    async def fake_missing_detect_identities_by_ai(**kwargs):
-        return {}
-
-    monkeypatch.setattr(
-        global_video_optimizer,
-        "detect_identities_by_ai",
-        fake_missing_detect_identities_by_ai,
-    )
-
-    response = client.post("/api/v1/projects/demo/episodes/1/sketches/detect-identities")
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["ok"] is True
-    assert body["data"]["identity_detections"] == {"1": ["__NO_CHARACTER__"]}
-    assert body["data"]["prop_detections"] == {"1": ["__NO_PROP__"]}
-    assert store.identity_writes == {1: ["__NO_CHARACTER__"]}
-    assert store.prop_writes == {1: ["__NO_PROP__"]}
+    assert captured["context"] is context
+    submission = captured["submission"]
+    assert submission.task_type == "ai_identity_detection"
+    assert submission.episode == 3
+    assert submission.payload == {"episode": 3}
+    assert receipt.task_id == "task-detect-2"
+    assert receipt.backend == "celery"

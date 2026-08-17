@@ -169,6 +169,7 @@ export function createUseBeatsPageController(
     });
     const identityIds = episodeResponse?.data?.identity_ids ?? [];
     const identityPlanReady = identityIds.length > 0;
+    const scenePlanReady = (episodeResponse?.data?.scene_menu?.length ?? 0) > 0;
     const isNarratedProject =
       projectConfig.data?.spine_template === "narrated";
 
@@ -354,6 +355,10 @@ export function createUseBeatsPageController(
         toast.error(t("episode.script.identityRequired"));
         return;
       }
+      if (!scenePlanReady) {
+        toast.error(t("episode.script.sceneRequired"));
+        return;
+      }
       try {
         const response = await generateScript.mutateAsync({});
         if (response.ok === false) {
@@ -416,15 +421,20 @@ export function createUseBeatsPageController(
       detailBeatDisplayNumber,
       episodeNumber,
       generateDisabled:
-        !identityPlanReady || generateScript.isPending || scriptTask.started,
+        !identityPlanReady ||
+        !scenePlanReady ||
+        generateScript.isPending ||
+        scriptTask.started,
       generatePending: generateScript.isPending || scriptTask.started,
       generateScriptCostDisplay: creditCostDisplay(
         generateScriptCost,
         t("common.billingRuleNotConfiguredShort"),
       ),
-      generateTitle: identityPlanReady
-        ? undefined
-        : t("episode.script.identityRequired"),
+      generateTitle: !identityPlanReady
+        ? t("episode.script.identityRequired")
+        : !scenePlanReady
+          ? t("episode.script.sceneRequired")
+          : undefined,
       handleCardClick,
       handleGenerate,
       handleOpenEpisodeFreezone,

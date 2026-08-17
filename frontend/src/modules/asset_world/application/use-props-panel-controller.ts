@@ -59,6 +59,7 @@ export function createUsePropsPanelController(
     const propsQuery = propQueries.useProps(project);
     const createProp = propQueries.useCreateProp(project);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<PropAsset | null>(null);
     const [editing, setEditing] = useState<PropAsset | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [sortKey, setSortKey] = useState<AssetSortKey>("name");
@@ -156,19 +157,14 @@ export function createUsePropsPanelController(
       toast.success(response.message);
     };
 
-    const handleDelete = async (prop: PropAsset) => {
-      if (
-        !window.confirm(
-          t("assets.props.confirmDelete", { name: prop.name }),
-        )
-      ) {
-        return;
-      }
-      const response = await deleteProp.mutateAsync(prop.name);
+    const confirmDelete = async () => {
+      if (!deleteTarget) return;
+      const response = await deleteProp.mutateAsync(deleteTarget.name);
       if (isErrorDataResponse(response)) {
         toast.error(response.error);
         return;
       }
+      setDeleteTarget(null);
       toast.success(t("assets.props.deleted"));
     };
 
@@ -204,7 +200,16 @@ export function createUsePropsPanelController(
       batchProgress: batchTask.stream.progress,
       batchReferenceCost,
       batchStopping: batchTask.stopping,
-      deleteProp: handleDelete,
+      deleteDialog: {
+        confirm: confirmDelete,
+        name: deleteTarget?.name ?? "",
+        onOpenChange: (open: boolean) => {
+          if (!open && !deleteProp.isPending) setDeleteTarget(null);
+        },
+        open: Boolean(deleteTarget),
+        pending: deleteProp.isPending,
+      },
+      deleteProp: setDeleteTarget,
       dialog: {
         initial: editing,
         onOpenChange: handleDialogOpenChange,

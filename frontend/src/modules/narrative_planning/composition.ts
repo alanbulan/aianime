@@ -3,6 +3,7 @@ import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public
 import {
   useAssetWorkspaceNavigation,
   useCharacters,
+  useProps,
   useScenePlatePreview,
   useScenes,
 } from "@/modules/asset_world/public";
@@ -79,6 +80,8 @@ export const useEpisodesPageController = createUseEpisodesPageController(
   narrativePlanningQueries,
   {
     useCharacters,
+    useProps,
+    useScenes,
     useGenerationCreditCost,
   },
 );

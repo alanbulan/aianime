@@ -20,6 +20,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   GLASS_DIALOG_CONTENT_CLASS,
   GLASS_DIALOG_HEADER_CLASS,
   GLASS_DIALOG_SIDEBAR_CLASS,
@@ -94,7 +101,7 @@ export function SketchPoseEditorDialogView({
 
   useEffect(() => {
     if (!data || !image) return;
-    drawEditorCanvas(
+    drawPoseCanvas(
       canvasRef.current,
       image,
       data.skeleton_edges,
@@ -109,10 +116,11 @@ export function SketchPoseEditorDialogView({
     const point = canvasPoint(event, canvas);
     const colorHex =
       controller.mode === "eraser"
-        ? "#ffffff"
+        ? canvasThemeColor(canvas, "--background", "white")
         : controller.mode === "ink"
-          ? "#333333"
-          : controller.activeSkeleton?.colorHex || "#22d3ee";
+          ? canvasThemeColor(canvas, "--foreground", "black")
+          : controller.activeSkeleton?.colorHex ||
+            canvasThemeColor(canvas, "--primary", "cyan");
     if (controller.onStartCanvasInteraction(point, colorHex)) {
       event.currentTarget.setPointerCapture(event.pointerId);
     }
@@ -213,19 +221,27 @@ export function SketchPoseEditorDialogView({
                 <div className="text-xs font-medium text-muted-foreground">
                   {t("episode.workbench.sketch.posePreset")}
                 </div>
-                <select
+                <Select
                   value={controller.presetKey}
-                  onChange={(event) =>
-                    controller.onPresetChange(event.currentTarget.value)
-                  }
-                  className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+                  onValueChange={(value) => {
+                    if (value) controller.onPresetChange(value);
+                  }}
                 >
-                  {Object.entries(data.pose_presets).map(([key, preset]) => (
-                    <option key={key} value={key}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    size="sm"
+                    className="w-full bg-background text-xs"
+                    aria-label={t("episode.workbench.sketch.posePreset")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {Object.entries(data.pose_presets).map(([key, preset]) => (
+                      <SelectItem key={key} value={key}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   type="button"
                   size="sm"
@@ -344,7 +360,7 @@ export function SketchPoseEditorDialogView({
                   className="flex h-full w-full items-center justify-center rounded-lg bg-media/20 ring-1 ring-border"
                   style={{
                     backgroundImage:
-                      "radial-gradient(circle, rgba(148,163,184,0.12) 1px, transparent 1px)",
+                      "radial-gradient(circle, color-mix(in srgb, var(--muted-foreground) 20%, transparent) 1px, transparent 1px)",
                     backgroundSize: "18px 18px",
                   }}
                 >
@@ -389,7 +405,7 @@ function canvasPoint(
   };
 }
 
-function drawEditorCanvas(
+function drawPoseCanvas(
   canvas: HTMLCanvasElement | null,
   image: HTMLImageElement,
   edges: Array<[string, string]>,
@@ -404,7 +420,8 @@ function drawEditorCanvas(
 
   for (const skeleton of skeletons) {
     if (!skeleton.visible) continue;
-    const color = skeleton.colorHex || "#22d3ee";
+    const color =
+      skeleton.colorHex || canvasThemeColor(canvas, "--primary", "cyan");
 
     ctx.save();
     ctx.lineCap = "round";
@@ -428,8 +445,11 @@ function drawEditorCanvas(
     if (nose) {
       ctx.beginPath();
       ctx.arc(nose.x, nose.y, skeleton.headRadius ?? 10, 0, Math.PI * 2);
-      ctx.fillStyle = withAlpha(color, 0.15);
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = color;
       ctx.fill();
+      ctx.restore();
       ctx.stroke();
     }
     ctx.restore();
@@ -438,7 +458,7 @@ function drawEditorCanvas(
       const radius = skeleton.active ? 5.5 : 4;
       ctx.beginPath();
       ctx.arc(joint.x, joint.y, radius + 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = canvasThemeColor(canvas, "--background", "white");
       ctx.fill();
       ctx.beginPath();
       ctx.arc(joint.x, joint.y, radius, 0, Math.PI * 2);
@@ -452,21 +472,20 @@ function drawEditorCanvas(
   }
 }
 
-function withAlpha(hex: string, alpha: number): string {
-  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!match) return hex;
-  const value = parseInt(match[1], 16);
-  const red = (value >> 16) & 255;
-  const green = (value >> 8) & 255;
-  const blue = value & 255;
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+function canvasThemeColor(
+  canvas: HTMLCanvasElement,
+  variable: string,
+  fallback: string,
+): string {
+  return getComputedStyle(canvas).getPropertyValue(variable).trim() || fallback;
 }
 
 function drawStroke(ctx: CanvasRenderingContext2D, stroke: PoseStroke): void {
   if (stroke.points.length < 2) return;
   ctx.strokeStyle = stroke.eraser
-    ? "#ffffff"
-    : stroke.colorHex || "#333333";
+    ? canvasThemeColor(ctx.canvas, "--background", "white")
+    : stroke.colorHex ||
+      canvasThemeColor(ctx.canvas, "--foreground", "black");
   ctx.lineWidth = stroke.width ?? 4;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";

@@ -40,6 +40,53 @@ describe("AI Assistant message timeline primitives", () => {
     });
   });
 
+  it("restores persisted tool calls before the matching assistant reply", () => {
+    const history = normalizeHistory([
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "整集已完成",
+        turn_id: "turn-1",
+        created_at: "2026-06-03T09:00:03Z",
+        ui_events: [
+          {
+            id: 1,
+            type: "tool.call",
+            turn_id: "turn-1",
+            tool_call_id: "call-1",
+            name: "ai_anime_pipeline_status",
+            input: { episode: 1 },
+            created_at: "2026-06-03T09:00:01Z",
+          },
+          {
+            id: 2,
+            type: "tool.result",
+            turn_id: "turn-1",
+            tool_call_id: "call-1",
+            name: "ai_anime_pipeline_status",
+            success: true,
+            result: { ok: true },
+            created_at: "2026-06-03T09:00:02Z",
+          },
+        ],
+      },
+    ]);
+
+    expect(history).toHaveLength(2);
+    expect(history[0]).toMatchObject({
+      id: "tool-call-1",
+      role: "tool",
+      toolName: "ai_anime_pipeline_status",
+      toolState: "success",
+      toolInput: { episode: 1 },
+      toolOutput: { ok: true },
+    });
+    expect(history[1]).toMatchObject({
+      id: "assistant-1",
+      role: "assistant",
+    });
+  });
+
   it("sorts messages in one turn as user, tool, assistant without mutating input", () => {
     const messages = [
       message("assistant-1", "assistant", "完成", 1, "turn-1"),

@@ -12,6 +12,8 @@ import { queryKeys } from "@/lib/query-keys";
 import { parseCommercialBootstrapRelease } from "@/modules/platform_release/domain/commercial-release";
 import { electronCommercialAnnouncementGateway } from "@/modules/platform_release/infrastructure/electron-commercial-announcement-gateway";
 import { electronCommercialReleaseGateway } from "@/modules/platform_release/infrastructure/electron-commercial-release-gateway";
+import { subscribeElectronCommercialUpdateDownloadProgress } from "@/modules/platform_release/infrastructure/electron-commercial-release-gateway";
+import type { CommercialUpdateDownloadProgress } from "@/modules/platform_release/domain/commercial-release";
 export {
   loadReadNotificationKeys,
   markNotificationKeysRead,
@@ -36,6 +38,14 @@ export function downloadCommercialUpdate(
 export function installCommercialUpdate(): Promise<void> {
   return electronCommercialReleaseGateway.installUpdate();
 }
+
+export function subscribeCommercialUpdateDownloadProgress(
+  listener: (progress: CommercialUpdateDownloadProgress) => void,
+): () => void {
+  return subscribeElectronCommercialUpdateDownloadProgress(listener);
+}
+
+export type { CommercialUpdateDownloadProgress };
 
 export function seedCommercialBootstrapRelease(
   queryClient: QueryClient,

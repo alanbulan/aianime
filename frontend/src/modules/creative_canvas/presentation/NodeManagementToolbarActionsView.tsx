@@ -46,7 +46,7 @@ export function NodeManagementToolbarActionsView({
               ? `${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} !border-warning/50 !bg-warning/10 !text-warning hover:!bg-warning/15`
               : NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS
           }
-          title={
+          data-ui-tooltip={
             projectionIsStale
               ? t("freezone.projections.staleBadge")
               : undefined
@@ -83,7 +83,7 @@ export function NodeManagementToolbarActionsView({
             event.stopPropagation();
             commit();
           }}
-          title="把当前节点的内容写回主流程资产"
+          data-ui-tooltip="把当前节点的内容写回主流程资产"
         >
           <Send className="h-3.5 w-3.5" />
           提交

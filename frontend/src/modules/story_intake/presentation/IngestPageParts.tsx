@@ -430,7 +430,7 @@ function SelectedFileCard({
         </button>
         <p
           className="truncate text-sm font-medium text-foreground"
-          title={name}
+          data-ui-tooltip={name}
         >
           {name}
         </p>

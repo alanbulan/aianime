@@ -42,9 +42,18 @@ class StubDeterministicReplies:
         turn_id=None,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.calls.append(
-            (username, project, content, turn_id, project_dir, project_state_dir)
+            (
+                username,
+                project,
+                content,
+                turn_id,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
         )
         await asyncio.sleep(0)
         return {"role": "assistant", "content": content}
@@ -65,9 +74,18 @@ class StubHermesReplies:
         turn_id=None,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.calls.append(
-            (username, project, prompt, turn_id, project_dir, project_state_dir)
+            (
+                username,
+                project,
+                prompt,
+                turn_id,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
         )
         await asyncio.sleep(0)
         if self.error is not None:
@@ -121,6 +139,7 @@ filename: novel.docx
         "turn-1",
         tmp_path / "output",
         tmp_path / "state",
+        "main",
     )
     assert locks.acquired == [("alice", "project-a")]
     assert locks.maintained == [("alice", "project-a", "lock-1")]

@@ -1,6 +1,6 @@
 # AI anime 助手 API 快速参考
 
-**Base URL**: `$AI_ANIME_API_URL/api/v1`
+**HTTP Base URL**: `$AI_ANIME_API_URL/api/v1`。调用 `ai_anime_get` / `ai_anime_post` 时，`path` 必须写成完整的 `/api/v1/...`；表格中的简写路径不能直接传给工具。
 **认证**: `Authorization: Bearer $AI_ANIME_AGENT_TOKEN`
 
 ---
@@ -19,7 +19,7 @@
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | `POST` | `/projects/{project}/ingest/upload` | 上传小说 (multipart) |
-| `POST` | `/projects/{project}/ingest/start` | 启动摄入 `{"filename":"...", "textModel":"...", "embeddingModel":"...", "rebuild":false}` [ASYNC]；助手必须调用 `ai_anime_start_ingest`，由工具按当前云端/BYOK 分配补齐模型；已摄入项目覆盖重建必须二次确认后传 `rebuild=true` |
+| `POST` | `/projects/{project}/ingest/start` | 启动摄入 `{"filename":"...", "rebuild":false}` [ASYNC]；助手必须调用 `ai_anime_start_ingest`，任务执行时使用当前 TEXT/EMBEDDING 路由；已摄入项目覆盖重建必须二次确认后传 `rebuild=true` |
 
 摄入 API 只允许以上两个路径。助手启动摄入时禁止使用通用 `ai_anime_post`，只能调用 `ai_anime_start_ingest(filename="...")`。`ingest_fast` 是后端任务类型，不是 HTTP 路由；不要调用或推断 `/ingest/init`、`/ingest/setup`、`/ingest_script`、`/ingest_fast`、`/projects/{project}/ingest` 或其它 ingest 变体。遇到这些路径的 404 时，不要解释为摄入模块未启用，应改用上表真实路由。
 
@@ -49,6 +49,14 @@
 | `GET` | `/projects/{project}/chapters` | 检测小说章节 |
 | `PATCH` | `/projects/{project}/episodes/{ep}` | 修改集信息 |
 | `POST` | `/projects/{project}/episodes/{ep}/identities/plan` | 规划本集身份 |
+| `POST` | `/projects/{project}/episodes/{ep}/scenes/plan` | 规划本集场景 |
+
+## 完整生产与脚本生产入口
+
+| 方法 | 路径 | 用途 |
+|------|------|------|
+| `POST` | `/projects/{project}/workflow/production` | 前端与助手共用的唯一完整生产入口 [ASYNC → production_workflow]：从持久化断点完成脚本、资产、草图、检测、优化、首帧、音频、逐 beat 视频和合成。助手使用 `ai_anime_run_production_workflow`，一次只提交一个父任务。 |
+| `POST` | `/projects/{project}/workflow/scripts` | 单节点或完整脚本生产 DAG：`摄入 → 角色 → 分集 →（身份规划 || 场景规划）→ 分集脚本` [ASYNC → script_workflow]。`mode=through` 自动补前置，`mode=single` 仅运行目标节点；助手使用 `ai_anime_run_script_workflow`，不得用通用 POST 绕过。 |
 
 ## 剧本
 
@@ -74,36 +82,34 @@
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | `POST` | `/projects/{project}/episodes/{ep}/rewrite/generate` | 解说改写：原文 → 改写稿 `{"target_beats":18,"beat_chars_min":14,"beat_chars_max":20,"narration_style":"first_person"}` [ASYNC → content_rewriter] |
-| `POST` | `/projects/{project}/episodes/{ep}/script/generate` | 生成剧本 [ASYNC → script_writer]；当前后端没有 `literal-script/generate` 路由 |
+| `POST` | `/projects/{project}/episodes/{ep}/script/generate` | 底层脚本任务 [ASYNC → script_writer]；要求身份与场景均已规划，仅供图执行器内部调度，助手不得直接调用 |
 
 ## 画面生成
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| `POST` | `/projects/{project}/episodes/{ep}/sketches/generate` | 草图 `{"style":"...","model":"nanobanana","grid_index":0,"sketch_location_grouping":true}` [ASYNC]。后端按 beat 数自动拆成 N 张 grid（2x4 起步，按容量 8/6/4/2/1 降级；18 beat→`2x4+2x4+1x2` 共 3 张）。每次只启动一个 `grid_index`；首次调用的 SSE result 里返回 `total_grids`。如果还有后续 grid，等用户下一轮“继续”再启动下一个；不要同一轮循环所有 grid。详见 `pipeline-details.md` Step 12。 |
+| `POST` | `/projects/{project}/episodes/{ep}/sketches/generate` | 局部草图 `{"style":"...","grid_index":0,"sketch_scene_grouping":true,"aspect_ratio":"2:3","image_generation_selection":"..."}` [ASYNC]。完整生产使用 `grid_index=-1` 由父任务生成全部网格；不得发送不存在的 `model` 或 `sketch_location_grouping` 字段。 |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/generate` | 九宫格 [ASYNC] |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/regenerate` | 重新生成单个网格 [ASYNC] |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/cut` | 切割入池 |
 | `GET` | `/projects/{project}/episodes/{ep}/grids` | 查看九宫格与图池（返回 `images[].stale` 布尔字段，true=旧版脚本生成） |
 | `POST` | `/projects/{project}/episodes/{ep}/beats/{beat}/pool-select` | 从图池选图 `{"pool_id":"...","force":false}` 旧批次需 `force:true` |
 | `POST` | `/projects/{project}/episodes/{ep}/sketches/assign-colors` | 草图配色（为身份分配唯一颜色）[SYNC] |
-| `POST` | `/projects/{project}/episodes/{ep}/sketches/detect-identities` | AI 身份检测（识别草图中出场角色）[SYNC] |
+| `POST` | `/projects/{project}/episodes/{ep}/sketches/detect-identities` | AI 身份检测（识别草图中出场角色）[ASYNC → ai_identity_detection] |
 
 ## TTS & 音频
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| `POST` | `/projects/{project}/episodes/{ep}/audio/generate` | 批量语音生成 [ASYNC: audio_generation_indextts2]；当前主线用这个 |
+| `POST` | `/projects/{project}/episodes/{ep}/audio/generate` | 批量语音生成 [ASYNC: audio_generation_indextts2] |
 | `POST` | `/projects/{project}/episodes/{ep}/beats/{beat}/audio` | 重做单beat音频 (SYNC) |
-
-旧 `/tts/generate`、`/tts/preview`、`/tts/voices` 已移除，不要调用。
 
 ## 视频
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | `POST` | `/projects/{project}/episodes/{ep}/optimize/video-global` | 全局视频优化(SuperPower⚡️) `{"language":"en"}` en=英文(默认), zh=中文 [ASYNC] |
-| `POST` | `/projects/{project}/episodes/{ep}/beats/{beat}/video` | 单beat视频重做 [ASYNC: single_video]。默认 `{"video_backend": "huimeng_seedance-1.0-pro-fast"}`；只有用户明确指定 1.5 Pro / 有声 1.5 / Huimeng 1.5 时才传 `{"video_backend": "huimeng_seedance-1.5-pro"}`。同一用户请求里同一 beat 只 POST 一次；启动接口返回 `ok:false` 或 HTTP 错误时，必须直接反馈接口 `error`。POST 返回 2xx 且 `ok`/`generated: true` 后，查 `GET /projects/{project}/tasks/single_video/{ep}?beat_num={beat}`；若状态是 `failed` / `cancelled`，必须反馈 `task.error`/`error_code`，不要说已完成。不要因 `Task not found`、任务状态缺失或无 `result.video_path` 重复 POST。没有 `result.video_path` 时不要探测 `/files`，不要探测 `/api/v1/projects/{project}/files`，只能按已启动或当前状态收口；`generated: true` 不等于返回新视频路径，不要交付 beat 记录里的旧 `video_url`，不要拼接 host。**不要触发整集 compose/generate/optimize** |
+| `POST` | `/projects/{project}/episodes/{ep}/beats/{beat}/video` | 单 beat 局部生成 [ASYNC: single_video]，请求字段为 `model`、`resolution`、`duration`、`mode` 等；未指定 `model` 时由后端按项目配置解析。同一用户请求里同一 beat 只 POST 一次；失败必须反馈任务真实错误，不得因查询暂未出现而重复 POST。完整整集目标使用 `/workflow/production`。 |
 | `POST` | `/projects/{project}/episodes/{ep}/videos/compose` | 合成 `{"add_subtitles":true,"add_bgm":false}` [ASYNC] |
 
 ## 导出 & 文件
@@ -147,12 +153,14 @@
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| `GET` | `/styles` | 列出风格 |
-| `GET` | `/styles/{id}` | 风格详情 |
-| `POST` | `/styles` | 创建自定义风格 |
-| `DELETE` | `/styles/{id}` | 删除自定义风格 |
-| `GET` | `/styles/{id}/preview` | 风格预览图（返回图片文件）。**拿到 200 响应即完成，直接告知用户"预览图已获取"，不要暴露 URL，不要再探测其他路径** |
+| `GET` | `/api/v1/styles` | 列出风格；项目助手会自动携带当前项目作用域 |
+| `GET` | `/api/v1/styles/{id}` | 风格详情；项目助手会自动携带当前项目作用域 |
+| `POST` | `/api/v1/styles` | 创建自定义风格；助手只使用 `ai_anime_create_style`，无需提供内部 ID |
+| `DELETE` | `/api/v1/styles/{id}` | 删除自定义风格 |
+| `POST` | `/api/v1/styles/{id}/preview` | 为已有自定义风格提交参考图任务到任务中心；助手必须使用 `ai_anime_generate_style_preview`，不得重新创建风格或提交任何配置字段 |
+| `GET` | `/api/v1/styles/{id}/preview` | 风格预览图（返回图片文件）。创建工具或参考图任务已返回成功时禁止再调用该接口验证 |
 | `POST` | `/projects/{project}/styles/analyze` | 风格分析（上传参考图提取风格参数）multipart/form-data [SYNC] |
+| `POST` | `/projects/{project}/styles/preview-upload` | 直接保存自定义风格参考图；助手使用 `ai_anime_upload_style_preview`，路径必须来自当前消息的 `[CHAT_ATTACHMENTS]` |
 
 ## 流水线状态
 
@@ -165,7 +173,8 @@
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | `GET` | `/projects/{project}/tasks` | 列出项目任务 |
-| `GET` | `/projects/{project}/tasks/{task_type}/{episode}` | 查询项目任务状态，单 beat 任务带 `?beat_num=N` |
+| `GET` | `/projects/{project}/tasks/status?task_key={task_key}` | 按创建结果中的精确任务键查询；助手工具唯一使用此入口 |
+| `GET` | `/projects/{project}/tasks/{task_type}/{episode}` | 任务中心按页面维度查询，单 beat 任务带 `?beat_num=N` |
 | `GET` | `/projects/{project}/tasks/{task_type}/{episode}/stream` | 项目任务 SSE，单 beat 任务带 `?beat_num=N` |
 | `GET` | `/projects/{project}/tasks/stream` | 项目任务聚合 SSE |
 | `DELETE` | `/projects/{project}/tasks/{task_type}/{episode}` | 取消项目任务 |

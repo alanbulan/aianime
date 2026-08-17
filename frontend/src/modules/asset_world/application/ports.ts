@@ -39,9 +39,14 @@ export interface AssetTaskResponse {
 export interface CreateStyleInput {
   id: string;
   name: string;
-  project: string;
   config: Record<string, unknown>;
   preview_path?: string | null;
+}
+
+export interface UpdateStyleInput {
+  id: string;
+  name: string;
+  config: Record<string, unknown>;
 }
 
 export interface CreateCharacterInput {
@@ -265,25 +270,20 @@ export interface AssetImageSourceGateway {
 
 export interface AssetWorldGateway {
   listStyles(
-    project?: string,
     signal?: AbortSignal,
   ): Promise<AssetDataResponse<Style[]>>;
   getStyle(
-    project: string,
     styleId: string,
     signal?: AbortSignal,
   ): Promise<AssetDataResponse<Style>>;
   createStyle(input: CreateStyleInput): Promise<AssetResponse<{ id: string }>>;
-  deleteStyle(
-    styleId: string,
-    project?: string,
-  ): Promise<AssetDataResponse<unknown>>;
+  updateStyle(input: UpdateStyleInput): Promise<AssetResponse<{ id: string }>>;
+  deleteStyle(styleId: string): Promise<AssetDataResponse<unknown>>;
   analyzeStyle(
     project: string,
     file: File,
   ): Promise<AssetResponse<Record<string, unknown>>>;
   uploadStylePreview(
-    project: string,
     input: { file: File; styleId: string },
   ): Promise<AssetResponse<{ preview_path: string }>>;
 }

@@ -2,8 +2,8 @@
 import { useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Accessibility,
   Box,
+  Accessibility,
   Crop,
   Download,
   ExternalLink,
@@ -59,6 +59,14 @@ const SKETCH_EMPTY_CLASS =
 const SKETCH_CANDIDATES_CLASS =
   "flex max-h-[220px] flex-wrap content-start gap-2 overflow-y-auto pr-1";
 const BACKGROUND_ANCHOR_PREVIEW_ASPECT = "16 / 9";
+const BACKGROUND_ANCHOR_LABEL_KEYS: Record<string, string> = {
+  director_env_only:
+    "episode.workbench.render.backgroundAnchorLabels.directorEnvOnly",
+  master: "episode.workbench.render.backgroundAnchorLabels.master",
+  reverse: "episode.workbench.render.backgroundAnchorLabels.reverse",
+  selected_background:
+    "episode.workbench.sketch.backgroundAnchorLabels.selectedBackground",
+};
 
 export interface SketchSectionViewProps {
   controller: SketchSectionController;
@@ -78,6 +86,7 @@ export function SketchSectionView({
     backgroundDialogOpen,
     backgroundLoading,
     backgroundSaving,
+    backgroundSceneId,
     beatNumber,
     candidates,
     castedEntries,
@@ -134,7 +143,7 @@ export function SketchSectionView({
               type="button"
               onClick={() => onNavigateToAsset("identity", entry.identityId)}
               className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
-              title={`${entry.character}${entry.identity ? ` · ${entry.identity}` : ""}`}
+              data-ui-tooltip={`${entry.character}${entry.identity ? ` · ${entry.identity}` : ""}`}
             >
               <span
                 aria-hidden
@@ -160,7 +169,7 @@ export function SketchSectionView({
               type="button"
               onClick={() => onNavigateToAsset("prop", prop.propId)}
               className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
-              title={prop.propId}
+              data-ui-tooltip={prop.propId}
             >
               <span
                 aria-hidden
@@ -178,7 +187,7 @@ export function SketchSectionView({
               type="button"
               onClick={() => onNavigateToAsset("prop", propId)}
               className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none transition-colors hover:border-primary/45 hover:bg-primary/[0.07]"
-              title={propId}
+              data-ui-tooltip={propId}
             >
               <Package
                 aria-hidden
@@ -396,9 +405,9 @@ export function SketchSectionView({
             size="xs"
             variant="ghost"
             onClick={() => onOpenSketchTool("pose")}
-            disabled={poolSelectPending || !editable}
+            disabled={poolSelectPending || !editable || sketchActive}
             className="gap-1"
-            title={t("episode.workbench.sketch.poseEdit")}
+            data-ui-tooltip={t("episode.workbench.sketch.poseEdit")}
           >
             <Accessibility className="size-3" />
             {t("episode.workbench.sketch.poseEdit")}
@@ -409,7 +418,7 @@ export function SketchSectionView({
             onClick={() => onOpenSketchTool("crop")}
             disabled={poolSelectPending || !editable}
             className="gap-1"
-            title={t("episode.workbench.sketch.cropEdit")}
+            data-ui-tooltip={t("episode.workbench.sketch.cropEdit")}
           >
             <Crop className="size-3" />
             {t("episode.workbench.sketch.cropEdit")}
@@ -420,7 +429,7 @@ export function SketchSectionView({
             onClick={onOpenBackgroundDialog}
             disabled={backgroundLoading}
             className="gap-1"
-            title={t("episode.workbench.sketch.chooseBackgroundTip")}
+            data-ui-tooltip={t("episode.workbench.sketch.chooseBackgroundTip")}
           >
             <ImageIcon className="size-3" />
             {t("episode.workbench.sketch.chooseBackground")}
@@ -470,7 +479,7 @@ export function SketchSectionView({
             onClick={onOpenDirectorWorld}
             disabled={directorWorldPending}
             className="gap-1"
-            title={t("episode.workbench.sketch.openDirectorWorldTip")}
+            data-ui-tooltip={t("episode.workbench.sketch.openDirectorWorldTip")}
           >
             <Box className="size-3" />
             {t("episode.workbench.sketch.openDirectorWorld")}
@@ -481,7 +490,7 @@ export function SketchSectionView({
             onClick={onOpenFreezone}
             disabled={freezonePending}
             className="gap-1"
-            title={t("episode.workbench.sketch.openFreezoneTip")}
+            data-ui-tooltip={t("episode.workbench.sketch.openFreezoneTip")}
           >
             {freezonePending ? (
               <Loader2 className="size-3 animate-spin" />
@@ -513,6 +522,17 @@ export function SketchSectionView({
               {t("episode.workbench.sketch.backgroundDialogDesc")}
             </DialogDescription>
           </DialogHeader>
+          <div className="rounded-lg border border-border bg-muted px-3 py-2.5">
+            <div className="min-w-0 text-sm">
+              <div className="text-xs text-muted-foreground">
+                {t("episode.workbench.sketch.backgroundSceneLabel")}
+              </div>
+              <div className="truncate font-medium">
+                {backgroundSceneId ||
+                  t("episode.workbench.sketch.backgroundSceneMissing")}
+              </div>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {backgroundAnchors.map((anchor) => (
               <div
@@ -531,7 +551,7 @@ export function SketchSectionView({
                   {anchor.url ? (
                     <img
                       src={anchor.url}
-                      alt={anchor.label}
+                      alt={t(BACKGROUND_ANCHOR_LABEL_KEYS[anchor.id] ?? anchor.label)}
                       className="h-full w-full object-cover"
                       loading="lazy"
                       decoding="async"
@@ -545,7 +565,7 @@ export function SketchSectionView({
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">
-                      {anchor.label}
+                      {t(BACKGROUND_ANCHOR_LABEL_KEYS[anchor.id] ?? anchor.label)}
                     </div>
                     {anchor.current && (
                       <div className="text-[11px] text-warning">

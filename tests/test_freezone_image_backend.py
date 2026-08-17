@@ -5501,11 +5501,8 @@ async def test_skill_run_frame_uses_resolved_identity_and_prop_references(
         monkeypatch,
         SimpleNamespace(enqueue_project_task=fake_enqueue_project_task),
     )
-    import ai_anime.modules.project_workspace.infrastructure.project_config as project_config
-
     monkeypatch.setattr(
-        project_config,
-        "load_project_config",
+        "ai_anime.modules.creative_canvas.infrastructure.mainline_generation.load_project_config",
         lambda _username, _project: {"visual_style": "realistic", "ethnicity": "Mixed"},
     )
     _write_image(project_dir / "freezone" / "sketch.png", size=(800, 1200))

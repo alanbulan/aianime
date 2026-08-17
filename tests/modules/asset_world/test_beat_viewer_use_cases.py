@@ -201,7 +201,7 @@ async def test_beat_viewer_composes_project_manifests_and_status(
         "beat_number": 4,
         "scene_ref": {"scene_id": "地下室"},
     }
-    use_cases, workspace, scene_viewer, director_stage, _anchors = _use_cases(
+    use_cases, workspace, scene_viewer, director_stage, anchors = _use_cases(
         _Store([beat])
     )
     context = _context(tmp_path)
@@ -229,7 +229,10 @@ async def test_beat_viewer_composes_project_manifests_and_status(
     assert stage == {"scene_name": "地下室"}
     assert overlay == {"status": "missing"}
     assert saved_overlay == {"status": "saved"}
-    assert exported == {"url": "/projects/project-1/frame.png"}
+    assert exported == {
+        "url": "/projects/project-1/frame.png",
+        "background_anchor": {"operation": "select"},
+    }
     assert use_cases.default_director_stage_palette() == {"actors": [], "props": []}
     assert scene_viewer.pano_calls[0]["beat"] is beat
     assert scene_viewer.stage_calls[0]["sketch_colors"] == {
@@ -241,6 +244,8 @@ async def test_beat_viewer_composes_project_manifests_and_status(
     assert director_stage.load_calls[0]["repository"] is workspace.store
     assert director_stage.save_calls[0]["asset_writer"] is workspace.store
     assert director_stage.export_calls[0]["scene_name"] == "地下室"
+    assert anchors.select_calls[0]["asset_writer"] is workspace.store
+    assert anchors.select_calls[0]["command"].anchor_id == "director_env_only"
     assert workspace.store.updates == [{"saved": True}]
     assert workspace.contexts == [context, context, context, context, context]
     assert workspace.exit_count == 5

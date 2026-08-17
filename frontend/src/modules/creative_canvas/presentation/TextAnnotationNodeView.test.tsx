@@ -46,8 +46,8 @@ vi.mock('./NodeResizeHandle', () => ({
 }));
 
 vi.mock('./NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: ({ durationMs }: { durationMs: number }) => (
-    <div>generation-overlay:{durationMs}</div>
+  NodeGenerationOverlay: ({ progress }: { progress?: number | null }) => (
+    <div>generation-overlay:{progress ?? 'indeterminate'}</div>
   ),
 }));
 
@@ -96,6 +96,7 @@ function createController(): TextAnnotationNodeController {
       maxHeight: 1200,
     },
     isGenerating: false,
+    generationProgress: null,
     isSystemManaged: false,
     isCompactView: false,
     isEditingContent: false,
@@ -188,13 +189,17 @@ describe('TextAnnotationNodeView', () => {
     controller.compactInputValue = '';
     controller.compactInputPlaceholder = '反推提示词要求';
     controller.isGenerating = true;
+    controller.generationProgress = 0.25;
     controller.data.generationStartedAt = 100;
     const { container } = render(
       <TextAnnotationNodeView controller={controller} />,
     );
 
-    expect(screen.getByText('generation-overlay:15000')).toBeInTheDocument();
+    expect(screen.getByText('generation-overlay:0.25')).toBeInTheDocument();
     expect(screen.getByText('credit:2 credits')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'node.textNode.submit' }),
+    ).toBeInTheDocument();
     expect(
       container.querySelector('img[src="display:/reference.jpg"]'),
     ).not.toBeNull();

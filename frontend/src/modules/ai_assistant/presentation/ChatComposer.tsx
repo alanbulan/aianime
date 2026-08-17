@@ -9,9 +9,11 @@ import {
   X,
 } from "lucide-react";
 import type {
+  ClipboardEvent as ReactClipboardEvent,
   DragEvent as ReactDragEvent,
   KeyboardEvent as ReactKeyboardEvent,
   RefObject,
+  ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -30,6 +32,7 @@ type QueuedMessageItem = {
 
 export type ChatComposerProps = {
   attachments: ChatAttachment[];
+  assistantActions?: ReactNode;
   busy: boolean;
   canSend: boolean;
   connected: boolean;
@@ -47,7 +50,7 @@ export type ChatComposerProps = {
   shellRef: RefObject<HTMLDivElement | null>;
   showWaitingIndicator: boolean;
   onAbort: () => void;
-  onAddFiles: (files: FileList) => void;
+  onAddFiles: (files: FileList | readonly File[]) => void;
   onAttachmentRemove: (attachmentId: string | undefined) => void;
   onDragEnter: (event: ReactDragEvent<HTMLDivElement>) => void;
   onDragLeave: (event: ReactDragEvent<HTMLDivElement>) => void;
@@ -67,6 +70,7 @@ export type ChatComposerProps = {
 
 export function ChatComposer({
   attachments,
+  assistantActions,
   busy,
   canSend,
   connected,
@@ -128,6 +132,17 @@ export function ChatComposer({
     onSubmit();
   };
 
+  const handlePaste = (event: ReactClipboardEvent<HTMLTextAreaElement>) => {
+    if (!fileUploadEnabled) return;
+    const images = Array.from(event.clipboardData.items)
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    if (images.length === 0) return;
+    event.preventDefault();
+    onAddFiles(images);
+  };
+
   return (
     <div className={cn(
       "sticky bottom-0 z-40 shrink-0 bg-transparent p-3",
@@ -165,7 +180,7 @@ export function ChatComposer({
             type="file"
             multiple
             className="hidden"
-            accept=".txt,.md,.doc,.docx"
+            accept=".txt,.md,.doc,.docx,.png,.jpg,.jpeg,.webp,.gif"
             onChange={(event) => {
               const files = event.target.files;
               if (!files) return;
@@ -224,6 +239,7 @@ export function ChatComposer({
           }}
           onFocus={() => onDraftFocusChange(true)}
           onBlur={() => onDraftFocusChange(false)}
+          onPaste={handlePaste}
           onKeyDown={(event) => {
             if (
               queuedMessages.length > 0
@@ -275,11 +291,12 @@ export function ChatComposer({
                 disabled={!connected}
                 onClick={onOpenFilePicker}
                 aria-label={t("aiAssistant.attach")}
-                title={t("aiAssistant.attach")}
+                data-ui-tooltip={t("aiAssistant.attach")}
               >
                 <Plus className="size-4" />
               </Button>
             )}
+            {assistantActions}
           </div>
           <div className="flex shrink-0 items-end gap-1.5">
             {(recording || transcribing) && (
@@ -304,7 +321,7 @@ export function ChatComposer({
               aria-label={recording
                 ? t("aiAssistant.stopVoice")
                 : t("aiAssistant.voiceInput")}
-              title={recording
+              data-ui-tooltip={recording
                 ? t("aiAssistant.stopVoice")
                 : t("aiAssistant.voiceInput")}
             >
@@ -324,7 +341,7 @@ export function ChatComposer({
               disabled={busy ? false : !canSend}
               onClick={busy ? onAbort : onSubmit}
               aria-label={busy ? t("aiAssistant.stop") : t("aiAssistant.send")}
-              title={busy ? t("aiAssistant.stop") : t("aiAssistant.send")}
+              data-ui-tooltip={busy ? t("aiAssistant.stop") : t("aiAssistant.send")}
             >
               {busy ? (
                 <span className="size-2.5 rounded-[2.5px] bg-current" aria-hidden />

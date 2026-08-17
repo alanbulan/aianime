@@ -51,7 +51,7 @@ describe("asset query hooks", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/scenes/%E7%9A%87%E5%AE%AB%E5%A4%A7%E6%AE%BF/pano/generate-async",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             task_type: "stage_asset",

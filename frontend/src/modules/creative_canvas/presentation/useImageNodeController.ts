@@ -128,7 +128,8 @@ export function createUseImageNodeController({
       ) ? { width: naturalWidth, height: naturalHeight } : null;
     });
     const isExportResultNode = type === CANVAS_NODE_TYPES.exportImage;
-    const { isGenerating } = useNodeGenerationTaskState(data);
+    const { isGenerating, progress: generationProgress } =
+      useNodeGenerationTaskState(data);
     const generationError =
       typeof (data as { generationError?: unknown }).generationError === 'string'
         ? ((data as { generationError?: string }).generationError ?? '').trim()
@@ -295,6 +296,7 @@ export function createUseImageNodeController({
       imageSource,
       originalImageUrl,
       isGenerating,
+      generationProgress,
       generationError,
       generationErrorRequestId,
       hasGenerationError,

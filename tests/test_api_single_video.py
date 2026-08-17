@@ -1,11 +1,19 @@
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from ai_anime.modules.production.application.single_video import (
     ScheduledSingleVideo,
     SingleVideoRejected,
 )
+
+
+def test_single_video_request_rejects_removed_fields() -> None:
+    from ai_anime.api.routes.production.video_schemas import SingleVideoRequest
+
+    with pytest.raises(ValidationError):
+        SingleVideoRequest.model_validate({"video_backend": "old-route"})
 
 
 @pytest.mark.asyncio

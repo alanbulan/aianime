@@ -1,8 +1,11 @@
 """项目 CRUD 端点。"""
 
+import asyncio
 import logging
 import time
+from io import BytesIO
 from pathlib import Path
+from threading import Lock
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
 from fastapi.responses import JSONResponse
@@ -17,6 +20,7 @@ from ai_anime.api.routes.project_workspace.schemas import (
     NarratorVoiceRecordRequest,
     NarratorVoiceTrimRequest,
     ProjectCreate,
+    ProjectCoverSelectRequest,
     ProjectStatusFilter,
     ProjectUpdate,
 )
@@ -62,10 +66,149 @@ NARRATOR_VOICE_MODE_EXPLANATION = (
     "第一人称解说使用解说主角声线；第三人称解说使用项目解说声线。"
 )
 SUPPORTED_VOICE_SAMPLE_COPY = "仅支持 mp3 / wav / m4a / aac / ogg"
+PROJECT_COVER_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+PROJECT_COVER_MAX_BYTES = 12 * 1024 * 1024
+PROJECT_COVER_CACHE_TTL_SECONDS = 15.0
+PROJECT_COVER_CACHE_MAX_ENTRIES = 64
+_project_cover_cache: dict[str, tuple[float, list[tuple[float, Path]]]] = {}
+_project_cover_cache_lock = Lock()
 
 
 def _project_relative_path(project_dir: str | Path, path: str | Path) -> str:
     return Path(path).resolve().relative_to(Path(project_dir).resolve()).as_posix()
+
+
+def _project_cover_target(project_dir: str | Path) -> Path:
+    return Path(project_dir) / "assets" / "project" / "cover.webp"
+
+
+def _save_project_cover(project_dir: Path, content: bytes) -> Path:
+    from PIL import Image, UnidentifiedImageError
+
+    if not content:
+        raise ValueError("封面图片内容为空")
+    if len(content) > PROJECT_COVER_MAX_BYTES:
+        raise ValueError("封面图片不能超过 12 MB")
+    try:
+        with Image.open(BytesIO(content)) as source:
+            source.verify()
+        with Image.open(BytesIO(content)) as source:
+            image = source.convert("RGB")
+            image.thumbnail((1920, 1920))
+            target = _project_cover_target(project_dir)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            image.save(target, format="WEBP", quality=90, method=6)
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise ValueError("请选择有效的 PNG、JPG 或 WebP 图片") from exc
+    return target
+
+
+def _resolve_project_cover_source(project_dir: Path, source_path: str) -> Path:
+    candidate = (project_dir / source_path).resolve()
+    try:
+        candidate.relative_to(project_dir.resolve())
+    except ValueError as exc:
+        raise ValueError("请选择当前项目内的图片") from exc
+    if (
+        not candidate.is_file()
+        or candidate.suffix.lower() not in PROJECT_COVER_EXTENSIONS
+    ):
+        raise ValueError("请选择当前项目内的有效图片")
+    return candidate
+
+
+def _scan_project_cover_images(project_dir: Path) -> list[tuple[float, Path]]:
+    cover_target = _project_cover_target(project_dir).resolve()
+    images: list[tuple[float, Path]] = []
+    for root_name in (
+        "renders",
+        "images",
+        "frames",
+        "sketches",
+        "freezone",
+        "uploads",
+        "assets",
+    ):
+        root = project_dir / root_name
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            if path.suffix.lower() not in PROJECT_COVER_EXTENSIONS:
+                continue
+            try:
+                if not path.is_file() or path.resolve() == cover_target:
+                    continue
+                images.append((path.stat().st_mtime, path))
+            except OSError:
+                # A generation task can replace a file while this snapshot is built.
+                continue
+    images.sort(key=lambda item: (item[0], item[1].as_posix()), reverse=True)
+    return images
+
+
+def _cached_project_cover_images(project_dir: Path) -> list[tuple[float, Path]]:
+    cache_key = str(project_dir.resolve())
+    now = time.monotonic()
+    with _project_cover_cache_lock:
+        cached = _project_cover_cache.get(cache_key)
+        if cached is not None and now - cached[0] < PROJECT_COVER_CACHE_TTL_SECONDS:
+            return cached[1]
+
+    images = _scan_project_cover_images(project_dir)
+    with _project_cover_cache_lock:
+        expired = [
+            key
+            for key, (created_at, _) in _project_cover_cache.items()
+            if now - created_at >= PROJECT_COVER_CACHE_TTL_SECONDS
+        ]
+        for key in expired:
+            _project_cover_cache.pop(key, None)
+        if len(_project_cover_cache) >= PROJECT_COVER_CACHE_MAX_ENTRIES:
+            oldest_key = min(
+                _project_cover_cache,
+                key=lambda key: _project_cover_cache[key][0],
+            )
+            _project_cover_cache.pop(oldest_key, None)
+        _project_cover_cache[cache_key] = (now, images)
+    return images
+
+
+def _project_cover_candidates(
+    ctx: ProjectContext,
+    *,
+    page: int,
+    page_size: int,
+) -> dict[str, object]:
+    project_dir = Path(ctx.output_dir)
+    images = _cached_project_cover_images(project_dir)
+    start = (page - 1) * page_size
+    selected = images[start : start + page_size]
+    result: list[dict[str, str]] = []
+    for _, path in selected:
+        try:
+            relative = _project_relative_path(project_dir, path)
+            result.append(
+                {
+                    "path": relative,
+                    "name": path.name,
+                    "url": make_static_url_for_context(
+                        ctx,
+                        relative,
+                        local_path=path,
+                    ),
+                }
+            )
+        except OSError:
+            continue
+    total = len(images)
+    return {
+        "items": result,
+        "page": page,
+        "page_size": page_size,
+        "total": total,
+        "total_pages": max(1, (total + page_size - 1) // page_size),
+        "has_more": start + page_size < total,
+    }
 
 
 def _narrator_voice_sample_path(project_dir: str | Path, filename: str) -> Path:
@@ -389,7 +532,7 @@ async def update_project(
         from ai_anime.modules.asset_world.public import StyleService
 
         valid = StyleService.get_style_labels(
-            username=ctx.owner_username, project=ctx.project_name
+            username=ctx.owner_username
         )
         if body.visual_style not in valid:
             return JSONResponse(
@@ -411,6 +554,98 @@ async def update_project(
         project=ctx.project_name,
     )
     return {"ok": True, "data": config}
+
+
+@router.get("/projects/{project}/cover/candidates")
+async def list_project_cover_candidates(
+    project: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(15, ge=1, le=30),
+    user: dict = Depends(get_api_user),
+):
+    """列出当前项目内可作为封面的历史图片。"""
+    ctx = await resolve_project_context(
+        user=user, project_id=project, required_role="viewer"
+    )
+    require_project_home_node(ctx, operation="list project cover candidates")
+    data = await asyncio.to_thread(
+        _project_cover_candidates,
+        ctx,
+        page=page,
+        page_size=page_size,
+    )
+    return {"ok": True, "data": data}
+
+
+@router.post("/projects/{project}/cover/upload")
+async def upload_project_cover(
+    project: str,
+    file: UploadFile = File(...),
+    user: dict = Depends(require_scope("projects:write")),
+):
+    """上传外部图片并保存为项目封面。"""
+    ctx = await resolve_project_context(
+        user=user, project_id=project, required_role="editor"
+    )
+    require_project_home_node(ctx, operation="upload project cover")
+    try:
+        content = await file.read()
+        target = await asyncio.to_thread(
+            _save_project_cover,
+            Path(ctx.output_dir),
+            content,
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": str(exc)},
+        )
+    relative = _project_relative_path(ctx.output_dir, target)
+    save_project_config_in_state_dir(ctx.state_dir, config={"cover_path": relative})
+    return {
+        "ok": True,
+        "data": {
+            "path": relative,
+            "url": make_static_url_for_context(ctx, relative, local_path=target),
+        },
+    }
+
+
+@router.post("/projects/{project}/cover/select")
+async def select_project_cover(
+    project: str,
+    body: ProjectCoverSelectRequest,
+    user: dict = Depends(require_scope("projects:write")),
+):
+    """复制一张项目历史图片作为项目封面。"""
+    ctx = await resolve_project_context(
+        user=user, project_id=project, required_role="editor"
+    )
+    require_project_home_node(ctx, operation="select project cover")
+    try:
+        source = _resolve_project_cover_source(
+            Path(ctx.output_dir), body.source_path
+        )
+        content = await asyncio.to_thread(source.read_bytes)
+        target = await asyncio.to_thread(
+            _save_project_cover,
+            Path(ctx.output_dir),
+            content,
+        )
+    except (OSError, ValueError) as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": str(exc)},
+        )
+    relative = _project_relative_path(ctx.output_dir, target)
+    save_project_config_in_state_dir(ctx.state_dir, config={"cover_path": relative})
+    return {
+        "ok": True,
+        "data": {
+            "path": relative,
+            "url": make_static_url_for_context(ctx, relative, local_path=target),
+        },
+    }
 
 
 @router.get("/projects/{project}/narrator-voice")

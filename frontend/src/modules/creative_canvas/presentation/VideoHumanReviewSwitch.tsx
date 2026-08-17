@@ -13,7 +13,7 @@ export function VideoHumanReviewSwitch({
       type="button"
       role="switch"
       aria-checked={checked}
-      title="素材含真实人脸时开启，可能增加审核时间，不保证通过。"
+      data-ui-tooltip="素材含真实人脸时开启，可能增加审核时间，不保证通过。"
       onClick={(event) => {
         event.stopPropagation();
         onChange(!checked);

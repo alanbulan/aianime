@@ -65,7 +65,7 @@ export function NodeReplaceDragPreview() {
           )}
         </div>
         <div className="min-w-0 max-w-[160px]">
-          <div className="truncate text-xs font-medium text-text" title={activeDrag.label}>
+          <div className="truncate text-xs font-medium text-text" data-ui-tooltip={activeDrag.label}>
             {activeDrag.label}
           </div>
           <div

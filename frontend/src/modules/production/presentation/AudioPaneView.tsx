@@ -52,7 +52,7 @@ export function AudioPaneView({
             variant="outline"
             onClick={() => controller.setRegenerationOpen(true)}
             disabled={controller.regenerationDisabled}
-            title={
+            data-ui-tooltip={
               !controller.regenerationPending && controller.regenerationDisabled
                 ? t("episode.workbench.audio.modelUnavailable")
                 : undefined

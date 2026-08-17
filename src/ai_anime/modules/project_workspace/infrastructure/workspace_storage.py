@@ -128,6 +128,9 @@ class LocalProjectWorkspaceStorage:
             )
 
         config = load_project_config_file_from_state_dir(project.state_dir)
+        cover_path = str(config.get("cover_path") or "").strip() or None
+        if cover_path and not (Path(project.output_dir) / cover_path).is_file():
+            cover_path = None
         status = project.status or "active"
         episode_count, beat_count = _counts(project)
         return ProjectSummaryData(
@@ -145,6 +148,8 @@ class LocalProjectWorkspaceStorage:
             updated_at=_updated_at(project),
             episode_count=episode_count,
             beat_count=beat_count,
+            display_name=str(config.get("display_name") or "").strip() or None,
+            cover_path=cover_path,
         )
 
     def purge_files(self, ctx: ProjectContext) -> None:

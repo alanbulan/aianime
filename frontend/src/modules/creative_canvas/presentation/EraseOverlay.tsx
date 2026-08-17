@@ -723,7 +723,7 @@ export function createEraseOverlay({
                 event.stopPropagation();
                 onClose();
               }}
-              title="关闭擦除"
+              data-ui-tooltip="关闭擦除"
               aria-label="关闭擦除"
             >
               <X className="h-4 w-4" />
@@ -756,7 +756,7 @@ export function createEraseOverlay({
                 onMouseDown={(event) => event.stopPropagation()}
                 className={ERASE_SLIDER_CLASS}
                 style={brushSliderStyle}
-                title="画笔粗细"
+                data-ui-tooltip="画笔粗细"
               />
             </div>
 
@@ -821,7 +821,7 @@ export function createEraseOverlay({
               onClick={handleSubmit}
               disabled={submitting || !imageDims || !selectedModel}
               className={`ml-1 shrink-0 ${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
-              title="提交擦除"
+              data-ui-tooltip="提交擦除"
             >
               <ArrowUp className="h-4 w-4" />
             </button>
@@ -857,7 +857,7 @@ function ToolBtn({
         event.stopPropagation();
         onClick();
       }}
-      title={title}
+      data-ui-tooltip={title}
       aria-label={title}
       className={
         `${ERASE_TOOLBAR_BUTTON_CLASS} ` +
@@ -891,7 +891,7 @@ function IconBtn({
         onClick();
       }}
       disabled={disabled}
-      title={title}
+      data-ui-tooltip={title}
       aria-label={title}
       className={`${ERASE_TOOLBAR_BUTTON_CLASS} text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30`}
     >
@@ -941,7 +941,7 @@ function EraseDropdown<T extends string | number>({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        title={label}
+        data-ui-tooltip={label}
         onClick={(event) => {
           event.stopPropagation();
           setIsOpen((prev) => !prev);

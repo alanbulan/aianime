@@ -30,7 +30,9 @@ describe("PromptMentionEditor — 音频引用 chip", () => {
     // ...but the serialized token stays the numbered name (what reaches the backend).
     expect(chip?.getAttribute("data-name")).toBe("音频1");
     // Full name remains available in the tooltip.
-    expect(chip?.getAttribute("title")).toContain("音频_long-voice-clip-name.mp3");
+    expect(chip?.getAttribute("data-ui-tooltip")).toContain(
+      "音频_long-voice-clip-name.mp3",
+    );
   });
 
   it("renders a clickable play control carrying the audio url", () => {

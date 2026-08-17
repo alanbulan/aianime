@@ -147,8 +147,7 @@ export function ScriptNodeView({
       >
         {controller.isGenerating ? (
           <NodeGenerationOverlay
-            startedAt={controller.data.generationStartedAt ?? null}
-            durationMs={controller.data.generationDurationMs}
+            progress={controller.generationProgress}
           />
         ) : null}
         {controller.hasResult ? (
@@ -162,7 +161,7 @@ export function ScriptNodeView({
                 <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
                 <span
                   className="min-w-0 flex-1 truncate text-[12px] leading-5 text-destructive"
-                  title={controller.data.generationError}
+                  data-ui-tooltip={controller.data.generationError}
                 >
                   {controller.data.generationError}
                 </span>
@@ -540,7 +539,7 @@ function ScriptOperationsPanel({
           <button
             type="button"
             disabled={controller.submitDisabled}
-            title="生成"
+            data-ui-tooltip="生成"
             onClick={() => void controller.submit()}
             className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${
               controller.submitDisabled
@@ -654,7 +653,7 @@ function ScriptReferenceChip({
       }
       onMouseLeave={controller.hideReferencePreview}
       className="nodrag relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[7px] border border-border bg-muted transition-colors hover:border-foreground/30"
-      title={title}
+      data-ui-tooltip={title}
     >
       {body}
       <span className="absolute right-1 top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-media/30 px-0.5 text-[9px] font-medium leading-none text-media-foreground/90 backdrop-blur-sm">
@@ -714,7 +713,7 @@ function IconButton({
   return (
     <button
       type="button"
-      title={title}
+      data-ui-tooltip={title}
       onClick={onClick}
       disabled={disabled}
       className={`${NODE_INLINE_ICON_BUTTON_CLASS} ${

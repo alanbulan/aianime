@@ -10,6 +10,7 @@ import type {
 } from "@/modules/project_workspace/domain/project";
 
 const PROJECT_SUMMARIES_STALE_TIME_MS = 5 * 60_000;
+const PROJECT_COVER_CANDIDATES_STALE_TIME_MS = 15_000;
 
 export function createProjectWorkspaceQueryHooks(
   gateway: ProjectWorkspaceGateway,
@@ -42,6 +43,43 @@ export function createProjectWorkspaceQueryHooks(
         gateway.updateProject(project, config),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: queryKeys.project(project) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectSummaries() });
+      },
+    });
+  }
+
+  function useProjectCoverCandidates(
+    project: string,
+    page: number,
+    pageSize: number,
+    enabled: boolean,
+  ) {
+    return useQuery({
+      queryKey: [...queryKeys.project(project), "cover-candidates", page, pageSize],
+      queryFn: ({ signal }) =>
+        gateway.listProjectCoverCandidates(project, page, pageSize, signal),
+      enabled: enabled && Boolean(project),
+      staleTime: PROJECT_COVER_CANDIDATES_STALE_TIME_MS,
+    });
+  }
+
+  function useUploadProjectCover(project: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (file: File) => gateway.uploadProjectCover(project, file),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectSummaries() });
+      },
+    });
+  }
+
+  function useSelectProjectCover(project: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (sourcePath: string) =>
+        gateway.selectProjectCover(project, sourcePath),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.projectSummaries() });
       },
     });
   }
@@ -158,12 +196,15 @@ export function createProjectWorkspaceQueryHooks(
     useCreateProject,
     useDeleteProjectGrant,
     useProject,
+    useProjectCoverCandidates,
     useProjectGrants,
     usePurgeProject,
     useRestoreProject,
     useSoftDeleteProject,
     useUnarchiveProject,
     useUpdateProject,
+    useUploadProjectCover,
+    useSelectProjectCover,
     useUpdateProjectGrant,
     useUserSearch,
   };

@@ -65,9 +65,10 @@ describe("SuperChat Composer attachments controller", () => {
       useComposerAttachmentsController(true),
     );
     const allowed = new File(["story"], "story.txt", { type: "text/plain" });
-    const rejected = new File(["image"], "cover.png", { type: "image/png" });
+    const image = new File(["image"], "cover.png", { type: "image/png" });
+    const rejected = new File(["pdf"], "brief.pdf", { type: "application/pdf" });
 
-    act(() => result.current.addFiles(fileList([allowed, rejected])));
+    act(() => result.current.addFiles(fileList([allowed, image, rejected])));
 
     expect(result.current.attachments).toEqual([
       {
@@ -77,6 +78,14 @@ describe("SuperChat Composer attachments controller", () => {
         fileName: "story.txt",
         fileSize: 5,
         content: "data:story.txt",
+      },
+      {
+        id: "att-1000-i",
+        type: "image",
+        mimeType: "image/png",
+        fileName: "cover.png",
+        fileSize: 5,
+        content: "data:cover.png",
       },
     ]);
     act(() => result.current.removeAttachment(result.current.attachments[0].id));
@@ -127,7 +136,7 @@ describe("SuperChat Composer attachments controller", () => {
     const invalidEvent = dragEvent({
       items: [{
         kind: "file",
-        type: "image/png",
+        type: "application/pdf",
         getAsFile: () => null,
       }],
     });

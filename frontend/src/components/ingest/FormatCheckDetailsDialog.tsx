@@ -37,7 +37,7 @@ export function FormatCheckDetailsDialog({
         <DialogHeader>
           <DialogTitle>{t("aiAssistant.formatCheck.title")}</DialogTitle>
           {filename && (
-            <p className="truncate text-xs text-muted-foreground" title={filename}>
+            <p className="truncate text-xs text-muted-foreground" data-ui-tooltip={filename}>
               {filename}
             </p>
           )}

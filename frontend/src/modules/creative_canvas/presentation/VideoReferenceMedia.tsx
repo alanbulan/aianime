@@ -140,7 +140,7 @@ export function ReferenceMediaRow({
         return (
           <div
             key={item.nodeId}
-            title={overCapTitle}
+            data-ui-tooltip={overCapTitle}
             draggable
             onDragStart={(event) => {
               event.dataTransfer.effectAllowed = "move";
@@ -246,7 +246,7 @@ function ReferenceImageChip({
         onMouseEnter={show}
         onMouseLeave={hide}
         className={`nodrag ${NODE_REFERENCE_MEDIA_CHIP_CLASS}`}
-        title={label}
+        data-ui-tooltip={label}
       >
         <img
           src={resolveUrl(item.imageUrl)}
@@ -342,7 +342,7 @@ function ReferenceVideoChip({
         onMouseEnter={show}
         onMouseLeave={hide}
         className={`nodrag ${NODE_REFERENCE_MEDIA_CHIP_CLASS}`}
-        title={label}
+        data-ui-tooltip={label}
       >
         {thumb}
         <ReferenceDetachButton
@@ -452,7 +452,7 @@ function ReferenceAudioChip({
           ? "border-primary/60 bg-primary/15"
           : "border-border bg-muted hover:border-foreground/30"
       }`}
-      title={label}
+      data-ui-tooltip={label}
     >
       {isPlaying ? (
         <Pause className="h-4 w-4 text-primary" />

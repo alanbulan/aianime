@@ -16,16 +16,18 @@ import type {
   CropSketchCommand,
   SketchCrop,
   SketchCropResult,
-  SketchPoseEditorData,
+  SketchCropSourceData,
 } from "@/modules/production/domain/sketch-pose-editor";
 
-interface SketchPoseEditorQuery {
+interface SketchCropSourceQuery {
   data?:
-    | ProductionDataResponse<SketchPoseEditorData>
+    | ProductionDataResponse<SketchCropSourceData>
     | ProductionErrorResponse;
   dataUpdatedAt?: number;
   error?: unknown;
   isError: boolean;
+  isLoading?: boolean;
+  refetch?(): Promise<unknown>;
 }
 
 interface CropSketchMutation {
@@ -39,12 +41,12 @@ interface CropSketchMutation {
 
 export interface SketchCropDialogControllerQueries {
   useCropSketch(project: string, episode: number): CropSketchMutation;
-  useSketchPoseEditor(
+  useSketchCropSource(
     project: string,
     episode: number,
     beatNum: number,
     enabled: boolean,
-  ): SketchPoseEditorQuery;
+  ): SketchCropSourceQuery;
 }
 
 export interface SketchCropDialogControllerDependencies {
@@ -70,7 +72,7 @@ export interface SketchCropDialogController {
   aspectLabel: string;
   beatNum: number;
   crop: SketchCrop;
-  data: SketchPoseEditorData | null;
+  data: SketchCropSourceData | null;
   loadError: string | null;
   open: boolean;
   savePending: boolean;
@@ -82,6 +84,7 @@ export interface SketchCropDialogController {
     displayHeight: number,
   ): void;
   onOpenChange(open: boolean): void;
+  onRetry(): void;
   onSave(): void;
   onStartDrag(clientX: number, clientY: number): void;
   onStopDrag(): void;
@@ -107,14 +110,14 @@ export function createUseSketchCropDialogController(
   }: SketchCropDialogControllerOptions): SketchCropDialogController {
     const { t } = useTranslation();
     const { spec } = dependencies.useProjectAspectRatio(project);
-    const poseQuery = queries.useSketchPoseEditor(
+    const sourceQuery = queries.useSketchCropSource(
       project,
       episode,
       beatNum,
       open,
     );
     const cropSketch = queries.useCropSketch(project, episode);
-    const data = poseQuery.data?.ok ? poseQuery.data.data : null;
+    const data = sourceQuery.data?.ok ? sourceQuery.data.data : null;
     const dragRef = useRef<CropDragState | null>(null);
     const [crop, setCrop] = useState<SketchCrop>({
       x: 0,
@@ -182,15 +185,17 @@ export function createUseSketchCropDialogController(
     const sketchUrl = data?.sketch_url
       ? dependencies.cacheBustImage(
           dependencies.resolveMediaUrl(data.sketch_url) ?? data.sketch_url,
-          poseQuery.dataUpdatedAt,
+          sourceQuery.dataUpdatedAt,
         )
       : "";
     const loadError =
-      !data && poseQuery.error instanceof Error
-        ? poseQuery.error.message
-        : !data && poseQuery.isError
-          ? t("common.error")
-          : null;
+      sourceQuery.data && !sourceQuery.data.ok
+        ? sourceQuery.data.error || t("common.error")
+        : !data && sourceQuery.error instanceof Error
+          ? sourceQuery.error.message
+          : !data && sourceQuery.isError
+            ? t("common.error")
+            : null;
 
     return {
       aspectLabel: spec.label,
@@ -203,6 +208,9 @@ export function createUseSketchCropDialogController(
       sketchUrl,
       onMoveDrag,
       onOpenChange,
+      onRetry: () => {
+        void sourceQuery.refetch?.();
+      },
       onSave: () => {
         void save();
       },

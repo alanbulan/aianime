@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { createRef } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ComposeTimelineState } from "../domain/videoComposeTimeline";
@@ -225,7 +226,8 @@ describe("VideoComposeModalView", () => {
     expect(props.exportPanel.onMenuOpenChange).toHaveBeenNthCalledWith(2, false);
   });
 
-  it("forwards export dialog field changes and confirmation", () => {
+  it("forwards export dialog field changes and confirmation", async () => {
+    const user = userEvent.setup();
     const props = viewProps();
     props.exportPanel.dialog = {
       open: true,
@@ -234,11 +236,18 @@ describe("VideoComposeModalView", () => {
     };
     render(<VideoComposeModalView {...props} />);
 
-    const selects = screen.getAllByRole("combobox");
-    fireEvent.change(selects[0], { target: { value: "canvas" } });
-    fireEvent.change(selects[1], { target: { value: "720p" } });
-    fireEvent.click(screen.getByRole("button", { name: "common.cancel" }));
-    fireEvent.click(screen.getByRole("button", { name: "common.confirm" }));
+    await user.click(screen.getByRole("combobox", {
+      name: "videoCompose.exportDialog.location",
+    }));
+    await user.click(await screen.findByRole("option", {
+      name: "videoCompose.exportToCanvas",
+    }));
+    await user.click(screen.getByRole("combobox", {
+      name: "videoCompose.exportDialog.resolution",
+    }));
+    await user.click(await screen.findByRole("option", { name: "720P" }));
+    await user.click(screen.getByRole("button", { name: "common.cancel" }));
+    await user.click(screen.getByRole("button", { name: "common.confirm" }));
 
     expect(props.exportPanel.onDialogLocationChange).toHaveBeenCalledWith(
       "canvas",

@@ -46,30 +46,6 @@ def get_project_config_path_from_state_dir(state_dir: str | Path) -> Path:
     return Path(state_dir) / "project_config.json"
 
 
-def normalize_project_config(config: dict | None) -> dict:
-    result = dict(config or {})
-    if "style" in result and "visual_style" not in result:
-        result["visual_style"] = result.pop("style")
-    if "video_backend" in result:
-        legacy_value = str(result.pop("video_backend") or "").strip()
-        if "video_model" not in result:
-            result["video_model"] = _migrate_legacy_video_model(legacy_value)
-    return result
-
-
-def _migrate_legacy_video_model(value: str) -> str:
-    normalized = value.strip()
-    for prefix in ("newapi_", "huimeng_", "huimengi_"):
-        if normalized.startswith(prefix):
-            return normalized[len(prefix) :].strip()
-    return {
-        "seedance_2": "seedance-2.0-fast",
-        "seedance_fast": "seedance-1.0-pro-fast",
-        "seedance_pro": "seedance-1.5-pro",
-        "seedance_pro_silent": "seedance-1.5-pro",
-    }.get(normalized, "")
-
-
 def load_project_config_file(username: str, project: str) -> dict:
     config_path = get_project_config_path(username, project)
     return load_project_config_file_from_path(config_path)
@@ -80,7 +56,8 @@ def load_project_config_file_from_path(config_path: str | Path) -> dict:
     if not config_path.exists():
         return {}
     try:
-        return normalize_project_config(json.loads(config_path.read_text(encoding="utf-8")))
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        return config if isinstance(config, dict) else {}
     except Exception:
         return {}
 
@@ -109,53 +86,31 @@ def _default_project_config() -> dict:
         "current_episode": 1,
         "user_grid_plan": {},
         "regen_file_map": {},
-        "custom_styles": {},
     }
 
 
 def _available_style_labels_for_config(
-    config: dict,
     *,
     username: str | None = None,
-    project: str | None = None,
-    use_project_loader: bool,
 ) -> dict[str, str]:
     from ai_anime.modules.asset_world.public import StyleService
 
-    if use_project_loader:
-        return StyleService.get_style_labels(username=username, project=project)
-
-    labels = StyleService.get_style_labels()
-    custom_styles = config.get("custom_styles") or {}
-    if isinstance(custom_styles, dict):
-        for style_id, style_config in custom_styles.items():
-            label = style_id
-            if isinstance(style_config, dict):
-                label = str(style_config.get("label") or style_config.get("name") or style_id)
-            labels[str(style_id)] = label
-    return labels
+    return StyleService.get_style_labels(username=username)
 
 
 def _effective_project_config(
     config: dict,
     *,
     username: str | None,
-    project: str | None,
-    use_project_style_loader: bool,
 ) -> dict:
     default_config = _default_project_config()
     if not config:
         return default_config
 
     result = {**default_config, **config}
-    for legacy_tts_key in ("tts_provider", "tts_model", "tts_voice"):
-        result.pop(legacy_tts_key, None)
 
     available = _available_style_labels_for_config(
-        result,
         username=username,
-        project=project,
-        use_project_loader=use_project_style_loader,
     )
     if result.get("visual_style") not in available:
         print(
@@ -220,7 +175,6 @@ def update_project_config_file_at_path(
         current = load_project_config_file_from_path(config_path)
         updated = dict(current)
         updater(updated)
-        updated = normalize_project_config(updated)
         _write_project_config_atomic(config_path, updated)
         return updated
 
@@ -281,8 +235,6 @@ def load_project_config(username: str, project: str) -> dict:
     result = _effective_project_config(
         config,
         username=username,
-        project=project,
-        use_project_style_loader=True,
     )
 
     _log.debug(
@@ -322,8 +274,6 @@ def load_project_config_from_state_dir(
     result = _effective_project_config(
         config,
         username=username,
-        project=project,
-        use_project_style_loader=False,
     )
     _log.debug(
         "[load_project_config_from_state_dir] 已加载配置: %s/project_config.json -> %s",

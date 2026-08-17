@@ -52,13 +52,13 @@ import type {
 import type {
   CropSketchCommand,
   SaveSketchPoseEditorCommand,
+  SketchCropSourceData,
   SketchCropResult,
   SketchPoseEditorData,
   SketchPoseEditorSaveResult,
 } from "@/modules/production/domain/sketch-pose-editor";
 import type {
   AssignColorsResult,
-  DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
 import type {
   GenerateSketchesCommand,
@@ -111,6 +111,10 @@ export interface BeatVideoPromptResult {
 }
 
 export interface ProductionVideoGateway {
+  runProductionWorkflow(
+    project: string,
+    episode: number,
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   getVideoPool(
     project: string,
     episode: number,
@@ -335,6 +339,14 @@ export interface ProductionVideoGateway {
     | ProductionDataResponse<SketchPoseEditorSaveResult>
     | ProductionErrorResponse
   >;
+  getSketchCropSource(
+    project: string,
+    episode: number,
+    beatNum: number,
+    signal?: AbortSignal,
+  ): Promise<
+    ProductionDataResponse<SketchCropSourceData> | ProductionErrorResponse
+  >;
   cropSketch(
     project: string,
     episode: number,
@@ -348,9 +360,7 @@ export interface ProductionVideoGateway {
   detectSketchIdentities(
     project: string,
     episode: number,
-  ): Promise<
-    ProductionDataResponse<DetectIdentitiesResult> | ProductionErrorResponse
-  >;
+  ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   composeEpisode(
     project: string,
     episode: number,

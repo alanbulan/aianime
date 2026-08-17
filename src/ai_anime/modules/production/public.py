@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         OPENAI_IMAGE_QUALITY,
         OPENAI_SKETCH_IMAGE_QUALITY,
         VIDEO_CODEC,
+        apply_style_reference,
         get_grid_generation_config,
         get_render_generation_config,
         get_sketch_generation_config,
@@ -195,22 +196,36 @@ from ai_anime.modules.production.application.sketch_editing import (
     CurrentSketchMissing,
     SaveSketchEditorCommand,
     SketchBeatMissing,
+    SketchCropSourceQuery,
+    SketchCropSourceView,
     SketchCropRejected,
     SketchEditingUseCases,
     SketchEditorQuery,
     SketchEditorSaveRejected,
     SketchPoseCandidatesMissing,
 )
+from ai_anime.modules.production.application.sketch_marker_detection_task import (
+    AI_IDENTITY_DETECTION_TASK_TYPE,
+    ScheduleSketchMarkerDetectionCommand,
+    ScheduledSketchMarkerDetection,
+    SketchMarkerDetectionTaskUseCases,
+)
 from ai_anime.modules.production.application.sketch_markers import (
     AssignProjectSketchColorsCommand,
     DetectProjectSketchMarkersCommand,
     SketchColorAssignmentResult,
     SketchColorMarkersMissing,
+    SketchColorPersistenceFailed,
     SketchEpisodeBeatsMissing,
     SketchMarkerDetectionFailed,
     SketchMarkerDetectionRejected,
     SketchMarkerDetectionResult,
     SketchMarkerUseCases,
+)
+from ai_anime.modules.production.application.model_selection import (
+    resolve_audio_generation_model,
+    resolve_episode_video_resolution,
+    resolve_video_generation_model,
 )
 from ai_anime.modules.production.application.sketch_regen_queue import (
     ReplaceSketchRegenQueueCommand,
@@ -327,6 +342,8 @@ from ai_anime.modules.production.application.sketch_edit_execution import (
 from ai_anime.modules.production.domain.detected_refs import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
+    build_episode_identity_alias_map,
+    canonicalize_visual_identity_markers,
     collect_prop_marker_ids_from_beat,
     complete_detected_refs_from_visual_description,
     extract_char_identities_from_markers,
@@ -365,9 +382,7 @@ from ai_anime.modules.production.infrastructure.grid_pool_models import (
 )
 
 _MEDIA_GENERATION = "ai_anime.modules.production.infrastructure.media_generation"
-_MEDIA_SETTINGS = (
-    "ai_anime.modules.production.infrastructure.media_generation_settings"
-)
+_MEDIA_SETTINGS = "ai_anime.modules.production.infrastructure.media_generation_settings"
 
 _LAZY_MODULES = {
     "nanobanana_grid": f"{_MEDIA_GENERATION}.nanobanana_grid",
@@ -479,6 +494,7 @@ _LAZY_EXPORTS.update(
             "OPENAI_SKETCH_IMAGE_QUALITY",
         ),
         "VIDEO_CODEC": (_MEDIA_SETTINGS, "VIDEO_CODEC"),
+        "apply_style_reference": (_MEDIA_SETTINGS, "apply_style_reference"),
         "get_grid_generation_config": (
             _MEDIA_SETTINGS,
             "get_grid_generation_config",
@@ -752,7 +768,9 @@ def render_plan_use_cases() -> RenderPlanUseCases:
 
 
 def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
-    from ai_anime.modules.production.composition import seedance2_panel_use_cases as build
+    from ai_anime.modules.production.composition import (
+        seedance2_panel_use_cases as build,
+    )
 
     return build()
 
@@ -838,6 +856,14 @@ def sketch_marker_use_cases() -> SketchMarkerUseCases:
     return build()
 
 
+def sketch_marker_detection_task_use_cases() -> SketchMarkerDetectionTaskUseCases:
+    from ai_anime.modules.production.composition import (
+        sketch_marker_detection_task_use_cases as build,
+    )
+
+    return build()
+
+
 def sketch_regen_queue_use_cases() -> SketchRegenQueueUseCases:
     from ai_anime.modules.production.composition import (
         sketch_regen_queue_use_cases as build,
@@ -868,6 +894,7 @@ __all__ = [
     "VIDEO_CODEC",
     "AddGeneratedVideoCommand",
     "AssignProjectSketchColorsCommand",
+    "AI_IDENTITY_DETECTION_TASK_TYPE",
     "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "GRID_REGENERATION_TASK_TYPE",
@@ -980,10 +1007,15 @@ __all__ = [
     "SketchEditExecutionUseCases",
     "CurrentSketchMissing",
     "SaveSketchEditorCommand",
+    "ScheduleSketchMarkerDetectionCommand",
+    "ScheduledSketchMarkerDetection",
     "SketchBeatMissing",
     "SketchCropRejected",
+    "SketchCropSourceQuery",
+    "SketchCropSourceView",
     "SketchColorAssignmentResult",
     "SketchColorMarkersMissing",
+    "SketchColorPersistenceFailed",
     "SketchEditingUseCases",
     "SketchEpisodeBeatsMissing",
     "SketchEditorQuery",
@@ -992,6 +1024,7 @@ __all__ = [
     "SketchMarkerDetectionRejected",
     "SketchMarkerDetectionResult",
     "SketchMarkerUseCases",
+    "SketchMarkerDetectionTaskUseCases",
     "SketchPoseCandidatesMissing",
     "SketchRegenQueueResult",
     "SketchRegenQueueUseCases",
@@ -1008,12 +1041,15 @@ __all__ = [
     "VideoPoolListing",
     "VideoPoolUseCases",
     "assign_identity_sketch_colors",
+    "apply_style_reference",
     "append_seedance2_user_reference_assets",
     "build_reference_audio_url",
+    "build_episode_identity_alias_map",
     "build_color_appearance_map",
     "build_seedance2_project_assets",
     "collect_indextts2_voice_prereq_errors",
     "collect_prop_marker_ids_from_beat",
+    "canonicalize_visual_identity_markers",
     "complete_detected_refs_from_visual_description",
     "director_control_sketch_use_cases",
     "dialogue_voice_reference_rows",
@@ -1053,6 +1089,9 @@ __all__ = [
     "real_detected_identities",
     "real_detected_props",
     "render_plan_use_cases",
+    "resolve_audio_generation_model",
+    "resolve_episode_video_resolution",
+    "resolve_video_generation_model",
     "resolve_character_voice",
     "resolve_narrator_reference_status",
     "resolve_narrator_source",
@@ -1062,6 +1101,7 @@ __all__ = [
     "sketch_edit_execution_use_cases",
     "sketch_editing_use_cases",
     "sketch_marker_use_cases",
+    "sketch_marker_detection_task_use_cases",
     "sketch_regen_queue_use_cases",
     "video_api_resolution",
     "seedance2_panel_use_cases",

@@ -536,8 +536,10 @@ async def test_prepare_concurrent_request_sketch_attaches_scene_refs(tmp_path):
         cols=1,
     )
 
-    # Prompt + master scene only. Batch/default sketch mode does not attach reverse.
-    assert len(req["contents"]) == 2
+    # Prompt + master scene + global style reference (always last).
+    # Batch/default sketch mode does not attach reverse.
+    assert len(req["contents"]) == 3
+    assert "GLOBAL STYLE REFERENCE IMAGE" in req["contents"][0]
     assert all(hasattr(part, "inline_data") for part in req["contents"][1:])
 
 

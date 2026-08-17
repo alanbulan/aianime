@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -151,8 +151,8 @@ describe("AssetLibraryPanel beat context", () => {
       );
     });
 
-    await vi.waitFor(() => expect(listFreezoneProjectAssets).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() => {
+    await waitFor(() => expect(listFreezoneProjectAssets).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
       expect(screen.queryByText(/项目素材加载失败/)).toBeNull();
     });
   });

@@ -256,9 +256,6 @@ export function VideoStoryNodeView({
         </div>
         {controller.status === 'analyzing' && (
           <NodeGenerationOverlay
-            startedAt={controller.analysisStartedAt}
-            durationMs={90000}
-            hasBackground={false}
             messageKey="canvas.analysisProgress"
           />
         )}

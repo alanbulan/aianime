@@ -172,6 +172,8 @@ class ProductionGenerationStore(Protocol):
 
 
 class ProductionSketchColorStore(Protocol):
+    def get_all_characters(self) -> list[Any]: ...
+
     def get_sketch_colors(self, episode_num: int) -> dict[str, str]: ...
 
     async def set_sketch_colors(

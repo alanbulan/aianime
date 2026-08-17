@@ -3,6 +3,8 @@ import { createRef, type InputHTMLAttributes, type ReactNode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { getAllByUiTooltip } from '@/__tests__/helpers/ui-tooltip-query';
+
 import type { StoryboardNodeController } from './useStoryboardNodeController';
 import { StoryboardNodeView } from './StoryboardNodeView';
 
@@ -255,8 +257,8 @@ describe('StoryboardNodeView', () => {
     const image = screen.getByAltText('Frame 1');
     fireEvent.pointerDown(image.parentElement as HTMLElement, { button: 0 });
     fireEvent.pointerEnter(image.parentElement?.parentElement as HTMLElement);
-    fireEvent.click(screen.getAllByTitle('单独编辑此格')[0]);
-    fireEvent.click(screen.getAllByTitle('从输入图片替换')[0]);
+    fireEvent.click(getAllByUiTooltip('单独编辑此格')[0]);
+    fireEvent.click(getAllByUiTooltip('从输入图片替换')[0]);
     fireEvent.click(screen.getByRole('button', { name: /导出设置/ }));
     fireEvent.click(screen.getByRole('button', { name: /打包下载/ }));
     fireEvent.click(screen.getByRole('button', { name: /合并宫格/ }));

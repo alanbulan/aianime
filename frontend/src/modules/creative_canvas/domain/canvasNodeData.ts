@@ -208,7 +208,7 @@ export interface TextAnnotationNodeData extends NodeDisplayData {
   pickerDismissed?: boolean;
   extraParams?: Record<string, unknown>;
   isGenerating?: boolean;
-  /** 反推提示词等异步任务的开始时间戳，喂给生成中 loading 覆盖层模拟进度。 */
+  /** 反推提示词等异步任务的开始时间戳，用于关联任务启动与恢复状态。 */
   generationStartedAt?: number | null;
   [key: string]: unknown;
 }

@@ -7,6 +7,7 @@ import pytest
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     IdentityPlanRequired,
     ProjectContextRequired,
+    ScenePlanRequired,
     ScheduleEpisodePlanning,
     StartScriptGeneration,
 )
@@ -22,8 +23,15 @@ from ai_anime.modules.narrative_planning.infrastructure.task_scheduler import (
 
 
 class _Store:
-    def __init__(self, identity_ids: list[str]) -> None:
-        self.episode = SimpleNamespace(identity_ids=identity_ids)
+    def __init__(
+        self,
+        identity_ids: list[str],
+        scene_menu: list[dict] | None = None,
+    ) -> None:
+        self.episode = SimpleNamespace(
+            identity_ids=identity_ids,
+            scene_menu=scene_menu or [],
+        )
 
     def get_episode(self, episode_num: int):
         return self.episode
@@ -80,6 +88,25 @@ async def test_requires_identity_before_clearing_sketches() -> None:
 
 
 @pytest.mark.asyncio
+async def test_requires_scene_plan_before_clearing_sketches() -> None:
+    sketches = _SketchWorkspace()
+    service = StartScriptGeneration(
+        task_scheduler=_Scheduler(),
+        sketch_workspace=sketches,
+    )
+
+    with pytest.raises(ScenePlanRequired):
+        await service.execute(
+            _Store(["秦_青年"]),
+            task_context=None,
+            output_dir="output",
+            episode_num=2,
+        )
+
+    assert sketches.cleared == []
+
+
+@pytest.mark.asyncio
 async def test_requires_context_after_clearing_stale_sketches() -> None:
     sketches = _SketchWorkspace()
     service = StartScriptGeneration(
@@ -89,7 +116,7 @@ async def test_requires_context_after_clearing_stale_sketches() -> None:
 
     with pytest.raises(ProjectContextRequired):
         await service.execute(
-            _Store(["秦_青年"]),
+            _Store(["秦_青年"], [{"scene_id": "palace"}]),
             task_context=None,
             output_dir="output",
             episode_num=2,
@@ -107,7 +134,7 @@ async def test_schedules_script_generation_with_owned_payload() -> None:
     )
 
     scheduled = await service.execute(
-        _Store(["秦_青年"]),
+        _Store(["秦_青年"], [{"scene_id": "palace"}]),
         task_context=SimpleNamespace(project_id="project-1"),
         output_dir="output",
         episode_num=2,
@@ -115,7 +142,10 @@ async def test_schedules_script_generation_with_owned_payload() -> None:
 
     assert scheduler.task.backend_payload() == {
         "episode": 2,
-        "config": {},
+        "config": {
+            "script_mode": "duration",
+            "target_duration_total": 120,
+        },
         "output_dir": "output",
     }
     assert scheduled.as_dict() == {

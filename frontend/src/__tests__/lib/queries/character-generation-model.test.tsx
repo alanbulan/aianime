@@ -37,7 +37,7 @@ describe("character generation model selection", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/portrait-async",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({ ok: true, task_id: "task-portrait" });
         },
       ),
@@ -127,7 +127,7 @@ describe("character generation model selection", () => {
         "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/identities/id-1/generate-async",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({ ok: true, task_id: "task-image" });
         },
       ),
@@ -155,7 +155,7 @@ describe("character generation model selection", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/identities/id-1/portrait/generate-async",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({ ok: true, task_id: "task-identity-portrait" });
         },
       ),

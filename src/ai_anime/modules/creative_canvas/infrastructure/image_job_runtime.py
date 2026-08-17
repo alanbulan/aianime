@@ -48,6 +48,7 @@ class CommercialCreativeCanvasImageJobRuntime:
                 image_size=command.image_size,
                 quality=command.quality,
                 config=config,
+                project_dir=command.project_dir,
             )
         else:
             await generate_text_to_image(
@@ -57,6 +58,7 @@ class CommercialCreativeCanvasImageJobRuntime:
                 image_size=command.image_size,
                 quality=command.quality,
                 config=config,
+                project_dir=command.project_dir,
             )
         return output_path
 
@@ -87,6 +89,7 @@ class CommercialCreativeCanvasImageJobRuntime:
             image_size=command.image_size,
             quality=command.quality,
             config=config,
+            project_dir=command.project_dir,
         )
         return output_path
 
@@ -132,6 +135,7 @@ class CommercialCreativeCanvasImageJobRuntime:
                 image_size=command.image_size,
                 quality=command.quality,
                 config=config,
+                project_dir=command.project_dir,
             )
         except Exception as exc:
             raise RuntimeError(f"图片擦除失败：{redact_secrets(exc)}") from exc

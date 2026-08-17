@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "@tanstack/react-router";
 
@@ -11,6 +11,8 @@ import {
   useIngestAutomationController,
 } from "@/modules/ai_assistant/composition";
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
+import { ChatConversationDrawer } from "@/modules/ai_assistant/presentation/ChatConversationDrawer";
+import { ChatPanelActions } from "@/modules/ai_assistant/presentation/ChatControlBar";
 import { SuperChatPanelView } from "@/modules/ai_assistant/presentation/SuperChatPanelView";
 import type { SpecMediaDetail } from "@/modules/ai_assistant/presentation/SpecMediaModals";
 import { useChatScrollController } from "@/modules/ai_assistant/presentation/useChatScrollController";
@@ -21,7 +23,7 @@ import { useSpeechInputController } from "@/modules/ai_assistant/presentation/us
 import { useTaskCompletionNotifications } from "@/modules/ai_assistant/presentation/useTaskCompletionNotifications";
 import { useAuthStore } from "@/modules/identity_access/public";
 
-const ENABLE_SUPERCHAT_FILE_UPLOAD = false;
+const ENABLE_SUPERCHAT_FILE_UPLOAD = true;
 
 type SuperChatPanelVariant = "default" | "freezone";
 
@@ -43,8 +45,17 @@ export function SuperChatPanel({
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
+  const [conversationId, setConversationId] = useState("main");
+  const [conversationDrawerOpen, setConversationDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    setConversationId("main");
+    setConversationDrawerOpen(false);
+  }, [params.project]);
+
   const chat = useChatSession({
     project: params.project,
+    conversationId,
     displayName: username || "AI anime",
   });
   useTaskCompletionNotifications({
@@ -186,11 +197,35 @@ export function SuperChatPanel({
   return (
     <SuperChatPanelView
       isFreezoneLayout={isFreezoneLayout}
+      conversationDrawer={(
+        <ChatConversationDrawer
+          activeConversationId={conversationId}
+          conversations={chat.conversations}
+          disabled={chat.busy}
+          open={conversationDrawerOpen}
+          onCreate={() => {
+            const nextId = `chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+            setConversationId(nextId);
+            setConversationDrawerOpen(false);
+          }}
+          onDelete={(targetConversationId) => {
+            if (chat.deleteConversation(targetConversationId)) {
+              if (targetConversationId === conversationId) {
+                setConversationId("main");
+              }
+              setConversationDrawerOpen(false);
+            }
+          }}
+          onOpenChange={setConversationDrawerOpen}
+          onSelect={(nextConversationId) => {
+            setConversationId(nextConversationId);
+            setConversationDrawerOpen(false);
+          }}
+        />
+      )}
       header={{
         chat,
         onRequestClose,
-        searchOpen,
-        onToggleSearch: () => setSearchOpen((value) => !value),
       }}
       contextViews={{
         approvals: chat.approvals,
@@ -230,6 +265,17 @@ export function SuperChatPanel({
       }}
       composer={{
         attachments,
+        assistantActions: (
+          <ChatPanelActions
+            chat={chat}
+            searchOpen={searchOpen}
+            onToggleSessions={() => {
+              chat.requestHistory();
+              setConversationDrawerOpen(true);
+            }}
+            onToggleSearch={() => setSearchOpen((value) => !value)}
+          />
+        ),
         busy: chat.busy,
         canSend,
         connected: chat.connected,

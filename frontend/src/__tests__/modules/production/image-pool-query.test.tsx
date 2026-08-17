@@ -112,7 +112,7 @@ describe("Production image pool queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/grids/rebuild-pool",
         async ({ request }) => {
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: { episode: 1, image_count: 8 },
@@ -143,7 +143,7 @@ describe("Production image pool queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/pool-select",
         async ({ request }) => {
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: false,
             stale: true,
@@ -184,7 +184,7 @@ describe("Production image pool queries", () => {
     });
     const beatsKey = queryKeys.beats("demo", 1);
     const gridsKey = queryKeys.grids("demo", 1);
-    const poseEditorKey = queryKeys.sketchPoseEditor("demo", 1, 5);
+    const cropSourceKey = queryKeys.sketchCropSource("demo", 1, 5);
     queryClient.setQueryData(beatsKey, {
       ok: true,
       data: [
@@ -206,7 +206,7 @@ describe("Production image pool queries", () => {
         beat_assignments: { "5": "render_pool" },
       },
     });
-    queryClient.setQueryData(poseEditorKey, { ok: true, data: {} });
+    queryClient.setQueryData(cropSourceKey, { ok: true, data: {} });
 
     const { result } = renderHook(() => usePoolSelect("demo", 1), {
       wrapper: createWrapper(queryClient),
@@ -234,7 +234,7 @@ describe("Production image pool queries", () => {
       "/static/demo/sketches/ep001/beat_05.png",
     );
     expect(grids?.data.beat_assignments["5"]).toBe("render_pool");
-    expect(queryClient.getQueryState(poseEditorKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(cropSourceKey)?.isInvalidated).toBe(true);
   });
 
   it("sends force=true and patches render assignment plus canonical frame", async () => {
@@ -243,7 +243,7 @@ describe("Production image pool queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/pool-select",
         async ({ request }) => {
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

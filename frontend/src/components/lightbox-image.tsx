@@ -3,6 +3,7 @@ import { Download, X } from "lucide-react";
 import { useState } from "react";
 
 import { useEscapeToClose } from "@/shared/hooks/use-escape-to-close";
+import { UI_CONTENT_OVERLAY_INSET_CLASS } from "@/components/ui/motion";
 import { cn } from "@/lib/utils";
 
 export function LightboxImage({
@@ -62,7 +63,10 @@ export function LightboxImage({
       </button>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-6"
+          className={cn(
+            "fixed z-50 flex items-center justify-center bg-media/90 p-6",
+            UI_CONTENT_OVERLAY_INSET_CLASS,
+          )}
           onClick={() => setOpen(false)}
         >
           <button

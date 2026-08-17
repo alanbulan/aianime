@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.public import (
+    AI_IDENTITY_DETECTION_TASK_TYPE,
     DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND,
+    DetectProjectSketchMarkersCommand,
     SKETCH_GENERATION_TASK_TYPE,
+    sketch_marker_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
@@ -517,6 +520,7 @@ async def _run_sketch_generation_async(
             target_size=target_size,
             rows=grid_rows,
             cols=grid_cols,
+            style=style,
         )
         if result2.success:
             log(
@@ -618,6 +622,62 @@ def run_sketch_generation(envelope: dict[str, Any], ctx: ProjectContext) -> dict
 
 
 register_project_task_runner(SKETCH_GENERATION_TASK_TYPE, run_sketch_generation)
+
+
+async def _run_ai_identity_detection_async(
+    envelope: dict[str, Any],
+    ctx: ProjectContext,
+) -> dict[str, Any]:
+    episode = int(envelope.get("episode") or 0)
+    manager = get_task_manager()
+    _log(
+        manager,
+        ctx,
+        AI_IDENTITY_DETECTION_TASK_TYPE,
+        episode,
+        envelope.get("scope"),
+        "正在读取本集草图和角色标记...",
+        progress=0.08,
+    )
+    result = await sketch_marker_use_cases().detect(
+        ctx,
+        DetectProjectSketchMarkersCommand(episode_num=episode),
+    )
+    payload = result.as_dict()
+    _log(
+        manager,
+        ctx,
+        AI_IDENTITY_DETECTION_TASK_TYPE,
+        episode,
+        envelope.get("scope"),
+        (
+            "AI 角色检测完成："
+            f"处理 {payload.get('total_beats', 0)} 个 Beat，"
+            f"识别 {payload.get('total_identities', 0)} 个角色标记、"
+            f"{payload.get('total_props', 0)} 个道具标记"
+        ),
+        progress=1.0,
+    )
+    return payload
+
+
+def run_ai_identity_detection(
+    envelope: dict[str, Any],
+    ctx: ProjectContext,
+) -> dict[str, Any]:
+    return asyncio.run(
+        await_envelope_with_cancel_watch(
+            _run_ai_identity_detection_async(envelope, ctx),
+            envelope,
+            task_type=AI_IDENTITY_DETECTION_TASK_TYPE,
+        )
+    )
+
+
+register_project_task_runner(
+    AI_IDENTITY_DETECTION_TASK_TYPE,
+    run_ai_identity_detection,
+)
 
 
 async def _run_control_frame_to_sketch_async(

@@ -65,8 +65,7 @@ export function AudioNodeView({
       >
         {controller.isGenerating ? (
           <NodeGenerationOverlay
-            startedAt={controller.data.generationStartedAt ?? null}
-            hasBackground={false}
+            progress={controller.generationProgress}
           />
         ) : controller.audioSource ? (
           <AudioWaveformPlayer
@@ -82,7 +81,7 @@ export function AudioNodeView({
             </div>
             <div
               className="mt-1 max-h-12 max-w-full overflow-y-auto break-words text-[11px] leading-4 text-destructive [overflow-wrap:anywhere]"
-              title={controller.generationError}
+              data-ui-tooltip={controller.generationError}
             >
               {controller.generationError}
             </div>

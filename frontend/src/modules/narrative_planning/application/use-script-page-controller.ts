@@ -27,18 +27,29 @@ export type ScriptAssetPlanningCategory =
   | "scenes"
   | "props";
 
+export type ScriptGenerationMode = "duration" | "literal";
+
 export const SCRIPT_REWRITE_LIMITS = {
   targetBeats: { min: 5, max: 80 },
   beatCharsMin: { min: 4, max: 50 },
   beatCharsMax: { min: 4, max: 80 },
 } as const;
 
+export const SCRIPT_DURATION_LIMITS = { min: 30, max: 600 } as const;
+
+const SCRIPT_RHYTHM_SECONDS: Record<string, number> = {
+  fast: 3,
+  medium: 4,
+  slow: 5,
+};
+const SCRIPT_TARGET_BEAT_LIMITS = { min: 5, max: 80 } as const;
+
 interface CharacterListQuery {
   data?: { data: Character[] };
 }
 
 interface ProjectQuery {
-  data?: { spine_template?: string | null };
+  data?: { spine_template?: string | null; rhythm?: string | null };
 }
 
 interface CreditCostQuery {
@@ -166,6 +177,9 @@ export function createUseScriptPageController(
     const [rewriteTargetBeats, setRewriteTargetBeats] = useState(18);
     const [rewriteBeatCharsMin, setRewriteBeatCharsMin] = useState(14);
     const [rewriteBeatCharsMax, setRewriteBeatCharsMax] = useState(20);
+    const [scriptMode, setScriptMode] =
+      useState<ScriptGenerationMode>("duration");
+    const [targetDurationTotal, setTargetDurationTotal] = useState(120);
     const initializedSourceRef = useRef("");
 
     const sourceScope = saveScopes.episodeSource(project, episodeNumber);
@@ -404,7 +418,16 @@ export function createUseScriptPageController(
           toast.error(t("episode.script.identityRequired"));
           return;
         }
-        const response = await generateScript.mutateAsync({});
+        if (sceneMenu.length === 0) {
+          toast.error(t("episode.script.sceneRequired"));
+          return;
+        }
+        const response = await generateScript.mutateAsync({
+          rhythm: scriptMode,
+          ...(scriptMode === "duration"
+            ? { target_duration_total: targetDurationTotal }
+            : {}),
+        });
         if (response.ok === false) {
           toast.error(backendErrorToastMessage(response.error, t));
           return;
@@ -502,6 +525,8 @@ export function createUseScriptPageController(
       generateButtonTitle:
         !scriptTask.started && identityIds.length === 0
           ? t("episode.script.identityRequired")
+          : !scriptTask.started && sceneMenu.length === 0
+            ? t("episode.script.sceneRequired")
           : undefined,
       generateScriptCostDisplay: creditCostDisplay(
         generateScriptCost,
@@ -588,6 +613,38 @@ export function createUseScriptPageController(
       setPickerOpen,
       sourceSaving: updateEpisode.isPending,
       sourceTextForEditor: sourceText || rawContent,
+      scriptMode,
+      onScriptModeChange: setScriptMode,
+      targetDurationTotal,
+      targetDurationLimits: SCRIPT_DURATION_LIMITS,
+      onTargetDurationChange: (value: string) =>
+        setTargetDurationTotal((current) =>
+          parseRewriteNumber(value, current),
+        ),
+      onTargetDurationBlur: () =>
+        setTargetDurationTotal((value) =>
+          clampRewriteNumber(
+            value,
+            SCRIPT_DURATION_LIMITS.min,
+            SCRIPT_DURATION_LIMITS.max,
+          ),
+        ),
+      estimatedBeatCount: Math.min(
+        SCRIPT_TARGET_BEAT_LIMITS.max,
+        Math.max(
+          SCRIPT_TARGET_BEAT_LIMITS.min,
+          Math.round(
+            targetDurationTotal /
+              (SCRIPT_RHYTHM_SECONDS[
+                projectData?.rhythm?.trim().toLowerCase() ?? ""
+              ] ?? 4),
+          ),
+        ),
+      ),
+      rhythmSeconds:
+        SCRIPT_RHYTHM_SECONDS[
+          projectData?.rhythm?.trim().toLowerCase() ?? ""
+        ] ?? 4,
       episodeNumber,
     };
   };

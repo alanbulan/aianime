@@ -45,7 +45,6 @@ class CommercialCreativeCanvasVideoGenerationJobRuntime:
             if str(item.get("path") or "").strip()
         ]
         generator = create_video_generator(
-            model=command.model,
             model_role=command.model_role,
             resolution=command.resolution,
             generate_audio=command.generate_audio,

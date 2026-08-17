@@ -40,6 +40,10 @@ function updatedAt(summary: ProjectSummary): string {
   return summary.updatedAt ?? summary.archivedAt ?? summary.deletedAt ?? "";
 }
 
+function displayName(summary: ProjectSummary): string {
+  return summary.displayName || summary.name;
+}
+
 export function sortProjectSummaries(
   projects: ProjectSummary[],
   key: ProjectSortKey,
@@ -53,7 +57,7 @@ export function sortProjectSummaries(
         if (leftUpdatedAt !== rightUpdatedAt) {
           return leftUpdatedAt < rightUpdatedAt ? 1 : -1;
         }
-        return left.name.localeCompare(right.name);
+        return displayName(left).localeCompare(displayName(right));
       });
     case "updated-asc":
       return sorted.sort((left, right) => {
@@ -62,15 +66,15 @@ export function sortProjectSummaries(
         if (leftUpdatedAt !== rightUpdatedAt) {
           return leftUpdatedAt > rightUpdatedAt ? 1 : -1;
         }
-        return left.name.localeCompare(right.name);
+        return displayName(left).localeCompare(displayName(right));
       });
     case "name-asc":
       return sorted.sort((left, right) =>
-        left.name.localeCompare(right.name),
+        displayName(left).localeCompare(displayName(right)),
       );
     case "name-desc":
       return sorted.sort((left, right) =>
-        right.name.localeCompare(left.name),
+        displayName(right).localeCompare(displayName(left)),
       );
   }
 }

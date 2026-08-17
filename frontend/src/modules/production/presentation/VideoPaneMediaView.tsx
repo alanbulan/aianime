@@ -58,7 +58,7 @@ export function VideoPaneMediaView({
             download={`beat_${controller.beatNumber}_video.mp4`}
             onClick={(event) => event.stopPropagation()}
             aria-label={t("common.download")}
-            title={t("common.download")}
+            data-ui-tooltip={t("common.download")}
             className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-[7px] border border-media-foreground/20 bg-media/65 text-media-foreground/90 backdrop-blur-sm transition hover:border-media-foreground/30 hover:bg-media/80 hover:text-media-foreground"
           >
             <Download className="size-3.5" />
@@ -110,7 +110,7 @@ export function VideoPaneMediaView({
                     : MEDIA_THUMB_IDLE_CLASS,
                   controller.selectionPending && "cursor-wait",
                 )}
-                title={candidate.modelLabel}
+                data-ui-tooltip={candidate.modelLabel}
               >
                 <div
                   className="h-[76px] bg-media"

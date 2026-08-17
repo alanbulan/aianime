@@ -23,6 +23,7 @@ export {
   useGridsByBeat,
   useExportGridPrompt,
   usePoolSelect,
+  useProductionWorkflow,
   useGlobalOptimize,
   useLegacyVideoPromptController,
   useFinalVideo,
@@ -232,6 +233,7 @@ export type {
   PoseSkeleton,
   PoseStroke,
   SketchCrop,
+  SketchCropSourceData,
   SketchPoseEditorData,
   SketchPoseEditorState,
 } from "@/modules/production/domain/sketch-pose-editor";

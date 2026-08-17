@@ -7,7 +7,7 @@ export interface NodePriceBadgeProps {
 export function NodePriceBadge({ label, title }: NodePriceBadgeProps) {
   return (
     <span
-      title={title}
+      data-ui-tooltip={title}
       className="mr-2 shrink-0 text-[14px] font-normal leading-none text-muted-foreground"
     >
       {label}

@@ -27,14 +27,12 @@ async def project_context_for_scope(
     )
 
 
-async def _requester_user_id(
+def _requester_user_id(
     user: dict[str, Any],
-    scope: ChatScope,
+    project_ctx: ProjectContext | None,
 ) -> str:
-    if scope.kind == "project":
-        project_ctx = await project_context_for_scope(user, scope)
-        if project_ctx is not None and project_ctx.requester_user_id:
-            return project_ctx.requester_user_id
+    if project_ctx is not None and project_ctx.requester_user_id:
+        return project_ctx.requester_user_id
     user_id = str(user.get("id") or user.get("user_id") or "").strip()
     if user_id:
         return user_id
@@ -45,8 +43,9 @@ async def require_ai_assistant_access(
     *,
     user: dict[str, Any],
     scope: ChatScope,
-) -> None:
-    user_id = await _requester_user_id(user, scope)
+) -> ProjectContext | None:
+    project_ctx = await project_context_for_scope(user, scope)
+    user_id = _requester_user_id(user, project_ctx)
     await get_usage_meter().require_feature_credit_balance(
         user_id=user_id,
         feature_key=_AI_ASSISTANT_CHAT_FEATURE_KEY,
@@ -54,6 +53,7 @@ async def require_ai_assistant_access(
         resource_kind="chat",
         metadata={"scope": scope.to_dict()},
     )
+    return project_ctx
 
 
 __all__ = ["project_context_for_scope", "require_ai_assistant_access"]

@@ -6,9 +6,12 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   downloadCommercialUpdate,
   installCommercialUpdate,
+  subscribeCommercialUpdateDownloadProgress,
+  type CommercialUpdateDownloadProgress,
   subscribeOpenVersionUpdateDialog,
   useCommercialRelease,
 } from "@/modules/platform_release/composition";
+import { CommercialUpdateProgressView } from "@/modules/platform_release/presentation/CommercialUpdateProgress";
 
 const UPDATE_HERO_VIDEO_URL = "/video/login-community-preview.mp4";
 
@@ -24,6 +27,8 @@ export function VersionUpdateDialog() {
   const [installState, setInstallState] = useState<
     "idle" | "downloading" | "installing" | "error"
   >("idle");
+  const [downloadProgress, setDownloadProgress] =
+    useState<CommercialUpdateDownloadProgress | null>(null);
   const autoOpenedCommercialRef = useRef(false);
   const artifactId = commercialRelease.data?.artifactId ?? null;
   const isInstalling =
@@ -31,6 +36,7 @@ export function VersionUpdateDialog() {
 
   const handleInstall = useCallback(async () => {
     if (!artifactId || isInstalling) return;
+    setDownloadProgress(null);
     setInstallState("downloading");
     try {
       await downloadCommercialUpdate(artifactId);
@@ -42,6 +48,11 @@ export function VersionUpdateDialog() {
       setInstallState("error");
     }
   }, [artifactId, isInstalling]);
+
+  useEffect(
+    () => subscribeCommercialUpdateDownloadProgress(setDownloadProgress),
+    [],
+  );
 
   useEffect(() => {
     if (!commercialUpdateAvailable || autoOpenedCommercialRef.current) return;
@@ -103,6 +114,9 @@ export function VersionUpdateDialog() {
           </div>
           {commercialUpdateAvailable && artifactId !== null ? (
             <div className="mt-7 space-y-2">
+              {installState === "downloading" ? (
+                <CommercialUpdateProgressView progress={downloadProgress} />
+              ) : null}
               {installState === "error" ? (
                 <p className="text-center text-[12.5px] leading-5 text-destructive">
                   {t("app.commercialUpdate.installFailed")}
@@ -115,11 +129,15 @@ export function VersionUpdateDialog() {
                 onClick={() => void handleInstall()}
               >
                 {isInstalling
-                  ? t(
-                      installState === "downloading"
-                        ? "app.commercialUpdate.downloading"
-                        : "app.commercialUpdate.installing",
-                    )
+                  ? installState === "downloading" && downloadProgress
+                    ? t("app.commercialUpdate.downloadingWithPercent", {
+                        percent: Math.round(downloadProgress.percent),
+                      })
+                    : t(
+                        installState === "downloading"
+                          ? "app.commercialUpdate.downloading"
+                          : "app.commercialUpdate.installing",
+                      )
                   : t("app.commercialUpdate.downloadAndInstall")}
               </Button>
               <Button

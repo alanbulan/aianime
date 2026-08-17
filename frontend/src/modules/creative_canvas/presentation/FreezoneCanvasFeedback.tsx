@@ -99,7 +99,7 @@ export function CanvasConflictOverlay({
                 .finally(() => setSavingCopy(false));
             }}
             className="rounded-md border border-primary/45 bg-primary px-3 py-1 text-primary-foreground shadow-none transition-colors hover:bg-primary/90 disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
-            title={snapshot ? undefined : t("freezone.canvases.noConflictSnapshot")}
+            data-ui-tooltip={snapshot ? undefined : t("freezone.canvases.noConflictSnapshot")}
           >
             {savingCopy ? "保存中..." : "另存为副本"}
           </button>
@@ -108,7 +108,7 @@ export function CanvasConflictOverlay({
               type="button"
               onClick={handleDownload}
               className="rounded-md border border-[var(--ui-border-soft)] px-3 py-1 text-text transition-colors hover:bg-muted"
-              title={`下载本地修改快照（${snapshot.nodes.length} 节点 · ${snapshot.edges.length} 连线）`}
+              data-ui-tooltip={`下载本地修改快照（${snapshot.nodes.length} 节点 · ${snapshot.edges.length} 连线）`}
             >
               下载本地 JSON
             </button>
@@ -155,7 +155,7 @@ export function BackupStatusIndicator({
     <div
       role={isFailed ? "alert" : "status"}
       className={`absolute bottom-16 right-3 z-30 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] leading-none shadow-sm ${palette}`}
-      title={detail}
+      data-ui-tooltip={detail}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {label}

@@ -104,7 +104,7 @@ export function TextPaneView({ controller }: TextPaneViewProps) {
                     controller.onJumpToAsset("scene", controller.sceneId.trim())
                   }
                   className="inline-flex items-center gap-0.5 text-xs text-muted-foreground transition-colors hover:text-primary"
-                  title={t("assets.common.jumpToAsset", {
+                  data-ui-tooltip={t("assets.common.jumpToAsset", {
                     name: controller.sceneId.trim(),
                   })}
                 >
@@ -523,7 +523,7 @@ function IdentityBadgeGroup({
               <button
                 type="button"
                 aria-label={jumpLabel}
-                title={jumpLabel}
+                data-ui-tooltip={jumpLabel}
                 onClick={() => onJump(id)}
                 className="text-muted-foreground transition-colors hover:text-primary"
               >

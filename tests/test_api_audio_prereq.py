@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_path):
-    from ai_anime.api.routes.production.audio_schemas import TTSGenerateRequest
+    from ai_anime.api.routes.production.audio_schemas import EpisodeAudioGenerateRequest
     from ai_anime.api.routes.production import audio as production_audio
     from ai_anime.modules.production.public import AudioVoicePrerequisitesMissing
 
@@ -33,7 +33,11 @@ async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_
     response = await production_audio.generate_audio(
         project="demo",
         episode_num=3,
-        body=TTSGenerateRequest(mode="redo_selected", beat_numbers=[1]),
+        body=EpisodeAudioGenerateRequest(
+            model="audio-speech-test",
+            mode="redo_selected",
+            beat_numbers=[1],
+        ),
         user={"username": "alice"},
     )
 

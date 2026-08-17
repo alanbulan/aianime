@@ -241,6 +241,7 @@ export const useBatchBarController = createUseBatchBarController(
     useDetectIdentities: sketchMarkerQueries.useDetectIdentities,
     useGenerateAudio: audioGenerationQueries.useGenerateAudio,
     useGlobalOptimize: videoGenerationQueries.useGlobalOptimize,
+    useProductionWorkflow: videoGenerationQueries.useProductionWorkflow,
     useRenderSettings: imageSettingsQueries.useRenderSettings,
     useSketchSettings: imageSettingsQueries.useSketchSettings,
     useUpdateRenderSettings: imageSettingsQueries.useUpdateRenderSettings,
@@ -267,7 +268,7 @@ export const useSketchCropDialogController =
   createUseSketchCropDialogController(
     {
       useCropSketch: sketchPoseEditorQueries.useCropSketch,
-      useSketchPoseEditor: sketchPoseEditorQueries.useSketchPoseEditor,
+      useSketchCropSource: sketchPoseEditorQueries.useSketchCropSource,
     },
     {
       cacheBustImage: withImageCacheBust,
@@ -307,6 +308,7 @@ export const {
   useTrimSeedance2Asset,
 } = seedance2PanelQueries;
 export const {
+  useProductionWorkflow,
   useGlobalOptimize,
   useGenerateSeedance2Prompt,
   useGenerateBeatVideoPrompt,

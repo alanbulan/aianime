@@ -7,11 +7,24 @@ export type ClientFrame =
       turn_id?: string;
       attachments?: ChatAttachment[];
     }
-  | { type: "scope.set"; scope: ChatScope };
+  | { type: "scope.set"; scope: ChatScope }
+  | {
+      type: "conversation.delete";
+      scope: ChatScope;
+      conversationId: string;
+    };
 
 export type ChatScope = {
   kind: "home" | "project";
   id?: string | null;
+  conversationId?: string;
+};
+
+export type ChatConversation = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  messageCount: number;
 };
 
 export type RelayInstanceInfo = {
@@ -45,6 +58,7 @@ export type ServerFrame =
       type: "scope.changed";
       scope: ChatScope;
       history: unknown[];
+      conversations?: ChatConversation[];
       busy?: boolean;
     }
   | {
@@ -52,6 +66,11 @@ export type ServerFrame =
       scope?: ChatScope;
       turn_id?: string;
       message?: string;
+    }
+  | {
+      type: "conversation.deleted";
+      conversationId: string;
+      conversations?: ChatConversation[];
     }
   | {
       type: "chat.ping";
@@ -78,14 +97,17 @@ export type ServerFrame =
   | {
       type: "tool.result";
       turn_id?: string;
+      tool_call_id?: string | null;
       name?: string;
       success?: boolean;
       result?: unknown;
       error?: unknown;
+      raw?: unknown;
     }
   | {
       type: "tool.call";
       turn_id?: string;
+      tool_call_id?: string | null;
       name?: string;
       input?: unknown;
       raw?: unknown;
@@ -117,6 +139,12 @@ export type ChatMessage = {
   turnId?: string;
   displayName?: string;
   attachments?: ChatAttachment[];
+  toolCallId?: string;
+  toolName?: string;
+  toolState?: "running" | "success" | "error";
+  toolInput?: unknown;
+  toolOutput?: unknown;
+  toolError?: unknown;
   timestamp: number;
   raw?: unknown;
 };

@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -142,9 +143,9 @@ describe('AudioOperationsPanelView', () => {
       target: { value: '紧张' },
     });
     expect(changeEmotionDraft).toHaveBeenCalledWith('紧张');
-    fireEvent.click(screen.getByTitle('翻译（中英文互译）'));
-    fireEvent.click(screen.getByTitle('音色设置'));
-    fireEvent.click(screen.getByTitle('生成'));
+    fireEvent.click(getByUiTooltip('翻译（中英文互译）'));
+    fireEvent.click(getByUiTooltip('音色设置'));
+    fireEvent.click(getByUiTooltip('生成'));
     expect(translate).toHaveBeenCalledOnce();
     expect(toggleVoiceSettings).toHaveBeenCalledOnce();
     expect(submit).toHaveBeenCalledOnce();
@@ -172,7 +173,7 @@ describe('AudioOperationsPanelView', () => {
     );
 
     expect(screen.queryByText('语气词')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('高级设置'));
+    fireEvent.click(getByUiTooltip('高级设置'));
     expect(toggleMusicSettings).toHaveBeenCalledOnce();
     await user.click(screen.getByRole('button', { name: '音乐时长' }));
     await user.click(await screen.findByRole('option', { name: '1分钟' }));
@@ -204,8 +205,8 @@ describe('AudioOperationsPanelView', () => {
     expect(screen.getByText('Voice A')).toBeInTheDocument();
     expect(screen.getByText('中文')).toBeInTheDocument();
     expect(screen.getByText('voice-project:project-a')).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('复制声线引用'));
-    fireEvent.click(screen.getByTitle('切换音色'));
+    fireEvent.click(getByUiTooltip('复制声线引用'));
+    fireEvent.click(getByUiTooltip('切换音色'));
     fireEvent.click(screen.getByRole('button', { name: '关闭模拟音色' }));
     fireEvent.click(screen.getByRole('button', { name: '选择模拟音色' }));
     expect(copyVoiceReference).toHaveBeenCalledOnce();

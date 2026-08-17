@@ -26,6 +26,13 @@ import type { ThreeDWorldNodeController } from './useThreeDWorldNodeController';
 import { ThreeDWorldReferenceImageThumb } from './ThreeDWorldReferenceImageThumb';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const PANEL_GAP_PX = 12;
 const PANEL_OVERHANG_PX = 60;
@@ -80,30 +87,39 @@ function OpsPanel({
       {referenceImage || referenceText ? (
         <div className="flex flex-wrap items-center gap-1.5">
           {referenceImages.length > 1 ? (
-            <label
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-muted px-2 text-[11px] text-muted-foreground"
+            <div
+              className="nodrag"
               onPointerDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
             >
-              <select
+              <Select
                 value={selectedReferenceNodeId ?? referenceImage?.nodeId ?? ''}
-                onChange={(event) =>
-                  onReferenceImageChange(event.target.value)
-                }
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => event.stopPropagation()}
-                className="nodrag max-w-[160px] bg-transparent text-[11px] text-text-muted focus:text-text-dark focus:outline-none"
+                onValueChange={(value) => {
+                  if (value) onReferenceImageChange(value);
+                }}
               >
-                {referenceImages.map((item, index) => (
-                  <option
-                    key={item.nodeId}
-                    value={item.nodeId}
-                    className="bg-popover text-popover-foreground"
-                  >
-                    {item.displayName || `图片 ${index + 1}`}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger
+                  size="sm"
+                  aria-label={t('nodeToolbar.directorWorldReferenceImage')}
+                  className="h-8 w-[160px] bg-muted text-[11px] text-muted-foreground"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  {referenceImages.map((item, index) => (
+                    <SelectItem
+                      key={item.nodeId}
+                      value={item.nodeId}
+                    >
+                      {item.displayName ||
+                        t('nodeToolbar.directorWorldReferenceImageFallback', {
+                          index: index + 1,
+                        })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           ) : null}
           {referenceImage ? (
             <ThreeDWorldReferenceImageThumb
@@ -131,35 +147,37 @@ function OpsPanel({
         </div>
       ) : null}
       <div className="flex items-center justify-end gap-2">
-        <label
-          className="inline-flex h-7 items-center gap-1 rounded-full border border-border bg-muted pl-2.5 pr-1 text-[11px] text-foreground/90 transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground"
+        <div
+          className="nodrag"
           onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
-          <select
+          <Select
             value={sourceKind}
-            onChange={(event) =>
-              onSourceKindChange(
-                event.target.value as CanvasImageTo3dVisibleSourceKind,
-              )
-            }
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-            className="nodrag h-6 bg-transparent pr-1 text-[11px] text-foreground focus:outline-none"
-            aria-label={t('nodeToolbar.directorWorldSourceType', {
-              defaultValue: '3DGS 来源类型',
-            })}
+            onValueChange={(value) => {
+              if (value) {
+                onSourceKindChange(value as CanvasImageTo3dVisibleSourceKind);
+              }
+            }}
           >
-            {DIRECTOR_IMAGE_SOURCE_OPTIONS.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-                className="bg-popover text-popover-foreground"
-              >
-                {t(option.labelKey)}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger
+              size="sm"
+              className="h-7 w-[112px] rounded-full bg-muted text-[11px] text-foreground/90"
+              aria-label={t('nodeToolbar.directorWorldSourceType', {
+                defaultValue: '3DGS 来源类型',
+              })}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {DIRECTOR_IMAGE_SOURCE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <button
           type="button"
           onClick={onSubmit}
@@ -271,15 +289,14 @@ export function ThreeDWorldNodeView({
         {preview.previewUrl ? (
           <img
             src={resolveImageDisplayUrl(preview.previewUrl)}
-            alt="导演世界缩略图"
+            alt={t('viewer.threeD.directorWorld')}
             className="h-full w-full object-cover"
             draggable={false}
           />
         ) : null}
         {isGenerating ? (
           <NodeGenerationOverlay
-            startedAt={data.generationStartedAt ?? null}
-            hasBackground={preview.hasPreview}
+            progress={controller.generationProgress}
           />
         ) : null}
       </div>
@@ -296,7 +313,7 @@ export function ThreeDWorldNodeView({
             className="director-entry-press-button inline-flex items-center justify-center bg-transparent p-0 disabled:opacity-70"
             style={{ width: 156 }}
             disabled={directorBusy}
-            title={t('viewer.threeD.openDirectorWorldTitle')}
+            data-ui-tooltip={t('viewer.threeD.openDirectorWorldTitle')}
             aria-label={
               directorBusy
                 ? t('viewer.threeD.openingDirectorWorld')
@@ -325,7 +342,7 @@ export function ThreeDWorldNodeView({
           onPointerDown={(event) => event.stopPropagation()}
           className="nodrag absolute right-2 top-2 z-20 inline-flex h-6 items-center rounded-full bg-media/45 px-2.5 text-[10px] font-medium text-media-foreground/90 backdrop-blur-md transition-colors hover:bg-media/60 hover:text-media-foreground disabled:cursor-not-allowed disabled:opacity-60"
           disabled={directorBusy}
-          title={t('viewer.threeD.openDirectorWorldTitle')}
+          data-ui-tooltip={t('viewer.threeD.openDirectorWorldTitle')}
           aria-label={
             directorBusy
               ? t('viewer.threeD.openingDirectorWorld')
@@ -335,7 +352,7 @@ export function ThreeDWorldNodeView({
           {directorBusy ? (
             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
           ) : null}
-          <span>进入导演世界</span>
+          <span>{t('viewer.threeD.enterDirectorWorld')}</span>
         </button>
       )}
 
@@ -397,7 +414,7 @@ export function ThreeDWorldNodeView({
         onOpenChange={controller.changeDirectorDialogOpen}
         manifest={directorManifest}
         title={t('viewer.threeD.directorWorld')}
-        viewerPurpose={beatContext ? 'beat' : 'freezone'}
+        viewerPurpose="freezone"
         onCaptureSelectedBackground={
           beatContext ? controller.captureSelectedBackground : undefined
         }

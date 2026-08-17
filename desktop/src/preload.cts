@@ -12,6 +12,11 @@ const WINDOW_CHANNELS = {
 const CLIPBOARD_CHANNELS = {
   writeText: "desktop:clipboard:write-text",
 } as const;
+const RUNTIME_DEPENDENCY_CHANNELS = {
+  status: "desktop:runtime-dependencies:status",
+  install: "desktop:runtime-dependencies:install",
+  progress: "desktop:runtime-dependencies:progress",
+} as const;
 const COMMERCIAL_CHANNELS = {
   status: "desktop:commercial:status",
   publicConfig: "desktop:commercial:public-config",
@@ -43,6 +48,7 @@ const COMMERCIAL_CHANNELS = {
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
   downloadUpdate: "desktop:commercial:download-update",
+  updateDownloadProgress: "desktop:commercial:update-download-progress",
   installUpdate: "desktop:commercial:install-update",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
@@ -52,6 +58,7 @@ const COMMERCIAL_CHANNELS = {
   configureByok: "desktop:commercial:configure-byok",
   selectCloudModels: "desktop:commercial:select-cloud-models",
   clearByok: "desktop:commercial:clear-byok",
+  byokProviderModels: "desktop:commercial:byok-provider-models",
 } as const;
 
 contextBridge.exposeInMainWorld("aiAnimeDesktop", {
@@ -75,6 +82,17 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
   clipboard: Object.freeze({
     writeText: (value: string) =>
       ipcRenderer.invoke(CLIPBOARD_CHANNELS.writeText, value) as Promise<void>,
+  }),
+  runtimeDependencies: Object.freeze({
+    status: () => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.status),
+    install: () => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.install),
+    onProgress: (listener: (progress: unknown) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: unknown) =>
+        listener(progress);
+      ipcRenderer.on(RUNTIME_DEPENDENCY_CHANNELS.progress, handler);
+      return () =>
+        ipcRenderer.removeListener(RUNTIME_DEPENDENCY_CHANNELS.progress, handler);
+    },
   }),
   commercial: Object.freeze({
     status: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.status),
@@ -124,7 +142,10 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.configureByok, input),
     selectCloudModels: (input?: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.selectCloudModels, input),
-    clearByok: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.clearByok),
+    clearByok: (input?: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.clearByok, input),
+    byokProviderModels: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.byokProviderModels, input),
     quotaBalance: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.quotaBalance),
     modelCatalog: (query: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelCatalog, query),
@@ -143,6 +164,15 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     checkRelease: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.checkRelease),
     downloadUpdate: (artifactId: string | number) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.downloadUpdate, artifactId),
+    onUpdateDownloadProgress: (listener: (progress: unknown) => void) => {
+      const handler = (_event: unknown, progress: unknown) => listener(progress);
+      ipcRenderer.on(COMMERCIAL_CHANNELS.updateDownloadProgress, handler);
+      return () =>
+        ipcRenderer.removeListener(
+          COMMERCIAL_CHANNELS.updateDownloadProgress,
+          handler,
+        );
+    },
     installUpdate: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.installUpdate),
   }),
 });

@@ -6,6 +6,12 @@ export interface CommercialInvocation {
   operation?: string;
   modelSkuCode?: string;
   quotaStatus?: string;
+  reservationId?: CommercialInvocationId;
+  reservedUnits?: number;
+  chargedUnits?: number;
+  refundedUnits?: number;
+  balanceBefore?: number;
+  balanceAfter?: number;
   requestId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -72,6 +78,12 @@ function parseCommercialInvocation(
     ...optionalText("operation", invocation.operation),
     ...optionalText("modelSkuCode", invocation.modelSkuCode),
     ...optionalText("quotaStatus", invocation.quotaStatus),
+    ...optionalIdentifier("reservationId", invocation.reservationId),
+    ...optionalNonNegativeNumber("reservedUnits", invocation.reservedUnits),
+    ...optionalNonNegativeNumber("chargedUnits", invocation.chargedUnits),
+    ...optionalNonNegativeNumber("refundedUnits", invocation.refundedUnits),
+    ...optionalNonNegativeNumber("balanceBefore", invocation.balanceBefore),
+    ...optionalNonNegativeNumber("balanceAfter", invocation.balanceAfter),
     ...optionalText("requestId", invocation.requestId),
     ...optionalText("createdAt", invocation.createdAt),
     ...optionalText("updatedAt", invocation.updatedAt),
@@ -115,4 +127,19 @@ function optionalPositiveInteger(value: unknown): number | undefined {
 function optionalText<K extends string>(key: K, value: unknown) {
   const normalized = typeof value === "string" ? value.trim() : "";
   return normalized ? ({ [key]: normalized } as Record<K, string>) : {};
+}
+
+function optionalIdentifier<K extends string>(key: K, value: unknown) {
+  if (value === undefined || value === null || value === "") return {};
+  return {
+    [key]: identifier(value, key),
+  } as Record<K, CommercialInvocationId>;
+}
+
+function optionalNonNegativeNumber<K extends string>(key: K, value: unknown) {
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${key} must be a non-negative number`);
+  }
+  return { [key]: value } as Record<K, number>;
 }

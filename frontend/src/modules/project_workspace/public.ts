@@ -7,6 +7,7 @@ export {
   useCreateProject,
   useDeleteProjectGrant,
   useProject,
+  useProjectCoverCandidates,
   useProjectGrants,
   useProjectNavigationStore,
   usePurgeProject,
@@ -14,6 +15,8 @@ export {
   useSoftDeleteProject,
   useUnarchiveProject,
   useUpdateProject,
+  useUploadProjectCover,
+  useSelectProjectCover,
   useUpdateProjectGrant,
   useUserSearch,
 } from "@/modules/project_workspace/composition";
@@ -37,6 +40,8 @@ export {
 export type {
   CreatedProject,
   ProjectConfig,
+  ProjectCoverCandidate,
+  ProjectCoverResult,
   ProjectDashboardViewMode,
   ProjectGrant,
   ProjectLifecycleAction,

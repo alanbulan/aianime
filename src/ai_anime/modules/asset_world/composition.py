@@ -51,6 +51,7 @@ from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUse
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
+    StylePreviewTaskUseCases,
     StylePreviewUseCases,
 )
 from ai_anime.modules.asset_world.infrastructure.character_voice_storage import (
@@ -299,6 +300,13 @@ def character_voice_use_cases() -> CharacterVoiceUseCases:
 
 def style_preview_use_cases() -> StylePreviewUseCases:
     return StylePreviewUseCases(StyleService, UnifiedStylePreviewGenerator())
+
+
+def style_preview_task_use_cases() -> StylePreviewTaskUseCases:
+    return StylePreviewTaskUseCases(
+        StyleService,
+        TaskExecutionAssetTaskScheduler(project_task_submission_use_cases()),
+    )
 
 
 def analyze_style() -> AnalyzeStyle:

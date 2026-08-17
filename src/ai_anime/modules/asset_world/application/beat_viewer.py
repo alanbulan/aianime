@@ -28,6 +28,9 @@ from ai_anime.modules.asset_world.application.ports import (
     BeatViewerWorkspace,
 )
 from ai_anime.modules.asset_world.application.scene_viewer import SceneViewerUseCases
+from ai_anime.modules.asset_world.domain.background_anchor import (
+    ANCHOR_DIRECTOR_ENV_ONLY,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 
@@ -150,7 +153,7 @@ class BeatViewerUseCases:
     ) -> dict[str, Any]:
         async with self._workspace.session(context) as store:
             _beats, beat = await self._beat_context(store, query)
-            return self._director_stage.export_control_frame(
+            exported = self._director_stage.export_control_frame(
                 project_dir=context.output_dir,
                 scene_name=self._require_scene_name(beat),
                 episode_num=int(query.episode_num),
@@ -158,6 +161,21 @@ class BeatViewerUseCases:
                 command=command,
                 asset_url=self._media_urls.asset_url(context),
             )
+            background_anchor = await self._background_anchors.select_anchor(
+                asset_writer=store,
+                project_dir=context.output_dir,
+                beat=beat,
+                episode_num=int(query.episode_num),
+                beat_num=int(query.beat_num),
+                command=SelectBeatBackgroundCommand(
+                    anchor_id=ANCHOR_DIRECTOR_ENV_ONLY,
+                ),
+                asset_url=self._media_urls.asset_url(context),
+            )
+            return {
+                **exported,
+                "background_anchor": background_anchor,
+            }
 
     def director_control_frame_status(
         self,

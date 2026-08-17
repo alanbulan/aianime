@@ -95,7 +95,7 @@ describe("Production video pool queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/1/video-pool-select",
         async ({ request }) => {
-          requestBody = await request.json();
+          requestBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

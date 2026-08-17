@@ -25,13 +25,9 @@ class ProjectConfigSettings:
         username: str,
         project_name: str,
         *,
-        text_model: str,
-        embedding_model: str,
         spine_template: SpineTemplate | None,
     ) -> None:
         config = self._load_config(username, project_name)
-        config["knowledge_text_model"] = text_model
-        config["knowledge_embedding_model"] = embedding_model
         if spine_template is not None:
             config["spine_template"] = spine_template
             config["aspect_ratio"] = self._default_aspect_ratio(spine_template)

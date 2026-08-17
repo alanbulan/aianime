@@ -173,7 +173,7 @@ export function NodeHeader({
         return (
           <span
             ref={setTitleMeasureElement}
-            title={titleText}
+            data-ui-tooltip={titleText}
             className={joinClasses(
               'block min-w-0 overflow-hidden whitespace-nowrap cursor-grab select-none active:cursor-grabbing',
               NODE_HEADER_TITLE_MAX_WIDTH_CLASS,
@@ -231,7 +231,7 @@ export function NodeHeader({
           titleClassName
         )}
         style={titleFadeStyle}
-        title={titleText}
+        data-ui-tooltip={titleText}
         onClick={(event) => event.stopPropagation()}
         onDoubleClick={(event) => {
           event.stopPropagation();

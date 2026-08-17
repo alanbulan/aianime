@@ -214,7 +214,7 @@ export function createGridActionConfirmOverlay({
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               onClick={onClose}
-              title={t('nodeToolbar.gridMenu.confirmBar.close')}
+              data-ui-tooltip={t('nodeToolbar.gridMenu.confirmBar.close')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -230,7 +230,7 @@ export function createGridActionConfirmOverlay({
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90"
               onClick={handleSubmit}
               disabled={!selectedModel}
-              title={t('nodeToolbar.gridMenu.confirmBar.submit')}
+              data-ui-tooltip={t('nodeToolbar.gridMenu.confirmBar.submit')}
             >
               <ArrowUp className="h-4 w-4" />
             </button>

@@ -10,6 +10,98 @@ NO_CHARACTER_MARKER = "__NO_CHARACTER__"
 NO_PROP_MARKER = "__NO_PROP__"
 
 
+def build_episode_identity_alias_map(
+    episode: Any,
+    characters: list[Any] | tuple[Any, ...] | None,
+) -> dict[str, str]:
+    """Build unambiguous visible-name -> episode identity mappings.
+
+    The episode's explicit default identity wins.  Without one, a character is
+    safe to infer only when exactly one of its identities belongs to the
+    episode.  Character aliases share that same mapping.
+    """
+
+    allowed_identity_ids = {
+        str(identity_id or "").strip()
+        for identity_id in (getattr(episode, "identity_ids", None) or [])
+        if str(identity_id or "").strip()
+    }
+    default_map = {
+        str(name or "").strip(): str(identity_id or "").strip()
+        for name, identity_id in (
+            getattr(episode, "identity_default_map", None) or {}
+        ).items()
+        if str(name or "").strip() and str(identity_id or "").strip()
+    }
+    aliases: dict[str, str] = {}
+    for character in characters or []:
+        character_name = str(getattr(character, "name", "") or "").strip()
+        if not character_name:
+            continue
+        episode_identities = [
+            str(getattr(identity, "identity_id", "") or "").strip()
+            for identity in (getattr(character, "identities", None) or [])
+            if str(getattr(identity, "identity_id", "") or "").strip()
+            and (
+                not allowed_identity_ids
+                or str(getattr(identity, "identity_id", "") or "").strip()
+                in allowed_identity_ids
+            )
+        ]
+        default_identity_id = default_map.get(character_name, "")
+        if default_identity_id and (
+            not allowed_identity_ids or default_identity_id in allowed_identity_ids
+        ):
+            identity_id = default_identity_id
+        elif len(episode_identities) == 1:
+            identity_id = episode_identities[0]
+        else:
+            continue
+        for token in (
+            character_name,
+            *(
+                str(alias or "").strip()
+                for alias in (getattr(character, "aliases", None) or [])
+            ),
+            identity_id,
+        ):
+            if token:
+                aliases[token] = identity_id
+    return aliases
+
+
+def canonicalize_visual_identity_markers(
+    visual_description: str,
+    identity_aliases: dict[str, str] | None,
+) -> str:
+    """Wrap unambiguous bare character references in canonical markers.
+
+    Existing character and prop markers are protected.  A single combined
+    regular expression performs replacement in one pass so newly inserted
+    markers cannot be rewritten by a shorter alias.
+    """
+
+    text = str(visual_description or "")
+    aliases = {
+        str(alias or "").strip(): str(identity_id or "").strip()
+        for alias, identity_id in (identity_aliases or {}).items()
+        if str(alias or "").strip() and str(identity_id or "").strip()
+    }
+    if not text or not aliases:
+        return text
+    alias_pattern = re.compile(
+        "|".join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True))
+    )
+    protected_pattern = re.compile(r"(\{\{[^}]+\}\}|\[\[[^\]]+\]\])")
+    parts = protected_pattern.split(text)
+    for index in range(0, len(parts), 2):
+        parts[index] = alias_pattern.sub(
+            lambda match: f"{{{{{aliases[match.group(0)]}}}}}",
+            parts[index],
+        )
+    return "".join(parts)
+
+
 def _dedupe_non_empty(values: list[Any] | tuple[Any, ...] | None) -> list[str]:
     result: list[str] = []
     seen: set[str] = set()
@@ -157,6 +249,8 @@ def collect_prop_marker_ids_from_beat(value: Any) -> list[str]:
 __all__ = [
     "NO_CHARACTER_MARKER",
     "NO_PROP_MARKER",
+    "build_episode_identity_alias_map",
+    "canonicalize_visual_identity_markers",
     "collect_prop_marker_ids_from_beat",
     "complete_detected_refs_from_visual_description",
     "extract_char_identities_from_markers",

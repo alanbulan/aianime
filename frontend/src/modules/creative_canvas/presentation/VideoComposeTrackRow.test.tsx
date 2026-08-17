@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -94,7 +95,7 @@ describe("VideoComposeTrackRow", () => {
     props.overlapClipIds = new Set([media.id]);
     const { container } = render(<VideoComposeTrackRow {...props} />);
 
-    fireEvent.pointerDown(screen.getByTitle("videoCompose.error.overlap"));
+    fireEvent.pointerDown(getByUiTooltip("videoCompose.error.overlap"));
     fireEvent.click(
       screen.getByRole("button", { name: "videoCompose.mute" }),
     );

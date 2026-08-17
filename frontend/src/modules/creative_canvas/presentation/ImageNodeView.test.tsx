@@ -46,7 +46,9 @@ vi.mock('./DirectorControlBundleBadge', () => ({
 }));
 
 vi.mock('./NodeGenerationOverlay', () => ({
-  NodeGenerationOverlay: () => <div>generation-overlay</div>,
+  NodeGenerationOverlay: ({ progress }: { progress?: number | null }) => (
+    <div>generation-overlay:{progress ?? 'indeterminate'}</div>
+  ),
 }));
 
 vi.mock('./RegenerateButton', () => ({
@@ -95,6 +97,7 @@ function createController(): ImageNodeController {
     imageSource: '/preview.webp',
     originalImageUrl: '/original.png',
     isGenerating: false,
+    generationProgress: null,
     generationError: '',
     generationErrorRequestId: '',
     hasGenerationError: false,
@@ -117,7 +120,10 @@ describe('ImageNodeView', () => {
     const controller = createController();
     const { container } = render(<ImageNodeView controller={controller} />);
 
-    expect(screen.getByText('1920×1080')).toHaveAttribute('title', '分辨率');
+    expect(screen.getByText('1920×1080')).toHaveAttribute(
+      'data-ui-tooltip',
+      '分辨率',
+    );
     expect(screen.getByText('bindings:current_frame')).toBeInTheDocument();
     expect(screen.getByText('director-badge')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'title:图像节点' }));
@@ -139,9 +145,10 @@ describe('ImageNodeView', () => {
     controller.imageSource = null;
     controller.naturalSize = null;
     controller.isGenerating = true;
+    controller.generationProgress = 0.42;
     render(<ImageNodeView controller={controller} />);
 
-    expect(screen.getByText('generation-overlay')).toBeInTheDocument();
+    expect(screen.getByText('generation-overlay:0.42')).toBeInTheDocument();
     expect(screen.queryByText('等待结果')).not.toBeInTheDocument();
   });
 
@@ -159,7 +166,7 @@ describe('ImageNodeView', () => {
     expect(screen.getByText('生成失败')).toBeInTheDocument();
     expect(screen.getByText('后端失败')).toBeInTheDocument();
     expect(screen.getByText('request-552')).toHaveAttribute(
-      'title',
+      'data-ui-tooltip',
       'request-552',
     );
     fireEvent.click(screen.getByRole('button', { name: 'retry' }));

@@ -1,14 +1,12 @@
 """Production audio endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.routes.production.audio_schemas import (
     EpisodeAudioGenerateRequest,
     EpisodeAudioModelRequest,
-    TTSGenerateRequest,
-    TTSPreviewRequest,
 )
 from ai_anime.modules.production.public import (
     AudioVoicePrerequisitesMissing,
@@ -16,48 +14,10 @@ from ai_anime.modules.production.public import (
     EpisodeAudioBeatsMissing,
     GenerateEpisodeAudioCommand,
     episode_audio_use_cases,
+    resolve_audio_generation_model,
 )
 
 router = APIRouter()
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/tts/generate")
-async def generate_tts(
-    project: str,
-    episode_num: int,
-    body: TTSGenerateRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Legacy TTS endpoint removed after IndexTTS2 cutover."""
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail=(
-            "Legacy /tts/generate was removed. Use "
-            f"/projects/{project}/episodes/{episode_num}/audio/generate for IndexTTS2."
-        ),
-    )
-
-
-@router.post("/projects/{project}/tts/preview")
-async def preview_tts(
-    project: str,
-    body: TTSPreviewRequest,
-    user: dict = Depends(get_api_user),
-):
-    """Legacy TTS preview endpoint removed after IndexTTS2 cutover."""
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail="Legacy /tts/preview was removed. IndexTTS2 uses configured reference voices.",
-    )
-
-
-@router.get("/projects/{project}/tts/voices")
-async def list_tts_voices(project: str, user: dict = Depends(get_api_user)):
-    """Legacy voice listing endpoint removed after IndexTTS2 cutover."""
-    raise HTTPException(
-        status_code=status.HTTP_410_GONE,
-        detail="Legacy /tts/voices was removed. IndexTTS2 voice options are project assets.",
-    )
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/audio/generate")
@@ -74,7 +34,7 @@ async def generate_audio(
             resolved.ctx,
             GenerateEpisodeAudioCommand(
                 episode_num=episode_num,
-                model=body.model,
+                model=resolve_audio_generation_model(body.model),
                 mode=body.mode,
                 beat_numbers=body.beat_numbers,
             ),

@@ -68,8 +68,6 @@ export interface KnowledgeGraphSnapshot {
 
 export interface StartIngestionParams {
   filename: string;
-  textModel: string;
-  embeddingModel: string;
   rebuild?: boolean;
   spine_template?: SpineTemplate;
 }

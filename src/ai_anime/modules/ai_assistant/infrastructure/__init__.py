@@ -21,6 +21,9 @@ from ai_anime.modules.ai_assistant.infrastructure.sqlite_chat_history import (
 from ai_anime.modules.ai_assistant.infrastructure.local_speech_transcriber import (
     LocalSpeechTranscriber,
 )
+from ai_anime.modules.ai_assistant.infrastructure.model_chat_title_generator import (
+    ModelChatTitleGenerator,
+)
 from ai_anime.modules.ai_assistant.infrastructure.user_preferences import (
     FileUserPreferences,
 )
@@ -33,5 +36,6 @@ __all__ = [
     "LocalHermesRuntime",
     "LocalProjectMediaFiles",
     "LocalSpeechTranscriber",
+    "ModelChatTitleGenerator",
     "SQLiteChatHistory",
 ]

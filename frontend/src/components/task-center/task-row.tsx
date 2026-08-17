@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import {
   displayLabel,
+  taskProgressPercent,
   type TaskState,
 } from "@/modules/task_execution/public";
 import { Progress } from "@/components/ui/progress";
@@ -50,12 +51,13 @@ export function TaskRow({
 }) {
   const { t } = useTranslation();
   const label = displayLabel(task, t);
+  const progressPercent = taskProgressPercent(task);
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left text-xs hover:bg-muted",
+        "flex h-full min-h-0 w-full items-center gap-2 border-b border-border px-3 py-2 text-left text-xs hover:bg-muted",
         selected && "bg-muted",
       )}
     >
@@ -73,10 +75,10 @@ export function TaskRow({
       {task.status === "running" && (
         <div className="flex shrink-0 items-center gap-1.5">
           <div className="w-16">
-            <Progress value={Math.round(task.progress * 100)} />
+            <Progress value={progressPercent} />
           </div>
           <span className="w-8 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-            {Math.round(task.progress * 100)}%
+            {progressPercent}%
           </span>
         </div>
       )}

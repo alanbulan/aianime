@@ -467,16 +467,6 @@ def generation_catalog_queries() -> GenerationCatalogQueries:
     return build()
 
 
-def resolve_creative_canvas_vision_model(
-    model_override: str | None = None,
-) -> str:
-    from ai_anime.modules.creative_canvas.composition import (
-        resolve_creative_canvas_vision_model as resolve,
-    )
-
-    return resolve(model_override)
-
-
 def creative_canvas_job_result_queries() -> CreativeCanvasJobResultQueries:
     from ai_anime.modules.creative_canvas.composition import (
         creative_canvas_job_result_queries as build,

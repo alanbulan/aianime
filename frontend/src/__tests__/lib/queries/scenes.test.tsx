@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { cleanup, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 import ky from "ky";
@@ -22,8 +22,9 @@ const server = setupServer();
 
 beforeAll(() => server.listen());
 afterEach(() => {
-  server.resetHandlers();
+  cleanup();
   focusManager.setFocused(undefined);
+  server.resetHandlers();
 });
 afterAll(() => server.close());
 

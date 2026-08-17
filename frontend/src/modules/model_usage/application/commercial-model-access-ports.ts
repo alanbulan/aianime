@@ -1,5 +1,7 @@
 import type {
   ByokModelAssignment,
+  ByokProviderModelDiscoveryInput,
+  ByokProviderProtocol,
   CommercialModelCatalog,
   CommercialModelCatalogItem,
   CommercialModelAccessStatus,
@@ -16,12 +18,22 @@ export interface CommercialModelAccessGateway {
   fetchModelDetails(sku: string): Promise<CommercialModelCatalogItem>;
   fetchAccessStatus(): Promise<CommercialModelAccessStatus>;
   configureByok(input: {
+    providerId?: string;
+    name?: string;
+    protocol?: ByokProviderProtocol;
     baseUrl: string;
     apiKey?: string;
+    enabled?: boolean;
+    priority?: number;
     modelAssignments?: ByokModelAssignment[];
   }): Promise<CommercialModelAccessStatus>;
   selectCloud(
     modelAssignments?: ByokModelAssignment[],
   ): Promise<CommercialModelAccessStatus>;
-  clearByok(): Promise<CommercialModelAccessStatus>;
+  clearByok(providerId?: string): Promise<CommercialModelAccessStatus>;
+  fetchByokProviderModels(input: ByokProviderModelDiscoveryInput): Promise<{
+    providerId: string;
+    models: string[];
+    catalogVersion: string;
+  }>;
 }

@@ -5,6 +5,7 @@ from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
     ChatWorkerLifecycle,
+    ConversationTitles,
     HermesHomeReplies,
     HermesRuntimePrewarmer,
     ProjectChatTurns,
@@ -118,6 +119,14 @@ def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
     return resolve()
 
 
+def get_conversation_titles() -> ConversationTitles:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_conversation_titles as resolve,
+    )
+
+    return resolve()
+
+
 def get_hermes_home_replies() -> HermesHomeReplies:
     from ai_anime.modules.ai_assistant.composition import (
         get_hermes_home_replies as resolve,
@@ -152,6 +161,7 @@ def get_speech_transcription() -> SpeechTranscription:
 
 __all__ = [
     "ChatWorkerLifecycle",
+    "ConversationTitles",
     "HermesHomeReplies",
     "HermesRuntimePrewarmer",
     "ProjectChatTurns",
@@ -174,6 +184,7 @@ __all__ = [
     "filter_tool_ui_specs_for_prompt",
     "get_hermes_runtime_prewarmer",
     "get_chat_worker_lifecycle",
+    "get_conversation_titles",
     "get_hermes_home_replies",
     "get_project_chat_turns",
     "get_scoped_chat_messages",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
@@ -15,6 +15,7 @@ from ai_anime.modules.ai_assistant.public import (
 class ChatScopePayload(BaseModel):
     kind: InteractiveChatScopeKind = "home"
     id: str | None = None
+    conversationId: str = "main"
 
 
 class ChatAttachmentIn(BaseModel):
@@ -41,6 +42,16 @@ class ChatMessageIn(BaseModel):
 class ScopeSetIn(BaseModel):
     type: str
     scope: ChatScopePayload
+
+
+class ConversationDeleteIn(BaseModel):
+    type: str
+    scope: ChatScopePayload
+    conversationId: str = Field(
+        min_length=1,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]*$",
+    )
 
 
 class ChatUiEventIn(BaseModel):
@@ -75,6 +86,7 @@ __all__ = [
     "ChatNotificationIn",
     "ChatScopePayload",
     "ChatUiEventIn",
+    "ConversationDeleteIn",
     "ScopeSetIn",
     "attachment_payloads",
     "to_chat_scope",

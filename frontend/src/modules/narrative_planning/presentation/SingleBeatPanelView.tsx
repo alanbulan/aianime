@@ -14,6 +14,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 import { SaveStatus } from "@/components/save-status";
+import { UI_CONTENT_OVERLAY_INSET_CLASS } from "@/components/ui/motion";
 import {
   Select,
   SelectContent,
@@ -157,7 +158,10 @@ export function SingleBeatPanelView({
 
       {previewUrl && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-8"
+          className={cn(
+            "fixed z-50 flex items-center justify-center bg-media/90 p-8",
+            UI_CONTENT_OVERLAY_INSET_CLASS,
+          )}
           onClick={() => setPreviewUrl(null)}
         >
           <button

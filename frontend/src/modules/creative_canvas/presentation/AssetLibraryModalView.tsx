@@ -12,6 +12,16 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 import { assetLibrarySourceLabel } from '../application/assetLibraryModalModel';
 import type { AssetLibraryModalController } from './useAssetLibraryModalController';
@@ -49,6 +59,7 @@ export function AssetLibraryModalView({
     libraryError,
     isSyncing,
     deletingId,
+    deleteDialog,
     isDragging,
     setIsDragging,
     visibleItems,
@@ -97,7 +108,7 @@ export function AssetLibraryModalView({
               onClick={() => void handleSyncFromMainline()}
               disabled={!project || isSyncing}
               className="inline-flex h-8 items-center gap-1.5 rounded-md bg-muted px-3 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-              title="打开时已自动同步；如主线新增了人物 / 场景 / 道具，可点此重新同步"
+              data-ui-tooltip="打开时已自动同步；如主线新增了人物 / 场景 / 道具，可点此重新同步"
             >
               {isSyncing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -110,7 +121,7 @@ export function AssetLibraryModalView({
               type="button"
               onClick={onClose}
               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="关闭"
+              data-ui-tooltip="关闭"
             >
               <X className="h-4 w-4" />
             </button>
@@ -254,7 +265,7 @@ export function AssetLibraryModalView({
                     type="button"
                     onClick={() => removePending(pending.id)}
                     className="absolute bottom-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-media/55 text-media-foreground transition-colors hover:bg-media/75"
-                    title="移除"
+                    data-ui-tooltip="移除"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -316,7 +327,7 @@ export function AssetLibraryModalView({
                       toggleSelect(key);
                     }}
                     disabled={disabledSelect}
-                    title={
+                    data-ui-tooltip={
                       disabledSelect
                         ? `最多可选 ${maxSelectable} 个`
                         : selected
@@ -350,7 +361,7 @@ export function AssetLibraryModalView({
                       }}
                       disabled={!entry.id || isDeleting}
                       className="absolute bottom-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-media/60 text-media-foreground opacity-0 transition-[opacity,background-color] hover:bg-media/80 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
-                      title={entry.id ? '删除' : '该条目缺少 id，无法删除'}
+                      data-ui-tooltip={entry.id ? '删除' : '该条目缺少 id，无法删除'}
                     >
                       {isDeleting ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -386,6 +397,31 @@ export function AssetLibraryModalView({
             确定
           </Button>
         </div>
+        <AlertDialog open={deleteDialog.open} onOpenChange={deleteDialog.onOpenChange}>
+          <AlertDialogContent
+            size="sm"
+            overlayClassName="z-[310]"
+            className="z-[320]"
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle>删除素材</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要删除「{deleteDialog.name}」？删除后无法恢复。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={Boolean(deletingId)}>取消</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={Boolean(deletingId)}
+                onClick={() => void deleteDialog.confirm()}
+              >
+                {deletingId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>,
     document.body,

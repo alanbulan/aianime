@@ -170,14 +170,14 @@ export const VideoClipPanel = memo(function VideoClipPanel({
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-55"
         onClick={onExit}
         disabled={isSubmitting}
-        title="退出剪辑"
+        data-ui-tooltip="退出剪辑"
       >
         <X className="h-4 w-4" />
       </button>
       <button
         type="button"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/72"
-        title="字幕（待实现）"
+        data-ui-tooltip="字幕（待实现）"
         disabled
       >
         <TypeIcon className="h-4 w-4" />
@@ -231,14 +231,14 @@ export const VideoClipPanel = memo(function VideoClipPanel({
           <div
             className="absolute inset-y-0 left-0 flex w-3 cursor-ew-resize items-center justify-center rounded-l-md bg-media-foreground"
             onPointerDown={startDrag('start')}
-            title="拖动以调整起点"
+            data-ui-tooltip="拖动以调整起点"
           >
             <div className="h-4 w-[2px] rounded-full bg-media/40" />
           </div>
           <div
             className="absolute inset-y-0 right-0 flex w-3 cursor-ew-resize items-center justify-center rounded-r-md bg-media-foreground"
             onPointerDown={startDrag('end')}
-            title="拖动以调整终点"
+            data-ui-tooltip="拖动以调整终点"
           >
             <div className="h-4 w-[2px] rounded-full bg-media/40" />
           </div>
@@ -256,7 +256,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
       <button
         type="button"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/72"
-        title="静音（待实现）"
+        data-ui-tooltip="静音（待实现）"
         disabled
       >
         <VolumeX className="h-4 w-4" />
@@ -264,7 +264,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
       <button
         type="button"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-dark/72"
-        title="循环（待实现）"
+        data-ui-tooltip="循环（待实现）"
         disabled
       >
         <Repeat className="h-4 w-4" />
@@ -278,7 +278,7 @@ export const VideoClipPanel = memo(function VideoClipPanel({
           selectionMs < VIDEO_CLIP_MIN_DURATION_MS ||
           isSubmitting
         }
-        title={isSubmitting ? '剪辑中…' : '提交剪辑'}
+        data-ui-tooltip={isSubmitting ? '剪辑中…' : '提交剪辑'}
       >
         {isSubmitting ? (
           <Loader2 className="h-4 w-4 animate-spin" />

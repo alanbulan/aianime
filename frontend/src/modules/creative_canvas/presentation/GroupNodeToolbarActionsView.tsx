@@ -40,7 +40,7 @@ export function GroupNodeToolbarActionsView({
         <DropdownMenuTrigger asChild>
           <UiChipButton
             className={styles.textButton}
-            title="组背景色"
+            data-ui-tooltip="组背景色"
             onClick={(event) => event.stopPropagation()}
           >
             {backgroundColor ? (
@@ -64,7 +64,7 @@ export function GroupNodeToolbarActionsView({
           <div className="grid grid-cols-5 gap-1.5 p-1.5">
             <button
               type="button"
-              title="无"
+              data-ui-tooltip="无"
               onClick={() => setBackgroundColor(null)}
               className={`relative flex h-6 w-6 items-center justify-center rounded-full border bg-transparent transition-transform hover:scale-110 ${
                 backgroundColor
@@ -78,7 +78,7 @@ export function GroupNodeToolbarActionsView({
               <button
                 key={preset.key}
                 type="button"
-                title={preset.label}
+                data-ui-tooltip={preset.label}
                 onClick={() => setBackgroundColor(preset.value)}
                 className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
                   backgroundColor === preset.value
@@ -95,7 +95,7 @@ export function GroupNodeToolbarActionsView({
         <DropdownMenuTrigger asChild>
           <UiChipButton
             className={styles.textButton}
-            title="排列方式"
+            data-ui-tooltip="排列方式"
             onClick={(event) => event.stopPropagation()}
           >
             <LayoutGrid className="h-3.5 w-3.5" />

@@ -152,18 +152,18 @@ export function SketchSection({
   const extraDialogs = createElement(
     Fragment,
     null,
-    createElement(SketchPoseEditorDialog, {
-      beatNum: beat.beat_number,
-      episode,
-      onOpenChange: controller.setPoseEditorOpen,
-      open: controller.poseEditorOpen,
-      project,
-    }),
     createElement(SketchCropDialog, {
       beatNum: beat.beat_number,
       episode,
       onOpenChange: controller.setCropOpen,
       open: controller.cropOpen,
+      project,
+    }),
+    createElement(SketchPoseEditorDialog, {
+      beatNum: beat.beat_number,
+      episode,
+      onOpenChange: controller.setPoseEditorOpen,
+      open: controller.poseEditorOpen,
       project,
     }),
     createElement(ThreeDDirectorDialog, {

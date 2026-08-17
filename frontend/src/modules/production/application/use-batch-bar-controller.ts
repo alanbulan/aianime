@@ -46,9 +46,7 @@ interface AssignColorsMutation {
 
 interface DetectIdentitiesMutation {
   isPending: boolean;
-  mutateAsync(): Promise<
-    ProductionDataResponse<DetectIdentitiesResult> | ProductionErrorResponse
-  >;
+  mutateAsync(): Promise<ProductionTaskResponse | ProductionErrorResponse>;
 }
 
 interface GenerateAudioMutation {
@@ -59,6 +57,11 @@ interface GenerateAudioMutation {
 }
 
 interface GlobalOptimizeMutation {
+  isPending: boolean;
+  mutateAsync(): Promise<ProductionTaskResponse | ProductionErrorResponse>;
+}
+
+interface ProductionWorkflowMutation {
   isPending: boolean;
   mutateAsync(): Promise<ProductionTaskResponse | ProductionErrorResponse>;
 }
@@ -126,6 +129,10 @@ export interface BatchBarControllerQueries {
     project: string,
     episode: number,
   ): GlobalOptimizeMutation;
+  useProductionWorkflow(
+    project: string,
+    episode: number,
+  ): ProductionWorkflowMutation;
   useRenderSettings(project: string): RenderSettingsQuery;
   useSketchSettings(project: string): SketchSettingsQuery;
   useUpdateRenderSettings(project: string): UpdateRenderSettingsMutation;
@@ -182,6 +189,7 @@ export interface BatchBarController {
   episodeAudioCostDisplay: string;
   errorDialog: BatchBarErrorDialog | null;
   globalOptimizePending: boolean;
+  productionWorkflowPending: boolean;
   renderModel: BatchBarModelControl;
   sketchAspectRatio: SketchAspectRatio;
   sketchModel: BatchBarModelControl;
@@ -191,6 +199,7 @@ export interface BatchBarController {
   onDismissError(): void;
   onGenerateAudio(): Promise<void>;
   onGlobalOptimize(): Promise<void>;
+  onRunProductionWorkflow(): Promise<void>;
   onReassignColors(): Promise<void>;
   onSketchAspectRatioChange(aspectRatio: SketchAspectRatio): void;
 }
@@ -213,6 +222,7 @@ export function createUseBatchBarController(
     const detectIdentities = queries.useDetectIdentities(project, episode);
     const generateAudio = queries.useGenerateAudio(project, episode);
     const globalOptimize = queries.useGlobalOptimize(project, episode);
+    const productionWorkflow = queries.useProductionWorkflow(project, episode);
     const renderSettings = queries.useRenderSettings(project);
     const sketchSettings = queries.useSketchSettings(project);
     const updateRenderSettings = queries.useUpdateRenderSettings(project);
@@ -260,6 +270,58 @@ export function createUseBatchBarController(
       onError: (error) =>
         showError(
           t("episode.workbench.batch.aiOptimizeTitle"),
+          error || t("common.error"),
+        ),
+    });
+    const identityDetectionTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.AI_IDENTITY_DETECTION,
+        project,
+        episode,
+      },
+      invalidateKeys: [
+        queryKeys.beats(project, episode),
+        queryKeys.grids(project, episode),
+        queryKeys.script(project, episode),
+        queryKeys.episodeDetail(project, episode),
+      ],
+      onComplete: (result) => {
+        const data = (result ?? {}) as Partial<DetectIdentitiesResult>;
+        toast.success(
+          t("episode.workbench.batch.aiDetectSuccess", {
+            beats: data.total_beats ?? 0,
+            ids: data.total_identities ?? 0,
+            props: data.total_props ?? 0,
+          }),
+        );
+      },
+      onError: (error) =>
+        toast.error(error || t("episode.workbench.batch.aiDetectFailed")),
+    });
+    const productionWorkflowTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.PRODUCTION_WORKFLOW,
+        project,
+        episode: 0,
+      },
+      invalidateKeys: [
+        queryKeys.project(project),
+        queryKeys.characters(project),
+        queryKeys.episodes(project),
+        queryKeys.episode(project, episode),
+        queryKeys.episodeDetail(project, episode),
+        queryKeys.script(project, episode),
+        queryKeys.beats(project, episode),
+        queryKeys.grids(project, episode),
+        queryKeys.videoPool(project, episode),
+        queryKeys.finalVideo(project, episode),
+        queryKeys.pipelineStatus(project),
+      ],
+      onComplete: () =>
+        toast.success(t("episode.workbench.batch.productionWorkflowCompleted")),
+      onError: (error) =>
+        showError(
+          t("episode.workbench.batch.productionWorkflowTitle"),
           error || t("common.error"),
         ),
     });
@@ -365,45 +427,42 @@ export function createUseBatchBarController(
       }
     };
 
-    const onDetectIdentities = async () => {
-      const toastId = toast.loading(
-        t("episode.workbench.batch.aiDetectRunning"),
-      );
+    const onRunProductionWorkflow = async () => {
       try {
-        const response = await detectIdentities.mutateAsync();
+        const response = await productionWorkflow.mutateAsync();
         if (!response.ok) {
-          toast.error(response.error || t("common.error"), {
-            id: toastId,
-          });
-          return;
-        }
-        const {
-          total_beats,
-          total_identities,
-          total_props = 0,
-          review_message,
-        } = response.data;
-        const reviewMessage =
-          review_message || t("episode.workbench.batch.aiDetectReview");
-        if (total_identities === 0 && total_props === 0) {
-          toast.info(
-            `${t("episode.workbench.batch.aiDetectEmpty")}\n${reviewMessage}`,
-            { id: toastId },
+          showError(
+            t("episode.workbench.batch.productionWorkflowTitle"),
+            response.error || t("common.error"),
           );
           return;
         }
+        productionWorkflowTask.start({ scope: response.scope });
         toast.success(
-          `${t("episode.workbench.batch.aiDetectSuccess", {
-            beats: total_beats,
-            ids: total_identities,
-            props: total_props,
-          })}\n${reviewMessage}`,
-          { id: toastId },
+          response.message ||
+            t("episode.workbench.batch.productionWorkflowStarted"),
         );
       } catch (error) {
-        toast.error(backendErrorToastMessage(error, t), {
-          id: toastId,
-        });
+        showError(
+          t("episode.workbench.batch.productionWorkflowTitle"),
+          backendErrorToastMessage(error, t),
+        );
+      }
+    };
+
+    const onDetectIdentities = async () => {
+      try {
+        const response = await detectIdentities.mutateAsync();
+        if (!response.ok) {
+          toast.error(response.error || t("common.error"));
+          return;
+        }
+        identityDetectionTask.start({ scope: response.scope });
+        toast.success(
+          response.message || t("episode.workbench.batch.aiDetectQueued"),
+        );
+      } catch (error) {
+        toast.error(backendErrorToastMessage(error, t));
       }
     };
 
@@ -432,11 +491,14 @@ export function createUseBatchBarController(
       audioUnavailableForVideoModel:
         selectedVideoModel?.supportsNativeAudio === true,
       detectIdentitiesCostDisplay,
-      detectIdentitiesPending: detectIdentities.isPending,
+      detectIdentitiesPending:
+        detectIdentities.isPending || identityDetectionTask.started,
       episodeAudioCostDisplay,
       errorDialog,
       globalOptimizePending:
         globalOptimize.isPending || globalOptimizeTask.started,
+      productionWorkflowPending:
+        productionWorkflow.isPending || productionWorkflowTask.started,
       renderModel: {
         isLoading: renderSettings.isLoading || imageModels.isLoading,
         isPending: updateRenderSettings.isPending,
@@ -468,6 +530,7 @@ export function createUseBatchBarController(
       onDismissError: () => setErrorDialog(null),
       onGenerateAudio,
       onGlobalOptimize,
+      onRunProductionWorkflow,
       onReassignColors,
       onSketchAspectRatioChange,
     };

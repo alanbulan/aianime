@@ -26,6 +26,7 @@ from ai_anime.modules.asset_world.application.dto import (
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
+    StylePreviewGenerationTask,
     SceneViewerAssetState,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -354,6 +355,8 @@ class SceneTaskAssets(Protocol):
     def has_reverse_master(self, project_dir: Path, scene_name: str) -> bool: ...
 
     def has_pano(self, project_dir: Path, scene_name: str) -> bool: ...
+
+    def stage_generation_capability(self, step: str) -> tuple[bool, str]: ...
 
 
 class SceneTaskScheduler(Protocol):
@@ -829,7 +832,6 @@ class StyleCatalog(Protocol):
         self,
         *,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> list[dict[str, Any]]: ...
 
@@ -838,7 +840,6 @@ class StyleCatalog(Protocol):
         style_id: str,
         *,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> Any | None: ...
 
@@ -848,14 +849,14 @@ class StyleCatalog(Protocol):
 
     def validate_style_preview_path(
         self,
-        project_dir: str | Path,
+        username: str,
         style_id: str,
         preview_path: str,
     ) -> str: ...
 
     def find_style_preview(
         self,
-        project_dir: str | Path,
+        username: str,
         style_id: str,
     ) -> str | None: ...
 
@@ -864,39 +865,43 @@ class StyleCatalog(Protocol):
         style_id: str,
         config: Any,
         *,
-        username: str | None = None,
-        project: str | None = None,
-        project_dir: str | Path | None = None,
+        username: str,
     ) -> bool: ...
 
     def delete_custom_style(
         self,
         style_id: str,
         *,
-        username: str | None = None,
-        project: str | None = None,
-        project_dir: str | Path | None = None,
+        username: str,
+    ) -> bool: ...
+
+    def update_custom_style_preview(
+        self,
+        style_id: str,
+        preview_path: str,
+        *,
+        username: str,
     ) -> bool: ...
 
     def stage_style_preview(
         self,
-        project_dir: str | Path,
+        username: str,
         content: bytes,
         extension: str,
     ) -> str: ...
 
     def finalize_style_preview(
         self,
-        project_dir: str | Path,
+        username: str,
         style_id: str,
         staged_path: str,
     ) -> str: ...
 
     def preset_preview_path(self, style_id: str) -> Path: ...
 
-    def resolve_project_preview_path(
+    def resolve_style_preview_path(
         self,
-        project_dir: str | Path,
+        username: str,
         preview_path: str,
     ) -> Path | None: ...
 
@@ -907,8 +912,16 @@ class StylePreviewGenerator(Protocol):
         *,
         prompt: str,
         style_id: str,
-        model: str,
+        project_dir: Path,
     ) -> Sequence[str | Path]: ...
+
+
+class StyleTaskScheduler(Protocol):
+    async def enqueue_style_preview(
+        self,
+        task_context: ProjectContext,
+        task: StylePreviewGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
 
 
 class StyleImageAnalyzer(Protocol):

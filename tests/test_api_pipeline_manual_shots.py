@@ -22,6 +22,10 @@ class _FakePipelineStore:
         assert episode == 1
         return SimpleNamespace(number=1, identity_ids=["hero_main"])
 
+    def get_sketch_colors(self, episode: int):
+        assert episode == 1
+        return {"hero_main": "#ff0000 red"}
+
     async def get_beats_as_dicts(self, episode: int):
         assert episode == 1
         return [
@@ -112,3 +116,45 @@ def test_pipeline_script_status_accepts_current_sqlite_beat_fields():
     assert _beat_has_script_content({"narration": "", "visual_description": "黑屏标题"}) is True
     assert _beat_has_script_content({"narration_segment": "旧字段"}) is True
     assert _beat_has_script_content({"narration": "", "visual_description": ""}) is False
+
+
+def test_pipeline_requires_every_beat_sketch(tmp_path):
+    from ai_anime.api.routes.task_execution.pipeline import (
+        _beat_file_series_complete,
+    )
+
+    (tmp_path / "beat_01.png").write_bytes(b"x")
+
+    assert (
+        _beat_file_series_complete(
+            tmp_path,
+            "png",
+            [{"beat_number": 1}, {"beat_number": 2}],
+        )
+        is False
+    )
+
+
+def test_pipeline_requires_identity_detection_newer_than_sketches(tmp_path):
+    from ai_anime.api.routes.task_execution.pipeline import (
+        _task_completed_after_files,
+    )
+    from ai_anime.modules.task_execution.public import ProjectTask
+
+    sketch = tmp_path / "beat_01.png"
+    sketch.write_bytes(b"x")
+    stale_task = ProjectTask(
+        task_id="old",
+        task_type="ai_identity_detection",
+        status="completed",
+        completed_at="2000-01-01T00:00:00+00:00",
+    )
+    fresh_task = ProjectTask(
+        task_id="new",
+        task_type="ai_identity_detection",
+        status="completed",
+        completed_at="2100-01-01T00:00:00+00:00",
+    )
+
+    assert _task_completed_after_files(stale_task, [sketch]) is False
+    assert _task_completed_after_files(fresh_task, [sketch]) is True

@@ -8,12 +8,25 @@ const UPLOADED_FILES_QUERY_RE =
   /(当前|现在|刚才|我)?\s*(上传|传了|传过|已上传).{0,12}(哪些|什么|列表|文件|剧本|小说)|(?:what|which|list|show).{0,20}uploaded.{0,10}(files?|scripts?)/i;
 
 const NOVEL_ATTACHMENT_EXTENSIONS = new Set([".txt", ".md", ".doc", ".docx"]);
+const CHAT_IMAGE_ATTACHMENT_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+]);
 const INLINE_TEXT_ATTACHMENT_EXTENSIONS = new Set([".txt", ".md"]);
 const NOVEL_ATTACHMENT_MIME_TYPES = new Set([
   "text/markdown",
   "text/plain",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+const CHAT_IMAGE_ATTACHMENT_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
 ]);
 const INLINE_TEXT_ATTACHMENT_LIMIT = 120_000;
 export const UPLOADED_INGEST_FILES_LIMIT = 20;
@@ -138,6 +151,27 @@ export function isAllowedScriptDragItem(item: {
   const type = item.type?.trim().toLowerCase() ?? "";
   if (!type) return true;
   return NOVEL_ATTACHMENT_MIME_TYPES.has(type);
+}
+
+export function isAllowedChatUpload(file: File): boolean {
+  const extension = extensionOf(file.name);
+  return NOVEL_ATTACHMENT_EXTENSIONS.has(extension)
+    || CHAT_IMAGE_ATTACHMENT_EXTENSIONS.has(extension);
+}
+
+export function isAllowedChatDragItem(item: {
+  name?: string;
+  type?: string;
+}): boolean {
+  const extension = extensionOf(item.name);
+  if (extension) {
+    return NOVEL_ATTACHMENT_EXTENSIONS.has(extension)
+      || CHAT_IMAGE_ATTACHMENT_EXTENSIONS.has(extension);
+  }
+  const type = item.type?.trim().toLowerCase() ?? "";
+  if (!type) return true;
+  return NOVEL_ATTACHMENT_MIME_TYPES.has(type)
+    || CHAT_IMAGE_ATTACHMENT_MIME_TYPES.has(type);
 }
 
 export function isOverwriteChoice(text: string): boolean {

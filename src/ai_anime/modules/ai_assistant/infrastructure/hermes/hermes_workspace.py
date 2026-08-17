@@ -31,7 +31,7 @@ _MANAGED_ASSET_MARKER = ".ai-anime-managed-asset"
 
 
 _DEFAULT_HERMES_MODEL = "ai-anime-assistant-LLM"
-_AI_ANIME_HERMES_PROVIDER_NAME = "ai_anime"
+_AI_ANIME_HERMES_PROVIDER_NAME = "custom"
 _AI_ANIME_HERMES_PROVIDER = f"custom:{_AI_ANIME_HERMES_PROVIDER_NAME}"
 _AI_ANIME_HERMES_KEY_ENV = "NEWAPI_API_KEY"
 _DEFAULT_HERMES_MODEL_API_MODE = "chat_completions"
@@ -47,15 +47,33 @@ _CONFIG_YAML_TEMPLATE = """# AI anime-managed hermes config.
 # AI anime injects the key into the worker process as NEWAPI_API_KEY.
 
 custom_providers:
-  - name: ai_anime
+  - name: custom
     base_url: {base_url}
     key_env: NEWAPI_API_KEY
     api_mode: {api_mode}
 
 model:
   default: {model}
-  provider: custom:ai_anime
+  provider: custom:custom
   context_length: {context_length}   # skip the slow cold-start context-length probe
+
+# Hermes performs in-place context compaction before the model window is full.
+# The original transcript remains archived in state.db; only the live model
+# context is summarized. A failed summary never discards the original turns.
+compression:
+  enabled: true
+  threshold: 0.75
+  target_ratio: 0.20
+  protect_last_n: 20
+  protect_first_n: 3
+  abort_on_summary_failure: true
+  in_place: true
+
+auxiliary:
+  compression:
+    provider: custom:custom
+    model: {model}
+    timeout: 300
 
 enabled_toolsets:
   - hermes-acp         # Repo plugins exposed through ACP
@@ -151,14 +169,9 @@ def effective_gateway_credentials() -> tuple[str, str]:
 
 
 def _hermes_model_default() -> str:
-    logical_model = _root_value(
-        "HERMES_MODEL",
-        "HERMES_MODEL_DEFAULT",
-        "AI_ANIME_HERMES_MODEL",
-    ) or _DEFAULT_HERMES_MODEL
-    from ai_anime.modules.model_usage.public import resolve_internal_model_for_role
+    from ai_anime.modules.model_usage.public import resolve_model_for_role
 
-    return resolve_internal_model_for_role(logical_model, "TEXT")
+    return resolve_model_for_role("TEXT")
 
 
 def _hermes_model_api_mode() -> str:
@@ -638,6 +651,45 @@ def _ensure_model_gateway_config(config_yaml: Path) -> None:
     if not api_key and "key_env" in managed_provider:
         managed_provider.pop("key_env", None)
         changed = True
+
+    compression = config.get("compression")
+    if not isinstance(compression, dict):
+        compression = {}
+        config["compression"] = compression
+        changed = True
+    desired_compression = {
+        "enabled": True,
+        "threshold": 0.75,
+        "target_ratio": 0.20,
+        "protect_last_n": 20,
+        "protect_first_n": 3,
+        "abort_on_summary_failure": True,
+        "in_place": True,
+    }
+    for key, value in desired_compression.items():
+        if compression.get(key) != value:
+            compression[key] = value
+            changed = True
+
+    auxiliary = config.get("auxiliary")
+    if not isinstance(auxiliary, dict):
+        auxiliary = {}
+        config["auxiliary"] = auxiliary
+        changed = True
+    auxiliary_compression = auxiliary.get("compression")
+    if not isinstance(auxiliary_compression, dict):
+        auxiliary_compression = {}
+        auxiliary["compression"] = auxiliary_compression
+        changed = True
+    desired_auxiliary_compression = {
+        "provider": _AI_ANIME_HERMES_PROVIDER,
+        "model": _hermes_model_default(),
+        "timeout": 300,
+    }
+    for key, value in desired_auxiliary_compression.items():
+        if auxiliary_compression.get(key) != value:
+            auxiliary_compression[key] = value
+            changed = True
     if not changed:
         return
     try:

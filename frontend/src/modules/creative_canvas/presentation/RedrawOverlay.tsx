@@ -12,7 +12,6 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Brush,
-  ChevronDown,
   Eraser,
   RotateCcw,
   Square,
@@ -51,6 +50,13 @@ import type {
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
 import { CreditCostPill } from '@/components/credit-visual';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface RedrawOverlayProps {
@@ -109,8 +115,6 @@ const REDRAW_MODAL_CLASS =
   'relative flex h-[min(700px,78vh)] w-[min(860px,86vw)] flex-col overflow-hidden rounded-[10px] border border-border bg-popover/96 shadow-2xl backdrop-blur-md';
 const REDRAW_TEXT_BUTTON_CLASS =
   'inline-flex items-center gap-1 rounded px-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30';
-const REDRAW_SELECT_CLASS =
-  'h-7 appearance-none rounded border border-transparent bg-transparent py-0 pl-0 pr-4 text-xs text-foreground outline-none transition-colors hover:text-foreground disabled:opacity-45';
 const REDRAW_PROMPT_CLASS =
   'h-[72px] w-full resize-none rounded-[8px] border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/45';
 const BRUSH_SLIDER_CLASS =
@@ -215,8 +219,8 @@ export function createRedrawOverlay({
         baseCanvas.getContext('2d')?.drawImage(img, 0, 0);
         setImageReady(true);
       };
-      img.onerror = () => setError('无法加载源图');
-    }, [imageSource]);
+      img.onerror = () => setError(t('redraw.sourceLoadFailed'));
+    }, [imageSource, t]);
 
     const recomputeHasMask = useCallback(() => {
       const canvas = maskCanvasRef.current;
@@ -447,7 +451,7 @@ export function createRedrawOverlay({
     const createRedrawNode = useCallback(
       (sourceAspectRatio: string, masked: boolean, position: { x: number; y: number }) => {
         const generationStartedAt = Date.now();
-        const displayName = masked ? '局部重绘' : '重绘';
+        const displayName = masked ? t('redraw.maskedResult') : t('redraw.result');
         // 1→1 redraw / mask-redraw: inherit source's mainline fields so the
         // child still targets the same canonical slot at Push. user_spawned is
         // stamped by inheritMainlineFields; preset_managed never set.
@@ -472,7 +476,7 @@ export function createRedrawOverlay({
         addEdge(node.id, nextNodeId);
         return nextNodeId;
       },
-      [addEdge, addNode, node],
+      [addEdge, addNode, node, t],
     );
 
     // 针对已建好的节点提交单图重绘（num_images=1）→ 轮询 → 回填。
@@ -522,7 +526,7 @@ export function createRedrawOverlay({
     const handleSubmit = useCallback(async () => {
       if (submitting) return;
       if (!hasMask && !prompt.trim()) {
-        setError('请输入提示词，或在图上画出局部重绘区域');
+        setError(t('redraw.promptRequired'));
         return;
       }
       if (!selectedModel) {
@@ -613,7 +617,7 @@ export function createRedrawOverlay({
       return 'crosshair';
     }, [imageReady, tool]);
 
-    const submitLabel = hasMask ? '局部重绘' : '整体重绘';
+    const submitLabel = hasMask ? t('redraw.maskedSubmit') : t('redraw.fullSubmit');
     const brushPercent = ((brushSize - BRUSH_MIN) / (BRUSH_MAX - BRUSH_MIN)) * 100;
     const brushSliderStyle = {
       background: `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) ${brushPercent}%, rgb(var(--text-rgb) / 0.24) 100%)`,
@@ -635,19 +639,19 @@ export function createRedrawOverlay({
           <div className="pointer-events-none absolute left-4 right-4 top-3 z-10 flex h-9 items-center justify-between gap-3">
             <div className="pointer-events-auto flex items-center gap-5">
               <div className="flex items-center gap-2">
-                <ToolBtn active={tool === 'brush'} onClick={() => setTool('brush')} title="画笔">
+                <ToolBtn active={tool === 'brush'} onClick={() => setTool('brush')} title={t('redraw.brush')}>
                   <Brush className="h-4 w-4" />
                 </ToolBtn>
-                <ToolBtn active={tool === 'rect'} onClick={() => setTool('rect')} title="矩形">
+                <ToolBtn active={tool === 'rect'} onClick={() => setTool('rect')} title={t('redraw.rectangle')}>
                   <Square className="h-4 w-4" />
                 </ToolBtn>
-                <ToolBtn active={tool === 'eraser'} onClick={() => setTool('eraser')} title="橡皮擦">
+                <ToolBtn active={tool === 'eraser'} onClick={() => setTool('eraser')} title={t('redraw.eraser')}>
                   <Eraser className="h-4 w-4" />
                 </ToolBtn>
               </div>
 
               <div className="flex items-center gap-2 text-xs text-text-dark/68">
-                <span className="whitespace-nowrap">粗细</span>
+                <span className="whitespace-nowrap">{t('redraw.brushSize')}</span>
                 <input
                   type="range"
                   min={BRUSH_MIN}
@@ -668,20 +672,20 @@ export function createRedrawOverlay({
                 onClick={handleUndo}
                 disabled={submitting || undoStackRef.current.length === 0}
                 className={REDRAW_TEXT_BUTTON_CLASS}
-                title="撤销上一步"
+                data-ui-tooltip={t('redraw.undoTitle')}
               >
                 <Undo2 className="h-3.5 w-3.5" />
-                撤销
+                {t('redraw.undo')}
               </button>
               <button
                 type="button"
                 onClick={handleReset}
                 disabled={submitting}
                 className={REDRAW_TEXT_BUTTON_CLASS}
-                title="清空蒙版"
+                data-ui-tooltip={t('redraw.resetTitle')}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                重置
+                {t('redraw.reset')}
               </button>
               <button
                 type="button"
@@ -690,13 +694,13 @@ export function createRedrawOverlay({
                 className={REDRAW_TEXT_BUTTON_CLASS}
               >
                 <X className="h-3.5 w-3.5" />
-                退出重绘
+                {t('redraw.exit')}
               </button>
             </div>
           </div>
 
           <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-media p-4 pt-14">
-            {!imageReady && <div className="text-sm text-text-muted">加载源图...</div>}
+            {!imageReady && <div className="text-sm text-text-muted">{t('redraw.loadingSource')}</div>}
             <div
               className={`relative max-h-full max-w-full ${imageReady ? '' : 'hidden'}`}
               style={{ cursor }}
@@ -728,14 +732,14 @@ export function createRedrawOverlay({
               disabled={submitting}
               placeholder={
                 hasMask
-                  ? '描述蒙版区域要变成什么，例：把这块背景改成黄昏天空'
-                  : '描述要如何重新设计这张图，例：保留构图，把背景改成黄昏沙漠'
+                  ? t('redraw.maskedPromptPlaceholder')
+                  : t('redraw.fullPromptPlaceholder')
               }
               className={`${REDRAW_PROMPT_CLASS} ${CANVAS_NODE_INPUT_PLACEHOLDER_CLASS}`}
             />
 
             <div className="flex flex-wrap items-center gap-5 text-xs text-muted-foreground">
-              <Field label="模型">
+              <Field label={t('redraw.model')}>
                 <ProviderModelPicker
                   selectedModelId={modelId}
                   onChange={setModelId}
@@ -744,50 +748,59 @@ export function createRedrawOverlay({
                   popoverPlacement="top"
                 />
               </Field>
-              <Field label="image_size">
-                <RedrawSelect
+              <Field label={t('redraw.imageSize')}>
+                <Select
                   value={imageSize}
-                  onChange={(event) =>
-                    setImageSize(event.target.value as CanvasRedrawImageSize)
-                  }
+                  onValueChange={(value) => {
+                    if (value) setImageSize(value as CanvasRedrawImageSize);
+                  }}
                   disabled={submitting}
                 >
-                  {CANVAS_REDRAW_IMAGE_SIZES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </RedrawSelect>
+                  <SelectTrigger size="sm" className="min-w-20 border-transparent bg-transparent px-0 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent side="top" align="start">
+                    {CANVAS_REDRAW_IMAGE_SIZES.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
-              <Field label="数量">
-                <RedrawSelect
-                  value={numImages}
-                  onChange={(event) =>
-                    setNumImages(Number(event.target.value) as CanvasRedrawNumImages)
-                  }
+              <Field label={t('redraw.quantity')}>
+                <Select
+                  value={String(numImages)}
+                  onValueChange={(value) => {
+                    if (value) setNumImages(Number(value) as CanvasRedrawNumImages);
+                  }}
                   disabled={submitting}
                 >
-                  {CANVAS_REDRAW_NUM_IMAGES.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </RedrawSelect>
+                  <SelectTrigger size="sm" className="min-w-14 border-transparent bg-transparent px-0 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent side="top" align="start">
+                    {CANVAS_REDRAW_NUM_IMAGES.map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
-              <Field label="目标比例">
-                <RedrawSelect
+              <Field label={t('redraw.aspectRatio')}>
+                <Select
                   value={aspectRatio}
-                  onChange={(event) =>
-                    setAspectRatio(event.target.value as CanvasRedrawAspectRatio)
-                  }
+                  onValueChange={(value) => {
+                    if (value) setAspectRatio(value as CanvasRedrawAspectRatio);
+                  }}
                   disabled={submitting}
                 >
-                  {CANVAS_REDRAW_ASPECT_RATIOS.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
-                    </option>
-                  ))}
-                </RedrawSelect>
+                  <SelectTrigger size="sm" className="min-w-16 border-transparent bg-transparent px-0 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent side="top" align="start">
+                    {CANVAS_REDRAW_ASPECT_RATIOS.map((a) => (
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Field>
 
               <div className="ml-auto flex items-center gap-2">
@@ -801,7 +814,7 @@ export function createRedrawOverlay({
                   onClick={handleSubmit}
                   disabled={submitting || !imageReady || !selectedModel}
                   className={REDRAW_CONFIRM_BUTTON_CLASS}
-                  title={submitLabel}
+                  data-ui-tooltip={submitLabel}
                 >
                   {t('toolDialog.confirm')}
                 </button>
@@ -841,7 +854,7 @@ function ToolBtn({
         event.stopPropagation();
         onClick();
       }}
-      title={title}
+      data-ui-tooltip={title}
       aria-label={title}
       className={
         'flex h-8 w-8 items-center justify-center rounded-full transition-colors ' +
@@ -857,23 +870,9 @@ function ToolBtn({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5">
       <span>{label}</span>
       {children}
-    </label>
-  );
-}
-
-function RedrawSelect({
-  children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <span className="relative inline-flex items-center">
-      <select {...props} className={REDRAW_SELECT_CLASS}>
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-0 h-3 w-3 text-muted-foreground" />
-    </span>
+    </div>
   );
 }

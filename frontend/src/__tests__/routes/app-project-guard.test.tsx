@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { render, waitFor } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { createElement, Fragment, type ComponentProps, type ComponentType, type PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -71,7 +71,21 @@ vi.mock("@/modules/platform_release/public", () => ({
 }));
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, ...props }: ComponentProps<"div">) => createElement("div", props, children),
+    div: ({
+      children,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      variants: _variants,
+      ...props
+    }: ComponentProps<"div"> & {
+      initial?: unknown;
+      animate?: unknown;
+      exit?: unknown;
+      transition?: unknown;
+      variants?: unknown;
+    }) => createElement("div", props, children),
   },
 }));
 
@@ -86,7 +100,9 @@ vi.mock("@/lib/region-cookie", () => ({
 async function renderAppLayout() {
   const { Route } = await import("@/routes/_app");
   const Component = Route.options.component as ComponentType;
-  render(createElement(Component));
+  await act(async () => {
+    render(createElement(Component));
+  });
 }
 
 describe("_app project URL guard", () => {

@@ -11,6 +11,8 @@ export {
   displayLabel,
   isActive,
   isTerminal,
+  taskProgressPercent,
+  taskProgressRatio,
 } from "@/modules/task_execution/domain/taskState";
 export type {
   StreamHealth,

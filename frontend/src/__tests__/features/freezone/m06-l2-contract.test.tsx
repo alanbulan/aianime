@@ -103,12 +103,12 @@ describe("M06 frontend L2 contract", () => {
     useAuthStore.setState({ username: null, role: null });
   });
 
-  it("starts ingest with the selected cloud models", async () => {
+  it("starts ingest without task-level model overrides", async () => {
     let startBody: unknown = null;
 
     server.use(
       http.post("http://localhost/api/v1/projects/demo/ingest/start", async ({ request }) => {
-        startBody = await request.json();
+        startBody = await request.clone().json();
         return HttpResponse.json({
           ok: true,
           task_type: "ingest_fast",
@@ -124,8 +124,6 @@ describe("M06 frontend L2 contract", () => {
     await act(async () => {
       ingestResponse = await ingest.current.mutateAsync({
         filename: "novel.txt",
-        textModel: "cloud-text-standard",
-        embeddingModel: "cloud-embedding-standard",
         rebuild: true,
         spine_template: "drama",
       });
@@ -133,8 +131,6 @@ describe("M06 frontend L2 contract", () => {
 
     expect(startBody).toEqual({
       filename: "novel.txt",
-      textModel: "cloud-text-standard",
-      embeddingModel: "cloud-embedding-standard",
       rebuild: true,
       spine_template: "drama",
     });

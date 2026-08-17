@@ -1,13 +1,27 @@
 import base64
 import importlib
 import logging
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.modules.model_usage.public import InsufficientCreditsError
+from ai_anime.modules.model_usage.public import (
+    InsufficientCreditsError,
+    configure_model_access,
+)
 
 pytestmark = pytest.mark.m04
+
+
+def _configure_image_generation_route(model: str) -> None:
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": model, "role": "IMAGE_GENERATION", "priority": 1},
+        ],
+    )
 
 
 def _isolate_settings_db(monkeypatch, tmp_path):
@@ -21,7 +35,17 @@ def _isolated_model_gateway(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.modules.model_usage.public import configure_model_access
 
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "LingShan-G2", "role": "IMAGE_GENERATION"},
+            {"modelId": "LingShan-G2", "role": "IMAGE_EDIT"},
+            {"modelId": "LingShan-NB-2", "role": "IMAGE_GENERATION"},
+            {"modelId": "LingShan-NB-2", "role": "IMAGE_EDIT"},
+            {"modelId": "local-image-model", "role": "IMAGE_GENERATION"},
+        ],
+    )
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "newapi-token")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://newapi.test/v1")
     # This module tests low-level environment-driven gateway adapters. CE
@@ -44,6 +68,18 @@ def _patch_scene_newapi_gateway(
     )
 
 
+def _patch_scene_style_preset(monkeypatch, scene_reference_images) -> None:
+    monkeypatch.setattr(
+        scene_reference_images,
+        "get_style_preset",
+        lambda *_args, **_kwargs: {
+            "label": "全局风格",
+            "style_instructions": "统一画面语言",
+            "avoid_instructions": "避免风格漂移",
+        },
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("reference_images", "assigned_role", "requested_role"),
@@ -52,7 +88,7 @@ def _patch_scene_newapi_gateway(
         ([b"reference"], "IMAGE_GENERATION", "IMAGE_EDIT"),
     ],
 )
-async def test_image_transport_enforces_byok_role_from_reference_presence(
+async def test_image_transport_enforces_router_role_from_reference_presence(
     reference_images,
     assigned_role: str,
     requested_role: str,
@@ -64,8 +100,7 @@ async def test_image_transport_enforces_byok_role_from_reference_presence(
 
     configure_model_access(
         allows_custom_models=True,
-        mode="byok",
-        byok_base_url="https://models.example.test/v1",
+        mode="mixed",
         model_assignments=[
             {"modelId": "local-image", "role": assigned_role},
         ],
@@ -73,7 +108,6 @@ async def test_image_transport_enforces_byok_role_from_reference_presence(
 
     with pytest.raises(PermissionError, match=requested_role):
         await _call_newapi_image_api(
-            model="local-image",
             prompt="test",
             reference_images=reference_images,
         )
@@ -123,7 +157,7 @@ def test_newapi_sketch_config_uses_explicit_catalog_code(monkeypatch):
         model_override="LingShan-G2"
     )
 
-    assert sketch_config["access_mode"] == "cloud"
+    assert sketch_config["access_mode"] == "mixed"
     assert sketch_config["model"] == "LingShan-G2"
     assert sketch_config["image_size"] == "1K"
     assert sketch_config["openai_image_quality"] == "low"
@@ -131,7 +165,6 @@ def test_newapi_sketch_config_uses_explicit_catalog_code(monkeypatch):
     trace = {}
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model=sketch_config["model"],
             prompt="sketch prompt",
             image_config={
                 "aspect_ratio": "2:3",
@@ -189,19 +222,19 @@ def test_newapi_sketch_config_can_use_catalog_model_without_quality(monkeypatch)
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "newapi-token")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://newapi.test/v1")
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+    _configure_image_generation_route("LingShan-NB-2")
 
     config = importlib.reload(config)
     sketch_config = config.get_sketch_generation_config(
         model_override="LingShan-NB-2"
     )
 
-    assert sketch_config["access_mode"] == "cloud"
+    assert sketch_config["access_mode"] == "mixed"
     assert sketch_config["model"] == "LingShan-NB-2"
     assert sketch_config["image_size"] == "1K"
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model=sketch_config["model"],
             prompt="sketch prompt",
             image_config={
                 "aspect_ratio": "2:3",
@@ -257,7 +290,6 @@ def test_newapi_image_call_sends_gpt_image2_params(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="portrait prompt",
             image_config={
                 "aspect_ratio": "3:4",
@@ -323,7 +355,6 @@ def test_commercial_image_call_supports_keyless_byok(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="local-image-model",
             prompt="portrait prompt",
         )
     )
@@ -357,7 +388,6 @@ def test_newapi_image_call_reports_transport_exception_type(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="portrait prompt",
             image_config={"aspect_ratio": "16:9", "image_size": "1K"},
         )
@@ -383,7 +413,6 @@ def test_newapi_image_call_reraises_insufficient_credit(monkeypatch):
     with pytest.raises(InsufficientCreditsError):
         run_async(
             nanobanana_grid._call_newapi_image_api(
-                model="LingShan-G2",
                 prompt="portrait prompt",
             )
         )
@@ -405,7 +434,7 @@ def test_newapi_sketch_grid_reraises_insufficient_credit(monkeypatch, tmp_path):
 
     generator = nanobanana_grid.NanoBananaGridGenerator(
         config={
-            "access_mode": "cloud",
+            "access_mode": "mixed",
             "model": "LingShan-G2",
             "rows": 1,
             "cols": 1,
@@ -469,10 +498,10 @@ def test_newapi_image_call_omits_quality_for_nanobanana2(monkeypatch):
             return FakeResponse()
 
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+    _configure_image_generation_route("LingShan-NB-2")
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-NB-2",
             prompt="portrait prompt",
             image_config={
                 "aspect_ratio": "3:4",
@@ -526,7 +555,6 @@ def test_newapi_image_call_uses_standard_multipart_edits(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="identity prompt",
             reference_images=[b"ref-a", b"ref-b"],
             image_config={"aspect_ratio": "3:4", "image_size": "1K", "quality": "medium"},
@@ -578,7 +606,6 @@ def test_newapi_image_call_preserves_reference_image_extensions(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="identity prompt",
             reference_images=[
                 ("face.jpg", b"jpg-bytes", "image/jpeg"),
@@ -659,7 +686,6 @@ def test_newapi_image_http_error_logs_redacted_request_context(monkeypatch, capl
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="sensitive prompt body",
             reference_images=[b"ref-a"],
             image_config={"aspect_ratio": "2:1", "image_size": "2K", "quality": "medium"},
@@ -701,7 +727,7 @@ def test_newapi_image_http_error_logs_redacted_request_context(monkeypatch, capl
     ]
 
 
-def test_newapi_image_http_5xx_does_not_retry_in_app(monkeypatch):
+def test_newapi_image_http_5xx_relies_on_unified_router_retry(monkeypatch):
     import httpx
     from ai_anime.modules.production.infrastructure.media_generation import (
         nanobanana_grid,
@@ -740,7 +766,6 @@ def test_newapi_image_http_5xx_does_not_retry_in_app(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="retry prompt",
             image_config={"aspect_ratio": "2:1", "image_size": "2K", "quality": "medium"},
         )
@@ -792,7 +817,6 @@ def test_newapi_image_http_200_error_envelope_is_failure(monkeypatch):
 
     image_bytes, _text, error = run_async(
         nanobanana_grid._call_newapi_image_api(
-            model="LingShan-G2",
             prompt="protocol error prompt",
         )
     )
@@ -803,7 +827,7 @@ def test_newapi_image_http_200_error_envelope_is_failure(monkeypatch):
     assert "req-protocol-error" in error
 
 
-def test_newapi_identity_image_sends_portrait_then_costume_references(
+def test_newapi_character_image_preserves_reference_order(
     monkeypatch,
     tmp_path,
 ):
@@ -824,28 +848,28 @@ def test_newapi_identity_image_sends_portrait_then_costume_references(
     )
     generator = nanobanana_character.NanoBananaCharacterGenerator(
         config={
-            "access_mode": "cloud",
+            "access_mode": "mixed",
             "model": "LingShan-NB-2",
         }
     )
     output_path = tmp_path / "identity_body_temp.png"
 
     image_bytes = run_async(
-        generator._generate_with_reference(
+        generator._generate_single_image(
             prompt="identity prompt",
             output_path=str(output_path),
-            reference_image_bytes=b"portrait-bytes",
-            reference_image_name="/project/characters/李雷/reference_portrait.jpg",
             aspect_ratio="16:9",
             image_size="1K",
-            additional_image_bytes=[b"costume-bytes"],
-            additional_image_names=["/project/characters/李雷/学生_costume.png"],
+            reference_images=[
+                ("reference_portrait.jpg", b"portrait-bytes", "image/jpeg"),
+                ("学生_costume.png", b"costume-bytes", "image/png"),
+            ],
         )
     )
 
     assert image_bytes == b"identity-image"
     assert output_path.read_bytes() == b"identity-image"
-    assert captured["model"] == "LingShan-NB-2"
+    assert "model" not in captured
     assert "api_key" not in captured
     assert "base_url" not in captured
     assert captured["image_config"] == {
@@ -857,6 +881,133 @@ def test_newapi_identity_image_sends_portrait_then_costume_references(
         ("reference_portrait.jpg", b"portrait-bytes", "image/jpeg"),
         ("学生_costume.png", b"costume-bytes", "image/png"),
     ]
+
+
+def test_character_portrait_uses_style_text_and_style_reference_image(
+    monkeypatch,
+    tmp_path,
+):
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        nanobanana_character,
+    )
+
+    captured = {}
+    style_reference = tmp_path / "style-face.png"
+    style_reference.write_bytes(
+        base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+        )
+    )
+
+    async def fake_call_newapi_image_api(**kwargs):
+        captured.update(kwargs)
+        return b"portrait", "", ""
+
+    monkeypatch.setattr(
+        nanobanana_character,
+        "_call_newapi_image_api",
+        fake_call_newapi_image_api,
+    )
+    monkeypatch.setattr(
+        nanobanana_character,
+        "get_style_preset",
+        lambda *_args, **_kwargs: {
+            "style_instructions": "soft anime linework",
+            "avoid_instructions": "photorealism",
+            "style_reference_image_path": str(style_reference),
+        },
+    )
+    generator = nanobanana_character.NanoBananaCharacterGenerator(
+        config={"access_mode": "mixed", "model": "LingShan-NB-2"}
+    )
+
+    result = run_async(
+        generator.generate_character_portrait(
+            character_name="林晚晴",
+            character_prompt="round face, short brown hair",
+            output_dir=str(tmp_path / "character"),
+        )
+    )
+
+    assert result.success is True
+    assert captured["reference_images"] == [
+        ("style-reference.png", style_reference.read_bytes(), "image/png")
+    ]
+    assert "soft anime linework" in captured["prompt"]
+    assert "photorealism" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
+    assert "Do not copy any person, face" in captured["prompt"]
+
+
+def test_identity_sheet_uses_character_costume_then_style_reference(
+    monkeypatch,
+    tmp_path,
+):
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        nanobanana_character,
+    )
+
+    captured = {}
+    style_reference = tmp_path / "style-face.png"
+    portrait_reference = tmp_path / "character-portrait.png"
+    costume_reference = tmp_path / "costume.png"
+    style_reference.write_bytes(b"style-face")
+    portrait_reference.write_bytes(b"character-face")
+    costume_reference.write_bytes(b"costume")
+
+    async def fake_generate_single_image(**kwargs):
+        captured.update(kwargs)
+        Path(kwargs["output_path"]).write_bytes(b"identity-sheet")
+        return b"identity-sheet"
+
+    monkeypatch.setattr(
+        nanobanana_character.NanoBananaCharacterGenerator,
+        "_generate_single_image",
+        staticmethod(fake_generate_single_image),
+    )
+    monkeypatch.setattr(
+        nanobanana_character,
+        "get_style_preset",
+        lambda *_args, **_kwargs: {
+            "style_instructions": "soft anime linework",
+            "avoid_instructions": "photorealism",
+            "style_reference_image_path": str(style_reference),
+        },
+    )
+    generator = nanobanana_character.NanoBananaCharacterGenerator(
+        config={"access_mode": "mixed", "model": "LingShan-NB-2"}
+    )
+    output_path = (
+        tmp_path
+        / "output"
+        / "owner"
+        / "project"
+        / "assets"
+        / "characters"
+        / "林晚晴"
+        / "identities"
+        / "学生.png"
+    )
+    output_path.parent.mkdir(parents=True)
+
+    result = run_async(
+        generator.generate_identity_with_reference(
+            character_name="林晚晴",
+            identity_prompt="short brown hair, school uniform",
+            reference_image_path=str(portrait_reference),
+            costume_image_path=str(costume_reference),
+            output_path=str(output_path),
+        )
+    )
+
+    assert result.success is True
+    assert captured["reference_images"] == [
+        ("character-portrait.png", b"character-face", "image/png"),
+        ("costume.png", b"costume", "image/png"),
+        ("style-reference.png", b"style-face", "image/png"),
+    ]
+    assert "soft anime linework" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
 
 
 def test_newapi_character_portrait_reraises_insufficient_credit(monkeypatch, tmp_path):
@@ -875,7 +1026,7 @@ def test_newapi_character_portrait_reraises_insufficient_credit(monkeypatch, tmp
 
     generator = nanobanana_character.NanoBananaCharacterGenerator(
         config={
-            "access_mode": "cloud",
+            "access_mode": "mixed",
             "model": "LingShan-G2",
         }
     )
@@ -930,7 +1081,7 @@ def test_newapi_character_portrait_raise_on_error_preserves_provider_detail(monk
         )
 
 
-def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
+def test_newapi_scene_master_uses_global_style_reference(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.modules.production.infrastructure.media_generation import (
         scene_reference_images,
@@ -951,6 +1102,18 @@ def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
         "_call_newapi_image_api",
         fake_call_newapi_image_api,
     )
+    style_reference = tmp_path / "style.png"
+    style_reference.write_bytes(b"style-image")
+    monkeypatch.setattr(
+        scene_reference_images,
+        "get_style_preset",
+        lambda *_args, **_kwargs: {
+            "label": "全局风格",
+            "style_instructions": "统一画面语言",
+            "avoid_instructions": "避免风格漂移",
+            "style_reference_image_path": str(style_reference),
+        },
+    )
 
     scene = NovelScene(
         name="古董店",
@@ -963,9 +1126,7 @@ def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
             project_dir=tmp_path,
             scene=scene,
             kind="master",
-            style_name="live_action",
-            style_prompt="grounded realism",
-            avoid_instructions="no people",
+            style_id="custom_global",
             model="LingShan-NB-2",
         )
     )
@@ -974,8 +1135,13 @@ def test_newapi_scene_master_uses_text_only_nanobanana2(monkeypatch, tmp_path):
     assert output_path.read_bytes() == b"scene-master"
     assert "api_key" not in captured
     assert "base_url" not in captured
-    assert captured["model"] == "LingShan-NB-2"
-    assert captured["reference_images"] is None
+    assert "model" not in captured
+    assert captured["reference_images"] == [
+        ("style-reference.png", b"style-image", "image/png")
+    ]
+    assert "统一画面语言" in captured["prompt"]
+    assert "避免风格漂移" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
     assert captured["image_config"] == {
         "aspect_ratio": "16:9",
         "image_size": "1K",
@@ -1007,6 +1173,7 @@ def test_newapi_scene_time_plate_master_injects_time_and_base_reference(monkeypa
         fake_call_newapi_image_api,
     )
     _patch_scene_newapi_gateway(monkeypatch)
+    _patch_scene_style_preset(monkeypatch, scene_reference_images)
 
     scene = NovelScene(
         name="古董店_夜晚",
@@ -1028,7 +1195,7 @@ def test_newapi_scene_time_plate_master_injects_time_and_base_reference(monkeypa
     assert output_path == tmp_path / "assets" / "scenes" / "古董店_夜晚" / "master.png"
     assert output_path.read_bytes() == b"scene-night-master"
     assert captured["reference_images"] == [
-        ("base_scene_master_master.png", b"base-master-bytes", "image/png")
+        ("base_scene_master_master.png", b"base-master-bytes", "image/png"),
     ]
     assert "TARGET TIME-OF-DAY PLATE: 夜晚" in captured["prompt"]
     assert "overall lighting must read as 夜晚" in captured["prompt"]
@@ -1057,6 +1224,7 @@ def test_newapi_scene_variant_plate_master_keeps_described_lighting(monkeypatch,
         fake_call_newapi_image_api,
     )
     _patch_scene_newapi_gateway(monkeypatch)
+    _patch_scene_style_preset(monkeypatch, scene_reference_images)
 
     scene = NovelScene(
         name="城市街道_雨夜版",
@@ -1077,7 +1245,7 @@ def test_newapi_scene_variant_plate_master_keeps_described_lighting(monkeypatch,
 
     assert output_path == tmp_path / "assets" / "scenes" / "城市街道_雨夜版" / "master.png"
     assert captured["reference_images"] == [
-        ("base_scene_master_master.png", b"base-master-bytes", "image/png")
+        ("base_scene_master_master.png", b"base-master-bytes", "image/png"),
     ]
     assert "STRUCTURED VARIANT PLATE" in captured["prompt"]
     assert "variant_id=雨夜版" in captured["prompt"]
@@ -1109,6 +1277,7 @@ def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tm
         fake_call_newapi_image_api,
     )
     _patch_scene_newapi_gateway(monkeypatch)
+    _patch_scene_style_preset(monkeypatch, scene_reference_images)
 
     scene = NovelScene(
         name="古董店",
@@ -1121,9 +1290,7 @@ def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tm
             project_dir=tmp_path,
             scene=scene,
             kind="reverse_master",
-            style_name="live_action",
-            style_prompt="grounded realism",
-            avoid_instructions="no people",
+            style_id="custom_global",
             model="LingShan-NB-2",
         )
     )
@@ -1132,9 +1299,9 @@ def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tm
     assert output_path.read_bytes() == b"scene-reverse"
     assert "api_key" not in captured
     assert "base_url" not in captured
-    assert captured["model"] == "LingShan-NB-2"
+    assert "model" not in captured
     assert captured["reference_images"] == [
-        ("scene_master_master.png", b"master-bytes", "image/png")
+        ("scene_master_master.png", b"master-bytes", "image/png"),
     ]
     assert captured["image_config"] == {
         "aspect_ratio": "16:9",
@@ -1167,6 +1334,7 @@ def test_newapi_reverse_master_uses_gpt_image2_quality_medium(monkeypatch, tmp_p
         fake_call_newapi_image_api,
     )
     _patch_scene_newapi_gateway(monkeypatch)
+    _patch_scene_style_preset(monkeypatch, scene_reference_images)
 
     scene = NovelScene(
         name="古董店",
@@ -1183,9 +1351,9 @@ def test_newapi_reverse_master_uses_gpt_image2_quality_medium(monkeypatch, tmp_p
         )
     )
 
-    assert captured["model"] == "LingShan-G2"
+    assert "model" not in captured
     assert captured["reference_images"] == [
-        ("scene_master_master.png", b"master-bytes", "image/png")
+        ("scene_master_master.png", b"master-bytes", "image/png"),
     ]
     assert captured["image_config"] == {
         "aspect_ratio": "16:9",
@@ -1233,6 +1401,14 @@ def test_newapi_prop_reference_gpt_image2_sends_quality_medium(monkeypatch, tmp_
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://newapi.test/v1")
     importlib.reload(config)
     nanobanana_prop = importlib.reload(nanobanana_prop)
+    monkeypatch.setattr(
+        nanobanana_prop,
+        "get_style_preset",
+        lambda *_args, **_kwargs: {
+            "style_instructions": "product style",
+            "avoid_instructions": "watermark",
+        },
+    )
     monkeypatch.setattr(
         nanobanana_prop,
         "get_grid_generation_config",
@@ -1297,10 +1473,19 @@ def test_newapi_prop_reference_nanobanana2_omits_quality(monkeypatch, tmp_path):
             return FakeResponse()
 
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+    _configure_image_generation_route("LingShan-NB-2")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "newapi-token")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://newapi.test/v1")
     importlib.reload(config)
     nanobanana_prop = importlib.reload(nanobanana_prop)
+    monkeypatch.setattr(
+        nanobanana_prop,
+        "get_style_preset",
+        lambda *_args, **_kwargs: {
+            "style_instructions": "product style",
+            "avoid_instructions": "watermark",
+        },
+    )
     monkeypatch.setattr(
         nanobanana_prop,
         "get_grid_generation_config",
@@ -1402,7 +1587,7 @@ def test_freezone_single_image_generation_routes_newapi(monkeypatch, tmp_path):
     assert image_path == output_path
     assert output_path.read_bytes() == b"freezone-image"
     assert "api_key" not in captured
-    assert captured["model"] == "LingShan-G2"
+    assert "model" not in captured
     assert captured["prompt"] == "freezone prompt"
     assert captured["reference_images"] is None
     assert "base_url" not in captured
@@ -1411,6 +1596,63 @@ def test_freezone_single_image_generation_routes_newapi(monkeypatch, tmp_path):
         "image_size": "2K",
         "quality": "medium",
     }
+
+
+def test_freezone_image_generation_applies_project_style_text_and_image(
+    monkeypatch,
+    tmp_path,
+):
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        nanobanana_grid,
+    )
+
+    style_reference = tmp_path / "style.png"
+    style_reference.write_bytes(b"style-image")
+    monkeypatch.setattr(
+        nanobanana_grid,
+        "get_project_style_preset",
+        lambda *_args, **_kwargs: (
+            "custom_global",
+            {
+                "style_instructions": "GLOBAL STYLE TEXT",
+                "avoid_instructions": "GLOBAL STYLE AVOID",
+                "style_reference_image_path": str(style_reference),
+            },
+        ),
+    )
+    captured = {}
+
+    async def fake_call_newapi_image_api(**kwargs):
+        captured.update(kwargs)
+        return b"styled-image", "", ""
+
+    monkeypatch.setattr(
+        nanobanana_grid,
+        "_call_newapi_image_api",
+        fake_call_newapi_image_api,
+    )
+    output_path = tmp_path / "project" / "freezone.png"
+
+    run_async(
+        nanobanana_grid.generate_text_to_image(
+            prompt="freezone prompt",
+            output_path=str(output_path),
+            project_dir=tmp_path / "project",
+            config={
+                "model": "LingShan-G2",
+                "rows": 1,
+                "cols": 1,
+                "total_panels": 1,
+            },
+        )
+    )
+
+    assert "PROJECT VISUAL STYLE:\nGLOBAL STYLE TEXT" in captured["prompt"]
+    assert "AVOID:\nGLOBAL STYLE AVOID" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
+    assert captured["reference_images"] == [
+        ("style-reference.png", b"style-image", "image/png")
+    ]
 
 
 def run_async(coro):

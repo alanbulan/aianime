@@ -227,9 +227,9 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for module in (episodes, scripts):
         monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
         monkeypatch.setattr(module, "make_sqlite_store_for_context", make_store_for_context)
-        monkeypatch.setattr(module, "make_cognee_store_for_context", make_store_for_context)
         monkeypatch.setattr(module, "make_sqlite_store", make_store)
-        monkeypatch.setattr(module, "make_cognee_store", make_store)
+    monkeypatch.setattr(scripts, "make_cognee_store_for_context", make_store_for_context)
+    monkeypatch.setattr(scripts, "make_cognee_store", make_store)
     import ai_anime.shared.ports as runtime_ports
 
     monkeypatch.setattr(

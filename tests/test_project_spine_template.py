@@ -3,12 +3,28 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
 from ai_anime.api.routes.project_workspace.schemas import ProjectUpdate
 from ai_anime.api.routes.story_intake.schemas import IngestStart
 from ai_anime.modules.narrative_planning.public import NovelEpisode
 
 pytestmark = pytest.mark.m03
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"tts_provider": "old-provider"},
+        {"tts_model": "old-model"},
+        {"tts_voice": "old-voice"},
+        {"grid_model": "old-grid-model"},
+        {"video_backend": "old-video-route"},
+    ],
+)
+def test_project_update_rejects_removed_fields(payload: dict[str, str]) -> None:
+    with pytest.raises(ValidationError):
+        ProjectUpdate.model_validate(payload)
 
 
 def test_project_update_accepts_spine_template_values():

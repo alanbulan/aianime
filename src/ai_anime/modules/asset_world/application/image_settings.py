@@ -89,7 +89,14 @@ class ImageSettingsUseCases:
                 project,
                 ASSET_IMAGE_SELECTION_CONFIG_KEYS[asset_kind],
             ).strip()
-            selection = saved
+            # Scene and prop generation use the project's character image model
+            # until the user explicitly overrides that asset kind.  Keeping this
+            # fallback in the application layer gives every selector and task
+            # submission the same effective default instead of leaving some
+            # screens with an empty model.
+            selection = saved or self.get_character_selection(username, project)[
+                "character_image_selection"
+            ]
         return {
             "asset_kind": asset_kind,
             "image_source_selection": selection,

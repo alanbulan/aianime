@@ -59,7 +59,7 @@ export function ReferenceTextChip({
       <button
         ref={triggerRef}
         type="button"
-        title={sourceLabel}
+        data-ui-tooltip={sourceLabel}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation();

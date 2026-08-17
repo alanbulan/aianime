@@ -87,7 +87,7 @@ export function CommercialLicenseSection({
           type="button"
           size="icon"
           variant="outline"
-          title={t("settings.account.refresh")}
+          data-ui-tooltip={t("settings.account.refresh")}
           aria-label={t("settings.account.refresh")}
           disabled={status === "loading"}
           onClick={() =>

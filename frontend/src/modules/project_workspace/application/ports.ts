@@ -1,6 +1,8 @@
 import type {
   CreatedProject,
   ProjectConfig,
+  ProjectCoverCandidatePage,
+  ProjectCoverResult,
   ProjectGrant,
   ProjectLifecycleAction,
   ProjectRole,
@@ -15,6 +17,17 @@ export interface ProjectWorkspaceGateway {
     project: string,
     config: Partial<ProjectConfig>,
   ): Promise<ProjectConfig>;
+  listProjectCoverCandidates(
+    project: string,
+    page: number,
+    pageSize: number,
+    signal?: AbortSignal,
+  ): Promise<ProjectCoverCandidatePage>;
+  uploadProjectCover(project: string, file: File): Promise<ProjectCoverResult>;
+  selectProjectCover(
+    project: string,
+    sourcePath: string,
+  ): Promise<ProjectCoverResult>;
   listProjectSummaries(signal?: AbortSignal): Promise<ProjectSummary[]>;
   changeProjectStatus(
     project: string,

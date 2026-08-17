@@ -58,6 +58,7 @@ describe("locale translation files", () => {
     const translations = JSON.parse(content);
 
     expect(translations.common.projectQueueKinds).toMatchObject({
+      workflow: "工作流编排",
       video: "视频",
       world: "世界",
       ffmpeg: "合成",
@@ -73,6 +74,11 @@ describe("locale translation files", () => {
       "shapeHint",
       "saveScene",
       "clearScene",
+      "saveSceneTemplate",
+      "clearSceneTemplate",
+      "saveCanvasDraft",
+      "clearCanvasDraft",
+      "controlProxyHint",
     ];
 
     for (const language of [zh, en]) {

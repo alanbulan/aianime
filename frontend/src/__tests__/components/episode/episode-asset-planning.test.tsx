@@ -180,7 +180,7 @@ describe("EpisodeAssetPlanning", () => {
         }),
       ),
       http.post("http://localhost:3000/api/v1/projects/demo/props", async ({ request }) => {
-        receivedBody = await request.json();
+        receivedBody = await request.clone().json();
         return HttpResponse.json({
           ok: true,
           data: {

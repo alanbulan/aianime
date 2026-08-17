@@ -1,12 +1,30 @@
-import { randomBytes } from "node:crypto";
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { randomBytes, randomUUID } from "node:crypto";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { Readable } from "node:stream";
+import { setTimeout as wait } from "node:timers/promises";
 
 import type { CommercialDeviceSigner } from "./commercial-device.js";
+import {
+  BYOK_MODEL_ROLES,
+  type ByokModelAssignment,
+  type ByokModelRole,
+  type ByokProviderProtocol,
+  type StoredCommercialModelAccess,
+  type StoredByokProvider,
+} from "./commercial-model-access.js";
 import { CommercialApiClient, CommercialApiError } from "./commercial.js";
 
 const MAX_MODEL_BODY_BYTES = 40 * 1024 * 1024;
-const FORBIDDEN_CLOUD_FIELDS = new Set([
+const FALLBACK_STATUSES = new Set([401, 403, 404, 408, 409, 425, 429, 500, 502, 503, 504]);
+const RETRYABLE_ROUTE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const MAX_ROUTE_ATTEMPTS = 3;
+const BYOK_CONFIGURATION_ERROR_STATUSES = new Set([401, 403, 404]);
+const FORBIDDEN_MODEL_FIELDS = new Set([
   "apikey",
   "baseurl",
   "authorization",
@@ -15,19 +33,103 @@ const FORBIDDEN_CLOUD_FIELDS = new Set([
   "xgoogapikey",
 ]);
 
+export interface CommercialModelRoutingConfiguration {
+  access: StoredCommercialModelAccess;
+  allowsCustomModels: boolean;
+  cloudModelAssignments: readonly ByokModelAssignment[];
+}
+
+export interface ModelRouteAuditEntry {
+  timestamp: string;
+  event: "routing_configured" | "route_attempt";
+  role?: ByokModelRole;
+  source?: "cloud" | "byok";
+  provider?: string;
+  modelId?: string;
+  modelPriority?: number;
+  providerPriority?: number;
+  attempt?: number;
+  status?: number;
+  outcome?: "selected" | "retry" | "fallback" | "rejected" | "error";
+  error?: string;
+  routes?: Array<{
+    role: ByokModelRole;
+    source: "cloud" | "byok";
+    provider: string;
+    modelId: string;
+    modelPriority: number;
+    providerPriority: number;
+  }>;
+}
+
+interface ModelRoute {
+  key: string;
+  source: "cloud" | "byok";
+  label: string;
+  role: ByokModelRole;
+  modelId: string;
+  priority: number;
+  providerPriority: number;
+  baseUrl?: string;
+  apiKey?: string;
+  protocol?: ByokProviderProtocol;
+}
+
+interface PreparedBody {
+  body?: BodyInit;
+  contentType?: string;
+}
+
+const EMPTY_MODEL_ACCESS: StoredCommercialModelAccess = {
+  schemaVersion: 5,
+  cloudModelAssignments: [],
+  byokProviders: [],
+};
+
 export class CommercialModelProxy {
   readonly token = randomBytes(32).toString("hex");
   private server: Server | null = null;
   private origin: string | null = null;
+  private routing: CommercialModelRoutingConfiguration = {
+    access: EMPTY_MODEL_ACCESS,
+    allowsCustomModels: false,
+    cloudModelAssignments: [],
+  };
+  private readonly videoTaskRoutes = new Map<string, ModelRoute>();
 
   constructor(
     private readonly client: CommercialApiClient,
     private readonly deviceIdentity: CommercialDeviceSigner,
+    private readonly audit: (entry: ModelRouteAuditEntry) => void = () => undefined,
   ) {}
 
   get baseUrl(): string {
     if (!this.origin) throw new Error("commercial model proxy has not started");
     return `${this.origin}/v1`;
+  }
+
+  configureRouting(configuration: CommercialModelRoutingConfiguration): void {
+    this.routing = {
+      access: configuration.access,
+      allowsCustomModels: configuration.allowsCustomModels,
+      cloudModelAssignments: configuration.cloudModelAssignments.map((item) => ({
+        ...item,
+      })),
+    };
+    this.audit({
+      timestamp: new Date().toISOString(),
+      event: "routing_configured",
+      routes: BYOK_MODEL_ROLES.flatMap((role) =>
+        configuredRoutes(this.routing, role).map((route) => ({
+          role,
+          source: route.source,
+          provider: route.label,
+          modelId: route.modelId,
+          modelPriority: route.priority,
+          providerPriority: route.providerPriority,
+        })),
+      ),
+    });
   }
 
   async start(): Promise<void> {
@@ -55,6 +157,7 @@ export class CommercialModelProxy {
     const server = this.server;
     this.server = null;
     this.origin = null;
+    this.videoTaskRoutes.clear();
     if (!server) return;
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
@@ -72,75 +175,45 @@ export class CommercialModelProxy {
       }
       const path = request.url ?? "/";
       const contentType = String(request.headers["content-type"] ?? "");
-      const body =
+      const rawBody =
         method === "GET" || method === "HEAD"
           ? undefined
-          : await modelRequestBody(request, contentType);
-      const device = await this.deviceIdentity.summary();
+          : await readModelRequestBody(request, contentType);
+      const requestHeaders = { ...request.headers };
+      if (isModelWriteMethod(method) && !requestHeaders["idempotency-key"]) {
+        requestHeaders["idempotency-key"] = randomUUID();
+      }
+      const explicitRole = normalizeRoleHeader(request.headers["x-ai-anime-model-role"]);
+      const role = explicitRole ?? inferModelRole(path);
+      const routes = this.routesForRequest(path, role);
       const abortController = new AbortController();
       const abortUpstream = () => abortController.abort();
       request.once("aborted", abortUpstream);
       response.once("close", abortUpstream);
-      const upstream = await this.client.modelRequest({
+
+      const upstream = await this.requestWithFallback({
         method,
         path,
-        headers: {
-          ...(request.headers.accept ? { Accept: request.headers.accept } : {}),
-          ...(contentType ? { "Content-Type": contentType } : {}),
-          ...(request.headers.range ? { Range: request.headers.range } : {}),
-          ...(request.headers["anthropic-version"]
-            ? {
-                "Anthropic-Version": String(
-                  request.headers["anthropic-version"],
-                ),
-              }
-            : {}),
-          ...(request.headers["anthropic-beta"]
-            ? {
-                "Anthropic-Beta": String(request.headers["anthropic-beta"]),
-              }
-            : {}),
-          ...(request.headers["idempotency-key"]
-            ? { "Idempotency-Key": String(request.headers["idempotency-key"]) }
-            : {}),
-        },
-        ...(body === undefined ? {} : { body }),
-        devicePublicKeyHash: device.publicKeyHash,
+        contentType,
+        ...(rawBody === undefined ? {} : { rawBody }),
+        routes,
+        requestHeaders,
         signal: abortController.signal,
       });
-      assertModelResponseContract(path, upstream);
-      response.statusCode = upstream.status;
-      const hasResponseBody = Boolean(upstream.body) && method !== "HEAD";
-      for (const header of [
-        "content-type",
-        "content-disposition",
-        "cache-control",
-        "etag",
-        "accept-ranges",
-        "content-range",
-        "location",
-        "retry-after",
-        "x-request-id",
-      ]) {
-        const value = upstream.headers.get(header);
-        if (value) response.setHeader(header, value);
-      }
-      if (!hasResponseBody) {
-        const contentLength = upstream.headers.get("content-length");
-        if (contentLength) response.setHeader("content-length", contentLength);
-        response.end();
-        return;
-      }
-
-      // Node fetch 会自动解压 gzip/br 响应，但仍可能保留上游压缩正文的
-      // Content-Length。正文经过 fetch 后必须由本地 HTTP 服务重新分帧，
-      // 否则多出的字节会污染同一 keep-alive 连接上的下一条响应。
-      const bodyStream = Readable.fromWeb(upstream.body as never);
-      bodyStream.once("error", (error) => {
-        if (!response.destroyed) response.destroy(error);
-      });
-      response.once("close", () => bodyStream.destroy());
-      bodyStream.pipe(response);
+      assertModelResponseContract(path, upstream.response);
+      await this.rememberVideoTaskRoute(
+        method,
+        path,
+        upstream.route,
+        upstream.response,
+      );
+      pipeModelResponse(
+        method,
+        upstream.response,
+        response,
+        upstream.route,
+        upstream.attempts,
+      );
     } catch (error) {
       if (response.headersSent) {
         response.destroy(error instanceof Error ? error : undefined);
@@ -155,7 +228,7 @@ export class CommercialModelProxy {
       response.end(
         JSON.stringify({
           error: {
-            message: error instanceof Error ? error.message : "云端模型代理失败",
+            message: error instanceof Error ? error.message : "模型路由失败",
             type: status === 401 ? "authentication_error" : "proxy_error",
             code: error instanceof CommercialApiError ? error.code : null,
           },
@@ -163,33 +236,1079 @@ export class CommercialModelProxy {
       );
     }
   }
+
+  private routesForRequest(
+    path: string,
+    role: ByokModelRole | null,
+  ): ModelRoute[] {
+    const stickyRoute = videoTaskId(path)
+      ? this.videoTaskRoutes.get(videoTaskId(path) ?? "")
+      : undefined;
+    if (stickyRoute) return [stickyRoute];
+    if (!role) {
+      throw new CommercialApiError("无法确定模型用途，已拒绝绕过统一路由", {
+        status: 422,
+      });
+    }
+    const routes = configuredRoutes(this.routing, role);
+    if (routes.length === 0) {
+      throw new CommercialApiError(`模型用途 ${role} 没有可用路由`, {
+        status: 422,
+      });
+    }
+    return routes;
+  }
+
+  private async requestWithFallback(input: {
+    method: string;
+    path: string;
+    contentType: string;
+    rawBody?: Buffer;
+    routes: readonly ModelRoute[];
+    requestHeaders: IncomingMessage["headers"];
+    signal: AbortSignal;
+  }): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
+    let lastError: unknown;
+    let totalAttempts = 0;
+    for (let index = 0; index < input.routes.length; index += 1) {
+      const route = input.routes[index];
+      if (!route) continue;
+      for (let routeAttempt = 1; routeAttempt <= MAX_ROUTE_ATTEMPTS; routeAttempt += 1) {
+        totalAttempts += 1;
+        try {
+          const prepared = await prepareBodyForRoute(
+            input.rawBody,
+            input.contentType,
+            route.modelId,
+          );
+          const upstream =
+            route.source === "cloud"
+              ? await this.requestCloud(route, input, prepared)
+              : await requestByok(route, input, prepared);
+          if (
+            RETRYABLE_ROUTE_STATUSES.has(upstream.status) &&
+            routeAttempt < MAX_ROUTE_ATTEMPTS
+          ) {
+            this.auditRouteAttempt(route, totalAttempts, upstream.status, "retry");
+            await upstream.body?.cancel().catch(() => undefined);
+            await wait(150 * routeAttempt, undefined, { signal: input.signal });
+            continue;
+          }
+          const canFallback =
+            index < input.routes.length - 1 &&
+            shouldFallback(route, upstream.status);
+          if (!canFallback) {
+            this.auditRouteAttempt(
+              route,
+              totalAttempts,
+              upstream.status,
+              upstream.ok ? "selected" : "rejected",
+            );
+            return { response: upstream, route, attempts: totalAttempts };
+          }
+          this.auditRouteAttempt(route, totalAttempts, upstream.status, "fallback");
+          await upstream.body?.cancel().catch(() => undefined);
+          break;
+        } catch (error) {
+          lastError = error;
+          if (input.signal.aborted) throw error;
+          if (routeAttempt < MAX_ROUTE_ATTEMPTS) {
+            this.auditRouteAttempt(route, totalAttempts, undefined, "retry", error);
+            await wait(150 * routeAttempt, undefined, { signal: input.signal });
+            continue;
+          }
+          this.auditRouteAttempt(
+            route,
+            totalAttempts,
+            undefined,
+            index === input.routes.length - 1 ? "error" : "fallback",
+            error,
+          );
+          if (index === input.routes.length - 1) throw error;
+        }
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new CommercialApiError("没有可用的模型路由");
+  }
+
+  private auditRouteAttempt(
+    route: ModelRoute,
+    attempt: number,
+    status: number | undefined,
+    outcome: NonNullable<ModelRouteAuditEntry["outcome"]>,
+    error?: unknown,
+  ): void {
+    this.audit({
+      timestamp: new Date().toISOString(),
+      event: "route_attempt",
+      role: route.role,
+      source: route.source,
+      provider: route.label,
+      modelId: route.modelId,
+      modelPriority: route.priority,
+      providerPriority: route.providerPriority,
+      attempt,
+      ...(status === undefined ? {} : { status }),
+      outcome,
+      ...(error === undefined
+        ? {}
+        : { error: error instanceof Error ? error.message : String(error) }),
+    });
+  }
+
+  private async requestCloud(
+    _route: ModelRoute,
+    input: {
+      method: string;
+      path: string;
+      requestHeaders: IncomingMessage["headers"];
+      signal: AbortSignal;
+    },
+    prepared: PreparedBody,
+  ): Promise<Response> {
+    const device = await this.deviceIdentity.summary();
+    return this.client.modelRequest({
+      method: input.method,
+      path: input.path,
+      headers: forwardedHeaders(input.requestHeaders, prepared.contentType),
+      ...(prepared.body === undefined ? {} : { body: prepared.body }),
+      devicePublicKeyHash: device.publicKeyHash,
+      signal: input.signal,
+    });
+  }
+
+  private async rememberVideoTaskRoute(
+    method: string,
+    path: string,
+    route: ModelRoute,
+    response: Response,
+  ): Promise<void> {
+    const pathname = new URL(path, "http://model-proxy.local").pathname;
+    if (method !== "POST" || pathname !== "/v1/videos" || !response.ok) return;
+    try {
+      const payload = (await response.clone().json()) as { id?: unknown };
+      const id = typeof payload.id === "string" ? payload.id.trim() : "";
+      if (id) this.videoTaskRoutes.set(id, route);
+    } catch {
+      // The response contract is validated by the caller that consumes it.
+    }
+  }
 }
 
-function assertModelResponseContract(path: string, response: Response): void {
-  const url = new URL(path, "http://model-proxy.local");
-  const isVideoContent = /^\/v1\/videos\/[^/]+\/content$/.test(url.pathname);
-  if (!isVideoContent || response.status < 200 || response.status >= 300) return;
+function configuredRoutes(
+  configuration: CommercialModelRoutingConfiguration,
+  role: ByokModelRole,
+): ModelRoute[] {
+  const routes: ModelRoute[] = configuration.cloudModelAssignments
+    .filter((assignment) => assignment.enabled && assignment.role === role)
+    .map((assignment) => ({
+      key: `cloud:${assignment.role}:${assignment.modelId}`,
+      source: "cloud" as const,
+      label: "云端",
+      role,
+      modelId: assignment.modelId,
+      priority: assignment.priority,
+      providerPriority: 0,
+    }));
+  if (configuration.allowsCustomModels) {
+    for (const provider of configuration.access.byokProviders) {
+      if (!provider.enabled) continue;
+      routes.push(...providerRoutes(provider, role));
+    }
+  }
+  return routes.sort(compareModelRoutes);
+}
 
-  const contentType = (response.headers.get("content-type") ?? "")
-    .split(";", 1)[0]
-    ?.trim()
-    .toLowerCase();
-  if (
-    contentType !== "video/mp4" &&
-    contentType !== "application/mp4" &&
-    contentType !== "application/octet-stream"
-  ) {
+function compareModelRoutes(left: ModelRoute, right: ModelRoute): number {
+  return (
+    left.priority - right.priority ||
+    left.providerPriority - right.providerPriority ||
+    (left.source === right.source ? 0 : left.source === "cloud" ? -1 : 1) ||
+    left.label.localeCompare(right.label) ||
+    left.modelId.localeCompare(right.modelId)
+  );
+}
+
+export function modelRoutingSnapshot(
+  configuration: CommercialModelRoutingConfiguration,
+): ByokModelAssignment[] {
+  const assignments: ByokModelAssignment[] = [];
+  for (const role of BYOK_MODEL_ROLES) {
+    const seenModels = new Set<string>();
+    let routeRank = 1;
+    for (const route of configuredRoutes(configuration, role)) {
+      if (seenModels.has(route.modelId)) continue;
+      seenModels.add(route.modelId);
+      assignments.push({
+        modelId: route.modelId,
+        role,
+        priority: routeRank,
+        enabled: true,
+      });
+      routeRank += 1;
+    }
+  }
+  return assignments;
+}
+
+function providerRoutes(
+  provider: StoredByokProvider,
+  role: ByokModelRole,
+): ModelRoute[] {
+  return provider.modelAssignments
+    .filter((assignment) => assignment.enabled && assignment.role === role)
+    .map((assignment) => ({
+      key: `byok:${provider.id}:${assignment.role}:${assignment.modelId}`,
+      source: "byok" as const,
+      label: provider.name,
+      role,
+      modelId: assignment.modelId,
+      priority: assignment.priority,
+      providerPriority: provider.priority,
+      baseUrl: provider.baseUrl,
+      apiKey: provider.apiKey,
+      protocol: provider.protocol,
+    }));
+}
+
+async function requestByok(
+  route: ModelRoute,
+  input: {
+    method: string;
+    path: string;
+    requestHeaders: IncomingMessage["headers"];
+    signal: AbortSignal;
+  },
+  prepared: PreparedBody,
+): Promise<Response> {
+  if (!route.baseUrl) throw new CommercialApiError("BYOK Base URL 缺失");
+  if (route.protocol === "ANTHROPIC") {
+    return requestAnthropic(route, input, prepared);
+  }
+  if (route.protocol === "GEMINI") {
+    return requestGemini(route, input, prepared);
+  }
+  const localUrl = new URL(input.path, "http://model-proxy.local");
+  const relativePath = localUrl.pathname.replace(/^\/v1(?=\/|$)/, "") || "/";
+  const upstreamUrl = new URL(`${route.baseUrl}${relativePath}`);
+  upstreamUrl.search = localUrl.search;
+  const headers = forwardedHeaders(input.requestHeaders, prepared.contentType);
+  if (route.apiKey) headers.set("Authorization", `Bearer ${route.apiKey}`);
+  if (isModelWriteMethod(input.method) && !headers.has("Idempotency-Key")) {
+    headers.set("Idempotency-Key", randomUUID());
+  }
+  try {
+    return await fetch(upstreamUrl, {
+      method: input.method,
+      headers,
+      ...(prepared.body === undefined ? {} : { body: prepared.body }),
+      signal: input.signal,
+    });
+  } catch (error) {
     throw new CommercialApiError(
-      `云端视频结果接口返回了非视频内容${contentType ? `：${contentType}` : ""}`,
-      { status: 502 },
+      `${route.label} 请求失败：${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
 
-async function modelRequestBody(
+async function requestAnthropic(
+  route: ModelRoute,
+  input: {
+    method: string;
+    path: string;
+    requestHeaders: IncomingMessage["headers"];
+    signal: AbortSignal;
+  },
+  prepared: PreparedBody,
+): Promise<Response> {
+  if (!route.baseUrl) throw new CommercialApiError("Anthropic Base URL 缺失");
+  const localUrl = new URL(input.path, "http://model-proxy.local");
+  if (input.method !== "POST" || !localUrl.pathname.endsWith("/chat/completions")) {
+    throw new CommercialApiError("Anthropic 原生协议仅支持文本对话", { status: 400 });
+  }
+  const payload = preparedJsonObject(prepared);
+  const stream = payload.stream === true;
+  const upstreamPayload = {
+    ...openAiToAnthropicPayload(payload, route.modelId),
+    ...(stream ? { stream: true } : {}),
+  };
+  const headers = new Headers({
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "Anthropic-Version": "2023-06-01",
+  });
+  const beta = input.requestHeaders["anthropic-beta"];
+  if (beta) headers.set("Anthropic-Beta", String(beta));
+  if (route.apiKey) headers.set("X-Api-Key", route.apiKey);
+  const response = await fetchByokUpstream(
+    route,
+    new URL("messages", `${route.baseUrl}/`),
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(upstreamPayload),
+      signal: input.signal,
+    },
+  );
+  if (!response.ok) return response;
+  return stream
+    ? anthropicStreamToOpenAiResponse(response, route.modelId)
+    : anthropicToOpenAiResponse(response, route.modelId);
+}
+
+async function requestGemini(
+  route: ModelRoute,
+  input: {
+    method: string;
+    path: string;
+    requestHeaders: IncomingMessage["headers"];
+    signal: AbortSignal;
+  },
+  prepared: PreparedBody,
+): Promise<Response> {
+  if (!route.baseUrl) throw new CommercialApiError("Gemini Base URL 缺失");
+  const localUrl = new URL(input.path, "http://model-proxy.local");
+  if (input.method !== "POST" || !localUrl.pathname.endsWith("/chat/completions")) {
+    throw new CommercialApiError("Gemini 原生协议仅支持文本对话", { status: 400 });
+  }
+  const payload = preparedJsonObject(prepared);
+  const stream = payload.stream === true;
+  const upstreamPayload = openAiToGeminiPayload(payload);
+  const headers = new Headers({
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  });
+  if (route.apiKey) headers.set("X-Goog-Api-Key", route.apiKey);
+  const modelPath = route.modelId
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const action = stream ? "streamGenerateContent" : "generateContent";
+  const upstreamUrl = new URL(`models/${modelPath}:${action}`, `${route.baseUrl}/`);
+  if (stream) upstreamUrl.searchParams.set("alt", "sse");
+  const response = await fetchByokUpstream(
+    route,
+    upstreamUrl,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(upstreamPayload),
+      signal: input.signal,
+    },
+  );
+  if (!response.ok) return response;
+  return stream
+    ? geminiStreamToOpenAiResponse(response, route.modelId)
+    : geminiToOpenAiResponse(response, route.modelId);
+}
+
+async function fetchByokUpstream(
+  route: ModelRoute,
+  url: URL,
+  init: RequestInit,
+): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (error) {
+    throw new CommercialApiError(
+      `${route.label} 请求失败：${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+function preparedJsonObject(prepared: PreparedBody): Record<string, unknown> {
+  if (typeof prepared.body !== "string") {
+    throw new CommercialApiError("原生模型协议要求 JSON 请求体", { status: 400 });
+  }
+  const payload = JSON.parse(prepared.body) as unknown;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new CommercialApiError("原生模型协议请求体必须是对象", { status: 400 });
+  }
+  return payload as Record<string, unknown>;
+}
+
+function openAiToAnthropicPayload(
+  payload: Record<string, unknown>,
+  modelId: string,
+): Record<string, unknown> {
+  const rawMessages = Array.isArray(payload.messages) ? payload.messages : [];
+  const system: string[] = [];
+  const messages: Array<Record<string, unknown>> = [];
+  for (const value of rawMessages) {
+    const message = objectValue(value, "OpenAI message");
+    const role = String(message.role ?? "").trim();
+    if (role === "system" || role === "developer") {
+      const text = textContent(message.content);
+      if (text) system.push(text);
+      continue;
+    }
+    if (role === "tool") {
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "tool_result",
+            tool_use_id: String(message.tool_call_id ?? ""),
+            content: textContent(message.content),
+          },
+        ],
+      });
+      continue;
+    }
+    if (role !== "user" && role !== "assistant") continue;
+    const content = anthropicContent(message.content);
+    const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+    for (const callValue of toolCalls) {
+      const call = objectValue(callValue, "OpenAI tool call");
+      const fn = objectValue(call.function, "OpenAI tool function");
+      content.push({
+        type: "tool_use",
+        id: String(call.id ?? randomUUID()),
+        name: String(fn.name ?? ""),
+        input: parseJsonArguments(fn.arguments),
+      });
+    }
+    messages.push({ role, content });
+  }
+  const result: Record<string, unknown> = {
+    model: modelId,
+    max_tokens: positiveNumber(payload.max_tokens ?? payload.max_completion_tokens, 4096),
+    messages,
+  };
+  if (system.length > 0) result.system = system.join("\n\n");
+  if (typeof payload.temperature === "number") result.temperature = payload.temperature;
+  if (typeof payload.top_p === "number") result.top_p = payload.top_p;
+  if (typeof payload.stop === "string") result.stop_sequences = [payload.stop];
+  if (Array.isArray(payload.stop)) result.stop_sequences = payload.stop;
+  if (Array.isArray(payload.tools)) {
+    result.tools = payload.tools.map((value) => {
+      const tool = objectValue(value, "OpenAI tool");
+      const fn = objectValue(tool.function, "OpenAI tool function");
+      return {
+        name: String(fn.name ?? ""),
+        ...(fn.description ? { description: String(fn.description) } : {}),
+        input_schema: fn.parameters ?? { type: "object", properties: {} },
+      };
+    });
+  }
+  return result;
+}
+
+function openAiToGeminiPayload(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const rawMessages = Array.isArray(payload.messages) ? payload.messages : [];
+  const system: string[] = [];
+  const contents: Array<Record<string, unknown>> = [];
+  const toolNames = new Map<string, string>();
+  for (const value of rawMessages) {
+    const message = objectValue(value, "OpenAI message");
+    const role = String(message.role ?? "").trim();
+    if (role === "system" || role === "developer") {
+      const text = textContent(message.content);
+      if (text) system.push(text);
+      continue;
+    }
+    if (role === "tool") {
+      const callId = String(message.tool_call_id ?? "");
+      contents.push({
+        role: "user",
+        parts: [
+          {
+            functionResponse: {
+              name: toolNames.get(callId) ?? (callId || "tool"),
+              response: { result: textContent(message.content) },
+            },
+          },
+        ],
+      });
+      continue;
+    }
+    if (role !== "user" && role !== "assistant") continue;
+    const parts = geminiParts(message.content);
+    const toolCalls = Array.isArray(message.tool_calls) ? message.tool_calls : [];
+    for (const callValue of toolCalls) {
+      const call = objectValue(callValue, "OpenAI tool call");
+      const fn = objectValue(call.function, "OpenAI tool function");
+      toolNames.set(String(call.id ?? ""), String(fn.name ?? ""));
+      parts.push({
+        functionCall: {
+          name: String(fn.name ?? ""),
+          args: parseJsonArguments(fn.arguments),
+        },
+      });
+    }
+    contents.push({ role: role === "assistant" ? "model" : "user", parts });
+  }
+  const generationConfig: Record<string, unknown> = {
+    maxOutputTokens: positiveNumber(
+      payload.max_tokens ?? payload.max_completion_tokens,
+      4096,
+    ),
+  };
+  if (typeof payload.temperature === "number") {
+    generationConfig.temperature = payload.temperature;
+  }
+  if (typeof payload.top_p === "number") generationConfig.topP = payload.top_p;
+  if (typeof payload.stop === "string") generationConfig.stopSequences = [payload.stop];
+  if (Array.isArray(payload.stop)) generationConfig.stopSequences = payload.stop;
+  const responseFormat = payload.response_format;
+  if (
+    responseFormat &&
+    typeof responseFormat === "object" &&
+    !Array.isArray(responseFormat) &&
+    (responseFormat as Record<string, unknown>).type === "json_object"
+  ) {
+    generationConfig.responseMimeType = "application/json";
+  }
+  const result: Record<string, unknown> = { contents, generationConfig };
+  if (system.length > 0) {
+    result.systemInstruction = { parts: [{ text: system.join("\n\n") }] };
+  }
+  if (Array.isArray(payload.tools)) {
+    result.tools = [
+      {
+        functionDeclarations: payload.tools.map((value) => {
+          const tool = objectValue(value, "OpenAI tool");
+          const fn = objectValue(tool.function, "OpenAI tool function");
+          return {
+            name: String(fn.name ?? ""),
+            ...(fn.description ? { description: String(fn.description) } : {}),
+            parameters: fn.parameters ?? { type: "object", properties: {} },
+          };
+        }),
+      },
+    ];
+  }
+  return result;
+}
+
+function anthropicContent(value: unknown): Array<Record<string, unknown>> {
+  if (typeof value === "string") return [{ type: "text", text: value }];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap<Record<string, unknown>>((partValue) => {
+    const part = objectValue(partValue, "OpenAI content part");
+    if (part.type === "text") return [{ type: "text", text: String(part.text ?? "") }];
+    if (part.type !== "image_url") return [];
+    const image = objectValue(part.image_url, "OpenAI image URL");
+    const url = String(image.url ?? "");
+    const data = /^data:([^;,]+);base64,(.+)$/s.exec(url);
+    return [
+      {
+        type: "image",
+        source: data
+          ? { type: "base64", media_type: data[1], data: data[2] }
+          : { type: "url", url },
+      },
+    ];
+  });
+}
+
+function geminiParts(value: unknown): Array<Record<string, unknown>> {
+  if (typeof value === "string") return [{ text: value }];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap<Record<string, unknown>>((partValue) => {
+    const part = objectValue(partValue, "OpenAI content part");
+    if (part.type === "text") return [{ text: String(part.text ?? "") }];
+    if (part.type !== "image_url") return [];
+    const image = objectValue(part.image_url, "OpenAI image URL");
+    const url = String(image.url ?? "");
+    const data = /^data:([^;,]+);base64,(.+)$/s.exec(url);
+    if (!data) {
+      throw new CommercialApiError("Gemini 原生协议的图片输入必须是 data URL", {
+        status: 400,
+      });
+    }
+    return [{ inlineData: { mimeType: data[1], data: data[2] } }];
+  });
+}
+
+async function anthropicToOpenAiResponse(
+  response: Response,
+  modelId: string,
+): Promise<Response> {
+  const payload = objectValue(await response.json(), "Anthropic response");
+  const blocks = Array.isArray(payload.content) ? payload.content : [];
+  const text = blocks
+    .map((value) => objectValue(value, "Anthropic content block"))
+    .filter((value) => value.type === "text")
+    .map((value) => String(value.text ?? ""))
+    .join("");
+  const toolCalls = blocks
+    .map((value) => objectValue(value, "Anthropic content block"))
+    .filter((value) => value.type === "tool_use")
+    .map((value) => ({
+      id: String(value.id ?? randomUUID()),
+      type: "function",
+      function: {
+        name: String(value.name ?? ""),
+        arguments: JSON.stringify(value.input ?? {}),
+      },
+    }));
+  const usage = objectValue(payload.usage ?? {}, "Anthropic usage");
+  return jsonResponseLike(response, {
+    id: String(payload.id ?? `chatcmpl-${randomUUID()}`),
+    object: "chat.completion",
+    created: Math.floor(Date.now() / 1000),
+    model: String(payload.model ?? modelId),
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: "assistant",
+          content: text,
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+        },
+        finish_reason: anthropicFinishReason(payload.stop_reason),
+      },
+    ],
+    usage: {
+      prompt_tokens: Number(usage.input_tokens ?? 0),
+      completion_tokens: Number(usage.output_tokens ?? 0),
+      total_tokens:
+        Number(usage.input_tokens ?? 0) + Number(usage.output_tokens ?? 0),
+    },
+  });
+}
+
+async function geminiToOpenAiResponse(
+  response: Response,
+  modelId: string,
+): Promise<Response> {
+  const payload = objectValue(await response.json(), "Gemini response");
+  const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+  const candidate = candidates[0] ? objectValue(candidates[0], "Gemini candidate") : {};
+  const content = objectValue(candidate.content ?? {}, "Gemini content");
+  const parts = Array.isArray(content.parts) ? content.parts : [];
+  const text = parts
+    .map((value) => objectValue(value, "Gemini part"))
+    .map((value) => (typeof value.text === "string" ? value.text : ""))
+    .join("");
+  const toolCalls = parts
+    .map((value) => objectValue(value, "Gemini part"))
+    .filter((value) => value.functionCall && typeof value.functionCall === "object")
+    .map((value) => {
+      const call = objectValue(value.functionCall, "Gemini function call");
+      return {
+        id: `call-${randomUUID()}`,
+        type: "function",
+        function: {
+          name: String(call.name ?? ""),
+          arguments: JSON.stringify(call.args ?? {}),
+        },
+      };
+    });
+  const usage = objectValue(payload.usageMetadata ?? {}, "Gemini usage");
+  return jsonResponseLike(response, {
+    id: `chatcmpl-${randomUUID()}`,
+    object: "chat.completion",
+    created: Math.floor(Date.now() / 1000),
+    model: modelId,
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: "assistant",
+          content: text,
+          ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+        },
+        finish_reason: geminiFinishReason(candidate.finishReason),
+      },
+    ],
+    usage: {
+      prompt_tokens: Number(usage.promptTokenCount ?? 0),
+      completion_tokens: Number(usage.candidatesTokenCount ?? 0),
+      total_tokens: Number(usage.totalTokenCount ?? 0),
+    },
+  });
+}
+
+function anthropicStreamToOpenAiResponse(
+  response: Response,
+  fallbackModelId: string,
+): Response {
+  let completionId = `chatcmpl-${randomUUID()}`;
+  let modelId = fallbackModelId;
+  let roleSent = false;
+  let finished = false;
+  const toolIndexes = new Map<number, number>();
+  let nextToolIndex = 0;
+
+  return translateEventStream(
+    response,
+    (_eventName, data) => {
+      const payload = parseEventPayload(data, "Anthropic stream event");
+      const type = String(payload.type ?? "");
+      const chunks: string[] = [];
+      if (type === "message_start") {
+        const message = objectValue(payload.message, "Anthropic stream message");
+        completionId = String(message.id ?? completionId);
+        modelId = String(message.model ?? modelId);
+      }
+      if (!roleSent && type !== "ping") {
+        chunks.push(openAiEventChunk(completionId, modelId, { role: "assistant" }));
+        roleSent = true;
+      }
+      if (type === "content_block_start") {
+        const block = objectValue(payload.content_block, "Anthropic content block");
+        if (block.type === "tool_use") {
+          const sourceIndex = Number(payload.index ?? 0);
+          const toolIndex = nextToolIndex++;
+          toolIndexes.set(sourceIndex, toolIndex);
+          chunks.push(
+            openAiEventChunk(completionId, modelId, {
+              tool_calls: [
+                {
+                  index: toolIndex,
+                  id: String(block.id ?? `call-${randomUUID()}`),
+                  type: "function",
+                  function: { name: String(block.name ?? ""), arguments: "" },
+                },
+              ],
+            }),
+          );
+        }
+      } else if (type === "content_block_delta") {
+        const delta = objectValue(payload.delta, "Anthropic content delta");
+        if (delta.type === "text_delta") {
+          chunks.push(
+            openAiEventChunk(completionId, modelId, {
+              content: String(delta.text ?? ""),
+            }),
+          );
+        } else if (delta.type === "input_json_delta") {
+          const sourceIndex = Number(payload.index ?? 0);
+          chunks.push(
+            openAiEventChunk(completionId, modelId, {
+              tool_calls: [
+                {
+                  index: toolIndexes.get(sourceIndex) ?? sourceIndex,
+                  function: { arguments: String(delta.partial_json ?? "") },
+                },
+              ],
+            }),
+          );
+        }
+      } else if (type === "message_delta") {
+        const delta = objectValue(payload.delta, "Anthropic message delta");
+        chunks.push(
+          openAiEventChunk(
+            completionId,
+            modelId,
+            {},
+            anthropicFinishReason(delta.stop_reason),
+          ),
+        );
+        finished = true;
+      } else if (type === "message_stop") {
+        if (!finished) {
+          chunks.push(openAiEventChunk(completionId, modelId, {}, "stop"));
+          finished = true;
+        }
+        chunks.push("data: [DONE]\n\n");
+      }
+      return chunks;
+    },
+    () => {
+      if (finished) return [];
+      finished = true;
+      return [
+        openAiEventChunk(completionId, modelId, {}, "stop"),
+        "data: [DONE]\n\n",
+      ];
+    },
+  );
+}
+
+function geminiStreamToOpenAiResponse(
+  response: Response,
+  modelId: string,
+): Response {
+  const completionId = `chatcmpl-${randomUUID()}`;
+  let roleSent = false;
+  let finished = false;
+
+  return translateEventStream(
+    response,
+    (_eventName, data) => {
+      const payload = parseEventPayload(data, "Gemini stream event");
+      const chunks: string[] = [];
+      if (!roleSent) {
+        chunks.push(openAiEventChunk(completionId, modelId, { role: "assistant" }));
+        roleSent = true;
+      }
+      const candidates = Array.isArray(payload.candidates) ? payload.candidates : [];
+      const candidate = candidates[0]
+        ? objectValue(candidates[0], "Gemini stream candidate")
+        : {};
+      const content = objectValue(candidate.content ?? {}, "Gemini stream content");
+      const parts = Array.isArray(content.parts) ? content.parts : [];
+      parts.forEach((value, index) => {
+        const part = objectValue(value, "Gemini stream part");
+        if (typeof part.text === "string" && part.text) {
+          chunks.push(
+            openAiEventChunk(completionId, modelId, { content: part.text }),
+          );
+        }
+        if (part.functionCall && typeof part.functionCall === "object") {
+          const call = objectValue(part.functionCall, "Gemini function call");
+          chunks.push(
+            openAiEventChunk(completionId, modelId, {
+              tool_calls: [
+                {
+                  index,
+                  id: `call-${randomUUID()}`,
+                  type: "function",
+                  function: {
+                    name: String(call.name ?? ""),
+                    arguments: JSON.stringify(call.args ?? {}),
+                  },
+                },
+              ],
+            }),
+          );
+        }
+      });
+      if (candidate.finishReason) {
+        chunks.push(
+          openAiEventChunk(
+            completionId,
+            modelId,
+            {},
+            geminiFinishReason(candidate.finishReason),
+          ),
+        );
+        chunks.push("data: [DONE]\n\n");
+        finished = true;
+      }
+      return chunks;
+    },
+    () => {
+      if (finished) return [];
+      finished = true;
+      return [
+        openAiEventChunk(completionId, modelId, {}, "stop"),
+        "data: [DONE]\n\n",
+      ];
+    },
+  );
+}
+
+function translateEventStream(
+  source: Response,
+  translate: (eventName: string, data: string) => string[],
+  finish: () => string[],
+): Response {
+  if (!source.body) {
+    throw new CommercialApiError("模型流式响应缺少正文", { status: 502 });
+  }
+  const reader = source.body.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const emit = (chunks: readonly string[]) => {
+        for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      };
+      const drain = (final: boolean) => {
+        while (true) {
+          const boundary = /\r?\n\r?\n/.exec(buffer);
+          if (!boundary) break;
+          const block = buffer.slice(0, boundary.index);
+          buffer = buffer.slice(boundary.index + boundary[0].length);
+          const parsed = parseServerSentEvent(block);
+          if (parsed) emit(translate(parsed.eventName, parsed.data));
+        }
+        if (final && buffer.trim()) {
+          const parsed = parseServerSentEvent(buffer);
+          buffer = "";
+          if (parsed) emit(translate(parsed.eventName, parsed.data));
+        }
+      };
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          drain(false);
+        }
+        buffer += decoder.decode();
+        drain(true);
+        emit(finish());
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    async cancel(reason) {
+      await reader.cancel(reason);
+    },
+  });
+  const headers = new Headers({
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+  });
+  for (const name of ["x-request-id", "request-id"]) {
+    const value = source.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  return new Response(body, { status: source.status, headers });
+}
+
+function parseServerSentEvent(
+  block: string,
+): { eventName: string; data: string } | null {
+  let eventName = "message";
+  const data: string[] = [];
+  for (const line of block.split(/\r?\n/)) {
+    if (!line || line.startsWith(":")) continue;
+    if (line.startsWith("event:")) eventName = line.slice(6).trim();
+    if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
+  }
+  return data.length > 0 ? { eventName, data: data.join("\n") } : null;
+}
+
+function parseEventPayload(data: string, name: string): Record<string, unknown> {
+  try {
+    return objectValue(JSON.parse(data) as unknown, name);
+  } catch (error) {
+    if (error instanceof CommercialApiError) throw error;
+    throw new CommercialApiError(`${name} 不是有效 JSON`, { status: 502 });
+  }
+}
+
+function openAiEventChunk(
+  id: string,
+  model: string,
+  delta: Record<string, unknown>,
+  finishReason: string | null = null,
+): string {
+  return `data: ${JSON.stringify({
+    id,
+    object: "chat.completion.chunk",
+    created: Math.floor(Date.now() / 1000),
+    model,
+    choices: [{ index: 0, delta, finish_reason: finishReason }],
+  })}\n\n`;
+}
+
+function jsonResponseLike(source: Response, payload: unknown): Response {
+  const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
+  for (const name of ["x-request-id", "request-id"]) {
+    const value = source.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  return new Response(JSON.stringify(payload), { status: source.status, headers });
+}
+
+function objectValue(value: unknown, name: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new CommercialApiError(`${name} 必须是对象`, { status: 502 });
+  }
+  return value as Record<string, unknown>;
+}
+
+function textContent(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (!Array.isArray(value)) return "";
+  return value
+    .map((partValue) => objectValue(partValue, "OpenAI content part"))
+    .filter((part) => part.type === "text")
+    .map((part) => String(part.text ?? ""))
+    .join("\n");
+}
+
+function parseJsonArguments(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value !== "string" || !value.trim()) return {};
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    throw new CommercialApiError("工具参数不是有效 JSON", { status: 400 });
+  }
+}
+
+function positiveNumber(value: unknown, fallback: number): number {
+  const number = Number(value ?? fallback);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+function anthropicFinishReason(value: unknown): string {
+  if (value === "max_tokens") return "length";
+  if (value === "tool_use") return "tool_calls";
+  return "stop";
+}
+
+function geminiFinishReason(value: unknown): string {
+  if (value === "MAX_TOKENS") return "length";
+  return "stop";
+}
+
+function forwardedHeaders(
+  source: IncomingMessage["headers"],
+  contentType?: string,
+): Headers {
+  const headers = new Headers();
+  if (source.accept) headers.set("Accept", String(source.accept));
+  if (contentType) headers.set("Content-Type", contentType);
+  if (source.range) headers.set("Range", String(source.range));
+  if (source["anthropic-version"]) {
+    headers.set("Anthropic-Version", String(source["anthropic-version"]));
+  }
+  if (source["anthropic-beta"]) {
+    headers.set("Anthropic-Beta", String(source["anthropic-beta"]));
+  }
+  if (source["idempotency-key"]) {
+    headers.set("Idempotency-Key", String(source["idempotency-key"]));
+  }
+  return headers;
+}
+
+async function prepareBodyForRoute(
+  rawBody: Buffer | undefined,
+  contentType: string,
+  modelId: string,
+): Promise<PreparedBody> {
+  if (rawBody === undefined) return {};
+  const normalized = contentType.trim().toLowerCase();
+  if (normalized.startsWith("application/json")) {
+    const payload = parseJsonBody(rawBody);
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      return {
+        body: JSON.stringify({ ...payload, model: modelId }),
+        contentType: contentType || "application/json",
+      };
+    }
+  }
+  if (normalized.startsWith("multipart/form-data")) {
+    const source = await parseMultipartBody(rawBody, contentType);
+    const target = new FormData();
+    source.forEach((value, key) => {
+      if (key.toLowerCase() === "model") return;
+      if (typeof value === "string") target.append(key, value);
+      else target.append(key, value, value.name);
+    });
+    target.set("model", modelId);
+    return { body: target };
+  }
+  return {
+    body: rawBody as unknown as BodyInit,
+    ...(contentType ? { contentType } : {}),
+  };
+}
+
+async function readModelRequestBody(
   request: IncomingMessage,
   contentType: string,
-): Promise<BodyInit> {
+): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of request) {
@@ -201,38 +1320,49 @@ async function modelRequestBody(
     chunks.push(bytes);
   }
   const body = Buffer.concat(chunks);
-  const normalizedContentType = contentType.trim().toLowerCase();
-  if (normalizedContentType.startsWith("multipart/form-data")) {
-    await assertMultipartFieldsAllowed(body, contentType);
-    return body;
-  }
-  if (!normalizedContentType.startsWith("application/json")) return body;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(body.toString("utf8")) as unknown;
-  } catch {
-    throw new CommercialApiError("模型请求体不是有效 JSON", { status: 400 });
-  }
-  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-    for (const key of Object.keys(parsed)) {
-      if (isForbiddenCloudField(key)) {
-        throw new CommercialApiError(`云端模型请求禁止字段 ${key}`, {
-          status: 400,
-        });
+  const normalized = contentType.trim().toLowerCase();
+  if (normalized.startsWith("application/json")) {
+    assertFieldsAllowed(parseJsonBody(body));
+  } else if (normalized.startsWith("multipart/form-data")) {
+    const form = await parseMultipartBody(body, contentType);
+    let forbiddenField: string | null = null;
+    form.forEach((_value, key) => {
+      if (forbiddenField === null && isForbiddenModelField(key)) {
+        forbiddenField = key;
       }
+    });
+    if (forbiddenField) {
+      throw new CommercialApiError(`模型请求禁止字段 ${forbiddenField}`, {
+        status: 400,
+      });
     }
   }
   return body;
 }
 
-async function assertMultipartFieldsAllowed(
+function parseJsonBody(body: Buffer): Record<string, unknown> | unknown[] | null {
+  try {
+    return JSON.parse(body.toString("utf8")) as Record<string, unknown> | unknown[] | null;
+  } catch {
+    throw new CommercialApiError("模型请求体不是有效 JSON", { status: 400 });
+  }
+}
+
+function assertFieldsAllowed(payload: unknown): void {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return;
+  for (const key of Object.keys(payload)) {
+    if (isForbiddenModelField(key)) {
+      throw new CommercialApiError(`模型请求禁止字段 ${key}`, { status: 400 });
+    }
+  }
+}
+
+async function parseMultipartBody(
   body: Buffer,
   contentType: string,
-): Promise<void> {
-  let form: FormData;
+): Promise<FormData> {
   try {
-    form = await new Request("http://model-proxy.local", {
+    return await new Request("http://model-proxy.local", {
       method: "POST",
       headers: { "Content-Type": contentType },
       body: body as unknown as BodyInit,
@@ -240,21 +1370,120 @@ async function assertMultipartFieldsAllowed(
   } catch {
     throw new CommercialApiError("模型 multipart 请求体无效", { status: 400 });
   }
-  let forbiddenField: string | null = null;
-  form.forEach((_value, key) => {
-    if (forbiddenField === null && isForbiddenCloudField(key)) {
-      forbiddenField = key;
-    }
-  });
-  if (forbiddenField !== null) {
-    throw new CommercialApiError(`云端模型请求禁止字段 ${forbiddenField}`, {
-      status: 400,
-    });
+}
+
+function normalizeRoleHeader(value: string | string[] | undefined): ByokModelRole | null {
+  const normalized = Array.isArray(value) ? value[0]?.trim().toUpperCase() : value?.trim().toUpperCase();
+  if (!normalized) return null;
+  if (!(BYOK_MODEL_ROLES as readonly string[]).includes(normalized)) {
+    throw new CommercialApiError("模型用途标头无效", { status: 400 });
+  }
+  return normalized as ByokModelRole;
+}
+
+function inferModelRole(path: string): ByokModelRole | null {
+  const pathname = new URL(path, "http://model-proxy.local").pathname.toLowerCase();
+  if (pathname.endsWith("/embeddings")) return "EMBEDDING";
+  if (pathname.endsWith("/rerank")) return "RERANK";
+  if (pathname.endsWith("/moderations")) return "MODERATION";
+  if (pathname.endsWith("/images/generations")) return "IMAGE_GENERATION";
+  if (pathname.endsWith("/images/edits")) return "IMAGE_EDIT";
+  if (pathname.endsWith("/audio/speech")) return "AUDIO_SPEECH";
+  if (pathname.startsWith("/v1/videos")) return "VIDEO_TEXT_TO_VIDEO";
+  if (
+    pathname.endsWith("/chat/completions") ||
+    pathname.endsWith("/responses") ||
+    pathname.endsWith("/messages") ||
+    pathname.endsWith("/completions")
+  ) {
+    return "TEXT";
+  }
+  return null;
+}
+
+function videoTaskId(path: string): string | null {
+  const pathname = new URL(path, "http://model-proxy.local").pathname;
+  const match = /^\/v1\/videos\/([^/]+)(?:\/content)?$/.exec(pathname);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function shouldFallback(route: ModelRoute, status: number): boolean {
+  if (
+    route.source === "byok" &&
+    BYOK_CONFIGURATION_ERROR_STATUSES.has(status)
+  ) {
+    return false;
+  }
+  return FALLBACK_STATUSES.has(status) || status >= 500;
+}
+
+function isModelWriteMethod(method: string): boolean {
+  return method !== "GET" && method !== "HEAD";
+}
+
+function assertModelResponseContract(path: string, response: Response): void {
+  const url = new URL(path, "http://model-proxy.local");
+  const isVideoContent = /^\/v1\/videos\/[^/]+\/content$/.test(url.pathname);
+  if (!isVideoContent || response.status < 200 || response.status >= 300) return;
+  const contentType = (response.headers.get("content-type") ?? "")
+    .split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (
+    contentType !== "video/mp4" &&
+    contentType !== "application/mp4" &&
+    contentType !== "application/octet-stream"
+  ) {
+    throw new CommercialApiError(
+      `视频结果接口返回了非视频内容${contentType ? `：${contentType}` : ""}`,
+      { status: 502 },
+    );
   }
 }
 
-function isForbiddenCloudField(value: string): boolean {
-  return FORBIDDEN_CLOUD_FIELDS.has(
+function pipeModelResponse(
+  method: string,
+  upstream: Response,
+  response: ServerResponse,
+  route: ModelRoute,
+  attempts: number,
+): void {
+  response.statusCode = upstream.status;
+  response.setHeader("X-AI-Anime-Route-Source", route.source);
+  response.setHeader("X-AI-Anime-Route-Model", route.modelId);
+  response.setHeader("X-AI-Anime-Route-Role", route.role);
+  response.setHeader("X-AI-Anime-Route-Attempts", String(attempts));
+  const hasResponseBody = Boolean(upstream.body) && method !== "HEAD";
+  for (const header of [
+    "content-type",
+    "content-disposition",
+    "cache-control",
+    "etag",
+    "accept-ranges",
+    "content-range",
+    "location",
+    "retry-after",
+    "x-request-id",
+  ]) {
+    const value = upstream.headers.get(header);
+    if (value) response.setHeader(header, value);
+  }
+  if (!hasResponseBody) {
+    const contentLength = upstream.headers.get("content-length");
+    if (contentLength) response.setHeader("content-length", contentLength);
+    response.end();
+    return;
+  }
+  const bodyStream = Readable.fromWeb(upstream.body as never);
+  bodyStream.once("error", (error) => {
+    if (!response.destroyed) response.destroy(error);
+  });
+  response.once("close", () => bodyStream.destroy());
+  bodyStream.pipe(response);
+}
+
+function isForbiddenModelField(value: string): boolean {
+  return FORBIDDEN_MODEL_FIELDS.has(
     value.toLowerCase().replaceAll("_", "").replaceAll("-", ""),
   );
 }

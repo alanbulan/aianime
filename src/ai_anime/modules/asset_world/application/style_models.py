@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class StyleConfig(BaseModel):
     """风格配置模型 - One Source of Truth for style settings.
 
-    支持系统预设（从 JSON 文件加载）和自定义风格（从 Redis 加载）。
+    支持系统预设（应用文件）和账号级自定义风格（用户目录）。
 
     字段说明：
     - style_instructions / avoid_instructions: 所有图像模型共用的项目风格指令
@@ -59,7 +59,7 @@ class StyleConfig(BaseModel):
     created_by: Optional[str] = Field(default=None, description="创建者（仅自定义风格）")
     preview_path: Optional[str] = Field(
         default=None,
-        description="自定义风格参考图相对于项目目录的路径；预设风格为空",
+        description="自定义风格参考图相对于账号资源目录的路径；预设风格为空",
     )
 
     def to_legacy_dict(self) -> dict:

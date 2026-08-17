@@ -116,6 +116,10 @@ M05_EXPECTED_OPERATIONS = {
         "POST",
         "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/pose-editor",
     ),
+    (
+        "GET",
+        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/crop-source",
+    ),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/crop"),
     (
         "POST",
@@ -281,6 +285,7 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.modules.asset_world.infrastructure import (
         beat_viewer as beat_viewer_adapter,
         image_settings as image_settings_adapter,
+        scene_task_assets as scene_task_assets_adapter,
     )
     from ai_anime.modules.production.application.sketch_regen_queue import (
         SketchRegenQueueUseCases,
@@ -412,6 +417,11 @@ def m05_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "load_project_config_file",
         lambda *_: {"visual_style": "cinematic"},
     )
+    monkeypatch.setattr(
+        scene_task_assets_adapter.LocalSceneTaskAssets,
+        "stage_generation_capability",
+        lambda _self, _step: (True, ""),
+    )
     def static_url(_ctx, rel_path: str, local_path=None):
         return f"/static/projects/proj_m05/{rel_path}"
 
@@ -525,14 +535,14 @@ def test_m05_openapi_exposes_expected_operations(m05_client_factory):
         if method.lower() in {"get", "post", "patch", "put", "delete"}
     }
 
-    assert len(M05_EXPECTED_OPERATIONS) == 60
+    assert len(M05_EXPECTED_OPERATIONS) == 61
     assert not M05_EXPECTED_OPERATIONS - actual
     assert "/api/v1/projects/{project}/scenes/{name}/director-stage/world" in spec["paths"]
     assert "/api/v1/projects/{project}/scenes/{name}/director-stage/world/clear" in spec["paths"]
 
 
 def test_m05_contract_requires_promoted_world_and_sketch_candidate_routes() -> None:
-    assert len(M05_EXPECTED_OPERATIONS) == 60
+    assert len(M05_EXPECTED_OPERATIONS) == 61
     assert (
         "POST",
         "/api/v1/projects/{project}/scenes/{name}/director-stage/world",
@@ -854,11 +864,9 @@ def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
             json={"pool_id": frame_upload["pool_id"]},
         )
     )
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/sketch/pose-editor"))
     _assert_ok(
-        client.post(
-            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/sketch/pose-editor",
-            json={"strokes": []},
+        client.get(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/sketch/crop-source"
         )
     )
     _assert_ok(

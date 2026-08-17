@@ -37,7 +37,7 @@ describe("Production IndexTTS2 audio queries", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/1/audio/generate",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             task_type: "audio_generation_indextts2",
@@ -76,7 +76,7 @@ describe("Production IndexTTS2 audio queries", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/5/audio",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             task_type: "audio_generation_indextts2",

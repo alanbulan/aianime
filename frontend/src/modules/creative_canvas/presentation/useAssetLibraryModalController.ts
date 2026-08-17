@@ -77,6 +77,7 @@ export function useAssetLibraryModalController({
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CanvasAssetLibraryItem | null>(null);
   const [pendingUploads, setPendingUploads] = useState<
     AssetLibraryPendingUpload[]
   >([]);
@@ -164,6 +165,7 @@ export function useAssetLibraryModalController({
       setLibrary([]);
       setLibraryError(null);
       setDeletingId(null);
+      setDeleteTarget(null);
       setIsDragging(false);
       setIsSyncing(false);
       setSelectedKeys([]);
@@ -273,17 +275,14 @@ export function useAssetLibraryModalController({
     [activeMedia, activeTab, project, uploadOne],
   );
 
-  const handleDeleteEntry = useCallback(
-    async (entry: CanvasAssetLibraryItem) => {
-      if (!project || !entry.id) return;
-      const confirmed = window.confirm(
-        `确定要删除「${entry.name || entry.id}」？`,
-      );
-      if (!confirmed) return;
-      setDeletingId(entry.id);
+  const confirmDeleteEntry = useCallback(
+    async () => {
+      if (!project || !deleteTarget?.id) return;
+      setDeletingId(deleteTarget.id);
       try {
-        await deleteCanvasAssetLibraryItem(project, entry.id);
+        await deleteCanvasAssetLibraryItem(project, deleteTarget.id);
         await refreshLibrary();
+        setDeleteTarget(null);
       } catch (error) {
         console.error('[asset-library] delete failed', error);
         setLibraryError(
@@ -293,7 +292,7 @@ export function useAssetLibraryModalController({
         setDeletingId(null);
       }
     },
-    [project, refreshLibrary],
+    [deleteTarget, project, refreshLibrary],
   );
 
   const handleDrop = useCallback(
@@ -363,6 +362,14 @@ export function useAssetLibraryModalController({
     libraryError,
     isSyncing,
     deletingId,
+    deleteDialog: {
+      confirm: confirmDeleteEntry,
+      name: deleteTarget?.name || deleteTarget?.id || "",
+      onOpenChange: (nextOpen: boolean) => {
+        if (!nextOpen && !deletingId) setDeleteTarget(null);
+      },
+      open: Boolean(deleteTarget),
+    },
     pendingUploads,
     isDragging,
     setIsDragging,
@@ -374,7 +381,7 @@ export function useAssetLibraryModalController({
     handleSyncFromMainline,
     removePending,
     handleFiles,
-    handleDeleteEntry,
+    handleDeleteEntry: setDeleteTarget,
     handleDrop,
     selectionKey: assetLibrarySelectionKey,
     isSelected,

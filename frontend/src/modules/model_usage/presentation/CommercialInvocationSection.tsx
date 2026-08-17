@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -42,8 +42,10 @@ import {
   useCancelCommercialInvocation,
   useCommercialInvocationDetails,
   useCommercialInvocations,
+  useCommercialModelCatalog,
   useSaveCommercialInvocationResult,
 } from "@/modules/model_usage/composition";
+import type { CommercialModelCatalogItem } from "@/modules/model_usage/domain/commercial-model-access";
 import {
   canCancelCommercialInvocation,
   canSaveCommercialInvocationResult,
@@ -80,6 +82,21 @@ export function CommercialInvocationSection({
   );
   const cancelInvocation = useCancelCommercialInvocation();
   const saveResult = useSaveCommercialInvocationResult();
+  const modelCatalog = useCommercialModelCatalog(
+    undefined,
+    active && bridgeAvailable,
+    "cloud",
+  );
+  const catalogItemsByCode = useMemo(
+    () =>
+      new Map(
+        (modelCatalog.data?.items ?? []).map((item) => [
+          normalizeModelCode(item.code),
+          item,
+        ]),
+      ),
+    [modelCatalog.data?.items],
+  );
   const pageCount = Math.max(1, Math.ceil((list.data?.total ?? 0) / PAGE_SIZE));
 
   if (!bridgeAvailable) {
@@ -117,7 +134,7 @@ export function CommercialInvocationSection({
             type="button"
             size="icon-sm"
             variant="ghost"
-            title={t("settings.invocations.refresh")}
+            data-ui-tooltip={t("settings.invocations.refresh")}
             aria-label={t("settings.invocations.refresh")}
             disabled={list.isFetching}
             onClick={() => void list.refetch()}
@@ -148,6 +165,7 @@ export function CommercialInvocationSection({
           <InvocationRow
             key={String(invocation.id)}
             invocation={invocation}
+            modelLabel={resolveModelLabel(invocation, catalogItemsByCode, t)}
             selected={String(selectedId ?? "") === String(invocation.id)}
             onDetails={() => setSelectedId(invocation.id)}
             onCancel={() => setCancelTarget(invocation)}
@@ -181,7 +199,7 @@ export function CommercialInvocationSection({
           type="button"
           size="icon-sm"
           variant="ghost"
-          title={t("settings.invocations.previousPage")}
+          data-ui-tooltip={t("settings.invocations.previousPage")}
           aria-label={t("settings.invocations.previousPage")}
           disabled={page <= 1}
           onClick={() => setPage((current) => Math.max(1, current - 1))}
@@ -192,7 +210,7 @@ export function CommercialInvocationSection({
           type="button"
           size="icon-sm"
           variant="ghost"
-          title={t("settings.invocations.nextPage")}
+          data-ui-tooltip={t("settings.invocations.nextPage")}
           aria-label={t("settings.invocations.nextPage")}
           disabled={page >= pageCount}
           onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
@@ -220,6 +238,7 @@ export function CommercialInvocationSection({
           <div className="min-h-0 overflow-y-auto px-5 py-4">
             <InvocationDetails
               invocation={details.data}
+              catalogItemsByCode={catalogItemsByCode}
               loading={details.isLoading}
               error={details.error}
             />
@@ -242,9 +261,7 @@ export function CommercialInvocationSection({
           <AlertDialogHeader>
             <AlertDialogTitle>{t("settings.invocations.cancelTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("settings.invocations.cancelDescription", {
-                id: String(cancelTarget?.id ?? ""),
-              })}
+              {t("settings.invocations.cancelDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -315,25 +332,37 @@ function InvocationFilter({
 
 function InvocationRow({
   invocation,
+  modelLabel,
   selected,
   onDetails,
   onCancel,
   onSave,
 }: {
   invocation: CommercialInvocation;
+  modelLabel: string;
   selected: boolean;
   onDetails: () => void;
   onCancel: () => void;
   onSave: () => void;
 }) {
   const { t } = useTranslation();
+  const quotaSummary =
+    invocation.chargedUnits !== undefined
+      ? t("settings.invocations.chargedSummary", {
+          count: invocation.chargedUnits,
+        })
+      : invocation.reservedUnits !== undefined
+        ? t("settings.invocations.reservedSummary", {
+            count: invocation.reservedUnits,
+          })
+        : "";
   return (
     <div className={selected ? "bg-muted/45 px-1 py-2" : "px-1 py-2"}>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <p className="truncate text-sm font-medium text-foreground">
-              {invocation.modelSkuCode ?? invocation.operation ?? String(invocation.id)}
+              {modelLabel}
             </p>
             <StatusBadge status={invocation.status} />
           </div>
@@ -342,19 +371,20 @@ function InvocationRow({
             {invocation.quotaStatus
               ? ` · ${commercialValueLabel(t, "quota", invocation.quotaStatus)}`
               : ""}
+            {quotaSummary ? ` · ${quotaSummary}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-1">
-          <Button type="button" size="icon-xs" variant="ghost" title={t("settings.invocations.details")} aria-label={t("settings.invocations.details")} onClick={onDetails}>
+          <Button type="button" size="icon-xs" variant="ghost" data-ui-tooltip={t("settings.invocations.details")} aria-label={t("settings.invocations.details")} onClick={onDetails}>
             <Eye />
           </Button>
           {canCancelCommercialInvocation(invocation.status) ? (
-            <Button type="button" size="icon-xs" variant="ghost" title={t("settings.invocations.cancel")} aria-label={t("settings.invocations.cancel")} onClick={onCancel}>
+            <Button type="button" size="icon-xs" variant="ghost" data-ui-tooltip={t("settings.invocations.cancel")} aria-label={t("settings.invocations.cancel")} onClick={onCancel}>
               <XCircle />
             </Button>
           ) : null}
           {canSaveCommercialInvocationResult(invocation.status) ? (
-            <Button type="button" size="icon-xs" variant="ghost" title={t("settings.invocations.saveResult")} aria-label={t("settings.invocations.saveResult")} onClick={onSave}>
+            <Button type="button" size="icon-xs" variant="ghost" data-ui-tooltip={t("settings.invocations.saveResult")} aria-label={t("settings.invocations.saveResult")} onClick={onSave}>
               <Download />
             </Button>
           ) : null}
@@ -366,10 +396,12 @@ function InvocationRow({
 
 function InvocationDetails({
   invocation,
+  catalogItemsByCode,
   loading,
   error,
 }: {
   invocation: CommercialInvocation | undefined;
+  catalogItemsByCode: ReadonlyMap<string, CommercialModelCatalogItem>;
   loading: boolean;
   error: unknown;
 }) {
@@ -380,7 +412,6 @@ function InvocationDetails({
   if (error) return <InlineNotice>{errorMessage(error, t("settings.invocations.detailsFailed"))}</InlineNotice>;
   if (!invocation) return null;
   const fields = [
-    [t("settings.invocations.id"), String(invocation.id)],
     [
       t("settings.invocations.status"),
       commercialValueLabel(t, "status", invocation.status),
@@ -391,14 +422,43 @@ function InvocationDetails({
         ? commercialValueLabel(t, "operation", invocation.operation)
         : undefined,
     ],
-    [t("settings.invocations.model"), invocation.modelSkuCode],
+    [
+      t("settings.invocations.model"),
+      resolveModelLabel(invocation, catalogItemsByCode, t),
+    ],
     [
       t("settings.invocations.quotaStatus"),
       invocation.quotaStatus
         ? commercialValueLabel(t, "quota", invocation.quotaStatus)
         : undefined,
     ],
-    [t("settings.invocations.requestId"), invocation.requestId],
+    [
+      t("settings.invocations.reservationId"),
+      invocation.reservationId === undefined
+        ? undefined
+        : String(invocation.reservationId),
+    ],
+    [
+      t("settings.invocations.reservedUnits"),
+      formatQuotaUnits(invocation.reservedUnits, t),
+    ],
+    [
+      t("settings.invocations.chargedUnits"),
+      formatQuotaUnits(invocation.chargedUnits, t),
+    ],
+    [
+      t("settings.invocations.refundedUnits"),
+      formatQuotaUnits(invocation.refundedUnits, t),
+    ],
+    [
+      t("settings.invocations.balanceChange"),
+      invocation.balanceBefore === undefined || invocation.balanceAfter === undefined
+        ? undefined
+        : t("settings.invocations.balanceChangeValue", {
+            before: invocation.balanceBefore,
+            after: invocation.balanceAfter,
+          }),
+    ],
     [t("settings.invocations.createdAt"), formatDate(invocation.createdAt)],
     [t("settings.invocations.completedAt"), formatDate(invocation.completedAt)],
   ].filter((field): field is [string, string] => Boolean(field[1]));
@@ -412,6 +472,11 @@ function InvocationDetails({
           </div>
         ))}
       </dl>
+      {isQuotaSettlementPending(invocation.quotaStatus) ? (
+        <p className="mt-4 border-l-2 border-warning pl-3 text-[11px] leading-5 text-muted-foreground">
+          {t("settings.invocations.quotaSettlementPending")}
+        </p>
+      ) : null}
       {invocation.errorMessage ? (
         <p className="mt-3 border-l-2 border-destructive pl-3 text-xs text-destructive">
           {invocation.errorMessage}
@@ -419,6 +484,37 @@ function InvocationDetails({
       ) : null}
     </div>
   );
+}
+
+function formatQuotaUnits(
+  value: number | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string | undefined {
+  return value === undefined
+    ? undefined
+    : t("settings.invocations.quotaUnitsValue", { count: value });
+}
+
+function isQuotaSettlementPending(status: string | undefined): boolean {
+  return new Set(["HELD", "REVIEW_REQUIRED"]).has(
+    status?.trim().toUpperCase() ?? "",
+  );
+}
+
+function resolveModelLabel(
+  invocation: CommercialInvocation,
+  catalogItemsByCode: ReadonlyMap<string, CommercialModelCatalogItem>,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const item = invocation.modelSkuCode
+    ? catalogItemsByCode.get(normalizeModelCode(invocation.modelSkuCode))
+    : undefined;
+  if (item?.displayName.trim()) return item.displayName.trim();
+  return t("settings.invocations.unknownModel");
+}
+
+function normalizeModelCode(value: string): string {
+  return value.trim().toUpperCase();
 }
 
 function StatusBadge({ status }: { status: string }) {

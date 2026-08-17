@@ -469,12 +469,10 @@ def test_creative_canvas_job_execution_has_one_module_owner() -> None:
         path: path.read_text(encoding="utf-8") for path in _python_files(PACKAGE_ROOT)
     }
     assert all(
-        "ai_anime.freezone.jobs" not in source
-        for source in production_sources.values()
+        "ai_anime.freezone.jobs" not in source for source in production_sources.values()
     )
     runner_sources = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in _python_files(TASK_RUNNERS_ROOT)
+        path.read_text(encoding="utf-8") for path in _python_files(TASK_RUNNERS_ROOT)
     )
     assert "creative_canvas.infrastructure" not in runner_sources
     assert "creative_canvas_job_execution_use_cases" in runner_sources
@@ -558,8 +556,7 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
     assert all(path.exists() for path in owners)
 
     runner_files = {
-        path.name
-        for path in (module / "infrastructure" / "runners").glob("*.py")
+        path.name for path in (module / "infrastructure" / "runners").glob("*.py")
     }
     assert runner_files == {
         "__init__.py",
@@ -570,13 +567,16 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
         "graph_build.py",
         "identity.py",
         "ingest.py",
+        "production_workflow.py",
         "prop_reference.py",
         "render.py",
         "scene_reference.py",
         "script.py",
+        "script_workflow.py",
         "sketch.py",
         "sketch_edit_execute.py",
         "stage_asset.py",
+        "style_preview.py",
         "video.py",
     }
 
@@ -588,14 +588,10 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
             if imported.startswith("ai_anime.modules.task_execution") and imported != (
                 "ai_anime.modules.task_execution.public"
             ):
-                violations.append(
-                    f"{path.relative_to(REPO_ROOT)} imports {imported}"
-                )
+                violations.append(f"{path.relative_to(REPO_ROOT)} imports {imported}")
     assert violations == []
 
-    ports_source = (
-        PACKAGE_ROOT / "shared" / "ports" / "__init__.py"
-    ).read_text(
+    ports_source = (PACKAGE_ROOT / "shared" / "ports" / "__init__.py").read_text(
         encoding="utf-8"
     )
     local_ports_source = (
@@ -604,9 +600,9 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
     assert "get_cloud_adapter" not in ports_source
     assert 'register_port("cloud_adapter"' not in local_ports_source
 
-    task_route = (PACKAGE_ROOT / "api" / "routes" / "task_execution" / "tasks.py").read_text(
-        encoding="utf-8"
-    )
+    task_route = (
+        PACKAGE_ROOT / "api" / "routes" / "task_execution" / "tasks.py"
+    ).read_text(encoding="utf-8")
     for moved_implementation in (
         "TaskState",
         "project_task_state_key",
@@ -685,11 +681,7 @@ def test_stage_asset_subprocesses_are_owned_by_asset_world() -> None:
 def test_project_sqlite_uow_composes_owned_repositories() -> None:
     entry = PACKAGE_ROOT / "sqlite_store.py"
     asset_repository = (
-        PACKAGE_ROOT
-        / "modules"
-        / "asset_world"
-        / "infrastructure"
-        / "sqlite_assets.py"
+        PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "sqlite_assets.py"
     )
     narrative_repository = (
         PACKAGE_ROOT
@@ -698,23 +690,10 @@ def test_project_sqlite_uow_composes_owned_repositories() -> None:
         / "infrastructure"
         / "sqlite_narrative.py"
     )
-    schema = (
-        PACKAGE_ROOT
-        / "shared"
-        / "infrastructure"
-        / "project_sqlite_schema.py"
-    )
-    core = (
-        PACKAGE_ROOT
-        / "shared"
-        / "infrastructure"
-        / "project_sqlite_core.py"
-    )
+    schema = PACKAGE_ROOT / "shared" / "infrastructure" / "project_sqlite_schema.py"
+    core = PACKAGE_ROOT / "shared" / "infrastructure" / "project_sqlite_core.py"
     graph_state = (
-        PACKAGE_ROOT
-        / "shared"
-        / "infrastructure"
-        / "project_sqlite_graph_state.py"
+        PACKAGE_ROOT / "shared" / "infrastructure" / "project_sqlite_graph_state.py"
     )
     entry_source = entry.read_text(encoding="utf-8")
 
@@ -767,8 +746,8 @@ def test_task_restart_recovery_rules_are_owned_by_task_execution() -> None:
     assert not (PACKAGE_ROOT / "task_state.py").exists()
     for moved_rule in (
         "服务重启,任务已中断,请重新发起",
-        'ACTIVE_PROJECT_TASK_STATUSES = {',
-        'TERMINAL_TASK_STATUSES = {',
+        "ACTIVE_PROJECT_TASK_STATUSES = {",
+        "TERMINAL_TASK_STATUSES = {",
     ):
         assert moved_rule not in task_state_source
     for backend in (inline_backend,):
@@ -847,7 +826,7 @@ def test_asset_world_submits_tasks_only_through_task_execution() -> None:
 
     assert scheduler_source.count("ProjectTaskSubmission(") == 1
     assert scheduler_source.count("self._submissions.submit(") == 1
-    assert composition_source.count("project_task_submission_use_cases()") == 3
+    assert composition_source.count("project_task_submission_use_cases()") == 4
     for legacy_source in (scheduler_source, composition_source):
         assert "get_task_backend" not in legacy_source
         assert "task_backend_provider" not in legacy_source
@@ -898,9 +877,14 @@ def test_production_submits_tasks_only_through_task_execution() -> None:
         PACKAGE_ROOT / "api" / "routes" / "verification" / "episode_checks.py"
     ).read_text(encoding="utf-8")
 
-    assert sum(source.count("ProjectTaskSubmission(") for source in adapter_sources) == 10
-    assert sum(source.count("self._submissions.submit(") for source in adapter_sources) == 10
-    assert composition_source.count("project_task_submission_use_cases()") == 11
+    assert (
+        sum(source.count("ProjectTaskSubmission(") for source in adapter_sources) == 10
+    )
+    assert (
+        sum(source.count("self._submissions.submit(") for source in adapter_sources)
+        == 10
+    )
+    assert composition_source.count("project_task_submission_use_cases()") == 12
     for legacy_source in (*adapter_sources, composition_source):
         assert "get_task_backend" not in legacy_source
         assert "task_backend_provider" not in legacy_source
@@ -963,10 +947,7 @@ def test_recent_bounded_context_moves_do_not_regress() -> None:
     ).read_text(encoding="utf-8")
 
     media_generation = (
-        modules_root
-        / "production"
-        / "infrastructure"
-        / "media_generation"
+        modules_root / "production" / "infrastructure" / "media_generation"
     )
     public = modules_root / "production" / "public.py"
     for owner_file in (
@@ -1075,52 +1056,58 @@ def test_frontend_commercial_bootstrap_has_one_composition_owner() -> None:
     assert "completeBootstrap(entitlement)" in composition
 
 
-def test_fastapi_model_access_has_exactly_cloud_and_byok_modes() -> None:
+def test_fastapi_model_access_uses_only_the_desktop_mixed_router() -> None:
     infrastructure = PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure"
     policy = (infrastructure / "model_access_policy.py").read_text(encoding="utf-8")
     settings = (infrastructure / "model_gateway_settings.py").read_text(
         encoding="utf-8"
     )
-    assert 'normalized_mode not in {"cloud", "byok"}' in policy
-    assert '_selected_mode = "cloud"' in policy
-    assert 'MODE_CLOUD = "cloud"' in settings
-    assert 'MODE_BYOK = "byok"' in settings
+    assert 'normalized_mode != "mixed"' in policy
+    assert '_selected_mode = "mixed"' in policy
+    assert 'MODE_MIXED = "mixed"' in settings
+    assert 'MODE_CLOUD = "cloud"' not in settings
+    assert 'MODE_BYOK = "byok"' not in settings
     assert "AI_ANIME_CLOUD_PROXY_BASE_URL" in policy
     assert "AI_ANIME_CLOUD_PROXY_TOKEN" in policy
     assert "OFFICIAL_NEWAPI_BASE_URL" not in policy
     assert "OPENROUTER_API_KEY" not in policy
 
 
-def test_desktop_model_access_keeps_cloud_proxy_and_byok_direct_paths_separate() -> (
+def test_desktop_model_access_routes_cloud_and_multiple_byok_providers_together() -> (
     None
 ):
     main = (REPO_ROOT / "desktop" / "src" / "main.ts").read_text(encoding="utf-8")
-    commercial_entry = (
-        REPO_ROOT / "desktop" / "src" / "commercial.ts"
-    ).read_text(encoding="utf-8")
+    commercial_entry = (REPO_ROOT / "desktop" / "src" / "commercial.ts").read_text(
+        encoding="utf-8"
+    )
     commercial_client = (
         REPO_ROOT / "desktop" / "src" / "commercial-api-client.ts"
     ).read_text(encoding="utf-8")
-    commercial_ipc = (
-        REPO_ROOT / "desktop" / "src" / "commercial-ipc.ts"
-    ).read_text(encoding="utf-8")
+    commercial_ipc = (REPO_ROOT / "desktop" / "src" / "commercial-ipc.ts").read_text(
+        encoding="utf-8"
+    )
     cloud_proxy = (
         REPO_ROOT / "desktop" / "src" / "commercial-model-proxy.ts"
     ).read_text(encoding="utf-8")
 
-    assert (
-        "commercialModelProxy = new CommercialModelProxy(client, deviceIdentity)"
-        in main
-    )
+    assert "commercialModelProxy = new CommercialModelProxy(" in main
+    assert "appendModelRouteAudit(modelRouteLogPath, entry)" in main
     assert "AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl" in main
     assert "AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token" in main
-    assert 'mode: allowsCustomModels ? access.mode : "cloud"' in main
-    assert 'allowsCustomModels && access.mode === "byok"' in main
-    assert "byokBaseUrl: access.byokBaseUrl" in main
-    assert "byokApiKey: access.byokApiKey" in main
+    assert 'mode: "mixed"' in main
+    assert "modelRoutingSnapshot(routing)" in main
+    assert "byokBaseUrl" not in main
+    assert "byokApiKey" not in main
 
-    assert "await this.client.modelRequest({" in cloud_proxy
-    assert "byokBaseUrl" not in cloud_proxy
+    assert "return this.client.modelRequest({" in cloud_proxy
+    assert "requestByok(route, input, prepared)" in cloud_proxy
+    assert "requestWithFallback" in cloud_proxy
+    assert "modelRoutingSnapshot" in cloud_proxy
+    assert "BYOK_CONFIGURATION_ERROR_STATUSES" in cloud_proxy
+    assert "shouldFallback(route, upstream.status)" in cloud_proxy
+    assert "requestedModel" not in cloud_proxy
+    assert "cloudPassthroughRoute" not in cloud_proxy
+    assert "拒绝绕过统一路由" in cloud_proxy
     assert "export *" not in commercial_entry
     assert "function registerCommercialIpc" not in commercial_entry
     assert 'from "./commercial-api-client.js"' in commercial_entry
@@ -1159,11 +1146,7 @@ def test_legacy_image_model_configuration_cannot_return() -> None:
 
 def test_third_model_fallback_configuration_cannot_return() -> None:
     backend_config = (
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "model_runtime.py"
+        PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "model_runtime.py"
     ).read_text(encoding="utf-8")
     project_config = (
         PACKAGE_ROOT
@@ -1173,14 +1156,14 @@ def test_third_model_fallback_configuration_cannot_return() -> None:
         / "project_config.py"
     ).read_text(encoding="utf-8")
     frontend_settings = (
-            REPO_ROOT
-            / "frontend"
-            / "src"
-            / "modules"
-            / "creative_canvas"
-            / "presentation"
-            / "settingsStore.ts"
-        ).read_text(encoding="utf-8")
+        REPO_ROOT
+        / "frontend"
+        / "src"
+        / "modules"
+        / "creative_canvas"
+        / "presentation"
+        / "settingsStore.ts"
+    ).read_text(encoding="utf-8")
     canvas_registry = (
         REPO_ROOT
         / "frontend"
@@ -1211,7 +1194,12 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
         / "model_usage"
         / "infrastructure"
         / "model_runtime.py",
-        PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "hermes_workspace.py",
+        PACKAGE_ROOT
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "hermes_workspace.py",
         PACKAGE_ROOT
         / "modules"
         / "asset_world"
@@ -1244,13 +1232,7 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
     violations = [
         str(path.relative_to(REPO_ROOT))
         for path in direct_transports
-        if not any(
-            resolver in path.read_text(encoding="utf-8")
-            for resolver in (
-                "resolve_model_for_role",
-                "resolve_internal_model_for_role",
-            )
-        )
+        if "resolve_model_for_role" not in path.read_text(encoding="utf-8")
     ]
     assert violations == []
 
@@ -1263,35 +1245,20 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
         "modules/model_usage/infrastructure/model_text_transport.py"
     }
 
-    internal_defaults = (
-        PACKAGE_ROOT / "modules" / "ai_assistant" / "infrastructure" / "hermes" / "hermes_workspace.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "generation_catalog.py",
+    model_usage_sources = "\n".join(
+        path.read_text(encoding="utf-8") for path in _python_files(PACKAGE_ROOT)
     )
-    assert all(
-        "resolve_internal_model_for_role" in path.read_text(encoding="utf-8")
-        for path in internal_defaults
-    )
+    assert "resolve_internal_model_for_role" not in model_usage_sources
+    assert "require_model_role" not in model_usage_sources
     config_source = (
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "model_runtime.py"
+        PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "model_runtime.py"
     ).read_text(encoding="utf-8")
-    assert "model_name_override_is_internal=True" in config_source
+    assert 'request.headers["X-AI-Anime-Model-Role"] = "TEXT"' in config_source
 
 
 def test_cognee_litellm_transport_owns_operation_idempotency() -> None:
     source = (
-        PACKAGE_ROOT
-        / "modules"
-        / "knowledge_graph"
-        / "infrastructure"
-        / "config.py"
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "config.py"
     ).read_text(encoding="utf-8")
     assert "_install_litellm_operation_idempotency()" in source
     assert 'for operation_name in ("acompletion", "aembedding")' in source

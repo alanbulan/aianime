@@ -18,8 +18,10 @@ class StubHermesRuntime:
             raise self.close_error
         return self.close_result
 
-    async def set_scope_for_user(self, username, *, scope_kind, project_id):
-        self.scopes.append((username, scope_kind, project_id))
+    async def set_scope_for_user(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.scopes.append((username, scope_kind, project_id, conversation_id))
         if self.scope_error is not None:
             raise self.scope_error
         return True
@@ -84,10 +86,10 @@ async def test_chat_worker_lifecycle_ignores_lock_release_failure():
 @pytest.mark.parametrize(
     ("scope", "expected"),
     [
-        (ChatScope(kind="home"), ("alice", "home", None)),
+        (ChatScope(kind="home"), ("alice", "home", None, "main")),
         (
             ChatScope(kind="project", id="project-a"),
-            ("alice", "project", "project-a"),
+            ("alice", "project", "project-a", "main"),
         ),
     ],
 )
@@ -108,7 +110,7 @@ async def test_chat_worker_lifecycle_ignores_scope_sync_failure():
         ChatScope(kind="project", id="project-a"),
     )
 
-    assert runtime.scopes == [("alice", "project", "project-a")]
+    assert runtime.scopes == [("alice", "project", "project-a", "main")]
 
 
 def test_chat_worker_lifecycle_reports_busy_state():

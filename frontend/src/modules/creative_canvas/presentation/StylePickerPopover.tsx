@@ -93,7 +93,7 @@ export function StylePickerPopover({
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    title={item.stylePrompt}
+                    data-ui-tooltip={item.stylePrompt}
                     className={`-mx-2 flex min-h-8 items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 text-left text-xs font-medium leading-snug transition-colors ${
                       isActive
                         ? 'bg-primary/12 text-foreground ring-1 ring-primary/30'

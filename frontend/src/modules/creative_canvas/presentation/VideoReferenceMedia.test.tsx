@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { VideoReferenceCapEntry } from "../domain/videoReferenceLimits";
@@ -97,13 +98,13 @@ describe("VideoReferenceMedia", () => {
       setData: vi.fn(),
     };
 
-    fireEvent.dragStart(screen.getByTitle("图二").parentElement!, {
+    fireEvent.dragStart(getByUiTooltip("图二").parentElement!, {
       dataTransfer,
     });
-    fireEvent.dragOver(screen.getByTitle("视频一").parentElement!, {
+    fireEvent.dragOver(getByUiTooltip("视频一").parentElement!, {
       dataTransfer,
     });
-    fireEvent.drop(screen.getByTitle("视频一").parentElement!, {
+    fireEvent.drop(getByUiTooltip("视频一").parentElement!, {
       dataTransfer,
     });
 
@@ -165,12 +166,12 @@ describe("VideoReferenceMedia", () => {
     expect(screen.getByText("首帧")).toBeInTheDocument();
     expect(screen.getByText("尾帧")).toBeInTheDocument();
     expect(
-      screen.getByTitle(
+      getByUiTooltip(
         "图片引用超出首尾帧上限（2张），本次生成不会使用该素材",
       ),
     ).toHaveTextContent("!");
 
-    const firstImage = screen.getByTitle("首图");
+    const firstImage = getByUiTooltip("首图");
     fireEvent.mouseEnter(firstImage);
     expect(screen.getAllByAltText("首图")).toHaveLength(2);
     fireEvent.mouseLeave(firstImage);
@@ -179,7 +180,7 @@ describe("VideoReferenceMedia", () => {
     fireEvent.click(firstImage);
     expect(onFocus).toHaveBeenCalledWith("image-1");
     fireEvent.click(
-      within(screen.getByTitle("第三图")).getByTitle("取消引用此素材"),
+      getByUiTooltip("取消引用此素材", getByUiTooltip("第三图")),
     );
     expect(onDetach).toHaveBeenCalledWith("image-3");
   });
@@ -223,10 +224,10 @@ describe("VideoReferenceMedia", () => {
     firstAudio.pause.mockClear();
     secondAudio.pause.mockClear();
 
-    fireEvent.click(screen.getByTitle("音轨一"));
+    fireEvent.click(getByUiTooltip("音轨一"));
     expect(firstAudio.play).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByTitle("音轨二"));
+    fireEvent.click(getByUiTooltip("音轨二"));
     expect(firstAudio.pause).toHaveBeenCalled();
     expect(secondAudio.play).toHaveBeenCalledOnce();
     expect(onFocus.mock.calls.map(([nodeId]) => nodeId)).toEqual([

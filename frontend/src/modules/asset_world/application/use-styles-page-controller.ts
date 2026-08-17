@@ -25,7 +25,7 @@ export function createUseStylesPageController(
   return function useStylesPageController(project: string) {
     const { t } = useTranslation();
     const { data: stylesResponse, isLoading, isRefetching, refetch } =
-      queries.useStyles(project);
+      queries.useStyles();
     const { data: projectResponse } = dependencies.useProject(project);
     const styles = stylesResponse?.data ?? [];
     const projectVisualStyle = projectResponse?.visual_style;
@@ -43,7 +43,7 @@ export function createUseStylesPageController(
     }, [selectedId, styles]);
 
     const { data: detailResponse, isFetching: detailFetching } =
-      queries.useStyleDetail(project, selectedId);
+      queries.useStyleDetail(selectedId);
     const fallbackListRecord =
       styles.find((style) => style.id === selectedId) ?? null;
     const selectedStyle: Style | null =

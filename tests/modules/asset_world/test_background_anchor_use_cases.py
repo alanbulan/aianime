@@ -19,6 +19,7 @@ from ai_anime.modules.asset_world.infrastructure.background_anchor import (
     LocalBeatBackgroundAnchorFiles,
 )
 from ai_anime.shared.utils.background_anchor import (
+    ANCHOR_DIRECTOR_ENV_ONLY,
     ANCHOR_MASTER,
     ANCHOR_REVERSE,
     ANCHOR_SELECTED_BACKGROUND,
@@ -96,6 +97,58 @@ async def test_select_anchor_snapshots_master_before_persisting_source(
     assert payload["render_input"]["rel_path"] == (
         "director_control_frames/ep001/beat_04/selected_background.png"
     )
+
+
+@pytest.mark.asyncio
+async def test_director_environment_capture_becomes_available_for_snapshot_use(
+    tmp_path: Path,
+) -> None:
+    beat = {
+        "beat_number": 4,
+        "scene_ref": {"scene_id": "地下室", "render_anchor_id": "master"},
+    }
+    env_only = (
+        tmp_path
+        / "director_control_frames"
+        / "ep001"
+        / "beat_04"
+        / "env_only.png"
+    )
+    env_only.parent.mkdir(parents=True)
+    env_only.write_bytes(b"director environment")
+    selected = _selected_background_path(tmp_path)
+    writer = _Writer(selected)
+    use_cases = BeatBackgroundAnchorUseCases(LocalBeatBackgroundAnchorFiles())
+
+    listed = use_cases.list_anchors(
+        project_dir=tmp_path,
+        beat=beat,
+        episode_num=1,
+        beat_num=4,
+        asset_url=_asset_url(tmp_path),
+    )
+    director_anchor = next(
+        item
+        for item in listed["anchors"]
+        if item["id"] == ANCHOR_DIRECTOR_ENV_ONLY
+    )
+    assert director_anchor["exists"] is True
+
+    payload = await use_cases.select_anchor(
+        asset_writer=writer,
+        project_dir=tmp_path,
+        beat=beat,
+        episode_num=1,
+        beat_num=4,
+        command=SelectBeatBackgroundCommand(
+            anchor_id=ANCHOR_DIRECTOR_ENV_ONLY,
+        ),
+        asset_url=_asset_url(tmp_path),
+    )
+
+    assert selected.read_bytes() == b"director environment"
+    assert payload["current_source"] == ANCHOR_DIRECTOR_ENV_ONLY
+    assert beat["scene_ref"]["render_anchor_source_id"] == ANCHOR_DIRECTOR_ENV_ONLY
 
 
 @pytest.mark.parametrize("legacy_source", [None, "legacy_unknown"])

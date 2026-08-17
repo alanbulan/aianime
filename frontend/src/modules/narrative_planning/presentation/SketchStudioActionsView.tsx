@@ -19,7 +19,7 @@ export function SketchColorLegendView({
         <span
           key={entry.identityId}
           className="inline-flex h-5 max-w-[180px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none"
-          title={`${entry.character}${entry.identity ? ` · ${entry.identity}` : ""}`}
+          data-ui-tooltip={`${entry.character}${entry.identity ? ` · ${entry.identity}` : ""}`}
         >
           <span
             aria-hidden
@@ -46,7 +46,7 @@ export function SketchColorLegendView({
             <span
               key={prop.propId}
               className="inline-flex h-5 max-w-[160px] items-center gap-1 rounded-full border border-border bg-muted px-1.5 text-[11px] leading-none"
-              title={
+              data-ui-tooltip={
                 prop.description
                   ? `${prop.propId} · ${prop.description}`
                   : prop.propId
@@ -108,7 +108,7 @@ export function SketchStudioActionsView({
             <span
               key={entry.identityId}
               className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-1.5 py-0.5 leading-none"
-              title={`${entry.character}${entry.identity ? ` · ${entry.identity}` : ""}`}
+              data-ui-tooltip={`${entry.character}${entry.identity ? ` · ${entry.identity}` : ""}`}
             >
               <span
                 aria-hidden
@@ -140,7 +140,7 @@ export function SketchStudioActionsView({
                 <span
                   key={prop.propId}
                   className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-1.5 py-0.5 leading-none"
-                  title={
+                  data-ui-tooltip={
                     prop.description
                       ? `${prop.propId} · ${prop.description}`
                       : prop.propId
@@ -190,7 +190,7 @@ export function SketchStudioActionsView({
                 variant="ghost"
                 onClick={onOpenGridGallery}
                 className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-muted hover:text-foreground"
-                title={t("episode.workbench.sketch.openGridGallery")}
+                data-ui-tooltip={t("episode.workbench.sketch.openGridGallery")}
               >
                 <Grid2X2 className="size-3" />
                 {t("episode.workbench.sketch.openGridGallery")}
@@ -202,7 +202,7 @@ export function SketchStudioActionsView({
                 variant="ghost"
                 onClick={onOpenRenderGridGallery}
                 className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-muted hover:text-foreground"
-                title={t("episode.workbench.renderGrid.title")}
+                data-ui-tooltip={t("episode.workbench.renderGrid.title")}
               >
                 <Grid2X2 className="size-3" />
                 {t("episode.workbench.renderGrid.title")}

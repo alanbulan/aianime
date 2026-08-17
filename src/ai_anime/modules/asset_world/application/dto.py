@@ -331,6 +331,21 @@ class SceneStageGenerationTask:
 
 
 @dataclass(frozen=True)
+class StylePreviewGenerationTask:
+    task_type: ClassVar[str] = "style_preview"
+
+    style_id: str
+    prompt: str
+    scope: str
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "style_id": self.style_id,
+            "prompt": self.prompt,
+        }
+
+
+@dataclass(frozen=True)
 class AssetTaskQueueReceipt:
     task_id: str
     task_key: str
@@ -416,6 +431,13 @@ class CreateCustomStyleCommand:
     name: str | None
     config: Mapping[str, Any] | None
     preview_path: str | None = None
+
+
+@dataclass(frozen=True)
+class UpdateCustomStyleCommand:
+    style_id: str
+    name: str
+    config: Mapping[str, Any]
 
 
 @dataclass(frozen=True)

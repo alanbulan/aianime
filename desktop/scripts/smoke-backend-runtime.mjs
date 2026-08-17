@@ -9,9 +9,25 @@ const executable = join(
   "ai-anime-backend",
   executableName,
 );
+const splatRuntimeRoot = join(process.cwd(), "runtime", "splat-transform");
+const splatNode = join(
+  splatRuntimeRoot,
+  process.platform === "win32" ? "node.exe" : "node",
+);
+const splatCli = join(
+  splatRuntimeRoot,
+  "node_modules",
+  "@playcanvas",
+  "splat-transform",
+  "bin",
+  "cli.mjs",
+);
 
 if (!existsSync(executable)) {
   throw new Error(`packaged backend not found: ${executable}`);
+}
+if (!existsSync(splatNode) || !existsSync(splatCli)) {
+  throw new Error("packaged splat-transform runtime is incomplete");
 }
 
 const result = spawnSync(executable, ["--runtime-smoke-check"], {
@@ -21,7 +37,7 @@ const result = spawnSync(executable, ["--runtime-smoke-check"], {
     PYTHONIOENCODING: "utf-8",
     PYTHONUTF8: "1",
   },
-  timeout: 60_000,
+  timeout: 300_000,
   windowsHide: true,
 });
 
@@ -55,6 +71,55 @@ if (
   throw new Error(`packaged backend smoke payload invalid: ${line}`);
 }
 
+const packagedWorkers = [
+  ["scene-360-builder", "--scene-name"],
+  ["scene-overlap-analyzer", "--master"],
+  ["scene-spatial-contract", "--overlap-analysis"],
+  ["block-world-builder", "--description"],
+];
+for (const [workerName, expectedOption] of packagedWorkers) {
+  const worker = spawnSync(
+    executable,
+    ["--internal-worker", workerName, "--help"],
+    {
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: "utf-8",
+        PYTHONUTF8: "1",
+      },
+      timeout: 60_000,
+      windowsHide: true,
+    },
+  );
+  const workerOutput = `${worker.stdout || ""}\n${worker.stderr || ""}`;
+  if (worker.error || worker.status !== 0 || !workerOutput.includes(expectedOption)) {
+    if (worker.error) throw worker.error;
+    throw new Error(
+      `packaged worker dispatch failed for ${workerName} (${String(worker.status)}): ${workerOutput}`,
+    );
+  }
+  if (workerOutput.includes("--data-root")) {
+    throw new Error(`packaged worker ${workerName} was routed to the API server entrypoint`);
+  }
+}
+
+const splat = spawnSync(splatNode, [splatCli, "--help"], {
+  encoding: "utf8",
+  timeout: 60_000,
+  windowsHide: true,
+});
+if (
+  splat.error ||
+  splat.status !== 0 ||
+  !String(splat.stdout).includes("Transform and Filter Gaussian Splats")
+) {
+  if (splat.error) throw splat.error;
+  throw new Error(
+    `packaged splat-transform dispatch failed (${String(splat.status)}): ${splat.stderr || splat.stdout}`,
+  );
+}
+
 console.log(
-  `Packaged backend Ladybug Unicode path/Cognee/UTF-8 smoke check passed (${payload.prompt_count} prompts, ${payload.migration_count} migrations).`,
+  `Packaged backend Ladybug/Cognee/UTF-8/worker smoke check passed (${payload.prompt_count} prompts, ${payload.migration_count} migrations, ${packagedWorkers.length} workers).`,
 );

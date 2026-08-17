@@ -2,17 +2,15 @@
 export type SpineTemplate = "drama" | "narrated";
 
 export interface ProjectConfig {
+  display_name?: string;
+  cover_path?: string;
   spine_template?: SpineTemplate;
   aspect_ratio?: "2:3" | "9:16" | "16:9";
   visual_style?: string;
   narration_style?: string;
   ethnicity?: string;
   rhythm?: string;
-  tts_provider?: string;
-  tts_model?: string;
-  tts_voice?: string;
   grid_mode?: string;
-  grid_model?: string;
   video_model?: string;
   use_director_render?: boolean;
   video_resolution?: string;
@@ -49,6 +47,28 @@ export interface ProjectSummary {
   updatedAt?: string; // ISO8601 timestamp — latest mutation on the project
   episodeCount?: number; // number of planned episodes (null for Trash)
   beatCount?: number; // number of beats across all episodes (null for Trash)
+  displayName?: string;
+  coverPath?: string;
+}
+
+export interface ProjectCoverCandidate {
+  path: string;
+  name: string;
+  url: string;
+}
+
+export interface ProjectCoverCandidatePage {
+  items: ProjectCoverCandidate[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
+export interface ProjectCoverResult {
+  path: string;
+  url: string;
 }
 
 export interface CreatedProject {

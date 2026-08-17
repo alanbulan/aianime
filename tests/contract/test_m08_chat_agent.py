@@ -85,7 +85,11 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
             first_frame = websocket.receive_json()
 
     assert first_frame["type"] == "scope.changed"
-    assert first_frame["scope"] == {"kind": "home", "id": None}
+    assert first_frame["scope"] == {
+        "kind": "home",
+        "id": None,
+        "conversationId": "main",
+    }
 
 
 def test_chat_ws_auth_failure_reports_unauthorized(monkeypatch) -> None:

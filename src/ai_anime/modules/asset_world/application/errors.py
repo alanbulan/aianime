@@ -129,6 +129,10 @@ class StyleRejected(Exception):
     """A valid request rejected by a style business rule or dependency."""
 
 
+class StyleAlreadyExists(StyleRejected):
+    """The requested account-wide custom style id is already in use."""
+
+
 class InvalidStyleInput(Exception):
     """Invalid style input that maps to a client validation response."""
 

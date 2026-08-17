@@ -45,13 +45,13 @@ import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2
 import type {
   CropSketchCommand,
   SaveSketchPoseEditorCommand,
+  SketchCropSourceData,
   SketchCropResult,
   SketchPoseEditorData,
   SketchPoseEditorSaveResult,
 } from "@/modules/production/domain/sketch-pose-editor";
 import type {
   AssignColorsResult,
-  DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
 import type {
   GenerateSketchesCommand,
@@ -63,8 +63,6 @@ import type {
 import { p } from "@/shared/api/path";
 import { api } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
-
-const AI_DETECT_IDENTITIES_TIMEOUT_MS = 180_000;
 
 interface ImagePoolSelectHttpResponse {
   ok: boolean;
@@ -135,6 +133,16 @@ function renderGenerationSettingsJson(settings: RenderGenerationSettings) {
 }
 
 export const httpProductionVideoGateway: ProductionVideoGateway = {
+  async runProductionWorkflow(project, episode) {
+    return jsonWithBackendError<
+      ProductionTaskResponse | ProductionErrorResponse
+    >(
+      api.post(p`api/v1/projects/${project}/workflow/production`, {
+        json: { episodes: [episode] },
+        throwHttpErrors: false,
+      }),
+    );
+  },
   async getVideoPool(project, episode, signal) {
     return api
       .get(p`api/v1/projects/${project}/episodes/${episode}/video-pool`, {
@@ -786,6 +794,16 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         | ProductionErrorResponse
       >();
   },
+  async getSketchCropSource(project, episode, beatNum, signal) {
+    return api
+      .get(
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNum}/sketch/crop-source`,
+        { signal },
+      )
+      .json<
+        ProductionDataResponse<SketchCropSourceData> | ProductionErrorResponse
+      >();
+  },
   async cropSketch(project, episode, command: CropSketchCommand) {
     return api
       .post(
@@ -804,14 +822,11 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   },
   async detectSketchIdentities(project, episode) {
     return jsonWithBackendError<
-      ProductionDataResponse<DetectIdentitiesResult> | ProductionErrorResponse
+      ProductionTaskResponse | ProductionErrorResponse
     >(
       api.post(
         p`api/v1/projects/${project}/episodes/${episode}/sketches/detect-identities`,
-        {
-          timeout: AI_DETECT_IDENTITIES_TIMEOUT_MS,
-          throwHttpErrors: false,
-        },
+        { throwHttpErrors: false },
       ),
     );
   },

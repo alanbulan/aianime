@@ -63,7 +63,6 @@ class CommercialTTSGenerator:
         try:
             await write_model_audio_speech(
                 output_path=output_path,
-                model=self.model,
                 model_role="AUDIO_SPEECH",
                 input_text=text,
                 voice=voice or self.voice or None,

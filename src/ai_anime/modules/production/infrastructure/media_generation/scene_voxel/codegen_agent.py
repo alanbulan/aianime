@@ -19,7 +19,7 @@ from PIL import Image
 from pydantic_ai import Agent, BinaryContent
 
 from ai_anime.modules.model_usage.public import (
-    get_pydantic_model,
+    get_newapi_text_pydantic_model,
     get_pydantic_model_settings,
 )
 from ai_anime.modules.model_usage.public import DEFAULT_SCENE_VOXEL_MODEL
@@ -312,7 +312,7 @@ async def generate_build_script(
         - defines build(output_vox_path)
         - has an __main__ block calling build(sys.argv[1])
     """
-    model = get_pydantic_model(model_name_override=_MODEL)
+    model = get_newapi_text_pydantic_model()
     agent = Agent(
         model,
         system_prompt=SYSTEM_PROMPT,

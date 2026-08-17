@@ -40,6 +40,12 @@ class SketchEditorQuery:
 
 
 @dataclass(frozen=True)
+class SketchCropSourceQuery:
+    episode_num: int
+    beat_num: int
+
+
+@dataclass(frozen=True)
 class SaveSketchEditorCommand:
     episode_num: int
     beat_num: int
@@ -67,6 +73,22 @@ class SketchEditorView:
             "beat_num": self.beat_num,
             "sketch_url": self.sketch_url,
             **self.editor,
+        }
+
+
+@dataclass(frozen=True)
+class SketchCropSourceView:
+    beat_num: int
+    sketch_url: str
+    width: int
+    height: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "beat_num": self.beat_num,
+            "sketch_url": self.sketch_url,
+            "width": self.width,
+            "height": self.height,
         }
 
 
@@ -131,6 +153,20 @@ class SketchEditingUseCases:
             beat_num=query.beat_num,
             sketch_url=target.url,
             editor=editor,
+        )
+
+    def load_crop_source(
+        self,
+        context: ProjectContext,
+        query: SketchCropSourceQuery,
+    ) -> SketchCropSourceView:
+        target = self._target(context, query.episode_num, query.beat_num)
+        width, height = self._sketch_image.image_size(target.path)
+        return SketchCropSourceView(
+            beat_num=query.beat_num,
+            sketch_url=target.url,
+            width=width,
+            height=height,
         )
 
     def save_editor(
@@ -207,6 +243,8 @@ __all__ = [
     "SaveSketchEditorCommand",
     "SketchBeatContext",
     "SketchBeatMissing",
+    "SketchCropSourceQuery",
+    "SketchCropSourceView",
     "SketchCropRejected",
     "SketchEditingUseCases",
     "SketchEditorQuery",

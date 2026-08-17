@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
   readEncryptedJsonFile,
@@ -6,7 +6,15 @@ import {
   type SecureStorageAdapter,
 } from "./secure-file-store.js";
 
-export type CommercialModelAccessMode = "cloud" | "byok";
+export type CommercialModelAccessMode = "mixed";
+
+export const BYOK_PROVIDER_PROTOCOLS = [
+  "OPENAI_COMPATIBLE",
+  "ANTHROPIC",
+  "GEMINI",
+] as const;
+
+export type ByokProviderProtocol = (typeof BYOK_PROVIDER_PROTOCOLS)[number];
 
 export const BYOK_MODEL_ROLES = [
   "TEXT",
@@ -31,29 +39,59 @@ export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
 export interface ByokModelAssignment {
   modelId: string;
   role: ByokModelRole;
+  priority: number;
+  enabled: boolean;
+}
+
+export interface StoredByokProvider {
+  id: string;
+  name: string;
+  protocol: ByokProviderProtocol;
+  baseUrl: string;
+  apiKey: string;
+  enabled: boolean;
+  priority: number;
+  modelAssignments: ByokModelAssignment[];
+}
+
+export interface ByokProviderStatus {
+  id: string;
+  name: string;
+  protocol: ByokProviderProtocol;
+  baseUrl: string;
+  apiKeyPreview: string;
+  configured: boolean;
+  enabled: boolean;
+  priority: number;
+  modelAssignments: ByokModelAssignment[];
 }
 
 export interface StoredCommercialModelAccess {
-  schemaVersion: 3;
-  mode: CommercialModelAccessMode;
+  schemaVersion: 5;
   cloudModelAssignments: ByokModelAssignment[];
-  byokBaseUrl: string;
-  byokApiKey: string;
-  byokModelAssignments: ByokModelAssignment[];
+  byokProviders: StoredByokProvider[];
 }
 
 export interface CommercialModelAccessStatus {
   mode: CommercialModelAccessMode;
   cloudModelAssignments: ByokModelAssignment[];
   byokConfigured: boolean;
-  byokBaseUrl: string;
-  byokApiKeyPreview: string;
-  byokModelAssignments: ByokModelAssignment[];
+  byokProviders: ByokProviderStatus[];
+}
+
+export interface ByokProviderModelDiscoveryInput {
+  providerId?: string;
+  name?: string;
+  protocol?: ByokProviderProtocol;
+  baseUrl?: string;
+  apiKey?: string;
 }
 
 const MAX_BYOK_CATALOG_BYTES = 4 * 1024 * 1024;
-const MAX_BYOK_MODEL_ASSIGNMENTS = 128;
+const MAX_MODEL_ASSIGNMENTS = 256;
+const MAX_BYOK_PROVIDERS = 16;
 const BYOK_MODEL_ROLE_SET = new Set<string>(BYOK_MODEL_ROLES);
+const BYOK_PROVIDER_PROTOCOL_SET = new Set<string>(BYOK_PROVIDER_PROTOCOLS);
 const BYOK_ROLE_CAPABILITY: Record<
   ByokModelRole,
   { operation: string; modes?: readonly string[] }
@@ -81,10 +119,53 @@ const BYOK_ROLE_CAPABILITY: Record<
   MODERATION: { operation: "MODERATION" },
 };
 
+export async function fetchByokProviderModelIds(
+  access: StoredCommercialModelAccess,
+  providerOrInput: string | ByokProviderModelDiscoveryInput,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ providerId: string; models: string[]; catalogVersion: string }> {
+  const input =
+    typeof providerOrInput === "string"
+      ? { providerId: providerOrInput }
+      : providerOrInput;
+  const requestedProviderId = input.providerId?.trim()
+    ? normalizeProviderId(input.providerId)
+    : "";
+  const existing = requestedProviderId
+    ? access.byokProviders.find((item) => item.id === requestedProviderId)
+    : undefined;
+  if (!existing && !input.baseUrl?.trim()) {
+    throw new Error("BYOK 供应商不存在");
+  }
+  const protocol = normalizeProviderProtocol(
+    input.protocol ?? existing?.protocol ?? "OPENAI_COMPATIBLE",
+  );
+  const baseUrl = normalizeByokBaseUrl(
+    input.baseUrl?.trim() || existing?.baseUrl || "",
+    protocol,
+  );
+  const providerId = requestedProviderId || "draft";
+  const provider: StoredByokProvider = {
+    id: providerId,
+    name: normalizeProviderName(input.name, existing?.name, baseUrl),
+    protocol,
+    baseUrl,
+    apiKey: input.apiKey?.trim() || existing?.apiKey || "",
+    enabled: true,
+    priority: existing?.priority ?? 100,
+    modelAssignments: [],
+  };
+  const models = await requestProviderModelIds(provider, fetchImpl);
+  return {
+    providerId,
+    models,
+    catalogVersion: catalogVersion(providerId, models),
+  };
+}
+
 export async function fetchByokModelCatalog(
   access: StoredCommercialModelAccess,
   operation?: string,
-  fetchImpl: typeof fetch = fetch,
 ): Promise<{
   items: Array<{
     id: string;
@@ -98,82 +179,59 @@ export async function fetchByokModelCatalog(
   }>;
   catalogVersion: string;
 }> {
-  if (access.mode !== "byok" || !access.byokBaseUrl) {
-    throw new Error("BYOK 模型目录仅在 BYOK 模式可用");
-  }
   const normalizedOperation = operation?.trim().toUpperCase() || "";
-  const assigned = groupByokAssignments(
-    access.byokModelAssignments,
-    normalizedOperation,
-  );
-  if (assigned.length === 0) return emptyByokCatalog();
-
-  const url = new URL("models", `${access.byokBaseUrl}/`);
-  const headers = new Headers({ Accept: "application/json" });
-  if (access.byokApiKey) {
-    headers.set("Authorization", `Bearer ${access.byokApiKey}`);
+  const enabledProviders = access.byokProviders.filter((item) => item.enabled);
+  if (enabledProviders.length === 0) return emptyByokCatalog();
+  const grouped = new Map<
+    string,
+    {
+      code: string;
+      displayName: string;
+      operation: string;
+      supportedModes: Set<string>;
+    }
+  >();
+  for (const provider of enabledProviders) {
+    for (const assignment of provider.modelAssignments) {
+      if (!assignment.enabled) continue;
+      const capability = BYOK_ROLE_CAPABILITY[assignment.role];
+      if (normalizedOperation && capability.operation !== normalizedOperation) continue;
+      const key = `${provider.id}:${assignment.modelId}:${capability.operation}`;
+      const group = grouped.get(key) ?? {
+        code: assignment.modelId,
+        displayName: `${assignment.modelId} · ${provider.name}`,
+        operation: capability.operation,
+        supportedModes: new Set<string>(),
+      };
+      for (const mode of capability.modes ?? []) group.supportedModes.add(mode);
+      grouped.set(key, group);
+    }
   }
-  const response = await fetchImpl(url, {
-    method: "GET",
-    headers,
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) {
-    throw new Error(`BYOK 模型目录请求失败 (${response.status})`);
-  }
-  const declaredLength = Number(response.headers.get("content-length") ?? "0");
-  if (declaredLength > MAX_BYOK_CATALOG_BYTES) {
-    throw new Error("BYOK 模型目录响应过大");
-  }
-  const text = await response.text();
-  if (Buffer.byteLength(text, "utf8") > MAX_BYOK_CATALOG_BYTES) {
-    throw new Error("BYOK 模型目录响应过大");
-  }
-  let payload: unknown;
-  try {
-    payload = JSON.parse(text) as unknown;
-  } catch {
-    throw new Error("BYOK 模型目录不是有效 JSON");
-  }
-  const root = requiredRecord(payload, "BYOK model catalog");
-  if (!Array.isArray(root.data)) {
-    throw new Error("BYOK 模型目录缺少 data 数组");
-  }
-  const availableCodes = new Set(
-    root.data.map((item, index) => {
-      const model = requiredRecord(item, `BYOK model[${index}]`);
-      if (typeof model.id !== "string" || !model.id.trim()) {
-        throw new Error(`BYOK model[${index}].id 不能为空`);
-      }
-      return model.id.trim();
-    }),
-  );
-  const items = assigned
-    .filter((item) => availableCodes.has(item.code))
-    .map((item) => ({
-      id: `${item.code}:${item.operation}`,
+  const items = Array.from(grouped.entries())
+    .map(([key, item]) => ({
+      id: key,
       code: item.code,
-      displayName: item.code,
+      displayName: item.displayName,
       operation: item.operation,
       capabilityJson:
-        item.supportedModes.length > 0
-          ? JSON.stringify({ supportedModes: item.supportedModes })
+        item.supportedModes.size > 0
+          ? JSON.stringify({ supportedModes: Array.from(item.supportedModes).sort() })
           : "{}",
       parameterSchemaJson: "{}",
       clientVisible: true as const,
       status: "ACTIVE" as const,
-    }));
-  const versionMaterial = items.map((item) => ({
-    code: item.code,
-    operation: item.operation,
-    capabilityJson: item.capabilityJson,
-  }));
+    }))
+    .sort(
+      (left, right) =>
+        left.operation.localeCompare(right.operation) ||
+        left.displayName.localeCompare(right.displayName),
+    );
   return {
     items,
-    catalogVersion: `byok-${createHash("sha256")
-      .update(JSON.stringify(versionMaterial), "utf8")
-      .digest("hex")
-      .slice(0, 16)}`,
+    catalogVersion: catalogVersion(
+      "all",
+      items.map((item) => `${item.id}:${item.capabilityJson}`),
+    ),
   };
 }
 
@@ -196,25 +254,49 @@ export class EncryptedFileCommercialModelAccessStore {
   }
 
   async configureByok(input: {
+    providerId?: string;
+    name?: string;
+    protocol?: ByokProviderProtocol;
     baseUrl: string;
     apiKey?: string;
+    enabled?: boolean;
+    priority?: number;
     modelAssignments?: ByokModelAssignment[];
   }): Promise<StoredCommercialModelAccess> {
     const previous = await this.load();
-    const apiKey = input.apiKey?.trim() || previous.byokApiKey;
-    const next: StoredCommercialModelAccess = {
-      schemaVersion: 3,
-      mode: "byok",
-      cloudModelAssignments: previous.cloudModelAssignments ?? [],
-      byokBaseUrl: normalizeByokBaseUrl(input.baseUrl),
-      byokApiKey: apiKey,
-      byokModelAssignments:
-        input.modelAssignments === undefined
-          ? previous.byokModelAssignments
-          : normalizeByokModelAssignments(input.modelAssignments),
+    const providerId = normalizeProviderId(input.providerId || randomUUID());
+    const existing = previous.byokProviders.find((item) => item.id === providerId);
+    if (!existing && previous.byokProviders.length >= MAX_BYOK_PROVIDERS) {
+      throw new Error(`BYOK 供应商最多 ${MAX_BYOK_PROVIDERS} 个`);
+    }
+    const protocol = normalizeProviderProtocol(
+      input.protocol ?? existing?.protocol ?? "OPENAI_COMPATIBLE",
+    );
+    const baseUrl = normalizeByokBaseUrl(input.baseUrl, protocol);
+    const modelAssignments =
+      input.modelAssignments === undefined
+        ? existing?.modelAssignments ?? []
+        : normalizeModelAssignments(input.modelAssignments);
+    assertProtocolAssignments(protocol, modelAssignments);
+    const nextProvider: StoredByokProvider = {
+      id: providerId,
+      name: normalizeProviderName(input.name, existing?.name, baseUrl),
+      protocol,
+      baseUrl,
+      apiKey: input.apiKey?.trim() || existing?.apiKey || "",
+      enabled: input.enabled ?? existing?.enabled ?? true,
+      priority: normalizePriority(input.priority, existing?.priority ?? 100),
+      modelAssignments,
     };
-    await writeEncryptedJsonFile(this.filePath, this.secureStorage, next);
-    this.cache = next;
+    const next: StoredCommercialModelAccess = {
+      schemaVersion: 5,
+      cloudModelAssignments: previous.cloudModelAssignments,
+      byokProviders: [
+        ...previous.byokProviders.filter((item) => item.id !== providerId),
+        nextProvider,
+      ].sort(compareProviders),
+    };
+    await this.save(next);
     return next;
   }
 
@@ -222,173 +304,199 @@ export class EncryptedFileCommercialModelAccessStore {
     modelAssignments?: ByokModelAssignment[],
   ): Promise<StoredCommercialModelAccess> {
     const previous = await this.load();
-    const next = {
+    const next: StoredCommercialModelAccess = {
       ...previous,
-      schemaVersion: 3 as const,
-      mode: "cloud" as const,
+      schemaVersion: 5,
       cloudModelAssignments:
         modelAssignments === undefined
-          ? previous.cloudModelAssignments ?? []
+          ? previous.cloudModelAssignments
           : normalizeModelAssignments(modelAssignments),
     };
-    await writeEncryptedJsonFile(this.filePath, this.secureStorage, next);
-    this.cache = next;
+    await this.save(next);
     return next;
   }
 
-  async clearByok(): Promise<StoredCommercialModelAccess> {
+  async clearByok(providerId?: string): Promise<StoredCommercialModelAccess> {
     const previous = await this.load();
+    const normalizedId = providerId ? normalizeProviderId(providerId) : "";
     const next: StoredCommercialModelAccess = {
-      ...defaultModelAccess(),
-      cloudModelAssignments: previous.cloudModelAssignments ?? [],
+      ...previous,
+      schemaVersion: 5,
+      byokProviders: normalizedId
+        ? previous.byokProviders.filter((item) => item.id !== normalizedId)
+        : [],
     };
-    await writeEncryptedJsonFile(this.filePath, this.secureStorage, next);
-    this.cache = next;
+    await this.save(next);
     return next;
   }
 
   status(value: StoredCommercialModelAccess): CommercialModelAccessStatus {
     return {
-      mode: value.mode,
-      cloudModelAssignments: (value.cloudModelAssignments ?? []).map((item) => ({
-        ...item,
-      })),
-      byokConfigured: Boolean(value.byokBaseUrl),
-      byokBaseUrl: value.byokBaseUrl,
-      byokApiKeyPreview: maskSecret(value.byokApiKey),
-      byokModelAssignments: value.byokModelAssignments.map((item) => ({
-        ...item,
+      mode: "mixed",
+      cloudModelAssignments: value.cloudModelAssignments.map(copyAssignment),
+      byokConfigured: value.byokProviders.length > 0,
+      byokProviders: value.byokProviders.map((provider) => ({
+        id: provider.id,
+        name: provider.name,
+        protocol: provider.protocol,
+        baseUrl: provider.baseUrl,
+        apiKeyPreview: maskSecret(provider.apiKey),
+        configured: Boolean(provider.baseUrl),
+        enabled: provider.enabled,
+        priority: provider.priority,
+        modelAssignments: provider.modelAssignments.map(copyAssignment),
       })),
     };
+  }
+
+  private async save(value: StoredCommercialModelAccess): Promise<void> {
+    await writeEncryptedJsonFile(this.filePath, this.secureStorage, value);
+    this.cache = value;
   }
 }
 
 function defaultModelAccess(): StoredCommercialModelAccess {
   return {
-    schemaVersion: 3,
-    mode: "cloud",
+    schemaVersion: 5,
     cloudModelAssignments: [],
-    byokBaseUrl: "",
-    byokApiKey: "",
-    byokModelAssignments: [],
+    byokProviders: [],
   };
 }
 
 function parseStoredModelAccess(value: unknown): StoredCommercialModelAccess {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("model access record must be an object");
-  }
-  const record = value as Record<string, unknown>;
-  if (
-    record.schemaVersion !== 1 &&
-    record.schemaVersion !== 2 &&
-    record.schemaVersion !== 3
-  ) {
+  const record = requiredRecord(value, "model access record");
+  const schemaVersion = Number(record.schemaVersion);
+  if (schemaVersion !== 5) {
     throw new Error("不支持的模型访问配置版本");
   }
-  const mode = record.mode;
-  if (mode !== "cloud" && mode !== "byok") {
-    throw new Error("模型访问模式无效");
+  if (!Array.isArray(record.byokProviders)) {
+    throw new Error("BYOK 供应商配置必须是数组");
   }
-  const byokBaseUrl =
-    typeof record.byokBaseUrl === "string" && record.byokBaseUrl.trim()
-      ? normalizeByokBaseUrl(record.byokBaseUrl)
-      : "";
-  if (mode === "byok" && !byokBaseUrl) {
-    throw new Error("BYOK 模式缺少 Base URL");
+  if (record.byokProviders.length > MAX_BYOK_PROVIDERS) {
+    throw new Error(`BYOK 供应商最多 ${MAX_BYOK_PROVIDERS} 个`);
   }
   return {
-    schemaVersion: 3,
-    mode,
-    cloudModelAssignments:
-      record.schemaVersion === 3
-        ? normalizeModelAssignments(record.cloudModelAssignments)
-        : [],
-    byokBaseUrl,
-    byokApiKey:
-      typeof record.byokApiKey === "string" ? record.byokApiKey.trim() : "",
-    byokModelAssignments:
-      record.schemaVersion === 2 || record.schemaVersion === 3
-        ? normalizeByokModelAssignments(record.byokModelAssignments)
-        : [],
+    schemaVersion: 5,
+    cloudModelAssignments: normalizeModelAssignments(record.cloudModelAssignments),
+    byokProviders: record.byokProviders
+      .map((item, index) => parseProvider(item, index))
+      .sort(compareProviders),
   };
 }
 
-function normalizeByokModelAssignments(value: unknown): ByokModelAssignment[] {
-  return normalizeModelAssignments(value);
+function parseProvider(value: unknown, index: number): StoredByokProvider {
+  const record = requiredRecord(value, `BYOK provider[${index}]`);
+  const protocol = normalizeProviderProtocol(record.protocol);
+  const baseUrl = normalizeByokBaseUrl(String(record.baseUrl ?? ""), protocol);
+  const modelAssignments = normalizeModelAssignments(record.modelAssignments);
+  assertProtocolAssignments(protocol, modelAssignments);
+  return {
+    id: normalizeProviderId(String(record.id ?? "")),
+    name: normalizeProviderName(String(record.name ?? ""), "", baseUrl),
+    protocol,
+    baseUrl,
+    apiKey: typeof record.apiKey === "string" ? record.apiKey.trim() : "",
+    enabled: record.enabled !== false,
+    priority: normalizePriority(record.priority, 100),
+    modelAssignments,
+  };
 }
 
-function normalizeModelAssignments(value: unknown): ByokModelAssignment[] {
-  if (!Array.isArray(value)) {
-    throw new Error("BYOK 模型用途必须是数组");
+function normalizeModelAssignments(
+  value: unknown,
+  defaultPriority = 100,
+): ByokModelAssignment[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error("模型用途必须是数组");
+  if (value.length > MAX_MODEL_ASSIGNMENTS) {
+    throw new Error(`模型用途最多 ${MAX_MODEL_ASSIGNMENTS} 项`);
   }
-  if (value.length > MAX_BYOK_MODEL_ASSIGNMENTS) {
-    throw new Error(`BYOK 模型用途最多 ${MAX_BYOK_MODEL_ASSIGNMENTS} 项`);
-  }
-  const unique = new Map<ByokModelRole, ByokModelAssignment>();
+  const unique = new Map<string, ByokModelAssignment>();
   value.forEach((item, index) => {
-    const record = requiredRecord(item, `BYOK model assignment[${index}]`);
+    const record = requiredRecord(item, `model assignment[${index}]`);
     const modelId = String(record.modelId ?? "").trim();
     if (!modelId || modelId.length > 256 || /[\u0000-\u001f\u007f]/.test(modelId)) {
-      throw new Error(`BYOK model assignment[${index}].modelId 无效`);
+      throw new Error(`model assignment[${index}].modelId 无效`);
     }
     const role = String(record.role ?? "").trim().toUpperCase();
     if (!BYOK_MODEL_ROLE_SET.has(role)) {
-      throw new Error(`BYOK model assignment[${index}].role 无效`);
+      throw new Error(`model assignment[${index}].role 无效`);
     }
-    const assignment = { modelId, role: role as ByokModelRole };
-    unique.set(assignment.role, assignment);
+    const assignment: ByokModelAssignment = {
+      modelId,
+      role: role as ByokModelRole,
+      priority: normalizePriority(record.priority, defaultPriority + index),
+      enabled: record.enabled !== false,
+    };
+    unique.set(`${assignment.role}\u0000${assignment.modelId}`, assignment);
   });
-  return Array.from(unique.values()).sort(
-    (left, right) =>
-      BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role),
-  );
+  return Array.from(unique.values()).sort(compareAssignments);
 }
 
-function groupByokAssignments(
-  assignments: readonly ByokModelAssignment[],
-  operation: string,
-): Array<{ code: string; operation: string; supportedModes: string[] }> {
-  const groups = new Map<
-    string,
-    { code: string; operation: string; supportedModes: Set<string> }
-  >();
-  for (const assignment of assignments) {
-    const capability = BYOK_ROLE_CAPABILITY[assignment.role];
-    if (operation && capability.operation !== operation) continue;
-    const key = `${assignment.modelId}\u0000${capability.operation}`;
-    const group = groups.get(key) ?? {
-      code: assignment.modelId,
-      operation: capability.operation,
-      supportedModes: new Set<string>(),
-    };
-    for (const mode of capability.modes ?? []) group.supportedModes.add(mode);
-    groups.set(key, group);
+async function requestProviderModelIds(
+  provider: StoredByokProvider,
+  fetchImpl: typeof fetch,
+): Promise<string[]> {
+  const url = new URL("models", `${provider.baseUrl}/`);
+  if (provider.protocol === "GEMINI") url.searchParams.set("pageSize", "1000");
+  const headers = providerHeaders(provider);
+  const response = await fetchImpl(url, {
+    method: "GET",
+    headers,
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw new Error(`${provider.name} 模型目录请求失败 (${response.status})`);
   }
-  return Array.from(groups.values())
-    .map((item) => ({
-      code: item.code,
-      operation: item.operation,
-      supportedModes: Array.from(item.supportedModes).sort(),
-    }))
-    .sort(
-      (left, right) =>
-        left.operation.localeCompare(right.operation) ||
-        left.code.localeCompare(right.code),
-    );
+  const declaredLength = Number(response.headers.get("content-length") ?? "0");
+  if (declaredLength > MAX_BYOK_CATALOG_BYTES) {
+    throw new Error(`${provider.name} 模型目录响应过大`);
+  }
+  const text = await response.text();
+  if (Buffer.byteLength(text, "utf8") > MAX_BYOK_CATALOG_BYTES) {
+    throw new Error(`${provider.name} 模型目录响应过大`);
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(text) as unknown;
+  } catch {
+    throw new Error(`${provider.name} 模型目录不是有效 JSON`);
+  }
+  const root = requiredRecord(payload, `${provider.name} model catalog`);
+  const data = Array.isArray(root.data) ? root.data : Array.isArray(root.models) ? root.models : null;
+  if (!data) throw new Error(`${provider.name} 模型目录缺少 data 数组`);
+  const models = new Set<string>();
+  data.forEach((item, index) => {
+    const model =
+      typeof item === "string"
+        ? item
+        : provider.protocol === "GEMINI"
+          ? requiredRecord(item, `model[${index}]`).name
+          : requiredRecord(item, `model[${index}]`).id;
+    const modelId = String(model ?? "").trim().replace(/^models\//, "");
+    if (!modelId || modelId.length > 256) {
+      throw new Error(`${provider.name} model[${index}].id 无效`);
+    }
+    models.add(modelId);
+  });
+  return Array.from(models).sort((left, right) => left.localeCompare(right));
 }
 
 function emptyByokCatalog() {
-  return {
-    items: [],
-    catalogVersion: `byok-${createHash("sha256")
-      .update("[]", "utf8")
-      .digest("hex")
-      .slice(0, 16)}`,
-  };
+  return { items: [], catalogVersion: catalogVersion("empty", []) };
 }
 
-function normalizeByokBaseUrl(value: string): string {
+function catalogVersion(providerId: string, values: readonly string[]): string {
+  return `byok-${createHash("sha256")
+    .update(JSON.stringify([providerId, ...values]), "utf8")
+    .digest("hex")
+    .slice(0, 16)}`;
+}
+
+function normalizeByokBaseUrl(
+  value: string,
+  protocol: ByokProviderProtocol,
+): string {
   const normalized = value.trim().replace(/\/+$/, "");
   let url: URL;
   try {
@@ -406,7 +514,84 @@ function normalizeByokBaseUrl(value: string): string {
     throw new Error("BYOK Base URL 仅支持不含凭据、查询参数和片段的 HTTP(S) 地址");
   }
   const baseUrl = url.toString().replace(/\/+$/, "");
+  if (protocol === "GEMINI") {
+    return /\/v\d+(?:beta\d*)?$/.test(baseUrl) ? baseUrl : `${baseUrl}/v1beta`;
+  }
   return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
+}
+
+function normalizeProviderProtocol(value: unknown): ByokProviderProtocol {
+  const protocol = String(value ?? "").trim().toUpperCase();
+  if (!BYOK_PROVIDER_PROTOCOL_SET.has(protocol)) {
+    throw new Error("BYOK 供应商协议无效");
+  }
+  return protocol as ByokProviderProtocol;
+}
+
+function assertProtocolAssignments(
+  protocol: ByokProviderProtocol,
+  assignments: readonly ByokModelAssignment[],
+): void {
+  if (protocol === "OPENAI_COMPATIBLE") return;
+  const unsupported = assignments.find((assignment) => assignment.role !== "TEXT");
+  if (unsupported) {
+    throw new Error(`${protocol} 原生协议当前仅支持文本模型用途`);
+  }
+}
+
+function providerHeaders(provider: StoredByokProvider): Headers {
+  const headers = new Headers({ Accept: "application/json" });
+  if (!provider.apiKey) return headers;
+  if (provider.protocol === "ANTHROPIC") {
+    headers.set("X-Api-Key", provider.apiKey);
+    headers.set("Anthropic-Version", "2023-06-01");
+  } else if (provider.protocol === "GEMINI") {
+    headers.set("X-Goog-Api-Key", provider.apiKey);
+  } else {
+    headers.set("Authorization", `Bearer ${provider.apiKey}`);
+  }
+  return headers;
+}
+
+function normalizeProviderId(value: string): string {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length > 128 || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(normalized)) {
+    throw new Error("BYOK 供应商 ID 无效");
+  }
+  return normalized;
+}
+
+function normalizeProviderName(value: unknown, fallback: string | undefined, baseUrl: string): string {
+  const normalized = String(value ?? "").trim() || String(fallback ?? "").trim();
+  const name = normalized || new URL(baseUrl).hostname;
+  if (name.length > 80 || /[\u0000-\u001f\u007f]/.test(name)) {
+    throw new Error("BYOK 供应商名称无效");
+  }
+  return name;
+}
+
+function normalizePriority(value: unknown, fallback: number): number {
+  const number = value === undefined || value === null || value === "" ? fallback : Number(value);
+  if (!Number.isSafeInteger(number) || number < 1 || number > 9999) {
+    throw new Error("模型路由优先级必须是 1 到 9999 的整数");
+  }
+  return number;
+}
+
+function compareAssignments(left: ByokModelAssignment, right: ByokModelAssignment): number {
+  return (
+    left.priority - right.priority ||
+    BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role) ||
+    left.modelId.localeCompare(right.modelId)
+  );
+}
+
+function compareProviders(left: StoredByokProvider, right: StoredByokProvider): number {
+  return left.priority - right.priority || left.name.localeCompare(right.name);
+}
+
+function copyAssignment(value: ByokModelAssignment): ByokModelAssignment {
+  return { ...value };
 }
 
 function maskSecret(value: string): string {

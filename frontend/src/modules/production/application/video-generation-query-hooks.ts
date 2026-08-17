@@ -19,6 +19,12 @@ export function createVideoGenerationQueryHooks(
 ) {
   const { gateway, currentPromptLanguage } = dependencies;
 
+  function useProductionWorkflow(project: string, episode: number) {
+    return useMutation({
+      mutationFn: () => gateway.runProductionWorkflow(project, episode),
+    });
+  }
+
   function useGlobalOptimize(project: string, episode: number) {
     return useMutation({
       mutationFn: () =>
@@ -80,6 +86,7 @@ export function createVideoGenerationQueryHooks(
   }
 
   return {
+    useProductionWorkflow,
     useGlobalOptimize,
     useGenerateSeedance2Prompt,
     useGenerateBeatVideoPrompt,

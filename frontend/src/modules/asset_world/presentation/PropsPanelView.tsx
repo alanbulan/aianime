@@ -12,6 +12,16 @@ import {
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { StageProgressPanel } from "@/components/stage-progress-panel";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { EMPTY_STATE_ACTION_BUTTON_CLASS } from "@/components/ui/empty-state-styles";
 import { HeaderRefreshButton } from "@/components/ui/header-refresh-button";
 import { SUBTLE_HEADER_ACTION_BUTTON_CLASS } from "@/components/ui/header-action-styles";
@@ -45,6 +55,7 @@ export function PropsPanelView({
     batchProgress,
     batchReferenceCost,
     batchStopping,
+    deleteDialog,
     gridRef,
     handleBatchGenerate,
     isLoading,
@@ -181,6 +192,29 @@ export function PropsPanelView({
         )}
       </div>
       {dialogContent}
+      <AlertDialog open={deleteDialog.open} onOpenChange={deleteDialog.onOpenChange}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("assets.props.delete")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("assets.props.confirmDelete", { name: deleteDialog.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteDialog.pending}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteDialog.pending}
+              onClick={() => void deleteDialog.confirm()}
+            >
+              {deleteDialog.pending ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

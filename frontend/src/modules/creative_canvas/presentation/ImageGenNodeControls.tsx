@@ -223,7 +223,7 @@ export function StyleChip({ projectId, selectedId, selectedLabel, onChange, onOp
           event.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        title={isActive ? selectedLabel ?? undefined : '风格'}
+        data-ui-tooltip={isActive ? selectedLabel ?? undefined : '风格'}
         className={`${NODE_TEXT_CONTROL_TRIGGER_CLASS} max-w-[160px]`}
       >
         <Palette className={`${NODE_TEXT_CONTROL_ICON_CLASS} shrink-0`} />
@@ -315,7 +315,7 @@ export function CameraChip({ projectId, selection, summary, onChange }: CameraCh
           event.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        title={isActive ? summary ?? undefined : '摄像机'}
+        data-ui-tooltip={isActive ? summary ?? undefined : '摄像机'}
         className={`${NODE_TEXT_CONTROL_TRIGGER_CLASS} max-w-[220px]`}
       >
         <Camera className={`${NODE_TEXT_CONTROL_ICON_CLASS} shrink-0`} />

@@ -51,7 +51,7 @@ export function AudioNodeToolbarActionsView({
           className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${
             hasAudio ? "" : "opacity-50 cursor-not-allowed"
           }`}
-          title={
+          data-ui-tooltip={
             hasAudio
               ? t("nodeToolbar.download")
               : t("nodeToolbar.audio.requiresAudio")

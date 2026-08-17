@@ -37,7 +37,7 @@ describe("Production episode compose queries", () => {
         "http://localhost:3000/api/v1/projects/demo/episodes/2/videos/compose",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             task_type: "compose_episode",

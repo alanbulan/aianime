@@ -37,7 +37,7 @@ export function VideoUploadActionRail({
           onUpload();
         }}
         className={NODE_SIDE_ACTION_BUTTON_CLASS}
-        title={t("node.videoNode.clickToUpload")}
+        data-ui-tooltip={t("node.videoNode.clickToUpload")}
       >
         <Upload className={NODE_SIDE_ACTION_ICON_CLASS} />
         <span>{t("node.videoNode.upload")}</span>

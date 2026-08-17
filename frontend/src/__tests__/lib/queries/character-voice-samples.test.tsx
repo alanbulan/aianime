@@ -176,7 +176,7 @@ describe("character voice sample query hooks", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/voice-samples/youth/record",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: { slot: "youth", path: "voice_youth.wav" },
@@ -200,7 +200,7 @@ describe("character voice sample query hooks", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/voice-samples/default/trim",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: { slot: "default", path: "voice_default.wav" },

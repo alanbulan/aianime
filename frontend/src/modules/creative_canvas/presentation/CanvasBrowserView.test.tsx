@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -93,7 +94,7 @@ describe("CanvasBrowserView", () => {
 
     expect(screen.getByText("成员画布")).toBeInTheDocument();
     fireEvent.click(
-      screen.getByTitle("freezone.canvases.collapseMemberCanvases"),
+      getByUiTooltip("freezone.canvases.collapseMemberCanvases"),
     );
     expect(screen.queryByText("成员画布")).not.toBeInTheDocument();
   });
@@ -121,7 +122,7 @@ describe("CanvasBrowserView", () => {
       />,
     );
 
-    fireEvent.click(screen.getByTitle("freezone.canvases.restoreTitle"));
+    fireEvent.click(getByUiTooltip("freezone.canvases.restoreTitle"));
     expect(onRestoreMainline).not.toHaveBeenCalled();
     expect(
       screen.getByText("freezone.canvases.restoreDialogTitle"),
@@ -130,7 +131,7 @@ describe("CanvasBrowserView", () => {
       screen.getByRole("button", { name: "freezone.canvases.restore" }),
     );
 
-    fireEvent.click(screen.getByTitle("freezone.canvases.deleteTitle"));
+    fireEvent.click(getByUiTooltip("freezone.canvases.deleteTitle"));
     expect(onDeleteCanvas).not.toHaveBeenCalled();
     expect(screen.getByText("freezone.canvases.deleteConfirm")).toBeInTheDocument();
     fireEvent.click(

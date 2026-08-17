@@ -80,7 +80,7 @@ export function MaskEditorView({
             type="button"
             onClick={controller.clearMask}
             className="ml-auto rounded px-2.5 py-1 text-xs text-text-muted transition hover:text-destructive"
-            title="清空蒙版"
+            data-ui-tooltip="清空蒙版"
           >
             清空
           </button>

@@ -6,9 +6,9 @@ from ai_anime.modules.model_usage.public import configure_model_access
 
 @pytest.fixture(autouse=True)
 def _reset_model_access() -> None:
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(allows_custom_models=False, mode="mixed")
     yield
-    configure_model_access(allows_custom_models=False, mode="cloud")
+    configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 def patch_quote(*, expected_model: str, cost: int) -> None:
@@ -227,8 +227,8 @@ async def test_generation_credit_cost_route_resolves_freezone_image_reverse_prom
     monkeypatch.setenv("FREEZONE_VISION_MODEL", "legacy-vision-model")
     configure_model_access(
         allows_custom_models=False,
-        mode="cloud",
-        cloud_model_assignments=[
+        mode="mixed",
+        model_assignments=[
             {"modelId": "cloud-vision-model", "role": "TEXT"},
         ],
     )
@@ -256,8 +256,8 @@ async def test_generation_credit_cost_route_resolves_style_analyzer(monkeypatch)
     monkeypatch.setenv("STYLE_ANALYZER_MODEL", "legacy-style-analyzer-model")
     configure_model_access(
         allows_custom_models=False,
-        mode="cloud",
-        cloud_model_assignments=[
+        mode="mixed",
+        model_assignments=[
             {"modelId": "cloud-style-analyzer-model", "role": "TEXT"},
         ],
     )

@@ -9,6 +9,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlsplit
 
 from ai_anime.modules.asset_world.infrastructure.director_world import (
     pano_sharp,
@@ -28,6 +29,68 @@ from ai_anime.shared.utils.path_resolver import (
 )
 
 logger = logging.getLogger(__name__)
+
+_PANO_SHARP_MODULE = "ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp"
+
+
+def _sharp_checkpoint_path() -> Path:
+    """Return the cache path used by torch.hub.load_state_dict_from_url()."""
+    torch_home = str(os.environ.get("TORCH_HOME") or "").strip()
+    if torch_home:
+        cache_root = Path(torch_home)
+    else:
+        xdg_cache = str(os.environ.get("XDG_CACHE_HOME") or "").strip()
+        cache_root = (Path(xdg_cache) if xdg_cache else Path.home() / ".cache") / "torch"
+    checkpoint_name = Path(urlsplit(pano_sharp.DEFAULT_MODEL_URL).path).name
+    return cache_root / "hub" / "checkpoints" / checkpoint_name
+
+
+def _sharp_start_message(source_kind: str, device: str) -> str:
+    device_label = {
+        "auto": "GPU 优先，GPU 不可用时使用 CPU",
+        "cuda": "NVIDIA CUDA GPU",
+        "mps": "Apple GPU",
+        "cpu": "CPU",
+    }.get(device, device)
+    checkpoint = _sharp_checkpoint_path()
+    if checkpoint.is_file():
+        model_status = "加载已缓存的 SHARP 模型"
+    else:
+        model_status = "首次下载 SHARP 模型（约 2.81 GB，完成后会缓存）"
+    return f"{model_status}；{source_kind} → 单面 3GS；计算设备：{device_label}..."
+
+
+def _sharp_device_from_output(output: str) -> str:
+    marker = "device="
+    for line in reversed(str(output or "").splitlines()):
+        if marker not in line:
+            continue
+        value = line.split(marker, 1)[1].split(",", 1)[0].strip()
+        if value:
+            return value
+    return ""
+
+
+def _pano_sharp_command() -> list[str]:
+    """Return a worker command that also works inside the frozen desktop backend."""
+    configured_runtime = os.environ.get("AI_ANIME_WORLD_RUNTIME_BIN", "").strip()
+    if configured_runtime:
+        runtime_path = Path(configured_runtime)
+        if not runtime_path.is_file():
+            raise FileNotFoundError(
+                "导演世界 3D 运行环境尚未安装或不完整，请到“设置 → 环境依赖”检查并安装。"
+            )
+        return [str(runtime_path)]
+    if bool(getattr(sys, "frozen", False)):
+        raise RuntimeError(
+            "导演世界 3D 运行环境尚未安装或不完整，请到“设置 → 环境依赖”检查并安装。"
+        )
+    return [sys.executable, "-m", _PANO_SHARP_MODULE]
+
+
+def _world_runtime_available() -> bool:
+    configured_runtime = os.environ.get("AI_ANIME_WORLD_RUNTIME_BIN", "").strip()
+    return bool(configured_runtime and Path(configured_runtime).is_file())
 
 
 def run_pano_sharp(
@@ -76,7 +139,7 @@ def run_pano_sharp(
     if not pano_path.exists():
         raise FileNotFoundError(f"pano_360.png not found: {pano_path}")
 
-    if not pano_sharp.sharp_available():
+    if not (_world_runtime_available() or pano_sharp.sharp_available()):
         raise pano_sharp.Sharp3DUnavailable()
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
@@ -93,7 +156,9 @@ def run_pano_sharp(
     dest_sog = _sog_path_for_ply(dest_ply)
 
     depth_source = str(depth_source or "da2").strip().lower()
-    if depth_source == "da2" and not pano_sharp.da2_available():
+    if depth_source == "da2" and not (
+        _world_runtime_available() or pano_sharp.da2_available()
+    ):
         logger.warning("DA-2 package is not installed; falling back to constant depth.")
         report(0.18, "DA-2 未安装，降级使用 constant depth；几何质量会降低。")
         depth_source = "constant"
@@ -128,9 +193,7 @@ def run_pano_sharp(
     depth_device = _fallback_unavailable_mps(depth_device)
 
     cmd = [
-        sys.executable,
-        "-m",
-        "ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp",
+        *_pano_sharp_command(),
         "--pano",
         str(pano_path),
         "--output-dir",
@@ -337,7 +400,7 @@ def run_single_face_sharp(
     if not image_path.exists():
         raise FileNotFoundError(f"single-face source image not found: {image_path}")
 
-    if not pano_sharp.sharp_available():
+    if not (_world_runtime_available() or pano_sharp.sharp_available()):
         raise pano_sharp.Sharp3DUnavailable()
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
@@ -358,9 +421,7 @@ def run_single_face_sharp(
             device = "auto"
 
     cmd = [
-        sys.executable,
-        "-m",
-        "ai_anime.modules.asset_world.infrastructure.director_world.pano_sharp",
+        *_pano_sharp_command(),
         "--image",
         str(image_path),
         "--output-dir",
@@ -381,7 +442,7 @@ def run_single_face_sharp(
     if int(max_gaussians_per_face) > 0:
         cmd.extend(["--max-gaussians-per-face", str(int(max_gaussians_per_face))])
 
-    report(0.20, f"启动 single-face SHARP：{source_kind} → 单面 3GS...")
+    report(0.20, _sharp_start_message(source_kind, device))
     logger.info("running single-face sharp: %s", " ".join(cmd[:2] + ["..."]))
     proc = run_project_subprocess(
         cmd,
@@ -392,6 +453,12 @@ def run_single_face_sharp(
     if proc.returncode != 0:
         message = (proc.stderr or proc.stdout or "").strip()
         raise RuntimeError(f"single-face SHARP 失败: {message[-2000:]}")
+
+    actual_device = _sharp_device_from_output(proc.stdout or "")
+    report(
+        0.84,
+        f"SHARP 推理完成（计算设备：{actual_device or device}），正在整理 3GS 点云...",
+    )
 
     if not generated_ply.exists():
         message = (proc.stderr or proc.stdout or "").strip()

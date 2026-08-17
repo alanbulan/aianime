@@ -186,11 +186,11 @@ export const httpSceneGateway: SceneGateway & SceneDirectorWorldSourceGateway = 
       .json<AssetResponse<{ deleted: boolean }>>();
   },
 
-  async schedulePano(project, name, source) {
+  async schedulePano(project, name, source, model) {
     return jsonWithBackendError<AssetTaskResponse | AssetErrorResponse>(
       api.post(
         p`api/v1/projects/${project}/scenes/${name}/pano/generate-async`,
-        { json: { source }, throwHttpErrors: false },
+        { json: { source, model }, throwHttpErrors: false },
       ),
     );
   },

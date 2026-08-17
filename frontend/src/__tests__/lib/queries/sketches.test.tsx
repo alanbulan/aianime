@@ -786,14 +786,10 @@ describe("sketch action queries", () => {
           requestedPath = new URL(request.url).pathname;
           return HttpResponse.json({
             ok: true,
-            data: {
-              detections: { "1": ["hero_main"] },
-              identity_detections: { "1": ["hero_main"] },
-              prop_detections: { "1": ["jade_sword"] },
-              total_beats: 1,
-              total_identities: 1,
-              total_props: 1,
-            },
+            task_type: "ai_identity_detection",
+            task_id: "task-identity-1",
+            message: "已加入队列",
+            scope: "episode:1:ai_identity_detection",
           });
         },
       ),
@@ -809,25 +805,20 @@ describe("sketch action queries", () => {
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/sketches/detect-identities");
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) throw new Error("expected detect identities to succeed");
-    expect(result.current.data.data.prop_detections).toEqual({ "1": ["jade_sword"] });
-    expect(result.current.data.data.total_props).toBe(1);
+    expect(result.current.data.task_type).toBe("ai_identity_detection");
+    expect(result.current.data.task_id).toBe("task-identity-1");
   });
 
-  it("uses a long timeout for AI detection because the backend runs model batches synchronously", async () => {
+  it("queues AI detection without a renderer-side long timeout", async () => {
     server.use(
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/sketches/detect-identities",
         () =>
           HttpResponse.json({
             ok: true,
-            data: {
-              detections: {},
-              identity_detections: {},
-              prop_detections: {},
-              total_beats: 64,
-              total_identities: 0,
-              total_props: 0,
-            },
+            task_type: "ai_identity_detection",
+            task_id: "task-identity-2",
+            message: "已加入队列",
           }),
       ),
     );
@@ -842,7 +833,7 @@ describe("sketch action queries", () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(postSpy).toHaveBeenCalledWith(
       "api/v1/projects/demo/episodes/1/sketches/detect-identities",
-      expect.objectContaining({ timeout: 180_000 }),
+      { throwHttpErrors: false },
     );
 
     postSpy.mockRestore();
@@ -878,21 +869,16 @@ describe("sketch action queries", () => {
     expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);
   });
 
-  it("refreshes beats and script caches after AI detection writes detected identities", async () => {
+  it("does not refresh beat caches before the queued detection task completes", async () => {
     server.use(
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/sketches/detect-identities",
         () =>
           HttpResponse.json({
             ok: true,
-            data: {
-              detections: { "1": ["hero_main"] },
-              identity_detections: { "1": ["hero_main"] },
-              prop_detections: {},
-              total_beats: 1,
-              total_identities: 1,
-              total_props: 0,
-            },
+            task_type: "ai_identity_detection",
+            task_id: "task-identity-3",
+            message: "已加入队列",
           }),
       ),
     );
@@ -908,11 +894,6 @@ describe("sketch action queries", () => {
     result.current.mutate();
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.beats("demo", 1),
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.script("demo", 1),
-    });
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 });

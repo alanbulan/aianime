@@ -28,7 +28,7 @@ describe("Asset & World style domain", () => {
     });
   });
 
-  it("preserves unknown server fields without copying identity metadata", () => {
+  it("preserves writable config without copying server metadata", () => {
     const style: Style = {
       id: "custom",
       name: "Custom",
@@ -52,7 +52,6 @@ describe("Asset & World style domain", () => {
       ),
     ).toEqual({
       base: "ink",
-      created_by: "alice",
       label: "New label",
       style_instructions: "cinematic",
     });

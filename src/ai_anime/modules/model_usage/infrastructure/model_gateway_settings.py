@@ -1,4 +1,4 @@
-"""Runtime settings for the two supported model access modes."""
+"""Runtime settings for the unified model router."""
 
 from __future__ import annotations
 
@@ -19,8 +19,7 @@ from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.runtime_paths import STATE_DIR
 
-MODE_CLOUD = "cloud"
-MODE_BYOK = "byok"
+MODE_MIXED = "mixed"
 
 
 @dataclass(frozen=True)
@@ -62,7 +61,7 @@ def get_effective_newapi_config() -> EffectiveNewApiConfig:
     access = runtime_model_access()
     return EffectiveNewApiConfig(
         mode=access.mode,
-        source="byok" if access.mode == MODE_BYOK else "cloud_proxy",
+        source="mixed_router",
         base_url=normalize_relay_base_url(access.base_url),
         api_key=str(access.api_key or "").strip(),
     )
@@ -77,7 +76,7 @@ def build_model_gateway_status() -> dict[str, Any]:
     cloud_token = os.environ.get("AI_ANIME_CLOUD_PROXY_TOKEN", "").strip()
     effective_configured = bool(
         effective.base_url
-        and (effective.mode == MODE_BYOK or effective.api_key)
+        and effective.api_key
     )
     role_defaults: dict[str, str] = {}
     for assignment in access.model_assignments:
@@ -95,14 +94,7 @@ def build_model_gateway_status() -> dict[str, Any]:
         },
         "byok": {
             "allowed": is_byok_allowed(),
-            "configured": bool(
-                effective.mode == MODE_BYOK
-                and effective.base_url
-            ),
-            "baseUrl": effective.base_url if effective.mode == MODE_BYOK else "",
-            "apiKeyPreview": (
-                mask_secret(effective.api_key) if effective.mode == MODE_BYOK else ""
-            ),
+            "configured": is_byok_allowed(),
         },
     }
 

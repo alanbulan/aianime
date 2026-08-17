@@ -25,6 +25,13 @@ class IdentityPlanRequired(ValueError):
         super().__init__(f"第 {episode_num} 集尚未规划角色身份，请先规划身份")
 
 
+class ScenePlanRequired(ValueError):
+    code = "scene_plan_required"
+
+    def __init__(self, episode_num: int) -> None:
+        super().__init__(f"第 {episode_num} 集尚未规划场景，请先规划场景")
+
+
 class ProjectContextRequired(ValueError):
     pass
 
@@ -78,20 +85,33 @@ class StartScriptGeneration:
         task_context: ProjectContext | None,
         output_dir: str | Path,
         episode_num: int,
+        script_mode: str = "duration",
+        target_duration_total: int = 120,
+        target_beats: int | None = None,
     ) -> ScheduledNarrativeTask:
         episode = store.get_episode(episode_num)
         if not getattr(episode, "identity_ids", None):
             raise IdentityPlanRequired(episode_num)
+        if not getattr(episode, "scene_menu", None):
+            raise ScenePlanRequired(episode_num)
 
         self._sketch_workspace.clear_episode_sketches(output_dir, episode_num)
         if task_context is None:
             raise ProjectContextRequired("剧本生成需要 project context")
+
+        config = {
+            "script_mode": script_mode,
+            "target_duration_total": target_duration_total,
+        }
+        if target_beats is not None:
+            config["target_beats"] = target_beats
 
         receipt = await self._task_scheduler.enqueue_script_generation(
             task_context,
             ScriptGenerationTask(
                 episode=episode_num,
                 output_dir=output_dir,
+                config=config,
             ),
         )
         return ScheduledNarrativeTask.from_receipt(
@@ -117,9 +137,7 @@ class ScheduleBeatVideoPrompt:
         return ScheduledNarrativeTask.from_receipt(
             receipt,
             task_type="beat_video_prompt",
-            message=(
-                f"第 {task.episode} 集 Beat {task.beat_num} 提示词生成已入队"
-            ),
+            message=(f"第 {task.episode} 集 Beat {task.beat_num} 提示词生成已入队"),
         )
 
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, Crop, Loader2, Save, X } from "lucide-react";
+import { AlertCircle, Crop, Loader2, RefreshCw, Save, X } from "lucide-react";
 
 import { CROP_DIALOG_SAVE_BUTTON_CLASS } from "@/modules/production/presentation/media-styles";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ export function SketchCropDialogView({
   sketchUrl,
   onMoveDrag,
   onOpenChange,
+  onRetry,
   onSave,
   onStartDrag,
   onStopDrag,
@@ -35,10 +36,16 @@ export function SketchCropDialogView({
 }: SketchCropDialogViewProps) {
   const { t } = useTranslation();
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
+  const [imageRetryToken, setImageRetryToken] = useState(0);
   const removeWheelListenerRef = useRef<(() => void) | null>(null);
   const cropBoxStyle = data
     ? cropBoxPercentStyle(crop, data.width, data.height)
     : undefined;
+
+  useEffect(() => {
+    setImageLoadError(false);
+  }, [imageRetryToken, open, sketchUrl]);
 
   const cropBoxRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -67,14 +74,14 @@ export function SketchCropDialogView({
         <div className="relative flex h-12 items-center border-b border-media-foreground/10 px-4">
           <div className="flex items-center gap-2 text-sm font-medium text-media-foreground">
             <Crop className="size-4" />
-            {`裁剪 ${aspectLabel}`}
+            {t("episode.workbench.sketch.cropAspect", { aspect: aspectLabel })}
           </div>
           <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-media-foreground">
             {t("episode.workbench.sketch.cropTitle", { n: beatNum })}
           </DialogTitle>
           <button
             type="button"
-            aria-label="关闭"
+            aria-label={t("common.close")}
             className="absolute right-4 flex size-7 items-center justify-center text-media-foreground/90 hover:text-media-foreground"
             onClick={() => onOpenChange(false)}
           >
@@ -86,13 +93,19 @@ export function SketchCropDialogView({
             <div className="flex min-h-[360px] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-media-foreground/70">
               <AlertCircle className="size-5 text-warning" />
               <div className="max-w-md">{loadError}</div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                {t("common.close", "Close")}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onRetry}>
+                  <RefreshCw className="size-4" />
+                  {t("common.retry")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onOpenChange(false)}
+                >
+                  {t("common.close")}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex min-h-[360px] items-center justify-center p-6 text-sm text-media-foreground/70">
@@ -105,14 +118,16 @@ export function SketchCropDialogView({
             <div className="relative flex min-h-[360px] items-center justify-center bg-media p-4">
               <div className="relative inline-block max-h-[72vh] max-w-full">
                 <img
+                  key={imageRetryToken}
                   ref={imageRef}
                   src={sketchUrl}
                   alt={`B${beatNum}`}
                   className="block max-h-[72vh] max-w-full object-contain"
                   loading="lazy"
                   decoding="async"
+                  onError={() => setImageLoadError(true)}
                 />
-                {cropBoxStyle ? (
+                {cropBoxStyle && !imageLoadError ? (
                   <div
                     ref={cropBoxRef}
                     role="button"
@@ -156,6 +171,21 @@ export function SketchCropDialogView({
                   </div>
                 ) : null}
               </div>
+              {imageLoadError && (
+                <div className="absolute z-10 flex flex-col items-center gap-3 rounded-lg bg-background/95 p-5 text-center text-sm text-muted-foreground shadow-lg">
+                  <AlertCircle className="size-5 text-warning" />
+                  <span>{t("episode.workbench.sketch.cropImageLoadFailed")}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setImageRetryToken((value) => value + 1)}
+                  >
+                    <RefreshCw className="size-3.5" />
+                    {t("common.retry")}
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="flex justify-end gap-2 border-t border-media-foreground/10 bg-media px-4 py-3">
               <Button
@@ -168,7 +198,7 @@ export function SketchCropDialogView({
               <Button
                 type="button"
                 onClick={onSave}
-                disabled={savePending}
+                disabled={savePending || imageLoadError}
                 className={CROP_DIALOG_SAVE_BUTTON_CLASS}
               >
                 {savePending ? (

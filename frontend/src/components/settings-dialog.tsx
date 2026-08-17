@@ -3,14 +3,18 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  Check,
+  ChevronDown,
   Cloud,
   Cpu,
   Eye,
   EyeOff,
   History,
+  Info,
   KeyRound,
   Laptop,
   Loader2,
+  PackageCheck,
   Plus,
   RefreshCw,
   ShieldCheck,
@@ -19,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
@@ -30,6 +35,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -37,6 +48,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { commercialValueLabel } from "@/shared/commercial-value-label";
 import {
@@ -47,9 +64,11 @@ import {
 } from "@/modules/identity_access/public";
 import {
   BYOK_MODEL_ROLES,
+  BYOK_PROVIDER_PROTOCOLS,
   commercialModelRoles,
   CommercialInvocationSection,
   useClearByok,
+  useDiscoverByokProviderModels,
   useCommercialModelAccessStatus,
   useCommercialModelCatalog,
   useCommercialModelDetails,
@@ -57,10 +76,12 @@ import {
   useSelectCloudModels,
   type ByokModelAssignment,
   type ByokModelRole,
+  type ByokProviderProtocol,
   type CommercialModelCatalogItem,
-  type CommercialModelAccessMode,
+  type ByokProviderStatus,
 } from "@/modules/model_usage/public";
 import { CommercialUpdateSettingsSection } from "@/modules/platform_release/public";
+import { RuntimeDependenciesSection } from "@/components/runtime-dependencies-section";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -83,6 +104,12 @@ const BYOK_ROLE_LABEL_KEYS: Record<ByokModelRole, string> = {
   EMBEDDING: "embedding",
   RERANK: "rerank",
   MODERATION: "moderation",
+};
+
+const BYOK_PROTOCOL_LABEL_KEYS: Record<ByokProviderProtocol, string> = {
+  OPENAI_COMPATIBLE: "openaiCompatible",
+  ANTHROPIC: "anthropic",
+  GEMINI: "gemini",
 };
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
@@ -125,6 +152,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <History />
               {t("settings.tabs.invocations")}
             </TabsTrigger>
+            <TabsTrigger value="dependencies" className="flex-none px-3">
+              <PackageCheck />
+              {t("settings.tabs.dependencies")}
+            </TabsTrigger>
             <TabsTrigger value="update" className="flex-none px-3">
               <RefreshCw />
               {t("settings.tabs.update")}
@@ -163,6 +194,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               />
             </ScrollArea>
           </TabsContent>
+          <TabsContent value="dependencies" className="min-h-0 overflow-hidden">
+            <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
+              <RuntimeDependenciesSection active={open && tab === "dependencies"} />
+            </ScrollArea>
+          </TabsContent>
           <TabsContent value="update" className="min-h-0 overflow-hidden">
             <ScrollArea className="h-full [&_[data-slot=scroll-area-scrollbar]]:!w-1 [&_[data-slot=scroll-area-scrollbar]]:!border-l-0 [&_[data-slot=scroll-area-scrollbar]]:!p-0">
               <CommercialUpdateSettingsSection
@@ -198,90 +234,31 @@ function ModelAccessSection({
     (state) => state.activateCurrentDevice,
   );
   const access = useCommercialModelAccessStatus(open && bridgeAvailable);
-  const configureByok = useConfigureByok();
   const selectCloud = useSelectCloudModels();
-  const clearByok = useClearByok();
   const cloudAllowed = Boolean(entitlement?.capabilities.allowsCloudModels);
   const customAllowed = Boolean(entitlement?.capabilities.allowsCustomModels);
-  const [selectedMode, setSelectedMode] =
-    useState<CommercialModelAccessMode>("cloud");
   const cloudCatalog = useCommercialModelCatalog(
     undefined,
     open && bridgeAvailable && cloudAllowed,
     "cloud",
   );
-  const byokCatalog = useCommercialModelCatalog(
-    undefined,
-    open &&
-      bridgeAvailable &&
-      selectedMode === "byok" &&
-      customAllowed &&
-      Boolean(access.data?.byokConfigured),
-    "active",
-  );
-  const [baseUrl, setBaseUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [modelAssignments, setModelAssignments] = useState<
-    ByokModelAssignment[]
-  >([]);
   const [cloudModelAssignments, setCloudModelAssignments] = useState<
     ByokModelAssignment[]
   >([]);
-  const [showApiKey, setShowApiKey] = useState(false);
+  const [modelSourceTab, setModelSourceTab] = useState<"cloud" | "byok">(
+    "cloud",
+  );
 
   useEffect(() => {
-    if (access.data?.byokBaseUrl) setBaseUrl(access.data.byokBaseUrl);
-  }, [access.data?.byokBaseUrl]);
-  useEffect(() => {
-    setSelectedMode(access.data?.mode ?? "cloud");
-  }, [access.data?.mode]);
-  useEffect(() => {
     if (access.data) {
-      setModelAssignments(access.data.byokModelAssignments);
       setCloudModelAssignments(access.data.cloudModelAssignments ?? []);
     }
   }, [access.data]);
 
-  const changeMode = async (mode: CommercialModelAccessMode) => {
-    if (mode === selectedMode) return;
-    setSelectedMode(mode);
-    try {
-      if (mode === "cloud") {
-        await selectCloud.mutateAsync(undefined);
-      } else if (access.data?.byokConfigured && baseUrl) {
-        await configureByok.mutateAsync({ baseUrl });
-      }
-    } catch (error) {
-      setSelectedMode(access.data?.mode ?? "cloud");
-      toast.error(errorMessage(error, t("settings.modelAccess.saveFailed")));
-    }
-  };
-
-  const saveByok = async () => {
-    if (!baseUrl.trim()) {
-      toast.error(t("settings.modelAccess.baseUrlRequired"));
-      return;
-    }
-    if (modelAssignments.some((assignment) => !assignment.modelId.trim())) {
-      toast.error(t("settings.modelAccess.modelIdRequired"));
-      return;
-    }
-    try {
-      await configureByok.mutateAsync({
-        baseUrl: baseUrl.trim(),
-        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
-        modelAssignments: modelAssignments.map((assignment) => ({
-          ...assignment,
-          modelId: assignment.modelId.trim(),
-        })),
-      });
-      setApiKey("");
-      setShowApiKey(false);
-      toast.success(t("settings.modelAccess.saved"));
-    } catch (error) {
-      toast.error(errorMessage(error, t("settings.modelAccess.saveFailed")));
-    }
-  };
+  useEffect(() => {
+    if (!cloudAllowed && customAllowed) setModelSourceTab("byok");
+    if (cloudAllowed && !customAllowed) setModelSourceTab("cloud");
+  }, [cloudAllowed, customAllowed]);
 
   const saveCloudModels = async () => {
     const roles = BYOK_MODEL_ROLES.filter((role) =>
@@ -320,6 +297,7 @@ function ModelAccessSection({
       <SectionTitle
         icon={<Cpu className="size-4" />}
         title={t("settings.modelAccess.title")}
+        hint={t("settings.modelAccess.sourceDescription")}
         badge={
           entitlement?.license?.versionName ??
           entitlement?.license?.editionType ??
@@ -363,213 +341,517 @@ function ModelAccessSection({
         </div>
       ) : null}
 
-      {cloudAllowed ? (
-        <>
-          <div className="mt-5 rounded-md border border-border bg-muted/30 px-4 py-3">
-            <p className="text-sm font-medium text-foreground">
-              {t("settings.modelAccess.sourceTitle")}
-            </p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {t("settings.modelAccess.sourceDescription")}
-            </p>
-          </div>
-          <Tabs
-            className="mt-4"
-            value={selectedMode}
-            onValueChange={(value) =>
-              void changeMode(value as CommercialModelAccessMode)
-            }
+      {cloudAllowed || customAllowed ? (
+        <Tabs
+          value={modelSourceTab}
+          onValueChange={(value) =>
+            value && setModelSourceTab(value as "cloud" | "byok")
+          }
+          className="mt-5 gap-0"
+        >
+          <TabsList
+            className={cn(
+              "grid w-full",
+              cloudAllowed && customAllowed ? "grid-cols-2" : "grid-cols-1",
+            )}
           >
-            <TabsList>
+            {cloudAllowed ? (
               <TabsTrigger value="cloud">
-                <Cloud className="size-4" />
+                <Cloud />
                 {t("settings.modelAccess.cloud")}
               </TabsTrigger>
-              {customAllowed ? (
-                <TabsTrigger value="byok">
-                  <KeyRound className="size-4" />
-                  {t("settings.modelAccess.byok")}
-                </TabsTrigger>
-              ) : null}
-            </TabsList>
-          </Tabs>
-
-          {selectedMode === "cloud" ? (
-            <CloudModelAssignmentPanel
-              className="mt-5"
-              items={cloudCatalog.data?.items}
-              assignments={cloudModelAssignments}
-              loading={cloudCatalog.isLoading}
-              error={cloudCatalog.error}
-              saving={selectCloud.isPending}
-              onAssignmentsChange={setCloudModelAssignments}
-              onSave={() => void saveCloudModels()}
-            />
-          ) : customAllowed ? (
-            <div className="mt-5 space-y-3 border-y border-border py-4">
-              <FieldRow
-                label={t("settings.modelAccess.baseUrl")}
-                value={baseUrl}
-                onChange={setBaseUrl}
-                placeholder="https://api.example.com/v1"
+            ) : null}
+            {customAllowed ? (
+              <TabsTrigger value="byok">
+                <KeyRound />
+                {t("settings.modelAccess.byok")}
+              </TabsTrigger>
+            ) : null}
+          </TabsList>
+          {cloudAllowed ? (
+            <TabsContent value="cloud">
+              <CloudModelAssignmentPanel
+                className="mt-4"
+                items={cloudCatalog.data?.items}
+                assignments={cloudModelAssignments}
+                loading={cloudCatalog.isLoading}
+                error={cloudCatalog.error}
+                saving={selectCloud.isPending}
+                onAssignmentsChange={setCloudModelAssignments}
+                onSave={() => void saveCloudModels()}
               />
-              <FieldRow
-                secret
-                revealed={showApiKey}
-                onRevealChange={setShowApiKey}
-                label={t("settings.modelAccess.apiKey")}
-                value={apiKey}
-                onChange={setApiKey}
-                savedPreview={access.data?.byokApiKeyPreview}
-                name="byok-api-key"
-              />
-              <div className="space-y-2 pt-1">
-                <div className="flex items-center justify-between gap-3">
-                  <Label className="text-xs text-muted-foreground">
-                    {t("settings.modelAccess.modelAssignments")}
-                  </Label>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="outline"
-                    onClick={() =>
-                      setModelAssignments((current) => [
-                        ...current,
-                        { modelId: "", role: "TEXT" },
-                      ])
-                    }
-                  >
-                    <Plus className="size-3.5" />
-                    {t("settings.modelAccess.addModel")}
-                  </Button>
-                </div>
-                {modelAssignments.map((assignment, index) => (
-                  <div
-                    key={`${index}-${assignment.role}`}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(10rem,0.8fr)_2rem] items-center gap-2"
-                  >
-                    <Input
-                      value={assignment.modelId}
-                      aria-label={t("settings.modelAccess.modelId")}
-                      placeholder={t("settings.modelAccess.modelId")}
-                      onChange={(event) =>
-                        setModelAssignments((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, modelId: event.target.value }
-                              : item,
-                          ),
-                        )
-                      }
-                    />
-                    <Select
-                      value={assignment.role}
-                      onValueChange={(value) => {
-                        if (!value) return;
-                        setModelAssignments((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, role: value as ByokModelRole }
-                              : item,
-                          ),
-                        );
-                      }}
-                    >
-                      <SelectTrigger
-                        className="w-full"
-                        aria-label={t("settings.modelAccess.modelRole")}
-                      >
-                        <SelectValue>
-                          {() =>
-                            t(
-                              `settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[assignment.role]}`,
-                            )
-                          }
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent align="end">
-                        {BYOK_MODEL_ROLES.map((role) => (
-                          <SelectItem key={role} value={role}>
-                            {t(
-                              `settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`,
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      size="icon-xs"
-                      variant="ghost"
-                      aria-label={t("settings.modelAccess.removeModel")}
-                      title={t("settings.modelAccess.removeModel")}
-                      onClick={() =>
-                        setModelAssignments((current) =>
-                          current.filter((_, itemIndex) => itemIndex !== index),
-                        )
-                      }
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              {access.data?.byokConfigured ? (
-                <ByokCatalogStatus
-                  items={byokCatalog.data?.items}
-                  loading={byokCatalog.isLoading}
-                  error={byokCatalog.error}
-                />
-              ) : null}
-              <div className="flex justify-end gap-2 pt-1">
-                {access.data?.byokConfigured ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    title={t("settings.modelAccess.clearByok")}
-                    aria-label={t("settings.modelAccess.clearByok")}
-                    disabled={clearByok.isPending}
-                    onClick={() => {
-                      void clearByok
-                        .mutateAsync()
-                        .then(() => {
-                          setBaseUrl("");
-                          setApiKey("");
-                          setModelAssignments([]);
-                        })
-                        .catch((error: unknown) =>
-                          toast.error(
-                            errorMessage(
-                              error,
-                              t("settings.modelAccess.clearFailed"),
-                            ),
-                          ),
-                        );
-                    }}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={saveByok}
-                  disabled={configureByok.isPending}
-                >
-                  {configureByok.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <KeyRound className="size-4" />
-                  )}
-                  {t("settings.modelAccess.saveByok")}
-                </Button>
-              </div>
-            </div>
+            </TabsContent>
           ) : null}
-        </>
+          {customAllowed ? (
+            <TabsContent value="byok">
+              <ByokProvidersPanel
+                providers={access.data?.byokProviders ?? []}
+                enabled={open && bridgeAvailable && modelSourceTab === "byok"}
+              />
+            </TabsContent>
+          ) : null}
+        </Tabs>
       ) : null}
     </section>
+  );
+}
+
+function ByokProvidersPanel({
+  providers,
+  enabled,
+}: {
+  providers: readonly ByokProviderStatus[];
+  enabled: boolean;
+}) {
+  const { t } = useTranslation();
+  const configureByok = useConfigureByok();
+  const clearByok = useClearByok();
+  const [providerId, setProviderId] = useState("");
+  const [name, setName] = useState("");
+  const [protocol, setProtocol] =
+    useState<ByokProviderProtocol>("OPENAI_COMPATIBLE");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [providerEnabled, setProviderEnabled] = useState(true);
+  const [providerPriority, setProviderPriority] = useState(100);
+  const [modelAssignments, setModelAssignments] = useState<ByokModelAssignment[]>([]);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const selectedProvider = providers.find((provider) => provider.id === providerId);
+  const providerModels = useDiscoverByokProviderModels();
+
+  useEffect(() => {
+    if (!providerId && providers.length > 0) setProviderId(providers[0].id);
+  }, [providerId, providers]);
+
+  useEffect(() => {
+    if (!selectedProvider) return;
+    setName(selectedProvider.name);
+    setProtocol(selectedProvider.protocol);
+    setBaseUrl(selectedProvider.baseUrl);
+    setApiKey("");
+    setShowApiKey(false);
+    setProviderEnabled(selectedProvider.enabled);
+    setProviderPriority(selectedProvider.priority);
+    setModelAssignments(selectedProvider.modelAssignments);
+  }, [selectedProvider]);
+
+  const startNewProvider = () => {
+    providerModels.reset();
+    setProviderId(`provider-${Date.now()}`);
+    setName("");
+    setProtocol("OPENAI_COMPATIBLE");
+    setBaseUrl("");
+    setApiKey("");
+    setShowApiKey(false);
+    setProviderEnabled(true);
+    setProviderPriority(100);
+    setModelAssignments([]);
+  };
+
+  const discoverProviderModels = async () => {
+    if (!baseUrl.trim()) {
+      toast.error(t("settings.modelAccess.baseUrlRequired"));
+      return;
+    }
+    try {
+      await providerModels.mutateAsync({
+        ...(providerId.trim() ? { providerId: providerId.trim() } : {}),
+        ...(name.trim() ? { name: name.trim() } : {}),
+        protocol,
+        baseUrl: baseUrl.trim(),
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+      });
+    } catch (error) {
+      toast.error(
+        errorMessage(error, t("settings.modelAccess.byokValidationFailed")),
+      );
+    }
+  };
+
+  const saveProvider = async () => {
+    if (!name.trim()) {
+      toast.error(t("settings.modelAccess.providerNameRequired"));
+      return;
+    }
+    if (!baseUrl.trim()) {
+      toast.error(t("settings.modelAccess.baseUrlRequired"));
+      return;
+    }
+    if (modelAssignments.some((assignment) => !assignment.modelId.trim())) {
+      toast.error(t("settings.modelAccess.modelIdRequired"));
+      return;
+    }
+    if (
+      protocol !== "OPENAI_COMPATIBLE" &&
+      modelAssignments.some((assignment) => assignment.role !== "TEXT")
+    ) {
+      toast.error(t("settings.modelAccess.nativeProtocolTextOnly"));
+      return;
+    }
+    try {
+      const status = await configureByok.mutateAsync({
+        providerId,
+        name: name.trim(),
+        protocol,
+        baseUrl: baseUrl.trim(),
+        ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
+        enabled: providerEnabled,
+        priority: providerPriority,
+        modelAssignments: modelAssignments.map((assignment) => ({
+          ...assignment,
+          modelId: assignment.modelId.trim(),
+        })),
+      });
+      const saved = status.byokProviders.find((provider) => provider.id === providerId);
+      if (saved) setProviderId(saved.id);
+      setApiKey("");
+      setShowApiKey(false);
+      toast.success(t("settings.modelAccess.saved"));
+    } catch (error) {
+      toast.error(errorMessage(error, t("settings.modelAccess.saveFailed")));
+    }
+  };
+
+  const removeProvider = async () => {
+    if (!selectedProvider) return;
+    try {
+      const status = await clearByok.mutateAsync(selectedProvider.id);
+      const next = status.byokProviders[0];
+      if (next) {
+        setProviderId(next.id);
+      } else {
+        startNewProvider();
+      }
+      toast.success(t("settings.modelAccess.providerRemoved"));
+    } catch (error) {
+      toast.error(errorMessage(error, t("settings.modelAccess.clearFailed")));
+    }
+  };
+
+  return (
+    <div className="mt-4 border-y border-border py-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-foreground">
+            {t("settings.modelAccess.byokProviders")}
+          </p>
+          <InfoHint
+            label={t("settings.modelAccess.byokProviders")}
+            text={t("settings.modelAccess.byokProvidersDescription")}
+          />
+        </div>
+        <Button type="button" size="xs" variant="outline" onClick={startNewProvider}>
+          <Plus className="size-3.5" />
+          {t("settings.modelAccess.addProvider")}
+        </Button>
+      </div>
+
+      {providers.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {providers.map((provider) => (
+            <Button
+              key={provider.id}
+              type="button"
+              size="xs"
+              variant={provider.id === providerId ? "default" : "outline"}
+              onClick={() => setProviderId(provider.id)}
+            >
+              <KeyRound className="size-3.5" />
+              {provider.name}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-4 space-y-3 rounded-md border border-border bg-muted/15 p-4">
+        <FieldRow
+          label={t("settings.modelAccess.providerName")}
+          value={name}
+          onChange={setName}
+          placeholder={t("settings.modelAccess.providerNamePlaceholder")}
+        />
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-3">
+          <Label className="justify-start text-[11px] font-normal text-muted-foreground">
+            {t("settings.modelAccess.providerProtocol")}
+          </Label>
+          <Select
+            value={protocol}
+            onValueChange={(value) => {
+              if (value) setProtocol(value as ByokProviderProtocol);
+            }}
+          >
+            <SelectTrigger className="w-full" aria-label={t("settings.modelAccess.providerProtocol")}>
+              <SelectValue>
+                {() =>
+                  t(
+                    `settings.modelAccess.protocols.${BYOK_PROTOCOL_LABEL_KEYS[protocol]}`,
+                  )
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {BYOK_PROVIDER_PROTOCOLS.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {t(
+                    `settings.modelAccess.protocols.${BYOK_PROTOCOL_LABEL_KEYS[value]}`,
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <FieldRow
+          label={t("settings.modelAccess.baseUrl")}
+          value={baseUrl}
+          onChange={setBaseUrl}
+          placeholder={
+            protocol === "ANTHROPIC"
+              ? "https://api.anthropic.com/v1"
+              : protocol === "GEMINI"
+                ? "https://generativelanguage.googleapis.com/v1beta"
+                : "https://api.example.com/v1"
+          }
+        />
+        <FieldRow
+          secret
+          revealed={showApiKey}
+          onRevealChange={setShowApiKey}
+          label={t("settings.modelAccess.apiKey")}
+          value={apiKey}
+          onChange={setApiKey}
+          savedPreview={selectedProvider?.apiKeyPreview}
+          name={`byok-api-key-${providerId}`}
+        />
+        <div className="grid grid-cols-[120px_minmax(0,1fr)] items-center gap-3">
+          <div className="flex items-center gap-1">
+            <Label className="justify-start text-[11px] font-normal text-muted-foreground">
+              {t("settings.modelAccess.providerPriority")}
+            </Label>
+            <InfoHint
+              label={t("settings.modelAccess.priorityHintLabel")}
+              text={t("settings.modelAccess.priorityHint")}
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <Input
+              className="w-28"
+              type="number"
+              min={1}
+              max={9999}
+              step={1}
+              value={providerPriority}
+              onChange={(event) =>
+                setProviderPriority(
+                  Math.min(
+                    9999,
+                    Math.max(1, Number.parseInt(event.target.value, 10) || 1),
+                  ),
+                )
+              }
+            />
+            <label className="flex items-center gap-2 text-xs text-foreground">
+              <Checkbox
+                checked={providerEnabled}
+                onCheckedChange={(checked) => setProviderEnabled(checked === true)}
+              />
+              {t("settings.modelAccess.providerEnabled")}
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1">
+              <Label className="text-xs text-muted-foreground">
+                {t("settings.modelAccess.modelAssignments")}
+              </Label>
+              <InfoHint
+                label={t("settings.modelAccess.priorityHintLabel")}
+                text={t("settings.modelAccess.priorityHint")}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                disabled={!enabled || providerModels.isPending}
+                onClick={() => void discoverProviderModels()}
+              >
+                {providerModels.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-3.5" />
+                )}
+                {t("settings.modelAccess.fetchModels")}
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() =>
+                  setModelAssignments((current) => [
+                    ...current,
+                    {
+                      modelId: "",
+                      role: "TEXT",
+                      priority: current.length + 100,
+                      enabled: true,
+                    },
+                  ])
+                }
+              >
+                <Plus className="size-3.5" />
+                {t("settings.modelAccess.addModel")}
+              </Button>
+            </div>
+          </div>
+          {providerModels.data ? (
+            <p className="text-[11px] text-muted-foreground">
+              {t("settings.modelAccess.providerModelCount", {
+                count: providerModels.data.models.length,
+              })}
+            </p>
+          ) : null}
+          {providerModels.error ? (
+            <p className="text-xs text-destructive">
+              {errorMessage(providerModels.error, t("settings.modelAccess.byokValidationFailed"))}
+            </p>
+          ) : null}
+          {modelAssignments.map((assignment, index) => (
+            <div
+              key={`${index}-${assignment.role}`}
+              className="grid grid-cols-[minmax(0,1fr)_minmax(10rem,0.75fr)_5rem_auto_2rem] items-center gap-2"
+            >
+              <ModelIdInput
+                value={assignment.modelId}
+                options={providerModels.data?.models ?? []}
+                label={t("settings.modelAccess.modelId")}
+                placeholder={t("settings.modelAccess.modelId")}
+                onChange={(modelId) =>
+                  setModelAssignments((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, modelId } : item,
+                    ),
+                  )
+                }
+              />
+              <Select
+                value={assignment.role}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  setModelAssignments((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? { ...item, role: value as ByokModelRole }
+                        : item,
+                    ),
+                  );
+                }}
+              >
+                <SelectTrigger className="w-full" aria-label={t("settings.modelAccess.modelRole")}>
+                  <SelectValue>
+                    {() =>
+                      t(`settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[assignment.role]}`)
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {(protocol === "OPENAI_COMPATIBLE"
+                    ? BYOK_MODEL_ROLES
+                    : (["TEXT"] as const)
+                  ).map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {t(`settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min={1}
+                max={9999}
+                step={1}
+                value={assignment.priority}
+                aria-label={t("settings.modelAccess.modelPriority")}
+                onChange={(event) =>
+                  setModelAssignments((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index
+                        ? {
+                            ...item,
+                            priority: Math.min(
+                              9999,
+                              Math.max(
+                                1,
+                                Number.parseInt(event.target.value, 10) || 1,
+                              ),
+                            ),
+                          }
+                        : item,
+                    ),
+                  )
+                }
+              />
+              <Checkbox
+                checked={assignment.enabled}
+                aria-label={t("settings.modelAccess.modelEnabled")}
+                onCheckedChange={(checked) =>
+                  setModelAssignments((current) =>
+                    current.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, enabled: checked === true } : item,
+                    ),
+                  )
+                }
+              />
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                aria-label={t("settings.modelAccess.removeModel")}
+                data-ui-tooltip={t("settings.modelAccess.removeModel")}
+                onClick={() =>
+                  setModelAssignments((current) =>
+                    current.filter((_, itemIndex) => itemIndex !== index),
+                  )
+                }
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2 pt-1">
+          {selectedProvider ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              data-ui-tooltip={t("settings.modelAccess.removeProvider")}
+              aria-label={t("settings.modelAccess.removeProvider")}
+              disabled={clearByok.isPending}
+              onClick={() => void removeProvider()}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => void saveProvider()}
+            disabled={configureByok.isPending}
+          >
+            {configureByok.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <KeyRound className="size-4" />
+            )}
+            {t("settings.modelAccess.saveByok")}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -604,8 +886,12 @@ function CloudModelAssignmentPanel({
   return (
     <div className={cn("border-y border-border py-3", className)}>
       <div className="flex min-h-8 items-center justify-between gap-3 px-1">
-        <span className="text-xs font-medium text-foreground">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
           {t("settings.modelAccess.cloudAssignments")}
+          <InfoHint
+            label={t("settings.modelAccess.cloudAssignments")}
+            text={t("settings.modelAccess.cloudAssignmentsDescription")}
+          />
         </span>
         {loading ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden />
@@ -621,9 +907,12 @@ function CloudModelAssignmentPanel({
         </p>
       ) : null}
       {!loading && roles.length > 0 ? (
-        <p className="px-1 pb-3 text-xs leading-5 text-muted-foreground">
-          {t("settings.modelAccess.cloudAssignmentsDescription")}
-        </p>
+        <div className="grid grid-cols-[minmax(9rem,0.7fr)_minmax(0,1fr)_5.5rem_2rem] items-center gap-3 border-t border-border/70 px-1 py-1.5 text-[10px] text-muted-foreground">
+          <span />
+          <span />
+          <span>{t("settings.modelAccess.modelPriority")}</span>
+          <span />
+        </div>
       ) : null}
       {roles.map((role) => {
         const options = models.filter((model) =>
@@ -633,7 +922,7 @@ function CloudModelAssignmentPanel({
         return (
           <div
             key={role}
-            className="grid min-h-12 grid-cols-[minmax(9rem,0.7fr)_minmax(0,1fr)_2rem] items-center gap-3 border-t border-border/70 px-1 py-2"
+            className="grid min-h-12 grid-cols-[minmax(9rem,0.7fr)_minmax(0,1fr)_5.5rem_2rem] items-center gap-3 border-t border-border/70 px-1 py-2"
           >
             <Label className="text-xs text-foreground">
               {t(`settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`)}
@@ -644,7 +933,12 @@ function CloudModelAssignmentPanel({
                 if (!modelId) return;
                 onAssignmentsChange([
                   ...resolvedAssignments.filter((item) => item.role !== role),
-                  { modelId, role },
+                  {
+                    modelId,
+                    role,
+                    priority: selected?.priority ?? 100,
+                    enabled: selected?.enabled ?? true,
+                  },
                 ]);
               }}
             >
@@ -666,11 +960,33 @@ function CloudModelAssignmentPanel({
                 ))}
               </SelectContent>
             </Select>
+            <Input
+              type="number"
+              min={1}
+              max={9999}
+              step={1}
+              value={selected?.priority ?? 100}
+              disabled={!selected}
+              aria-label={`${t(
+                `settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`,
+              )} ${t("settings.modelAccess.modelPriority")}`}
+              onChange={(event) => {
+                if (!selected) return;
+                const priority = Math.min(
+                  9999,
+                  Math.max(1, Number.parseInt(event.target.value, 10) || 1),
+                );
+                onAssignmentsChange([
+                  ...resolvedAssignments.filter((item) => item.role !== role),
+                  { ...selected, priority },
+                ]);
+              }}
+            />
             <Button
               type="button"
               size="icon-xs"
               variant="ghost"
-              title={t("settings.modelAccess.showDetails")}
+              data-ui-tooltip={t("settings.modelAccess.showDetails")}
               aria-label={t("settings.modelAccess.showDetails")}
               disabled={!selected}
               onClick={() => selected && setSelectedSku(selected.modelId)}
@@ -704,40 +1020,6 @@ function CloudModelAssignmentPanel({
   );
 }
 
-function ByokCatalogStatus({
-  items,
-  loading,
-  error,
-}: {
-  items?: readonly CommercialModelCatalogItem[];
-  loading: boolean;
-  error: unknown;
-}) {
-  const { t } = useTranslation();
-  const models = items ?? [];
-  return (
-    <div className="rounded-md border border-border bg-muted/20 px-3 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-medium text-foreground">
-          {t("settings.modelAccess.byokValidation")}
-        </span>
-        {loading ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
-      </div>
-      {error ? (
-        <p className="mt-2 text-xs leading-5 text-destructive">
-          {errorMessage(error, t("settings.modelAccess.byokValidationFailed"))}
-        </p>
-      ) : !loading ? (
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">
-          {models.length > 0
-            ? t("settings.modelAccess.byokValidationPassed", { count: models.length })
-            : t("settings.modelAccess.byokValidationEmpty")}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 function resolveCloudAssignments(
   models: readonly CommercialModelCatalogItem[],
   current: readonly ByokModelAssignment[],
@@ -755,7 +1037,9 @@ function resolveCloudAssignments(
     if (existing) return [existing];
     const defaults = candidates.filter((model) => model.isDefault === true);
     const selected = defaults.length === 1 ? defaults[0] : candidates.length === 1 ? candidates[0] : null;
-    return selected ? [{ modelId: selected.code, role }] : [];
+    return selected
+      ? [{ modelId: selected.code, role, priority: 100, enabled: true }]
+      : [];
   });
 }
 
@@ -947,19 +1231,98 @@ function SectionTitle({
   icon,
   title,
   badge,
+  hint,
 }: {
   icon: React.ReactNode;
   title: string;
   badge?: string;
+  hint?: string;
 }) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-muted-foreground">{icon}</span>
       <h3 className="text-sm font-medium text-foreground">{title}</h3>
+      {hint ? <InfoHint label={title} text={hint} /> : null}
       {badge ? (
         <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           {badge}
         </span>
+      ) : null}
+    </div>
+  );
+}
+
+function InfoHint({ label, text }: { label: string; text: string }) {
+  return (
+    <TooltipProvider delay={120}>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <button
+              type="button"
+              className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={label}
+            />
+          }
+        >
+          <Info className="size-3.5" />
+        </TooltipTrigger>
+        <TooltipContent className="max-w-72 leading-5" side="top">
+          {text}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ModelIdInput({
+  value,
+  options,
+  label,
+  placeholder,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  label: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="relative min-w-0">
+      <Input
+        className="pr-9"
+        value={value}
+        aria-label={label}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {options.length > 0 ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 inline-flex w-8 items-center justify-center rounded-r-md text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={label}
+              />
+            }
+          >
+            <ChevronDown className="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={4}
+            className="max-h-64 min-w-64"
+          >
+            {options.map((modelId) => (
+              <DropdownMenuItem key={modelId} onClick={() => onChange(modelId)}>
+                <span className="flex-1 whitespace-nowrap">{modelId}</span>
+                {value === modelId ? <Check className="size-4 text-primary" /> : null}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       ) : null}
     </div>
   );

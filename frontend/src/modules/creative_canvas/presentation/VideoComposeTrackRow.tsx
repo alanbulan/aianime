@@ -302,7 +302,7 @@ export function VideoComposeTrackRow({
             <div
               key={clip.id}
               onPointerDown={(event) => onStartClipMove(event, track, clip)}
-              title={
+              data-ui-tooltip={
                 isOverlapping ? t("videoCompose.error.overlap") : undefined
               }
               className={`absolute top-0 h-16 cursor-grab overflow-hidden rounded-md border bg-media transition-[opacity] active:cursor-grabbing ${
@@ -369,7 +369,7 @@ export function VideoComposeTrackRow({
                       onClick={() => onMoveToNewTrack(track.id, clip.id)}
                       className="rounded bg-media/50 p-0.5 text-media-foreground/80 hover:text-media-foreground"
                       aria-label={t("videoCompose.moveToNewTrack")}
-                      title={t("videoCompose.moveToNewTrack")}
+                      data-ui-tooltip={t("videoCompose.moveToNewTrack")}
                     >
                       <Rows3 className="h-3 w-3" />
                     </button>

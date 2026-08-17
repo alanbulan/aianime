@@ -39,7 +39,7 @@ export function createUseCreateStyleController(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const createStyle = queries.useCreateStyle();
     const analyzeStyle = queries.useAnalyzeStyle(project);
-    const uploadStylePreview = queries.useUploadStylePreview(project);
+    const uploadStylePreview = queries.useUploadStylePreview();
     const styleAnalyzeCost = dependencies.useGenerationCreditCost("style_analyzer");
     const [id, setId] = useState("");
     const [name, setName] = useState("");
@@ -126,7 +126,6 @@ export function createUseCreateStyleController(
         const result = await createStyle.mutateAsync({
           id: trimmedId,
           name: trimmedName,
-          project,
           config: analyzed ? buildStyleSavePayload(analyzed, null) : {},
           preview_path: previewPathRef.current ?? previewPath,
         });

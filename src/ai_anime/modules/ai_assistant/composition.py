@@ -4,6 +4,7 @@ from ai_anime.modules.ai_assistant.application import (
     AgentPromptContext,
     ChatPresentation,
     ChatWorkerLifecycle,
+    ConversationTitles,
     DisplayFallbacks,
     DeterministicProjectReplies,
     HermesHomeReplies,
@@ -25,11 +26,16 @@ from ai_anime.modules.ai_assistant.infrastructure import (
     LocalHermesRuntime,
     LocalProjectMediaFiles,
     LocalSpeechTranscriber,
+    ModelChatTitleGenerator,
     SQLiteChatHistory,
 )
 
 _agent_prompt_context = AgentPromptContext(FileUserPreferences())
 _chat_history = SQLiteChatHistory()
+_conversation_titles = ConversationTitles(
+    _chat_history,
+    ModelChatTitleGenerator(),
+)
 _chat_presentation = ChatPresentation(FileJsonRenderErrors())
 _chat_run_locks = FileChatRunLocks()
 _hermes_runtime = LocalHermesRuntime()
@@ -77,6 +83,10 @@ def get_chat_presentation() -> ChatPresentation:
 
 def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
     return _chat_worker_lifecycle
+
+
+def get_conversation_titles() -> ConversationTitles:
+    return _conversation_titles
 
 
 def get_hermes_home_replies() -> HermesHomeReplies:

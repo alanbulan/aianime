@@ -5,8 +5,10 @@ import type { CommercialDeviceSigner } from "./commercial-device.js";
 import {
   BYOK_MODEL_ROLES,
   fetchByokModelCatalog,
+  fetchByokProviderModelIds,
   type ByokModelAssignment,
   type ByokModelRole,
+  type ByokProviderProtocol,
   type CommercialModelAccessStatus,
   type EncryptedFileCommercialModelAccessStore,
   type StoredCommercialModelAccess,
@@ -89,6 +91,7 @@ export const COMMERCIAL_CHANNELS = {
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
   downloadUpdate: "desktop:commercial:download-update",
+  updateDownloadProgress: "desktop:commercial:update-download-progress",
   installUpdate: "desktop:commercial:install-update",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
@@ -98,6 +101,7 @@ export const COMMERCIAL_CHANNELS = {
   configureByok: "desktop:commercial:configure-byok",
   selectCloudModels: "desktop:commercial:select-cloud-models",
   clearByok: "desktop:commercial:clear-byok",
+  byokProviderModels: "desktop:commercial:byok-provider-models",
 } as const;
 
 interface RegisterCommercialIpcOptions {
@@ -370,21 +374,11 @@ export function registerCommercialIpc(
       query.modelOperation ?? "TEXT",
     );
     updateModelCapabilities(bootstrap.models);
-    if (
-      authorizationAllowsByok(currentAuthorization) &&
-      access.mode === "byok"
-    ) {
-      try {
-        bootstrap.models = await fetchByokModelCatalog(
-          access,
-          query.modelOperation,
-        );
-      } catch (error) {
-        bootstrap.models = null;
-        bootstrap.warnings.push(
-          error instanceof Error ? error.message : "BYOK 模型目录读取失败",
-        );
-      }
+    if (authorizationAllowsByok(currentAuthorization)) {
+      bootstrap.models = mergeModelCatalogs(
+        bootstrap.models,
+        await fetchByokModelCatalog(access, query.modelOperation),
+      );
     }
     await synchronizeModelAccess();
     return bootstrap;
@@ -396,27 +390,26 @@ export function registerCommercialIpc(
     const { source, query } = parseModelCatalogQuery(input);
     const authorization = await ensureCurrentAuthorization();
     const access = await options.modelAccessStore.load();
-    if (
-      source !== "cloud" &&
-      authorizationAllowsByok(authorization) &&
-      access.mode === "byok"
-    ) {
-      return fetchByokModelCatalog(access, query.operation);
-    }
-    const catalog = projectCommercialModelCatalog(
+    const cloudCatalog = projectCommercialModelCatalog(
       await requireClient().modelCatalog(
         query,
         authorizationDeviceId(authorization),
       ),
     );
-    updateModelCapabilities(catalog);
+    updateModelCapabilities(cloudCatalog);
     cloudModelAssignments = updateCloudModelAssignments(
       cloudModelAssignments,
-      catalog,
+      cloudCatalog,
       query.operation,
     );
     await synchronizeModelAccess();
-    return catalog;
+    if (source === "cloud" || !authorizationAllowsByok(authorization)) {
+      return cloudCatalog;
+    }
+    return mergeModelCatalogs(
+      cloudCatalog,
+      await fetchByokModelCatalog(access, query.operation),
+    );
   });
   handle(COMMERCIAL_CHANNELS.modelDetails, async (input) => {
     const authorization = await ensureCurrentAuthorization();
@@ -508,8 +501,19 @@ export function registerCommercialIpc(
       throw new CommercialApiError("modelAssignments 必须是数组");
     }
     const access = await options.modelAccessStore.configureByok({
+      ...(optionalText(body.providerId)
+        ? { providerId: optionalText(body.providerId)! }
+        : {}),
+      ...(optionalText(body.name) ? { name: optionalText(body.name)! } : {}),
+      ...(optionalText(body.protocol)
+        ? { protocol: optionalText(body.protocol)! as ByokProviderProtocol }
+        : {}),
       baseUrl: requiredText(body.baseUrl, "baseUrl"),
       ...(apiKey ? { apiKey } : {}),
+      ...(typeof body.enabled === "boolean" ? { enabled: body.enabled } : {}),
+      ...(body.priority === undefined
+        ? {}
+        : { priority: requiredInteger(body.priority, "priority") }),
       ...(body.modelAssignments === undefined
         ? {}
         : {
@@ -550,14 +554,39 @@ export function registerCommercialIpc(
       cloudModelAssignments,
     );
   });
-  handle(COMMERCIAL_CHANNELS.clearByok, async () => {
-    const access = await options.modelAccessStore.clearByok();
+  handle(COMMERCIAL_CHANNELS.clearByok, async (input) => {
+    const access = await options.modelAccessStore.clearByok(
+      optionalText(optionalRecord(input).providerId),
+    );
     await synchronizeModelAccess();
     return rendererModelAccessStatus(
       options.modelAccessStore.status(access),
       authorizationAllowsByok(currentAuthorization),
       requireClient().baseUrl,
       cloudModelAssignments,
+    );
+  });
+  handle(COMMERCIAL_CHANNELS.byokProviderModels, async (input) => {
+    if (!authorizationAllowsByok(currentAuthorization)) {
+      throw new CommercialApiError("当前商业版本不允许使用 BYOK", {
+        status: 403,
+      });
+    }
+    const body = requiredRecord(input, "BYOK model discovery");
+    const providerId = optionalText(body.providerId);
+    const name = optionalText(body.name);
+    const protocol = optionalText(body.protocol);
+    const apiKey = optionalText(body.apiKey);
+    const access = await options.modelAccessStore.load();
+    return fetchByokProviderModelIds(
+      access,
+      {
+        ...(providerId ? { providerId } : {}),
+        ...(name ? { name } : {}),
+        ...(protocol ? { protocol: protocol as ByokProviderProtocol } : {}),
+        baseUrl: requiredText(body.baseUrl, "baseUrl"),
+        ...(apiKey ? { apiKey } : {}),
+      },
     );
   });
   handle(COMMERCIAL_CHANNELS.announcements, (input) =>
@@ -608,22 +637,17 @@ export function registerCommercialIpc(
         const authorization = await ensureCurrentAuthorization();
         const access = await options.modelAccessStore.load();
         cloudModelAssignments = [...(access.cloudModelAssignments ?? [])];
-        if (
-          !authorizationAllowsByok(authorization) ||
-          access.mode !== "byok"
-        ) {
-          const catalog = projectCommercialModelCatalog(
-            await requireClient().modelCatalog(
-              {},
-              authorizationDeviceId(authorization),
-            ),
-          );
-          updateModelCapabilities(catalog);
-          cloudModelAssignments = updateCloudModelAssignments(
-            cloudModelAssignments,
-            catalog,
-          );
-        }
+        const catalog = projectCommercialModelCatalog(
+          await requireClient().modelCatalog(
+            {},
+            authorizationDeviceId(authorization),
+          ),
+        );
+        updateModelCapabilities(catalog);
+        cloudModelAssignments = updateCloudModelAssignments(
+          cloudModelAssignments,
+          catalog,
+        );
         await synchronizeModelAccess();
         modelAccessHydrated = true;
       } catch (error) {
@@ -758,12 +782,35 @@ function updateCloudModelAssignments(
         : defaults.length === 0 && candidates.length === 1
           ? candidates[0]
           : null;
-    if (selected) next.push({ modelId: selected.code, role });
+    if (selected) {
+      next.push({
+        modelId: selected.code,
+        role,
+        priority: currentSelection?.priority ?? 100,
+        enabled: currentSelection?.enabled ?? true,
+      });
+    }
   }
   return next.sort(
     (left, right) =>
       BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role),
   );
+}
+
+function mergeModelCatalogs(
+  cloud: ReturnType<typeof projectCommercialModelCatalog> | null,
+  byok: Awaited<ReturnType<typeof fetchByokModelCatalog>>,
+): ReturnType<typeof projectCommercialModelCatalog> {
+  if (!cloud) return byok;
+  const items = [...cloud.items];
+  const seen = new Set(items.map((item) => String(item.id)));
+  for (const item of byok.items) {
+    if (!seen.has(String(item.id))) items.push(item);
+  }
+  return {
+    catalogVersion: `${cloud.catalogVersion}+${byok.catalogVersion}`,
+    items,
+  };
 }
 
 function catalogItemSupportsRole(
@@ -828,12 +875,10 @@ function rendererModelAccessStatus(
   }
   return {
     ...status,
-    mode: "cloud" as const,
+    mode: "mixed" as const,
     cloudModelAssignments: [...cloudModelAssignments],
     byokConfigured: false,
-    byokBaseUrl: "",
-    byokApiKeyPreview: "",
-    byokModelAssignments: [],
+    byokProviders: [],
     allowsCustomModels: false,
     gatewayOrigin,
   };

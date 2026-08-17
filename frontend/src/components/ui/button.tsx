@@ -42,12 +42,17 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonProps = Omit<ButtonPrimitive.Props, "title"> &
+  VariantProps<typeof buttonVariants> & {
+    "data-ui-tooltip"?: string
+  }
+
 function Button({
   className,
   variant = "default",
   size = "default",
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"

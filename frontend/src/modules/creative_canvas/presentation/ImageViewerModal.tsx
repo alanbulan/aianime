@@ -146,7 +146,7 @@ export function ImageViewerModal({
           type="button"
           onClick={onClose}
           className={`absolute right-6 top-6 z-20 ${MEDIA_VIEWER_CLOSE_BUTTON_CLASS}`}
-          title={t('common.close', '关闭')}
+          data-ui-tooltip={t('common.close', '关闭')}
         >
           <X className={MEDIA_VIEWER_CLOSE_ICON_CLASS} />
         </button>
@@ -185,7 +185,7 @@ export function ImageViewerModal({
                 onClick={() => onNavigate('prev')}
                 disabled={currentIndex <= 0}
                 className="rounded-full border border-media-foreground/15 bg-media/65 p-2 text-media-foreground backdrop-blur-sm transition-all duration-200 hover:bg-media/80 disabled:cursor-not-allowed disabled:opacity-50"
-                title={t('viewer.prev', '上一张')}
+                data-ui-tooltip={t('viewer.prev', '上一张')}
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -193,7 +193,7 @@ export function ImageViewerModal({
                 onClick={() => onNavigate('next')}
                 disabled={currentIndex >= imageList.length - 1}
                 className="rounded-full border border-media-foreground/15 bg-media/65 p-2 text-media-foreground backdrop-blur-sm transition-all duration-200 hover:bg-media/80 disabled:cursor-not-allowed disabled:opacity-50"
-                title={t('viewer.next', '下一张')}
+                data-ui-tooltip={t('viewer.next', '下一张')}
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -215,7 +215,7 @@ export function ImageViewerModal({
             <button
               onClick={resetView}
               className={`${viewerControlClass} transition-colors hover:bg-media-foreground/10`}
-              title={t('viewer.reset', '重置视图')}
+              data-ui-tooltip={t('viewer.reset', '重置视图')}
             >
               <RotateCcw className="h-4 w-4" />
             </button>

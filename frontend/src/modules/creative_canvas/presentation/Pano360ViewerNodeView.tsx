@@ -117,7 +117,7 @@ function ChipButton({
   return (
     <button
       type="button"
-      title={title}
+      data-ui-tooltip={title}
       disabled={disabled}
       onClick={(event) => {
         event.stopPropagation();
@@ -147,7 +147,7 @@ function PanoToolbarButton({
   return (
     <button
       type="button"
-      title={title}
+      data-ui-tooltip={title}
       disabled={disabled}
       onClick={(event) => {
         event.stopPropagation();
@@ -169,7 +169,7 @@ function PanoViewportButton({
   return (
     <button
       type="button"
-      title={title}
+      data-ui-tooltip={title}
       onClick={(event) => {
         event.stopPropagation();
         onClick();
@@ -357,7 +357,7 @@ export function Pano360ViewerNodeView({
               controller.togglePanel();
             }}
             onPointerDown={(event) => event.stopPropagation()}
-            title={controller.isPanelOpen ? '收起控制面板' : '展开控制面板'}
+            data-ui-tooltip={controller.isPanelOpen ? '收起控制面板' : '展开控制面板'}
             className="nodrag absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full border border-media-foreground/10 bg-media/35 text-media-foreground/75 backdrop-blur-sm transition-colors hover:bg-media/50 hover:text-media-foreground"
           >
             {controller.isPanelOpen ? (

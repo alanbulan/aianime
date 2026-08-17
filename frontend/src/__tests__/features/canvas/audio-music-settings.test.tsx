@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip, queryByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -75,7 +76,7 @@ describe("AudioOperationsPanel music advanced settings", () => {
     expect(screen.queryByText("音乐时长")).toBeNull();
 
     // 点「高级设置」展开——若 Tooltip 在运行时为 undefined 会在此渲染抛错
-    fireEvent.click(screen.getByTitle("高级设置"));
+    fireEvent.click(getByUiTooltip("高级设置"));
 
     expect(screen.getByText("音乐时长")).toBeTruthy();
     // UiSelect 渲染预设标签（默认 30 秒，触发器+选项可能各出现一次）
@@ -84,9 +85,9 @@ describe("AudioOperationsPanel music advanced settings", () => {
 
   it("does not show the 高级设置 button for speech (clone) audio nodes", () => {
     renderPanel({ audioKind: "speech" });
-    expect(screen.queryByTitle("高级设置")).toBeNull();
+    expect(queryByUiTooltip("高级设置")).toBeNull();
     // 语音模式保留「音色设置」
-    expect(screen.getByTitle("音色设置")).toBeTruthy();
+    expect(getByUiTooltip("音色设置")).toBeTruthy();
   });
 
   // 回归：音频节点引用了非空文本节点时，应允许提交——但不把内容灌进生成器文本框。
@@ -137,7 +138,7 @@ describe("AudioOperationsPanel music advanced settings", () => {
     // 不把上游内容灌进生成器文本框（保持空/占位）
     expect(screen.queryByDisplayValue("我的音乐描述文本")).toBeNull();
     // 但因引用了非空文本，生成按钮可用
-    const submit = screen.getByTitle("生成") as HTMLButtonElement;
+    const submit = getByUiTooltip("生成") as HTMLButtonElement;
     expect(submit.disabled).toBe(false);
   });
 
@@ -188,7 +189,7 @@ describe("AudioOperationsPanel music advanced settings", () => {
     // 上游文本不回显进输入框
     expect(screen.queryByDisplayValue("我的语音合成文本")).toBeNull();
     // 引用了非空文本即可提交（提交时由 effectivePrompt 拼接上游+本地）
-    const submit = screen.getByTitle("生成") as HTMLButtonElement;
+    const submit = getByUiTooltip("生成") as HTMLButtonElement;
     expect(submit.disabled).toBe(false);
   });
 

@@ -59,6 +59,8 @@ class ProjectSummaryData:
     updated_at: str | None = None
     episode_count: int | None = None
     beat_count: int | None = None
+    display_name: str | None = None
+    cover_path: str | None = None
 
     def payload(self, *, omit_empty_purged_at: bool = False) -> dict[str, Any]:
         data = {
@@ -76,6 +78,8 @@ class ProjectSummaryData:
             "updated_at": self.updated_at,
             "episode_count": self.episode_count,
             "beat_count": self.beat_count,
+            "display_name": self.display_name,
+            "cover_path": self.cover_path,
         }
         if omit_empty_purged_at and self.purged_at is None:
             data.pop("purged_at")

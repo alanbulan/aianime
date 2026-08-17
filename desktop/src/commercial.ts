@@ -2,6 +2,7 @@
 
 export {
   COMMERCIAL_GATEWAY_URL,
+  COMMERCIAL_RUNTIME_DEPENDENCIES_URL,
   CommercialApiClient,
   CommercialApiError,
   EncryptedFileCommercialRememberedLoginStore,

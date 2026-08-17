@@ -85,7 +85,11 @@ async def test_stream_chat_turn_emits_scoped_heartbeat():
         {
             "type": "chat.ping",
             "turn_id": "turn-1",
-            "scope": {"kind": "project", "id": "project-a"},
+                "scope": {
+                    "kind": "project",
+                    "id": "project-a",
+                    "conversationId": "main",
+                },
         }
     ]
 

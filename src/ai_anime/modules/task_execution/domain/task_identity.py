@@ -22,6 +22,10 @@ TASK_IDENTITY_SPECS: dict[str, TaskIdentitySpec] = {
     "build_episodes": TaskIdentitySpec("build_eps"),
     "identity_planner": TaskIdentitySpec("identity_planner", include_episode=True),
     "script_writer": TaskIdentitySpec("script_writer", include_episode=True),
+    "script_workflow": TaskIdentitySpec("script_workflow", scope_mode="raw"),
+    "production_workflow": TaskIdentitySpec(
+        "production_workflow", scope_mode="raw"
+    ),
     "literal_script_writer": TaskIdentitySpec("literal_script_writer", include_episode=True),
     "director_notes": TaskIdentitySpec("director_notes", include_episode=True),
     "compose_episode": TaskIdentitySpec("compose_episode", include_episode=True),
@@ -51,6 +55,7 @@ TASK_IDENTITY_SPECS: dict[str, TaskIdentitySpec] = {
     "scene_reference_asset": TaskIdentitySpec(
         "scene_ref_asset", scope_mode="raw"
     ),
+    "style_preview": TaskIdentitySpec("style_preview", scope_mode="raw"),
 }
 
 

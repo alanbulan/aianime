@@ -4,6 +4,7 @@ import { activeTurnIsPending } from "@/modules/ai_assistant/domain/activeTurn";
 import type {
   ApprovalRequest,
   ChatAttachment,
+  ChatConversation,
   ChatMessage,
   ChatScope,
   ClientFrame,
@@ -22,7 +23,8 @@ import { upsertAssistantMessage } from "@/modules/ai_assistant/application/messa
 import { sortMessages } from "@/modules/ai_assistant/application/messageTimeline";
 import { useSuperChatFrameController } from "@/modules/ai_assistant/application/useFrameController";
 
-const TURN_HISTORY_RECONCILIATION_MS = 30_000;
+const TURN_HISTORY_RECONCILIATION_MS = 5_000;
+const MESSAGE_CACHE_WRITE_DELAY_MS = 300;
 
 export type ChatSessionSocketOptions = {
   scope: ChatScope;
@@ -74,11 +76,13 @@ export type ChatSessionPorts = {
 
 export type UseChatSessionOptions = {
   project?: string;
+  conversationId?: string;
   displayName: string;
 };
 
 export function useChatSessionController({
   project,
+  conversationId = "main",
   displayName,
   ports,
 }: UseChatSessionOptions & { ports: ChatSessionPorts }) {
@@ -97,7 +101,10 @@ export function useChatSessionController({
     saveScopedMessageIds,
     saveSuperChatSettings,
   } = ports;
-  const desiredScope = useMemo(() => scopeForProject(project), [project]);
+  const desiredScope = useMemo(
+    () => scopeForProject(project, conversationId),
+    [conversationId, project],
+  );
   const scopeKey = useMemo(() => scopeSessionKey(desiredScope), [desiredScope]);
   const initialScopeSnapshot = useMemo(() => {
     const cachedMessages = loadCachedMessages(scopeKey);
@@ -113,6 +120,7 @@ export function useChatSessionController({
   const [messages, setMessages] = useState<ChatMessage[]>(
     () => initialScopeSnapshot.cachedMessages,
   );
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [historyReady, setHistoryReady] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
@@ -147,6 +155,17 @@ export function useChatSessionController({
   const requestHistory = useCallback(() => {
     sendFrame({ type: "scope.set", scope: desiredScope });
   }, [desiredScope, sendFrame]);
+
+  const deleteConversation = useCallback((targetConversationId: string) => {
+    const normalizedId = targetConversationId.trim();
+    if (!normalizedId || !connected || busy) return false;
+    sendFrame({
+      type: "conversation.delete",
+      scope: desiredScope,
+      conversationId: normalizedId,
+    });
+    return true;
+  }, [busy, connected, desiredScope, sendFrame]);
 
   const markTurnActive = useCallback((turnId: string | null) => {
     if (!turnId) return;
@@ -202,6 +221,7 @@ export function useChatSessionController({
     setConnecting,
     setError,
     setHistoryReady,
+    setConversations,
     setMessages,
     setBusy,
     setStreamText,
@@ -216,6 +236,7 @@ export function useChatSessionController({
     setModels([]);
     setActiveModel(null);
     setModelsLoading(false);
+    setConversations([]);
     setHistoryReady(false);
     streamTextRef.current = "";
     pendingClientTurnIdRef.current = null;
@@ -236,8 +257,21 @@ export function useChatSessionController({
 
   useEffect(() => {
     messagesRef.current = messages;
-    saveCachedMessages(scopeKey, messages);
+    const timer = window.setTimeout(
+      () => saveCachedMessages(scopeKey, messages),
+      MESSAGE_CACHE_WRITE_DELAY_MS,
+    );
+    return () => window.clearTimeout(timer);
   }, [messages, saveCachedMessages, scopeKey]);
+
+  useEffect(() => {
+    const flush = () => saveCachedMessages(scopeKey, messagesRef.current);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [saveCachedMessages, scopeKey]);
 
   useEffect(() => {
     const currentActiveTurnId = activeTurnIdRef.current;
@@ -285,15 +319,22 @@ export function useChatSessionController({
   }, [createSuperChatSocketSession, desiredScope, handleFrame]);
 
   useEffect(() => {
-    if (!connected || !busy || !activeTurnId) return;
-    const expectedTurnId = activeTurnId;
-    const timer = window.setTimeout(() => {
-      if (activeTurnIdRef.current === expectedTurnId) {
-        requestHistory();
-      }
-    }, TURN_HISTORY_RECONCILIATION_MS);
+    if (!connected || !busy) return;
+    const timer = window.setInterval(
+      requestHistory,
+      TURN_HISTORY_RECONCILIATION_MS,
+    );
+    return () => window.clearInterval(timer);
+  }, [busy, connected, requestHistory]);
+
+  const wasBusyRef = useRef(busy);
+  useEffect(() => {
+    const wasBusy = wasBusyRef.current;
+    wasBusyRef.current = busy;
+    if (!connected || busy || !wasBusy) return;
+    const timer = window.setTimeout(requestHistory, 750);
     return () => window.clearTimeout(timer);
-  }, [activeTurnId, busy, connected, requestHistory]);
+  }, [busy, connected, requestHistory]);
 
   const send = useCallback((
     text: string,
@@ -411,10 +452,12 @@ export function useChatSessionController({
     busy,
     connected,
     connecting,
+    conversations,
     error,
     activeModel,
     appendNotification,
     clearPinned,
+    deleteConversation,
     deleteMessage,
     deletedIds,
     historyReady,

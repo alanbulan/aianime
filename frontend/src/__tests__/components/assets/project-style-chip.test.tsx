@@ -67,7 +67,7 @@ describe("ProjectStyleChip", () => {
         }),
       ),
       http.get("http://localhost:3000/api/v1/styles", ({ request }) => {
-        expect(new URL(request.url).searchParams.get("project")).toBe("demo");
+        expect(new URL(request.url).search).toBe("");
         return HttpResponse.json({
           ok: true,
           data: [{ id: "cyber_ink", name: "Cyber Ink", label: "赛博水墨" }],
@@ -79,7 +79,7 @@ describe("ProjectStyleChip", () => {
 
     expect(await screen.findByText("赛博水墨")).toBeInTheDocument();
     expect(screen.getByLabelText("赛博水墨")).toHaveAttribute(
-      "title",
+      "data-ui-tooltip",
       "在导入页面配置项目风格",
     );
   });

@@ -10,6 +10,9 @@ from ai_anime.modules.production.application.ports import (
     ProductionGenerationStore,
     ProductionSketchColorAssigner,
 )
+from ai_anime.modules.production.application.sketch_color import (
+    assign_complete_episode_identity_colors,
+)
 
 
 class ProductionGenerationContextUseCases:
@@ -44,12 +47,16 @@ class ProductionGenerationContextUseCases:
         sketch_colors = None
         if episode_num:
             sketch_colors = self._store.get_sketch_colors(episode_num) or None
-            if not sketch_colors:
-                sketch_colors = (
-                    self._color_assigner.assign(characters, beats) or None
-                )
-                if sketch_colors:
-                    await self._store.set_sketch_colors(episode_num, sketch_colors)
+            complete_colors = assign_complete_episode_identity_colors(
+                self._color_assigner,
+                characters=characters,
+                beats=beats,
+                episode=self.episode_or_none(episode_num),
+                existing_colors=sketch_colors,
+            )
+            if complete_colors != (sketch_colors or {}):
+                await self._store.set_sketch_colors(episode_num, complete_colors)
+            sketch_colors = complete_colors or None
 
         return self._character_projector.build_character_map(
             beats=beats,

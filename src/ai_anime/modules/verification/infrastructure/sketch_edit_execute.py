@@ -557,6 +557,7 @@ def execute_sketch_edit_batches(
                         image_size=image_size,
                         quality=edit_image_quality,
                         config=edit_generator_config,
+                        project_dir=project_dir,
                     )
                 )
                 last_error = None

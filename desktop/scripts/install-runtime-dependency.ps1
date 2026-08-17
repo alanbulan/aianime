@@ -1,0 +1,225 @@
+﻿# Copyright (c) 2026 AI anime
+
+param(
+    [string]$ManifestUrl = ""
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+if ([Environment]::Is64BitOperatingSystem -ne $true) {
+    throw "导演世界 3D 运行环境仅支持 64 位 Windows。"
+}
+
+$runtimeBaseUrl = if ($env:AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL) {
+    $env:AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL.TrimEnd("/")
+} else {
+    "https://aianime.122-193-11-199.sslip.io/api/v1/client/runtime-dependencies"
+}
+if (-not $ManifestUrl) {
+    $ManifestUrl = if ($env:AI_ANIME_RUNTIME_MANIFEST_URL) {
+        $env:AI_ANIME_RUNTIME_MANIFEST_URL.Replace("{platform}", "win32").Replace("{arch}", "x64")
+    } else {
+        "$runtimeBaseUrl/win32-x64/manifest.json"
+    }
+}
+
+$appDataPath = [Environment]::GetFolderPath("ApplicationData")
+$dependencyRoot = [IO.Path]::GetFullPath((Join-Path $appDataPath "@ai-anime\desktop\dependencies\world"))
+$logDirectory = Join-Path $appDataPath "@ai-anime\desktop\logs"
+$logPath = Join-Path $logDirectory "runtime-dependency-install.log"
+$nonce = [Guid]::NewGuid().ToString("N")
+$archivePath = Join-Path $dependencyRoot ".world-$nonce.tar.gz"
+$stagingPath = Join-Path $dependencyRoot ".staging-$nonce"
+$previousPath = Join-Path $dependencyRoot ".previous-$nonce"
+$currentPath = Join-Path $dependencyRoot "current"
+$movedCurrent = $false
+
+function Remove-SafeRuntimePath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $resolved = [IO.Path]::GetFullPath($Path)
+    $prefix = $dependencyRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    if (-not $resolved.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "拒绝删除运行环境目录之外的路径: $resolved"
+    }
+    if (Test-Path -LiteralPath $resolved) {
+        Remove-Item -LiteralPath $resolved -Recurse -Force
+    }
+}
+
+function Invoke-NativeCommandCapture {
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [string[]]$Arguments = @()
+    )
+
+    $previousPreference = $ErrorActionPreference
+    try {
+        # Windows PowerShell 5.1 converts every native stderr line into a
+        # NativeCommandError when ErrorActionPreference is Stop. Optional
+        # runtime warnings must not override the process exit code.
+        $ErrorActionPreference = "Continue"
+        $output = (& $Executable @Arguments 2>&1 | Out-String)
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousPreference
+    }
+    return [PSCustomObject]@{
+        ExitCode = $exitCode
+        Output = $output
+    }
+}
+
+$transcriptStarted = $false
+try {
+    New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
+    Start-Transcript -LiteralPath $logPath -Append | Out-Null
+    $transcriptStarted = $true
+    Write-Output "安装日志: $logPath"
+} catch {
+    Write-Output "无法创建安装日志，将继续安装: $($_.Exception.Message)"
+}
+
+New-Item -ItemType Directory -Path $dependencyRoot -Force | Out-Null
+try {
+    Write-Output "正在获取国内镜像安装清单: $ManifestUrl"
+    $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60
+    $package = $manifest.package
+    if (
+        $manifest.schemaVersion -ne 1 -or
+        $package.id -ne "world" -or
+        $package.platform -ne "win32" -or
+        $package.arch -ne "x64" -or
+        $package.archive -ne "tar.gz" -or
+        ([string]$package.sha256) -notmatch "^[a-fA-F0-9]{64}$"
+    ) {
+        throw "运行环境清单字段不完整或与当前平台不匹配。"
+    }
+
+    $downloaded = $false
+    foreach ($url in @($package.urls)) {
+        try {
+            Write-Output "正在下载 3D 运行环境: $url"
+            Invoke-WebRequest -Uri ([string]$url) -OutFile $archivePath -UseBasicParsing -TimeoutSec 3600
+            $downloaded = $true
+            break
+        } catch {
+            Write-Output "镜像下载失败，尝试下一个地址: $($_.Exception.Message)"
+            if (Test-Path -LiteralPath $archivePath) {
+                Remove-Item -LiteralPath $archivePath -Force
+            }
+        }
+    }
+    if (-not $downloaded) {
+        throw "所有运行环境下载镜像均失败。"
+    }
+
+    Write-Output "正在校验 SHA-256..."
+    $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne ([string]$package.sha256).ToLowerInvariant()) {
+        throw "运行环境安装包 SHA-256 校验失败。"
+    }
+
+    $entries = & tar -tzf $archivePath
+    if ($LASTEXITCODE -ne 0 -or -not $entries) {
+        throw "无法读取运行环境压缩包。"
+    }
+    foreach ($entry in $entries) {
+        $normalized = ([string]$entry).Replace("\", "/")
+        $first = ($normalized -split "/")[0]
+        if (
+            $normalized.StartsWith("/") -or
+            $normalized -match "^[a-zA-Z]:" -or
+            ($normalized -split "/") -contains ".." -or
+            @("world-runtime", "splat-transform") -notcontains $first
+        ) {
+            throw "运行环境压缩包包含非法路径: $entry"
+        }
+    }
+
+    New-Item -ItemType Directory -Path $stagingPath -Force | Out-Null
+    Write-Output "正在解压运行环境..."
+    & tar -xzf $archivePath -C $stagingPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "运行环境解压失败。"
+    }
+
+    $worldRuntime = Join-Path $stagingPath "world-runtime\ai-anime-world-runtime.exe"
+    $splatNode = Join-Path $stagingPath "splat-transform\node.exe"
+    $splatCli = Join-Path $stagingPath "splat-transform\node_modules\@playcanvas\splat-transform\bin\cli.mjs"
+    foreach ($required in @($worldRuntime, $splatNode, $splatCli)) {
+        if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+            throw "运行环境缺少必要文件: $required"
+        }
+    }
+
+    $env:HF_ENDPOINT = if ($env:HF_ENDPOINT) { $env:HF_ENDPOINT } else { "https://hf-mirror.com" }
+    $env:HF_HUB_DISABLE_XET = if ($env:HF_HUB_DISABLE_XET) { $env:HF_HUB_DISABLE_XET } else { "1" }
+    $env:PYTHONIOENCODING = "utf-8"
+    $env:PYTHONUTF8 = "1"
+    Write-Output "正在检查 3D 推理组件..."
+    $worldCheck = Invoke-NativeCommandCapture `
+        -Executable $worldRuntime `
+        -Arguments @("--runtime-smoke-check")
+    Write-Output $worldCheck.Output.Trim()
+    if ($worldCheck.ExitCode -ne 0 -or -not $worldCheck.Output.Contains("AI_ANIME_WORLD_RUNTIME_SMOKE")) {
+        throw "3D 推理运行环境完整性检查失败: $($worldCheck.Output)"
+    }
+    $splatCheck = Invoke-NativeCommandCapture `
+        -Executable $splatNode `
+        -Arguments @($splatCli, "--help")
+    Write-Output $splatCheck.Output.Trim()
+    if ($splatCheck.ExitCode -ne 0 -or -not $splatCheck.Output.Contains("Transform and Filter Gaussian Splats")) {
+        throw "3DGS 转换运行环境完整性检查失败: $($splatCheck.Output)"
+    }
+
+    $receipt = [ordered]@{
+        schemaVersion = 1
+        id = "world"
+        version = [string]$package.version
+        platform = "win32"
+        arch = "x64"
+        sha256 = [string]$package.sha256
+        downloadSizeBytes = [long]$package.downloadSizeBytes
+        installedSizeBytes = [long]$package.installedSizeBytes
+        installedAt = [DateTime]::UtcNow.ToString("o")
+    }
+    $receiptJson = ($receipt | ConvertTo-Json) + [Environment]::NewLine
+    [IO.File]::WriteAllText(
+        (Join-Path $stagingPath "install.json"),
+        $receiptJson,
+        [Text.UTF8Encoding]::new($false)
+    )
+
+    if (Test-Path -LiteralPath $currentPath) {
+        Move-Item -LiteralPath $currentPath -Destination $previousPath
+        $movedCurrent = $true
+    }
+    Move-Item -LiteralPath $stagingPath -Destination $currentPath
+    if ($movedCurrent -and (Test-Path -LiteralPath $previousPath)) {
+        Remove-SafeRuntimePath -Path $previousPath
+        $movedCurrent = $false
+    }
+    Write-Output "导演世界 3D 运行环境安装完成。"
+} catch {
+    Write-Output "安装失败: $($_.Exception.Message)"
+    if ($movedCurrent -and -not (Test-Path -LiteralPath $currentPath) -and (Test-Path -LiteralPath $previousPath)) {
+        Move-Item -LiteralPath $previousPath -Destination $currentPath
+        $movedCurrent = $false
+    }
+    throw
+} finally {
+    try {
+        Remove-SafeRuntimePath -Path $archivePath
+        Remove-SafeRuntimePath -Path $stagingPath
+    } finally {
+        if ($transcriptStarted) {
+            try {
+                Stop-Transcript | Out-Null
+            } catch {
+                Write-Output "无法结束安装日志记录: $($_.Exception.Message)"
+            }
+        }
+    }
+}

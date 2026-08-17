@@ -37,9 +37,17 @@ class StubProjectMessages:
         *,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
         self.notifications.append(
-            (username, project, content, project_dir, project_state_dir)
+            (
+                username,
+                project,
+                content,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
         )
         return {"role": "assistant", "content": content}
 
@@ -50,8 +58,17 @@ class StubProjectMessages:
         *,
         project_dir=None,
         project_state_dir=None,
+        conversation_id="main",
     ):
-        self.listed.append((username, project, project_dir, project_state_dir))
+        self.listed.append(
+            (
+                username,
+                project,
+                project_dir,
+                project_state_dir,
+                conversation_id,
+            )
+        )
         return [{"role": "assistant", "content": "project"}]
 
 
@@ -96,6 +113,7 @@ def test_scoped_chat_messages_appends_project_notification_with_paths(tmp_path):
             "完成",
             tmp_path / "output",
             tmp_path / "state",
+            "main",
         )
     ]
 
@@ -136,6 +154,7 @@ def test_scoped_chat_messages_lists_scope_history(scope, expected_content, tmp_p
                 "project-a",
                 tmp_path / "output",
                 tmp_path / "state",
+                "main",
             )
         ]
         assert history.listed == []

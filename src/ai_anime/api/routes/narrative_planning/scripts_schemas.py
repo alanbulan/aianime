@@ -1,14 +1,15 @@
 """Inbound schemas for screenplay and beat editing endpoints."""
 
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ai_anime.modules.narrative_planning.public import SceneRef
 
 
 class ScriptGenerateRequest(BaseModel):
-    pass
+    target_duration_total: int = Field(default=120, ge=30, le=600)
+    rhythm: Literal["duration", "literal"] = "duration"
 
 
 class BeatUpdate(BaseModel):

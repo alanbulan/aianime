@@ -5,26 +5,27 @@ import { queryKeys } from "@/lib/query-keys";
 import type {
   AssetWorldGateway,
   CreateStyleInput,
+  UpdateStyleInput,
 } from "@/modules/asset_world/application/ports";
 
 export function createStyleQueryHooks(gateway: AssetWorldGateway) {
-  function stylesQueryOptions(project?: string) {
+  function stylesQueryOptions() {
     return {
-      queryKey: queryKeys.styles(project),
+      queryKey: queryKeys.styles(),
       queryFn: ({ signal }: { signal: AbortSignal }) =>
-        gateway.listStyles(project, signal),
+        gateway.listStyles(signal),
     };
   }
 
-  function useStyles(project?: string) {
-    return useQuery(stylesQueryOptions(project));
+  function useStyles() {
+    return useQuery(stylesQueryOptions());
   }
 
-  function useStyleDetail(project: string, styleId: string | null) {
+  function useStyleDetail(styleId: string | null) {
     return useQuery({
       queryKey: queryKeys.style(styleId ?? "__none__"),
       queryFn: ({ signal }) =>
-        gateway.getStyle(project, styleId as string, signal),
+        gateway.getStyle(styleId as string, signal),
       enabled: Boolean(styleId),
     });
   }
@@ -38,16 +39,20 @@ export function createStyleQueryHooks(gateway: AssetWorldGateway) {
     });
   }
 
+  function useUpdateStyle() {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (input: UpdateStyleInput) => gateway.updateStyle(input),
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: ["styles"] }),
+    });
+  }
+
   function useDeleteStyle() {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: ({
-        styleId,
-        project,
-      }: {
-        styleId: string;
-        project?: string;
-      }) => gateway.deleteStyle(styleId, project),
+      mutationFn: ({ styleId }: { styleId: string }) =>
+        gateway.deleteStyle(styleId),
       onSuccess: () =>
         queryClient.invalidateQueries({ queryKey: ["styles"] }),
     });
@@ -59,10 +64,10 @@ export function createStyleQueryHooks(gateway: AssetWorldGateway) {
     });
   }
 
-  function useUploadStylePreview(project: string) {
+  function useUploadStylePreview() {
     return useMutation({
       mutationFn: (input: { file: File; styleId: string }) =>
-        gateway.uploadStylePreview(project, input),
+        gateway.uploadStylePreview(input),
     });
   }
 
@@ -73,6 +78,7 @@ export function createStyleQueryHooks(gateway: AssetWorldGateway) {
     useDeleteStyle,
     useStyleDetail,
     useStyles,
+    useUpdateStyle,
     useUploadStylePreview,
   };
 }

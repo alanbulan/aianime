@@ -8,7 +8,11 @@ def test_chat_scope_defaults_to_home(payload):
     scope = ChatScope.from_payload(payload)
 
     assert scope == ChatScope(kind="home")
-    assert scope.to_dict() == {"kind": "home", "id": None}
+    assert scope.to_dict() == {
+        "kind": "home",
+        "id": None,
+        "conversationId": "main",
+    }
 
 
 def test_home_scope_discards_payload_id():
@@ -23,7 +27,23 @@ def test_project_conversations_normalize_id():
     ).to_dict() == {
         "kind": "project",
         "id": "item-1",
+        "conversationId": "main",
     }
+
+
+def test_chat_scope_normalizes_conversation_id():
+    scope = ChatScope.from_payload(
+        {"kind": "project", "id": "item-1", "conversationId": "chat_2"}
+    )
+
+    assert scope.conversation_id == "chat_2"
+
+
+def test_chat_scope_rejects_invalid_conversation_id():
+    with pytest.raises(ValueError, match="invalid conversation id"):
+        ChatScope.from_payload(
+            {"kind": "project", "id": "item-1", "conversationId": "../bad"}
+        )
 
 
 def test_unknown_scope_is_rejected():

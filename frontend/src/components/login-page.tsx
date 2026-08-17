@@ -605,7 +605,7 @@ export function LoginPage() {
                           );
                         }}
                         aria-label={t("auth.refreshCaptcha")}
-                        title={t("auth.refreshCaptcha")}
+                        data-ui-tooltip={t("auth.refreshCaptcha")}
                       >
                         {commercialCaptcha ? (
                           <img
@@ -686,7 +686,7 @@ export function LoginPage() {
                     (passwordResetStep === "reset" &&
                       (!password || !confirmPassword))))
               }
-              title={needsRegion ? t("region.picker.required") : undefined}
+              data-ui-tooltip={needsRegion ? t("region.picker.required") : undefined}
             >
               {submitting ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
               {submitting

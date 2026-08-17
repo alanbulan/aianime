@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   projectCommercialAuthorization,
+  projectCommercialInvocationDetails,
+  projectCommercialInvocationList,
   selectReleaseArtifactId,
 } from "../src/commercial-contracts.ts";
 
@@ -139,4 +141,27 @@ test("lease payload and signature never cross the renderer projection", () => {
   assert.equal(snapshot.lease?.verifiedOffline, false);
   assert.equal(Object.hasOwn(snapshot.lease, "payloadJson"), false);
   assert.equal(Object.hasOwn(snapshot.lease, "signature"), false);
+});
+
+test("invocation projections retain the settled quota breakdown", () => {
+  const invocation = {
+    id: "invocation-1",
+    status: "SUCCEEDED",
+    quotaStatus: "COMMITTED",
+    reservationId: "reservation-1",
+    reservedUnits: 10,
+    chargedUnits: 8,
+    refundedUnits: 2,
+    balanceBefore: 960,
+    balanceAfter: 952,
+  };
+
+  const list = projectCommercialInvocationList({
+    items: [invocation],
+    total: 1,
+  });
+  const details = projectCommercialInvocationDetails({ invocation });
+
+  assert.deepEqual(list.items[0], invocation);
+  assert.deepEqual(details.invocation, invocation);
 });

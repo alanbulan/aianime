@@ -21,7 +21,7 @@ from typing import Callable
 from dotenv import load_dotenv
 
 from ai_anime.modules.model_usage.public import (
-    require_model_role,
+    resolve_model_for_role,
     runtime_model_access,
 )
 from ai_anime.modules.model_usage.public import (
@@ -552,6 +552,14 @@ def _apply_embedding_dimension_contract(kwargs: dict, dimensions: object) -> int
     if expected_dimensions <= 0:
         return None
     kwargs["dimensions"] = expected_dimensions
+    allowed_openai_params = [
+        str(value)
+        for value in (kwargs.get("allowed_openai_params") or [])
+        if str(value).strip()
+    ]
+    if "dimensions" not in allowed_openai_params:
+        allowed_openai_params.append("dimensions")
+    kwargs["allowed_openai_params"] = allowed_openai_params
     return expected_dimensions
 
 
@@ -862,11 +870,9 @@ except ImportError:
 
 def init_cognee(
     *,
-    text_model: str,
-    embedding_model: str,
     embedding_dimensions: int | str | None = None,
 ) -> None:
-    """Configure Cognee from one explicit catalog selection and runtime access mode."""
+    """Configure Cognee from the current role-routing snapshot."""
     global _active_gateway_fingerprint
 
     if not COGNEE_AVAILABLE:
@@ -878,12 +884,8 @@ def init_cognee(
             "请重启 AI anime 后再使用小说知识库。"
         )
 
-    clean_text_model = str(text_model or "").strip()
-    clean_embedding_model = str(embedding_model or "").strip()
-    if not clean_text_model or not clean_embedding_model:
-        raise ValueError("小说知识库必须显式选择文本模型和向量模型")
-    require_model_role(clean_text_model, "TEXT")
-    require_model_role(clean_embedding_model, "EMBEDDING")
+    clean_text_model = resolve_model_for_role("TEXT")
+    clean_embedding_model = resolve_model_for_role("EMBEDDING")
 
     api_key, gateway_base_url = _effective_newapi_gateway()
     if not gateway_base_url:

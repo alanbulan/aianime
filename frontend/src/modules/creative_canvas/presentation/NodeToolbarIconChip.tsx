@@ -24,7 +24,7 @@ export function NodeToolbarIconChip({
   return (
     <div className="group/iconchip relative">
       <UiChipButton
-        title={label}
+        data-ui-tooltip={label}
         aria-label={label}
         className={`h-9 w-9 justify-center !px-0 ${NODE_ACTION_TOOLBAR_BUTTON_RADIUS_CLASS} text-sm ${NODE_ACTION_TOOLBAR_NEUTRAL_BUTTON_CLASS} ${extraButtonClass}`}
         onClick={onClick}

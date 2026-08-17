@@ -241,16 +241,6 @@ async def generate_creative_canvas_story_script(
     )
 
 
-def resolve_creative_canvas_vision_model(
-    model_override: str | None = None,
-) -> str:
-    from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
-        resolve_creative_canvas_vision_model as resolve,
-    )
-
-    return resolve(model_override)
-
-
 @lru_cache(maxsize=1)
 def creative_canvas_bootstrap_use_cases() -> CreativeCanvasBootstrapUseCases:
     return CreativeCanvasBootstrapUseCases(LocalCreativeCanvasBootstrapStorage())

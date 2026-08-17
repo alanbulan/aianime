@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -86,7 +87,7 @@ describe("VideoNodeGenerationHistoryPanel", () => {
     );
 
     fireEvent.click(container.querySelector('button[aria-pressed="true"]')!);
-    fireEvent.click(screen.getByTitle("刷新历史"));
+    fireEvent.click(getByUiTooltip("刷新历史"));
 
     expect(onRestore).toHaveBeenCalledWith(baseProps.records[0]);
     expect(onRefresh).toHaveBeenCalledOnce();

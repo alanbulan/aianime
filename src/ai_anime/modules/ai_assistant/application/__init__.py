@@ -6,6 +6,9 @@ from ai_anime.modules.ai_assistant.application.chat_presentation import (
 from ai_anime.modules.ai_assistant.application.chat_worker_lifecycle import (
     ChatWorkerLifecycle,
 )
+from ai_anime.modules.ai_assistant.application.conversation_titles import (
+    ConversationTitles,
+)
 from ai_anime.modules.ai_assistant.application.chat_events import (
     emit_chat_event_best_effort,
 )
@@ -24,6 +27,7 @@ from ai_anime.modules.ai_assistant.application.hermes_runtime_prewarm import (
 )
 from ai_anime.modules.ai_assistant.application.ports import (
     ChatHistory,
+    ChatTitleGenerator,
     ChatRunLocks,
     DisplayFallbackGateway,
     HermesRuntime,
@@ -60,10 +64,12 @@ from ai_anime.modules.ai_assistant.application.speech_transcription import (
 __all__ = [
     "AgentPromptContext",
     "ChatHistory",
+    "ChatTitleGenerator",
     "emit_chat_event_best_effort",
     "ChatPresentation",
     "ChatRunLocks",
     "ChatWorkerLifecycle",
+    "ConversationTitles",
     "DisplayFallbackGateway",
     "DisplayFallbacks",
     "DeterministicProjectReplies",

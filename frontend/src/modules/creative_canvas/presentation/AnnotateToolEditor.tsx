@@ -1157,7 +1157,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
           })}
           <button
             type="button"
-            title="移动图片（也可按住空格拖拽）"
+            data-ui-tooltip="移动图片（也可按住空格拖拽）"
             onClick={() => {
               setHandTool(true);
               setTextEditorState(null);
@@ -1174,7 +1174,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
         <div className="flex items-center gap-1">
           <button
             type="button"
-            title="缩小"
+            data-ui-tooltip="缩小"
             aria-label="缩小"
             className={`${ANNOTATE_TOOL_BUTTON_BASE_CLASS} text-text-muted/82 hover:text-text-dark/95`}
             onClick={() => zoomByStep(1 / ZOOM_BUTTON_STEP)}
@@ -1187,7 +1187,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
           </span>
           <button
             type="button"
-            title="放大"
+            data-ui-tooltip="放大"
             aria-label="放大"
             className={`${ANNOTATE_TOOL_BUTTON_BASE_CLASS} text-text-muted/82 hover:text-text-dark/95`}
             onClick={() => zoomByStep(ZOOM_BUTTON_STEP)}
@@ -1197,7 +1197,7 @@ export function AnnotateToolEditor({ options, onOptionsChange, sourceImageUrl }:
           </button>
           <button
             type="button"
-            title="适应窗口"
+            data-ui-tooltip="适应窗口"
             aria-label="适应窗口"
             className={`${ANNOTATE_TOOL_BUTTON_BASE_CLASS} text-text-muted/82 hover:text-text-dark/95`}
             onClick={resetZoom}

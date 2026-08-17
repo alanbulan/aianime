@@ -31,11 +31,7 @@ async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dic
     manager = get_task_manager()
     current_progress = 0.0
 
-    store = await make_cognee_store_for_context(
-        ctx,
-        text_model=task.text_model,
-        embedding_model=task.embedding_model,
-    )
+    store = await make_cognee_store_for_context(ctx)
 
     def update(progress: float, task: str) -> None:
         nonlocal current_progress
@@ -66,11 +62,7 @@ async def _run_ingest_fast(envelope: dict[str, Any], ctx: ProjectContext) -> dic
             on_progress=update,
             on_log=append_log,
         )
-        return {
-            **result,
-            "model": task.text_model,
-            "embedding_model": task.embedding_model,
-        }
+        return result
     finally:
         await store.close()
 

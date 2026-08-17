@@ -11,30 +11,35 @@ from ai_anime.modules.task_execution.domain.queue import (
 
 PROJECT_LANE_LIMIT_DEFAULTS = {
     "default": 12,
+    "workflow": 1,
     "video": 4,
     "world": 2,
     "ffmpeg": 2,
 }
 PROJECT_LANE_MIN_DEFAULTS = {
     "default": 3,
+    "workflow": 1,
     "video": 1,
     "world": 1,
     "ffmpeg": 1,
 }
 PROJECT_USER_LANE_LIMIT_DEFAULTS = {
-    "default": 3,
+    "default": 8,
+    "workflow": 1,
     "video": 1,
     "world": 1,
     "ffmpeg": 1,
 }
 GLOBAL_LANE_CONCURRENCY_DEFAULTS = {
     "default": 8,
+    "workflow": 4,
     "video": 2,
     "world": 1,
     "ffmpeg": 1,
 }
 GLOBAL_LANE_QUEUE_LIMIT_DEFAULTS = {
     "default": 512,
+    "workflow": 128,
     "video": 128,
     "world": 64,
     "ffmpeg": 64,

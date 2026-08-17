@@ -8,8 +8,15 @@ from fastapi import APIRouter, Depends, Query
 from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import get_sqlite_store, resolve_project_scope
 from ai_anime.sqlite_store import SQLiteStore
-from ai_anime.modules.task_execution.public import get_task_manager
-from ai_anime.shared.utils.path_resolver import compute_identity_path, compute_portrait_path
+from ai_anime.modules.task_execution.public import (
+    effective_task_status,
+    get_task_manager,
+    parse_task_timestamp,
+)
+from ai_anime.shared.utils.path_resolver import (
+    compute_identity_path,
+    compute_portrait_path,
+)
 
 router = APIRouter()
 
@@ -20,8 +27,9 @@ _STEP_MAP = {
     "characters": ("build_characters", "角色提取"),
     "episodes": ("build_episodes", "分集规划"),
     "portraits": (None, "肖像生成"),
-    "identity_plan": (None, "身份规划"),
+    "identity_plan": ("identity_planner", "身份规划"),
     "identity_images": (None, "身份图生成"),
+    "scene_plan": ("episode_scene_planner", "场景规划"),
     "script": ("script_writer", "脚本生成"),
     "sketches": ("sketch_generation", "草图生成"),
     "coloring": (None, "配色+身份/道具检测"),
@@ -48,7 +56,9 @@ def _user_has_configured(username: str, project: str) -> bool:
 def _file_series_complete(directory: Path, suffix: str, count: int) -> bool:
     if count <= 0:
         return False
-    return all((directory / f"beat_{i + 1:02d}.{suffix}").exists() for i in range(count))
+    return all(
+        (directory / f"beat_{i + 1:02d}.{suffix}").exists() for i in range(count)
+    )
 
 
 def _beat_file_series_complete(directory: Path, suffix: str, beats: list[dict]) -> bool:
@@ -59,7 +69,10 @@ def _beat_file_series_complete(directory: Path, suffix: str, beats: list[dict]) 
     ]
     if not beat_numbers:
         return False
-    return all((directory / f"beat_{beat_num:02d}.{suffix}").exists() for beat_num in beat_numbers)
+    return all(
+        (directory / f"beat_{beat_num:02d}.{suffix}").exists()
+        for beat_num in beat_numbers
+    )
 
 
 def _beat_has_script_content(beat: dict) -> bool:
@@ -70,10 +83,25 @@ def _beat_has_script_content(beat: dict) -> bool:
     )
 
 
+def _task_completed_after_files(task: object | None, paths: list[Path]) -> bool:
+    if task is None or not paths or not all(path.exists() for path in paths):
+        return False
+    if effective_task_status(task) != "completed":
+        return False
+    completed_at = parse_task_timestamp(
+        getattr(task, "completed_at", None) or getattr(task, "updated_at", None)
+    )
+    if completed_at is None:
+        return False
+    return completed_at.timestamp() >= max(path.stat().st_mtime for path in paths)
+
+
 @router.get("/projects/{project}/pipeline/status")
 async def pipeline_status(
     project: str,
-    episode: Optional[int] = Query(None, description="指定集数，不传则自动检测最新活跃集"),
+    episode: Optional[int] = Query(
+        None, description="指定集数，不传则自动检测最新活跃集"
+    ),
     user: dict = Depends(get_api_user),
     store: SQLiteStore = Depends(get_sqlite_store),
 ):
@@ -139,34 +167,69 @@ async def pipeline_status(
         unfinished = [
             ep.number
             for ep in sorted(episodes, key=lambda item: getattr(item, "number", 0))
-            if not (project_dir / "videos" / "episodes" / f"ep{ep.number:03d}_final.mp4").exists()
+            if not (
+                project_dir / "videos" / "episodes" / f"ep{ep.number:03d}_final.mp4"
+            ).exists()
         ]
-        target_ep = unfinished[0] if unfinished else max((ep.number for ep in episodes), default=1)
+        target_ep = (
+            unfinished[0]
+            if unfinished
+            else max((ep.number for ep in episodes), default=1)
+        )
 
     target_episode = store.get_episode(target_ep)
     identity_ids = set(getattr(target_episode, "identity_ids", []) or [])
     has_identity_plan = bool(identity_ids)
+    has_scene_plan = bool(getattr(target_episode, "scene_menu", None))
     has_identity_images = has_identity_plan
     if has_identity_plan:
         for char in main_chars:
             for ident in getattr(char, "identities", []) or []:
                 if ident.identity_id not in identity_ids:
                     continue
-                if not compute_identity_path(project_dir, char.name, ident.identity_name):
+                if not compute_identity_path(
+                    project_dir, char.name, ident.identity_name
+                ):
                     has_identity_images = False
 
     beats = await store.get_beats_as_dicts(target_ep)
     has_script = _all_or_empty([_beat_has_script_content(b) for b in beats])
 
-    grids_dir = project_dir / "grids" / f"ep{target_ep:03d}"
     sketches_dir = project_dir / "sketches" / f"ep{target_ep:03d}"
-    has_sketches = bool(list(grids_dir.glob("*.png"))) or bool(list(sketches_dir.glob("*.png")))
+    sketch_paths = [
+        sketches_dir / f"beat_{int(beat['beat_number']):02d}.png"
+        for beat in beats
+        if int(beat.get("beat_number", 0) or 0) > 0
+    ]
+    has_sketches = _beat_file_series_complete(sketches_dir, "png", beats)
 
-    has_coloring = has_sketches and _all_or_empty(
-        [
-            b.get("detected_identities") is not None or b.get("detected_props") is not None
-            for b in beats
-        ]
+    detection_task = (
+        mgr.get_task_for_project(
+            resolved.ctx,
+            "ai_identity_detection",
+            target_ep,
+        )
+        if resolved.ctx
+        else mgr.get_task(
+            "ai_identity_detection",
+            username,
+            project_name,
+            target_ep,
+        )
+    )
+    sketch_colors = store.get_sketch_colors(target_ep) or {}
+    has_coloring = (
+        has_sketches
+        and bool(sketch_colors)
+        and identity_ids.issubset(set(sketch_colors))
+        and _task_completed_after_files(detection_task, sketch_paths)
+        and _all_or_empty(
+            [
+                b.get("detected_identities") is not None
+                and b.get("detected_props") is not None
+                for b in beats
+            ]
+        )
     )
     has_global_optimize = _all_or_empty(
         [bool(b.get("video_mode")) and bool(b.get("video_prompt")) for b in beats]
@@ -175,6 +238,7 @@ async def pipeline_status(
     episode_status = {
         "identity_plan": has_identity_plan,
         "identity_images": has_identity_images,
+        "scene_plan": has_scene_plan,
         "script": has_script,
         "sketches": has_sketches,
         "coloring": has_coloring,
@@ -194,6 +258,7 @@ async def pipeline_status(
     for key in (
         "identity_plan",
         "identity_images",
+        "scene_plan",
         "script",
         "sketches",
         "coloring",
@@ -207,7 +272,9 @@ async def pipeline_status(
             break
     if (
         next_step == "done"
-        and not (project_dir / "videos" / "episodes" / f"ep{target_ep:03d}_final.mp4").exists()
+        and not (
+            project_dir / "videos" / "episodes" / f"ep{target_ep:03d}_final.mp4"
+        ).exists()
     ):
         next_step = "compose"
 

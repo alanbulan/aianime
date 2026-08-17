@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 import { useTranslation } from "react-i18next";
 
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
@@ -93,19 +93,23 @@ export function RenderSection({
     images,
     project,
   });
-  const extraDialogs = createElement(ThreeDDirectorDialog, {
-    autoCommitDirectorCombined: true,
-    description: t(
-      "episode.workbench.render.backgroundDirectorWorldDescription",
-    ),
-    manifest: controller.directorWorldManifest,
-    onOpenChange: controller.setDirectorWorldOpen,
-    onSubmitDirectorCombined: (_blob, meta) =>
-      controller.commitDirectorCapture(meta),
-    open: controller.directorWorldOpen,
-    title: t("episode.workbench.render.backgroundOpen360"),
-    viewerPurpose: "beat",
-  });
+  const extraDialogs = createElement(
+    Fragment,
+    null,
+    createElement(ThreeDDirectorDialog, {
+      autoCommitDirectorCombined: true,
+      description: t(
+        "episode.workbench.render.backgroundDirectorWorldDescription",
+      ),
+      manifest: controller.directorWorldManifest,
+      onOpenChange: controller.setDirectorWorldOpen,
+      onSubmitDirectorCombined: (_blob, meta) =>
+        controller.commitDirectorCapture(meta),
+      open: controller.directorWorldOpen,
+      title: t("episode.workbench.render.backgroundOpen360"),
+      viewerPurpose: "beat",
+    }),
+  );
 
   return createElement(RenderSectionView, {
     controller,

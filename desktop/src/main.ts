@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 
-import { join } from "node:path";
+import { appendFile, mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { hostname } from "node:os";
 import {
   app,
@@ -16,11 +17,16 @@ import {
 import electronUpdater from "electron-updater";
 import { LocalBackend } from "./backend.js";
 import { EncryptedFileCommercialDeviceIdentity } from "./commercial-device.js";
-import { CommercialModelProxy } from "./commercial-model-proxy.js";
+import {
+  CommercialModelProxy,
+  modelRoutingSnapshot,
+  type ModelRouteAuditEntry,
+} from "./commercial-model-proxy.js";
 import { EncryptedFileCommercialModelAccessStore } from "./commercial-model-access.js";
 import { saveCommercialInvocationResult } from "./commercial-invocation-result.js";
 import {
   CommercialApiClient,
+  COMMERCIAL_RUNTIME_DEPENDENCIES_URL,
   EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
   registerCommercialIpc,
@@ -29,6 +35,11 @@ import {
 } from "./commercial.js";
 import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
+import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
+import {
+  RUNTIME_DEPENDENCY_CHANNELS,
+  RuntimeDependencyManager,
+} from "./runtime-dependencies.js";
 
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
@@ -60,6 +71,20 @@ const CONTENT_SECURITY_POLICY = [
 ].join(" ");
 const AUTH_COOKIE_NAME = "ai_anime_session";
 const AUTH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+
+function appendModelRouteAudit(
+  logPath: string,
+  entry: ModelRouteAuditEntry,
+): void {
+  void mkdir(dirname(logPath), { recursive: true })
+    .then(() => appendFile(logPath, `${JSON.stringify(entry)}\n`, "utf8"))
+    .catch((error) => {
+      console.warn(
+        "[commercial] failed to append model route audit:",
+        error instanceof Error ? error.message : String(error),
+      );
+    });
+}
 
 function isSameOrigin(url: string, baseUrl: string): boolean {
   try {
@@ -204,6 +229,31 @@ function registerWindowIpc(): void {
   });
 }
 
+function registerRuntimeDependencyIpc(manager: RuntimeDependencyManager): void {
+  const requireActiveWindow = (senderId: number): void => {
+    if (
+      !mainWindow ||
+      mainWindow.isDestroyed() ||
+      mainWindow.webContents.id !== senderId
+    ) {
+      throw new Error("runtime dependency sender is not the active desktop window");
+    }
+  };
+  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.status, async (event) => {
+    requireActiveWindow(event.sender.id);
+    return await manager.status();
+  });
+  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.install, async (event) => {
+    requireActiveWindow(event.sender.id);
+    const sender = event.sender;
+    return await manager.install((progress) => {
+      if (!sender.isDestroyed()) {
+        sender.send(RUNTIME_DEPENDENCY_CHANNELS.progress, progress);
+      }
+    });
+  });
+}
+
 function desktopSessionCookieValue(username: string): string {
   return `desktop.${Buffer.from(username, "utf8").toString("base64url")}`;
 }
@@ -234,6 +284,14 @@ async function registerCommercialGatewayIpc(
   const releaseUpdater = new CommercialDesktopUpdater(
     electronUpdater.autoUpdater,
     (artifactId) => client.releaseUpdateFeed(artifactId),
+    (progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(
+          COMMERCIAL_CHANNELS.updateDownloadProgress,
+          progress,
+        );
+      }
+    },
   );
   registerCommercialIpc({
     ipcMain,
@@ -252,25 +310,25 @@ async function registerCommercialGatewayIpc(
       ),
     onAuthenticated: (cloudSession) =>
       setDesktopSessionCookie(localBackend.baseUrl, cloudSession),
-    onModelAccessChanged: (
+    onModelAccessChanged: async (
       access,
       allowsCustomModels,
       cloudModelAssignments,
       modelCapabilities,
-    ) =>
-      localBackend.configureModelAccess({
+    ) => {
+      const routing = {
+        access,
         allowsCustomModels,
-        mode: allowsCustomModels ? access.mode : "cloud",
-        cloudModelAssignments: [...cloudModelAssignments],
+        cloudModelAssignments,
+      };
+      commercialModelProxy?.configureRouting(routing);
+      await localBackend.configureModelAccess({
+        allowsCustomModels,
+        mode: "mixed",
+        modelAssignments: modelRoutingSnapshot(routing),
         modelCapabilities: [...modelCapabilities],
-        ...(allowsCustomModels && access.mode === "byok"
-          ? {
-              byokBaseUrl: access.byokBaseUrl,
-              byokApiKey: access.byokApiKey,
-              modelAssignments: access.byokModelAssignments,
-            }
-          : {}),
-      }),
+      });
+    },
     onLoggedOut: () =>
       session.defaultSession.cookies.remove(
         localBackend.baseUrl,
@@ -301,8 +359,9 @@ function commercialArchitecture(): string {
 
 async function startApplication(): Promise<void> {
   const secureDirectory = join(app.getPath("userData"), "secure");
+  const commercialGatewayUrl = resolveCommercialGatewayUrl();
   const client = new CommercialApiClient({
-    baseUrl: resolveCommercialGatewayUrl(),
+    baseUrl: commercialGatewayUrl,
     sessionStore: new EncryptedFileCommercialSessionStore(
       join(secureDirectory, "commercial-session.bin"),
       safeStorage,
@@ -320,18 +379,32 @@ async function startApplication(): Promise<void> {
     join(secureDirectory, "commercial-model-access.bin"),
     safeStorage,
   );
-  commercialModelProxy = new CommercialModelProxy(client, deviceIdentity);
+  const modelRouteLogPath = join(
+    app.getPath("userData"),
+    "logs",
+    "model-routing.log",
+  );
+  commercialModelProxy = new CommercialModelProxy(
+    client,
+    deviceIdentity,
+    (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
+  );
   await commercialModelProxy.start();
+  const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
   backend = new LocalBackend({
+    runtimeDependencyPaths: runtimeDependencies.paths,
     environment: {
       AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
       AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
+      AI_ANIME_SHARP_MODEL_URL:
+        `${COMMERCIAL_RUNTIME_DEPENDENCIES_URL}/models/sharp/sharp_2572gikvuh.pt`,
     },
   });
   try {
     await backend.start();
     installBackendHeader(backend);
     installMediaPermissions(backend);
+    registerRuntimeDependencyIpc(runtimeDependencies);
     await registerCommercialGatewayIpc(
       backend,
       client,

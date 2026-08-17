@@ -69,7 +69,7 @@ describe("Production render settings queries", () => {
         "http://localhost:3000/api/v1/projects/demo/render-settings",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {
@@ -135,7 +135,7 @@ describe("Production sketch settings queries", () => {
         "http://localhost:3000/api/v1/projects/demo/sketch-settings",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

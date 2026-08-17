@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -61,7 +62,7 @@ describe("AssetLibraryBeatPanels", () => {
 
     expect(screen.getByText("第1集")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Beat 3/ }));
-    fireEvent.click(screen.getByTitle("当前分镜"));
+    fireEvent.click(getByUiTooltip("当前分镜"));
     expect(onAddAsset).toHaveBeenCalledWith(second, 1);
   });
 
@@ -87,7 +88,7 @@ describe("AssetLibraryBeatPanels", () => {
     expect(screen.getByText("第2集")).toBeInTheDocument();
     expect(screen.getByText("Beat 5")).toBeInTheDocument();
     expect(screen.getByText("3GS / 控制图")).toBeInTheDocument();
-    fireEvent.click(screen.getByTitle("导演合成图"));
+    fireEvent.click(getByUiTooltip("导演合成图"));
     expect(onAddAsset).toHaveBeenCalledWith(director, 0);
   });
 

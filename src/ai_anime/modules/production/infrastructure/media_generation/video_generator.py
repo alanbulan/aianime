@@ -177,7 +177,6 @@ class CommercialVideoGenerator(VideoGeneratorBase):
     def __init__(
         self,
         *,
-        model: str,
         model_role: str,
         resolution: str | None = None,
         generate_audio: bool | None = None,
@@ -188,22 +187,19 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         from ai_anime.modules.production.infrastructure.media_generation_settings import (
             DEFAULT_VIDEO_RESOLUTION,
         )
-        from ai_anime.modules.model_usage.public import require_model_role
+        from ai_anime.modules.model_usage.public import resolve_model_for_role
 
         gateway = get_effective_newapi_gateway_config()
         self.access_mode = str(gateway.mode or "").strip().lower()
-        if self.access_mode not in {"cloud", "byok"}:
-            raise ValueError("商业模型访问模式必须是 cloud 或 byok")
+        if self.access_mode != "mixed":
+            raise ValueError("商业模型访问模式必须是 mixed")
         self.base_url = str(gateway.base_url or "").strip().rstrip("/")
         self.api_key = str(gateway.api_key or "").strip()
-        self.model = str(model or "").strip()
         self.model_role = str(model_role or "").strip().upper()
         self.resolution = str(resolution or DEFAULT_VIDEO_RESOLUTION).strip()
         self.generate_audio = generate_audio
         if not self.base_url:
             raise ValueError("当前商业模型访问未配置 Base URL")
-        if not self.model:
-            raise ValueError("视频模型不能为空")
         if self.model_role not in {
             "VIDEO_TEXT_TO_VIDEO",
             "VIDEO_IMAGE_TO_VIDEO",
@@ -213,11 +209,14 @@ class CommercialVideoGenerator(VideoGeneratorBase):
             "VIDEO_EDIT",
         }:
             raise ValueError("视频模型用途无效")
-        require_model_role(self.model, self.model_role)
+        self.model = resolve_model_for_role(self.model_role)
 
     @property
     def headers(self) -> dict[str, str]:
-        headers = {"Accept": "application/json"}
+        headers = {
+            "Accept": "application/json",
+            "X-AI-Anime-Model-Role": self.model_role,
+        }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         return headers
@@ -698,28 +697,13 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                 f"{int(duration_seconds)}s, size={payload['size']})..."
             )
             progress(0.1)
-            try:
-                submitted, request_id = await self._request_json(
-                    "POST",
-                    "videos",
-                    payload=payload,
-                    media=media,
-                    idempotency_key=idempotency_key,
-                )
-            except CommercialVideoError as exc:
-                retryable_cloud_submit = self.access_mode == "cloud" and (
-                    exc.status == 0 or exc.status >= 500
-                )
-                if not retryable_cloud_submit:
-                    raise
-                log("视频任务提交结果未确认，正在使用同一幂等键恢复...")
-                submitted, request_id = await self._request_json(
-                    "POST",
-                    "videos",
-                    payload=payload,
-                    media=media,
-                    idempotency_key=idempotency_key,
-                )
+            submitted, request_id = await self._request_json(
+                "POST",
+                "videos",
+                payload=payload,
+                media=media,
+                idempotency_key=idempotency_key,
+            )
             task_id = str(submitted.get("id") or "").strip()
             if not task_id:
                 raise CommercialVideoError(
@@ -847,13 +831,11 @@ class CommercialVideoGenerator(VideoGeneratorBase):
 
 def create_video_generator(
     *,
-    model: str,
     model_role: str,
     **kwargs,
 ) -> VideoGeneratorBase:
     """Create the single commercial video adapter."""
     return CommercialVideoGenerator(
-        model=model,
         model_role=model_role,
         **kwargs,
     )

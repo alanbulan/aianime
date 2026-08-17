@@ -58,7 +58,7 @@ describe("Production render-plan queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/render/plan",
         async ({ request }) => {
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: mockPlan });
         },
       ),
@@ -98,7 +98,7 @@ describe("Production render-plan queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/1/render/execute",
         async ({ request }) => {
-          receivedBody = await request.json();
+          receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: {

@@ -18,7 +18,7 @@ def test_render_plan_routes_are_restored_without_legacy_episode_video_route() ->
         path.read_text(encoding="utf-8") for path in routes_root.glob("*.py")
     )
     render_source = (
-        REPO_ROOT / "src/ai_anime/api/routes/production_render.py"
+        REPO_ROOT / "src/ai_anime/api/routes/production/render.py"
     ).read_text(encoding="utf-8")
 
     assert not (routes_root / "generation.py").exists()

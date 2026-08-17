@@ -50,9 +50,30 @@ export const electronCommercialModelAccessGateway: CommercialModelAccessGateway 
       ),
     );
   },
-  async clearByok() {
+  async clearByok(providerId) {
     return parseCommercialModelAccessStatus(
-      await invokeCommercial(() => requireCommercialBridge().clearByok()),
+      await invokeCommercial(() =>
+        requireCommercialBridge().clearByok(
+          providerId ? { providerId } : undefined,
+        ),
+      ),
     );
+  },
+  async fetchByokProviderModels(input) {
+    const value = await invokeCommercial(() =>
+      requireCommercialBridge().byokProviderModels(input),
+    );
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("BYOK 模型目录响应无效");
+    }
+    const record = value as Record<string, unknown>;
+    if (!Array.isArray(record.models)) {
+      throw new Error("BYOK 模型目录缺少 models");
+    }
+    return {
+      providerId: String(record.providerId ?? "").trim(),
+      catalogVersion: String(record.catalogVersion ?? "").trim(),
+      models: record.models.map((item) => String(item).trim()).filter(Boolean),
+    };
   },
 };

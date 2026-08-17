@@ -96,7 +96,7 @@ export interface InsertManualShotParams {
 
 export interface GenerateScriptParams {
   target_duration_total?: number;
-  rhythm?: string;
+  rhythm?: "duration" | "literal";
 }
 
 export interface GenerateRewriteParams {

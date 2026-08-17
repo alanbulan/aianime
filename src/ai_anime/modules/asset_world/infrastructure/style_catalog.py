@@ -1,35 +1,19 @@
-"""本地风格目录适配器 - Single Source of Truth.
-
-架构：
-- 系统预设（文件，只读）：src/ai_anime/styles/presets/*.json
-- 自定义风格（项目配置文件）：project_config.json
-
-使用方式：
-    from ai_anime.modules.asset_world.public import StyleService
-
-    # 获取风格配置
-    style = StyleService.get_style("chinese_period_drama", username="alice", project="demo")
-
-    # 列出所有风格
-    styles = StyleService.list_all_styles(username="alice", project="demo")
-
-    # 保存自定义风格
-    StyleService.save_custom_style("my_style", config, username="alice", project="demo")
-"""
+"""账号级视觉风格目录适配器。"""
 
 import json
+import logging
+import os
 import shutil
+import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
-from ai_anime.shared.runtime_paths import OUTPUT_DIR
+from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
 from ai_anime.modules.asset_world.application.style_models import StyleConfig
-from ai_anime.modules.project_workspace.public import (
-    load_project_config_file,
-    update_project_config_file,
-)
+
+logger = logging.getLogger(__name__)
 
 
 class StyleService:
@@ -37,7 +21,7 @@ class StyleService:
 
     提供统一的风格配置访问接口，支持：
     1. 系统预设风格（从 JSON 文件加载，只读）
-    2. 自定义风格（从项目配置加载，可读写，项目隔离）
+    2. 自定义风格（账号级目录，可读写，所有项目共享）
 
     所有风格访问都应通过此服务，确保 One Source of Truth。
     """
@@ -47,6 +31,7 @@ class StyleService:
 
     # 预设风格缓存（避免重复读取文件）
     _preset_cache: dict[str, StyleConfig] = {}
+    _catalog_lock = threading.RLock()
     STYLE_FAMILY_LABELS = {
         "live_action": "真人",
         "animation": "动画",
@@ -67,30 +52,47 @@ class StyleService:
         return cls.PRESETS_DIR / f"{style_id}.png"
 
     @staticmethod
-    def resolve_project_preview_path(
-        project_dir: str | Path,
+    def _account_root(base_dir: str | Path, username: str) -> Path:
+        root = Path(base_dir).resolve()
+        candidate = (root / username / "_account").resolve()
+        if not candidate.is_relative_to(root):
+            raise ValueError("Invalid username")
+        return candidate
+
+    @classmethod
+    def _catalog_path(cls, username: str) -> Path:
+        return cls._account_root(STATE_DIR, username) / "styles" / "catalog.json"
+
+    @classmethod
+    def _style_asset_root(cls, username: str) -> Path:
+        return cls._account_root(OUTPUT_DIR, username)
+
+    @classmethod
+    def resolve_style_preview_path(
+        cls,
+        username: str,
         preview_path: str,
     ) -> Path | None:
-        project_root = Path(project_dir).resolve()
-        candidate = (project_root / preview_path).resolve()
-        if not candidate.is_relative_to(project_root) or not candidate.exists():
+        root = cls._style_asset_root(username)
+        candidate = (root / preview_path).resolve()
+        if not candidate.is_relative_to(root) or not candidate.is_file():
             return None
         return candidate
 
     @classmethod
-    def _style_preview_dir(cls, project_dir: str | Path, style_id: str) -> Path:
-        project_root = Path(project_dir).resolve()
+    def _style_preview_dir(cls, username: str, style_id: str) -> Path:
+        account_root = cls._style_asset_root(username)
         if not style_id or Path(style_id).name != style_id:
             raise ValueError("Invalid style id")
-        style_dir = (project_root / "assets" / "styles" / style_id).resolve()
-        if not style_dir.is_relative_to(project_root):
+        style_dir = (account_root / "styles" / style_id).resolve()
+        if not style_dir.is_relative_to(account_root):
             raise ValueError("Invalid style preview path")
         return style_dir
 
     @classmethod
-    def remove_style_previews(cls, project_dir: str | Path, style_id: str) -> None:
+    def remove_style_previews(cls, username: str, style_id: str) -> None:
         """Remove every supported reference image variant for a custom style."""
-        style_dir = cls._style_preview_dir(project_dir, style_id)
+        style_dir = cls._style_preview_dir(username, style_id)
         for extension in cls.STYLE_PREVIEW_EXTENSIONS:
             candidate = style_dir / f"reference{extension}"
             if candidate.is_file():
@@ -99,49 +101,50 @@ class StyleService:
     @classmethod
     def stage_style_preview(
         cls,
-        project_dir: str | Path,
+        username: str,
         content: bytes,
         extension: str,
     ) -> str:
-        """Store an uploaded reference image in the project staging area."""
+        """Store an uploaded reference image in the account staging area."""
         suffix = extension.lower()
         if not suffix.startswith("."):
             suffix = f".{suffix}"
         if suffix not in cls.STYLE_PREVIEW_EXTENSIONS:
             raise ValueError("Unsupported style preview image type")
-        staging_dir = Path(project_dir) / "assets" / "styles" / ".staging"
+        account_root = cls._style_asset_root(username)
+        staging_dir = account_root / "styles" / ".staging"
         staging_dir.mkdir(parents=True, exist_ok=True)
-        relative = Path("assets") / "styles" / ".staging" / f"{uuid.uuid4().hex}{suffix}"
-        (Path(project_dir) / relative).write_bytes(content)
+        relative = Path("styles") / ".staging" / f"{uuid.uuid4().hex}{suffix}"
+        (account_root / relative).write_bytes(content)
         return relative.as_posix()
 
     @classmethod
     def finalize_style_preview(
         cls,
-        project_dir: str | Path,
+        username: str,
         style_id: str,
         staged_path: str,
     ) -> str:
         """Move a staged reference image to its custom style directory."""
-        project_root = Path(project_dir).resolve()
-        target_dir = cls._style_preview_dir(project_root, style_id)
-        staged = (project_root / staged_path).resolve()
-        staging_root = (project_root / "assets" / "styles" / ".staging").resolve()
+        account_root = cls._style_asset_root(username)
+        target_dir = cls._style_preview_dir(username, style_id)
+        staged = (account_root / staged_path).resolve()
+        staging_root = (account_root / "styles" / ".staging").resolve()
         if not staged.is_relative_to(staging_root) or not staged.is_file():
             raise ValueError("Invalid style preview token")
         if staged.suffix.lower() not in cls.STYLE_PREVIEW_EXTENSIONS:
             raise ValueError("Unsupported style preview image type")
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / f"reference{staged.suffix.lower()}"
-        cls.remove_style_previews(project_root, style_id)
+        cls.remove_style_previews(username, style_id)
         shutil.move(str(staged), str(target))
-        return target.relative_to(project_root).as_posix()
+        return target.relative_to(account_root).as_posix()
 
     @classmethod
-    def find_style_preview(cls, project_dir: str | Path, style_id: str) -> str | None:
+    def find_style_preview(cls, username: str, style_id: str) -> str | None:
         """Return an already-uploaded reference image for a style, if present."""
-        root = Path(project_dir).resolve()
-        style_root = cls._style_preview_dir(root, style_id)
+        root = cls._style_asset_root(username)
+        style_root = cls._style_preview_dir(username, style_id)
         for extension in cls.STYLE_PREVIEW_EXTENSIONS:
             candidate = style_root / f"reference{extension}"
             if candidate.is_file():
@@ -151,13 +154,13 @@ class StyleService:
     @classmethod
     def validate_style_preview_path(
         cls,
-        project_dir: str | Path,
+        username: str,
         style_id: str,
         preview_path: str,
     ) -> str:
         """Validate that a preview points at the style's published reference file."""
-        root = Path(project_dir).resolve()
-        style_root = cls._style_preview_dir(root, style_id)
+        root = cls._style_asset_root(username)
+        style_root = cls._style_preview_dir(username, style_id)
         candidate = (root / preview_path).resolve()
         if candidate.parent != style_root:
             raise ValueError("Invalid style preview path")
@@ -170,56 +173,46 @@ class StyleService:
         return candidate.relative_to(root).as_posix()
 
     @staticmethod
-    def _resolve_project_context(
+    def resolve_username(
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
-    ) -> tuple[str | None, str | None]:
-        if username and project:
-            return username, project
-        inferred_username = None
-        inferred_project = None
+    ) -> str | None:
+        if username:
+            return username
         if project_dir:
             try:
-                rel_parts = Path(project_dir).resolve().relative_to(Path(OUTPUT_DIR).resolve()).parts
-                if len(rel_parts) >= 2:
-                    inferred_username, inferred_project = rel_parts[0], rel_parts[1]
-            except Exception:
-                pass
-        return username or inferred_username, project or inferred_project
+                relative = Path(project_dir).resolve().relative_to(Path(OUTPUT_DIR).resolve())
+                return relative.parts[0] if len(relative.parts) >= 2 else None
+            except (OSError, ValueError):
+                return None
+        return None
 
     @classmethod
-    def _load_project_custom_style_map(
-        cls,
-        username: str | None = None,
-        project: str | None = None,
-        project_dir: str | Path | None = None,
-    ) -> dict[str, dict]:
-        username, project = cls._resolve_project_context(username, project, project_dir)
-        if not username or not project:
+    def _load_custom_style_map(cls, username: str | None) -> dict[str, dict]:
+        if not username:
             return {}
-        config = load_project_config_file(username, project)
-        styles = config.get("custom_styles") or {}
+        path = cls._catalog_path(username)
+        if not path.is_file():
+            return {}
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        styles = payload.get("styles") if isinstance(payload, dict) else None
         return styles if isinstance(styles, dict) else {}
 
     @classmethod
-    def _save_project_custom_style_map(
+    def _save_custom_style_map(
         cls,
         styles: dict[str, dict],
         *,
-        username: str | None = None,
-        project: str | None = None,
-        project_dir: str | Path | None = None,
+        username: str,
     ) -> bool:
-        username, project = cls._resolve_project_context(username, project, project_dir)
-        if not username or not project:
-            print("[StyleService] 保存自定义风格失败: 缺少项目上下文")
-            return False
-
-        def _apply(existing: dict) -> None:
-            existing["custom_styles"] = styles
-
-        update_project_config_file(username, project, _apply)
+        path = cls._catalog_path(username)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        temporary.write_text(
+            json.dumps({"styles": styles}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        os.replace(temporary, path)
         return True
 
     @classmethod
@@ -256,25 +249,17 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> Optional[StyleConfig]:
-        """获取自定义风格（从项目配置）。
-
-        Args:
-            style_id: 风格 ID
-
-        Returns:
-            StyleConfig 实例，如果不存在返回 None
-        """
+        """获取账号级自定义风格。"""
         try:
-            styles = cls._load_project_custom_style_map(username, project, project_dir)
+            resolved_username = cls.resolve_username(username, project_dir)
+            styles = cls._load_custom_style_map(resolved_username)
             config_data = styles.get(style_id)
-            if config_data:
-                config_data["is_preset"] = False
-                return StyleConfig(**config_data)
-        except Exception as e:
-            print(f"[StyleService] 加载自定义风格失败: {style_id}, {e}")
+            if isinstance(config_data, dict):
+                return StyleConfig(**{**config_data, "is_preset": False})
+        except Exception:
+            logger.exception("加载自定义风格失败: %s", style_id)
 
         return None
 
@@ -283,82 +268,76 @@ class StyleService:
         cls,
         style_id: str,
         config: StyleConfig,
-        username: str | None = None,
-        project: str | None = None,
-        project_dir: str | Path | None = None,
+        username: str,
     ) -> bool:
-        """保存自定义风格到项目配置。
-
-        Args:
-            style_id: 风格 ID
-            config: 风格配置
-
-        Returns:
-            是否保存成功
-        """
+        """保存账号级自定义风格。"""
         try:
-            # 确保 ID 一致
-            config.id = style_id
-            config.is_preset = False
-            if not config.created_at:
-                config.created_at = datetime.now()
-            styles = cls._load_project_custom_style_map(username, project, project_dir)
-            styles[style_id] = config.model_dump(mode="json")
-            if not cls._save_project_custom_style_map(
-                styles,
-                username=username,
-                project=project,
-                project_dir=project_dir,
-            ):
-                return False
-
-            print(f"[StyleService] 自定义风格已保存: {style_id}")
+            stored = config.model_copy(
+                update={
+                    "id": style_id,
+                    "is_preset": False,
+                    "created_at": config.created_at or datetime.now(),
+                }
+            )
+            with cls._catalog_lock:
+                styles = cls._load_custom_style_map(username)
+                styles[style_id] = stored.model_dump(mode="json")
+                cls._save_custom_style_map(styles, username=username)
+            logger.info("账号级自定义风格已保存: %s/%s", username, style_id)
             return True
-        except Exception as e:
-            print(f"[StyleService] 保存自定义风格失败: {style_id}, {e}")
+        except Exception:
+            logger.exception("保存自定义风格失败: %s/%s", username, style_id)
+            return False
+
+    @classmethod
+    def update_custom_style_preview(
+        cls,
+        style_id: str,
+        preview_path: str,
+        *,
+        username: str,
+    ) -> bool:
+        """Atomically update only one custom style's preview path."""
+        try:
+            with cls._catalog_lock:
+                styles = cls._load_custom_style_map(username)
+                raw_style = styles.get(style_id)
+                if not isinstance(raw_style, dict):
+                    return False
+                style = dict(raw_style)
+                style["preview_path"] = preview_path
+                styles[style_id] = style
+                cls._save_custom_style_map(styles, username=username)
+            return True
+        except Exception:
+            logger.exception("更新自定义风格参考图失败: %s/%s", username, style_id)
             return False
 
     @classmethod
     def delete_custom_style(
         cls,
         style_id: str,
-        username: str | None = None,
-        project: str | None = None,
-        project_dir: str | Path | None = None,
+        username: str,
     ) -> bool:
-        """删除自定义风格。
-
-        Args:
-            style_id: 风格 ID
-
-        Returns:
-            是否删除成功
-        """
+        """删除账号级自定义风格及其参考图。"""
         try:
-            styles = cls._load_project_custom_style_map(username, project, project_dir)
-            if style_id not in styles:
-                return False
-            styles.pop(style_id, None)
-            if not cls._save_project_custom_style_map(
-                styles,
-                username=username,
-                project=project,
-                project_dir=project_dir,
-            ):
-                return False
-            root = Path(project_dir) if project_dir else Path(OUTPUT_DIR) / str(username) / str(project)
-            cls.remove_style_previews(root, style_id)
-            print(f"[StyleService] 自定义风格已删除: {style_id}")
+            with cls._catalog_lock:
+                styles = cls._load_custom_style_map(username)
+                if style_id not in styles:
+                    return False
+                styles.pop(style_id)
+                cls._save_custom_style_map(styles, username=username)
+                cls.remove_style_previews(username, style_id)
+            logger.info("账号级自定义风格已删除: %s/%s", username, style_id)
             return True
-        except Exception as e:
-            print(f"[StyleService] 删除自定义风格失败: {style_id}, {e}")
+        except Exception:
+            logger.exception("删除自定义风格失败: %s/%s", username, style_id)
             return False
 
     @classmethod
     def list_custom_styles(
         cls,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> list[str]:
         """列出所有自定义风格 ID。
@@ -367,10 +346,11 @@ class StyleService:
             自定义风格 ID 列表
         """
         try:
-            styles = cls._load_project_custom_style_map(username, project, project_dir)
+            resolved_username = cls.resolve_username(username, project_dir)
+            styles = cls._load_custom_style_map(resolved_username)
             return sorted(styles.keys())
-        except Exception as e:
-            print(f"[StyleService] 列出自定义风格失败: {e}")
+        except Exception:
+            logger.exception("列出账号级自定义风格失败")
 
         return []
 
@@ -379,25 +359,17 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> Optional[StyleConfig]:
         """获取风格配置（统一入口）。
 
-        查找顺序：
-        1. 先查自定义风格（Redis）
-        2. 再查系统预设（文件）
-
-        这样允许用户通过创建同名自定义风格来覆盖系统预设。
-
-        Args:
-            style_id: 风格 ID
-
-        Returns:
-            StyleConfig 实例，如果不存在返回 None
+        自定义 ID 与系统预设 ID 不允许冲突。
         """
-        # 优先查找自定义风格（允许覆盖预设）
-        custom = cls.get_custom_style(style_id, username=username, project=project, project_dir=project_dir)
+        custom = cls.get_custom_style(
+            style_id,
+            username=username,
+            project_dir=project_dir,
+        )
         if custom:
             return custom
 
@@ -413,7 +385,6 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> StyleConfig:
         """获取风格配置，如果不存在返回默认风格。
@@ -424,7 +395,7 @@ class StyleService:
         Returns:
             StyleConfig 实例（保证不为 None）
         """
-        style = cls.get_style(style_id, username=username, project=project, project_dir=project_dir)
+        style = cls.get_style(style_id, username=username, project_dir=project_dir)
         if style:
             return style
 
@@ -463,7 +434,6 @@ class StyleService:
     def list_all_styles(
         cls,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> list[dict]:
         """列出所有可用风格（预设 + 自定义）。
@@ -477,8 +447,8 @@ class StyleService:
         styles.extend(cls.list_preset_styles())
 
         # 自定义风格
-        for style_id in cls.list_custom_styles(username=username, project=project, project_dir=project_dir):
-            config = cls.get_custom_style(style_id, username=username, project=project, project_dir=project_dir)
+        for style_id in cls.list_custom_styles(username=username, project_dir=project_dir):
+            config = cls.get_custom_style(style_id, username=username, project_dir=project_dir)
             if config:
                 styles.append({
                     "id": style_id,
@@ -497,10 +467,9 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> str:
-        config = cls.get_style_or_default(style_id, username=username, project=project, project_dir=project_dir)
+        config = cls.get_style_or_default(style_id, username=username, project_dir=project_dir)
         return config.style_family or "live_action"
 
     @classmethod
@@ -508,10 +477,9 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> str:
-        config = cls.get_style_or_default(style_id, username=username, project=project, project_dir=project_dir)
+        config = cls.get_style_or_default(style_id, username=username, project_dir=project_dir)
         return (config.animation_subtype or "").lower()
 
     @classmethod
@@ -519,10 +487,9 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> tuple[str, str]:
-        config = cls.get_style_or_default(style_id, username=username, project=project, project_dir=project_dir)
+        config = cls.get_style_or_default(style_id, username=username, project_dir=project_dir)
         return config.style_family or "live_action", (config.animation_subtype or "").lower()
 
     @classmethod
@@ -530,20 +497,18 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> bool:
-        return cls.get_style_family(style_id, username=username, project=project, project_dir=project_dir) == "animation"
+        return cls.get_style_family(style_id, username=username, project_dir=project_dir) == "animation"
 
     @classmethod
     def is_live_action_style(
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> bool:
-        return not cls.is_animation_style(style_id, username=username, project=project, project_dir=project_dir)
+        return not cls.is_animation_style(style_id, username=username, project_dir=project_dir)
 
     @classmethod
     def format_style_family_label(cls, family: str, subtype: str = "") -> str:
@@ -557,14 +522,13 @@ class StyleService:
     def list_styles_by_family(
         cls,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> dict[str, list[dict]]:
         grouped = {
             "live_action": [],
             "animation": [],
         }
-        for style in cls.list_all_styles(username=username, project=project, project_dir=project_dir):
+        for style in cls.list_all_styles(username=username, project_dir=project_dir):
             family = style.get("style_family") or "live_action"
             grouped.setdefault(family, []).append(style)
         return grouped
@@ -576,10 +540,9 @@ class StyleService:
         *,
         animation_subtype: str | None = None,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> str:
-        grouped = cls.list_styles_by_family(username=username, project=project, project_dir=project_dir)
+        grouped = cls.list_styles_by_family(username=username, project_dir=project_dir)
         styles = grouped.get(family or "live_action", [])
         subtype = (animation_subtype or "").lower()
         if family == "animation" and subtype:
@@ -605,7 +568,6 @@ class StyleService:
     def get_style_labels(
         cls,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> dict[str, str]:
         """获取风格 ID -> 显示标签的映射。
@@ -616,7 +578,7 @@ class StyleService:
             {style_id: label} 字典
         """
         labels = {}
-        for style in cls.list_all_styles(username=username, project=project, project_dir=project_dir):
+        for style in cls.list_all_styles(username=username, project_dir=project_dir):
             labels[style["id"]] = style["label"]
         return labels
 
@@ -630,7 +592,6 @@ class StyleService:
         cls,
         style_id: str,
         username: str | None = None,
-        project: str | None = None,
         project_dir: str | Path | None = None,
     ) -> dict:
         """获取旧版格式的风格预设（向后兼容）。
@@ -643,5 +604,5 @@ class StyleService:
         Returns:
             旧版格式的风格配置字典
         """
-        config = cls.get_style_or_default(style_id, username=username, project=project, project_dir=project_dir)
+        config = cls.get_style_or_default(style_id, username=username, project_dir=project_dir)
         return config.to_legacy_dict()

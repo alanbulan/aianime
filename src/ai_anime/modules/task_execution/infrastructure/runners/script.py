@@ -19,7 +19,9 @@ from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
 
-def run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any] | None:
+def run_script_writer(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any] | None:
     return asyncio.run(
         await_envelope_with_cancel_watch(
             _run_script_writer(envelope, ctx),
@@ -29,7 +31,9 @@ def run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str
     )
 
 
-def run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
+def run_beat_video_prompt(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
     return asyncio.run(
         await_envelope_with_cancel_watch(
             _run_beat_video_prompt(envelope, ctx),
@@ -39,7 +43,9 @@ def run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict
     )
 
 
-async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
+async def _run_beat_video_prompt(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     beat_num = int(envelope.get("beat_num") or payload.get("beat_num") or 0)
@@ -80,13 +86,15 @@ async def _run_beat_video_prompt(envelope: dict[str, Any], ctx: ProjectContext) 
         await store.close()
 
 
-async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any] | None:
-    from ai_anime.modules.production.public import assign_identity_sketch_colors
+async def _run_script_writer(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any] | None:
     from ai_anime.modules.project_workspace.public import load_project_config
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
     from ai_anime.shared.utils.path_resolver import PathResolver
+
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     config = dict(payload.get("config") or {})
@@ -111,15 +119,27 @@ async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> d
 
         project_config = load_project_config(ctx.owner_username, ctx.project_name)
         merged_config = {**project_config, **config}
+        script_mode = str(merged_config.get("script_mode") or "duration")
+        project_rhythm = str(project_config.get("rhythm") or "medium")
+        target_duration = float(merged_config.get("target_duration_total") or 120)
+        target_beats = merged_config.get("target_beats")
         workflow = create_script_writing_workflow(
             store,
             genre=merged_config.get("genre", ""),
             story_setting=merged_config.get("story_setting", ""),
             spine_template=merged_config.get("spine_template", "drama"),
+            script_mode=script_mode,
+            rhythm=project_rhythm,
         )
 
         script = await workflow.run(
             episode_num=episode,
+            target_duration=(target_duration if script_mode == "duration" else None),
+            target_beats=(
+                int(target_beats)
+                if script_mode == "duration" and target_beats is not None
+                else None
+            ),
             on_progress=update_progress,
             on_log=lambda message: manager.update_progress_for_project(
                 ctx,
@@ -139,45 +159,21 @@ async def _run_script_writer(envelope: dict[str, Any], ctx: ProjectContext) -> d
                 logs=[f"已清理 {deleted} 个旧草图文件"],
             )
 
-        try:
-            char_dicts = [
-                {
-                    "name": c.name,
-                    "identities": [
-                        {"identity_id": identity.identity_id} for identity in (c.identities or [])
-                    ],
-                }
-                for c in store.get_all_characters()
-            ]
-            beats_data = [beat.model_dump() for beat in script.beats]
-            existing_colors = dict(store.get_sketch_colors(episode) or {})
-            colors = assign_identity_sketch_colors(
-                char_dicts,
-                episode_beats=beats_data,
-                existing_colors=existing_colors,
-            )
-            if colors:
-                await store.set_sketch_colors(episode, colors)
-                manager.update_progress_for_project(
-                    ctx,
-                    "script_writer",
-                    episode,
-                    logs=[f"已分配 {len(colors)} 个身份配色"],
-                )
-        except Exception as exc:  # noqa: BLE001
-            manager.update_progress_for_project(
-                ctx,
-                "script_writer",
-                episode,
-                logs=[f"自动配色失败（不影响脚本）: {exc}"],
-            )
-
         result = {
             "episode": episode,
             "beats": len(script.beats),
             "beats_data": [beat.model_dump() for beat in script.beats],
             "review_passed": workflow.last_review_passed,
             "review_summary": workflow.last_review_summary,
+            "script_mode": script_mode,
+            "target_duration_total": (
+                target_duration if script_mode == "duration" else None
+            ),
+            "target_beats": (
+                int(target_beats)
+                if script_mode == "duration" and target_beats is not None
+                else None
+            ),
             "output_dir": str(Path(output_dir)),
         }
         return result

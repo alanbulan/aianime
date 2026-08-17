@@ -184,7 +184,7 @@ export function CharacterAssetHistoryButtonView({
         onClick={() => setOpen(true)}
         disabled={disabled}
         aria-label={t("characters.history.open")}
-        title={t("characters.history.open")}
+        data-ui-tooltip={t("characters.history.open")}
         className={cn(
           iconOnly
             ? "size-6 rounded-[4px] border-media-foreground/10 bg-media/45 p-0 text-media-foreground/80 shadow-none hover:bg-media/60"
@@ -526,7 +526,7 @@ function CharacterListItem({
           {character.is_main && (
             <span
               className="inline-flex items-center gap-0.5 text-xs font-medium text-primary"
-              title={mainCharacterLabel}
+              data-ui-tooltip={mainCharacterLabel}
             >
               <Star className="size-3.5 fill-current" />
             </span>
@@ -626,7 +626,7 @@ function CharacterHeaderRow({
           onClick={() => void openFreezone()}
           disabled={freezonePending}
           className="gap-1.5 rounded-[8px] border border-border bg-muted text-foreground shadow-none transition-colors hover:border-foreground/30 hover:bg-accent hover:text-foreground disabled:border-transparent disabled:bg-transparent disabled:text-muted-foreground disabled:hover:border-transparent disabled:hover:bg-transparent"
-          title={t("characters.freezone.openCharacterTip")}
+          data-ui-tooltip={t("characters.freezone.openCharacterTip")}
         >
           {freezonePending ? (
             <Loader2 className="size-3.5 animate-spin" />

@@ -12,6 +12,7 @@ from ai_anime.modules.asset_world.application.dto import (
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
+    StylePreviewGenerationTask,
 )
 from ai_anime.modules.asset_world.infrastructure.task_scheduler import (
     TaskExecutionAssetTaskScheduler,
@@ -101,6 +102,14 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
                 output_dir="output",
             ),
         ),
+        await scheduler.enqueue_style_preview(
+            context,
+            StylePreviewGenerationTask(
+                style_id="custom_style",
+                prompt="日系二次元校园",
+                scope="style-preview-scope",
+            ),
+        ),
     ]
 
     assert all(call[0] is context for call in submissions.calls)
@@ -113,6 +122,7 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "stage_asset",
         "prop_reference_asset",
         "batch_prop_ref",
+        "style_preview",
     ]
     assert [request.queue_kind for request in requests] == [
         "default",
@@ -122,8 +132,9 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "world",
         "default",
         "default",
+        "default",
     ]
-    assert [request.episode for request in requests] == [0] * 7
+    assert [request.episode for request in requests] == [0] * 8
     assert [request.scope for request in requests] == [
         None,
         "character-scope",
@@ -132,6 +143,7 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "stage-scope",
         "prop-scope",
         None,
+        "style-preview-scope",
     ]
     assert requests[0].payload == {"output_dir": "output"}
     assert requests[1].payload == {
@@ -159,6 +171,11 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "task-5",
         "task-6",
         "task-7",
+        "task-8",
     ]
     assert receipts[4].task_key == "task-key-5"
     assert receipts[6].queue == "inline"
+    assert requests[7].payload == {
+        "style_id": "custom_style",
+        "prompt": "日系二次元校园",
+    }

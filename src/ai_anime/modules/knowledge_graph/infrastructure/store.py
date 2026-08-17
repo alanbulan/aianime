@@ -37,6 +37,8 @@ from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.shared.utils.document_parsers import load_novel_text
 
 from ai_anime.modules.production.public import (
+    build_episode_identity_alias_map,
+    canonicalize_visual_identity_markers,
     complete_detected_refs_from_visual_description,
     normalize_detected_identities,
     normalize_detected_props,
@@ -97,8 +99,6 @@ class CogneeStore:
         output_dir: str | None = None,
         state_dir: str | None = None,
         sqlite_store: SQLiteStore | None = None,
-        text_model: str | None = None,
-        embedding_model: str | None = None,
         embedding_dimensions: int | None = None,
     ):
         self.project_name = project_name
@@ -168,14 +168,6 @@ class CogneeStore:
         )
 
         project_config = load_project_config_file_from_state_dir(resolved_state_dir)
-        self.text_model = str(
-            text_model or project_config.get("knowledge_text_model") or ""
-        ).strip()
-        self.embedding_model = str(
-            embedding_model
-            or project_config.get("knowledge_embedding_model")
-            or ""
-        ).strip()
         configured_dimensions = (
             embedding_dimensions
             if embedding_dimensions is not None
@@ -403,6 +395,8 @@ class CogneeStore:
             "embedding_batches": 0,
             "embedding_items": 0,
             "in_flight": 0,
+            "peak_in_flight": 0,
+            "failed_calls": 0,
         }
 
         def publish_progress(*, force: bool = False) -> None:
@@ -426,15 +420,22 @@ class CogneeStore:
                 f"{stage_name}（阶段进度估算）：文本模型已完成 "
                 f"{activity['text_completed']} 次，向量已完成 "
                 f"{activity['embedding_batches']} 批/{activity['embedding_items']} 条，"
-                f"当前并发 {activity['in_flight']} 路，已耗时 {elapsed} 秒",
+                f"活跃请求 {activity['in_flight']} 路，本阶段峰值并发 "
+                f"{activity['peak_in_flight']} 路，失败请求 {activity['failed_calls']} 次",
             )
             last_reported_at = now
 
         def on_model_activity(kind: str, status: str, item_count: int) -> None:
             if status == "started":
                 activity["in_flight"] += 1
+                activity["peak_in_flight"] = max(
+                    activity["peak_in_flight"],
+                    activity["in_flight"],
+                )
             else:
                 activity["in_flight"] = max(0, activity["in_flight"] - 1)
+            if status == "failed":
+                activity["failed_calls"] += 1
             if status == "completed":
                 if kind == "embedding":
                     activity["embedding_batches"] += 1
@@ -445,7 +446,7 @@ class CogneeStore:
                 (kind == "text" and activity["text_completed"] == 1)
                 or (kind == "embedding" and activity["embedding_batches"] == 1)
             )
-            publish_progress(force=first_completed_kind)
+            publish_progress(force=first_completed_kind or status == "failed")
 
         async def publish_heartbeat() -> None:
             while True:
@@ -516,8 +517,6 @@ class CogneeStore:
 
     def _init_cognee(self) -> None:
         init_cognee(
-            text_model=self.text_model,
-            embedding_model=self.embedding_model,
             embedding_dimensions=self.embedding_dimensions,
         )
 
@@ -2122,6 +2121,13 @@ class CogneeStore:
         }
         return allowed_identity_ids, allowed_prop_ids
 
+    async def _episode_identity_aliases(self, episode_number: int) -> dict[str, str]:
+        episode = await self.get_episode_from_graph(episode_number)
+        return build_episode_identity_alias_map(
+            episode,
+            await self.list_characters(),
+        )
+
     def _complete_generated_beat_refs(
         self,
         beat_payload: dict,
@@ -2168,9 +2174,14 @@ class CogneeStore:
             return
 
         allowed_identity_ids, allowed_prop_ids = await self._episode_asset_ref_scope(episode_number)
+        identity_aliases = await self._episode_identity_aliases(episode_number)
         beats = []
         for b in beats_data:
             beat_payload = sync_beat_asset_refs(dict(b))
+            beat_payload["visual_description"] = canonicalize_visual_identity_markers(
+                str(beat_payload.get("visual_description", "") or ""),
+                identity_aliases,
+            )
             beat_payload = self._complete_generated_beat_refs(
                 beat_payload,
                 allowed_identity_ids=allowed_identity_ids,
@@ -2263,10 +2274,15 @@ class CogneeStore:
         allowed_identity_ids, allowed_prop_ids = await self._episode_asset_ref_scope(
             script.episode_number
         )
+        identity_aliases = await self._episode_identity_aliases(script.episode_number)
         beats = []
         for beat in script.beats:
+            visual_description = canonicalize_visual_identity_markers(
+                str(getattr(beat, "visual_description", "") or ""),
+                identity_aliases,
+            )
             detected_identities, detected_props = complete_detected_refs_from_visual_description(
-                visual_description=str(getattr(beat, "visual_description", "") or ""),
+                visual_description=visual_description,
                 detected_identities=getattr(beat, "detected_identities", None),
                 detected_props=getattr(beat, "detected_props", None),
                 allowed_identity_ids=allowed_identity_ids,
@@ -2277,7 +2293,7 @@ class CogneeStore:
                     beat_number=beat.beat_number,
                     episode_number=script.episode_number,
                     narration=beat.narration_segment,
-                    visual_description=beat.visual_description,
+                    visual_description=visual_description,
                     time_of_day=getattr(beat, "time_of_day", "") or "",
                     detected_identities_json=_json_list_payload(
                         normalize_detected_identities(detected_identities)

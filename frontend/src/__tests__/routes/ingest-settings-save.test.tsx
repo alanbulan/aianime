@@ -638,8 +638,6 @@ describe("IngestPage settings save", () => {
     await waitFor(() =>
       expect(mocks.startIngest).toHaveBeenCalledWith({
         filename: "novel.txt",
-        textModel: "cloud-text-standard",
-        embeddingModel: "cloud-embedding-standard",
         rebuild: true,
         spine_template: "drama",
       }),

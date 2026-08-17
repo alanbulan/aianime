@@ -19,6 +19,7 @@ import {
   ThreeDDirectorDialog,
 } from "@/features/viewer-kit/public";
 import { Button } from "@/components/ui/button";
+import { UI_CONTENT_OVERLAY_INSET_CLASS } from "@/components/ui/motion";
 import {
   Card,
   CardContent,
@@ -265,7 +266,7 @@ export function SceneAssetCardView({
                 onClick={onOpenFreezone}
                 disabled={freezonePending}
                 aria-label={t("assets.scenes.openFreezone")}
-                title={t("assets.scenes.openFreezoneTip")}
+                data-ui-tooltip={t("assets.scenes.openFreezoneTip")}
                 className="flex size-[26px] items-center justify-center rounded-[8px] p-0 text-muted-foreground transition-all duration-150 hover:bg-accent hover:text-foreground disabled:opacity-50"
               >
                 {freezonePending ? (
@@ -566,7 +567,10 @@ export function SceneAssetCardView({
       </Card>
       {previewSrc && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-media/90 p-6"
+          className={cn(
+            "fixed z-50 flex items-center justify-center bg-media/90 p-6",
+            UI_CONTENT_OVERLAY_INSET_CLASS,
+          )}
           onClick={() => setPreviewSrc(null)}
         >
           <a
@@ -588,7 +592,7 @@ export function SceneAssetCardView({
           <img
             src={previewSrc}
             alt={previewLabel}
-            className="max-h-[calc(100vh-48px)] max-w-[calc(100vw-48px)] rounded-[8px] object-contain"
+            className="max-h-full max-w-full rounded-[8px] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
         </div>

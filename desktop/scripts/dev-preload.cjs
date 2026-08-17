@@ -12,6 +12,11 @@ const WINDOW_CHANNELS = {
 const CLIPBOARD_CHANNELS = {
   writeText: "desktop:clipboard:write-text",
 };
+const RUNTIME_DEPENDENCY_CHANNELS = {
+  status: "desktop:runtime-dependencies:status",
+  install: "desktop:runtime-dependencies:install",
+  progress: "desktop:runtime-dependencies:progress",
+};
 const COMMERCIAL_CHANNELS = {
   status: "desktop:commercial:status",
   publicConfig: "desktop:commercial:public-config",
@@ -32,6 +37,7 @@ const COMMERCIAL_CHANNELS = {
   announcements: "desktop:commercial:announcements",
   checkRelease: "desktop:commercial:check-release",
   downloadUpdate: "desktop:commercial:download-update",
+  updateDownloadProgress: "desktop:commercial:update-download-progress",
   installUpdate: "desktop:commercial:install-update",
   currentLicense: "desktop:commercial:current-license",
   activateLicense: "desktop:commercial:activate-license",
@@ -63,6 +69,16 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
   }),
   clipboard: Object.freeze({
     writeText: (value) => ipcRenderer.invoke(CLIPBOARD_CHANNELS.writeText, value),
+  }),
+  runtimeDependencies: Object.freeze({
+    status: () => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.status),
+    install: () => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.install),
+    onProgress: (listener) => {
+      const handler = (_event, progress) => listener(progress);
+      ipcRenderer.on(RUNTIME_DEPENDENCY_CHANNELS.progress, handler);
+      return () =>
+        ipcRenderer.removeListener(RUNTIME_DEPENDENCY_CHANNELS.progress, handler);
+    },
   }),
   commercial: Object.freeze({
     status: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.status),
@@ -105,6 +121,15 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     checkRelease: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.checkRelease),
     downloadUpdate: (artifactId) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.downloadUpdate, artifactId),
+    onUpdateDownloadProgress: (listener) => {
+      const handler = (_event, progress) => listener(progress);
+      ipcRenderer.on(COMMERCIAL_CHANNELS.updateDownloadProgress, handler);
+      return () =>
+        ipcRenderer.removeListener(
+          COMMERCIAL_CHANNELS.updateDownloadProgress,
+          handler,
+        );
+    },
     installUpdate: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.installUpdate),
   }),
 });

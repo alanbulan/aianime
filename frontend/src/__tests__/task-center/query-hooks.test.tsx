@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import ky from "ky";
 import type { ReactNode } from "react";
@@ -30,6 +30,7 @@ describe("Task Center query hooks", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
     useTaskCenterStore.getState().reset();
   });
@@ -48,8 +49,12 @@ describe("Task Center query hooks", () => {
 
     renderHook(() => useTasks({ project: "demo" }), { wrapper });
 
-    await vi.waitFor(() => expect(requestCount).toBe(1));
-    await vi.advanceTimersByTimeAsync(6000);
+    await act(async () => {
+      await vi.waitFor(() => expect(requestCount).toBe(1));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
 
     expect(requestCount).toBe(1);
   });
@@ -71,8 +76,12 @@ describe("Task Center query hooks", () => {
 
     renderHook(() => useTasks({ project: "demo" }), { wrapper });
 
-    await vi.waitFor(() => expect(requestCount).toBe(1));
-    await vi.advanceTimersByTimeAsync(2500);
+    await act(async () => {
+      await vi.waitFor(() => expect(requestCount).toBe(1));
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
 
     expect(requestCount).toBeGreaterThan(1);
   });

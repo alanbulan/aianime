@@ -86,6 +86,9 @@ export function createImagePoolQueryHooks(gateway: ProductionVideoGateway) {
         }
         if (selected?.sketchUrl) {
           queryClient.invalidateQueries({
+            queryKey: queryKeys.sketchCropSource(project, episode, beatNum),
+          });
+          queryClient.invalidateQueries({
             queryKey: queryKeys.sketchPoseEditor(project, episode, beatNum),
           });
           patchBeatQueryCache(queryClient, project, episode, beatNum, {

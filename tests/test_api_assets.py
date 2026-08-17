@@ -1443,7 +1443,7 @@ async def test_generate_scene_pano_returns_scope_and_falls_back_to_text(
 
 
 @pytest.mark.asyncio
-async def test_generate_scene_3gs_ply_routes_match_nicegui_task_params(
+async def test_generate_scene_3gs_ply_routes_require_project_context(
     tmp_path, monkeypatch
 ):
     from ai_anime.api.routes.asset_world import scenes

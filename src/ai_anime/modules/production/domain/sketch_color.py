@@ -8,6 +8,7 @@ from typing import Any
 from ai_anime.modules.production.domain.detected_refs import (
     collect_prop_marker_ids_from_beat,
     extract_char_identities_from_markers,
+    real_detected_identities,
 )
 
 
@@ -62,6 +63,9 @@ def assign_identity_sketch_colors(
     episode_keys: set[str] = set()
     if episode_beats is not None:
         for beat in episode_beats:
+            episode_keys.update(
+                real_detected_identities(beat.get("detected_identities") or [])
+            )
             for _name, identity_id in extract_char_identities_from_markers(
                 beat.get("visual_description", ""),
                 strict=False,

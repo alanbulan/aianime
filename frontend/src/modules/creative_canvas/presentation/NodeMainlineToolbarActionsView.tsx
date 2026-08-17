@@ -55,7 +55,7 @@ export function NodeMainlineToolbarActionsView({
       {canEnsureBeatContext && (
         <UiChipButton
           className={NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS}
-          title="创建或定位这个素材对应的镜头上下文节点；不会自动连线"
+          data-ui-tooltip="创建或定位这个素材对应的镜头上下文节点；不会自动连线"
           onClick={(event) => {
             event.stopPropagation();
             ensureBeatContextNode();

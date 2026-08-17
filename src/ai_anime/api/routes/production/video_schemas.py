@@ -2,7 +2,7 @@
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class Seedance2AssetDeleteRequest(BaseModel):
     media_kind: Literal["images", "audios"]
@@ -37,8 +37,10 @@ class VideoComposeRequest(BaseModel):
 
 
 class SingleVideoRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     resolution: str = "720x1280"
-    model: str
+    model: Optional[str] = None
     use_director_render: bool = False
     seedance2_config_json: Optional[str] = None
     mode: Optional[str] = None

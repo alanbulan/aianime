@@ -14,6 +14,15 @@ export const isActive = (t: TaskState): boolean =>
 export const ageMs = (t: TaskState, now: number = Date.now()): number =>
   now - Date.parse(t.updated_at);
 
+export const taskProgressRatio = (task: TaskState): number => {
+  if (task.status === "completed") return 1;
+  const progress = Number.isFinite(task.progress) ? task.progress : 0;
+  return Math.max(0, Math.min(1, progress));
+};
+
+export const taskProgressPercent = (task: TaskState): number =>
+  Math.round(taskProgressRatio(task) * 100);
+
 type TFn = (key: string, options?: Record<string, unknown>) => string;
 
 function isInternalRunScope(scope: string | null | undefined): boolean {

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   displayLabel,
   isActive,
+  taskProgressPercent,
   type TaskState,
 } from "@/modules/task_execution/public";
 import { taskErrorMessage } from "@/modules/task_execution/public";
@@ -186,7 +187,7 @@ export function TaskDetail() {
   const skillId = metadataField(task, "skill_id");
   const canvasId = metadataField(task, "canvas_id");
   const nodeId = metadataField(task, "node_id");
-  const progressPercent = Math.round(Math.max(0, Math.min(1, task.progress)) * 100);
+  const progressPercent = taskProgressPercent(task);
   const elapsed = formatTaskElapsed(
     task.created_at,
     taskIsActive ? null : task.completed_at || task.updated_at,

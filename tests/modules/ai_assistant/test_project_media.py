@@ -1,3 +1,9 @@
+import base64
+from io import BytesIO
+
+import pytest
+from PIL import Image
+
 from ai_anime.modules.ai_assistant.application import ProjectMedia
 from ai_anime.modules.ai_assistant.domain.project_media import merge_project_media_items
 from ai_anime.modules.ai_assistant.domain.project_media import (
@@ -7,6 +13,54 @@ from ai_anime.modules.ai_assistant.infrastructure import LocalProjectMediaFiles
 from ai_anime.modules.ai_assistant.public import extract_project_media
 
 project_media = ProjectMedia(LocalProjectMediaFiles())
+
+
+def _png_data_url() -> str:
+    buffer = BytesIO()
+    Image.new("RGB", (2, 2), color=(30, 90, 140)).save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
+
+
+def test_project_media_persists_inline_chat_image_for_agent_tools(tmp_path):
+    prepared = project_media.prepare_chat_attachments(
+        [
+            {
+                "id": "attachment-1",
+                "type": "image",
+                "mimeType": "image/png",
+                "fileName": "风格参考.png",
+                "content": _png_data_url(),
+            }
+        ],
+        "alice",
+        "project-a",
+        project_dir=tmp_path,
+    )
+
+    assert len(prepared) == 1
+    assert "content" not in prepared[0]
+    assert prepared[0]["path"].startswith("uploads/assistant/")
+    assert prepared[0]["url"].startswith(
+        "/static/projects/project-a/uploads/assistant/"
+    )
+    assert (tmp_path / prepared[0]["path"]).is_file()
+
+
+def test_project_media_rejects_invalid_inline_chat_image(tmp_path):
+    with pytest.raises(ValueError, match="有效图片"):
+        project_media.prepare_chat_attachments(
+            [
+                {
+                    "mimeType": "image/png",
+                    "fileName": "fake.png",
+                    "content": "data:image/png;base64,bm90LWltYWdl",
+                }
+            ],
+            "alice",
+            "project-a",
+            project_dir=tmp_path,
+        )
 
 
 def test_project_media_uses_project_id_url_and_explicit_project_dir(tmp_path):

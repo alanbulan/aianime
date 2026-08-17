@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import shutil
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,7 +23,11 @@ class SQLiteChatHistory:
         if scope.kind == "project":
             return local_state_root() / username / str(scope.id) / "chat.db"
         return (
-            local_state_root() / username / f"_{scope.kind}" / str(scope.id) / "chat.db"
+            local_state_root()
+            / username
+            / f"_{scope.kind}"
+            / str(scope.id)
+            / "chat.db"
         )
 
     def connect(self, username: str, scope: ChatScope) -> sqlite3.Connection:
@@ -42,69 +44,30 @@ class SQLiteChatHistory:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> Path:
-        db_path = (
+        return (
             Path(project_state_dir) / "chat.db"
             if project_state_dir is not None
-            else self.db_for(username, ChatScope(kind="project", id=project))
+            else local_state_root() / username / project / "chat.db"
         )
-        self._migrate_legacy_project_database(
-            username,
-            project,
-            db_path,
-            project_dir=project_dir,
-        )
-        return db_path
 
-    @staticmethod
-    def _legacy_project_database(
-        username: str,
-        project: str,
-        project_dir: str | Path | None,
-    ) -> Path:
-        if project_dir is not None:
-            resolved_project_dir = Path(project_dir)
-        else:
-            configured_output = os.environ.get("AI_ANIME_OUTPUT_DIR", "").strip()
-            output_root = (
-                Path(configured_output).expanduser()
-                if configured_output
-                else Path(__file__).resolve().parents[5] / "output"
-            )
-            resolved_project_dir = output_root / username / project
-        return resolved_project_dir / ".chat" / "chat.db"
-
-    def _migrate_legacy_project_database(
+    def _db_path_for_scope(
         self,
         username: str,
-        project: str,
-        db_path: Path,
+        scope: ChatScope,
         *,
-        project_dir: str | Path | None,
-    ) -> None:
-        legacy_db_path = self._legacy_project_database(
-            username,
-            project,
-            project_dir,
-        )
-        if db_path.exists() or not legacy_db_path.exists():
-            return
-
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-        for suffix in ("", "-wal", "-shm"):
-            source = Path(f"{legacy_db_path}{suffix}")
-            if not source.exists():
-                continue
-            target = Path(f"{db_path}{suffix}")
-            if not target.exists():
-                shutil.move(str(source), str(target))
-
-        legacy_dir = legacy_db_path.parent
-        try:
-            if legacy_dir.exists() and not any(legacy_dir.iterdir()):
-                legacy_dir.rmdir()
-        except OSError:
-            pass
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> Path:
+        if scope.kind == "project":
+            return self.project_db_for(
+                username,
+                str(scope.id or ""),
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        return self.db_for(username, ChatScope(kind=scope.kind, id=scope.id))
 
     @staticmethod
     def _connect_database(db_path: Path) -> sqlite3.Connection:
@@ -121,21 +84,11 @@ class SQLiteChatHistory:
               media_json TEXT NOT NULL DEFAULT '[]',
               turn_id TEXT,
               metadata_json TEXT NOT NULL DEFAULT '{}',
+              conversation_id TEXT NOT NULL DEFAULT 'main',
               created_at TEXT NOT NULL
             )
             """
         )
-        columns = {
-            str(row["name"])
-            for row in conn.execute("PRAGMA table_info(chat_messages)").fetchall()
-        }
-        if "turn_id" not in columns:
-            conn.execute("ALTER TABLE chat_messages ADD COLUMN turn_id TEXT")
-        if "metadata_json" not in columns:
-            conn.execute(
-                "ALTER TABLE chat_messages "
-                "ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'"
-            )
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS chat_ui_events (
@@ -143,14 +96,15 @@ class SQLiteChatHistory:
               turn_id TEXT NOT NULL,
               event_type TEXT NOT NULL,
               payload_json TEXT NOT NULL,
+              conversation_id TEXT NOT NULL DEFAULT 'main',
               created_at TEXT NOT NULL
             )
             """
         )
         conn.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_chat_ui_events_turn_id
-              ON chat_ui_events(turn_id, id)
+            CREATE INDEX IF NOT EXISTS idx_chat_ui_events_conversation_turn
+              ON chat_ui_events(conversation_id, turn_id, id)
             """
         )
         conn.execute(
@@ -162,8 +116,51 @@ class SQLiteChatHistory:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation
+              ON chat_messages(conversation_id, id)
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS chat_conversations (
+              id TEXT PRIMARY KEY,
+              title TEXT NOT NULL DEFAULT '',
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            )
+            """
+        )
         conn.commit()
         return conn
+
+    @staticmethod
+    def _touch_conversation(
+        conn: sqlite3.Connection,
+        conversation_id: str,
+        *,
+        updated_at: str | None = None,
+    ) -> None:
+        normalized = str(conversation_id or "main").strip() or "main"
+        timestamp = updated_at or datetime.now(timezone.utc).isoformat()
+        if updated_at is None:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO chat_conversations(id, created_at, updated_at)
+                VALUES (?, ?, ?)
+                """,
+                (normalized, timestamp, timestamp),
+            )
+            return
+        conn.execute(
+            """
+            INSERT INTO chat_conversations(id, created_at, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at
+            """,
+            (normalized, timestamp, timestamp),
+        )
 
     @staticmethod
     def _insert_message(
@@ -175,14 +172,18 @@ class SQLiteChatHistory:
         turn_id: str | None = None,
         metadata: dict[str, Any] | None = None,
         created_at: str | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         media = media or []
         metadata = metadata or {}
         created_at = created_at or datetime.now(timezone.utc).isoformat()
         cursor = conn.execute(
             """
-            INSERT INTO chat_messages(role, content, media_json, turn_id, metadata_json, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO chat_messages(
+              role, content, media_json, turn_id, metadata_json,
+              conversation_id, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 role,
@@ -190,6 +191,7 @@ class SQLiteChatHistory:
                 json.dumps(media, ensure_ascii=False),
                 turn_id,
                 json.dumps(metadata, ensure_ascii=False),
+                conversation_id,
                 created_at,
             ),
         )
@@ -223,6 +225,12 @@ class SQLiteChatHistory:
                 media,
                 turn_id=turn_id,
                 metadata=metadata,
+                conversation_id=scope.conversation_id,
+            )
+            self._touch_conversation(
+                conn,
+                scope.conversation_id,
+                updated_at=str(message["created_at"]),
             )
             conn.commit()
             return {**message, "attachments": message["media"]}
@@ -240,6 +248,7 @@ class SQLiteChatHistory:
         turn_id: str | None = None,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> dict[str, Any]:
         conn = self._connect_database(
             self.project_db_for(
@@ -247,6 +256,7 @@ class SQLiteChatHistory:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
         )
         try:
@@ -256,6 +266,12 @@ class SQLiteChatHistory:
                 content,
                 media,
                 turn_id=turn_id,
+                conversation_id=conversation_id,
+            )
+            self._touch_conversation(
+                conn,
+                conversation_id,
+                updated_at=str(message["created_at"]),
             )
             conn.commit()
             return message
@@ -270,6 +286,7 @@ class SQLiteChatHistory:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[dict[str, Any]]:
         conn = self._connect_database(
             self.project_db_for(
@@ -277,14 +294,26 @@ class SQLiteChatHistory:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
         )
         try:
             messages = [
-                self._insert_message(conn, "trace", normalized)
+                self._insert_message(
+                    conn,
+                    "trace",
+                    normalized,
+                    conversation_id=conversation_id,
+                )
                 for content in contents
                 if (normalized := str(content or "").strip())
             ]
+            if messages:
+                self._touch_conversation(
+                    conn,
+                    conversation_id,
+                    updated_at=str(messages[-1]["created_at"]),
+                )
             conn.commit()
             return messages
         finally:
@@ -296,6 +325,9 @@ class SQLiteChatHistory:
         scope: ChatScope,
         turn_id: str,
         event: dict[str, Any],
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
     ) -> dict[str, Any]:
         turn_id = str(turn_id or "").strip()
         if not turn_id:
@@ -304,19 +336,34 @@ class SQLiteChatHistory:
             event.get("type") or event.get("event_type") or "ui_event"
         ).strip()
         created_at = datetime.now(timezone.utc).isoformat()
-        conn = self.connect(username, scope)
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
         try:
             cursor = conn.execute(
                 """
-                INSERT INTO chat_ui_events(turn_id, event_type, payload_json, created_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO chat_ui_events(
+                  turn_id, event_type, payload_json, conversation_id, created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     turn_id,
                     event_type,
                     json.dumps(event, ensure_ascii=False),
+                    scope.conversation_id,
                     created_at,
                 ),
+            )
+            self._touch_conversation(
+                conn,
+                scope.conversation_id,
+                updated_at=created_at,
             )
             conn.commit()
             return {
@@ -332,14 +379,33 @@ class SQLiteChatHistory:
     def _load_ui_events(
         self,
         conn: sqlite3.Connection,
+        conversation_id: str = "main",
+        turn_ids: set[str] | None = None,
     ) -> dict[str, list[dict[str, Any]]]:
-        rows = conn.execute(
-            """
-            SELECT id, turn_id, event_type, payload_json, created_at
-              FROM chat_ui_events
-             ORDER BY id ASC
-            """
-        ).fetchall()
+        if turn_ids is not None and not turn_ids:
+            return {}
+        if turn_ids is None:
+            rows = conn.execute(
+                """
+                SELECT id, turn_id, event_type, payload_json, created_at
+                  FROM chat_ui_events
+                 WHERE conversation_id = ?
+                 ORDER BY id ASC
+                """,
+                (conversation_id,),
+            ).fetchall()
+        else:
+            placeholders = ", ".join("?" for _ in turn_ids)
+            rows = conn.execute(
+                f"""
+                SELECT id, turn_id, event_type, payload_json, created_at
+                  FROM chat_ui_events
+                 WHERE conversation_id = ?
+                   AND turn_id IN ({placeholders})
+                 ORDER BY id ASC
+                """,
+                (conversation_id, *sorted(turn_ids)),
+            ).fetchall()
         events_by_turn: dict[str, list[dict[str, Any]]] = {}
         for row in rows:
             turn_id = str(row["turn_id"] or "").strip()
@@ -379,6 +445,7 @@ class SQLiteChatHistory:
                 ):
                     target_index = index
                     break
+            user_index: int | None = None
             if target_index is None:
                 user_index = next(
                     (
@@ -394,6 +461,8 @@ class SQLiteChatHistory:
                         if messages[index].get("role") == "assistant":
                             target_index = index
                             break
+                    if target_index is None:
+                        target_index = user_index
             if target_index is None:
                 continue
             existing = messages[target_index].get("ui_events")
@@ -414,13 +483,22 @@ class SQLiteChatHistory:
                 """
                 SELECT id, role, content, media_json, turn_id, metadata_json, created_at
                   FROM chat_messages
-                 WHERE role <> 'trace'
+                 WHERE role <> 'trace' AND conversation_id = ?
                  ORDER BY id DESC
                  LIMIT ?
                 """,
-                (limit,),
+                (scope.conversation_id, limit),
             ).fetchall()
-            events_by_turn = self._load_ui_events(conn)
+            turn_ids = {
+                str(row["turn_id"])
+                for row in rows
+                if row["turn_id"]
+            }
+            events_by_turn = self._load_ui_events(
+                conn,
+                scope.conversation_id,
+                turn_ids,
+            )
         finally:
             conn.close()
         messages: list[dict[str, Any]] = []
@@ -468,6 +546,7 @@ class SQLiteChatHistory:
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
         limit: int = 50,
+        conversation_id: str = "main",
     ) -> list[dict[str, Any]]:
         conn = self._connect_database(
             self.project_db_for(
@@ -475,6 +554,7 @@ class SQLiteChatHistory:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
         )
         try:
@@ -484,17 +564,27 @@ class SQLiteChatHistory:
                   FROM (
                         SELECT id, role, content, media_json, turn_id, created_at
                           FROM chat_messages
-                         WHERE role <> 'trace'
+                         WHERE role <> 'trace' AND conversation_id = ?
                          ORDER BY id DESC
                          LIMIT ?
                        )
                  ORDER BY id ASC
                 """,
-                (max(1, int(limit)),),
+                (conversation_id, max(1, int(limit))),
             ).fetchall()
+            turn_ids = {
+                str(row["turn_id"])
+                for row in rows
+                if row["turn_id"]
+            }
+            events_by_turn = self._load_ui_events(
+                conn,
+                conversation_id,
+                turn_ids,
+            )
         finally:
             conn.close()
-        return [
+        messages = [
             {
                 "id": int(row["id"]),
                 "role": str(row["role"]),
@@ -505,6 +595,8 @@ class SQLiteChatHistory:
             }
             for row in rows
         ]
+        self._attach_ui_events_to_messages(messages, events_by_turn)
+        return messages
 
     def list_project_trace_contents(
         self,
@@ -513,6 +605,7 @@ class SQLiteChatHistory:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> list[str]:
         conn = self._connect_database(
             self.project_db_for(
@@ -520,6 +613,7 @@ class SQLiteChatHistory:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
         )
         try:
@@ -527,13 +621,166 @@ class SQLiteChatHistory:
                 """
                 SELECT content
                   FROM chat_messages
-                 WHERE role = 'trace'
+                 WHERE role = 'trace' AND conversation_id = ?
                  ORDER BY id ASC
-                """
+                """,
+                (conversation_id,),
             ).fetchall()
         finally:
             conn.close()
         return [str(row["content"] or "") for row in rows]
+
+    def list_conversations(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> list[dict[str, Any]]:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            rows = conn.execute(
+                """
+                SELECT c.id, c.title, c.created_at, c.updated_at,
+                       COUNT(m.id) AS message_count,
+                       (
+                         SELECT content
+                           FROM chat_messages first_message
+                          WHERE first_message.conversation_id = c.id
+                            AND first_message.role = 'user'
+                            AND TRIM(first_message.content) <> ''
+                          ORDER BY first_message.id ASC
+                          LIMIT 1
+                       ) AS first_user_content
+                  FROM chat_conversations c
+                  LEFT JOIN chat_messages m
+                    ON m.conversation_id = c.id AND m.role <> 'trace'
+                 GROUP BY c.id, c.title, c.created_at, c.updated_at
+                 ORDER BY c.updated_at DESC, c.id DESC
+                """
+            ).fetchall()
+        finally:
+            conn.close()
+        conversations: list[dict[str, Any]] = []
+        for row in rows:
+            stored_title = str(row["title"] or "").strip()
+            raw_title = str(row["first_user_content"] or "").strip()
+            first_line = raw_title.splitlines()[0].strip() if raw_title else ""
+            conversations.append(
+                {
+                    "id": str(row["id"]),
+                    "title": stored_title or first_line[:48] or "新会话",
+                    "updatedAt": str(row["updated_at"] or row["created_at"]),
+                    "messageCount": int(row["message_count"] or 0),
+                }
+            )
+        return conversations
+
+    def get_conversation_title(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> str:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            row = conn.execute(
+                "SELECT title FROM chat_conversations WHERE id = ?",
+                (scope.conversation_id,),
+            ).fetchone()
+            return str(row["title"] or "").strip() if row is not None else ""
+        finally:
+            conn.close()
+
+    def set_conversation_title(
+        self,
+        username: str,
+        scope: ChatScope,
+        title: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool:
+        normalized = str(title or "").strip()
+        if not normalized:
+            return False
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            self._touch_conversation(conn, scope.conversation_id)
+            cursor = conn.execute(
+                """
+                UPDATE chat_conversations
+                   SET title = ?
+                 WHERE id = ? AND TRIM(title) = ''
+                """,
+                (normalized, scope.conversation_id),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
+    def delete_conversation(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "DELETE FROM chat_ui_events WHERE conversation_id = ?",
+                (scope.conversation_id,),
+            )
+            conn.execute(
+                "DELETE FROM chat_messages WHERE conversation_id = ?",
+                (scope.conversation_id,),
+            )
+            cursor = conn.execute(
+                "DELETE FROM chat_conversations WHERE id = ?",
+                (scope.conversation_id,),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def replace_project_trace_messages(
         self,
@@ -543,6 +790,7 @@ class SQLiteChatHistory:
         *,
         project_dir: str | Path | None = None,
         project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
     ) -> None:
         conn = self._connect_database(
             self.project_db_for(
@@ -550,10 +798,16 @@ class SQLiteChatHistory:
                 project,
                 project_dir=project_dir,
                 project_state_dir=project_state_dir,
+                conversation_id=conversation_id,
             )
         )
         try:
-            conn.execute("DELETE FROM chat_messages WHERE role = 'trace'")
+            self._touch_conversation(conn, conversation_id)
+            conn.execute(
+                "DELETE FROM chat_messages "
+                "WHERE role = 'trace' AND conversation_id = ?",
+                (conversation_id,),
+            )
             for message in messages:
                 self._insert_message(
                     conn,
@@ -564,6 +818,7 @@ class SQLiteChatHistory:
                         message.get("created_at")
                         or datetime.now(timezone.utc).isoformat()
                     ),
+                    conversation_id=conversation_id,
                 )
             conn.commit()
         finally:

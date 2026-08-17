@@ -82,7 +82,6 @@ def _safe_error_summary(response: httpx.Response) -> str:
 async def write_model_audio_speech(
     *,
     output_path: str | Path,
-    model: str,
     model_role: AudioModelRole,
     input_text: str,
     response_format: str = "mp3",
@@ -93,32 +92,29 @@ async def write_model_audio_speech(
 ) -> ModelAudioWriteResult:
     """Write one standard ``/audio/speech`` response to disk."""
     from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
-        require_model_role,
+        resolve_model_for_role,
     )
     from ai_anime.modules.model_usage.infrastructure.model_runtime import (
         get_model_access_json_transport,
     )
 
-    clean_model = str(model or "").strip()
     clean_model_role = str(model_role or "").strip().upper()
     clean_input = str(input_text or "").strip()
-    if not clean_model:
-        raise ValueError("audio model is required")
     if clean_model_role not in _AUDIO_MODEL_ROLES:
         raise ValueError("audio model role is invalid")
     if not clean_input:
         raise ValueError("audio input is required")
-    require_model_role(clean_model, clean_model_role)
+    effective_model = resolve_model_for_role(clean_model_role)
     _reject_transport_fields(metadata or {})
 
-    base_url, headers = get_model_access_json_transport()
+    base_url, headers = get_model_access_json_transport(clean_model_role)
     headers = dict(headers)
     headers["Idempotency-Key"] = str(uuid.uuid4())
     endpoint = base_url.rstrip("/")
     if not endpoint.endswith("/audio/speech"):
         endpoint = f"{endpoint}/audio/speech"
     body: dict[str, Any] = {
-        "model": clean_model,
+        "model": effective_model,
         "input": clean_input,
         "response_format": str(response_format or "mp3").strip() or "mp3",
     }
@@ -144,7 +140,7 @@ async def write_model_audio_speech(
             except httpx.HTTPStatusError as exc:
                 safe_context = {
                     "endpoint": endpoint,
-                    "model": clean_model,
+                    "model": effective_model,
                     "model_role": clean_model_role,
                     "response_format": body["response_format"],
                     "voice": clean_voice,

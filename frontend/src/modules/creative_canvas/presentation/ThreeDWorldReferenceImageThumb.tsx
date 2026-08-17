@@ -50,7 +50,7 @@ export function ThreeDWorldReferenceImageThumb({
         onMouseEnter={showPreview}
         onMouseLeave={() => setPreviewPosition(null)}
         className="group nodrag relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[8px] border border-border bg-muted transition-colors hover:border-foreground/30"
-        title="引用上游图片"
+        data-ui-tooltip="引用上游图片"
       >
         <img
           src={resolveImageDisplayUrl(item.url)}

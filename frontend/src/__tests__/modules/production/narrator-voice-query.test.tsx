@@ -167,7 +167,7 @@ describe("Production narrator voice queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/narrator-voice/trim",
         async ({ request }) => {
-          body = await request.json();
+          body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
             data: { reference_path: "assets/narrator/voice.wav" },

@@ -530,7 +530,8 @@ export function createUseVideoNodeController({
     () => findCameraMovementPreset(cameraTemplates, cameraMovementId),
     [cameraTemplates, cameraMovementId],
   );
-  const { isGenerating } = useNodeGenerationTaskState(data);
+  const { isGenerating, progress: generationProgress } =
+    useNodeGenerationTaskState(data);
   const generationError =
     typeof data.generationError === 'string' ? data.generationError.trim() : '';
   // Only treat as a failure-state once generation has stopped and produced no
@@ -2132,6 +2133,7 @@ export function createUseVideoNodeController({
     cameraTemplates,
     cameraTemplatesLoading,
     isGenerating,
+    generationProgress,
     generationError,
     hasGenerationError,
     generationErrorRequestId,

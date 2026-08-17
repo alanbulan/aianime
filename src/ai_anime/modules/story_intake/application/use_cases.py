@@ -128,8 +128,6 @@ class StartIngestion:
         self._project_settings.set_ingestion_configuration(
             scope.owner_username,
             scope.project_name,
-            text_model=command.text_model,
-            embedding_model=command.embedding_model,
             spine_template=command.spine_template,
         )
 
@@ -137,8 +135,6 @@ class StartIngestion:
             scope,
             IngestionTask(
                 novel_path=document.path,
-                text_model=command.text_model,
-                embedding_model=command.embedding_model,
                 config=task_config,
                 billable_chars=billable_chars,
             ),

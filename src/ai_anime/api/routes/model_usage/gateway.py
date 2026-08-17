@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ai_anime.modules.model_usage.public import (
     configure_model_access,
@@ -22,6 +22,8 @@ router = APIRouter(prefix="/model-gateway")
 class CommercialModelAssignmentBody(BaseModel):
     model_id: str = Field(alias="modelId", min_length=1, max_length=256)
     role: str = Field(min_length=1, max_length=64)
+    priority: int = Field(default=100, ge=1, le=9999)
+    enabled: bool = True
 
 
 class CommercialModelCapabilityBody(BaseModel):
@@ -69,19 +71,14 @@ class CommercialModelCapabilityBody(BaseModel):
 
 
 class CommercialModelAccessBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     allows_custom_models: bool = Field(alias="allowsCustomModels")
-    mode: str = "cloud"
-    byok_base_url: str = Field(default="", alias="byokBaseUrl")
-    byok_api_key: str = Field(default="", alias="byokApiKey")
+    mode: str = "mixed"
     model_assignments: list[CommercialModelAssignmentBody] = Field(
         default_factory=list,
         alias="modelAssignments",
-        max_length=128,
-    )
-    cloud_model_assignments: list[CommercialModelAssignmentBody] = Field(
-        default_factory=list,
-        alias="cloudModelAssignments",
-        max_length=128,
+        max_length=4096,
     )
     model_capabilities: list[CommercialModelCapabilityBody] = Field(
         default_factory=list,
@@ -103,15 +100,14 @@ async def set_commercial_model_access(
         configure_model_access(
             allows_custom_models=body.allows_custom_models,
             mode=body.mode,
-            byok_base_url=body.byok_base_url,
-            byok_api_key=body.byok_api_key,
             model_assignments=[
-                {"modelId": item.model_id, "role": item.role}
+                {
+                    "modelId": item.model_id,
+                    "role": item.role,
+                    "priority": item.priority,
+                    "enabled": item.enabled,
+                }
                 for item in body.model_assignments
-            ],
-            cloud_model_assignments=[
-                {"modelId": item.model_id, "role": item.role}
-                for item in body.cloud_model_assignments
             ],
             model_capabilities=[
                 item.model_dump(by_alias=True, exclude_none=True)

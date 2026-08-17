@@ -177,6 +177,10 @@ export interface SketchCharactersQuery {
 export interface SketchDirectorStageQuery {
   data?: AssetResponse<DirectorStageManifest>;
   isLoading: boolean;
+  refetch(): Promise<{
+    data?: AssetResponse<DirectorStageManifest>;
+    error?: unknown;
+  }>;
 }
 
 export interface SketchEpisodeQuery {
@@ -208,7 +212,7 @@ export interface SketchSectionControllerOptions {
   project: string;
 }
 
-export type SketchToolAction = "pose" | "crop";
+export type SketchToolAction = "crop" | "pose";
 
 export interface SketchIdentityBadgeViewModel {
   character: string;
@@ -256,10 +260,12 @@ export interface SketchSectionController {
   backgroundDialogOpen: boolean;
   backgroundLoading: boolean;
   backgroundSaving: boolean;
+  backgroundSceneId: string;
   beatNumber: number;
   candidates: SketchCandidateViewModel[];
   castedEntries: SketchIdentityBadgeViewModel[];
   cropOpen: boolean;
+  poseEditorOpen: boolean;
   directorControlUrl: string | null;
   directorConvertPending: boolean;
   directorTask: SketchTaskViewModel;
@@ -272,7 +278,6 @@ export interface SketchSectionController {
   hasSketch: boolean;
   markedPropEntries: string[];
   poolSelectPending: boolean;
-  poseEditorOpen: boolean;
   previewUrl: string | null;
   project: string;
   propEntries: SketchPropBadgeViewModel[];
@@ -400,9 +405,10 @@ export function createUseSketchSectionController(
       poolId: string;
     } | null>(null);
     const [regenConfirmOpen, setRegenConfirmOpen] = useState(false);
-    const [poseEditorOpen, setPoseEditorOpen] = useState(false);
     const [cropOpen, setCropOpen] = useState(false);
+    const [poseEditorOpen, setPoseEditorOpen] = useState(false);
     const [stageDialogOpen, setStageDialogOpen] = useState(false);
+    const [stageViewerOpening, setStageViewerOpening] = useState(false);
     const [backgroundDialogOpen, setBackgroundDialogOpen] = useState(false);
     const [backgroundDialogData, setBackgroundDialogData] =
       useState<BeatBackgroundAnchors | null>(null);
@@ -763,6 +769,29 @@ export function createUseSketchSectionController(
       }
     };
 
+    const handleOpenDirectorWorld = async () => {
+      if (stageViewerOpening) return;
+      setStageViewerOpening(true);
+      try {
+        const result = await directorWorld.refetch();
+        if (result.error) {
+          toast.error(
+            result.error instanceof Error
+              ? result.error.message
+              : t("common.error"),
+          );
+          return;
+        }
+        if (result.data?.ok !== true) {
+          toast.error(result.data?.error ?? t("common.error"));
+          return;
+        }
+        setStageDialogOpen(true);
+      } finally {
+        setStageViewerOpening(false);
+      }
+    };
+
     const commitDirectorCapture = async (meta: DirectorCaptureMeta) => {
       const bundle = meta.controlFrameBundle;
       if (!bundle) {
@@ -774,7 +803,10 @@ export function createUseSketchSectionController(
           path: meta.controlFrameRelPath ?? bundle.rel_paths.combined,
         }),
       );
-      await directorStatus.refetch();
+      await Promise.all([
+        directorStatus.refetch(),
+        backgroundAnchors.refetch(),
+      ]);
       setStageDialogOpen(false);
     };
 
@@ -783,10 +815,16 @@ export function createUseSketchSectionController(
       backgroundDialogOpen,
       backgroundLoading: backgroundAnchors.isLoading,
       backgroundSaving: updateBackgroundAnchor.isPending,
+      backgroundSceneId:
+        visibleBackgroundData?.sceneId ||
+        options.beat.scene_ref?.scene_id?.trim() ||
+        options.beat.location?.trim() ||
+        "",
       beatNumber: options.beat.beat_number,
       candidates: candidateItems,
       castedEntries,
       cropOpen,
+      poseEditorOpen,
       directorControlUrl,
       directorConvertPending: directorConvert.isPending,
       directorTask: {
@@ -795,7 +833,8 @@ export function createUseSketchSectionController(
       },
       directorWorldManifest:
         directorWorld.data?.ok === true ? directorWorld.data.data : null,
-      directorWorldPending: stageDialogOpen && directorWorld.isLoading,
+      directorWorldPending:
+        stageViewerOpening || (stageDialogOpen && directorWorld.isLoading),
       downloadEnabled: Boolean(resolvedDownloadUrl),
       editable: Boolean(options.beat.sketch_url || selectedPoolImage),
       episode: options.episode,
@@ -803,7 +842,6 @@ export function createUseSketchSectionController(
       hasSketch,
       markedPropEntries,
       poolSelectPending: poolSelect.isPending,
-      poseEditorOpen,
       previewUrl: resolved.url ?? null,
       project: options.project,
       propEntries,
@@ -849,7 +887,9 @@ export function createUseSketchSectionController(
       onOpenBackgroundDialog: () => {
         void handleOpenBackgroundDialog();
       },
-      onOpenDirectorWorld: () => setStageDialogOpen(true),
+      onOpenDirectorWorld: () => {
+        void handleOpenDirectorWorld();
+      },
       onOpenFreezone: () => {
         void handleOpenFreezone();
       },

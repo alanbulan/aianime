@@ -97,7 +97,7 @@ export function NodeGenerationHistory({
               event.stopPropagation();
               onRefresh();
             }}
-            title="刷新历史"
+            data-ui-tooltip="刷新历史"
           >
             {isLoading ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -134,7 +134,7 @@ export function NodeGenerationHistory({
                 event.stopPropagation();
                 if (restorable) onRestore(record);
               }}
-              title={`${formatRelativeTime(record.recorded_at)}${
+              data-ui-tooltip={`${formatRelativeTime(record.recorded_at)}${
                 completed ? '' : ` · ${record.status}`
               }${active ? ' · 当前' : ''}`}
               className={`group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] border transition ${

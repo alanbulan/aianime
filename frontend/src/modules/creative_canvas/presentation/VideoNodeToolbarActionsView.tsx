@@ -70,7 +70,7 @@ export function VideoNodeToolbarActionsView({
     <>
       <UiChipButton
         className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${unavailableClass}`}
-        title={unavailableTitle}
+        data-ui-tooltip={unavailableTitle}
         onClick={(event) => {
           event.stopPropagation();
           toggleClipMode();
@@ -81,7 +81,7 @@ export function VideoNodeToolbarActionsView({
       </UiChipButton>
       <UiChipButton
         className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${unavailableClass}`}
-        title={unavailableTitle}
+        data-ui-tooltip={unavailableTitle}
         onClick={(event) => {
           event.stopPropagation();
           createUpscaleNode();
@@ -92,7 +92,7 @@ export function VideoNodeToolbarActionsView({
       </UiChipButton>
       <UiChipButton
         className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${unavailableClass}`}
-        title={unavailableTitle}
+        data-ui-tooltip={unavailableTitle}
         onClick={(event) => {
           event.stopPropagation();
           void analyze();
@@ -110,7 +110,7 @@ export function VideoNodeToolbarActionsView({
           <UiChipButton
             disabled={!hasVideo}
             className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} ${unavailableClass}`}
-            title={
+            data-ui-tooltip={
               hasVideo
                 ? t("nodeToolbar.video.subtitleRemovalTip")
                 : t("nodeToolbar.video.requiresVideo")
@@ -150,7 +150,7 @@ export function VideoNodeToolbarActionsView({
             ? "opacity-50 cursor-not-allowed"
             : ""
         }`}
-        title={unavailableTitle}
+        data-ui-tooltip={unavailableTitle}
         onClick={(event) => {
           event.stopPropagation();
           void separateAudioVideo();
@@ -165,7 +165,8 @@ export function VideoNodeToolbarActionsView({
       </UiChipButton>
       <UiChipButton
         className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} !px-2 ${unavailableClass}`}
-        title={
+        aria-label={t("nodeToolbar.download")}
+        data-ui-tooltip={
           hasVideo
             ? t("nodeToolbar.download")
             : t("nodeToolbar.video.requiresVideo")
@@ -179,7 +180,8 @@ export function VideoNodeToolbarActionsView({
       </UiChipButton>
       <UiChipButton
         className={`${NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS} !px-2 ${unavailableClass}`}
-        title={
+        aria-label={t("nodeToolbar.video.fullscreen")}
+        data-ui-tooltip={
           hasVideo
             ? t("nodeToolbar.video.fullscreen")
             : t("nodeToolbar.video.requiresVideo")

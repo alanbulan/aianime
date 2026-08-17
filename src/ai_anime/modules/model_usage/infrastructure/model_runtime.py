@@ -5,10 +5,6 @@ import uuid
 from contextvars import ContextVar
 from typing import Any
 
-from ai_anime.modules.model_usage.domain.official_defaults import (
-    DEFAULT_GENERAL_TEXT_MODEL,
-    DEFAULT_TEXT_MODEL_BY_ENV,
-)
 from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
 load_project_dotenv()
@@ -40,36 +36,6 @@ def _env_bool(name: str, default: bool) -> bool:
     return default
 
 
-def get_pydantic_model(
-    model_name_override: str | None = None,
-):
-    """Return a PydanticAI model through the selected cloud/BYOK transport."""
-    return get_newapi_text_pydantic_model(
-        "MODEL_NAME",
-        DEFAULT_GENERAL_TEXT_MODEL,
-        model_name_override=model_name_override,
-        model_name_override_is_internal=True,
-        timeout_seconds_override=_env_float("MODEL_TIMEOUT", 120.0),
-    )
-
-
-def _clean_env_value(name: str | None) -> str | None:
-    if not name:
-        return None
-    value = os.environ.get(name)
-    if value is None:
-        return None
-    value = value.strip()
-    return value or None
-
-
-def get_newapi_text_model_name(model_env: str, default_model: str) -> str:
-    """Return the logical newAPI text model for a path-specific task."""
-    return _clean_env_value(model_env) or DEFAULT_TEXT_MODEL_BY_ENV.get(
-        model_env, default_model
-    )
-
-
 def _get_newapi_text_model_profile(model_name: str):
     """Attach Gemini-compatible model profile while routing through newAPI."""
     normalized = (model_name or "").strip()
@@ -96,6 +62,7 @@ def _newapi_text_http_client_factory(
             kwargs["trust_env"] = False
 
         async def prepare_model_request(request: httpx.Request) -> None:
+            request.headers["X-AI-Anime-Model-Role"] = "TEXT"
             if (
                 omit_authorization
                 and request.headers.get("Authorization") == "Bearer ai-anime-no-auth"
@@ -190,36 +157,22 @@ def _newapi_text_openai_model(
 
 
 def get_newapi_text_pydantic_model(
-    model_env: str,
-    default_model: str,
     *,
-    model_name_override: str | None = None,
-    model_name_override_is_internal: bool = False,
     timeout_seconds_override: float | None = None,
 ):
-    """Create a PydanticAI OpenAI-compatible model that routes through newAPI."""
-    explicit_model = str(model_name_override or "").strip()
-    logical_model = explicit_model or get_newapi_text_model_name(model_env, default_model)
+    """Create the single TEXT-role PydanticAI model from the router snapshot."""
     from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
-        resolve_internal_model_for_role,
         resolve_model_for_role,
     )
 
-    model_name = (
-        resolve_internal_model_for_role(logical_model, "TEXT")
-        if model_name_override_is_internal or not explicit_model
-        else resolve_model_for_role(logical_model, "TEXT")
-    )
+    model_name = resolve_model_for_role("TEXT")
     api_key, base_url = get_newapi_runtime_credentials()
     if not base_url:
         raise ValueError("Model Base URL is not configured.")
     timeout_seconds = (
         float(timeout_seconds_override)
         if timeout_seconds_override is not None
-        else _env_float(
-            f"{model_env}_TIMEOUT_SECONDS",
-            _env_float("NEWAPI_TEXT_TIMEOUT_SECONDS", 120.0),
-        )
+        else _env_float("NEWAPI_TEXT_TIMEOUT_SECONDS", 120.0)
     )
     return _newapi_text_openai_model(
         model_name,
@@ -240,19 +193,6 @@ def get_newapi_text_pydantic_model_settings(
     if not reasoning_effort:
         return None
     return {"openai_reasoning_effort": reasoning_effort}
-
-
-def get_superpower_pydantic_model(
-    *,
-    feature_model_env: str | None = None,
-):
-    """Return a task-selected model through the process model-access mode."""
-    model_name_override = (
-        _clean_env_value(feature_model_env)
-        or _clean_env_value("SUPERPOWER_MODEL")
-        or _clean_env_value("SUPERPOWER_MODEL_NAME")
-    )
-    return get_pydantic_model(model_name_override=model_name_override)
 
 
 def get_pydantic_model_settings(
@@ -337,7 +277,9 @@ def get_newapi_runtime_credentials() -> tuple[str, str]:
     return str(gateway.api_key or "").strip(), str(gateway.base_url or "").strip()
 
 
-def get_model_access_json_transport() -> tuple[str, dict[str, str]]:
+def get_model_access_json_transport(
+    role: str | None = None,
+) -> tuple[str, dict[str, str]]:
     """Return the process-wide model endpoint and JSON request headers."""
     api_key, base_url = get_newapi_runtime_credentials()
     if not base_url:
@@ -345,10 +287,14 @@ def get_model_access_json_transport() -> tuple[str, dict[str, str]]:
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
+    if role:
+        headers["X-AI-Anime-Model-Role"] = role.strip().upper()
     return base_url.rstrip("/"), headers
 
 
-def get_model_access_openai_client(*, timeout_seconds: float = 120.0):
+def get_model_access_openai_client(
+    *, timeout_seconds: float = 120.0, role: str = "TEXT"
+):
     """Create one synchronous OpenAI-compatible model operation client."""
     import httpx
     from openai import OpenAI
@@ -375,6 +321,9 @@ def get_model_access_openai_client(*, timeout_seconds: float = 120.0):
         base_url=base_url,
         timeout=timeout_seconds,
         max_retries=1,
-        default_headers={"Idempotency-Key": str(uuid.uuid4())},
+        default_headers={
+            "Idempotency-Key": str(uuid.uuid4()),
+            "X-AI-Anime-Model-Role": role.strip().upper(),
+        },
         http_client=http_client,
     )

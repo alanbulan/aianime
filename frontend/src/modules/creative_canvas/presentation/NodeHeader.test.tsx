@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,7 +31,7 @@ describe('NodeHeader', () => {
       />,
     );
 
-    expect(screen.getByTitle('节点标题')).toHaveClass('whitespace-nowrap');
+    expect(getByUiTooltip('节点标题')).toHaveClass('whitespace-nowrap');
     expect(screen.getByText('meta')).toBeInTheDocument();
     expect(screen.getByText('subtitle')).toBeInTheDocument();
     expect(screen.getByText('right')).toBeInTheDocument();

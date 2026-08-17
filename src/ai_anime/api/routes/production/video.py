@@ -29,6 +29,7 @@ from ai_anime.modules.production.public import (
     UploadSeedance2AssetCommand,
     episode_video_use_cases,
     global_video_optimization_use_cases,
+    resolve_video_generation_model,
     seedance2_panel_use_cases,
     single_video_use_cases,
 )
@@ -216,13 +217,19 @@ async def generate_single_video(
 ):
     """Queue video generation for one Beat."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
+    video_model = str(body.model or "").strip()
+    if not video_model:
+        video_model = resolve_video_generation_model(
+            resolved.username,
+            resolved.project_name,
+        )
     try:
         scheduled = await single_video_use_cases().generate(
             resolved.ctx,
             GenerateSingleVideoCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
-                video_model=body.model,
+                video_model=video_model,
                 resolution=body.resolution,
                 use_director_render=body.use_director_render,
                 seedance2_config_json=body.seedance2_config_json,

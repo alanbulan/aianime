@@ -124,11 +124,14 @@ def test_commercial_video_model_policy_requires_and_preserves_explicit_sku() -> 
     assert policy.resolve_model("Cloud-Video-Pro") == "Cloud-Video-Pro"
 
 
-def test_commercial_video_generator_enforces_byok_model_role() -> None:
+def test_commercial_video_generator_enforces_router_model_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "router-token")
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://router.test/v1")
     configure_model_access(
         allows_custom_models=True,
-        mode="byok",
-        byok_base_url="https://models.example.test/v1",
+        mode="mixed",
         model_assignments=[
             {
                 "modelId": "local-video",
@@ -138,17 +141,15 @@ def test_commercial_video_generator_enforces_byok_model_role() -> None:
     )
     try:
         generator = CommercialVideoGenerator(
-            model="local-video",
             model_role="VIDEO_IMAGE_TO_VIDEO",
         )
         assert generator.model_role == "VIDEO_IMAGE_TO_VIDEO"
         with pytest.raises(PermissionError, match="VIDEO_EDIT"):
             CommercialVideoGenerator(
-                model="local-video",
                 model_role="VIDEO_EDIT",
             )
     finally:
-        configure_model_access(allows_custom_models=False, mode="cloud")
+        configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 @pytest.mark.asyncio
@@ -204,7 +205,6 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
 
     assert out.exists()
     assert captured["create"] == {
-        "model": "cloud-video-standard",
         "model_role": "VIDEO_ALL_REFERENCE",
         "resolution": "720p",
         "generate_audio": False,

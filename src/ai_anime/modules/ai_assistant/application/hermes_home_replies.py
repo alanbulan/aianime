@@ -20,6 +20,7 @@ from ai_anime.modules.ai_assistant.domain import (
     should_emit_final_text,
     strip_replayed_chat_response,
     text_with_attachment_context,
+    tool_chat_error,
     tool_display_payload,
 )
 from ai_anime.modules.project_workspace.public import list_project_workspaces
@@ -64,6 +65,7 @@ class HermesHomeReplies:
             username,
             scope_kind="home",
             project_id=None,
+            conversation_id=scope.conversation_id,
         )
 
         assistant_text = ""
@@ -71,6 +73,7 @@ class HermesHomeReplies:
         tool_name = ""
         persisted = False
         done_sent = False
+        seen_tool_chat_errors: set[str] = set()
 
         def persist_partial_reply() -> None:
             nonlocal persisted
@@ -132,23 +135,75 @@ class HermesHomeReplies:
                 elif event.type == "tool_update":
                     if event.name:
                         tool_name = event.name
+                    tool_event_error = event.error
+                    if event.raw is not None:
+                        mapped_chat_error = tool_chat_error(
+                            event.raw,
+                            tool_name=tool_name,
+                        )
+                        if mapped_chat_error:
+                            tool_event_error = mapped_chat_error
+                        if (
+                            mapped_chat_error
+                            and mapped_chat_error not in seen_tool_chat_errors
+                        ):
+                            seen_tool_chat_errors.add(mapped_chat_error)
+                            assistant_text = merge_stream_text(
+                                assistant_text,
+                                ("\n\n" if assistant_text.strip() else "")
+                                + mapped_chat_error,
+                            )
+                            await emit_chat_event_best_effort(
+                                on_event,
+                                {
+                                    "type": "assistant.delta",
+                                    "text": mapped_chat_error,
+                                    "turn_id": turn_id,
+                                    "accumulated": True,
+                                },
+                            )
                     tool_text += str(event.text or "") + "\n"
                     display_name, display_body = tool_display_payload(
                         tool_text,
                         tool_name,
                     )
+                    tool_call_id = getattr(event, "tool_call_id", None)
+                    tool_phase = getattr(event, "tool_phase", None)
+                    tool_input = getattr(event, "tool_input", None)
+                    tool_output = getattr(event, "tool_output", None)
+                    if tool_phase == "call":
+                        await emit_chat_event_best_effort(
+                            on_event,
+                            {
+                                "type": "tool.call",
+                                "turn_id": turn_id,
+                                "tool_call_id": tool_call_id,
+                                "name": display_name,
+                                "input": tool_input,
+                                "raw": event.raw,
+                            },
+                        )
+                        continue
                     await emit_chat_event_best_effort(
                         on_event,
                         {
                             "type": "tool.result",
                             "turn_id": turn_id,
+                            "tool_call_id": tool_call_id,
                             "name": display_name,
-                            "success": True,
-                            "result": {"text": display_body},
-                            "error": None,
+                            "success": False if tool_event_error else event.success is not False,
+                            "result": (
+                                tool_output
+                                if tool_output is not None
+                                else {"text": display_body}
+                            ),
+                            "error": tool_event_error,
+                            "raw": event.raw,
                         },
                     )
                 elif event.type == "complete":
+                    if seen_tool_chat_errors and assistant_text.strip():
+                        continue
                     assistant_text = completion_text_or_existing(
                         event.text,
                         assistant_text,

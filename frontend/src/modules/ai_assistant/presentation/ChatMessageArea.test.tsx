@@ -15,6 +15,9 @@ vi.mock("@/modules/ai_assistant/presentation/ChatTimeline", () => ({
 
 vi.mock("@/modules/ai_assistant/presentation/ChatMessageView", () => ({
   DotsIndicator: () => <span data-testid="dots" />,
+  ToolExecutionList: ({ messages }: { messages: Array<{ id: string }> }) => (
+    <div data-testid="tool-list" data-count={messages.length} />
+  ),
   MessageBubble: ({
     message,
     pinned,
@@ -178,5 +181,25 @@ describe("SuperChat message area", () => {
       visibleMessages,
     })} />);
     expect(screen.queryByTestId("timeline")).toBeNull();
+  });
+
+  it("groups consecutive tool events from the same turn into one execution list", () => {
+    const first = message("tool-1", "tool", "读取数据");
+    const second = message("tool-2", "tool", "提交任务");
+    first.turnId = "turn-1";
+    second.turnId = "turn-1";
+
+    render(<ChatMessageArea {...props({
+      totalMessageCount: 3,
+      visibleMessages: [
+        message("user-1", "user", "开始处理"),
+        first,
+        second,
+      ],
+    })} />);
+
+    expect(screen.getByTestId("tool-list")).toHaveAttribute("data-count", "2");
+    expect(screen.queryByTestId("bubble-tool-1")).toBeNull();
+    expect(screen.queryByTestId("bubble-tool-2")).toBeNull();
   });
 });

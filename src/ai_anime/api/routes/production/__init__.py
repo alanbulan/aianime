@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 
 def create_router() -> APIRouter:
-    from . import audio, export, pool, render, settings, sketch, video
+    from . import audio, export, pool, render, settings, sketch, video, workflow
 
     router = APIRouter()
     router.include_router(audio.router, tags=["generation"])
@@ -14,6 +14,7 @@ def create_router() -> APIRouter:
     router.include_router(settings.router, tags=["generation"])
     router.include_router(sketch.router, tags=["generation"])
     router.include_router(video.router, tags=["generation"])
+    router.include_router(workflow.router, tags=["generation"])
     return router
 
 

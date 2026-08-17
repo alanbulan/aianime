@@ -113,34 +113,20 @@ class ConfiguredGenerationModelCatalog:
             return value
         if kind == "freezone_image_reverse_prompt":
             from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
-                resolve_internal_model_for_role,
-            )
-            from ai_anime.modules.creative_canvas.public import (
-                resolve_creative_canvas_vision_model,
+                resolve_model_for_role,
             )
 
-            return resolve_internal_model_for_role(
-                resolve_creative_canvas_vision_model(), "TEXT"
-            )
+            return resolve_model_for_role("TEXT")
         if kind == "freezone_story_script":
             if not value:
                 raise InvalidGenerationCreditRequest("text model is required")
             return value
         if kind == "style_analyzer":
             from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
-                resolve_internal_model_for_role,
-            )
-            from ai_anime.modules.model_usage.infrastructure.model_runtime import (
-                get_newapi_text_model_name,
+                resolve_model_for_role,
             )
 
-            return resolve_internal_model_for_role(
-                get_newapi_text_model_name(
-                    "STYLE_ANALYZER_MODEL",
-                    "gemini-3.5-flash",
-                ),
-                "TEXT",
-            )
+            return resolve_model_for_role("TEXT")
         if kind == "feature":
             if not value:
                 raise InvalidGenerationCreditRequest("feature key is required")

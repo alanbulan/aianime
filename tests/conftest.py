@@ -26,10 +26,8 @@ def restore_model_access_globals():
     names = (
         "_byok_allowed",
         "_selected_mode",
-        "_byok_base_url",
-        "_byok_api_key",
-        "_byok_model_assignments",
-        "_cloud_model_assignments",
+        "_model_assignments",
+        "_model_capabilities",
         "_cloud_base_url_override",
         "_cloud_api_key_override",
     )

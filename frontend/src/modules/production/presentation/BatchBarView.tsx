@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Mic2, Palette, Sparkles, Wand2 } from "lucide-react";
+import { Clapperboard, Loader2, Mic2, Palette, Sparkles, Wand2 } from "lucide-react";
 
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import { CreditCostPill } from "@/components/credit-visual";
@@ -178,6 +178,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
     episodeAudioCostDisplay,
     errorDialog,
     globalOptimizePending,
+    productionWorkflowPending,
     renderModel,
     sketchAspectRatio,
     sketchModel,
@@ -187,6 +188,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
     onDismissError,
     onGenerateAudio,
     onGlobalOptimize,
+    onRunProductionWorkflow,
     onReassignColors,
     onSketchAspectRatioChange,
   } = controller;
@@ -230,6 +232,26 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
         />
 
         <div className="flex min-w-0 flex-wrap items-center gap-4">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() =>
+              askConfirm(
+                t("episode.workbench.batch.productionWorkflowTitle"),
+                t("episode.workbench.batch.productionWorkflowDesc"),
+                onRunProductionWorkflow,
+              )
+            }
+            disabled={productionWorkflowPending}
+            className={TOOLBAR_CONTROL_CLASS}
+          >
+            {productionWorkflowPending ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Clapperboard className="size-3.5" />
+            )}
+            {t("episode.workbench.batch.productionWorkflow")}
+          </Button>
           {showGlobalOptimize && (
             <Button
               size="sm"
@@ -258,7 +280,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
             onClick={onDetectIdentities}
             disabled={detectIdentitiesPending}
             className={TOOLBAR_CONTROL_CLASS}
-            title={t("episode.workbench.batch.aiDetectTooltip")}
+            data-ui-tooltip={t("episode.workbench.batch.aiDetectTooltip")}
           >
             {detectIdentitiesPending ? (
               <Loader2 className="size-3 animate-spin" />
@@ -280,7 +302,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
             }
             disabled={assignColorsPending}
             className={TOOLBAR_CONTROL_CLASS}
-            title={t("episode.workbench.batch.reassignColorsTooltip")}
+            data-ui-tooltip={t("episode.workbench.batch.reassignColorsTooltip")}
           >
             {assignColorsPending ? (
               <Loader2 className="size-3 animate-spin" />

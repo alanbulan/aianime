@@ -42,7 +42,7 @@ export function VideoComposeToolButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={label}
+      data-ui-tooltip={label}
       aria-label={label}
       className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors disabled:cursor-not-allowed disabled:opacity-35 ${
         active
@@ -233,7 +233,7 @@ export function VideoComposeVolumePopover({
           onClick={onToggleMute}
           className="shrink-0 rounded p-1 text-text-muted transition-colors hover:text-text-dark"
           aria-label={muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
-          title={muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
+          data-ui-tooltip={muted ? t("videoCompose.unmute") : t("videoCompose.mute")}
         >
           {muted || volume <= 0 ? (
             <VolumeX className="h-4 w-4" />

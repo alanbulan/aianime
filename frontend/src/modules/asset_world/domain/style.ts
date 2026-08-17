@@ -45,6 +45,10 @@ const IGNORED_STYLE_SAVE_KEYS = new Set<string>([
   "name",
   "type",
   "is_preset",
+  "created_at",
+  "created_by",
+  "preview_path",
+  "preview_url",
 ]);
 
 export const STYLE_PREVIEW_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";

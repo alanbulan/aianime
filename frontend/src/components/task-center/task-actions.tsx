@@ -73,6 +73,7 @@ export function TaskActions({ task }: { task: TaskState }) {
         <Button
           variant="ghost"
           size="sm"
+          nativeButton={false}
           render={<Link to={deepLink.to} params={deepLink.params} />}
         >
           <ExternalLink className="size-4" />

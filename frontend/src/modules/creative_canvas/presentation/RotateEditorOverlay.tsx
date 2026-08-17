@@ -251,7 +251,7 @@ export function createRotateEditorOverlay({
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => onClose(false)}
-              title={t('rotateEditor.exit')}
+              data-ui-tooltip={t('rotateEditor.exit')}
               disabled={isSaving}
             >
               <X className="h-4 w-4" />
@@ -259,7 +259,7 @@ export function createRotateEditorOverlay({
 
             <div
               className="flex items-center gap-2 px-2"
-              title={t('rotateEditor.angleLabel')}
+              data-ui-tooltip={t('rotateEditor.angleLabel')}
             >
               <span className="text-[11px] uppercase tracking-wide text-foreground/90">
                 {t('rotateEditor.angleLabel')}
@@ -285,7 +285,7 @@ export function createRotateEditorOverlay({
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               onClick={handleRotate90}
-              title={t('rotateEditor.rotate90')}
+              data-ui-tooltip={t('rotateEditor.rotate90')}
               disabled={isSaving}
             >
               <RotateCw className="h-4 w-4" />
@@ -295,7 +295,7 @@ export function createRotateEditorOverlay({
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => setMirrorH((prev) => !prev)}
-              title={t('rotateEditor.mirrorH')}
+              data-ui-tooltip={t('rotateEditor.mirrorH')}
               disabled={isSaving}
             >
               <FlipHorizontal className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function createRotateEditorOverlay({
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => setMirrorV((prev) => !prev)}
-              title={t('rotateEditor.mirrorV')}
+              data-ui-tooltip={t('rotateEditor.mirrorV')}
               disabled={isSaving}
             >
               <FlipVertical className="h-4 w-4" />
@@ -318,7 +318,7 @@ export function createRotateEditorOverlay({
               }}
               disabled={isSaving}
               className="flex h-8 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              title={t('rotateEditor.save')}
+              data-ui-tooltip={t('rotateEditor.save')}
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

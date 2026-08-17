@@ -20,9 +20,11 @@ import {
   type ChatPanelHeaderProps,
 } from "@/modules/ai_assistant/presentation/ChatPanelHeader";
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 export type SuperChatPanelViewProps = {
   composer: Omit<ChatComposerProps, "isFreezoneLayout">;
+  conversationDrawer: ReactNode;
   contextViews: ChatPanelContextViewsProps;
   detailOverlays: ChatPanelDetailOverlaysProps;
   header: Omit<ChatPanelHeaderProps, "isFreezoneLayout">;
@@ -32,6 +34,7 @@ export type SuperChatPanelViewProps = {
 
 export function SuperChatPanelView({
   composer,
+  conversationDrawer,
   contextViews,
   detailOverlays,
   header,
@@ -60,6 +63,7 @@ export function SuperChatPanelView({
           isFreezoneLayout={isFreezoneLayout}
         />
       </section>
+      {conversationDrawer}
       <ChatPanelDetailOverlays {...detailOverlays} />
       <img
         src="/images/bg-chat-buttom.png"

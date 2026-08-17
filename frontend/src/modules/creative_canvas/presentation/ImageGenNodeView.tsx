@@ -216,7 +216,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                 key={`album-deck-${index}`}
                 role="button"
                 tabIndex={-1}
-                title="展开画册"
+                data-ui-tooltip="展开画册"
                 onClick={(event) => {
                   event.stopPropagation();
                   handleToggleAlbumExpanded();
@@ -265,7 +265,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
           {visiblePreviewUrl && naturalSize ? (
             <div
               className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-media-foreground/10 bg-media/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-media-foreground/70 backdrop-blur-sm"
-              title={t('node.imageNode.resolution')}
+              data-ui-tooltip={t('node.imageNode.resolution')}
             >
               <ImageIcon className="h-3 w-3 text-media-foreground/45" />
               {naturalSize.width}×{naturalSize.height}
@@ -298,7 +298,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
               handlePickFile();
             }}
             onPointerDown={(event) => event.stopPropagation()}
-            title="上传图片"
+            data-ui-tooltip="上传图片"
             className={NODE_SIDE_ACTION_BUTTON_CLASS}
           >
             {isUploading ? (
@@ -334,7 +334,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                   event.stopPropagation();
                   handleClearReference();
                 }}
-                title="移除参考图"
+                data-ui-tooltip="移除参考图"
                 className="nodrag absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-media/55 text-media-foreground transition-colors hover:bg-media/75"
               >
                 <X className="h-3.5 w-3.5" />
@@ -349,7 +349,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                   handleToggleAlbumExpanded();
                 }}
                 onPointerDown={(event) => event.stopPropagation()}
-                title={`展开 ${albumTotalSlots} 张生成结果`}
+                data-ui-tooltip={`展开 ${albumTotalSlots} 张生成结果`}
                 className="nodrag group/albumpill absolute right-2 top-2 z-10 hidden items-center gap-1 rounded-full bg-media/65 px-2.5 py-1 text-[12px] font-medium tabular-nums text-media-foreground shadow-lg backdrop-blur-sm transition-colors hover:bg-media/85 group-hover:inline-flex"
               >
                 {albumPendingCount > 0
@@ -425,7 +425,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                       handleSpawnUpstreamImage();
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
-                    title="新建一个上游图片节点用作参考"
+                    data-ui-tooltip="新建一个上游图片节点用作参考"
                     className="nodrag -mx-2 inline-flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                   >
                     <Upload className="h-4 w-4 text-text-muted/90" />
@@ -454,9 +454,6 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
         {isGenerating && !historyPreviewUrl && (
           <NodeGenerationOverlay
             progress={generationProgress}
-            startedAt={data.generationStartedAt ?? null}
-            durationMs={data.generationDurationMs}
-            hasBackground={Boolean(visiblePreviewUrl)}
           />
         )}
 
@@ -468,19 +465,19 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
             </div>
             <div
               className="mt-1 max-h-12 max-w-full overflow-y-auto break-words text-[11px] leading-4 text-destructive [overflow-wrap:anywhere]"
-              title={generationError}
+              data-ui-tooltip={generationError}
             >
               {generationError}
             </div>
             {generationErrorRequestId && (
               <div className="mt-1 flex max-w-full items-center justify-center gap-1.5 text-[10px] text-text-muted">
                 <span className="shrink-0">{t("node.imageNode.requestId")}</span>
-                <code className="min-w-0 max-w-[160px] truncate font-mono" title={generationErrorRequestId}>
+                <code className="min-w-0 max-w-[160px] truncate font-mono" data-ui-tooltip={generationErrorRequestId}>
                   {generationErrorRequestId}
                 </code>
                 <button
                   type="button"
-                  title={errorDetailsCopied ? t("nodeToolbar.copied") : t("nodeToolbar.copyErrorReport")}
+                  data-ui-tooltip={errorDetailsCopied ? t("nodeToolbar.copied") : t("nodeToolbar.copyErrorReport")}
                   onClick={(event) => {
                     event.stopPropagation();
                     void handleCopyErrorDetails();
@@ -531,7 +528,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                 key={`album-cell-${index}`}
                 role="button"
                 tabIndex={-1}
-                title="点击设为主图"
+                data-ui-tooltip="点击设为主图"
                 onClick={(event) => {
                   event.stopPropagation();
                   // 拖动画册（移动节点）后松手补发的 click 不算选主图。
@@ -563,7 +560,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                     event.stopPropagation();
                     handleApplyAlbumImageToCanvas(url);
                   }}
-                  title="把这张图作为独立图片节点放到画布上"
+                  data-ui-tooltip="把这张图作为独立图片节点放到画布上"
                   className="nodrag absolute left-2 top-2 z-10 hidden h-7 items-center gap-1 rounded-md bg-media/70 px-2.5 text-[12px] font-medium text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
                 >
                   <Upload className="h-3.5 w-3.5" />
@@ -575,7 +572,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                     event.stopPropagation();
                     void handleDownloadAlbumImage(url, index);
                   }}
-                  title="下载这张图片"
+                  data-ui-tooltip="下载这张图片"
                   className="nodrag absolute right-2 top-2 z-10 hidden h-7 w-7 items-center justify-center rounded-full bg-media/70 text-media-foreground backdrop-blur-sm transition-colors hover:bg-media/90 group-hover/albumcell:inline-flex"
                 >
                   <Download className="h-3.5 w-3.5" />
@@ -623,7 +620,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                 setBgCropperOpen(true);
               }}
               className="inline-flex h-6 items-center gap-1 rounded-md border border-warning/55 bg-warning px-2 text-[10px] font-medium text-warning-foreground shadow-sm hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-50"
-              title={`从 ${sourceRole === 'scene_master' ? 'scene_master' : 'scene_reverse_master'} 选一个 16:9 区域写入本 beat 的 selected_background.png — beat 工作台后续 sketch/render 会用这张做背景锚点`}
+              data-ui-tooltip={`从 ${sourceRole === 'scene_master' ? 'scene_master' : 'scene_reverse_master'} 选一个 16:9 区域写入本 beat 的 selected_background.png — beat 工作台后续 sketch/render 会用这张做背景锚点`}
             >
               📐 截取背景
             </button>
@@ -641,7 +638,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                   ? 'cursor-not-allowed bg-primary/10 text-primary/60'
                   : 'bg-primary text-primary-foreground hover:bg-primary/90'
               }`}
-              title={t("viewer.threeD.openDirectorWorldTitle")}
+              data-ui-tooltip={t("viewer.threeD.openDirectorWorldTitle")}
             >
               {directorStageBusy
                 ? t("viewer.threeD.openingDirectorWorld")
@@ -695,7 +692,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                 setIsAssetLibraryOpen(true);
               }}
               className={`${NODE_TEXT_CONTROL_TRIGGER_CLASS} group/asset px-1.5`}
-              title="从资产库选择参考图（人物 / 场景 / 道具）"
+              data-ui-tooltip="从资产库选择参考图（人物 / 场景 / 道具）"
             >
               <Library className={`${NODE_TEXT_CONTROL_ICON_CLASS} group-hover/asset:text-text-dark`} />
               <span>资产库</span>
@@ -717,7 +714,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                     <div
                       key={`upstream-image-${content.nodeId}`}
                       className={NODE_REFERENCE_MEDIA_CHIP_CLASS}
-                      title={`来自上游 · ${content.displayName ?? content.nodeType}`}
+                      data-ui-tooltip={`来自上游 · ${content.displayName ?? content.nodeType}`}
                       onMouseEnter={(event) => {
                         setRefHover({
                           imageUrl: url,
@@ -736,7 +733,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                           「图片」，序号只存在于提交给后端的 prompt（@图片N）里。 */}
                       <button
                         type="button"
-                        title="取消引用此素材"
+                        data-ui-tooltip="取消引用此素材"
                         className={NODE_REFERENCE_MEDIA_DETACH_CLASS}
                         onMouseDown={(event) => event.stopPropagation()}
                         onClick={(event) => {
@@ -812,7 +809,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
               )}
               <button
                 type="button"
-                title="翻译提示词（中英文互译）"
+                data-ui-tooltip="翻译提示词（中英文互译）"
                 disabled={isTranslatingPrompt || isGenerating || prompt.trim().length === 0}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -840,7 +837,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
               <button
                 type="button"
                 disabled={submitDisabled}
-                title="生成"
+                data-ui-tooltip="生成"
                 onClick={(event) => {
                   event.stopPropagation();
                   void handleSubmit();

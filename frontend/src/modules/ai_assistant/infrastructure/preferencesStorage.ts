@@ -22,12 +22,12 @@ export function loadSuperChatSettings(): SuperChatSettings {
       localStorage.getItem(SETTINGS_KEY) || "{}",
     ) as Partial<SuperChatSettings>;
     return {
-      showToolEvents: raw.showToolEvents ?? false,
+      showToolEvents: raw.showToolEvents ?? true,
       showStructuredSourceWhileStreaming: raw.showStructuredSourceWhileStreaming ?? true,
     };
   } catch {
     return {
-      showToolEvents: false,
+      showToolEvents: true,
       showStructuredSourceWhileStreaming: true,
     };
   }

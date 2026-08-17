@@ -94,7 +94,7 @@ async def test_standard_drama_prop_planner_reports_string_list_validation_error(
 
     captured: dict[str, object] = {}
 
-    def fake_newapi_model(model_env: str, default_model: str) -> str:
+    def fake_newapi_model() -> str:
         return "prop-model"
 
     def fake_settings(thinking_env: str, default_thinking_level: str) -> dict[str, str]:

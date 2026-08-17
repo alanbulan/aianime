@@ -16,6 +16,9 @@ if TYPE_CHECKING:
         IdentityPlanner,
     )
 
+from ai_anime.modules.narrative_planning.application.adaptive_script_writing import (
+    AdaptiveScriptWritingWorkflow,
+)
 from ai_anime.modules.narrative_planning.application.beat_video_prompts import (
     GeneratedBeatVideoPrompt,
 )
@@ -61,6 +64,7 @@ from ai_anime.modules.narrative_planning.application.manual_beats import (
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     IdentityPlanRequired,
     ProjectContextRequired,
+    ScenePlanRequired,
 )
 from ai_anime.modules.narrative_planning.application.ports import (
     EpisodeBeatStore,
@@ -81,6 +85,19 @@ from ai_anime.modules.narrative_planning.application.script_models import (
     NarrationScript,
     VisualBeat,
     format_beat_narration,
+)
+from ai_anime.modules.narrative_planning.application.script_workflow import (
+    ScriptWorkflowBlocked,
+    ScriptWorkflowExecutor,
+    ScriptWorkflowMode,
+    ScriptWorkflowNode,
+    ScriptWorkflowOptions,
+    ScriptWorkflowPlan,
+    ScriptWorkflowRuntime,
+    ScriptWorkflowSnapshot,
+    ScriptWorkflowStage,
+    ScriptWorkflowTicket,
+    build_script_workflow_plan,
 )
 from ai_anime.modules.narrative_planning.application.seedance_prompts import (
     GenerateSeedancePromptCommand,
@@ -331,12 +348,18 @@ async def start_episode_script_generation(
     task_context: ProjectContext | None,
     output_dir: str | Path,
     episode_num: int,
+    script_mode: str = "duration",
+    target_duration_total: int = 120,
+    target_beats: int | None = None,
 ) -> ScheduledNarrativeTask:
     return await start_script_generation().execute(
         store,
         task_context=task_context,
         output_dir=output_dir,
         episode_num=episode_num,
+        script_mode=script_mode,
+        target_duration_total=target_duration_total,
+        target_beats=target_beats,
     )
 
 
@@ -442,6 +465,7 @@ async def generate_and_save_beat_video_prompt(
 
 
 __all__ = [
+    "AdaptiveScriptWritingWorkflow",
     "AssetCompiler",
     "BeatNotFound",
     "BeatStoreUpdateFailed",
@@ -474,10 +498,21 @@ __all__ = [
     "SavedEpisodeScript",
     "RawEpisodeContentMissing",
     "ProjectContextRequired",
+    "ScenePlanRequired",
     "ScheduledNarrativeTask",
     "SeedancePromptRejected",
     "ScriptNotFound",
     "ScriptStoreSyncFailed",
+    "ScriptWorkflowBlocked",
+    "ScriptWorkflowExecutor",
+    "ScriptWorkflowMode",
+    "ScriptWorkflowNode",
+    "ScriptWorkflowOptions",
+    "ScriptWorkflowPlan",
+    "ScriptWorkflowRuntime",
+    "ScriptWorkflowSnapshot",
+    "ScriptWorkflowStage",
+    "ScriptWorkflowTicket",
     "VisualBeat",
     "beat_order_value",
     "beat_scene_id",
@@ -486,6 +521,7 @@ __all__ = [
     "build_prop_menu",
     "build_scene_menu",
     "build_scene_ref",
+    "build_script_workflow_plan",
     "choose_manual_sketch_mode_key",
     "clear_adapted_episode_content",
     "create_script_writing_workflow",

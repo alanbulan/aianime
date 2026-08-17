@@ -511,7 +511,7 @@ function EpisodePropBadge({
       {existsInGlobal ? (
         <span
           className="inline-flex size-5 items-center justify-center rounded-full text-success"
-          title={labels.propInGlobal}
+          data-ui-tooltip={labels.propInGlobal}
           aria-label={labels.propInGlobal}
         >
           <CheckCircle2 className="size-3.5" />
@@ -519,7 +519,7 @@ function EpisodePropBadge({
       ) : checking ? (
         <span
           className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground"
-          title={labels.propCheckingGlobal}
+          data-ui-tooltip={labels.propCheckingGlobal}
           aria-label={labels.propCheckingGlobal}
         >
           <Hourglass className="size-3.5" />
@@ -530,7 +530,7 @@ function EpisodePropBadge({
           variant="ghost"
           size="icon-xs"
           aria-label={labels.promoteProp}
-          title={labels.promoteProp}
+          data-ui-tooltip={labels.promoteProp}
           onClick={onPromote}
           className="text-muted-foreground hover:bg-muted hover:text-foreground"
         >

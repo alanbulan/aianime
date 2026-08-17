@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends
 
 from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import (
-    make_cognee_store,
-    make_cognee_store_for_context,
     make_sqlite_store,
     make_sqlite_store_for_context,
     resolve_project_scope,
@@ -16,117 +14,24 @@ from ai_anime.api.routes.narrative_planning.episodes_schemas import (
     EpisodeUpdate,
     InsertManualShotRequest,
 )
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.narrative_planning.public import (
     EpisodeNotFound,
     ProjectContextRequired,
     delete_manual_shot,
-    episode_details_data,
     get_episode_beats,
     get_episode_details,
     insert_manual_shot,
     list_episode_summaries,
-    serialize_episode_items,
     start_episode_asset_planning,
     start_episode_identity_planning,
     start_episode_planning,
     update_episode_metadata,
 )
-from ai_anime.modules.asset_world.public import promote_episode_props_to_global
 from ai_anime.modules.story_intake.public import build_chapter_preview
 
 logger = logging.getLogger("ai_anime.api.episodes")
 
 router = APIRouter()
-AssetCompiler = None
-
-def _asset_compiler_cls():
-    global AssetCompiler
-    if AssetCompiler is None:
-        from ai_anime.modules.narrative_planning.public import (
-            AssetCompiler as LoadedAssetCompiler,
-        )
-
-        AssetCompiler = LoadedAssetCompiler
-    return AssetCompiler
-
-
-def _find_episode(episodes, episode_num: int):
-    for ep in episodes or []:
-        if getattr(ep, "number", None) == episode_num:
-            return ep
-    return None
-
-
-async def _plan_episode_assets(
-    project: str,
-    episode_num: int,
-    asset_kind: str,
-    user: dict,
-):
-    resolved = await resolve_project_scope(project, user, required_role="editor")
-    await get_usage_meter().set_project_llm_usage_context(
-        username=resolved.username,
-        project_name=resolved.project_name,
-        resource_kind="script",
-    )
-
-    store = (
-        await make_cognee_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_cognee_store(resolved.username, resolved.project_name)
-    )
-    if store is None:
-        return {"ok": False, "error": "CogneeStore initialization failed"}
-
-    await store.load_graph_state()
-    episode = _find_episode(store.get_all_episodes(), episode_num)
-    if episode is None:
-        return {"ok": False, "error": f"Episode {episode_num} not found"}
-
-    logs: list[str] = []
-
-    def log_fn(message: str) -> None:
-        logs.append(message)
-
-    compiler = _asset_compiler_cls()(store)
-    try:
-        if asset_kind == "scene":
-            scene_menu, new_count = await compiler.compile_episode_scenes(episode, on_log=log_fn)
-            episode = _find_episode(store.get_all_episodes(), episode_num) or episode
-            scene_menu_data = serialize_episode_items(scene_menu)
-            return {
-                "ok": True,
-                "data": {
-                    "kind": "scene",
-                    "total_count": len(scene_menu_data),
-                    "new_count": new_count,
-                    "scene_menu": scene_menu_data,
-                    "episode": episode_details_data(episode, episode_num),
-                    "logs": logs,
-                },
-            }
-
-        if asset_kind == "prop":
-            prop_menu = await compiler.compile_episode_props(episode, on_log=log_fn)
-            promoted_props = await promote_episode_props_to_global(store, prop_menu)
-            episode = _find_episode(store.get_all_episodes(), episode_num) or episode
-            prop_menu_data = serialize_episode_items(prop_menu)
-            return {
-                "ok": True,
-                "data": {
-                    "kind": "prop",
-                    "total_count": len(prop_menu_data),
-                    "auto_promoted_props": promoted_props,
-                    "prop_menu": prop_menu_data,
-                    "episode": episode_details_data(episode, episode_num),
-                    "logs": logs,
-                },
-            }
-    except ValueError as e:
-        return {"ok": False, "error": str(e)}
-
-    return {"ok": False, "error": f"Unknown asset planning kind: {asset_kind}"}
 
 
 async def _enqueue_episode_asset_planner(
@@ -136,13 +41,6 @@ async def _enqueue_episode_asset_planner(
     user: dict,
 ) -> dict:
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    if resolved.ctx is None:
-        return await _plan_episode_assets(
-            project=project,
-            episode_num=episode_num,
-            asset_kind=asset_kind,
-            user=user,
-        )
     try:
         scheduled = await start_episode_asset_planning(
             resolved.ctx,
@@ -313,88 +211,15 @@ async def plan_episode_identities(
     """规划单集角色身份。"""
     logger.info("[%s] EP%d plan_episode_identities", project, episode_num)
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    if resolved.ctx is not None:
-        scheduled = await start_episode_identity_planning(
-            resolved.ctx,
-            episode_num=episode_num,
-        )
-        return {
-            "ok": True,
-            **scheduled.as_dict(),
-            "data": {"target_episode": episode_num},
-        }
-
-    await get_usage_meter().set_project_llm_usage_context(
-        username=resolved.username,
-        project_name=resolved.project_name,
-        resource_kind="portrait",
+    scheduled = await start_episode_identity_planning(
+        resolved.ctx,
+        episode_num=episode_num,
     )
-
-    store = (
-        await make_cognee_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_cognee_store(resolved.username, resolved.project_name)
-    )
-    await store.load_graph_state()
-    episodes = store.get_all_episodes()
-
-    episode = None
-    for ep in episodes:
-        if ep.number == episode_num:
-            episode = ep
-            break
-
-    if episode is None:
-        return {"ok": False, "error": f"Episode {episode_num} not found"}
-
-    from ai_anime.modules.narrative_planning.public import IdentityPlanner
-
-    planner = IdentityPlanner(store)
-    logs = []
-    new_count, resolved_count = await planner.plan_single_episode(
-        episode, on_log=lambda msg: logs.append(msg)
-    )
-    episode = _find_episode(store.get_all_episodes(), episode_num) or episode
-
-    # 收集身份信息
-    characters = store.get_all_characters()
-    identities = []
-    for c in characters:
-        if not hasattr(c, "identities"):
-            continue
-        for ident in c.identities:
-            if hasattr(ident, "identity_id") and ident.identity_id in (episode.identity_ids or []):
-                identity_name = (
-                    ident.identity_id.split("_", 1)[-1]
-                    if "_" in ident.identity_id
-                    else ident.identity_id
-                )
-                appearance_details = (
-                    ident.appearance_details if hasattr(ident, "appearance_details") else ""
-                )
-                identities.append(
-                    {
-                        "character_name": c.name,
-                        "identity_id": ident.identity_id,
-                        "identity_name": identity_name,
-                        "appearance_details": appearance_details,
-                    }
-                )
-
     return {
         "ok": True,
-        "task_type": "identity_planner",
+        **scheduled.as_dict(),
         "data": {"target_episode": episode_num},
-        "message": f"第 {episode_num} 集身份规划任务已启动",
     }
-
-
-@router.post("/projects/{project}/episodes/{episode_num}/identities/plan-async")
-async def plan_episode_identities_async(
-    project: str, episode_num: int, user: dict = Depends(get_api_user)
-):
-    """兼容 1.0/旧前端的异步身份规划入口。"""
-    return await plan_episode_identities(project=project, episode_num=episode_num, user=user)
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/scenes/plan")

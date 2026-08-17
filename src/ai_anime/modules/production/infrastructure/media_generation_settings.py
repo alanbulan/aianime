@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import mimetypes
 import os
+from pathlib import Path
+from typing import Mapping, Sequence
 
 from ai_anime.shared.infrastructure.video_encoding import VIDEO_CODEC
 from ai_anime.shared.runtime_dotenv import load_project_dotenv
+from ai_anime.shared.runtime_paths import OUTPUT_DIR
 
 load_project_dotenv()
 
@@ -20,12 +24,21 @@ IMAGE_DEFAULT_STYLE = os.environ.get(
     "IMAGE_DEFAULT_STYLE", "chinese_period_drama"
 )
 
+STYLE_REFERENCE_IMAGE_KEY = "style_reference_image_path"
+STYLE_REFERENCE_DIRECTIVE = """GLOBAL STYLE REFERENCE IMAGE:
+- The final attached image is the project style reference. Use it to match only the rendering medium, linework, palette, lighting, material treatment, texture, and finish.
+- Do not copy any person, face, facial features, hairstyle, body, costume, pose, scene content, object, composition, camera position, or text from the style reference.
+- Character, identity, costume, scene, prop, sketch, and composition references attached before it are the source of truth for subjects and layout.
+- If the style reference conflicts with the task description or any subject reference, keep the task content and subject identity, and transfer only the visual style."""
+
+ImageReference = tuple[str, bytes, str]
+ImageReferenceInput = bytes | tuple[bytes, str] | ImageReference
+
 
 def get_style_preset(
     style: str | None = None,
     *,
     username: str | None = None,
-    project: str | None = None,
     project_dir: str | None = None,
 ) -> dict:
     """Return a visual style using the Asset World catalog."""
@@ -35,12 +48,94 @@ def get_style_preset(
     config = StyleService.get_style(
         style_id,
         username=username,
-        project=project,
         project_dir=project_dir,
     )
     if not config:
         raise KeyError(f"Style '{style_id}' not found")
-    return config.to_legacy_dict()
+    result = config.to_legacy_dict()
+    preview_path: Path | None = None
+    if config.is_preset:
+        candidate = StyleService.preset_preview_path(config.id)
+        if candidate.is_file():
+            preview_path = candidate.resolve()
+    elif config.preview_path:
+        resolved_username = StyleService.resolve_username(username, project_dir)
+        if resolved_username:
+            preview_path = StyleService.resolve_style_preview_path(
+                resolved_username,
+                config.preview_path,
+            )
+    if preview_path is not None:
+        result[STYLE_REFERENCE_IMAGE_KEY] = str(preview_path)
+    return result
+
+
+def get_style_reference_image(
+    style_preset: Mapping[str, object],
+) -> ImageReference | None:
+    """Load the resolved runtime style reference, if one is available."""
+    path_value = str(style_preset.get(STYLE_REFERENCE_IMAGE_KEY) or "").strip()
+    if not path_value:
+        return None
+    path = Path(path_value)
+    if not path.is_file():
+        return None
+    mime_type = {
+        ".gif": "image/gif",
+        ".jpeg": "image/jpeg",
+        ".jpg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }.get(path.suffix.lower()) or (mimetypes.guess_type(path.name)[0] or "image/png").lower()
+    if not mime_type.startswith("image/"):
+        return None
+    return (f"style-reference{path.suffix.lower() or '.png'}", path.read_bytes(), mime_type)
+
+
+def apply_style_reference(
+    prompt: str,
+    reference_images: Sequence[ImageReferenceInput] | None,
+    style_preset: Mapping[str, object],
+    *,
+    max_images: int = 10,
+) -> tuple[str, list[ImageReferenceInput]]:
+    """Append the style image last while preserving subject-reference priority."""
+    references = list(reference_images or [])
+    style_reference = get_style_reference_image(style_preset)
+    if style_reference is None:
+        return prompt, references
+    if max_images < 1:
+        raise ValueError("max_images must be at least 1")
+    references = references[: max_images - 1]
+    references.append(style_reference)
+    return f"{prompt.rstrip()}\n\n{STYLE_REFERENCE_DIRECTIVE}", references
+
+
+def get_project_style_preset(
+    project_dir: str | Path,
+    style: str | None = None,
+) -> tuple[str, dict]:
+    """Resolve one project's selected global style from its output directory."""
+    resolved_project_dir = Path(project_dir).resolve()
+    style_id = str(style or "").strip()
+    username: str | None = None
+    if not style_id:
+        try:
+            relative = resolved_project_dir.relative_to(Path(OUTPUT_DIR).resolve())
+        except ValueError:
+            relative = Path()
+        if len(relative.parts) >= 2:
+            username, project = relative.parts[:2]
+            from ai_anime.modules.project_workspace.public import load_project_config
+
+            config = load_project_config(username, project)
+            style_id = str(config.get("visual_style") or "").strip()
+    style_id = style_id or IMAGE_DEFAULT_STYLE
+    return style_id, get_style_preset(
+        style_id,
+        username=username,
+        project_dir=str(resolved_project_dir),
+    )
 
 
 def get_style_labels() -> dict[str, str]:

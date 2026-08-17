@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.model_usage.public import get_usage_meter
+from ai_anime.modules.narrative_planning.application.adaptive_script_writing import (
+    AdaptiveScriptWritingWorkflow,
+)
 from ai_anime.modules.narrative_planning.application.beat_media import (
     EpisodeBeatMediaProjection,
 )
@@ -152,9 +155,19 @@ def create_script_writing_workflow(
     genre: str = "",
     story_setting: str = "",
     spine_template: str = "drama",
-) -> LiteralScriptWritingWorkflow:
+    script_mode: str = "literal",
+    rhythm: str = "medium",
+) -> LiteralScriptWritingWorkflow | AdaptiveScriptWritingWorkflow:
     del visual_style, genre, story_setting
     audio_type_mode = "narrated" if spine_template == "narrated" else "literal"
+    if script_mode == "duration":
+        return AdaptiveScriptWritingWorkflow(
+            cognee_store=cognee_store,
+            sqlite_store=cognee_store,
+            output_dir=getattr(cognee_store, "output_dir", ""),
+            audio_type_mode=audio_type_mode,
+            rhythm=rhythm,
+        )
     return LiteralScriptWritingWorkflow(
         cognee_store=cognee_store,
         sqlite_store=cognee_store,

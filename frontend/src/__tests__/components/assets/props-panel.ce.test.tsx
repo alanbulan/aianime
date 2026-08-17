@@ -95,6 +95,13 @@ function renderPanel() {
     batchProgress: 0,
     batchReferenceCost: "12 credits",
     batchStopping: false,
+    deleteDialog: {
+      confirm: vi.fn(),
+      name: "",
+      onOpenChange: vi.fn(),
+      open: false,
+      pending: false,
+    },
     gridRef: { current: null },
     handleBatchGenerate: vi.fn(),
     isLoading: false,

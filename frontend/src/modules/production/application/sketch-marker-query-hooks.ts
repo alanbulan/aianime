@@ -31,18 +31,8 @@ export function createSketchMarkerQueryHooks(
   }
 
   function useDetectIdentities(project: string, episode: number) {
-    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: () => gateway.detectSketchIdentities(project, episode),
-      onSuccess: (response) => {
-        if (!response.ok) return;
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.beats(project, episode),
-        });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.script(project, episode),
-        });
-      },
     });
   }
 

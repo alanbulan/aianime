@@ -21,6 +21,7 @@ _PROJECT_TASK_RESOURCE_KINDS = {
     "prop_reference_asset": "render",
     "batch_prop_ref": "render",
     "stage_asset": "render",
+    "style_preview": "render",
     "freezone_image_to_3gs": "render",
     "sketch_generation": "sketch",
     "sketch_regen": "sketch",

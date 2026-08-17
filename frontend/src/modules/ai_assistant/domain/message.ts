@@ -91,7 +91,33 @@ export function normalizeMessage(message: unknown, fallbackRole: ChatRole = "ass
   const turnId = normalizeTurnId(value);
   const displayName = typeof value.displayName === "string" ? value.displayName : undefined;
   const attachments = extractAttachments(value);
-  return { id, role, text, turnId, displayName, attachments, timestamp, raw: message };
+  const toolCallId = normalizeId(value.toolCallId) ?? normalizeId(value.tool_call_id) ?? undefined;
+  const toolName = typeof value.toolName === "string"
+    ? value.toolName
+    : typeof value.name === "string"
+      ? value.name
+      : undefined;
+  const toolState = value.toolState === "running"
+    || value.toolState === "success"
+    || value.toolState === "error"
+    ? value.toolState
+    : undefined;
+  return {
+    id,
+    role,
+    text,
+    turnId,
+    displayName,
+    attachments,
+    toolCallId,
+    toolName,
+    toolState,
+    toolInput: value.toolInput,
+    toolOutput: value.toolOutput,
+    toolError: value.toolError,
+    timestamp,
+    raw: message,
+  };
 }
 
 function extractAttachments(value: Record<string, unknown>): ChatAttachment[] {

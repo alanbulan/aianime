@@ -145,21 +145,21 @@ describe("Production Seedance2 panel queries", () => {
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/delete",
         async ({ request }) => {
-          deleteBody = await request.json();
+          deleteBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: makeStatus("deleted") });
         },
       ),
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/crop",
         async ({ request }) => {
-          cropBody = await request.json();
+          cropBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: makeStatus("cropped") });
         },
       ),
       http.post(
         "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/audio-trim",
         async ({ request }) => {
-          trimBody = await request.json();
+          trimBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: makeStatus("trimmed") });
         },
       ),

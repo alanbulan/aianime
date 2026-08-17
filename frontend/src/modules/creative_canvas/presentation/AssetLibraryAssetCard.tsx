@@ -135,14 +135,14 @@ export function AssetLibraryAssetCard({
         <div className="flex min-w-0 items-center gap-1.5">
           <div
             className="truncate text-sm font-medium text-foreground/85"
-            title={asset.label}
+            data-ui-tooltip={asset.label}
           >
             {asset.label}
           </div>
           {typeBadge ? (
             <span
               className={`shrink-0 rounded-[4px] border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${typeBadge.className}`}
-              title={typeBadge.title}
+              data-ui-tooltip={typeBadge.title}
             >
               {typeBadge.label}
             </span>
@@ -150,7 +150,7 @@ export function AssetLibraryAssetCard({
         </div>
         <div
           className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground/80"
-          title={asset.sublabel}
+          data-ui-tooltip={asset.sublabel}
         >
           {asset.sublabel || asset.role}
         </div>
@@ -162,7 +162,7 @@ export function AssetLibraryAssetCard({
           event.stopPropagation();
           onAdd();
         }}
-        title="加入画布"
+        data-ui-tooltip="加入画布"
         disabled={disabled}
       >
         加入

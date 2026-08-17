@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect, beforeEach, beforeAll, afterEach, vi } from "vitest";
-import { act, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
@@ -87,6 +87,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  cleanup();
   useAuthStore.setState({ username: null, role: null });
 });
 

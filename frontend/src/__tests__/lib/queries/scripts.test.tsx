@@ -52,11 +52,17 @@ describe("script generation query", () => {
       wrapper,
     });
 
-    result.current.mutate({});
+    result.current.mutate({
+      rhythm: "duration",
+      target_duration_total: 120,
+    });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/script/generate");
-    expect(receivedBody).toEqual({});
+    expect(receivedBody).toEqual({
+      rhythm: "duration",
+      target_duration_total: 120,
+    });
     expect(result.current.data).toEqual({
       ok: false,
       code: "identity_plan_required",

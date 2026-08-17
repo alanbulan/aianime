@@ -5,6 +5,9 @@ import type { ProjectWorkspaceGateway } from "@/modules/project_workspace/applic
 import type {
   CreatedProject,
   ProjectConfig,
+  ProjectCoverCandidate,
+  ProjectCoverCandidatePage,
+  ProjectCoverResult,
   ProjectGrant,
   ProjectRole,
   ProjectStatus,
@@ -16,6 +19,8 @@ interface ProjectSummaryPayload {
   id?: string;
   project_id?: string;
   name: string;
+  display_name?: string | null;
+  cover_path?: string | null;
   owner_type?: "user" | "team" | null;
   owner_id?: string | null;
   owner_username?: string | null;
@@ -27,6 +32,15 @@ interface ProjectSummaryPayload {
   updated_at?: string | null;
   episode_count?: number | null;
   beat_count?: number | null;
+}
+
+interface ProjectCoverCandidatePagePayload {
+  items: ProjectCoverCandidate[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+  has_more: boolean;
 }
 
 interface CreatedProjectPayload {
@@ -67,6 +81,8 @@ function mapSummary(
     updatedAt: payload.updated_at ?? undefined,
     episodeCount: payload.episode_count ?? undefined,
     beatCount: payload.beat_count ?? undefined,
+    displayName: payload.display_name ?? undefined,
+    coverPath: payload.cover_path ?? undefined,
   };
 }
 
@@ -107,6 +123,41 @@ export const httpProjectWorkspaceGateway: ProjectWorkspaceGateway = {
     const response = await api
       .patch(p`api/v1/projects/${project}`, { json: config })
       .json<OkResponse<ProjectConfig>>();
+    return response.data;
+  },
+
+  async listProjectCoverCandidates(project, page, pageSize, signal) {
+    const response = await api
+      .get(p`api/v1/projects/${project}/cover/candidates`, {
+        searchParams: { page, page_size: pageSize },
+        signal,
+      })
+      .json<OkResponse<ProjectCoverCandidatePagePayload>>();
+    return {
+      items: response.data.items,
+      page: response.data.page,
+      pageSize: response.data.page_size,
+      total: response.data.total,
+      totalPages: response.data.total_pages,
+      hasMore: response.data.has_more,
+    } satisfies ProjectCoverCandidatePage;
+  },
+
+  async uploadProjectCover(project, file) {
+    const body = new FormData();
+    body.append("file", file);
+    const response = await api
+      .post(p`api/v1/projects/${project}/cover/upload`, { body })
+      .json<OkResponse<ProjectCoverResult>>();
+    return response.data;
+  },
+
+  async selectProjectCover(project, sourcePath) {
+    const response = await api
+      .post(p`api/v1/projects/${project}/cover/select`, {
+        json: { source_path: sourcePath },
+      })
+      .json<OkResponse<ProjectCoverResult>>();
     return response.data;
   },
 

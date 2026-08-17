@@ -120,10 +120,12 @@ from ai_anime.modules.asset_world.application.dto import (
     RestoreCharacterAssetCommand,
     SaveSceneDirectorWorldCommand,
     SaveSceneDirectorWorldSourceCommand,
+    UpdateCustomStyleCommand,
     SaveBeatDirectorOverlayCommand,
     SelectBeatBackgroundCommand,
     StyleAnalysisBilling,
     StyleFile,
+    StylePreviewGenerationTask,
     StyleScope,
     UpdateCharacterCommand,
     UpdateIdentityCommand,
@@ -152,6 +154,7 @@ from ai_anime.modules.asset_world.application.errors import (
     PropNotFound,
     SceneCatalogRejected,
     SceneViewerRejected,
+    StyleAlreadyExists,
     StyleRejected,
     StyleStorageFailed,
     UnsupportedCharacterVoiceSlot,
@@ -161,6 +164,7 @@ from ai_anime.modules.asset_world.application.errors import (
 from ai_anime.modules.asset_world.application.styles import (
     AnalyzeStyle,
     StyleCatalogUseCases,
+    StylePreviewTaskUseCases,
     StylePreviewUseCases,
 )
 from ai_anime.modules.asset_world.application.style_models import StyleConfig
@@ -471,6 +475,14 @@ def style_preview_use_cases() -> StylePreviewUseCases:
     return build()
 
 
+def style_preview_task_use_cases() -> StylePreviewTaskUseCases:
+    from ai_anime.modules.asset_world.composition import (
+        style_preview_task_use_cases as build,
+    )
+
+    return build()
+
+
 def analyze_style() -> AnalyzeStyle:
     from ai_anime.modules.asset_world.composition import analyze_style as build
 
@@ -542,9 +554,12 @@ __all__ = [
     "SelectBeatBackgroundCommand",
     "RestoreCharacterAssetCommand",
     "StyleAnalysisBilling",
+    "StyleAlreadyExists",
     "StyleCatalogUseCases",
     "StyleConfig",
     "StyleFile",
+    "StylePreviewGenerationTask",
+    "StylePreviewTaskUseCases",
     "StylePreviewUseCases",
     "StyleRejected",
     "StyleScope",
@@ -554,6 +569,7 @@ __all__ = [
     "UnsupportedImageSourceKind",
     "UnsupportedStyleMedia",
     "UpdateCharacterCommand",
+    "UpdateCustomStyleCommand",
     "UpdateIdentityCommand",
     "UpdatePropCommand",
     "UpdateSceneCommand",
@@ -601,6 +617,7 @@ __all__ = [
     "safe_character_asset_name",
     "style_catalog_use_cases",
     "style_preview_use_cases",
+    "style_preview_task_use_cases",
     "tree_updated_at",
     "trim_existing_character_voice_file",
     "trim_voice_sample_content",

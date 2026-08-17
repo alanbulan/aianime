@@ -16,7 +16,6 @@ class CreativeCanvasVisionInput:
 class AnalyzeCreativeCanvasVisionCommand:
     prompt: str
     images: tuple[CreativeCanvasVisionInput, ...]
-    model_override: str | None = None
     timeout_seconds: float = 120.0
 
 

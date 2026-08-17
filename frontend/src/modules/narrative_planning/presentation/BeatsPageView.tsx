@@ -188,7 +188,7 @@ export function BeatsPageView({
             EMPTY_STATE_ACTION_BUTTON_CLASS,
             "[&_svg]:size-3.5",
           )}
-          title={generateTitle}
+          data-ui-tooltip={generateTitle}
         >
           {generatePending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -286,7 +286,7 @@ export function BeatsPageView({
             onPointerMove={handleSplitPointerMove}
             onPointerUp={handleSplitPointerUp}
             className="group relative z-10 w-1.5 shrink-0 cursor-col-resize touch-none select-none"
-            title={t("episode.workbench.view.dragToResize")}
+            data-ui-tooltip={t("episode.workbench.view.dragToResize")}
           >
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-colors group-hover:bg-primary/60 group-active:bg-primary/80" />
           </div>
@@ -310,7 +310,7 @@ export function BeatsPageView({
                     className="h-6 gap-1 rounded-[5px] bg-transparent px-1.5 text-[11px] font-medium text-foreground/75 shadow-none hover:bg-muted hover:text-foreground"
                     onClick={() => void handleRebuildPoolIndex()}
                     disabled={rebuildPoolIndexPending}
-                    title={t("episode.workbench.pool.rebuildIndex")}
+                    data-ui-tooltip={t("episode.workbench.pool.rebuildIndex")}
                   >
                     {rebuildPoolIndexPending ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -327,7 +327,7 @@ export function BeatsPageView({
                       className="h-8 gap-1.5"
                       onClick={handleOpenEpisodeFreezone}
                       disabled={openingEpisodeFreezone}
-                      title={t(
+                      data-ui-tooltip={t(
                         "episode.workbench.actionPanel.episodeFreezoneTooltip",
                       )}
                     >
@@ -456,7 +456,7 @@ export function BeatsPageView({
                   </div>
                   <div
                     className="truncate text-success"
-                    title={item.sceneIds.join(" / ")}
+                    data-ui-tooltip={item.sceneIds.join(" / ")}
                   >
                     {item.sceneIds.join(" / ") ||
                       t("episode.renderPlan.unknownLocation")}

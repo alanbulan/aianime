@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -8,6 +9,7 @@ import pytest
 from ai_anime.modules.production.application.sketch_color import (
     SketchColorAssignmentUseCases,
     SketchColorMarkersMissing,
+    SketchColorPersistenceFailed,
 )
 
 
@@ -17,15 +19,20 @@ class _Store:
         previous_colors: dict[str, str],
         *,
         fail_persistence: bool = False,
+        characters: list[Any] | None = None,
     ) -> None:
         self.previous_colors = previous_colors
         self.fail_persistence = fail_persistence
+        self.characters = characters or []
         self.saved_colors: list[tuple[int, dict[str, str]]] = []
         self.episode_updates: list[tuple[int, dict[str, Any]]] = []
 
     def get_sketch_colors(self, episode_num: int) -> dict[str, str]:
         assert episode_num == 2
         return self.previous_colors
+
+    def get_all_characters(self) -> list[Any]:
+        return self.characters
 
     async def set_sketch_colors(
         self,
@@ -34,6 +41,7 @@ class _Store:
     ) -> None:
         if self.fail_persistence:
             raise RuntimeError("persistence unavailable")
+        self.previous_colors = dict(colors)
         self.saved_colors.append((episode_num, colors))
 
     async def update_episode(self, episode_num: int, **updates: Any) -> None:
@@ -63,12 +71,16 @@ class _ColorAssigner:
 
 
 class _Episodes:
-    def __init__(self) -> None:
+    def __init__(self, identity_ids: list[str] | None = None) -> None:
         self.calls: list[tuple[Any, int]] = []
+        self.identity_ids = identity_ids or []
 
-    def episode_or_none(self, store: Any, episode_num: int) -> dict[str, int]:
+    def episode_or_none(self, store: Any, episode_num: int) -> Any:
         self.calls.append((store, episode_num))
-        return {"episode": episode_num}
+        return SimpleNamespace(
+            number=episode_num,
+            identity_ids=self.identity_ids,
+        )
 
 
 class _PropMenus:
@@ -101,13 +113,15 @@ class _Workspace:
 def _use_cases(
     colors: dict[str, str],
     prop_menu: list[dict[str, Any]],
+    *,
+    identity_ids: list[str] | None = None,
 ) -> tuple[SketchColorAssignmentUseCases, _ColorAssigner, _Workspace]:
     assigner = _ColorAssigner(colors)
     workspace = _Workspace()
     return (
         SketchColorAssignmentUseCases(
             assigner,
-            _Episodes(),
+            _Episodes(identity_ids),
             _PropMenus(prop_menu),
             workspace,
         ),
@@ -185,17 +199,68 @@ async def test_missing_markers_are_rejected() -> None:
 
 
 @pytest.mark.asyncio
-async def test_persistence_failure_keeps_existing_best_effort_contract() -> None:
+async def test_persistence_failure_is_reported_before_invalidating_sketches() -> None:
     store = _Store({}, fail_persistence=True)
     colors = {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"}
     use_cases, _assigner, workspace = _use_cases(colors, [])
 
+    with pytest.raises(SketchColorPersistenceFailed, match="persistence unavailable"):
+        await use_cases.assign(
+            store=store,
+            episode_num=2,
+            beats=[{"visual_description": "{{Hero_A}} enters"}],
+            output_dir="output/demo",
+        )
+
+    assert workspace.cleared == []
+
+
+@pytest.mark.asyncio
+async def test_assignment_fills_all_planned_episode_identities() -> None:
+    class _PlannedAssigner(_ColorAssigner):
+        def assign(
+            self,
+            characters: list[dict[str, Any]],
+            beats: list[dict[str, Any]],
+            *,
+            existing_colors: dict[str, str] | None = None,
+        ) -> dict[str, str]:
+            self.calls.append(
+                {
+                    "characters": characters,
+                    "beats": beats,
+                    "existing_colors": existing_colors,
+                }
+            )
+            if characters:
+                return {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"}
+            return {}
+
+    character = SimpleNamespace(
+        name="Hero",
+        identities=[SimpleNamespace(identity_id="Hero_A")],
+    )
+    store = _Store({}, characters=[character])
+    assigner = _PlannedAssigner({})
+    workspace = _Workspace()
+    use_cases = SketchColorAssignmentUseCases(
+        assigner,
+        _Episodes(["Hero_A"]),
+        _PropMenus([]),
+        workspace,
+    )
+
     result = await use_cases.assign(
         store=store,
         episode_num=2,
-        beats=[{"visual_description": "{{Hero_A}} enters"}],
+        beats=[{"visual_description": "Hero enters"}],
         output_dir="output/demo",
     )
 
-    assert result.identity_colors == colors
-    assert workspace.cleared == [("output/demo", 2)]
+    assert result.identity_colors == {
+        "Hero_A": "#FF00FF FLUORESCENT MAGENTA"
+    }
+    assert assigner.calls[1]["characters"] == [
+        {"name": "Hero", "identities": [{"identity_id": "Hero_A"}]}
+    ]
+    assert store.saved_colors == [(2, result.identity_colors)]

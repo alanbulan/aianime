@@ -30,10 +30,10 @@ class ConsistencyVerifier:
 
     def _get_agent(self) -> Agent:
         if self._agent is None:
-            from ai_anime.modules.model_usage.public import get_pydantic_model
+            from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
 
             self._agent = Agent(
-                get_pydantic_model(),
+                get_newapi_text_pydantic_model(),
                 system_prompt=CONSISTENCY_VERIFY_PROMPT,
                 output_type=ConsistencyResult,
                 output_retries=2,

@@ -157,11 +157,9 @@ def _format_color_mapping_descriptor(info: dict) -> str:
 
 def create_global_video_reviewer_agent(language: str = "en") -> Agent:
     """创建全局视频审核 Agent。"""
-    from ai_anime.modules.model_usage.public import get_superpower_pydantic_model
+    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
 
-    model = get_superpower_pydantic_model(
-        feature_model_env="GLOBAL_VIDEO_MODEL",
-    )
+    model = get_newapi_text_pydantic_model()
     return Agent(
         model,
         system_prompt=GLOBAL_VIDEO_REVIEWER_INSTRUCTIONS_EN,
@@ -177,7 +175,6 @@ def create_global_video_optimizer_agent(language: str = "en") -> Agent:
         get_newapi_text_pydantic_model_settings,
     )
 
-    legacy_model = os.environ.get("GLOBAL_VIDEO_MODEL", "").strip()
     model_settings = get_newapi_text_pydantic_model_settings(
         "GLOBAL_VIDEO_OPTIMIZER_THINKING_LEVEL",
         "low",
@@ -187,10 +184,7 @@ def create_global_video_optimizer_agent(language: str = "en") -> Agent:
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(
-            "GLOBAL_VIDEO_OPTIMIZER_MODEL",
-            legacy_model or "gemini-3.5-flash",
-        ),
+        get_newapi_text_pydantic_model(),
         system_prompt=GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN,
         output_type=str,
         name="Global Video Motion Director",
@@ -739,7 +733,6 @@ def _create_identity_detector_agent() -> Agent:
         get_newapi_text_pydantic_model_settings,
     )
 
-    legacy_model = os.environ.get("GLOBAL_VIDEO_MODEL", "").strip()
     model_settings = get_newapi_text_pydantic_model_settings(
         "GLOBAL_VIDEO_IDENTITY_DETECTOR_THINKING_LEVEL",
         "low",
@@ -749,10 +742,7 @@ def _create_identity_detector_agent() -> Agent:
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(
-            "GLOBAL_VIDEO_IDENTITY_DETECTOR_MODEL",
-            legacy_model or "gemini-3.5-flash",
-        ),
+        get_newapi_text_pydantic_model(),
         system_prompt=AI_IDENTITY_DETECTOR_INSTRUCTIONS,
         output_type=NativeOutput(list[BeatIdentity]),
         name="角色颜色识别",

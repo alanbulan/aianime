@@ -24,6 +24,8 @@ export {
   normalizeMessage,
 } from "@/modules/ai_assistant/domain/message";
 export {
+  isAllowedChatDragItem,
+  isAllowedChatUpload,
   isAllowedScriptDragItem,
   isAllowedScriptUpload,
 } from "@/modules/ai_assistant/domain/ingestAutomation";

@@ -50,7 +50,7 @@ export function ImageNodeView({
       {controller.data.imageUrl && controller.naturalSize ? (
         <div
           className="absolute -top-7 right-1 z-20 flex items-center gap-1 rounded-md border border-media-foreground/10 bg-media/55 px-2 py-0.5 text-[11px] font-medium tabular-nums text-media-foreground/70 backdrop-blur-sm"
-          title={controller.resolutionLabel}
+          data-ui-tooltip={controller.resolutionLabel}
         >
           <ImageIcon className="h-3 w-3 text-media-foreground/45" />
           {controller.naturalSize.width}×{controller.naturalSize.height}
@@ -90,7 +90,7 @@ export function ImageNodeView({
                 </span>
                 <code
                   className="min-w-0 flex-1 truncate font-mono text-[10px] text-destructive"
-                  title={controller.generationErrorRequestId}
+                  data-ui-tooltip={controller.generationErrorRequestId}
                 >
                   {controller.generationErrorRequestId}
                 </code>
@@ -122,9 +122,7 @@ export function ImageNodeView({
 
         {controller.isGenerating && (
           <NodeGenerationOverlay
-            startedAt={controller.generationStartedAt}
-            durationMs={controller.generationDurationMs}
-            hasBackground={Boolean(controller.data.imageUrl)}
+            progress={controller.generationProgress}
           />
         )}
       </div>

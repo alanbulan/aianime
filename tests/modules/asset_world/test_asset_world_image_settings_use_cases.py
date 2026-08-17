@@ -107,7 +107,7 @@ def test_character_selection_update_validates_and_persists() -> None:
         use_cases.update_character_selection("alice", "demo", "  ")
 
 
-def test_asset_selection_uses_kind_specific_keys_without_normalization() -> None:
+def test_asset_selection_uses_kind_specific_key_then_character_default() -> None:
     store = _Store(
         {
             ("alice", "demo", "character_image_selection"): "legacy-shared",
@@ -126,6 +126,10 @@ def test_asset_selection_uses_kind_specific_keys_without_normalization() -> None
         ]
         == "legacy-asset"
     )
+    assert use_cases.get_asset_selection("alice", "demo", "prop") == {
+        "asset_kind": "prop",
+        "image_source_selection": "legacy-shared",
+    }
     assert use_cases.normalize_asset_kind(" PROP ") == "prop"
     with pytest.raises(
         UnsupportedImageSourceKind,
