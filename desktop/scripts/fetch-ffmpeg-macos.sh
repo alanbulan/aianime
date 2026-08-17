@@ -52,11 +52,13 @@ if grep -Eqi -- '--enable-(gpl|nonfree)' <<<"$build_configuration"; then
   echo "Bundled FFmpeg build is not LGPL-only" >&2
   exit 1
 fi
-if ! "$ffmpeg_path" -hide_banner -encoders 2>/dev/null | grep -q 'h264_videotoolbox'; then
+encoders="$("$ffmpeg_path" -hide_banner -encoders 2>/dev/null || true)"
+if ! grep -q 'h264_videotoolbox' <<<"$encoders"; then
   echo "Bundled FFmpeg is missing h264_videotoolbox" >&2
   exit 1
 fi
-if ! "$ffmpeg_path" -hide_banner -filters 2>/dev/null | grep -q 'drawtext'; then
+filters="$("$ffmpeg_path" -hide_banner -filters 2>/dev/null || true)"
+if ! grep -q 'drawtext' <<<"$filters"; then
   echo "Bundled FFmpeg is missing drawtext" >&2
   exit 1
 fi
