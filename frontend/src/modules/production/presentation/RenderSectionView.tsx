@@ -731,20 +731,20 @@ function RenderBackgroundReferencePanel({
       >
         <DialogContent
           showCloseButton={false}
-          className="gap-0 overflow-hidden rounded-none border-0 bg-media p-0 text-media-foreground ring-media-foreground/10 sm:max-w-[min(96vw,1120px)]"
+          className="gap-0 overflow-hidden rounded-xl border border-border bg-popover p-0 text-popover-foreground ring-foreground/10 sm:max-w-[min(96vw,1120px)]"
         >
-          <div className="relative flex h-12 items-center border-b border-media-foreground/10 px-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-media-foreground">
+          <div className="relative flex h-12 items-center border-b border-border bg-popover px-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <Crop className="size-4" />
               {`裁剪 ${cropAspectLabel}`}
             </div>
-            <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-media-foreground">
+            <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-foreground">
               {cropTitle}
             </DialogTitle>
             <button
               type="button"
               aria-label="关闭"
-              className="absolute right-4 flex size-7 items-center justify-center text-media-foreground/90 hover:text-media-foreground"
+              className="absolute right-4 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               onClick={closeCropDialog}
             >
               <X className="size-5" />
@@ -779,7 +779,7 @@ function RenderBackgroundReferencePanel({
                     role="button"
                     tabIndex={0}
                     aria-label="移动裁剪区域"
-                    className="absolute cursor-move touch-none border-2 border-cyan-400 shadow-[0_0_0_9999px_rgba(0,0,0,0.58)]"
+                    className="absolute cursor-move touch-none border-2 border-primary shadow-[0_0_0_9999px_rgba(0,0,0,0.58)]"
                     style={cropBoxStyle}
                     onPointerDown={(event) => {
                       if (!cropBox) return;
@@ -819,7 +819,7 @@ function RenderBackgroundReferencePanel({
               </div>
             )}
           </div>
-          <div className="flex justify-end gap-2 border-t border-media-foreground/10 bg-media px-4 py-3">
+          <div className="flex justify-end gap-2 border-t border-border bg-popover px-4 py-3">
             <Button
               type="button"
               variant="outline"

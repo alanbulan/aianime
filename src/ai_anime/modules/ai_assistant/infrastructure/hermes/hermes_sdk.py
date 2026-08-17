@@ -121,8 +121,16 @@ def _split_tool_title(title: object) -> tuple[str, str]:
         return "tool", ""
     head, sep, tail = text.partition(":")
     if sep and head.strip():
-        return head.strip(), tail.strip()
-    return text.split()[0].strip() or "tool", text
+        name = head.strip()
+        detail = tail.strip()
+    else:
+        name = text.split()[0].strip() or "tool"
+        detail = text
+    normalized = re.sub(r"[^a-z0-9]+", "_", text.casefold()).strip("_")
+    for internal_name in ("skill_view", "skills_list"):
+        if normalized == internal_name or normalized.startswith(f"{internal_name}_"):
+            return internal_name, detail
+    return name, detail
 
 
 def _redact_tool_detail(text: str) -> str:

@@ -21,6 +21,11 @@ import { useComposerBorderBeam } from "@/modules/ai_assistant/presentation/useCo
 import { useComposerHistoryNavigation } from "@/modules/ai_assistant/presentation/useComposerHistoryNavigation";
 import { useSpeechInputController } from "@/modules/ai_assistant/presentation/useSpeechInputController";
 import { useTaskCompletionNotifications } from "@/modules/ai_assistant/presentation/useTaskCompletionNotifications";
+import {
+  activeConversationScopeKey,
+  loadActiveConversation,
+  saveActiveConversation,
+} from "@/modules/ai_assistant/infrastructure/activeConversationStorage";
 import { useAuthStore } from "@/modules/identity_access/public";
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = true;
@@ -45,13 +50,32 @@ export function SuperChatPanel({
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
-  const [conversationId, setConversationId] = useState("main");
+  const conversationScopeKey = activeConversationScopeKey(
+    username ?? "",
+    params.project,
+  );
+  const storedConversationId = useMemo(
+    () => loadActiveConversation(conversationScopeKey),
+    [conversationScopeKey],
+  );
+  const [conversationSelections, setConversationSelections] = useState<
+    Record<string, string>
+  >({});
+  const conversationId =
+    conversationSelections[conversationScopeKey] ?? storedConversationId;
   const [conversationDrawerOpen, setConversationDrawerOpen] = useState(false);
 
   useEffect(() => {
-    setConversationId("main");
     setConversationDrawerOpen(false);
-  }, [params.project]);
+  }, [conversationScopeKey]);
+
+  const selectConversation = (nextConversationId: string) => {
+    saveActiveConversation(conversationScopeKey, nextConversationId);
+    setConversationSelections((current) => ({
+      ...current,
+      [conversationScopeKey]: nextConversationId,
+    }));
+  };
 
   const chat = useChatSession({
     project: params.project,
@@ -205,20 +229,20 @@ export function SuperChatPanel({
           open={conversationDrawerOpen}
           onCreate={() => {
             const nextId = `chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-            setConversationId(nextId);
+            selectConversation(nextId);
             setConversationDrawerOpen(false);
           }}
           onDelete={(targetConversationId) => {
             if (chat.deleteConversation(targetConversationId)) {
               if (targetConversationId === conversationId) {
-                setConversationId("main");
+                selectConversation("main");
               }
               setConversationDrawerOpen(false);
             }
           }}
           onOpenChange={setConversationDrawerOpen}
           onSelect={(nextConversationId) => {
-            setConversationId(nextConversationId);
+            selectConversation(nextConversationId);
             setConversationDrawerOpen(false);
           }}
         />

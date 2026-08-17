@@ -1473,7 +1473,8 @@ test("BYOK authentication errors stay visible and never spend the cloud fallback
         entry.event === "route_attempt" &&
         entry.source === "byok" &&
         entry.status === 401 &&
-        entry.outcome === "rejected",
+        entry.outcome === "rejected" &&
+        entry.error === "invalid BYOK key",
     ),
   );
 });

@@ -3,9 +3,10 @@
 import asyncio
 import io
 import os
+from typing import Literal
 
 from PIL import Image
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, ImageUrl
 
 
@@ -19,8 +20,22 @@ class StyleAnalysisResult(BaseModel):
         description="Negative prompt protecting the visual style."
     )
     style_tag: str = Field(description="Short uppercase medium/finish tag.")
+    style_family: Literal["live_action", "animation"] = Field(
+        description="Rendering family used by the generation pipeline."
+    )
+    animation_subtype: Literal["", "2d", "3d", "hybrid"] = Field(
+        description="Animation subtype, or an empty string for live action."
+    )
     suggested_name: str = Field(description="Concise English style name.")
     suggested_label: str = Field(description="Chinese display label.")
+
+    @model_validator(mode="after")
+    def validate_style_branch(self) -> "StyleAnalysisResult":
+        if self.style_family == "live_action" and self.animation_subtype:
+            raise ValueError("live_action styles require an empty animation_subtype")
+        if self.style_family == "animation" and not self.animation_subtype:
+            raise ValueError("animation styles require an animation_subtype")
+        return self
 
 
 class StyleAnalyzer:
@@ -46,15 +61,24 @@ Analyze this image's visual style and generate two sets of prompts for reproduci
    FORBIDDEN words: PERIOD, REPUBLICAN, ERA, DYNASTY, MODERN, ANCIENT, DRAMA, 古装, 民国.
    Good examples: "CINEMATIC FILMIC REALISM", "NATURAL PHOTOREALISTIC, CLEAN GRADE", "3D GUOMAN FANTASY".
 
-4. **suggested_name**: A concise English name for this style (e.g. "Watercolor Fantasy").
+4. **style_family**: Classify the rendering family as exactly "live_action" or "animation".
+   Use "live_action" for photographic/cinematic physical-camera imagery. Use "animation" for
+   illustrated, anime, cel-rendered, CG animation, or deliberately stylized animated imagery.
 
-5. **suggested_label**: A Chinese display label (e.g. "水彩幻想风").
+5. **animation_subtype**: Return exactly "" for live_action. For animation, return exactly one
+   of "2d", "3d", or "hybrid" according to the image's rendering technique.
+
+6. **suggested_name**: A concise English name for this style (e.g. "Watercolor Fantasy").
+
+7. **suggested_label**: A Chinese display label (e.g. "水彩幻想风").
 
 Return ONLY valid JSON with no markdown formatting:
 {
   "style_instructions": "...",
   "avoid_instructions": "...",
   "style_tag": "...",
+  "style_family": "live_action or animation",
+  "animation_subtype": "empty, 2d, 3d, or hybrid",
   "suggested_name": "...",
   "suggested_label": "..."
 }"""
@@ -93,7 +117,9 @@ Return ONLY valid JSON with no markdown formatting:
 
         # 压缩图片以减少 token 消耗
         compressed_bytes, _compressed_mime = self._compress_image(image_bytes)
-        image_url = await asyncio.to_thread(upload_image_bytes, compressed_bytes, ext="jpg")
+        image_url = await asyncio.to_thread(
+            upload_image_bytes, compressed_bytes, ext="jpg"
+        )
 
         response = await self.agent.run(
             [
@@ -134,8 +160,10 @@ Return ONLY valid JSON with no markdown formatting:
 
         compressed_size = len(compressed_data)
         ratio = (1 - compressed_size / original_size) * 100
-        print(f"[StyleAnalyzer压缩] "
-              f"{original_size/1024:.0f}KB → {compressed_size/1024:.0f}KB "
-              f"({ratio:.0f}% 压缩)")
+        print(
+            f"[StyleAnalyzer压缩] "
+            f"{original_size / 1024:.0f}KB → {compressed_size / 1024:.0f}KB "
+            f"({ratio:.0f}% 压缩)"
+        )
 
         return compressed_data, "image/jpeg"

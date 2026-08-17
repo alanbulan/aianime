@@ -102,11 +102,18 @@ export function createUseCreateStyleController(
           toast.error(analyzeResponse.error);
           return;
         }
+        const analyzedConfig = analyzeResponse.data;
+        const label =
+          typeof analyzedConfig.label === "string"
+            ? analyzedConfig.label
+            : typeof analyzedConfig.suggested_label === "string"
+              ? analyzedConfig.suggested_label
+              : "";
         setAnalyzed(
           extractEditableStyleConfig({
             id: "",
             name: "",
-            config: analyzeResponse.data,
+            config: { ...analyzedConfig, label },
           } as Style),
         );
         toast.success(t("styles.paramsExtracted"));

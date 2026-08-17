@@ -37,10 +37,7 @@ class UpdateStyleRequest(BaseModel):
 
 class StylePreviewRequest(BaseModel):
     project: Optional[str] = None
-    prompt: str = (
-        "An unoccupied cinematic environment with architecture, foliage, "
-        "fabric, wood, metal, and glass"
-    )
+    prompt: str = "A beautiful woman standing in a garden"
 
 
 __all__ = [

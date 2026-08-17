@@ -65,9 +65,15 @@ export function createStyleQueryHooks(gateway: AssetWorldGateway) {
   }
 
   function useUploadStylePreview() {
+    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (input: { file: File; styleId: string }) =>
         gateway.uploadStylePreview(input),
+      onSuccess: (response) => {
+        if (response.ok) {
+          return queryClient.invalidateQueries({ queryKey: ["styles"] });
+        }
+      },
     });
   }
 

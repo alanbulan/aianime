@@ -23,24 +23,29 @@ class UnifiedStylePreviewGenerator:
         style = get_style_preset(style_id, project_dir=str(project_dir))
         style_instructions = str(style.get("style_instructions") or "").strip()
         avoid_instructions = str(style.get("avoid_instructions") or "").strip()
-        resolved_prompt = f"""Create one identity-neutral visual style reference image for future image generation.
+        style_tag = str(style.get("style_tag") or "").strip()
+        style_family = str(style.get("style_family") or "").strip()
+        animation_subtype = str(style.get("animation_subtype") or "").strip()
+        resolved_prompt = f"""Create one polished, full-frame visual style reference image comparable to a built-in production style preset.
 
-USER MOOD OR SETTING:
+SUBJECT AND SCENE:
 {prompt}
 
-STYLE TO DEMONSTRATE:
+STYLE CONFIGURATION:
+Style tag: {style_tag}
+Style family: {style_family}
+Animation subtype: {animation_subtype}
 {style_instructions}
 
-CONTENT:
-- One unoccupied environment containing architecture, foliage, fabric, wood, metal, glass, and soft atmospheric light
-- Show the style consistently through linework, palette, lighting, materials, texture, depth, and rendering finish
-- Use one coherent natural scene, not a collage, contact sheet, split panel, character sheet, or mood board
-
-STRICTLY FORBIDDEN:
-- No people, faces, portraits, heads, bodies, silhouettes, mannequins, statues, dolls, animals, or living characters
+OUTPUT REQUIREMENTS:
+- Render the requested subject and scene as one coherent finished production still
+- People, faces, portraits, animals, props, and environments are allowed when requested by the subject and scene
+- Demonstrate the style consistently through medium, linework, palette, lighting, materials, texture, depth, lens treatment, grade, and finish
+- Use a single full-frame composition, not a collage, contact sheet, split panel, character sheet, or mood board
 - No readable text, labels, logos, signatures, or watermarks
-- Do not follow any request for a person or character in the user mood/setting
-- {avoid_instructions}
+
+AVOID:
+{avoid_instructions}
 """.strip()
         image_bytes, _text, error = await _call_newapi_image_api(
             prompt=resolved_prompt,

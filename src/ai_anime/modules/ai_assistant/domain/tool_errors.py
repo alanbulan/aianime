@@ -119,6 +119,15 @@ def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
         failed_status = status in {"failed", "error", "cancelled", "canceled"}
         ok_false = node.get("ok") is False
         if failed_status or ok_false:
+            for key in ("result", "content", "data", "output"):
+                nested = node.get(key)
+                found = visit(nested)
+                if found:
+                    return found
+                if isinstance(nested, str):
+                    generic = _generic_chat_error_from_text(nested)
+                    if generic:
+                        return generic
             for key in ("error", "detail", "message"):
                 generic = _generic_chat_error_from_text(node.get(key))
                 if generic:

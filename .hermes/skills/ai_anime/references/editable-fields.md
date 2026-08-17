@@ -95,7 +95,7 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 ## 风格
 
 **查看**: `GET /api/v1/styles`（列表）、`GET /api/v1/styles/{id}`（详情）；项目助手会自动携带当前项目作用域。
-**创建**: 只调用 `ai_anime_create_style`；内部风格 ID 由服务端生成，不要让用户补 ID。`config` 必须一次性填写规范字段 `label`、`style_instructions`、`avoid_instructions`、`style_tag`、`style_family`、`animation_subtype`。`style_instructions` 只描述渲染媒介、线条、色板、光照、纹理、镜头感、调色和完成度；人物身份、面孔、年龄、服装、道具、场景内容和构图由具体生成任务提供，不能写进全局风格。不得自行发明配置键。用户要求同时生成参考图时，在同一次调用传 `create_preview=true` 与 `preview_prompt`；用户附图时传 `[CHAT_ATTACHMENTS]` 中的 `attachment_path`，不要另起第二个写工具。参考图会作为所有后续生图请求的最后一张风格参考，只控制渲染媒介、线条、色板、光照、材质、纹理和完成度；人物身份、服装、场景、道具与构图必须服从排在前面的任务素材。自动生成参考图必须是单一无人物环境，不得包含人脸、身体、剪影、角色板或拼贴布局。
+**创建**: 只调用 `ai_anime_create_style`；内部风格 ID 由服务端生成，不要让用户补 ID。`config` 必须一次性填写规范字段 `label`、`style_instructions`、`avoid_instructions`、`style_tag`、`style_family`、`animation_subtype`。`style_instructions` 只描述渲染媒介、线条、色板、光照、纹理、镜头感、调色和完成度；人物身份、面孔、年龄、服装、道具、场景内容和构图由具体生成任务提供，不能写进全局风格。不得自行发明配置键。用户要求同时生成参考图时，在同一次调用传 `create_preview=true` 与 `preview_prompt`；`preview_prompt` 描述一张能代表该风格的完整成片画面，按用户需求可以包含人物和人脸，但不能要求拼贴、角色板或文字标签。用户附图时传 `[CHAT_ATTACHMENTS]` 中的 `attachment_path`，不要另起第二个写工具。自定义风格最终与内置预设保持相同资产结构：规范风格配置 + 一张参考图，并保存到账号级全局风格目录。参考图会作为所有后续生图请求的最后一张风格参考，只控制渲染媒介、线条、色板、光照、材质、纹理和完成度；人物身份、服装、场景、道具与构图必须服从排在前面的任务素材。
 **补参考图**: 已有风格缺少参考图时只调用 `ai_anime_generate_style_preview`。该工具通过任务中心异步生成并只更新 `preview_path`；禁止再次调用 `ai_anime_create_style`，也禁止重写已有风格配置。
 **删除**: `DELETE /api/v1/styles/{id}`（仅自定义风格）
 **预览**: 创建工具或参考图任务已经返回成功时不再读取验证；只有用户明确要求查看已有风格参考图时，才读取 `/api/v1/styles/{id}/preview`。

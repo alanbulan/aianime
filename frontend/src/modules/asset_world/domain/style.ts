@@ -11,6 +11,8 @@ export interface Style {
   style_instructions?: string;
   avoid_instructions?: string;
   style_tag?: string;
+  style_family?: StyleFamily;
+  animation_subtype?: AnimationSubtype;
   created_at?: string | null;
   created_by?: string | null;
   preview_path?: string | null;
@@ -18,11 +20,16 @@ export interface Style {
   config?: Record<string, unknown>;
 }
 
+export type StyleFamily = "live_action" | "animation";
+export type AnimationSubtype = "" | "2d" | "3d" | "hybrid";
+
 export interface EditableStyleConfig {
   label: string;
   style_instructions: string;
   avoid_instructions: string;
   style_tag: string;
+  style_family: StyleFamily;
+  animation_subtype: AnimationSubtype;
 }
 
 export const EMPTY_STYLE_CONFIG: EditableStyleConfig = {
@@ -30,6 +37,8 @@ export const EMPTY_STYLE_CONFIG: EditableStyleConfig = {
   style_instructions: "",
   avoid_instructions: "",
   style_tag: "",
+  style_family: "live_action",
+  animation_subtype: "",
 };
 
 export const EDITABLE_STYLE_CONFIG_KEYS: readonly (keyof EditableStyleConfig)[] = [
@@ -37,6 +46,8 @@ export const EDITABLE_STYLE_CONFIG_KEYS: readonly (keyof EditableStyleConfig)[] 
   "style_instructions",
   "avoid_instructions",
   "style_tag",
+  "style_family",
+  "animation_subtype",
 ];
 
 const IGNORED_STYLE_SAVE_KEYS = new Set<string>([
@@ -71,11 +82,23 @@ export function extractEditableStyleConfig(
     const nestedValue = nested[key];
     return typeof nestedValue === "string" ? nestedValue : "";
   };
+  const styleFamily =
+    get("style_family") === "animation" ? "animation" : "live_action";
+  const rawAnimationSubtype = get("animation_subtype");
+  const animationSubtype =
+    styleFamily === "animation" &&
+    (rawAnimationSubtype === "2d" ||
+      rawAnimationSubtype === "3d" ||
+      rawAnimationSubtype === "hybrid")
+      ? rawAnimationSubtype
+      : "";
   return {
     label: get("label"),
     style_instructions: get("style_instructions"),
     avoid_instructions: get("avoid_instructions"),
     style_tag: get("style_tag"),
+    style_family: styleFamily,
+    animation_subtype: animationSubtype,
   };
 }
 

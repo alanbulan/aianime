@@ -285,11 +285,20 @@ export class CommercialModelProxy {
             route.source === "cloud"
               ? await this.requestCloud(route, input, prepared)
               : await requestByok(route, input, prepared);
+          const responseError = upstream.ok
+            ? undefined
+            : await responseErrorForRouteAudit(upstream);
           if (
             RETRYABLE_ROUTE_STATUSES.has(upstream.status) &&
             routeAttempt < MAX_ROUTE_ATTEMPTS
           ) {
-            this.auditRouteAttempt(route, totalAttempts, upstream.status, "retry");
+            this.auditRouteAttempt(
+              route,
+              totalAttempts,
+              upstream.status,
+              "retry",
+              responseError,
+            );
             await upstream.body?.cancel().catch(() => undefined);
             await wait(150 * routeAttempt, undefined, { signal: input.signal });
             continue;
@@ -303,10 +312,17 @@ export class CommercialModelProxy {
               totalAttempts,
               upstream.status,
               upstream.ok ? "selected" : "rejected",
+              responseError,
             );
             return { response: upstream, route, attempts: totalAttempts };
           }
-          this.auditRouteAttempt(route, totalAttempts, upstream.status, "fallback");
+          this.auditRouteAttempt(
+            route,
+            totalAttempts,
+            upstream.status,
+            "fallback",
+            responseError,
+          );
           await upstream.body?.cancel().catch(() => undefined);
           break;
         } catch (error) {
@@ -395,6 +411,72 @@ export class CommercialModelProxy {
       // The response contract is validated by the caller that consumes it.
     }
   }
+}
+
+async function responseErrorForRouteAudit(
+  response: Response,
+): Promise<string | undefined> {
+  try {
+    const clone = response.clone();
+    const reader = clone.body?.getReader();
+    if (!reader) return undefined;
+    const chunks: Uint8Array[] = [];
+    let byteLength = 0;
+    while (byteLength < 8192) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      const remaining = 8192 - byteLength;
+      chunks.push(value.subarray(0, remaining));
+      byteLength += Math.min(value.byteLength, remaining);
+      if (value.byteLength > remaining) break;
+    }
+    await reader.cancel().catch(() => undefined);
+    if (byteLength === 0) return undefined;
+    const merged = new Uint8Array(byteLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const raw = new TextDecoder().decode(merged).trim();
+    if (!raw) return undefined;
+    let detail = raw;
+    try {
+      const payload = JSON.parse(raw) as unknown;
+      if (payload && typeof payload === "object") {
+        const record = payload as Record<string, unknown>;
+        const nestedError = record.error;
+        if (nestedError && typeof nestedError === "object") {
+          const message = (nestedError as Record<string, unknown>).message;
+          if (typeof message === "string") detail = message;
+        } else if (typeof nestedError === "string") {
+          detail = nestedError;
+        } else if (typeof record.message === "string") {
+          detail = record.message;
+        } else if (typeof record.detail === "string") {
+          detail = record.detail;
+        }
+      }
+    } catch {
+      // Non-JSON upstream errors are still useful as a bounded audit snippet.
+    }
+    return redactRouteAuditError(detail);
+  } catch {
+    return undefined;
+  }
+}
+
+function redactRouteAuditError(value: string): string {
+  return value
+    .replace(
+      /\b(api[_-]?key|token|authorization|password|secret)(\s*[:=]\s*)[^\s,;}]+/gi,
+      "$1$2***",
+    )
+    .replace(/\b(bearer\s+)[a-z0-9._~+/=-]+/gi, "$1***")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 1200);
 }
 
 function configuredRoutes(

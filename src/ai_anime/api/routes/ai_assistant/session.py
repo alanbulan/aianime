@@ -150,7 +150,10 @@ async def run_chat_session(websocket: WebSocket) -> None:
                 is_history_refresh = (
                     requested_scope == previous_scope == current_scope
                 )
-                if not is_history_refresh:
+                if (
+                    not is_history_refresh
+                    and not chat_worker_lifecycle.is_busy(username)
+                ):
                     await chat_worker_lifecycle.sync_scope(username, current_scope)
                     await hermes_runtime_prewarmer.prewarm(
                         username,

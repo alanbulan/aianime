@@ -97,6 +97,8 @@ describe("SketchCropDialog", () => {
     );
 
     expect(await screen.findByText("裁剪 16:9")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveClass("bg-popover", "text-popover-foreground");
+    expect(screen.getByRole("dialog")).not.toHaveClass("bg-media");
     expect(screen.queryByLabelText("X")).not.toBeInTheDocument();
     expect(screen.getByAltText("B2")).toHaveClass("object-contain");
 

@@ -116,6 +116,9 @@ async def test_run_chat_session_skips_reprewarm_for_same_scope_history_refresh(m
         return scope
 
     class RecordingLifecycle:
+        def is_busy(self, _username):
+            return False
+
         async def sync_scope(self, username, scope):
             lifecycle_calls.append((username, scope))
 
@@ -131,6 +134,50 @@ async def test_run_chat_session_skips_reprewarm_for_same_scope_history_refresh(m
     assert scope_calls == [home_scope, project_scope, project_scope]
     assert lifecycle_calls == [("alice", project_scope)]
     assert prewarmer.calls == [("alice", "project-a")]
+
+
+@pytest.mark.anyio
+async def test_run_chat_session_does_not_rotate_busy_worker_on_scope_change(
+    monkeypatch,
+):
+    websocket = RecordingWebSocket(
+        [
+            {
+                "type": "scope.set",
+                "scope": {
+                    "kind": "project",
+                    "id": "project-a",
+                    "conversationId": "chat-2",
+                },
+            }
+        ]
+    )
+    lifecycle_calls = []
+    prewarmer = RecordingPrewarmer()
+
+    async def authenticate(_websocket):
+        return {"username": "alice"}
+
+    async def send_scope(_websocket, _user, _username, scope):
+        return scope
+
+    class BusyLifecycle:
+        def is_busy(self, username):
+            assert username == "alice"
+            return True
+
+        async def sync_scope(self, username, scope):
+            lifecycle_calls.append((username, scope))
+
+    monkeypatch.setattr(chat_session, "get_websocket_user", authenticate)
+    monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
+    monkeypatch.setattr(chat_session, "chat_worker_lifecycle", BusyLifecycle())
+    monkeypatch.setattr(chat_session, "hermes_runtime_prewarmer", prewarmer)
+
+    await chat_session.run_chat_session(websocket)
+
+    assert lifecycle_calls == []
+    assert prewarmer.calls == []
 
 
 @pytest.mark.anyio

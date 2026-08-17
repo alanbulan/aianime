@@ -25,6 +25,9 @@ async def test_style_preview_uses_real_project_context_and_surfaces_errors(
         lambda *_args, **_kwargs: {
             "style_instructions": "清透二维线条与柔和彩色光照",
             "avoid_instructions": "写实摄影",
+            "style_tag": "PASTEL CEL ANIME",
+            "style_family": "animation",
+            "animation_subtype": "2d",
         },
     )
     monkeypatch.setattr(
@@ -43,12 +46,16 @@ async def test_style_preview_uses_real_project_context_and_surfaces_errors(
     assert captured["image_config"]["aspect_ratio"] == "16:9"
     assert "日系校园恋爱喜剧" in captured["prompt"]
     assert "清透二维线条与柔和彩色光照" in captured["prompt"]
-    assert "No people, faces, portraits" in captured["prompt"]
-    assert "Do not follow any request for a person" in captured["prompt"]
+    assert "People, faces, portraits" in captured["prompt"]
+    assert "Style tag: PASTEL CEL ANIME" in captured["prompt"]
+    assert "Style family: animation" in captured["prompt"]
+    assert "Animation subtype: 2d" in captured["prompt"]
+    assert "No people, faces, portraits" not in captured["prompt"]
+    assert "Do not follow any request for a person" not in captured["prompt"]
 
 
 @pytest.mark.asyncio
-async def test_style_preview_writes_one_identity_neutral_reference(
+async def test_style_preview_writes_one_finished_reference(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

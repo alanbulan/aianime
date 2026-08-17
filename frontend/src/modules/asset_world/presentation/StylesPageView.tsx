@@ -242,13 +242,17 @@ function StyleListItem({
 // ─── Preview box ────────────────────────────────────────────────────────────
 
 function PreviewBox({
+  onUpload,
   preset,
   previewUrl,
   style,
+  uploading,
 }: {
+  onUpload(): void;
   preset: boolean;
   previewUrl?: string | null;
   style: Style;
+  uploading: boolean;
 }) {
   const { t } = useTranslation();
   const [hasError, setHasError] = useState(false);
@@ -256,10 +260,11 @@ function PreviewBox({
   // Reset error state when style switches.
   useEffect(() => {
     setHasError(false);
-  }, [style.id]);
+  }, [previewUrl, style.id]);
 
+  let content: ReactNode;
   if (!preset && !previewUrl) {
-    return (
+    content = (
       <div className="flex aspect-video items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted px-4 text-center">
         <Info className="size-4 shrink-0 text-muted-foreground" />
         <p className="text-xs leading-snug text-muted-foreground/80">
@@ -267,25 +272,51 @@ function PreviewBox({
         </p>
       </div>
     );
-  }
-
-  if (hasError) {
-    return (
+  } else if (hasError) {
+    content = (
       <div className="flex aspect-video items-center justify-center rounded-lg border border-border bg-muted">
         <ImageIcon className="size-8 text-muted-foreground" />
       </div>
     );
+  } else {
+    content = (
+      <img
+        src={previewUrl ?? undefined}
+        alt={`${style.name} preview`}
+        loading="lazy"
+        decoding="async"
+        className="aspect-video w-full rounded-lg border border-border object-cover"
+        onError={() => setHasError(true)}
+      />
+    );
   }
 
+  if (preset) return content;
+
   return (
-    <img
-      src={previewUrl ?? undefined}
-      alt={`${style.name} preview`}
-      loading="lazy"
-      decoding="async"
-      className="aspect-video w-full rounded-lg border border-border object-cover"
-      onError={() => setHasError(true)}
-    />
+    <button
+      type="button"
+      onClick={onUpload}
+      disabled={uploading}
+      aria-label={
+        previewUrl ? t("styles.replaceCover") : t("styles.uploadCover")
+      }
+      className="group relative block w-full overflow-hidden rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-wait"
+    >
+      {content}
+      <span className="absolute inset-x-0 bottom-0 flex h-8 items-center justify-center gap-1.5 bg-media/70 px-2 text-xs font-medium text-media-foreground backdrop-blur-sm transition-colors group-hover:bg-media/80">
+        {uploading ? (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        ) : (
+          <Upload className="size-3.5" aria-hidden="true" />
+        )}
+        {uploading
+          ? t("styles.uploadingCover")
+          : previewUrl
+            ? t("styles.replaceCover")
+            : t("styles.uploadCover")}
+      </span>
+    </button>
   );
 }
 
@@ -307,6 +338,7 @@ export function StyleDetailView({
     fields,
     handleApplyToProject,
     handleDelete,
+    handlePreviewUpload,
     handleRename,
     handleSave,
     isProjectDefault,
@@ -317,6 +349,8 @@ export function StyleDetailView({
     onJsonTextChange,
     openRename,
     preset,
+    previewFileInputRef,
+    previewUploadPending,
     previewUrl,
     setJsonEditorOpen,
     setDeleteConfirmOpen,
@@ -402,10 +436,26 @@ export function StyleDetailView({
         {/* Preview */}
         <div className="mb-6 w-full max-w-[240px]">
           <PreviewBox
+            onUpload={() => previewFileInputRef.current?.click()}
             preset={preset}
             previewUrl={previewUrl}
             style={style}
+            uploading={previewUploadPending}
           />
+          {!preset && (
+            <input
+              ref={previewFileInputRef}
+              type="file"
+              className="hidden"
+              accept={STYLE_PREVIEW_ACCEPT}
+              data-style-preview-upload
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.currentTarget.value = "";
+                if (file) void handlePreviewUpload(file);
+              }}
+            />
+          )}
         </div>
 
         {/* Editor */}

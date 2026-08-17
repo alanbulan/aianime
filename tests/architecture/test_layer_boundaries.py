@@ -2047,7 +2047,7 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
     assert "chat_worker_lifecycle.sync_scope(" not in route_source
     assert session_source.count("chat_worker_lifecycle.sync_scope(") == 1
     assert "chat_worker_lifecycle.is_busy(" not in route_source
-    assert session_source.count("chat_worker_lifecycle.is_busy(") == 1
+    assert session_source.count("chat_worker_lifecycle.is_busy(") == 2
     assert scope_source.count("chat_worker_lifecycle.is_busy(") == 1
     assert "def _sync_running_agent_scope(" not in route_source
     assert "def _sync_running_agent_scope(" not in session_source

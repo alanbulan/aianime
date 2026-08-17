@@ -2708,6 +2708,7 @@ async def test_mask_edit_job_uses_commercial_model_routing(
     assert captured["config"]["provider"] == "commercial"
     assert captured["config"]["model"] == "image-platform-sku"
     assert "Use Image 2 as the edit mask reference" in captured["prompt"]
+    assert "project_dir" not in captured
 
 
 def test_camera_prompt_contains_camera_body_lens_focal_and_aperture() -> None:

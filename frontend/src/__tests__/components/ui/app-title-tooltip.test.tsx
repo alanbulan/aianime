@@ -53,4 +53,28 @@ describe("AppTitleTooltip", () => {
 
     button.remove();
   });
+
+  it("closes before an activated tooltip anchor is removed", async () => {
+    const { rerender } = render(
+      <>
+        <button type="button" data-ui-tooltip="很长的风格提示词">
+          风格
+        </button>
+        <AppTitleTooltip />
+      </>,
+    );
+    const button = screen.getByRole("button", { name: "风格" });
+
+    fireEvent.pointerOver(button);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "很长的风格提示词",
+    );
+    fireEvent.pointerDown(button);
+
+    await waitFor(() => {
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    });
+    rerender(<AppTitleTooltip />);
+    expect(button.isConnected).toBe(false);
+  });
 });

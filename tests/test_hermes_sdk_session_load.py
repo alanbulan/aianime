@@ -121,3 +121,44 @@ async def test_second_stream_waits_for_the_first_stream_turn(
     second_event = await asyncio.wait_for(second_event_task, timeout=1)
     assert second_event.type == "thread_started"
     await second_stream.aclose()
+
+
+def test_skill_view_title_keeps_canonical_name_for_result_event(tmp_path: Path) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    call = thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "tool_call",
+                    "toolCallId": "call-1",
+                    "title": "skill view ai-anime",
+                }
+            },
+        },
+        "turn-1",
+    )
+    result = thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "tool_call_update",
+                    "toolCallId": "call-1",
+                    "status": "failed",
+                    "result": "Skill view failed: Skill 'ai-anime' not found.",
+                }
+            },
+        },
+        "turn-1",
+    )
+
+    assert call is not None and call.name == "skill_view"
+    assert result is not None and result.name == "skill_view"

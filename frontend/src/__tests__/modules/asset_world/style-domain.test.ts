@@ -25,6 +25,8 @@ describe("Asset & World style domain", () => {
       style_instructions: "nested instructions",
       avoid_instructions: "",
       style_tag: "",
+      style_family: "live_action",
+      animation_subtype: "",
     });
   });
 
@@ -47,6 +49,8 @@ describe("Asset & World style domain", () => {
           style_instructions: "cinematic",
           avoid_instructions: "",
           style_tag: "",
+          style_family: "animation",
+          animation_subtype: "2d",
         },
         style,
       ),
@@ -54,6 +58,8 @@ describe("Asset & World style domain", () => {
       base: "ink",
       label: "New label",
       style_instructions: "cinematic",
+      style_family: "animation",
+      animation_subtype: "2d",
     });
   });
 

@@ -774,9 +774,9 @@ def _generate_style_preview_response(
     style_id: str,
     prompt: Any,
 ) -> dict[str, Any]:
-    resolved_prompt = str(prompt or "").strip() or (
-        "An unoccupied cinematic environment with architecture, foliage, "
-        "fabric, wood, metal, and glass"
+    resolved_prompt = (
+        str(prompt or "").strip()
+        or "A beautiful woman standing in a garden"
     )
     response = _request(
         "POST",
@@ -2466,8 +2466,9 @@ TOOLS = (
                 "prompt": {
                     "type": "string",
                     "description": (
-                        "Optional rendering direction for an identity-neutral environment/material "
-                        "style board. Never request a person, face, portrait, body, or character sheet."
+                        "Optional subject and scene for one polished full-frame style reference. "
+                        "People and faces are allowed; the saved reference is later used only for "
+                        "rendering medium, linework, palette, lighting, materials, texture, and finish."
                     ),
                 },
             },

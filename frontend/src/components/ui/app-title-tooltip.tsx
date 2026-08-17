@@ -92,6 +92,12 @@ export function AppTitleTooltip() {
         const element = mutation.target;
         if (element instanceof Element) syncAccessibleName(element);
       }
+      setActive((current) => {
+        if (!current || !current.anchor.isConnected) return null;
+        const label = tooltipLabel(current.anchor);
+        if (!label) return null;
+        return label === current.label ? current : { ...current, label };
+      });
     });
 
     observer.observe(document.documentElement, {
@@ -133,8 +139,15 @@ export function AppTitleTooltip() {
       setActive((shown) => (shown?.anchor === current ? null : shown));
     };
 
+    const hideOnActivation = (event: Event) => {
+      const current = tooltipTarget(event.target);
+      setActive((shown) => (shown?.anchor === current ? null : shown));
+    };
+
     document.addEventListener("pointerover", show, true);
     document.addEventListener("pointerout", hide, true);
+    document.addEventListener("pointerdown", hideOnActivation, true);
+    document.addEventListener("click", hideOnActivation, true);
     document.addEventListener("focusin", show, true);
     document.addEventListener("focusout", hide, true);
 
@@ -142,17 +155,24 @@ export function AppTitleTooltip() {
       observer.disconnect();
       document.removeEventListener("pointerover", show, true);
       document.removeEventListener("pointerout", hide, true);
+      document.removeEventListener("pointerdown", hideOnActivation, true);
+      document.removeEventListener("click", hideOnActivation, true);
       document.removeEventListener("focusin", show, true);
       document.removeEventListener("focusout", hide, true);
     };
   }, []);
 
+  const visibleActive =
+    active?.anchor.isConnected && tooltipLabel(active.anchor)
+      ? active
+      : null;
+
   return (
     <TooltipProvider delay={120}>
-      <Tooltip open={Boolean(active)} disableHoverablePopup>
-        {active ? (
-          <TooltipContent anchor={active.anchor} sideOffset={7}>
-            {active.label}
+      <Tooltip open={Boolean(visibleActive)} disableHoverablePopup>
+        {visibleActive ? (
+          <TooltipContent anchor={visibleActive.anchor} sideOffset={7}>
+            {visibleActive.label}
           </TooltipContent>
         ) : null}
       </Tooltip>

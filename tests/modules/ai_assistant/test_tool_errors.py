@@ -95,6 +95,19 @@ def test_extract_tool_chat_error_maps_ok_false_without_error_text():
     )
 
 
+def test_failed_outer_status_prefers_nested_result_reason():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "failed",
+        "result": "Skill view failed: Skill 'ai-anime' not found.",
+    }
+
+    assert (
+        tool_chat_error(payload)
+        == "任务执行失败：Skill view failed: Skill 'ai-anime' not found."
+    )
+
+
 def test_successful_task_list_does_not_promote_historical_failure_to_chat_error():
     payload = {
         "sessionUpdate": "tool_call_update",

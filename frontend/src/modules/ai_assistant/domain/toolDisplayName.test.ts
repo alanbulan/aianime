@@ -61,6 +61,8 @@ describe("AI assistant tool display names", () => {
 
   it("also localizes normalized names and never leaks an unknown English title", () => {
     expect(toolDisplayName("get scene images")).toBe("读取场景参考图");
+    expect(toolDisplayName("skill view")).toBe("加载技能");
+    expect(toolDisplayName("skills-list")).toBe("读取技能列表");
     expect(toolDisplayName("unknown_external_tool")).toBe("执行工具操作");
   });
 });

@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -7,9 +7,9 @@ import type { StyleQueryHooks } from "@/modules/asset_world/application/style-qu
 import {
   buildStyleSavePayload,
   EDITABLE_STYLE_CONFIG_KEYS,
-  EMPTY_STYLE_CONFIG,
   extractEditableStyleConfig,
   isPresetStyle,
+  isSupportedStylePreviewMimeType,
   type EditableStyleConfig,
   type Style,
 } from "@/modules/asset_world/domain/style";
@@ -42,7 +42,9 @@ export function createUseStyleDetailController(
     const { t } = useTranslation();
     const updateStyle = queries.useUpdateStyle();
     const deleteStyle = queries.useDeleteStyle();
+    const uploadStylePreview = queries.useUploadStylePreview();
     const updateProject = dependencies.useUpdateProject(project);
+    const previewFileInputRef = useRef<HTMLInputElement>(null);
     const preset = isPresetStyle(style);
     const original = useMemo(() => extractEditableStyleConfig(style), [style]);
     const [fields, setFields] = useState<EditableStyleConfig>(original);
@@ -53,6 +55,11 @@ export function createUseStyleDetailController(
     const [showJson, setShowJson] = useState(false);
     const [jsonText, setJsonText] = useState("");
     const [jsonError, setJsonError] = useState<string | null>(null);
+    const [previewRevision, setPreviewRevision] = useState(0);
+
+    useEffect(() => {
+      setPreviewRevision(0);
+    }, [style.id]);
 
     useEffect(() => {
       setFields(original);
@@ -129,6 +136,28 @@ export function createUseStyleDetailController(
       }
     };
 
+    const handlePreviewUpload = async (file: File) => {
+      if (preset) return;
+      if (!isSupportedStylePreviewMimeType(file.type)) {
+        toast.error(t("styles.unsupportedPreviewType"));
+        return;
+      }
+      try {
+        const response = await uploadStylePreview.mutateAsync({
+          file,
+          styleId: style.id,
+        });
+        if (!response.ok) {
+          toast.error(response.error || t("common.error"));
+          return;
+        }
+        setPreviewRevision(Date.now());
+        toast.success(t("styles.previewUploaded"));
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
     const setJsonEditorOpen = (nextOpen: boolean) => {
       if (nextOpen === showJson) return;
       if (nextOpen) {
@@ -140,12 +169,13 @@ export function createUseStyleDetailController(
             jsonText !==
             JSON.stringify(buildStyleSavePayload(fields, style), null, 2);
           const parsed = JSON.parse(jsonText) as Record<string, unknown>;
-          const next = { ...EMPTY_STYLE_CONFIG };
-          for (const key of EDITABLE_STYLE_CONFIG_KEYS) {
-            const value = parsed[key];
-            if (typeof value === "string") next[key] = value;
-          }
-          setFields(next);
+          setFields(
+            extractEditableStyleConfig({
+              id: style.id,
+              name: editingName,
+              config: parsed,
+            }),
+          );
           if (changed) toast.success(t("styles.jsonChangesApplied"));
         } catch {
           // Invalid JSON leaves the structured fields unchanged.
@@ -181,6 +211,7 @@ export function createUseStyleDetailController(
       fields,
       handleApplyToProject,
       handleDelete,
+      handlePreviewUpload,
       handleRename,
       handleSave,
       isProjectDefault,
@@ -197,9 +228,17 @@ export function createUseStyleDetailController(
         setNameEditOpen(true);
       },
       preset,
-      previewUrl: preset
-        ? dependencies.stylePreviewUrl(style.id)
-        : style.preview_url,
+      previewFileInputRef,
+      previewUploadPending: uploadStylePreview.isPending,
+      previewUrl: (() => {
+        const baseUrl = preset
+          ? dependencies.stylePreviewUrl(style.id)
+          : style.preview_url ||
+            (previewRevision ? dependencies.stylePreviewUrl(style.id) : null);
+        if (!baseUrl || !previewRevision || preset) return baseUrl;
+        const separator = baseUrl.includes("?") ? "&" : "?";
+        return `${baseUrl}${separator}uploaded=${previewRevision}`;
+      })(),
       setJsonEditorOpen,
       setDeleteConfirmOpen,
       setNameEditOpen,

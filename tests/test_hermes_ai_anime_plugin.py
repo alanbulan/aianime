@@ -451,6 +451,36 @@ def test_create_style_can_generate_reference_through_canonical_task_route(
     ]
 
 
+def test_generate_style_preview_default_matches_upstream_preset_subject(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "task_id": "task-1"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_generate_style_preview(
+        {"style_id": "custom_abc"}
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/styles/custom_abc/preview",
+            {
+                "project": "project-1",
+                "prompt": "A beautiful woman standing in a garden",
+            },
+        )
+    ]
+
+
 def test_create_style_can_upload_current_chat_image(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,

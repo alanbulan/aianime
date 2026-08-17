@@ -25,6 +25,7 @@ import {
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
 const toastErrorMock = vi.hoisted(() => vi.fn());
+const toastSuccessMock = vi.hoisted(() => vi.fn());
 const mutation = vi.hoisted(() => () => ({ mutateAsync: vi.fn(), isPending: false }));
 const styleMutationMocks = vi.hoisted(() => ({
   create: vi.fn(),
@@ -59,7 +60,7 @@ vi.mock("@/lib/runtime-config", () => ({
 vi.mock("sonner", () => ({
   toast: {
     error: toastErrorMock,
-    success: vi.fn(),
+    success: toastSuccessMock,
   },
 }));
 
@@ -143,6 +144,10 @@ beforeAll(async () => {
             reupload: "Reupload",
             unsupportedPreviewType: "Use PNG, JPEG, WebP, or GIF.",
             uploadedPreview: "Uploaded preview",
+            uploadCover: "Upload style cover",
+            replaceCover: "Replace style cover",
+            uploadingCover: "Uploading...",
+            previewUploaded: "Style cover updated",
             analyzingPreview: "Analyzing image...",
             styleIdRequiredBeforeUpload: "Enter a style ID first.",
           },
@@ -164,6 +169,7 @@ describe("styles page CE generation credit gating", () => {
   beforeEach(() => {
     runtimeState.isCeRuntime = true;
     toastErrorMock.mockClear();
+    toastSuccessMock.mockClear();
     for (const mock of Object.values(styleMutationMocks)) mock.mockReset();
     styleMutationMocks.upload.mockResolvedValue({
       ok: true,
@@ -289,6 +295,64 @@ describe("styles page CE generation credit gating", () => {
     expect(styleMutationMocks.analyze).not.toHaveBeenCalled();
   });
 
+  it("creates an account style with the uploaded reference and complete analyzed config", async () => {
+    styleMutationMocks.analyze.mockResolvedValue({
+      ok: true,
+      data: {
+        style_instructions: "Create clean cel animation with pastel light.",
+        avoid_instructions: "FORBIDDEN: photorealism.",
+        style_tag: "PASTEL CEL ANIME",
+        style_family: "animation",
+        animation_subtype: "2d",
+        suggested_name: "Pastel School Anime",
+        suggested_label: "青春校园日系动画",
+      },
+    });
+    const user = userEvent.setup();
+    const Component = Route.options.component as ComponentType;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <Component />
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Create style" }));
+    await user.type(screen.getByPlaceholderText("cyberpunk_v1"), "school_anime");
+    await user.type(screen.getByPlaceholderText("Name"), "School Anime");
+    const fileInput = container.ownerDocument.querySelector<HTMLInputElement>(
+      'input[type="file"]',
+    );
+    const file = new File(["image"], "reference.png", { type: "image/png" });
+    fireEvent.change(fileInput!, { target: { files: [file] } });
+
+    expect(
+      await screen.findByText("Create clean cel animation with pastel light."),
+    ).toBeInTheDocument();
+    const createButtons = screen.getAllByRole("button", { name: "Create style" });
+    await user.click(createButtons[createButtons.length - 1]);
+
+    await waitFor(() =>
+      expect(styleMutationMocks.create).toHaveBeenCalledWith({
+        id: "school_anime",
+        name: "School Anime",
+        config: {
+          label: "青春校园日系动画",
+          style_instructions: "Create clean cel animation with pastel light.",
+          avoid_instructions: "FORBIDDEN: photorealism.",
+          style_tag: "PASTEL CEL ANIME",
+          style_family: "animation",
+          animation_subtype: "2d",
+        },
+        preview_path: "assets/styles/custom/reference.png",
+      }),
+    );
+  });
+
   it("renders the custom style preview in the list and detail panel", async () => {
     const previewUrl = "/api/v1/styles/custom/preview";
     styleQueryState.list = [
@@ -330,5 +394,59 @@ describe("styles page CE generation credit gating", () => {
           .filter((image) => image.getAttribute("src") === previewUrl),
       ).toHaveLength(2),
     );
+  });
+
+  it("uploads or replaces the cover of an existing custom style", async () => {
+    styleQueryState.list = [
+      {
+        id: "custom",
+        name: "Custom",
+        label: "Custom style",
+        type: "custom",
+      },
+    ];
+    styleQueryState.detail = {
+      id: "custom",
+      name: "Custom",
+      label: "Custom style",
+      type: "custom",
+      style_instructions: "painted",
+      avoid_instructions: "photo",
+      style_tag: "custom",
+    };
+    const Component = Route.options.component as ComponentType;
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <Component />
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Upload style cover" }),
+    ).toBeInTheDocument();
+    const input = container.querySelector<HTMLInputElement>(
+      "input[data-style-preview-upload]",
+    );
+    expect(input).not.toBeNull();
+    const file = new File(["image"], "cover.png", { type: "image/png" });
+
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(styleMutationMocks.upload).toHaveBeenCalledWith({
+        file,
+        styleId: "custom",
+      }),
+    );
+    expect(await screen.findByRole("img", { name: "Custom preview" })).toHaveAttribute(
+      "src",
+      expect.stringContaining("/api/v1/styles/custom/preview"),
+    );
+    expect(toastSuccessMock).toHaveBeenCalledWith("Style cover updated");
   });
 });
