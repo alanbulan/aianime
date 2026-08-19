@@ -45,11 +45,19 @@ export function useChatQueueController({
       : -1;
     const nextIndex = selectedIndex >= 0 ? selectedIndex : 0;
     const nextMessage = queuedMessages[nextIndex];
-    const remainingMessages = queuedMessages.filter((_, index) => index !== nextIndex);
     void sendMessage(nextMessage.text, nextMessage.attachments).then((sent) => {
       if (!sent) return;
-      setQueuedMessages(remainingMessages);
-      setSelectedQueuedMessageId(remainingMessages[0]?.id ?? null);
+      // Drop the sent item from whatever the queue holds *now*. Replacing the
+      // queue with a snapshot captured before the await would resurrect any
+      // message the user deleted while the send was in flight.
+      setQueuedMessages((current) =>
+        current.filter((message) => message.id !== nextMessage.id),
+      );
+      // Clearing only our own selection leaves a deliberate pick by the user
+      // intact; the next drain falls back to the head of the queue anyway.
+      setSelectedQueuedMessageId((current) =>
+        current === nextMessage.id ? null : current,
+      );
     });
   }, [
     busy,

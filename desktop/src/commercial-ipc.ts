@@ -147,6 +147,7 @@ export function registerCommercialIpc(
   let modelCapabilityCatalogVersion = "";
   let modelAccessHydrated = false;
   let modelAccessHydration: Promise<void> | null = null;
+  let modelAccessSyncChain: Promise<void> = Promise.resolve();
 
   const clearAuthenticatedState = async (): Promise<void> => {
     await options.onLoggedOut();
@@ -619,7 +620,27 @@ export function registerCommercialIpc(
 
   return client;
 
-  async function synchronizeModelAccess(): Promise<void> {
+  /**
+   * Push the stored model access to the proxy and the sidecar, one at a time.
+   *
+   * `onModelAccessChanged` replaces the proxy routing table synchronously and
+   * then POSTs the capability config to the sidecar. Over a dozen handlers call
+   * this, so two concurrent callers could interleave those two steps and leave
+   * the routing table describing a different configuration than the sidecar
+   * received. Serializing also means each run loads the store *after* the
+   * previous run finished, so the last caller always applies the newest state.
+   */
+  function synchronizeModelAccess(): Promise<void> {
+    const run = modelAccessSyncChain.then(
+      applyModelAccess,
+      // A failed predecessor must not stall every later synchronization.
+      applyModelAccess,
+    );
+    modelAccessSyncChain = run.catch(() => undefined);
+    return run;
+  }
+
+  async function applyModelAccess(): Promise<void> {
     const access = await options.modelAccessStore.load();
     await options.onModelAccessChanged(
       access,

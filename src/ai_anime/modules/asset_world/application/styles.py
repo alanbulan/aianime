@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+import shutil
+import tempfile
 import uuid
 from mimetypes import guess_type
 from pathlib import Path
@@ -314,6 +316,30 @@ class StyleCatalogUseCases:
             raise StyleStorageFailed("Failed to associate style preview")
 
 
+PREVIEW_SCRATCH_DIR_PREFIX = "style_preview_"
+
+
+def _discard_preview_scratch_dir(generated_path: Path) -> None:
+    """Remove the throwaway directory a preview generator wrote into.
+
+    Deliberately conservative: only a ``style_preview_*`` directory located
+    directly inside the system temp root is removed, so a generator that
+    returns a path inside the project (or any other real location) is left
+    untouched.
+    """
+    scratch_dir = generated_path.parent
+    if not scratch_dir.name.startswith(PREVIEW_SCRATCH_DIR_PREFIX):
+        return
+    try:
+        temp_root = Path(tempfile.gettempdir()).resolve()
+        resolved = scratch_dir.resolve()
+    except OSError:
+        return
+    if resolved.parent != temp_root:
+        return
+    shutil.rmtree(resolved, ignore_errors=True)
+
+
 class StylePreviewUseCases:
     def __init__(
         self,
@@ -355,6 +381,25 @@ class StylePreviewUseCases:
         if not generated_path.is_file():
             raise StyleRejected("Generated preview image does not exist")
 
+        try:
+            return self._persist_generated_preview(
+                generated_path,
+                style_id=style_id,
+                scope=scope,
+            )
+        finally:
+            # Generators hand back a path inside a throwaway scratch directory.
+            # Nothing downstream owns it, so it leaks 1–3MB per generation
+            # unless this layer removes it on every exit path.
+            _discard_preview_scratch_dir(generated_path)
+
+    def _persist_generated_preview(
+        self,
+        generated_path: Path,
+        *,
+        style_id: str,
+        scope: StyleScope,
+    ) -> StyleFile:
         extension = generated_path.suffix.lower() or ".png"
         try:
             staged_token = self._catalog.stage_style_preview(

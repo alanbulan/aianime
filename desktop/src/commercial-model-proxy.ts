@@ -41,7 +41,7 @@ export interface CommercialModelRoutingConfiguration {
 
 export interface ModelRouteAuditEntry {
   timestamp: string;
-  event: "routing_configured" | "route_attempt";
+  event: "routing_configured" | "route_attempt" | "video_task_route_unrecorded";
   role?: ByokModelRole;
   source?: "cloud" | "byok";
   provider?: string;
@@ -80,6 +80,23 @@ interface PreparedBody {
   contentType?: string;
 }
 
+/**
+ * A video task pinned to the provider that created it.
+ *
+ * Polling `GET /v1/videos/{id}` only works against the originating provider,
+ * so the route is remembered. The snapshot holds the provider's apiKey and
+ * baseUrl, so it is bounded in both time and count rather than kept for the
+ * lifetime of the process.
+ */
+interface StickyVideoRoute {
+  route: ModelRoute;
+  expiresAt: number;
+}
+
+/** Long enough for any realistic video job, short enough to bound key residency. */
+const VIDEO_TASK_ROUTE_TTL_MS = 6 * 60 * 60_000;
+const VIDEO_TASK_ROUTE_CAPACITY = 500;
+
 const EMPTY_MODEL_ACCESS: StoredCommercialModelAccess = {
   schemaVersion: 5,
   cloudModelAssignments: [],
@@ -95,7 +112,7 @@ export class CommercialModelProxy {
     allowsCustomModels: false,
     cloudModelAssignments: [],
   };
-  private readonly videoTaskRoutes = new Map<string, ModelRoute>();
+  private readonly videoTaskRoutes = new Map<string, StickyVideoRoute>();
 
   constructor(
     private readonly client: CommercialApiClient,
@@ -116,19 +133,21 @@ export class CommercialModelProxy {
         ...item,
       })),
     };
+    const activeRoutes = BYOK_MODEL_ROLES.flatMap((role) =>
+      configuredRoutes(this.routing, role),
+    );
+    this.dropUnavailableVideoTaskRoutes(activeRoutes);
     this.audit({
       timestamp: new Date().toISOString(),
       event: "routing_configured",
-      routes: BYOK_MODEL_ROLES.flatMap((role) =>
-        configuredRoutes(this.routing, role).map((route) => ({
-          role,
-          source: route.source,
-          provider: route.label,
-          modelId: route.modelId,
-          modelPriority: route.priority,
-          providerPriority: route.providerPriority,
-        })),
-      ),
+      routes: activeRoutes.map((route) => ({
+        role: route.role,
+        source: route.source,
+        provider: route.label,
+        modelId: route.modelId,
+        modelPriority: route.priority,
+        providerPriority: route.providerPriority,
+      })),
     });
   }
 
@@ -138,19 +157,25 @@ export class CommercialModelProxy {
       void this.handle(request, response);
     });
     this.server = server;
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(0, "127.0.0.1", () => {
-        server.off("error", reject);
-        resolve();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", () => {
+          server.off("error", reject);
+          resolve();
+        });
       });
-    });
-    const address = server.address();
-    if (!address || typeof address === "string") {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        throw new Error("commercial model proxy failed to bind a TCP port");
+      }
+      this.origin = `http://127.0.0.1:${address.port}`;
+    } catch (error) {
+      // Leave nothing behind: a retained `server` would make every later
+      // start() return early against a proxy that never bound a port.
       await this.stop();
-      throw new Error("commercial model proxy failed to bind a TCP port");
+      throw error;
     }
-    this.origin = `http://127.0.0.1:${address.port}`;
   }
 
   async stop(): Promise<void> {
@@ -159,7 +184,11 @@ export class CommercialModelProxy {
     this.origin = null;
     this.videoTaskRoutes.clear();
     if (!server) return;
+    // close() only stops accepting new sockets; idle keep-alive connections
+    // would hold the server open for seconds during shutdown.
+    server.closeIdleConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+    server.closeAllConnections();
   }
 
   private async handle(
@@ -241,9 +270,8 @@ export class CommercialModelProxy {
     path: string,
     role: ByokModelRole | null,
   ): ModelRoute[] {
-    const stickyRoute = videoTaskId(path)
-      ? this.videoTaskRoutes.get(videoTaskId(path) ?? "")
-      : undefined;
+    const taskId = videoTaskId(path);
+    const stickyRoute = taskId ? this.stickyVideoRoute(taskId) : undefined;
     if (stickyRoute) return [stickyRoute];
     if (!role) {
       throw new CommercialApiError("无法确定模型用途，已拒绝绕过统一路由", {
@@ -328,6 +356,14 @@ export class CommercialModelProxy {
         } catch (error) {
           lastError = error;
           if (input.signal.aborted) throw error;
+          if (!isRetryableRequestFailure(error)) {
+            // Deterministic client-side rejection (unparseable body, forbidden
+            // field, bad protocol header). The body is identical on every
+            // attempt and every route, so neither retrying nor falling back
+            // can succeed — fail now instead of amplifying by 3×N.
+            this.auditRouteAttempt(route, totalAttempts, undefined, "rejected", error);
+            throw error;
+          }
           if (routeAttempt < MAX_ROUTE_ATTEMPTS) {
             this.auditRouteAttempt(route, totalAttempts, undefined, "retry", error);
             await wait(150 * routeAttempt, undefined, { signal: input.signal });
@@ -406,9 +442,71 @@ export class CommercialModelProxy {
     try {
       const payload = (await response.clone().json()) as { id?: unknown };
       const id = typeof payload.id === "string" ? payload.id.trim() : "";
-      if (id) this.videoTaskRoutes.set(id, route);
-    } catch {
-      // The response contract is validated by the caller that consumes it.
+      if (!id) return;
+      const now = Date.now();
+      this.pruneVideoTaskRoutes(now);
+      // Re-inserting moves the entry to the end, keeping Map iteration order
+      // usable as an eviction order.
+      this.videoTaskRoutes.delete(id);
+      this.videoTaskRoutes.set(id, {
+        route,
+        expiresAt: now + VIDEO_TASK_ROUTE_TTL_MS,
+      });
+      while (this.videoTaskRoutes.size > VIDEO_TASK_ROUTE_CAPACITY) {
+        const oldest = this.videoTaskRoutes.keys().next();
+        if (oldest.done) break;
+        this.videoTaskRoutes.delete(oldest.value);
+      }
+    } catch (error) {
+      // A /v1/videos success without a parseable id means later polls fall back
+      // to role routing. Surface it: silent failure here looks like a routing
+      // bug much further downstream.
+      this.audit({
+        timestamp: new Date().toISOString(),
+        event: "video_task_route_unrecorded",
+        routes: [
+          {
+            role: route.role,
+            source: route.source,
+            provider: route.label,
+            modelId: route.modelId,
+            modelPriority: route.priority,
+            providerPriority: route.providerPriority,
+          },
+        ],
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /** Resolve a still-valid sticky route, dropping it once expired. */
+  private stickyVideoRoute(taskId: string): ModelRoute | undefined {
+    const entry = this.videoTaskRoutes.get(taskId);
+    if (!entry) return undefined;
+    if (entry.expiresAt <= Date.now()) {
+      this.videoTaskRoutes.delete(taskId);
+      return undefined;
+    }
+    return entry.route;
+  }
+
+  private pruneVideoTaskRoutes(now: number): void {
+    for (const [taskId, entry] of this.videoTaskRoutes) {
+      if (entry.expiresAt <= now) this.videoTaskRoutes.delete(taskId);
+    }
+  }
+
+  /**
+   * Forget tasks pinned to a route the user has since removed or disabled.
+   *
+   * Without this, polling keeps targeting a dead provider (and keeps its
+   * apiKey resident) until the process restarts. Dropping the pin lets the
+   * request fall back to normal role-based routing.
+   */
+  private dropUnavailableVideoTaskRoutes(activeRoutes: readonly ModelRoute[]): void {
+    const availableKeys = new Set(activeRoutes.map((route) => route.key));
+    for (const [taskId, entry] of this.videoTaskRoutes) {
+      if (!availableKeys.has(entry.route.key)) this.videoTaskRoutes.delete(taskId);
     }
   }
 }
@@ -1487,6 +1585,23 @@ function videoTaskId(path: string): string | null {
   const pathname = new URL(path, "http://model-proxy.local").pathname;
   const match = /^\/v1\/videos\/([^/]+)(?:\/content)?$/.exec(pathname);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Only replay failures that could plausibly succeed on another attempt.
+ *
+ * Body parsing (`parseJsonBody`, `parseMultipartBody`), field screening and
+ * protocol-header validation all raise CommercialApiError with a 4xx status.
+ * Those verdicts are identical on every attempt and every route, so replaying
+ * them multiplied latency and upstream load by MAX_ROUTE_ATTEMPTS × routes for
+ * no chance of success. Transport failures from fetch surface as
+ * CommercialApiError with status 0 and stay retryable.
+ */
+function isRetryableRequestFailure(error: unknown): boolean {
+  if (error instanceof CommercialApiError) {
+    return !(error.status >= 400 && error.status < 500);
+  }
+  return true;
 }
 
 function shouldFallback(route: ModelRoute, status: number): boolean {

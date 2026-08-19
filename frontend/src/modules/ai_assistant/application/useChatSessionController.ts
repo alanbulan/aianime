@@ -106,6 +106,12 @@ export function useChatSessionController({
     [conversationId, project],
   );
   const scopeKey = useMemo(() => scopeSessionKey(desiredScope), [desiredScope]);
+  // Mirrors `scopeKey` for async callbacks that resolve after the user may have
+  // switched conversations. Assigned during render so a callback awaiting an
+  // in-flight request always compares against the scope that is current *now*,
+  // not the one captured when it started.
+  const scopeKeyRef = useRef(scopeKey);
+  scopeKeyRef.current = scopeKey;
   const initialScopeSnapshot = useMemo(() => {
     const cachedMessages = loadCachedMessages(scopeKey);
     const activeTurn = loadPendingActiveTurn(scopeKey, cachedMessages);
@@ -142,6 +148,14 @@ export function useChatSessionController({
   );
   const streamTextRef = useRef("");
   const messagesRef = useRef<ChatMessage[]>(initialScopeSnapshot.cachedMessages);
+  // Bumped by the scope-reset effect below. A render whose closure captured a
+  // smaller epoch predates that effect's reseed, so its `messages` may still
+  // hold the previous conversation's history — persisting that pair would
+  // cache one conversation under another conversation's key.
+  const reseedEpochRef = useRef(0);
+  // Captured at render time so effects can tell whether this render saw the
+  // latest reseed (see the cache-write effect below).
+  const renderedReseedEpoch = reseedEpochRef.current;
   const activeTurnIdRef = useRef<string | null>(initialScopeSnapshot.activeTurnId);
   const pendingClientTurnIdRef = useRef<string | null>(null);
   const recentlyCompletedTurnIdRef = useRef<string | null>(null);
@@ -243,6 +257,10 @@ export function useChatSessionController({
     recentlyCompletedTurnIdRef.current = null;
     setStreamText("");
     const cachedMessages = loadCachedMessages(scopeKey);
+    // Advance the reseed epoch so cache writes from renders that closed over
+    // the previous conversation's messages are skipped (see the cache-write
+    // effect below).
+    reseedEpochRef.current += 1;
     setMessages(cachedMessages);
     messagesRef.current = cachedMessages;
     const activeTurn = loadPendingActiveTurn(scopeKey, cachedMessages);
@@ -256,13 +274,24 @@ export function useChatSessionController({
   }, [pruneOldMessageCaches]);
 
   useEffect(() => {
+    // The reset effect above bumps the epoch when it reseeds `messages`, and
+    // it runs before this effect in the same commit. A closure that captured a
+    // smaller epoch therefore predates the latest reseed: `messages` may still
+    // hold the previous conversation's history while `scopeKey` is already the
+    // new one. Writing that pair would cache the old conversation under the
+    // new key — directly, or via the pagehide flush that reads messagesRef.
+    // Once the epochs match, every later render is derived from the reseeded
+    // history of the current scope, so updates that interleaved with the
+    // reseed commit are persisted too (an identity check against the reseeded
+    // array would skip them forever).
+    if (renderedReseedEpoch !== reseedEpochRef.current) return;
     messagesRef.current = messages;
     const timer = window.setTimeout(
       () => saveCachedMessages(scopeKey, messages),
       MESSAGE_CACHE_WRITE_DELAY_MS,
     );
     return () => window.clearTimeout(timer);
-  }, [messages, saveCachedMessages, scopeKey]);
+  }, [messages, renderedReseedEpoch, saveCachedMessages, scopeKey]);
 
   useEffect(() => {
     const flush = () => saveCachedMessages(scopeKey, messagesRef.current);
@@ -364,8 +393,13 @@ export function useChatSessionController({
   }, [connected, desiredScope, displayName, markTurnActive, sendFrame]);
 
   const appendNotification = useCallback(async (text: string): Promise<boolean> => {
+    const originScopeKey = scopeKeyRef.current;
     const result = await appendChatNotification(desiredScope, text);
-    if (result.message) {
+    // The await can span a conversation switch. `setMessages` targets whichever
+    // conversation is mounted now, so applying a stale result would inject the
+    // old conversation's notification into the new one — and the message-cache
+    // effect would then persist it there under the new scope key.
+    if (result.message && scopeKeyRef.current === originScopeKey) {
       setMessages((current) => sortMessages([...current, result.message!]));
     }
     return result.delivered;

@@ -7,6 +7,7 @@ import { projectPanelMessages } from "@/modules/ai_assistant/application/panelMe
 import { useChatQueueController } from "@/modules/ai_assistant/application/useChatQueueController";
 import { useComposerSubmitController } from "@/modules/ai_assistant/application/useComposerSubmitController";
 import {
+  useActiveConversation,
   useChatSession,
   useIngestAutomationController,
 } from "@/modules/ai_assistant/composition";
@@ -21,11 +22,6 @@ import { useComposerBorderBeam } from "@/modules/ai_assistant/presentation/useCo
 import { useComposerHistoryNavigation } from "@/modules/ai_assistant/presentation/useComposerHistoryNavigation";
 import { useSpeechInputController } from "@/modules/ai_assistant/presentation/useSpeechInputController";
 import { useTaskCompletionNotifications } from "@/modules/ai_assistant/presentation/useTaskCompletionNotifications";
-import {
-  activeConversationScopeKey,
-  loadActiveConversation,
-  saveActiveConversation,
-} from "@/modules/ai_assistant/infrastructure/activeConversationStorage";
 import { useAuthStore } from "@/modules/identity_access/public";
 
 const ENABLE_SUPERCHAT_FILE_UPLOAD = true;
@@ -50,32 +46,19 @@ export function SuperChatPanel({
   const [detailMessage, setDetailMessage] = useState<ChatMessage | null>(null);
   const [mediaDetail, setMediaDetail] = useState<SpecMediaDetail | null>(null);
   const [composerInputFocused, setComposerInputFocused] = useState(false);
-  const conversationScopeKey = activeConversationScopeKey(
-    username ?? "",
-    params.project,
-  );
-  const storedConversationId = useMemo(
-    () => loadActiveConversation(conversationScopeKey),
-    [conversationScopeKey],
-  );
-  const [conversationSelections, setConversationSelections] = useState<
-    Record<string, string>
-  >({});
-  const conversationId =
-    conversationSelections[conversationScopeKey] ?? storedConversationId;
+  const {
+    conversationScopeKey,
+    conversationId,
+    selectConversation,
+  } = useActiveConversation({
+    username,
+    project: params.project,
+  });
   const [conversationDrawerOpen, setConversationDrawerOpen] = useState(false);
 
   useEffect(() => {
     setConversationDrawerOpen(false);
   }, [conversationScopeKey]);
-
-  const selectConversation = (nextConversationId: string) => {
-    saveActiveConversation(conversationScopeKey, nextConversationId);
-    setConversationSelections((current) => ({
-      ...current,
-      [conversationScopeKey]: nextConversationId,
-    }));
-  };
 
   const chat = useChatSession({
     project: params.project,

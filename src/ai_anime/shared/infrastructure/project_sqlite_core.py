@@ -80,6 +80,11 @@ class ProjectSQLiteCore:
         self._drained = asyncio.Event()
         self._drained.set()
         self._lease_depth_by_task: dict[Any, int] = {}
+        # Serializes connection creation. `_lease` counts callers, it does not
+        # exclude them, so without this two concurrent first calls both see
+        # `_db is None` and both connect — and the connection assigned first is
+        # overwritten and leaks, holding its aiosqlite thread forever.
+        self._connect_lock = asyncio.Lock()
 
         if output_dir:
             self.project_dir = output_dir
@@ -111,18 +116,36 @@ class ProjectSQLiteCore:
     async def _ensure_db(self) -> aiosqlite.Connection:
         if self._closed or (self._closing and self._current_task_lease_depth() <= 0):
             raise StoreClosedError(self.project_dir)
-        if self._db is None:
+        if self._db is not None:
+            return self._db
+        async with self._connect_lock:
+            # Re-check under the lock: a racing caller may have connected while
+            # this one waited, and closing may have started in the meantime.
+            if self._closed or (
+                self._closing and self._current_task_lease_depth() <= 0
+            ):
+                raise StoreClosedError(self.project_dir)
+            if self._db is not None:
+                return self._db
             if self._closing:
                 raise StoreClosedError(self.project_dir)
-            self._db = await aiosqlite.connect(self.db_path)
-            self._db.row_factory = aiosqlite.Row
-            await configure_sqlite_connection_async(self._db)
-            await self._db.executescript(SQLITE_SCHEMA_SQL)
-            await self._ensure_episode_planning_columns(self._db)
-            await self._ensure_beat_current_columns(self._db)
-            await self._ensure_scene_columns(self._db)
-            await self._ensure_indextts2_columns(self._db)
-            await self._db.commit()
+            db = await aiosqlite.connect(self.db_path)
+            try:
+                db.row_factory = aiosqlite.Row
+                await configure_sqlite_connection_async(db)
+                await db.executescript(SQLITE_SCHEMA_SQL)
+                await self._ensure_episode_planning_columns(db)
+                await self._ensure_beat_current_columns(db)
+                await self._ensure_scene_columns(db)
+                await self._ensure_indextts2_columns(db)
+                await db.commit()
+            except BaseException:
+                # Never leave a half-migrated connection (and its thread)
+                # behind, and never publish it as self._db.
+                with contextlib.suppress(Exception):
+                    await db.close()
+                raise
+            self._db = db
             # Phase 2 DB split: failure-mode *definitions* live in the
             # user-shared verification.db (not this project DB). They are
             # seeded lazily by `failure_registry.load_negative_clause_for_project`

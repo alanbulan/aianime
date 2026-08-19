@@ -1232,7 +1232,9 @@ describe("SuperChat boundaries", () => {
       "type QueuedSendItem =",
       "const [queuedMessages, setQueuedMessages] = useState<QueuedSendItem[]>([]);",
       "const [selectedQueuedMessageId, setSelectedQueuedMessageId] = useState<string | null>(null);",
-      "const remainingMessages = queuedMessages.filter(",
+      // Functional update, not a pre-await snapshot: draining must not revive a
+      // message the user deleted while the send was in flight.
+      "current.filter((message) => message.id !== nextMessage.id)",
       "void sendMessage(nextMessage.text, nextMessage.attachments)",
       "const enqueueMessage = useCallback(",
       "const removeQueuedMessage = useCallback(",

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import {
   useCallback,
+  useRef,
   type Dispatch,
   type SetStateAction,
 } from "react";
@@ -75,6 +76,12 @@ export function useSuperChatFrameController({
   markTurnInactive,
   finalizeStream,
 }: FrameControllerOptions): (frame: ServerFrame) => void {
+  // Read through a ref rather than closing over the value: this callback is a
+  // dependency of the WebSocket effect, so recreating it on every toggle of
+  // "show tool events" tore down and reopened the live chat socket.
+  const showToolEventsRef = useRef(showToolEvents);
+  showToolEventsRef.current = showToolEvents;
+
   return useCallback((frame: ServerFrame) => {
     switch (frame.type) {
       case "scope.changed": {
@@ -271,7 +278,7 @@ export function useSuperChatFrameController({
         ) {
           break;
         }
-        if (showToolEvents || shouldPreserveToolMessage(frame)) {
+        if (showToolEventsRef.current || shouldPreserveToolMessage(frame)) {
           setMessages((current) => upsertToolMessage(current, frame.type, frame));
         }
         break;
@@ -287,7 +294,7 @@ export function useSuperChatFrameController({
         } else {
           setBusy(true);
         }
-        if (showToolEvents || shouldPreserveToolMessage(frame)) {
+        if (showToolEventsRef.current || shouldPreserveToolMessage(frame)) {
           setMessages((current) => upsertToolMessage(current, frame.type, frame));
         }
         break;
@@ -344,7 +351,6 @@ export function useSuperChatFrameController({
     setConversations,
     setMessages,
     setStreamText,
-    showToolEvents,
     streamTextRef,
   ]);
 }

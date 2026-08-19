@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import time
 from pathlib import Path
@@ -112,7 +113,12 @@ class CommercialImageGenerator:
 
         references: list[tuple[bytes, str] | tuple[str, bytes, str]] = []
         if reference_image and Path(reference_image).is_file():
-            references.append((Path(reference_image).read_bytes(), _mime_type(reference_image)))
+            references.append(
+                (
+                    await asyncio.to_thread(Path(reference_image).read_bytes),
+                    _mime_type(reference_image),
+                )
+            )
         resolved_prompt, references = apply_style_reference(
             resolved_prompt,
             references,
@@ -134,8 +140,12 @@ class CommercialImageGenerator:
                 )
             if output_path:
                 target = Path(output_path)
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(image_bytes)
+                await asyncio.to_thread(
+                    target.parent.mkdir,
+                    parents=True,
+                    exist_ok=True,
+                )
+                await asyncio.to_thread(target.write_bytes, image_bytes)
             return ImageGenResult(
                 success=True,
                 image_path=output_path,

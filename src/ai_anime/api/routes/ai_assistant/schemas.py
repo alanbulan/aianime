@@ -2,14 +2,52 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     InteractiveChatScopeKind,
 )
+
+_InboundT = TypeVar("_InboundT", bound=BaseModel)
+
+
+class InboundFrameInvalid(Exception):
+    """A client frame failed schema validation.
+
+    Carries a client-safe ``reason`` so the transport adapter can answer with
+    an error event instead of dropping the connection.
+    """
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _validation_summary(exc: ValidationError) -> str:
+    """Name the offending fields without echoing client-supplied values."""
+    fields = sorted(
+        {
+            ".".join(str(part) for part in error.get("loc", ()))
+            for error in exc.errors()
+        }
+    )
+    joined = ", ".join(field for field in fields if field)
+    return f"invalid fields: {joined}" if joined else "payload validation failed"
+
+
+def parse_inbound_frame(model: type[_InboundT], raw: Any) -> _InboundT:
+    """Validate one inbound frame, raising :class:`InboundFrameInvalid`.
+
+    Keeps pydantic validation (and its error shapes) inside this schema module
+    so transport adapters never have to import model machinery.
+    """
+    try:
+        return model.model_validate(raw)
+    except ValidationError as exc:
+        raise InboundFrameInvalid(_validation_summary(exc)) from exc
 
 
 class ChatScopePayload(BaseModel):
@@ -87,7 +125,9 @@ __all__ = [
     "ChatScopePayload",
     "ChatUiEventIn",
     "ConversationDeleteIn",
+    "InboundFrameInvalid",
     "ScopeSetIn",
     "attachment_payloads",
+    "parse_inbound_frame",
     "to_chat_scope",
 ]

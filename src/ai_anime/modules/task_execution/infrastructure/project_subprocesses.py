@@ -204,32 +204,86 @@ def _optional_int(value: Any) -> int | None:
         return None
 
 
+class _CancelPoller:
+    """Polls the async cancellation check without rebuilding a loop per tick.
+
+    ``run_project_subprocess`` checks for cancellation every ``poll_seconds``
+    (0.1s by default) for the entire lifetime of the child process. Calling
+    ``asyncio.run`` there built and tore down a fresh event loop on every tick
+    — ten loops per second for the whole task. One loop is created on first use
+    and closed by ``close()`` when the run finishes.
+    """
+
+    def __init__(
+        self,
+        scope: dict[str, Any],
+        cancellation_check: TaskCancellationCheck,
+    ) -> None:
+        self._scope = scope
+        self._check = cancellation_check
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    def requested(self) -> bool:
+        task_id = str(self._scope.get("task_id") or "")
+        if not task_id:
+            return False
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            # This thread already drives a loop; running the check here would
+            # re-enter it. Matches the previous behaviour: report "not
+            # cancelled" and rely on the async cancellation path instead.
+            return False
+        try:
+            return bool(self._loop_for_thread().run_until_complete(self._probe(task_id)))
+        except Exception:
+            return False
+
+    def _probe(self, task_id: str):
+        return self._check(
+            project_id=str(self._scope.get("project_id") or ""),
+            task_type=str(self._scope.get("task_type") or ""),
+            episode=int(self._scope.get("episode") or 0),
+            task_id=task_id,
+            beat_num=self._scope.get("beat_num"),
+            scope=self._scope.get("scope"),
+        )
+
+    def _loop_for_thread(self) -> asyncio.AbstractEventLoop:
+        loop = self._loop
+        if loop is not None and not loop.is_closed():
+            return loop
+        loop = asyncio.new_event_loop()
+        # asyncio.run() published the loop as this thread's current loop for the
+        # duration of the call; keep that visible so any library reaching for
+        # get_event_loop() behaves as before.
+        asyncio.set_event_loop(loop)
+        self._loop = loop
+        return loop
+
+    def close(self) -> None:
+        loop = self._loop
+        self._loop = None
+        if loop is None or loop.is_closed():
+            return
+        try:
+            loop.close()
+        finally:
+            asyncio.set_event_loop(None)
+
+
 def _cancel_requested_sync(
     scope: dict[str, Any],
     cancellation_check: TaskCancellationCheck,
 ) -> bool:
-    task_id = str(scope.get("task_id") or "")
-    if not task_id:
-        return False
+    """One-shot cancellation probe. Prefer a long-lived ``_CancelPoller``."""
+    poller = _CancelPoller(scope, cancellation_check)
     try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        try:
-            return bool(
-                asyncio.run(
-                    cancellation_check(
-                        project_id=str(scope.get("project_id") or ""),
-                        task_type=str(scope.get("task_type") or ""),
-                        episode=int(scope.get("episode") or 0),
-                        task_id=task_id,
-                        beat_num=scope.get("beat_num"),
-                        scope=scope.get("scope"),
-                    )
-                )
-            )
-        except Exception:
-            return False
-    return False
+        return poller.requested()
+    finally:
+        poller.close()
 
 
 def _deadline_for(scope: dict[str, Any], timeout: int | float | None) -> float | None:
@@ -279,6 +333,7 @@ def run_project_subprocess(
     )
     _register_process(task_id, proc)
     pending_stdin = stdin_data
+    cancel_poller = _CancelPoller(scope, cancellation_check)
     try:
         while True:
             remaining = None if deadline is None else deadline - time.monotonic()
@@ -287,7 +342,7 @@ def run_project_subprocess(
                 with contextlib.suppress(Exception):
                     proc.communicate(timeout=1)
                 raise TaskTimedOut(timeout_seconds=timeout_seconds or int(timeout or 30 * 60))
-            if _cancel_requested_sync(scope, cancellation_check):
+            if cancel_poller.requested():
                 _kill_process_group(proc)
                 with contextlib.suppress(Exception):
                     proc.communicate(timeout=1)
@@ -313,6 +368,7 @@ def run_project_subprocess(
             except subprocess.TimeoutExpired:
                 continue
     finally:
+        cancel_poller.close()
         _unregister_process(task_id, proc)
 
 

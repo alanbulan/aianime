@@ -46,6 +46,7 @@ export interface CommercialUpdateDownloadProgress {
 export class CommercialDesktopUpdater {
   private downloadedVersion: string | null = null;
   private downloading = false;
+  private inFlightDownload: Promise<CommercialUpdateDownloadResult> | null = null;
 
   constructor(
     private readonly updater: ElectronUpdaterLike,
@@ -67,6 +68,23 @@ export class CommercialDesktopUpdater {
   }
 
   async download(
+    artifactId: Identifier,
+  ): Promise<CommercialUpdateDownloadResult> {
+    // The whole download mutates shared updater state (feed URL, request
+    // headers, progress routing). A second concurrent call — a double-clicked
+    // update button — would repoint the feed mid-flight and the two runs could
+    // report each other's version.
+    if (this.inFlightDownload) return this.inFlightDownload;
+    const run = this.runDownload(artifactId);
+    this.inFlightDownload = run;
+    try {
+      return await run;
+    } finally {
+      this.inFlightDownload = null;
+    }
+  }
+
+  private async runDownload(
     artifactId: Identifier,
   ): Promise<CommercialUpdateDownloadResult> {
     this.downloadedVersion = null;

@@ -1116,7 +1116,16 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     assert "def _scope_from_model(" not in route_source
     assert "def _attachment_payloads(" not in route_source
     assert "to_chat_scope(" not in route_source
-    assert session_source.count("to_chat_scope(") == 2
+    # The session adapter funnels both scope-bearing inbound events
+    # (conversation.delete / scope.set) through one guarded mapper so a bad
+    # client scope answers with an error event instead of dropping the socket.
+    assert session_source.count("to_chat_scope(") == 1
+    assert "async def _resolve_scope(" in session_source
+    assert session_source.count("await _resolve_scope(") == 2
+    # Inbound frame validation stays in the schema module, so the transport
+    # adapter never imports pydantic model machinery.
+    assert "def parse_inbound_frame(" in schemas_source
+    assert session_source.count("parse_inbound_frame(") == 3
     assert http_source.count("to_chat_scope(") == 2
     assert turn_source.count("to_chat_scope(") == 1
     assert "attachment_payloads(" not in route_source

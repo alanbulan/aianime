@@ -10,8 +10,11 @@ import ai_anime.api.routes.ai_assistant.access as chat_access
 from ai_anime.api.routes.identity_access.dependencies import get_websocket_user
 from ai_anime.api.routes.ai_assistant.schemas import (
     ChatMessageIn,
+    ChatScopePayload,
     ConversationDeleteIn,
+    InboundFrameInvalid,
     ScopeSetIn,
+    parse_inbound_frame,
     to_chat_scope,
 )
 from ai_anime.api.routes.ai_assistant.websocket import send_json_best_effort
@@ -26,6 +29,34 @@ from ai_anime.modules.ai_assistant.public import (
 hermes_runtime_prewarmer = get_hermes_runtime_prewarmer()
 chat_worker_lifecycle = get_chat_worker_lifecycle()
 scoped_chat_messages = get_scoped_chat_messages()
+
+
+async def _reject_frame(
+    websocket: WebSocket,
+    event_type: str,
+    reason: str,
+) -> None:
+    await send_json_best_effort(
+        websocket,
+        {"type": "error", "message": f"{event_type or 'event'} rejected: {reason}"},
+    )
+
+
+async def _resolve_scope(
+    websocket: WebSocket,
+    payload: ChatScopePayload | None,
+    event_type: str,
+) -> ChatScope | None:
+    """Map a validated scope payload to a domain scope, or report and skip.
+
+    Returns ``None`` when the client sent an unusable scope. Letting the
+    ValueError escape would drop the whole session with no diagnostic.
+    """
+    try:
+        return to_chat_scope(payload)
+    except ValueError as exc:
+        await _reject_frame(websocket, event_type, str(exc))
+        return None
 
 
 async def run_chat_session(websocket: WebSocket) -> None:
@@ -64,14 +95,39 @@ async def run_chat_session(websocket: WebSocket) -> None:
                 if "WebSocket is not connected" in str(exc):
                     return
                 raise
+            except (ValueError, KeyError, TypeError):
+                # Non-JSON payload or a binary frame where text was expected.
+                await send_json_best_effort(
+                    websocket,
+                    {"type": "error", "message": "expected a JSON text frame"},
+                )
+                continue
+
+            if not isinstance(raw, dict):
+                await send_json_best_effort(
+                    websocket,
+                    {"type": "error", "message": "expected a JSON object"},
+                )
+                continue
+
             event_type = str(raw.get("type") or "")
             if event_type == "conversation.delete":
-                message = ConversationDeleteIn.model_validate(raw)
-                requested_scope = to_chat_scope(message.scope)
+                try:
+                    delete_message = parse_inbound_frame(ConversationDeleteIn, raw)
+                except InboundFrameInvalid as exc:
+                    await _reject_frame(websocket, event_type, exc.reason)
+                    continue
+                requested_scope = await _resolve_scope(
+                    websocket,
+                    delete_message.scope,
+                    event_type,
+                )
+                if requested_scope is None:
+                    continue
                 target_scope = ChatScope(
                     kind=requested_scope.kind,
                     id=requested_scope.id,
-                    conversation_id=message.conversationId,
+                    conversation_id=delete_message.conversationId,
                 )
                 try:
                     if chat_worker_lifecycle.is_busy(username):
@@ -136,8 +192,18 @@ async def run_chat_session(websocket: WebSocket) -> None:
                 continue
 
             if event_type == "scope.set":
-                message = ScopeSetIn.model_validate(raw)
-                requested_scope = to_chat_scope(message.scope)
+                try:
+                    scope_message = parse_inbound_frame(ScopeSetIn, raw)
+                except InboundFrameInvalid as exc:
+                    await _reject_frame(websocket, event_type, exc.reason)
+                    continue
+                requested_scope = await _resolve_scope(
+                    websocket,
+                    scope_message.scope,
+                    event_type,
+                )
+                if requested_scope is None:
+                    continue
                 previous_scope = current_scope
                 current_scope = await chat_scope.send_scope_changed(
                     websocket,
@@ -171,7 +237,11 @@ async def run_chat_session(websocket: WebSocket) -> None:
                 )
                 continue
 
-            message = ChatMessageIn.model_validate(raw)
+            try:
+                message = parse_inbound_frame(ChatMessageIn, raw)
+            except InboundFrameInvalid as exc:
+                await _reject_frame(websocket, event_type, exc.reason)
+                continue
             await chat_turns.dispatch_chat_turn(
                 websocket,
                 user=user,

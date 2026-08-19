@@ -83,6 +83,16 @@ class _WorkerSlot:
     last_used: float = field(default_factory=time.time)
 
 
+def _slot_is_busy(slot: _WorkerSlot) -> bool:
+    """True while the slot's worker is mid-turn.
+
+    ``last_used`` is stamped only when the pool hands a thread out, so a turn
+    that runs longer than the idle window would otherwise look reapable.
+    Tolerant of thread doubles in tests that don't implement the property.
+    """
+    return bool(getattr(slot.thread, "has_active_turn", False))
+
+
 class HermesPool:
     """Process-wide pool of per-user hermes workers.
 
@@ -479,12 +489,16 @@ class HermesPool:
     async def _evict_lru_if_full(self) -> None:
         if len(self._slots) < self._max_workers:
             return
-        # Evict least-recently-used
-        victim = min(self._slots.values(), key=lambda s: s.last_used)
+        # Prefer an idle victim so a worker streaming a long turn isn't killed
+        # underneath its caller. If every worker is busy, fall back to the LRU
+        # rather than refusing to admit the new user.
+        idle = [slot for slot in self._slots.values() if not _slot_is_busy(slot)]
+        victim = min(idle or list(self._slots.values()), key=lambda s: s.last_used)
         _log.info(
-            "hermes pool full (%d); evicting LRU user=%s",
+            "hermes pool full (%d); evicting LRU user=%s (busy=%s)",
             self._max_workers,
             victim.username,
+            _slot_is_busy(victim),
         )
         await self._close_slot(victim)
         self._slots.pop(victim.username, None)
@@ -516,15 +530,25 @@ class HermesPool:
             while True:
                 await asyncio.sleep(60)
                 cutoff = time.time() - self._idle_kill_secs
+                # Detach victims under the lock, then close them outside it.
+                # `_close_slot` waits up to 3s per process and revokes the agent
+                # session over the network; holding `_lock` across that blocks
+                # every user trying to send a message.
                 async with self._lock:
-                    victims = [s for s in self._slots.values() if s.last_used < cutoff]
-                    for v in victims:
-                        _log.info("hermes worker idle-killed: user=%s", v.username)
-                        await self._close_slot(v)
-                        self._slots.pop(v.username, None)
-                    if not self._slots:
-                        # Pool empty — exit reaper; next spawn will restart it
-                        return
+                    victims = [
+                        slot
+                        for slot in self._slots.values()
+                        if slot.last_used < cutoff and not _slot_is_busy(slot)
+                    ]
+                    for victim in victims:
+                        self._slots.pop(victim.username, None)
+                    pool_empty = not self._slots
+                for victim in victims:
+                    _log.info("hermes worker idle-killed: user=%s", victim.username)
+                    await self._close_slot(victim)
+                if pool_empty:
+                    # Pool empty — exit reaper; next spawn will restart it
+                    return
         except asyncio.CancelledError:
             return
 

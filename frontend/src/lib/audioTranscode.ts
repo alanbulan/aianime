@@ -68,33 +68,34 @@ export function isAudioFormatPassthrough(
   return target === sourceExt;
 }
 
-function decodeToAudioBuffer(blob: Blob): Promise<AudioBuffer> {
+async function decodeToAudioBuffer(blob: Blob): Promise<AudioBuffer> {
   const Ctor =
     window.AudioContext ??
     (window as unknown as { webkitAudioContext?: typeof AudioContext })
       .webkitAudioContext;
   if (!Ctor) {
-    return Promise.reject(new Error("Web Audio API unavailable"));
+    throw new Error("Web Audio API unavailable");
   }
+  // Read the bytes before creating the context: a failed read (detached blob,
+  // quota pressure) must not leak the context. Browsers cap live
+  // AudioContexts, and leaked ones leave later decode attempts suspended.
+  const arrayBuffer = await blob.arrayBuffer();
   const ctx = new Ctor();
-  return blob.arrayBuffer().then(
-    (arrayBuffer) =>
-      // Callback form is supported everywhere (incl. older Safari). decodeAudioData
-      // detaches the input buffer, which is fine — we don't reuse it.
-      new Promise<AudioBuffer>((resolve, reject) => {
-        ctx.decodeAudioData(
-          arrayBuffer,
-          (buffer) => {
-            void ctx.close();
-            resolve(buffer);
-          },
-          (err) => {
-            void ctx.close();
-            reject(err ?? new Error("decodeAudioData failed"));
-          },
-        );
-      }),
-  );
+  // Callback form is supported everywhere (incl. older Safari). decodeAudioData
+  // detaches the input buffer, which is fine — we don't reuse it.
+  return new Promise<AudioBuffer>((resolve, reject) => {
+    ctx.decodeAudioData(
+      arrayBuffer,
+      (buffer) => {
+        void ctx.close();
+        resolve(buffer);
+      },
+      (err) => {
+        void ctx.close();
+        reject(err ?? new Error("decodeAudioData failed"));
+      },
+    );
+  });
 }
 
 function floatTo16BitPCM(input: Float32Array): Int16Array {

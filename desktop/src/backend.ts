@@ -145,7 +145,11 @@ export class LocalBackend {
     child.stderr.on("data", (chunk: Buffer) => this.writeLog(chunk.toString()));
     child.once("exit", (code, signal) => {
       this.writeLog(`backend exited code=${String(code)} signal=${String(signal)}\n`);
-      this.child = null;
+      // Only clear the handle if it still refers to *this* child. A
+      // stop()→start() sequence can install a replacement before the old
+      // child's exit fires, and clearing unconditionally would orphan the new
+      // process by making stop() a no-op.
+      if (this.child === child) this.child = null;
     });
 
     const socketEvent = await this.waitForSocket(child);
@@ -171,7 +175,9 @@ export class LocalBackend {
       ]);
       if (child.exitCode === null) child.kill();
     } finally {
-      this.child = null;
+      // Same guard as the exit handler: never clear a handle that a concurrent
+      // start() has already replaced.
+      if (this.child === child) this.child = null;
       this._baseUrl = null;
       this.logStream?.end();
       this.logStream = null;

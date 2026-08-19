@@ -142,7 +142,7 @@ export function Seedance2AssetCropDialog({
                   if (!intent) return;
                   onSave(intent.asset, intent.target, controller.crop);
                 }}
-                disabled={pending || !controller.imageSrc}
+                disabled={pending || !controller.imageSrc || !controller.ready}
                 className="gap-1"
               >
                 {pending ? (

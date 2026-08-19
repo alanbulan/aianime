@@ -37,6 +37,9 @@ export function useSeedance2AssetCropController(
   });
   const [cropAspect, setCropAspect] =
     useState<Seedance2CropAspect>(targetCropAspect);
+  // The 1x1 placeholder above is not a usable crop. `imageSrc` resolves
+  // synchronously, so it cannot stand in for "the image has decoded".
+  const [loaded, setLoaded] = useState(false);
   const imageSrc = resolveMediaUrl(
     asset?.crop_source_url ||
       asset?.crop_source_path ||
@@ -44,12 +47,33 @@ export function useSeedance2AssetCropController(
       asset?.path,
   );
 
+  // Keyed on the resolved source, not on the `asset` object. Keying it on the
+  // object reference meant any refetch that produced a new reference blanked
+  // the crop back to 1x1 while the already-decoded <img> fired no fresh load
+  // event — leaving the crop box permanently unusable for that dialog.
   useEffect(() => {
-    if (!asset) return;
+    setLoaded(false);
     setImageSize({ width: 1, height: 1 });
     setCrop({ x: 0, y: 0, width: 1, height: 1 });
+  }, [imageSrc]);
+
+  useEffect(() => {
     setCropAspect(targetCropAspect);
-  }, [asset, targetCropAspect]);
+  }, [targetCropAspect]);
+
+  // Re-center against the decoded dimensions whenever the image or the
+  // requested aspect changes. Never runs before the image has loaded, so it
+  // cannot reintroduce a degenerate crop.
+  useEffect(() => {
+    if (!loaded) return;
+    setCrop(
+      centerCropBoxForRatio(
+        imageSize.width,
+        imageSize.height,
+        cropAspectRatioValue(targetCropAspect),
+      ),
+    );
+  }, [imageSize.height, imageSize.width, loaded, targetCropAspect]);
 
   useEffect(() => {
     const cropBox = cropBoxRef.current;
@@ -83,6 +107,7 @@ export function useSeedance2AssetCropController(
         cropAspectRatioValue(cropAspect),
       ),
     );
+    setLoaded(true);
   };
 
   const startDrag = (clientX: number, clientY: number) => {
@@ -125,6 +150,8 @@ export function useSeedance2AssetCropController(
     imageSrc,
     loadImage,
     moveDrag,
+    // True only once the image has decoded and a real crop box exists.
+    ready: loaded,
     startDrag,
     stopDrag,
   };

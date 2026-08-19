@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -20,7 +21,11 @@ class UnifiedStylePreviewGenerator:
             get_style_preset,
         )
 
-        style = get_style_preset(style_id, project_dir=str(project_dir))
+        style = await asyncio.to_thread(
+            get_style_preset,
+            style_id,
+            project_dir=str(project_dir),
+        )
         style_instructions = str(style.get("style_instructions") or "").strip()
         avoid_instructions = str(style.get("avoid_instructions") or "").strip()
         style_tag = str(style.get("style_tag") or "").strip()
@@ -59,9 +64,9 @@ AVOID:
         )
         if not image_bytes:
             raise RuntimeError(error or "风格参考图生成失败：图片模型未返回图像")
-        output_dir = Path(tempfile.mkdtemp(prefix="style_preview_"))
+        output_dir = Path(await asyncio.to_thread(tempfile.mkdtemp, prefix="style_preview_"))
         output_path = output_dir / "style_reference.png"
-        output_path.write_bytes(image_bytes)
+        await asyncio.to_thread(output_path.write_bytes, image_bytes)
         return [output_path]
 
 

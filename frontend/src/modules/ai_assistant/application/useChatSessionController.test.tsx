@@ -210,4 +210,55 @@ describe("useChatSessionController", () => {
       conversationId: "chat_2",
     });
   });
+
+  it("persists the new scope's messages after a switch without leaking the old scope", () => {
+    const messagesA: ChatMessage[] = [
+      { id: "a-1", role: "assistant", text: "A", timestamp: 1 },
+    ];
+    const messagesB: ChatMessage[] = [
+      { id: "b-1", role: "assistant", text: "B", timestamp: 1 },
+    ];
+    const harness = createHarness(messagesA);
+    vi.mocked(harness.ports.loadCachedMessages).mockImplementation(
+      (scopeKey: string) =>
+        scopeKey.endsWith("project-b:main") ? messagesB : messagesA,
+    );
+
+    const { result, rerender } = renderHook(
+      ({ project }: { project: string }) =>
+        useChatSessionController({
+          project,
+          displayName: "Alice",
+          ports: harness.ports,
+        }),
+      { initialProps: { project: "project-a" } },
+    );
+    act(() => vi.advanceTimersByTime(50));
+    expect(result.current.messages).toEqual(messagesA);
+
+    rerender({ project: "project-b" });
+    act(() => vi.advanceTimersByTime(50));
+    expect(result.current.messages).toEqual(messagesB);
+
+    // An update landing after the reseed must still be persisted under the
+    // new scope key (the guard must not wedge after the switch).
+    act(() => {
+      result.current.send("hello after switch");
+    });
+    act(() => vi.advanceTimersByTime(300));
+
+    const savedForNewScope = vi
+      .mocked(harness.ports.saveCachedMessages)
+      .mock.calls.filter(
+        ([scopeKey]) => scopeKey === "ai_anime:project:project-b:main",
+      );
+    expect(savedForNewScope.length).toBeGreaterThan(0);
+    for (const [, persisted] of savedForNewScope) {
+      expect(persisted).not.toEqual(messagesA);
+    }
+    expect(savedForNewScope[savedForNewScope.length - 1]?.[1]).toMatchObject([
+      { id: "b-1", text: "B" },
+      { role: "user", text: "hello after switch" },
+    ]);
+  });
 });

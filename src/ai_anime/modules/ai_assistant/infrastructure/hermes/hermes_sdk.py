@@ -13,6 +13,7 @@ See docs/hermes-acp-protocol.md for the full protocol.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -341,6 +342,10 @@ class HermesSdkThread:
         self.id: str = session_id or ""
         self._is_new = session_id is None
         self._proc: asyncio.subprocess.Process | None = None
+        # Drains the subprocess stderr pipe. Without a consumer hermes blocks
+        # once the OS pipe buffer fills (4–64KB), which stalls stdout and hangs
+        # every ACP turn until the read timeout kills the session.
+        self._stderr_task: asyncio.Task[None] | None = None
         self._req_counter = 0
         self._closed = False
         self._initialized = False
@@ -403,6 +408,33 @@ class HermesSdkThread:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
+        self._stderr_task = asyncio.create_task(
+            self._drain_stderr(self._proc.stderr),
+            name=f"hermes-stderr-{self._username}",
+        )
+
+    async def _drain_stderr(self, stream: asyncio.StreamReader | None) -> None:
+        """Consume hermes stderr forever so the pipe can never fill up.
+
+        A full stderr pipe blocks the child mid-write, which stops stdout and
+        deadlocks the ACP exchange. Lines are logged at debug level; the loop
+        exits on EOF (process gone) and is cancelled by close().
+        """
+        if stream is None:
+            return
+        try:
+            while True:
+                line = await stream.readline()
+                if not line:
+                    return
+                text = line.decode("utf-8", errors="replace").rstrip()
+                if text:
+                    _log.debug("hermes stderr [%s]: %s", self._username, text)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # Never let stderr bookkeeping surface as a session failure.
+            _log.debug("hermes stderr drain stopped", exc_info=True)
 
     async def _read_until_id(
         self, target_id: int, timeout: float
@@ -743,10 +775,30 @@ class HermesSdkThread:
             await self._proc.wait()
         except ProcessLookupError:
             pass
+        await self._stop_stderr_drain()
+
+    async def _stop_stderr_drain(self) -> None:
+        task = self._stderr_task
+        self._stderr_task = None
+        if task is None or task.done():
+            return
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await task
 
     @property
     def is_closed(self) -> bool:
         return self._closed
+
+    @property
+    def has_active_turn(self) -> bool:
+        """True while a prompt turn (or warm-up) holds the ACP stdio.
+
+        The pool reads this so an idle reaper or LRU eviction can't kill a
+        worker mid-turn. ``last_used`` is only stamped when the pool hands the
+        thread out, so a turn longer than the idle window looks idle without it.
+        """
+        return self._turn_lock.locked()
 
 
 __all__ = ["HermesSdkClient", "HermesSdkThread"]

@@ -25,6 +25,13 @@ const DEFAULT_RUNTIME_MANIFEST_BASE_URL =
   COMMERCIAL_RUNTIME_DEPENDENCIES_URL;
 const INSTALL_RECEIPT = "install.json";
 const MAX_PROCESS_OUTPUT = 2 * 1024 * 1024;
+/**
+ * How long a runtime smoke-check verdict stays usable.
+ *
+ * Absorbs repeated status() calls (panel remounts, refresh-button clicks)
+ * without hiding a real change for long. Installs clear it explicitly.
+ */
+const RUNTIME_SMOKE_CACHE_MS = 30_000;
 
 export const RUNTIME_DEPENDENCY_CHANNELS = {
   status: "desktop:runtime-dependencies:status",
@@ -300,6 +307,8 @@ export class RuntimeDependencyManager {
   private readonly arch: string;
   private readonly dependencyRoot: string;
   private installing = false;
+  private smokeCheck: { at: number; error: Error | null } | null = null;
+  private smokeCheckInFlight: Promise<Error | null> | null = null;
 
   constructor(
     userDataPath: string,
@@ -355,7 +364,9 @@ export class RuntimeDependencyManager {
       };
     }
     try {
-      await checkRuntime(this.paths);
+      await this.verifyRuntime().then((failure) => {
+        if (failure) throw failure;
+      });
       return {
         ...base,
         installed: true,
@@ -380,6 +391,40 @@ export class RuntimeDependencyManager {
     }
   }
 
+  /**
+   * Smoke-check the installed runtime, at most once per cache window.
+   *
+   * `checkRuntime` spawns two child processes with 300s and 60s timeouts.
+   * `status()` runs on every settings-section mount and on every click of the
+   * manual refresh button, so without in-flight sharing plus a short cache a
+   * few rapid clicks stack several heavyweight process pairs concurrently.
+   * The cache is dropped around installs, which are the only thing that
+   * legitimately changes the answer.
+   */
+  private async verifyRuntime(): Promise<Error | null> {
+    const cached = this.smokeCheck;
+    if (cached && Date.now() - cached.at < RUNTIME_SMOKE_CACHE_MS) {
+      return cached.error;
+    }
+    if (this.smokeCheckInFlight) return this.smokeCheckInFlight;
+    const run = (async (): Promise<Error | null> => {
+      try {
+        await checkRuntime(this.paths);
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error : new Error(String(error));
+      }
+    })();
+    this.smokeCheckInFlight = run;
+    try {
+      const error = await run;
+      this.smokeCheck = { at: Date.now(), error };
+      return error;
+    } finally {
+      this.smokeCheckInFlight = null;
+    }
+  }
+
   async install(
     onProgress: (progress: RuntimeDependencyProgress) => void = () => undefined,
   ): Promise<RuntimeDependencyStatus> {
@@ -388,6 +433,8 @@ export class RuntimeDependencyManager {
     }
     if (this.installing) throw new Error("导演世界 3D 运行环境正在安装");
     this.installing = true;
+    // The install replaces the very binaries the smoke check probes.
+    this.smokeCheck = null;
     const nonce = `${process.pid}-${Date.now()}`;
     const archivePath = join(this.dependencyRoot, `.world-${nonce}.tar.gz`);
     const stagingPath = join(this.dependencyRoot, `.staging-${nonce}`);
@@ -446,6 +493,9 @@ export class RuntimeDependencyManager {
       throw error;
     } finally {
       this.installing = false;
+      // Whether the install landed or rolled back, the previous verdict is
+      // stale — the next status() must probe the binaries that are there now.
+      this.smokeCheck = null;
       await rm(archivePath, { force: true }).catch(() => undefined);
       await rm(stagingPath, { recursive: true, force: true }).catch(() => undefined);
       await rm(previousPath, { recursive: true, force: true }).catch(() => undefined);

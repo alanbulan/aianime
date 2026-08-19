@@ -10,6 +10,16 @@ import {
   type UseChatSessionOptions,
 } from "@/modules/ai_assistant/application/useChatSessionController";
 import {
+  useActiveConversationController as useActiveConversationControllerWithPorts,
+  type ActiveConversationPorts,
+  type UseActiveConversationOptions,
+} from "@/modules/ai_assistant/application/useActiveConversationController";
+import {
+  activeConversationScopeKey,
+  loadActiveConversation,
+  saveActiveConversation,
+} from "@/modules/ai_assistant/infrastructure/activeConversationStorage";
+import {
   clearActiveTurn,
   loadPendingActiveTurn,
   saveActiveTurn,
@@ -69,6 +79,12 @@ const ingestAutomationPorts: IngestAutomationPorts = {
   uploadNovelForIngest,
 };
 
+const activeConversationPorts: ActiveConversationPorts = {
+  activeConversationScopeKey,
+  loadActiveConversation,
+  saveActiveConversation,
+};
+
 export function useChatSession(options: UseChatSessionOptions) {
   return useChatSessionController({
     ...options,
@@ -82,6 +98,13 @@ export function useIngestAutomationController(
   return useIngestAutomationControllerWithPorts({
     ...options,
     ports: ingestAutomationPorts,
+  });
+}
+
+export function useActiveConversation(options: UseActiveConversationOptions) {
+  return useActiveConversationControllerWithPorts({
+    ...options,
+    ports: activeConversationPorts,
   });
 }
 

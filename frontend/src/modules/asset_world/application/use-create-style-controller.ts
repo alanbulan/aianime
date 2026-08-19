@@ -150,7 +150,10 @@ export function createUseCreateStyleController(
 
     return {
       analyzed,
-      analyzePending: analyzeStyle.isPending,
+      // handleAnalyze uploads first and only then analyzes, so gating on the
+      // analyze mutation alone left the trigger live through the whole upload
+      // phase — a second click there starts a concurrent upload+analyze pair.
+      analyzePending: uploadStylePreview.isPending || analyzeStyle.isPending,
       createDisabled:
         createStyle.isPending ||
         uploadStylePreview.isPending ||

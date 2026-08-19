@@ -728,8 +728,11 @@ export function CreateStyleDialogView({
               type="file"
               className="hidden"
               accept={STYLE_PREVIEW_ACCEPT}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                // Clear the value so re-picking the same file fires change
+                // again; without it a retry after a failed analyze is a no-op.
+                event.currentTarget.value = "";
                 if (file) handleAnalyze(file);
               }}
             />

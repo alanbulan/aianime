@@ -1058,7 +1058,12 @@ export class CommercialApiClient {
       method: input.method,
       headers,
       ...(input.body === undefined ? {} : { body: input.body, duplex: "half" }),
-      signal: input.signal ?? AbortSignal.timeout(MODEL_TIMEOUT_MS),
+      // Combine rather than fall back: callers always pass a signal, so a bare
+      // `??` made the ceiling dead code and a hung cloud request had no
+      // client-side backstop at all. Either source can now abort the request.
+      signal: input.signal
+        ? AbortSignal.any([input.signal, AbortSignal.timeout(MODEL_TIMEOUT_MS)])
+        : AbortSignal.timeout(MODEL_TIMEOUT_MS),
     } as RequestInit & { duplex?: "half" };
     try {
       return await this.fetchImpl(url, requestInit);

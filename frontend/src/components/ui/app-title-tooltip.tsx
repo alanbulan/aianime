@@ -139,16 +139,39 @@ export function AppTitleTooltip() {
       setActive((shown) => (shown?.anchor === current ? null : shown));
     };
 
+    // Pointer activation fires pointerdown → focusin → click. hideOnActivation
+    // runs on pointerdown, then the focus the browser moves into the button
+    // re-shows the tooltip for the whole time the button is held down, and
+    // only the trailing click hides it again. Suppress exactly the one focusin
+    // that pointer activation causes; keyboard focus still shows the tooltip.
+    let suppressNextFocusShow = false;
+
+    const showOnFocus = (event: Event) => {
+      if (suppressNextFocusShow) {
+        suppressNextFocusShow = false;
+        return;
+      }
+      show(event);
+    };
+
     const hideOnActivation = (event: Event) => {
+      if (event.type === "pointerdown") suppressNextFocusShow = true;
       const current = tooltipTarget(event.target);
       setActive((shown) => (shown?.anchor === current ? null : shown));
+    };
+
+    // A pointerdown that never moves focus must not leave the flag armed for a
+    // later, unrelated keyboard focus.
+    const clearFocusSuppression = () => {
+      suppressNextFocusShow = false;
     };
 
     document.addEventListener("pointerover", show, true);
     document.addEventListener("pointerout", hide, true);
     document.addEventListener("pointerdown", hideOnActivation, true);
     document.addEventListener("click", hideOnActivation, true);
-    document.addEventListener("focusin", show, true);
+    document.addEventListener("pointerup", clearFocusSuppression, true);
+    document.addEventListener("focusin", showOnFocus, true);
     document.addEventListener("focusout", hide, true);
 
     return () => {
@@ -157,7 +180,8 @@ export function AppTitleTooltip() {
       document.removeEventListener("pointerout", hide, true);
       document.removeEventListener("pointerdown", hideOnActivation, true);
       document.removeEventListener("click", hideOnActivation, true);
-      document.removeEventListener("focusin", show, true);
+      document.removeEventListener("pointerup", clearFocusSuppression, true);
+      document.removeEventListener("focusin", showOnFocus, true);
       document.removeEventListener("focusout", hide, true);
     };
   }, []);

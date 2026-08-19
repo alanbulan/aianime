@@ -33,6 +33,7 @@ export class EncryptedFileCommercialDeviceIdentity
   implements CommercialDeviceSigner
 {
   private cache: StoredDeviceIdentity | null = null;
+  private loading: Promise<StoredDeviceIdentity> | null = null;
 
   constructor(
     private readonly filePath: string,
@@ -62,19 +63,32 @@ export class EncryptedFileCommercialDeviceIdentity
 
   private async loadOrCreate(): Promise<StoredDeviceIdentity> {
     if (this.cache) return this.cache;
+    // Share one in-flight load. Two concurrent first callers (summary() and
+    // signMessage() both run during startup) would otherwise each generate a
+    // keypair and write it, leaving the cached identity and the on-disk one
+    // disagreeing — which forces the user to re-activate the device.
+    if (this.loading) return this.loading;
+    const run = this.readOrGenerate();
+    this.loading = run;
+    try {
+      const identity = await run;
+      this.cache = identity;
+      return identity;
+    } finally {
+      this.loading = null;
+    }
+  }
+
+  private async readOrGenerate(): Promise<StoredDeviceIdentity> {
     const stored = await readEncryptedJsonFile(
       this.filePath,
       this.secureStorage,
       parseStoredDeviceIdentity,
     );
-    if (stored) {
-      this.cache = stored;
-      return stored;
-    }
+    if (stored) return stored;
 
     const created = createDeviceIdentity();
     await writeEncryptedJsonFile(this.filePath, this.secureStorage, created);
-    this.cache = created;
     return created;
   }
 }

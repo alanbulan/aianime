@@ -1,5 +1,7 @@
 """Creative Canvas document endpoints."""
 
+import asyncio
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from ai_anime.api.routes.identity_access.dependencies import get_api_user
@@ -39,11 +41,12 @@ async def list_canvases(
 ):
     resolved = await _resolve_viewer_project(project, user)
     try:
-        documents = creative_canvas_document_queries().list_documents(
+        documents = await asyncio.to_thread(
+            creative_canvas_document_queries().list_documents,
             ListCreativeCanvasDocumentsQuery(
                 context=resolved.ctx,
                 actor_id=canvas_actor_id(user),
-            )
+            ),
         )
     except (CreativeCanvasDocumentCorrupt, CreativeCanvasDocumentBusy) as exc:
         raise_canvas_document_http_error(exc)
@@ -89,11 +92,12 @@ async def list_canvas_history(
     _validate_canvas_id(canvas_id)
     resolved = await _resolve_viewer_project(project, user)
     try:
-        history = creative_canvas_document_queries().list_document_history(
+        history = await asyncio.to_thread(
+            creative_canvas_document_queries().list_document_history,
             ListCreativeCanvasDocumentHistoryQuery(
                 context=resolved.ctx,
                 canvas_id=canvas_id,
-            )
+            ),
         )
     except InvalidCreativeCanvasDocumentQuery as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -117,14 +121,15 @@ async def get_node_generation_history(
     _validate_canvas_id(canvas_id)
     resolved = await _resolve_viewer_project(project, user)
     try:
-        records = creative_canvas_document_queries().list_node_generation_history(
+        records = await asyncio.to_thread(
+            creative_canvas_document_queries().list_node_generation_history,
             ListCreativeCanvasNodeGenerationHistoryQuery(
                 context=resolved.ctx,
                 project_dir=resolved.project_dir,
                 canvas_id=canvas_id,
                 node_id=node_id,
                 limit=limit,
-            )
+            ),
         )
     except InvalidCreativeCanvasDocumentQuery as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -145,13 +150,14 @@ async def get_canvas_generation_history(
     _validate_canvas_id(canvas_id)
     resolved = await _resolve_viewer_project(project, user)
     try:
-        records = creative_canvas_document_queries().list_generation_history(
+        records = await asyncio.to_thread(
+            creative_canvas_document_queries().list_generation_history,
             ListCreativeCanvasGenerationHistoryQuery(
                 context=resolved.ctx,
                 project_dir=resolved.project_dir,
                 canvas_id=canvas_id,
                 limit=limit,
-            )
+            ),
         )
     except InvalidCreativeCanvasDocumentQuery as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -171,7 +177,8 @@ async def restore_canvas_history(
     _validate_canvas_id(canvas_id)
     resolved = await _resolve_editor_project(project, user)
     try:
-        response = creative_canvas_document_commands().restore(
+        response = await asyncio.to_thread(
+            creative_canvas_document_commands().restore,
             RestoreCreativeCanvasDocumentCommand(
                 context=resolved.ctx,
                 project_id=project,
@@ -180,7 +187,7 @@ async def restore_canvas_history(
                 base_revision=body.get("base_revision"),
                 actor_id=canvas_actor_id(user),
                 event_actor=canvas_event_actor(user),
-            )
+            ),
         )
     except (
         CreativeCanvasDocumentWriteError,
@@ -204,7 +211,8 @@ async def put_canvas(
     _validate_canvas_id(canvas_id)
     resolved = await _resolve_editor_project(project, user)
     try:
-        response = creative_canvas_document_commands().save(
+        response = await asyncio.to_thread(
+            creative_canvas_document_commands().save,
             SaveCreativeCanvasDocumentCommand(
                 context=resolved.ctx,
                 project_id=project,
@@ -227,7 +235,7 @@ async def put_canvas(
                 allow_empty_overwrite=body.allow_empty_overwrite,
                 actor_id=canvas_actor_id(user),
                 event_actor=canvas_event_actor(user),
-            )
+            ),
         )
     except (
         CreativeCanvasDocumentWriteError,
@@ -250,14 +258,15 @@ async def delete_canvas(
     _validate_canvas_id(canvas_id)
     resolved = await _resolve_editor_project(project, user)
     try:
-        response = creative_canvas_document_commands().delete(
+        response = await asyncio.to_thread(
+            creative_canvas_document_commands().delete,
             DeleteCreativeCanvasDocumentCommand(
                 context=resolved.ctx,
                 project_id=project,
                 canvas_id=canvas_id,
                 actor_id=canvas_actor_id(user),
                 event_actor=canvas_event_actor(user),
-            )
+            ),
         )
     except (
         CreativeCanvasDocumentWriteError,

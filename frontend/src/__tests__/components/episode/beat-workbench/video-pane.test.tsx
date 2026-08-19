@@ -1454,6 +1454,18 @@ describe("VideoPane Seedance2 inspector", () => {
       .find((element) => element.closest('[role="dialog"]'));
     if (!cropImage) throw new Error("crop image not found");
     expect(cropImage).toHaveAttribute("src", "/static/demo/frames/ep001/beat_01.png");
+    // jsdom never decodes images, so the dialog's onLoad would never fire and
+    // saving stays disabled until a real crop box exists. Simulate the decode a
+    // browser performs.
+    Object.defineProperty(cropImage, "naturalWidth", {
+      configurable: true,
+      value: 1920,
+    });
+    Object.defineProperty(cropImage, "naturalHeight", {
+      configurable: true,
+      value: 1080,
+    });
+    fireEvent.load(cropImage);
     const cropButtons = await screen.findAllByRole("button", { name: "裁剪" });
     await user.click(cropButtons[cropButtons.length - 1]);
 

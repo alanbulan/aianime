@@ -54,14 +54,39 @@ function commercialResultFileName(
   contentDisposition: string | null,
   id: string | number,
 ): string {
+  const fallback = `AI-anime-result-${String(id)}.bin`;
   const encoded = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition ?? "")?.[1];
   if (encoded) {
     try {
-      return basename(decodeURIComponent(encoded));
+      return sanitizeResultFileName(basename(decodeURIComponent(encoded)), fallback);
     } catch {
       // Fall through to the ASCII filename or generated fallback.
     }
   }
   const plain = /filename="?([^";]+)"?/i.exec(contentDisposition ?? "")?.[1];
-  return plain ? basename(plain.trim()) : `AI-anime-result-${String(id)}.bin`;
+  return plain
+    ? sanitizeResultFileName(basename(plain.trim()), fallback)
+    : fallback;
+}
+
+/**
+ * Make a server-supplied filename safe to use as a save-dialog default.
+ *
+ * `basename` only strips directory separators. A name still carrying `: * ? "
+ * < > |` or a control character, a trailing dot/space, or a reserved DOS
+ * device name is rejected by Windows with EINVAL when the write is finally
+ * attempted. Spaces and hyphens are legal and deliberately preserved.
+ */
+function sanitizeResultFileName(name: string, fallback: string): string {
+  const cleaned = name
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_")
+    .replace(/[. ]+$/, "")
+    .trim();
+  if (!cleaned || cleaned === "." || cleaned === "..") return fallback;
+  const dot = cleaned.lastIndexOf(".");
+  const stem = dot > 0 ? cleaned.slice(0, dot) : cleaned;
+  const extension = dot > 0 ? cleaned.slice(dot) : "";
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(stem)) return `_${cleaned}`;
+  // Truncate the stem, never the extension: it drives the dialog type filter.
+  return stem.length > 150 ? `${stem.slice(0, 150)}${extension}` : cleaned;
 }

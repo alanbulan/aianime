@@ -61,7 +61,22 @@ export function createUseStyleDetailController(
       setPreviewRevision(0);
     }, [style.id]);
 
+    // Tracks whether the form held unsaved edits as of the previous commit, so
+    // the reset effect below can consult it without depending on `dirty`
+    // (which is derived from the very state that effect writes).
+    const dirtyRef = useRef(false);
+    const styleIdRef = useRef(style.id);
+
     useEffect(() => {
+      const selectionChanged = styleIdRef.current !== style.id;
+      styleIdRef.current = style.id;
+      // `original` is memoized on `style`, so any refetch that yields a new
+      // object reference re-runs this effect. Uploading a cover invalidates
+      // ["styles"], which prefix-matches ["styles","detail",id] and refetches
+      // this very query — re-seeding the form there silently threw away every
+      // unsaved field edit. Only re-seed when the user switched styles or has
+      // nothing pending to lose.
+      if (!selectionChanged && dirtyRef.current) return;
       setFields(original);
       setEditingName(style.name);
       setNameEditOpen(false);
@@ -84,6 +99,10 @@ export function createUseStyleDetailController(
         (key) => fields[key] !== original[key],
       );
     }, [editingName, fields, jsonText, original, showJson, style]);
+
+    useEffect(() => {
+      dirtyRef.current = dirty;
+    }, [dirty]);
 
     const updateField = (key: keyof EditableStyleConfig, value: string) =>
       setFields((current) => ({ ...current, [key]: value }));

@@ -103,8 +103,22 @@ async def dispatch_chat_turn(
     current_scope: ChatScope,
     message: ChatMessageIn,
 ) -> None:
-    scope = to_chat_scope(message.scope) if message.scope else current_scope
     turn_id = (message.turn_id or "").strip() or uuid.uuid4().hex
+    # Resolved before the guarded block below because the failure handler
+    # reports against `scope`. A client-supplied scope can be invalid, and
+    # letting that ValueError escape would tear down the whole session.
+    try:
+        scope = to_chat_scope(message.scope) if message.scope else current_scope
+    except ValueError as exc:
+        await send_json_best_effort(
+            websocket,
+            {
+                "type": "error",
+                "turn_id": turn_id,
+                "message": f"unsupported chat scope: {exc}",
+            },
+        )
+        return
     text = message.text.strip()
     if not text:
         await send_json_best_effort(

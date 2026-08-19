@@ -205,7 +205,9 @@ class InlineTaskBackend:
         task = asyncio.create_task(self._run_inline(lane, job))
         self._background_tasks.add(task)
         task.add_done_callback(
-            lambda done, lane_name=lane.name: self._on_background_task_done(done, lane_name)
+            lambda done, lane_name=lane.name, lane_job=job: (
+                self._on_background_task_done(done, lane_name, lane_job)
+            )
         )
 
     def _pop_next_lane_job(self, lane: _InlineLane) -> _InlineLaneJob | None:
@@ -253,24 +255,81 @@ class InlineTaskBackend:
             ),
         )
 
-    def _on_background_task_done(self, task: asyncio.Task, lane_name: str) -> None:
+    def _on_background_task_done(
+        self,
+        task: asyncio.Task,
+        lane_name: str,
+        job: _InlineLaneJob,
+    ) -> None:
         self._background_tasks.discard(task)
         lane = self._lanes[lane_name]
         lane.active = max(lane.active - 1, 0)
         if task.cancelled():
+            self._settle_escaped_task(job, "任务执行器被取消")
             self._drain_lane(lane_name)
             return
         try:
             exc = task.exception()
         except Exception:
             logger.exception("Inline project task background runner failed")
+            self._settle_escaped_task(job, "任务执行器状态不可读")
+            self._drain_lane(lane_name)
             return
         if exc is not None:
             logger.error(
                 "Inline project task background runner failed",
                 exc_info=(type(exc), exc, exc.__traceback__),
             )
+            self._settle_escaped_task(job, f"任务执行器异常退出: {exc}")
         self._drain_lane(lane_name)
+
+    def _settle_escaped_task(self, job: _InlineLaneJob, error: str) -> None:
+        """Fail a task whose runner died outside the runner's own guard.
+
+        ``execute_project_task_sync`` only converts exceptions raised *inside*
+        the resolved runner into a failed row. Anything thrown around it — the
+        "任务已开始" progress write hitting SQLite busy, ``runner_loader()``
+        raising, subprocess-context teardown — escapes with the row left at
+        ``running``. ``running`` carries no TTL and
+        ``reserve_task_for_project`` counts it as active, so that row rejects
+        every later task sharing its key until the sidecar restarts.
+
+        Only still-active rows are touched, so a teardown error raised *after*
+        the task legitimately completed can never overwrite the result.
+        """
+        try:
+            task_type = str(job.envelope["task_type"])
+            episode = int(job.envelope.get("episode") or 0)
+            beat_num = job.envelope.get("beat_num")
+            scope = job.envelope.get("scope")
+            state = job.manager.get_task_for_project(
+                job.ctx,
+                task_type,
+                episode,
+                beat_num,
+                scope,
+            )
+            if state is None or state.task_id != job.run_task_id:
+                return
+            if state.status not in ACTIVE_PROJECT_TASK_STATUSES:
+                return
+            job.manager.fail_task_for_project(
+                job.ctx,
+                task_type,
+                episode,
+                beat_num=beat_num,
+                scope=scope,
+                error=error,
+                metadata=job.metadata,
+                expected_task_id=job.run_task_id,
+            )
+        except Exception:
+            # Best effort: a failure to record the failure must not break lane
+            # draining, or one bad task would stall the whole lane.
+            logger.exception(
+                "Failed to record escaped inline project task failure: %s",
+                job.run_task_id,
+            )
 
     async def cancel_project_task(self, ctx, task_state) -> bool:
         await self._cancellation_store_provider().request_cancel(
