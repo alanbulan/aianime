@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useTranslation } from "react-i18next";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ExternalLink,
@@ -58,6 +58,7 @@ import { Progress } from "@/components/ui/progress";
 import { SaveStatus } from "@/components/save-status";
 import { saveScopes } from "@/shared/stores/save-status-store";
 import { SidebarListSkeleton } from "@/components/skeletons";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1042,6 +1043,40 @@ export function IdentityCardView({
   const identityCreditDialogActionClass = showCreditDecorations
     ? "relative border-[3px] border-primary bg-transparent pr-9 transition-transform hover:border-primary hover:bg-transparent active:scale-95"
     : "transition-transform active:scale-95";
+  const HARD_BLOCK_THRESHOLD = 5 as const;
+
+  // Hard-block gate: when generation attempts are ≥ threshold, the user must
+  // check "I understand this still costs credits — force continue" before the
+  // ordinary confirm dialog is shown. Applies to both body image and portrait.
+  const [hardBlockOpen, setHardBlockOpen] = useState<"image" | "portrait" | null>(
+    null,
+  );
+  const [hardBlockAcknowledged, setHardBlockAcknowledged] = useState(false);
+  useEffect(() => {
+    if (!hardBlockOpen) setHardBlockAcknowledged(false);
+  }, [hardBlockOpen]);
+
+  const requestGenImageOrBlock = () => {
+    if (imageAttempts >= HARD_BLOCK_THRESHOLD) {
+      setHardBlockOpen("image");
+      return;
+    }
+    setConfirmGenOpen(true);
+  };
+  const requestGenPortraitOrBlock = () => {
+    if (portraitAttempts >= HARD_BLOCK_THRESHOLD) {
+      setHardBlockOpen("portrait");
+      return;
+    }
+    handleGenPortrait();
+  };
+  const proceedHardBlock = () => {
+    if (!hardBlockAcknowledged) return;
+    const target = hardBlockOpen;
+    setHardBlockOpen(null);
+    if (target === "image") setConfirmGenOpen(true);
+    else if (target === "portrait") handleGenPortrait();
+  };
 
   return (
     <article className="@container flex flex-col gap-4 rounded-[10px] border border-border bg-card p-5 pb-3">
@@ -1177,7 +1212,7 @@ export function IdentityCardView({
               size="sm"
               variant="outline"
               className={identityCreditButtonClass}
-              onClick={() => setConfirmGenOpen(true)}
+              onClick={requestGenImageOrBlock}
               disabled={generateImageBusy || !appearance.trim()}
             >
               {generateImageBusy ? (
@@ -1438,7 +1473,7 @@ export function IdentityCardView({
                                 size="sm"
                                 variant="outline"
                                 className={identityCreditButtonClass}
-                                onClick={handleGenPortrait}
+                                onClick={requestGenPortraitOrBlock}
                                 disabled={
                                   generatePortraitBusy ||
                                   !isAgeVariant ||
@@ -1656,6 +1691,56 @@ export function IdentityCardView({
               className={identityCreditDialogActionClass}
             >
               {t("characters.identities.generate")}
+              <CreditCostInline display={identityCost} />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Hard-block: ≥5 attempts, need checkbox ack before regular confirm */}
+      <AlertDialog
+        open={hardBlockOpen !== null}
+        onOpenChange={(open) => {
+          if (!open) setHardBlockOpen(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {hardBlockOpen === "portrait"
+                ? t("characters.identities.hardBlockPortraitTitle")
+                : t("characters.identities.hardBlockTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("characters.identities.hardBlockBody", {
+                count:
+                  hardBlockOpen === "portrait"
+                    ? portraitAttempts
+                    : imageAttempts,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-start gap-2 rounded-[8px] border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            <Checkbox
+              id="hard-block-ack"
+              checked={hardBlockAcknowledged}
+              onCheckedChange={(v) => setHardBlockAcknowledged(Boolean(v))}
+            />
+            <Label
+              htmlFor="hard-block-ack"
+              className="cursor-pointer select-none text-sm font-normal leading-snug text-destructive"
+            >
+              {t("characters.identities.hardBlockConfirmLabel")}
+            </Label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={proceedHardBlock}
+              disabled={!hardBlockAcknowledged}
+            >
+              {t("characters.identities.hardBlockProceed")}
               <CreditCostInline display={identityCost} />
             </AlertDialogAction>
           </AlertDialogFooter>
