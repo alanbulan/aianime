@@ -15,6 +15,15 @@ from ai_anime.modules.platform_release.public import (
 )
 
 
+# Project static files are addressed with content-versioned URLs (`v=<mtime_ns>`
+# authored by canvas_static_urls, or `st_v=<committed_at>` from the renderer), so
+# cached bodies are safe to reuse: rewritten files get a new URL. Explicit
+# max-age lets remounted canvas <img> elements (onlyRenderVisibleElements) hit
+# the local cache instead of revalidating every time, which removes blank-frame
+# flicker while panning.
+CACHEABLE_FILE_HEADERS = {"Cache-Control": "private, max-age=3600"}
+
+
 def _response_for(delivery: ProjectFileDelivery) -> Response:
     if delivery.redirect_url:
         return RedirectResponse(
@@ -26,8 +35,12 @@ def _response_for(delivery: ProjectFileDelivery) -> Response:
         return FileResponse(
             path=str(delivery.path),
             filename=delivery.download_name,
+            headers=CACHEABLE_FILE_HEADERS,
         )
-    return FileResponse(path=str(delivery.path))
+    return FileResponse(
+        path=str(delivery.path),
+        headers=CACHEABLE_FILE_HEADERS,
+    )
 
 
 async def serve_project_file(

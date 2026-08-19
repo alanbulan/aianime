@@ -2,6 +2,8 @@
 import {
   memo,
   useCallback,
+  useEffect,
+  useState,
   type ImgHTMLAttributes,
   type MouseEvent,
 } from 'react';
@@ -38,6 +40,44 @@ export const CanvasNodeImage = memo(function CanvasNodeImage({
   src,
   ...props
 }: CanvasNodeImageProps) {
+  // Keep showing the previous image until the next one has finished loading
+  // and decoding. Swapping <img src> directly makes the browser drop the
+  // current bitmap immediately, which flashes blank frames when the canvas
+  // zoom crosses the preview/original threshold or when React Flow remounts
+  // nodes entering the viewport (onlyRenderVisibleElements).
+  const [displayedSrc, setDisplayedSrc] = useState(src);
+
+  useEffect(() => {
+    if (src === displayedSrc) return;
+    if (!src) {
+      setDisplayedSrc(src);
+      return;
+    }
+    let cancelled = false;
+    const commit = () => {
+      if (!cancelled) setDisplayedSrc(src);
+    };
+    const commitWhenDecoded = () => {
+      if (typeof preloader.decode === 'function') {
+        void preloader.decode().then(commit, commit);
+      } else {
+        commit();
+      }
+    };
+    const preloader = new Image();
+    preloader.onload = commitWhenDecoded;
+    // Failed loads still commit so broken-image behavior matches a plain src.
+    preloader.onerror = commit;
+    preloader.src = src;
+    // Memory-cache hits can complete synchronously before onload is queued.
+    if (preloader.complete && preloader.naturalWidth > 0) {
+      commitWhenDecoded();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [src, displayedSrc]);
+
   const handleDoubleClick = useCallback(
     (event: MouseEvent<HTMLImageElement>) => {
       onDoubleClick?.(event);
@@ -65,7 +105,10 @@ export const CanvasNodeImage = memo(function CanvasNodeImage({
     <img
       draggable={false}
       {...props}
-      src={src}
+      src={displayedSrc}
+      // Node images are viewport-sized and usually cached: decoding them
+      // synchronously avoids a blank frame between mount and first paint.
+      decoding="sync"
       data-viewer-src={
         typeof viewerSourceUrl === 'string' && viewerSourceUrl.trim().length > 0
           ? viewerSourceUrl.trim()
