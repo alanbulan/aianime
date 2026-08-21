@@ -434,14 +434,19 @@ export function StyleDetailView({
       {/* Scrolling content */}
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         {/* Preview */}
-        <div className="mb-6 w-full max-w-[240px]">
-          <PreviewBox
-            onUpload={() => previewFileInputRef.current?.click()}
-            preset={preset}
-            previewUrl={previewUrl}
-            style={style}
-            uploading={previewUploadPending}
-          />
+        <div className="mb-6 space-y-2">
+          <div className="w-full max-w-[240px]">
+            <PreviewBox
+              onUpload={() => previewFileInputRef.current?.click()}
+              preset={preset}
+              previewUrl={previewUrl}
+              style={style}
+              uploading={previewUploadPending}
+            />
+          </div>
+          <p className="max-w-3xl text-xs leading-relaxed text-muted-foreground">
+            {t("styles.referenceUsageHint")}
+          </p>
           {!preset && (
             <input
               ref={previewFileInputRef}

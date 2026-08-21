@@ -33,8 +33,16 @@ class UnifiedStylePreviewGenerator:
         animation_subtype = str(style.get("animation_subtype") or "").strip()
         resolved_prompt = f"""Create one polished, full-frame visual style reference image comparable to a built-in production style preset.
 
-SUBJECT AND SCENE:
+SUBJECT AND SCENE DIRECTION:
 {prompt}
+
+MANDATORY REFERENCE COVERAGE (takes priority over conflicting subject or scene wording):
+- Include one clearly visible anonymous adult character in a medium or waist-up foreground view, with an unobscured face, eyes, hair, skin, and clothing
+- Include a substantial representative environment in the same coherent frame, with visible architecture, materials, props, or foliage appropriate to the requested direction
+- Show enough character detail to demonstrate facial line weight, eye rendering, hair treatment, skin shading, fabric treatment, and edge finish
+- Show enough environment detail to demonstrate palette, lighting, material rendering, texture, atmospheric depth, lens treatment, and grade
+- The anonymous character is only a rendering sample for this style reference and must not be treated as a reusable character identity
+- If the subject or scene direction asks for an empty environment, no people, or no face, preserve its setting and mood but still satisfy the character-and-environment coverage above
 
 STYLE CONFIGURATION:
 Style tag: {style_tag}
@@ -43,8 +51,7 @@ Animation subtype: {animation_subtype}
 {style_instructions}
 
 OUTPUT REQUIREMENTS:
-- Render the requested subject and scene as one coherent finished production still
-- People, faces, portraits, animals, props, and environments are allowed when requested by the subject and scene
+- Render the required character and requested scene direction as one coherent finished production still
 - Demonstrate the style consistently through medium, linework, palette, lighting, materials, texture, depth, lens treatment, grade, and finish
 - Use a single full-frame composition, not a collage, contact sheet, split panel, character sheet, or mood board
 - No readable text, labels, logos, signatures, or watermarks

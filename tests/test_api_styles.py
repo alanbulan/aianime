@@ -129,6 +129,8 @@ def test_style_reference_is_last_and_reserves_one_model_slot(tmp_path):
     assert len(references) == 10
     assert "GLOBAL STYLE REFERENCE IMAGE" in prompt
     assert "subject identity" in prompt
+    assert "facial line weight" in prompt
+    assert "scene and prop assets" in prompt
 
 
 def test_style_reference_upload_returns_final_path_without_ai_analysis(monkeypatch, tmp_path):

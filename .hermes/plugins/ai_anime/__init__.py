@@ -776,7 +776,7 @@ def _generate_style_preview_response(
 ) -> dict[str, Any]:
     resolved_prompt = (
         str(prompt or "").strip()
-        or "A beautiful woman standing in a garden"
+        or "An anonymous adult character in a representative everyday environment"
     )
     response = _request(
         "POST",
@@ -2440,7 +2440,11 @@ TOOLS = (
                 },
                 "preview_prompt": {
                     "type": "string",
-                    "description": "Prompt for the generated style reference image.",
+                    "description": (
+                        "Direction for one generated style reference image. It must show one "
+                        "clearly visible anonymous adult character and a representative "
+                        "environment in the same polished full-frame production still."
+                    ),
                 },
                 "attachment_path": {
                     "type": "string",
@@ -2466,9 +2470,11 @@ TOOLS = (
                 "prompt": {
                     "type": "string",
                     "description": (
-                        "Optional subject and scene for one polished full-frame style reference. "
-                        "People and faces are allowed; the saved reference is later used only for "
-                        "rendering medium, linework, palette, lighting, materials, texture, and finish."
+                        "Optional creative direction for one polished full-frame style reference. "
+                        "The result must include one clearly visible anonymous adult character and "
+                        "a representative environment; do not request an empty scene, no people, or "
+                        "no face. The person demonstrates character rendering only and is never a "
+                        "reusable identity."
                     ),
                 },
             },

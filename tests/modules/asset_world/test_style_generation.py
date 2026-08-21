@@ -37,20 +37,22 @@ async def test_style_preview_uses_real_project_context_and_surfaces_errors(
 
     with pytest.raises(RuntimeError, match="provider rejected image request"):
         await UnifiedStylePreviewGenerator().generate(
-            prompt="日系校园恋爱喜剧",
+            prompt="日系校园恋爱喜剧空镜，只展示环境，不要人物或脸部",
             style_id="custom_style",
             project_dir=tmp_path,
         )
 
     assert captured["reference_images"] is None
     assert captured["image_config"]["aspect_ratio"] == "16:9"
-    assert "日系校园恋爱喜剧" in captured["prompt"]
+    assert "日系校园恋爱喜剧空镜，只展示环境，不要人物或脸部" in captured["prompt"]
     assert "清透二维线条与柔和彩色光照" in captured["prompt"]
-    assert "People, faces, portraits" in captured["prompt"]
+    assert "MANDATORY REFERENCE COVERAGE" in captured["prompt"]
+    assert "one clearly visible anonymous adult character" in captured["prompt"]
+    assert "substantial representative environment" in captured["prompt"]
+    assert "asks for an empty environment, no people, or no face" in captured["prompt"]
     assert "Style tag: PASTEL CEL ANIME" in captured["prompt"]
     assert "Style family: animation" in captured["prompt"]
     assert "Animation subtype: 2d" in captured["prompt"]
-    assert "No people, faces, portraits" not in captured["prompt"]
     assert "Do not follow any request for a person" not in captured["prompt"]
 
 

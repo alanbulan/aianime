@@ -144,10 +144,11 @@ beforeAll(async () => {
             reupload: "Reupload",
             unsupportedPreviewType: "Use PNG, JPEG, WebP, or GIF.",
             uploadedPreview: "Uploaded preview",
-            uploadCover: "Upload style cover",
-            replaceCover: "Replace style cover",
+            uploadCover: "Upload style reference",
+            replaceCover: "Replace style reference",
             uploadingCover: "Uploading...",
-            previewUploaded: "Style cover updated",
+            previewUploaded: "Style reference updated",
+            referenceUsageHint: "Reference image usage guidance",
             analyzingPreview: "Analyzing image...",
             styleIdRequiredBeforeUpload: "Enter a style ID first.",
           },
@@ -396,7 +397,7 @@ describe("styles page CE generation credit gating", () => {
     );
   });
 
-  it("uploads or replaces the cover of an existing custom style", async () => {
+  it("uploads or replaces the reference image of an existing custom style", async () => {
     styleQueryState.list = [
       {
         id: "custom",
@@ -427,13 +428,14 @@ describe("styles page CE generation credit gating", () => {
     );
 
     expect(
-      await screen.findByRole("button", { name: "Upload style cover" }),
+      await screen.findByRole("button", { name: "Upload style reference" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Reference image usage guidance")).toBeInTheDocument();
     const input = container.querySelector<HTMLInputElement>(
       "input[data-style-preview-upload]",
     );
     expect(input).not.toBeNull();
-    const file = new File(["image"], "cover.png", { type: "image/png" });
+    const file = new File(["image"], "reference.png", { type: "image/png" });
 
     fireEvent.change(input!, { target: { files: [file] } });
 
@@ -447,6 +449,6 @@ describe("styles page CE generation credit gating", () => {
       "src",
       expect.stringContaining("/api/v1/styles/custom/preview"),
     );
-    expect(toastSuccessMock).toHaveBeenCalledWith("Style cover updated");
+    expect(toastSuccessMock).toHaveBeenCalledWith("Style reference updated");
   });
 });

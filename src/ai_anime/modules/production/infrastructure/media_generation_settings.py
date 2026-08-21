@@ -27,6 +27,8 @@ IMAGE_DEFAULT_STYLE = os.environ.get(
 STYLE_REFERENCE_IMAGE_KEY = "style_reference_image_path"
 STYLE_REFERENCE_DIRECTIVE = """GLOBAL STYLE REFERENCE IMAGE:
 - The final attached image is the project style reference. Use it to match only the rendering medium, linework, palette, lighting, material treatment, texture, and finish.
+- For portraits and character assets, transfer only its character-rendering vocabulary: facial line weight, eye construction and highlights, hair grouping and highlights, skin and fabric shading, edge treatment, and finish.
+- For scene and prop assets, transfer only its scene-rendering vocabulary: palette, illumination, material response, texture, atmospheric depth, edge treatment, and finish.
 - Do not copy any person, face, facial features, hairstyle, body, costume, pose, scene content, object, composition, camera position, or text from the style reference.
 - Character, identity, costume, scene, prop, sketch, and composition references attached before it are the source of truth for subjects and layout.
 - If the style reference conflicts with the task description or any subject reference, keep the task content and subject identity, and transfer only the visual style."""

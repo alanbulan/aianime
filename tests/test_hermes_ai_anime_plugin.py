@@ -451,7 +451,7 @@ def test_create_style_can_generate_reference_through_canonical_task_route(
     ]
 
 
-def test_generate_style_preview_default_matches_upstream_preset_subject(
+def test_generate_style_preview_default_covers_character_and_environment(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -475,7 +475,7 @@ def test_generate_style_preview_default_matches_upstream_preset_subject(
             "/api/v1/styles/custom_abc/preview",
             {
                 "project": "project-1",
-                "prompt": "A beautiful woman standing in a garden",
+                "prompt": "An anonymous adult character in a representative everyday environment",
             },
         )
     ]

@@ -37,7 +37,7 @@ class UpdateStyleRequest(BaseModel):
 
 class StylePreviewRequest(BaseModel):
     project: Optional[str] = None
-    prompt: str = "A beautiful woman standing in a garden"
+    prompt: str = "An anonymous adult character in a representative everyday environment"
 
 
 __all__ = [
