@@ -193,6 +193,17 @@ sha512: FhPVvBqHQegmo6O1ZOzRitmM6JQqlt/Yh470sDxY/gffNNrynn8f7Vx5ENFGyOmZ4iRp1zSs
 
 `latest.yml` 中的版本、文件名、大小和 electron-builder SHA-512 已与 `1.1.10` 安装包复核一致，`releaseDate` 为 `2026-08-10T04:53:45.853Z`。本版本继续随包携带 Faster Whisper base 模型、FFmpeg、本地后端和 Hermes 运行时；发布时必须同时上传新的 EXE、`.blockmap` 与 `latest.yml`。该构件未使用 Authenticode 证书，Windows 会显示未知发布者。
 
+2026-08-22 已重新生成待发布的 Windows `1.1.55`（源码提交 `d08a0615`）：
+
+```text
+AI-anime-1.1.55-x64-setup.exe
+size: 675650079
+sha256: CEC8163A932FC7F2B88F9B44FC6CA82C6AA69B3B9C1408A3A2EF280A38B8BD2F
+sha512: 1YdsqlGBhYRhBOCRN8ESqEZ/6OM0HtyK/XywPJRVjlqbaUWPUZ2cpN7lYxz00nzPIalBlQ478saHYAe3fNtjzA==
+```
+
+`latest.yml` 中的版本、文件名、大小和 electron-builder SHA-512 已与 `1.1.55` 安装包复核一致，`releaseDate` 为 `2026-08-22T15:00:37.011Z`。出包前已清理 `desktop/release` 中的旧构件；前端 CE、Electron 主进程、本地后端、Hermes ACP 与 NSIS 安装器均构建成功，打包链路内置的后端运行时和最终资源校验通过。当前差分下载关闭，发布时上传新的 EXE 与 `latest.yml`。
+
 macOS 打包：
 
 ```bash
