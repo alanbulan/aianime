@@ -32,6 +32,8 @@ node_modules/
 /desktop/runtime/
 
 # 本地测试、构建缓存和样例产物
+/.codex-tmp/
+/prompts/
 /.sharp-*/
 /.tmp-7z-case-test/
 /alice/

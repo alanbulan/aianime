@@ -60,7 +60,22 @@ analysis = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["tensorflow", "torch", "torchvision", "sharp", "da2"],
+    excludes=[
+        "tensorflow",
+        "torch",
+        "torchvision",
+        "sharp",
+        "da2",
+        # Stale optional imports requested by third-party PyInstaller hooks.
+        # The application uses PyMySQL/psycopg 3, pycparser 3 no longer uses
+        # generated parser tables, and SciPy 1.17 no longer ships _cdflib.
+        "MySQLdb",
+        "pysqlite2",
+        "psycopg2",
+        "pycparser.lextab",
+        "pycparser.yacctab",
+        "scipy.special._cdflib",
+    ],
     noarchive=False,
 )
 pyz = PYZ(analysis.pure)
