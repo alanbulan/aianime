@@ -633,7 +633,6 @@ async def generate_creative_canvas_audio_speech(
     account_voice_username: str | None,
     project_dir: Path,
     job_id: str,
-    model: str,
     text: str,
     emotion_prompt: str,
     voice_ref: dict[str, object] | None,
@@ -649,7 +648,6 @@ async def generate_creative_canvas_audio_speech(
         account_voice_username=account_voice_username,
         project_dir=project_dir,
         job_id=job_id,
-        model=model,
         text=text,
         emotion_prompt=emotion_prompt,
         voice_ref=voice_ref,
@@ -666,7 +664,6 @@ async def generate_creative_canvas_audio_music(
     respect_sections_durations: bool,
     output_format: str,
     response_format: str,
-    model: str,
 ) -> CreativeCanvasGeneratedAudio:
     from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
         generate_freezone_audio_eleven_music,
@@ -681,7 +678,6 @@ async def generate_creative_canvas_audio_music(
         respect_sections_durations=respect_sections_durations,
         output_format=output_format,
         response_format=response_format,
-        model=model,
     )
 
 

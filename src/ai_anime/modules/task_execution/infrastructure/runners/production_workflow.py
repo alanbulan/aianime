@@ -921,7 +921,6 @@ async def _ensure_audio(
     episode_num: int,
     beats: list[dict[str, Any]],
     *,
-    requested_model: str | None,
     timeout_seconds: float,
     reporter: _ProgressReporter,
     progress: float,
@@ -930,7 +929,6 @@ async def _ensure_audio(
     from ai_anime.modules.production.public import (
         GenerateEpisodeAudioCommand,
         episode_audio_use_cases,
-        resolve_audio_generation_model,
     )
 
     paths = PathResolver(context.output_dir, episode_num)
@@ -946,7 +944,6 @@ async def _ensure_audio(
         context,
         GenerateEpisodeAudioCommand(
             episode_num=episode_num,
-            model=resolve_audio_generation_model(requested_model),
             mode="redo_selected",
             beat_numbers=missing,
         ),
@@ -1241,7 +1238,6 @@ async def _run_production_workflow(
             context,
             episode_num,
             beats,
-            requested_model=payload.get("audio_model"),
             timeout_seconds=timeout_seconds,
             reporter=reporter,
             progress=base + episode_span * 0.58,

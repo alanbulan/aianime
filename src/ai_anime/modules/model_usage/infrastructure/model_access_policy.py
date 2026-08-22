@@ -39,8 +39,6 @@ MODEL_ROLES = frozenset(
         "AUDIO_VOICE_CLONE",
         "AUDIO_MUSIC",
         "EMBEDDING",
-        "RERANK",
-        "MODERATION",
     }
 )
 

@@ -14,6 +14,7 @@ from ai_anime.modules.model_usage.public import (
 from ai_anime.modules.model_usage.public import (
     get_usage_meter,
     is_insufficient_credits_error,
+    resolve_model_for_role,
 )
 
 
@@ -92,16 +93,13 @@ class IndexTTS2Client:
     def __init__(
         self,
         *,
-        model: str,
         timeout_seconds: float | None = None,
     ):
         from ai_anime.modules.production.infrastructure.media_generation_settings import (
             INDEXTTS2_TIMEOUT_SECONDS,
         )
 
-        self.model = str(model or "").strip()
-        if not self.model:
-            raise ValueError("audio model is required")
+        self.model = resolve_model_for_role("AUDIO_VOICE_CLONE")
         self.timeout_seconds = float(
             timeout_seconds if timeout_seconds is not None else INDEXTTS2_TIMEOUT_SECONDS
         )

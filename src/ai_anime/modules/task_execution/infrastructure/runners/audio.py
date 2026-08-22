@@ -33,9 +33,6 @@ async def _run_indextts2_audio(
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
     mode = str(payload.get("mode") or "sync_changed")
-    model = str(payload.get("model") or "").strip()
-    if not model:
-        raise ValueError("audio model is required")
     beat_numbers = payload.get("beat_numbers")
     if beat_numbers:
         beat_numbers = [int(value) for value in beat_numbers]
@@ -72,7 +69,6 @@ async def _run_indextts2_audio(
             username=ctx.owner_username,
             project=ctx.project_name,
             episode=episode,
-            model=model,
             beat_numbers=beat_numbers,
             mode=mode,
             progress_callback=on_progress,

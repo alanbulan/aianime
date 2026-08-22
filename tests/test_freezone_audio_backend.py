@@ -28,8 +28,8 @@ from ai_anime.modules.model_usage.infrastructure import model_gateway_settings
 class FakeTTSGenerator:
     calls = []
 
-    def __init__(self, *, model: str) -> None:
-        self.model = model
+    def __init__(self) -> None:
+        self.model = "audio-voice-clone-1"
 
     async def generate(self, *, prompt, audio_url, output_path, emotion_prompt=""):
         from ai_anime.modules.production.infrastructure.media_generation.tts_generator import (
@@ -51,7 +51,14 @@ class FakeTTSGenerator:
 
 @pytest.fixture(autouse=True)
 def _reset_model_access() -> None:
-    configure_model_access(allows_custom_models=False, mode=MODE_MIXED)
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_MIXED,
+        model_assignments=[
+            {"modelId": "audio-voice-clone-1", "role": "AUDIO_VOICE_CLONE"},
+            {"modelId": "audio-music-1", "role": "AUDIO_MUSIC"},
+        ],
+    )
     yield
     configure_model_access(allows_custom_models=False, mode=MODE_MIXED)
 
@@ -224,11 +231,11 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
         project="demo",
         project_dir=project_dir,
         job_id="job-1",
-        model="audio-speech-1",
         text="画外音响起。",
     )
 
     assert result.voice_source == "project_narrator"
+    assert result.model == "audio-voice-clone-1"
     assert result.voice_sha256 == narrator_sha
     assert FakeTTSGenerator.calls == [
         {
@@ -263,7 +270,6 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
     result = await audio_generation.generate_freezone_audio_eleven_music(
         project_dir=tmp_path,
         job_id="music-1",
-        model="audio-music-1",
         prompt="Mysterious original soundtrack, rainforest.",
         music_length_ms=30_000,
         force_instrumental=True,
@@ -297,7 +303,6 @@ async def test_freezone_audio_eleven_music_rejects_out_of_range_length(tmp_path:
         await audio_generation.generate_freezone_audio_eleven_music(
             project_dir=tmp_path,
             job_id="music-short",
-            model="audio-music-1",
             prompt="short sting",
             music_length_ms=2999,
         )

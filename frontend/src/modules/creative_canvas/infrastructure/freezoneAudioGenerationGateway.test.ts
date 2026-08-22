@@ -18,7 +18,6 @@ describe("freezoneAudioGenerationGateway", () => {
 
     await expect(
       freezoneAudioGenerationGateway.submitSpeech("project/1", {
-        model: "audio-speech-1",
         text: "Line",
         emotionPrompt: "calm",
         voiceRef: { scope: "identity", identityId: "identity-1" },
@@ -29,7 +28,6 @@ describe("freezoneAudioGenerationGateway", () => {
       {
         method: "POST",
         json: {
-          model: "audio-speech-1",
           text: "Line",
           emotion_prompt: "calm",
           voice_ref: {
@@ -52,7 +50,6 @@ describe("freezoneAudioGenerationGateway", () => {
 
     await expect(
       freezoneAudioGenerationGateway.submitMusic("project/2", {
-        model: "audio-music-1",
         prompt: "Score",
         musicLengthMs: 30_000,
         forceInstrumental: false,
@@ -64,7 +61,6 @@ describe("freezoneAudioGenerationGateway", () => {
       {
         method: "POST",
         json: {
-          model: "audio-music-1",
           input: "Score",
           music_length_ms: 30_000,
           force_instrumental: false,

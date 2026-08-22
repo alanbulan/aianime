@@ -359,7 +359,6 @@ async def run_indextts2_beat_audio_generation(
     project: str,
     episode: int,
     beat_numbers,
-    model: str | None = None,
     mode: str = "sync_changed",
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
@@ -368,11 +367,11 @@ async def run_indextts2_beat_audio_generation(
 ) -> IndexTTS2BeatAudioTaskResult:
     """Generate selected beat MP3s with IndexTTS2 character/narrator references."""
 
-    model_name = str(model or getattr(generator, "model", "") or "").strip()
-    if not model_name:
-        raise ValueError("audio model is required")
     if generator is None:
-        generator = IndexTTS2Client(model=model_name)
+        generator = IndexTTS2Client()
+    model_name = str(getattr(generator, "model", "") or "").strip()
+    if not model_name:
+        raise ValueError("audio generator model is required")
 
     normalized_mode = _normalize_mode(mode)
     result = IndexTTS2BeatAudioTaskResult(mode=normalized_mode)

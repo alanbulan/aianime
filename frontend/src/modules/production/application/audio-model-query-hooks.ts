@@ -2,14 +2,14 @@
 import { useMemo } from 'react';
 
 import {
-  audioModelOptionsForMode,
+  resolveCommercialModelRoleRoute,
   type AudioModelMode,
   type AudioModelOption,
-  type CommercialModelCatalog,
+  type CommercialModelAccessStatus,
 } from '@/modules/model_usage/public';
 
-interface CommercialCatalogQuery {
-  data?: CommercialModelCatalog;
+interface CommercialModelAccessQuery {
+  data?: CommercialModelAccessStatus;
   error: Error | null;
   isLoading: boolean;
 }
@@ -21,19 +21,29 @@ export interface AudioModelsQuery {
 }
 
 export function createUseAudioModels(
-  useCommercialModelCatalog: (
-    operation?: string,
+  useCommercialModelAccessStatus: (
     enabled?: boolean,
-  ) => CommercialCatalogQuery,
+  ) => CommercialModelAccessQuery,
 ) {
   return function useAudioModels(
     mode: AudioModelMode,
     enabled = true,
   ): AudioModelsQuery {
-    const query = useCommercialModelCatalog('AUDIO', enabled);
+    const query = useCommercialModelAccessStatus(enabled);
     const data = useMemo(
-      () => audioModelOptionsForMode(query.data?.items ?? [], mode),
-      [mode, query.data?.items],
+      () => {
+        const role =
+          mode === 'music'
+            ? 'AUDIO_MUSIC'
+            : mode === 'voiceClone'
+              ? 'AUDIO_VOICE_CLONE'
+              : 'AUDIO_SPEECH';
+        const route = resolveCommercialModelRoleRoute(query.data, role);
+        return route
+          ? [{ value: route.modelId, label: route.modelId, supportedModes: [mode] }]
+          : [];
+      },
+      [mode, query.data],
     );
     return {
       data,

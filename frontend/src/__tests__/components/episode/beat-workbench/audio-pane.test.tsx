@@ -90,7 +90,7 @@ const useAudioPaneController = createUseAudioPaneController(
         {
           value: "audio-speech-test",
           label: "Audio Speech Test",
-          supportedModes: ["speech"],
+          supportedModes: ["voiceClone"],
         },
       ],
       isLoading: false,
@@ -241,7 +241,6 @@ describe("AudioPane", () => {
 
     expect(mutateRegenerate).toHaveBeenCalledWith({
       beatNumber: 7,
-      model: "audio-speech-test",
     });
     expect(taskStart).toHaveBeenCalledWith({
       scope: "ep001:beat_01:__narrator__",

@@ -104,13 +104,17 @@ class ConfiguredGenerationModelCatalog:
         if kind == "image_selection":
             return _image_selection_model(value)
         if kind == "beat_tts":
-            if not value:
-                raise InvalidGenerationCreditRequest("audio model is required")
-            return value
+            from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
+                resolve_model_for_role,
+            )
+
+            return resolve_model_for_role("AUDIO_VOICE_CLONE")
         if kind == "freezone_audio_music":
-            if not value:
-                raise InvalidGenerationCreditRequest("audio model is required")
-            return value
+            from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
+                resolve_model_for_role,
+            )
+
+            return resolve_model_for_role("AUDIO_MUSIC")
         if kind == "freezone_image_reverse_prompt":
             from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
                 resolve_model_for_role,

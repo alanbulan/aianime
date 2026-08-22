@@ -137,7 +137,7 @@ export interface BatchBarControllerQueries {
   useSketchSettings(project: string): SketchSettingsQuery;
   useUpdateRenderSettings(project: string): UpdateRenderSettingsMutation;
   useUpdateSketchSettings(project: string): UpdateSketchSettingsMutation;
-  useAudioModels(mode: "speech", enabled?: boolean): AudioModelsQuery;
+  useAudioModels(mode: "voiceClone", enabled?: boolean): AudioModelsQuery;
   useImageModels(enabled?: boolean): ImageModelsQuery;
   useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
@@ -227,7 +227,7 @@ export function createUseBatchBarController(
     const sketchSettings = queries.useSketchSettings(project);
     const updateRenderSettings = queries.useUpdateRenderSettings(project);
     const updateSketchSettings = queries.useUpdateSketchSettings(project);
-    const audioModels = queries.useAudioModels("speech", Boolean(project));
+    const audioModels = queries.useAudioModels("voiceClone", Boolean(project));
     const audioModel = audioModels.data[0]?.value ?? "";
     const imageModels = queries.useImageModels(Boolean(project));
     const videoModels = queries.useVideoModels(Boolean(project));
@@ -394,7 +394,7 @@ export function createUseBatchBarController(
         return;
       }
       try {
-        const response = await generateAudio.mutateAsync({ model: audioModel });
+        const response = await generateAudio.mutateAsync({});
         if (!response.ok) {
           showError(
             t("episode.workbench.batch.genAudioTitle"),

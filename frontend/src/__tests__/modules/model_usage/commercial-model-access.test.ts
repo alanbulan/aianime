@@ -2,10 +2,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BYOK_MODEL_ROLES,
   commercialModelRoles,
   parseCommercialModelAccessStatus,
   parseCommercialModelCatalogItem,
   resolveRequiredCatalogModelCode,
+  resolveCommercialModelRoleRoute,
   type CommercialModelCatalog,
 } from "@/modules/model_usage/domain/commercial-model-access";
 
@@ -132,6 +134,41 @@ describe("commercial model access status", () => {
         }],
       }),
     ).toThrow("byokProviders[0].modelAssignments[0].role is invalid");
+  });
+
+  it("resolves the same global role priority used by the desktop proxy", () => {
+    const status = parseCommercialModelAccessStatus({
+      ...baseStatus,
+      cloudModelAssignments: [
+        { modelId: "cloud-clone", role: "AUDIO_VOICE_CLONE", priority: 20 },
+      ],
+      byokProviders: [
+        {
+          id: "provider-a",
+          name: "Provider A",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "https://models.example.test/v1",
+          configured: true,
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            { modelId: "byok-clone", role: "AUDIO_VOICE_CLONE", priority: 5 },
+          ],
+        },
+      ],
+    });
+
+    expect(resolveCommercialModelRoleRoute(status, "AUDIO_VOICE_CLONE")).toEqual({
+      modelId: "byok-clone",
+      role: "AUDIO_VOICE_CLONE",
+      source: "byok",
+      providerName: "Provider A",
+    });
+  });
+
+  it("does not define roles without an application call chain", () => {
+    expect(BYOK_MODEL_ROLES).toEqual(expect.not.arrayContaining(["RERANK", "MODERATION"]));
+    expect(BYOK_MODEL_ROLES).toContain("AUDIO_VOICE_CLONE");
   });
 });
 

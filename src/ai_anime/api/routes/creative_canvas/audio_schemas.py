@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FreezoneAudioVoiceRef(BaseModel):
@@ -58,10 +58,8 @@ class FreezoneAudioVoiceRef(BaseModel):
 class FreezoneAudioSpeechRequest(BaseModel):
     """Freezone 音频节点：文本生成语音请求。"""
 
-    model: str = Field(
-        min_length=1,
-        description="AUDIO 模型目录返回的语音模型 code。",
-    )
+    model_config = ConfigDict(extra="forbid")
+
     text: str = Field(
         description=("要合成的台词/旁白文本。"),
         examples=["她低声说：终于等到这一天了。"],
@@ -96,13 +94,11 @@ class FreezoneAudioSpeechRequest(BaseModel):
 class FreezoneAudioMusicRequest(BaseModel):
     """Freezone 音频节点：文本生成音乐请求。"""
 
+    model_config = ConfigDict(extra="forbid")
+
     input: str = Field(
         description="音乐描述 prompt。",
         examples=["cinematic rain-soaked suspense music"],
-    )
-    model: str = Field(
-        min_length=1,
-        description="AUDIO 模型目录返回的音乐模型 code。",
     )
     response_format: Literal["mp3", "opus", "pcm", "ulaw", "alaw"] = Field(
         default="mp3",

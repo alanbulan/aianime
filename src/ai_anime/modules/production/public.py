@@ -223,7 +223,6 @@ from ai_anime.modules.production.application.sketch_markers import (
     SketchMarkerUseCases,
 )
 from ai_anime.modules.production.application.model_selection import (
-    resolve_audio_generation_model,
     resolve_episode_video_resolution,
     resolve_video_generation_model,
 )
@@ -1089,7 +1088,6 @@ __all__ = [
     "real_detected_identities",
     "real_detected_props",
     "render_plan_use_cases",
-    "resolve_audio_generation_model",
     "resolve_episode_video_resolution",
     "resolve_video_generation_model",
     "resolve_character_voice",

@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 
 export interface GenerateAudioCommand {
-  model: string;
   beatNumbers?: number[];
   mode?: string;
 }

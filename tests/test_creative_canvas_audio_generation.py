@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from pydantic import ValidationError
 
 from ai_anime.api.routes.creative_canvas import audio as audio_routes
 from ai_anime.api.routes.creative_canvas.audio_schemas import (
@@ -25,6 +26,13 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import ProjectTaskLimitExceeded
+
+
+def test_audio_requests_reject_legacy_model_field() -> None:
+    with pytest.raises(ValidationError, match="model"):
+        FreezoneAudioSpeechRequest(model="legacy", text="line")
+    with pytest.raises(ValidationError, match="model"):
+        FreezoneAudioMusicRequest(model="legacy", input="music")
 
 
 def _project_context(tmp_path: Path) -> ProjectContext:
@@ -102,7 +110,6 @@ async def test_audio_generation_enqueues_exact_payloads(tmp_path: Path) -> None:
         StartCreativeCanvasSpeechGenerationCommand(
             context=context,
             project_dir=context.output_dir,
-            model="audio-speech-1",
             text="  雨声压低了脚步。  ",
             emotion_prompt="紧张、压低声音",
             voice_ref=voice_ref,
@@ -115,7 +122,6 @@ async def test_audio_generation_enqueues_exact_payloads(tmp_path: Path) -> None:
             context=context,
             project_dir=context.output_dir,
             input_text="  cinematic rain-soaked suspense music  ",
-            model="audio-music-1",
             response_format="mp3",
             music_length_ms=45_000,
             force_instrumental=True,
@@ -133,7 +139,6 @@ async def test_audio_generation_enqueues_exact_payloads(tmp_path: Path) -> None:
             job_id="speech-1",
             project_dir=context.output_dir,
             payload={
-                "model": "audio-speech-1",
                 "text": "  雨声压低了脚步。  ",
                 "emotion_prompt": "紧张、压低声音",
                 "voice_ref": voice_ref,
@@ -149,7 +154,6 @@ async def test_audio_generation_enqueues_exact_payloads(tmp_path: Path) -> None:
             project_dir=context.output_dir,
             payload={
                 "input": "cinematic rain-soaked suspense music",
-                "model": "audio-music-1",
                 "response_format": "mp3",
                 "music_length_ms": 45_000,
                 "force_instrumental": True,
@@ -175,7 +179,6 @@ async def test_audio_generation_preserves_input_validation(tmp_path: Path) -> No
             StartCreativeCanvasSpeechGenerationCommand(
                 context=context,
                 project_dir=context.output_dir,
-                model="audio-speech-1",
                 text=" \t ",
                 emotion_prompt="",
                 voice_ref=None,
@@ -189,7 +192,6 @@ async def test_audio_generation_preserves_input_validation(tmp_path: Path) -> No
             StartCreativeCanvasSpeechGenerationCommand(
                 context=context,
                 project_dir=context.output_dir,
-                model="audio-speech-1",
                 text="x" * 10_001,
                 emotion_prompt="",
                 voice_ref=None,
@@ -204,7 +206,6 @@ async def test_audio_generation_preserves_input_validation(tmp_path: Path) -> No
                 context=context,
                 project_dir=context.output_dir,
                 input_text=" \n ",
-                model="model",
                 response_format="mp3",
                 music_length_ms=30_000,
                 force_instrumental=True,
@@ -221,7 +222,6 @@ async def test_audio_generation_preserves_input_validation(tmp_path: Path) -> No
                 context=context,
                 project_dir=context.output_dir,
                 input_text=" " + "x" * 4101 + " ",
-                model="model",
                 response_format="mp3",
                 music_length_ms=30_000,
                 force_instrumental=True,
@@ -276,7 +276,6 @@ async def test_audio_routes_preserve_success_contract(
     speech = await audio_routes.freezone_audio_speech(
         project="project-1",
         body=FreezoneAudioSpeechRequest(
-            model="audio-speech-1",
             text="雨声压低了脚步。",
             emotion_prompt="紧张",
             voice_ref={"scope": "user_custom", "voice_id": "fv-viewer"},
@@ -288,7 +287,6 @@ async def test_audio_routes_preserve_success_contract(
     music = await audio_routes.freezone_audio_eleven_music(
         project="project-1",
         body=FreezoneAudioMusicRequest(
-            model="audio-music-1",
             input="cinematic suspense",
         ),
         user={"username": "viewer"},
@@ -314,9 +312,7 @@ async def test_audio_routes_preserve_success_contract(
     }
     assert commands[0].target_episode == 1
     assert commands[0].target_beat == 2
-    assert commands[0].model == "audio-speech-1"
     assert commands[1].input_text == "cinematic suspense"
-    assert commands[1].model == "audio-music-1"
 
 
 @pytest.mark.asyncio
@@ -380,13 +376,13 @@ async def test_audio_routes_preserve_error_contract(
         if handler == "speech":
             await audio_routes.freezone_audio_speech(
                 project="project-1",
-                body=FreezoneAudioSpeechRequest(model="audio-speech-1", text="line"),
+                body=FreezoneAudioSpeechRequest(text="line"),
                 user={"username": "viewer"},
             )
         else:
             await audio_routes.freezone_audio_eleven_music(
                 project="project-1",
-                body=FreezoneAudioMusicRequest(model="audio-music-1", input="music"),
+                body=FreezoneAudioMusicRequest(input="music"),
                 user={"username": "viewer"},
             )
 
@@ -425,13 +421,13 @@ async def test_audio_routes_preserve_project_task_limits(
         if handler == "speech":
             await audio_routes.freezone_audio_speech(
                 project="project-1",
-                body=FreezoneAudioSpeechRequest(model="audio-speech-1", text="line"),
+                body=FreezoneAudioSpeechRequest(text="line"),
                 user={"username": "viewer"},
             )
         else:
             await audio_routes.freezone_audio_eleven_music(
                 project="project-1",
-                body=FreezoneAudioMusicRequest(model="audio-music-1", input="music"),
+                body=FreezoneAudioMusicRequest(input="music"),
                 user={"username": "viewer"},
             )
     assert exc.value is failure

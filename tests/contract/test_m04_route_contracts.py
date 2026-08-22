@@ -184,7 +184,16 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     from ai_anime.modules.asset_world.public import StyleService
     from ai_anime.modules.production.infrastructure import episode_audio
+    from ai_anime.modules.model_usage.public import configure_model_access
     from ai_anime.shared.infrastructure import project_stores
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "audio-platform-sku", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
 
     store = _M04Store()
     project_dir = tmp_path / "output" / "alice" / _PROJECT
@@ -781,13 +790,13 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate",
-            json={"model": "audio-platform-sku"},
+            json={},
         )
     )
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio",
-            json={"model": "audio-platform-sku"},
+            json={},
         )
     )
 
@@ -835,14 +844,14 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
             "audio_generation_indextts2",
             client.post(
                 f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate",
-                json={"model": "audio-platform-sku"},
+                json={},
             ),
         ),
         (
             "audio_generation_indextts2",
             client.post(
                 f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio",
-                json={"model": "audio-platform-sku"},
+                json={},
             ),
         ),
     ]

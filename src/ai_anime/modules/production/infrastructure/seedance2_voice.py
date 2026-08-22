@@ -273,7 +273,6 @@ async def generate_seedance2_narration_audio(
     project_dir: str | Path,
     narrator_audio_path: Path,
     narration_style: str = DEFAULT_NARRATION_STYLE,
-    model: str | None = None,
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
@@ -294,7 +293,7 @@ async def generate_seedance2_narration_audio(
     if generator is None:
         from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
 
-        generator = IndexTTS2Client(model=str(model or "").strip())
+        generator = IndexTTS2Client()
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(project_dir, episode, beat_num)
@@ -452,7 +451,6 @@ async def generate_seedance2_dialogue_audio(
     episode: int,
     beat_num: int,
     store,
-    model: str | None = None,
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
@@ -480,7 +478,7 @@ async def generate_seedance2_dialogue_audio(
     if generator is None:
         from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
 
-        generator = IndexTTS2Client(model=str(model or "").strip())
+        generator = IndexTTS2Client()
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(store.project_dir, episode, beat_num)
@@ -503,7 +501,6 @@ async def generate_seedance2_dialogue_audio_for_voice(
     episode: int,
     store,
     missing_only: bool = True,
-    model: str | None = None,
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
@@ -518,7 +515,7 @@ async def generate_seedance2_dialogue_audio_for_voice(
     if generator is None:
         from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
 
-        generator = IndexTTS2Client(model=str(model or "").strip())
+        generator = IndexTTS2Client()
 
     for beat_num, beat in targets:
         output_path = beat_audio_path(store.project_dir, episode, beat_num)
@@ -530,7 +527,6 @@ async def generate_seedance2_dialogue_audio_for_voice(
             episode=episode,
             beat_num=beat_num,
             store=store,
-            model=model,
             generator=generator,
             audio_url_builder=audio_url_builder,
             emotion_prompt=emotion_prompt,

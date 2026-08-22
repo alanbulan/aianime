@@ -8,6 +8,7 @@ import { useTaskController } from "@/modules/task_execution/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   useCommercialModelCatalog,
+  useCommercialModelAccessStatus,
   loadCommercialModelCatalog,
   useGenerationCreditCost,
   useGenerationCreditCosts,
@@ -83,7 +84,7 @@ const authorizedProductionImageGateway =
   createAuthorizedProductionImageGateway(httpProductionVideoGateway, {
     load: () => loadCommercialModelCatalog("IMAGE"),
   });
-const useAudioModels = createUseAudioModels(useCommercialModelCatalog);
+const useAudioModels = createUseAudioModels(useCommercialModelAccessStatus);
 const useAudioPaneController = createUseAudioPaneController(
   audioGenerationQueries,
   { useAudioModels, useGenerationCreditCost },

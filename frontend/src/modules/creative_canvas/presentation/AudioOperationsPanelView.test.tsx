@@ -63,17 +63,9 @@ function controller(
     submit: vi.fn(async () => undefined),
     translate: vi.fn(async () => undefined),
     audioCostDisplay: '2 积分',
-    audioModels: [
-      {
-        value: 'audio-speech-1',
-        label: 'Speech Model',
-        supportedModes: ['speech'],
-      },
-    ],
-    selectedModel: 'audio-speech-1',
-    modelCatalogLoading: false,
-    modelCatalogError: '',
-    setSelectedModel: vi.fn(),
+    routedModelLabel: '云端 · audio-voice-clone-1',
+    modelRouteLoading: false,
+    modelRouteError: '',
     text: '原文',
     textDraft: '原文',
     changeTextDraft: vi.fn(),
@@ -149,6 +141,9 @@ describe('AudioOperationsPanelView', () => {
     expect(translate).toHaveBeenCalledOnce();
     expect(toggleVoiceSettings).toHaveBeenCalledOnce();
     expect(submit).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('当前音频模型路由')).toHaveTextContent(
+      '全局路由 · 云端 · audio-voice-clone-1',
+    );
   });
 
   it('renders music settings and forwards select and switch commands', async () => {

@@ -8,6 +8,21 @@ import importlib
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _configured_voice_clone_route():
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "audio-voice-clone-test", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
+    yield
+    configure_model_access(allows_custom_models=False, mode="mixed")
+
+
 def test_indextts2_client_module_loads():
     mod = importlib.import_module(
         "ai_anime.modules.production.infrastructure.media_generation.indextts2"
@@ -68,7 +83,7 @@ def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
     monkeypatch.setattr(indextts2, "_reserve_tts_model_call", fake_reserve)
     monkeypatch.setattr(indextts2, "_refund_tts_model_call", fake_refund)
     monkeypatch.setattr(indextts2, "write_model_audio_speech", missing_transport)
-    client = IndexTTS2Client(model="audio-speech-test")
+    client = IndexTTS2Client()
     result = asyncio.run(
         client.generate(
             prompt="hello",
@@ -85,7 +100,7 @@ def test_indextts2_client_rejects_empty_prompt(tmp_path):
         IndexTTS2Client,
     )
 
-    client = IndexTTS2Client(model="audio-speech-test")
+    client = IndexTTS2Client()
     result = asyncio.run(
         client.generate(
             prompt="",

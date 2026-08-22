@@ -24,7 +24,7 @@ interface CreditCostQuery {
 }
 
 export interface AudioPaneControllerDependencies {
-  useAudioModels(mode: "speech", enabled?: boolean): {
+  useAudioModels(mode: "voiceClone", enabled?: boolean): {
     data: AudioModelOption[];
     isLoading: boolean;
   };
@@ -38,7 +38,7 @@ export interface AudioPaneQueries {
   ): {
     isPending: boolean;
     mutateAsync(
-      command: { beatNumber: number; model: string },
+      command: { beatNumber: number },
     ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   };
 }
@@ -74,7 +74,7 @@ export function createUseAudioPaneController(
     const { beat, episode, onConfigureVoice, project, state } = options;
     const { t } = useTranslation();
     const regenerate = queries.useRegenerateBeatAudio(project, episode);
-    const audioModels = dependencies.useAudioModels("speech", Boolean(project));
+    const audioModels = dependencies.useAudioModels("voiceClone", Boolean(project));
     const audioModel = audioModels.data[0]?.value ?? "";
     const audioCost = dependencies.useGenerationCreditCost(
       "beat_tts",
@@ -118,7 +118,6 @@ export function createUseAudioPaneController(
       try {
         const response = await regenerate.mutateAsync({
           beatNumber: beat.beat_number,
-          model: audioModel,
         });
         if (!response.ok) {
           showAudioError(

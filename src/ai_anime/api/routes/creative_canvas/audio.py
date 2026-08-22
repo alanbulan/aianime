@@ -126,7 +126,6 @@ async def freezone_audio_speech(
                 StartCreativeCanvasSpeechGenerationCommand(
                     context=resolved.ctx,
                     project_dir=resolved.project_dir,
-                    model=body.model,
                     text=body.text,
                     emotion_prompt=body.emotion_prompt,
                     voice_ref=body.voice_ref.model_dump() if body.voice_ref else None,
@@ -171,7 +170,6 @@ async def freezone_audio_eleven_music(
                     context=resolved.ctx,
                     project_dir=resolved.project_dir,
                     input_text=body.input,
-                    model=body.model,
                     response_format=body.response_format,
                     music_length_ms=body.music_length_ms,
                     force_instrumental=body.force_instrumental,

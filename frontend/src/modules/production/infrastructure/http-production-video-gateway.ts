@@ -549,9 +549,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     episode,
     command: GenerateAudioCommand,
   ) {
-    const json: { model: string; beat_numbers?: number[]; mode?: string } = {
-      model: command.model,
-    };
+    const json: { beat_numbers?: number[]; mode?: string } = {};
     if (command.beatNumbers) json.beat_numbers = command.beatNumbers;
     if (command.mode) json.mode = command.mode;
     return api
@@ -561,11 +559,11 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
-  async regenerateBeatAudio(project, episode, beatNumber, model) {
+  async regenerateBeatAudio(project, episode, beatNumber) {
     return api
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/audio`,
-        { json: { model } },
+        { json: {} },
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },

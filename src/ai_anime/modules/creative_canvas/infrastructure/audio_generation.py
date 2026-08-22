@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.public import IndexTTS2Client
-from ai_anime.modules.model_usage.public import write_model_audio_speech
+from ai_anime.modules.model_usage.public import (
+    resolve_model_for_role,
+    write_model_audio_speech,
+)
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasGeneratedAudio,
 )
@@ -238,7 +241,6 @@ async def generate_freezone_audio_speech(
     account_voice_username: str | None = None,
     project_dir: Path,
     job_id: str,
-    model: str,
     text: str,
     emotion_prompt: str = "",
     voice_ref: dict | None = None,
@@ -277,10 +279,8 @@ async def generate_freezone_audio_speech(
         )
 
     output_path = freezone_audio_speech_output_path(project_dir, job_id)
-    model_name = str(model or "").strip()
-    if not model_name:
-        raise ValueError("model is required")
-    generator = IndexTTS2Client(model=model_name)
+    model_name = resolve_model_for_role("AUDIO_VOICE_CLONE")
+    generator = IndexTTS2Client()
     result = await generator.generate(
         prompt=clean_text,
         audio_url=build_reference_audio_url(selected_voice.audio_path),
@@ -338,7 +338,6 @@ async def generate_freezone_audio_eleven_music(
     respect_sections_durations: bool = True,
     output_format: str = "mp3_44100_128",
     response_format: str = "mp3",
-    model: str,
 ) -> CreativeCanvasGeneratedAudio:
     clean_prompt = str(prompt or "").strip()
     if not clean_prompt:
@@ -361,9 +360,7 @@ async def generate_freezone_audio_eleven_music(
         ),
     }
 
-    model_name = str(model or "").strip()
-    if not model_name:
-        raise ValueError("model is required")
+    model_name = resolve_model_for_role("AUDIO_MUSIC")
     reservation_id = ""
     try:
         reservation_id = await _reserve_music_model_call(

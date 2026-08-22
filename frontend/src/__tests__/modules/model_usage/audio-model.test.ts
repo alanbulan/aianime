@@ -23,7 +23,10 @@ describe('audioModelCatalog', () => {
       item('both-a', ['voice-clone', 'text_to_music']),
     ];
     expect(audioModelOptionsForMode(items, 'speech').map((model) => model.value))
-      .toEqual(['speech-a', 'both-a']);
+      .toEqual(['speech-a']);
+    expect(
+      audioModelOptionsForMode(items, 'voiceClone').map((model) => model.value),
+    ).toEqual(['both-a']);
     expect(audioModelOptionsForMode(items, 'music').map((model) => model.value))
       .toEqual(['music-a', 'both-a']);
   });

@@ -35,7 +35,6 @@ class CreativeCanvasGeneratedAudio:
 class StartCreativeCanvasSpeechGenerationCommand:
     context: ProjectContext
     project_dir: Path
-    model: str
     text: str
     emotion_prompt: str
     voice_ref: dict[str, object] | None
@@ -48,7 +47,6 @@ class StartCreativeCanvasMusicGenerationCommand:
     context: ProjectContext
     project_dir: Path
     input_text: str
-    model: str
     response_format: str
     music_length_ms: int
     force_instrumental: bool
@@ -69,9 +67,6 @@ class CreativeCanvasAudioGenerationUseCases:
         self,
         command: StartCreativeCanvasSpeechGenerationCommand,
     ) -> CreativeCanvasTaskReceipt:
-        model = command.model.strip()
-        if not model:
-            raise InvalidCreativeCanvasAudioGenerationRequest("model is required")
         if not command.text.strip():
             raise InvalidCreativeCanvasAudioGenerationRequest("text is required")
         if len(command.text) > 10_000:
@@ -87,7 +82,6 @@ class CreativeCanvasAudioGenerationUseCases:
                 job_id=self._job_ids.new_id(),
                 project_dir=command.project_dir,
                 payload={
-                    "model": model,
                     "text": command.text,
                     "emotion_prompt": command.emotion_prompt,
                     "voice_ref": command.voice_ref,
@@ -105,9 +99,6 @@ class CreativeCanvasAudioGenerationUseCases:
         self,
         command: StartCreativeCanvasMusicGenerationCommand,
     ) -> CreativeCanvasTaskReceipt:
-        model = command.model.strip()
-        if not model:
-            raise InvalidCreativeCanvasAudioGenerationRequest("model is required")
         prompt = command.input_text.strip()
         if not prompt:
             raise InvalidCreativeCanvasAudioGenerationRequest("input is required")
@@ -125,7 +116,6 @@ class CreativeCanvasAudioGenerationUseCases:
                 project_dir=command.project_dir,
                 payload={
                     "input": prompt,
-                    "model": model,
                     "response_format": command.response_format,
                     "music_length_ms": command.music_length_ms,
                     "force_instrumental": command.force_instrumental,

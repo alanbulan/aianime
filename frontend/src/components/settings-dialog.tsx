@@ -102,8 +102,6 @@ const BYOK_ROLE_LABEL_KEYS: Record<ByokModelRole, string> = {
   AUDIO_VOICE_CLONE: "audioVoiceClone",
   AUDIO_MUSIC: "audioMusic",
   EMBEDDING: "embedding",
-  RERANK: "rerank",
-  MODERATION: "moderation",
 };
 
 const BYOK_PROTOCOL_LABEL_KEYS: Record<ByokProviderProtocol, string> = {

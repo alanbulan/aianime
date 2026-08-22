@@ -36,6 +36,7 @@ export {
   BYOK_MODEL_ROLES,
   BYOK_PROVIDER_PROTOCOLS,
   commercialModelRoles,
+  resolveCommercialModelRoleRoute,
 } from "@/modules/model_usage/domain/commercial-model-access";
 export { resolveRequiredCatalogModelCode } from "@/modules/model_usage/domain/commercial-model-access";
 export {

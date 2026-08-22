@@ -7,6 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  BYOK_MODEL_ROLES,
   EncryptedFileCommercialModelAccessStore,
   fetchByokModelCatalog,
   fetchByokProviderModelIds,
@@ -37,6 +38,11 @@ class MemorySessionStore {
     this.value = null;
   }
 }
+
+test("model roles omit operations without an application call chain", () => {
+  assert.equal(BYOK_MODEL_ROLES.includes("RERANK"), false);
+  assert.equal(BYOK_MODEL_ROLES.includes("MODERATION"), false);
+});
 
 const passthroughSecureStorage = {
   isEncryptionAvailable: () => true,
@@ -736,9 +742,8 @@ test("video catalog synchronization sends only projected duration capabilities",
       }),
       modelCatalog: async ({ operation }, receivedDeviceId) => {
         catalogDeviceIds.push(receivedDeviceId);
-        return (
-          operation === "TEXT"
-            ? {
+        return operation === "TEXT"
+          ? {
                 catalogVersion: "catalog-v1",
                 items: [
                   {
@@ -749,7 +754,8 @@ test("video catalog synchronization sends only projected duration capabilities",
                   },
                 ],
               }
-            : {
+          : operation === "VIDEO"
+            ? {
                 catalogVersion: "catalog-v1",
                 items: [
                   {
@@ -772,7 +778,17 @@ test("video catalog synchronization sends only projected duration capabilities",
                   },
                 ],
               }
-        );
+            : {
+                catalogVersion: "catalog-v1",
+                items: [
+                  {
+                    id: `${operation.toLowerCase()}-1`,
+                    code: `cloud/${operation.toLowerCase()}-standard`,
+                    displayName: `Cloud ${operation}`,
+                    operation,
+                  },
+                ],
+              };
       },
     },
     deviceIdentity: {

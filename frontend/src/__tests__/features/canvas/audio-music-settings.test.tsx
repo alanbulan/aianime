@@ -13,6 +13,27 @@ import { queryKeys } from "@/lib/query-keys";
 import { CANVAS_NODE_TYPES, type AudioNodeData } from "@/modules/creative_canvas/public";
 import { useCanvasStore } from "@/modules/creative_canvas/public";
 function seedAudioCatalog(queryClient: QueryClient) {
+  queryClient.setQueryData(queryKeys.commercialModelAccess(), {
+    mode: "mixed",
+    allowsCustomModels: false,
+    gatewayOrigin: "http://localhost",
+    cloudModelAssignments: [
+      {
+        modelId: "audio-voice-clone-1",
+        role: "AUDIO_VOICE_CLONE",
+        priority: 100,
+        enabled: true,
+      },
+      {
+        modelId: "audio-music-1",
+        role: "AUDIO_MUSIC",
+        priority: 100,
+        enabled: true,
+      },
+    ],
+    byokConfigured: false,
+    byokProviders: [],
+  });
   queryClient.setQueryData(queryKeys.commercialModels("AUDIO"), {
     catalogVersion: "test",
     items: [
@@ -21,7 +42,7 @@ function seedAudioCatalog(queryClient: QueryClient) {
         code: "audio-speech-1",
         displayName: "Speech Model",
         operation: "AUDIO",
-        capabilities: { supportedModes: ["SPEECH"] },
+        capabilities: { supportedModes: ["VOICE_CLONE"] },
         parameterSchema: {},
       },
       {

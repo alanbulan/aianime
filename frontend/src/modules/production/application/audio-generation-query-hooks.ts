@@ -16,12 +16,11 @@ export function createAudioGenerationQueryHooks(
 
   function useRegenerateBeatAudio(project: string, episode: number) {
     return useMutation({
-      mutationFn: (command: { beatNumber: number; model: string }) =>
+      mutationFn: (command: { beatNumber: number }) =>
         gateway.regenerateBeatAudio(
           project,
           episode,
           command.beatNumber,
-          command.model,
         ),
     });
   }

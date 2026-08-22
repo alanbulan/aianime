@@ -12,13 +12,33 @@ from pydantic import ValidationError
 pytestmark = pytest.mark.m04
 
 
+@pytest.fixture(autouse=True)
+def _configured_voice_clone_route():
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "audio-voice-clone-test", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
+    yield
+    configure_model_access(allows_custom_models=False, mode="mixed")
+
+
 def test_episode_audio_request_rejects_removed_tts_fields() -> None:
     from ai_anime.api.routes.production.audio_schemas import (
         EpisodeAudioGenerateRequest,
+        EpisodeAudioRegenerateRequest,
     )
 
     with pytest.raises(ValidationError):
         EpisodeAudioGenerateRequest.model_validate({"provider": "old-provider"})
+    with pytest.raises(ValidationError, match="model"):
+        EpisodeAudioGenerateRequest.model_validate({"model": "legacy"})
+    with pytest.raises(ValidationError, match="model"):
+        EpisodeAudioRegenerateRequest.model_validate({"model": "legacy"})
 
 
 class _FakeStore:
@@ -149,7 +169,6 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
         project="demo",
         episode_num=3,
         body=EpisodeAudioGenerateRequest(
-            model="audio-speech-test",
             mode="redo_selected",
             beat_numbers=[2],
         ),
@@ -165,7 +184,6 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
             "episode": 3,
             "payload": {
                 "episode": 3,
-                "model": "audio-speech-test",
                 "mode": "redo_selected",
                 "beat_numbers": [2],
                 "output_dir": str(tmp_path),
@@ -196,7 +214,6 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
     response = client.post(
         "/projects/demo/episodes/3/audio/generate",
         json={
-            "model": "audio-speech-test",
             "mode": "redo_selected",
             "beat_numbers": [2],
         },
@@ -210,7 +227,6 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
     assert calls[0]["task_type"] == "audio_generation_indextts2"
     assert calls[0]["payload"] == {
         "episode": 3,
-        "model": "audio-speech-test",
         "mode": "redo_selected",
         "beat_numbers": [2],
         "output_dir": str(tmp_path),
@@ -220,7 +236,7 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_path):
-    from ai_anime.api.routes.production.audio_schemas import EpisodeAudioModelRequest
+    from ai_anime.api.routes.production.audio_schemas import EpisodeAudioRegenerateRequest
     from ai_anime.api.routes.production import audio as production_audio
 
     calls = []
@@ -234,7 +250,7 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
         project="demo",
         episode_num=3,
         beat_num=2,
-        body=EpisodeAudioModelRequest(model="audio-speech-test"),
+        body=EpisodeAudioRegenerateRequest(),
         user={"username": "alice"},
     )
 
@@ -248,7 +264,6 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
             "episode": 3,
             "payload": {
                 "episode": 3,
-                "model": "audio-speech-test",
                 "mode": "redo_selected",
                 "beat_numbers": [2],
                 "output_dir": str(tmp_path),

@@ -230,7 +230,7 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
         (
             "routes/production/audio_schemas.py",
             "routes/production/audio.py",
-            ("EpisodeAudioGenerateRequest", "EpisodeAudioModelRequest"),
+            ("EpisodeAudioGenerateRequest", "EpisodeAudioRegenerateRequest"),
         ),
         (
             "routes/asset_world/styles_schemas.py",

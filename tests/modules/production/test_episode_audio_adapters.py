@@ -87,7 +87,6 @@ async def test_audio_scheduler_preserves_task_payload_and_identity() -> None:
     context = SimpleNamespace(project_id="proj-1")
     task = EpisodeAudioTask(
         episode_num=3,
-        model="audio-speech-test",
         mode="redo_selected",
         beat_numbers=[2],
         output_dir=Path("output"),

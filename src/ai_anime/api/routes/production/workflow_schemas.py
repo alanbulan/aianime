@@ -22,7 +22,6 @@ class ProductionWorkflowRequest(BaseModel):
     target_beats: int | None = Field(default=None, ge=5, le=80)
     max_parallel: int = Field(default=4, ge=1, le=6)
     node_timeout_seconds: int = Field(default=7200, ge=30, le=28800)
-    audio_model: str | None = None
     video_model: str | None = None
     video_resolution: str | None = None
     add_subtitles: bool = True

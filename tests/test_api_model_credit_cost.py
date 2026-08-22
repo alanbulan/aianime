@@ -6,7 +6,14 @@ from ai_anime.modules.model_usage.public import configure_model_access
 
 @pytest.fixture(autouse=True)
 def _reset_model_access() -> None:
-    configure_model_access(allows_custom_models=False, mode="mixed")
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "audio-voice-clone-1", "role": "AUDIO_VOICE_CLONE"},
+            {"modelId": "audio-music-1", "role": "AUDIO_MUSIC"},
+        ],
+    )
     yield
     configure_model_access(allows_custom_models=False, mode="mixed")
 
@@ -167,11 +174,11 @@ async def test_generation_credit_cost_route_rejects_blank_model():
 async def test_generation_credit_cost_route_resolves_beat_tts():
     from ai_anime.api.routes.model_usage import credits as model_credits
 
-    patch_quote(expected_model="audio-speech-1", cost=3)
+    patch_quote(expected_model="audio-voice-clone-1", cost=3)
 
     result = await model_credits.get_generation_credit_cost(
         kind="beat_tts",
-        value="audio-speech-1",
+        value="stale-client-model",
         user={"user_id": "usr_1"},
     )
 
@@ -192,7 +199,7 @@ async def test_generation_credit_cost_route_resolves_freezone_audio_music():
 
     result = await model_credits.get_generation_credit_cost(
         kind="freezone_audio_music",
-        value="audio-music-1",
+        value="stale-client-model",
         quantity=30,
         user={"user_id": "usr_1"},
     )

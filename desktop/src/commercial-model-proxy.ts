@@ -1564,8 +1564,6 @@ function normalizeRoleHeader(value: string | string[] | undefined): ByokModelRol
 function inferModelRole(path: string): ByokModelRole | null {
   const pathname = new URL(path, "http://model-proxy.local").pathname.toLowerCase();
   if (pathname.endsWith("/embeddings")) return "EMBEDDING";
-  if (pathname.endsWith("/rerank")) return "RERANK";
-  if (pathname.endsWith("/moderations")) return "MODERATION";
   if (pathname.endsWith("/images/generations")) return "IMAGE_GENERATION";
   if (pathname.endsWith("/images/edits")) return "IMAGE_EDIT";
   if (pathname.endsWith("/audio/speech")) return "AUDIO_SPEECH";

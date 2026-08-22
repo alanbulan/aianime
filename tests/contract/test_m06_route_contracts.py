@@ -1370,7 +1370,6 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                 f"/api/v1/projects/{p}/freezone/audio/speech",
                 json={
                     "text": "雨声压低了脚步。",
-                    "model": "cloud-audio-speech",
                 },
             ),
         ),
@@ -1380,7 +1379,6 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                 f"/api/v1/projects/{p}/freezone/audio/eleven-music",
                 json={
                     "input": "cinematic rain-soaked suspense music",
-                    "model": "cloud-audio-music",
                 },
             ),
         ),

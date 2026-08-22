@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-export type AudioModelMode = 'speech' | 'music';
+export type AudioModelMode = 'speech' | 'voiceClone' | 'music';
 
 export interface AudioCatalogItem {
   code: string;
@@ -55,11 +55,11 @@ function normalizeAudioMode(value: unknown): AudioModelMode | null {
   if (
     normalized === 'speech' ||
     normalized === 'texttospeech' ||
-    normalized === 'speechsynthesis' ||
-    normalized === 'voiceclone'
+    normalized === 'speechsynthesis'
   ) {
     return 'speech';
   }
+  if (normalized === 'voiceclone') return 'voiceClone';
   if (
     normalized === 'music' ||
     normalized === 'texttomusic' ||

@@ -30,8 +30,6 @@ export const BYOK_MODEL_ROLES = [
   "AUDIO_VOICE_CLONE",
   "AUDIO_MUSIC",
   "EMBEDDING",
-  "RERANK",
-  "MODERATION",
 ] as const;
 
 export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
@@ -115,8 +113,6 @@ const BYOK_ROLE_CAPABILITY: Record<
   AUDIO_VOICE_CLONE: { operation: "AUDIO", modes: ["VOICE_CLONE"] },
   AUDIO_MUSIC: { operation: "AUDIO", modes: ["MUSIC"] },
   EMBEDDING: { operation: "EMBEDDING" },
-  RERANK: { operation: "RERANK" },
-  MODERATION: { operation: "MODERATION" },
 };
 
 export async function fetchByokProviderModelIds(

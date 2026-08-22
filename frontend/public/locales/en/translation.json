@@ -3652,9 +3652,7 @@
         "IMAGE": "Image",
         "VIDEO": "Video",
         "AUDIO": "Audio",
-        "EMBEDDING": "Embedding",
-        "RERANK": "Rerank",
-        "MODERATION": "Moderation"
+        "EMBEDDING": "Embedding"
       },
       "status": {
         "ACTIVE": "Active",
@@ -3895,9 +3893,7 @@
         "audioSpeech": "Audio · Speech synthesis",
         "audioVoiceClone": "Audio · Voice cloning",
         "audioMusic": "Audio · Music generation",
-        "embedding": "Embeddings",
-        "rerank": "Document reranking",
-        "moderation": "Content moderation"
+        "embedding": "Embeddings"
       },
       "saveByok": "Save and enable BYOK",
       "saved": "BYOK configuration saved",

@@ -3652,9 +3652,7 @@
         "IMAGE": "图片",
         "VIDEO": "视频",
         "AUDIO": "音频",
-        "EMBEDDING": "向量",
-        "RERANK": "内容重排",
-        "MODERATION": "内容审核"
+        "EMBEDDING": "向量"
       },
       "status": {
         "ACTIVE": "有效",
@@ -3895,9 +3893,7 @@
         "audioSpeech": "音频·语音合成",
         "audioVoiceClone": "音频·声线克隆",
         "audioMusic": "音频·音乐生成",
-        "embedding": "向量嵌入",
-        "rerank": "文档重排",
-        "moderation": "内容审核"
+        "embedding": "向量嵌入"
       },
       "saveByok": "保存并启用 BYOK",
       "saved": "BYOK 配置已保存",

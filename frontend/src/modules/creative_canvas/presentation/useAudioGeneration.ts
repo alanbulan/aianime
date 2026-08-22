@@ -30,7 +30,6 @@ export type AudioGenerationGenerate = (
   params:
     | {
         kind: 'music';
-        model: string;
         projectId: string;
         prompt: string;
         musicLengthMs?: number;
@@ -39,7 +38,6 @@ export type AudioGenerationGenerate = (
       }
     | {
         kind: 'speech';
-        model: string;
         projectId: string;
         prompt: string;
         emotionPrompt?: string;
@@ -84,11 +82,6 @@ export function createUseAudioGeneration({
       if (isGenerating) return;
       const trimmed = effectivePrompt;
       if (trimmed.length === 0) return;
-      const model = String(data.model ?? '').trim();
-      if (!model) {
-        updateNodeData(nodeId, { generationError: '请选择可用的音频模型' });
-        return;
-      }
       updateNodeData(nodeId, {
         isGenerating: true,
         generationStartedAt: Date.now(),
@@ -99,7 +92,6 @@ export function createUseAudioGeneration({
           isMusic
             ? {
                 kind: 'music',
-                model,
                 projectId,
                 prompt: trimmed,
                 musicLengthMs: data.musicLengthMs,
@@ -108,7 +100,6 @@ export function createUseAudioGeneration({
               }
             : {
                 kind: 'speech',
-                model,
                 projectId,
                 prompt: trimmed,
                 emotionPrompt: data.emotionPrompt,
@@ -143,7 +134,6 @@ export function createUseAudioGeneration({
       data.respectSectionsDurations,
       data.voiceRef,
       data.emotionPrompt,
-      data.model,
       effectivePrompt,
       nodeId,
       projectId,

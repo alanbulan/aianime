@@ -128,7 +128,6 @@ async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_p
 
     output_path = tmp_path / "beat_03.mp3"
     client = IndexTTS2Client(
-        model="index-tts-2",
         timeout_seconds=12,
     )
     result = await client.generate(
@@ -207,7 +206,6 @@ async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypat
     monkeypatch.setattr(indextts2, "_refund_tts_model_call", fake_refund)
 
     client = IndexTTS2Client(
-        model="index-tts-2",
         timeout_seconds=12,
     )
     result = await client.generate(
@@ -241,7 +239,6 @@ async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
     monkeypatch.setattr(indextts2, "_reserve_tts_model_call", fake_reserve)
 
     client = IndexTTS2Client(
-        model="index-tts-2",
         timeout_seconds=12,
     )
 
@@ -285,7 +282,7 @@ async def test_indextts2_routes_provider_through_desktop_proxy(monkeypatch, tmp_
     monkeypatch.setattr(indextts2, "_reserve_tts_model_call", fake_reserve)
     monkeypatch.setattr(indextts2, "_confirm_tts_model_call", fake_confirm)
 
-    result = await IndexTTS2Client(model="local-index-tts").generate(
+    result = await IndexTTS2Client().generate(
         prompt="测试",
         audio_url="https://example.com/reference.wav",
         output_path=tmp_path / "out.mp3",

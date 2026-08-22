@@ -52,8 +52,6 @@ export const BYOK_MODEL_ROLES = [
   "AUDIO_VOICE_CLONE",
   "AUDIO_MUSIC",
   "EMBEDDING",
-  "RERANK",
-  "MODERATION",
 ] as const;
 
 export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
@@ -92,6 +90,68 @@ export interface CommercialModelAccessStatus {
   cloudModelAssignments: ByokModelAssignment[];
   byokConfigured: boolean;
   byokProviders: ByokProviderStatus[];
+}
+
+export interface CommercialModelRoleRoute {
+  modelId: string;
+  role: ByokModelRole;
+  source: "cloud" | "byok";
+  providerName: string;
+}
+
+export function resolveCommercialModelRoleRoute(
+  status: CommercialModelAccessStatus | null | undefined,
+  role: ByokModelRole,
+): CommercialModelRoleRoute | null {
+  if (!status) return null;
+  const routes: Array<
+    CommercialModelRoleRoute & {
+      assignmentPriority: number;
+      providerPriority: number;
+    }
+  > = status.cloudModelAssignments
+    .filter((assignment) => assignment.enabled && assignment.role === role)
+    .map((assignment) => ({
+      modelId: assignment.modelId,
+      role,
+      source: "cloud" as const,
+      providerName: "云端",
+      assignmentPriority: assignment.priority,
+      providerPriority: 0,
+    }));
+  if (status.allowsCustomModels) {
+    for (const provider of status.byokProviders) {
+      if (!provider.configured || !provider.enabled) continue;
+      for (const assignment of provider.modelAssignments) {
+        if (!assignment.enabled || assignment.role !== role) continue;
+        routes.push({
+          modelId: assignment.modelId,
+          role,
+          source: "byok",
+          providerName: provider.name,
+          assignmentPriority: assignment.priority,
+          providerPriority: provider.priority,
+        });
+      }
+    }
+  }
+  routes.sort(
+    (left, right) =>
+      left.assignmentPriority - right.assignmentPriority ||
+      left.providerPriority - right.providerPriority ||
+      (left.source === right.source ? 0 : left.source === "cloud" ? -1 : 1) ||
+      left.providerName.localeCompare(right.providerName) ||
+      left.modelId.localeCompare(right.modelId),
+  );
+  const selected = routes[0];
+  return selected
+    ? {
+        modelId: selected.modelId,
+        role: selected.role,
+        source: selected.source,
+        providerName: selected.providerName,
+      }
+    : null;
 }
 
 export function parseCommercialModelAccessStatus(
@@ -194,8 +254,6 @@ const ROLES_BY_OPERATION: Readonly<Record<string, readonly ByokModelRole[]>> = {
   ],
   AUDIO: ["AUDIO_SPEECH", "AUDIO_VOICE_CLONE", "AUDIO_MUSIC"],
   EMBEDDING: ["EMBEDDING"],
-  RERANK: ["RERANK"],
-  MODERATION: ["MODERATION"],
 };
 
 const MODES_BY_ROLE: Readonly<

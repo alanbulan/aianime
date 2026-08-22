@@ -264,7 +264,6 @@ export interface ProductionVideoGateway {
     project: string,
     episode: number,
     beatNumber: number,
-    model: string,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
   generateSketches(
     project: string,

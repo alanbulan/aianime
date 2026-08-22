@@ -6,11 +6,6 @@ from ai_anime.modules.model_usage.public import resolve_model_for_role
 from ai_anime.modules.project_workspace.public import load_project_config
 
 
-def resolve_audio_generation_model(requested_model: str | None = None) -> str:
-    requested = str(requested_model or "").strip()
-    return requested or resolve_model_for_role("AUDIO_SPEECH")
-
-
 def resolve_video_generation_model(
     username: str,
     project: str,
@@ -45,7 +40,6 @@ def resolve_episode_video_resolution(
 
 
 __all__ = [
-    "resolve_audio_generation_model",
     "resolve_episode_video_resolution",
     "resolve_video_generation_model",
 ]

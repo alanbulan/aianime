@@ -19,7 +19,6 @@ INDEXTTS2_AUDIO_TASK_TYPE = "audio_generation_indextts2"
 @dataclass(frozen=True)
 class GenerateEpisodeAudioCommand:
     episode_num: int
-    model: str
     mode: str | None = None
     beat_numbers: list[int] | None = None
 
@@ -27,7 +26,6 @@ class GenerateEpisodeAudioCommand:
 @dataclass(frozen=True)
 class EpisodeAudioTask:
     episode_num: int
-    model: str
     mode: str
     beat_numbers: list[int] | None
     output_dir: str | Path
@@ -36,7 +34,6 @@ class EpisodeAudioTask:
     def backend_payload(self) -> dict[str, Any]:
         return {
             "episode": self.episode_num,
-            "model": self.model,
             "mode": self.mode,
             "beat_numbers": self.beat_numbers,
             "output_dir": str(self.output_dir),
@@ -127,9 +124,6 @@ class EpisodeAudioUseCases:
             raise EpisodeAudioBeatsMissing(command.episode_num)
 
         mode = command.mode or "sync_changed"
-        model = command.model.strip()
-        if not model:
-            raise ValueError("audio model is required")
         await self._require_voice_prerequisites(
             context,
             episode_num=command.episode_num,
@@ -139,7 +133,6 @@ class EpisodeAudioUseCases:
         return await self._schedule(
             context,
             episode_num=command.episode_num,
-            model=model,
             mode=mode,
             beat_numbers=command.beat_numbers,
             message=f"第 {command.episode_num} 集语音批量生成已进入队列",
@@ -150,7 +143,6 @@ class EpisodeAudioUseCases:
         context: ProjectContext,
         episode_num: int,
         beat_num: int,
-        model: str,
     ) -> ScheduledEpisodeAudio:
         beats = await self._beat_source.for_episode(context, episode_num)
         beat = next(
@@ -160,9 +152,6 @@ class EpisodeAudioUseCases:
         if not beat and not (1 <= beat_num <= len(beats)):
             raise EpisodeAudioBeatMissing(beat_num)
 
-        clean_model = model.strip()
-        if not clean_model:
-            raise ValueError("audio model is required")
         await self._require_voice_prerequisites(
             context,
             episode_num=episode_num,
@@ -172,7 +161,6 @@ class EpisodeAudioUseCases:
         return await self._schedule(
             context,
             episode_num=episode_num,
-            model=clean_model,
             mode="redo_selected",
             beat_numbers=[beat_num],
             message=f"第 {episode_num} 集 Beat {beat_num} 语音生成已进入队列",
@@ -200,7 +188,6 @@ class EpisodeAudioUseCases:
         context: ProjectContext,
         *,
         episode_num: int,
-        model: str,
         mode: str,
         beat_numbers: list[int] | None,
         message: str,
@@ -209,7 +196,6 @@ class EpisodeAudioUseCases:
             context,
             EpisodeAudioTask(
                 episode_num=episode_num,
-                model=model,
                 mode=mode,
                 beat_numbers=beat_numbers,
                 output_dir=context.output_dir,

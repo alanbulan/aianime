@@ -47,8 +47,8 @@ const MUSIC_LENGTH_SELECT_CLASS =
   '!h-8 !w-[116px] !rounded-[8px] !border-border !bg-muted !px-3 !text-[13px] !text-foreground hover:!border-foreground/25';
 const MUSIC_LENGTH_SELECT_MENU_CLASS =
   '!z-[260] !min-w-[140px] !border-border !bg-popover !text-popover-foreground shadow-xl';
-const AUDIO_MODEL_SELECT_CLASS =
-  '!h-8 !w-[180px] !rounded-[8px] !border-border !bg-muted !px-3 !text-[12px] !text-foreground hover:!border-foreground/25';
+const AUDIO_MODEL_ROUTE_CLASS =
+  'inline-flex h-8 max-w-[220px] items-center truncate rounded-[8px] border border-border bg-muted px-3 text-[12px] text-text-muted';
 
 export interface AudioOperationsPanelViewProps {
   controller: AudioOperationsPanelController;
@@ -81,11 +81,9 @@ export function AudioOperationsPanelView({
     showMusicSettings,
     toggleMusicSettings,
     audioCostDisplay,
-    audioModels,
-    selectedModel,
-    modelCatalogLoading,
-    modelCatalogError,
-    setSelectedModel,
+    routedModelLabel,
+    modelRouteLoading,
+    modelRouteError,
     submitDisabled,
     submit,
   } = controller;
@@ -182,27 +180,17 @@ export function AudioOperationsPanelView({
       )}
 
       <div className="flex shrink-0 items-center justify-end gap-2 px-3 pb-3 pt-1">
-        <UiSelect
-          aria-label="音频模型"
-          title={modelCatalogError || undefined}
-          value={selectedModel}
-          onChange={(event) => setSelectedModel(event.target.value)}
-          onMouseDown={(event) => event.stopPropagation()}
-          disabled={isGenerating || modelCatalogLoading || audioModels.length === 0}
-          className={AUDIO_MODEL_SELECT_CLASS}
-          menuClassName={MUSIC_LENGTH_SELECT_MENU_CLASS}
+        <span
+          aria-label="当前音频模型路由"
+          data-ui-tooltip={modelRouteError || routedModelLabel || undefined}
+          className={AUDIO_MODEL_ROUTE_CLASS}
         >
-          {audioModels.length === 0 ? (
-            <option value="">
-              {modelCatalogLoading ? '加载模型…' : '无可用音频模型'}
-            </option>
-          ) : null}
-          {audioModels.map((model) => (
-            <option key={model.value} value={model.value}>
-              {model.label}
-            </option>
-          ))}
-        </UiSelect>
+          {modelRouteLoading
+            ? '加载模型路由…'
+            : routedModelLabel
+              ? `全局路由 · ${routedModelLabel}`
+              : '未配置音频模型路由'}
+        </span>
         <IconButton
           title="翻译（中英文互译）"
           onClick={translate}

@@ -167,7 +167,7 @@ const audioModelsQuery = {
     {
       value: "audio-speech-test",
       label: "Audio Speech Test",
-      supportedModes: ["speech" as const],
+      supportedModes: ["voiceClone" as const],
     },
   ],
   isLoading: false,
@@ -382,9 +382,7 @@ describe("BatchBar controller", () => {
 
     await act(async () => result.current.onGenerateAudio());
 
-    expect(generateAudio).toHaveBeenCalledWith({
-      model: "audio-speech-test",
-    });
+    expect(generateAudio).toHaveBeenCalledWith({});
     expect(hookMocks.audioStart).toHaveBeenCalledWith({
       scope: "audio-scope",
     });

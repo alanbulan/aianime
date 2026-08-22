@@ -6,7 +6,7 @@ from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.routes.production.audio_schemas import (
     EpisodeAudioGenerateRequest,
-    EpisodeAudioModelRequest,
+    EpisodeAudioRegenerateRequest,
 )
 from ai_anime.modules.production.public import (
     AudioVoicePrerequisitesMissing,
@@ -14,7 +14,6 @@ from ai_anime.modules.production.public import (
     EpisodeAudioBeatsMissing,
     GenerateEpisodeAudioCommand,
     episode_audio_use_cases,
-    resolve_audio_generation_model,
 )
 
 router = APIRouter()
@@ -34,7 +33,6 @@ async def generate_audio(
             resolved.ctx,
             GenerateEpisodeAudioCommand(
                 episode_num=episode_num,
-                model=resolve_audio_generation_model(body.model),
                 mode=body.mode,
                 beat_numbers=body.beat_numbers,
             ),
@@ -51,7 +49,7 @@ async def regenerate_beat_audio(
     project: str,
     episode_num: int,
     beat_num: int,
-    body: EpisodeAudioModelRequest,
+    body: EpisodeAudioRegenerateRequest,
     user: dict = Depends(get_api_user),
 ):
     """Regenerate one Beat's IndexTTS2 audio."""
@@ -61,7 +59,6 @@ async def regenerate_beat_audio(
             resolved.ctx,
             episode_num,
             beat_num,
-            body.model,
         )
     except EpisodeAudioBeatMissing as exc:
         return {"ok": False, "error": str(exc)}

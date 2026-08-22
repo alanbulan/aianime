@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => ({
   detachUpstream: vi.fn(),
   useAudioGeneration: vi.fn(),
   creditCost: vi.fn(),
-  modelCatalog: vi.fn(),
+  modelAccess: vi.fn(),
   translate: vi.fn(),
 }));
 
@@ -33,7 +33,7 @@ vi.mock('@/modules/model_usage/public', async (importOriginal) => {
   return {
     ...actual,
     useGenerationCreditCost: (...args: unknown[]) => mocks.creditCost(...args),
-    useCommercialModelCatalog: (...args: unknown[]) => mocks.modelCatalog(...args),
+    useCommercialModelAccessStatus: (...args: unknown[]) => mocks.modelAccess(...args),
   };
 });
 
@@ -66,18 +66,25 @@ describe('useAudioOperationsPanelController', () => {
     mocks.creditCost.mockReset().mockReturnValue({
       data: { data: { display: '2 积分' } },
     });
-    mocks.modelCatalog.mockReset().mockReturnValue({
+    mocks.modelAccess.mockReset().mockReturnValue({
       data: {
-        items: [
+        mode: 'mixed',
+        allowsCustomModels: false,
+        gatewayOrigin: 'http://localhost',
+        byokConfigured: false,
+        byokProviders: [],
+        cloudModelAssignments: [
           {
-            code: 'audio-speech-1',
-            displayName: 'Speech Model',
-            capabilities: { supportedModes: ['SPEECH'] },
+            modelId: 'audio-voice-clone-1',
+            role: 'AUDIO_VOICE_CLONE',
+            priority: 100,
+            enabled: true,
           },
           {
-            code: 'audio-music-1',
-            displayName: 'Music Model',
-            capabilities: { supportedModes: ['MUSIC'] },
+            modelId: 'audio-music-1',
+            role: 'AUDIO_MUSIC',
+            priority: 100,
+            enabled: true,
           },
         ],
       },
@@ -112,7 +119,7 @@ describe('useAudioOperationsPanelController', () => {
         data: {
           audioUrl: null,
           audioKind: 'music',
-          model: 'audio-music-1',
+          model: 'legacy-node-model',
           musicLengthMs: 30_001,
         },
       }),
@@ -131,6 +138,7 @@ describe('useAudioOperationsPanelController', () => {
     );
     expect(result.current.upstreamTextContents).toHaveLength(1);
     expect(result.current.submitDisabled).toBe(false);
+    expect(result.current.routedModelLabel).toBe('云端 · audio-music-1');
     act(() => result.current.toggleMusicSettings());
     expect(result.current.showMusicSettings).toBe(true);
     act(() => result.current.setMusicLengthMs(60_000));

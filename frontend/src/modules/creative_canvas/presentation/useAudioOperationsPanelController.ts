@@ -22,9 +22,9 @@ import type {
 } from '../application/translateCanvasText';
 
 import {
-  useCommercialModelCatalog,
+  resolveCommercialModelRoleRoute,
+  useCommercialModelAccessStatus,
   useGenerationCreditCost,
-  audioModelOptionsForMode,
 } from '@/modules/model_usage/public';
 
 export interface AudioOperationsPanelStore {
@@ -102,24 +102,18 @@ export function createUseAudioOperationsPanelController({
     const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isMusic = data.audioKind === 'music';
-    const modelCatalog = useCommercialModelCatalog('AUDIO');
-    const audioModels = useMemo(
-      () =>
-        audioModelOptionsForMode(
-          modelCatalog.data?.items ?? [],
-          isMusic ? 'music' : 'speech',
-        ),
-      [isMusic, modelCatalog.data?.items],
+    const modelAccess = useCommercialModelAccessStatus(
+      typeof window !== 'undefined' && Boolean(window.aiAnimeDesktop?.commercial),
     );
-    const storedModel = String(data.model ?? '').trim();
-    const selectedModel = audioModels.some((model) => model.value === storedModel)
-      ? storedModel
-      : (audioModels[0]?.value ?? '');
-
-    useEffect(() => {
-      if (!selectedModel || selectedModel === storedModel) return;
-      updateNodeData(nodeId, { model: selectedModel });
-    }, [nodeId, selectedModel, storedModel, updateNodeData]);
+    const audioRoute = useMemo(
+      () =>
+        resolveCommercialModelRoleRoute(
+          modelAccess.data,
+          isMusic ? 'AUDIO_MUSIC' : 'AUDIO_VOICE_CLONE',
+        ),
+      [isMusic, modelAccess.data],
+    );
+    const routedModel = audioRoute?.modelId ?? '';
     const musicSettings = useMemo(
       () => resolveAudioMusicSettings(data),
       [
@@ -134,7 +128,7 @@ export function createUseAudioOperationsPanelController({
     );
     const audioCost = useGenerationCreditCost(
       isMusic ? 'freezone_audio_music' : 'beat_tts',
-      selectedModel || null,
+      routedModel || null,
       isMusic
         ? {
             surface: 'canvas',
@@ -320,19 +314,17 @@ export function createUseAudioOperationsPanelController({
       isTranslating,
       submitDisabled:
         isAudioSubmitDisabled(isGenerating, effectivePrompt) ||
-        modelCatalog.isLoading ||
-        !selectedModel ||
-        storedModel !== selectedModel,
+        modelAccess.isLoading ||
+        !routedModel,
       submit,
       translate,
       audioCostDisplay: audioCost.data?.data.display,
-      audioModels,
-      selectedModel,
-      modelCatalogLoading: modelCatalog.isLoading,
-      modelCatalogError:
-        modelCatalog.error instanceof Error ? modelCatalog.error.message : '',
-      setSelectedModel: (model: string) =>
-        updateNodeData(nodeId, { model }),
+      routedModelLabel: audioRoute
+        ? `${audioRoute.providerName} · ${audioRoute.modelId}`
+        : '',
+      modelRouteLoading: modelAccess.isLoading,
+      modelRouteError:
+        modelAccess.error instanceof Error ? modelAccess.error.message : '',
       text,
       textDraft,
       changeTextDraft,

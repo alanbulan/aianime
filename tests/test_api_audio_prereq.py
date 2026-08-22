@@ -1,6 +1,21 @@
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _configured_voice_clone_route():
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "audio-voice-clone-test", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
+    yield
+    configure_model_access(allows_custom_models=False, mode="mixed")
+
+
 @pytest.mark.asyncio
 async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_path):
     from ai_anime.api.routes.production.audio_schemas import EpisodeAudioGenerateRequest
@@ -34,7 +49,6 @@ async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_
         project="demo",
         episode_num=3,
         body=EpisodeAudioGenerateRequest(
-            model="audio-speech-test",
             mode="redo_selected",
             beat_numbers=[1],
         ),
