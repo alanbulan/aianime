@@ -74,6 +74,10 @@ async def _run_indextts2_audio(
             progress_callback=on_progress,
             log_callback=on_log,
         )
+        if result.generated == 0 and result.failed:
+            preview = "；".join(result.failed[:5])
+            suffix = " ..." if len(result.failed) > 5 else ""
+            raise RuntimeError(f"配音生成全部失败：{preview}{suffix}")
         skipped = (
             result.skipped_existing
             + result.skipped_empty

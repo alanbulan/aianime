@@ -9,6 +9,7 @@ import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type {
+  ProductionDataResponse,
   ProductionErrorResponse,
   ProductionTaskResponse,
 } from "@/modules/production/application/ports";
@@ -17,21 +18,21 @@ import {
   type VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
-import type { AudioModelOption } from "@/modules/model_usage/public";
+import type { AudioBillingQuote } from "@/modules/production/domain/audio-generation";
+import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
-
-export interface AudioPaneControllerDependencies {
-  useAudioModels(mode: "voiceClone", enabled?: boolean): {
-    data: AudioModelOption[];
-    isLoading: boolean;
-  };
-  useGenerationCreditCost(kind: string, value?: string | null): CreditCostQuery;
+interface AudioBillingQuoteQuery {
+  data?: ProductionDataResponse<AudioBillingQuote>;
+  error?: unknown;
 }
 
 export interface AudioPaneQueries {
+  useAudioBillingQuote(
+    project: string,
+    episode: number,
+    command: { beatNumbers: number[]; mode: string },
+    revision: string,
+  ): AudioBillingQuoteQuery;
   useRegenerateBeatAudio(
     project: string,
     episode: number,
@@ -59,6 +60,8 @@ export interface AudioPaneController {
   regenerationOpen: boolean;
   regenerationDisabled: boolean;
   regenerationPending: boolean;
+  voiceConfigurationRequired: boolean;
+  beginRegeneration(): void;
   setRegenerationOpen(open: boolean): void;
   stage: BeatStageState;
   confirmRegeneration(): Promise<void>;
@@ -66,7 +69,6 @@ export interface AudioPaneController {
 
 export function createUseAudioPaneController(
   queries: AudioPaneQueries,
-  dependencies: AudioPaneControllerDependencies,
 ) {
   return function useAudioPaneController(
     options: AudioPaneControllerOptions,
@@ -74,12 +76,19 @@ export function createUseAudioPaneController(
     const { beat, episode, onConfigureVoice, project, state } = options;
     const { t } = useTranslation();
     const regenerate = queries.useRegenerateBeatAudio(project, episode);
-    const audioModels = dependencies.useAudioModels("voiceClone", Boolean(project));
-    const audioModel = audioModels.data[0]?.value ?? "";
-    const audioCost = dependencies.useGenerationCreditCost(
-      "beat_tts",
-      audioModel || null,
+    const audioQuote = queries.useAudioBillingQuote(
+      project,
+      episode,
+      { beatNumbers: [beat.beat_number], mode: "redo_selected" },
+      [
+        beat.audio_type,
+        beat.speaker,
+        beat.audio_url,
+        beat.narration_segment,
+      ].join(":"),
     );
+    const prerequisiteError =
+      audioQuote.data?.data.prereq_errors?.[0] ?? "";
     const audioTask = useTaskController({
       key: {
         taskType: TASK_TYPES.AUDIO_GENERATION_INDEXTTS2,
@@ -111,10 +120,6 @@ export function createUseAudioPaneController(
 
     const confirmRegeneration = async () => {
       setRegenerationOpen(false);
-      if (!audioModel) {
-        toast.error(t("episode.workbench.audio.modelUnavailable"));
-        return;
-      }
       try {
         const response = await regenerate.mutateAsync({
           beatNumber: beat.beat_number,
@@ -136,15 +141,32 @@ export function createUseAudioPaneController(
       }
     };
 
+    const beginRegeneration = () => {
+      if (prerequisiteError) {
+        showAudioError(prerequisiteError);
+        return;
+      }
+      setRegenerationOpen(true);
+    };
+
+    const costDisplay = prerequisiteError
+      ? null
+      : audioQuote.data?.data.display ??
+        (audioQuote.error instanceof BillingRuleNotConfiguredError
+          ? t("common.billingRuleNotConfiguredShort")
+          : null);
+
     return {
       audioSource: beat.audio_url ? resolveMediaUrl(beat.audio_url) : null,
       beatNumber: beat.beat_number,
-      costDisplay: audioCost.data?.data.display,
+      costDisplay,
       narrationEmpty: (beat.narration_segment ?? "").trim() === "",
       regenerationOpen,
       regenerationDisabled:
-        audioModels.isLoading || !audioModel || regenerate.isPending || audioTask.started,
+        regenerate.isPending || audioTask.started,
       regenerationPending: regenerate.isPending || audioTask.started,
+      voiceConfigurationRequired: Boolean(prerequisiteError),
+      beginRegeneration,
       setRegenerationOpen,
       stage: state,
       confirmRegeneration,

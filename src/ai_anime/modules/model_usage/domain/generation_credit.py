@@ -139,12 +139,10 @@ def build_generation_credit_cost(
     requested_quantity: int,
 ) -> GenerationCreditCost:
     total_cost = quote.total_cost
-    if getattr(quote, "unit", "call") != "character":
-        return GenerationCreditCost(cost=total_cost, display=str(total_cost))
     return GenerationCreditCost(
         cost=total_cost,
         display=str(total_cost),
-        unit="character",
+        unit=getattr(quote, "unit", "call"),
         unit_cost=getattr(quote, "unit_cost", 0),
         quantity=getattr(quote, "quantity", requested_quantity),
         params=getattr(quote, "params", None) or {},

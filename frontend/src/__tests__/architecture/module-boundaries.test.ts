@@ -19838,10 +19838,10 @@ describe("frontend architecture boundaries", () => {
     expect(productionPublicSource).not.toContain("RenderGridGroup");
     expect(productionPublicSource).not.toContain("SketchGridGroup");
     expect(batchBarControllerSource).toContain(
-      "episodeAudioModelCallCount(",
+      "episodeAudioBillingRevision(beats)",
     );
     expect(batchBarSource).not.toContain(
-      "export function episodeAudioModelCallCount",
+      "export function episodeAudioBillingRevision",
     );
     expect(batchBarSource).not.toContain("normalizeAudioTypeForCost");
     expect(batchBarSource).toContain("useBatchBarController({");

@@ -101,7 +101,8 @@ from ai_anime.modules.production.infrastructure.episode_export import (
     LocalEpisodeExportFiles,
 )
 from ai_anime.modules.production.infrastructure.episode_audio import (
-    IndexTTS2VoicePrerequisiteChecker,
+    IndexTTS2EpisodeAudioPlanner,
+    ModelUsageEpisodeAudioBilling,
     TaskExecutionEpisodeAudioScheduler,
 )
 from ai_anime.modules.production.infrastructure.director_control_sketch import (
@@ -181,7 +182,8 @@ from ai_anime.modules.task_execution.public import project_task_submission_use_c
 def episode_audio_use_cases() -> EpisodeAudioUseCases:
     return EpisodeAudioUseCases(
         SqliteEpisodeBeatSource(),
-        IndexTTS2VoicePrerequisiteChecker(),
+        IndexTTS2EpisodeAudioPlanner(),
+        ModelUsageEpisodeAudioBilling(),
         TaskExecutionEpisodeAudioScheduler(project_task_submission_use_cases()),
     )
 

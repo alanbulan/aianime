@@ -160,6 +160,9 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
     queryClient.invalidateQueries({
       queryKey: queryKeys.characterVoiceSamples(project, name),
     });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.audioBillingQuotes(project),
+    });
   }
 
   function updateCharacterVoiceCache(

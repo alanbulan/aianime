@@ -25,8 +25,11 @@ from ai_anime.modules.production.domain.seedance2_dialogue import (
     required_seedance2_dialogue_texts,
 )
 from ai_anime.modules.production.infrastructure.seedance2_voice import normalize_seedance2_audio_type
+from ai_anime.shared.utils.media_durations import validate_reference_media_durations
 
 MAX_SEEDANCE2_REFERENCE_AUDIOS = 3
+MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS = 1.8
+MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS = 15.2
 MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS = 15.0
 
 
@@ -116,19 +119,27 @@ def _validate_reference_audio_request(audio_paths: list[str]) -> None:
     if len(audio_paths) > MAX_SEEDANCE2_REFERENCE_AUDIOS:
         raise ValueError("Seedance2 参考音频最多 3 段")
 
-    total_duration = 0.0
-    measured = False
-    for path in audio_paths:
+    measured: list[tuple[str, float | None]] = []
+    for index, path in enumerate(audio_paths, start=1):
         try:
-            total_duration += probe_voice_sample_duration_seconds(path)
-            measured = True
+            duration = probe_voice_sample_duration_seconds(path)
         except ValueError:
-            continue
-    if measured and total_duration > MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS:
-        raise ValueError(
-            "Seedance2 参考音频总时长超过 15 秒，"
-            "请回到角色工作台把参考声线裁剪到 3-5 秒"
+            duration = None
+        measured.append((f"音频{index}", duration))
+    try:
+        validate_reference_media_durations(
+            measured,
+            min_seconds=MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS,
+            max_seconds=MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS,
+            total_min_seconds=None,
+            total_max_seconds=MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS,
+            media_label="audio",
         )
+    except ValueError as exc:
+        raise ValueError(
+            f"Seedance2 参考音频时长不合规（{exc}），"
+            "请回到角色工作台把参考声线裁剪到 3-5 秒"
+        ) from exc
 
 
 def _compact_text(value: Any) -> str:

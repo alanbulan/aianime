@@ -13,9 +13,11 @@ import type {
   ProductionTaskResponse,
 } from "@/modules/production/application/ports";
 import {
-  episodeAudioModelCallCount,
+  episodeAudioBillingRevision,
+  type AudioBillingQuote,
   type GenerateAudioCommand,
 } from "@/modules/production/domain/audio-generation";
+import { resolveAudioRegenerationError } from "@/modules/production/domain/audio-prerequisite";
 import type {
   RenderSettingsData,
   SketchAspectRatio,
@@ -29,7 +31,6 @@ import type {
   DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
 import type { VideoModelOption } from "@/modules/production/domain/video-model";
-import type { AudioModelOption } from "@/modules/model_usage/public";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
@@ -68,11 +69,6 @@ interface ProductionWorkflowMutation {
 
 interface VideoModelsQuery {
   data: VideoModelOption[];
-}
-
-interface AudioModelsQuery {
-  data: AudioModelOption[];
-  isLoading: boolean;
 }
 
 interface ImageModelsQuery {
@@ -118,8 +114,19 @@ interface CreditCostQuery {
   error?: unknown;
 }
 
+interface AudioBillingQuoteQuery {
+  data?: ProductionDataResponse<AudioBillingQuote>;
+  error?: unknown;
+}
+
 export interface BatchBarControllerQueries {
   useAssignColors(project: string, episode: number): AssignColorsMutation;
+  useAudioBillingQuote(
+    project: string,
+    episode: number,
+    command: GenerateAudioCommand,
+    revision: string,
+  ): AudioBillingQuoteQuery;
   useDetectIdentities(
     project: string,
     episode: number,
@@ -137,13 +144,11 @@ export interface BatchBarControllerQueries {
   useSketchSettings(project: string): SketchSettingsQuery;
   useUpdateRenderSettings(project: string): UpdateRenderSettingsMutation;
   useUpdateSketchSettings(project: string): UpdateSketchSettingsMutation;
-  useAudioModels(mode: "voiceClone", enabled?: boolean): AudioModelsQuery;
   useImageModels(enabled?: boolean): ImageModelsQuery;
   useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
 
 export interface BatchBarControllerDependencies {
-  formatCreditCost(cost: number): string;
   useGenerationCreditCost(
     kind: string,
     value?: string | null,
@@ -182,7 +187,7 @@ export interface BatchBarModelControl {
 export interface BatchBarController {
   assignColorsPending: boolean;
   audioPending: boolean;
-  audioModelUnavailable: boolean;
+  audioPrerequisiteErrors: readonly string[];
   audioUnavailableForVideoModel: boolean;
   detectIdentitiesCostDisplay: string | null;
   detectIdentitiesPending: boolean;
@@ -227,17 +232,21 @@ export function createUseBatchBarController(
     const sketchSettings = queries.useSketchSettings(project);
     const updateRenderSettings = queries.useUpdateRenderSettings(project);
     const updateSketchSettings = queries.useUpdateSketchSettings(project);
-    const audioModels = queries.useAudioModels("voiceClone", Boolean(project));
-    const audioModel = audioModels.data[0]?.value ?? "";
     const imageModels = queries.useImageModels(Boolean(project));
     const videoModels = queries.useVideoModels(Boolean(project));
     const detectIdentitiesCost = dependencies.useGenerationCreditCost(
       "feature",
       "ai_identity_detection",
     );
-    const episodeAudioCost = dependencies.useGenerationCreditCost(
-      "beat_tts",
-      audioModel || null,
+    const episodeAudioRevision = useMemo(
+      () => episodeAudioBillingRevision(beats),
+      [beats],
+    );
+    const episodeAudioQuote = queries.useAudioBillingQuote(
+      project,
+      episode,
+      { mode: "sync_changed" },
+      episodeAudioRevision,
     );
     const [errorDialog, setErrorDialog] =
       useState<BatchBarErrorDialog | null>(null);
@@ -328,15 +337,13 @@ export function createUseBatchBarController(
     const selectedVideoModel = videoModels.data.find(
       (option) => option.value === videoModel,
     );
-    const episodeAudioCalls = useMemo(
-      () => episodeAudioModelCallCount(beats),
-      [beats],
-    );
-    const episodeAudioCostDisplay = useMemo(() => {
-      const unitCost = episodeAudioCost.data?.data.cost;
-      if (episodeAudioCalls <= 0 || typeof unitCost !== "number") return "";
-      return dependencies.formatCreditCost(unitCost * episodeAudioCalls);
-    }, [episodeAudioCost.data?.data.cost, episodeAudioCalls]);
+    const episodeAudioCostDisplay =
+      episodeAudioQuote.data?.data.display ??
+      (episodeAudioQuote.error instanceof BillingRuleNotConfiguredError
+        ? t("common.billingRuleNotConfiguredShort")
+        : "");
+    const audioPrerequisiteErrors =
+      episodeAudioQuote.data?.data.prereq_errors ?? [];
     const detectIdentitiesCostDisplay =
       detectIdentitiesCost.data?.data.display ??
       (detectIdentitiesCost.error instanceof BillingRuleNotConfiguredError
@@ -386,10 +393,12 @@ export function createUseBatchBarController(
     };
 
     const onGenerateAudio = async () => {
-      if (!audioModel) {
+      if (audioPrerequisiteErrors.length > 0) {
         showError(
           t("episode.workbench.batch.genAudioTitle"),
-          t("episode.workbench.audio.modelUnavailable"),
+          audioPrerequisiteErrors
+            .map((error) => resolveAudioRegenerationError(error).message)
+            .join("\n"),
         );
         return;
       }
@@ -487,7 +496,7 @@ export function createUseBatchBarController(
     return {
       assignColorsPending: assignColors.isPending,
       audioPending: audioTask.started || generateAudio.isPending,
-      audioModelUnavailable: audioModels.isLoading || !audioModel,
+      audioPrerequisiteErrors,
       audioUnavailableForVideoModel:
         selectedVideoModel?.supportsNativeAudio === true,
       detectIdentitiesCostDisplay,

@@ -79,24 +79,22 @@ vi.mock("sonner", () => ({
 
 const useAudioPaneController = createUseAudioPaneController(
   {
+    useAudioBillingQuote: () => ({
+      data: {
+        ok: true,
+        data: {
+          beat_numbers: [1],
+          quantity: 1,
+          unit_cost: 0,
+          cost: 0,
+          display: "",
+          prereq_errors: [],
+        },
+      },
+    }),
     useRegenerateBeatAudio: () => ({
       mutateAsync: mutateRegenerate,
       isPending: false,
-    }),
-  },
-  {
-    useAudioModels: () => ({
-      data: [
-        {
-          value: "audio-speech-test",
-          label: "Audio Speech Test",
-          supportedModes: ["voiceClone"],
-        },
-      ],
-      isLoading: false,
-    }),
-    useGenerationCreditCost: () => ({
-      data: { data: { display: "" } },
     }),
   },
 );

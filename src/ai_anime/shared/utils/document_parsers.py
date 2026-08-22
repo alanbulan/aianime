@@ -33,6 +33,13 @@ def is_supported_novel_path(path: str | Path) -> bool:
     return Path(path).suffix.lower() in SUPPORTED_NOVEL_EXTENSIONS
 
 
+def count_billable_text_chars(text: str) -> int:
+    """Count model-visible text characters while ignoring layout whitespace."""
+    if not text:
+        return 0
+    return len(_BILLABLE_WHITESPACE_RE.sub("", text))
+
+
 def count_billable_novel_chars(text: str) -> int:
     """Count parsed novel text characters used for import billing.
 
@@ -40,9 +47,7 @@ def count_billable_novel_chars(text: str) -> int:
     that same text and ignores layout whitespace. Punctuation remains billable
     because it is still model-visible input.
     """
-    if not text:
-        return 0
-    return len(_BILLABLE_WHITESPACE_RE.sub("", text))
+    return count_billable_text_chars(text)
 
 
 def decode_novel_bytes(raw: bytes) -> str:

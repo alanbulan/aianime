@@ -927,27 +927,31 @@ async def _ensure_audio(
     force: bool = False,
 ) -> None:
     from ai_anime.modules.production.public import (
+        EpisodeAudioGenerationNotRequired,
         GenerateEpisodeAudioCommand,
         episode_audio_use_cases,
     )
 
     paths = PathResolver(context.output_dir, episode_num)
-    missing = [
+    candidates = [
         number
         for number in _beat_numbers(beats)
         if force or not paths.audio(number).exists()
     ]
-    if not missing:
+    if not candidates:
         return
     reporter.update(progress, f"第 {episode_num} 集生成缺失配音")
-    scheduled = await episode_audio_use_cases().generate(
-        context,
-        GenerateEpisodeAudioCommand(
-            episode_num=episode_num,
-            mode="redo_selected",
-            beat_numbers=missing,
-        ),
-    )
+    try:
+        scheduled = await episode_audio_use_cases().generate(
+            context,
+            GenerateEpisodeAudioCommand(
+                episode_num=episode_num,
+                mode="redo_selected",
+                beat_numbers=candidates,
+            ),
+        )
+    except EpisodeAudioGenerationNotRequired:
+        return
     await _wait_ticket(
         context,
         _ticket_from_scheduled(
@@ -957,7 +961,11 @@ async def _ensure_audio(
         ),
         timeout_seconds=timeout_seconds,
     )
-    missing_after = [number for number in missing if not paths.audio(number).exists()]
+    missing_after = [
+        number
+        for number in scheduled.beat_numbers
+        if not paths.audio(number).exists()
+    ]
     if missing_after:
         raise RuntimeError(
             "配音任务已完成但产物不完整："

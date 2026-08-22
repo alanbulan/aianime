@@ -12,6 +12,7 @@ from ai_anime.modules.production.public import (
     AudioVoicePrerequisitesMissing,
     EpisodeAudioBeatMissing,
     EpisodeAudioBeatsMissing,
+    EpisodeAudioGenerationNotRequired,
     GenerateEpisodeAudioCommand,
     episode_audio_use_cases,
 )
@@ -19,11 +20,31 @@ from ai_anime.modules.production.public import (
 router = APIRouter()
 
 
+@router.post("/projects/{project}/episodes/{episode_num}/audio/billing-quote")
+async def audio_generation_billing_quote(
+    project: str,
+    episode_num: int,
+    body: EpisodeAudioGenerateRequest = EpisodeAudioGenerateRequest(),
+    user: dict = Depends(get_api_user),
+):
+    """Quote the exact Beat audio calls through the shared model usage protocol."""
+    resolved = await resolve_project_scope(project, user, required_role="viewer")
+    quote = await episode_audio_use_cases().billing_quote(
+        resolved.ctx,
+        GenerateEpisodeAudioCommand(
+            episode_num=episode_num,
+            mode=body.mode,
+            beat_numbers=body.beat_numbers,
+        ),
+    )
+    return {"ok": True, "data": quote.as_dict()}
+
+
 @router.post("/projects/{project}/episodes/{episode_num}/audio/generate")
 async def generate_audio(
     project: str,
     episode_num: int,
-    body: EpisodeAudioGenerateRequest,
+    body: EpisodeAudioGenerateRequest = EpisodeAudioGenerateRequest(),
     user: dict = Depends(get_api_user),
 ):
     """Generate episode audio with IndexTTS2."""
@@ -41,6 +62,8 @@ async def generate_audio(
         return {"ok": False, "error": str(exc)}
     except AudioVoicePrerequisitesMissing as exc:
         return {"ok": False, "code": exc.code, "error": str(exc)}
+    except EpisodeAudioGenerationNotRequired as exc:
+        return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 
 
@@ -49,7 +72,7 @@ async def regenerate_beat_audio(
     project: str,
     episode_num: int,
     beat_num: int,
-    body: EpisodeAudioRegenerateRequest,
+    body: EpisodeAudioRegenerateRequest = EpisodeAudioRegenerateRequest(),
     user: dict = Depends(get_api_user),
 ):
     """Regenerate one Beat's IndexTTS2 audio."""
@@ -63,6 +86,8 @@ async def regenerate_beat_audio(
     except EpisodeAudioBeatMissing as exc:
         return {"ok": False, "error": str(exc)}
     except AudioVoicePrerequisitesMissing as exc:
+        return {"ok": False, "code": exc.code, "error": str(exc)}
+    except EpisodeAudioGenerationNotRequired as exc:
         return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 

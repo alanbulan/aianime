@@ -16,13 +16,26 @@ from ai_anime.modules.model_usage.public import (
     is_insufficient_credits_error,
     resolve_model_for_role,
 )
+from ai_anime.shared.utils.document_parsers import count_billable_text_chars
 
 
-async def _reserve_tts_model_call(model: str, *, source: str) -> str:
+async def _reserve_tts_model_call(
+    model: str,
+    *,
+    source: str,
+    billable_chars: int,
+) -> str:
+    metrics = {
+        "call_count": 1,
+        "item_count": 1,
+        "billable_chars": max(int(billable_chars or 0), 0),
+    }
     return await get_usage_meter().reserve_current_model_call_credit(
         model=model,
         billing_kind="audio",
-        metadata={"source": source},
+        billing_params=metrics,
+        billing_quantity=1,
+        metadata={"source": source, **metrics},
     )
 
 
@@ -129,7 +142,11 @@ class IndexTTS2Client:
         source = "indextts2_commercial"
         reservation_id = ""
         try:
-            reservation_id = await _reserve_tts_model_call(self.model, source=source)
+            reservation_id = await _reserve_tts_model_call(
+                self.model,
+                source=source,
+                billable_chars=count_billable_text_chars(prompt),
+            )
         except Exception as exc:
             if is_insufficient_credits_error(exc):
                 raise

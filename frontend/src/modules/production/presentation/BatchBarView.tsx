@@ -171,7 +171,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
   const {
     assignColorsPending,
     audioPending,
-    audioModelUnavailable,
+    audioPrerequisiteErrors,
     audioUnavailableForVideoModel,
     detectIdentitiesCostDisplay,
     detectIdentitiesPending,
@@ -321,7 +321,11 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (audioUnavailableForVideoModel || audioModelUnavailable) return;
+                      if (audioUnavailableForVideoModel) return;
+                      if (audioPrerequisiteErrors.length > 0) {
+                        void onGenerateAudio();
+                        return;
+                      }
                       askConfirm(
                         t("episode.workbench.batch.genAudioTitle"),
                         t("episode.workbench.batch.genAudioDesc"),
@@ -330,12 +334,12 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                       );
                     }}
                     disabled={
-                      !audioUnavailableForVideoModel && !audioModelUnavailable && audioPending
+                      !audioUnavailableForVideoModel && audioPending
                     }
-                    aria-disabled={audioUnavailableForVideoModel || audioModelUnavailable}
+                    aria-disabled={audioUnavailableForVideoModel}
                     className={cn(
                       TOOLBAR_CONTROL_CLASS,
-                      (audioUnavailableForVideoModel || audioModelUnavailable) &&
+                      audioUnavailableForVideoModel &&
                         "cursor-not-allowed border-border text-muted-foreground/45 hover:border-border hover:bg-muted hover:text-muted-foreground/45",
                     )}
                   />
@@ -351,25 +355,25 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                   aria-hidden="true"
                   className="inline-flex min-w-7 justify-start"
                 >
-                  <CreditCostPill
-                    display={episodeAudioCostDisplay}
-                    disabled={audioUnavailableForVideoModel || audioModelUnavailable}
-                    className="h-4 bg-transparent px-0 text-[11px]"
-                  />
+                  {audioPrerequisiteErrors.length === 0 && (
+                    <CreditCostPill
+                      display={episodeAudioCostDisplay}
+                      disabled={audioUnavailableForVideoModel}
+                      className="h-4 bg-transparent px-0 text-[11px]"
+                    />
+                  )}
                 </span>
               </TooltipTrigger>
-              {(audioUnavailableForVideoModel || audioModelUnavailable) && (
+              {audioUnavailableForVideoModel && (
                 <TooltipContent
                   side="bottom"
                   sideOffset={8}
                   showArrow={false}
                   className="border border-border bg-popover text-popover-foreground shadow-lg"
                 >
-                  {audioModelUnavailable
-                    ? t("episode.workbench.audio.modelUnavailable")
-                    : t(
-                        "episode.workbench.batch.genAudioUnavailableForVideoModel",
-                      )}
+                  {t(
+                    "episode.workbench.batch.genAudioUnavailableForVideoModel",
+                  )}
                 </TooltipContent>
               )}
             </Tooltip>

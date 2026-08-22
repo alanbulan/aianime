@@ -8,7 +8,6 @@ import { useTaskController } from "@/modules/task_execution/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   useCommercialModelCatalog,
-  useCommercialModelAccessStatus,
   loadCommercialModelCatalog,
   useGenerationCreditCost,
   useGenerationCreditCosts,
@@ -27,7 +26,6 @@ import { useAppStore } from "@/modules/project_workspace/public";
 import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createAuthorizedProductionImageGateway } from "@/modules/production/application/authorized-image-generation-gateway";
-import { createUseAudioModels } from "@/modules/production/application/audio-model-query-hooks";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
 import { createImageSettingsQueryHooks } from "@/modules/production/application/image-settings-query-hooks";
 import { createUseImageModels } from "@/modules/production/application/image-model-query-hooks";
@@ -84,10 +82,8 @@ const authorizedProductionImageGateway =
   createAuthorizedProductionImageGateway(httpProductionVideoGateway, {
     load: () => loadCommercialModelCatalog("IMAGE"),
   });
-const useAudioModels = createUseAudioModels(useCommercialModelAccessStatus);
 const useAudioPaneController = createUseAudioPaneController(
   audioGenerationQueries,
-  { useAudioModels, useGenerationCreditCost },
 );
 const videoPoolQueries = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
@@ -239,6 +235,7 @@ export const useSketchGridCardController =
 export const useBatchBarController = createUseBatchBarController(
   {
     useAssignColors: sketchMarkerQueries.useAssignColors,
+    useAudioBillingQuote: audioGenerationQueries.useAudioBillingQuote,
     useDetectIdentities: sketchMarkerQueries.useDetectIdentities,
     useGenerateAudio: audioGenerationQueries.useGenerateAudio,
     useGlobalOptimize: videoGenerationQueries.useGlobalOptimize,
@@ -247,11 +244,10 @@ export const useBatchBarController = createUseBatchBarController(
     useSketchSettings: imageSettingsQueries.useSketchSettings,
     useUpdateRenderSettings: imageSettingsQueries.useUpdateRenderSettings,
     useUpdateSketchSettings: imageSettingsQueries.useUpdateSketchSettings,
-    useAudioModels,
     useImageModels,
     useVideoModels,
   },
-  { formatCreditCost, useGenerationCreditCost },
+  { useGenerationCreditCost },
 );
 export const useRenderPlanDialogController =
   createUseRenderPlanDialogController(
@@ -324,7 +320,11 @@ export const {
   useTrimNarratorVoice,
   useDeleteNarratorVoice,
 } = narratorVoiceQueries;
-export const { useGenerateAudio, useRegenerateBeatAudio } =
+export const {
+  useAudioBillingQuote,
+  useGenerateAudio,
+  useRegenerateBeatAudio,
+} =
   audioGenerationQueries;
 export const {
   useRenderSettings,

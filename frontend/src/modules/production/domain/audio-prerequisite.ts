@@ -11,6 +11,12 @@ export function resolveAudioRegenerationError(
   error: string,
 ): AudioRegenerationError {
   const message = String(error || "").trim();
+  if (message.includes("角色声线缺失")) {
+    return {
+      message: `${message}。请到「角色」中上传默认或对应年龄段声线。`,
+      target: "characters",
+    };
+  }
   if (!message.includes("解说声线缺失")) {
     return { message, target: null };
   }

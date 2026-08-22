@@ -36,6 +36,8 @@ if TYPE_CHECKING:
         prepare_global_optimizer_input,
     )
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
+        IndexTTS2AudioGenerationPlan,
+        build_indextts2_audio_generation_plan,
         collect_indextts2_voice_prereq_errors,
         run_indextts2_beat_audio_generation,
     )
@@ -157,8 +159,11 @@ from ai_anime.modules.production.application.director_control_sketch import (
 from ai_anime.modules.production.application.episode_audio import (
     INDEXTTS2_AUDIO_TASK_TYPE,
     AudioVoicePrerequisitesMissing,
+    EpisodeAudioBillingQuote,
     EpisodeAudioBeatMissing,
     EpisodeAudioBeatsMissing,
+    EpisodeAudioGenerationNotRequired,
+    EpisodeAudioGenerationPlan,
     EpisodeAudioUseCases,
     GenerateEpisodeAudioCommand,
     ScheduledEpisodeAudio,
@@ -420,6 +425,14 @@ _LAZY_EXPORTS = {
     "collect_indextts2_voice_prereq_errors": (
         "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
         "collect_indextts2_voice_prereq_errors",
+    ),
+    "build_indextts2_audio_generation_plan": (
+        "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
+        "build_indextts2_audio_generation_plan",
+    ),
+    "IndexTTS2AudioGenerationPlan": (
+        "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
+        "IndexTTS2AudioGenerationPlan",
     ),
     "dialogue_voice_reference_rows": (
         "ai_anime.modules.production.infrastructure.seedance2_voice_references",
@@ -898,6 +911,7 @@ __all__ = [
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "GRID_REGENERATION_TASK_TYPE",
     "INDEXTTS2_AUDIO_TASK_TYPE",
+    "IndexTTS2AudioGenerationPlan",
     "SELECTED_RENDER_REGEN_TASK_TYPE",
     "SELECTED_SKETCH_REGEN_TASK_TYPE",
     "SKETCH_GENERATION_TASK_TYPE",
@@ -916,7 +930,10 @@ __all__ = [
     "DirectorControlSketchUseCases",
     "EpisodeBeatsMissing",
     "EpisodeAudioBeatMissing",
+    "EpisodeAudioBillingQuote",
     "EpisodeAudioBeatsMissing",
+    "EpisodeAudioGenerationNotRequired",
+    "EpisodeAudioGenerationPlan",
     "EpisodeAudioUseCases",
     "EpisodeExportUseCases",
     "EpisodeFileExport",
@@ -1046,6 +1063,7 @@ __all__ = [
     "build_episode_identity_alias_map",
     "build_color_appearance_map",
     "build_seedance2_project_assets",
+    "build_indextts2_audio_generation_plan",
     "collect_indextts2_voice_prereq_errors",
     "collect_prop_marker_ids_from_beat",
     "canonicalize_visual_identity_markers",

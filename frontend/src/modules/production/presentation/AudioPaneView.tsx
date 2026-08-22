@@ -50,13 +50,8 @@ export function AudioPaneView({
           <Button
             size="xs"
             variant="outline"
-            onClick={() => controller.setRegenerationOpen(true)}
+            onClick={controller.beginRegeneration}
             disabled={controller.regenerationDisabled}
-            data-ui-tooltip={
-              !controller.regenerationPending && controller.regenerationDisabled
-                ? t("episode.workbench.audio.modelUnavailable")
-                : undefined
-            }
             className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}
           >
             {controller.regenerationPending ? (
@@ -64,8 +59,12 @@ export function AudioPaneView({
             ) : (
               <RefreshCw className="size-3" />
             )}
-            {t("common.regenerate")}
-            <CreditCostInline display={controller.costDisplay} />
+            {controller.voiceConfigurationRequired
+              ? t("episode.workbench.audio.configureVoiceAction")
+              : t("common.regenerate")}
+            {!controller.voiceConfigurationRequired && (
+              <CreditCostInline display={controller.costDisplay} />
+            )}
           </Button>
         </div>
       )}

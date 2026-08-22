@@ -5,31 +5,35 @@ export interface GenerateAudioCommand {
   mode?: string;
 }
 
-export interface EpisodeAudioCostBeat {
+export interface AudioBillingQuote {
+  beat_numbers: number[];
+  quantity: number;
+  unit_cost: number;
+  cost: number;
+  display: string;
+  prereq_errors: string[];
+}
+
+export interface EpisodeAudioBillingBeat {
   audio_type?: string | null;
+  audio_url?: string | null;
   beat_number?: number | null;
-  is_manual_shot?: boolean | null;
+  narration_segment?: string | null;
   speaker?: string | null;
 }
 
-export function episodeAudioModelCallCount(
-  beats: readonly EpisodeAudioCostBeat[],
-): number {
-  return beats.reduce((count, beat) => {
-    const beatNumber = Number(beat.beat_number || 0);
-    if (beatNumber <= 0 || beat.is_manual_shot) return count;
-
-    const audioType = normalizedAudioType(beat);
-    if (audioType !== "narration" && audioType !== "dialogue") return count;
-
-    return count + 1;
-  }, 0);
-}
-
-function normalizedAudioType(beat: EpisodeAudioCostBeat): string {
-  const audioType = String(beat.audio_type || "").trim();
-  if (audioType === "action") return "silence";
-  if (audioType) return audioType;
-  if (String(beat.speaker || "").trim()) return "dialogue";
-  return "narration";
+export function episodeAudioBillingRevision(
+  beats: readonly EpisodeAudioBillingBeat[],
+): string {
+  return beats
+    .map((beat) =>
+      [
+        beat.beat_number,
+        beat.audio_type,
+        beat.speaker,
+        beat.audio_url,
+        beat.narration_segment,
+      ].join(":"),
+    )
+    .join(",");
 }

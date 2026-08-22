@@ -162,15 +162,18 @@ const videoModelsQuery = {
     },
   ],
 };
-const audioModelsQuery = {
-  data: [
-    {
-      value: "audio-speech-test",
-      label: "Audio Speech Test",
-      supportedModes: ["voiceClone" as const],
+const audioBillingQuoteQuery = {
+  data: {
+    ok: true as const,
+    data: {
+      beat_numbers: [1, 2],
+      quantity: 2,
+      unit_cost: 5,
+      cost: 10,
+      display: "credits:10",
+      prereq_errors: [],
     },
-  ],
-  isLoading: false,
+  },
 };
 const imageModelsQuery = {
   data: [
@@ -185,6 +188,7 @@ const imageModelsQuery = {
 const useBatchBarController = createUseBatchBarController(
   {
     useAssignColors: () => assignColorsMutation,
+    useAudioBillingQuote: () => audioBillingQuoteQuery,
     useDetectIdentities: () => detectIdentitiesMutation,
     useGenerateAudio: () => generateAudioMutation,
     useGlobalOptimize: () => globalOptimizeMutation,
@@ -193,16 +197,13 @@ const useBatchBarController = createUseBatchBarController(
     useSketchSettings: () => sketchSettingsQuery,
     useUpdateRenderSettings: () => updateRenderSettingsMutation,
     useUpdateSketchSettings: () => updateSketchSettingsMutation,
-    useAudioModels: () => audioModelsQuery,
     useImageModels: () => imageModelsQuery,
     useVideoModels: () => videoModelsQuery,
   },
   {
-    formatCreditCost: (cost) => `credits:${cost}`,
-    useGenerationCreditCost: (kind) =>
-      kind === "beat_tts"
-        ? { data: { data: { cost: 5 } } }
-        : { data: { data: { display: "7" } } },
+    useGenerationCreditCost: () => ({
+      data: { data: { display: "7" } },
+    }),
   },
 );
 

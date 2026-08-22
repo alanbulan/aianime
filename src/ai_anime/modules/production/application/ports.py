@@ -17,6 +17,8 @@ if TYPE_CHECKING:
         DirectorControlSketchTaskReceipt,
     )
     from ai_anime.modules.production.application.episode_audio import (
+        EpisodeAudioBillingQuote,
+        EpisodeAudioGenerationPlan,
         EpisodeAudioTask,
         EpisodeAudioTaskReceipt,
     )
@@ -411,14 +413,23 @@ class ProductionEpisodeExportFiles(Protocol):
     ) -> Path: ...
 
 
-class ProductionAudioVoicePrerequisiteChecker(Protocol):
-    async def check(
+class ProductionEpisodeAudioPlanner(Protocol):
+    async def plan(
         self,
         context: ProjectContext,
         episode_num: int,
         beat_numbers: list[int] | None,
         mode: str,
-    ) -> list[str]: ...
+    ) -> EpisodeAudioGenerationPlan: ...
+
+
+class ProductionEpisodeAudioBilling(Protocol):
+    async def quote(
+        self,
+        plan: EpisodeAudioGenerationPlan,
+    ) -> EpisodeAudioBillingQuote: ...
+
+    def task_payload(self, plan: EpisodeAudioGenerationPlan) -> dict[str, Any]: ...
 
 
 class ProductionEpisodeAudioScheduler(Protocol):

@@ -5,6 +5,7 @@ export {
   NarratorVoicePanel,
   RenderPlanDialog,
   useAssignColors,
+  useAudioBillingQuote,
   useBatchBarController,
   useBeatStates,
   useComposeEpisode,
@@ -169,11 +170,11 @@ export type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
-export {
-  episodeAudioModelCallCount,
-} from "@/modules/production/domain/audio-generation";
+export { episodeAudioBillingRevision } from "@/modules/production/domain/audio-generation";
 export type {
-  EpisodeAudioCostBeat,
+  AudioBillingQuote,
+  EpisodeAudioBillingBeat,
+  GenerateAudioCommand,
 } from "@/modules/production/domain/audio-generation";
 export type {
   PlanEntry,

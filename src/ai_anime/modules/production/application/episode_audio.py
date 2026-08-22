@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.application.ports import (
-    ProductionAudioVoicePrerequisiteChecker,
+    ProductionEpisodeAudioBilling,
+    ProductionEpisodeAudioPlanner,
     ProductionEpisodeAudioScheduler,
     ProductionEpisodeBeatSource,
 )
@@ -24,21 +25,56 @@ class GenerateEpisodeAudioCommand:
 
 
 @dataclass(frozen=True)
+class EpisodeAudioGenerationPlan:
+    beat_numbers: tuple[int, ...] = ()
+    errors: tuple[str, ...] = ()
+    billable_chars: int = 0
+
+    @property
+    def quantity(self) -> int:
+        return len(self.beat_numbers)
+
+
+@dataclass(frozen=True)
+class EpisodeAudioBillingQuote:
+    beat_numbers: tuple[int, ...]
+    quantity: int
+    unit_cost: int
+    cost: int
+    display: str
+    prereq_errors: tuple[str, ...]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "beat_numbers": list(self.beat_numbers),
+            "quantity": self.quantity,
+            "unit_cost": self.unit_cost,
+            "cost": self.cost,
+            "display": self.display,
+            "prereq_errors": list(self.prereq_errors),
+        }
+
+
+@dataclass(frozen=True)
 class EpisodeAudioTask:
     episode_num: int
     mode: str
     beat_numbers: list[int] | None
     output_dir: str | Path
     state_dir: str | Path
+    billing: dict[str, Any] = field(default_factory=dict)
 
     def backend_payload(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "episode": self.episode_num,
             "mode": self.mode,
             "beat_numbers": self.beat_numbers,
             "output_dir": str(self.output_dir),
             "state_dir": str(self.state_dir),
         }
+        if self.billing:
+            payload["billing"] = dict(self.billing)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -56,6 +92,7 @@ class ScheduledEpisodeAudio:
     backend: str
     queue: str | None
     message: str
+    beat_numbers: tuple[int, ...] = ()
 
     @classmethod
     def from_receipt(
@@ -63,6 +100,7 @@ class ScheduledEpisodeAudio:
         receipt: EpisodeAudioTaskReceipt,
         *,
         message: str,
+        beat_numbers: tuple[int, ...],
     ) -> ScheduledEpisodeAudio:
         return cls(
             task_id=receipt.task_id,
@@ -70,6 +108,7 @@ class ScheduledEpisodeAudio:
             backend=receipt.backend,
             queue=receipt.queue,
             message=message,
+            beat_numbers=beat_numbers,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -103,16 +142,44 @@ class AudioVoicePrerequisitesMissing(ValueError):
         super().__init__(f"{preview}{suffix}")
 
 
+class EpisodeAudioGenerationNotRequired(ValueError):
+    code = "audio_generation_not_required"
+
+    def __init__(self, message: str = "没有需要生成的音频") -> None:
+        super().__init__(message)
+
+
 class EpisodeAudioUseCases:
     def __init__(
         self,
         beat_source: ProductionEpisodeBeatSource,
-        voice_prerequisites: ProductionAudioVoicePrerequisiteChecker,
+        planner: ProductionEpisodeAudioPlanner,
+        billing: ProductionEpisodeAudioBilling,
         scheduler: ProductionEpisodeAudioScheduler,
     ) -> None:
         self._beat_source = beat_source
-        self._voice_prerequisites = voice_prerequisites
+        self._planner = planner
+        self._billing = billing
         self._scheduler = scheduler
+
+    async def plan(
+        self,
+        context: ProjectContext,
+        command: GenerateEpisodeAudioCommand,
+    ) -> EpisodeAudioGenerationPlan:
+        return await self._planner.plan(
+            context,
+            command.episode_num,
+            command.beat_numbers,
+            command.mode or "sync_changed",
+        )
+
+    async def billing_quote(
+        self,
+        context: ProjectContext,
+        command: GenerateEpisodeAudioCommand,
+    ) -> EpisodeAudioBillingQuote:
+        return await self._billing.quote(await self.plan(context, command))
 
     async def generate(
         self,
@@ -124,17 +191,13 @@ class EpisodeAudioUseCases:
             raise EpisodeAudioBeatsMissing(command.episode_num)
 
         mode = command.mode or "sync_changed"
-        await self._require_voice_prerequisites(
-            context,
-            episode_num=command.episode_num,
-            beat_numbers=command.beat_numbers,
-            mode=mode,
-        )
+        plan = await self.plan(context, command)
+        self._require_generation_plan(plan)
         return await self._schedule(
             context,
             episode_num=command.episode_num,
             mode=mode,
-            beat_numbers=command.beat_numbers,
+            plan=plan,
             message=f"第 {command.episode_num} 集语音批量生成已进入队列",
         )
 
@@ -152,36 +215,36 @@ class EpisodeAudioUseCases:
         if not beat and not (1 <= beat_num <= len(beats)):
             raise EpisodeAudioBeatMissing(beat_num)
 
-        await self._require_voice_prerequisites(
+        plan = await self.plan(
             context,
-            episode_num=episode_num,
-            beat_numbers=[beat_num],
-            mode="redo_selected",
+            GenerateEpisodeAudioCommand(
+                episode_num=episode_num,
+                mode="redo_selected",
+                beat_numbers=[beat_num],
+            ),
+        )
+        self._require_generation_plan(
+            plan,
+            empty_message="当前 Beat 没有需要生成的音频",
         )
         return await self._schedule(
             context,
             episode_num=episode_num,
             mode="redo_selected",
-            beat_numbers=[beat_num],
+            plan=plan,
             message=f"第 {episode_num} 集 Beat {beat_num} 语音生成已进入队列",
         )
 
-    async def _require_voice_prerequisites(
-        self,
-        context: ProjectContext,
+    @staticmethod
+    def _require_generation_plan(
+        plan: EpisodeAudioGenerationPlan,
         *,
-        episode_num: int,
-        beat_numbers: list[int] | None,
-        mode: str,
+        empty_message: str = "没有需要生成的音频",
     ) -> None:
-        errors = await self._voice_prerequisites.check(
-            context,
-            episode_num,
-            beat_numbers,
-            mode,
-        )
-        if errors:
-            raise AudioVoicePrerequisitesMissing(errors)
+        if plan.errors:
+            raise AudioVoicePrerequisitesMissing(list(plan.errors))
+        if not plan.beat_numbers:
+            raise EpisodeAudioGenerationNotRequired(empty_message)
 
     async def _schedule(
         self,
@@ -189,7 +252,7 @@ class EpisodeAudioUseCases:
         *,
         episode_num: int,
         mode: str,
-        beat_numbers: list[int] | None,
+        plan: EpisodeAudioGenerationPlan,
         message: str,
     ) -> ScheduledEpisodeAudio:
         receipt = await self._scheduler.enqueue(
@@ -197,9 +260,14 @@ class EpisodeAudioUseCases:
             EpisodeAudioTask(
                 episode_num=episode_num,
                 mode=mode,
-                beat_numbers=beat_numbers,
+                beat_numbers=list(plan.beat_numbers),
                 output_dir=context.output_dir,
                 state_dir=context.state_dir,
+                billing=self._billing.task_payload(plan),
             ),
         )
-        return ScheduledEpisodeAudio.from_receipt(receipt, message=message)
+        return ScheduledEpisodeAudio.from_receipt(
+            receipt,
+            message=message,
+            beat_numbers=plan.beat_numbers,
+        )

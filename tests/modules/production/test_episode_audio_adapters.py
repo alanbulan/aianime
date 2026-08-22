@@ -8,14 +8,14 @@ import pytest
 from ai_anime.modules.production.application.episode_audio import EpisodeAudioTask
 from ai_anime.modules.production.infrastructure import episode_audio
 from ai_anime.modules.production.infrastructure.episode_audio import (
-    IndexTTS2VoicePrerequisiteChecker,
+    IndexTTS2EpisodeAudioPlanner,
     TaskExecutionEpisodeAudioScheduler,
 )
 from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
 
 
 @pytest.mark.asyncio
-async def test_voice_checker_uses_context_store_and_closes_it(monkeypatch) -> None:
+async def test_audio_planner_uses_context_store_and_closes_it(monkeypatch) -> None:
     calls: list[tuple[str, object]] = []
 
     class _Store:
@@ -32,9 +32,13 @@ async def test_voice_checker_uses_context_store_and_closes_it(monkeypatch) -> No
         assert candidate is context
         return store
 
-    async def collect(**kwargs):
-        calls.append(("collect", kwargs))
-        return ["missing voice"]
+    async def build(**kwargs):
+        calls.append(("build", kwargs))
+        return SimpleNamespace(
+            beat_numbers=[2],
+            errors=["missing voice"],
+            billable_chars=12,
+        )
 
     monkeypatch.setattr(
         episode_audio.project_stores,
@@ -43,21 +47,23 @@ async def test_voice_checker_uses_context_store_and_closes_it(monkeypatch) -> No
     )
     monkeypatch.setattr(
         episode_audio,
-        "collect_indextts2_voice_prereq_errors",
-        collect,
+        "build_indextts2_audio_generation_plan",
+        build,
     )
 
-    result = await IndexTTS2VoicePrerequisiteChecker().check(
+    result = await IndexTTS2EpisodeAudioPlanner().plan(
         context,
         3,
         [2],
         "redo_selected",
     )
 
-    assert result == ["missing voice"]
+    assert result.beat_numbers == (2,)
+    assert result.errors == ("missing voice",)
+    assert result.billable_chars == 12
     assert calls == [
         (
-            "collect",
+            "build",
             {
                 "store": store,
                 "username": "alice",

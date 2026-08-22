@@ -13,6 +13,15 @@ from ai_anime.modules.asset_world.application.character_models import (
 from ai_anime.modules.asset_world.application.prop_models import NovelProp
 from ai_anime.modules.asset_world.application.scene_models import NovelScene
 from ai_anime.shared.infrastructure.project_sqlite_core import console
+from ai_anime.shared.utils.identity_refs import (
+    remap_character_asset_path,
+    remap_default_map,
+    remap_id_list,
+    remap_identity_id,
+    remap_identity_markers,
+    remap_keyed_by_identity,
+    remap_object_field,
+)
 
 
 class AssetWorldSQLiteRepositoryMixin:
@@ -120,7 +129,40 @@ class AssetWorldSQLiteRepositoryMixin:
         for identity in identities:
             identity.character_name = new_name
             identity.identity_id = f"{new_name}_{identity.identity_name}"
+            identity.reference_audio_path = remap_character_asset_path(
+                identity.reference_audio_path,
+                old_name,
+                new_name,
+            )
+            identity.reference_images = [
+                remap_character_asset_path(path, old_name, new_name)
+                for path in identity.reference_images
+            ]
+            identity.portrait_image = remap_character_asset_path(
+                identity.portrait_image,
+                old_name,
+                new_name,
+            )
+            identity.costume_image = remap_character_asset_path(
+                identity.costume_image,
+                old_name,
+                new_name,
+            )
         char.identities = identities
+        char.reference_audio_path = remap_character_asset_path(
+            char.reference_audio_path,
+            old_name,
+            new_name,
+        )
+        voice_samples = char.voice_samples_by_age_group
+        for sample in voice_samples.values():
+            if isinstance(sample, dict) and "path" in sample:
+                sample["path"] = remap_character_asset_path(
+                    sample["path"],
+                    old_name,
+                    new_name,
+                )
+        char.voice_samples_by_age_group = voice_samples
         char.name = new_name
         await self.add_character(char)
         self._characters.pop(old_name, None)
@@ -130,11 +172,159 @@ class AssetWorldSQLiteRepositoryMixin:
             new_alias_index[key] = new_name if value == old_name else value
         self._alias_index.clear()
         self._alias_index.update(new_alias_index)
+        await self._cascade_character_rename(old_name, new_name)
         old_dir = Path(self.project_dir) / "assets" / "characters" / old_name
         new_dir = Path(self.project_dir) / "assets" / "characters" / new_name
         if old_dir.exists() and not new_dir.exists():
             old_dir.replace(new_dir)
+        await self.load_graph_state()
         console.print(f"[green]已重命名角色: {old_name} → {new_name}[/green]")
+
+    async def _cascade_character_rename(self, old_name: str, new_name: str) -> None:
+        if not old_name or old_name == new_name:
+            return
+
+        db = await self._ensure_db()
+        async with db.execute(
+            "SELECT number, character_names, identity_ids, "
+            "identity_default_map_json, sketch_colors_json, prop_menu_json "
+            "FROM episodes"
+        ) as cursor:
+            episodes = await cursor.fetchall()
+        for row in episodes:
+            updates: dict[str, str] = {}
+            for column, value in (
+                (
+                    "character_names",
+                    remap_id_list(row["character_names"], old_name, new_name),
+                ),
+                (
+                    "identity_ids",
+                    remap_id_list(row["identity_ids"], old_name, new_name),
+                ),
+                (
+                    "identity_default_map_json",
+                    remap_default_map(
+                        row["identity_default_map_json"],
+                        old_name,
+                        new_name,
+                    ),
+                ),
+                (
+                    "sketch_colors_json",
+                    remap_keyed_by_identity(
+                        row["sketch_colors_json"],
+                        old_name,
+                        new_name,
+                    ),
+                ),
+                (
+                    "prop_menu_json",
+                    remap_object_field(
+                        row["prop_menu_json"],
+                        "owner_identity_id",
+                        old_name,
+                        new_name,
+                    ),
+                ),
+            ):
+                if value is not None:
+                    updates[column] = value
+            if updates:
+                assignments = ", ".join(f"{column} = ?" for column in updates)
+                await db.execute(
+                    f"UPDATE episodes SET {assignments}, updated_at = datetime('now') "
+                    "WHERE number = ?",
+                    (*updates.values(), row["number"]),
+                )
+
+        async with db.execute(
+            "SELECT episode_number, beat_number, detected_identities_json, "
+            "visual_description, speaker, speaker_kind FROM beats"
+        ) as cursor:
+            beats = await cursor.fetchall()
+        for row in beats:
+            updates = {}
+            detected = remap_id_list(
+                row["detected_identities_json"],
+                old_name,
+                new_name,
+            )
+            if detected is not None:
+                updates["detected_identities_json"] = detected
+            description = remap_identity_markers(
+                row["visual_description"],
+                old_name,
+                new_name,
+            )
+            if description is not None:
+                updates["visual_description"] = description
+            speaker = str(row["speaker"] or "")
+            if str(row["speaker_kind"] or "character") == "character":
+                remapped_speaker = remap_identity_id(speaker, old_name, new_name)
+                if remapped_speaker != speaker:
+                    updates["speaker"] = remapped_speaker
+            if updates:
+                assignments = ", ".join(f"{column} = ?" for column in updates)
+                await db.execute(
+                    f"UPDATE beats SET {assignments}, updated_at = datetime('now') "
+                    "WHERE episode_number = ? AND beat_number = ?",
+                    (*updates.values(), row["episode_number"], row["beat_number"]),
+                )
+
+        async with db.execute("SELECT name, owner FROM props") as cursor:
+            props = await cursor.fetchall()
+        for row in props:
+            owner = str(row["owner"] or "")
+            remapped_owner = remap_identity_id(owner, old_name, new_name)
+            if remapped_owner != owner:
+                await db.execute(
+                    "UPDATE props SET owner = ?, updated_at = datetime('now') "
+                    "WHERE name = ?",
+                    (remapped_owner, row["name"]),
+                )
+
+        await self._cascade_voice_record_speaker(db, old_name, new_name)
+        await db.commit()
+
+    @staticmethod
+    async def _cascade_voice_record_speaker(db, old_name: str, new_name: str) -> None:
+        table = "seedance2_voice_audio_records"
+        async with db.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+            (table,),
+        ) as cursor:
+            if await cursor.fetchone() is None:
+                return
+
+        async with db.execute(
+            f"SELECT episode_number, beat_number, speaker FROM {table}"
+        ) as cursor:
+            rows = await cursor.fetchall()
+        for row in rows:
+            speaker = str(row["speaker"] or "")
+            remapped = remap_identity_id(speaker, old_name, new_name)
+            if remapped == speaker:
+                continue
+            key = (row["episode_number"], row["beat_number"])
+            async with db.execute(
+                f"SELECT 1 FROM {table} WHERE episode_number = ? "
+                "AND beat_number = ? AND speaker = ?",
+                (*key, remapped),
+            ) as cursor:
+                occupied = await cursor.fetchone() is not None
+            if occupied:
+                await db.execute(
+                    f"DELETE FROM {table} WHERE episode_number = ? "
+                    "AND beat_number = ? AND speaker = ?",
+                    (*key, speaker),
+                )
+            else:
+                await db.execute(
+                    f"UPDATE {table} SET speaker = ? WHERE episode_number = ? "
+                    "AND beat_number = ? AND speaker = ?",
+                    (remapped, *key, speaker),
+                )
 
     async def delete_character(self, name: str) -> None:
         char = self.get_character(name)

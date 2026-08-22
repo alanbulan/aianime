@@ -143,7 +143,7 @@ function BatchBar({
   const controller = {
     assignColorsPending: false,
     audioPending: false,
-    audioModelUnavailable: false,
+    audioPrerequisiteErrors: [],
     audioUnavailableForVideoModel:
       videoModel === "huimeng_seedance-2.0-fast",
     detectIdentitiesCostDisplay: "5",

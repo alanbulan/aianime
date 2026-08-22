@@ -56,7 +56,7 @@ describe("BatchBarView sketch aspect select", () => {
     const controller: BatchBarController = {
       assignColorsPending: false,
       audioPending: false,
-      audioModelUnavailable: false,
+      audioPrerequisiteErrors: [],
       audioUnavailableForVideoModel: false,
       detectIdentitiesCostDisplay: null,
       detectIdentitiesPending: false,

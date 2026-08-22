@@ -22,6 +22,9 @@ function invalidateNarratorVoiceQueries(
   queryClient.invalidateQueries({
     queryKey: queryKeys.seedance2BeatStatusProject(project),
   });
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.audioBillingQuotes(project),
+  });
 }
 
 export function createNarratorVoiceQueryHooks(

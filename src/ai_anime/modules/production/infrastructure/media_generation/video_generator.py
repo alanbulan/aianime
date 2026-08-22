@@ -4,6 +4,7 @@
 """
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import aiohttp
 
@@ -653,6 +654,126 @@ class CommercialVideoGenerator(VideoGeneratorBase):
             raise RuntimeError(result.stderr[-500:] or "ffmpeg 未生成尾帧")
         return frame_path.as_posix()
 
+    @staticmethod
+    def _extract_returned_last_frame_url(task: dict) -> str:
+        if not isinstance(task, dict):
+            return ""
+        preferred_keys = (
+            "returned_last_frame",
+            "return_last_frame",
+            "last_frame_output",
+            "last_frame_url",
+            "last_frame_image",
+            "last_frame",
+            "tail_frame_url",
+            "tail_frame_image",
+            "end_frame_url",
+            "end_frame_image",
+        )
+        image_collection_keys = (
+            "image_url",
+            "image_urls",
+            "images",
+            "output_images",
+            "last_frames",
+            "frames",
+        )
+
+        def first_image_url(value: object) -> str:
+            if isinstance(value, str) and value.startswith(
+                ("http://", "https://", "data:")
+            ):
+                parsed = urlparse(value)
+                path = parsed.path.lower()
+                if value.startswith("data:video/") or path.endswith(
+                    (".mp4", ".mov", ".webm", ".mkv", ".avi")
+                ):
+                    return ""
+                return value
+            if isinstance(value, dict):
+                for key in (*preferred_keys, "url", *image_collection_keys):
+                    found = first_image_url(value.get(key))
+                    if found:
+                        return found
+                for child in value.values():
+                    found = first_image_url(child)
+                    if found:
+                        return found
+            elif isinstance(value, list):
+                for child in value:
+                    found = first_image_url(child)
+                    if found:
+                        return found
+            return ""
+
+        containers: list[dict] = []
+        for value in (
+            task.get("metadata"),
+            task.get("response"),
+            task.get("result"),
+            task.get("output"),
+            task.get("data"),
+            task,
+        ):
+            if isinstance(value, dict):
+                containers.append(value)
+        for container in containers:
+            for key in (*preferred_keys, *image_collection_keys):
+                found = first_image_url(container.get(key))
+                if found:
+                    return found
+        return ""
+
+    @staticmethod
+    def _returned_last_frame_output_path(
+        output_path: str,
+        last_frame_url: str,
+    ) -> Path:
+        suffix = ""
+        if last_frame_url.startswith("data:"):
+            media_type = last_frame_url.partition(",")[0].split(";", 1)[0]
+            suffix = mimetypes.guess_extension(media_type.removeprefix("data:")) or ""
+        else:
+            suffix = Path(urlparse(last_frame_url).path).suffix.lower()
+        if suffix not in {".png", ".jpg", ".jpeg", ".webp", ".gif"}:
+            suffix = ".png"
+        video_path = Path(output_path)
+        return (
+            video_path.parent
+            / "returned_last_frames"
+            / f"{video_path.stem}{suffix}"
+        )
+
+    async def _download_returned_last_frame(
+        self,
+        last_frame_url: str,
+        output_path: str,
+    ) -> str:
+        target = self._returned_last_frame_output_path(output_path, last_frame_url)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if last_frame_url.startswith("data:"):
+            header, separator, encoded = last_frame_url.partition(",")
+            if not separator or ";base64" not in header:
+                raise CommercialVideoError("视频接口返回的尾帧 data URL 无效")
+            content = base64.b64decode(encoded)
+        else:
+            timeout = aiohttp.ClientTimeout(total=120)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(last_frame_url) as response:
+                    if not 200 <= response.status < 300:
+                        raise CommercialVideoError(
+                            f"视频接口尾帧下载失败: HTTP {response.status}",
+                            status=response.status,
+                            request_id=self._request_id(response.headers),
+                        )
+                    content = await response.read()
+        if not content:
+            raise CommercialVideoError("视频接口返回的尾帧为空")
+        temporary = target.with_suffix(f"{target.suffix}.part")
+        temporary.write_bytes(content)
+        os.replace(temporary, target)
+        return target.as_posix()
+
     async def generate(
         self,
         image_path: str | None,
@@ -736,15 +857,32 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                 if status in _VIDEO_SUCCESS_STATUSES:
                     log("视频生成完成，正在下载...")
                     await self._download_content(task_id, output_path)
+                    returned_last_frame_url = ""
                     extracted_last_frame = None
                     if return_last_frame:
-                        try:
-                            extracted_last_frame = await asyncio.to_thread(
-                                self._extract_last_frame,
-                                output_path,
-                            )
-                        except Exception as exc:
-                            log(f"本地尾帧提取失败: {exc}")
+                        returned_last_frame_url = self._extract_returned_last_frame_url(
+                            task
+                        )
+                        if returned_last_frame_url:
+                            try:
+                                extracted_last_frame = (
+                                    await self._download_returned_last_frame(
+                                        returned_last_frame_url,
+                                        output_path,
+                                    )
+                                )
+                                log("已保存供应商返回尾帧")
+                            except Exception as exc:
+                                log(f"供应商返回尾帧下载失败: {exc}")
+                        if not extracted_last_frame:
+                            try:
+                                extracted_last_frame = await asyncio.to_thread(
+                                    self._extract_last_frame,
+                                    output_path,
+                                )
+                                log("已从成片提取尾帧作为兜底")
+                            except Exception as exc:
+                                log(f"本地尾帧提取失败: {exc}")
                     if project_output_dir:
                         update_video_request_status(
                             project_output_dir=project_output_dir,
@@ -755,6 +893,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                     return VideoGenResult(
                         status=VideoGenStatus.DONE,
                         video_path=output_path,
+                        last_frame_url=returned_last_frame_url or None,
                         last_frame_path=extracted_last_frame,
                         task_id=task_id,
                         duration_seconds=duration_seconds,

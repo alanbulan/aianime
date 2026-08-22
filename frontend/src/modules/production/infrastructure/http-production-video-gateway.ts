@@ -21,7 +21,10 @@ import type {
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
-import type { GenerateAudioCommand } from "@/modules/production/domain/audio-generation";
+import type {
+  AudioBillingQuote,
+  GenerateAudioCommand,
+} from "@/modules/production/domain/audio-generation";
 import type { FinalVideoData } from "@/modules/production/domain/episode-compose";
 import type {
   RenderSettingsData,
@@ -558,6 +561,22 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         { json },
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
+  },
+  async getEpisodeAudioBillingQuote(
+    project,
+    episode,
+    command: GenerateAudioCommand,
+    signal,
+  ) {
+    const json: { beat_numbers?: number[]; mode?: string } = {};
+    if (command.beatNumbers?.length) json.beat_numbers = command.beatNumbers;
+    if (command.mode) json.mode = command.mode;
+    return jsonWithBackendError<ProductionDataResponse<AudioBillingQuote>>(
+      api.post(
+        p`api/v1/projects/${project}/episodes/${episode}/audio/billing-quote`,
+        { json, signal, throwHttpErrors: false },
+      ),
+    );
   },
   async regenerateBeatAudio(project, episode, beatNumber) {
     return api

@@ -111,13 +111,17 @@ def _patch_audio_celery(
         fake_make_sqlite_store_for_context,
     )
 
-    async def no_prerequisite_errors(**_kwargs):
-        return []
+    async def exact_audio_plan(**kwargs):
+        return SimpleNamespace(
+            beat_numbers=list(kwargs.get("beat_numbers") or [2]),
+            errors=[],
+            billable_chars=2,
+        )
 
     monkeypatch.setattr(
         episode_audio,
-        "collect_indextts2_voice_prereq_errors",
-        no_prerequisite_errors,
+        "build_indextts2_audio_generation_plan",
+        exact_audio_plan,
     )
     return ctx
 
@@ -188,6 +192,19 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
                 "beat_numbers": [2],
                 "output_dir": str(tmp_path),
                 "state_dir": str(tmp_path / "state"),
+                "billing": {
+                    "pricing_kind": "audio",
+                    "pricing_model": "audio-voice-clone-test",
+                    "pricing_params": {},
+                    "pricing_quantity": 1,
+                    "pricing_metrics": {
+                        "call_count": 1,
+                        "item_count": 1,
+                        "billable_chars": 2,
+                    },
+                    "items": 1,
+                    "beat_numbers": [2],
+                },
             },
         }
     ]
@@ -231,6 +248,19 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
         "beat_numbers": [2],
         "output_dir": str(tmp_path),
         "state_dir": str(tmp_path / "state"),
+        "billing": {
+            "pricing_kind": "audio",
+            "pricing_model": "audio-voice-clone-test",
+            "pricing_params": {},
+            "pricing_quantity": 1,
+            "pricing_metrics": {
+                "call_count": 1,
+                "item_count": 1,
+                "billable_chars": 2,
+            },
+            "items": 1,
+            "beat_numbers": [2],
+        },
     }
 
 
@@ -268,6 +298,19 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
                 "beat_numbers": [2],
                 "output_dir": str(tmp_path),
                 "state_dir": str(tmp_path / "state"),
+                "billing": {
+                    "pricing_kind": "audio",
+                    "pricing_model": "audio-voice-clone-test",
+                    "pricing_params": {},
+                    "pricing_quantity": 1,
+                    "pricing_metrics": {
+                        "call_count": 1,
+                        "item_count": 1,
+                        "billable_chars": 2,
+                    },
+                    "items": 1,
+                    "beat_numbers": [2],
+                },
             },
         }
     ]
