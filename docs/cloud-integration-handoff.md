@@ -1,6 +1,6 @@
 # 云端接入交接
 
-客户端 `1.1.56` 固定使用 `https://aianime.122-193-11-199.sslip.io`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；后续版本继续沿用同一更新合同，客户端支持启动检查、手动检查、真实下载进度和安装确认。
+客户端 `1.1.57` 固定使用 `https://aianime.122-193-11-199.sslip.io`。Windows x86_64 NSIS `1.1.6` 已作为可选更新发布，`1.1.5` 可通过现有 Gateway 完成版本判断、YAML/EXE 下载和 SHA-512 校验；后续版本继续沿用同一更新合同，客户端支持启动检查、手动检查、真实下载进度和安装确认。
 
 ## 1. 登录首屏
 
@@ -214,6 +214,17 @@ sha512: o+GDwK7FrTuW2u0ERn3Fd9KXrHhCc3TdRrynlKrggc6e6fDnbnWCJ0naqECDbg+++wLp3qj5
 ```
 
 `latest.yml` 中的版本、文件名、大小和 SHA-512 已与安装包重新计算的结果一致，`releaseDate` 为 `2026-08-23T04:43:51.243Z`。本次出包前已重新清空 `desktop/release`，删除上一份过期的 `1.1.56` 构件；更早的 `1.1.55` 构件已在首次出包时删除。前端 CE、Electron 主进程、包含全部应用迁移包的本地后端、Hermes ACP、Cognee 25 个内置迁移资源与 NSIS 安装器均构建成功，打包链内置的后端运行时和最终资源校验通过。该构件未使用 Authenticode 证书，Windows 会显示未知发布者；当前差分下载关闭，发布时上传新的 EXE 与 `latest.yml`。
+
+2026-08-23 已从源码提交 `a05e6db2` 生成待发布的 Windows `1.1.57`：
+
+```text
+AI-anime-1.1.57-x64-setup.exe
+size: 686239627
+sha256: E59D8E85740C86AF8B65953117A04B9D7F7035AF9767D2A9C1D953FA1DBCF417
+sha512: HwaMjBJu5wLowY1AMEW6R35XYIezPSpi1sRyKLDPDUu+m08x0YzSOi3TYl/WKJLLYOlF/HwL2KC49QnAG4xAwQ==
+```
+
+`latest.yml` 中的版本、文件名、大小和 SHA-512 已与安装包重新计算的结果一致，`releaseDate` 为 `2026-08-23T13:09:54.885Z`。前端 CE、Electron 主进程、本地后端、Hermes ACP 与 NSIS 安装器均构建成功；后端运行时校验确认 52 个提示词、25 个迁移资源和 4 个 worker 已随包收集，最终资源校验通过。旧 `1.1.56` 安装包已移入 Windows 回收站，`desktop/release` 仅保留本次 EXE 与更新元数据。该构件未使用 Authenticode 证书，Windows 会显示未知发布者；当前差分下载关闭，发布时上传新的 EXE 与 `latest.yml`。
 
 macOS 打包：
 
