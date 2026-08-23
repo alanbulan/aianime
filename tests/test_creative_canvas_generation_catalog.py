@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -8,6 +9,9 @@ from ai_anime.api.routes.creative_canvas import image as image_routes
 from ai_anime.api.routes.creative_canvas import video as video_routes
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
+)
+from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
+    ConfiguredGenerationCatalogSource,
 )
 
 
@@ -42,6 +46,44 @@ def test_generation_catalog_queries_return_detached_payloads() -> None:
     assert source.camera_options["bodies"][0]["id"] == "body-1"
     assert source.style_templates[0]["id"] == "style-1"
     assert source.camera_templates[0]["id"] == "camera-1"
+
+
+def test_style_catalog_uses_complete_bundled_gallery_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("STYLE_GALLERY_ASSET_BASE", raising=False)
+
+    templates = ConfiguredGenerationCatalogSource().image_style_templates()
+    asset_urls = [
+        url
+        for template in templates
+        for url in [template["cover_url"], *template["sample_urls"]]
+    ]
+    frontend_public = Path(__file__).resolve().parents[1] / "frontend" / "public"
+
+    assert len(templates) == 45
+    assert len(asset_urls) == 225
+    assert all(url.startswith("/style-gallery/") for url in asset_urls)
+    assert all((frontend_public / url.lstrip("/")).is_file() for url in asset_urls)
+
+
+def test_style_catalog_keeps_configured_asset_base_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(
+        "STYLE_GALLERY_ASSET_BASE",
+        "https://assets.example.com/styles/",
+    )
+
+    templates = ConfiguredGenerationCatalogSource().image_style_templates()
+
+    assert templates[0]["cover_url"].startswith(
+        "https://assets.example.com/styles/"
+    )
+    assert all(
+        url.startswith("https://assets.example.com/styles/")
+        for url in templates[0]["sample_urls"]
+    )
 
 
 def test_generation_catalog_subrouters_include_catalog_paths() -> None:
