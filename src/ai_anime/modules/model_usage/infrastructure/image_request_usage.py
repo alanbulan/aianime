@@ -8,7 +8,11 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from ai_anime.migrations.model_usage import run_model_usage_migrations
+from ai_anime.migrations.model_usage import (
+    MIGRATION_VERSION,
+    run_model_usage_migrations,
+)
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
 
@@ -74,9 +78,14 @@ def infer_episode_from_path(path_like: str | Path | None) -> int | None:
 def _connect(project_output_dir: str | Path):
     db_path = get_image_request_usage_db_path(project_output_dir)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path, timeout=5, check_same_thread=False)
-    configure_sqlite_connection(conn)
-    run_model_usage_migrations(conn)
+    ensure_sqlite_schema(
+        db_path,
+        component="model_usage",
+        version=MIGRATION_VERSION,
+        initialize=run_model_usage_migrations,
+    )
+    conn = sqlite3.connect(db_path, timeout=10, check_same_thread=False)
+    configure_sqlite_connection(conn, set_journal_mode=False)
     try:
         yield conn
         conn.commit()

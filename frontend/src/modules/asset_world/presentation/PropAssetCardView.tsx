@@ -147,6 +147,10 @@ export function PropAssetCardView({
         {referenceUrl ? (
           <LightboxImage
             src={referenceUrl}
+            previewSrc={
+              resolveMediaUrl(prop.reference_url, { variant: "thumb2x" }) ??
+              undefined
+            }
             alt={referenceAlt}
             fit="contain"
             blurBackdrop={false}

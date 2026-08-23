@@ -90,7 +90,7 @@ function AssetImageSlot({
   actions?: React.ReactNode;
   onPreview?: () => void;
 }) {
-  const resolved = resolveMediaUrl(src);
+  const resolved = resolveMediaUrl(src, { variant: "thumb2x" });
   return (
     <div className="min-w-0">
       <div className="relative aspect-video w-full overflow-hidden rounded-[8px] border border-border bg-media/20">

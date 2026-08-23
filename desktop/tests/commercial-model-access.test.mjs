@@ -638,6 +638,82 @@ test("explicit cloud catalog requests do not reuse the active BYOK catalog", asy
   assert.equal(result.items[0].code, "cloud-text");
 });
 
+test("cloud model catalog remains available when local BYOK storage cannot load", async () => {
+  const handlers = new Map();
+  const synchronized = [];
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: {
+      baseUrl: "https://gateway.example.test",
+      currentLicense: async () => ({
+        license: {
+          id: "license-1",
+          editionType: "PROFESSIONAL",
+          allowsCustomModels: true,
+        },
+        device: { id: "device-1" },
+        activation: { id: "activation-1" },
+        lease: null,
+      }),
+      modelCatalog: async () => ({
+        catalogVersion: "cloud-v1",
+        items: [
+          {
+            id: "cloud-image",
+            code: "cloud-image",
+            displayName: "Cloud image",
+            operation: "IMAGE",
+            isDefault: true,
+          },
+        ],
+      }),
+    },
+    deviceIdentity: {
+      summary: async () => ({ publicKeyHash: "public-key-hash" }),
+    },
+    modelAccessStore: {
+      load: async () => {
+        throw new Error("safeStorage is unavailable");
+      },
+    },
+    deviceName: "MAC-01",
+    platform: "darwin",
+    arch: "arm64",
+    clientVersion: "1.1.56",
+    isAllowedSender: () => true,
+    onAuthenticated: async () => undefined,
+    onModelAccessChanged: async (access, _allowsByok, assignments) => {
+      synchronized.push({ access, assignments });
+    },
+    onLoggedOut: async () => undefined,
+  });
+
+  const result = await handlers.get(COMMERCIAL_CHANNELS.modelCatalog)(
+    { sender: { id: 1 } },
+    { operation: "IMAGE" },
+  );
+
+  assert.deepEqual(result.items.map((item) => item.code), ["cloud-image"]);
+  assert.deepEqual(synchronized.at(-1), {
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [],
+    },
+    assignments: [
+      {
+        modelId: "cloud-image",
+        role: "IMAGE_GENERATION",
+        priority: 100,
+        enabled: true,
+      },
+    ],
+  });
+});
+
 test("bootstrap verifies the raw offline lease before projecting it", async () => {
   const handlers = new Map();
   const keyId = "lease-test-v1";

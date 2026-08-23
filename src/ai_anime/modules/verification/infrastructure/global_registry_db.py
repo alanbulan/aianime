@@ -15,24 +15,34 @@ that migration path separately.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
 import aiosqlite
 
-from ai_anime.shared.infrastructure.sqlite_pragmas import (
-    configure_sqlite_connection_async,
-)
-
-
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
 from ai_anime.migrations.verification import (
-    run_verification_registry_migrations,
+    REGISTRY_MIGRATION_VERSION,
+    run_verification_registry_migrations_sync,
 )
 from ai_anime.migrations.verification.versions.v20260823_000_initial_registry import (
     SCHEMA_SQL as _DEFS_SCHEMA_SQL,
 )
+from ai_anime.shared.infrastructure.sqlite_pragmas import (
+    configure_sqlite_connection_async,
+)
 
 DEFS_SCHEMA_SQL = _DEFS_SCHEMA_SQL
+
+
+def _ensure_defs_schema(db_path: Path) -> None:
+    ensure_sqlite_schema(
+        db_path,
+        component="verification_registry",
+        version=REGISTRY_MIGRATION_VERSION,
+        initialize=run_verification_registry_migrations_sync,
+    )
 
 
 async def open_defs_db(db_path: Path) -> aiosqlite.Connection:
@@ -43,10 +53,10 @@ async def open_defs_db(db_path: Path) -> aiosqlite.Connection:
     """
     db_path = Path(db_path).expanduser()
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    db = await aiosqlite.connect(str(db_path))
+    await asyncio.to_thread(_ensure_defs_schema, db_path)
+    db = await aiosqlite.connect(str(db_path), timeout=10)
     db.row_factory = aiosqlite.Row
-    await configure_sqlite_connection_async(db)
-    await run_verification_registry_migrations(db)
+    await configure_sqlite_connection_async(db, set_journal_mode=False)
     return db
 
 

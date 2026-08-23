@@ -8,6 +8,11 @@ from pathlib import Path
 
 import aiosqlite
 
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
+from ai_anime.shared.infrastructure.sqlite_pragmas import (
+    configure_sqlite_connection_async,
+)
+
 from .versions.v00000000_000_initial_schema import (
     VERSION as INITIAL_SCHEMA_VERSION,
     apply as apply_initial_schema,
@@ -36,6 +41,8 @@ MIGRATIONS: tuple[Migration, ...] = (
     (PATH_SAFE_ASSET_NAMES_VERSION, apply_path_safe_asset_names),
 )
 
+MIGRATION_VERSION = len(MIGRATIONS)
+
 
 async def run_project_migrations(
     db: aiosqlite.Connection,
@@ -52,7 +59,12 @@ async def run_project_migrations(
     )
     await db.commit()
 
+    async with db.execute("SELECT version FROM schema_migrations") as cursor:
+        applied_versions = {str(row[0]) for row in await cursor.fetchall()}
+
     for version, migrate in MIGRATIONS:
+        if version in applied_versions:
+            continue
         await db.execute("BEGIN IMMEDIATE")
         rollback_external: MigrationRollback | None = None
         try:
@@ -84,9 +96,10 @@ async def migrate_project_database(
 ) -> None:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    db = await aiosqlite.connect(str(db_path))
+    db = await aiosqlite.connect(str(db_path), timeout=10)
     try:
         db.row_factory = aiosqlite.Row
+        await configure_sqlite_connection_async(db, set_journal_mode=False)
         await run_project_migrations(db, project_dir=Path(project_dir))
     finally:
         await db.close()
@@ -97,16 +110,27 @@ def migrate_project_database_sync(
     *,
     project_dir: Path,
 ) -> None:
-    asyncio.run(
-        migrate_project_database(
-            Path(db_path),
-            project_dir=Path(project_dir),
+    path = Path(db_path).resolve()
+
+    def initialize(_connection) -> None:
+        asyncio.run(
+            migrate_project_database(
+                path,
+                project_dir=Path(project_dir),
+            )
         )
+
+    ensure_sqlite_schema(
+        path,
+        component="project",
+        version=MIGRATION_VERSION,
+        initialize=initialize,
     )
 
 
 __all__ = [
     "MIGRATIONS",
+    "MIGRATION_VERSION",
     "migrate_project_database",
     "migrate_project_database_sync",
     "run_project_migrations",

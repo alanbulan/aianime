@@ -7,6 +7,7 @@ import sqlite3
 from .versions.v20260823_000_initial_usage_tables import VERSION, apply
 
 MIGRATIONS = ((VERSION, apply),)
+MIGRATION_VERSION = len(MIGRATIONS)
 
 
 def run_model_usage_migrations(conn: sqlite3.Connection) -> None:
@@ -19,23 +20,24 @@ def run_model_usage_migrations(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
+    applied_versions = {
+        str(row[0])
+        for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
+    }
     for version, migrate in MIGRATIONS:
+        if version in applied_versions:
+            continue
         conn.execute("BEGIN IMMEDIATE")
         try:
-            applied = conn.execute(
-                "SELECT 1 FROM schema_migrations WHERE version = ?",
+            migrate(conn)
+            conn.execute(
+                "INSERT INTO schema_migrations(version) VALUES (?)",
                 (version,),
-            ).fetchone()
-            if applied is None:
-                migrate(conn)
-                conn.execute(
-                    "INSERT INTO schema_migrations(version) VALUES (?)",
-                    (version,),
-                )
+            )
             conn.commit()
         except BaseException:
             conn.rollback()
             raise
 
 
-__all__ = ["MIGRATIONS", "run_model_usage_migrations"]
+__all__ = ["MIGRATIONS", "MIGRATION_VERSION", "run_model_usage_migrations"]

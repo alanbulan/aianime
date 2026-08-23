@@ -1,5 +1,5 @@
 """Production database migrations."""
 
-from .runner import run_production_migrations
+from .runner import MIGRATION_VERSION, run_production_migrations
 
-__all__ = ["run_production_migrations"]
+__all__ = ["MIGRATION_VERSION", "run_production_migrations"]

@@ -12,15 +12,20 @@ from pathlib import Path
 import aiosqlite
 from ulid import ULID
 
+from ai_anime.migrations.project_registry import (
+    MIGRATION_VERSION,
+    run_project_registry_migrations_sync,
+)
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
 from ai_anime.modules.project_workspace.application.errors import (
     ProjectAlreadyExists,
 )
 from ai_anime.modules.project_workspace.domain import Principal, ProjectRecord
+from ai_anime.shared.infrastructure.sqlite_pragmas import (
+    configure_sqlite_connection_async,
+)
 from ai_anime.shared.project_dirs import default_project_dirs
 from ai_anime.shared.runtime_paths import STATE_DIR
-from ai_anime.migrations.project_registry import (
-    run_project_registry_migrations,
-)
 
 
 def _now_iso() -> str:
@@ -81,8 +86,9 @@ class SQLiteProjectRegistry:
 
     async def _connect(self) -> aiosqlite.Connection:
         await self._ensure_schema()
-        db = await aiosqlite.connect(self._db_path())
+        db = await aiosqlite.connect(self._db_path(), timeout=10)
         db.row_factory = aiosqlite.Row
+        await configure_sqlite_connection_async(db, set_journal_mode=False)
         return db
 
     async def _ensure_schema(self) -> None:
@@ -93,11 +99,13 @@ class SQLiteProjectRegistry:
                 return
             path = self._db_path()
             path.parent.mkdir(parents=True, exist_ok=True)
-            db = await aiosqlite.connect(path)
-            try:
-                await run_project_registry_migrations(db)
-            finally:
-                await db.close()
+            await asyncio.to_thread(
+                ensure_sqlite_schema,
+                path,
+                component="project_registry",
+                version=MIGRATION_VERSION,
+                initialize=run_project_registry_migrations_sync,
+            )
             self._schema_ready = True
 
     async def get_project(self, project_id: str) -> ProjectRecord | None:

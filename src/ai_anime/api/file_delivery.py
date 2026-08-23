@@ -88,7 +88,11 @@ def _thumbnail_response(
     return response
 
 
-def _response_for(delivery: ProjectFileDelivery) -> Response:
+def _response_for(
+    delivery: ProjectFileDelivery,
+    *,
+    cache_control: str | None = None,
+) -> Response:
     if delivery.redirect_url:
         return RedirectResponse(
             url=delivery.redirect_url,
@@ -103,7 +107,9 @@ def _response_for(delivery: ProjectFileDelivery) -> Response:
         )
     return FileResponse(
         path=str(delivery.path),
-        headers=CACHEABLE_FILE_HEADERS,
+        headers={"Cache-Control": cache_control}
+        if cache_control
+        else CACHEABLE_FILE_HEADERS,
     )
 
 
@@ -138,4 +144,10 @@ async def serve_project_file(
         )
         if thumbnail is not None:
             return thumbnail
-    return _response_for(delivery)
+    return _response_for(
+        delivery,
+        # A cold thumbnail request temporarily falls back to the original.
+        # Do not cache that full-resolution body under the variant URL, or the
+        # browser will keep decoding it after the background thumbnail is ready.
+        cache_control="private, no-store" if media_variant else None,
+    )

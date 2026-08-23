@@ -16,7 +16,7 @@ from rich.console import Console
 from ai_anime.shared.infrastructure.sqlite_pragmas import (
     configure_sqlite_connection_async,
 )
-from ai_anime.migrations.project import run_project_migrations
+from ai_anime.migrations.project import migrate_project_database_sync
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -126,13 +126,17 @@ class ProjectSQLiteCore:
                 return self._db
             if self._closing:
                 raise StoreClosedError(self.project_dir)
-            db = await aiosqlite.connect(self.db_path)
+            await asyncio.to_thread(
+                migrate_project_database_sync,
+                Path(self.db_path),
+                project_dir=Path(self.project_dir),
+            )
+            db = await aiosqlite.connect(self.db_path, timeout=10)
             try:
                 db.row_factory = aiosqlite.Row
-                await configure_sqlite_connection_async(db)
-                await run_project_migrations(
+                await configure_sqlite_connection_async(
                     db,
-                    project_dir=Path(self.project_dir),
+                    set_journal_mode=False,
                 )
             except BaseException:
                 # Never leave a half-migrated connection (and its thread)

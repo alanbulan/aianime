@@ -146,7 +146,7 @@ def sync_global_props(
     conn = sqlite3.connect(str(db_path))
     try:
         conn.row_factory = sqlite3.Row
-        configure_sqlite_connection(conn)
+        configure_sqlite_connection(conn, set_journal_mode=False)
         row = conn.execute(
             "SELECT prop_menu_json FROM episodes WHERE number = ?",
             (episode,),

@@ -148,6 +148,26 @@ export function registerCommercialIpc(
   let modelAccessHydrated = false;
   let modelAccessHydration: Promise<void> | null = null;
   let modelAccessSyncChain: Promise<void> = Promise.resolve();
+  let modelAccessFallbackWarningShown = false;
+
+  const loadModelAccessForRouting = async (): Promise<StoredCommercialModelAccess> => {
+    try {
+      return await options.modelAccessStore.load();
+    } catch (error) {
+      if (!modelAccessFallbackWarningShown) {
+        modelAccessFallbackWarningShown = true;
+        console.warn(
+          "[commercial] local BYOK storage unavailable; continuing with cloud models:",
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+      return {
+        schemaVersion: 5,
+        cloudModelAssignments: [],
+        byokProviders: [],
+      };
+    }
+  };
 
   const clearAuthenticatedState = async (): Promise<void> => {
     await options.onLoggedOut();
@@ -366,7 +386,7 @@ export function registerCommercialIpc(
         )
       : null;
     bootstrap.softwareAuthorization = currentAuthorization;
-    const access = await options.modelAccessStore.load();
+    const access = await loadModelAccessForRouting();
     cloudModelAssignments = updateCloudModelAssignments(
       (access.cloudModelAssignments ?? []).length > 0
         ? access.cloudModelAssignments ?? []
@@ -390,7 +410,6 @@ export function registerCommercialIpc(
   handle(COMMERCIAL_CHANNELS.modelCatalog, async (input) => {
     const { source, query } = parseModelCatalogQuery(input);
     const authorization = await ensureCurrentAuthorization();
-    const access = await options.modelAccessStore.load();
     const cloudCatalog = projectCommercialModelCatalog(
       await requireClient().modelCatalog(
         query,
@@ -407,6 +426,7 @@ export function registerCommercialIpc(
     if (source === "cloud" || !authorizationAllowsByok(authorization)) {
       return cloudCatalog;
     }
+    const access = await loadModelAccessForRouting();
     return mergeModelCatalogs(
       cloudCatalog,
       await fetchByokModelCatalog(access, query.operation),
@@ -641,7 +661,7 @@ export function registerCommercialIpc(
   }
 
   async function applyModelAccess(): Promise<void> {
-    const access = await options.modelAccessStore.load();
+    const access = await loadModelAccessForRouting();
     await options.onModelAccessChanged(
       access,
       authorizationAllowsByok(currentAuthorization),
@@ -656,7 +676,7 @@ export function registerCommercialIpc(
     modelAccessHydration = (async () => {
       try {
         const authorization = await ensureCurrentAuthorization();
-        const access = await options.modelAccessStore.load();
+        const access = await loadModelAccessForRouting();
         cloudModelAssignments = [...(access.cloudModelAssignments ?? [])];
         const catalog = projectCommercialModelCatalog(
           await requireClient().modelCatalog(

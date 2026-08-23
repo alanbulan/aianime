@@ -9,7 +9,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
-from ai_anime.migrations.production import run_production_migrations
+from ai_anime.migrations.production import (
+    MIGRATION_VERSION,
+    run_production_migrations,
+)
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
 
 
 @dataclass(frozen=True)
@@ -38,10 +42,15 @@ class Seedance2VoiceAudioState:
 def _connect(db_path: str | Path):
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=5, check_same_thread=False)
+    ensure_sqlite_schema(
+        path,
+        component="production",
+        version=MIGRATION_VERSION,
+        initialize=run_production_migrations,
+    )
+    conn = sqlite3.connect(path, timeout=10, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    configure_sqlite_connection(conn)
-    run_production_migrations(conn)
+    configure_sqlite_connection(conn, set_journal_mode=False)
     try:
         yield conn
         conn.commit()

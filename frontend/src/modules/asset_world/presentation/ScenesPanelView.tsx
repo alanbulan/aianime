@@ -40,7 +40,7 @@ function sceneGroupPreviewUrl(group: SceneGroup): string {
   const withMaster = group.scenes.find((scene) =>
     resolveMediaUrl(scene.master_url),
   );
-  return resolveMediaUrl(withMaster?.master_url) ?? "";
+  return resolveMediaUrl(withMaster?.master_url, { variant: "thumb" }) ?? "";
 }
 
 function SceneGroupListItem({
@@ -78,6 +78,8 @@ function SceneGroupListItem({
             src={previewUrl}
             alt=""
             aria-hidden="true"
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (

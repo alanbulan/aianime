@@ -223,6 +223,10 @@ export function CharacterAssetHistoryButtonView({
               {currentUrl ? (
                 <LightboxImage
                   src={resolveMediaUrl(currentUrl) ?? ""}
+                  previewSrc={
+                    resolveMediaUrl(currentUrl, { variant: "thumb2x" }) ??
+                    undefined
+                  }
                   alt={t("characters.history.current")}
                   className="aspect-square w-full rounded-[8px] bg-muted"
                   fit="contain"
@@ -281,6 +285,11 @@ export function CharacterAssetHistoryButtonView({
                       >
                         <LightboxImage
                           src={resolveMediaUrl(entry.url) ?? ""}
+                          previewSrc={
+                            resolveMediaUrl(entry.url, {
+                              variant: "thumb2x",
+                            }) ?? undefined
+                          }
                           alt={entry.filename}
                           className="aspect-square w-full rounded-[6px] bg-media/10"
                           fit="contain"
@@ -343,7 +352,9 @@ function CharacterAvatar({
   if (character.portrait_url) {
     return (
       <img
-        src={resolveMediaUrl(character.portrait_url) ?? ""}
+        src={
+          resolveMediaUrl(character.portrait_url, { variant: "thumb" }) ?? ""
+        }
         alt={character.name}
         loading="lazy"
         decoding="async"
@@ -715,6 +726,11 @@ function PortraitBlock({
       {character.portrait_url ? (
         <LightboxImage
           src={resolveMediaUrl(character.portrait_url) ?? ""}
+          previewSrc={
+            resolveMediaUrl(character.portrait_url, {
+              variant: "thumb2x",
+            }) ?? undefined
+          }
           alt={character.name}
           className="aspect-square w-full max-w-[180px] rounded-[8px]"
         />
@@ -1165,6 +1181,11 @@ export function IdentityCardView({
           {identity.image_url ? (
             <LightboxImage
               src={resolveMediaUrl(identity.image_url) ?? ""}
+              previewSrc={
+                resolveMediaUrl(identity.image_url, {
+                  variant: "thumb2x",
+                }) ?? undefined
+              }
               alt={identity.identity_name}
               className="aspect-[4/3] w-full rounded-[8px] bg-muted"
               fit="contain"
@@ -1285,6 +1306,11 @@ export function IdentityCardView({
                 <>
                   <LightboxImage
                     src={resolveMediaUrl(identity.costume_image_url) ?? ""}
+                    previewSrc={
+                      resolveMediaUrl(identity.costume_image_url, {
+                        variant: "thumb",
+                      }) ?? undefined
+                    }
                     alt={`${identity.identity_name} ${t("characters.costumeAlt")}`}
                     className="aspect-square w-16 rounded-[8px]"
                   />
@@ -1439,6 +1465,11 @@ export function IdentityCardView({
                   {identity.portrait_image_url ? (
                     <LightboxImage
                       src={resolveMediaUrl(identity.portrait_image_url) ?? ""}
+                      previewSrc={
+                        resolveMediaUrl(identity.portrait_image_url, {
+                          variant: "thumb",
+                        }) ?? undefined
+                      }
                       alt={`${identity.identity_name} portrait`}
                       className="size-14 rounded-[8px]"
                     />

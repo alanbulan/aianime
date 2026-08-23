@@ -28,6 +28,30 @@ function libraryAsset(
 }
 
 describe("AssetLibraryBeatPanels", () => {
+  it("uses the small project-media variant for beat thumbnails", () => {
+    const current = libraryAsset("Beat 缩略图", {
+      url: "/static/projects/project-a/frames/current.png?v=3",
+      source: { episode: 1, beat: 2 },
+    });
+
+    render(
+      <BeatContextPanel
+        metadata={{ preset: { episode: 1, beat: 2 } }}
+        assets={[current]}
+        canvasKind="beat"
+        beatContext={null}
+        cacheToken="cache-thumb"
+        cacheBustImage={cacheBustImage}
+        onAddAsset={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByAltText("Beat 缩略图")).toHaveAttribute(
+      "src",
+      "/static/projects/project-a/frames/current.png?v=3&st_thumb=thumb",
+    );
+  });
+
   it("renders the default episode hierarchy and preserves the global asset index", () => {
     const first = libraryAsset("第一镜", {
       source: { episode: 1, beat: 2 },

@@ -27,6 +27,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
+from ai_anime.migrations.task_execution import (
+    MIGRATION_VERSION,
+    run_task_state_migrations,
+)
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
 from ai_anime.modules.project_workspace.public import ProjectContext, require_project_home_node
 from ai_anime.modules.task_execution.domain.queue import normalize_queue_kind
@@ -278,12 +283,15 @@ class TaskStateManager:
     @contextmanager
     def _connect_path(self, db_path: Path):
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(db_path, timeout=5, check_same_thread=False)
+        ensure_sqlite_schema(
+            db_path,
+            component="task_execution",
+            version=MIGRATION_VERSION,
+            initialize=run_task_state_migrations,
+        )
+        conn = sqlite3.connect(db_path, timeout=10, check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        configure_sqlite_connection(conn)
-        from ai_anime.migrations.task_execution import run_task_state_migrations
-
-        run_task_state_migrations(conn)
+        configure_sqlite_connection(conn, set_journal_mode=False)
         self._sweep_interrupted_inline_tasks_once(conn, db_path)
         try:
             yield conn

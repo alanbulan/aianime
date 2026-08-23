@@ -558,16 +558,23 @@ def load_negative_clause_for_project_sync(project_dir: str | None, layer: str) -
         from ai_anime.shared.infrastructure.sqlite_pragmas import (
             configure_sqlite_connection,
         )
+        from ai_anime.migrations.sqlite import ensure_sqlite_schema
         from ai_anime.migrations.verification import (
+            REGISTRY_MIGRATION_VERSION,
             run_verification_registry_migrations_sync,
         )
 
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(db_path))
+        ensure_sqlite_schema(
+            db_path,
+            component="verification_registry",
+            version=REGISTRY_MIGRATION_VERSION,
+            initialize=run_verification_registry_migrations_sync,
+        )
+        conn = sqlite3.connect(str(db_path), timeout=10)
         conn.row_factory = sqlite3.Row
-        configure_sqlite_connection(conn)
+        configure_sqlite_connection(conn, set_journal_mode=False)
         try:
-            run_verification_registry_migrations_sync(conn)
             for entry in _SEED_FAILURE_MODES:
                 conn.execute(
                     """

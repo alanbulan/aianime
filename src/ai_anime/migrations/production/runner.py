@@ -17,6 +17,7 @@ MIGRATIONS = (
     (INITIAL_VOICE_RECORDS_VERSION, apply_initial_voice_records),
     (VOICE_TEXT_HASH_VERSION, apply_voice_text_hash),
 )
+MIGRATION_VERSION = len(MIGRATIONS)
 
 
 def run_production_migrations(conn: sqlite3.Connection) -> None:
@@ -29,23 +30,24 @@ def run_production_migrations(conn: sqlite3.Connection) -> None:
         """
     )
     conn.commit()
+    applied_versions = {
+        str(row[0])
+        for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
+    }
     for version, migrate in MIGRATIONS:
+        if version in applied_versions:
+            continue
         conn.execute("BEGIN IMMEDIATE")
         try:
-            applied = conn.execute(
-                "SELECT 1 FROM schema_migrations WHERE version = ?",
+            migrate(conn)
+            conn.execute(
+                "INSERT INTO schema_migrations(version) VALUES (?)",
                 (version,),
-            ).fetchone()
-            if applied is None:
-                migrate(conn)
-                conn.execute(
-                    "INSERT INTO schema_migrations(version) VALUES (?)",
-                    (version,),
-                )
+            )
             conn.commit()
         except BaseException:
             conn.rollback()
             raise
 
 
-__all__ = ["MIGRATIONS", "run_production_migrations"]
+__all__ = ["MIGRATIONS", "MIGRATION_VERSION", "run_production_migrations"]

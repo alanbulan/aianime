@@ -24,31 +24,43 @@ the shared artifact store; `record_*` helpers enforce ordering.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from typing import Any
 
 import aiosqlite
 
-from ai_anime.shared.infrastructure.sqlite_pragmas import (
-    configure_sqlite_connection_async,
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
+from ai_anime.migrations.verification import (
+    TRAINING_MIGRATION_VERSION,
+    run_training_db_migrations_sync,
 )
-
-
-from ai_anime.migrations.verification import run_training_db_migrations
 from ai_anime.migrations.verification.versions.v20260823_000_initial_training import (
     SCHEMA_SQL as _TRAINING_SCHEMA_SQL,
+)
+from ai_anime.shared.infrastructure.sqlite_pragmas import (
+    configure_sqlite_connection_async,
 )
 
 TRAINING_SCHEMA_SQL = _TRAINING_SCHEMA_SQL
 
 
+def _ensure_training_schema(db_path: Path) -> None:
+    ensure_sqlite_schema(
+        db_path,
+        component="verification_training",
+        version=TRAINING_MIGRATION_VERSION,
+        initialize=run_training_db_migrations_sync,
+    )
+
+
 async def open_training_db(db_path: Path) -> aiosqlite.Connection:
     db_path = Path(db_path).expanduser()
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    db = await aiosqlite.connect(str(db_path))
+    await asyncio.to_thread(_ensure_training_schema, db_path)
+    db = await aiosqlite.connect(str(db_path), timeout=10)
     db.row_factory = aiosqlite.Row
-    await configure_sqlite_connection_async(db)
-    await run_training_db_migrations(db)
+    await configure_sqlite_connection_async(db, set_journal_mode=False)
     return db
 
 

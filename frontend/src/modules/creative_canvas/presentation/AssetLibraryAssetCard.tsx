@@ -2,6 +2,7 @@
 import { type DragEvent as ReactDragEvent } from "react";
 import { AudioLines, Video } from "lucide-react";
 
+import { withMediaVariant } from "@/lib/media-url";
 import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
 import { CANVAS_ASSET_DRAG_MIME } from "../domain/assetDrag";
 import {
@@ -42,7 +43,7 @@ export function AssetLibraryAssetCard({
   const isVideo = asset.mediaType === "video";
   const thumbUrl = isThreeD || isVideo ? asset.coverUrl : asset.url;
   const displayThumbUrl = thumbUrl
-    ? cacheBustImage(thumbUrl, cacheToken)
+    ? cacheBustImage(withMediaVariant(thumbUrl, "thumb"), cacheToken)
     : null;
   const showImage =
     !isAudio &&
@@ -101,6 +102,7 @@ export function AssetLibraryAssetCard({
             alt={asset.label}
             className="h-full w-full object-cover"
             loading={index < 8 ? "eager" : "lazy"}
+            decoding="async"
             draggable={false}
           />
         ) : isAudio ? (

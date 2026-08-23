@@ -13,6 +13,7 @@ import {
   Video,
 } from "lucide-react";
 
+import { withMediaVariant } from "@/lib/media-url";
 import { assetToDragPayload } from "../application/assetLibraryCanvasInsertion";
 import { CANVAS_ASSET_DRAG_MIME } from "../domain/assetDrag";
 import {
@@ -45,7 +46,7 @@ function MiniThumb({
   const [imageFailed, setImageFailed] = useState(false);
   const thumbUrl = isThreeD || isVideo ? asset.coverUrl : asset.url;
   const displayThumbUrl = thumbUrl
-    ? cacheBustImage(thumbUrl, cacheToken)
+    ? cacheBustImage(withMediaVariant(thumbUrl, "thumb"), cacheToken)
     : null;
   const showImage =
     !imageFailed &&
@@ -94,6 +95,7 @@ function MiniThumb({
           alt={asset.label}
           className="h-full w-full rounded object-contain"
           loading={index < 20 ? "eager" : "lazy"}
+          decoding="async"
           draggable={false}
           onError={() => setImageFailed(true)}
         />

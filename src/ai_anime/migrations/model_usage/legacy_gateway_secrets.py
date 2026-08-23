@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
 from ai_anime.shared.runtime_paths import STATE_DIR
 
 VERSION = "20260823_001_purge_legacy_gateway_secrets"
@@ -16,9 +16,7 @@ def migrate_legacy_gateway_secrets() -> None:
     if not path.is_file():
         return
 
-    connection = sqlite3.connect(str(path), timeout=10, check_same_thread=False)
-    try:
-        configure_sqlite_connection(connection)
+    def initialize(connection: sqlite3.Connection) -> None:
         table = connection.execute(
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
             ("runtime_settings",),
@@ -40,7 +38,6 @@ def migrate_legacy_gateway_secrets() -> None:
             (VERSION,),
         ).fetchone()
         if applied is not None:
-            connection.commit()
             return
 
         connection.execute("BEGIN IMMEDIATE")
@@ -61,12 +58,13 @@ def migrate_legacy_gateway_secrets() -> None:
             "INSERT INTO schema_migrations(version) VALUES (?)",
             (VERSION,),
         )
-        connection.commit()
-    except BaseException:
-        connection.rollback()
-        raise
-    finally:
-        connection.close()
+
+    ensure_sqlite_schema(
+        path,
+        component="legacy_gateway_secret_purge",
+        version=1,
+        initialize=initialize,
+    )
 
 
 __all__ = ["VERSION", "migrate_legacy_gateway_secrets"]

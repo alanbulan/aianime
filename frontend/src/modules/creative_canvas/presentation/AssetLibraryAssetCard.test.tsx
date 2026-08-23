@@ -57,6 +57,19 @@ function renderCard(
 }
 
 describe("AssetLibraryAssetCard", () => {
+  it("uses the small project-media variant for card artwork", () => {
+    renderCard(
+      asset("缩略图", {
+        url: "/static/projects/project-a/images/portrait.png?v=7",
+      }),
+    );
+
+    expect(screen.getByAltText("缩略图")).toHaveAttribute(
+      "src",
+      "/static/projects/project-a/images/portrait.png?v=7&st_thumb=thumb",
+    );
+  });
+
   it("renders an asset and adds it once from the explicit action", () => {
     const onAdd = vi.fn();
     renderCard(asset("角色立绘"), { onAdd });

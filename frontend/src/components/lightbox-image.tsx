@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 export function LightboxImage({
   src,
+  previewSrc,
   alt,
   className,
   fluid = false,
@@ -15,6 +16,7 @@ export function LightboxImage({
   blurBackdrop = true,
 }: {
   src: string;
+  previewSrc?: string;
   alt: string;
   className?: string;
   fluid?: boolean;
@@ -22,6 +24,7 @@ export function LightboxImage({
   blurBackdrop?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const displaySrc = previewSrc || src;
   useEscapeToClose(open, () => setOpen(false));
   const downloadName =
     `${alt || "image"}.jpg`.replace(/[\\/:*?"<>|]+/g, "-").trim() || "image.jpg";
@@ -37,7 +40,7 @@ export function LightboxImage({
       >
         {!fluid && fit === "contain" && blurBackdrop && (
           <img
-            src={src}
+            src={displaySrc}
             alt=""
             aria-hidden="true"
             loading="lazy"
@@ -46,7 +49,7 @@ export function LightboxImage({
           />
         )}
         <img
-          src={src}
+          src={displaySrc}
           alt={alt}
           loading="lazy"
           decoding="async"

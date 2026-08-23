@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { withMediaVariant } from "@/lib/media-url";
 import { SidebarListSkeleton, DetailPaneSkeleton } from "@/components/skeletons";
 import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
@@ -209,7 +210,7 @@ function StyleListItem({
     >
       {previewSrc ? (
         <img
-          src={previewSrc}
+          src={withMediaVariant(previewSrc, "thumb")}
           alt={display}
           loading="lazy"
           className="size-9 shrink-0 rounded-[6px] border border-border object-cover"
@@ -281,7 +282,7 @@ function PreviewBox({
   } else {
     content = (
       <img
-        src={previewUrl ?? undefined}
+        src={previewUrl ? withMediaVariant(previewUrl, "thumb2x") : undefined}
         alt={`${style.name} preview`}
         loading="lazy"
         decoding="async"

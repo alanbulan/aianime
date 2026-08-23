@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import aiosqlite
+import sqlite3
 
 VERSION = "20260823_000_initial_director_training"
 
@@ -113,4 +114,8 @@ async def apply(db: aiosqlite.Connection) -> None:
     await db.executescript(SCHEMA_SQL)
 
 
-__all__ = ["SCHEMA_SQL", "VERSION", "apply"]
+def apply_sync(conn: sqlite3.Connection) -> None:
+    conn.executescript(SCHEMA_SQL)
+
+
+__all__ = ["SCHEMA_SQL", "VERSION", "apply", "apply_sync"]

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { withMediaVariant } from '@/lib/media-url';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -294,9 +295,14 @@ export function AssetLibraryModalView({
                 >
                   {entry.media === 'image' ? (
                     <img
-                      src={resolveMediaUrl(entry.url)}
+                      src={withMediaVariant(
+                        resolveMediaUrl(entry.url),
+                        'thumb2x',
+                      )}
                       alt={entry.name}
                       className="h-full w-full object-cover"
+                      loading={index < 12 ? 'eager' : 'lazy'}
+                      decoding="async"
                       draggable={false}
                     />
                   ) : entry.media === 'video' ? (

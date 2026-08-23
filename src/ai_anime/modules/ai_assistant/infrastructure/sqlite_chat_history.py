@@ -8,7 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from ai_anime.migrations.ai_assistant import run_chat_history_migrations
+from ai_anime.migrations.ai_assistant import (
+    MIGRATION_VERSION,
+    run_chat_history_migrations,
+)
+from ai_anime.migrations.sqlite import ensure_sqlite_schema
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
     strip_stored_assistant_replay,
@@ -73,10 +77,15 @@ class SQLiteChatHistory:
     @staticmethod
     def _connect_database(db_path: Path) -> sqlite3.Connection:
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(db_path)
+        ensure_sqlite_schema(
+            db_path,
+            component="ai_assistant",
+            version=MIGRATION_VERSION,
+            initialize=run_chat_history_migrations,
+        )
+        conn = sqlite3.connect(db_path, timeout=10)
         conn.row_factory = sqlite3.Row
-        configure_sqlite_connection(conn)
-        run_chat_history_migrations(conn)
+        configure_sqlite_connection(conn, set_journal_mode=False)
         return conn
 
     @staticmethod
