@@ -18,6 +18,7 @@ export const freezoneRedrawGenerationGateway: CanvasRedrawGenerationGateway = {
           num_images: 1,
           image_size: command.imageSize,
           model: command.model,
+          ...(command.modelSelector ? { model_id: command.modelSelector } : {}),
         },
       },
     );

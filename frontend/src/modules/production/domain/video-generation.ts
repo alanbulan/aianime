@@ -11,6 +11,7 @@ export interface GenerateSeedance2PromptCommand {
 export interface RegenerateBeatVideoCommand {
   beatNum: number;
   model: string;
+  modelSelector?: string;
   useDirectorRender?: boolean;
   resolution?: string;
   duration?: number;

@@ -192,6 +192,8 @@ async def _run_freezone_gen_async(
                     image_size=str(payload.get("image_size") or "2K"),
                     reference_paths=tuple(payload.get("reference_paths") or ()),
                     model=payload.get("model"),
+                    model_selector=str(payload.get("model_id") or "") or None,
+                    extra_params=payload.get("extra_params") or {},
                     quality=payload.get("quality"),
                     output_task_type=task_type,
                 )
@@ -257,6 +259,8 @@ async def _run_freezone_edit_async(
                     aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
                     image_size=str(payload.get("image_size") or "2K"),
                     model=payload.get("model"),
+                    model_selector=str(payload.get("model_id") or "") or None,
+                    extra_params=payload.get("extra_params") or {},
                     quality=payload.get("quality"),
                     output_task_type=task_type,
                 )
@@ -318,6 +322,7 @@ async def _run_freezone_mask_edit_async(
             image_size=str(payload.get("image_size") or "2K"),
             quality=str(payload.get("quality") or "medium"),
             model=str(payload.get("model") or ""),
+            model_selector=str(payload.get("model_id") or "") or None,
         )
     )
     rel = out_path.relative_to(project_dir).as_posix()
@@ -640,6 +645,7 @@ async def _run_mainline_director_control_sketch_async(
             state_dir=state_dir,
             control_frame_path=payload.get("control_frame_path") or None,
             model=str(payload.get("model") or "").strip() or None,
+            model_selector=str(payload.get("model_selector") or "").strip() or None,
             require_control_frame_path=True,
             candidate_output_path=output_path,
             promote=False,
@@ -911,6 +917,7 @@ async def _run_freezone_text_translate_async(
     ) = await translate_creative_canvas_text(
         text=str(payload.get("text") or ""),
         model=str(payload.get("model") or ""),
+        model_selector=str(payload.get("model_id") or "") or None,
         node_type=node_type,
     )
     data = {
@@ -960,19 +967,82 @@ async def _run_freezone_story_script_async(
 ) -> dict[str, Any]:
     from ai_anime.shared.project_media import make_static_url_for_context
     from ai_anime.modules.creative_canvas.public import (
+        ExtractCreativeCanvasFramesJobCommand,
+        bind_creative_canvas_story_script_assets,
+        creative_canvas_job_execution_use_cases,
         creative_canvas_job_workspace,
         generate_creative_canvas_story_script,
+        generate_creative_canvas_story_script_with_vision,
     )
 
     payload = envelope.get("payload") or {}
     job_id = str(payload["job_id"])
     project_dir = Path(str(payload.get("project_dir") or ctx.output_dir))
     creative_canvas_job_workspace().initialize(project_dir)
-    _update(ctx, "freezone_story_script", job_id, 0.1, "开始生成故事脚本...")
-    payload_data = await generate_creative_canvas_story_script(
-        source_text=str(payload.get("source_text") or ""),
-        prompt=str(payload.get("prompt") or ""),
-        model=str(payload.get("model") or ""),
+    source_text = str(payload.get("source_text") or "")
+    prompt = str(payload.get("prompt") or "")
+    model = str(payload.get("model") or "")
+    model_selector = str(payload.get("model_id") or "") or None
+    character_refs = list(payload.get("character_refs") or [])
+    character_image_paths = [
+        str(path) for path in payload.get("character_image_paths") or []
+    ]
+    video_path = str(payload.get("video_path") or "")
+    duration_sec = payload.get("duration_sec")
+
+    frame_paths: list[Path] = []
+    frame_urls: list[str] = []
+    if video_path:
+        _update(ctx, "freezone_story_script", job_id, 0.1, "ffmpeg 抽取关键帧...")
+        frame_paths = await creative_canvas_job_execution_use_cases().extract_frames(
+            ExtractCreativeCanvasFramesJobCommand(
+                project_dir=project_dir,
+                job_id=job_id,
+                video_path=Path(video_path),
+                max_frames=int(payload.get("max_frames") or 20),
+                scene_threshold=float(payload.get("scene_threshold") or 0.3),
+            )
+        )
+        frame_urls = [
+            make_static_url_for_context(ctx, path.relative_to(project_dir).as_posix())
+            for path in frame_paths
+        ]
+
+    if frame_paths or character_image_paths:
+        _update(
+            ctx,
+            "freezone_story_script",
+            job_id,
+            0.55,
+            (
+                f"视觉模型解析 {len(frame_paths)} 帧为分镜脚本..."
+                if frame_paths
+                else "视觉模型读取角色参考图生成故事脚本..."
+            ),
+        )
+        payload_data = await generate_creative_canvas_story_script_with_vision(
+            frame_paths=frame_paths,
+            character_image_paths=character_image_paths,
+            source_text=source_text,
+            prompt=prompt,
+            duration_sec=float(duration_sec) if duration_sec else None,
+            character_refs=character_refs,
+            model=model,
+            model_selector=model_selector,
+        )
+    else:
+        _update(ctx, "freezone_story_script", job_id, 0.1, "开始生成故事脚本...")
+        payload_data = await generate_creative_canvas_story_script(
+            source_text=source_text,
+            prompt=prompt,
+            model=model,
+            model_selector=model_selector,
+            character_refs=character_refs,
+        )
+    payload_data = bind_creative_canvas_story_script_assets(
+        payload_data,
+        frame_urls=frame_urls,
+        character_refs=character_refs,
     )
     out = (
         creative_canvas_job_workspace().output_directory(
@@ -995,6 +1065,8 @@ async def _run_freezone_story_script_async(
         "output_url": make_static_url_for_context(ctx, rel),
         **payload_data,
     }
+    if frame_urls:
+        result["frame_urls"] = frame_urls
     history_record = _append_node_history(
         ctx=ctx,
         project_dir=project_dir,

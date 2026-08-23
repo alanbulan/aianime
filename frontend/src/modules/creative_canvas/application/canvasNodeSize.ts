@@ -13,6 +13,7 @@ export interface CanvasNodeSizeTarget {
 
 export interface CanvasNodeSizeUpdateOptions {
   lockManualSize?: boolean;
+  recordHistory?: boolean;
   data?: Record<string, unknown>;
 }
 

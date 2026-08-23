@@ -2,7 +2,11 @@
 
 from typing import Any, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from ai_anime.modules.asset_world.domain.asset_names import (
+    coerce_path_safe_asset_name,
+)
 
 from ai_anime.shared.time_of_day import (
     is_time_of_day_token,
@@ -27,6 +31,14 @@ class NovelScene(BaseModel):
     spatial_layout_image: str = Field(default="", description="场景级空间布局参考图路径")
     notes: str = Field(default="")
     updated_at: str = Field(default="", description="场景资产最后一次内容变化时间 ISO 字符串")
+
+    @model_validator(mode="after")
+    def sanitize_name(self):
+        self.name, self.aliases = coerce_path_safe_asset_name(
+            self.name,
+            self.aliases,
+        )
+        return self
 
 
 def build_scene_effective_prompt(

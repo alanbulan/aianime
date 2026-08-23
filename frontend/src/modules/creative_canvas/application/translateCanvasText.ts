@@ -14,6 +14,7 @@ export type CanvasTextTranslationNodeType =
 export interface CanvasTextTranslationSubmission {
   readonly text: string;
   readonly model: string;
+  readonly modelSelector?: string;
   readonly nodeType: CanvasTextTranslationNodeType;
   readonly canvasId: string;
   readonly nodeId: string;
@@ -48,6 +49,7 @@ export async function translateCanvasText(
   const task = await dependencies.translationGateway.submit(params.projectId, {
     text: params.text,
     model: params.model,
+    modelSelector: params.modelSelector,
     nodeType: params.nodeType,
     canvasId: params.canvasId,
     nodeId: params.nodeId,

@@ -821,7 +821,13 @@ function mergeModelCatalogs(
   byok: Awaited<ReturnType<typeof fetchByokModelCatalog>>,
 ): ReturnType<typeof projectCommercialModelCatalog> {
   if (!cloud) return byok;
-  const items = [...cloud.items];
+  const items = cloud.items.map((item) => ({
+    ...item,
+    capabilityJson: withRouteSelector(
+      item.capabilityJson,
+      `cloud:${item.code}`,
+    ),
+  }));
   const seen = new Set(items.map((item) => String(item.id)));
   for (const item of byok.items) {
     if (!seen.has(String(item.id))) items.push(item);
@@ -830,6 +836,21 @@ function mergeModelCatalogs(
     catalogVersion: `${cloud.catalogVersion}+${byok.catalogVersion}`,
     items,
   };
+}
+
+function withRouteSelector(
+  capabilityJson: string | undefined,
+  routeSelector: string,
+): string {
+  let capabilities: Record<string, unknown> = {};
+  if (capabilityJson) {
+    try {
+      capabilities = optionalRecord(JSON.parse(capabilityJson));
+    } catch {
+      throw new CommercialApiError("云端模型 capabilityJson 不是有效 JSON");
+    }
+  }
+  return JSON.stringify({ ...capabilities, routeSelector });
 }
 
 function catalogItemSupportsRole(

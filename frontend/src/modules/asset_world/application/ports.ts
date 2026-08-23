@@ -126,7 +126,9 @@ export interface CharacterGateway {
     project: string,
     signal?: AbortSignal,
   ): Promise<AssetDataResponse<Character[]>>;
-  buildCharacters(project: string): Promise<AssetTaskResponse>;
+  buildCharacters(
+    project: string,
+  ): Promise<AssetTaskResponse | AssetErrorResponse>;
   createCharacter(
     project: string,
     input: CreateCharacterInput,

@@ -170,6 +170,7 @@ export function createUpscaleEditorOverlay({
           scaleFactor: persistedScaleFactor,
           imageSize: persistedImageSize,
           model: apiModel,
+          modelSelector: selectedModel.routeSelector,
         },
         (task) => {
           updateNodeData(node.id, generationTaskDescriptor(task));

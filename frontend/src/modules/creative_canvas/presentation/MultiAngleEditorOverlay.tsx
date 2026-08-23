@@ -120,6 +120,7 @@ export function createMultiAngleEditorOverlay({
                 shotSize: payload.zoom,
                 promptOverride: payload.promptOverride,
                 model: payload.apiModel,
+                modelSelector: payload.modelSelector,
                 imageSize: payload.imageSize,
               },
               (task) => {

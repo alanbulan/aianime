@@ -157,6 +157,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     panelWidth,
     previewUrl,
     visiblePreviewUrl,
+    bodyImageSource,
     hasGeneratedResult,
     naturalSize,
     albumRootRef,
@@ -321,7 +322,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
         {visiblePreviewUrl ? (
           <>
             <CanvasNodeImage
-              src={visiblePreviewUrl}
+              src={bodyImageSource ?? visiblePreviewUrl}
               alt={resolvedTitle}
               viewerSourceUrl={visiblePreviewUrl}
               onLoad={handlePreviewImageLoad}

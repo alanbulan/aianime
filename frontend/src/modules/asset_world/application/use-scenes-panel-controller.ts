@@ -25,6 +25,7 @@ import {
   type SceneGroup,
 } from "@/modules/asset_world/domain/scene";
 import {
+  backendErrorResponseToastMessage,
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
@@ -193,7 +194,7 @@ export function createUseScenesPanelController(
       try {
         const response = await buildScenes.mutateAsync();
         if (isErrorDataResponse(response)) {
-          toast.error(backendErrorToastMessage(response.error, t));
+          toast.error(backendErrorResponseToastMessage(response, t));
           return;
         }
         toast.success(response.message);

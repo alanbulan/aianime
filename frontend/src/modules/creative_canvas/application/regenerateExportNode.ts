@@ -28,6 +28,7 @@ interface FreezoneRedrawRequest {
   aspectRatio: CanvasRedrawAspectRatio;
   imageSize: CanvasRedrawImageSize;
   model: string;
+  modelSelector?: string;
 }
 
 export interface RegenerateExportImageNodeParams {
@@ -69,6 +70,9 @@ function readFreezoneRedrawRequest(
     aspectRatio: resolveCanvasRedrawAspectRatio(req.aspectRatio),
     imageSize: resolveCanvasRedrawImageSize(req.imageSize),
     model: req.model.trim(),
+    ...(typeof req.modelSelector === "string" && req.modelSelector.trim()
+      ? { modelSelector: req.modelSelector.trim() }
+      : {}),
   };
 }
 
@@ -94,6 +98,7 @@ async function regenerateFreezoneRedrawNode(
         aspectRatio: request.aspectRatio,
         imageSize: request.imageSize,
         model: request.model,
+        modelSelector: request.modelSelector,
       },
       (task) => {
         updateNodeData(nodeId, generationTaskDescriptor(task));

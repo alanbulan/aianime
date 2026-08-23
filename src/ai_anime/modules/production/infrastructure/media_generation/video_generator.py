@@ -179,6 +179,8 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         self,
         *,
         model_role: str,
+        model: str | None = None,
+        model_selector: str | None = None,
         resolution: str | None = None,
         generate_audio: bool | None = None,
     ) -> None:
@@ -210,7 +212,8 @@ class CommercialVideoGenerator(VideoGeneratorBase):
             "VIDEO_EDIT",
         }:
             raise ValueError("视频模型用途无效")
-        self.model = resolve_model_for_role(self.model_role)
+        self.model = str(model or "").strip() or resolve_model_for_role(self.model_role)
+        self.model_selector = str(model_selector or "").strip()
 
     @property
     def headers(self) -> dict[str, str]:
@@ -220,6 +223,8 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
+        if self.model_selector:
+            headers["X-AI-Anime-Model-Selector"] = self.model_selector
         return headers
 
     @staticmethod
@@ -279,15 +284,25 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         quality = str(resolution or "720p").strip().lower()
         long_edge = 1920 if "1080" in quality else 1280
         short_edge = 1080 if long_edge == 1920 else 720
-        if ratio == "9:16":
-            return f"{short_edge}x{long_edge}"
-        if ratio == "1:1":
+        try:
+            ratio_width, ratio_height = (
+                int(part) for part in ratio.split(":", 1)
+            )
+        except (TypeError, ValueError):
+            ratio_width, ratio_height = 16, 9
+        if ratio_width <= 0 or ratio_height <= 0:
+            ratio_width, ratio_height = 16, 9
+        if ratio_width == ratio_height:
             return f"{short_edge}x{short_edge}"
-        if ratio == "4:3":
-            return f"{short_edge}x{round(short_edge * 3 / 4)}"
-        if ratio == "3:4":
-            return f"{round(short_edge * 3 / 4)}x{short_edge}"
-        return f"{long_edge}x{short_edge}"
+        if ratio_width > ratio_height:
+            width = long_edge
+            height = round(width * ratio_height / ratio_width)
+        else:
+            height = long_edge
+            width = round(height * ratio_width / ratio_height)
+        width += width % 2
+        height += height % 2
+        return f"{width}x{height}"
 
     @staticmethod
     def _form_value(value: object) -> str:

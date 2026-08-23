@@ -16,6 +16,7 @@ export const freezoneOutpaintGenerationGateway: CanvasOutpaintGenerationGateway 
           num_images: command.numImages,
           image_size: command.imageSize,
           model: command.model,
+          ...(command.modelSelector ? { model_id: command.modelSelector } : {}),
         },
       },
     );

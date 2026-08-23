@@ -9,15 +9,21 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from ai_anime.modules.creative_canvas.domain.canvas_identity import (
     is_valid_creative_canvas_id,
 )
 from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
+from ai_anime.shared.infrastructure import thumbnails
+from ai_anime.shared.project_media import resolve_project_media_path
+
+logger = logging.getLogger(__name__)
 
 _SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 _DEFAULT_LIMIT = 100
@@ -109,7 +115,60 @@ def append_generation_history(
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as f:
         f.write(json.dumps(normalized, ensure_ascii=False, separators=(",", ":")) + "\n")
+    prewarm_record_variants(project_dir, normalized)
     return normalized
+
+
+_PREWARM_MAX_URLS = 8
+_PREWARM_MAX_DEPTH = 4
+
+
+def prewarm_record_variants(project_dir: Path, record: dict[str, Any]) -> int:
+    """Queue image variants referenced by a newly written history record."""
+
+    result = record.get("result")
+    if not isinstance(result, dict):
+        return 0
+
+    seen: set[str] = set()
+    queued = 0
+
+    def walk(value: Any, depth: int) -> None:
+        nonlocal queued
+        if depth > _PREWARM_MAX_DEPTH or len(seen) >= _PREWARM_MAX_URLS:
+            return
+        if isinstance(value, str):
+            url = value.strip()
+            if (
+                not url
+                or url in seen
+                or not thumbnails.is_thumbnailable(Path(urlsplit(url).path))
+            ):
+                return
+            seen.add(url)
+            try:
+                source = resolve_project_media_path(url, project_dir)
+            except ValueError:
+                return
+            queued += thumbnails.prewarm(project_dir, source)
+            return
+        if isinstance(value, dict):
+            for item in value.values():
+                walk(item, depth + 1)
+            return
+        if isinstance(value, (list, tuple)):
+            for item in value:
+                walk(item, depth + 1)
+
+    try:
+        walk(result, 0)
+    except Exception:
+        logger.debug(
+            "thumbnail prewarm skipped for %s",
+            record.get("id"),
+            exc_info=True,
+        )
+    return queued
 
 
 def _read_history_file(path: Path) -> list[dict[str, Any]]:

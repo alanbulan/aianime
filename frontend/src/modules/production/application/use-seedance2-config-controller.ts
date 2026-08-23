@@ -510,7 +510,10 @@ export function createUseSeedance2ConfigController(
 
     const generationInput: BeatVideoGenerationInput = options.showSeedance2Config
       ? {
-          model: options.model,
+          model: options.selectedModel?.apiModel ?? options.model,
+          ...(options.selectedModel?.routeSelector
+            ? { modelSelector: options.selectedModel.routeSelector }
+            : {}),
           beatNumber: options.beat.beat_number,
           kind: "seedance2",
           dirty,
@@ -521,7 +524,10 @@ export function createUseSeedance2ConfigController(
         }
       : options.showHappyHorseConfig
         ? {
-            model: options.model,
+            model: options.selectedModel?.apiModel ?? options.model,
+            ...(options.selectedModel?.routeSelector
+              ? { modelSelector: options.selectedModel.routeSelector }
+              : {}),
             beatNumber: options.beat.beat_number,
             kind: "happyhorse",
             draft,
@@ -530,8 +536,11 @@ export function createUseSeedance2ConfigController(
             sourceConfig: config,
           }
         : options.showGrokVideoConfig
-          ? {
-              model: options.model,
+        ? {
+            model: options.selectedModel?.apiModel ?? options.model,
+            ...(options.selectedModel?.routeSelector
+              ? { modelSelector: options.selectedModel.routeSelector }
+              : {}),
               beatNumber: options.beat.beat_number,
               kind: "grok",
               draft,
@@ -540,7 +549,10 @@ export function createUseSeedance2ConfigController(
               sourceConfig: config,
             }
           : {
-              model: options.model,
+            model: options.selectedModel?.apiModel ?? options.model,
+            ...(options.selectedModel?.routeSelector
+              ? { modelSelector: options.selectedModel.routeSelector }
+              : {}),
               beatNumber: options.beat.beat_number,
               kind: "legacy",
               ...(isSeedance15ProConfig

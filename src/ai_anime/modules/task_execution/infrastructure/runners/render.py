@@ -285,7 +285,10 @@ async def _run_batch_render_async(
     image_model = str(config.get("model") or "").strip()
     if not image_model:
         raise ValueError("批量渲染缺少图片模型")
-    generator_config = get_render_generation_config(model_override=image_model)
+    generator_config = get_render_generation_config(
+        model_override=image_model,
+        model_selector_override=str(config.get("model_selector") or "") or None,
+    )
     generator = NanoBananaGridGenerator(config=generator_config)
     log(f"[Render Image] access_mode={generator.access_mode}, model={generator.model}")
 
@@ -579,7 +582,10 @@ async def _run_selected_regen_async(
     if not image_model:
         label = "草图" if is_sketch else "渲染"
         raise ValueError(f"{label}生成缺少图片模型")
-    generator_config = get_generation_config(model_override=image_model)
+    generator_config = get_generation_config(
+        model_override=image_model,
+        model_selector_override=str(config.get("model_selector") or "") or None,
+    )
     image_quality = str(config.get("image_quality") or "").strip().lower()
     if image_quality in {"low", "medium", "high"}:
         generator_config["openai_image_quality"] = image_quality
@@ -790,7 +796,10 @@ async def _run_grid_regenerate_async(
     image_model = str(config.get("model") or "").strip()
     if not image_model:
         raise ValueError("网格渲染缺少图片模型")
-    grid_config = get_render_generation_config(model_override=image_model)
+    grid_config = get_render_generation_config(
+        model_override=image_model,
+        model_selector_override=str(config.get("model_selector") or "") or None,
+    )
     grid_mode = str(config.get("grid_mode") or grid_config.get("mode", "3x3"))
     scene_grouping = bool(config.get("scene_grouping", False))
     character_grouping = bool(config.get("character_grouping", False))

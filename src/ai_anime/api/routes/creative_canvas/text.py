@@ -49,6 +49,7 @@ async def freezone_text_translate(
                 project_dir=resolved.project_dir,
                 text=body.text,
                 model=body.model,
+                model_selector=body.model_id,
                 node_type=body.node_type,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
@@ -92,6 +93,14 @@ async def freezone_story_script_generate(
                 source_url=body.source_url,
                 prompt=body.prompt,
                 model=body.model,
+                model_selector=body.model_id,
+                video_url=body.video_url,
+                duration_sec=body.duration_sec,
+                character_refs=tuple(
+                    reference.model_dump() for reference in body.character_refs
+                ),
+                max_frames=body.max_frames,
+                scene_threshold=body.scene_threshold,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
             )

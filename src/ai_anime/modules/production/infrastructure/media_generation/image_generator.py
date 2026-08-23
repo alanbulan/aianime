@@ -48,6 +48,7 @@ def _aspect_ratio(width: int, height: int) -> str:
 async def _generate_commercial_image(
     *,
     model: str,
+    model_selector: str | None,
     prompt: str,
     reference_images: list[tuple[bytes, str] | tuple[str, bytes, str]] | None,
     aspect_ratio: str,
@@ -59,7 +60,12 @@ async def _generate_commercial_image(
     image_bytes, _text, error = await _call_newapi_image_api(
         prompt=prompt,
         reference_images=reference_images,
-        image_config={"aspect_ratio": aspect_ratio, "image_size": "1K"},
+        image_config={
+            "model": model,
+            "model_selector": str(model_selector or "").strip(),
+            "aspect_ratio": aspect_ratio,
+            "image_size": "1K",
+        },
     )
     return image_bytes, error
 
@@ -67,10 +73,15 @@ async def _generate_commercial_image(
 class CommercialImageGenerator:
     """Small compatibility adapter over the single commercial image protocol."""
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(
+        self,
+        model: str | None = None,
+        model_selector: str | None = None,
+    ) -> None:
         self.model = str(model or "").strip()
         if not self.model:
             raise ValueError("image model is required")
+        self.model_selector = str(model_selector or "").strip()
         self.default_width = IMAGE_DEFAULT_WIDTH
         self.default_height = IMAGE_DEFAULT_HEIGHT
         self.default_style = IMAGE_DEFAULT_STYLE
@@ -128,6 +139,7 @@ class CommercialImageGenerator:
         try:
             image_bytes, error = await _generate_commercial_image(
                 model=self.model,
+                model_selector=self.model_selector or None,
                 prompt=resolved_prompt,
                 reference_images=references or None,
                 aspect_ratio=_aspect_ratio(resolved_width, resolved_height),
@@ -162,9 +174,13 @@ class CommercialImageGenerator:
             )
 
 
-def create_image_generator(*, model: str | None = None):
+def create_image_generator(
+    *,
+    model: str | None = None,
+    model_selector: str | None = None,
+):
     """Create the production adapter."""
-    return CommercialImageGenerator(model)
+    return CommercialImageGenerator(model, model_selector)
 
 
 async def generate_character_reference_unified(
@@ -177,6 +193,7 @@ async def generate_character_reference_unified(
     ethnicity: str = "Chinese",
     prompt_only: bool = False,
     model: str | None = None,
+    model_selector: str | None = None,
     project_dir: str = "",
     usage_task_type: str = "character_portrait",
     usage_scope: str = "",
@@ -196,7 +213,8 @@ async def generate_character_reference_unified(
         )
 
         result = await NanoBananaCharacterGenerator(
-            model=resolved_model
+            model=resolved_model,
+            model_selector=model_selector,
         ).generate_character_portrait(
             character_name=character_name,
             character_prompt=appearance_prompt,
@@ -234,6 +252,7 @@ async def generate_identity_image_unified(
     style: str | None = None,
     dry_run: bool = False,
     model: str | None = None,
+    model_selector: str | None = None,
     project_dir: str = "",
     costume_image_path: str = "",
     usage_task_type: str = "identity_image",
@@ -253,7 +272,8 @@ async def generate_identity_image_unified(
         )
 
         result = await NanoBananaCharacterGenerator(
-            model=resolved_model
+            model=resolved_model,
+            model_selector=model_selector,
         ).generate_identity_with_reference(
             character_name=character_name,
             identity_prompt=identity_prompt,

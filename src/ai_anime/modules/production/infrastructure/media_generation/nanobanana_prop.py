@@ -114,6 +114,7 @@ async def generate_prop_reference(
     style: str = None,
     project_dir: str = "",
     model: str | None = None,
+    model_selector: str | None = None,
 ) -> Optional[str]:
     """生成道具三视图参考图。
 
@@ -135,7 +136,10 @@ async def generate_prop_reference(
         style = IMAGE_DEFAULT_STYLE
 
     resolved_model = _prop_reference_image_model(model)
-    config = get_grid_generation_config(model_override=resolved_model)
+    config = get_grid_generation_config(
+        model_override=resolved_model,
+        model_selector_override=model_selector,
+    )
     style_preset = get_style_preset(style, project_dir=project_dir or None)
     prompt = build_prop_reference_prompt(
         visual_prompt=visual_prompt,
@@ -157,6 +161,7 @@ async def generate_prop_reference(
             prompt=prompt,
             output_path=output_path,
             model=resolved_model,
+            model_selector=str(config.get("model_selector") or "") or None,
             quality=config.get("openai_image_quality", "medium"),
             reference_images=references,
         )
@@ -180,6 +185,7 @@ async def _generate_via_newapi(
     prompt: str,
     output_path: str,
     model: str,
+    model_selector: str | None = None,
     quality: str = "medium",
     reference_images: list[ImageReferenceInput] | None = None,
 ) -> Optional[str]:
@@ -189,6 +195,8 @@ async def _generate_via_newapi(
         prompt=prompt,
         reference_images=reference_images or None,
         image_config={
+            "model": model,
+            "model_selector": str(model_selector or "").strip(),
             "aspect_ratio": PROP_REF_ASPECT_RATIO,
             "image_size": normalize_image_size(PROP_REF_IMAGE_SIZE),
             "quality": normalize_image_quality(quality, default="medium"),

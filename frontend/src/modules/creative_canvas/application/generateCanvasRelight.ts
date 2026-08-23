@@ -25,6 +25,7 @@ export interface CanvasRelightGenerationCommand {
   readonly prompt: string;
   readonly imageSize: string;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface CanvasRelightGenerationGateway {
@@ -45,6 +46,7 @@ export interface GenerateCanvasRelightParams {
   readonly smartMode: CanvasRelightSmartPrompt;
   readonly imageSize: string;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface GenerateCanvasRelightDependencies {
@@ -82,6 +84,7 @@ export async function generateCanvasRelight(
     prompt: buildCanvasRelightPrompt(params.smartMode),
     imageSize: params.imageSize,
     model: params.model,
+    modelSelector: params.modelSelector,
   });
   const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },

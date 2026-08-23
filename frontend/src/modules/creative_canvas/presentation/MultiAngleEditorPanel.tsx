@@ -87,6 +87,7 @@ export interface MultiAngleSubmitPayload {
   zoom: MultiAngleZoomLevel;
   promptOverride: string | null;
   apiModel: string;
+  modelSelector?: string;
   imageSize: MultiAngleImageSize;
 }
 
@@ -523,6 +524,7 @@ export function MultiAngleEditorPanel({
       zoom,
       promptOverride: promptOverrideEnabled && promptOverride.trim() ? promptOverride.trim() : null,
       apiModel: selectedModel.apiModel,
+      modelSelector: selectedModel.routeSelector,
       imageSize,
     });
   }, [

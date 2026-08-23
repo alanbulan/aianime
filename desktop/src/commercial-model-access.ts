@@ -211,8 +211,13 @@ export async function fetchByokModelCatalog(
       operation: item.operation,
       capabilityJson:
         item.supportedModes.size > 0
-          ? JSON.stringify({ supportedModes: Array.from(item.supportedModes).sort() })
-          : "{}",
+          ? JSON.stringify({
+              supportedModes: Array.from(item.supportedModes).sort(),
+              routeSelector: `byok:${key.slice(0, key.lastIndexOf(":" + item.operation))}`,
+            })
+          : JSON.stringify({
+              routeSelector: `byok:${key.slice(0, key.lastIndexOf(":" + item.operation))}`,
+            }),
       parameterSchemaJson: "{}",
       clientVisible: true as const,
       status: "ACTIVE" as const,

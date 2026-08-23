@@ -40,6 +40,7 @@ import {
   videoNodeAlbumUrls,
   VIDEO_NODE_DEFAULT_HEIGHT,
   VIDEO_NODE_DEFAULT_WIDTH,
+  VIDEO_NODE_ASPECT_RATIOS,
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '../application/videoNodeModel';
@@ -127,6 +128,7 @@ import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
+import { useExternalFileHandoff } from './useExternalFileHandoff';
 
 function formatDurationSeconds(durationMs: number): string {
   return (Math.round(durationMs) / 1000).toFixed(3).replace(/\.?0+$/, "");
@@ -415,12 +417,24 @@ export function createUseVideoNodeController({
     [availableVideoModels, data.model],
   );
   const modelId = selectedVideoModel?.id ?? "";
+  const apiModel = selectedVideoModel?.apiModel ?? "";
+  const modelSelector = selectedVideoModel?.routeSelector;
   const supportedVideoModes = supportedVideoModesForModel(selectedVideoModel);
   const usesTypedReferenceModes =
     videoModelUsesTypedReferenceModes(selectedVideoModel);
   // aspectRatio 只认合法的比例预设（含 "auto"）；历史上曾被写成像素串(如
   // "1248:704")的旧节点在这里吸附到最接近的合法视频比例，保证 chip 显示干净。
-  const aspectRatio = resolveVideoNodeAspectRatio(data.aspectRatio);
+  const aspectRatioOptions = useMemo(() => {
+    const configured = (selectedVideoModel?.aspectRatioOptions ?? []).filter(
+      (value): value is (typeof VIDEO_NODE_ASPECT_RATIOS)[number] =>
+        (VIDEO_NODE_ASPECT_RATIOS as readonly string[]).includes(value),
+    );
+    return configured.length > 0 ? configured : VIDEO_NODE_ASPECT_RATIOS;
+  }, [selectedVideoModel]);
+  const resolvedAspectRatio = resolveVideoNodeAspectRatio(data.aspectRatio);
+  const aspectRatio = aspectRatioOptions.includes(resolvedAspectRatio)
+    ? resolvedAspectRatio
+    : (aspectRatioOptions[0] ?? '16:9');
   const submitAspectRatio = resolveVideoNodeSubmitAspectRatio(
     data,
     aspectRatio,
@@ -474,13 +488,18 @@ export function createUseVideoNodeController({
     if (data.durationSec !== durationSec) {
       patch.durationSec = durationSec;
     }
+    if (data.aspectRatio !== aspectRatio) {
+      patch.aspectRatio = aspectRatio;
+    }
     if (Object.keys(patch).length > 0) {
       updateNodeData(id, patch);
     }
   }, [
     data.durationSec,
+    data.aspectRatio,
     data.quality,
     durationSec,
+    aspectRatio,
     id,
     quality,
     updateNodeData,
@@ -1076,15 +1095,20 @@ export function createUseVideoNodeController({
     });
   }, [id]);
 
-  useEffect(() => {
-    return canvasEventBus.subscribe(
-      "video-node/external-file",
-      ({ nodeId, file }) => {
-        if (nodeId !== id || !isVideoFile(file)) return;
-        void processFile(file);
-      },
-    );
-  }, [id, processFile]);
+  const subscribeExternalFile = useCallback(
+    (handler: (payload: { nodeId: string; file?: File }) => void) =>
+      canvasEventBus.subscribe('video-node/external-file', (payload) =>
+        handler(payload)),
+    [canvasEventBus],
+  );
+  useExternalFileHandoff(
+    'video-node/external-file',
+    id,
+    subscribeExternalFile,
+    (file) => {
+      if (isVideoFile(file)) void processFile(file);
+    },
+  );
 
   // First time an upstream image becomes available, flip the gen mode so the
   // video actually consumes it. Default to `allReference`（全能参考）—— it
@@ -1478,7 +1502,8 @@ export function createUseVideoNodeController({
             quality,
             durationSeconds: durationClamped,
             generateAudio,
-            model: modelId,
+            model: apiModel,
+            modelSelector,
             genMode,
             humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
@@ -1507,7 +1532,8 @@ export function createUseVideoNodeController({
             quality,
             durationSeconds: durationClamped,
             generateAudio,
-            model: modelId,
+            model: apiModel,
+            modelSelector,
             genMode,
             humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
@@ -1548,7 +1574,8 @@ export function createUseVideoNodeController({
             quality,
             durationSeconds: durationClamped,
             generateAudio,
-            model: modelId,
+            model: apiModel,
+            modelSelector,
             genMode,
             canvasId,
             nodeId: targetId,
@@ -1721,7 +1748,8 @@ export function createUseVideoNodeController({
             quality,
             durationSeconds: durationClamped,
             generateAudio,
-            model: modelId,
+            model: apiModel,
+            modelSelector,
             genMode,
             humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
@@ -1740,7 +1768,8 @@ export function createUseVideoNodeController({
             quality,
             durationSeconds: durationClamped,
             generateAudio,
-            model: modelId,
+            model: apiModel,
+            modelSelector,
             genMode,
             humanReview: supportsHumanReview && humanReview,
             sceneOptimize: sceneOptimize ?? null,
@@ -1903,6 +1932,7 @@ export function createUseVideoNodeController({
     }
   }, [
     aspectRatio,
+    aspectRatioOptions,
     submitAspectRatio,
     cameraMovementId,
     cameraMovementPreset,
@@ -1921,6 +1951,8 @@ export function createUseVideoNodeController({
     maxReferenceVideos,
     supportsHumanReview,
     modelId,
+    apiModel,
+    modelSelector,
     prompt,
     projectId,
     quality,
@@ -2117,6 +2149,7 @@ export function createUseVideoNodeController({
     handleModelChange,
     getModelDisabledReason,
     aspectRatio,
+    aspectRatioOptions,
     qualityOptions,
     quality,
     durationBounds,

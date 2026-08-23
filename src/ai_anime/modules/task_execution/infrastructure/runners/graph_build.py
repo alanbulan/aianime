@@ -6,6 +6,7 @@ import asyncio
 from typing import Any
 
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.story_intake.public import require_imported_story
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
@@ -41,6 +42,7 @@ def run_build_characters(envelope: dict[str, Any], ctx: ProjectContext) -> dict[
 
 
 async def _run_build_characters(ctx: ProjectContext) -> dict[str, Any]:
+    require_imported_story(ctx.output_dir)
     store = await _load_store(ctx)
     try:
         characters = await store.build_characters_from_graph(
@@ -57,6 +59,7 @@ def run_build_scenes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str,
 
 
 async def _run_build_scenes(ctx: ProjectContext) -> dict[str, Any]:
+    require_imported_story(ctx.output_dir)
     store = await _load_store(ctx)
     try:
         scenes = await store.build_scenes_from_graph(
@@ -91,6 +94,7 @@ def run_build_episodes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[st
 async def _run_build_episodes(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any]:
     from ai_anime.modules.narrative_planning.public import EpisodePlannerAgent
 
+    require_imported_story(ctx.output_dir)
     payload = envelope.get("payload") or {}
     config = dict(payload.get("config") or {})
     target = int(config.get("target_episodes", 10))

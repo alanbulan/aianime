@@ -1,6 +1,6 @@
 """文件下载端点（带路径遍历防护）。"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.file_delivery import serve_project_file
@@ -31,6 +31,8 @@ async def download_file(
 async def preview_file(
     project: str,
     file_path: str,
+    request: Request,
+    st_thumb: str | None = None,
     user: dict = Depends(get_api_user),
 ):
     """预览项目内媒体文件。
@@ -43,4 +45,6 @@ async def preview_file(
         file_path=file_path,
         user=user,
         as_download=False,
+        request=request,
+        media_variant=st_thumb,
     )

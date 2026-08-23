@@ -391,6 +391,12 @@ export function classifySaveError(
   const code = typeof body?.detail?.code === "string" ? body.detail.code : null;
 
   if (status === 409) {
+    if (code === "canvas_idempotency_conflict") {
+      return {
+        kind: "conflict",
+        message: "同一次保存被重复提交且内容不一致，请刷新后重试",
+      };
+    }
     return {
       kind: "conflict",
       message: "画布已被其他窗口或用户修改",

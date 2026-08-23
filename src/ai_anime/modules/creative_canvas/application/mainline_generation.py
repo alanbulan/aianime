@@ -79,6 +79,7 @@ class GenerateCreativeCanvasScene360Command:
     reverse_reference_url: str | None
     mode: str
     model: str
+    model_selector: str | None
     quality: str | None
     canvas_id: str | None = None
     node_id: str | None = None
@@ -154,6 +155,7 @@ class StartCreativeCanvasScene360Command:
     master_url: str
     reverse_url: str | None
     model: str
+    model_selector: str | None = None
     description: str | None = None
     image_size: str | None = None
     quality: str | None = None
@@ -355,6 +357,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                 master_url=command.reference_url,
                 reverse_url=command.reverse_reference_url,
                 model=command.model,
+                model_selector=command.model_selector,
                 image_size=MAINLINE_SCENE_360_IMAGE_SIZE,
                 quality=command.quality,
                 canvas_id=command.canvas_id,
@@ -761,6 +764,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                         "description": (command.description or "").strip()
                         or build_scene_360_prompt(command.scene_id),
                         "model": model,
+                        "model_selector": command.model_selector or "",
                         "image_size": command.image_size
                         or MAINLINE_SCENE_360_IMAGE_SIZE,
                         "quality": command.quality or "medium",

@@ -41,6 +41,7 @@ class SingleVideoRequest(BaseModel):
 
     resolution: str = "720x1280"
     model: Optional[str] = None
+    model_selector: Optional[str] = None
     use_director_render: bool = False
     seedance2_config_json: Optional[str] = None
     mode: Optional[str] = None

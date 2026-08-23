@@ -1,4 +1,4 @@
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 import { p } from "@/shared/api/path";
 import type { OkResponse } from "@/types/api";
 import type { ProjectWorkspaceGateway } from "@/modules/project_workspace/application/ports";
@@ -146,7 +146,7 @@ export const httpProjectWorkspaceGateway: ProjectWorkspaceGateway = {
   async uploadProjectCover(project, file) {
     const body = new FormData();
     body.append("file", file);
-    const response = await api
+    const response = await uploadApi
       .post(p`api/v1/projects/${project}/cover/upload`, { body })
       .json<OkResponse<ProjectCoverResult>>();
     return response.data;

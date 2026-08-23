@@ -15,6 +15,7 @@ export interface CanvasOutpaintGenerationCommand {
   readonly numImages: 1;
   readonly imageSize: CanvasOutpaintImageSize;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface CanvasOutpaintGenerationGateway {
@@ -30,6 +31,7 @@ export interface GenerateCanvasOutpaintParams {
   readonly targetAspectRatio: CanvasOutpaintAspectRatio;
   readonly imageSize: CanvasOutpaintImageSize;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface GenerateCanvasOutpaintDependencies {
@@ -53,6 +55,7 @@ export async function generateCanvasOutpaint(
     numImages: 1,
     imageSize: params.imageSize,
     model: params.model,
+    modelSelector: params.modelSelector,
   });
   const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },

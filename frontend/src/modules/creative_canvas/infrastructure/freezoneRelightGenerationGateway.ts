@@ -23,6 +23,7 @@ export const freezoneRelightGenerationGateway: CanvasRelightGenerationGateway = 
           prompt: command.prompt,
           image_size: command.imageSize,
           model: command.model,
+          ...(command.modelSelector ? { model_id: command.modelSelector } : {}),
         },
       },
     );

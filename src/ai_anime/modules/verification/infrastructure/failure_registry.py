@@ -558,8 +558,8 @@ def load_negative_clause_for_project_sync(project_dir: str | None, layer: str) -
         from ai_anime.shared.infrastructure.sqlite_pragmas import (
             configure_sqlite_connection,
         )
-        from ai_anime.modules.verification.infrastructure.global_registry_db import (
-            DEFS_SCHEMA_SQL,
+        from ai_anime.migrations.verification import (
+            run_verification_registry_migrations_sync,
         )
 
         db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -567,7 +567,7 @@ def load_negative_clause_for_project_sync(project_dir: str | None, layer: str) -
         conn.row_factory = sqlite3.Row
         configure_sqlite_connection(conn)
         try:
-            conn.executescript(DEFS_SCHEMA_SQL)
+            run_verification_registry_migrations_sync(conn)
             for entry in _SEED_FAILURE_MODES:
                 conn.execute(
                     """

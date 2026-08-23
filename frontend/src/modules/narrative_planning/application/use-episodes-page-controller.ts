@@ -13,7 +13,11 @@ import {
   mergeEpisodeCatalog,
   resolveSelectedEpisode,
 } from "@/modules/narrative_planning/domain/episode";
-import { backendErrorToastMessage, BillingRuleNotConfiguredError } from "@/shared/api/errors";
+import {
+  backendErrorResponseToastMessage,
+  backendErrorToastMessage,
+  BillingRuleNotConfiguredError,
+} from "@/shared/api/errors";
 
 interface CharacterListQuery {
   data?: {
@@ -166,7 +170,7 @@ export function createUseEpisodesPageController(
       try {
         const response = await planEpisodes.mutateAsync({});
         if (response.ok === false) {
-          toast.error(backendErrorToastMessage(response.error, t));
+          toast.error(backendErrorResponseToastMessage(response, t));
           return;
         }
         planTask.start();

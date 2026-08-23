@@ -12,6 +12,11 @@ from ai_anime.modules.asset_world.application.character_models import (
 )
 from ai_anime.modules.asset_world.application.prop_models import NovelProp
 from ai_anime.modules.asset_world.application.scene_models import NovelScene
+from ai_anime.modules.asset_world.domain.asset_names import (
+    asset_dir_within,
+    move_asset_dir,
+    path_safe_asset_name,
+)
 from ai_anime.shared.infrastructure.project_sqlite_core import console
 from ai_anime.shared.utils.identity_refs import (
     remap_character_asset_path,
@@ -22,7 +27,6 @@ from ai_anime.shared.utils.identity_refs import (
     remap_keyed_by_identity,
     remap_object_field,
 )
-
 
 class AssetWorldSQLiteRepositoryMixin:
     async def _update_character_field(self, name: str, field: str, value: Any) -> bool:
@@ -116,6 +120,7 @@ class AssetWorldSQLiteRepositoryMixin:
             return 0
 
     async def rename_character(self, old_name: str, new_name: str) -> None:
+        new_name = path_safe_asset_name(new_name, kind="character")
         char = self.get_character(old_name)
         if not char:
             raise ValueError(f"角色 {old_name} 不存在")
@@ -123,6 +128,16 @@ class AssetWorldSQLiteRepositoryMixin:
             return
         if self.get_character(new_name):
             raise ValueError(f"角色 {new_name} 已存在")
+        assets_root = Path(self.project_dir) / "assets" / "characters"
+        old_asset_dir = asset_dir_within(assets_root, old_name)
+        new_asset_dir = asset_dir_within(assets_root, new_name)
+        if old_asset_dir is not None and old_asset_dir.exists():
+            if new_asset_dir is None:
+                raise ValueError(f"Invalid target asset directory: {new_name}")
+            if new_asset_dir.exists():
+                raise ValueError(
+                    f"Target asset directory already exists: {new_asset_dir}"
+                )
         db = await self._ensure_db()
         await db.execute("DELETE FROM characters WHERE name = ?", (old_name,))
         identities = char.identities
@@ -173,10 +188,7 @@ class AssetWorldSQLiteRepositoryMixin:
         self._alias_index.clear()
         self._alias_index.update(new_alias_index)
         await self._cascade_character_rename(old_name, new_name)
-        old_dir = Path(self.project_dir) / "assets" / "characters" / old_name
-        new_dir = Path(self.project_dir) / "assets" / "characters" / new_name
-        if old_dir.exists() and not new_dir.exists():
-            old_dir.replace(new_dir)
+        move_asset_dir(assets_root, old_name, new_name)
         await self.load_graph_state()
         console.print(f"[green]已重命名角色: {old_name} → {new_name}[/green]")
 
@@ -290,13 +302,6 @@ class AssetWorldSQLiteRepositoryMixin:
     @staticmethod
     async def _cascade_voice_record_speaker(db, old_name: str, new_name: str) -> None:
         table = "seedance2_voice_audio_records"
-        async with db.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
-            (table,),
-        ) as cursor:
-            if await cursor.fetchone() is None:
-                return
-
         async with db.execute(
             f"SELECT episode_number, beat_number, speaker FROM {table}"
         ) as cursor:
@@ -445,7 +450,7 @@ class AssetWorldSQLiteRepositoryMixin:
     async def rename_scene(self, old_name: str, new_name: str) -> bool:
         """重命名场景记录。资源目录迁移由调用方处理。"""
         old_name = str(old_name or "").strip()
-        new_name = str(new_name or "").strip()
+        new_name = path_safe_asset_name(str(new_name or "").strip())
         if not old_name or not new_name or old_name == new_name:
             return False
         if await self.get_scene(new_name) is not None:
@@ -580,7 +585,7 @@ class AssetWorldSQLiteRepositoryMixin:
     async def rename_prop(self, old_name: str, new_name: str) -> bool:
         """重命名道具记录。资源目录迁移由调用方处理。"""
         old_name = str(old_name or "").strip()
-        new_name = str(new_name or "").strip()
+        new_name = path_safe_asset_name(str(new_name or "").strip())
         if not old_name or not new_name or old_name == new_name:
             return False
         if await self.get_prop(new_name) is not None:

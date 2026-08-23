@@ -34,6 +34,11 @@ import {
   shouldForceNaturalImageSize,
 } from '../domain/imageNodeSizing';
 import {
+  nodeBodyImageMeasurement,
+  nodeBodyImageSrc,
+  nodeBodyRecordDescribesImage,
+  planNaturalSizeRecordWrite,
+  readNodeNaturalSize,
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
 } from '../domain/imageData';
@@ -45,17 +50,24 @@ import { resolveNodeDisplayName } from '../domain/nodeDisplay';
 import { canRegenerateExportImageNode } from '../application/regenerateExportNode';
 import type { RegenerateExportImageNodeParams } from '../application/regenerateExportNode';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
+import { useNaturalSizeRecordTrust } from './useNaturalSizeRecordTrust';
+import { useNodeBodyVariantBudget } from './useNodeBodyVariantBudget';
 
 import { withImageCacheBust } from '@/shared/media/image-cache';
 
 export interface ImageNodeStore {
   setSelectedNode: (id: string | null) => void;
-  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  updateNodeData: (
+    id: string,
+    patch: Partial<CanvasNodeData>,
+    options?: { recordHistory?: boolean },
+  ) => void;
   updateNodeSize: (
     id: string,
     size: { width: number; height: number },
     options?: {
       lockManualSize?: boolean;
+      recordHistory?: boolean;
       data?: Partial<CanvasNodeData>;
     },
   ) => void;
@@ -115,18 +127,7 @@ export function createUseImageNodeController({
     const [naturalSize, setNaturalSize] = useState<{
       width: number;
       height: number;
-    } | null>(() => {
-      const naturalWidth = (data as { imageNaturalWidth?: unknown })
-        .imageNaturalWidth;
-      const naturalHeight = (data as { imageNaturalHeight?: unknown })
-        .imageNaturalHeight;
-      return (
-        typeof naturalWidth === 'number' &&
-        typeof naturalHeight === 'number' &&
-        naturalWidth > 0 &&
-        naturalHeight > 0
-      ) ? { width: naturalWidth, height: naturalHeight } : null;
-    });
+    } | null>(() => readNodeNaturalSize(data));
     const isExportResultNode = type === CANVAS_NODE_TYPES.exportImage;
     const { isGenerating, progress: generationProgress } =
       useNodeGenerationTaskState(data);
@@ -168,6 +169,10 @@ export function createUseImageNodeController({
     );
     const resolvedWidth = resolveImageNodeDimension(width, compactSize.width);
     const resolvedHeight = resolveImageNodeDimension(height, compactSize.height);
+    const bodyVariantBudget = useNodeBodyVariantBudget({
+      width: resolvedWidth,
+      height: resolvedHeight,
+    });
     const title = useMemo(
       () => resolveNodeDisplayName(type as CanvasNodeType, data),
       [data, type],
@@ -214,44 +219,88 @@ export function createUseImageNodeController({
         minutes: waitedMinutes,
       });
     }, [isExportResultNode, isGenerating, t, waitedMinutes]);
-    const imageSource = useMemo(() => {
+    const recordedNaturalSize = useMemo(() => readNodeNaturalSize(data), [data]);
+    const recordSubject = useMemo(() => {
+      const picked = data.previewImageUrl || data.imageUrl;
+      if (!picked) return null;
+      const committedAt = (data as { committed_at?: unknown }).committed_at;
+      return `${picked}\u0000${typeof committedAt === 'string' ? committedAt : ''}`;
+    }, [data]);
+    const { distrusted, distrustRecord, trustAgain } =
+      useNaturalSizeRecordTrust(recordSubject);
+    const bodyImage = useMemo(() => {
       const picked = preferOriginalImage
         ? data.imageUrl || data.previewImageUrl
         : data.previewImageUrl || data.imageUrl;
       if (!picked) {
         return null;
       }
-      return resolveImageDisplayUrl(withImageCacheBust(
+      const resolved = resolveImageDisplayUrl(withImageCacheBust(
         picked,
         (data as { committed_at?: unknown }).committed_at as
           | string
           | undefined,
       ));
-    }, [data, data.imageUrl, data.previewImageUrl, preferOriginalImage]);
+      return nodeBodyImageSrc(resolved, recordedNaturalSize, {
+        preferOriginal: preferOriginalImage || distrusted,
+        requiredEdge: bodyVariantBudget,
+      });
+    }, [
+      bodyVariantBudget,
+      data,
+      data.imageUrl,
+      data.previewImageUrl,
+      distrusted,
+      preferOriginalImage,
+      recordedNaturalSize,
+    ]);
+    const imageSource = bodyImage?.src ?? null;
     const originalImageUrl = useMemo(
       () => data.imageUrl ? resolveImageDisplayUrl(data.imageUrl) : null,
       [data.imageUrl],
     );
 
     const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
-      const naturalWidth = event.currentTarget.naturalWidth;
-      const naturalHeight = event.currentTarget.naturalHeight;
-      if (naturalWidth > 0 && naturalHeight > 0) {
+      if (
+        bodyImage?.downscaled &&
+        !nodeBodyRecordDescribesImage(
+          event.currentTarget,
+          recordedNaturalSize,
+          bodyImage.maxEdge ?? 0,
+        )
+      ) {
+        distrustRecord();
+        return;
+      }
+      const measuringRecordSubject = !preferOriginalImage;
+      if (measuringRecordSubject) {
+        trustAgain();
+      }
+      const measured = bodyImage
+        ? nodeBodyImageMeasurement(
+            event.currentTarget,
+            bodyImage,
+            recordedNaturalSize,
+          )
+        : {
+            width: event.currentTarget.naturalWidth,
+            height: event.currentTarget.naturalHeight,
+          };
+      if (measured.width > 0 && measured.height > 0) {
         setNaturalSize((previous) => (
-          previous?.width === naturalWidth && previous.height === naturalHeight
+          previous?.width === measured.width && previous.height === measured.height
             ? previous
-            : { width: naturalWidth, height: naturalHeight }
+            : measured
         ));
       }
       const forceNaturalSize = shouldForceNaturalImageSize(
         data as Record<string, unknown>,
       );
-      if (data.isSizeManuallyAdjusted === true && !forceNaturalSize) {
-        return;
-      }
+      const sizeLockedByUser =
+        data.isSizeManuallyAdjusted === true && !forceNaturalSize;
       const nextAspectRatio = aspectRatioFromImageDimensions(
-        naturalWidth,
-        naturalHeight,
+        measured.width,
+        measured.height,
       );
       if (!nextAspectRatio) {
         return;
@@ -263,17 +312,36 @@ export function createUseImageNodeController({
       const displaySizeMismatch =
         Math.abs(resolvedWidth - nextSize.width) > 1 ||
         Math.abs(resolvedHeight - nextSize.height) > 1;
-      if (nextAspectRatio !== data.aspectRatio || displaySizeMismatch) {
-        updateNodeSize(id, nextSize, {
-          lockManualSize: forceNaturalSize ? false : undefined,
-          data: {
-            aspectRatio: nextAspectRatio,
-            imageNaturalWidth: naturalWidth,
-            imageNaturalHeight: naturalHeight,
-            imageAspectRatioUpdatedAt: Date.now(),
+      const recordWrite = planNaturalSizeRecordWrite({
+        aspectRatioChanged: nextAspectRatio !== data.aspectRatio,
+        displaySizeMismatch,
+        record: recordedNaturalSize,
+        measured,
+        measuringRecordSubject,
+        sizeLockedByUser,
+      });
+      if (!recordWrite.persist) return;
+      if (!recordWrite.applySize) {
+        updateNodeData(
+          id,
+          {
+            imageNaturalWidth: measured.width,
+            imageNaturalHeight: measured.height,
           },
-        });
+          { recordHistory: false },
+        );
+        return;
       }
+      updateNodeSize(id, nextSize, {
+        lockManualSize: forceNaturalSize ? false : undefined,
+        recordHistory: recordWrite.recordHistory,
+        data: {
+          aspectRatio: nextAspectRatio,
+          imageNaturalWidth: measured.width,
+          imageNaturalHeight: measured.height,
+          imageAspectRatioUpdatedAt: Date.now(),
+        },
+      });
     };
 
     return {

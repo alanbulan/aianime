@@ -22,6 +22,8 @@ interface StyleTemplateTransport {
   readonly style_prompt: string;
   readonly author?: string;
   readonly category?: string;
+  readonly cover_url?: string;
+  readonly sample_urls?: string[];
 }
 
 interface CameraIdLabelTransport {
@@ -56,9 +58,11 @@ export function commercialImageModels(
         item.capabilities.imageModes ??
         item.capabilities.modes,
     );
+    const routeSelector = pickString(item.capabilities, "routeSelector");
     return {
-      id: item.code,
+      id: routeSelector ?? item.code,
       apiModel: item.code,
+      ...(routeSelector ? { routeSelector } : {}),
       label: item.displayName,
       ...(imageModes.length > 0 ? { imageModes } : {}),
       capabilities: item.capabilities,
@@ -73,11 +77,19 @@ export function commercialVideoModels(
   return catalog.items.map((item) => {
     const properties = schemaProperties(item.parameterSchema);
     const capabilities = item.capabilities;
+    const routeSelector = pickString(capabilities, "routeSelector");
     const referenceLimits = optionalRecord(capabilities.referenceLimits);
     const resolutionOptions = stringArray(
       capabilities.resolutionOptions ??
         capabilities.resolutions ??
         properties.resolution?.enum,
+    );
+    const aspectRatioOptions = stringArray(
+      capabilities.aspectRatioOptions ??
+        capabilities.ratioOptions ??
+        capabilities.aspectRatios ??
+        properties.aspect_ratio?.enum ??
+        properties.aspectRatio?.enum,
     );
     const supportedModes = videoModes(
       capabilities.supportedModes ??
@@ -96,9 +108,11 @@ export function commercialVideoModels(
         properties.sceneOptimize?.default,
     );
     return {
-      id: item.code,
+      id: routeSelector ?? item.code,
       apiModel: item.code,
+      ...(routeSelector ? { routeSelector } : {}),
       label: item.displayName,
+      parameterSchema: item.parameterSchema,
       ...(supportedModes.length > 0 ? { supportedModes } : {}),
       ...optionalBooleanField(
         "supportsHumanReview",
@@ -179,6 +193,7 @@ export function commercialVideoModels(
         capabilities.referenceVideoTotalMaxSeconds,
       ),
       ...(resolutionOptions.length > 0 ? { resolutionOptions } : {}),
+      ...(aspectRatioOptions.length > 0 ? { aspectRatioOptions } : {}),
       minDuration: finiteNumber(
         capabilities.minDuration ??
           capabilities.minSeconds ??
@@ -381,6 +396,12 @@ function mapStyleTemplate(
     ...(template.author !== undefined ? { author: template.author } : {}),
     ...(template.category !== undefined
       ? { category: template.category }
+      : {}),
+    ...(template.cover_url !== undefined
+      ? { coverUrl: template.cover_url }
+      : {}),
+    ...(template.sample_urls !== undefined
+      ? { sampleUrls: template.sample_urls }
       : {}),
   };
 }

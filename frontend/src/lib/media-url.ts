@@ -17,7 +17,50 @@ import { readUrl } from "@/lib/url-params";
 //     protocol-relative, malformed) -> null
 export function resolveMediaUrl(
   path: string | null | undefined,
+  options?: { variant?: MediaVariant },
 ): string | null {
+  const resolved = resolveMediaPath(path);
+  if (resolved === null || !options?.variant) return resolved;
+  return withMediaVariant(resolved, options.variant);
+}
+
+export type MediaVariant = 'thumb' | 'thumb2x' | 'card';
+
+export const MEDIA_VARIANT_MAX_EDGE: Record<MediaVariant, number> = {
+  thumb: 320,
+  thumb2x: 640,
+  card: 1280,
+};
+
+const MEDIA_VARIANT_LADDER: MediaVariant[] = ['thumb', 'thumb2x', 'card'];
+
+export function pickMediaVariant(requiredEdge: number): MediaVariant | null {
+  if (!Number.isFinite(requiredEdge) || requiredEdge <= 0) return null;
+  for (const variant of MEDIA_VARIANT_LADDER) {
+    if (MEDIA_VARIANT_MAX_EDGE[variant] >= requiredEdge) return variant;
+  }
+  return null;
+}
+
+const MEDIA_VARIANT_PARAM = 'st_thumb';
+const THUMBNAILABLE_EXTENSION_RE = /\.(png|jpe?g|webp|bmp|tiff?)$/i;
+
+export function withMediaVariant(url: string, variant: MediaVariant): string {
+  if (!url.startsWith('/static/projects/')) return url;
+  const hashAt = url.indexOf('#');
+  const hash = hashAt === -1 ? '' : url.slice(hashAt + 1);
+  const base = hashAt === -1 ? url : url.slice(0, hashAt);
+  const queryAt = base.indexOf('?');
+  const pathname = queryAt === -1 ? base : base.slice(0, queryAt);
+  const query = queryAt === -1 ? '' : base.slice(queryAt + 1);
+  if (!THUMBNAILABLE_EXTENSION_RE.test(pathname)) return url;
+  const params = new URLSearchParams(query);
+  params.set(MEDIA_VARIANT_PARAM, variant);
+  const next = `${pathname}?${params.toString()}`;
+  return hash ? `${next}#${hash}` : next;
+}
+
+function resolveMediaPath(path: string | null | undefined): string | null {
   if (!path) return null;
 
   // Relative site-paths we explicitly trust as media roots.

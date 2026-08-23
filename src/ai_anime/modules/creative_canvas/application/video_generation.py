@@ -90,6 +90,7 @@ class CreativeCanvasVideoGenerationOptions:
     human_review: bool
     scene_optimize: str | None
     model: str | None
+    model_selector: str | None = None
     canvas_id: str | None = None
     node_id: str | None = None
     gen_mode: CreativeCanvasVideoGenerationMode | None = None
@@ -533,7 +534,7 @@ class CreativeCanvasVideoGenerationUseCases:
                 payload={
                     "canvas_id": options.canvas_id or "",
                     "node_id": options.node_id or "",
-                    "model_id": model,
+                    "model_id": options.model_selector or "",
                     "gen_mode": mode_contract.execution_mode,
                     "requested_gen_mode": options.gen_mode or "",
                     "prompt": prompt,

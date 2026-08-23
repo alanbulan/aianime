@@ -85,7 +85,6 @@ from ai_anime.modules.model_usage.infrastructure.model_gateway_settings import (
     build_model_gateway_status,
     get_effective_cognee_embedding_config,
     get_effective_newapi_config,
-    purge_legacy_local_gateway_secrets,
 )
 from ai_anime.modules.model_usage.infrastructure.model_runtime import (
     get_effective_newapi_gateway_config,
@@ -95,6 +94,8 @@ from ai_anime.modules.model_usage.infrastructure.model_runtime import (
     get_newapi_runtime_credentials,
     get_newapi_text_pydantic_model,
     get_newapi_text_pydantic_model_settings,
+    get_newapi_structured_output_litellm_kwargs,
+    get_newapi_structured_output_model_settings,
     get_pydantic_model_settings,
 )
 from ai_anime.modules.model_usage.infrastructure.model_text_transport import (
@@ -226,6 +227,8 @@ __all__ = [
     "get_newapi_runtime_credentials",
     "get_newapi_text_pydantic_model",
     "get_newapi_text_pydantic_model_settings",
+    "get_newapi_structured_output_litellm_kwargs",
+    "get_newapi_structured_output_model_settings",
     "get_pydantic_model_settings",
     "get_usage_meter",
     "get_video_request_usage_db_path",
@@ -239,7 +242,6 @@ __all__ = [
     "is_byok_allowed",
     "load_model_access_from_stdin",
     "model_access_configured",
-    "purge_legacy_local_gateway_secrets",
     "record_audio_generation_attempt",
     "record_image_request",
     "record_video_request",

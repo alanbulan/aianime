@@ -143,6 +143,7 @@ async def freezone_gen(
                 ),
                 model=body.model,
                 quality=body.quality,
+                extra_params=body.extra_params,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
                 model_id=body.model_id or None,
@@ -195,6 +196,7 @@ async def freezone_multi_view(
         style=body.style,
         model=body.model,
         quality=body.quality or "medium",
+        model_id=body.model_id,
     )
 
 
@@ -233,6 +235,7 @@ async def freezone_relight(
         style=None,
         model=body.model,
         quality=body.quality or "medium",
+        model_id=body.model_id,
     )
 
 
@@ -263,6 +266,7 @@ async def freezone_template_edit(
         style=body.style,
         model=body.model,
         quality=body.quality or "medium",
+        model_id=body.model_id,
     )
 
 
@@ -293,6 +297,7 @@ async def freezone_edit(
         node_id=body.node_id or None,
         model_id=body.model_id or None,
         gen_mode=body.gen_mode or None,
+        extra_params=body.extra_params,
     )
 
 
@@ -469,6 +474,7 @@ async def freezone_upscale(
         image_size=body.image_size,
         model=body.model,
         quality=body.quality,
+        model_id=body.model_id,
         requested_aspect_ratio="original",
         num_images=1,
         camera=body.camera,
@@ -496,6 +502,7 @@ async def freezone_outpaint(
         image_size=body.image_size,
         model=body.model,
         quality=body.quality,
+        model_id=body.model_id,
         requested_aspect_ratio=body.target_aspect_ratio,
         num_images=body.num_images,
         camera=body.camera,
@@ -523,6 +530,7 @@ async def freezone_redraw(
         image_size=body.image_size,
         model=body.model,
         quality=body.quality,
+        model_id=body.model_id,
         requested_aspect_ratio=body.aspect_ratio,
         num_images=body.num_images,
         prompt=body.prompt,
@@ -549,6 +557,7 @@ async def _start_image_editing(
     mask_url: str | None = None,
     camera: FreezoneImageCameraConfig | None = None,
     style: FreezoneImageStyleConfig | None = None,
+    model_id: str | None = None,
 ):
     resolved = await resolve_project_scope(
         project,
@@ -585,6 +594,7 @@ async def _start_image_editing(
                     if style
                     else None
                 ),
+                model_id=model_id,
             )
         )
     except InvalidCreativeCanvasImageEditingRequest as exc:
@@ -626,6 +636,7 @@ async def _start_reference_image_editing(
     node_id: str | None = None,
     model_id: str | None = None,
     gen_mode: str | None = None,
+    extra_params: dict[str, object] | None = None,
 ):
     resolved = await resolve_project_scope(
         project,
@@ -664,6 +675,7 @@ async def _start_reference_image_editing(
                 node_id=node_id,
                 model_id=model_id,
                 gen_mode=gen_mode,
+                extra_params=extra_params,
             )
         )
     except InvalidCreativeCanvasImageEditingRequest as exc:

@@ -18,6 +18,9 @@ from ai_anime.modules.project_workspace.application.errors import (
 from ai_anime.modules.project_workspace.domain import Principal, ProjectRecord
 from ai_anime.shared.project_dirs import default_project_dirs
 from ai_anime.shared.runtime_paths import STATE_DIR
+from ai_anime.migrations.project_registry import (
+    run_project_registry_migrations,
+)
 
 
 def _now_iso() -> str:
@@ -92,46 +95,7 @@ class SQLiteProjectRegistry:
             path.parent.mkdir(parents=True, exist_ok=True)
             db = await aiosqlite.connect(path)
             try:
-                await db.executescript(
-                    """
-                    CREATE TABLE IF NOT EXISTS schema_migrations (
-                        version INTEGER PRIMARY KEY,
-                        applied_at TEXT NOT NULL
-                    );
-
-                    CREATE TABLE IF NOT EXISTS projects (
-                        id TEXT PRIMARY KEY,
-                        owner_type TEXT NOT NULL,
-                        owner_id TEXT NOT NULL,
-                        owner_username TEXT NOT NULL,
-                        name TEXT NOT NULL,
-                        home_node_id TEXT NOT NULL,
-                        output_dir TEXT NOT NULL,
-                        state_dir TEXT NOT NULL,
-                        runtime_dir TEXT NOT NULL,
-                        status TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        purged_at TEXT,
-                        UNIQUE(owner_type, owner_id, name)
-                    );
-
-                    CREATE INDEX IF NOT EXISTS projects_owner_updated_idx
-                        ON projects(owner_type, owner_id, updated_at DESC);
-                    CREATE INDEX IF NOT EXISTS projects_status_updated_idx
-                        ON projects(status, updated_at DESC);
-                    CREATE INDEX IF NOT EXISTS projects_home_node_idx
-                        ON projects(home_node_id);
-                    """
-                )
-                await db.execute(
-                    """
-                    INSERT OR IGNORE INTO schema_migrations(version, applied_at)
-                    VALUES (1, ?)
-                    """,
-                    (_now_iso(),),
-                )
-                await db.commit()
+                await run_project_registry_migrations(db)
             finally:
                 await db.close()
             self._schema_ready = True

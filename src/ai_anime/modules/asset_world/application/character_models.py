@@ -5,6 +5,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from ai_anime.modules.asset_world.domain.asset_names import path_safe_asset_name
+
 
 class CharacterIdentity(BaseModel):
     """角色身份 - 代表角色的一个特定形态。
@@ -222,7 +224,7 @@ class NovelCharacter(BaseModel):
     @model_validator(mode="after")
     def sanitize_name(self):
         """清理角色名称中的文件系统不安全字符。"""
-        self.name = re.sub(r'[/\\:*?"<>|]', "_", self.name)
+        self.name = path_safe_asset_name(self.name, kind="character")
         return self
 
     @property

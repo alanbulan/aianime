@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlencode
@@ -29,6 +30,7 @@ from ai_anime.modules.asset_world.domain.character_catalog import (
     duplicate_main_character_names,
     other_main_character_names,
 )
+from ai_anime.modules.asset_world.domain.asset_names import path_safe_asset_name
 
 AssetUrl = Callable[[str | Path], str]
 
@@ -94,12 +96,15 @@ class CharacterCatalogUseCases:
         repository: CharacterCatalogRepository,
         command: CreateCharacterCommand,
     ) -> dict[str, Any]:
-        if repository.get_character(command.name) is not None:
-            raise CharacterAlreadyExists(f"Character '{command.name}' already exists")
+        name = path_safe_asset_name(command.name.strip(), kind="character")
+        if not name:
+            raise InvalidCharacterInput("Character name cannot be empty")
+        if repository.get_character(name) is not None:
+            raise CharacterAlreadyExists(f"Character '{name}' already exists")
         if command.is_main:
-            await self._unset_other_main_characters(repository, command.name)
+            await self._unset_other_main_characters(repository, name)
 
-        character = self._factory.create(command)
+        character = self._factory.create(replace(command, name=name))
         await repository.add_character(character)
         return {
             field: getattr(character, field)
@@ -127,7 +132,10 @@ class CharacterCatalogUseCases:
         updates = dict(command.fields)
         requested_name = None
         if "name" in updates:
-            requested_name = str(updates.pop("name") or "").strip()
+            requested_name = path_safe_asset_name(
+                str(updates.pop("name") or "").strip(),
+                kind="character",
+            )
             if not requested_name:
                 raise InvalidCharacterInput("Character name cannot be empty")
 

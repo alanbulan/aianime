@@ -1,9 +1,18 @@
 // Copyright (c) 2026 AI anime
 import type { TFunction } from "i18next";
-import { humanizeTaskError } from "@/shared/api/errors";
+import {
+  backendErrorCodeToastMessage,
+  humanizeTaskError,
+} from "@/shared/api/errors";
 import type { TaskState } from "@/modules/task_execution/domain/contracts";
 
 export function taskErrorMessage(task: TaskState, t: TFunction): string {
+  const localized = backendErrorCodeToastMessage(
+    task.error_code,
+    task.error || t("common.error"),
+    t,
+  );
+  if (localized) return localized;
   if (task.error_code === "INSUFFICIENT_CREDITS") {
     return t("common.insufficientCredits", {
       defaultValue: task.error || t("common.error"),

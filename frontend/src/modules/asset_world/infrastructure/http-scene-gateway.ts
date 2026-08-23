@@ -20,7 +20,7 @@ import type {
 } from "@/modules/asset_world/domain/scene";
 import { jsonWithBackendError } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 
 function uploadBody(file: File): FormData {
   const formData = new FormData();
@@ -133,7 +133,7 @@ export const httpSceneGateway: SceneGateway & SceneDirectorWorldSourceGateway = 
   },
 
   async uploadMaster(project, name, file) {
-    return api
+    return uploadApi
       .post(p`api/v1/projects/${project}/scenes/${name}/master/upload`, {
         body: uploadBody(file),
       })
@@ -165,7 +165,7 @@ export const httpSceneGateway: SceneGateway & SceneDirectorWorldSourceGateway = 
   },
 
   async uploadPano(project, name, file) {
-    return api
+    return uploadApi
       .post(p`api/v1/projects/${project}/scenes/${name}/pano/upload`, {
         body: uploadBody(file),
       })
@@ -173,7 +173,7 @@ export const httpSceneGateway: SceneGateway & SceneDirectorWorldSourceGateway = 
   },
 
   async uploadCustomPackage(project, name, file) {
-    return api
+    return uploadApi
       .post(p`api/v1/projects/${project}/scenes/${name}/custom/upload`, {
         body: uploadBody(file),
       })

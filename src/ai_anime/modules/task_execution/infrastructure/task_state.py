@@ -87,46 +87,6 @@ def _env_int(name: str, default: int, *, fallback_name: str | None = None) -> in
         return default
 
 
-_TASK_STATE_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS task_states (
-    task_key TEXT PRIMARY KEY,
-    task_id TEXT NOT NULL,
-    task_type TEXT NOT NULL,
-    queue_kind TEXT NOT NULL DEFAULT 'default',
-    project_id TEXT NOT NULL DEFAULT '',
-    requester_user_id TEXT NOT NULL DEFAULT '',
-    owner_username TEXT NOT NULL DEFAULT '',
-    project_name TEXT NOT NULL DEFAULT '',
-    username TEXT NOT NULL,
-    project TEXT NOT NULL,
-    episode INTEGER NOT NULL,
-    beat_num INTEGER,
-    status TEXT NOT NULL,
-    progress REAL NOT NULL DEFAULT 0.0,
-    current_task TEXT NOT NULL DEFAULT '',
-    result_json TEXT,
-    error TEXT,
-    logs_json TEXT NOT NULL DEFAULT '[]',
-    created_at TEXT NOT NULL DEFAULT '',
-    updated_at TEXT NOT NULL DEFAULT '',
-    completed_at TEXT NOT NULL DEFAULT '',
-    expires_at TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_task_states_user_updated
-ON task_states(username, updated_at DESC);
-"""
-
-_TASK_STATE_COLUMN_UPGRADES = {
-    "queue_kind": "ALTER TABLE task_states ADD COLUMN queue_kind TEXT NOT NULL DEFAULT 'default'",
-    "project_id": "ALTER TABLE task_states ADD COLUMN project_id TEXT NOT NULL DEFAULT ''",
-    "requester_user_id": (
-        "ALTER TABLE task_states ADD COLUMN requester_user_id TEXT NOT NULL DEFAULT ''"
-    ),
-    "owner_username": "ALTER TABLE task_states ADD COLUMN owner_username TEXT NOT NULL DEFAULT ''",
-    "project_name": "ALTER TABLE task_states ADD COLUMN project_name TEXT NOT NULL DEFAULT ''",
-}
-
-
 def compute_expiry(ttl_seconds: int | None) -> str | None:
     """按 TTL 计算过期时间。"""
     if ttl_seconds is None:
@@ -321,22 +281,9 @@ class TaskStateManager:
         conn = sqlite3.connect(db_path, timeout=5, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         configure_sqlite_connection(conn)
-        conn.executescript(_TASK_STATE_SCHEMA_SQL)
-        existing_columns = {
-            str(row[1]) for row in conn.execute("PRAGMA table_info(task_states)").fetchall()
-        }
-        for column, sql in _TASK_STATE_COLUMN_UPGRADES.items():
-            if column not in existing_columns:
-                conn.execute(sql)
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_task_states_project_updated "
-            "ON task_states(project_id, updated_at DESC)"
-        )
-        conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_task_states_project_queue_status "
-            "ON task_states(project_id, queue_kind, status)"
-        )
-        conn.commit()
+        from ai_anime.migrations.task_execution import run_task_state_migrations
+
+        run_task_state_migrations(conn)
         self._sweep_interrupted_inline_tasks_once(conn, db_path)
         try:
             yield conn

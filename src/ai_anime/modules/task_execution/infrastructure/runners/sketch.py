@@ -454,7 +454,10 @@ async def _run_sketch_generation_async(
     image_model = str(config.get("model") or "").strip()
     if not image_model:
         raise ValueError("草图生成缺少图片模型")
-    generator_config = get_sketch_generation_config(model_override=image_model)
+    generator_config = get_sketch_generation_config(
+        model_override=image_model,
+        model_selector_override=str(config.get("model_selector") or "") or None,
+    )
     log(f"[Sketch Image] 使用平台 SKU/BYOK 模型: {image_model}")
 
     if use_director_refs:
@@ -728,6 +731,7 @@ async def _run_control_frame_to_sketch_async(
         state_dir=state_dir,
         control_frames_dir=control_frames_dir or None,
         model=str(payload.get("model") or "").strip() or None,
+        model_selector=str(payload.get("model_selector") or "").strip() or None,
     )
     promoted = result.get("promoted_sketch") or str(paths.sketch(beat_num))
     _log(manager, ctx, task_type, episode, scope, f"草图已写入: {promoted}", progress=1.0)

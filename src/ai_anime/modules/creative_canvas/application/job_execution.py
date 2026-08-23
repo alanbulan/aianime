@@ -20,6 +20,8 @@ class GenerateCreativeCanvasImageJobCommand:
     image_size: str = "2K"
     reference_paths: tuple[str, ...] = ()
     model: str | None = None
+    model_selector: str | None = None
+    extra_params: Mapping[str, object] | None = None
     quality: str | None = None
     output_task_type: str = "freezone_gen"
 
@@ -34,6 +36,8 @@ class EditCreativeCanvasImageJobCommand:
     aspect_ratio: str = "2:3"
     image_size: str = "2K"
     model: str | None = None
+    model_selector: str | None = None
+    extra_params: Mapping[str, object] | None = None
     quality: str | None = None
     output_task_type: str = "freezone_edit"
 
@@ -49,6 +53,7 @@ class MaskEditCreativeCanvasImageJobCommand:
     image_size: str = "2K"
     quality: str = "medium"
     model: str | None = None
+    model_selector: str | None = None
 
 
 @dataclass(frozen=True)
@@ -100,6 +105,7 @@ class GenerateCreativeCanvasVideoJobCommand:
     prompt: str
     model: str
     model_role: str
+    model_selector: str | None = None
     reference_items: tuple[Mapping[str, str], ...] = ()
     aspect_ratio: str = "16:9"
     resolution: str = "720p"

@@ -25,6 +25,9 @@ from ai_anime.modules.production.application.image_settings import (
 from ai_anime.modules.production.application.ports import (
     ProductionSettingsRepository,
 )
+from ai_anime.modules.model_usage.domain.model_route import (
+    resolve_model_route,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import (
     ProjectTaskSubmission,
@@ -143,6 +146,9 @@ class LocalGridRegenerationPreparer:
         )
         if not image_selection:
             raise GridRegenerationRejected("请先选择渲染图片模型")
+        image_route = resolve_model_route(image_selection)
+        if not image_route.model:
+            raise GridRegenerationRejected("渲染图片模型路由无效")
         store = await project_stores.make_sqlite_store_for_context(context)
         try:
             beats = await store.get_beats_as_dicts(command.episode_num)
@@ -178,7 +184,8 @@ class LocalGridRegenerationPreparer:
                     "beats": beats,
                     "character_map": character_map,
                     "style": style,
-                    "model": image_selection,
+                    "model": image_route.model,
+                    "model_selector": image_route.selector,
                     "render_mode": "Render",
                     "scene_grouping": command.scene_grouping,
                     "character_grouping": command.character_grouping,

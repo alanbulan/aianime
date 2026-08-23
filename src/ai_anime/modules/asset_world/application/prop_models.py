@@ -1,6 +1,10 @@
 """Prop models owned by the Asset & World application layer."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from ai_anime.modules.asset_world.domain.asset_names import (
+    coerce_path_safe_asset_name,
+)
 
 
 class NovelProp(BaseModel):
@@ -16,6 +20,14 @@ class NovelProp(BaseModel):
     owner: str = Field(default="", description="所属角色名")
     notes: str = Field(default="")
     updated_at: str = Field(default="", description="道具资产最后一次内容变化时间 ISO 字符串")
+
+    @model_validator(mode="after")
+    def sanitize_name(self):
+        self.name, self.aliases = coerce_path_safe_asset_name(
+            self.name,
+            self.aliases,
+        )
+        return self
 
 
 __all__ = ["NovelProp"]

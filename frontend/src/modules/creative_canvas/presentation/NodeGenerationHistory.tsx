@@ -20,6 +20,7 @@ import {
   isCompletedHistoryRecord,
   type CanvasGenerationHistoryRecord,
 } from '../domain/generationHistoryRecord';
+import { withMediaVariant } from '@/lib/media-url';
 
 function formatRelativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -116,12 +117,18 @@ export function NodeGenerationHistory({
             completed && Boolean(url) && record.media_type === 'image';
           const isVideo =
             completed && Boolean(url) && record.media_type === 'video';
+          const imageUrl = isImage && url
+            ? withMediaVariant(url, 'thumb')
+            : url;
           const previewUrl =
             historyRecordPreviewImageUrl(record) ?? fallbackThumbnailUrl;
           const previewImage =
             completed && !isImage && !isVideo && previewUrl
               ? resolveMediaUrl(previewUrl)
               : null;
+          const previewThumbnail = previewImage
+            ? withMediaVariant(previewImage, 'thumb')
+            : null;
           const restorable = completed && (url || historyRecordPrompt(record));
           const active = completed && Boolean(isActive?.(record));
           return (
@@ -147,7 +154,7 @@ export function NodeGenerationHistory({
             >
               {isImage ? (
                 <img
-                  src={url ?? undefined}
+                  src={imageUrl ?? undefined}
                   alt=""
                   loading="lazy"
                   className="h-full w-full object-cover"
@@ -160,9 +167,9 @@ export function NodeGenerationHistory({
                   playsInline
                   preload="metadata"
                 />
-              ) : previewImage ? (
+              ) : previewThumbnail ? (
                 <img
-                  src={previewImage}
+                  src={previewThumbnail}
                   alt=""
                   loading="lazy"
                   className="h-full w-full object-cover"

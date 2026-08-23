@@ -25,22 +25,14 @@ from ai_anime.shared.infrastructure.sqlite_pragmas import (
 )
 
 
-DEFS_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS sketch_failure_mode_defs (
-    code                     TEXT PRIMARY KEY,
-    layer                    TEXT NOT NULL,
-    detection                TEXT NOT NULL,
-    prevention_rule          TEXT DEFAULT '',
-    correction_template      TEXT DEFAULT '',
-    negative_prompt_clause   TEXT DEFAULT '',
-    gate_enabled             INTEGER DEFAULT 0,
-    fixture_path             TEXT DEFAULT '',
-    created_at               TEXT DEFAULT (datetime('now')),
-    updated_at               TEXT DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_defs_layer ON sketch_failure_mode_defs(layer);
-CREATE INDEX IF NOT EXISTS idx_defs_gate_enabled ON sketch_failure_mode_defs(gate_enabled);
-"""
+from ai_anime.migrations.verification import (
+    run_verification_registry_migrations,
+)
+from ai_anime.migrations.verification.versions.v20260823_000_initial_registry import (
+    SCHEMA_SQL as _DEFS_SCHEMA_SQL,
+)
+
+DEFS_SCHEMA_SQL = _DEFS_SCHEMA_SQL
 
 
 async def open_defs_db(db_path: Path) -> aiosqlite.Connection:
@@ -54,8 +46,7 @@ async def open_defs_db(db_path: Path) -> aiosqlite.Connection:
     db = await aiosqlite.connect(str(db_path))
     db.row_factory = aiosqlite.Row
     await configure_sqlite_connection_async(db)
-    await db.executescript(DEFS_SCHEMA_SQL)
-    await db.commit()
+    await run_verification_registry_migrations(db)
     return db
 
 

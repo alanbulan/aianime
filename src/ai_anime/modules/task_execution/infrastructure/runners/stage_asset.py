@@ -165,6 +165,7 @@ def run_stage_asset(
             source=source,
             description=params.get("description", ""),
             model=params.get("model", ""),
+            model_selector=params.get("model_selector", ""),
             style=params.get("style", ""),
             image_size=params.get("image_size", ""),
             quality=params.get("quality", ""),

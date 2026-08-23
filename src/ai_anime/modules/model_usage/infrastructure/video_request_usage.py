@@ -11,30 +11,9 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
+from ai_anime.migrations.model_usage import run_model_usage_migrations
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
-
-
-_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS video_request_usage (
-    request_id TEXT PRIMARY KEY,
-    provider TEXT NOT NULL,
-    model_name TEXT,
-    episode INTEGER,
-    beat_num INTEGER,
-    task_type TEXT,
-    duration_seconds REAL,
-    status TEXT NOT NULL DEFAULT 'accepted',
-    cost_estimate REAL,
-    accepted_at TEXT NOT NULL,
-    completed_at TEXT,
-    downloaded_at TEXT,
-    updated_at TEXT NOT NULL,
-    error_message TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_video_request_usage_episode
-ON video_request_usage(episode, beat_num, accepted_at DESC);
-"""
 
 
 def get_video_request_usage_db_path(project_output_dir: str | Path) -> Path:
@@ -61,8 +40,7 @@ def _connect(project_output_dir: str | Path):
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=5, check_same_thread=False)
     configure_sqlite_connection(conn)
-    conn.executescript(_SCHEMA_SQL)
-    conn.commit()
+    run_model_usage_migrations(conn)
     try:
         yield conn
         conn.commit()

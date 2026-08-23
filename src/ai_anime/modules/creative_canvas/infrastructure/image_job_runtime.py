@@ -38,6 +38,8 @@ class CommercialCreativeCanvasImageJobRuntime:
         config = get_grid_generation_config(
             model_override=command.model,
             image_size_override=command.image_size,
+            model_selector_override=command.model_selector,
+            model_params_override=command.extra_params,
         )
         if command.reference_paths:
             await generate_reference_edit_image(
@@ -78,6 +80,8 @@ class CommercialCreativeCanvasImageJobRuntime:
         config = get_grid_generation_config(
             model_override=command.model,
             image_size_override=command.image_size,
+            model_selector_override=command.model_selector,
+            model_params_override=command.extra_params,
         )
         await generate_reference_edit_image(
             prompt=command.prompt,
@@ -115,13 +119,15 @@ class CommercialCreativeCanvasImageJobRuntime:
         config = get_grid_generation_config(
             model_override=command.model,
             image_size_override=command.image_size,
+            model_selector_override=command.model_selector,
         )
         prompt = (
             f"{command.prompt}\n\n"
-            "Use Image 1 as the source image. Use Image 2 as the edit mask "
-            "reference. Only modify the masked/transparent marked region; "
-            "preserve all unmasked source pixels, composition, identity, "
-            "lighting, and texture as much as possible."
+            "Use Image 1 as the source image. Image 2 is the same image with a "
+            "translucent RED highlight painted over the region to edit. Edit ONLY "
+            "the red-highlighted region; the red highlight is just an annotation "
+            "and must NOT appear in the output. Preserve all pixels outside the "
+            "highlighted region, including composition, identity, lighting, and texture."
         ).strip()
         try:
             await generate_reference_edit_image(

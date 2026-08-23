@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.model_usage.domain.official_defaults import (
@@ -16,9 +14,6 @@ from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
     is_byok_allowed,
     runtime_model_access,
 )
-from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
-from ai_anime.shared.runtime_paths import STATE_DIR
-
 MODE_MIXED = "mixed"
 
 
@@ -128,40 +123,3 @@ def get_effective_cognee_embedding_config(
         upstream_model="",
         batch_size=batch_size or DEFAULT_EMBEDDING_BATCH_SIZE,
     )
-
-
-def _legacy_settings_db_path() -> Path:
-    return Path(STATE_DIR) / "local" / "settings.db"
-
-
-def purge_legacy_local_gateway_secrets() -> None:
-    """Remove credentials left by the retired user-managed gateway settings."""
-
-    path = _legacy_settings_db_path()
-    if not path.is_file():
-        return
-    connection = sqlite3.connect(str(path), timeout=10, check_same_thread=False)
-    try:
-        configure_sqlite_connection(connection)
-        table = connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
-            ("runtime_settings",),
-        ).fetchone()
-        if table is None:
-            return
-        connection.execute(
-            """
-            DELETE FROM runtime_settings
-            WHERE key = 'model_gateway_mode'
-               OR key LIKE 'official_newapi_%'
-               OR key LIKE 'custom_newapi_%'
-               OR key = 'media_relay_provider'
-               OR key = 'media_relay_ttl_seconds'
-               OR key LIKE 'oss_relay_%'
-               OR key LIKE 'cloudinary_relay_%'
-               OR key = 'model_access_v2_migrated'
-            """
-        )
-        connection.commit()
-    finally:
-        connection.close()

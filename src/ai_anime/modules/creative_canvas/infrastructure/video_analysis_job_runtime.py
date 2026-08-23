@@ -80,7 +80,7 @@ class FfmpegCreativeCanvasVideoAnalysisJobRuntime:
                 f"ffmpeg scene detect failed: {process.stderr[-500:]}"
             )
 
-        scene_files = sorted(output_dir.glob("scene_*.png"))
+        scene_files = sorted(output_dir.glob("scene_*.png"), key=_frame_sequence_key)
         if len(scene_files) < 3:
             for path in scene_files:
                 path.unlink(missing_ok=True)
@@ -220,4 +220,11 @@ class FfmpegCreativeCanvasVideoAnalysisJobRuntime:
             text=True,
             timeout=300,
         )
-        return sorted(output_dir.glob("even_*.png"))
+        return sorted(output_dir.glob("even_*.png"), key=_frame_sequence_key)
+
+
+def _frame_sequence_key(path: Path) -> tuple[int, str]:
+    try:
+        return int(path.stem.rsplit("_", 1)[-1]), path.name
+    except ValueError:
+        return 0, path.name

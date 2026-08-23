@@ -51,6 +51,7 @@ def _newapi_text_http_client_factory(
     *,
     timeout_seconds: float,
     omit_authorization: bool = False,
+    model_selector: str | None = None,
 ) -> Any:
     trust_env = _env_bool("NEWAPI_TEXT_TRUST_ENV", True)
 
@@ -63,6 +64,8 @@ def _newapi_text_http_client_factory(
 
         async def prepare_model_request(request: httpx.Request) -> None:
             request.headers["X-AI-Anime-Model-Role"] = "TEXT"
+            if model_selector:
+                request.headers["X-AI-Anime-Model-Selector"] = model_selector
             if (
                 omit_authorization
                 and request.headers.get("Authorization") == "Bearer ai-anime-no-auth"
@@ -87,6 +90,7 @@ def _newapi_text_openai_provider(
     api_key: str,
     base_url: str,
     timeout_seconds: float,
+    model_selector: str | None = None,
 ):
     from openai import AsyncOpenAI
     from pydantic_ai.providers.openai import OpenAIProvider
@@ -97,6 +101,7 @@ def _newapi_text_openai_provider(
             http_client_factory = _newapi_text_http_client_factory(
                 timeout_seconds=timeout_seconds,
                 omit_authorization=omit_authorization,
+                model_selector=model_selector,
             )
             http_client = http_client_factory()
             super().__init__(
@@ -121,6 +126,7 @@ def _newapi_text_openai_model(
     base_url: str,
     timeout_seconds: float,
     profile: Any,
+    model_selector: str | None = None,
 ):
     from contextlib import asynccontextmanager
 
@@ -151,6 +157,7 @@ def _newapi_text_openai_model(
             api_key=api_key,
             base_url=base_url,
             timeout_seconds=timeout_seconds,
+            model_selector=model_selector,
         ),
         profile=profile,
     )
@@ -159,13 +166,15 @@ def _newapi_text_openai_model(
 def get_newapi_text_pydantic_model(
     *,
     timeout_seconds_override: float | None = None,
+    model_name_override: str | None = None,
+    model_selector: str | None = None,
 ):
     """Create the single TEXT-role PydanticAI model from the router snapshot."""
     from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
         resolve_model_for_role,
     )
 
-    model_name = resolve_model_for_role("TEXT")
+    model_name = str(model_name_override or "").strip() or resolve_model_for_role("TEXT")
     api_key, base_url = get_newapi_runtime_credentials()
     if not base_url:
         raise ValueError("Model Base URL is not configured.")
@@ -180,6 +189,7 @@ def get_newapi_text_pydantic_model(
         base_url=base_url,
         timeout_seconds=timeout_seconds,
         profile=_get_newapi_text_model_profile(model_name),
+        model_selector=str(model_selector or "").strip() or None,
     )
 
 
@@ -193,6 +203,19 @@ def get_newapi_text_pydantic_model_settings(
     if not reasoning_effort:
         return None
     return {"openai_reasoning_effort": reasoning_effort}
+
+
+def get_newapi_structured_output_model_settings() -> dict[str, str]:
+    """Disable reasoning for schema-constrained PydanticAI output."""
+    return {"openai_reasoning_effort": "none"}
+
+
+def get_newapi_structured_output_litellm_kwargs() -> dict[str, object]:
+    """Disable reasoning for schema-constrained LiteLLM/Instructor output."""
+    return {
+        "reasoning_effort": "none",
+        "allowed_openai_params": ["reasoning_effort"],
+    }
 
 
 def get_pydantic_model_settings(
@@ -279,6 +302,7 @@ def get_newapi_runtime_credentials() -> tuple[str, str]:
 
 def get_model_access_json_transport(
     role: str | None = None,
+    model_selector: str | None = None,
 ) -> tuple[str, dict[str, str]]:
     """Return the process-wide model endpoint and JSON request headers."""
     api_key, base_url = get_newapi_runtime_credentials()
@@ -289,11 +313,16 @@ def get_model_access_json_transport(
         headers["Authorization"] = f"Bearer {api_key}"
     if role:
         headers["X-AI-Anime-Model-Role"] = role.strip().upper()
+    if model_selector:
+        headers["X-AI-Anime-Model-Selector"] = model_selector.strip()
     return base_url.rstrip("/"), headers
 
 
 def get_model_access_openai_client(
-    *, timeout_seconds: float = 120.0, role: str = "TEXT"
+    *,
+    timeout_seconds: float = 120.0,
+    role: str = "TEXT",
+    model_selector: str | None = None,
 ):
     """Create one synchronous OpenAI-compatible model operation client."""
     import httpx
@@ -324,6 +353,11 @@ def get_model_access_openai_client(
         default_headers={
             "Idempotency-Key": str(uuid.uuid4()),
             "X-AI-Anime-Model-Role": role.strip().upper(),
+            **(
+                {"X-AI-Anime-Model-Selector": model_selector.strip()}
+                if model_selector and model_selector.strip()
+                else {}
+            ),
         },
         http_client=http_client,
     )

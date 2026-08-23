@@ -16,6 +16,7 @@ import {
   type AssetTab,
 } from "@/modules/asset_world/domain/character";
 import {
+  backendErrorResponseToastMessage,
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
@@ -158,7 +159,11 @@ export function createUseCharactersPageController(
     const handleBuild = async () => {
       setRebuildDialogOpen(false);
       try {
-        await buildCharacters.mutateAsync();
+        const response = await buildCharacters.mutateAsync();
+        if (response.ok === false) {
+          toast.error(backendErrorResponseToastMessage(response, t));
+          return;
+        }
         setBuildStarted(true);
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));

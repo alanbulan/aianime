@@ -57,6 +57,7 @@ interface ImageEditSubmission {
   readonly modelId?: string;
   readonly genMode?: string;
   readonly quality: string | null | undefined;
+  readonly extraParams?: Record<string, unknown>;
   readonly canvasId: string;
   readonly nodeId?: string;
 }
@@ -106,6 +107,9 @@ async function submitImageEdit(
         ...(submission.modelId ? { model_id: submission.modelId } : {}),
         ...(submission.genMode ? { gen_mode: submission.genMode } : {}),
         quality: submission.quality ?? null,
+        ...(submission.extraParams && Object.keys(submission.extraParams).length > 0
+          ? { extra_params: submission.extraParams }
+          : {}),
         ...(submission.canvasId ? { canvas_id: submission.canvasId } : {}),
         ...(submission.nodeId ? { node_id: submission.nodeId } : {}),
       },
@@ -157,6 +161,7 @@ async function submitJob(
       modelId: payload.modelId,
       genMode: payload.generationMode,
       quality,
+      extraParams: payload.extraParams,
       canvasId,
       nodeId: payload.nodeId,
     });
@@ -174,6 +179,7 @@ async function submitJob(
     modelId: payload.modelId,
     genMode: payload.generationMode,
     quality,
+    extraParams: payload.extraParams,
     canvasId,
     nodeId: payload.nodeId,
   });

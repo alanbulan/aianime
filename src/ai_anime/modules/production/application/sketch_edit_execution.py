@@ -21,6 +21,7 @@ class SketchEditExecutionTask:
     project_dir: str | Path
     labels_name: str
     model: str
+    model_selector: str = ""
 
     @property
     def scope(self) -> str:
@@ -35,6 +36,7 @@ class SketchEditExecutionTask:
             "project_dir": str(self.project_dir),
             "labels_name": self.labels_name,
             "model": self.model,
+            "model_selector": self.model_selector,
         }
 
 

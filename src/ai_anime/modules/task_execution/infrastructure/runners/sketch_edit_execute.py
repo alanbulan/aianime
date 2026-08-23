@@ -24,6 +24,7 @@ def run_sketch_edit_execute(
     project_dir = Path(str(payload.get("project_dir") or ctx.output_dir))
     labels_name = str(payload.get("labels_name") or "labels.jsonl")
     model = str(payload.get("model") or "").strip()
+    model_selector = str(payload.get("model_selector") or "").strip()
     if not model:
         raise ValueError("sketch edit image model is required")
     labels_path = resolve_labels_jsonl(project_dir, episode, labels_name=labels_name)
@@ -58,6 +59,7 @@ def run_sketch_edit_execute(
         episode_num=episode,
         labels_path=labels_path,
         model=model,
+        model_selector=model_selector or None,
         progress_callback=update,
         log_callback=log,
     )

@@ -6,7 +6,7 @@ import type {
 } from "@/modules/asset_world/application/ports";
 import type { Style } from "@/modules/asset_world/domain/style";
 import { p } from "@/shared/api/path";
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 
 export const httpAssetWorldGateway: AssetWorldGateway = {
   async listStyles(signal) {
@@ -42,7 +42,7 @@ export const httpAssetWorldGateway: AssetWorldGateway = {
   async analyzeStyle(project, file) {
     const formData = new FormData();
     formData.append("file", file);
-    return api
+    return uploadApi
       .post(p`api/v1/projects/${project}/styles/analyze`, {
         body: formData,
         throwHttpErrors: false,
@@ -53,7 +53,7 @@ export const httpAssetWorldGateway: AssetWorldGateway = {
   async uploadStylePreview({ file, styleId }) {
     const formData = new FormData();
     formData.append("file", file);
-    return api
+    return uploadApi
       .put(p`api/v1/styles/${styleId}/preview`, {
         body: formData,
         throwHttpErrors: false,

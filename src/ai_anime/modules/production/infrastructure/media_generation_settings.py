@@ -239,12 +239,16 @@ def _image_provider_config(*, model_override: str | None = None) -> dict:
 def get_grid_generation_config(
     model_override: str | None = None,
     image_size_override: str | None = None,
+    model_selector_override: str | None = None,
+    model_params_override: Mapping[str, object] | None = None,
 ) -> dict:
     provider_config = _image_provider_config(model_override=model_override)
     return {
         "provider": provider_config["provider"],
         "access_mode": provider_config["access_mode"],
         "model": provider_config["model"],
+        "model_selector": str(model_selector_override or "").strip(),
+        "model_params": dict(model_params_override or {}),
         "openai_image_quality": OPENAI_IMAGE_QUALITY,
         "openai_sketch_image_quality": OPENAI_SKETCH_IMAGE_QUALITY,
         "image_size": image_size_override or "1K",
@@ -258,8 +262,12 @@ def get_grid_generation_config(
 
 def get_sketch_generation_config(
     model_override: str | None = None,
+    model_selector_override: str | None = None,
 ) -> dict:
-    config = get_grid_generation_config(model_override=model_override)
+    config = get_grid_generation_config(
+        model_override=model_override,
+        model_selector_override=model_selector_override,
+    )
     config["openai_image_quality"] = OPENAI_SKETCH_IMAGE_QUALITY
     config["image_size"] = "1K"
     return config
@@ -267,5 +275,9 @@ def get_sketch_generation_config(
 
 def get_render_generation_config(
     model_override: str | None = None,
+    model_selector_override: str | None = None,
 ) -> dict:
-    return get_grid_generation_config(model_override=model_override)
+    return get_grid_generation_config(
+        model_override=model_override,
+        model_selector_override=model_selector_override,
+    )

@@ -661,6 +661,7 @@ def _video_generation_options(body) -> CreativeCanvasVideoGenerationOptions:
         human_review=body.human_review,
         scene_optimize=getattr(body, "scene_optimize", None),
         model=body.model,
+        model_selector=body.model_id,
         canvas_id=body.canvas_id or None,
         node_id=body.node_id or None,
         gen_mode=body.gen_mode,

@@ -9,27 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
-
-
-_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS seedance2_voice_audio_records (
-    episode_number INTEGER NOT NULL,
-    beat_number INTEGER NOT NULL,
-    speaker TEXT NOT NULL,
-    audio_path TEXT NOT NULL,
-    voice_sha256 TEXT NOT NULL,
-    text_sha256 TEXT NOT NULL DEFAULT '',
-    mode TEXT NOT NULL,
-    provider TEXT NOT NULL,
-    model TEXT NOT NULL,
-    generated_at TEXT NOT NULL,
-    status TEXT NOT NULL,
-    error TEXT NOT NULL DEFAULT '',
-    PRIMARY KEY (episode_number, beat_number, speaker)
-);
-CREATE INDEX IF NOT EXISTS idx_seedance2_voice_audio_speaker
-ON seedance2_voice_audio_records(episode_number, speaker);
-"""
+from ai_anime.migrations.production import run_production_migrations
 
 
 @dataclass(frozen=True)
@@ -61,26 +41,12 @@ def _connect(db_path: str | Path):
     conn = sqlite3.connect(path, timeout=5, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     configure_sqlite_connection(conn)
-    conn.executescript(_SCHEMA_SQL)
-    _ensure_schema_columns(conn)
-    conn.commit()
+    run_production_migrations(conn)
     try:
         yield conn
         conn.commit()
     finally:
         conn.close()
-
-
-def _ensure_schema_columns(conn: sqlite3.Connection) -> None:
-    columns = {
-        str(row["name"])
-        for row in conn.execute("PRAGMA table_info(seedance2_voice_audio_records)")
-    }
-    if "text_sha256" not in columns:
-        conn.execute(
-            "ALTER TABLE seedance2_voice_audio_records "
-            "ADD COLUMN text_sha256 TEXT NOT NULL DEFAULT ''"
-        )
 
 
 def seedance2_voice_scope(episode: int, speaker: str) -> str:

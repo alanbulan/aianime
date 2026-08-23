@@ -15,6 +15,7 @@ import {
 
 interface BeatVideoGenerationInputBase {
   model: string;
+  modelSelector?: string;
   beatNumber: number;
 }
 
@@ -74,6 +75,7 @@ export function prepareBeatVideoGeneration(
   const baseCommand: RegenerateBeatVideoCommand = {
     beatNum: input.beatNumber,
     model: input.model,
+    ...(input.modelSelector ? { modelSelector: input.modelSelector } : {}),
   };
 
   if (input.kind === "legacy") {

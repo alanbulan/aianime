@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -132,7 +132,7 @@ export interface RenderSectionControllerDependencies {
     value: string | undefined,
     options: {
       imageRole: "render";
-      modeKey: "1x1_2-3";
+      modeKey: "1x1_2-3" | "1x1_16-9";
       surface: "ai_anime";
     },
   ): CreditCostQuery;
@@ -281,6 +281,39 @@ export function createUseRenderSectionController(
     const { t } = useTranslation();
     const { spec: aspectSpec } =
       dependencies.useProjectAspectRatio(options.project);
+    const currentAssignment =
+      options.assignments[String(options.beat.beat_number)] ?? null;
+    const currentSketch = currentAssignment
+      ? options.images.find((image) =>
+          isSketchAssignmentMatch(image, currentAssignment),
+        ) ?? null
+      : null;
+    const latestSketch = options.images
+      .filter(
+        (image) =>
+          image.type === "sketch" &&
+          image.original_beat === options.beat.beat_number &&
+          image.cell_url,
+      )
+      .sort((first, second) => {
+        const firstTime = first.generated_at
+          ? Date.parse(first.generated_at)
+          : 0;
+        const secondTime = second.generated_at
+          ? Date.parse(second.generated_at)
+          : 0;
+        return secondTime - firstTime;
+      })[0] ?? null;
+    const sourceSketchAspect = useImageAspectRatio(
+      options.beat.sketch_url ||
+        currentSketch?.cell_url ||
+        latestSketch?.cell_url ||
+        null,
+    );
+    const singleRenderModeKey =
+      (sourceSketchAspect ?? aspectSpec.renderAspect) === "16:9"
+        ? "1x1_16-9"
+        : "1x1_2-3";
     const renderSceneId =
       options.beat.scene_ref?.scene_id?.trim() ||
       options.beat.location?.trim() ||
@@ -330,7 +363,7 @@ export function createUseRenderSectionController(
       {
         surface: "ai_anime",
         imageRole: "render",
-        modeKey: "1x1_2-3",
+        modeKey: singleRenderModeKey,
       },
     );
     const uploadRender = queries.useUploadBeatImage(
@@ -389,8 +422,6 @@ export function createUseRenderSectionController(
           : 0;
         return secondTime - firstTime;
       });
-    const currentAssignment =
-      options.assignments[String(options.beat.beat_number)] ?? null;
     const assignedRender = currentAssignment
       ? options.images.find((image) =>
           isRenderAssignmentMatch(image, currentAssignment),
@@ -504,7 +535,7 @@ export function createUseRenderSectionController(
         }
         const response = await regenerate.mutateAsync({
           beatIndices: [options.beat.beat_number],
-          modeKey: "1x1_2-3",
+          modeKey: singleRenderModeKey,
         });
         if (!response.ok) {
           toast.error(
@@ -767,4 +798,41 @@ function isRenderAssignmentMatch(image: PoolImage, assignment: string) {
       image.cell_path === assignment ||
       image.grid_path === assignment)
   );
+}
+
+function isSketchAssignmentMatch(image: PoolImage, assignment: string): boolean {
+  return (
+    image.type === "sketch" &&
+    (image.id === assignment ||
+      image.cell_path === assignment ||
+      image.grid_path === assignment)
+  );
+}
+
+function useImageAspectRatio(url: string | null): "2:3" | "16:9" | null {
+  const [aspect, setAspect] = useState<"2:3" | "16:9" | null>(null);
+
+  useEffect(() => {
+    setAspect(null);
+    const resolvedUrl = url ? resolveMediaUrl(url) : null;
+    if (!resolvedUrl) return;
+    let active = true;
+    const image = new Image();
+    image.onload = () => {
+      if (!active || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
+      const ratio = image.naturalWidth / image.naturalHeight;
+      setAspect(
+        Math.abs(ratio - 16 / 9) < Math.abs(ratio - 2 / 3)
+          ? "16:9"
+          : "2:3",
+      );
+    };
+    image.src = resolvedUrl;
+    return () => {
+      active = false;
+      image.onload = null;
+    };
+  }, [url]);
+
+  return aspect;
 }

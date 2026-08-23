@@ -15,6 +15,9 @@ export const freezoneStoryScriptGenerationGateway: CanvasStoryScriptSubmissionGa
           ...(command.nodeId ? { node_id: command.nodeId } : {}),
           source_text: command.sourceText,
           model: command.model,
+          ...(command.modelSelector
+            ? { model_id: command.modelSelector }
+            : {}),
           ...(command.videoUrl != null
             ? { video_url: command.videoUrl }
             : {}),

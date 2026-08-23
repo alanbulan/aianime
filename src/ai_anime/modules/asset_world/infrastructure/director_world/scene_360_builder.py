@@ -966,6 +966,8 @@ async def run(args: argparse.Namespace) -> int:
         prompt=prompt,
         reference_images=reference_images,
         image_config={
+            "model": model,
+            "model_selector": str(getattr(args, "model_selector", "") or "").strip(),
             "aspect_ratio": "2:1",
             "image_size": args.image_size,
             "quality": args.quality,
@@ -1043,6 +1045,7 @@ def main() -> int:
     )
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--model", required=True)
+    parser.add_argument("--model-selector", default="", dest="model_selector")
     parser.add_argument("--scene-description", default=DEFAULT_SCENE_DESCRIPTION)
     parser.add_argument("--text-only", action="store_true")
     parser.add_argument("--quality", default="")

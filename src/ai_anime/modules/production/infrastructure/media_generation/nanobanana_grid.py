@@ -304,8 +304,9 @@ def _image_credit_billing_params(
     *,
     image_size: str | None = None,
     quality: str | None = None,
-) -> dict[str, str]:
-    params: dict[str, str] = {}
+    model_params: dict[str, object] | None = None,
+) -> dict[str, object]:
+    params: dict[str, object] = dict(model_params or {})
     clean_size = str(image_size or "").strip().lower()
     if clean_size:
         params["size"] = clean_size
@@ -2419,6 +2420,9 @@ async def _generate_image(
         prompt=effective_prompt,
         reference_images=ref_bytes or None,
         image_config={
+            "model": generator.model,
+            "model_selector": generator.model_selector,
+            "model_params": generator.model_params,
             "aspect_ratio": aspect_ratio,
             "image_size": image_size,
             "quality": quality or generator.image_quality,
@@ -2561,14 +2565,21 @@ async def _call_newapi_image_api(
     from ai_anime.modules.model_usage.public import resolve_model_for_role
 
     model_role = "IMAGE_EDIT" if reference_images else "IMAGE_GENERATION"
-    clean_model = resolve_model_for_role(model_role)
+    image_config = image_config or {}
+    clean_model = (
+        str(image_config.get("model") or "").strip()
+        or resolve_model_for_role(model_role)
+    )
+    model_selector = str(image_config.get("model_selector") or "").strip()
 
     try:
-        endpoint, headers = get_model_access_json_transport(model_role)
+        endpoint, headers = get_model_access_json_transport(
+            model_role,
+            model_selector or None,
+        )
     except ValueError as exc:
         return None, "", str(exc)
 
-    image_config = image_config or {}
     aspect_ratio = str(image_config.get("aspect_ratio") or "1:1").strip() or "1:1"
     image_size = normalize_image_size(str(image_config.get("image_size") or "1K"))
     size = resolve_standard_image_size(aspect_ratio, image_size)
@@ -2579,6 +2590,8 @@ async def _call_newapi_image_api(
     resolution = _newapi_resolution_from_image_size(image_size)
     if resolution:
         extra_fields["resolution"] = resolution
+
+    model_params = dict(image_config.get("model_params") or {})
 
     payload: dict[str, object] = {
         "model": clean_model,
@@ -2595,6 +2608,10 @@ async def _call_newapi_image_api(
         )
         payload["quality"] = quality
         extra_fields["quality"] = quality
+    for key, value in model_params.items():
+        if key == "quality":
+            continue
+        payload[key] = value
 
     request_path = "images/generations"
     multipart_files: list[tuple[str, tuple[str, bytes, str]]] = []
@@ -2621,6 +2638,7 @@ async def _call_newapi_image_api(
             billing_params=_image_credit_billing_params(
                 image_size=image_size,
                 quality=extra_fields.get("quality"),
+                model_params=model_params,
             ),
             metadata={"source": source},
         )
@@ -2926,6 +2944,8 @@ class NanoBananaGridGenerator:
             raise ValueError("grid generator model is required")
         self.access_mode = "mixed"
         self.model = config["model"]
+        self.model_selector = str(config.get("model_selector") or "").strip()
+        self.model_params = dict(config.get("model_params") or {})
         self.image_quality = config.get("image_quality", config.get("openai_image_quality", "medium"))
         self.sketch_image_quality = config.get(
             "sketch_image_quality",
@@ -3568,6 +3588,9 @@ class NanoBananaGridGenerator:
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
+                    "model_params": self.model_params,
                     "aspect_ratio": aspect_ratio,
                     "image_size": effective_image_size,
                     "quality": self.sketch_image_quality if sketch else self.image_quality,
@@ -3741,6 +3764,9 @@ class NanoBananaGridGenerator:
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
+                    "model_params": self.model_params,
                     "aspect_ratio": aspect_ratio,
                     "image_size": image_size,
                     "quality": self.sketch_image_quality,
@@ -3909,6 +3935,9 @@ class NanoBananaGridGenerator:
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
+                    "model_params": self.model_params,
                     "aspect_ratio": target_aspect,
                     "image_size": target_size,
                     "quality": self.image_quality,
@@ -4272,6 +4301,9 @@ class NanoBananaGridGenerator:
                     prompt=prompt,
                     reference_images=references or None,
                     image_config={
+                        "model": self.model,
+                        "model_selector": self.model_selector,
+                        "model_params": self.model_params,
                         "aspect_ratio": request["aspect_ratio"],
                         "image_size": normalize_image_size(request["image_size"]),
                         "quality": self.image_quality,
@@ -5263,6 +5295,9 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
+                    "model_params": self.model_params,
                     "aspect_ratio": target_aspect_ratio or "9:16",
                     "image_size": "1K",
                     "quality": self.image_quality,
@@ -5355,6 +5390,9 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
                 prompt=prompt,
                 reference_images=ref_bytes or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
+                    "model_params": self.model_params,
                     "aspect_ratio": "9:16",
                     "image_size": "1K",
                     "quality": self.image_quality,
@@ -5450,6 +5488,9 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
+                    "model_params": self.model_params,
                     "aspect_ratio": "9:16",
                     "image_size": "1K",
                     "quality": self.image_quality,

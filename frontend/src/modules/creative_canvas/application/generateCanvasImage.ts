@@ -27,6 +27,7 @@ export interface CanvasImageGenerationCommand {
   readonly modelId?: string | null;
   readonly genMode?: string | null;
   readonly quality?: string | null;
+  readonly extraParams?: Record<string, unknown>;
   readonly canvasId?: string | null;
   readonly nodeId?: string | null;
 }
@@ -91,6 +92,7 @@ export async function submitCanvasImageGeneration(
     modelId: params.modelId,
     genMode: params.genMode,
     quality: params.quality,
+    extraParams: params.extraParams,
     canvasId: params.canvasId,
     nodeId: params.nodeId,
   });

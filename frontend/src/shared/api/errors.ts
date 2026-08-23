@@ -62,6 +62,29 @@ export class BillingRuleNotConfiguredError extends BackendStatusError {
   }
 }
 
+export const STORY_IMPORT_REQUIRED_CODE = "NOVEL_IMPORT_REQUIRED";
+
+export function backendErrorCodeToastMessage(
+  errorCode: string | null | undefined,
+  fallback: string,
+  t: TFunction,
+): string | null {
+  if (errorCode === STORY_IMPORT_REQUIRED_CODE) {
+    return t("common.novelImportRequired", { defaultValue: fallback });
+  }
+  return null;
+}
+
+export function backendErrorResponseToastMessage(
+  response: { code?: string; error: string },
+  t: TFunction,
+): string {
+  return (
+    backendErrorCodeToastMessage(response.code, response.error, t) ??
+    backendErrorToastMessage(new Error(response.error), t)
+  );
+}
+
 function queueLabelForPlainMessage(queueKind: string): string {
   if (queueKind === "default") return "默认";
   if (queueKind === "workflow") return "工作流编排";

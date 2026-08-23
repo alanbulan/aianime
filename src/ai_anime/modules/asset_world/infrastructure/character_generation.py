@@ -47,6 +47,7 @@ class UnifiedSynchronousCharacterGeneration:
             style=options.style,
             ethnicity=options.ethnicity,
             model=options.model,
+            model_selector=options.model_selector or None,
             output_dir=output_dir,
             project_dir=str(project_dir),
         )
@@ -83,6 +84,7 @@ class UnifiedSynchronousCharacterGeneration:
                 style=options.style,
                 ethnicity=options.ethnicity,
                 model=options.model,
+                model_selector=options.model_selector or None,
                 project_dir=str(project_dir),
                 usage_task_type="character_portrait",
                 usage_scope=(
@@ -169,6 +171,7 @@ class UnifiedSynchronousCharacterGeneration:
             ethnicity=options.ethnicity,
             style=options.style,
             model=options.model,
+            model_selector=options.model_selector or None,
             project_dir=str(project_dir),
             costume_image_path=costume_image_path,
             usage_task_type="identity_image",

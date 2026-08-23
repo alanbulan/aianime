@@ -1,6 +1,6 @@
 """Transport schemas for Creative Canvas image endpoints."""
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -53,8 +53,9 @@ class FreezoneGenRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    extra_params: dict[str, Any] = Field(default_factory=dict)
     model_id: Optional[str] = Field(
-        default=None, description="可选：注册表模型 id，用于还原节点时回填 model"
+        default=None, description="本地统一代理路由选择器"
     )
     gen_mode: Optional[str] = Field(
         default=None, description="可选：生成模式，用于还原节点时回填 genMode"
@@ -90,8 +91,9 @@ class FreezoneEditRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    extra_params: dict[str, Any] = Field(default_factory=dict)
     model_id: Optional[str] = Field(
-        default=None, description="可选：注册表模型 id，用于还原节点时回填 model"
+        default=None, description="本地统一代理路由选择器"
     )
     gen_mode: Optional[str] = Field(
         default=None, description="可选：生成模式，用于还原节点时回填 genMode"
@@ -169,6 +171,7 @@ class FreezoneCharacterMultiViewRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
 
 
 class FreezoneTemplateEditRequest(BaseModel):
@@ -212,6 +215,7 @@ class FreezoneTemplateEditRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
 
 
 class FreezoneUpscaleRequest(BaseModel):
@@ -241,6 +245,7 @@ class FreezoneUpscaleRequest(BaseModel):
         description="放大倍数，可选 2 / 4 / 6",
     )
     image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
 
 
 class FreezoneOutpaintRequest(BaseModel):
@@ -278,6 +283,7 @@ class FreezoneOutpaintRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
 
 
 class FreezoneRedrawRequest(BaseModel):
@@ -285,13 +291,16 @@ class FreezoneRedrawRequest(BaseModel):
 
     统一承接整体重绘和局部擦除：
     - 不传 mask_url：整体/局部自由重绘
-    - 传 mask_url：仅在 mask 透明区域内按 prompt 执行局部编辑
+    - 传 mask_url：仅在半透明红色标注区域内按 prompt 执行局部编辑
     """
 
     source_url: str = Field(description="待重绘的源图静态地址，作为图生图的 base 图")
     mask_url: Optional[str] = Field(
         default=None,
-        description="可选的遮罩图静态地址。传入后表示走局部擦除/局部重绘模式",
+        description=(
+            "可选的遮罩图静态地址；约定为源图叠加半透明红色编辑区，"
+            "红色只作区域标注，不进入生成结果"
+        ),
     )
     aspect_ratio: Literal["original", "1:1", "4:3", "3:4", "16:9", "9:16"] = Field(
         default="original",
@@ -320,6 +329,7 @@ class FreezoneRedrawRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
 
 
 class FreezoneRelightRequest(BaseModel):
@@ -365,6 +375,7 @@ class FreezoneRelightRequest(BaseModel):
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
 
 
 class FreezoneMarkDetectRequest(BaseModel):

@@ -12,6 +12,7 @@ from ai_anime.modules.asset_world.application.scene_models import (
     NovelScene,
     build_scene_effective_prompt,
 )
+from ai_anime.modules.asset_world.domain.asset_names import move_asset_dir
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_updated_at,
     tree_updated_at,
@@ -101,9 +102,10 @@ class LocalSceneCatalogAssets:
         old_name: str,
         new_name: str,
     ) -> None:
-        self._move_dir_if_exists(
-            project_dir / "assets" / "scenes" / old_name,
-            project_dir / "assets" / "scenes" / new_name,
+        move_asset_dir(
+            project_dir / "assets" / "scenes",
+            old_name,
+            new_name,
         )
         old_stage_root = stage_manifest.stage_dir(project_dir, old_name).parent
         new_stage_root = stage_manifest.stage_dir(project_dir, new_name).parent

@@ -13,6 +13,7 @@ import type {
   CanvasNodeType,
 } from '../domain/canvasNodeData';
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import { stashExternalFile } from '../application/pendingExternalFiles';
 import {
   useCanvasMediaTransferController,
   type CanvasMediaTransferController,
@@ -72,6 +73,7 @@ export function createUseCanvasMediaSurfaceController({
           eventBus.publish('upload-node/paste-image', { nodeId, file });
         },
         attachExternalFile: (nodeId, file) => {
+          stashExternalFile('upload-node/external-file', nodeId, file);
           eventBus.publish('upload-node/external-file', { nodeId, file });
         },
       }),

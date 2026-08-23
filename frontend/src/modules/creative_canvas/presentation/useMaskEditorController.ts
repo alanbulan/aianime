@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from "react";
 
+import { buildRedHighlightMaskBlob } from "../application/maskHighlight";
 import {
   DEFAULT_CANVAS_REDRAW_ASPECT_RATIO,
   DEFAULT_CANVAS_REDRAW_IMAGE_SIZE,
@@ -109,27 +110,6 @@ function hasPaint(canvas: HTMLCanvasElement): boolean {
     if (data[index] > 8) return true;
   }
   return false;
-}
-
-async function buildMaskBlob(
-  source: HTMLCanvasElement,
-  createCanvas: () => HTMLCanvasElement,
-): Promise<Blob> {
-  const output = createCanvas();
-  output.width = source.width;
-  output.height = source.height;
-  const context = output.getContext("2d");
-  if (!context) throw new Error("mask output context unavailable");
-  context.fillStyle = "rgba(255,255,255,1)";
-  context.fillRect(0, 0, output.width, output.height);
-  context.globalCompositeOperation = "destination-out";
-  context.drawImage(source, 0, 0);
-  return await new Promise<Blob>((resolve, reject) => {
-    output.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("mask PNG encode failed"));
-    }, "image/png");
-  });
 }
 
 export function useMaskEditorController(
@@ -281,7 +261,13 @@ export function useMaskEditorController(
     setSubmitting(true);
     try {
       setProgressMessage("生成 mask 文件...");
-      const maskBlob = await buildMaskBlob(maskCanvas, createCanvas);
+      const baseCanvas = baseCanvasRef.current;
+      if (!baseCanvas) throw new Error("source image not ready");
+      const maskBlob = await buildRedHighlightMaskBlob(
+        baseCanvas,
+        maskCanvas,
+        createCanvas,
+      );
       const maskFile = createMaskFile(maskBlob);
       setProgressMessage("上传 mask...");
       const uploaded = await uploadAsset(project, maskFile, maskFile.name);

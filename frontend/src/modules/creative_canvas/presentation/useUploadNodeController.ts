@@ -30,6 +30,11 @@ import type {
   UploadImageNodeData,
 } from '../domain/canvasNodeData';
 import {
+  nodeBodyImageMeasurement,
+  nodeBodyImageSrc,
+  nodeBodyRecordDescribesImage,
+  planNaturalSizeRecordWrite,
+  readNodeNaturalSize,
   resolveImageDisplayUrl,
   shouldUseOriginalImageByZoom,
 } from '../domain/imageData';
@@ -49,10 +54,18 @@ import {
 } from '../application/uploadNodeModel';
 import { uploadDirectorCaptureBundle } from '../application/directorCaptureBundle';
 import type { GetCanvasBeatDirectorManifestParams } from '../application/beatDirectorManifest';
+import { stashExternalFile } from '../application/pendingExternalFiles';
+import { useExternalFileHandoff } from './useExternalFileHandoff';
+import { useNaturalSizeRecordTrust } from './useNaturalSizeRecordTrust';
+import { useNodeBodyVariantBudget } from './useNodeBodyVariantBudget';
 
 export interface UploadNodeStore {
   setSelectedNode: (id: string | null) => void;
-  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  updateNodeData: (
+    id: string,
+    patch: Partial<CanvasNodeData>,
+    options?: { recordHistory?: boolean },
+  ) => void;
   convertNodeType: (
     nodeId: string,
     type: CanvasNodeType,
@@ -330,7 +343,7 @@ export function createUseUploadNodeController({
       ],
     );
 
-    const imageLoad = useCallback(
+    const handleImagePerformanceLoad = useCallback(
       (event: SyntheticEvent<HTMLImageElement>) => {
         const perf = uploadPerfRef.current;
         if (!perf) {
@@ -388,6 +401,7 @@ export function createUseUploadNodeController({
           sourceFileName: file.name,
         });
         if (!converted) return;
+        stashExternalFile('video-node/external-file', id, file);
         requestAnimationFrame(() => {
           eventPort.publish('video-node/external-file', {
             nodeId: id,
@@ -404,6 +418,7 @@ export function createUseUploadNodeController({
           sourceFileName: file.name,
         });
         if (!converted) return;
+        stashExternalFile('audio-node/external-file', id, file);
         requestAnimationFrame(() => {
           eventPort.publish('audio-node/external-file', {
             nodeId: id,
@@ -482,13 +497,17 @@ export function createUseUploadNodeController({
       }),
     [id, processFile]);
 
-    useEffect(() =>
-      eventPort.subscribe('upload-node/external-file', ({ nodeId, file }) => {
-        if (nodeId === id && file) {
-          void handleMediaFile(file);
-        }
-      }),
-    [handleMediaFile, id]);
+    const subscribeExternalFile = useCallback(
+      (handler: (payload: { nodeId: string; file?: File }) => void) =>
+        eventPort.subscribe('upload-node/external-file', handler),
+      [eventPort],
+    );
+    useExternalFileHandoff(
+      'upload-node/external-file',
+      id,
+      subscribeExternalFile,
+      (file) => void handleMediaFile(file),
+    );
 
     const select = useCallback(() => {
       setSelectedNode(id);
@@ -690,23 +709,102 @@ export function createUseUploadNodeController({
       [clearTransientPreview],
     );
 
-    const imageSource = useMemo(() => {
-      if (transientPreviewUrl) {
-        return transientPreviewUrl;
-      }
+    const recordedNaturalSize = useMemo(() => readNodeNaturalSize(data), [data]);
+    const recordSubject = useMemo(() => {
+      const picked = data.previewImageUrl || data.imageUrl;
+      if (!picked) return null;
+      const committedAt = (data as { committed_at?: unknown }).committed_at;
+      return `${picked}\u0000${typeof committedAt === 'string' ? committedAt : ''}`;
+    }, [data]);
+    const { distrusted, distrustRecord, trustAgain } =
+      useNaturalSizeRecordTrust(recordSubject);
+    const bodyVariantBudget = useNodeBodyVariantBudget({
+      width: size.width,
+      height: size.height,
+    });
+    const bodyImage = useMemo(() => {
+      if (transientPreviewUrl) return null;
       const picked = preferOriginalImage
         ? data.imageUrl || data.previewImageUrl
         : data.previewImageUrl || data.imageUrl;
-      return picked
-        ? resolveImageDisplayUrl(withImageCacheBust(picked, data.committed_at))
-        : null;
+      if (!picked) return null;
+      const resolved = resolveImageDisplayUrl(
+        withImageCacheBust(picked, data.committed_at),
+      );
+      return nodeBodyImageSrc(resolved, recordedNaturalSize, {
+        preferOriginal: preferOriginalImage || distrusted,
+        requiredEdge: bodyVariantBudget,
+      });
     }, [
+      bodyVariantBudget,
       data.committed_at,
       data.imageUrl,
       data.previewImageUrl,
+      distrusted,
       preferOriginalImage,
+      recordedNaturalSize,
       transientPreviewUrl,
     ]);
+    const imageSource = transientPreviewUrl ?? bodyImage?.src ?? null;
+
+    const recordNaturalSize = useCallback(
+      (image: HTMLImageElement) => {
+        if (!bodyImage) return;
+        if (
+          bodyImage.downscaled &&
+          !nodeBodyRecordDescribesImage(
+            image,
+            recordedNaturalSize,
+            bodyImage.maxEdge ?? 0,
+          )
+        ) {
+          distrustRecord();
+          return;
+        }
+        const measuringRecordSubject = !preferOriginalImage;
+        if (measuringRecordSubject) trustAgain();
+        const measured = nodeBodyImageMeasurement(
+          image,
+          bodyImage,
+          recordedNaturalSize,
+        );
+        if (!(measured.width > 0 && measured.height > 0)) return;
+        const recordWrite = planNaturalSizeRecordWrite({
+          aspectRatioChanged: false,
+          displaySizeMismatch: false,
+          record: recordedNaturalSize,
+          measured,
+          measuringRecordSubject,
+          sizeLockedByUser: false,
+        });
+        if (!recordWrite.persist) return;
+        updateNodeData(
+          id,
+          {
+            imageNaturalWidth: measured.width,
+            imageNaturalHeight: measured.height,
+          },
+          { recordHistory: recordWrite.recordHistory },
+        );
+      },
+      [
+        bodyImage,
+        distrustRecord,
+        id,
+        preferOriginalImage,
+        recordedNaturalSize,
+        trustAgain,
+        updateNodeData,
+      ],
+    );
+
+    const imageLoad = useCallback(
+      (event: SyntheticEvent<HTMLImageElement>) => {
+        handleImagePerformanceLoad(event);
+        recordNaturalSize(event.currentTarget);
+      },
+      [handleImagePerformanceLoad, recordNaturalSize],
+    );
 
     const viewerSourceUrl = data.imageUrl
       ? resolveImageDisplayUrl(data.imageUrl)

@@ -72,6 +72,7 @@ class FreezoneScene360Request(BaseModel):
         min_length=1,
         description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
     quality: Optional[str] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )

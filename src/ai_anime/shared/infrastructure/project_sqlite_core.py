@@ -13,13 +13,10 @@ from typing import Any
 import aiosqlite
 from rich.console import Console
 
-from ai_anime.shared.infrastructure.project_sqlite_schema import (
-    SQLITE_SCHEMA_SQL,
-    _add_column_if_missing,
-)
 from ai_anime.shared.infrastructure.sqlite_pragmas import (
     configure_sqlite_connection_async,
 )
+from ai_anime.migrations.project import run_project_migrations
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -133,12 +130,10 @@ class ProjectSQLiteCore:
             try:
                 db.row_factory = aiosqlite.Row
                 await configure_sqlite_connection_async(db)
-                await db.executescript(SQLITE_SCHEMA_SQL)
-                await self._ensure_episode_planning_columns(db)
-                await self._ensure_beat_current_columns(db)
-                await self._ensure_scene_columns(db)
-                await self._ensure_indextts2_columns(db)
-                await db.commit()
+                await run_project_migrations(
+                    db,
+                    project_dir=Path(self.project_dir),
+                )
             except BaseException:
                 # Never leave a half-migrated connection (and its thread)
                 # behind, and never publish it as self._db.
@@ -154,66 +149,6 @@ class ProjectSQLiteCore:
             # convergence facts — the schema above already creates
             # `sketch_failure_mode_hits`, which stays project-local.
         return self._db
-
-    async def _ensure_scene_columns(self, db: aiosqlite.Connection) -> None:
-        await _add_column_if_missing(
-            db,
-            "scenes",
-            "spatial_layout_image",
-            "TEXT DEFAULT ''",
-        )
-        for name in ("base_scene_id", "variant_id", "time_of_day", "variant_prompt"):
-            await _add_column_if_missing(db, "scenes", name, "TEXT DEFAULT ''")
-
-    async def _ensure_indextts2_columns(self, db: aiosqlite.Connection) -> None:
-        """Add IndexTTS2 / Seedance 2.0 voice columns introduced in Stage A."""
-        await _add_column_if_missing(
-            db,
-            "beats",
-            "seedance2_config_json",
-            "TEXT NOT NULL DEFAULT '{}'",
-        )
-
-        char_columns = {
-            "reference_audio_path": "TEXT DEFAULT ''",
-            "reference_audio_sha256": "TEXT DEFAULT ''",
-            "reference_audio_updated_at": "TEXT DEFAULT ''",
-            "voice_samples_by_age_group_json": "TEXT DEFAULT '{}'",
-        }
-        for name, definition in char_columns.items():
-            await _add_column_if_missing(db, "characters", name, definition)
-
-    async def _ensure_episode_planning_columns(self, db: aiosqlite.Connection) -> None:
-        """Add episode columns introduced after early project databases were created."""
-        columns = {
-            "beat_source_text": "TEXT DEFAULT ''",
-            "adapted_content": "TEXT DEFAULT ''",
-            "scene_menu_json": "TEXT DEFAULT '[]'",
-            "prop_menu_json": "TEXT DEFAULT '[]'",
-            "identity_default_map_json": "TEXT DEFAULT '{}'",
-        }
-        for name, definition in columns.items():
-            await _add_column_if_missing(db, "episodes", name, definition)
-
-    async def _ensure_beat_current_columns(self, db: aiosqlite.Connection) -> None:
-        """Add beat columns required by the current script/render pipeline."""
-        columns = {
-            "detected_identities_json": "TEXT DEFAULT '[]'",
-            "detected_props_json": "TEXT DEFAULT '[]'",
-            "scene_ref_json": "TEXT DEFAULT ''",
-            "audio_type": "TEXT DEFAULT 'narration'",
-            "speaker": "TEXT DEFAULT ''",
-            "speaker_kind": "TEXT DEFAULT 'character'",
-            "time_of_day": "TEXT DEFAULT ''",
-            "video_mode": "TEXT DEFAULT 'first_frame'",
-            "video_prompt": "TEXT DEFAULT ''",
-            "keyframe_prompt": "TEXT DEFAULT ''",
-            "shot_order": "INTEGER",
-            "duration_seconds": "REAL",
-            "is_manual_shot": "INTEGER DEFAULT 0",
-        }
-        for name, definition in columns.items():
-            await _add_column_if_missing(db, "beats", name, definition)
 
     async def initialize(self) -> None:
         await self._ensure_db()

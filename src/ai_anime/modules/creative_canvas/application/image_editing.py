@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Literal, Mapping, Protocol
 
 from ai_anime.modules.creative_canvas.application.media_sources import (
     CreativeCanvasExistingMediaSourceResolver,
@@ -25,6 +25,9 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
     build_image_redraw_prompt,
     build_image_upscale_prompt,
     resolve_requested_image_aspect_ratio,
+)
+from ai_anime.modules.creative_canvas.domain.model_parameters import (
+    normalize_canvas_model_parameters,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -59,6 +62,7 @@ class StartCreativeCanvasImageEditingCommand:
     num_images: int = 1
     camera: CreativeCanvasImageCameraConfig | None = None
     style: CreativeCanvasImageStyleConfig | None = None
+    model_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,7 @@ class StartCreativeCanvasReferenceImageEditingCommand:
     node_id: str | None = None
     model_id: str | None = None
     gen_mode: str | None = None
+    extra_params: Mapping[str, object] | None = None
 
 
 class CreativeCanvasImageEditingStorage(Protocol):
@@ -193,6 +198,7 @@ class CreativeCanvasImageEditingUseCases:
                 "aspect_ratio": aspect_ratio,
                 "image_size": command.image_size,
                 "quality": command.quality or "medium",
+                "model_id": command.model_id or "",
             }
         else:
             payload = {
@@ -202,6 +208,7 @@ class CreativeCanvasImageEditingUseCases:
                 "aspect_ratio": aspect_ratio,
                 "image_size": command.image_size,
                 "quality": command.quality or "medium",
+                "model_id": command.model_id or "",
             }
 
         try:
@@ -242,6 +249,10 @@ class CreativeCanvasImageEditingUseCases:
         except ValueError as exc:
             raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc
         prompt = self._compose_prompt(command.prompt, command.style, command.camera)
+        try:
+            extra_params = normalize_canvas_model_parameters(command.extra_params)
+        except ValueError as exc:
+            raise InvalidCreativeCanvasImageEditingRequest(str(exc)) from exc
         return await self._scheduler.enqueue(
             command.context,
             CreativeCanvasTaskSubmission(
@@ -259,6 +270,7 @@ class CreativeCanvasImageEditingUseCases:
                     "image_size": command.image_size,
                     "model": model,
                     "quality": command.quality,
+                    "extra_params": extra_params,
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
                     "model_id": command.model_id or "",

@@ -216,7 +216,12 @@ export function createOutpaintEditorOverlay({
 
       // 针对已建好的节点提交单图扩图（num_images=1）→ 轮询 → 回填。
       const runOutpaintGeneration = useCallback(
-        async (project: string, nodeId: string, apiModel: string) => {
+        async (
+          project: string,
+          nodeId: string,
+          apiModel: string,
+          modelSelector?: string,
+        ) => {
           try {
             const { url } = await generateCanvasOutpaint(
               {
@@ -225,6 +230,7 @@ export function createOutpaintEditorOverlay({
                 targetAspectRatio: aspectRatio,
                 imageSize,
                 model: apiModel,
+                modelSelector,
               },
               (task) => {
                 updateNodeData(nodeId, generationTaskDescriptor(task));
@@ -277,7 +283,14 @@ export function createOutpaintEditorOverlay({
           );
           setSelectedNode(nodeIds[0]);
           onClose();
-          nodeIds.forEach((id) => void runOutpaintGeneration(projectId, id, apiModel));
+          nodeIds.forEach((id) =>
+            void runOutpaintGeneration(
+              projectId,
+              id,
+              apiModel,
+              selectedModel.routeSelector,
+            ),
+          );
         } finally {
           setIsSubmitting(false);
         }

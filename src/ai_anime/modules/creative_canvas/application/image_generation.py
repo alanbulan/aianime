@@ -19,6 +19,9 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
     CreativeCanvasImageCameraConfig,
     CreativeCanvasImageStyleConfig,
 )
+from ai_anime.modules.creative_canvas.domain.model_parameters import (
+    normalize_canvas_model_parameters,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 CREATIVE_CANVAS_IMAGE_GENERATION_TASK_TYPE = "freezone_gen"
@@ -46,6 +49,7 @@ class StartCreativeCanvasImageGenerationCommand:
     camera: CreativeCanvasImageCameraConfig | None = None
     style: CreativeCanvasImageStyleConfig | None = None
     quality: str | None = None
+    extra_params: Mapping[str, object] | None = None
     canvas_id: str | None = None
     node_id: str | None = None
     model_id: str | None = None
@@ -107,6 +111,10 @@ class CreativeCanvasImageGenerationUseCases:
             "display_name": "自由生成图片",
             **dict(command.task_display or {}),
         }
+        try:
+            extra_params = normalize_canvas_model_parameters(command.extra_params)
+        except ValueError as exc:
+            raise InvalidCreativeCanvasImageGenerationRequest(str(exc)) from exc
         return await self._scheduler.enqueue(
             command.context,
             CreativeCanvasTaskSubmission(
@@ -121,6 +129,7 @@ class CreativeCanvasImageGenerationUseCases:
                     "reference_paths": [path.as_posix() for path in reference_paths],
                     "model": model,
                     "quality": command.quality,
+                    "extra_params": extra_params,
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
                     "model_id": command.model_id or "",

@@ -42,7 +42,7 @@ export function StylePickerPopover({
 
   return (
     <div
-      className={`nodrag nowheel flex max-h-[420px] w-[280px] flex-col overflow-hidden ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
+      className={`nodrag nowheel flex max-h-[520px] w-[420px] flex-col overflow-hidden ${NODE_FLOATING_PANEL_SURFACE_CLASS}`}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
@@ -85,7 +85,7 @@ export function StylePickerPopover({
             <div className="pb-1.5 pt-1 text-[11px] font-semibold leading-none text-muted-foreground">
               {group.label}
             </div>
-            <div className="flex flex-col gap-0.5">
+            <div className="grid grid-cols-3 gap-2">
               {group.items.map((item) => {
                 const isActive = item.id === selectedId;
                 return (
@@ -94,14 +94,35 @@ export function StylePickerPopover({
                     type="button"
                     onClick={() => onSelect(item.id)}
                     data-ui-tooltip={item.stylePrompt}
-                    className={`-mx-2 flex min-h-8 items-center justify-between gap-2 rounded-[6px] px-2 py-1.5 text-left text-xs font-medium leading-snug transition-colors ${
+                    className={`group relative aspect-[4/3] overflow-hidden rounded-lg text-left transition-all ${
                       isActive
-                        ? 'bg-primary/12 text-foreground ring-1 ring-primary/30'
-                        : 'text-foreground/76 hover:bg-muted hover:text-foreground'
+                        ? 'ring-2 ring-primary ring-offset-1 ring-offset-background'
+                        : 'ring-1 ring-border/70 hover:ring-foreground/35'
                     }`}
                   >
-                    <span className="truncate">{item.label}</span>
-                    {isActive && <Check className="size-3.5 shrink-0 text-primary" />}
+                    <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted via-muted/80 to-primary/15 text-xl font-semibold text-muted-foreground/55">
+                      {item.label.slice(0, 1)}
+                    </span>
+                    {item.coverUrl && (
+                      <img
+                        src={item.coverUrl}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="absolute inset-0 size-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 via-black/55 to-transparent px-2 pb-1.5 pt-5 text-[11px] font-medium text-white">
+                      {item.label}
+                    </span>
+                    {isActive && (
+                      <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                        <Check className="size-3" />
+                      </span>
+                    )}
                   </button>
                 );
               })}

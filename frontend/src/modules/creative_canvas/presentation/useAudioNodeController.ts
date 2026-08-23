@@ -16,6 +16,7 @@ import { resolveImageDisplayUrl } from '../domain/imageData';
 import { hasMainlineContexts } from '../domain/mainlineContext';
 import { resolveNodeDisplayName } from '../domain/nodeDisplay';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
+import { useExternalFileHandoff } from './useExternalFileHandoff';
 
 const DEFAULT_WIDTH = 480;
 const DEFAULT_HEIGHT = 210;
@@ -196,14 +197,17 @@ export function createUseAudioNodeController({
       }
     }, [id, projectId, t, updateNodeData]);
 
-    useEffect(() => eventPort.subscribe(
+    const subscribeExternalFile = useCallback(
+      (handler: (payload: { nodeId: string; file?: File }) => void) =>
+        eventPort.subscribe('audio-node/external-file', handler),
+      [eventPort],
+    );
+    useExternalFileHandoff(
       'audio-node/external-file',
-      ({ nodeId, file }) => {
-        if (nodeId === id) {
-          void processFile(file);
-        }
-      },
-    ), [id, processFile]);
+      id,
+      subscribeExternalFile,
+      (file) => void processFile(file),
+    );
 
     useEffect(() => {
       updateNodeInternals(id);

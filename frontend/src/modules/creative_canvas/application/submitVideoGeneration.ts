@@ -16,7 +16,10 @@ export type VideoGenerationAspectRatio =
   | "1:1"
   | "3:4"
   | "9:16"
-  | "21:9";
+  | "21:9"
+  | "9:21"
+  | "5:4"
+  | "4:5";
 
 export type VideoGenerationResolution = "480p" | "720p" | "1080p";
 
@@ -40,6 +43,7 @@ interface VideoGenerationParamsBase {
   readonly durationSeconds: number;
   readonly generateAudio: boolean;
   readonly model: string;
+  readonly modelSelector?: string;
   readonly canvasId: string;
   readonly nodeId: string;
 }
@@ -87,6 +91,7 @@ interface VideoGenerationSubmissionBase {
   readonly durationSeconds: number;
   readonly generateAudio: boolean;
   readonly model: string;
+  readonly modelSelector?: string;
   readonly genMode: VideoGenMode;
   readonly canvasId: string;
   readonly nodeId: string;
@@ -137,6 +142,7 @@ function commonSubmission(
     durationSeconds: params.durationSeconds,
     generateAudio: params.generateAudio,
     model: params.model,
+    modelSelector: params.modelSelector,
     genMode: params.genMode,
     canvasId: params.canvasId,
     nodeId: params.nodeId,

@@ -50,6 +50,8 @@ def register_static_media_routes(application: FastAPI) -> None:
     async def static_project_media(
         project: str,
         file_path: str,
+        request: Request,
+        st_thumb: str | None = None,
         user: dict = Depends(get_api_user),
     ):
         return await serve_project_file(
@@ -57,6 +59,8 @@ def register_static_media_routes(application: FastAPI) -> None:
             file_path=file_path,
             user=user,
             as_download=False,
+            request=request,
+            media_variant=st_thumb,
         )
 
     @application.get("/static/{legacy_path:path}", include_in_schema=False)

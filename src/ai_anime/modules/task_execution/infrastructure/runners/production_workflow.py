@@ -455,6 +455,7 @@ async def _generate_missing_world_assets(
                 name: str = character_name,
                 style: str = str(options.style or ""),
                 model: str = options.model,
+                model_selector: str = options.model_selector,
             ) -> Any:
                 return await character_task_use_cases().schedule_character_portrait(
                     task_context=context,
@@ -462,6 +463,7 @@ async def _generate_missing_world_assets(
                     character_name=name,
                     style=style,
                     model=model,
+                    model_selector=model_selector,
                 )
 
             portrait_jobs.append(_Job(f"生成角色肖像：{character_name}", 0, start))
@@ -514,6 +516,7 @@ async def _generate_missing_world_assets(
                 ident: str = identity_id,
                 style: str = str(options.style or ""),
                 model: str = options.model,
+                model_selector: str = options.model_selector,
             ) -> Any:
                 store = await make_sqlite_store_for_context(context)
                 try:
@@ -525,6 +528,7 @@ async def _generate_missing_world_assets(
                         identity_id=ident,
                         style=style,
                         model=model,
+                        model_selector=model_selector,
                     )
                 finally:
                     await store.close()
@@ -988,7 +992,7 @@ async def _ensure_videos(
 ) -> None:
     from ai_anime.modules.production.public import (
         GenerateSingleVideoCommand,
-        resolve_video_generation_model,
+        resolve_video_generation_route,
         single_video_use_cases,
     )
 
@@ -1000,7 +1004,7 @@ async def _ensure_videos(
     ]
     if not missing:
         return
-    model = resolve_video_generation_model(
+    model_route = resolve_video_generation_route(
         context.owner_username,
         context.project_name,
         requested_model,
@@ -1015,7 +1019,8 @@ async def _ensure_videos(
             GenerateSingleVideoCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
-                video_model=model,
+                video_model=model_route.model,
+                model_selector=model_route.selector or None,
                 resolution=resolution,
                 use_director_render=use_director_render,
                 provided_fields=frozenset({"resolution"}),

@@ -27,6 +27,7 @@ from ai_anime.modules.asset_world.domain.scene_catalog import (
     derived_scene_names,
     scene_identity,
 )
+from ai_anime.modules.asset_world.domain.asset_names import path_safe_asset_name
 
 AssetUrl = Callable[[str | Path], str]
 
@@ -70,11 +71,13 @@ class SceneCatalogUseCases:
         asset_url: AssetUrl,
         command: CreateSceneCommand,
     ) -> dict[str, Any]:
-        name = compose_scene_asset_name(
-            command.name,
-            command.base_scene_id,
-            command.variant_id,
-            command.time_of_day,
+        name = path_safe_asset_name(
+            compose_scene_asset_name(
+                command.name,
+                command.base_scene_id,
+                command.variant_id,
+                command.time_of_day,
+            )
         )
         if not name:
             raise InvalidSceneInput("Scene name is required")
@@ -126,6 +129,7 @@ class SceneCatalogUseCases:
         )
         if next_base:
             requested_name = structured_name
+        requested_name = path_safe_asset_name(requested_name)
         if requested_name and requested_name != scene.name:
             await self._reject_scene_with_derivatives(repository, scene.name)
             if await repository.get_scene(requested_name) is not None:

@@ -46,6 +46,8 @@ class CommercialCreativeCanvasVideoGenerationJobRuntime:
         ]
         generator = create_video_generator(
             model_role=command.model_role,
+            model=command.model,
+            model_selector=command.model_selector,
             resolution=command.resolution,
             generate_audio=command.generate_audio,
         )

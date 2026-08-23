@@ -27,7 +27,11 @@ from ai_anime.modules.narrative_planning.public import (
     start_episode_planning,
     update_episode_metadata,
 )
-from ai_anime.modules.story_intake.public import build_chapter_preview
+from ai_anime.modules.story_intake.public import (
+    StoryImportRequired,
+    build_chapter_preview,
+    story_import_required_response,
+)
 
 logger = logging.getLogger("ai_anime.api.episodes")
 
@@ -87,6 +91,8 @@ async def plan_episodes(project: str, body: EpisodePlanRequest, user: dict = Dep
             output_dir=output_dir,
             state_dir=state_dir,
         )
+    except StoryImportRequired:
+        return story_import_required_response()
     except ProjectContextRequired as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}

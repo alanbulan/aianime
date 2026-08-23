@@ -29,6 +29,9 @@ from ai_anime.modules.production.application.selected_regeneration import (
     SelectedRegenerationKind,
     SelectedRegenerationTask,
 )
+from ai_anime.modules.model_usage.domain.model_route import (
+    resolve_model_route,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure import project_stores
 from ai_anime.modules.task_execution.public import selection_scope
@@ -87,6 +90,9 @@ class LocalManualSketchRegenerationPreparer:
             )
             if not image_selection:
                 raise ManualSketchRegenerationRejected("请先选择草图图片模型")
+            image_route = resolve_model_route(image_selection)
+            if not image_route.model:
+                raise ManualSketchRegenerationRejected("草图图片模型路由无效")
             generation_context = self._generation_context_factory(store, context)
             character_map = await generation_context.build_character_map(
                 beats=beats,
@@ -110,7 +116,8 @@ class LocalManualSketchRegenerationPreparer:
                         "beats": beats,
                         "character_map": character_map,
                         "style": style,
-                        "model": image_selection,
+                        "model": image_route.model,
+                        "model_selector": image_route.selector,
                         "selected_beat_numbers": list(selected_beats),
                         "composite_key": f"{mode_key}:sketch",
                         "sketch_colors": sketch_colors,

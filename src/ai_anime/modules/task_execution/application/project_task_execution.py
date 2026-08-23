@@ -223,6 +223,17 @@ def project_task_failure_for_exception(
         return INSUFFICIENT_CREDITS_MESSAGE, insufficient_credits_payload(exc), True
 
     try:
+        from ai_anime.modules.story_intake.public import StoryImportRequired
+
+        if isinstance(exc, StoryImportRequired):
+            return str(exc), {"error_code": exc.error_code}, True
+    except Exception as classification_error:
+        logger.debug(
+            "could not classify story-import prerequisite failure: %s",
+            classification_error,
+        )
+
+    try:
         from ai_anime.modules.asset_world.public import Sharp3DUnavailable
 
         if isinstance(exc, Sharp3DUnavailable):

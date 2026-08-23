@@ -25,7 +25,10 @@ import type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
-import type { ImageModelOption } from "@/modules/production/domain/image-model";
+import {
+  resolveAuthorizedImageModel,
+  type ImageModelOption,
+} from "@/modules/production/domain/image-model";
 import type {
   AssignColorsResult,
   DetectIdentitiesResult,
@@ -359,9 +362,13 @@ export function createUseBatchBarController(
       () => imageModels.data.map(({ label, value }) => ({ label, value })),
       [imageModels.data],
     );
-    const availableImageModelIds = useMemo(
-      () => new Set(imageModels.data.map((option) => option.value)),
-      [imageModels.data],
+    const renderModelValue = resolveAuthorizedImageModel(
+      imageModels.data,
+      renderSettingsData?.render_image_selection,
+    );
+    const sketchModelValue = resolveAuthorizedImageModel(
+      imageModels.data,
+      sketchSettingsData?.sketch_image_selection,
     );
 
     const onRenderModelChange = async (value: string) => {
@@ -514,11 +521,7 @@ export function createUseBatchBarController(
         isVisible: renderSettingsData !== undefined,
         onChange: onRenderModelChange,
         options: renderModelOptions,
-        value: availableImageModelIds.has(
-          renderSettingsData?.render_image_selection ?? "",
-        )
-          ? renderSettingsData?.render_image_selection ?? ""
-          : "",
+        value: renderModelValue,
       },
       sketchAspectRatio,
       sketchModel: {
@@ -527,11 +530,7 @@ export function createUseBatchBarController(
         isVisible: sketchSettingsData !== undefined,
         onChange: onSketchModelChange,
         options: sketchModelOptions,
-        value: availableImageModelIds.has(
-          sketchSettingsData?.sketch_image_selection ?? "",
-        )
-          ? sketchSettingsData?.sketch_image_selection ?? ""
-          : "",
+        value: sketchModelValue,
       },
       showEpisodeAudio: spineTemplate !== "drama",
       showGlobalOptimize: spineTemplate === "narrated",

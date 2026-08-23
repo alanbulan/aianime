@@ -12,7 +12,7 @@ import type {
   DirectorControlFrameStatus,
 } from "@/modules/asset_world/domain/beat-viewer";
 import { p } from "@/shared/api/path";
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 
 interface BeatBackgroundReferenceDto {
   id: string;
@@ -178,7 +178,7 @@ export const httpBeatViewerGateway: BeatViewerGateway = {
   async uploadBackgroundAnchor(project, episode, beatNumber, file) {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    const response = await api
+    const response = await uploadApi
       .post(
         beatPath(project, episode, beatNumber, "background-anchor/upload"),
         { body: formData },

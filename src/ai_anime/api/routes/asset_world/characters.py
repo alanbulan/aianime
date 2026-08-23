@@ -17,6 +17,10 @@ from ai_anime.api.deps import (
     resolve_project_scope,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.story_intake.public import (
+    StoryImportRequired,
+    story_import_required_response,
+)
 from ai_anime.api.routes.asset_world.characters_schemas import (
     AssetImageSourceSelectionRequest,
     PortraitGenRequest,
@@ -149,6 +153,8 @@ async def build_characters(project: str, user: dict = Depends(get_api_user)):
             task_context=ctx,
             output_dir=output_dir,
         )
+    except StoryImportRequired:
+        return story_import_required_response()
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
@@ -625,6 +631,7 @@ async def generate_single_portrait_async(
             character_name=name,
             style=options.style,
             model=options.model,
+            model_selector=options.model_selector,
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -852,6 +859,7 @@ async def generate_identity_portrait_async(
             identity_id=identity_id,
             style=options.style,
             model=options.model,
+            model_selector=options.model_selector,
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
@@ -922,6 +930,7 @@ async def generate_identity_image_async(
             identity_id=identity_id,
             style=options.style,
             model=options.model,
+            model_selector=options.model_selector,
         )
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}

@@ -73,6 +73,9 @@ export const VIDEO_NODE_ASPECT_RATIOS: ReadonlyArray<VideoGenerationAspectRatio>
   '3:4',
   '9:16',
   '21:9',
+  '9:21',
+  '5:4',
+  '4:5',
 ];
 export const VIDEO_NODE_COUNT_OPTIONS: ReadonlyArray<VideoNodeGenerationCount> = [
   1,

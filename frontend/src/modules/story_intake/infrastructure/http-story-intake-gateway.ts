@@ -1,4 +1,4 @@
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
 import type {
@@ -63,7 +63,7 @@ export const httpStoryIntakeGateway: StoryIntakeGateway = {
     return unwrapData(
       await jsonWithBackendError<
         ApiDataResponse<UploadResult> | ApiErrorResponse
-      >(api.post(p`api/v1/projects/${project}/ingest/upload`, { body: formData })),
+      >(uploadApi.post(p`api/v1/projects/${project}/ingest/upload`, { body: formData })),
     );
   },
 

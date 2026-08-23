@@ -221,6 +221,7 @@ def run_scene_360(
     source: str,
     description: str = "",
     model: str = "",
+    model_selector: str = "",
     style: str = "",
     image_size: str = "",
     quality: str = "",
@@ -288,6 +289,8 @@ def run_scene_360(
         quality,
     ]
     cmd.extend(["--model", resolved_model])
+    if str(model_selector or "").strip():
+        cmd.extend(["--model-selector", str(model_selector).strip()])
 
     manifest_source = "text_to_360"
     master_path = ""

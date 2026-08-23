@@ -8,6 +8,7 @@ from typing import Literal
 SpineTemplate = Literal["drama", "narrated"]
 MAX_STORY_UPLOAD_BYTES = 512 * 1024
 MAX_STORY_IMPORT_BYTES = 1024 * 1024
+MAX_STORY_IMPORT_CHARS = 100_000
 
 
 class SpineTemplateChangeRequiresRebuild(ValueError):

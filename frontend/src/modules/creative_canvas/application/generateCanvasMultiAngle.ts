@@ -21,6 +21,7 @@ export interface CanvasMultiAngleGenerationCommand {
   readonly shotSize: MultiAngleZoomLevel;
   readonly prompt: string;
   readonly model: string;
+  readonly modelSelector?: string;
   readonly imageSize: MultiAngleImageSize;
 }
 
@@ -40,6 +41,7 @@ export interface GenerateCanvasMultiAngleParams {
   readonly shotSize: MultiAngleZoomLevel;
   readonly promptOverride: string | null;
   readonly model: string;
+  readonly modelSelector?: string;
   readonly imageSize: MultiAngleImageSize;
 }
 
@@ -66,6 +68,7 @@ export async function generateCanvasMultiAngle(
     shotSize: params.shotSize,
     prompt: params.promptOverride ?? "",
     model: params.model,
+    modelSelector: params.modelSelector,
     imageSize: params.imageSize,
   });
   const url = await completeCanvasMediaGenerationTask(

@@ -2,6 +2,11 @@
 import { useEffect, useRef } from "react";
 
 import type { CanvasSaveArgs } from "../application/canvasSave";
+import { canvasDraftSignature } from "../application/canvasDraft";
+import {
+  createCanvasSaveSession,
+  type CanvasSaveSession,
+} from "../application/canvasSaveCoordinator";
 import type { CanvasUnloadSaveArgs } from "../application/canvasUnloadSave";
 import type { CanvasDraftPersistenceController } from "./useCanvasDraftPersistenceController";
 import type {
@@ -120,10 +125,15 @@ export function createUseCanvasSaveController<
     publishBackupStatus,
     publishRevision,
   }: CanvasSaveControllerOptions<TNode, TEdge>): CanvasSaveController {
-    const inFlightRef = useRef<Promise<boolean> | null>(null);
     const timerRef = useRef<unknown | null>(null);
     const pendingClientSaveIdRef = useRef<string | null>(null);
     const pendingClientSaveIdSignatureRef = useRef<string | null>(null);
+    const saveSessionRef = useRef<CanvasSaveSession | null>(null);
+    const saveSessionGenerationRef = useRef(0);
+    const runSaveRef = useRef<
+      (version: number, session: CanvasSaveSession) => Promise<boolean>
+    >(async () => false);
+    const canvasKey = JSON.stringify([project, canvasId]);
 
     const cancelPendingSave = () => {
       if (timerRef.current == null) return;
@@ -132,13 +142,48 @@ export function createUseCanvasSaveController<
     };
 
     const resetIdentity = () => {
+      cancelPendingSave();
+      saveSessionRef.current?.dispose();
+      saveSessionRef.current = null;
       pendingClientSaveIdRef.current = null;
       pendingClientSaveIdSignatureRef.current = null;
     };
 
-    const saveCurrent = async (): Promise<boolean> => {
+    const ensureSaveSession = (): CanvasSaveSession => {
+      const current = saveSessionRef.current;
+      if (
+        current &&
+        !current.isDisposed() &&
+        current.canvasKey === canvasKey
+      ) {
+        return current;
+      }
+      current?.dispose();
+      const session = createCanvasSaveSession({
+        canvasKey,
+        generation: (saveSessionGenerationRef.current += 1),
+        runSave: (version, activeSession) =>
+          runSaveRef.current(version, activeSession),
+      });
+      saveSessionRef.current = session;
+      return session;
+    };
+
+    runSaveRef.current = async (version, session): Promise<boolean> => {
+      const isCurrent = () =>
+        saveSessionRef.current === session && !session.isDisposed();
+      if (!isCurrent()) return false;
+      if (statusRef.current === "conflict" || statusRef.current === "error") {
+        return false;
+      }
       const canvasState = dependencies.store.read();
       const shot = dependencies.readShotMetadata();
+      const metadata = buildPersistMetadata(shot);
+      const sentSignature = canvasDraftSignature(
+        canvasState.nodes,
+        canvasState.edges,
+        metadata,
+      );
       lastSavedViewportRef.current = canvasState.currentViewport;
       return await dependencies.scheduleCanvasSave({
         project,
@@ -146,7 +191,7 @@ export function createUseCanvasSaveController<
         nodes: canvasState.nodes,
         edges: canvasState.edges,
         viewport: canvasState.currentViewport,
-        metadata: buildPersistMetadata(shot),
+        metadata,
         revisionRef,
         canvasEnvelopeRef,
         pendingClientSaveIdRef,
@@ -156,13 +201,32 @@ export function createUseCanvasSaveController<
         lastRemoteNodeCountRef,
         setStatus,
         setError,
-        inFlightRef,
+        isCurrent,
         publishBackupStatus,
         publishRevision,
-        clearDraftAfterSave: draftPersistence.clearAfterSave,
-        markDraftPersisted: draftPersistence.markPersisted,
+        clearDraftAfterSave: () => {
+          if (!isCurrent() || session.hasUnsavedContentBeyond(version)) return;
+          const latest = dependencies.store.read();
+          const latestMetadata = buildPersistMetadata(
+            dependencies.readShotMetadata(),
+          );
+          const latestSignature = canvasDraftSignature(
+            latest.nodes,
+            latest.edges,
+            latestMetadata,
+          );
+          if (latestSignature === sentSignature) {
+            draftPersistence.clearAfterSave();
+          }
+        },
+        markDraftPersisted: (signature) => {
+          if (isCurrent()) draftPersistence.markPersisted(signature);
+        },
       });
     };
+
+    const saveCurrent = async (): Promise<boolean> =>
+      await ensureSaveSession().requestSave();
 
     const flush = async (): Promise<boolean> => {
       cancelPendingSave();
@@ -170,6 +234,7 @@ export function createUseCanvasSaveController<
     };
 
     useEffect(() => {
+      const saveSession = ensureSaveSession();
       const triggerSave = () => {
         if (!hydratedRef.current || switchingRef.current) return;
         draftPersistence.scheduleWrite();
@@ -214,6 +279,10 @@ export function createUseCanvasSaveController<
         if (timerRef.current != null) {
           dependencies.cancelScheduled(timerRef.current);
         }
+        if (saveSessionRef.current === saveSession) {
+          saveSession.dispose();
+          saveSessionRef.current = null;
+        }
       };
     }, [project, canvasId]);
 
@@ -243,7 +312,7 @@ export function createUseCanvasSaveController<
         hasUnsettledContentSave:
           draftPersistence.hasPendingWrite() ||
           timerRef.current != null ||
-          inFlightRef.current != null ||
+          saveSessionRef.current?.isSaving() === true ||
           statusRef.current === "saving",
         hasPendingContentSave: timerRef.current != null,
         lastPersistedDraftSignature:

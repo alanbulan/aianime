@@ -32,6 +32,7 @@ from ai_anime.modules.asset_world.domain.prop_catalog import (
     normalize_prop_lookup,
     prop_lookup_keys,
 )
+from ai_anime.modules.asset_world.domain.asset_names import path_safe_asset_name
 
 AssetUrl = Callable[[str | Path], str]
 
@@ -93,7 +94,8 @@ class PropCatalogUseCases:
 
         promoted: list[str] = []
         for item in self._local_props.normalize_menu(prop_menu or []):
-            prop_id = str(getattr(item, "prop_id", "") or "").strip()
+            original_prop_id = str(getattr(item, "prop_id", "") or "").strip()
+            prop_id = path_safe_asset_name(original_prop_id)
             lookup = normalize_prop_lookup(prop_id)
             if not lookup or lookup in existing_keys:
                 continue
@@ -105,6 +107,7 @@ class PropCatalogUseCases:
             prop = self._factory.create(
                 CreatePropCommand(
                     name=prop_id,
+                    aliases=(original_prop_id,) if original_prop_id != prop_id else (),
                     prop_type=(
                         str(getattr(item, "prop_type", "") or "").strip()
                         or "object"
@@ -192,7 +195,7 @@ class PropCatalogUseCases:
         asset_url: AssetUrl,
         command: CreatePropCommand,
     ) -> dict[str, Any]:
-        name = command.name.strip()
+        name = path_safe_asset_name(command.name.strip())
         if not name:
             raise InvalidPropInput("Prop name is required")
         if await repository.get_prop(name) is not None:
@@ -220,7 +223,9 @@ class PropCatalogUseCases:
             raise PropNotFound(f"Prop '{prop_name}' not found")
 
         updates = dict(command.fields)
-        requested_name = str(updates.pop("name", "") or "").strip()
+        requested_name = path_safe_asset_name(
+            str(updates.pop("name", "") or "").strip()
+        )
         if requested_name and requested_name != prop.name:
             if await repository.get_prop(requested_name) is not None:
                 raise PropAlreadyExists(

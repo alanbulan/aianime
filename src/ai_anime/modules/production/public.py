@@ -230,6 +230,7 @@ from ai_anime.modules.production.application.sketch_markers import (
 from ai_anime.modules.production.application.model_selection import (
     resolve_episode_video_resolution,
     resolve_video_generation_model,
+    resolve_video_generation_route,
 )
 from ai_anime.modules.production.application.sketch_regen_queue import (
     ReplaceSketchRegenQueueCommand,
@@ -1108,6 +1109,7 @@ __all__ = [
     "render_plan_use_cases",
     "resolve_episode_video_resolution",
     "resolve_video_generation_model",
+    "resolve_video_generation_route",
     "resolve_character_voice",
     "resolve_narrator_reference_status",
     "resolve_narrator_source",

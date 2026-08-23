@@ -16,7 +16,9 @@ from ai_anime.shared.infrastructure.project_sqlite_graph_state import (
 )
 from ai_anime.shared.infrastructure.project_sqlite_schema import (
     SQLITE_SCHEMA_SQL as SQLITE_SCHEMA_SQL,
-    _add_column_if_missing as _add_column_if_missing,
+)
+from ai_anime.migrations.project.helpers import (
+    add_column_if_missing as _add_column_if_missing,
 )
 
 
@@ -30,4 +32,9 @@ class SQLiteStore(
     """Concrete project SQLite unit of work with one-shot lifecycle semantics."""
 
 
-__all__ = ["SQLiteStore", "StoreClosedError"]
+__all__ = [
+    "SQLiteStore",
+    "StoreClosedError",
+    "SQLITE_SCHEMA_SQL",
+    "_add_column_if_missing",
+]

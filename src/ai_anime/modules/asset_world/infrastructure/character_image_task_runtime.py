@@ -84,6 +84,7 @@ async def execute_character_image_task(
     identity_name = str(payload.get("identity_name") or "")
     style = str(payload.get("style") or "")
     model = str(payload.get("model") or "")
+    model_selector = str(payload.get("model_selector") or "")
     output_dir = Path(str(payload.get("output_dir") or ctx.output_dir))
     task_type = str(envelope.get("task_type") or payload.get("task_type") or "character_portrait")
     scope = envelope.get("scope") or payload.get("scope")
@@ -117,6 +118,7 @@ async def execute_character_image_task(
                 output_dir=output_dir,
                 style=style,
                 model=model,
+                model_selector=model_selector,
                 task_type=task_type,
                 scope=str(scope or ""),
                 update=update,
@@ -131,6 +133,7 @@ async def execute_character_image_task(
                 output_dir=output_dir,
                 style=style,
                 model=model,
+                model_selector=model_selector,
                 task_type=task_type,
                 scope=str(scope or ""),
                 update=update,
@@ -144,6 +147,7 @@ async def execute_character_image_task(
                 output_dir=output_dir,
                 style=style,
                 model=model,
+                model_selector=model_selector,
                 task_type=task_type,
                 scope=str(scope or ""),
                 update=update,
@@ -168,6 +172,7 @@ async def _generate_character_portrait(
     output_dir: Path,
     style: str,
     model: str,
+    model_selector: str,
     task_type: str,
     scope: str,
     update,
@@ -191,6 +196,7 @@ async def _generate_character_portrait(
             style=style,
             ethnicity=ethnicity,
             model=model,
+            model_selector=model_selector or None,
             project_dir=str(output_dir),
             usage_task_type=task_type,
             usage_scope=scope,
@@ -213,6 +219,7 @@ async def _generate_identity_portrait(
     output_dir: Path,
     style: str,
     model: str,
+    model_selector: str,
     task_type: str,
     scope: str,
     update,
@@ -240,6 +247,7 @@ async def _generate_identity_portrait(
             style=style,
             ethnicity=ethnicity,
             model=model,
+            model_selector=model_selector or None,
             project_dir=str(output_dir),
             usage_task_type=task_type,
             usage_scope=scope,
@@ -268,6 +276,7 @@ async def _generate_identity_image(
     output_dir: Path,
     style: str,
     model: str,
+    model_selector: str,
     task_type: str,
     scope: str,
     update,
@@ -333,6 +342,7 @@ async def _generate_identity_image(
             ethnicity=ethnicity,
             style=style,
             model=model,
+            model_selector=model_selector or None,
             project_dir=str(output_dir),
             costume_image_path=costume_image if has_costume_image else "",
             usage_task_type=task_type,

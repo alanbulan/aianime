@@ -141,6 +141,7 @@ export function createScene360Overlay({
             referenceUrl: imageSource,
             aspectRatio,
             model: selectedModel.apiModel,
+            modelSelector: selectedModel.routeSelector,
           },
           (task) => {
             updateNodeData(nextNodeId, generationTaskDescriptor(task));

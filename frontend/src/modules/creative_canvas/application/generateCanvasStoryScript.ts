@@ -31,6 +31,7 @@ export interface CanvasStoryScriptCharacterReference {
 export interface CanvasStoryScriptCommand {
   readonly sourceText: string;
   readonly model?: string;
+  readonly modelSelector?: string;
   readonly videoUrl?: string;
   readonly durationSec?: number;
   readonly characterRefs?: CanvasStoryScriptCharacterReference[];
@@ -43,9 +44,16 @@ export interface CanvasStoryScriptRow {
   shot_no?: string | number | null;
   duration?: string | number | null;
   visual_description?: string | null;
-  character?: string | null;
+  character_1?: string | null;
+  character_description_1?: string | null;
+  character_image_1?: string | null;
+  character_2?: string | null;
+  character_description_2?: string | null;
+  character_image_2?: string | null;
+  reference?: string | null;
+  keyframe_index?: number | null;
   shot?: string | null;
-  action?: string | null;
+  character_action?: string | null;
   emotion?: string | null;
   scene_tags?: string | null;
   lighting_mood?: string | null;
@@ -59,6 +67,7 @@ export interface CanvasStoryScriptRow {
 export interface CanvasStoryScriptResult {
   title?: string | null;
   rows: CanvasStoryScriptRow[];
+  frame_urls?: string[] | null;
 }
 
 export interface BuildCanvasStoryScriptCommandParams {
@@ -77,9 +86,6 @@ export function buildCanvasStoryScriptCommand(
     .filter((text) => text.length > 0)
     .join("\n\n");
   const trimmedPrompt = params.prompt.trim();
-  const sourceText = upstreamText.length > 0 ? upstreamText : trimmedPrompt;
-  if (!sourceText) return null;
-
   const videoReference = params.references.find(
     (reference) => reference.kind === "video" && reference.videoUrl,
   );
@@ -91,6 +97,13 @@ export function buildCanvasStoryScriptCommand(
         ? { name: reference.displayName.trim() }
         : {}),
     }));
+  const hasMedia = Boolean(videoReference?.videoUrl) || characterRefs.length > 0;
+  const sourceText = upstreamText.length > 0
+    ? upstreamText
+    : hasMedia
+      ? ""
+      : trimmedPrompt;
+  if (!sourceText && !hasMedia) return null;
   return {
     sourceText,
     ...(videoReference?.videoUrl
@@ -100,7 +113,7 @@ export function buildCanvasStoryScriptCommand(
       ? { durationSec: videoReference.durationSec }
       : {}),
     ...(characterRefs.length > 0 ? { characterRefs } : {}),
-    ...(upstreamText.length > 0 && trimmedPrompt
+    ...((upstreamText.length > 0 || hasMedia) && trimmedPrompt
       ? { prompt: trimmedPrompt }
       : {}),
     canvasId: params.canvasId,

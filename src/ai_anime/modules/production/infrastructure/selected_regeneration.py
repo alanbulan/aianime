@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.infrastructure.media_generation.render_identity_guard import (
@@ -29,6 +30,9 @@ from ai_anime.modules.production.application.selected_regeneration import (
 from ai_anime.modules.production.domain.selected_regeneration import (
     selected_beat_indices_error,
 )
+from ai_anime.modules.model_usage.domain.model_route import (
+    resolve_model_route,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure import project_stores
 from ai_anime.modules.task_execution.public import (
@@ -36,6 +40,33 @@ from ai_anime.modules.task_execution.public import (
     ProjectTaskSubmissionUseCases,
     selection_scope,
 )
+
+
+def _single_render_mode_from_sketch(
+    output_dir: str | Path,
+    episode_num: int,
+    beat_indices: tuple[int, ...],
+) -> str | None:
+    if len(beat_indices) != 1:
+        return None
+    from PIL import Image
+
+    from ai_anime.shared.utils.path_resolver import PathResolver
+
+    sketch_path = PathResolver(output_dir, episode_num).sketch(beat_indices[0])
+    try:
+        with Image.open(sketch_path) as image:
+            width, height = image.size
+    except (OSError, ValueError):
+        return None
+    if width <= 0 or height <= 0:
+        return None
+    ratio = width / height
+    return (
+        "1x1_16-9"
+        if abs(ratio - 16 / 9) < abs(ratio - 2 / 3)
+        else "1x1_2-3"
+    )
 
 
 class LocalSelectedRegenerationPreparer:
@@ -119,12 +150,16 @@ class LocalSelectedRegenerationPreparer:
             if not image_selection:
                 label = "草图" if command.kind is SelectedRegenerationKind.SKETCH else "渲染"
                 raise SelectedRegenerationRejected(f"请先选择{label}图片模型")
+            image_route = resolve_model_route(image_selection)
+            if not image_route.model:
+                raise SelectedRegenerationRejected("图片模型路由无效")
 
             config = {
                 "beats": beats,
                 "character_map": character_map,
                 "style": style,
-                "model": image_selection,
+                "model": image_route.model,
+                "model_selector": image_route.selector,
                 "selected_beat_numbers": list(command.beat_indices),
                 "sketch_colors": (
                     store.get_sketch_colors(command.episode_num) or {}
@@ -139,11 +174,21 @@ class LocalSelectedRegenerationPreparer:
                     )
                 )
 
-            scope = selection_scope(command.mode_key, command.beat_indices)
+            mode_key = command.mode_key
+            if command.kind is SelectedRegenerationKind.RENDER:
+                mode_key = (
+                    _single_render_mode_from_sketch(
+                        context.output_dir,
+                        command.episode_num,
+                        command.beat_indices,
+                    )
+                    or mode_key
+                )
+            scope = selection_scope(mode_key, command.beat_indices)
             return SelectedRegenerationTask(
                 kind=command.kind,
                 episode_num=command.episode_num,
-                mode_key=command.mode_key,
+                mode_key=mode_key,
                 scope=scope,
                 output_dir=context.output_dir,
                 config=config,

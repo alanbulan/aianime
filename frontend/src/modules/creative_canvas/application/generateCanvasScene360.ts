@@ -11,6 +11,7 @@ export interface CanvasScene360GenerationCommand {
   readonly referenceUrl: string;
   readonly aspectRatio: CanvasScene360AspectRatio;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface CanvasScene360GenerationGateway {
@@ -25,6 +26,7 @@ export interface GenerateCanvasScene360Params {
   readonly referenceUrl: string;
   readonly aspectRatio: CanvasScene360AspectRatio;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface GenerateCanvasScene360Dependencies {
@@ -51,6 +53,7 @@ export async function generateCanvasScene360(
     referenceUrl,
     aspectRatio: params.aspectRatio,
     model: params.model,
+    modelSelector: params.modelSelector,
   });
   const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },

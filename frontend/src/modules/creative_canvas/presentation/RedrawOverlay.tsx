@@ -48,6 +48,7 @@ import type {
   GenerateCanvasRedrawResult,
 } from '../application/generateCanvasRedraw';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
+import { buildRedHighlightMaskBlob } from '../application/maskHighlight';
 
 import { CreditCostPill } from '@/components/credit-visual';
 import {
@@ -428,23 +429,11 @@ export function createRedrawOverlay({
     );
 
     const buildMaskBlob = useCallback(async (): Promise<Blob> => {
-      const src = maskCanvasRef.current;
-      if (!src) throw new Error('mask canvas not ready');
-      const out = document.createElement('canvas');
-      out.width = src.width;
-      out.height = src.height;
-      const ctx = out.getContext('2d');
-      if (!ctx) throw new Error('ctx');
-      ctx.fillStyle = 'rgba(255,255,255,1)';
-      ctx.fillRect(0, 0, out.width, out.height);
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.drawImage(src, 0, 0);
-      return await new Promise<Blob>((resolve, reject) => {
-        out.toBlob(
-          (blob) => (blob ? resolve(blob) : reject(new Error('toBlob returned null'))),
-          'image/png',
-        );
-      });
+      const mask = maskCanvasRef.current;
+      const baseCanvas = baseCanvasRef.current;
+      if (!mask) throw new Error('mask canvas not ready');
+      if (!baseCanvas) throw new Error('source image not ready');
+      return await buildRedHighlightMaskBlob(baseCanvas, mask);
     }, []);
 
     // 建一个 loading 结果节点并连边，立即返回节点 id（同步，不等待上传/生成）。
@@ -487,6 +476,7 @@ export function createRedrawOverlay({
         sourceUrl: string,
         maskUrl: string | null,
         apiModel: string,
+        modelSelector?: string,
       ) => {
         try {
           const { url } = await generateCanvasRedraw(
@@ -498,6 +488,7 @@ export function createRedrawOverlay({
               aspectRatio,
               imageSize,
               model: apiModel,
+              modelSelector,
             },
             (task) => {
               updateNodeData(nodeId, generationTaskDescriptor(task));
@@ -576,7 +567,14 @@ export function createRedrawOverlay({
         }
         const apiModel = selectedModel.apiModel;
         nodeIds.forEach((id) =>
-          void runRedrawGeneration(projectId, id, sourceUrl, maskUrl, apiModel),
+          void runRedrawGeneration(
+            projectId,
+            id,
+            sourceUrl,
+            maskUrl,
+            apiModel,
+            selectedModel.routeSelector,
+          ),
         );
       } catch (err) {
         // 蒙版上传等前置步骤失败：把所有占位节点标记为失败。

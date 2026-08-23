@@ -9,7 +9,7 @@ import {
   type Seedance2ConfigDraft,
 } from "@/modules/production/domain/video-config";
 
-export type Seedance2CropAspect = "2:3" | "9:16" | "16:9";
+export type Seedance2CropAspect = Seedance2ConfigDraft["ratio"];
 
 export interface Seedance2CropIntent {
   asset: Seedance2AssetItem;
@@ -56,7 +56,6 @@ export function videoInputCropAspectForProjectAspect(
 }
 
 export function cropAspectRatioValue(aspect: Seedance2CropAspect): number {
-  if (aspect === "16:9") return 16 / 9;
-  if (aspect === "2:3") return 2 / 3;
-  return 9 / 16;
+  const [width, height] = aspect.split(":").map(Number);
+  return width > 0 && height > 0 ? width / height : 9 / 16;
 }

@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 
 import {
-  VIDEO_NODE_ASPECT_RATIOS,
   VIDEO_NODE_COUNT_OPTIONS,
   VIDEO_NODE_MAX_HEIGHT,
   VIDEO_NODE_MAX_WIDTH,
@@ -120,6 +119,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
     handleModelChange,
     getModelDisabledReason,
     aspectRatio,
+    aspectRatioOptions,
     qualityOptions,
     quality,
     durationBounds,
@@ -535,7 +535,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
               />
               <VideoConfigChip
                 aspectRatio={aspectRatio}
-                aspectRatioOptions={VIDEO_NODE_ASPECT_RATIOS}
+                aspectRatioOptions={aspectRatioOptions}
                 quality={quality}
                 qualityOptions={qualityOptions}
                 durationSec={durationSec}

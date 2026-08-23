@@ -35,6 +35,7 @@ class GenerateSingleVideoCommand:
     beat_num: int
     video_model: str
     resolution: str
+    model_selector: str | None = None
     use_director_render: bool = False
     seedance2_config_json: str | None = None
     mode: str | None = None

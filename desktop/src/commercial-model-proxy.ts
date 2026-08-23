@@ -64,6 +64,7 @@ export interface ModelRouteAuditEntry {
 
 interface ModelRoute {
   key: string;
+  selector: string;
   source: "cloud" | "byok";
   label: string;
   role: ByokModelRole;
@@ -213,8 +214,11 @@ export class CommercialModelProxy {
         requestHeaders["idempotency-key"] = randomUUID();
       }
       const explicitRole = normalizeRoleHeader(request.headers["x-ai-anime-model-role"]);
+      const explicitSelector = normalizeModelSelectorHeader(
+        request.headers["x-ai-anime-model-selector"],
+      );
       const role = explicitRole ?? inferModelRole(path);
-      const routes = this.routesForRequest(path, role);
+      const routes = this.routesForRequest(path, role, explicitSelector);
       const abortController = new AbortController();
       const abortUpstream = () => abortController.abort();
       request.once("aborted", abortUpstream);
@@ -269,6 +273,7 @@ export class CommercialModelProxy {
   private routesForRequest(
     path: string,
     role: ByokModelRole | null,
+    selector: string | null,
   ): ModelRoute[] {
     const taskId = videoTaskId(path);
     const stickyRoute = taskId ? this.stickyVideoRoute(taskId) : undefined;
@@ -278,9 +283,13 @@ export class CommercialModelProxy {
         status: 422,
       });
     }
-    const routes = configuredRoutes(this.routing, role);
+    const configured = configuredRoutes(this.routing, role);
+    const routes = selector
+      ? configured.filter((route) => route.selector === selector)
+      : configured;
     if (routes.length === 0) {
-      throw new CommercialApiError(`模型用途 ${role} 没有可用路由`, {
+      const detail = selector ? `（选择器 ${selector}）` : "";
+      throw new CommercialApiError(`模型用途 ${role} 没有可用路由${detail}`, {
         status: 422,
       });
     }
@@ -585,6 +594,7 @@ function configuredRoutes(
     .filter((assignment) => assignment.enabled && assignment.role === role)
     .map((assignment) => ({
       key: `cloud:${assignment.role}:${assignment.modelId}`,
+      selector: `cloud:${assignment.modelId}`,
       source: "cloud" as const,
       label: "云端",
       role,
@@ -641,6 +651,7 @@ function providerRoutes(
     .filter((assignment) => assignment.enabled && assignment.role === role)
     .map((assignment) => ({
       key: `byok:${provider.id}:${assignment.role}:${assignment.modelId}`,
+      selector: `byok:${provider.id}:${assignment.modelId}`,
       source: "byok" as const,
       label: provider.name,
       role,
@@ -1559,6 +1570,22 @@ function normalizeRoleHeader(value: string | string[] | undefined): ByokModelRol
     throw new CommercialApiError("模型用途标头无效", { status: 400 });
   }
   return normalized as ByokModelRole;
+}
+
+function normalizeModelSelectorHeader(
+  value: string | string[] | undefined,
+): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const normalized = String(raw ?? "").trim();
+  if (!normalized) return null;
+  if (
+    normalized.length > 768 ||
+    /[\u0000-\u001f\u007f]/u.test(normalized) ||
+    (!normalized.startsWith("cloud:") && !normalized.startsWith("byok:"))
+  ) {
+    throw new CommercialApiError("模型路由选择器无效", { status: 422 });
+  }
+  return normalized;
 }
 
 function inferModelRole(path: string): ByokModelRole | null {

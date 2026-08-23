@@ -42,8 +42,9 @@ function commonRequestBody(submission: VideoGenerationSubmission) {
     resolution: submission.resolution,
     duration_seconds: Math.max(submission.durationSeconds ?? 5, 1),
     generate_audio: submission.generateAudio ?? false,
-    ...(submission.model
-      ? { model: submission.model, model_id: submission.model }
+    ...(submission.model ? { model: submission.model } : {}),
+    ...(submission.modelSelector
+      ? { model_id: submission.modelSelector }
       : {}),
     gen_mode: submission.genMode,
     ...nodeContextBody(submission),

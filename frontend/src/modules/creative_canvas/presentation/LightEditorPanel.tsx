@@ -148,6 +148,7 @@ export interface LightEditorSubmitPayload {
   rimLight: boolean;
   smartMode: LightSmartModeDescriptor;
   apiModel: string;
+  modelSelector?: string;
   imageSize: LightImageSize;
 }
 
@@ -968,6 +969,7 @@ export function LightEditorPanel({
       rimLight,
       smartMode: smart,
       apiModel: selectedModel.apiModel,
+      modelSelector: selectedModel.routeSelector,
       imageSize,
     });
   }, [

@@ -64,7 +64,7 @@ import type {
   RenderGenerationSettings,
 } from "@/modules/production/domain/sketch-generation";
 import { p } from "@/shared/api/path";
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 import { jsonWithBackendError } from "@/shared/api/errors";
 
 interface ImagePoolSelectHttpResponse {
@@ -212,7 +212,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   ) {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    const response = await api
+    const response = await uploadApi
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/${imageType}/upload`,
         { body: formData },
@@ -239,7 +239,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     formData.append("grid_type", command.gridType);
     formData.append("mode_key", command.modeKey);
     formData.append("beat_numbers", command.beatNumbers.join(","));
-    const response = await api
+    const response = await uploadApi
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/grids/${command.gridIndex}/upload`,
         { body: formData },
@@ -367,7 +367,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   async uploadSeedance2Asset(project, episode, beatNumber, file) {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    return api
+    return uploadApi
       .post(
         p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/seedance2/assets/upload`,
         { body: formData },
@@ -478,6 +478,9 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         {
           json: {
             model: command.model,
+            ...(command.modelSelector
+              ? { model_selector: command.modelSelector }
+              : {}),
             use_director_render: command.useDirectorRender,
             ...(command.resolution !== undefined
               ? { resolution: command.resolution }
@@ -512,7 +515,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   async uploadNarratorVoice(project, file) {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    return api
+    return uploadApi
       .post(p`api/v1/projects/${project}/narrator-voice/upload`, {
         body: formData,
       })

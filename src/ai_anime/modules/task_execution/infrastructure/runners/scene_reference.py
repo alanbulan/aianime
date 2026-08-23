@@ -40,6 +40,7 @@ async def _run_scene_reference_asset(
     kind = str(payload["kind"])
     style = str(payload.get("style") or "")
     model = str(payload.get("model") or "").strip()
+    model_selector = str(payload.get("model_selector") or "").strip()
     if not model:
         raise ValueError("场景参考图生成缺少图片模型")
     scope = envelope.get("scope")
@@ -78,6 +79,7 @@ async def _run_scene_reference_asset(
             scene=scene,
             kind=kind,  # type: ignore[arg-type]
             model=model,
+            model_selector=model_selector or None,
             style_id=style_id,
             base_scene=base_scene,
         )

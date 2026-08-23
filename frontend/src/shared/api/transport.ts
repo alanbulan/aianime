@@ -84,3 +84,7 @@ export const api = ky.create({
     ],
   },
 });
+
+// Multipart uploads are bounded by their caller/region AbortSignal rather than
+// by elapsed time: body upload duration depends on the user's upstream speed.
+export const uploadApi = api.extend({ timeout: false });

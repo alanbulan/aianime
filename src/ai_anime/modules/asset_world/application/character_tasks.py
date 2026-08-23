@@ -18,6 +18,7 @@ from ai_anime.modules.asset_world.application.ports import (
     CharacterTaskScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.story_intake.public import require_imported_story
 
 
 class CharacterTaskUseCases:
@@ -34,6 +35,7 @@ class CharacterTaskUseCases:
             task_context,
             "角色补充需要 project context",
         )
+        require_imported_story(output_dir)
         receipt = await self._scheduler.enqueue_build_characters(
             context,
             BuildCharactersTask(output_dir=output_dir),
@@ -52,6 +54,7 @@ class CharacterTaskUseCases:
         character_name: str,
         style: str,
         model: str,
+        model_selector: str = "",
     ) -> ScheduledAssetTask:
         context = self._require_context(
             task_context,
@@ -66,6 +69,7 @@ class CharacterTaskUseCases:
                 character_name=character_name,
                 style=style,
                 model=model,
+                model_selector=model_selector,
                 scope=scope,
                 output_dir=project_dir,
             ),
@@ -82,6 +86,7 @@ class CharacterTaskUseCases:
         identity_id: str,
         style: str,
         model: str,
+        model_selector: str = "",
     ) -> ScheduledAssetTask:
         identity = require_character_identity(
             repository,
@@ -103,6 +108,7 @@ class CharacterTaskUseCases:
                 identity_name=identity.identity_name,
                 style=style,
                 model=model,
+                model_selector=model_selector,
                 scope=scope,
                 output_dir=project_dir,
             ),
@@ -121,6 +127,7 @@ class CharacterTaskUseCases:
         identity_id: str,
         style: str,
         model: str,
+        model_selector: str = "",
     ) -> ScheduledAssetTask:
         identity = require_character_identity(
             repository,
@@ -142,6 +149,7 @@ class CharacterTaskUseCases:
                 identity_name=identity.identity_name,
                 style=style,
                 model=model,
+                model_selector=model_selector,
                 scope=scope,
                 output_dir=project_dir,
             ),

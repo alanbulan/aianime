@@ -41,6 +41,7 @@ class StartCreativeCanvasTextTranslationCommand:
     project_dir: Path
     text: str
     model: str
+    model_selector: str | None
     node_type: Literal["generic", "image", "video", "audio", "text"]
     canvas_id: str | None = None
     node_id: str | None = None
@@ -54,6 +55,12 @@ class StartCreativeCanvasStoryScriptCommand:
     source_url: str | None
     prompt: str
     model: str
+    model_selector: str | None
+    video_url: str | None
+    duration_sec: float | None
+    character_refs: tuple[dict[str, str], ...]
+    max_frames: int
+    scene_threshold: float
     canvas_id: str | None = None
     node_id: str | None = None
 
@@ -91,6 +98,7 @@ class CreativeCanvasTextProcessingUseCases:
                 payload={
                     "text": command.text,
                     "model": model,
+                    "model_id": (command.model_selector or "").strip(),
                     "node_type": command.node_type,
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
@@ -116,9 +124,27 @@ class CreativeCanvasTextProcessingUseCases:
                     f"unsupported text encoding: {source_path.name}"
                 ) from exc
 
-        if not source_text:
+        video_path: Path | None = None
+        if command.video_url:
+            video_path = self._resolve_source(command.project_dir, command.video_url)
+
+        character_refs = [dict(reference) for reference in command.character_refs]
+        character_image_paths: list[str] = []
+        for reference in character_refs:
+            image_url = str(reference.get("image_url") or "").strip()
+            if not image_url:
+                continue
+            try:
+                image_path = self._sources.resolve(command.project_dir, image_url)
+            except ValueError:
+                # 外链仍保留用于结果回填，但不作为本地多模态附件。
+                continue
+            if self._sources.exists(image_path):
+                character_image_paths.append(str(image_path))
+
+        if not source_text and video_path is None and not character_image_paths:
             raise InvalidCreativeCanvasTextProcessingRequest(
-                "source_text or source_url is required"
+                "source_text, source_url, video_url or character_refs is required"
             )
 
         return await self._scheduler.enqueue(
@@ -132,6 +158,13 @@ class CreativeCanvasTextProcessingUseCases:
                     "source_text": source_text,
                     "prompt": command.prompt,
                     "model": model,
+                    "model_id": (command.model_selector or "").strip(),
+                    "video_path": str(video_path) if video_path else "",
+                    "duration_sec": command.duration_sec,
+                    "max_frames": command.max_frames,
+                    "scene_threshold": command.scene_threshold,
+                    "character_refs": character_refs,
+                    "character_image_paths": character_image_paths,
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
                 },

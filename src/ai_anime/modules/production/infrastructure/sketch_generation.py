@@ -30,6 +30,9 @@ from ai_anime.modules.production.domain.sketch_generation import (
     invalid_sketch_grid_error,
     sketch_dispatch_indices,
 )
+from ai_anime.modules.model_usage.domain.model_route import (
+    resolve_model_route,
+)
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import (
     ProjectTaskSubmission,
@@ -147,11 +150,15 @@ class LocalSketchGenerationPreparer:
             )
             if not image_selection:
                 raise SketchGenerationRejected("请先选择草图图片模型")
+            image_route = resolve_model_route(image_selection)
+            if not image_route.model:
+                raise SketchGenerationRejected("草图图片模型路由无效")
             base_config = {
                 "beats": beats,
                 "character_map": character_map,
                 "style": style,
-                "model": image_selection,
+                "model": image_route.model,
+                "model_selector": image_route.selector,
                 "sketch_scene_grouping": command.sketch_scene_grouping,
                 "aspect_ratio": command.aspect_ratio,
                 "sketch_colors": (

@@ -9,6 +9,8 @@ export interface VideoCatalogItem {
 
 export interface VideoModelOption {
   value: string;
+  apiModel?: string;
+  routeSelector?: string;
   label: string;
   profile: "standard" | "seedance2" | "happyhorse" | "grok";
   supportsAdvancedConfig: boolean;
@@ -31,12 +33,16 @@ export function videoModelOptionsFromCatalog(
 }
 
 export function resolveAuthorizedVideoModel(
-  options: readonly Pick<VideoModelOption, "value">[],
+  options: readonly Pick<VideoModelOption, "value" | "apiModel">[],
   persistedModel: string | null | undefined,
 ): string {
   const persisted = String(persistedModel ?? "").trim();
-  return options.some((option) => option.value === persisted)
-    ? persisted
+  if (options.some((option) => option.value === persisted)) return persisted;
+  const legacyMatches = options.filter(
+    (option) => (option.apiModel ?? option.value) === persisted,
+  );
+  return legacyMatches.length === 1
+    ? legacyMatches[0]?.value ?? ""
     : (options[0]?.value ?? "");
 }
 
@@ -44,6 +50,7 @@ export function videoModelOptionFromCatalog(
   item: VideoCatalogItem,
 ): VideoModelOption {
   const capabilities = item.capabilities;
+  const routeSelector = stringValue(capabilities.routeSelector);
   const properties = schemaProperties(item.parameterSchema);
   const profile = videoProfile(capabilities, item.code);
   const resolutionOptions = stringArray(
@@ -93,7 +100,9 @@ export function videoModelOptionFromCatalog(
     );
 
   return {
-    value: item.code,
+    value: routeSelector ?? item.code,
+    apiModel: item.code,
+    ...optional("routeSelector", routeSelector),
     label: item.displayName,
     profile,
     supportsAdvancedConfig,
@@ -182,6 +191,10 @@ function finiteNumber(value: unknown): number | undefined {
 
 function booleanValue(value: unknown): boolean | undefined {
   return typeof value === "boolean" ? value : undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function resolutionFromSize(value: string): string | null {

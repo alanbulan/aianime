@@ -32,6 +32,9 @@ export const freezoneImageGenerationGateway: CanvasImageGenerationSubmissionGate
           ...(command.modelId ? { model_id: command.modelId } : {}),
           ...(command.genMode ? { gen_mode: command.genMode } : {}),
           quality: command.quality ?? null,
+          ...(command.extraParams && Object.keys(command.extraParams).length > 0
+            ? { extra_params: command.extraParams }
+            : {}),
           ...(command.canvasId ? { canvas_id: command.canvasId } : {}),
           ...(command.nodeId ? { node_id: command.nodeId } : {}),
         },

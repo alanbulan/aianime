@@ -14,6 +14,7 @@ export interface CanvasRedrawGenerationCommand {
   readonly imageSize: CanvasRedrawImageSize;
   readonly maskUrl: string | null;
   readonly model: string;
+  readonly modelSelector?: string;
   readonly prompt?: string;
   readonly sourceUrl: string;
 }
@@ -52,6 +53,7 @@ export async function generateCanvasRedraw(
     aspectRatio: params.aspectRatio,
     imageSize: params.imageSize,
     model: params.model,
+    modelSelector: params.modelSelector,
   });
   const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },

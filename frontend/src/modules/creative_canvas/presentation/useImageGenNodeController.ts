@@ -7,7 +7,10 @@ import {
   useState,
   type SyntheticEvent,
 } from 'react';
-import { useUpdateNodeInternals } from '@xyflow/react';
+import {
+  useStore as useReactFlowStore,
+  useUpdateNodeInternals,
+} from '@xyflow/react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -93,7 +96,15 @@ import {
   type ContextPromptPaletteEntry,
 } from '../domain/contextPromptPalette';
 import { orderedReferenceUrlsWithOwnFirst } from '../domain/referenceOrdering';
-import { resolveImageDisplayUrl } from '../domain/imageData';
+import {
+  nodeBodyImageMeasurement,
+  nodeBodyImageSrc,
+  nodeBodyRecordDescribesImage,
+  planNaturalSizeRecordWrite,
+  readNodeNaturalSize,
+  resolveImageDisplayUrl,
+  shouldUseOriginalImageByZoom,
+} from '../domain/imageData';
 import { resolveNodeDisplayName } from '../domain/nodeDisplay';
 import type { CanvasAssetLibrarySelection } from '../domain/assetLibrary';
 import { describeCameraSelection } from './CameraPickerPopover';
@@ -105,6 +116,8 @@ import {
 } from './albumPendingTotals';
 import { useNodeGenerationHistory } from './useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
+import { useNaturalSizeRecordTrust } from './useNaturalSizeRecordTrust';
+import { useNodeBodyVariantBudget } from './useNodeBodyVariantBudget';
 import { useReferenceMentionSync } from './useReferenceMentionSync';
 import type {
   MentionCandidate,
@@ -128,12 +141,17 @@ export interface ImageGenNodeStore {
   activeOverlayNodeId: string | null;
   hoveredNodeId: string | null;
   setActiveOverlayNodeId: (id: string | null) => void;
-  updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
+  updateNodeData: (
+    id: string,
+    patch: Partial<CanvasNodeData>,
+    options?: { recordHistory?: boolean },
+  ) => void;
   updateNodeSize: (
     id: string,
     size: { width: number; height: number },
     options?: {
       lockManualSize?: boolean;
+      recordHistory?: boolean;
       data?: Partial<CanvasNodeData>;
     },
   ) => void;
@@ -647,6 +665,32 @@ export function createUseImageGenNodeController({
     [data, referenceImageUrl],
   );
   const visiblePreviewUrl = isGenerating ? null : previewUrl;
+  const preferOriginalImage = useReactFlowStore((state) =>
+    shouldUseOriginalImageByZoom(state.transform[2]),
+  );
+  const recordedNaturalSize = useMemo(() => readNodeNaturalSize(data), [data]);
+  const { distrusted, distrustRecord, trustAgain } =
+    useNaturalSizeRecordTrust(visiblePreviewUrl);
+  const bodyVariantBudget = useNodeBodyVariantBudget({
+    width: resolvedWidth,
+    height: resolvedHeight,
+  });
+  const bodyImage = useMemo(
+    () => visiblePreviewUrl
+      ? nodeBodyImageSrc(visiblePreviewUrl, recordedNaturalSize, {
+          preferOriginal: preferOriginalImage || distrusted,
+          requiredEdge: bodyVariantBudget,
+        })
+      : null,
+    [
+      bodyVariantBudget,
+      distrusted,
+      preferOriginalImage,
+      recordedNaturalSize,
+      visiblePreviewUrl,
+    ],
+  );
+  const bodyImageSource = bodyImage?.src ?? null;
 
   const hasGeneratedResult = Boolean(data.imageUrl);
   // Natural pixel size of the displayed image, mirrored from data when present
@@ -1178,24 +1222,45 @@ export function createUseImageGenNodeController({
 
   const handlePreviewImageLoad = useCallback(
     (event: SyntheticEvent<HTMLImageElement>) => {
-      const naturalWidth = event.currentTarget.naturalWidth;
-      const naturalHeight = event.currentTarget.naturalHeight;
-      if (naturalWidth > 0 && naturalHeight > 0) {
+      if (
+        bodyImage?.downscaled &&
+        !nodeBodyRecordDescribesImage(
+          event.currentTarget,
+          recordedNaturalSize,
+          bodyImage.maxEdge ?? 0,
+        )
+      ) {
+        distrustRecord();
+        return;
+      }
+      trustAgain();
+      const measured = bodyImage
+        ? nodeBodyImageMeasurement(
+            event.currentTarget,
+            bodyImage,
+            recordedNaturalSize,
+          )
+        : {
+            width: event.currentTarget.naturalWidth,
+            height: event.currentTarget.naturalHeight,
+          };
+      if (measured.width > 0 && measured.height > 0) {
         setNaturalSize((previous) =>
           previous &&
-          previous.width === naturalWidth &&
-          previous.height === naturalHeight
+          previous.width === measured.width &&
+          previous.height === measured.height
             ? previous
-            : { width: naturalWidth, height: naturalHeight },
+            : measured,
         );
       }
       const forceNaturalSize = shouldForceNaturalImageSize(
         data as Record<string, unknown>,
       );
-      if (data.isSizeManuallyAdjusted === true && !forceNaturalSize) return;
+      const sizeLockedByUser =
+        data.isSizeManuallyAdjusted === true && !forceNaturalSize;
       const nextAspectRatio = aspectRatioFromImageDimensions(
-        naturalWidth,
-        naturalHeight,
+        measured.width,
+        measured.height,
       );
       if (!nextAspectRatio) return;
       const nextSize = resolveMinEdgeFittedSize(nextAspectRatio, {
@@ -1205,19 +1270,49 @@ export function createUseImageGenNodeController({
       const displaySizeMismatch =
         Math.abs(resolvedWidth - nextSize.width) > 1 ||
         Math.abs(resolvedHeight - nextSize.height) > 1;
-      if (nextAspectRatio !== data.aspectRatio || displaySizeMismatch) {
-        updateNodeSize(id, nextSize, {
-          lockManualSize: forceNaturalSize ? false : undefined,
-          data: {
-            aspectRatio: nextAspectRatio,
-            imageNaturalWidth: naturalWidth,
-            imageNaturalHeight: naturalHeight,
-            imageAspectRatioUpdatedAt: Date.now(),
+      const recordWrite = planNaturalSizeRecordWrite({
+        aspectRatioChanged: nextAspectRatio !== data.aspectRatio,
+        displaySizeMismatch,
+        record: recordedNaturalSize,
+        measured,
+        measuringRecordSubject: true,
+        sizeLockedByUser,
+      });
+      if (!recordWrite.persist) return;
+      if (!recordWrite.applySize) {
+        updateNodeData(
+          id,
+          {
+            imageNaturalWidth: measured.width,
+            imageNaturalHeight: measured.height,
           },
-        });
+          { recordHistory: false },
+        );
+        return;
       }
+      updateNodeSize(id, nextSize, {
+        lockManualSize: forceNaturalSize ? false : undefined,
+        recordHistory: recordWrite.recordHistory,
+        data: {
+          aspectRatio: nextAspectRatio,
+          imageNaturalWidth: measured.width,
+          imageNaturalHeight: measured.height,
+          imageAspectRatioUpdatedAt: Date.now(),
+        },
+      });
     },
-    [data, id, resolvedHeight, resolvedWidth, updateNodeSize],
+    [
+      bodyImage,
+      data,
+      distrustRecord,
+      id,
+      recordedNaturalSize,
+      resolvedHeight,
+      resolvedWidth,
+      trustAgain,
+      updateNodeData,
+      updateNodeSize,
+    ],
   );
 
   const handleConfirmBackgroundCrop = useCallback(
@@ -1345,6 +1440,7 @@ export function createUseImageGenNodeController({
     panelWidth,
     previewUrl,
     visiblePreviewUrl,
+    bodyImageSource,
     hasGeneratedResult,
     naturalSize,
     albumRootRef,

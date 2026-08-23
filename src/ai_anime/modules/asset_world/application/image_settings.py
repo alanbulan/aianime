@@ -25,6 +25,7 @@ from ai_anime.modules.asset_world.domain.image_settings import (
     normalize_asset_image_kind,
     stored_project_style,
 )
+from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
 
 
 class ImageSettingsUseCases:
@@ -143,12 +144,13 @@ class ImageSettingsUseCases:
         requested_ethnicity: str | None = None,
     ) -> CharacterGenerationOptions:
         config = self._generation_settings.effective(username, project)
-        model = self.resolve_character_model(
+        selection = self.resolve_character_model(
             username,
             project,
             requested_model,
         )
-        if not model:
+        model_route = resolve_model_route(selection)
+        if not model_route.model:
             raise InvalidImageSelection("character image model is required")
         return CharacterGenerationOptions(
             style=character_generation_style(config, requested_style),
@@ -156,7 +158,8 @@ class ImageSettingsUseCases:
                 config,
                 requested_ethnicity,
             ),
-            model=model,
+            model=model_route.model,
+            model_selector=model_route.selector,
         )
 
     def project_style(self, username: str, project: str) -> str:

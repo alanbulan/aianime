@@ -14,7 +14,6 @@ import { ratioToCss } from "@/shared/aspect-ratio";
 import { cn } from "@/lib/utils";
 import type { VideoPaneController } from "@/modules/production/application/use-video-pane-controller";
 import {
-  seedance2CropAspectForMode,
   videoInputCropAspectForProjectAspect,
 } from "@/modules/production/domain/seedance2-crop";
 import {
@@ -327,12 +326,8 @@ export function VideoPaneView({
       <Seedance2AssetCropDialog
         intent={assetOperations.cropIntent}
         targetCropAspect={
-          showSeedance2Config
-            ? seedance2CropAspectForMode(
-                draft.mode,
-                draft.ratio,
-                projectAspect,
-              )
+          showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig
+            ? draft.ratio
             : videoInputCropAspectForProjectAspect(projectAspect)
         }
         pending={assetOperations.cropPending}

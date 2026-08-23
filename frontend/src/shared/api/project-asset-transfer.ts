@@ -24,7 +24,7 @@ export async function uploadProjectAsset(params: {
     {
       method: "POST",
       body: formData,
-      timeout: params.options?.disableTimeout ? false : undefined,
+      timeout: false,
     },
   ).json<{
     ok: boolean;

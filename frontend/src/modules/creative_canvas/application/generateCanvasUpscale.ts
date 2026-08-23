@@ -14,6 +14,7 @@ export interface CanvasUpscaleGenerationCommand {
   readonly scaleFactor: CanvasUpscaleScaleFactor;
   readonly imageSize: CanvasUpscaleImageSize;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface CanvasUpscaleGenerationGateway {
@@ -29,6 +30,7 @@ export interface GenerateCanvasUpscaleParams {
   readonly scaleFactor: CanvasUpscaleScaleFactor;
   readonly imageSize: CanvasUpscaleImageSize;
   readonly model: string;
+  readonly modelSelector?: string;
 }
 
 export interface GenerateCanvasUpscaleDependencies {
@@ -51,6 +53,7 @@ export async function generateCanvasUpscale(
     scaleFactor: params.scaleFactor,
     imageSize: params.imageSize,
     model: params.model,
+    modelSelector: params.modelSelector,
   });
   const url = await completeCanvasMediaGenerationTask(
     { projectId: params.projectId, task },

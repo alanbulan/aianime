@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from ai_anime.modules.creative_canvas.domain.image_prompts import (
@@ -18,7 +19,21 @@ class ConfiguredGenerationCatalogSource:
         return creative_canvas_image_camera_options()
 
     def image_style_templates(self) -> list[dict[str, Any]]:
-        return creative_canvas_image_style_templates()
+        asset_base = os.environ.get("STYLE_GALLERY_ASSET_BASE", "").strip().rstrip("/")
+        templates = creative_canvas_image_style_templates()
+        if not asset_base:
+            return templates
+        return [
+            {
+                **item,
+                "cover_url": f"{asset_base}/{item['cover'].lstrip('/')}",
+                "sample_urls": [
+                    f"{asset_base}/{sample.lstrip('/')}"
+                    for sample in item.get("samples", [])
+                ],
+            }
+            for item in templates
+        ]
 
     def video_camera_templates(self) -> list[dict[str, Any]]:
         return get_video_camera_templates()

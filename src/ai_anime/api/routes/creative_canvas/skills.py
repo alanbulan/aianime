@@ -208,6 +208,7 @@ async def freezone_scene_360(
                 reverse_reference_url=body.reverse_reference_url,
                 mode=body.mode,
                 model=body.model,
+                model_selector=body.model_id,
                 quality=body.quality,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,

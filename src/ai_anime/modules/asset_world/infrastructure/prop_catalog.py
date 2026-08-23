@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +10,7 @@ from ai_anime.modules.asset_world.application.prop_models import NovelProp
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.modules.asset_world.application.dto import CreatePropCommand
 from ai_anime.modules.asset_world.application.ports import PropCatalogRepository
+from ai_anime.modules.asset_world.domain.asset_names import move_asset_dir
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_updated_at,
     tree_updated_at,
@@ -48,14 +48,11 @@ class LocalPropCatalogAssets:
         old_name: str,
         new_name: str,
     ) -> None:
-        old_dir = project_dir / "assets" / "props" / old_name
-        new_dir = project_dir / "assets" / "props" / new_name
-        if not old_dir.exists():
-            return
-        if new_dir.exists():
-            raise ValueError(f"Target asset directory already exists: {new_dir}")
-        new_dir.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(old_dir), str(new_dir))
+        move_asset_dir(
+            project_dir / "assets" / "props",
+            old_name,
+            new_name,
+        )
 
 
 class NovelEpisodeLocalPropSource:

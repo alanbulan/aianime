@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal
 
 CreativeCanvasTextNodeType = Literal["generic", "image", "video", "audio", "text"]
 
@@ -157,4 +158,72 @@ def build_creative_canvas_story_script_task(
         "- 视频运动提示词里的主体动作必须是可见物理动作，不要只写情绪变化"
     )
     parts.append(f"源剧本内容：\n{source_text.strip()}")
+    return "\n\n".join(parts)
+
+
+def _character_reference_block(
+    character_refs: Sequence[Mapping[str, Any]] | None,
+) -> str:
+    rows: list[str] = []
+    for index, reference in enumerate(character_refs or (), start=1):
+        name = str(reference.get("name") or "").strip() or f"角色{index}"
+        description = str(reference.get("description") or "").strip()
+        role = str(reference.get("role") or "").strip()
+        details = "，".join(value for value in (role, description) if value)
+        rows.append(f"- {name}{f'：{details}' if details else ''}")
+    if not rows:
+        return ""
+    return "角色参考图按附件顺序提供，角色名与说明如下：\n" + "\n".join(rows)
+
+
+def build_creative_canvas_video_story_script_task(
+    *,
+    frame_count: int,
+    prompt: str,
+    duration_sec: float | None,
+    character_refs: Sequence[Mapping[str, Any]] | None = None,
+) -> str:
+    duration_hint = (
+        f"视频总时长约 {duration_sec:.2f} 秒，各镜头时长之和应接近该值。"
+        if duration_sec and duration_sec > 0
+        else "视频总时长未知，请根据关键帧疏密合理分配镜头时长。"
+    )
+    parts = [
+        f"以下前 {frame_count} 张附件是按时间顺序抽取的视频关键帧。",
+        "这是视频拆解任务，不是原创任务；必须如实描述关键帧中的主体、场景、动作和风格。",
+        "先通读所有关键帧，再把连续画面归纳为叙事镜头，不要逐帧机械罗列。",
+        f"每行 keyframe_index 必须填写 1 到 {frame_count} 之间、最能代表该镜头的关键帧序号。",
+        duration_hint,
+    ]
+    if prompt.strip():
+        parts.append(f"用户额外要求：\n{prompt.strip()}")
+    character_block = _character_reference_block(character_refs)
+    if character_block:
+        parts.append(character_block)
+    parts.append(
+        "输出完整制片分镜表；不得编造素材 URL，character_image_1、"
+        "character_image_2 和 reference 留空，由后端回填。"
+    )
+    return "\n\n".join(parts)
+
+
+def build_creative_canvas_character_story_script_task(
+    *,
+    image_count: int,
+    prompt: str,
+    source_text: str,
+    character_refs: Sequence[Mapping[str, Any]] | None = None,
+) -> str:
+    parts = [
+        f"以下 {image_count} 张附件是角色参考图，请据此生成完整故事脚本表。",
+        "角色外貌、服饰、年代和气质必须遵循参考图；剧情来自用户要求和可选源剧本。",
+        "本模式没有视频关键帧，每行 keyframe_index 填 0。",
+    ]
+    if prompt.strip():
+        parts.append(f"用户要求：\n{prompt.strip()}")
+    character_block = _character_reference_block(character_refs)
+    if character_block:
+        parts.append(character_block)
+    if source_text.strip():
+        parts.append(f"源剧本内容：\n{source_text.strip()}")
     return "\n\n".join(parts)

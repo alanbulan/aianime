@@ -5,10 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from ai_anime.shared.utils.media_durations import (
-    validate_reference_media_durations,
-)
-
 MIN_OMNI_REFERENCE_AUDIO_SECONDS = 1.8
 MAX_OMNI_REFERENCE_AUDIO_SECONDS = 15.2
 MAX_OMNI_REFERENCE_AUDIO_TOTAL_SECONDS = 15.2

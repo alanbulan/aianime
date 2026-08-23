@@ -162,6 +162,7 @@ export function createGridActionConfirmOverlay({
               actionKey: request.key,
               prompt: request.label,
               model: selectedModel.apiModel,
+              modelSelector: selectedModel.routeSelector,
             },
             (task) => {
               updateNodeData(nextNodeId, generationTaskDescriptor(task));

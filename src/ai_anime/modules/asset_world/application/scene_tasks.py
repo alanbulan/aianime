@@ -26,7 +26,9 @@ from ai_anime.modules.asset_world.domain.scene_generation import (
 )
 from ai_anime.modules.asset_world.application.scene_lookup import require_scene
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.story_intake.public import require_imported_story
 from ai_anime.modules.task_execution.public import task_config_scope
+from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
 
 
 class SceneTaskUseCases:
@@ -48,6 +50,7 @@ class SceneTaskUseCases:
             task_context,
             "场景补充需要 project context",
         )
+        require_imported_story(output_dir)
         task = BuildScenesTask(output_dir=output_dir)
         receipt = await self._scheduler.enqueue_build_scenes(context, task)
         return ScheduledAssetTask.from_receipt(
@@ -68,8 +71,8 @@ class SceneTaskUseCases:
         model: str | None,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
-        image_model = str(model or "").strip()
-        if not image_model:
+        model_route = resolve_model_route(model)
+        if not model_route.model:
             raise SceneGenerationRejected("请先选择场景图片模型")
         context = self._require_context(
             task_context,
@@ -83,7 +86,8 @@ class SceneTaskUseCases:
             scene_name=scene.name,
             kind=kind,
             style=style,
-            model=image_model,
+            model=model_route.model,
+            model_selector=model_route.selector,
             output_dir=output_dir,
             scope=scope,
         )
@@ -185,8 +189,8 @@ class SceneTaskUseCases:
         project_style: str,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
-        image_model = str(command.model or "").strip()
-        if not image_model:
+        model_route = resolve_model_route(command.model)
+        if not model_route.model:
             raise SceneGenerationRejected("请先选择场景图片模型")
         source = resolve_scene_pano_source(
             command.source,
@@ -198,7 +202,8 @@ class SceneTaskUseCases:
             "timeout_seconds": command.timeout_seconds,
         }
         for key, value in {
-            "model": image_model,
+            "model": model_route.model,
+            "model_selector": model_route.selector,
             "image_size": command.image_size,
             "quality": command.quality,
         }.items():

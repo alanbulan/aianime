@@ -45,13 +45,21 @@ const canvasNodeDataUpdatePorts = {
   ),
 } satisfies CanvasNodeDataUpdatePorts<CanvasNode, CanvasNodeData>;
 
+export interface CanvasNodeMutationOptions {
+  recordHistory?: boolean;
+}
+
 export interface CanvasNodeMutationSlice {
   addNode: (
     type: CanvasNodeType,
     position: { x: number; y: number },
     data?: Partial<CanvasNodeData>,
   ) => string;
-  updateNodeData: (nodeId: string, data: Partial<CanvasNodeData>) => void;
+  updateNodeData: (
+    nodeId: string,
+    data: Partial<CanvasNodeData>,
+    options?: CanvasNodeMutationOptions,
+  ) => void;
   updateNodeSize: (
     nodeId: string,
     size: { width: number; height: number },
@@ -157,7 +165,7 @@ export function createZustandCanvasNodeMutationSlice(
       return true;
     },
 
-    updateNodeData(nodeId, data) {
+    updateNodeData(nodeId, data, options) {
       dependencies.updateState((state) => {
         const result = updateCanvasNodeData(
           state.nodes,
@@ -168,16 +176,21 @@ export function createZustandCanvasNodeMutationSlice(
         if (!result.changed) {
           return {};
         }
+        const historyPatch = options?.recordHistory === false
+          ? {}
+          : {
+              history: {
+                past: pushSnapshot(
+                  state.history.past,
+                  createSnapshot(state.nodes, state.edges),
+                ),
+                future: [],
+              },
+              dragHistorySnapshot: null,
+            };
         return {
           nodes: result.nodes,
-          history: {
-            past: pushSnapshot(
-              state.history.past,
-              createSnapshot(state.nodes, state.edges),
-            ),
-            future: [],
-          },
-          dragHistorySnapshot: null,
+          ...historyPatch,
           ...trackEdit(state),
         };
       });
@@ -189,16 +202,21 @@ export function createZustandCanvasNodeMutationSlice(
         if (!result.changed) {
           return {};
         }
+        const historyPatch = options?.recordHistory === false
+          ? {}
+          : {
+              history: {
+                past: pushSnapshot(
+                  state.history.past,
+                  createSnapshot(state.nodes, state.edges),
+                ),
+                future: [],
+              },
+              dragHistorySnapshot: null,
+            };
         return {
           nodes: result.nodes,
-          history: {
-            past: pushSnapshot(
-              state.history.past,
-              createSnapshot(state.nodes, state.edges),
-            ),
-            future: [],
-          },
-          dragHistorySnapshot: null,
+          ...historyPatch,
           ...trackEdit(state),
         };
       });

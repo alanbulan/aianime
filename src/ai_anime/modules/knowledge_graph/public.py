@@ -17,7 +17,7 @@ if TYPE_CHECKING:
         extract_episodes_with_characters,
         run_episode_planning_pipeline,
     )
-    from ai_anime.modules.knowledge_graph.infrastructure.scene_name_migration import (
+    from ai_anime.migrations.project.commands.scene_names import (
         migrate_scene_names,
     )
     from ai_anime.modules.knowledge_graph.infrastructure.store import (
@@ -71,7 +71,7 @@ _LAZY_EXPORTS = {
         "init_cognee",
     ),
     "migrate_scene_names": (
-        "ai_anime.modules.knowledge_graph.infrastructure.scene_name_migration",
+        "ai_anime.migrations.project.commands.scene_names",
         "migrate_scene_names",
     ),
     "run_episode_planning_pipeline": (

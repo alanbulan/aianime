@@ -535,8 +535,13 @@ def resolve_scene_reference_image_model(
     return _scene_image_model(kind, model)
 
 
-def _scene_image_config(model: str) -> dict[str, str]:
+def _scene_image_config(
+    model: str,
+    model_selector: str | None = None,
+) -> dict[str, str]:
     image_config = {
+        "model": model,
+        "model_selector": str(model_selector or "").strip(),
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
@@ -557,6 +562,7 @@ async def generate_scene_reference_image(
     scene: NovelScene,
     kind: SceneReferenceKind,
     model: str | None = None,
+    model_selector: str | None = None,
     style_id: str = "",
     base_scene: NovelScene | None = None,
 ) -> Path:
@@ -619,7 +625,7 @@ async def generate_scene_reference_image(
     image_bytes, _text, error = await _call_newapi_image_api(
         prompt=prompt,
         reference_images=references or None,
-        image_config=_scene_image_config(selected_model),
+        image_config=_scene_image_config(selected_model, model_selector),
     )
 
     if error or not image_bytes:

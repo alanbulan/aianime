@@ -384,6 +384,7 @@ async def convert_control_frame_to_sketch(
     control_frames_dir: str | Path | None = None,
     control_frame_path: str | Path | None = None,
     model: str | None = None,
+    model_selector: str | None = None,
     require_control_frame_path: bool = False,
     candidate_output_path: str | Path | None = None,
     promote: bool = True,
@@ -481,6 +482,7 @@ async def convert_control_frame_to_sketch(
             raise ValueError("director control sketch image model is required")
         generator_config = get_sketch_generation_config(
             model_override=explicit_model,
+            model_selector_override=str(model_selector or "").strip() or None,
         )
         generator_config["image_size"] = os.environ.get(
             "DIRECTOR_CONTROL_SKETCH_IMAGE_SIZE",

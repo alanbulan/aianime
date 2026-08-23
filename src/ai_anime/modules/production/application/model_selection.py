@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from ai_anime.modules.model_usage.public import resolve_model_for_role
+from ai_anime.modules.model_usage.domain.model_route import (
+    ModelRoute,
+    resolve_model_route,
+)
 from ai_anime.modules.project_workspace.public import load_project_config
 
 
@@ -11,13 +15,27 @@ def resolve_video_generation_model(
     project: str,
     requested_model: str | None = None,
 ) -> str:
+    return resolve_video_generation_route(
+        username,
+        project,
+        requested_model,
+    ).model
+
+
+def resolve_video_generation_route(
+    username: str,
+    project: str,
+    requested_model: str | None = None,
+) -> ModelRoute:
     requested = str(requested_model or "").strip()
     if requested:
-        return requested
+        return resolve_model_route(requested)
     configured = str(
         load_project_config(username, project).get("video_model") or ""
     ).strip()
-    return configured or resolve_model_for_role("VIDEO_IMAGE_TO_VIDEO")
+    return resolve_model_route(
+        configured or resolve_model_for_role("VIDEO_IMAGE_TO_VIDEO")
+    )
 
 
 def resolve_episode_video_resolution(
@@ -42,4 +60,5 @@ def resolve_episode_video_resolution(
 __all__ = [
     "resolve_episode_video_resolution",
     "resolve_video_generation_model",
+    "resolve_video_generation_route",
 ]

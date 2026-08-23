@@ -43,6 +43,24 @@ def _log(manager, ctx: ProjectContext, envelope: dict[str, Any], message: str) -
     )
 
 
+def _resolve_video_aspect_ratio(value: object, frame_path: object) -> str:
+    requested = str(value or "").strip().lower()
+    if requested and requested != "auto":
+        return requested
+    path = Path(str(frame_path or "").strip())
+    if path.is_file():
+        try:
+            from PIL import Image
+
+            with Image.open(path) as image:
+                width, height = image.size
+            if width > 0 and height > 0:
+                return "16:9" if width >= height else "9:16"
+        except (OSError, ValueError):
+            pass
+    return "9:16"
+
+
 def _append_freezone_video_node_history(
     *,
     ctx: ProjectContext,
@@ -134,6 +152,8 @@ async def _run_single_video_async(
         gen_kwargs["resolution"] = str(single_resolution)
     video_gen = create_video_generator(
         model_role=str(config.get("model_role") or ""),
+        model=video_model or None,
+        model_selector=str(config.get("model_selector") or "") or None,
         **gen_kwargs,
     )
 
@@ -205,7 +225,10 @@ async def _run_single_video_async(
         "image_path": frame_path,
         "prompt": prompt,
         "output_path": video_path.as_posix(),
-        "aspect_ratio": str(config.get("ratio") or "9:16"),
+        "aspect_ratio": _resolve_video_aspect_ratio(
+            config.get("ratio"),
+            frame_path,
+        ),
         "duration": video_duration,
         "on_log": on_log,
         "on_progress": on_progress,
@@ -899,6 +922,7 @@ async def _run_freezone_video_gen_async(
                 prompt=str(payload.get("prompt") or ""),
                 model=str(payload.get("video_model") or ""),
                 model_role=str(payload.get("model_role") or ""),
+                model_selector=str(payload.get("model_id") or "") or None,
                 reference_items=tuple(payload.get("reference_items") or ()),
                 aspect_ratio=str(payload.get("aspect_ratio") or "16:9"),
                 resolution=str(payload.get("resolution") or "720p"),

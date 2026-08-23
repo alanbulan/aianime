@@ -97,7 +97,7 @@ class FreezoneVideoGenRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] = Field(
+    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
         default="16:9",
         description="视频比例；auto 当前回退为 16:9",
     )
@@ -122,6 +122,7 @@ class FreezoneVideoGenRequest(BaseModel):
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
     )
@@ -154,7 +155,7 @@ class FreezoneImageToVideoRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] = Field(
+    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
         default="16:9",
         description="视频比例；auto 当前回退为 16:9",
     )
@@ -179,6 +180,7 @@ class FreezoneImageToVideoRequest(BaseModel):
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
     )
@@ -216,7 +218,7 @@ class FreezoneKeyframeVideoRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] = Field(
+    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
         default="16:9",
         description="视频比例；auto 当前回退为 16:9",
     )
@@ -241,6 +243,7 @@ class FreezoneKeyframeVideoRequest(BaseModel):
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
     )
@@ -272,7 +275,7 @@ class FreezoneVideoEditRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] = Field(
+    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
         default="16:9",
         description="视频比例；视频编辑画幅由源视频决定，此字段仅占位",
     )
@@ -297,6 +300,7 @@ class FreezoneVideoEditRequest(BaseModel):
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
     )
@@ -341,7 +345,7 @@ class FreezoneVideoOmniGenRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9"] = Field(
+    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
         default="16:9",
         description="视频比例；auto 当前回退为 16:9",
     )
@@ -366,6 +370,7 @@ class FreezoneVideoOmniGenRequest(BaseModel):
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
     )
+    model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
     canvas_id: str = Field(
         default="", description="可选：来源画布 id，用于记录节点生成历史"
     )

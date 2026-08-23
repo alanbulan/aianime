@@ -143,15 +143,20 @@ class NanoBananaCharacterGenerator:
         self,
         config: Optional[dict] = None,
         model: Optional[str] = None,
+        model_selector: Optional[str] = None,
     ):
         """使用当前商业模型访问配置初始化生成器。"""
         if config is None:
             resolved_model = str(model or "").strip()
             if not resolved_model:
                 raise ValueError("character image model is required")
-            config = get_grid_generation_config(model_override=resolved_model)
+            config = get_grid_generation_config(
+                model_override=resolved_model,
+                model_selector_override=model_selector,
+            )
         self.access_mode = "mixed"
         self.model = config["model"]
+        self.model_selector = str(config.get("model_selector") or "").strip()
         self.openai_image_quality = config.get("openai_image_quality", "medium")
 
         print(f"[NanoBanana Character] Model: {self.model}")
@@ -1029,6 +1034,8 @@ STRICT REQUIREMENTS (MUST AVOID):
                 prompt=prompt,
                 reference_images=reference_images or None,
                 image_config={
+                    "model": self.model,
+                    "model_selector": self.model_selector,
                     "aspect_ratio": aspect_ratio,
                     "image_size": image_size,
                     "quality": normalize_image_quality(

@@ -8,6 +8,7 @@ import sqlite3
 import sys
 from typing import Any
 
+from ai_anime.migrations.project import migrate_project_database_sync
 from ai_anime.modules.narrative_planning.public import build_prop_menu
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.utils.project_paths import ProjectPaths
@@ -62,24 +63,6 @@ def _load_payload() -> dict[str, Any]:
         return {}
     payload = json.loads(raw)
     return payload if isinstance(payload, dict) else {}
-
-
-def _ensure_props_table(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS props (
-            name TEXT PRIMARY KEY,
-            aliases_json TEXT DEFAULT '[]',
-            prop_type TEXT DEFAULT 'object',
-            visual_prompt TEXT DEFAULT '',
-            description TEXT DEFAULT '',
-            owner TEXT DEFAULT '',
-            notes TEXT DEFAULT '',
-            created_at TEXT DEFAULT (datetime('now')),
-            updated_at TEXT DEFAULT (datetime('now'))
-        )
-        """
-    )
 
 
 def _is_global_prop(prop: dict[str, Any]) -> bool:
@@ -155,6 +138,7 @@ def sync_global_props(
     if not global_props:
         return {"ok": True, "synced": 0, "prop_ids": [], "beat_synced": False}
 
+    migrate_project_database_sync(db_path, project_dir=paths.output_dir)
     prop_menu: list[dict[str, Any]] = []
     beat_synced = False
     beat_added_prop_ids: list[str] = []
@@ -163,7 +147,6 @@ def sync_global_props(
     try:
         conn.row_factory = sqlite3.Row
         configure_sqlite_connection(conn)
-        _ensure_props_table(conn)
         row = conn.execute(
             "SELECT prop_menu_json FROM episodes WHERE number = ?",
             (episode,),

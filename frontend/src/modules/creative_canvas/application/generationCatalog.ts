@@ -6,6 +6,7 @@ import type { VideoGenMode } from "../domain/videoGenerationMode";
 export interface CanvasCatalogModelOption {
   readonly id: string;
   readonly apiModel: string;
+  readonly routeSelector?: string;
   readonly label: string;
   readonly capabilities?: Record<string, unknown>;
   readonly imageModes?: ReadonlyArray<CanvasImageMode>;
@@ -28,6 +29,7 @@ export interface CanvasCatalogModelOption {
   readonly referenceVideoTotalMinSeconds?: number | null;
   readonly referenceVideoTotalMaxSeconds?: number | null;
   readonly resolutionOptions?: string[];
+  readonly aspectRatioOptions?: string[];
   readonly minDuration?: number | null;
   readonly maxDuration?: number | null;
   readonly sceneOptimizeOptions?: Array<"anime" | "realistic">;
@@ -47,6 +49,8 @@ export interface CanvasStyleTemplate {
   readonly stylePrompt: string;
   readonly author?: string;
   readonly category?: string;
+  readonly coverUrl?: string;
+  readonly sampleUrls?: string[];
 }
 
 export interface CanvasCameraIdLabel {

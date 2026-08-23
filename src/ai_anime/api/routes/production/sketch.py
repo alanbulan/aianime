@@ -37,6 +37,9 @@ from ai_anime.modules.production.public import (
     sketch_marker_detection_task_use_cases,
     sketch_marker_use_cases,
 )
+from ai_anime.modules.model_usage.domain.model_route import (
+    resolve_model_route,
+)
 
 router = APIRouter()
 
@@ -139,17 +142,19 @@ async def director_control_to_sketch(
 ):
     """Start the existing Direct Render combined.png -> canonical sketch task."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    model = production_image_settings_use_cases().sketch_settings(
+    selection = production_image_settings_use_cases().sketch_settings(
         resolved.username,
         resolved.project_name,
     )["sketch_image_selection"]
+    model_route = resolve_model_route(selection)
     try:
         scheduled = await director_control_sketch_use_cases().generate(
             resolved.ctx,
             GenerateDirectorControlSketchCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
-                model=model,
+                model=model_route.model,
+                model_selector=model_route.selector,
             ),
         )
     except DirectorControlSketchUnavailable as exc:

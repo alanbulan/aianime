@@ -65,4 +65,9 @@ export type {
   ModelAccessMode,
   ModelGatewayConfig,
 } from "@/modules/model_usage/domain/model-gateway";
+export {
+  catalogRouteSelector,
+  catalogRouteValue,
+  resolveCatalogRouteSelection,
+} from "@/modules/model_usage/domain/catalog-route";
 export { CommercialInvocationSection } from "@/modules/model_usage/presentation/CommercialInvocationSection";

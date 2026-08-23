@@ -13,7 +13,6 @@ from ai_anime.modules.model_usage.public import (
 )
 from ai_anime.modules.model_usage.public import (
     build_model_gateway_status,
-    purge_legacy_local_gateway_secrets,
 )
 
 router = APIRouter(prefix="/model-gateway")
@@ -123,7 +122,6 @@ async def set_commercial_model_access(
 
 @router.get("/config")
 async def get_model_gateway_config() -> dict[str, Any]:
-    purge_legacy_local_gateway_secrets()
     return {
         "ok": True,
         "data": build_model_gateway_status(),

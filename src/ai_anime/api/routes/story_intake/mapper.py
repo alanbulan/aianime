@@ -9,6 +9,7 @@ from ai_anime.modules.story_intake.public import (
     StoryDocumentParseFailed,
     StoryDocumentTooLarge,
     StoryIntakeError,
+    StoryTextTooLarge,
     UnsafeStoryDocumentName,
     UnsupportedStoryDocument,
 )
@@ -41,6 +42,19 @@ def story_intake_error_payload(error: Exception) -> dict:
             ),
             "error_type": "file_too_large",
             "data": {"limit_bytes": error.max_bytes},
+        }
+    if isinstance(error, StoryTextTooLarge):
+        return {
+            "ok": False,
+            "error": (
+                f"正文共 {error.actual_chars:,} 字，超过单次导入上限 "
+                f"{error.max_chars:,} 字。请拆分后重新上传。"
+            ),
+            "error_type": "text_too_large",
+            "data": {
+                "limit_chars": error.max_chars,
+                "actual_chars": error.actual_chars,
+            },
         }
     if isinstance(error, StoryDocumentNotFound):
         return {

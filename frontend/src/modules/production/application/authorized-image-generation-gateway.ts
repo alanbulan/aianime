@@ -1,10 +1,16 @@
 // Copyright (c) 2026 AI anime
 import type { ProductionVideoGateway } from "@/modules/production/application/ports";
+import {
+  imageModelOptionsFromCatalog,
+  resolveAuthorizedImageModel,
+} from "@/modules/production/domain/image-model";
 
 interface ProductionImageCatalog {
   items: ReadonlyArray<{
     code: string;
+    displayName: string;
     operation: string;
+    capabilities: Record<string, unknown>;
   }>;
 }
 
@@ -41,13 +47,14 @@ export function createAuthorizedProductionImageGateway(
       catalogLoader.load("IMAGE"),
       persistedSelection,
     ]);
-    const selection = (requested || persisted).trim();
-    const authorized = catalog.items.some(
-      (item) =>
-        item.operation.trim().toUpperCase() === "IMAGE" &&
-        item.code.trim() === selection,
+    const imageItems = catalog.items.filter(
+      (item) => item.operation.trim().toUpperCase() === "IMAGE",
     );
-    if (!selection || !authorized) {
+    const selection = resolveAuthorizedImageModel(
+      imageModelOptionsFromCatalog(imageItems),
+      requested || persisted,
+    );
+    if (!selection) {
       throw new ProductionImageModelUnavailableError();
     }
     return selection;

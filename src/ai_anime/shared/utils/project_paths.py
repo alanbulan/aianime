@@ -1,20 +1,11 @@
 """项目三类目录路径统一管理。"""
 
-import shutil
-import sqlite3
 from pathlib import Path
 
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, RUNTIME_DIR, STATE_DIR
 
-_SQLITE_MAGIC = b"SQLite format 3\x00"
-
-
 class ProjectPaths:
     """统一管理项目的 output/state/runtime 目录。"""
-
-    # Sidecar files are consolidated into the main .db by VACUUM INTO, so we
-    # deliberately skip them during migration.
-    _SQLITE_SIDECAR_SUFFIXES = ("-wal", "-shm", "-journal")
 
     LEGACY_STATE_ITEMS = (
         "data.db",
@@ -155,83 +146,7 @@ class ProjectPaths:
         ):
             directory.mkdir(parents=True, exist_ok=True)
 
-    @property
-    def _migration_marker(self) -> Path:
-        return self.state_dir / ".migrated"
-
     def bootstrap_from_legacy_output(self) -> None:
-        """将旧单目录布局中的状态/运行时文件复制到新目录（仅首次）。"""
-        if self._migration_marker.exists():
-            return
-        if not self.has_legacy_payload():
-            # Nothing to migrate — create marker so we don't re-probe on every open.
-            self.state_dir.mkdir(parents=True, exist_ok=True)
-            self._migration_marker.touch()
-            return
-        self.ensure_dirs()
-        self._copy_missing_items(self.output_dir, self.state_dir, self.LEGACY_STATE_ITEMS)
-        self._copy_missing_items(self.output_dir, self.runtime_dir, self.LEGACY_RUNTIME_ITEMS)
-        self._migration_marker.touch()
+        from ai_anime.migrations.filesystem import migrate_legacy_project_layout
 
-    @classmethod
-    def _copy_missing_items(cls, src_root: Path, dst_root: Path, names: tuple[str, ...]) -> None:
-        for name in names:
-            src = src_root / name
-            dst = dst_root / name
-            if not src.exists():
-                continue
-            if cls._is_sqlite_sidecar(src):
-                # Main .db handles WAL consolidation; sidecars don't get copied.
-                continue
-            try:
-                if src.is_dir():
-                    # Merge into dst — ensure_dirs() may have pre-created an
-                    # empty target (logs/, temp_sketch_panels/, ...).
-                    cls._copy_tree(src, dst)
-                elif not dst.exists():
-                    cls._copy_file(src, dst)
-            except FileExistsError:
-                # Another worker finished the same copy between our exists()
-                # check and copytree — treat as success.
-                continue
-
-    @classmethod
-    def _is_sqlite_sidecar(cls, path: Path) -> bool:
-        return any(path.name.endswith(suffix) for suffix in cls._SQLITE_SIDECAR_SUFFIXES)
-
-    @classmethod
-    def _is_sqlite_db(cls, path: Path) -> bool:
-        if not path.is_file() or cls._is_sqlite_sidecar(path):
-            return False
-        try:
-            with open(path, "rb") as f:
-                return f.read(len(_SQLITE_MAGIC)) == _SQLITE_MAGIC
-        except OSError:
-            return False
-
-    @classmethod
-    def _copy_file(cls, src: Path, dst: Path) -> None:
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        if cls._is_sqlite_db(src):
-            cls._sqlite_backup(src, dst)
-        else:
-            shutil.copy2(src, dst)
-
-    @classmethod
-    def _copy_tree(cls, src: Path, dst: Path) -> None:
-        """Merge *src* into *dst*; SQLite files go through VACUUM INTO."""
-        dst.mkdir(parents=True, exist_ok=True)
-        for entry in src.iterdir():
-            target = dst / entry.name
-            if cls._is_sqlite_sidecar(entry):
-                continue
-            if entry.is_dir():
-                cls._copy_tree(entry, target)
-            elif entry.is_file() and not target.exists():
-                cls._copy_file(entry, target)
-
-    @staticmethod
-    def _sqlite_backup(src: Path, dst: Path) -> None:
-        """Consolidated snapshot via VACUUM INTO — atomic and WAL-safe."""
-        with sqlite3.connect(src) as conn:
-            conn.execute("VACUUM INTO ?", (str(dst),))
+        migrate_legacy_project_layout(self)

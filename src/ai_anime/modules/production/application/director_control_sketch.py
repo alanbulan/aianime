@@ -23,6 +23,7 @@ class GenerateDirectorControlSketchCommand:
     episode_num: int
     beat_num: int
     model: str
+    model_selector: str = ""
 
 
 @dataclass(frozen=True)
@@ -40,6 +41,7 @@ class DirectorControlSketchTask:
     output_dir: str | Path
     state_dir: str | Path
     model: str
+    model_selector: str = ""
 
     def backend_payload(self) -> dict[str, Any]:
         return {
@@ -49,6 +51,7 @@ class DirectorControlSketchTask:
             "output_dir": str(self.output_dir),
             "state_dir": str(self.state_dir),
             "model": self.model,
+            "model_selector": self.model_selector,
         }
 
 
@@ -130,6 +133,7 @@ class DirectorControlSketchUseCases:
             output_dir=context.output_dir,
             state_dir=context.state_dir,
             model=model,
+            model_selector=str(command.model_selector or "").strip(),
         )
         receipt = await self._scheduler.enqueue(context, task)
         return ScheduledDirectorControlSketch(

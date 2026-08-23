@@ -44,7 +44,9 @@ export interface CanvasSaveArgs extends CanvasSaveIdentityArgs {
   lastRemoteNodeCountRef: { current: number };
   setStatus(status: CanvasSyncStatus): void;
   setError(error: string | null): void;
-  inFlightRef: { current: Promise<boolean> | null };
+  isCurrent?(): boolean;
+  /** @deprecated Save serialization is owned by CanvasSaveSession. */
+  inFlightRef?: { current: Promise<boolean> | null };
   publishBackupStatus?(status: CanvasBackupStatus | null): void;
   publishRevision?(revision: number | null): void;
   clearDraftAfterSave?(): void;
@@ -187,11 +189,13 @@ export function createCanvasSaveScheduler(
         args.canvasId,
         payload,
       );
+      if (args.isCurrent && !args.isCurrent()) return true;
       consumeSaveResponse(args, response, decision);
       args.setStatus("ready");
       args.setError(null);
       return true;
     } catch (error) {
+      if (args.isCurrent && !args.isCurrent()) return false;
       return handleSaveError(args, error, decision, clientSaveId, attempt);
     }
   };
@@ -236,6 +240,7 @@ export function createCanvasSaveScheduler(
       case "retry":
         if (attempt < LOCK_BUSY_MAX_RETRIES) {
           await dependencies.sleep(outcome.afterMs);
+          if (args.isCurrent && !args.isCurrent()) return false;
           return performSave(args, decision, clientSaveId, attempt + 1);
         }
         dropPendingId();
@@ -264,9 +269,7 @@ export function createCanvasSaveScheduler(
   };
 
   return async (args: CanvasSaveArgs): Promise<boolean> => {
-    if (args.inFlightRef.current) {
-      await args.inFlightRef.current;
-    }
+    if (args.isCurrent && !args.isCurrent()) return false;
 
     const canvasState = dependencies.readCanvasState();
     const decision: SaveDecision =
@@ -299,14 +302,6 @@ export function createCanvasSaveScheduler(
     );
 
     args.setStatus("saving");
-    const job = (async () => {
-      try {
-        return await performSave(args, decision, clientSaveId, 0);
-      } finally {
-        args.inFlightRef.current = null;
-      }
-    })();
-    args.inFlightRef.current = job;
-    return job;
+    return await performSave(args, decision, clientSaveId, 0);
   };
 }

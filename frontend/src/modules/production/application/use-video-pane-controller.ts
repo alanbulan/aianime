@@ -154,7 +154,8 @@ export function createUseVideoPaneController(
     const showPromptConfig =
       showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig;
     const showReferenceDetails =
-      showPromptConfig || isVideoReferenceCropModel(defaultModel);
+      showPromptConfig ||
+      isVideoReferenceCropModel(selectedModel?.apiModel ?? defaultModel);
     const seedance2Status = queries.useSeedance2BeatStatus(
       project,
       episode,

@@ -16,6 +16,7 @@ export const freezoneScene360GenerationGateway: CanvasScene360GenerationGateway 
           mode: "candidate",
           aspect_ratio: command.aspectRatio,
           model: command.model,
+          ...(command.modelSelector ? { model_id: command.modelSelector } : {}),
         },
       },
     );

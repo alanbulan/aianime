@@ -33,6 +33,10 @@ from ai_anime.modules.asset_world.public import (
     scene_viewer_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext, resolve_project_context
+from ai_anime.modules.story_intake.public import (
+    StoryImportRequired,
+    story_import_required_response,
+)
 from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.sqlite_store import SQLiteStore
 
@@ -346,6 +350,8 @@ async def build_scenes(project: str, user: dict = Depends(get_api_user)):
             task_context=ctx,
             output_dir=output_dir,
         )
+    except StoryImportRequired:
+        return story_import_required_response()
     except SceneCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}

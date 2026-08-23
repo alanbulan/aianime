@@ -20,6 +20,7 @@ from ai_anime.modules.asset_world.application.ports import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import task_config_scope
+from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
 
 
 class PropTaskUseCases:
@@ -41,8 +42,8 @@ class PropTaskUseCases:
             raise PropNotFound(f"Prop '{prop_name}' not found")
         if not (prop.visual_prompt or prop.description or prop.name):
             raise InvalidPropInput(f"Prop '{prop.name}' has no visual prompt")
-        image_model = str(model or "").strip()
-        if not image_model:
+        model_route = resolve_model_route(model)
+        if not model_route.model:
             raise InvalidPropInput("请先选择道具图片模型")
         context = self._require_context(
             task_context,
@@ -52,7 +53,8 @@ class PropTaskUseCases:
         task = PropReferenceGenerationTask(
             prop_name=prop.name,
             style=style,
-            model=image_model,
+            model=model_route.model,
+            model_selector=model_route.selector,
             output_dir=output_dir,
             scope=scope,
         )
@@ -72,8 +74,8 @@ class PropTaskUseCases:
         style: str,
         model: str,
     ) -> ScheduledAssetTask:
-        image_model = str(model or "").strip()
-        if not image_model:
+        model_route = resolve_model_route(model)
+        if not model_route.model:
             raise InvalidPropInput("请先选择道具图片模型")
         context = self._require_context(
             task_context,
@@ -81,7 +83,8 @@ class PropTaskUseCases:
         )
         task = BatchPropReferenceGenerationTask(
             style=style,
-            model=image_model,
+            model=model_route.model,
+            model_selector=model_route.selector,
             output_dir=output_dir,
         )
         receipt = await self._scheduler.enqueue_batch_prop_references(context, task)

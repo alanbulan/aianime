@@ -14,7 +14,11 @@ import {
   useAssetImageSourceSelection,
   useUpdateAssetImageSourceSelection,
 } from "@/modules/asset_world/imageSourceComposition";
-import { useCommercialModelCatalog } from "@/modules/model_usage/public";
+import {
+  catalogRouteValue,
+  resolveCatalogRouteSelection,
+  useCommercialModelCatalog,
+} from "@/modules/model_usage/public";
 import { cn } from "@/lib/utils";
 
 export type CharacterImageSourceSelectProps = {
@@ -38,10 +42,16 @@ export function CharacterImageSourceSelect({
   const updateSelection = useUpdateAssetImageSourceSelection(project, kind);
   const savedSelection = selectionQuery.data?.data.image_source_selection ?? "";
   const optionEntries = (catalogQuery.data?.items ?? []).map((item) => [
-    item.code,
+    catalogRouteValue(item),
     item.displayName,
   ] as const);
-  const selectedOption = optionEntries.find(([value]) => value === savedSelection);
+  const resolvedSelection = resolveCatalogRouteSelection(
+    catalogQuery.data?.items ?? [],
+    savedSelection,
+  );
+  const selectedOption = optionEntries.find(
+    ([value]) => value === resolvedSelection,
+  );
   const selection = selectedOption?.[0] ?? "";
   const selectedLabel = selectedOption?.[1] ?? "";
   const loadFailed = Boolean(selectionQuery.error || catalogQuery.error);

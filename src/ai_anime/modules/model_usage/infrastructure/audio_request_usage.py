@@ -7,28 +7,9 @@ from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
+from ai_anime.migrations.model_usage import run_model_usage_migrations
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
-
-
-_SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS audio_request_usage (
-    request_id TEXT PRIMARY KEY,
-    provider TEXT NOT NULL,
-    model_name TEXT,
-    task_type TEXT NOT NULL,
-    scope TEXT NOT NULL,
-    episode INTEGER,
-    speaker TEXT,
-    status TEXT NOT NULL DEFAULT 'accepted',
-    accepted_at TEXT NOT NULL,
-    completed_at TEXT,
-    updated_at TEXT NOT NULL,
-    error_message TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_audio_request_usage_scope
-ON audio_request_usage(task_type, scope, accepted_at DESC);
-"""
 
 
 def get_audio_request_usage_db_path(project_output_dir: str | Path) -> Path:
@@ -48,8 +29,7 @@ def _connect(project_output_dir: str | Path):
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=5, check_same_thread=False)
     configure_sqlite_connection(conn)
-    conn.executescript(_SCHEMA_SQL)
-    conn.commit()
+    run_model_usage_migrations(conn)
     try:
         yield conn
         conn.commit()

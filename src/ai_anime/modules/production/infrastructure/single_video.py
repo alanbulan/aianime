@@ -515,6 +515,7 @@ class LocalSingleVideoPreparer:
             "prompt": prompt,
             "video_duration": video_duration,
             "video_model": command.video_model,
+            "model_selector": str(command.model_selector or "").strip(),
             "model_role": model_role,
             "use_director_render": command.use_director_render,
             "last_frame_path": last_frame_path,

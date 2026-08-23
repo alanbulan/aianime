@@ -23,7 +23,7 @@ def is_seedance2_model(model: str | None) -> bool:
 
 
 def is_happyhorse_model(model: str | None) -> bool:
-    return str(model or "").strip().lower() == "happyhorse-1.0"
+    return str(model or "").strip().lower() in {"happyhorse-1.0", "happyhorse-1.1"}
 
 
 def is_grok_video_model(model: str | None) -> bool:

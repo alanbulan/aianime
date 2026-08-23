@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { jsonWithBackendError } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
-import { api } from "@/shared/api/transport";
+import { api, uploadApi } from "@/shared/api/transport";
 import type {
   AssetDataResponse,
   AssetErrorResponse,
@@ -32,7 +32,7 @@ export const httpCharacterGateway: CharacterGateway = {
   },
 
   async buildCharacters(project) {
-    return jsonWithBackendError<AssetTaskResponse>(
+    return jsonWithBackendError<AssetTaskResponse | AssetErrorResponse>(
       api.post(p`api/v1/projects/${project}/characters/build`, {
         json: {},
         throwHttpErrors: false,
@@ -75,7 +75,7 @@ export const httpCharacterGateway: CharacterGateway = {
   async uploadPortrait(project, name, file) {
     const formData = new FormData();
     formData.append("file", file);
-    return api
+    return uploadApi
       .post(p`api/v1/projects/${project}/characters/${name}/portrait/upload`, {
         body: formData,
       })
@@ -119,7 +119,7 @@ export const httpCharacterGateway: CharacterGateway = {
   async uploadVoiceSample(project, name, { slot, file }) {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    return api
+    return uploadApi
       .post(
         p`api/v1/projects/${project}/characters/${name}/voice-samples/${slot}/upload`,
         { body: formData },
@@ -208,7 +208,7 @@ export const httpCharacterGateway: CharacterGateway = {
   async uploadIdentityImage(project, name, identityName, file) {
     const formData = new FormData();
     formData.append("file", file);
-    return api
+    return uploadApi
       .post(
         p`api/v1/projects/${project}/characters/${name}/identities/${identityName}/upload`,
         { body: formData },
@@ -219,7 +219,7 @@ export const httpCharacterGateway: CharacterGateway = {
   async uploadIdentityCostume(project, name, identityId, file) {
     const formData = new FormData();
     formData.append("file", file);
-    return api
+    return uploadApi
       .post(
         p`api/v1/projects/${project}/characters/${name}/identities/${identityId}/costume/upload`,
         { body: formData },
@@ -246,7 +246,7 @@ export const httpCharacterGateway: CharacterGateway = {
   async uploadIdentityPortrait(project, name, identityId, file) {
     const formData = new FormData();
     formData.append("file", file);
-    return api
+    return uploadApi
       .post(
         p`api/v1/projects/${project}/characters/${name}/identities/${identityId}/portrait/upload`,
         { body: formData },

@@ -16,6 +16,7 @@ from ai_anime.modules.narrative_planning.application.task_dto import (
     ScriptGenerationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.modules.story_intake.public import require_imported_story
 
 
 class IdentityPlanRequired(ValueError):
@@ -52,6 +53,7 @@ class ScheduleEpisodePlanning:
         if task_context is None:
             raise ProjectContextRequired("分集规划需要 project context")
 
+        require_imported_story(output_dir)
         receipt = await self._task_scheduler.enqueue_episode_planning(
             task_context,
             EpisodePlanningTask(

@@ -14,10 +14,19 @@ from ai_anime.modules.story_intake.application.errors import (
     StoryDocumentParseFailed,
     StoryDocumentTooLarge,
     StoryIntakeError,
+    StoryTextTooLarge,
     UnsafeStoryDocumentName,
     UnsupportedStoryDocument,
 )
-from ai_anime.modules.story_intake.domain import SpineTemplateChangeRequiresRebuild
+from ai_anime.modules.story_intake.domain import (
+    STORY_IMPORT_REQUIRED_CODE,
+    STORY_IMPORT_REQUIRED_MESSAGE,
+    SpineTemplateChangeRequiresRebuild,
+    StoryImportRequired,
+    has_imported_story,
+    load_imported_story_content,
+    require_imported_story,
+)
 
 if TYPE_CHECKING:
     from ai_anime.modules.story_intake.bootstrap import StoryIntakeApplication
@@ -50,19 +59,35 @@ async def get_knowledge_graph_snapshot(store: Any) -> dict[str, Any]:
     return await build_get_knowledge_graph(store).execute()
 
 
+def story_import_required_response() -> dict[str, str | bool]:
+    return {
+        "ok": False,
+        "code": STORY_IMPORT_REQUIRED_CODE,
+        "error": STORY_IMPORT_REQUIRED_MESSAGE,
+    }
+
+
 __all__ = [
     "NoChaptersDetected",
     "IngestionTask",
+    "STORY_IMPORT_REQUIRED_CODE",
+    "STORY_IMPORT_REQUIRED_MESSAGE",
     "SpineTemplateChangeRequiresRebuild",
     "StartIngestionCommand",
     "StoryDocumentNotFound",
     "StoryDocumentParseFailed",
     "StoryDocumentTooLarge",
     "StoryIntakeError",
+    "StoryImportRequired",
+    "StoryTextTooLarge",
     "UnsafeStoryDocumentName",
     "UnsupportedStoryDocument",
     "UploadStoryDocumentCommand",
     "build_chapter_preview",
     "create_story_intake_application",
     "get_knowledge_graph_snapshot",
+    "has_imported_story",
+    "load_imported_story_content",
+    "require_imported_story",
+    "story_import_required_response",
 ]

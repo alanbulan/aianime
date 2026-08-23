@@ -234,6 +234,7 @@ class CharacterImageGenerationTask:
     output_dir: str | Path
     identity_id: str = ""
     identity_name: str = ""
+    model_selector: str = ""
 
     def backend_payload(self) -> dict[str, Any]:
         payload = {
@@ -249,6 +250,7 @@ class CharacterImageGenerationTask:
         payload.update(
             style=self.style,
             model=self.model,
+            model_selector=self.model_selector,
             scope=self.scope,
             output_dir=str(self.output_dir),
         )
@@ -264,12 +266,14 @@ class PropReferenceGenerationTask:
     model: str
     output_dir: str | Path
     scope: str
+    model_selector: str = ""
 
     def backend_payload(self) -> dict[str, Any]:
         return {
             "prop_name": self.prop_name,
             "style": self.style,
             "model": self.model,
+            "model_selector": self.model_selector,
             "output_dir": str(self.output_dir),
         }
 
@@ -281,11 +285,13 @@ class BatchPropReferenceGenerationTask:
     style: str
     model: str
     output_dir: str | Path
+    model_selector: str = ""
 
     def backend_payload(self) -> dict[str, Any]:
         return {
             "style": self.style,
             "model": self.model,
+            "model_selector": self.model_selector,
             "output_dir": str(self.output_dir),
         }
 
@@ -300,12 +306,14 @@ class SceneReferenceGenerationTask:
     model: str
     output_dir: str | Path
     scope: str
+    model_selector: str = ""
 
     def backend_payload(self) -> dict[str, Any]:
         return {
             "scene_name": self.scene_name,
             "kind": self.kind,
             "model": self.model,
+            "model_selector": self.model_selector,
             "style": self.style,
             "output_dir": str(self.output_dir),
         }
@@ -406,6 +414,7 @@ class CharacterGenerationOptions:
     style: str | None
     ethnicity: str
     model: str
+    model_selector: str = ""
 
 
 @dataclass(frozen=True)

@@ -139,6 +139,7 @@ export function createLightEditorOverlay({
                 smartMode: payload.smartMode,
                 imageSize: payload.imageSize,
                 model: payload.apiModel,
+                modelSelector: payload.modelSelector,
               },
               (task) => {
                 updateNodeData(nextNodeId, generationTaskDescriptor(task));
