@@ -28,10 +28,12 @@ from ai_anime.modules.creative_canvas.domain.video_generation import (
     get_video_camera_template,
     resolve_video_generation_mode,
     summarize_omni_reference_counts,
-    validate_reference_media_durations,
     validate_omni_reference_limits,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.shared.utils.media_durations import (
+    validate_reference_media_durations,
+)
 
 CREATIVE_CANVAS_VIDEO_GENERATION_TASK_TYPE = "freezone_video_gen"
 CreativeCanvasVideoReferenceType = Literal["image", "video", "audio"]
