@@ -207,6 +207,7 @@ export {
   canConnectCanvasNodesManually,
   canNodeBeManualConnectionSource,
   canNodeTypeBeManualConnectionSource,
+  getAllowedDownstreamTargetTypes,
   getAllowedUpstreamSourceTypes,
   getConnectMenuNodeTypes,
   getDownstreamSpawnTypes,
@@ -990,6 +991,7 @@ export type {
   Pano360ViewerNodeData,
   ScriptNodeData,
   SkillNodeData,
+  StyleNodeData,
   StoryboardGenNodeData,
   StoryboardSplitNodeData,
   TextAnnotationNodeData,
@@ -1011,6 +1013,7 @@ export {
   isStoryboardGenNode,
   isStoryboardGroupNode,
   isStoryboardSplitNode,
+  isStyleNode,
   isTextAnnotationNode,
   isUploadNode,
   isVideoNode,
@@ -3554,6 +3557,18 @@ export { ImageEditNodeView } from "@/modules/creative_canvas/presentation/ImageE
 export type { ImageEditNodeController } from "@/modules/creative_canvas/presentation/useImageEditNodeController";
 export { ImageGenNodeView } from "@/modules/creative_canvas/presentation/ImageGenNodeView";
 export type { ImageGenNodeController } from "@/modules/creative_canvas/presentation/useImageGenNodeController";
+export {
+  STYLE_NODE_HEIGHT,
+  STYLE_NODE_WIDTH,
+} from "@/modules/creative_canvas/domain/styleNodeModel";
+export { StyleNodeView } from "@/modules/creative_canvas/presentation/StyleNodeView";
+export type {
+  StyleNodeController,
+  StyleNodeControllerOptions,
+  StyleNodeStore,
+  StyleNodeStoreHook,
+  StyleSelectionState,
+} from "@/modules/creative_canvas/presentation/useStyleNodeController";
 export { VideoNodeView } from "@/modules/creative_canvas/presentation/VideoNodeView";
 export type { VideoNodeController } from "@/modules/creative_canvas/presentation/useVideoNodeController";
 export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";

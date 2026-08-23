@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
 export interface DuplicationGraphNode {
   id: string;
   type?: string | null;
@@ -68,6 +69,14 @@ function cloneIncomingEdge(
   };
 }
 
+function styleNodeIds(nodes: readonly DuplicationGraphNode[]): Set<string> {
+  return new Set(
+    nodes
+      .filter((node) => node.type === CANVAS_NODE_TYPES.style)
+      .map((node) => node.id),
+  );
+}
+
 export function duplicateCanvasNodeAsSibling(
   nodes: DuplicationGraphNode[],
   edges: DuplicationGraphEdge[],
@@ -92,8 +101,11 @@ export function duplicateCanvasNodeAsSibling(
       ...dataOverrides,
     },
   );
+  const styleIds = styleNodeIds(nodes);
   const clonedEdges = edges
-    .filter((edge) => edge.target === sourceNodeId)
+    .filter(
+      (edge) => edge.target === sourceNodeId && !styleIds.has(edge.source),
+    )
     .map((edge) => cloneIncomingEdge(edge, edge.source, newNode.id))
     .filter((edge) => !edges.some((existing) => existing.id === edge.id));
 
@@ -156,9 +168,15 @@ export function duplicateCanvasNodesAsSiblings(
   }
 
   const newEdges: DuplicationGraphEdge[] = [];
+  const styleIds = styleNodeIds(nodes);
   for (const edge of edges) {
     const newTarget = idMap.get(edge.target);
     if (!newTarget) {
+      continue;
+    }
+    // 只复制图片节点时不能把原 StyleNode 的边克隆过去，否则会形成一对多。
+    // StyleNode 自身也在复制集合中时，下面仍会把边重接到它的副本。
+    if (styleIds.has(edge.source) && !idMap.has(edge.source)) {
       continue;
     }
     const newSource = idMap.get(edge.source) ?? edge.source;

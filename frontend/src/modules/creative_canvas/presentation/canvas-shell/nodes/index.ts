@@ -13,6 +13,7 @@ import { ScriptNode } from './ScriptNode';
 import { SkillNode } from './SkillNode';
 import { StoryboardGenNode } from './StoryboardGenNode';
 import { StoryboardNode } from './StoryboardNode';
+import { StyleNode } from './StyleNode';
 import { TextAnnotationNode } from './TextAnnotationNode';
 import { ThreeDWorldNode } from './ThreeDWorldNode';
 import { UploadNode } from './UploadNode';
@@ -77,6 +78,10 @@ type UnboundStoryboardNodeProps = Omit<
   ComponentProps<typeof StoryboardNode>,
   'projectId'
 >;
+type UnboundStyleNodeProps = Omit<
+  ComponentProps<typeof StyleNode>,
+  'projectId'
+>;
 type UnboundThreeDWorldNodeProps = Omit<
   ComponentProps<typeof ThreeDWorldNode>,
   keyof CanvasNodeTypeContext
@@ -127,6 +132,9 @@ export function createCanvasNodeTypes({
   const BoundStoryboardNode = (props: UnboundStoryboardNodeProps) =>
     createElement(StoryboardNode, { ...props, projectId });
   BoundStoryboardNode.displayName = 'BoundStoryboardNode';
+  const BoundStyleNode = (props: UnboundStyleNodeProps) =>
+    createElement(StyleNode, { ...props, projectId });
+  BoundStyleNode.displayName = 'BoundStyleNode';
   const BoundThreeDWorldNode = (props: UnboundThreeDWorldNodeProps) =>
     createElement(ThreeDWorldNode, { ...props, projectId, canvasId });
   BoundThreeDWorldNode.displayName = 'BoundThreeDWorldNode';
@@ -155,6 +163,7 @@ export function createCanvasNodeTypes({
     skillNode: BoundSkillNode,
     storyboardGenNode: BoundStoryboardGenNode,
     storyboardNode: BoundStoryboardNode,
+    styleNode: BoundStyleNode,
     textAnnotationNode: BoundTextAnnotationNode,
     threeDWorldNode: BoundThreeDWorldNode,
     uploadNode: BoundUploadNode,
@@ -164,4 +173,4 @@ export function createCanvasNodeTypes({
   };
 }
 
-export { AudioNode, BeatContextNode, GroupNode, ImageEditNode, ImageGenNode, ImageNode, Pano360ViewerNode, ScriptNode, SkillNode, StoryboardGenNode, StoryboardNode, TextAnnotationNode, ThreeDWorldNode, UploadNode, VideoComposeNode, VideoNode, VideoStoryNode };
+export { AudioNode, BeatContextNode, GroupNode, ImageEditNode, ImageGenNode, ImageNode, Pano360ViewerNode, ScriptNode, SkillNode, StoryboardGenNode, StoryboardNode, StyleNode, TextAnnotationNode, ThreeDWorldNode, UploadNode, VideoComposeNode, VideoNode, VideoStoryNode };

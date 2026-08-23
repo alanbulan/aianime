@@ -49,6 +49,7 @@ import { createUseSkillNodeController } from './presentation/useSkillNodeControl
 import { createUseStoryboardGenNodeController } from './presentation/useStoryboardGenNodeController';
 import { createUseImageEditNodeController } from './presentation/useImageEditNodeController';
 import { createUseImageGenNodeController } from './presentation/useImageGenNodeController';
+import { createUseStyleNodeController } from './presentation/useStyleNodeController';
 import { createUseVideoNodeController } from './presentation/useVideoNodeController';
 import { createNodeContextPromptPaletteButton } from './presentation/NodeContextPromptPaletteButton';
 import { createRotateEditorOverlay } from './presentation/RotateEditorOverlay';
@@ -556,6 +557,10 @@ export const useImageGenNodeController = createUseImageGenNodeController({
   getCanvasBeatDirectorManifest,
   uploadAndAutoCommitSelectedBackgroundCandidate,
   generateCanvasImage,
+});
+export const useStyleNodeController = createUseStyleNodeController({
+  useStore: useCanvasStore,
+  useCanvasStyleTemplates,
 });
 export const useVideoNodeController = createUseVideoNodeController({
   useStore: useCanvasStore,

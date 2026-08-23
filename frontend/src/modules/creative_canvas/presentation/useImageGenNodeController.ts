@@ -21,6 +21,7 @@ import type {
   CanvasNodeData,
   CanvasNodeType,
   ImageGenNodeData,
+  StyleNodeData,
 } from '../domain/canvasNodeData';
 import type { ImageSize } from '../domain/imageNodeSizing';
 import {
@@ -61,6 +62,7 @@ import {
   type UpstreamContent,
 } from '../application/graphContentResolver';
 import { CANVAS_NODE_TYPES } from '../domain/canvasConnection';
+import { isStyleNode } from '../domain/canvasNodePredicates';
 import {
   buildImageGenerationSuccessPatch,
   isStaleGenerationTask,
@@ -135,8 +137,20 @@ import { useGenerationCreditCost } from '@/modules/model_usage/public';
 import { formatCreditCost } from '@/components/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
+import {
+  advanceStyleNodeSync,
+  isStyleSyncReady,
+  readStyleNodeSyncState,
+  resolveStyleNodePlacement,
+  writeStyleNodeSyncState,
+} from '../application/styleNodeSync';
+import {
+  STYLE_NODE_HEIGHT,
+  STYLE_NODE_WIDTH,
+} from '../domain/styleNodeModel';
 
 export interface ImageGenNodeStore {
+  nodes: CanvasNode[];
   setSelectedNode: (id: string | null) => void;
   activeOverlayNodeId: string | null;
   hoveredNodeId: string | null;
@@ -162,6 +176,7 @@ export interface ImageGenNodeStore {
     data?: Partial<CanvasNodeData>,
   ) => string;
   addEdge: (source: string, target: string) => void;
+  deleteNode: (nodeId: string) => void;
   autoGroupSpawn: (
     sourceNodeId: string,
     nodeIds: string[],
@@ -313,6 +328,7 @@ export function createUseImageGenNodeController({
   const deleteEdge = useStore((state) => state.deleteEdge);
   const addNodeAction = useStore((state) => state.addNode);
   const addEdgeAction = useStore((state) => state.addEdge);
+  const deleteNodeAction = useStore((state) => state.deleteNode);
   const autoGroupSpawn = useStore((state) => state.autoGroupSpawn);
   const onNodesChange = useStore((state) => state.onNodesChange);
 
@@ -525,10 +541,58 @@ export function createUseImageGenNodeController({
     () => collectCandidateBindingsForNode(connectedEdges, id).map((binding) => binding.role),
     [connectedEdges, id],
   );
+  const styleProjection = useStore(
+    useShallow((state) => {
+      const styleNodesById = new Map(
+        state.nodes
+          .filter((node) => isStyleNode(node))
+          .map((node) => [node.id, node] as const),
+      );
+      const incomingStyleEdge = state.edges.find(
+        (edge) => edge.target === id && styleNodesById.has(edge.source),
+      );
+      const styleNode = incomingStyleEdge
+        ? styleNodesById.get(incomingStyleEdge.source) ?? null
+        : null;
+      const rawTemplateId = styleNode
+        ? (styleNode.data as StyleNodeData).styleTemplateId
+        : null;
+      return {
+        nodeId: styleNode?.id ?? null,
+        templateId:
+          typeof rawTemplateId === 'string' && rawTemplateId.length > 0
+            ? rawTemplateId
+            : null,
+        sharedWithOtherTargets: styleNode
+          ? state.edges.filter((edge) => edge.source === styleNode.id).length > 1
+          : false,
+        hasNonStyleIncoming: state.edges.some(
+          (edge) =>
+            edge.target === id && !styleNodesById.has(edge.source),
+        ),
+      };
+    }),
+  );
+  const upstreamStyleNode = useMemo(
+    () =>
+      styleProjection.nodeId
+        ? {
+            id: styleProjection.nodeId,
+            templateId: styleProjection.templateId,
+            sharedWithOtherTargets: styleProjection.sharedWithOtherTargets,
+          }
+        : null,
+    [
+      styleProjection.nodeId,
+      styleProjection.sharedWithOtherTargets,
+      styleProjection.templateId,
+    ],
+  );
   // 节点被连线（存在入边）后：隐藏「试试」CTA，只在节点中间显示一个图标（对齐 libtv）。
+  // StyleNode 是当前选择的投影，不属于用户提供的上游素材。
   const isConnected = useMemo(
-    () => connectedEdges.some((edge) => edge.target === id),
-    [connectedEdges, id],
+    () => styleProjection.hasNonStyleIncoming,
+    [styleProjection.hasNonStyleIncoming],
   );
 
   // 候选按 orderedReferenceUrls 编号（自身参考图在场时就是图片1），保证 @ 出来的
@@ -1351,6 +1415,63 @@ export function createUseImageGenNodeController({
   );
   const visualState = mainlineNodeVisualState(mainlineFlags);
   const mainlineCanvasReadonly = mainlineFlags.isPresetManaged && !canAutoCommitOnGenerate;
+  const styleSyncReady = isStyleSyncReady(styleTemplateId, styleTemplates);
+  useEffect(() => {
+    if (!styleSyncReady || mainlineCanvasReadonly) return;
+    const result = advanceStyleNodeSync(readStyleNodeSyncState(id), {
+      selectedTemplateId: styleTemplateId,
+      styleNode: upstreamStyleNode,
+    });
+    writeStyleNodeSyncState(id, result.state);
+
+    switch (result.action.kind) {
+      case 'create': {
+        const self = readNode(id);
+        if (!self) return;
+        const selfHeight =
+          self.measured?.height
+          ?? (typeof self.height === 'number'
+            ? self.height
+            : IMAGE_GEN_NODE_DEFAULT_HEIGHT);
+        const styleNodeId = addNodeAction(
+          CANVAS_NODE_TYPES.style,
+          resolveStyleNodePlacement({
+            imageNodePosition: self.position,
+            imageNodeHeight: selfHeight,
+            styleNodeWidth: STYLE_NODE_WIDTH,
+            styleNodeHeight: STYLE_NODE_HEIGHT,
+          }),
+          { styleTemplateId: result.action.templateId },
+        );
+        addEdgeAction(styleNodeId, id);
+        break;
+      }
+      case 'update':
+        updateNodeData(result.action.nodeId, {
+          styleTemplateId: result.action.templateId,
+        });
+        break;
+      case 'remove':
+        deleteNodeAction(result.action.nodeId);
+        break;
+      case 'clear-selection':
+        updateNodeData(id, { styleTemplateId: null });
+        break;
+      default:
+        break;
+    }
+  }, [
+    addEdgeAction,
+    addNodeAction,
+    deleteNodeAction,
+    id,
+    mainlineCanvasReadonly,
+    readNode,
+    styleSyncReady,
+    styleTemplateId,
+    updateNodeData,
+    upstreamStyleNode,
+  ]);
   const cardToneClass = (() => {
     switch (visualState) {
       case 'preset_locked':

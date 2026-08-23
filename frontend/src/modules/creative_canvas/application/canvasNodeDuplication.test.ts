@@ -157,4 +157,50 @@ describe('Canvas node duplication', () => {
       duplicateCanvasNodesAsSiblings(nodes, edges, ['missing'], factory('copy')),
     ).toEqual({ nodes, edges, createdIds: [] });
   });
+
+  it('does not clone an external StyleNode edge into an image sibling', () => {
+    const style = node('style', { type: 'styleNode' });
+    const upload = node('upload', { type: 'uploadNode' });
+    const image = node('image', { type: 'imageGenNode' });
+    const edges: DuplicationGraphEdge[] = [
+      { id: 'style-image', source: style.id, target: image.id },
+      { id: 'upload-image', source: upload.id, target: image.id },
+    ];
+
+    const result = duplicateCanvasNodeAsSibling(
+      [style, upload, image],
+      edges,
+      image.id,
+      1,
+      {},
+      factory('image-copy'),
+    );
+
+    expect(
+      result?.edges
+        .filter((edge) => edge.target === 'image-copy')
+        .map((edge) => edge.source),
+    ).toEqual(['upload']);
+  });
+
+  it('rewires a StyleNode edge when style and image are duplicated together', () => {
+    const style = node('style', { type: 'styleNode' });
+    const image = node('image', { type: 'imageGenNode' });
+    const result = duplicateCanvasNodesAsSiblings(
+      [style, image],
+      [{ id: 'style-image', source: style.id, target: image.id }],
+      [style.id, image.id],
+      factory('style-copy', 'image-copy'),
+    );
+
+    expect(result.edges).toContainEqual(
+      expect.objectContaining({
+        source: 'style-copy',
+        target: 'image-copy',
+      }),
+    );
+    expect(result.edges).not.toContainEqual(
+      expect.objectContaining({ source: 'style', target: 'image-copy' }),
+    );
+  });
 });

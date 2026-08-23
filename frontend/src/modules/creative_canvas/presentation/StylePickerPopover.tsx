@@ -19,7 +19,7 @@ export function StylePickerPopover({
   onSelect,
   onClose,
 }: StylePickerPopoverProps) {
-  const { templates, isLoading } = useCanvasStyleTemplates(projectId);
+  const { templates, isLoading, error, retry } = useCanvasStyleTemplates(projectId);
 
   // Stable groups: backend `category` first (insertion order), un-categorized
   // bucket goes last under 「其他」.
@@ -75,7 +75,19 @@ export function StylePickerPopover({
             加载中…
           </div>
         )}
-        {!isLoading && templates.length === 0 && (
+        {!isLoading && error && templates.length === 0 && (
+          <div className="flex h-20 flex-col items-center justify-center gap-2 text-[11px] text-amber-300/90">
+            <span>风格清单加载失败</span>
+            <button
+              type="button"
+              onClick={retry}
+              className="rounded-md border border-amber-300/35 px-2 py-1 transition-colors hover:bg-amber-300/10"
+            >
+              重试
+            </button>
+          </div>
+        )}
+        {!isLoading && !error && templates.length === 0 && (
           <div className="flex h-20 items-center justify-center text-[11px] text-text-muted">
             暂无风格模板
           </div>

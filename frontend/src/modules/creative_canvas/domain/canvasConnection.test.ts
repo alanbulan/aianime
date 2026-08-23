@@ -24,6 +24,7 @@ const CANVAS_NODE_TYPES = {
   script: 'scriptNode',
   pano360Viewer: 'pano360ViewerNode',
   threeDWorld: 'threeDWorldNode',
+  style: 'styleNode',
 } as const;
 
 type CanvasNodeType = CanvasConnectionNodeType;
@@ -119,6 +120,39 @@ describe('Canvas connection rules', () => {
     expect(canConnectCanvasNodesManually(video, world)).toBe(false);
     expect(canConnectCanvasNodesManually(group, world)).toBe(false);
     expect(canConnectCanvasNodesManually(image, group)).toBe(false);
+  });
+
+  it('keeps StyleNode projection edges system-owned and image-only', () => {
+    const style = node('style', CANVAS_NODE_TYPES.style);
+    const image = node('image', CANVAS_NODE_TYPES.imageGen);
+    const video = node('video', CANVAS_NODE_TYPES.video);
+
+    expect(resolveAllowedNodeTypes('source', CANVAS_NODE_TYPES.style)).toEqual([]);
+    expect(canConnectCanvasNodesManually(style, image)).toBe(false);
+    expect(
+      validateCanvasConnection(
+        [style, image],
+        [],
+        { source: style.id, target: image.id },
+        'react_flow',
+      ),
+    ).toEqual({ ok: false, reason: 'disallowed_upstream_type' });
+    expect(
+      validateCanvasConnection(
+        [style, image],
+        [],
+        { source: style.id, target: image.id },
+        'programmatic',
+      ),
+    ).toEqual({ ok: true });
+    expect(
+      validateCanvasConnection(
+        [style, video],
+        [],
+        { source: style.id, target: video.id },
+        'programmatic',
+      ),
+    ).toEqual({ ok: false, reason: 'disallowed_upstream_type' });
   });
 
   it('lets React Flow own missing endpoint and handle validation', () => {

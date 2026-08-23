@@ -7,6 +7,7 @@ import { nodeCatalog } from '../application/canvasNodeCatalog';
 import { type CanvasNodeDefaultDataGateway, type CanvasNodeDefaultDataCatalog, type CanvasNodeDefaultDataGateway as ModuleCanvasNodeDefaultDataGateway } from '../application/canvasNodeDefaultData';
 import { normalizeCanvasData, type HydrationGraphEdge } from '../application/canvasDataNormalization';
 import { type HydrationGraphNode } from '../application/canvasNodeHydration';
+import { resetStyleNodeSyncStates } from '../application/styleNodeSync';
 
 
 ;
@@ -67,6 +68,7 @@ export function createZustandCanvasDocumentLifecycleSlice(
     pendingClearIntent: false,
 
     setCanvasData(nodes, edges, history) {
+      resetStyleNodeSyncStates();
       const normalizedCanvas = normalizeData(nodes, edges);
       store.setState({
         nodes: normalizedCanvas.nodes,
@@ -109,6 +111,7 @@ export function createZustandCanvasDocumentLifecycleSlice(
     },
 
     hydrateCanvasDraft(draft) {
+      resetStyleNodeSyncStates();
       const normalizedCanvas = normalizeData(draft.nodes, draft.edges);
       store.setState({
         nodes: normalizedCanvas.nodes,
@@ -127,6 +130,7 @@ export function createZustandCanvasDocumentLifecycleSlice(
     },
 
     clearCanvas() {
+      resetStyleNodeSyncStates();
       store.updateState((state) => {
         if (state.nodes.length === 0 && state.edges.length === 0) {
           return {};

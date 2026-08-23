@@ -14,6 +14,7 @@ import type {
   SkillNodeData,
   StoryboardGenNodeData,
   StoryboardSplitNodeData,
+  StyleNodeData,
   TextAnnotationNodeData,
   ThreeDWorldNodeData,
   UploadImageNodeData,
@@ -457,6 +458,22 @@ const skillNodeDefinition: CanvasNodeDefinition<SkillNodeData> = {
   }),
 };
 
+// 风格节点由图片节点的对账逻辑维护，不进入创建菜单。默认不写 displayName，标题
+// 才能随当前风格的分类和名称变化；用户手工改名后再以 displayName 为准。
+const styleNodeDefinition: CanvasNodeDefinition<StyleNodeData> = {
+  type: CANVAS_NODE_TYPES.style,
+  menuLabelKey: 'node.menu.style',
+  menuIcon: 'sparkles',
+  visibleInMenu: false,
+  capabilities: {
+    toolbar: false,
+    promptInput: false,
+  },
+  createDefaultData: () => ({
+    styleTemplateId: null,
+  }),
+};
+
 export const canvasNodeDefinitions: Record<CanvasNodeType, CanvasNodeDefinition> = {
   [CANVAS_NODE_TYPES.upload]: uploadNodeDefinition,
   [CANVAS_NODE_TYPES.imageEdit]: imageEditNodeDefinition,
@@ -475,6 +492,7 @@ export const canvasNodeDefinitions: Record<CanvasNodeType, CanvasNodeDefinition>
   [CANVAS_NODE_TYPES.pano360Viewer]: pano360ViewerNodeDefinition,
   [CANVAS_NODE_TYPES.threeDWorld]: threeDWorldNodeDefinition,
   [CANVAS_NODE_TYPES.skill]: skillNodeDefinition,
+  [CANVAS_NODE_TYPES.style]: styleNodeDefinition,
 };
 
 export function getNodeDefinition(type: CanvasNodeType): CanvasNodeDefinition {

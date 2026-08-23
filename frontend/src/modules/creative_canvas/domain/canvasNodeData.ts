@@ -516,6 +516,14 @@ export interface SkillNodeData extends NodeDisplayData {
   [key: string]: unknown;
 }
 
+/**
+ * 图片节点 `styleTemplateId` 在画布上的可视化投影。生成请求仍只读取下游
+ * ImageGenNodeData.styleTemplateId；本节点由风格对账逻辑自动创建、同步和删除。
+ */
+export interface StyleNodeData extends NodeDisplayData {
+  styleTemplateId: string | null;
+}
+
 export type CanvasNodeData =
   | UploadImageNodeData
   | ExportImageNodeData
@@ -533,7 +541,8 @@ export type CanvasNodeData =
   | ScriptNodeData
   | Pano360ViewerNodeData
   | ThreeDWorldNodeData
-  | SkillNodeData;
+  | SkillNodeData
+  | StyleNodeData;
 
 export type CanvasNode = Node<CanvasNodeData, CanvasNodeType>;
 export type CanvasEdge = Edge;

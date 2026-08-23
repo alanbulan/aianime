@@ -11,15 +11,18 @@ export interface UseCanvasStyleTemplatesResult {
   templates: CanvasStyleTemplate[];
   isLoading: boolean;
   error: Error | null;
+  retry: () => void;
 }
 
 export function createCanvasStyleTemplateHooks(
   gateway: CanvasGenerationCatalogGateway,
 ) {
+  const noopRetry = () => {};
   const EMPTY: UseCanvasStyleTemplatesResult = {
     templates: [],
     isLoading: false,
     error: null,
+    retry: noopRetry,
   };
 
   // Per-project shared store. One fetch per project per tab lifetime.
@@ -35,12 +38,21 @@ export function createCanvasStyleTemplateHooks(
     emit(project);
   }
 
-  function ensureLoaded(project: string) {
-    if (states.has(project)) return;
-    states.set(project, { templates: [], isLoading: true, error: null });
+  function startFetch(project: string) {
+    states.set(project, {
+      templates: [],
+      isLoading: true,
+      error: null,
+      retry: noopRetry,
+    });
     listCanvasStyleTemplates(project, gateway)
       .then((templates) => {
-        writeState(project, { templates, isLoading: false, error: null });
+        writeState(project, {
+          templates,
+          isLoading: false,
+          error: null,
+          retry: noopRetry,
+        });
       })
       .catch((error: unknown) => {
         const normalized =
@@ -49,8 +61,25 @@ export function createCanvasStyleTemplateHooks(
           "[creative-canvas] style-templates fetch failed:",
           normalized.message,
         );
-        writeState(project, { templates: [], isLoading: false, error: normalized });
+        writeState(project, {
+          templates: [],
+          isLoading: false,
+          error: normalized,
+          retry: () => retryLoad(project),
+        });
       });
+  }
+
+  function retryLoad(project: string) {
+    const current = states.get(project);
+    if (!current || current.isLoading || !current.error) return;
+    startFetch(project);
+    emit(project);
+  }
+
+  function ensureLoaded(project: string) {
+    if (states.has(project)) return;
+    startFetch(project);
   }
 
   function prefetchCanvasStyleTemplates(project: string): void {

@@ -120,4 +120,28 @@ describe("Canvas generation catalog hooks", () => {
     expect(gateway.listStyleTemplates).toHaveBeenCalledWith("project-a");
     expect(gateway.listVideoCameraTemplates).toHaveBeenCalledWith("project-a");
   });
+
+  it("retries a failed style catalog request only after an explicit action", async () => {
+    const gateway = createGateway();
+    vi.mocked(gateway.listStyleTemplates)
+      .mockRejectedValueOnce(new Error("catalog unavailable"))
+      .mockResolvedValueOnce([
+        { id: "anime", label: "Anime", stylePrompt: "anime style" },
+      ]);
+    const hooks = createCanvasStyleTemplateHooks(gateway);
+    const hook = renderHook(() =>
+      hooks.useCanvasStyleTemplates("retry-project"),
+    );
+
+    await waitFor(() => {
+      expect(hook.result.current.error?.message).toBe("catalog unavailable");
+    });
+    expect(gateway.listStyleTemplates).toHaveBeenCalledTimes(1);
+
+    act(() => hook.result.current.retry());
+    await waitFor(() => {
+      expect(hook.result.current.templates[0]?.id).toBe("anime");
+    });
+    expect(gateway.listStyleTemplates).toHaveBeenCalledTimes(2);
+  });
 });

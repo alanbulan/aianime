@@ -11,6 +11,7 @@ import type {
   ImageGenNodeData,
   Pano360ViewerNodeData,
   ScriptNodeData,
+  StyleNodeData,
   StoryboardGenNodeData,
   StoryboardSplitNodeData,
   TextAnnotationNodeData,
@@ -34,6 +35,12 @@ export function isImageGenNode(
   node: CanvasNode | null | undefined
 ): node is Node<ImageGenNodeData, typeof CANVAS_NODE_TYPES.imageGen> {
   return node?.type === CANVAS_NODE_TYPES.imageGen;
+}
+
+export function isStyleNode(
+  node: CanvasNode | null | undefined
+): node is Node<StyleNodeData, typeof CANVAS_NODE_TYPES.style> {
+  return node?.type === CANVAS_NODE_TYPES.style;
 }
 
 export function isExportImageNode(

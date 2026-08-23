@@ -18,6 +18,7 @@ export const CANVAS_CONNECTION_NODE_TYPES = {
   pano360Viewer: 'pano360ViewerNode',
   threeDWorld: 'threeDWorldNode',
   skill: 'skillNode',
+  style: 'styleNode',
 } as const;
 
 export const CANVAS_NODE_TYPES = CANVAS_CONNECTION_NODE_TYPES;
@@ -132,6 +133,11 @@ const NODE_CONNECTIVITY = {
     targetHandle: true,
     connectMenu: { fromSource: true, fromTarget: true },
   },
+  [NODE_TYPE.style]: {
+    sourceHandle: true,
+    targetHandle: false,
+    connectMenu: { fromSource: false, fromTarget: false },
+  },
 } satisfies Record<CanvasConnectionNodeType, CanvasNodeConnectivity>;
 
 const UPSTREAM_SOURCE_WHITELIST: Partial<
@@ -139,6 +145,19 @@ const UPSTREAM_SOURCE_WHITELIST: Partial<
 > = {
   [NODE_TYPE.audio]: [NODE_TYPE.textAnnotation],
 };
+
+const DOWNSTREAM_TARGET_WHITELIST: Partial<
+  Record<CanvasConnectionNodeType, readonly CanvasConnectionNodeType[]>
+> = {
+  // 风格节点只是图片节点 styleTemplateId 的投影，连到别处不会产生业务效果。
+  [NODE_TYPE.style]: [NODE_TYPE.imageGen],
+};
+
+const SYSTEM_ONLY_CONNECTIONS = new Set<string>([
+  // 这条边由图片节点的风格对账逻辑维护。开放手工连线会制造一个风格节点服务
+  // 多个图片节点的异常图，多个对账 effect 会互相改写同一个节点而无法收敛。
+  `${NODE_TYPE.style}->${NODE_TYPE.imageGen}`,
+]);
 
 export function nodeHasSourceHandle(type: CanvasConnectionNodeType): boolean {
   return NODE_CONNECTIVITY[type].sourceHandle;
@@ -154,12 +173,29 @@ export function getAllowedUpstreamSourceTypes(
   return UPSTREAM_SOURCE_WHITELIST[targetType] ?? null;
 }
 
+export function getAllowedDownstreamTargetTypes(
+  sourceType: CanvasConnectionNodeType,
+): readonly CanvasConnectionNodeType[] | null {
+  return DOWNSTREAM_TARGET_WHITELIST[sourceType] ?? null;
+}
+
 export function isUpstreamConnectionAllowed(
   sourceType: CanvasConnectionNodeType,
   targetType: CanvasConnectionNodeType,
 ): boolean {
-  const allowed = UPSTREAM_SOURCE_WHITELIST[targetType];
-  return allowed ? allowed.includes(sourceType) : true;
+  const allowedSources = UPSTREAM_SOURCE_WHITELIST[targetType];
+  if (allowedSources && !allowedSources.includes(sourceType)) {
+    return false;
+  }
+  const allowedTargets = DOWNSTREAM_TARGET_WHITELIST[sourceType];
+  return allowedTargets ? allowedTargets.includes(targetType) : true;
+}
+
+function isSystemOnlyConnection(
+  sourceType: CanvasConnectionNodeType,
+  targetType: CanvasConnectionNodeType,
+): boolean {
+  return SYSTEM_ONLY_CONNECTIONS.has(`${sourceType}->${targetType}`);
 }
 
 export function getConnectMenuNodeTypes(
@@ -182,6 +218,10 @@ export function getDownstreamSpawnTypes(
 ): CanvasConnectionNodeType[] {
   const base = getConnectMenuNodeTypes('source');
   if (!originType) return base;
+
+  if (originType === NODE_TYPE.style) {
+    return [];
+  }
 
   if (originType === NODE_TYPE.video) {
     const allowed = new Set<CanvasConnectionNodeType>([
@@ -297,6 +337,9 @@ export function canNodeTypeBeManualConnectionSource(
   type: CanvasConnectionNodeType,
   targetType?: CanvasConnectionNodeType,
 ): boolean {
+  if (targetType && isSystemOnlyConnection(type, targetType)) {
+    return false;
+  }
   if (targetType === NODE_TYPE.threeDWorld) {
     return THREE_D_WORLD_MANUAL_SOURCE_TYPES.has(type);
   }
@@ -351,6 +394,13 @@ export function validateCanvasConnection(
       )
     ) {
       return { ok: false, reason: 'three_d_world_input_exists' };
+    }
+    if (
+      sourceNode
+      && targetNode
+      && isSystemOnlyConnection(sourceNode.type, targetNode.type)
+    ) {
+      return { ok: false, reason: 'disallowed_upstream_type' };
     }
     if (
       sourceNode
