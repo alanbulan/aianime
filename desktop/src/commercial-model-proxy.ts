@@ -19,7 +19,8 @@ import {
 } from "./commercial-model-access.js";
 import { CommercialApiClient, CommercialApiError } from "./commercial.js";
 
-const MAX_MODEL_BODY_BYTES = 40 * 1024 * 1024;
+const MAX_MODEL_JSON_BODY_BYTES = 4 * 1024 * 1024;
+const MAX_MODEL_MULTIPART_BODY_BYTES = 108 * 1024 * 1024;
 const FALLBACK_STATUSES = new Set([401, 403, 404, 408, 409, 425, 429, 500, 502, 503, 504]);
 const RETRYABLE_ROUTE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const MAX_ROUTE_ATTEMPTS = 3;
@@ -31,6 +32,15 @@ const FORBIDDEN_MODEL_FIELDS = new Set([
   "headers",
   "xapikey",
   "xgoogapikey",
+]);
+const CLOUD_VIDEO_TEXT_FIELDS = new Set(["model", "prompt", "seconds", "size"]);
+const CLOUD_VIDEO_MEDIA_FIELD_ALIASES = new Map([
+  ["reference_images", "reference_image"],
+  ["reference_images[]", "reference_image"],
+  ["reference_videos", "reference_video"],
+  ["reference_videos[]", "reference_video"],
+  ["reference_audios", "reference_audio"],
+  ["reference_audios[]", "reference_audio"],
 ]);
 
 export interface CommercialModelRoutingConfiguration {
@@ -317,6 +327,7 @@ export class CommercialModelProxy {
             input.rawBody,
             input.contentType,
             route.modelId,
+            route.source === "cloud" && isVideoCreatePath(input.path),
           );
           const upstream =
             route.source === "cloud"
@@ -1467,14 +1478,22 @@ async function prepareBodyForRoute(
   rawBody: Buffer | undefined,
   contentType: string,
   modelId: string,
+  cloudVideo: boolean,
 ): Promise<PreparedBody> {
   if (rawBody === undefined) return {};
   const normalized = contentType.trim().toLowerCase();
   if (normalized.startsWith("application/json")) {
     const payload = parseJsonBody(rawBody);
     if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      const routedPayload = cloudVideo
+        ? Object.fromEntries(
+            Object.entries(payload).filter(([key]) =>
+              CLOUD_VIDEO_TEXT_FIELDS.has(key.toLowerCase()),
+            ),
+          )
+        : payload;
       return {
-        body: JSON.stringify({ ...payload, model: modelId }),
+        body: JSON.stringify({ ...routedPayload, model: modelId }),
         contentType: contentType || "application/json",
       };
     }
@@ -1483,9 +1502,17 @@ async function prepareBodyForRoute(
     const source = await parseMultipartBody(rawBody, contentType);
     const target = new FormData();
     source.forEach((value, key) => {
-      if (key.toLowerCase() === "model") return;
-      if (typeof value === "string") target.append(key, value);
-      else target.append(key, value, value.name);
+      const normalizedKey = key.toLowerCase();
+      if (normalizedKey === "model") return;
+      if (typeof value === "string") {
+        if (cloudVideo && !CLOUD_VIDEO_TEXT_FIELDS.has(normalizedKey)) return;
+        target.append(key, value);
+        return;
+      }
+      const targetKey = cloudVideo
+        ? (CLOUD_VIDEO_MEDIA_FIELD_ALIASES.get(normalizedKey) ?? key)
+        : key;
+      target.append(targetKey, value, value.name);
     });
     target.set("model", modelId);
     return { body: target };
@@ -1496,22 +1523,35 @@ async function prepareBodyForRoute(
   };
 }
 
+function isVideoCreatePath(path: string): boolean {
+  return new URL(path, "http://model-proxy.local").pathname === "/v1/videos";
+}
+
 async function readModelRequestBody(
   request: IncomingMessage,
   contentType: string,
 ): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let total = 0;
+  const normalized = contentType.trim().toLowerCase();
+  const multipart = normalized.startsWith("multipart/form-data");
+  const limit = multipart
+    ? MAX_MODEL_MULTIPART_BODY_BYTES
+    : MAX_MODEL_JSON_BODY_BYTES;
   for await (const chunk of request) {
     const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     total += bytes.byteLength;
-    if (total > MAX_MODEL_BODY_BYTES) {
-      throw new CommercialApiError("模型请求体超过 40 MiB", { status: 413 });
+    if (total > limit) {
+      throw new CommercialApiError(
+        multipart
+          ? "模型 multipart 请求体超过 108 MiB"
+          : "模型请求体超过 4 MiB",
+        { status: 413 },
+      );
     }
     chunks.push(bytes);
   }
   const body = Buffer.concat(chunks);
-  const normalized = contentType.trim().toLowerCase();
   if (normalized.startsWith("application/json")) {
     assertFieldsAllowed(parseJsonBody(body));
   } else if (normalized.startsWith("multipart/form-data")) {
@@ -1593,6 +1633,7 @@ function inferModelRole(path: string): ByokModelRole | null {
   if (pathname.endsWith("/embeddings")) return "EMBEDDING";
   if (pathname.endsWith("/images/generations")) return "IMAGE_GENERATION";
   if (pathname.endsWith("/images/edits")) return "IMAGE_EDIT";
+  if (pathname.endsWith("/audio/music/generations")) return "AUDIO_MUSIC";
   if (pathname.endsWith("/audio/speech")) return "AUDIO_SPEECH";
   if (pathname.startsWith("/v1/videos")) return "VIDEO_TEXT_TO_VIDEO";
   if (
@@ -1686,6 +1727,7 @@ function pipeModelResponse(
     "location",
     "retry-after",
     "x-request-id",
+    "x-voice-id",
   ]) {
     const value = upstream.headers.get(header);
     if (value) response.setHeader(header, value);

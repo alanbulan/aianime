@@ -35,6 +35,11 @@ export interface VoiceSelectionModalControllerOptions {
   onClose: () => void;
   currentRef: AudioVoiceRef;
   onPick: (result: VoicePickResult) => void;
+  presetReferences?: readonly CanvasAudioReference[];
+  presetModelLabel?: string;
+  presetLoading?: boolean;
+  presetError?: string | null;
+  presetEmptyText?: string;
 }
 
 export function useVoiceSelectionModalController({
@@ -43,11 +48,19 @@ export function useVoiceSelectionModalController({
   onClose,
   currentRef,
   onPick,
+  presetReferences = [],
+  presetModelLabel = '',
+  presetLoading = false,
+  presetError = null,
+  presetEmptyText = '暂无可用预设音色',
 }: VoiceSelectionModalControllerOptions) {
-  const [tab, setTab] = useState<VoiceSelectionTab>('library');
+  const [tab, setTab] = useState<VoiceSelectionTab>('preset');
   const [items, setItems] = useState<CanvasAudioReference[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [presetQuery, setPresetQuery] = useState('');
+  const [presetPageNumber, setPresetPageNumber] = useState(1);
+  const [presetJumpValue, setPresetJumpValue] = useState('');
   const [libraryQuery, setLibraryQuery] = useState('');
   const [libraryPageNumber, setLibraryPageNumber] = useState(1);
   const [libraryJumpValue, setLibraryJumpValue] = useState('');
@@ -80,6 +93,10 @@ export function useVoiceSelectionModalController({
 
   useEffect(() => {
     if (!open) return;
+    setTab('preset');
+    setPresetQuery('');
+    setPresetPageNumber(1);
+    setPresetJumpValue('');
     setLibraryQuery('');
     setLibraryPageNumber(1);
     setLibraryJumpValue('');
@@ -88,6 +105,15 @@ export function useVoiceSelectionModalController({
     setMineJumpValue('');
     void reload();
   }, [open, reload]);
+
+  const presetPage = useMemo(
+    () =>
+      paginateVoiceReferences(
+        filterLibraryVoiceReferences(presetReferences, presetQuery),
+        presetPageNumber,
+      ),
+    [presetPageNumber, presetQuery, presetReferences],
+  );
 
   const libraryPage = useMemo(
     () =>
@@ -109,6 +135,10 @@ export function useVoiceSelectionModalController({
     () => projectLibraryVoiceRows(libraryPage.items, currentRef),
     [currentRef, libraryPage.items],
   );
+  const presetRows = useMemo(
+    () => projectLibraryVoiceRows(presetPage.items, currentRef),
+    [currentRef, presetPage.items],
+  );
   const mineRows = useMemo(
     () => projectCustomVoiceRows(minePage.items, currentRef),
     [currentRef, minePage.items],
@@ -117,6 +147,11 @@ export function useVoiceSelectionModalController({
   const handleLibraryQueryChange = useCallback((query: string) => {
     setLibraryQuery(query);
     setLibraryPageNumber(1);
+  }, []);
+
+  const handlePresetQueryChange = useCallback((query: string) => {
+    setPresetQuery(query);
+    setPresetPageNumber(1);
   }, []);
 
   const handleMineQueryChange = useCallback((query: string) => {
@@ -128,6 +163,12 @@ export function useVoiceSelectionModalController({
     (nextTab: VoiceSelectionTab) => {
       if (nextTab === tab) return;
       setTab(nextTab);
+      if (nextTab === 'preset') {
+        setPresetQuery('');
+        setPresetPageNumber(1);
+        setPresetJumpValue('');
+        return;
+      }
       if (nextTab === 'library') {
         setLibraryQuery('');
         setLibraryPageNumber(1);
@@ -175,6 +216,9 @@ export function useVoiceSelectionModalController({
   const updateLibraryJumpValue = useCallback((value: string) => {
     setLibraryJumpValue(sanitizeVoicePaginationInput(value));
   }, []);
+  const updatePresetJumpValue = useCallback((value: string) => {
+    setPresetJumpValue(sanitizeVoicePaginationInput(value));
+  }, []);
   const updateMineJumpValue = useCallback((value: string) => {
     setMineJumpValue(sanitizeVoicePaginationInput(value));
   }, []);
@@ -187,6 +231,15 @@ export function useVoiceSelectionModalController({
     if (target !== null) setLibraryPageNumber(target);
     setLibraryJumpValue('');
   }, [libraryJumpValue, libraryPage.totalPages]);
+
+  const commitPresetJump = useCallback(() => {
+    const target = resolveVoicePaginationJump(
+      presetJumpValue,
+      presetPage.totalPages,
+    );
+    if (target !== null) setPresetPageNumber(target);
+    setPresetJumpValue('');
+  }, [presetJumpValue, presetPage.totalPages]);
 
   const commitMineJump = useCallback(() => {
     const target = resolveVoicePaginationJump(
@@ -205,6 +258,18 @@ export function useVoiceSelectionModalController({
     setTab: handleTabChange,
     loading,
     error,
+    presetModelLabel,
+    presetLoading,
+    presetError,
+    presetEmptyText,
+    presetQuery,
+    handlePresetQueryChange,
+    presetPage,
+    presetRows,
+    setPresetPageNumber,
+    presetJumpValue,
+    updatePresetJumpValue,
+    commitPresetJump,
     libraryQuery,
     handleLibraryQueryChange,
     libraryPage,

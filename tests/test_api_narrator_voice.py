@@ -49,11 +49,15 @@ def _client(monkeypatch, tmp_path):
     def fake_make_static_url_for_context(ctx, relative_path, local_path=None):
         return f"/static/admin/demo/{relative_path}"
 
-    monkeypatch.setattr(projects, "resolve_project_context", fake_resolve_project_context)
+    monkeypatch.setattr(
+        projects, "resolve_project_context", fake_resolve_project_context
+    )
     monkeypatch.setattr(
         projects, "make_sqlite_store_for_context", fake_make_sqlite_store_for_context
     )
-    monkeypatch.setattr(projects, "make_static_url_for_context", fake_make_static_url_for_context)
+    monkeypatch.setattr(
+        projects, "make_static_url_for_context", fake_make_static_url_for_context
+    )
 
     app = FastAPI()
     app.include_router(projects.router)
@@ -105,6 +109,123 @@ def test_narrator_voice_record_accepts_data_url(monkeypatch, tmp_path):
         "assets/narrator/voice.wav"
     )
     assert (project_dir / "assets/narrator/voice.wav").read_bytes() == b"recorded-voice"
+
+
+def test_narrator_voice_generates_reference_from_model_preset(monkeypatch, tmp_path):
+    from ai_anime.modules.creative_canvas import public as creative_canvas_public
+
+    client, project_config, project_dir = _client(monkeypatch, tmp_path)
+    generated_path = project_dir / "freezone/_outputs/audio/generated.mp3"
+    generated_path.parent.mkdir(parents=True)
+    generated_path.write_bytes(b"preset-voice")
+    captured: dict[str, object] = {}
+    created: list[object] = []
+
+    async def fake_generate(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(audio_path=generated_path)
+
+    monkeypatch.setattr(
+        creative_canvas_public,
+        "generate_creative_canvas_audio_speech",
+        fake_generate,
+    )
+    monkeypatch.setattr(
+        creative_canvas_public,
+        "creative_canvas_audio_library_use_cases",
+        lambda: SimpleNamespace(
+            create_voice=lambda command: (
+                created.append(command) or {"voice_id": "fv_ai"}
+            )
+        ),
+    )
+
+    response = client.post(
+        "/projects/demo/narrator-voice/generate-preset",
+        json={
+            "name": "Claire",
+            "voice": "claire",
+            "text": "你好，这是试听文本。",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert captured["mode"] == "SPEECH"
+    assert captured["voice"] == "claire"
+    assert captured["text"] == "你好，这是试听文本。"
+    assert len(created) == 1
+    assert created[0].name == "Claire"
+    assert created[0].filename == "generated.mp3"
+    assert created[0].content == b"preset-voice"
+    assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == (
+        "assets/narrator/voice.mp3"
+    )
+    assert (project_dir / "assets/narrator/voice.mp3").read_bytes() == b"preset-voice"
+
+
+def test_narrator_voice_designs_and_persists_cloud_voice(monkeypatch, tmp_path):
+    from ai_anime.modules.creative_canvas import public as creative_canvas_public
+    from ai_anime.modules.model_usage import public as model_usage_public
+
+    client, project_config, project_dir = _client(monkeypatch, tmp_path)
+    captured: dict[str, object] = {}
+    created: list[object] = []
+
+    async def fake_design(**kwargs):
+        captured.update(kwargs)
+        output_path = kwargs["output_path"]
+        output_path.write_bytes(b"designed-voice")
+        return SimpleNamespace(
+            request_id="req_voice_design_1",
+            response_id="",
+            voice_id="qwen_voice_123",
+        )
+
+    monkeypatch.setattr(
+        model_usage_public,
+        "write_model_audio_voice_design",
+        fake_design,
+    )
+    monkeypatch.setattr(
+        creative_canvas_public,
+        "creative_canvas_audio_library_use_cases",
+        lambda: SimpleNamespace(
+            create_voice=lambda command: (
+                created.append(command) or {"voice_id": "fv_designed"}
+            )
+        ),
+    )
+
+    response = client.post(
+        "/projects/demo/narrator-voice/design",
+        json={
+            "name": "温暖解说声线",
+            "model_selector": "cloud:QWEN3_TTS_VD_2026_01_26",
+            "voice_prompt": "温暖、清晰、克制的女性解说声线",
+            "preview_text": "欢迎来到今天的故事。",
+            "preferred_name": "custom_voice",
+            "language": "zh",
+            "sample_rate": 24000,
+            "response_format": "wav",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["data"]["voice_library_id"] == "fv_designed"
+    assert payload["data"]["provider_voice_id"] == "qwen_voice_123"
+    assert captured["model_selector"] == "cloud:QWEN3_TTS_VD_2026_01_26"
+    assert captured["voice_prompt"] == "温暖、清晰、克制的女性解说声线"
+    assert captured["preview_text"] == "欢迎来到今天的故事。"
+    assert len(created) == 1
+    assert created[0].name == "温暖解说声线"
+    assert created[0].content == b"designed-voice"
+    assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == (
+        "assets/narrator/voice.wav"
+    )
+    assert (project_dir / "assets/narrator/voice.wav").read_bytes() == b"designed-voice"
 
 
 def test_narrator_voice_sources_and_copy(monkeypatch, tmp_path):

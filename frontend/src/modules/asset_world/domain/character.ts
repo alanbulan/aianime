@@ -23,9 +23,23 @@ export interface CharacterVoiceSlot {
   required: boolean;
 }
 
+export interface CharacterIdentityVoiceSample {
+  identity_id: string;
+  identity_name: string;
+  age_group: string;
+  path: string;
+  url: string;
+  sha256: string;
+  updated_at: string;
+  resolved_path: string;
+  resolved_url: string;
+  resolved_from: "identity" | "age_group" | "character_default" | "";
+}
+
 export interface CharacterVoiceSamples {
   character: string;
   slots: CharacterVoiceSlot[];
+  identities?: CharacterIdentityVoiceSample[];
 }
 
 export type CharacterAssetKind =

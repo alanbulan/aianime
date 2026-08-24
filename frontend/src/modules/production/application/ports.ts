@@ -33,6 +33,8 @@ import type {
   ImagePoolSelectionResult,
 } from "@/modules/production/domain/image-pool";
 import type {
+  GenerateNarratorVoiceDesignCommand,
+  GenerateNarratorVoicePresetCommand,
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
@@ -247,6 +249,14 @@ export interface ProductionVideoGateway {
   recordNarratorVoice(
     project: string,
     dataUrl: string,
+  ): Promise<NarratorVoiceMutationResponse>;
+  generateNarratorVoicePreset(
+    project: string,
+    command: GenerateNarratorVoicePresetCommand,
+  ): Promise<NarratorVoiceMutationResponse>;
+  designNarratorVoice(
+    project: string,
+    command: GenerateNarratorVoiceDesignCommand,
   ): Promise<NarratorVoiceMutationResponse>;
   copyProjectNarratorVoice(
     project: string,

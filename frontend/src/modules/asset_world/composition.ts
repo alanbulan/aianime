@@ -4,7 +4,16 @@ import { TaskControllerProvider } from "@/modules/task_execution/public";
 import { useAssetFocus } from "./application/useAssetFocus";
 import { useNavigateToAsset } from "./application/useAssetsDeepLink";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
-import { useGenerationCreditCost } from "@/modules/model_usage/public";
+import {
+  audioVoiceDesignConfig,
+  commercialModelRoles,
+  useCommercialModelCatalog,
+  useGenerationCreditCost,
+} from "@/modules/model_usage/public";
+import {
+  designCanvasAudioVoice,
+  loadCanvasAudioReferences,
+} from "@/modules/creative_canvas/audioVoiceCatalogComposition";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
 import {
@@ -448,7 +457,24 @@ const useCharacterAssetHistoryController =
   createUseCharacterAssetHistoryController(characterQueries);
 const useCharacterVoiceController = createUseCharacterVoiceController(
   characterQueries,
-  { createVoiceRecorder: createBrowserVoiceRecorder },
+  {
+    createVoiceRecorder: createBrowserVoiceRecorder,
+    async loadVoiceOptions(project) {
+      const references = await loadCanvasAudioReferences(project);
+      return references.flatMap((reference) => {
+        const voiceId = reference.ref.voiceId?.trim();
+        if (reference.ref.scope !== "user_custom" || !voiceId) return [];
+        return [
+          {
+            voiceId,
+            label: reference.label?.trim() || voiceId,
+            previewUrl: reference.previewUrl,
+          },
+        ];
+      });
+    },
+    designVoice: designCanvasAudioVoice,
+  },
 );
 const useIdentityCardController = createUseIdentityCardController(
   characterQueries,
@@ -688,7 +714,38 @@ export function CharacterVoicePanelContent({
   character: Character;
   project: string;
 }) {
-  const controller = useCharacterVoiceController({ character, project });
+  const commercialBridgeAvailable =
+    typeof window !== "undefined" &&
+    Boolean(window.aiAnimeDesktop?.commercial);
+  const voiceDesignCatalog = useCommercialModelCatalog(
+    "AUDIO_VOICE_DESIGN",
+    commercialBridgeAvailable,
+    "cloud",
+  );
+  const voiceDesign = useMemo(() => {
+    const candidates = (voiceDesignCatalog.data?.items ?? []).filter((item) =>
+      commercialModelRoles(item).includes("AUDIO_VOICE_DESIGN"),
+    );
+    const defaults = candidates.filter((item) => item.isDefault === true);
+    const model =
+      defaults.length === 1
+        ? defaults[0]
+        : defaults.length === 0 && candidates.length === 1
+          ? candidates[0]
+          : null;
+    const config = model ? audioVoiceDesignConfig(model) : null;
+    if (!model || !config) return null;
+    return {
+      config,
+      modelLabel: model.displayName,
+      modelSelector: `cloud:${model.code}`,
+    };
+  }, [voiceDesignCatalog.data]);
+  const controller = useCharacterVoiceController({
+    character,
+    project,
+    voiceDesign,
+  });
   return createElement(CharacterVoicePanelView, { controller });
 }
 

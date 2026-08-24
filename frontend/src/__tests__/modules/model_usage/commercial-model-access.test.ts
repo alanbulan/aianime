@@ -53,6 +53,48 @@ describe("commercial model details", () => {
       "VIDEO_FIRST_LAST_FRAME",
     ]);
   });
+
+  it("maps the canonical cloud image and audio contracts to desktop roles", () => {
+    expect(
+      commercialModelRoles({
+        operation: "IMAGE",
+        capabilities: {
+          supportedModes: ["TEXT_TO_IMAGE", "IMAGE_TO_IMAGE"],
+        },
+      }),
+    ).toEqual(["IMAGE_GENERATION", "IMAGE_EDIT"]);
+    expect(
+      commercialModelRoles({
+        operation: "AUDIO_VOICE_CLONE",
+        capabilities: { supportedModes: ["SPEECH", "VOICE_CLONE"] },
+      }),
+    ).toEqual(["AUDIO_SPEECH", "AUDIO_VOICE_CLONE"]);
+    expect(
+      commercialModelRoles({
+        operation: "AUDIO_MUSIC",
+        capabilities: { supportedModes: ["MUSIC"] },
+      }),
+    ).toEqual(["AUDIO_MUSIC"]);
+    expect(
+      commercialModelRoles({
+        operation: "AUDIO_VOICE_DESIGN",
+        capabilities: { supportedModes: ["VOICE_DESIGN"] },
+      }),
+    ).toEqual(["AUDIO_VOICE_DESIGN"]);
+  });
+
+  it("maps canonical multimodal video capability to reference roles", () => {
+    expect(
+      commercialModelRoles({
+        operation: "VIDEO",
+        capabilities: { supportedModes: ["MULTIMODAL_REFERENCE"] },
+      }),
+    ).toEqual([
+      "VIDEO_FIRST_LAST_FRAME",
+      "VIDEO_IMAGE_REFERENCE",
+      "VIDEO_ALL_REFERENCE",
+    ]);
+  });
 });
 
 const baseStatus = {
@@ -169,6 +211,7 @@ describe("commercial model access status", () => {
   it("does not define roles without an application call chain", () => {
     expect(BYOK_MODEL_ROLES).toEqual(expect.not.arrayContaining(["RERANK", "MODERATION"]));
     expect(BYOK_MODEL_ROLES).toContain("AUDIO_VOICE_CLONE");
+    expect(BYOK_MODEL_ROLES).toContain("AUDIO_VOICE_DESIGN");
   });
 });
 

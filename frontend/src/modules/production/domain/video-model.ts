@@ -36,14 +36,26 @@ export function resolveAuthorizedVideoModel(
   options: readonly Pick<VideoModelOption, "value" | "apiModel">[],
   persistedModel: string | null | undefined,
 ): string {
+  return (
+    resolveVideoModelOption(options, persistedModel)?.value ??
+    options[0]?.value ??
+    ""
+  );
+}
+
+export function resolveVideoModelOption<
+  T extends Pick<VideoModelOption, "value" | "apiModel">,
+>(
+  options: readonly T[],
+  persistedModel: string | null | undefined,
+): T | undefined {
   const persisted = String(persistedModel ?? "").trim();
-  if (options.some((option) => option.value === persisted)) return persisted;
+  const exact = options.find((option) => option.value === persisted);
+  if (exact) return exact;
   const legacyMatches = options.filter(
     (option) => (option.apiModel ?? option.value) === persisted,
   );
-  return legacyMatches.length === 1
-    ? legacyMatches[0]?.value ?? ""
-    : (options[0]?.value ?? "");
+  return legacyMatches.length === 1 ? legacyMatches[0] : undefined;
 }
 
 export function videoModelOptionFromCatalog(

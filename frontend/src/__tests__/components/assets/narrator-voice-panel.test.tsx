@@ -30,6 +30,16 @@ beforeAll(async () => {
                 narratorVoiceUpload: "上传",
                 narratorVoiceRecord: "录音",
                 narratorVoiceProjectAudio: "项目音频",
+                narratorVoiceAiGenerate: "AI 生成",
+                narratorVoiceAiGenerateTitle: "生成解说声线",
+                narratorVoiceConceptHint: "声线是身份，音色是质感。",
+                narratorVoicePresetModel: "语音模型",
+                narratorVoicePresetVoice: "预设声线",
+                narratorVoiceDefaultSuffix: "（默认）",
+                narratorVoiceSampleText: "试听文本",
+                narratorVoicePresetHint: "无需上传音频。",
+                narratorVoiceGenerateAndUse: "生成并使用",
+                narratorVoicePresetAvailability: { ready: "可以生成" },
                 narratorVoiceTrim: "裁剪",
                 narratorVoiceDelete: "删除",
                 narratorVoiceTrimTitle: "裁剪解说声线",
@@ -58,7 +68,10 @@ function NarratorVoicePanel({
   project: string;
 }) {
   const [trimOpen, setTrimOpen] = useState(false);
+  const [aiVoiceOpen, setAiVoiceOpen] = useState(false);
   const controller = {
+    aiSampleText: "你好，这是试听文本。",
+    aiVoiceOpen,
     audioSrc: mockHasVoice
       ? "/static/projects/demo/assets/narrator/voice.mp3"
       : null,
@@ -68,6 +81,22 @@ function NarratorVoicePanel({
     hasVoice: mockHasVoice,
     heading: "第一人称解说声线",
     pending: false,
+    generationMode: "preset",
+    designGenerationPending: false,
+    designLanguage: "",
+    designName: "",
+    designPreviewText: "",
+    designPrompt: "",
+    designVoiceAvailability: "catalogMissing",
+    designVoiceConfig: null,
+    designVoiceModelLabel: "",
+    presetGenerationPending: false,
+    presetVoice: "claire",
+    presetVoiceAvailability: "ready",
+    presetVoiceModelLabel: "MOSS-TTSD v0.5",
+    presetVoiceOptions: [
+      { value: "claire", label: "Claire", isDefault: true },
+    ],
     projectAudioOpen: false,
     recordedDataUrl: "",
     recording: false,
@@ -84,7 +113,17 @@ function NarratorVoicePanel({
     onApplyTrim: async () => {
       await mutateTrim({ startSeconds: 0, durationSeconds: 4 });
     },
+    onAiSampleTextChange: vi.fn(),
+    onAiVoiceOpenChange: setAiVoiceOpen,
     onDelete: async () => undefined,
+    onDesignLanguageChange: vi.fn(),
+    onDesignNameChange: vi.fn(),
+    onDesignPreviewTextChange: vi.fn(),
+    onDesignPromptChange: vi.fn(),
+    onGenerateDesignedVoice: async () => undefined,
+    onGenerationModeChange: vi.fn(),
+    onGeneratePresetVoice: async () => undefined,
+    onOpenAiVoice: () => setAiVoiceOpen(true),
     onOpenProjectAudio: vi.fn(),
     onOpenRecord: vi.fn(),
     onOpenTrim: () => setTrimOpen(true),
@@ -92,6 +131,7 @@ function NarratorVoicePanel({
     onRecordOpenChange: vi.fn(),
     onSaveRecording: async () => undefined,
     onSelectedSourcePathChange: vi.fn(),
+    onPresetVoiceChange: vi.fn(),
     onStartRecording: async () => undefined,
     onStopRecording: vi.fn(),
     onTrimDurationChange: vi.fn(),
@@ -146,6 +186,23 @@ describe("NarratorVoicePanel", () => {
     expect(screen.getByRole("button", { name: "上传" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "录音" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "项目音频" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AI 生成" })).toBeInTheDocument();
+  });
+
+  it("exposes working preset generation without a hard-coded unavailable design tab", async () => {
+    const user = userEvent.setup();
+    renderPanel(true);
+
+    await user.click(screen.getByRole("button", { name: "AI 生成" }));
+    expect(
+      screen.getByRole("dialog", { name: "生成解说声线" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("MOSS-TTSD v0.5")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "生成并使用" }),
+    ).toBeEnabled();
+
+    expect(screen.queryByText(/AUDIO_VOICE_DESIGN/)).not.toBeInTheDocument();
   });
 
   it("trims configured narrator voice from the assets voice panel", async () => {

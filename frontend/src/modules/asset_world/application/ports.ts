@@ -8,6 +8,7 @@ import type {
   CharacterAssetKind,
   CharacterAssetRestoreResult,
   CharacterImageSelection,
+  CharacterIdentityVoiceSample,
   CharacterVoiceSamples,
   CharacterVoiceSlot,
   Identity,
@@ -121,6 +122,16 @@ export interface TrimVoiceSampleInput {
   durationSeconds: number;
 }
 
+export interface BindVoiceSampleInput {
+  slot: string;
+  voiceId: string;
+}
+
+export interface BindIdentityVoiceSampleInput {
+  identityId: string;
+  voiceId: string;
+}
+
 export interface CharacterGateway {
   listCharacters(
     project: string,
@@ -169,6 +180,11 @@ export interface CharacterGateway {
     name: string,
     input: UploadVoiceSampleInput,
   ): Promise<AssetResponse<CharacterVoiceSlot>>;
+  bindVoiceSample(
+    project: string,
+    name: string,
+    input: BindVoiceSampleInput,
+  ): Promise<AssetResponse<CharacterVoiceSlot>>;
   recordVoiceSample(
     project: string,
     name: string,
@@ -184,6 +200,16 @@ export interface CharacterGateway {
     name: string,
     slot: string,
   ): Promise<AssetResponse<CharacterVoiceSlot>>;
+  bindIdentityVoiceSample(
+    project: string,
+    name: string,
+    input: BindIdentityVoiceSampleInput,
+  ): Promise<AssetResponse<CharacterIdentityVoiceSample>>;
+  deleteIdentityVoiceSample(
+    project: string,
+    name: string,
+    identityId: string,
+  ): Promise<AssetResponse<CharacterIdentityVoiceSample>>;
   listIdentities(
     project: string,
     name: string,

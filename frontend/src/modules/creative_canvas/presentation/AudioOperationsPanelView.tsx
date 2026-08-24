@@ -80,6 +80,8 @@ export function AudioOperationsPanelView({
     toggleVoiceSettings,
     showMusicSettings,
     toggleMusicSettings,
+    voiceSettings,
+    voiceEmotionSupported,
     audioCostDisplay,
     routedModelLabel,
     modelRouteLoading,
@@ -155,8 +157,12 @@ export function AudioOperationsPanelView({
         <div className="px-3 pb-3 pt-4">
           <label className="flex flex-col gap-2">
             <span className={AUDIO_INPUT_LABEL_CLASS}>
-              语气词
-              <span className="ml-1 text-text-muted">（可选，自由输入）</span>
+              表演 / 情绪描述
+              <span className="ml-1 text-text-muted">
+                {voiceEmotionSupported
+                  ? '（可选，自由输入）'
+                  : '（当前模型未开放）'}
+              </span>
             </span>
             <input
               type="text"
@@ -172,10 +178,17 @@ export function AudioOperationsPanelView({
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
               placeholder="如：紧张、压低声音、带一点恐惧感"
-              disabled={isGenerating}
+              disabled={isGenerating || !voiceEmotionSupported}
               className={`${AUDIO_INPUT_FIELD_CLASS} h-9`}
             />
           </label>
+          {!voiceEmotionSupported && (
+            <p className="mt-2 text-[12px] leading-5 text-text-muted">
+              {voiceSettings.generationMode === 'speech'
+                ? '当前使用固定预设声线；文字只作为朗读内容，不会据此设计新声线。'
+                : '当前声线克隆模型目录未声明 emotion_prompt，因此该字段不会提交。'}
+            </p>
+          )}
         </div>
       )}
 
@@ -423,6 +436,11 @@ function AudioVoiceSettingsPanel({
     pickVoice,
     copyState,
     copyVoiceReference,
+    presetVoiceReferences,
+    presetVoiceModelLabel,
+    presetVoiceLoading,
+    presetVoiceError,
+    presetVoiceEmptyText,
   } = controller;
   return (
     <div className="border-t border-border px-4 pb-3 pt-1">
@@ -464,6 +482,9 @@ function AudioVoiceSettingsPanel({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          <span className="h-5 rounded bg-primary/10 px-1.5 text-[12px] leading-5 text-primary">
+            {voiceSettings.modeLabel}
+          </span>
           {voiceSettings.voiceLanguage && (
             <span className="h-5 rounded bg-muted px-1.5 text-[12px] leading-5 text-foreground">
               {voiceSettings.voiceLanguage}
@@ -485,6 +506,11 @@ function AudioVoiceSettingsPanel({
         onClose={closeVoiceModal}
         currentRef={voiceSettings.currentRef}
         onPick={pickVoice}
+        presetReferences={presetVoiceReferences}
+        presetModelLabel={presetVoiceModelLabel}
+        presetLoading={presetVoiceLoading}
+        presetError={presetVoiceError}
+        presetEmptyText={presetVoiceEmptyText}
       />
     </div>
   );

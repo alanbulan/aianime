@@ -18,6 +18,7 @@ export {
   useDirectorControlToSketch,
   useGenerateBeatVideoPrompt,
   useGenerateAudio,
+  useGenerateNarratorVoicePreset,
   useGenerateSeedance2Prompt,
   useGenerateSketches,
   useGrids,
@@ -123,6 +124,7 @@ export type {
   NarratorVoicePanelControllerDependencies,
   NarratorVoicePanelControllerOptions,
   NarratorVoicePanelQueries,
+  NarratorVoicePresetAvailability,
 } from "@/modules/production/application/use-narrator-voice-panel-controller";
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
@@ -266,7 +268,10 @@ export type {
   Seedance2BeatStatus,
   VideoInputCropTarget,
 } from "@/modules/production/domain/seedance2-panel";
-export { resolveAuthorizedVideoModel } from "@/modules/production/domain/video-model";
+export {
+  resolveAuthorizedVideoModel,
+  resolveVideoModelOption,
+} from "@/modules/production/domain/video-model";
 export type { VideoModelOption } from "@/modules/production/domain/video-model";
 export type {
   VideoPoolData,

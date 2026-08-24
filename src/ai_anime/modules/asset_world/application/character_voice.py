@@ -50,8 +50,7 @@ def identity_voice_fields(identity: Any, *, media_url: MediaUrl) -> dict[str, st
     return {
         "reference_audio_path": rel_path,
         "reference_audio_url": media_url(rel_path) if rel_path else "",
-        "reference_audio_sha256": getattr(identity, "reference_audio_sha256", "")
-        or "",
+        "reference_audio_sha256": getattr(identity, "reference_audio_sha256", "") or "",
         "reference_audio_updated_at": getattr(
             identity, "reference_audio_updated_at", ""
         )
@@ -77,7 +76,101 @@ class CharacterVoiceUseCases:
                 self._slot_payload(character, slot=slot, media_url=media_url)
                 for slot in ALL_SLOTS
             ],
+            "identities": [
+                self._identity_payload(
+                    character,
+                    identity=identity,
+                    media_url=media_url,
+                )
+                for identity in list(getattr(character, "identities", None) or [])
+            ],
         }
+
+    async def bind_sample(
+        self,
+        *,
+        repository: CharacterVoiceRepository,
+        project_dir: str | Path,
+        character_name: str,
+        slot: str,
+        source_path: str | Path,
+        media_url: MediaUrl,
+    ) -> dict[str, Any]:
+        character = self._character(repository, character_name)
+        self._ensure_slot(slot)
+        try:
+            content, filename = self._files.read_source(source_path)
+            metadata = self._files.persist(
+                project_dir=project_dir,
+                character_name=character_name,
+                slot=slot,
+                filename=filename,
+                content=content,
+            )
+        except ValueError as exc:
+            raise InvalidCharacterVoiceInput(str(exc)) from exc
+        return await self._apply(
+            repository=repository,
+            character=character,
+            slot=slot,
+            metadata=metadata,
+            media_url=media_url,
+        )
+
+    async def bind_identity_sample(
+        self,
+        *,
+        repository: CharacterVoiceRepository,
+        project_dir: str | Path,
+        character_name: str,
+        identity_id: str,
+        source_path: str | Path,
+        media_url: MediaUrl,
+    ) -> dict[str, Any]:
+        character = self._character(repository, character_name)
+        identity = self._identity(character, identity_id)
+        try:
+            content, filename = self._files.read_source(source_path)
+            metadata = self._files.persist_identity(
+                project_dir=project_dir,
+                character_name=character_name,
+                identity_id=identity_id,
+                filename=filename,
+                content=content,
+            )
+        except ValueError as exc:
+            raise InvalidCharacterVoiceInput(str(exc)) from exc
+        return await self._apply_identity(
+            repository=repository,
+            character=character,
+            identity=identity,
+            metadata=metadata,
+            media_url=media_url,
+        )
+
+    async def delete_identity_sample(
+        self,
+        *,
+        repository: CharacterVoiceRepository,
+        project_dir: str | Path,
+        character_name: str,
+        identity_id: str,
+        media_url: MediaUrl,
+    ) -> dict[str, Any]:
+        character = self._character(repository, character_name)
+        identity = self._identity(character, identity_id)
+        self._files.clear_identity(
+            project_dir=project_dir,
+            character_name=character_name,
+            identity_id=identity_id,
+        )
+        return await self._apply_identity(
+            repository=repository,
+            character=character,
+            identity=identity,
+            metadata=("", "", ""),
+            media_url=media_url,
+        )
 
     async def upload_sample(
         self,
@@ -214,6 +307,20 @@ class CharacterVoiceUseCases:
             raise UnsupportedCharacterVoiceSlot(f"Unsupported voice slot: {slot}")
 
     @staticmethod
+    def _identity(character: Any, identity_id: str) -> Any:
+        identity = next(
+            (
+                item
+                for item in list(getattr(character, "identities", None) or [])
+                if str(getattr(item, "identity_id", "") or "") == identity_id
+            ),
+            None,
+        )
+        if identity is None:
+            raise CharacterVoiceNotFound(f"Identity '{identity_id}' not found")
+        return identity
+
+    @staticmethod
     def _slot_payload(
         character: Any,
         *,
@@ -233,6 +340,41 @@ class CharacterVoiceUseCases:
             and not metadata.path
             and bool(default_metadata.path),
             "required": slot == DEFAULT_SLOT,
+        }
+
+    @staticmethod
+    def _identity_payload(
+        character: Any,
+        *,
+        identity: Any,
+        media_url: MediaUrl,
+    ) -> dict[str, Any]:
+        path = str(getattr(identity, "reference_audio_path", "") or "")
+        sha256 = str(getattr(identity, "reference_audio_sha256", "") or "")
+        updated_at = str(getattr(identity, "reference_audio_updated_at", "") or "")
+        age_group = str(getattr(identity, "age_group", "") or "")
+        resolved = voice_slot_metadata(character, age_group)
+        resolved_from = "age_group" if age_group in ALL_SLOTS[1:] else ""
+        if path:
+            resolved_path = path
+            resolved_from = "identity"
+        elif resolved_from and resolved.path:
+            resolved_path = resolved.path
+        else:
+            resolved = voice_slot_metadata(character, DEFAULT_SLOT)
+            resolved_path = resolved.path
+            resolved_from = "character_default" if resolved_path else ""
+        return {
+            "identity_id": str(getattr(identity, "identity_id", "") or ""),
+            "identity_name": str(getattr(identity, "identity_name", "") or ""),
+            "age_group": age_group,
+            "path": path,
+            "url": media_url(path) if path else "",
+            "sha256": sha256,
+            "updated_at": updated_at,
+            "resolved_path": resolved_path,
+            "resolved_url": media_url(resolved_path) if resolved_path else "",
+            "resolved_from": resolved_from,
         }
 
     async def _apply(
@@ -256,3 +398,31 @@ class CharacterVoiceUseCases:
         for key, value in fields.items():
             setattr(character, key, value)
         return self._slot_payload(character, slot=slot, media_url=media_url)
+
+    async def _apply_identity(
+        self,
+        *,
+        repository: CharacterVoiceRepository,
+        character: Any,
+        identity: Any,
+        metadata: tuple[str, str, str],
+        media_url: MediaUrl,
+    ) -> dict[str, Any]:
+        path, sha256, updated_at = metadata
+        fields = {
+            "reference_audio_path": path,
+            "reference_audio_sha256": sha256,
+            "reference_audio_updated_at": updated_at,
+        }
+        await repository.update_character_identity(
+            character.name,
+            identity.identity_id,
+            **fields,
+        )
+        for key, value in fields.items():
+            setattr(identity, key, value)
+        return self._identity_payload(
+            character,
+            identity=identity,
+            media_url=media_url,
+        )

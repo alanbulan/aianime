@@ -31,6 +31,21 @@ class _Repository:
             setattr(character, key, value)
         return True
 
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates: Any,
+    ) -> bool:
+        self.updates.append((identity_id, updates))
+        character = self.characters[character_name]
+        identity = next(
+            item for item in character.identities if item.identity_id == identity_id
+        )
+        for key, value in updates.items():
+            setattr(identity, key, value)
+        return True
+
 
 class _Upload:
     def __init__(self, content: bytes, filename: str = "voice.wav") -> None:
@@ -50,11 +65,16 @@ class _Files:
         self.persist_calls: list[dict[str, Any]] = []
         self.trim_calls: list[dict[str, Any]] = []
         self.clear_calls: list[dict[str, Any]] = []
+        self.persist_identity_calls: list[dict[str, Any]] = []
+        self.clear_identity_calls: list[dict[str, Any]] = []
         self.persist_error: ValueError | None = None
         self.trim_error: ValueError | None = None
 
     def decode_recording(self, data_url: str) -> tuple[bytes, str]:
         return data_url.encode(), ".wav"
+
+    def read_source(self, source_path: str | Path) -> tuple[bytes, str]:
+        return b"library-voice", Path(source_path).name
 
     def persist(self, **kwargs: Any) -> tuple[str, str, str]:
         self.persist_calls.append(kwargs)
@@ -72,6 +92,14 @@ class _Files:
         self.clear_calls.append(kwargs)
         return True
 
+    def persist_identity(self, **kwargs: Any) -> tuple[str, str, str]:
+        self.persist_identity_calls.append(kwargs)
+        return "voices/identity.wav", "identity-sha", "identity-time"
+
+    def clear_identity(self, **kwargs: Any) -> bool:
+        self.clear_identity_calls.append(kwargs)
+        return True
+
 
 def _character(**overrides: Any) -> SimpleNamespace:
     values = {
@@ -80,6 +108,7 @@ def _character(**overrides: Any) -> SimpleNamespace:
         "reference_audio_sha256": "default-sha",
         "reference_audio_updated_at": "default-time",
         "voice_samples_by_age_group": {},
+        "identities": [],
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -110,6 +139,38 @@ def test_list_samples_preserves_slot_order_and_default_inheritance() -> None:
     assert slots["default"]["url"] == "/media/voices/default.wav"
     assert slots["child"]["inherited_from_default"] is False
     assert slots["youth"]["inherited_from_default"] is True
+
+
+def test_list_samples_exposes_identity_voice_resolution_order() -> None:
+    identity = SimpleNamespace(
+        identity_id="秦_少年",
+        identity_name="少年",
+        age_group="child",
+        reference_audio_path="",
+        reference_audio_sha256="",
+        reference_audio_updated_at="",
+    )
+    character = _character(
+        identities=[identity],
+        voice_samples_by_age_group={
+            "child": {
+                "path": "voices/child.wav",
+                "sha256": "child-sha",
+                "updated_at": "child-time",
+            }
+        },
+    )
+
+    result = CharacterVoiceUseCases(_Files()).list_samples(
+        repository=_Repository(character),
+        character_name="秦",
+        media_url=_media_url,
+    )
+
+    identity_voice = result["identities"][0]
+    assert identity_voice["identity_id"] == "秦_少年"
+    assert identity_voice["resolved_from"] == "age_group"
+    assert identity_voice["resolved_path"] == "voices/child.wav"
 
 
 @pytest.mark.asyncio
@@ -259,3 +320,58 @@ async def test_delete_archives_file_and_removes_age_group_metadata() -> None:
     ]
     assert repository.updates == [("秦", {"voice_samples_by_age_group": {}})]
     assert result["path"] == ""
+
+
+@pytest.mark.asyncio
+async def test_bind_reusable_voice_to_slot() -> None:
+    character = _character(reference_audio_path="")
+    repository = _Repository(character)
+    files = _Files()
+
+    result = await CharacterVoiceUseCases(files).bind_sample(
+        repository=repository,
+        project_dir=Path("project"),
+        character_name="秦",
+        slot="default",
+        source_path=Path("account/reference.wav"),
+        media_url=_media_url,
+    )
+
+    assert files.persist_calls[0]["content"] == b"library-voice"
+    assert result["path"] == "voices/sample.wav"
+
+
+@pytest.mark.asyncio
+async def test_bind_and_clear_identity_voice_restores_inheritance() -> None:
+    identity = SimpleNamespace(
+        identity_id="秦_老年",
+        identity_name="老年",
+        age_group="elder",
+        reference_audio_path="",
+        reference_audio_sha256="",
+        reference_audio_updated_at="",
+    )
+    character = _character(identities=[identity])
+    repository = _Repository(character)
+    files = _Files()
+    use_cases = CharacterVoiceUseCases(files)
+
+    bound = await use_cases.bind_identity_sample(
+        repository=repository,
+        project_dir=Path("project"),
+        character_name="秦",
+        identity_id="秦_老年",
+        source_path=Path("account/reference.wav"),
+        media_url=_media_url,
+    )
+    assert bound["resolved_from"] == "identity"
+
+    cleared = await use_cases.delete_identity_sample(
+        repository=repository,
+        project_dir=Path("project"),
+        character_name="秦",
+        identity_id="秦_老年",
+        media_url=_media_url,
+    )
+    assert cleared["resolved_from"] == "character_default"
+    assert files.clear_identity_calls[0]["identity_id"] == "秦_老年"

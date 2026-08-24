@@ -37,6 +37,7 @@ MODEL_ROLES = frozenset(
         "VIDEO_EDIT",
         "AUDIO_SPEECH",
         "AUDIO_VOICE_CLONE",
+        "AUDIO_VOICE_DESIGN",
         "AUDIO_MUSIC",
         "EMBEDDING",
     }

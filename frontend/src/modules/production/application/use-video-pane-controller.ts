@@ -35,7 +35,10 @@ import type {
   Seedance2AssetItem,
   Seedance2BeatStatus,
 } from "@/modules/production/domain/seedance2-panel";
-import type { VideoModelOption } from "@/modules/production/domain/video-model";
+import {
+  resolveVideoModelOption,
+  type VideoModelOption,
+} from "@/modules/production/domain/video-model";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
 interface Seedance2StatusQuery {
@@ -142,9 +145,7 @@ export function createUseVideoPaneController(
         episode,
         project,
       });
-    const selectedModel = videoModels.find(
-      (model) => model.value === defaultModel,
-    );
+    const selectedModel = resolveVideoModelOption(videoModels, defaultModel);
     const showSeedance2Config =
       selectedModel?.profile === "seedance2" ||
       (selectedModel?.profile === "standard" &&

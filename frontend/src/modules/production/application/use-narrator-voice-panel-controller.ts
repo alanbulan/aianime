@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { resolveMediaUrl } from "@/lib/media-url";
 import type { ProductionDataResponse } from "@/modules/production/application/ports";
 import type {
+  GenerateNarratorVoiceDesignCommand,
+  GenerateNarratorVoicePresetCommand,
+  NarratorVoiceDesignConfig,
+  NarratorVoicePresetOption,
   NarratorVoiceSourceOption,
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
@@ -13,6 +17,19 @@ import type {
 import type { VoiceRecorder } from "@/shared/voice-recording/voice-recorder";
 
 const EMPTY_SOURCE_OPTIONS: NarratorVoiceSourceOption[] = [];
+const DEFAULT_PRESET_SAMPLE_TEXT = "你好，我会用这条声线为整部作品讲述故事。";
+
+export type NarratorVoicePresetAvailability =
+  | "ready"
+  | "loading"
+  | "desktopRequired"
+  | "routeMissing"
+  | "cloudCatalogRequired"
+  | "catalogMissing"
+  | "voicesMissing"
+  | "error";
+
+export type NarratorVoiceGenerationMode = "preset" | "design";
 
 interface NarratorVoiceQuery<T> {
   data?: ProductionDataResponse<T>;
@@ -39,6 +56,12 @@ export interface NarratorVoicePanelQueries {
   ): NarratorVoiceQuery<NarratorVoiceSourcesData>;
   useUploadNarratorVoice(project: string): NarratorVoiceMutation<File>;
   useRecordNarratorVoice(project: string): NarratorVoiceMutation<string>;
+  useGenerateNarratorVoicePreset(
+    project: string,
+  ): NarratorVoiceMutation<GenerateNarratorVoicePresetCommand>;
+  useDesignNarratorVoice(
+    project: string,
+  ): NarratorVoiceMutation<GenerateNarratorVoiceDesignCommand>;
   useCopyProjectNarratorVoice(
     project: string,
   ): NarratorVoiceMutation<string>;
@@ -58,9 +81,18 @@ export interface NarratorVoicePanelControllerDependencies {
 export interface NarratorVoicePanelControllerOptions {
   project: string;
   allowFirstPersonProjectVoice?: boolean;
+  presetVoiceAvailability?: NarratorVoicePresetAvailability;
+  presetVoiceModelLabel?: string;
+  presetVoiceOptions?: readonly NarratorVoicePresetOption[];
+  designVoiceAvailability?: NarratorVoicePresetAvailability;
+  designVoiceConfig?: NarratorVoiceDesignConfig | null;
+  designVoiceModelLabel?: string;
+  designVoiceModelSelector?: string;
 }
 
 export interface NarratorVoicePanelController {
+  aiSampleText: string;
+  aiVoiceOpen: boolean;
   audioSrc: string | null;
   canEdit: boolean;
   copyPending: boolean;
@@ -68,6 +100,20 @@ export interface NarratorVoicePanelController {
   hasVoice: boolean;
   heading?: string | null;
   pending: boolean;
+  generationMode: NarratorVoiceGenerationMode;
+  designGenerationPending: boolean;
+  designLanguage: string;
+  designName: string;
+  designPreviewText: string;
+  designPrompt: string;
+  designVoiceAvailability: NarratorVoicePresetAvailability;
+  designVoiceConfig: NarratorVoiceDesignConfig | null;
+  designVoiceModelLabel: string;
+  presetGenerationPending: boolean;
+  presetVoice: string;
+  presetVoiceAvailability: NarratorVoicePresetAvailability;
+  presetVoiceModelLabel: string;
+  presetVoiceOptions: readonly NarratorVoicePresetOption[];
   projectAudioOpen: boolean;
   recordedDataUrl: string;
   recording: boolean;
@@ -82,7 +128,17 @@ export interface NarratorVoicePanelController {
   trimPending: boolean;
   trimStart: string;
   onApplyTrim(): Promise<void>;
+  onAiSampleTextChange(value: string): void;
+  onAiVoiceOpenChange(open: boolean): void;
   onDelete(): Promise<void>;
+  onDesignLanguageChange(value: string): void;
+  onDesignNameChange(value: string): void;
+  onDesignPreviewTextChange(value: string): void;
+  onDesignPromptChange(value: string): void;
+  onGenerateDesignedVoice(): Promise<void>;
+  onGenerationModeChange(value: NarratorVoiceGenerationMode): void;
+  onGeneratePresetVoice(): Promise<void>;
+  onOpenAiVoice(): void;
   onOpenProjectAudio(): void;
   onOpenRecord(): void;
   onOpenTrim(): void;
@@ -90,6 +146,7 @@ export interface NarratorVoicePanelController {
   onRecordOpenChange(open: boolean): void;
   onSaveRecording(): Promise<void>;
   onSelectedSourcePathChange(path: string): void;
+  onPresetVoiceChange(voice: string): void;
   onStartRecording(): Promise<void>;
   onStopRecording(): void;
   onTrimDurationChange(value: string): void;
@@ -128,6 +185,10 @@ export function createUseNarratorVoicePanelController(
     const statusQuery = queries.useNarratorVoiceStatus(options.project);
     const uploadVoice = queries.useUploadNarratorVoice(options.project);
     const recordVoice = queries.useRecordNarratorVoice(options.project);
+    const generatePresetVoice = queries.useGenerateNarratorVoicePreset(
+      options.project,
+    );
+    const designNarratorVoice = queries.useDesignNarratorVoice(options.project);
     const copyProjectVoice = queries.useCopyProjectNarratorVoice(
       options.project,
     );
@@ -148,6 +209,19 @@ export function createUseNarratorVoicePanelController(
     const [trimOpen, setTrimOpen] = useState(false);
     const [trimStart, setTrimStart] = useState("0");
     const [trimDuration, setTrimDuration] = useState("4");
+    const [aiVoiceOpen, setAiVoiceOpen] = useState(false);
+    const [generationMode, setGenerationMode] =
+      useState<NarratorVoiceGenerationMode>("preset");
+    const [presetVoice, setPresetVoice] = useState("");
+    const [aiSampleText, setAiSampleText] = useState(
+      DEFAULT_PRESET_SAMPLE_TEXT,
+    );
+    const [designName, setDesignName] = useState("");
+    const [designPrompt, setDesignPrompt] = useState("");
+    const [designPreviewText, setDesignPreviewText] = useState(
+      DEFAULT_PRESET_SAMPLE_TEXT,
+    );
+    const [designLanguage, setDesignLanguage] = useState("");
 
     useEffect(() => () => recorder.dispose(), [recorder]);
 
@@ -160,6 +234,8 @@ export function createUseNarratorVoicePanelController(
     const pending =
       uploadVoice.isPending ||
       recordVoice.isPending ||
+      generatePresetVoice.isPending ||
+      designNarratorVoice.isPending ||
       copyProjectVoice.isPending ||
       trimVoice.isPending ||
       deleteVoice.isPending;
@@ -168,6 +244,8 @@ export function createUseNarratorVoicePanelController(
       projectAudioOpen && canEdit,
     );
     const sourceOptions = sources.data?.data.options ?? EMPTY_SOURCE_OPTIONS;
+    const presetVoiceOptions = options.presetVoiceOptions ?? [];
+    const designVoiceConfig = options.designVoiceConfig ?? null;
 
     useEffect(() => {
       if (
@@ -179,6 +257,16 @@ export function createUseNarratorVoicePanelController(
       }
       setSelectedSourcePath(sourceOptions[0].path);
     }, [projectAudioOpen, selectedSourcePath, sourceOptions]);
+
+    useEffect(() => {
+      if (!aiVoiceOpen || presetVoice || presetVoiceOptions.length === 0) {
+        return;
+      }
+      const defaultVoice =
+        presetVoiceOptions.find((option) => option.isDefault) ??
+        presetVoiceOptions[0];
+      setPresetVoice(defaultVoice?.value ?? "");
+    }, [aiVoiceOpen, presetVoice, presetVoiceOptions]);
 
     const finishMutation = <T,>(
       response: unknown,
@@ -203,6 +291,114 @@ export function createUseNarratorVoicePanelController(
           response,
           t("episode.workbench.video.narratorVoiceUploaded"),
         );
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const openAiVoice = () => {
+      const defaultVoice =
+        presetVoiceOptions.find((option) => option.isDefault) ??
+        presetVoiceOptions[0];
+      setPresetVoice(defaultVoice?.value ?? "");
+      setAiSampleText(DEFAULT_PRESET_SAMPLE_TEXT);
+      setGenerationMode(
+        options.designVoiceAvailability === "ready" ? "design" : "preset",
+      );
+      setDesignName(
+        t("episode.workbench.video.narratorVoiceDesignDefaultName"),
+      );
+      setDesignPrompt("");
+      setDesignPreviewText(DEFAULT_PRESET_SAMPLE_TEXT);
+      setDesignLanguage(designVoiceConfig?.defaultLanguage ?? "");
+      setAiVoiceOpen(true);
+    };
+
+    const generatePreset = async () => {
+      if (!presetVoice || !aiSampleText.trim()) {
+        toast.error(
+          t("episode.workbench.video.narratorVoicePresetInputRequired"),
+        );
+        return;
+      }
+      try {
+        const selectedOption = presetVoiceOptions.find(
+          (option) => option.value === presetVoice,
+        );
+        const response = await generatePresetVoice.mutateAsync({
+          name: selectedOption?.label || presetVoice,
+          text: aiSampleText.trim(),
+          voice: presetVoice,
+        });
+        if (
+          finishMutation(
+            response,
+            t("episode.workbench.video.narratorVoicePresetGenerated"),
+          )
+        ) {
+          setAiVoiceOpen(false);
+        }
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const generateDesignedVoice = async () => {
+      const prompt = designPrompt.trim();
+      const previewText = designPreviewText.trim();
+      const modelSelector = String(options.designVoiceModelSelector ?? "").trim();
+      if (
+        options.designVoiceAvailability !== "ready" ||
+        !designVoiceConfig ||
+        !modelSelector ||
+        !prompt ||
+        !previewText ||
+        !designLanguage
+      ) {
+        toast.error(
+          t("episode.workbench.video.narratorVoiceDesignInputRequired"),
+        );
+        return;
+      }
+      if (
+        prompt.length > designVoiceConfig.promptMaxLength ||
+        previewText.length > designVoiceConfig.previewTextMaxLength
+      ) {
+        toast.error(
+          t("episode.workbench.video.narratorVoiceDesignInputTooLong"),
+        );
+        return;
+      }
+      const responseFormat = designVoiceConfig.defaultResponseFormat;
+      const sampleRate = designVoiceConfig.defaultSampleRate;
+      if (
+        sampleRate === null ||
+        !designVoiceConfig.languages.includes(designLanguage) ||
+        responseFormat !== "wav" &&
+        responseFormat !== "mp3"
+      ) {
+        toast.error(t("common.error"));
+        return;
+      }
+      try {
+        const response = await designNarratorVoice.mutateAsync({
+          name: designName.trim(),
+          model_selector: modelSelector,
+          voice_prompt: prompt,
+          preview_text: previewText,
+          preferred_name: designVoiceConfig.preferredName,
+          language: designLanguage,
+          sample_rate: sampleRate,
+          response_format: responseFormat,
+        });
+        if (
+          finishMutation(
+            response,
+            t("episode.workbench.video.narratorVoiceDesigned"),
+          )
+        ) {
+          setAiVoiceOpen(false);
+        }
       } catch {
         toast.error(t("common.error"));
       }
@@ -355,13 +551,31 @@ export function createUseNarratorVoicePanelController(
     };
 
     return {
+      aiSampleText,
+      aiVoiceOpen,
       audioSrc: resolveMediaUrl(status?.reference_url),
       canEdit,
       copyPending: copyProjectVoice.isPending,
       explanation: status?.explanation,
+      generationMode,
       hasVoice,
       heading: status?.heading,
       pending,
+      designGenerationPending: designNarratorVoice.isPending,
+      designLanguage,
+      designName,
+      designPreviewText,
+      designPrompt,
+      designVoiceAvailability:
+        options.designVoiceAvailability ?? "catalogMissing",
+      designVoiceConfig,
+      designVoiceModelLabel: options.designVoiceModelLabel ?? "",
+      presetGenerationPending: generatePresetVoice.isPending,
+      presetVoice,
+      presetVoiceAvailability:
+        options.presetVoiceAvailability ?? "catalogMissing",
+      presetVoiceModelLabel: options.presetVoiceModelLabel ?? "",
+      presetVoiceOptions,
       projectAudioOpen,
       recordedDataUrl,
       recording,
@@ -376,7 +590,17 @@ export function createUseNarratorVoicePanelController(
       trimPending: trimVoice.isPending,
       trimStart,
       onApplyTrim: applyTrim,
+      onAiSampleTextChange: setAiSampleText,
+      onAiVoiceOpenChange: setAiVoiceOpen,
       onDelete: clearNarratorVoice,
+      onDesignLanguageChange: setDesignLanguage,
+      onDesignNameChange: setDesignName,
+      onDesignPreviewTextChange: setDesignPreviewText,
+      onDesignPromptChange: setDesignPrompt,
+      onGenerateDesignedVoice: generateDesignedVoice,
+      onGenerationModeChange: setGenerationMode,
+      onGeneratePresetVoice: generatePreset,
+      onOpenAiVoice: openAiVoice,
       onOpenProjectAudio: () => {
         setSelectedSourcePath("");
         setProjectAudioOpen(true);
@@ -387,6 +611,7 @@ export function createUseNarratorVoicePanelController(
       onRecordOpenChange: closeRecordDialog,
       onSaveRecording: saveRecording,
       onSelectedSourcePathChange: setSelectedSourcePath,
+      onPresetVoiceChange: setPresetVoice,
       onStartRecording: startRecording,
       onStopRecording: () => recorder.stop(),
       onTrimDurationChange: setTrimDuration,

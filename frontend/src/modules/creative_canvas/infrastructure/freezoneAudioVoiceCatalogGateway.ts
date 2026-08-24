@@ -4,6 +4,7 @@ import { apiCall, apiRequest } from "@/shared/api/client";
 import type {
   CanvasAudioReference,
   CanvasAudioVoiceCatalogGateway,
+  DesignedCanvasAudioVoice,
 } from "../application/audioVoiceCatalog";
 
 interface AudioReferenceTransport extends Record<string, unknown> {
@@ -16,6 +17,14 @@ interface AudioReferenceTransport extends Record<string, unknown> {
   readonly language?: string | null;
   readonly gender?: string | null;
   readonly preview_url?: string | null;
+  readonly url?: string | null;
+}
+
+interface DesignedVoiceTransport extends Record<string, unknown> {
+  readonly voice_id?: string | null;
+  readonly name?: string | null;
+  readonly preview_url?: string | null;
+  readonly provider_voice_id?: string | null;
 }
 
 function referenceItems(payload: unknown): AudioReferenceTransport[] {
@@ -51,7 +60,7 @@ function mapAudioReference(
     label: item.label ?? null,
     language: item.language ?? null,
     gender: mapGender(item),
-    previewUrl: item.preview_url ?? null,
+    previewUrl: item.preview_url ?? item.url ?? null,
   };
 }
 
@@ -81,5 +90,46 @@ export const freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway = 
     if (!response.ok || !response.data) {
       throw new Error(response.error ?? "voice upload failed");
     }
+  },
+  async designVoice(projectId, input) {
+    const response = await apiRequest(
+      `projects/${encodeURIComponent(projectId)}/freezone/audio/voices/design`,
+      {
+        method: "POST",
+        json: {
+          name: input.name,
+          model_selector: input.modelSelector,
+          voice_prompt: input.voicePrompt,
+          preview_text: input.previewText,
+          preferred_name: input.preferredName,
+          language: input.language,
+          sample_rate: input.sampleRate,
+          response_format: input.responseFormat,
+        },
+        timeout: false,
+      },
+    ).json<{
+      ok: boolean;
+      data?: DesignedVoiceTransport;
+      error?: string;
+    }>();
+    const data = response.data;
+    const voiceId = String(data?.voice_id ?? "").trim();
+    if (!response.ok || !data || !voiceId) {
+      throw new Error(response.error ?? "voice design failed");
+    }
+    return {
+      voiceId,
+      label: String(data.name ?? input.name ?? voiceId).trim() || voiceId,
+      previewUrl:
+        typeof data.preview_url === "string" && data.preview_url.trim()
+          ? data.preview_url
+          : null,
+      providerVoiceId:
+        typeof data.provider_voice_id === "string" &&
+        data.provider_voice_id.trim()
+          ? data.provider_voice_id
+          : null,
+    } satisfies DesignedCanvasAudioVoice;
   },
 };

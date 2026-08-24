@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class FreezoneAudioVoiceRef(BaseModel):
@@ -55,6 +55,40 @@ class FreezoneAudioVoiceRef(BaseModel):
     )
 
 
+class FreezoneAudioVoiceDesignRequest(BaseModel):
+    """通过云端文字设计模型创建账号级可复用声线。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(default="", max_length=80)
+    model_selector: str = Field(min_length=1, max_length=768)
+    voice_prompt: str = Field(min_length=1, max_length=2048)
+    preview_text: str = Field(min_length=1, max_length=1024)
+    preferred_name: str = Field(
+        default="custom_voice",
+        min_length=1,
+        max_length=16,
+        pattern=r"^[A-Za-z0-9_]{1,16}$",
+    )
+    language: Literal["zh", "en", "de", "it", "pt", "es", "ja", "ko", "fr", "ru"] = "zh"
+    sample_rate: Literal[8000, 16000, 24000, 48000] = 24000
+    response_format: Literal["wav", "mp3"] = "wav"
+
+    @model_validator(mode="after")
+    def normalize_required_text(self):
+        self.model_selector = self.model_selector.strip()
+        self.voice_prompt = self.voice_prompt.strip()
+        self.preview_text = self.preview_text.strip()
+        self.name = self.name.strip()
+        if not self.model_selector:
+            raise ValueError("model_selector is required")
+        if not self.voice_prompt:
+            raise ValueError("voice_prompt is required")
+        if not self.preview_text:
+            raise ValueError("preview_text is required")
+        return self
+
+
 class FreezoneAudioSpeechRequest(BaseModel):
     """Freezone 音频节点：文本生成语音请求。"""
 
@@ -64,11 +98,23 @@ class FreezoneAudioSpeechRequest(BaseModel):
         description=("要合成的台词/旁白文本。"),
         examples=["她低声说：终于等到这一天了。"],
     )
+    mode: Literal["SPEECH", "VOICE_CLONE"] = Field(
+        default="VOICE_CLONE",
+        description=(
+            "SPEECH=使用模型公布的固定预设音色；"
+            "VOICE_CLONE=使用 voice_ref 解析出的参考音频克隆。"
+        ),
+    )
+    voice: str = Field(
+        default="",
+        description="mode=SPEECH 时必填，值来自模型 parameterSchema.properties.voice.enum。",
+        examples=["alex"],
+    )
     emotion_prompt: str = Field(
         default="",
         description=(
-            "可选情绪提示词，会传给 IndexTTS2 的 emotion_prompt。为空时使用项目解说风格。"
-            "示例：紧张、压低声音、带一点恐惧感。"
+            "兼容原项目节点数据的可选情绪提示词。当前商业音频契约未公布该参数，"
+            "不会把它当成音色设计描述或发送给模型。"
         ),
         examples=["紧张、压低声音、带一点恐惧感"],
     )
@@ -89,6 +135,17 @@ class FreezoneAudioSpeechRequest(BaseModel):
         ge=1,
         description="可选：目标主线 beat。提供后，任务结果会返回 beat_audio 推送目标",
     )
+
+    @model_validator(mode="after")
+    def validate_voice_mode(self):
+        if self.mode == "SPEECH":
+            if not self.voice.strip():
+                raise ValueError("voice is required when mode is SPEECH")
+            if self.voice_ref is not None:
+                raise ValueError("voice_ref is not allowed when mode is SPEECH")
+        elif self.voice.strip():
+            raise ValueError("voice is not allowed when mode is VOICE_CLONE")
+        return self
 
 
 class FreezoneAudioMusicRequest(BaseModel):
@@ -127,5 +184,6 @@ class FreezoneAudioMusicRequest(BaseModel):
 __all__ = [
     "FreezoneAudioMusicRequest",
     "FreezoneAudioSpeechRequest",
+    "FreezoneAudioVoiceDesignRequest",
     "FreezoneAudioVoiceRef",
 ]

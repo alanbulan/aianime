@@ -6,9 +6,10 @@ import ky from "ky";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/shared/api/transport", () => ({
-  api: ky.create({ baseUrl: "http://localhost:3000/" }),
-}));
+vi.mock("@/shared/api/transport", () => {
+  const api = ky.create({ baseUrl: "http://localhost:3000/" });
+  return { api, uploadApi: api.extend({ timeout: false }) };
+});
 
 import { server } from "@/__mocks__/msw/server";
 import { queryKeys } from "@/lib/query-keys";

@@ -12,6 +12,8 @@ export const queryKeys = {
     ["projects", p, "characters", name] as const,
   characterVoiceSamples: (p: string, name: string) =>
     ["projects", p, "characters", name, "voice-samples"] as const,
+  characterVoiceLibrary: (p: string) =>
+    ["projects", p, "character-voice-library"] as const,
   characterAssetHistories: (p: string, name: string) =>
     ["projects", p, "characters", name, "asset-history"] as const,
   characterAssetHistory: (p: string, name: string, url: string) =>

@@ -16,6 +16,7 @@ class _CharacterStore:
     def __init__(self, characters: list[NovelCharacter]):
         self.characters = {character.name: character for character in characters}
         self.updates: list[tuple[str, dict]] = []
+        self.identity_updates: list[tuple[str, str, dict]] = []
 
     def get_character(self, name: str):
         return self.characters.get(name)
@@ -30,6 +31,21 @@ class _CharacterStore:
             setattr(character, key, value)
         return True
 
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates,
+    ):
+        self.identity_updates.append((character_name, identity_id, updates))
+        character = self.characters[character_name]
+        identity = next(
+            item for item in character.identities if item.identity_id == identity_id
+        )
+        for key, value in updates.items():
+            setattr(identity, key, value)
+        return True
+
 
 def _patch_project(
     monkeypatch: pytest.MonkeyPatch,
@@ -37,9 +53,13 @@ def _patch_project(
     project_dir: Path,
     store: _CharacterStore,
 ) -> None:
-    async def fake_resolve_project(project: str, user: dict, *, required_role: str = "editor"):
+    async def fake_resolve_project(
+        project: str, user: dict, *, required_role: str = "editor"
+    ):
         return (
-            SimpleNamespace(project_id="proj_demo", output_dir=project_dir, is_home_node=True),
+            SimpleNamespace(
+                project_id="proj_demo", output_dir=project_dir, is_home_node=True
+            ),
             "admin",
             "demo",
             project_dir,
@@ -82,7 +102,9 @@ async def test_update_character_accepts_age_group(tmp_path, monkeypatch):
 async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypatch):
     from ai_anime.api.routes.asset_world import characters
 
-    voice_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
+    voice_path = (
+        tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
+    )
     voice_path.parent.mkdir(parents=True)
     voice_path.write_bytes(b"default voice")
     character = NovelCharacter(
@@ -110,7 +132,9 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
     assert response["ok"] is True
     asset = response["data"][0]
     assert "fish_voice_id" not in asset
-    assert asset["reference_audio_path"] == "assets/characters/秦/voices/voice_default.wav"
+    assert (
+        asset["reference_audio_path"] == "assets/characters/秦/voices/voice_default.wav"
+    )
     assert asset["reference_audio_url"] == (
         "/static/projects/proj_demo/assets/characters/秦/voices/voice_default.wav"
     )
@@ -123,7 +147,9 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
 async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypatch):
     from ai_anime.api.routes.asset_world import characters
 
-    voice_path = tmp_path / "assets" / "characters" / "秦" / "identities" / "幼年_voice.wav"
+    voice_path = (
+        tmp_path / "assets" / "characters" / "秦" / "identities" / "幼年_voice.wav"
+    )
     voice_path.parent.mkdir(parents=True)
     voice_path.write_bytes(b"identity voice")
     identity = CharacterIdentity(
@@ -149,7 +175,10 @@ async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypa
     assert response["ok"] is True
     asset = response["data"][0]
     assert "fish_voice_id" not in asset
-    assert asset["reference_audio_path"] == "assets/characters/秦/identities/幼年_voice.wav"
+    assert (
+        asset["reference_audio_path"]
+        == "assets/characters/秦/identities/幼年_voice.wav"
+    )
     assert asset["reference_audio_url"] == (
         "/static/projects/proj_demo/assets/characters/秦/identities/幼年_voice.wav"
     )
@@ -158,11 +187,17 @@ async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypa
 
 
 @pytest.mark.asyncio
-async def test_list_character_voice_samples_returns_default_and_age_slots(tmp_path, monkeypatch):
+async def test_list_character_voice_samples_returns_default_and_age_slots(
+    tmp_path, monkeypatch
+):
     from ai_anime.api.routes.asset_world import characters
 
-    default_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
-    child_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
+    default_path = (
+        tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_default.wav"
+    )
+    child_path = (
+        tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
+    )
     default_path.parent.mkdir(parents=True)
     default_path.write_bytes(b"default voice")
     child_path.write_bytes(b"child voice")
@@ -209,7 +244,9 @@ async def test_list_character_voice_samples_returns_default_and_age_slots(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_upload_character_voice_sample_persists_default_slot(tmp_path, monkeypatch):
+async def test_upload_character_voice_sample_persists_default_slot(
+    tmp_path, monkeypatch
+):
     from ai_anime.api.routes.asset_world import characters
 
     character = NovelCharacter(name="秦")
@@ -237,7 +274,9 @@ async def test_upload_character_voice_sample_persists_default_slot(tmp_path, mon
 
 
 @pytest.mark.asyncio
-async def test_upload_character_voice_sample_rejects_unsupported_format(tmp_path, monkeypatch):
+async def test_upload_character_voice_sample_rejects_unsupported_format(
+    tmp_path, monkeypatch
+):
     from ai_anime.api.routes.asset_world import characters
 
     character = NovelCharacter(name="秦")
@@ -282,8 +321,14 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
     assert data["path"].endswith("voice_youth.wav")
     assert data["sha256"]
     assert (tmp_path / data["path"]).exists()
-    assert store.updates[-1][1]["voice_samples_by_age_group"]["youth"]["path"] == data["path"]
-    assert store.updates[-1][1]["voice_samples_by_age_group"]["youth"]["sha256"] == data["sha256"]
+    assert (
+        store.updates[-1][1]["voice_samples_by_age_group"]["youth"]["path"]
+        == data["path"]
+    )
+    assert (
+        store.updates[-1][1]["voice_samples_by_age_group"]["youth"]["sha256"]
+        == data["sha256"]
+    )
 
 
 @pytest.mark.asyncio
@@ -346,14 +391,19 @@ async def test_trim_character_voice_sample_updates_default_slot(tmp_path, monkey
         }
     ]
     assert store.updates[-1][1]["reference_audio_sha256"] == "trimmed-sha"
-    assert store.updates[-1][1]["reference_audio_updated_at"] == "2026-05-13T00:00:03+00:00"
+    assert (
+        store.updates[-1][1]["reference_audio_updated_at"]
+        == "2026-05-13T00:00:03+00:00"
+    )
 
 
 @pytest.mark.asyncio
 async def test_delete_character_voice_sample_clears_age_slot(tmp_path, monkeypatch):
     from ai_anime.api.routes.asset_world import characters
 
-    child_path = tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
+    child_path = (
+        tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
+    )
     child_path.parent.mkdir(parents=True)
     child_path.write_bytes(b"child voice")
     character = NovelCharacter(
@@ -383,3 +433,88 @@ async def test_delete_character_voice_sample_clears_age_slot(tmp_path, monkeypat
     assert response["data"]["slot"] == "child"
     assert response["data"]["path"] == ""
     assert "child" not in store.updates[-1][1]["voice_samples_by_age_group"]
+
+
+@pytest.mark.asyncio
+async def test_bind_library_voice_to_character_and_identity(tmp_path, monkeypatch):
+    from ai_anime.api.routes.asset_world import characters
+
+    library_voice = tmp_path / "account" / "voice.wav"
+    library_voice.parent.mkdir(parents=True)
+    library_voice.write_bytes(b"reusable voice")
+    identity = CharacterIdentity(
+        identity_id="秦_少年",
+        character_name="秦",
+        identity_name="少年",
+        age_group="child",
+    )
+    character = NovelCharacter(name="秦")
+    character.identities = [identity]
+    store = _CharacterStore([character])
+    _patch_project(monkeypatch, characters, tmp_path, store)
+    monkeypatch.setattr(
+        characters,
+        "_resolve_reusable_voice",
+        lambda ctx, voice_id: library_voice,
+    )
+
+    slot_response = await characters.bind_character_voice_sample(
+        project="demo",
+        name="秦",
+        slot="default",
+        body=SimpleNamespace(voice_id="fv_voice"),
+        user={"username": "admin"},
+    )
+    identity_response = await characters.bind_identity_voice_sample(
+        project="demo",
+        name="秦",
+        identity_id="秦_少年",
+        body=SimpleNamespace(voice_id="fv_voice"),
+        user={"username": "admin"},
+    )
+
+    assert slot_response["ok"] is True
+    assert slot_response["data"]["path"].endswith("voices/voice_default.wav")
+    assert identity_response["ok"] is True
+    assert identity_response["data"]["resolved_from"] == "identity"
+    identity_path = identity_response["data"]["path"]
+    assert (tmp_path / identity_path).read_bytes() == b"reusable voice"
+    assert store.identity_updates[-1][1] == "秦_少年"
+
+
+@pytest.mark.asyncio
+async def test_delete_identity_voice_restores_character_default(tmp_path, monkeypatch):
+    from ai_anime.api.routes.asset_world import characters
+
+    identity = CharacterIdentity(
+        identity_id="秦_少年",
+        character_name="秦",
+        identity_name="少年",
+        age_group="child",
+        reference_audio_path=(
+            "assets/characters/秦/identities/秦_少年/voice_reference.wav"
+        ),
+        reference_audio_sha256="identity-sha",
+        reference_audio_updated_at="2026-05-13T00:00:02+00:00",
+    )
+    character = NovelCharacter(
+        name="秦",
+        reference_audio_path="assets/characters/秦/voices/voice_default.wav",
+    )
+    character.identities = [identity]
+    identity_file = tmp_path / identity.reference_audio_path
+    identity_file.parent.mkdir(parents=True)
+    identity_file.write_bytes(b"identity voice")
+    store = _CharacterStore([character])
+    _patch_project(monkeypatch, characters, tmp_path, store)
+
+    response = await characters.delete_identity_voice_sample(
+        project="demo",
+        name="秦",
+        identity_id="秦_少年",
+        user={"username": "admin"},
+    )
+
+    assert response["ok"] is True
+    assert response["data"]["path"] == ""
+    assert response["data"]["resolved_from"] == "character_default"

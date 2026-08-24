@@ -248,6 +248,7 @@ class CharacterCatalogRepository(Protocol):
 
     async def delete_character(self, name: str) -> Any: ...
 
+
 class CharacterFactory(Protocol):
     def create(self, command: CreateCharacterCommand) -> Any: ...
 
@@ -256,6 +257,7 @@ class CharacterCatalogAssets(Protocol):
     def portrait_path(self, project_dir: Path, character_name: str) -> str: ...
 
     def updated_at(self, project_dir: Path, character: Any) -> str: ...
+
 
 class CharacterReferenceSource(Protocol):
     def character_names(
@@ -319,6 +321,7 @@ class SceneCatalogRepository(Protocol):
     async def rename_scene(self, old_name: str, new_name: str) -> Any: ...
 
     async def delete_scene(self, name: str) -> Any: ...
+
 
 class SceneFactory(Protocol):
     def create(self, command: CreateSceneCommand) -> Any: ...
@@ -654,6 +657,7 @@ class PropCatalogRepository(Protocol):
 
     async def list_episodes(self) -> list[Any]: ...
 
+
 class PropFactory(Protocol):
     def create(self, command: CreatePropCommand) -> Any: ...
 
@@ -783,6 +787,13 @@ class CharacterVoiceRepository(Protocol):
 
     async def update_character(self, name: str, **updates: Any) -> Any: ...
 
+    async def update_character_identity(
+        self,
+        character_name: str,
+        identity_id: str,
+        **updates: Any,
+    ) -> Any: ...
+
 
 class CharacterVoiceUpload(Protocol):
     filename: str | None
@@ -792,6 +803,8 @@ class CharacterVoiceUpload(Protocol):
 
 class CharacterVoiceFiles(Protocol):
     def decode_recording(self, data_url: str) -> tuple[bytes, str]: ...
+
+    def read_source(self, source_path: str | Path) -> tuple[bytes, str]: ...
 
     def persist(
         self,
@@ -820,6 +833,24 @@ class CharacterVoiceFiles(Protocol):
         project_dir: str | Path,
         character_name: str,
         slot: str,
+    ) -> bool: ...
+
+    def persist_identity(
+        self,
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        identity_id: str,
+        filename: str,
+        content: bytes,
+    ) -> tuple[str, str, str]: ...
+
+    def clear_identity(
+        self,
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        identity_id: str,
     ) -> bool: ...
 
 

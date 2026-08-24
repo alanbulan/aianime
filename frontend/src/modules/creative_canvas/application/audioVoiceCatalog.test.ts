@@ -15,10 +15,20 @@ describe('audioVoiceCatalog', () => {
         slot: '青年',
         voiceId: 'voice-a',
       }),
-    ).toBe('character_age_group|林夏||青年|voice-a');
+    ).toBe('character_age_group|林夏||青年||voice-a');
+    expect(
+      audioVoiceRefKey({
+        scope: 'model_preset',
+        modelId: 'speech-a',
+        voiceId: 'alex',
+      }),
+    ).toBe('model_preset||||speech-a|alex');
   });
 
   it('describes every supported voice reference scope', () => {
+    expect(
+      describeAudioVoiceRef({ scope: 'model_preset', voiceId: 'alex' }),
+    ).toBe('alex');
     expect(describeAudioVoiceRef({ scope: 'project_narrator' })).toBe(
       '项目解说人',
     );

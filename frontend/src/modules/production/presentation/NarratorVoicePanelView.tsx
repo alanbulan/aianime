@@ -6,6 +6,7 @@ import {
   Loader2,
   Mic,
   Scissors,
+  Sparkles,
   Square,
   Trash2,
   Upload,
@@ -21,6 +22,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -46,13 +54,29 @@ export function NarratorVoicePanelView({
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
+    aiSampleText = "",
+    aiVoiceOpen = false,
     audioSrc,
     canEdit,
     copyPending,
+    designGenerationPending = false,
+    designLanguage = "",
+    designName = "",
+    designPreviewText = "",
+    designPrompt = "",
+    designVoiceAvailability = "catalogMissing",
+    designVoiceConfig = null,
+    designVoiceModelLabel = "",
     explanation,
+    generationMode = "preset",
     hasVoice,
     heading,
     pending,
+    presetGenerationPending = false,
+    presetVoice = "",
+    presetVoiceAvailability = "catalogMissing",
+    presetVoiceModelLabel = "",
+    presetVoiceOptions = [],
     projectAudioOpen,
     recordedDataUrl,
     recording,
@@ -67,7 +91,17 @@ export function NarratorVoicePanelView({
     trimPending,
     trimStart,
     onApplyTrim,
+    onAiSampleTextChange,
+    onAiVoiceOpenChange,
     onDelete,
+    onDesignLanguageChange,
+    onDesignNameChange,
+    onDesignPreviewTextChange,
+    onDesignPromptChange,
+    onGenerateDesignedVoice,
+    onGenerationModeChange,
+    onGeneratePresetVoice,
+    onOpenAiVoice,
     onOpenProjectAudio,
     onOpenRecord,
     onOpenTrim,
@@ -75,6 +109,7 @@ export function NarratorVoicePanelView({
     onRecordOpenChange,
     onSaveRecording,
     onSelectedSourcePathChange,
+    onPresetVoiceChange,
     onStartRecording,
     onStopRecording,
     onTrimDurationChange,
@@ -83,6 +118,28 @@ export function NarratorVoicePanelView({
     onUpload,
     onUseProjectAudio,
   } = controller;
+  const presetAvailabilityText = t(
+    `episode.workbench.video.narratorVoicePresetAvailability.${presetVoiceAvailability}`,
+  );
+  const presetReady = presetVoiceAvailability === "ready";
+  const designReady =
+    designVoiceAvailability === "ready" && Boolean(designVoiceConfig);
+  const activeMode =
+    designReady && (generationMode === "design" || !presetReady)
+      ? "design"
+      : "preset";
+  const generationPending =
+    activeMode === "design"
+      ? designGenerationPending
+      : presetGenerationPending;
+  const generationDisabled =
+    generationPending ||
+    (activeMode === "design"
+      ? !designReady ||
+        !designPrompt.trim() ||
+        !designPreviewText.trim() ||
+        !designLanguage
+      : !presetReady || !presetVoice || !aiSampleText.trim());
 
   return (
     <section className="w-full max-w-[640px] rounded-[10px] border border-border bg-card p-4">
@@ -131,6 +188,17 @@ export function NarratorVoicePanelView({
 
       {canEdit && (
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            disabled={pending}
+            onClick={onOpenAiVoice}
+            className={SECONDARY_ACTION_CLASS}
+          >
+            <Sparkles className="size-3" />
+            {t("episode.workbench.video.narratorVoiceAiGenerate")}
+          </Button>
           <Button
             type="button"
             size="xs"
@@ -207,6 +275,221 @@ export function NarratorVoicePanelView({
           event.target.value = "";
         }}
       />
+
+      <Dialog open={aiVoiceOpen} onOpenChange={onAiVoiceOpenChange}>
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
+              {t("episode.workbench.video.narratorVoiceAiGenerateTitle")}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm leading-5 text-muted-foreground/80">
+            {t("episode.workbench.video.narratorVoiceConceptHint")}
+          </p>
+          <Tabs
+            value={activeMode}
+            onValueChange={(value) =>
+              onGenerationModeChange(value as "preset" | "design")
+            }
+            className="space-y-4"
+          >
+            {presetReady && designReady && (
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="design">
+                  {t("episode.workbench.video.narratorVoiceDesignTab")}
+                </TabsTrigger>
+                <TabsTrigger value="preset">
+                  {t("episode.workbench.video.narratorVoicePresetTab")}
+                </TabsTrigger>
+              </TabsList>
+            )}
+
+            {designReady && designVoiceConfig && (
+              <TabsContent value="design" className="mt-0 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {t("episode.workbench.video.narratorVoicePresetModel")}
+                  </Label>
+                  <p className="rounded-[8px] border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
+                    {designVoiceModelLabel}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="narrator-voice-design-name"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("episode.workbench.video.narratorVoiceDesignName")}
+                  </Label>
+                  <Input
+                    id="narrator-voice-design-name"
+                    value={designName}
+                    maxLength={80}
+                    onChange={(event) =>
+                      onDesignNameChange(event.target.value)
+                    }
+                    className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="narrator-voice-design-prompt"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("episode.workbench.video.narratorVoiceDesignPrompt")}
+                  </Label>
+                  <Textarea
+                    id="narrator-voice-design-prompt"
+                    value={designPrompt}
+                    maxLength={designVoiceConfig.promptMaxLength}
+                    placeholder={t(
+                      "episode.workbench.video.narratorVoiceDesignPromptPlaceholder",
+                    )}
+                    onChange={(event) =>
+                      onDesignPromptChange(event.target.value)
+                    }
+                    className="min-h-24 resize-none rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="narrator-voice-design-preview"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("episode.workbench.video.narratorVoiceSampleText")}
+                  </Label>
+                  <Textarea
+                    id="narrator-voice-design-preview"
+                    value={designPreviewText}
+                    maxLength={designVoiceConfig.previewTextMaxLength}
+                    onChange={(event) =>
+                      onDesignPreviewTextChange(event.target.value)
+                    }
+                    className="min-h-20 resize-none rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {t("episode.workbench.video.narratorVoiceDesignLanguage")}
+                  </Label>
+                  <Select
+                    value={designLanguage}
+                    onValueChange={(next) => {
+                      if (next) onDesignLanguageChange(next);
+                    }}
+                  >
+                    <SelectTrigger className="h-10 w-full rounded-[8px] border-border bg-muted text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {designVoiceConfig.languages.map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {t(
+                            `episode.workbench.video.narratorVoiceDesignLanguages.${language}`,
+                            { defaultValue: language },
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-xs leading-5 text-muted-foreground/70">
+                  {t("episode.workbench.video.narratorVoiceDesignHint")}
+                </p>
+              </TabsContent>
+            )}
+
+            {presetReady && (
+              <TabsContent value="preset" className="mt-0 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {t("episode.workbench.video.narratorVoicePresetModel")}
+                  </Label>
+                  <p className="rounded-[8px] border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
+                    {presetVoiceModelLabel}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {t("episode.workbench.video.narratorVoicePresetVoice")}
+                  </Label>
+                  <Select
+                    value={presetVoice}
+                    onValueChange={(next) => {
+                      if (next) onPresetVoiceChange(next);
+                    }}
+                  >
+                    <SelectTrigger className="h-10 w-full rounded-[8px] border-border bg-muted text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {presetVoiceOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                          {option.isDefault
+                            ? t("episode.workbench.video.narratorVoiceDefaultSuffix")
+                            : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="narrator-voice-ai-sample"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("episode.workbench.video.narratorVoiceSampleText")}
+                  </Label>
+                  <Textarea
+                    id="narrator-voice-ai-sample"
+                    value={aiSampleText}
+                    maxLength={500}
+                    onChange={(event) =>
+                      onAiSampleTextChange(event.target.value)
+                    }
+                    className="min-h-24 resize-none rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45"
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground/70">
+                    {t("episode.workbench.video.narratorVoicePresetHint")}
+                  </p>
+                </div>
+              </TabsContent>
+            )}
+
+            {!presetReady && !designReady && (
+              <div className="rounded-[10px] border border-amber-500/25 bg-amber-500/[0.07] p-3 text-sm leading-5 text-foreground/75">
+                {presetAvailabilityText}
+              </div>
+            )}
+          </Tabs>
+
+          <DialogFooter className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-end sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onAiVoiceOpenChange(false)}
+              className="h-9 rounded-md border-border bg-muted px-4 text-sm font-normal text-foreground/80 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={generationDisabled}
+              onClick={() =>
+                void (activeMode === "design"
+                  ? onGenerateDesignedVoice()
+                  : onGeneratePresetVoice())
+              }
+              className="h-9 gap-1 rounded-md bg-primary px-4 text-sm font-normal text-primary-foreground shadow-lg shadow-primary/15 hover:bg-primary/90"
+            >
+              {generationPending && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              {t("episode.workbench.video.narratorVoiceGenerateAndUse")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={recordOpen} onOpenChange={onRecordOpenChange}>
         <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-lg">

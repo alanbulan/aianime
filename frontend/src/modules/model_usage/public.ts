@@ -48,13 +48,18 @@ export {
 export { generationCreditCostQueryKey } from "@/modules/model_usage/application/query-hooks";
 export { COMMERCIAL_MODEL_ACCESS_CHANGED_EVENT } from "@/modules/model_usage/application/commercial-model-access-events";
 export {
+  audioEmotionPromptSupported,
   audioModelOptionFromCatalog,
   audioModelOptionsForMode,
+  audioPresetVoiceOptions,
+  audioVoiceDesignConfig,
 } from "@/modules/model_usage/domain/audio-model";
 export type {
   AudioCatalogItem,
   AudioModelMode,
   AudioModelOption,
+  AudioPresetVoiceOption,
+  AudioVoiceDesignConfig,
 } from "@/modules/model_usage/domain/audio-model";
 export type {
   GenerationCreditCost,

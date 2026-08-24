@@ -30,6 +30,8 @@ describe("freezoneAudioGenerationGateway", () => {
         json: {
           text: "Line",
           emotion_prompt: "calm",
+          mode: "VOICE_CLONE",
+          voice: "",
           voice_ref: {
             scope: "identity",
             character_name: "",
@@ -40,6 +42,34 @@ describe("freezoneAudioGenerationGateway", () => {
           target_episode: undefined,
           target_beat: undefined,
         },
+      },
+    );
+  });
+
+  it("posts a model preset as SPEECH without a reference audio contract", async () => {
+    const task = { task_key: "speech-task", task_type: "speech", job_id: "2" };
+    vi.mocked(apiCall).mockResolvedValue(task);
+
+    await freezoneAudioGenerationGateway.submitSpeech("project", {
+      text: "Preview line",
+      emotionPrompt: "calm",
+      voiceRef: {
+        scope: "model_preset",
+        modelId: "MOSS_TTSD_V0_5",
+        voiceId: "alex",
+      },
+    });
+
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project/freezone/audio/speech",
+      {
+        method: "POST",
+        json: expect.objectContaining({
+          mode: "SPEECH",
+          voice: "alex",
+          emotion_prompt: "",
+          voice_ref: undefined,
+        }),
       },
     );
   });

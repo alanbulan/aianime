@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { createElement } from "react";
+import { createElement, useMemo } from "react";
 
 import { formatCreditCost } from "@/components/credit-visual";
 import { withImageCacheBust } from "@/shared/media/image-cache";
@@ -7,8 +7,13 @@ import { useNow } from "@/shared/hooks/use-now";
 import { useTaskController } from "@/modules/task_execution/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
+  audioPresetVoiceOptions,
+  audioVoiceDesignConfig,
+  commercialModelRoles,
   useCommercialModelCatalog,
+  useCommercialModelAccessStatus,
   loadCommercialModelCatalog,
+  resolveCommercialModelRoleRoute,
   useGenerationCreditCost,
   useGenerationCreditCosts,
 } from "@/modules/model_usage/public";
@@ -46,7 +51,10 @@ import { createUseBeatStates } from "@/modules/production/application/use-beat-s
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseEpisodeComposePageController } from "@/modules/production/application/use-episode-compose-page-controller";
 import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
-import { createUseNarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
+import {
+  createUseNarratorVoicePanelController,
+  type NarratorVoicePresetAvailability,
+} from "@/modules/production/application/use-narrator-voice-panel-controller";
 import {
   createUseRenderGridCardController,
   createUseRenderGridGalleryController,
@@ -316,6 +324,7 @@ export const {
   useNarratorVoiceSources,
   useUploadNarratorVoice,
   useRecordNarratorVoice,
+  useGenerateNarratorVoicePreset,
   useCopyProjectNarratorVoice,
   useTrimNarratorVoice,
   useDeleteNarratorVoice,
@@ -395,8 +404,106 @@ export function NarratorVoicePanel({
   allowFirstPersonProjectVoice = false,
   project,
 }: NarratorVoicePanelProps) {
+  const commercialBridgeAvailable =
+    typeof window !== "undefined" &&
+    Boolean(window.aiAnimeDesktop?.commercial);
+  const modelAccess = useCommercialModelAccessStatus(
+    commercialBridgeAvailable,
+  );
+  const audioCatalog = useCommercialModelCatalog(
+    "AUDIO_VOICE_CLONE",
+    commercialBridgeAvailable,
+  );
+  const voiceDesignCatalog = useCommercialModelCatalog(
+    "AUDIO_VOICE_DESIGN",
+    commercialBridgeAvailable,
+    "cloud",
+  );
+  const speechRoute = resolveCommercialModelRoleRoute(
+    modelAccess.data,
+    "AUDIO_SPEECH",
+  );
+  const speechCatalogModel =
+    speechRoute?.source === "cloud"
+      ? audioCatalog.data?.items.find(
+          (item) =>
+            item.code === speechRoute.modelId &&
+            commercialModelRoles(item).includes("AUDIO_SPEECH"),
+        ) ?? null
+      : null;
+  const presetVoiceOptions = useMemo(
+    () =>
+      speechCatalogModel ? audioPresetVoiceOptions(speechCatalogModel) : [],
+    [speechCatalogModel],
+  );
+  const designRoute = resolveCommercialModelRoleRoute(
+    modelAccess.data,
+    "AUDIO_VOICE_DESIGN",
+  );
+  const designCatalogModel = useMemo(() => {
+    const candidates = (voiceDesignCatalog.data?.items ?? []).filter((item) =>
+      commercialModelRoles(item).includes("AUDIO_VOICE_DESIGN"),
+    );
+    const routed =
+      designRoute?.source === "cloud"
+        ? candidates.find((item) => item.code === designRoute.modelId) ?? null
+        : null;
+    if (routed) return routed;
+    const defaults = candidates.filter((item) => item.isDefault === true);
+    if (defaults.length === 1) return defaults[0];
+    return defaults.length === 0 && candidates.length === 1
+      ? candidates[0]
+      : null;
+  }, [designRoute, voiceDesignCatalog.data]);
+  const designVoiceConfig = useMemo(
+    () =>
+      designCatalogModel
+        ? audioVoiceDesignConfig(designCatalogModel)
+        : null,
+    [designCatalogModel],
+  );
+  let presetVoiceAvailability: NarratorVoicePresetAvailability = "ready";
+  if (!commercialBridgeAvailable) {
+    presetVoiceAvailability = "desktopRequired";
+  } else if (modelAccess.isLoading || audioCatalog.isLoading) {
+    presetVoiceAvailability = "loading";
+  } else if (modelAccess.error || audioCatalog.error) {
+    presetVoiceAvailability = "error";
+  } else if (!speechRoute) {
+    presetVoiceAvailability = "routeMissing";
+  } else if (speechRoute.source !== "cloud") {
+    presetVoiceAvailability = "cloudCatalogRequired";
+  } else if (!speechCatalogModel) {
+    presetVoiceAvailability = "catalogMissing";
+  } else if (presetVoiceOptions.length === 0) {
+    presetVoiceAvailability = "voicesMissing";
+  }
+  let designVoiceAvailability: NarratorVoicePresetAvailability = "ready";
+  if (!commercialBridgeAvailable) {
+    designVoiceAvailability = "desktopRequired";
+  } else if (voiceDesignCatalog.isLoading) {
+    designVoiceAvailability = "loading";
+  } else if (voiceDesignCatalog.error) {
+    designVoiceAvailability = "error";
+  } else if (!designCatalogModel) {
+    designVoiceAvailability = "catalogMissing";
+  } else if (!designVoiceConfig) {
+    designVoiceAvailability = "voicesMissing";
+  }
   const controller = useNarratorVoicePanelController({
     allowFirstPersonProjectVoice,
+    designVoiceAvailability,
+    designVoiceConfig,
+    designVoiceModelLabel:
+      designCatalogModel?.displayName ?? designRoute?.modelId ?? "",
+    designVoiceModelSelector:
+      designCatalogModel
+        ? `cloud:${designCatalogModel.code}`
+        : "",
+    presetVoiceAvailability,
+    presetVoiceModelLabel:
+      speechCatalogModel?.displayName ?? speechRoute?.modelId ?? "",
+    presetVoiceOptions,
     project,
   });
 

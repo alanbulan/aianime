@@ -11,6 +11,7 @@ from ai_anime.api.routes.creative_canvas import audio as audio_routes
 from ai_anime.api.routes.creative_canvas.audio_schemas import (
     FreezoneAudioMusicRequest,
     FreezoneAudioSpeechRequest,
+    FreezoneAudioVoiceDesignRequest,
 )
 from ai_anime.modules.creative_canvas.application.audio_generation import (
     CREATIVE_CANVAS_MUSIC_GENERATION_TASK_TYPE,
@@ -33,6 +34,47 @@ def test_audio_requests_reject_legacy_model_field() -> None:
         FreezoneAudioSpeechRequest(model="legacy", text="line")
     with pytest.raises(ValidationError, match="model"):
         FreezoneAudioMusicRequest(model="legacy", input="music")
+
+
+def test_speech_request_separates_preset_and_clone_contracts() -> None:
+    preset = FreezoneAudioSpeechRequest(
+        text="line",
+        mode="SPEECH",
+        voice="alex",
+    )
+    assert preset.voice_ref is None
+    with pytest.raises(ValidationError, match="voice is required"):
+        FreezoneAudioSpeechRequest(text="line", mode="SPEECH")
+    with pytest.raises(ValidationError, match="voice_ref is not allowed"):
+        FreezoneAudioSpeechRequest(
+            text="line",
+            mode="SPEECH",
+            voice="alex",
+            voice_ref={"scope": "project_narrator"},
+        )
+
+
+def test_voice_design_request_requires_catalog_selector_and_contract_values() -> None:
+    request = FreezoneAudioVoiceDesignRequest(
+        model_selector=" cloud:QWEN3_TTS_VD_2026_01_26 ",
+        voice_prompt=" 清澈温暖的青年女声 ",
+        preview_text=" 你好，这是声线试听。 ",
+    )
+    assert request.model_selector == "cloud:QWEN3_TTS_VD_2026_01_26"
+    assert request.voice_prompt == "清澈温暖的青年女声"
+    assert request.preview_text == "你好，这是声线试听。"
+    with pytest.raises(ValidationError, match="model_selector"):
+        FreezoneAudioVoiceDesignRequest(
+            model_selector=" ",
+            voice_prompt="warm voice",
+            preview_text="hello",
+        )
+    with pytest.raises(ValidationError, match="voice is not allowed"):
+        FreezoneAudioSpeechRequest(
+            text="line",
+            mode="VOICE_CLONE",
+            voice="alex",
+        )
 
 
 def _project_context(tmp_path: Path) -> ProjectContext:
@@ -141,6 +183,8 @@ async def test_audio_generation_enqueues_exact_payloads(tmp_path: Path) -> None:
             payload={
                 "text": "  雨声压低了脚步。  ",
                 "emotion_prompt": "紧张、压低声音",
+                "mode": "VOICE_CLONE",
+                "voice": "",
                 "voice_ref": voice_ref,
                 "account_voice_username": "viewer",
                 "target_episode": 2,
@@ -310,9 +354,90 @@ async def test_audio_routes_preserve_success_contract(
         "slot": "",
         "voice_id": "fv-viewer",
     }
+    assert commands[0].mode == "VOICE_CLONE"
+    assert commands[0].voice == ""
     assert commands[0].target_episode == 1
     assert commands[0].target_beat == 2
     assert commands[1].input_text == "cinematic suspense"
+
+
+@pytest.mark.asyncio
+async def test_voice_design_route_creates_reusable_account_voice(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.model_usage import public as model_usage_public
+
+    context = _project_context(tmp_path)
+    captured: dict[str, object] = {}
+    created: list[object] = []
+
+    async def resolve(*args, **kwargs):
+        return await _fake_resolve_project_scope(*args, **kwargs, context=context)
+
+    async def write_voice(**kwargs):
+        captured.update(kwargs)
+        Path(kwargs["output_path"]).write_bytes(b"designed-wav")
+        return SimpleNamespace(
+            request_id="req_voice_design_1",
+            response_id="",
+            voice_id="qwen_voice_123",
+        )
+
+    class VoiceLibrary:
+        def create_voice(self, command):
+            created.append(command)
+            return {
+                "voice_id": "fv_designed",
+                "name": command.name,
+                "preview_url": "/api/v1/projects/project-1/freezone/audio/voices/fv_designed/media",
+            }
+
+    monkeypatch.setattr(audio_routes, "resolve_project_scope", resolve)
+    monkeypatch.setattr(
+        audio_routes,
+        "creative_canvas_audio_library_use_cases",
+        lambda: VoiceLibrary(),
+    )
+    monkeypatch.setattr(
+        model_usage_public,
+        "write_model_audio_voice_design",
+        write_voice,
+    )
+
+    response = await audio_routes.design_freezone_audio_voice(
+        project="project-1",
+        body=FreezoneAudioVoiceDesignRequest(
+            name="夏栀青年声线",
+            model_selector="cloud:QWEN3_TTS_VD_2026_01_26",
+            voice_prompt="清澈温暖的青年女声",
+            preview_text="你好，这是声线试听。",
+            language="zh",
+            sample_rate=24000,
+            response_format="wav",
+        ),
+        user={"username": "viewer"},
+    )
+
+    assert captured == {
+        "output_path": captured["output_path"],
+        "voice_prompt": "清澈温暖的青年女声",
+        "preview_text": "你好，这是声线试听。",
+        "model_selector": "cloud:QWEN3_TTS_VD_2026_01_26",
+        "preferred_name": "custom_voice",
+        "language": "zh",
+        "sample_rate": 24000,
+        "response_format": "wav",
+    }
+    assert len(created) == 1
+    assert created[0].name == "夏栀青年声线"
+    assert created[0].content == b"designed-wav"
+    assert response["data"] == {
+        "voice_id": "fv_designed",
+        "name": "夏栀青年声线",
+        "preview_url": "/api/v1/projects/project-1/freezone/audio/voices/fv_designed/media",
+        "provider_voice_id": "qwen_voice_123",
+    }
 
 
 @pytest.mark.asyncio

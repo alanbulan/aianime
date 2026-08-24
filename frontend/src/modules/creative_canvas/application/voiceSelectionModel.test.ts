@@ -133,5 +133,11 @@ describe('voiceSelectionModel', () => {
         library.ref,
       ),
     ).toBe(true);
+    expect(
+      isCurrentVoiceReference(
+        { scope: 'model_preset', modelId: 'speech-a', voiceId: 'alex' },
+        { scope: 'model_preset', modelId: 'speech-b', voiceId: 'alex' },
+      ),
+    ).toBe(false);
   });
 });

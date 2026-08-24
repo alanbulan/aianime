@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AudioWaveform,
+  Cloud,
   FolderOpen,
+  Info,
   Loader2,
   Plus,
   Search,
@@ -36,14 +38,21 @@ export function VoiceSelectionModalView({
       <div
         className="flex h-[620px] max-h-[88vh] w-full max-w-[760px] flex-col overflow-hidden rounded-[10px] border border-border bg-popover/96 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="voice-selection-title"
       >
         <header className="flex items-center justify-between px-5 pb-3 pt-4">
-          <h2 className="text-[15px] font-semibold text-popover-foreground">
+          <h2
+            id="voice-selection-title"
+            className="text-[15px] font-semibold text-popover-foreground"
+          >
             音色选择
           </h2>
           <button
             type="button"
             onClick={onClose}
+            aria-label="关闭音色选择"
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             data-ui-tooltip="关闭"
           >
@@ -53,7 +62,9 @@ export function VoiceSelectionModalView({
 
         <TabsRow tab={tab} onChange={setTab} />
 
-        {tab === 'library' ? (
+        {tab === 'preset' ? (
+          <PresetVoicesTab controller={controller} />
+        ) : tab === 'library' ? (
           <LibraryTab controller={controller} />
         ) : (
           <MyVoicesTab controller={controller} />
@@ -71,6 +82,7 @@ interface TabsRowProps {
 
 function TabsRow({ tab, onChange }: TabsRowProps) {
   const tabs = [
+    { id: 'preset' as const, label: '预设音色' },
     { id: 'library' as const, label: '音色库' },
     { id: 'mine' as const, label: '我的音色' },
   ];
@@ -81,6 +93,7 @@ function TabsRow({ tab, onChange }: TabsRowProps) {
           key={item.id}
           type="button"
           onClick={() => onChange(item.id)}
+          aria-pressed={tab === item.id}
           className={`h-8 rounded-full px-3.5 text-[13px] font-medium transition-colors ${
             tab === item.id
               ? 'bg-primary/15 text-primary'
@@ -91,6 +104,61 @@ function TabsRow({ tab, onChange }: TabsRowProps) {
         </button>
       ))}
     </div>
+  );
+}
+
+function PresetVoicesTab({
+  controller,
+}: {
+  controller: VoiceSelectionModalController;
+}) {
+  const {
+    onPick,
+    presetModelLabel,
+    presetLoading,
+    presetError,
+    presetEmptyText,
+    presetQuery,
+    handlePresetQueryChange,
+    presetPage,
+    presetRows,
+    setPresetPageNumber,
+    presetJumpValue,
+    updatePresetJumpValue,
+    commitPresetJump,
+  } = controller;
+  return (
+    <>
+      <div className="mx-5 mt-4 flex items-start gap-2 rounded-[10px] border border-primary/20 bg-primary/5 px-3 py-2.5 text-[12px] leading-5 text-text-muted">
+        <Cloud className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        <span>
+          无需上传音频，直接使用
+          {presetModelLabel ? ` ${presetModelLabel} ` : '当前模型'}
+          公布的固定音色。选择后回到音频节点，输入试听文本并点击生成；当前服务端不支持用文字描述创建全新音色。
+        </span>
+      </div>
+      <ToolbarRow>
+        <SearchBox
+          value={presetQuery}
+          onChange={handlePresetQueryChange}
+          placeholder="搜索预设音色"
+        />
+      </ToolbarRow>
+      <VoiceList
+        loading={presetLoading}
+        error={presetError}
+        emptyText={presetEmptyText}
+        rows={presetRows}
+        onPick={onPick}
+      />
+      <FooterPagination
+        pagination={presetPage}
+        onChange={setPresetPageNumber}
+        jumpValue={presetJumpValue}
+        onJumpValueChange={updatePresetJumpValue}
+        onJumpCommit={commitPresetJump}
+      />
+    </>
   );
 }
 
@@ -114,6 +182,10 @@ function LibraryTab({
   } = controller;
   return (
     <>
+      <div className="mx-5 mt-4 flex items-center gap-2 text-[12px] text-text-muted">
+        <Info className="h-3.5 w-3.5 shrink-0" />
+        项目解说人和角色声线会把已有音频作为参考，生成时执行声线克隆。
+      </div>
       <ToolbarRow>
         <SearchBox
           value={libraryQuery}
@@ -178,7 +250,7 @@ function MyVoicesTab({
           ) : (
             <Plus className="h-3.5 w-3.5" />
           )}
-          {uploading ? '上传中…' : '克隆新音色'}
+          {uploading ? '上传中…' : '上传参考音频'}
         </button>
         <input
           ref={fileInputRef}
@@ -282,6 +354,7 @@ function VoiceList({
             title={row.title}
             language={row.language}
             gender={row.gender}
+            previewUrl={row.previewUrl}
             isActive={row.isActive}
             onSelect={() => onPick(row.pick)}
           />
@@ -320,6 +393,7 @@ interface VoiceRowProps {
   title: string;
   language: string | null;
   gender: string | null;
+  previewUrl?: string | null;
   isActive: boolean;
   onSelect: () => void;
 }
@@ -328,6 +402,7 @@ function VoiceRow({
   title,
   language,
   gender,
+  previewUrl,
   isActive,
   onSelect,
 }: VoiceRowProps) {
@@ -347,6 +422,15 @@ function VoiceRow({
           <span className="rounded bg-muted px-1.5 py-0.5">{gender}</span>
         )}
       </div>
+      {previewUrl && (
+        <audio
+          controls
+          preload="none"
+          src={previewUrl}
+          aria-label={`${title} 参考音频试听`}
+          className="h-7 w-[150px] shrink-0"
+        />
+      )}
       <button
         type="button"
         onClick={onSelect}
@@ -369,14 +453,14 @@ function EmptyState({ onClone }: { onClone: () => void }) {
       <div className="flex h-16 w-20 items-center justify-center rounded-md bg-muted">
         <FolderOpen className="h-8 w-8 text-text-muted/70" strokeWidth={1.5} />
       </div>
-      <span>暂无可用音色，快去克隆你的新音色吧～</span>
+      <span>暂无已上传的参考音频</span>
       <button
         type="button"
         onClick={onClone}
         className="inline-flex h-8 items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-3 text-[12px] font-medium text-primary transition-colors hover:bg-primary/20"
       >
         <Plus className="h-3 w-3" />
-        克隆新音色
+        上传参考音频
       </button>
     </div>
   );

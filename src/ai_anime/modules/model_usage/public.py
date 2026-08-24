@@ -76,7 +76,9 @@ from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
 from ai_anime.modules.model_usage.infrastructure.model_audio_transport import (
     ModelAudioTransportError,
     ModelAudioWriteResult,
+    write_model_audio_music,
     write_model_audio_speech,
+    write_model_audio_voice_design,
 )
 from ai_anime.modules.model_usage.infrastructure.model_gateway_settings import (
     MODE_MIXED,
@@ -256,5 +258,7 @@ __all__ = [
     "update_audio_generation_attempt",
     "update_image_request_status",
     "update_video_request_status",
+    "write_model_audio_music",
     "write_model_audio_speech",
+    "write_model_audio_voice_design",
 ]

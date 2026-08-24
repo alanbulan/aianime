@@ -1,8 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { queryKeys } from "@/lib/query-keys";
 import type { CharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import {
   isErrorDataResponse,
@@ -14,9 +16,15 @@ import {
 } from "@/shared/voice-recording/voice-recorder";
 import type {
   Character,
+  CharacterIdentityVoiceSample,
   CharacterVoiceSlot,
   CharacterVoiceSlotId,
 } from "@/modules/asset_world/domain/character";
+import type {
+  DesignedCanvasAudioVoice,
+  DesignCanvasAudioVoiceInput,
+} from "@/modules/creative_canvas/application/audioVoiceCatalog";
+import type { AudioVoiceDesignConfig } from "@/modules/model_usage/public";
 
 const AGE_SLOT_ORDER: CharacterVoiceSlotId[] = [
   "child",
@@ -25,6 +33,7 @@ const AGE_SLOT_ORDER: CharacterVoiceSlotId[] = [
   "elder",
 ];
 const EMPTY_VOICE_SLOTS: CharacterVoiceSlot[] = [];
+const EMPTY_IDENTITY_VOICES: CharacterIdentityVoiceSample[] = [];
 
 export interface CharacterVoiceRow {
   actionSlot: CharacterVoiceSlot;
@@ -32,13 +41,33 @@ export interface CharacterVoiceRow {
   label: string;
 }
 
+export interface CharacterVoiceLibraryOption {
+  voiceId: string;
+  label: string;
+  previewUrl: string | null;
+}
+
+export type CharacterVoiceBindingTarget =
+  | { kind: "slot"; slot: string; label: string }
+  | { kind: "identity"; identityId: string; label: string };
+
 export interface CharacterVoiceControllerDependencies {
   createVoiceRecorder(): VoiceRecorder;
+  loadVoiceOptions(project: string): Promise<CharacterVoiceLibraryOption[]>;
+  designVoice?(
+    project: string,
+    input: DesignCanvasAudioVoiceInput,
+  ): Promise<DesignedCanvasAudioVoice>;
 }
 
 export interface CharacterVoiceControllerOptions {
   character: Character;
   project: string;
+  voiceDesign?: {
+    config: AudioVoiceDesignConfig;
+    modelLabel: string;
+    modelSelector: string;
+  } | null;
 }
 
 function emptySlot(
@@ -90,6 +119,18 @@ export function createUseCharacterVoiceController(
       project,
       character.name,
     );
+    const bindVoice = queries.useBindCharacterVoiceSample(
+      project,
+      character.name,
+    );
+    const bindIdentityVoice = queries.useBindIdentityVoiceSample(
+      project,
+      character.name,
+    );
+    const deleteIdentityVoice = queries.useDeleteIdentityVoiceSample(
+      project,
+      character.name,
+    );
     const recorderRef = useRef<VoiceRecorder | null>(null);
     if (recorderRef.current === null) {
       recorderRef.current = dependencies.createVoiceRecorder();
@@ -108,13 +149,40 @@ export function createUseCharacterVoiceController(
     const [trimSlot, setTrimSlot] = useState<CharacterVoiceSlot | null>(null);
     const [trimStart, setTrimStart] = useState("0");
     const [trimDuration, setTrimDuration] = useState("4");
+    const [voiceBindingTarget, setVoiceBindingTarget] =
+      useState<CharacterVoiceBindingTarget | null>(null);
+    const [designName, setDesignName] = useState("");
+    const [designPrompt, setDesignPrompt] = useState("");
+    const [designPreviewText, setDesignPreviewText] = useState("");
+    const [designLanguage, setDesignLanguage] = useState("");
+    const [designing, setDesigning] = useState(false);
+
+    const voiceLibrary = useQuery({
+      queryKey: queryKeys.characterVoiceLibrary(project),
+      queryFn: () => dependencies.loadVoiceOptions(project),
+      enabled: Boolean(project && voiceBindingTarget),
+      staleTime: 30_000,
+    });
 
     useEffect(() => () => recorder.dispose(), [recorder]);
+    useEffect(() => {
+      const config = options.voiceDesign?.config;
+      if (!config) {
+        setDesignLanguage("");
+        return;
+      }
+      setDesignLanguage((current) =>
+        config.languages.includes(current)
+          ? current
+          : config.defaultLanguage,
+      );
+    }, [options.voiceDesign]);
 
     const voiceSamples = isOkDataResponse(samples.data)
       ? samples.data.data
       : undefined;
     const sampleSlots = voiceSamples?.slots ?? EMPTY_VOICE_SLOTS;
+    const identityRows = voiceSamples?.identities ?? EMPTY_IDENTITY_VOICES;
     const loadFailed =
       samples.isError || isErrorDataResponse(samples.data);
     const ageLabel = (slot: CharacterVoiceSlotId) =>
@@ -177,7 +245,11 @@ export function createUseCharacterVoiceController(
       uploadVoice.isPending ||
       recordVoice.isPending ||
       trimVoice.isPending ||
-      deleteVoice.isPending;
+      deleteVoice.isPending ||
+      bindVoice.isPending ||
+      bindIdentityVoice.isPending ||
+      deleteIdentityVoice.isPending ||
+      designing;
 
     const finishMutation = <T,>(
       response: unknown,
@@ -340,14 +412,170 @@ export function createUseCharacterVoiceController(
       }
     };
 
+    const openVoiceLibrary = (target: CharacterVoiceBindingTarget) => {
+      setVoiceBindingTarget(target);
+      setDesignName(`${character.name}-${target.label}`.slice(0, 80));
+      setDesignPrompt("");
+      setDesignPreviewText("");
+      setDesignLanguage(
+        options.voiceDesign?.config.defaultLanguage ?? "",
+      );
+    };
+
+    const openSlotVoiceLibrary = (slot: CharacterVoiceSlot, label: string) => {
+      openVoiceLibrary({
+        kind: "slot",
+        slot: String(slot.slot),
+        label,
+      });
+    };
+
+    const openIdentityVoiceLibrary = (
+      identity: CharacterIdentityVoiceSample,
+    ) => {
+      openVoiceLibrary({
+        kind: "identity",
+        identityId: identity.identity_id,
+        label: identity.identity_name || identity.identity_id,
+      });
+    };
+
+    const bindLibraryVoice = async (voiceId: string) => {
+      if (!voiceBindingTarget) return;
+      try {
+        const response =
+          voiceBindingTarget.kind === "slot"
+            ? await bindVoice.mutateAsync({
+                slot: voiceBindingTarget.slot,
+                voiceId,
+              })
+            : await bindIdentityVoice.mutateAsync({
+                identityId: voiceBindingTarget.identityId,
+                voiceId,
+              });
+        if (
+          finishMutation(
+            response,
+            t("characters.voiceSamples.bound"),
+          )
+        ) {
+          setVoiceBindingTarget(null);
+        }
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
+    const designAndBindVoice = async () => {
+      const target = voiceBindingTarget;
+      const design = options.voiceDesign;
+      const designVoice = dependencies.designVoice;
+      if (!target || !design || !designVoice) return;
+      const voicePrompt = designPrompt.trim();
+      const previewText = designPreviewText.trim();
+      if (!voicePrompt) {
+        toast.error(t("characters.voiceSamples.voiceDesignPromptRequired"));
+        return;
+      }
+      if (!previewText) {
+        toast.error(t("characters.voiceSamples.voiceDesignPreviewRequired"));
+        return;
+      }
+      if (
+        voicePrompt.length > design.config.promptMaxLength ||
+        previewText.length > design.config.previewTextMaxLength ||
+        !design.config.languages.includes(designLanguage)
+      ) {
+        toast.error(t("common.error"));
+        return;
+      }
+      const sampleRate = design.config.defaultSampleRate;
+      const responseFormat = design.config.defaultResponseFormat;
+      if (
+        sampleRate === null ||
+        (responseFormat !== "wav" && responseFormat !== "mp3")
+      ) {
+        toast.error(t("common.error"));
+        return;
+      }
+      setDesigning(true);
+      try {
+        const created = await designVoice(project, {
+          name: designName.trim(),
+          modelSelector: design.modelSelector,
+          voicePrompt,
+          previewText,
+          preferredName: design.config.preferredName,
+          language: designLanguage,
+          sampleRate,
+          responseFormat,
+        });
+        const response =
+          target.kind === "slot"
+            ? await bindVoice.mutateAsync({
+                slot: target.slot,
+                voiceId: created.voiceId,
+              })
+            : await bindIdentityVoice.mutateAsync({
+                identityId: target.identityId,
+                voiceId: created.voiceId,
+              });
+        if (
+          finishMutation(
+            response,
+            t("characters.voiceSamples.voiceDesignedAndBound"),
+          )
+        ) {
+          void voiceLibrary.refetch();
+          setVoiceBindingTarget(null);
+        }
+      } catch {
+        toast.error(t("characters.voiceSamples.voiceDesignFailed"));
+      } finally {
+        setDesigning(false);
+      }
+    };
+
+    const clearIdentityVoice = async (
+      identity: CharacterIdentityVoiceSample,
+    ) => {
+      try {
+        const response = await deleteIdentityVoice.mutateAsync(
+          identity.identity_id,
+        );
+        finishMutation(
+          response,
+          t("characters.voiceSamples.identityCleared"),
+        );
+      } catch {
+        toast.error(t("common.error"));
+      }
+    };
+
     return {
       applyTrim,
+      bindLibraryVoice,
       clearSlot,
+      clearIdentityVoice,
       closeRecordDialog,
       fileInputRef,
       isLoading: samples.isLoading,
+      identityRows,
+      designAndBindVoice,
+      designLanguage,
+      designName,
+      designPreviewText,
+      designPrompt,
+      designVoiceConfig: options.voiceDesign?.config ?? null,
+      designVoiceModelLabel: options.voiceDesign?.modelLabel ?? "",
+      designing,
+      libraryFailed: voiceLibrary.isError,
+      libraryLoading: voiceLibrary.isLoading,
+      libraryOptions: voiceLibrary.data ?? [],
       loadFailed,
+      openIdentityVoiceLibrary,
       openRecord,
+      openSlotVoiceLibrary,
       openTrim,
       pending,
       recordPending: recordVoice.isPending,
@@ -359,6 +587,10 @@ export function createUseCharacterVoiceController(
       requestUpload,
       rows,
       saveRecording,
+      setDesignLanguage,
+      setDesignName,
+      setDesignPreviewText,
+      setDesignPrompt,
       setTrimDuration,
       setTrimSlot,
       setTrimStart,
@@ -369,6 +601,10 @@ export function createUseCharacterVoiceController(
       trimSlot,
       trimStart,
       upload,
+      voiceBindingTarget,
+      onVoiceLibraryOpenChange: (open: boolean) => {
+        if (!open) setVoiceBindingTarget(null);
+      },
     };
   };
 }

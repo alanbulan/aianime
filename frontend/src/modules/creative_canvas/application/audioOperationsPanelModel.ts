@@ -26,6 +26,8 @@ export interface AudioVoiceSettings {
   voiceLabel: string;
   voiceLanguage: string;
   currentRef: AudioVoiceRef;
+  generationMode: 'speech' | 'voiceClone';
+  modeLabel: string;
 }
 
 export interface AudioOperationsNodeSource {
@@ -61,10 +63,14 @@ export function resolveAudioMusicSettings(
 export function resolveAudioVoiceSettings(
   data: AudioOperationsNodeSource,
 ): AudioVoiceSettings {
+  const currentRef = data.voiceRef ?? { scope: 'project_narrator' as const };
+  const usesModelPreset = currentRef.scope === 'model_preset';
   return {
     voiceLabel: data.voiceLabel ?? '加载中…',
     voiceLanguage: data.voiceLanguage ?? '',
-    currentRef: data.voiceRef ?? { scope: 'project_narrator' },
+    currentRef,
+    generationMode: usesModelPreset ? 'speech' : 'voiceClone',
+    modeLabel: usesModelPreset ? '预设音色' : '参考音频克隆',
   };
 }
 

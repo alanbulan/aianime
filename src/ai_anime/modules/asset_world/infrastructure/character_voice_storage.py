@@ -278,6 +278,21 @@ def is_supported_voice_sample(filename: str) -> bool:
     return Path(str(filename or "")).suffix.lower() in VOICE_SAMPLE_EXTENSIONS
 
 
+def read_character_voice_source(source_path: str | Path) -> tuple[bytes, str]:
+    """Read a reusable voice asset and normalize browser-only WebM to MP3."""
+    source = Path(source_path)
+    if not source.exists() or not source.is_file():
+        raise ValueError("声线文件不存在")
+    content = source.read_bytes()
+    if not content:
+        raise ValueError("声线文件为空")
+    if source.suffix.lower() in VOICE_SAMPLE_EXTENSIONS:
+        return content, source.name
+    if source.suffix.lower() == ".webm":
+        return _transcode_to_mp3(content), f"{source.stem}.mp3"
+    raise ValueError("仅支持 mp3 / wav / m4a / aac / ogg")
+
+
 def character_voice_path(
     *,
     project_dir: str | Path,
@@ -401,7 +416,96 @@ def clear_character_voice_file(
     for ext in VOICE_SAMPLE_EXTENSIONS:
         candidate = voices_dir / f"{stem}{ext}"
         if candidate.exists():
-            candidate.replace(candidate.with_name(f"{candidate.stem}_{ts}{candidate.suffix}"))
+            candidate.replace(
+                candidate.with_name(f"{candidate.stem}_{ts}{candidate.suffix}")
+            )
+            removed = True
+    return removed
+
+
+def identity_voice_path(
+    *,
+    project_dir: str | Path,
+    character_name: str,
+    identity_id: str,
+    filename: str,
+) -> Path:
+    safe_char = _safe_asset_name(character_name)
+    safe_identity = _safe_asset_name(identity_id)
+    if not safe_char or not safe_identity:
+        raise ValueError("character_name 和 identity_id 不能为空")
+    ext = voice_sample_extension(filename)
+    return (
+        Path(project_dir)
+        / "assets"
+        / "characters"
+        / safe_char
+        / "identities"
+        / safe_identity
+        / f"voice_reference{ext}"
+    )
+
+
+def persist_identity_voice_file(
+    *,
+    project_dir: str | Path,
+    character_name: str,
+    identity_id: str,
+    filename: str,
+    content: bytes,
+) -> tuple[str, str, str]:
+    if not is_supported_voice_sample(filename):
+        raise ValueError("仅支持 mp3 / wav / m4a / aac / ogg")
+    if not content:
+        raise ValueError("音频文件为空")
+    target = identity_voice_path(
+        project_dir=project_dir,
+        character_name=character_name,
+        identity_id=identity_id,
+        filename=filename,
+    )
+    target.parent.mkdir(parents=True, exist_ok=True)
+    ts = int(datetime.now(timezone.utc).timestamp())
+    for ext in VOICE_SAMPLE_EXTENSIONS:
+        sibling = target.with_suffix(ext)
+        if sibling.exists():
+            sibling.replace(sibling.with_name(f"{sibling.stem}_{ts}{sibling.suffix}"))
+    target.write_bytes(content)
+    return (
+        project_relative_path(project_dir, target),
+        voice_content_sha256(content),
+        utc_now_iso(),
+    )
+
+
+def clear_identity_voice_file(
+    *,
+    project_dir: str | Path,
+    character_name: str,
+    identity_id: str,
+) -> bool:
+    safe_char = _safe_asset_name(character_name)
+    safe_identity = _safe_asset_name(identity_id)
+    if not safe_char or not safe_identity:
+        return False
+    voice_dir = (
+        Path(project_dir)
+        / "assets"
+        / "characters"
+        / safe_char
+        / "identities"
+        / safe_identity
+    )
+    if not voice_dir.exists():
+        return False
+    ts = int(datetime.now(timezone.utc).timestamp())
+    removed = False
+    for ext in VOICE_SAMPLE_EXTENSIONS:
+        candidate = voice_dir / f"voice_reference{ext}"
+        if candidate.exists():
+            candidate.replace(
+                candidate.with_name(f"{candidate.stem}_{ts}{candidate.suffix}")
+            )
             removed = True
     return removed
 
@@ -410,6 +514,10 @@ class LocalCharacterVoiceFiles:
     @staticmethod
     def decode_recording(data_url: str) -> tuple[bytes, str]:
         return decode_recorded_audio_data_url(data_url)
+
+    @staticmethod
+    def read_source(source_path: str | Path) -> tuple[bytes, str]:
+        return read_character_voice_source(source_path)
 
     @staticmethod
     def persist(
@@ -458,4 +566,34 @@ class LocalCharacterVoiceFiles:
             project_dir=project_dir,
             character_name=character_name,
             slot=slot,
+        )
+
+    @staticmethod
+    def persist_identity(
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        identity_id: str,
+        filename: str,
+        content: bytes,
+    ) -> tuple[str, str, str]:
+        return persist_identity_voice_file(
+            project_dir=project_dir,
+            character_name=character_name,
+            identity_id=identity_id,
+            filename=filename,
+            content=content,
+        )
+
+    @staticmethod
+    def clear_identity(
+        *,
+        project_dir: str | Path,
+        character_name: str,
+        identity_id: str,
+    ) -> bool:
+        return clear_identity_voice_file(
+            project_dir=project_dir,
+            character_name=character_name,
+            identity_id=identity_id,
         )

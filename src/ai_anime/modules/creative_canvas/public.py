@@ -635,6 +635,8 @@ async def generate_creative_canvas_audio_speech(
     job_id: str,
     text: str,
     emotion_prompt: str,
+    mode: str,
+    voice: str,
     voice_ref: dict[str, object] | None,
 ) -> CreativeCanvasGeneratedAudio:
     from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
@@ -650,6 +652,8 @@ async def generate_creative_canvas_audio_speech(
         job_id=job_id,
         text=text,
         emotion_prompt=emotion_prompt,
+        mode=mode,
+        voice=voice,
         voice_ref=voice_ref,
     )
 

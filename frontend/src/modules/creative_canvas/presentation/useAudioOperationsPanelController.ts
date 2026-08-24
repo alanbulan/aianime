@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AudioNodeData } from '../domain/canvasNodeData';
 import {
   describeAudioVoiceRef,
+  type CanvasAudioReference,
 } from '../application/audioVoiceCatalog';
 import {
   deriveAudioText,
@@ -22,8 +23,12 @@ import type {
 } from '../application/translateCanvasText';
 
 import {
+  audioEmotionPromptSupported,
+  audioPresetVoiceOptions,
+  commercialModelRoles,
   resolveCommercialModelRoleRoute,
   useCommercialModelAccessStatus,
+  useCommercialModelCatalog,
   useGenerationCreditCost,
 } from '@/modules/model_usage/public';
 
@@ -102,18 +107,88 @@ export function createUseAudioOperationsPanelController({
     const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isMusic = data.audioKind === 'music';
-    const modelAccess = useCommercialModelAccessStatus(
-      typeof window !== 'undefined' && Boolean(window.aiAnimeDesktop?.commercial),
+    const voiceSettings = useMemo(
+      () => resolveAudioVoiceSettings(data),
+      [data.voiceLabel, data.voiceLanguage, data.voiceRef],
     );
+    const commercialBridgeAvailable =
+      typeof window !== 'undefined' &&
+      Boolean(window.aiAnimeDesktop?.commercial);
+    const modelAccess = useCommercialModelAccessStatus(
+      commercialBridgeAvailable,
+    );
+    const audioCatalog = useCommercialModelCatalog(
+      'AUDIO_VOICE_CLONE',
+      commercialBridgeAvailable && !isMusic,
+    );
+    const speechRoute = useMemo(
+      () =>
+        resolveCommercialModelRoleRoute(modelAccess.data, 'AUDIO_SPEECH'),
+      [modelAccess.data],
+    );
+    const speechCatalogModel = useMemo(
+      () =>
+        speechRoute?.source === 'cloud'
+          ? audioCatalog.data?.items.find(
+              (item) =>
+                item.code === speechRoute.modelId &&
+                commercialModelRoles(item).includes('AUDIO_SPEECH'),
+            ) ?? null
+          : null,
+      [audioCatalog.data?.items, speechRoute],
+    );
+    const presetVoiceReferences = useMemo<CanvasAudioReference[]>(
+      () =>
+        speechRoute && speechCatalogModel
+          ? audioPresetVoiceOptions(speechCatalogModel).map((voice) => ({
+              ref: {
+                scope: 'model_preset',
+                modelId: speechRoute.modelId,
+                voiceId: voice.value,
+              },
+              label: voice.isDefault
+                ? `${voice.label}（默认）`
+                : voice.label,
+              language: null,
+              gender: null,
+              previewUrl: null,
+            }))
+          : [],
+      [speechCatalogModel, speechRoute],
+    );
+    const voiceRole =
+      voiceSettings.generationMode === 'speech'
+        ? 'AUDIO_SPEECH'
+        : 'AUDIO_VOICE_CLONE';
     const audioRoute = useMemo(
       () =>
         resolveCommercialModelRoleRoute(
           modelAccess.data,
-          isMusic ? 'AUDIO_MUSIC' : 'AUDIO_VOICE_CLONE',
+          isMusic ? 'AUDIO_MUSIC' : voiceRole,
         ),
-      [isMusic, modelAccess.data],
+      [isMusic, modelAccess.data, voiceRole],
     );
     const routedModel = audioRoute?.modelId ?? '';
+    const routedCatalogModel = useMemo(
+      () =>
+        audioRoute?.source === 'cloud'
+          ? audioCatalog.data?.items.find(
+              (item) =>
+                item.code === audioRoute.modelId &&
+                commercialModelRoles(item).includes(voiceRole),
+            ) ?? null
+          : null,
+      [audioCatalog.data?.items, audioRoute, voiceRole],
+    );
+    const voiceEmotionSupported =
+      !isMusic &&
+      voiceSettings.generationMode === 'voiceClone' &&
+      audioEmotionPromptSupported(routedCatalogModel);
+    const presetRouteMismatch =
+      !isMusic &&
+      voiceSettings.currentRef.scope === 'model_preset' &&
+      Boolean(voiceSettings.currentRef.modelId) &&
+      voiceSettings.currentRef.modelId !== routedModel;
     const musicSettings = useMemo(
       () => resolveAudioMusicSettings(data),
       [
@@ -121,10 +196,6 @@ export function createUseAudioOperationsPanelController({
         data.musicLengthMs,
         data.respectSectionsDurations,
       ],
-    );
-    const voiceSettings = useMemo(
-      () => resolveAudioVoiceSettings(data),
-      [data.voiceLabel, data.voiceLanguage, data.voiceRef],
     );
     const audioCost = useGenerationCreditCost(
       isMusic ? 'freezone_audio_music' : 'beat_tts',
@@ -315,7 +386,8 @@ export function createUseAudioOperationsPanelController({
       submitDisabled:
         isAudioSubmitDisabled(isGenerating, effectivePrompt) ||
         modelAccess.isLoading ||
-        !routedModel,
+        !routedModel ||
+        presetRouteMismatch,
       submit,
       translate,
       audioCostDisplay: audioCost.data?.data.display,
@@ -324,7 +396,11 @@ export function createUseAudioOperationsPanelController({
         : '',
       modelRouteLoading: modelAccess.isLoading,
       modelRouteError:
-        modelAccess.error instanceof Error ? modelAccess.error.message : '',
+        presetRouteMismatch
+          ? `已选预设音色属于 ${voiceSettings.currentRef.modelId}，请重新选择当前模型的音色`
+          : modelAccess.error instanceof Error
+            ? modelAccess.error.message
+            : '',
       text,
       textDraft,
       changeTextDraft,
@@ -344,6 +420,20 @@ export function createUseAudioOperationsPanelController({
       setRespectSectionsDurations: (respectSectionsDurations: boolean) =>
         updateNodeData(nodeId, { respectSectionsDurations }),
       voiceSettings,
+      voiceEmotionSupported,
+      presetVoiceReferences,
+      presetVoiceModelLabel:
+        speechCatalogModel?.displayName ?? speechRoute?.modelId ?? '',
+      presetVoiceLoading: audioCatalog.isLoading,
+      presetVoiceError:
+        audioCatalog.error instanceof Error ? audioCatalog.error.message : null,
+      presetVoiceEmptyText: !speechRoute
+        ? '未配置可用的语音合成模型（AUDIO_SPEECH）'
+        : speechRoute.source !== 'cloud'
+          ? '当前语音合成路由为 BYOK，模型目录未提供可枚举的预设音色'
+        : speechCatalogModel
+          ? '当前语音合成模型未公布可选预设音色'
+          : '当前语音合成模型未出现在音频模型目录中',
       voiceModalOpen,
       openVoiceModal: () => setVoiceModalOpen(true),
       closeVoiceModal: () => setVoiceModalOpen(false),

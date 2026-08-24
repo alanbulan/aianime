@@ -49,6 +49,53 @@ class NarratorVoiceRecordRequest(BaseModel):
     data_url: str
 
 
+class NarratorVoicePresetGenerateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(default="", max_length=80)
+    voice: str = Field(min_length=1, max_length=120)
+    text: str = Field(min_length=1, max_length=500)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_optional_name(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("voice", "text")
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("内容不能为空")
+        return normalized
+
+
+class NarratorVoiceDesignRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(default="", max_length=80)
+    model_selector: str = Field(min_length=1, max_length=768)
+    voice_prompt: str = Field(min_length=1, max_length=2048)
+    preview_text: str = Field(min_length=1, max_length=1024)
+    preferred_name: str = Field(default="", max_length=16)
+    language: str = Field(min_length=1, max_length=16)
+    sample_rate: int = Field(gt=0, le=192000)
+    response_format: Literal["wav", "mp3"]
+
+    @field_validator("name", "preferred_name")
+    @classmethod
+    def normalize_optional_voice_design_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("model_selector", "voice_prompt", "preview_text", "language")
+    @classmethod
+    def normalize_required_voice_design_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("内容不能为空")
+        return normalized
+
+
 class NarratorVoiceCopyRequest(BaseModel):
     source_path: str
 
@@ -60,6 +107,8 @@ class NarratorVoiceTrimRequest(BaseModel):
 
 __all__ = [
     "NarratorVoiceCopyRequest",
+    "NarratorVoiceDesignRequest",
+    "NarratorVoicePresetGenerateRequest",
     "NarratorVoiceRecordRequest",
     "NarratorVoiceTrimRequest",
     "ProjectCreate",

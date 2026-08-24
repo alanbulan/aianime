@@ -6,6 +6,7 @@
  */
 export interface AudioVoiceRef {
   scope:
+    | 'model_preset'
     | 'project_narrator'
     | 'user_custom'
     | 'character_default'
@@ -15,6 +16,8 @@ export interface AudioVoiceRef {
   characterName?: string;
   identityId?: string;
   slot?: string;
-  /** scope=user_custom 时必填：账号级我的音色 ID。 */
+  /** scope=model_preset 时记录预设音色所属的当前模型路由。 */
+  modelId?: string;
+  /** scope=user_custom 时是账号级音色 ID；scope=model_preset 时是服务商预设音色值。 */
   voiceId?: string;
 }

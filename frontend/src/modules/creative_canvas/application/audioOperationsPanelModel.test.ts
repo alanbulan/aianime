@@ -40,6 +40,8 @@ describe('audioOperationsPanelModel', () => {
       voiceLabel: '加载中…',
       voiceLanguage: '',
       currentRef: { scope: 'project_narrator' },
+      generationMode: 'voiceClone',
+      modeLabel: '参考音频克隆',
     });
     expect(
       resolveAudioVoiceSettings({
@@ -51,6 +53,21 @@ describe('audioOperationsPanelModel', () => {
       voiceLabel: '林夏',
       voiceLanguage: '中文',
       currentRef: { scope: 'user_custom', voiceId: 'voice-a' },
+      generationMode: 'voiceClone',
+      modeLabel: '参考音频克隆',
+    });
+    expect(
+      resolveAudioVoiceSettings({
+        voiceLabel: 'Alex',
+        voiceRef: {
+          scope: 'model_preset',
+          modelId: 'speech-a',
+          voiceId: 'alex',
+        },
+      }),
+    ).toMatchObject({
+      generationMode: 'speech',
+      modeLabel: '预设音色',
     });
   });
 

@@ -37,7 +37,7 @@ export const VOICE_CLONE_FILE_ACCEPT = [
   ...VOICE_CLONE_AUDIO_EXTENSIONS,
 ].join(',');
 
-export type VoiceSelectionTab = 'library' | 'mine';
+export type VoiceSelectionTab = 'preset' | 'library' | 'mine';
 
 export interface VoicePickResult {
   ref: AudioVoiceRef;
@@ -58,6 +58,7 @@ export interface VoiceSelectionRow {
   title: string;
   language: string | null;
   gender: string | null;
+  previewUrl?: string | null;
   isActive: boolean;
   pick: VoicePickResult;
 }
@@ -227,6 +228,7 @@ export function projectLibraryVoiceRows(
       title: pick.label,
       language: item.language,
       gender: item.gender,
+      previewUrl: item.previewUrl,
       isActive: isCurrentVoiceReference(currentRef, pick.ref),
       pick,
     };
@@ -245,6 +247,7 @@ export function projectCustomVoiceRows(
       title: pick.label,
       language: item.language,
       gender: item.gender,
+      previewUrl: item.previewUrl,
       isActive: isCurrentVoiceReference(currentRef, pick.ref),
       pick,
     };

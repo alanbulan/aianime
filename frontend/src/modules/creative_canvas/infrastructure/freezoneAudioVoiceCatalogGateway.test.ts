@@ -95,4 +95,51 @@ describe("freezoneAudioVoiceCatalogGateway", () => {
       ),
     ).rejects.toThrow("voice rejected");
   });
+
+  it("designs a reusable voice with the explicit cloud selector", async () => {
+    requestJson.mockResolvedValue({
+      ok: true,
+      data: {
+        voice_id: "fv_designed",
+        name: "夏栀青年声线",
+        preview_url: "/voice/fv_designed.wav",
+        provider_voice_id: "qwen_voice_123",
+      },
+    });
+
+    await expect(
+      freezoneAudioVoiceCatalogGateway.designVoice("project/3", {
+        name: "夏栀青年声线",
+        modelSelector: "cloud:QWEN3_TTS_VD_2026_01_26",
+        voicePrompt: "清澈温暖的青年女声",
+        previewText: "你好，这是声线试听。",
+        preferredName: "custom_voice",
+        language: "zh",
+        sampleRate: 24000,
+        responseFormat: "wav",
+      }),
+    ).resolves.toEqual({
+      voiceId: "fv_designed",
+      label: "夏栀青年声线",
+      previewUrl: "/voice/fv_designed.wav",
+      providerVoiceId: "qwen_voice_123",
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "projects/project%2F3/freezone/audio/voices/design",
+      {
+        method: "POST",
+        json: {
+          name: "夏栀青年声线",
+          model_selector: "cloud:QWEN3_TTS_VD_2026_01_26",
+          voice_prompt: "清澈温暖的青年女声",
+          preview_text: "你好，这是声线试听。",
+          preferred_name: "custom_voice",
+          language: "zh",
+          sample_rate: 24000,
+          response_format: "wav",
+        },
+        timeout: false,
+      },
+    );
+  });
 });

@@ -1,6 +1,10 @@
 """Inbound schemas for character voice endpoints."""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class CharacterVoiceBindRequest(BaseModel):
+    voice_id: str = Field(min_length=1, max_length=128)
 
 
 class CharacterVoiceRecordRequest(BaseModel):
@@ -14,6 +18,7 @@ class CharacterVoiceTrimRequest(BaseModel):
 
 
 __all__ = [
+    "CharacterVoiceBindRequest",
     "CharacterVoiceRecordRequest",
     "CharacterVoiceTrimRequest",
 ]

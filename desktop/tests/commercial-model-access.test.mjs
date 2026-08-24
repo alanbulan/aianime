@@ -311,6 +311,9 @@ test("restored sessions hydrate the complete cloud model access once", async () 
               code: "DEMO_IMAGE",
               displayName: "Demo Image",
               operation: "IMAGE",
+              capabilityJson: JSON.stringify({
+                supportedModes: ["TEXT_TO_IMAGE", "IMAGE_TO_IMAGE"],
+              }),
               isDefault: true,
             },
             {
@@ -318,6 +321,34 @@ test("restored sessions hydrate the complete cloud model access once", async () 
               code: "DEMO_VIDEO",
               displayName: "Demo Video",
               operation: "VIDEO",
+              isDefault: true,
+            },
+            {
+              id: "speech-1",
+              code: "MOSS_TTSD_V0_5",
+              displayName: "MOSS-TTSD v0.5",
+              operation: "AUDIO_VOICE_CLONE",
+              capabilityJson: JSON.stringify({
+                supportedModes: ["SPEECH", "VOICE_CLONE"],
+              }),
+              isDefault: true,
+            },
+            {
+              id: "music-1",
+              code: "DEMO_MUSIC",
+              displayName: "Demo Music",
+              operation: "AUDIO_MUSIC",
+              capabilityJson: JSON.stringify({ supportedModes: ["MUSIC"] }),
+              isDefault: true,
+            },
+            {
+              id: "voice-design-1",
+              code: "QWEN3_TTS_VD_2026_01_26",
+              displayName: "Qwen3 TTS Voice Design",
+              operation: "AUDIO_VOICE_DESIGN",
+              capabilityJson: JSON.stringify({
+                supportedModes: ["VOICE_DESIGN"],
+              }),
               isDefault: true,
             },
           ],
@@ -363,8 +394,38 @@ test("restored sessions hydrate the complete cloud model access once", async () 
       enabled: true,
     },
     {
+      modelId: "DEMO_IMAGE",
+      role: "IMAGE_EDIT",
+      priority: 100,
+      enabled: true,
+    },
+    {
       modelId: "DEMO_VIDEO",
       role: "VIDEO_TEXT_TO_VIDEO",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "MOSS_TTSD_V0_5",
+      role: "AUDIO_SPEECH",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "MOSS_TTSD_V0_5",
+      role: "AUDIO_VOICE_CLONE",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "QWEN3_TTS_VD_2026_01_26",
+      role: "AUDIO_VOICE_DESIGN",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "DEMO_MUSIC",
+      role: "AUDIO_MUSIC",
       priority: 100,
       enabled: true,
     },
@@ -842,13 +903,13 @@ test("video catalog synchronization sends only projected duration capabilities",
                     capabilityJson: JSON.stringify({
                       supportedModes: ["textToVideo", "firstLastFrame"],
                       referenceAudioMinSeconds: 1.8,
-                      referenceAudioMaxSeconds: 15.2,
+                      referenceAudioItemMaxDuration: 15.2,
                       referenceAudioTotalMinSeconds: 2,
-                      referenceAudioTotalMaxSeconds: 15.2,
+                      referenceAudioTotalMaxDuration: 15.2,
                       referenceVideoMinSeconds: 3,
-                      referenceVideoMaxSeconds: 10,
+                      referenceVideoItemMaxDuration: 10,
                       referenceVideoTotalMinSeconds: 5,
-                      referenceVideoTotalMaxSeconds: 20,
+                      referenceVideoTotalMaxDuration: 20,
                       providerSecret: "must-not-cross-process-boundary",
                     }),
                   },
@@ -1359,7 +1420,62 @@ test("BYOK video roles expose requested modes without conflating first frame and
 
   assert.deepEqual(JSON.parse(catalog.items[0].capabilityJson), {
     supportedModes: ["FIRST_FRAME", "IMAGE_REFERENCE", "IMAGE_TO_VIDEO"],
+    routeSelector: "byok:provider-one:video-model",
   });
+});
+
+test("BYOK catalog uses the same canonical image and audio operations as cloud", async () => {
+  const catalog = await fetchByokModelCatalog({
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [
+      {
+        id: "provider-one",
+        name: "Provider One",
+        protocol: "OPENAI_COMPATIBLE",
+        baseUrl: "https://models.example.test/v1",
+        apiKey: "key",
+        enabled: true,
+        priority: 10,
+        modelAssignments: [
+          { modelId: "image-edit", role: "IMAGE_EDIT", priority: 10, enabled: true },
+          { modelId: "speech", role: "AUDIO_SPEECH", priority: 10, enabled: true },
+          { modelId: "clone", role: "AUDIO_VOICE_CLONE", priority: 10, enabled: true },
+          { modelId: "music", role: "AUDIO_MUSIC", priority: 10, enabled: true },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    catalog.items.map((item) => ({
+      code: item.code,
+      operation: item.operation,
+      modes: JSON.parse(item.capabilityJson).supportedModes,
+    })),
+    [
+      {
+        code: "music",
+        operation: "AUDIO_MUSIC",
+        modes: ["MUSIC"],
+      },
+      {
+        code: "clone",
+        operation: "AUDIO_VOICE_CLONE",
+        modes: ["VOICE_CLONE"],
+      },
+      {
+        code: "speech",
+        operation: "AUDIO_VOICE_CLONE",
+        modes: ["SPEECH"],
+      },
+      {
+        code: "image-edit",
+        operation: "IMAGE",
+        modes: ["IMAGE_TO_IMAGE"],
+      },
+    ],
+  );
 });
 
 test("BYOK catalog operation filters assignments instead of relabeling models", async () => {
@@ -2192,6 +2308,183 @@ test("local model proxy forwards multipart, Anthropic, and Range protocol data",
     rangeResponse.headers.get("content-disposition"),
     'attachment; filename="video.mp4"',
   );
+});
+
+test("cloud video requests are normalized to the server contract", async (t) => {
+  const calls = [];
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        calls.push(input);
+        return Response.json({ id: `video-${calls.length}` });
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-video-standard", role: "VIDEO_ALL_REFERENCE" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const headers = {
+    Authorization: `Bearer ${proxy.token}`,
+    "X-AI-Anime-Model-Role": "VIDEO_ALL_REFERENCE",
+  };
+  const jsonResponse = await fetch(`${proxy.baseUrl}/videos`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "local-placeholder",
+      prompt: "animate this scene",
+      seconds: "5",
+      size: "1280x720",
+      generate_audio: true,
+      human_review: true,
+      scene_optimize: "anime",
+      return_last_frame: true,
+    }),
+  });
+  assert.equal(jsonResponse.status, 200);
+  assert.deepEqual(JSON.parse(calls[0].body), {
+    model: "cloud-video-standard",
+    prompt: "animate this scene",
+    seconds: "5",
+    size: "1280x720",
+  });
+
+  const form = new FormData();
+  form.append("model", "local-placeholder");
+  form.append("prompt", "keep the character consistent");
+  form.append("seconds", "8");
+  form.append("size", "1080x1920");
+  form.append("human_review", "true");
+  form.append("scene_optimize", "anime");
+  form.append(
+    "reference_images",
+    new Blob(["image-bytes"], { type: "image/png" }),
+    "character.png",
+  );
+  form.append(
+    "reference_videos",
+    new Blob(["video-bytes"], { type: "video/mp4" }),
+    "motion.mp4",
+  );
+  const multipartResponse = await fetch(`${proxy.baseUrl}/videos`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+  assert.equal(multipartResponse.status, 200);
+  assert.equal(calls[1].body instanceof FormData, true);
+  assert.equal(calls[1].body.get("model"), "cloud-video-standard");
+  assert.equal(calls[1].body.get("prompt"), "keep the character consistent");
+  assert.equal(calls[1].body.get("human_review"), null);
+  assert.equal(calls[1].body.get("scene_optimize"), null);
+  assert.equal(calls[1].body.get("reference_images"), null);
+  assert.equal(calls[1].body.get("reference_videos"), null);
+  assert.equal(calls[1].body.get("reference_image") instanceof Blob, true);
+  assert.equal(calls[1].body.get("reference_video") instanceof Blob, true);
+});
+
+test("local model proxy infers the dedicated audio music route", async (t) => {
+  const calls = [];
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        calls.push(input);
+        return new Response(Buffer.from("music"), {
+          headers: { "Content-Type": "audio/mpeg" },
+        });
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-music", role: "AUDIO_MUSIC" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/audio/music/generations`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "local-placeholder",
+      mode: "MUSIC",
+      prompt: "quiet piano",
+      duration: 30,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, "/v1/audio/music/generations");
+  assert.equal(JSON.parse(calls[0].body).model, "cloud-music");
+});
+
+test("cloud voice design keeps its explicit role and routes the raw model code", async (t) => {
+  const calls = [];
+  const modelId = "QWEN3_TTS_VD_2026_01_26";
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        calls.push(input);
+        return new Response(Buffer.from("designed-voice"), {
+          headers: {
+            "Content-Type": "audio/wav",
+            "X-Voice-Id": "qwen_voice_123",
+          },
+        });
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  configureCloudProxy(proxy, [
+    { modelId, role: "AUDIO_VOICE_DESIGN" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/audio/speech`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "AUDIO_VOICE_DESIGN",
+      "X-AI-Anime-Model-Selector": `cloud:${modelId}`,
+    },
+    body: JSON.stringify({
+      model: `cloud:${modelId}`,
+      mode: "VOICE_DESIGN",
+      voice_prompt: "清澈温暖的青年女声",
+      preview_text: "你好，这是声线试听。",
+      language: "zh",
+      sample_rate: 24000,
+      response_format: "wav",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-voice-id"), "qwen_voice_123");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, "/v1/audio/speech");
+  assert.equal(JSON.parse(calls[0].body).model, modelId);
 });
 
 test("local model proxy rejects HTML returned by the video content endpoint", async (t) => {

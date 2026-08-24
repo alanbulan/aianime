@@ -8,6 +8,10 @@ import {
 
 import { queryKeys } from "@/lib/query-keys";
 import type { ProductionVideoGateway } from "@/modules/production/application/ports";
+import type {
+  GenerateNarratorVoiceDesignCommand,
+  GenerateNarratorVoicePresetCommand,
+} from "@/modules/production/domain/narrator-voice";
 
 function invalidateNarratorVoiceQueries(
   queryClient: QueryClient,
@@ -65,6 +69,24 @@ export function createNarratorVoiceQueryHooks(
     });
   }
 
+  function useGenerateNarratorVoicePreset(project: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (command: GenerateNarratorVoicePresetCommand) =>
+        gateway.generateNarratorVoicePreset(project, command),
+      onSuccess: () => invalidateNarratorVoiceQueries(queryClient, project),
+    });
+  }
+
+  function useDesignNarratorVoice(project: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (command: GenerateNarratorVoiceDesignCommand) =>
+        gateway.designNarratorVoice(project, command),
+      onSuccess: () => invalidateNarratorVoiceQueries(queryClient, project),
+    });
+  }
+
   function useCopyProjectNarratorVoice(project: string) {
     const queryClient = useQueryClient();
     return useMutation({
@@ -102,6 +124,8 @@ export function createNarratorVoiceQueryHooks(
     useNarratorVoiceSources,
     useUploadNarratorVoice,
     useRecordNarratorVoice,
+    useGenerateNarratorVoicePreset,
+    useDesignNarratorVoice,
     useCopyProjectNarratorVoice,
     useTrimNarratorVoice,
     useDeleteNarratorVoice,

@@ -9,6 +9,24 @@ export interface CanvasAudioReference {
   readonly previewUrl: string | null;
 }
 
+export interface DesignCanvasAudioVoiceInput {
+  readonly name: string;
+  readonly modelSelector: string;
+  readonly voicePrompt: string;
+  readonly previewText: string;
+  readonly preferredName: string;
+  readonly language: string;
+  readonly sampleRate: number;
+  readonly responseFormat: "wav" | "mp3";
+}
+
+export interface DesignedCanvasAudioVoice {
+  readonly voiceId: string;
+  readonly label: string;
+  readonly previewUrl: string | null;
+  readonly providerVoiceId: string | null;
+}
+
 export interface CanvasAudioVoiceCatalogGateway {
   listReferences(projectId: string): Promise<CanvasAudioReference[]>;
   createVoice(
@@ -16,6 +34,10 @@ export interface CanvasAudioVoiceCatalogGateway {
     file: File | Blob,
     name?: string,
   ): Promise<void>;
+  designVoice(
+    projectId: string,
+    input: DesignCanvasAudioVoiceInput,
+  ): Promise<DesignedCanvasAudioVoice>;
 }
 
 export function audioVoiceRefKey(ref: AudioVoiceRef): string {
@@ -24,12 +46,15 @@ export function audioVoiceRefKey(ref: AudioVoiceRef): string {
     ref.characterName ?? "",
     ref.identityId ?? "",
     ref.slot ?? "",
+    ref.modelId ?? "",
     ref.voiceId ?? "",
   ].join("|");
 }
 
 export function describeAudioVoiceRef(ref: AudioVoiceRef): string {
   switch (ref.scope) {
+    case "model_preset":
+      return ref.voiceId ?? "模型预设音色";
     case "project_narrator":
       return "项目解说人";
     case "user_custom":

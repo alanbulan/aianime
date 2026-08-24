@@ -38,6 +38,8 @@ class StartCreativeCanvasSpeechGenerationCommand:
     text: str
     emotion_prompt: str
     voice_ref: dict[str, object] | None
+    mode: str = "VOICE_CLONE"
+    voice: str = ""
     target_episode: int | None = None
     target_beat: int | None = None
 
@@ -73,6 +75,24 @@ class CreativeCanvasAudioGenerationUseCases:
             raise InvalidCreativeCanvasAudioGenerationRequest(
                 "text must be <= 10000 characters"
             )
+        mode = str(command.mode or "VOICE_CLONE").strip().upper()
+        voice = str(command.voice or "").strip()
+        if mode not in {"SPEECH", "VOICE_CLONE"}:
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "mode must be SPEECH or VOICE_CLONE"
+            )
+        if mode == "SPEECH" and not voice:
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "voice is required when mode is SPEECH"
+            )
+        if mode == "SPEECH" and command.voice_ref is not None:
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "voice_ref is not allowed when mode is SPEECH"
+            )
+        if mode == "VOICE_CLONE" and voice:
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "voice is not allowed when mode is VOICE_CLONE"
+            )
 
         return await self._scheduler.enqueue(
             command.context,
@@ -84,6 +104,8 @@ class CreativeCanvasAudioGenerationUseCases:
                 payload={
                     "text": command.text,
                     "emotion_prompt": command.emotion_prompt,
+                    "mode": mode,
+                    "voice": voice,
                     "voice_ref": command.voice_ref,
                     "account_voice_username": (
                         command.context.requester_username

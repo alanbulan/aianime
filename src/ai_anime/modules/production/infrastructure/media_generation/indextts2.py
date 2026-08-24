@@ -183,18 +183,13 @@ class IndexTTS2Client:
         output_path: Path,
         emotion_prompt: str = "",
     ) -> TTSResult:
-        metadata: dict[str, Any] = {
-            "audio_url": audio_url,
-            "should_use_prompt_for_emotion": True,
-        }
-        if str(emotion_prompt or "").strip():
-            metadata["emotion_prompt"] = str(emotion_prompt).strip()
         try:
             transport_result = await write_model_audio_speech(
                 output_path=output_path,
                 model_role="AUDIO_VOICE_CLONE",
                 input_text=prompt,
-                metadata=metadata,
+                reference_audio=audio_url,
+                emotion_prompt=emotion_prompt,
                 timeout_seconds=self.timeout_seconds,
             )
             self._last_provider_request_id = transport_result.request_id

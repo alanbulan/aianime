@@ -24,7 +24,7 @@ function datePrefix(d: Date = new Date()): string {
 //      so dev mode no longer shows a stale hardcoded value.
 //   3. the nearest git tag (`git describe --tags --abbrev=0`) as a fallback.
 //   4. DEFAULT_APP_VERSION — last resort for a git-less build (source tarball).
-const DEFAULT_APP_VERSION = "1.1.58";
+const DEFAULT_APP_VERSION = "1.1.61";
 
 function resolveAppVersion(): string {
   if (process.env.VITE_APP_VERSION) return process.env.VITE_APP_VERSION;

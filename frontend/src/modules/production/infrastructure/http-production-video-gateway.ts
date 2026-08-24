@@ -18,6 +18,8 @@ import type {
   VideoPoolSelectResponse,
 } from "@/modules/production/application/ports";
 import type {
+  GenerateNarratorVoiceDesignCommand,
+  GenerateNarratorVoicePresetCommand,
   NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
@@ -525,6 +527,26 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     return api
       .post(p`api/v1/projects/${project}/narrator-voice/record`, {
         json: { data_url: dataUrl },
+      })
+      .json<NarratorVoiceMutationResponse>();
+  },
+  async generateNarratorVoicePreset(
+    project,
+    command: GenerateNarratorVoicePresetCommand,
+  ) {
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/generate-preset`, {
+        json: command,
+      })
+      .json<NarratorVoiceMutationResponse>();
+  },
+  async designNarratorVoice(
+    project,
+    command: GenerateNarratorVoiceDesignCommand,
+  ) {
+    return api
+      .post(p`api/v1/projects/${project}/narrator-voice/design`, {
+        json: command,
       })
       .json<NarratorVoiceMutationResponse>();
   },

@@ -28,6 +28,7 @@ export const BYOK_MODEL_ROLES = [
   "VIDEO_EDIT",
   "AUDIO_SPEECH",
   "AUDIO_VOICE_CLONE",
+  "AUDIO_VOICE_DESIGN",
   "AUDIO_MUSIC",
   "EMBEDDING",
 ] as const;
@@ -96,7 +97,7 @@ const BYOK_ROLE_CAPABILITY: Record<
 > = {
   TEXT: { operation: "TEXT" },
   IMAGE_GENERATION: { operation: "IMAGE", modes: ["TEXT_TO_IMAGE"] },
-  IMAGE_EDIT: { operation: "IMAGE", modes: ["IMAGE_EDIT"] },
+  IMAGE_EDIT: { operation: "IMAGE", modes: ["IMAGE_TO_IMAGE"] },
   VIDEO_TEXT_TO_VIDEO: { operation: "VIDEO", modes: ["TEXT_TO_VIDEO"] },
   VIDEO_IMAGE_TO_VIDEO: { operation: "VIDEO", modes: ["FIRST_FRAME"] },
   VIDEO_FIRST_LAST_FRAME: {
@@ -109,9 +110,16 @@ const BYOK_ROLE_CAPABILITY: Record<
   },
   VIDEO_ALL_REFERENCE: { operation: "VIDEO", modes: ["ALL_REFERENCE"] },
   VIDEO_EDIT: { operation: "VIDEO", modes: ["VIDEO_EDIT"] },
-  AUDIO_SPEECH: { operation: "AUDIO", modes: ["SPEECH"] },
-  AUDIO_VOICE_CLONE: { operation: "AUDIO", modes: ["VOICE_CLONE"] },
-  AUDIO_MUSIC: { operation: "AUDIO", modes: ["MUSIC"] },
+  AUDIO_SPEECH: { operation: "AUDIO_VOICE_CLONE", modes: ["SPEECH"] },
+  AUDIO_VOICE_CLONE: {
+    operation: "AUDIO_VOICE_CLONE",
+    modes: ["VOICE_CLONE"],
+  },
+  AUDIO_VOICE_DESIGN: {
+    operation: "AUDIO_VOICE_DESIGN",
+    modes: ["VOICE_DESIGN"],
+  },
+  AUDIO_MUSIC: { operation: "AUDIO_MUSIC", modes: ["MUSIC"] },
   EMBEDDING: { operation: "EMBEDDING" },
 };
 

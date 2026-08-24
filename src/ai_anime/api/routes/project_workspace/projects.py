@@ -3,8 +3,10 @@
 import asyncio
 import logging
 import time
+import uuid
 from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from threading import Lock
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
@@ -17,6 +19,8 @@ from ai_anime.api.deps import (
 )
 from ai_anime.api.routes.project_workspace.schemas import (
     NarratorVoiceCopyRequest,
+    NarratorVoiceDesignRequest,
+    NarratorVoicePresetGenerateRequest,
     NarratorVoiceRecordRequest,
     NarratorVoiceTrimRequest,
     ProjectCreate,
@@ -531,9 +535,7 @@ async def update_project(
     if body.visual_style is not None:
         from ai_anime.modules.asset_world.public import StyleService
 
-        valid = StyleService.get_style_labels(
-            username=ctx.owner_username
-        )
+        valid = StyleService.get_style_labels(username=ctx.owner_username)
         if body.visual_style not in valid:
             return JSONResponse(
                 status_code=400,
@@ -623,9 +625,7 @@ async def select_project_cover(
     )
     require_project_home_node(ctx, operation="select project cover")
     try:
-        source = _resolve_project_cover_source(
-            Path(ctx.output_dir), body.source_path
-        )
+        source = _resolve_project_cover_source(Path(ctx.output_dir), body.source_path)
         content = await asyncio.to_thread(source.read_bytes)
         target = await asyncio.to_thread(
             _save_project_cover,
@@ -733,6 +733,124 @@ async def record_narrator_voice(
         "ok": True,
         "data": _narrator_voice_payload(ctx, store),
     }
+
+
+@router.post("/projects/{project}/narrator-voice/generate-preset")
+async def generate_preset_narrator_voice(
+    project: str,
+    body: NarratorVoicePresetGenerateRequest,
+    user: dict = Depends(get_api_user),
+):
+    """使用当前 AUDIO_SPEECH 预设声线生成项目解说参考音频。"""
+    from ai_anime.modules.creative_canvas.public import (
+        CreateCreativeCanvasAudioVoiceCommand,
+        creative_canvas_audio_library_use_cases,
+        generate_creative_canvas_audio_speech,
+    )
+
+    ctx = await resolve_project_context(
+        user=user, project_id=project, required_role="editor"
+    )
+    store = await make_sqlite_store_for_context(ctx)
+    try:
+        _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
+        generated = await generate_creative_canvas_audio_speech(
+            store=store,
+            username=ctx.owner_username,
+            project=ctx.project_name,
+            account_voice_username=None,
+            project_dir=Path(ctx.output_dir),
+            job_id=f"narrator_voice_{uuid.uuid4().hex}",
+            text=body.text,
+            emotion_prompt="",
+            mode="SPEECH",
+            voice=body.voice,
+            voice_ref=None,
+        )
+        content = await asyncio.to_thread(generated.audio_path.read_bytes)
+        creative_canvas_audio_library_use_cases().create_voice(
+            CreateCreativeCanvasAudioVoiceCommand(
+                context=ctx,
+                name=body.name or body.voice,
+                filename="generated.mp3",
+                content=content,
+                mime_type="audio/mpeg",
+            )
+        )
+        _persist_narrator_voice_content(
+            username=ctx.owner_username,
+            project=ctx.project_name,
+            project_dir=ctx.output_dir,
+            filename="generated.mp3",
+            content=content,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        return {"ok": False, "error": str(exc)}
+    return {
+        "ok": True,
+        "data": _narrator_voice_payload(ctx, store),
+    }
+
+
+@router.post("/projects/{project}/narrator-voice/design")
+async def design_narrator_voice(
+    project: str,
+    body: NarratorVoiceDesignRequest,
+    user: dict = Depends(get_api_user),
+):
+    """使用云端 AUDIO_VOICE_DESIGN 将文字描述生成可复用声线。"""
+    from ai_anime.modules.creative_canvas.public import (
+        CreateCreativeCanvasAudioVoiceCommand,
+        creative_canvas_audio_library_use_cases,
+    )
+    from ai_anime.modules.model_usage.public import write_model_audio_voice_design
+
+    ctx = await resolve_project_context(
+        user=user, project_id=project, required_role="editor"
+    )
+    store = await make_sqlite_store_for_context(ctx)
+    suffix = f".{body.response_format}"
+    mime_type = "audio/wav" if body.response_format == "wav" else "audio/mpeg"
+    try:
+        _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
+        with TemporaryDirectory(
+            prefix=".voice-design-",
+            dir=Path(ctx.output_dir),
+        ) as temp_dir:
+            output_path = Path(temp_dir) / f"preview{suffix}"
+            result = await write_model_audio_voice_design(
+                output_path=output_path,
+                model_selector=body.model_selector,
+                voice_prompt=body.voice_prompt,
+                preview_text=body.preview_text,
+                preferred_name=body.preferred_name or None,
+                language=body.language,
+                sample_rate=body.sample_rate,
+                response_format=body.response_format,
+            )
+            content = await asyncio.to_thread(output_path.read_bytes)
+        created_voice = creative_canvas_audio_library_use_cases().create_voice(
+            CreateCreativeCanvasAudioVoiceCommand(
+                context=ctx,
+                name=body.name or body.voice_prompt[:80],
+                filename=f"designed{suffix}",
+                content=content,
+                mime_type=mime_type,
+            )
+        )
+        _persist_narrator_voice_content(
+            username=ctx.owner_username,
+            project=ctx.project_name,
+            project_dir=ctx.output_dir,
+            filename=f"designed{suffix}",
+            content=content,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        return {"ok": False, "error": str(exc)}
+    data = _narrator_voice_payload(ctx, store)
+    data["voice_library_id"] = str(created_voice.get("voice_id") or "")
+    data["provider_voice_id"] = result.voice_id
+    return {"ok": True, "data": data}
 
 
 @router.post("/projects/{project}/narrator-voice/copy")

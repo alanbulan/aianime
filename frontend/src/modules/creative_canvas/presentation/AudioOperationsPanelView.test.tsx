@@ -89,7 +89,15 @@ function controller(
       voiceLabel: 'Voice A',
       voiceLanguage: '中文',
       currentRef: { scope: 'user_custom', voiceId: 'voice-a' },
+      generationMode: 'voiceClone',
+      modeLabel: '参考音频克隆',
     },
+    voiceEmotionSupported: false,
+    presetVoiceReferences: [],
+    presetVoiceModelLabel: '',
+    presetVoiceLoading: false,
+    presetVoiceError: null,
+    presetVoiceEmptyText: '暂无可用预设音色',
     voiceModalOpen: false,
     openVoiceModal: vi.fn(),
     closeVoiceModal: vi.fn(),
@@ -105,7 +113,6 @@ describe('AudioOperationsPanelView', () => {
     const changeTextDraft = vi.fn();
     const startTextComposition = vi.fn();
     const finishTextComposition = vi.fn();
-    const changeEmotionDraft = vi.fn();
     const toggleVoiceSettings = vi.fn();
     const translate = vi.fn();
     const submit = vi.fn();
@@ -115,7 +122,6 @@ describe('AudioOperationsPanelView', () => {
           changeTextDraft,
           startTextComposition,
           finishTextComposition,
-          changeEmotionDraft,
           toggleVoiceSettings,
           translate,
           submit,
@@ -131,10 +137,8 @@ describe('AudioOperationsPanelView', () => {
     expect(startTextComposition).toHaveBeenCalledOnce();
     expect(finishTextComposition).toHaveBeenCalledWith('组合文本');
 
-    fireEvent.change(screen.getByDisplayValue('平静'), {
-      target: { value: '紧张' },
-    });
-    expect(changeEmotionDraft).toHaveBeenCalledWith('紧张');
+    expect(screen.getByDisplayValue('平静')).toBeDisabled();
+    expect(screen.getByText(/未声明 emotion_prompt/)).toBeInTheDocument();
     fireEvent.click(getByUiTooltip('翻译（中英文互译）'));
     fireEvent.click(getByUiTooltip('音色设置'));
     fireEvent.click(getByUiTooltip('生成'));

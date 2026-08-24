@@ -708,14 +708,26 @@ export function registerCommercialIpc(
 }
 
 const REFERENCE_DURATION_CAPABILITY_FIELDS = [
-  "referenceAudioMinSeconds",
-  "referenceAudioMaxSeconds",
-  "referenceAudioTotalMinSeconds",
-  "referenceAudioTotalMaxSeconds",
-  "referenceVideoMinSeconds",
-  "referenceVideoMaxSeconds",
-  "referenceVideoTotalMinSeconds",
-  "referenceVideoTotalMaxSeconds",
+  ["referenceAudioMinSeconds", ["referenceAudioMinSeconds"]],
+  [
+    "referenceAudioMaxSeconds",
+    ["referenceAudioMaxSeconds", "referenceAudioItemMaxDuration"],
+  ],
+  ["referenceAudioTotalMinSeconds", ["referenceAudioTotalMinSeconds"]],
+  [
+    "referenceAudioTotalMaxSeconds",
+    ["referenceAudioTotalMaxSeconds", "referenceAudioTotalMaxDuration"],
+  ],
+  ["referenceVideoMinSeconds", ["referenceVideoMinSeconds"]],
+  [
+    "referenceVideoMaxSeconds",
+    ["referenceVideoMaxSeconds", "referenceVideoItemMaxDuration"],
+  ],
+  ["referenceVideoTotalMinSeconds", ["referenceVideoTotalMinSeconds"]],
+  [
+    "referenceVideoTotalMaxSeconds",
+    ["referenceVideoTotalMaxSeconds", "referenceVideoTotalMaxDuration"],
+  ],
 ] as const;
 
 function mergeModelCapabilities(
@@ -737,8 +749,15 @@ function mergeModelCapabilities(
     const projected: CommercialModelCapabilitySnapshot = {
       modelId: item.code,
     };
-    for (const field of REFERENCE_DURATION_CAPABILITY_FIELDS) {
-      const value = capabilities[field];
+    for (const [field, sourceFields] of REFERENCE_DURATION_CAPABILITY_FIELDS) {
+      const value = sourceFields
+        .map((sourceField) => capabilities[sourceField])
+        .find(
+          (candidate) =>
+            typeof candidate === "number" &&
+            Number.isFinite(candidate) &&
+            candidate > 0,
+        );
       if (typeof value === "number" && Number.isFinite(value) && value > 0) {
         projected[field] = value;
       }
@@ -763,6 +782,9 @@ const CLOUD_ROLES_BY_OPERATION: Readonly<
     "VIDEO_EDIT",
   ],
   AUDIO: ["AUDIO_SPEECH", "AUDIO_VOICE_CLONE", "AUDIO_MUSIC"],
+  AUDIO_VOICE_CLONE: ["AUDIO_SPEECH", "AUDIO_VOICE_CLONE"],
+  AUDIO_VOICE_DESIGN: ["AUDIO_VOICE_DESIGN"],
+  AUDIO_MUSIC: ["AUDIO_MUSIC"],
   EMBEDDING: ["EMBEDDING"],
 };
 
@@ -770,15 +792,20 @@ const CLOUD_ROLE_MODES: Readonly<
   Partial<Record<ByokModelRole, readonly string[]>>
 > = {
   IMAGE_GENERATION: ["TEXT_TO_IMAGE", "IMAGE_GENERATION"],
-  IMAGE_EDIT: ["IMAGE_EDIT", "EDIT"],
+  IMAGE_EDIT: ["IMAGE_TO_IMAGE", "IMAGE_EDIT", "EDIT"],
   VIDEO_TEXT_TO_VIDEO: ["TEXT_TO_VIDEO"],
   VIDEO_IMAGE_TO_VIDEO: ["FIRST_FRAME", "IMAGE_TO_VIDEO"],
-  VIDEO_FIRST_LAST_FRAME: ["FIRST_LAST_FRAME"],
-  VIDEO_IMAGE_REFERENCE: ["IMAGE_REFERENCE", "REFERENCE_IMAGE"],
-  VIDEO_ALL_REFERENCE: ["ALL_REFERENCE"],
-  VIDEO_EDIT: ["VIDEO_EDIT", "EDIT"],
+  VIDEO_FIRST_LAST_FRAME: ["FIRST_LAST_FRAME", "MULTIMODAL_REFERENCE"],
+  VIDEO_IMAGE_REFERENCE: [
+    "IMAGE_REFERENCE",
+    "REFERENCE_IMAGE",
+    "MULTIMODAL_REFERENCE",
+  ],
+  VIDEO_ALL_REFERENCE: ["ALL_REFERENCE", "MULTIMODAL_REFERENCE"],
+  VIDEO_EDIT: ["VIDEO_EDIT", "EDIT", "VIDEO_TO_VIDEO", "REMIX"],
   AUDIO_SPEECH: ["SPEECH", "TEXT_TO_SPEECH", "SPEECH_SYNTHESIS"],
   AUDIO_VOICE_CLONE: ["VOICE_CLONE"],
+  AUDIO_VOICE_DESIGN: ["VOICE_DESIGN"],
   AUDIO_MUSIC: ["MUSIC", "TEXT_TO_MUSIC", "MUSIC_GENERATION"],
 };
 

@@ -1193,6 +1193,8 @@ async def _run_freezone_audio_speech_async(
             job_id=job_id,
             text=str(payload.get("text") or ""),
             emotion_prompt=str(payload.get("emotion_prompt") or ""),
+            mode=str(payload.get("mode") or "VOICE_CLONE"),
+            voice=str(payload.get("voice") or ""),
             voice_ref=payload.get("voice_ref"),
         )
     finally:

@@ -49,8 +49,9 @@ class _FakeAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    async def post(self, url, *, headers=None, json=None):
-        self.calls.append(("post", url, headers, json))
+    async def post(self, url, *, headers=None, json=None, data=None, files=None):
+        body = json if json is not None else {"data": data, "files": files}
+        self.calls.append(("post", url, headers, body))
         return self.post_response
 
     async def get(self, url):
@@ -74,6 +75,7 @@ async def test_reserve_tts_model_call_uses_audio_billing_kind(monkeypatch):
     reservation_id = await indextts2._reserve_tts_model_call(
         "index-tts-2",
         source="indextts2_commercial",
+        billable_chars=12,
     )
 
     assert reservation_id == "reservation_1"
@@ -81,7 +83,18 @@ async def test_reserve_tts_model_call_uses_audio_billing_kind(monkeypatch):
         {
             "model": "index-tts-2",
             "billing_kind": "audio",
-            "metadata": {"source": "indextts2_commercial"},
+            "billing_params": {
+                "call_count": 1,
+                "item_count": 1,
+                "billable_chars": 12,
+            },
+            "billing_quantity": 1,
+            "metadata": {
+                "source": "indextts2_commercial",
+                "call_count": 1,
+                "item_count": 1,
+                "billable_chars": 12,
+            },
         }
     ]
 
@@ -104,8 +117,10 @@ async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_p
         headers={"content-type": "audio/wav", "x-oneapi-request-id": "req_tts_1"},
     )
 
-    async def fake_reserve(model, *, source):
-        reserved.append({"model": model, "source": source})
+    async def fake_reserve(model, *, source, billable_chars):
+        reserved.append(
+            {"model": model, "source": source, "billable_chars": billable_chars}
+        )
         return "reservation_1"
 
     async def fake_confirm(**kwargs):
@@ -132,14 +147,20 @@ async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_p
     )
     result = await client.generate(
         prompt="你终于来了。",
-        audio_url="data:audio/wav;base64,abc",
+        audio_url="data:audio/wav;base64,YWJj",
         output_path=output_path,
         emotion_prompt="压低声音，克制但急切",
     )
 
     assert result.success is True
     assert output_path.read_bytes() == b"generated-wav"
-    assert reserved == [{"model": "index-tts-2", "source": "indextts2_commercial"}]
+    assert reserved == [
+        {
+            "model": "index-tts-2",
+            "source": "indextts2_commercial",
+            "billable_chars": 6,
+        }
+    ]
     assert confirmed == [
         {
             "model": "index-tts-2",
@@ -154,16 +175,17 @@ async def test_indextts2_commercial_posts_audio_speech_schema(monkeypatch, tmp_p
     assert method == "post"
     assert url == "http://newapi.test/v1/audio/speech"
     assert headers["Authorization"] == "Bearer newapi-test-key"
-    assert headers["Content-Type"] == "application/json"
     assert "Idempotency-Key" in headers
     assert body == {
-        "model": "index-tts-2",
-        "input": "你终于来了。",
-        "response_format": "mp3",
-        "metadata": {
-            "audio_url": "data:audio/wav;base64,abc",
-            "should_use_prompt_for_emotion": True,
+        "data": {
+            "model": "index-tts-2",
+            "mode": "VOICE_CLONE",
+            "input": "你终于来了。",
+            "response_format": "mp3",
             "emotion_prompt": "压低声音，克制但急切",
+        },
+        "files": {
+            "reference_audio": ("reference.wav", b"abc", "audio/wav"),
         },
     }
 
@@ -184,7 +206,7 @@ async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypat
         headers={"content-type": "application/json", "x-oneapi-request-id": "req_tts_1"},
     )
 
-    async def fake_reserve(model, *, source):
+    async def fake_reserve(model, *, source, billable_chars):
         return "reservation_1"
 
     async def fake_confirm(**kwargs):
@@ -210,7 +232,7 @@ async def test_indextts2_refunds_reserved_credit_on_generation_failure(monkeypat
     )
     result = await client.generate(
         prompt="测试",
-        audio_url="data:audio/wav;base64,abc",
+        audio_url="data:audio/wav;base64,YWJj",
         output_path=tmp_path / "beat_03.mp3",
     )
 
@@ -233,7 +255,7 @@ async def test_indextts2_reraises_insufficient_credit(monkeypatch, tmp_path):
         IndexTTS2Client,
     )
 
-    async def fake_reserve(model, *, source):
+    async def fake_reserve(model, *, source, billable_chars):
         raise InsufficientCreditsError(user_id="usr_1", cost=3, balance=0)
 
     monkeypatch.setattr(indextts2, "_reserve_tts_model_call", fake_reserve)
@@ -260,7 +282,7 @@ async def test_indextts2_routes_provider_through_desktop_proxy(monkeypatch, tmp_
     )
     from ai_anime.modules.model_usage.public import configure_model_access
 
-    async def fake_reserve(model, *, source):
+    async def fake_reserve(model, *, source, billable_chars):
         return "reservation_1"
 
     async def fake_confirm(**kwargs):
@@ -289,5 +311,6 @@ async def test_indextts2_routes_provider_through_desktop_proxy(monkeypatch, tmp_
     )
 
     assert result.success is True
-    assert _FakeAsyncClient.calls[0][1] == "http://newapi.test/v1/audio/speech"
-    assert _FakeAsyncClient.calls[0][2]["Authorization"] == "Bearer newapi-test-key"
+    post = next(call for call in _FakeAsyncClient.calls if call[0] == "post")
+    assert post[1] == "http://newapi.test/v1/audio/speech"
+    assert post[2]["Authorization"] == "Bearer newapi-test-key"

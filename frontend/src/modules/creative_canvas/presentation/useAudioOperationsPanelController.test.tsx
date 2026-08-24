@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   useAudioGeneration: vi.fn(),
   creditCost: vi.fn(),
   modelAccess: vi.fn(),
+  modelCatalog: vi.fn(),
   translate: vi.fn(),
 }));
 
@@ -34,6 +35,7 @@ vi.mock('@/modules/model_usage/public', async (importOriginal) => {
     ...actual,
     useGenerationCreditCost: (...args: unknown[]) => mocks.creditCost(...args),
     useCommercialModelAccessStatus: (...args: unknown[]) => mocks.modelAccess(...args),
+    useCommercialModelCatalog: (...args: unknown[]) => mocks.modelCatalog(...args),
   };
 });
 
@@ -66,6 +68,37 @@ describe('useAudioOperationsPanelController', () => {
     mocks.creditCost.mockReset().mockReturnValue({
       data: { data: { display: '2 积分' } },
     });
+    mocks.modelCatalog.mockReset().mockReturnValue({
+      data: {
+        catalogVersion: 'audio-v1',
+        items: [
+          {
+            id: 'speech-1',
+            code: 'audio-speech-1',
+            displayName: 'MOSS-TTSD v0.5',
+            operation: 'AUDIO_VOICE_CLONE',
+            capabilities: { supportedModes: ['SPEECH', 'VOICE_CLONE'] },
+            parameterSchema: {
+              properties: {
+                voice: { enum: ['alex', 'anna'], default: 'alex' },
+              },
+            },
+          },
+          {
+            id: 'clone-1',
+            code: 'audio-voice-clone-1',
+            displayName: 'Expressive Clone',
+            operation: 'AUDIO_VOICE_CLONE',
+            capabilities: { supportedModes: ['VOICE_CLONE'] },
+            parameterSchema: {
+              properties: { emotion_prompt: { type: 'string' } },
+            },
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
     mocks.modelAccess.mockReset().mockReturnValue({
       data: {
         mode: 'mixed',
@@ -74,6 +107,12 @@ describe('useAudioOperationsPanelController', () => {
         byokConfigured: false,
         byokProviders: [],
         cloudModelAssignments: [
+          {
+            modelId: 'audio-speech-1',
+            role: 'AUDIO_SPEECH',
+            priority: 100,
+            enabled: true,
+          },
           {
             modelId: 'audio-voice-clone-1',
             role: 'AUDIO_VOICE_CLONE',
@@ -96,6 +135,23 @@ describe('useAudioOperationsPanelController', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('derives emotion input support from the routed clone model schema', () => {
+    const { result } = renderHook(() =>
+      useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        nodeId: 'audio-a',
+        data: {
+          audioUrl: null,
+          text: '原文',
+          voiceRef: { scope: 'project_narrator' },
+        },
+      }),
+    );
+
+    expect(result.current.voiceEmotionSupported).toBe(true);
   });
 
   it('projects music settings, billing quantity, references, and commands', () => {
@@ -183,6 +239,66 @@ describe('useAudioOperationsPanelController', () => {
     expect(mocks.updateNodeData).toHaveBeenLastCalledWith('audio-a', {
       emotionPrompt: '紧张',
     });
+  });
+
+  it('routes a selected model preset through AUDIO_SPEECH and exposes its voice enum', () => {
+    const { result } = renderHook(() =>
+      useAudioOperationsPanelController({
+        projectId: 'project-a',
+        canvasId: 'canvas-a',
+        nodeId: 'audio-a',
+        data: {
+          audioUrl: null,
+          text: '试听文本',
+          voiceLabel: 'alex（默认）',
+          voiceRef: {
+            scope: 'model_preset',
+            modelId: 'audio-speech-1',
+            voiceId: 'alex',
+          },
+        },
+      }),
+    );
+
+    expect(mocks.modelCatalog).toHaveBeenCalledWith(
+      'AUDIO_VOICE_CLONE',
+      expect.any(Boolean),
+    );
+    expect(mocks.creditCost).toHaveBeenCalledWith(
+      'beat_tts',
+      'audio-speech-1',
+      {},
+    );
+    expect(result.current.voiceSettings).toMatchObject({
+      generationMode: 'speech',
+      modeLabel: '预设音色',
+    });
+    expect(result.current.presetVoiceReferences).toEqual([
+      {
+        ref: {
+          scope: 'model_preset',
+          modelId: 'audio-speech-1',
+          voiceId: 'alex',
+        },
+        label: 'alex（默认）',
+        language: null,
+        gender: null,
+        previewUrl: null,
+      },
+      {
+        ref: {
+          scope: 'model_preset',
+          modelId: 'audio-speech-1',
+          voiceId: 'anna',
+        },
+        label: 'anna',
+        language: null,
+        gender: null,
+        previewUrl: null,
+      },
+    ]);
+    expect(result.current.routedModelLabel).toBe('云端 · audio-speech-1');
+    expect(result.current.submitDisabled).toBe(false);
   });
 
   it('translates the stored local text through the Canvas use case', async () => {

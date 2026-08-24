@@ -3,9 +3,11 @@ import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertTriangle,
+  Library,
   Loader2,
   Mic,
   Scissors,
+  Sparkles,
   Square,
   Trash2,
   Upload,
@@ -18,6 +20,20 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";
 
@@ -61,12 +77,28 @@ export function CharacterVoicePanelView({
   const { t } = useTranslation();
   const {
     applyTrim,
+    bindLibraryVoice,
+    clearIdentityVoice,
     clearSlot,
     closeRecordDialog,
+    designAndBindVoice,
+    designLanguage,
+    designName,
+    designPreviewText,
+    designPrompt,
+    designVoiceConfig,
+    designVoiceModelLabel,
+    designing,
     fileInputRef,
     isLoading,
+    identityRows,
+    libraryFailed,
+    libraryLoading,
+    libraryOptions,
     loadFailed,
+    openIdentityVoiceLibrary,
     openRecord,
+    openSlotVoiceLibrary,
     openTrim,
     pending,
     recordPending,
@@ -78,6 +110,10 @@ export function CharacterVoicePanelView({
     requestUpload,
     rows,
     saveRecording,
+    setDesignLanguage,
+    setDesignName,
+    setDesignPreviewText,
+    setDesignPrompt,
     setTrimDuration,
     setTrimSlot,
     setTrimStart,
@@ -88,8 +124,58 @@ export function CharacterVoicePanelView({
     trimSlot,
     trimStart,
     upload,
+    voiceBindingTarget,
+    onVoiceLibraryOpenChange,
   } = controller;
   const [slotDurations, setSlotDurations] = useState<Record<string, number>>({});
+  const voiceLibraryContent = libraryLoading ? (
+    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+      <Loader2 className="size-4 animate-spin" />
+      {t("characters.voiceSamples.libraryLoading")}
+    </div>
+  ) : libraryFailed ? (
+    <p className="rounded-[8px] border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+      {t("characters.voiceSamples.libraryFailed")}
+    </p>
+  ) : libraryOptions.length === 0 ? (
+    <p className="rounded-[8px] border border-border bg-muted p-3 text-sm text-muted-foreground">
+      {t("characters.voiceSamples.libraryEmpty")}
+    </p>
+  ) : (
+    <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
+      {libraryOptions.map((option) => {
+        const previewSrc = resolveMediaUrl(option.previewUrl);
+        return (
+          <div
+            key={option.voiceId}
+            className="flex flex-wrap items-center gap-3 rounded-[9px] border border-border bg-muted p-3"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">
+                {option.label}
+              </p>
+              {previewSrc && (
+                <audio
+                  src={previewSrc}
+                  controls
+                  className="mt-2 h-7 w-full max-w-[320px]"
+                />
+              )}
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending}
+              onClick={() => void bindLibraryVoice(option.voiceId)}
+              className="h-8 rounded-md px-3 text-xs"
+            >
+              {t("characters.voiceSamples.bind")}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <section className="rounded-[10px] border border-border bg-card p-4">
@@ -188,6 +274,17 @@ export function CharacterVoicePanelView({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    disabled={pending}
+                    onClick={() => openSlotVoiceLibrary(actionSlot, label)}
+                    className="h-7 rounded-md px-2 text-[11px] shadow-none"
+                  >
+                    <Library className="size-3.5" />
+                    {t("characters.voiceSamples.selectExisting")}
+                  </Button>
                   <VoiceActionButton
                     label={t("characters.voiceSamples.upload")}
                     icon={<Upload className="size-3.5" />}
@@ -221,6 +318,96 @@ export function CharacterVoicePanelView({
               </div>
             );
           })}
+
+          {identityRows.length > 0 && (
+            <div className="mt-4 border-t border-border pt-4">
+              <div className="mb-2">
+                <h4 className="text-xs font-semibold text-foreground">
+                  {t("characters.voiceSamples.identityTitle")}
+                </h4>
+                <p className="mt-1 text-[11px] leading-5 text-muted-foreground">
+                  {t("characters.voiceSamples.identityHint")}
+                </p>
+              </div>
+              <div className="divide-y divide-border">
+                {identityRows.map((identity) => {
+                  const audioSrc = resolveMediaUrl(identity.resolved_url);
+                  const identityAge =
+                    identity.age_group === "child"
+                      ? t("characters.ageGroups.child")
+                      : identity.age_group === "youth"
+                        ? t("characters.ageGroups.young")
+                        : identity.age_group === "middle"
+                          ? t("characters.ageGroups.middle")
+                          : identity.age_group === "elder"
+                            ? t("characters.ageGroups.elder")
+                            : identity.age_group;
+                  const sourceText =
+                    identity.resolved_from === "identity"
+                      ? t("characters.voiceSamples.identityDirect")
+                      : identity.resolved_from === "age_group"
+                        ? t("characters.voiceSamples.identityInheritedAge", {
+                            age: identityAge,
+                          })
+                        : identity.resolved_from === "character_default"
+                          ? t("characters.voiceSamples.identityInheritedDefault")
+                          : t("characters.voiceSamples.identityMissing");
+                  return (
+                    <div
+                      key={identity.identity_id}
+                      className="flex flex-wrap items-center gap-3 py-3"
+                    >
+                      <div className="min-w-0 @[860px]:w-52 @[860px]:shrink-0">
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {identity.identity_name || identity.identity_id}
+                        </p>
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                          {sourceText}
+                        </p>
+                      </div>
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        {audioSrc ? (
+                          <audio
+                            src={audioSrc}
+                            controls
+                            className="h-6 max-w-[260px] shrink-0"
+                          />
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            {t("characters.voiceSamples.missing")}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="outline"
+                          disabled={pending}
+                          onClick={() => openIdentityVoiceLibrary(identity)}
+                          className="h-7 rounded-md px-2 text-[11px] shadow-none"
+                        >
+                          <Library className="size-3.5" />
+                          {t("characters.voiceSamples.selectExisting")}
+                        </Button>
+                        {identity.path && (
+                          <VoiceActionButton
+                            label={t(
+                              "characters.voiceSamples.removeIdentityOverride",
+                            )}
+                            icon={<Trash2 className="size-3.5" />}
+                            disabled={pending}
+                            destructive
+                            onClick={() => clearIdentityVoice(identity)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -235,6 +422,142 @@ export function CharacterVoicePanelView({
           event.target.value = "";
         }}
       />
+
+      <Dialog
+        open={Boolean(voiceBindingTarget)}
+        onOpenChange={onVoiceLibraryOpenChange}
+      >
+        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
+              {t("characters.voiceSamples.voiceLibraryTitle", {
+                target: voiceBindingTarget?.label ?? "",
+              })}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm leading-5 text-muted-foreground/80">
+            {t("characters.voiceSamples.voiceLibraryHint")}
+          </p>
+          {designVoiceConfig ? (
+            <Tabs defaultValue="design" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="design">
+                  {t("characters.voiceSamples.voiceDesignTab")}
+                </TabsTrigger>
+                <TabsTrigger value="library">
+                  {t("characters.voiceSamples.voiceLibraryTab")}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="design" className="mt-0 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {t("characters.voiceSamples.voiceDesignModel")}
+                  </Label>
+                  <p className="rounded-[8px] border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
+                    {designVoiceModelLabel}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="character-voice-design-name"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("characters.voiceSamples.voiceDesignName")}
+                  </Label>
+                  <Input
+                    id="character-voice-design-name"
+                    value={designName}
+                    maxLength={80}
+                    onChange={(event) => setDesignName(event.target.value)}
+                    className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="character-voice-design-prompt"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("characters.voiceSamples.voiceDesignPrompt")}
+                  </Label>
+                  <Textarea
+                    id="character-voice-design-prompt"
+                    value={designPrompt}
+                    maxLength={designVoiceConfig.promptMaxLength}
+                    placeholder={t(
+                      "characters.voiceSamples.voiceDesignPromptPlaceholder",
+                    )}
+                    onChange={(event) => setDesignPrompt(event.target.value)}
+                    className="min-h-24 resize-none rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="character-voice-design-preview"
+                    className="text-xs text-muted-foreground"
+                  >
+                    {t("characters.voiceSamples.voiceDesignPreview")}
+                  </Label>
+                  <Textarea
+                    id="character-voice-design-preview"
+                    value={designPreviewText}
+                    maxLength={designVoiceConfig.previewTextMaxLength}
+                    onChange={(event) =>
+                      setDesignPreviewText(event.target.value)
+                    }
+                    className="min-h-20 resize-none rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    {t("characters.voiceSamples.voiceDesignLanguage")}
+                  </Label>
+                  <Select
+                    value={designLanguage}
+                    onValueChange={(value) => value && setDesignLanguage(value)}
+                  >
+                    <SelectTrigger className="h-10 w-full rounded-[8px] border-border bg-muted text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {designVoiceConfig.languages.map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {t(
+                            `episode.workbench.video.narratorVoiceDesignLanguages.${language}`,
+                            { defaultValue: language },
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => void designAndBindVoice()}
+                  disabled={
+                    designing ||
+                    !designPrompt.trim() ||
+                    !designPreviewText.trim() ||
+                    !designLanguage
+                  }
+                  className="h-9 w-full rounded-md"
+                >
+                  {designing ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-4" />
+                  )}
+                  {t("characters.voiceSamples.voiceDesignAndBind")}
+                </Button>
+              </TabsContent>
+              <TabsContent value="library" className="mt-0">
+                {voiceLibraryContent}
+              </TabsContent>
+            </Tabs>
+          ) : (
+            voiceLibraryContent
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(recordSlot)} onOpenChange={closeRecordDialog}>
         <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-lg">

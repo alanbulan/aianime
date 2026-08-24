@@ -19,6 +19,7 @@ from ai_anime.modules.creative_canvas.infrastructure.job_results import (
 )
 from ai_anime.modules.creative_canvas.public import (
     generate_creative_canvas_story_script,
+    generate_creative_canvas_story_script_with_vision,
     translate_creative_canvas_text,
 )
 
@@ -92,15 +93,21 @@ async def test_translate_creative_canvas_text_trusts_model_detected_direction(
 
             return Response()
 
+    def fake_agent_factory(model: str, model_selector: str | None):
+        captured["model"] = model
+        captured["model_selector"] = str(model_selector or "")
+        return FakeAgent()
+
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
         "_create_translation_agent",
-        FakeAgent,
+        fake_agent_factory,
     )
 
     translated, source_language, target_language = await translate_creative_canvas_text(
         text="Generate ONE storyboard sketch panel for this AI anime beat. 颜色法则：保留 [CM_6932]",
         model="cloud-text-standard",
+        model_selector="cloud:model-42",
         node_type="image",
     )
 
@@ -109,6 +116,8 @@ async def test_translate_creative_canvas_text_trusts_model_detected_direction(
     assert translated == "生成一个 AI anime 节拍的故事板草图面板。"
     assert source_language == "en"
     assert target_language == "zh"
+    assert captured["model"] == "cloud-text-standard"
+    assert captured["model_selector"] == "cloud:model-42"
 
 
 @pytest.mark.asyncio
@@ -129,7 +138,7 @@ async def test_translate_creative_canvas_text_flips_invalid_same_language_result
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
         "_create_translation_agent",
-        FakeAgent,
+        lambda _model, _model_selector: FakeAgent(),
     )
 
     translated, source_language, target_language = await translate_creative_canvas_text(
@@ -189,7 +198,7 @@ async def test_generate_creative_canvas_story_script_returns_plain_dict(
     monkeypatch.setattr(
         "ai_anime.modules.creative_canvas.infrastructure.text_generation."
         "_create_story_script_agent",
-        FakeAgent,
+        lambda _model, _model_selector: FakeAgent(),
     )
 
     result = await generate_creative_canvas_story_script(
@@ -199,6 +208,34 @@ async def test_generate_creative_canvas_story_script_returns_plain_dict(
 
     assert result == expected
     assert isinstance(result, dict)
+
+
+@pytest.mark.asyncio
+async def test_generate_story_script_with_vision_forwards_route_selector(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_generate(**kwargs: object) -> dict[str, object]:
+        captured.update(kwargs)
+        return {"title": "视觉脚本", "rows": []}
+
+    monkeypatch.setattr(
+        "ai_anime.modules.creative_canvas.composition."
+        "generate_story_script_with_vision_impl",
+        fake_generate,
+    )
+
+    result = await generate_creative_canvas_story_script_with_vision(
+        frame_paths=["frame.png"],
+        model="cloud-text-standard",
+        model_selector="cloud:model-vision",
+    )
+
+    assert result == {"title": "视觉脚本", "rows": []}
+    assert captured["model"] == "cloud-text-standard"
+    assert captured["model_selector"] == "cloud:model-vision"
+    assert captured["frame_paths"] == ["frame.png"]
 
 
 @pytest.mark.asyncio

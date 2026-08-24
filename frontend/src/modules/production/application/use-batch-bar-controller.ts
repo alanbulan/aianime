@@ -33,7 +33,10 @@ import type {
   AssignColorsResult,
   DetectIdentitiesResult,
 } from "@/modules/production/domain/sketch-markers";
-import type { VideoModelOption } from "@/modules/production/domain/video-model";
+import {
+  resolveVideoModelOption,
+  type VideoModelOption,
+} from "@/modules/production/domain/video-model";
 import {
   backendErrorToastMessage,
   BillingRuleNotConfiguredError,
@@ -337,8 +340,9 @@ export function createUseBatchBarController(
           error || t("common.error"),
         ),
     });
-    const selectedVideoModel = videoModels.data.find(
-      (option) => option.value === videoModel,
+    const selectedVideoModel = resolveVideoModelOption(
+      videoModels.data,
+      videoModel,
     );
     const episodeAudioCostDisplay =
       episodeAudioQuote.data?.data.display ??

@@ -1,6 +1,8 @@
 """Creative Canvas application composition."""
 
+from collections.abc import Mapping, Sequence
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from ai_anime.modules.creative_canvas.domain.text_generation import (
@@ -186,6 +188,7 @@ from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.text_generation import (
     generate_creative_canvas_story_script as generate_story_script,
+    generate_creative_canvas_story_script_with_vision as generate_story_script_with_vision_impl,
     translate_creative_canvas_text as translate_text,
 )
 from ai_anime.modules.creative_canvas.infrastructure.video_generation import (
@@ -223,9 +226,15 @@ async def translate_creative_canvas_text(
     *,
     text: str,
     model: str,
+    model_selector: str | None = None,
     node_type: CreativeCanvasTextNodeType = "generic",
 ) -> tuple[str, Literal["zh", "en"], Literal["zh", "en"]]:
-    return await translate_text(text=text, model=model, node_type=node_type)
+    return await translate_text(
+        text=text,
+        model=model,
+        model_selector=model_selector,
+        node_type=node_type,
+    )
 
 
 async def generate_creative_canvas_story_script(
@@ -233,11 +242,38 @@ async def generate_creative_canvas_story_script(
     source_text: str,
     prompt: str = "",
     model: str,
+    model_selector: str | None = None,
+    character_refs: Sequence[Mapping[str, object]] | None = None,
 ) -> dict[str, object]:
     return await generate_story_script(
         source_text=source_text,
         prompt=prompt,
         model=model,
+        model_selector=model_selector,
+        character_refs=character_refs,
+    )
+
+
+async def generate_story_script_with_vision(
+    *,
+    frame_paths: Sequence[str | Path] = (),
+    character_image_paths: Sequence[str | Path] = (),
+    source_text: str = "",
+    prompt: str = "",
+    duration_sec: float | None = None,
+    character_refs: Sequence[Mapping[str, object]] | None = None,
+    model: str,
+    model_selector: str | None = None,
+) -> dict[str, object]:
+    return await generate_story_script_with_vision_impl(
+        frame_paths=frame_paths,
+        character_image_paths=character_image_paths,
+        source_text=source_text,
+        prompt=prompt,
+        duration_sec=duration_sec,
+        character_refs=character_refs,
+        model=model,
+        model_selector=model_selector,
     )
 
 

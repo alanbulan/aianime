@@ -25,3 +25,38 @@ export interface NarratorVoiceSourceOption {
 export interface NarratorVoiceSourcesData {
   options: NarratorVoiceSourceOption[];
 }
+
+export interface NarratorVoicePresetOption {
+  label: string;
+  value: string;
+  isDefault?: boolean;
+}
+
+export interface NarratorVoiceDesignConfig {
+  promptMaxLength: number;
+  previewTextMaxLength: number;
+  preferredName: string;
+  languages: string[];
+  defaultLanguage: string;
+  sampleRates: number[];
+  defaultSampleRate: number | null;
+  responseFormats: string[];
+  defaultResponseFormat: string;
+}
+
+export interface GenerateNarratorVoicePresetCommand {
+  name: string;
+  text: string;
+  voice: string;
+}
+
+export interface GenerateNarratorVoiceDesignCommand {
+  name: string;
+  model_selector: string;
+  voice_prompt: string;
+  preview_text: string;
+  preferred_name: string;
+  language: string;
+  sample_rate: number;
+  response_format: "wav" | "mp3";
+}

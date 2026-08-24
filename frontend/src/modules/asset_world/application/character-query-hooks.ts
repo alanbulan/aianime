@@ -12,6 +12,8 @@ import { queryKeys } from "@/lib/query-keys";
 import type {
   AssetDataResponse,
   AssetResponse,
+  BindIdentityVoiceSampleInput,
+  BindVoiceSampleInput,
   CharacterGateway,
   CharacterGenerationInput,
   CreateCharacterInput,
@@ -246,6 +248,21 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
     });
   }
 
+  function useBindCharacterVoiceSample(project: string, name: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (input: BindVoiceSampleInput) =>
+        gateway.bindVoiceSample(project, name, input),
+      onSuccess: (response) =>
+        handleCharacterVoiceMutationSuccess(
+          queryClient,
+          project,
+          name,
+          response,
+        ),
+    });
+  }
+
   function useRecordCharacterVoiceSample(project: string, name: string) {
     const queryClient = useQueryClient();
     return useMutation({
@@ -288,6 +305,34 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
           name,
           response,
         ),
+    });
+  }
+
+  function useBindIdentityVoiceSample(project: string, name: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (input: BindIdentityVoiceSampleInput) =>
+        gateway.bindIdentityVoiceSample(project, name, input),
+      onSuccess: () => {
+        invalidateCharacterVoiceQueries(queryClient, project, name);
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.identities(project, name),
+        });
+      },
+    });
+  }
+
+  function useDeleteIdentityVoiceSample(project: string, name: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (identityId: string) =>
+        gateway.deleteIdentityVoiceSample(project, name, identityId),
+      onSuccess: () => {
+        invalidateCharacterVoiceQueries(queryClient, project, name);
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.identities(project, name),
+        });
+      },
     });
   }
 
@@ -511,6 +556,8 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
 
   return {
     useBuildCharacters,
+    useBindCharacterVoiceSample,
+    useBindIdentityVoiceSample,
     useCharacterAssetHistory,
     useCharacterIdentities,
     useCharacters,
@@ -519,6 +566,7 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
     useCreateIdentity,
     useDeleteCharacter,
     useDeleteCharacterVoiceSample,
+    useDeleteIdentityVoiceSample,
     useDeleteIdentity,
     useDeleteIdentityCostume,
     useDeleteIdentityImage,

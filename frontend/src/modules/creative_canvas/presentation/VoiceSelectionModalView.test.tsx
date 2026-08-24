@@ -18,6 +18,24 @@ function controller(
     setTab: vi.fn(),
     loading: false,
     error: null,
+    presetModelLabel: 'MOSS-TTSD v0.5',
+    presetLoading: false,
+    presetError: null,
+    presetEmptyText: '暂无可用预设音色',
+    presetQuery: '',
+    handlePresetQueryChange: vi.fn(),
+    presetPage: {
+      items: [],
+      total: 0,
+      totalPages: 1,
+      page: 1,
+      pages: [1],
+    },
+    presetRows: [],
+    setPresetPageNumber: vi.fn(),
+    presetJumpValue: '',
+    updatePresetJumpValue: vi.fn(),
+    commitPresetJump: vi.fn(),
     libraryQuery: '',
     handleLibraryQueryChange: vi.fn(),
     libraryPage: {
@@ -62,6 +80,48 @@ describe('VoiceSelectionModalView', () => {
     );
 
     expect(screen.queryByText('音色选择')).not.toBeInTheDocument();
+  });
+
+  it('renders model presets as no-upload speech choices', () => {
+    const onPick = vi.fn();
+    const pick = {
+      ref: {
+        scope: 'model_preset' as const,
+        modelId: 'speech-a',
+        voiceId: 'alex',
+      },
+      label: 'Alex',
+    };
+    render(
+      <VoiceSelectionModalView
+        controller={controller({
+          tab: 'preset',
+          onPick,
+          presetRows: [
+            {
+              key: 'speech-a-alex',
+              title: 'Alex',
+              language: null,
+              gender: null,
+              isActive: false,
+              pick,
+            },
+          ],
+          presetPage: {
+            items: [],
+            total: 1,
+            totalPages: 1,
+            page: 1,
+            pages: [1],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/无需上传音频/)).toBeInTheDocument();
+    expect(screen.getByText(/不支持用文字描述创建全新音色/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '选择' }));
+    expect(onPick).toHaveBeenCalledWith(pick);
   });
 
   it('renders library rows and forwards tab, search, pick, and pagination commands', () => {
@@ -145,10 +205,10 @@ describe('VoiceSelectionModalView', () => {
     );
 
     expect(
-      screen.getByText('暂无可用音色，快去克隆你的新音色吧～'),
+      screen.getByText('暂无已上传的参考音频'),
     ).toBeInTheDocument();
     const cloneButtons = screen.getAllByRole('button', {
-      name: '克隆新音色',
+      name: '上传参考音频',
     });
     expect(cloneButtons).toHaveLength(2);
     fireEvent.click(cloneButtons[0]);

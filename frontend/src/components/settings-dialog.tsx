@@ -100,6 +100,7 @@ const BYOK_ROLE_LABEL_KEYS: Record<ByokModelRole, string> = {
   VIDEO_EDIT: "videoEdit",
   AUDIO_SPEECH: "audioSpeech",
   AUDIO_VOICE_CLONE: "audioVoiceClone",
+  AUDIO_VOICE_DESIGN: "audioVoiceDesign",
   AUDIO_MUSIC: "audioMusic",
   EMBEDDING: "embedding",
 };

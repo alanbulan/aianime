@@ -28,6 +28,8 @@ vi.mock("sonner", () => ({
 
 const uploadVoice = vi.fn();
 const recordVoice = vi.fn();
+const generatePresetVoice = vi.fn();
+const designNarratorVoice = vi.fn();
 const copyProjectVoice = vi.fn();
 const trimVoice = vi.fn();
 const deleteVoice = vi.fn();
@@ -88,6 +90,14 @@ const queries: NarratorVoicePanelQueries = {
     isPending: false,
     mutateAsync: recordVoice,
   }),
+  useGenerateNarratorVoicePreset: () => ({
+    isPending: false,
+    mutateAsync: generatePresetVoice,
+  }),
+  useDesignNarratorVoice: () => ({
+    isPending: false,
+    mutateAsync: designNarratorVoice,
+  }),
   useCopyProjectNarratorVoice: () => ({
     isPending: false,
     mutateAsync: copyProjectVoice,
@@ -128,6 +138,8 @@ describe("Production narrator voice panel controller", () => {
     for (const mutation of [
       uploadVoice,
       recordVoice,
+      generatePresetVoice,
+      designNarratorVoice,
       copyProjectVoice,
       trimVoice,
       deleteVoice,
@@ -213,6 +225,85 @@ describe("Production narrator voice panel controller", () => {
     expect(result.current.projectAudioOpen).toBe(false);
     expect(uploadVoice).toHaveBeenCalledWith(file);
     expect(deleteVoice).toHaveBeenCalledOnce();
+  });
+
+  it("generates and saves a narrator reference from a catalog preset", async () => {
+    const { result } = renderHook(() =>
+      useController({
+        project: "demo",
+        presetVoiceAvailability: "ready",
+        presetVoiceModelLabel: "MOSS-TTSD v0.5",
+        presetVoiceOptions: [
+          { value: "claire", label: "Claire", isDefault: true },
+          { value: "anna", label: "Anna" },
+        ],
+      }),
+    );
+
+    act(() => result.current.onOpenAiVoice());
+    expect(result.current.aiVoiceOpen).toBe(true);
+    expect(result.current.presetVoice).toBe("claire");
+
+    act(() => {
+      result.current.onPresetVoiceChange("anna");
+      result.current.onAiSampleTextChange("这是一段试听文本。");
+    });
+    await act(async () => result.current.onGeneratePresetVoice());
+
+    expect(generatePresetVoice).toHaveBeenCalledWith({
+      name: "Anna",
+      voice: "anna",
+      text: "这是一段试听文本。",
+    });
+    expect(result.current.aiVoiceOpen).toBe(false);
+    expect(toastSuccess).toHaveBeenCalledWith(
+      "episode.workbench.video.narratorVoicePresetGenerated",
+    );
+  });
+
+  it("designs a reusable voice from text with the selected cloud route", async () => {
+    const { result } = renderHook(() =>
+      useController({
+        project: "demo",
+        designVoiceAvailability: "ready",
+        designVoiceModelLabel: "Qwen voice design",
+        designVoiceModelSelector: "cloud:voice-design-model",
+        designVoiceConfig: {
+          promptMaxLength: 2048,
+          previewTextMaxLength: 1024,
+          preferredName: "custom_voice",
+          languages: ["zh", "en"],
+          defaultLanguage: "zh",
+          sampleRates: [24000],
+          defaultSampleRate: 24000,
+          responseFormats: ["wav", "mp3"],
+          defaultResponseFormat: "wav",
+        },
+      }),
+    );
+
+    act(() => result.current.onOpenAiVoice());
+    expect(result.current.generationMode).toBe("design");
+    expect(result.current.designLanguage).toBe("zh");
+
+    act(() => {
+      result.current.onDesignNameChange("纪录片旁白");
+      result.current.onDesignPromptChange("沉稳清晰、富有磁性的中年男声");
+      result.current.onDesignPreviewTextChange("欢迎收听今天的节目。");
+    });
+    await act(async () => result.current.onGenerateDesignedVoice());
+
+    expect(designNarratorVoice).toHaveBeenCalledWith({
+      name: "纪录片旁白",
+      model_selector: "cloud:voice-design-model",
+      voice_prompt: "沉稳清晰、富有磁性的中年男声",
+      preview_text: "欢迎收听今天的节目。",
+      preferred_name: "custom_voice",
+      language: "zh",
+      sample_rate: 24000,
+      response_format: "wav",
+    });
+    expect(result.current.aiVoiceOpen).toBe(false);
   });
 
   it("records through the shared recorder and saves the completed data URL", async () => {

@@ -14,6 +14,7 @@ import type {
   Character,
   CharacterAssetHistory,
   CharacterAssetRestoreResult,
+  CharacterIdentityVoiceSample,
   CharacterVoiceSamples,
   CharacterVoiceSlot,
   Identity,
@@ -127,6 +128,15 @@ export const httpCharacterGateway: CharacterGateway = {
       .json<AssetResponse<CharacterVoiceSlot>>();
   },
 
+  async bindVoiceSample(project, name, { slot, voiceId }) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/characters/${name}/voice-samples/${slot}/bind`,
+        { json: { voice_id: voiceId } },
+      )
+      .json<AssetResponse<CharacterVoiceSlot>>();
+  },
+
   async recordVoiceSample(project, name, { slot, dataUrl }) {
     return api
       .post(
@@ -161,6 +171,23 @@ export const httpCharacterGateway: CharacterGateway = {
         p`api/v1/projects/${project}/characters/${name}/voice-samples/${slot}/delete`,
       )
       .json<AssetResponse<CharacterVoiceSlot>>();
+  },
+
+  async bindIdentityVoiceSample(project, name, { identityId, voiceId }) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/characters/${name}/identities/${identityId}/voice/bind`,
+        { json: { voice_id: voiceId } },
+      )
+      .json<AssetResponse<CharacterIdentityVoiceSample>>();
+  },
+
+  async deleteIdentityVoiceSample(project, name, identityId) {
+    return api
+      .post(
+        p`api/v1/projects/${project}/characters/${name}/identities/${identityId}/voice/delete`,
+      )
+      .json<AssetResponse<CharacterIdentityVoiceSample>>();
   },
 
   async listIdentities(project, name, signal) {

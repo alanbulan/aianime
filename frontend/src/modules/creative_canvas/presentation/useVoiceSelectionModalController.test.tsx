@@ -66,6 +66,38 @@ describe('useVoiceSelectionModalController', () => {
     vi.restoreAllMocks();
   });
 
+  it('projects model preset voices independently from uploaded references', async () => {
+    const preset: CanvasAudioReference = {
+      ref: {
+        scope: 'model_preset',
+        modelId: 'speech-a',
+        voiceId: 'alex',
+      },
+      label: 'Alex',
+      language: null,
+      gender: null,
+      previewUrl: null,
+    };
+    const { result } = renderHook(() =>
+      useVoiceSelectionModalController({
+        projectId: 'project-voice',
+        open: true,
+        onClose: vi.fn(),
+        currentRef: preset.ref,
+        onPick: vi.fn(),
+        presetReferences: [preset],
+        presetModelLabel: 'Speech A',
+      }),
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.tab).toBe('preset');
+    expect(result.current.presetModelLabel).toBe('Speech A');
+    expect(result.current.presetRows).toEqual([
+      expect.objectContaining({ title: 'Alex', isActive: true }),
+    ]);
+  });
+
   it('loads references on open, projects both tabs, and closes on Escape', async () => {
     const onClose = vi.fn();
     const custom = reference('custom-a');

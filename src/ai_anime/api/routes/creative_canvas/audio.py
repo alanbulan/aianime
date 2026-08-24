@@ -1,6 +1,8 @@
 """Creative Canvas audio-generation endpoints."""
 
 import logging
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -10,6 +12,7 @@ from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.routes.creative_canvas.audio_schemas import (
     FreezoneAudioMusicRequest,
     FreezoneAudioSpeechRequest,
+    FreezoneAudioVoiceDesignRequest,
 )
 from ai_anime.api.routes.creative_canvas.job_schemas import (
     FreezoneJobAcceptedResponse,
@@ -86,6 +89,58 @@ async def create_freezone_audio_voice(
     return {"ok": True, "data": voice}
 
 
+@router.post(
+    "/projects/{project}/freezone/audio/voices/design",
+    tags=["freezone-audio"],
+)
+async def design_freezone_audio_voice(
+    project: str,
+    body: FreezoneAudioVoiceDesignRequest,
+    user: dict = Depends(get_api_user),
+):
+    """通过云端文字设计模型创建账号级“我的声线”。"""
+    from ai_anime.modules.model_usage.public import write_model_audio_voice_design
+
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        with TemporaryDirectory(prefix="ai-anime-voice-design-") as temp_dir:
+            output_path = Path(temp_dir) / f"voice.{body.response_format}"
+            result = await write_model_audio_voice_design(
+                output_path=output_path,
+                voice_prompt=body.voice_prompt,
+                preview_text=body.preview_text,
+                model_selector=body.model_selector,
+                preferred_name=body.preferred_name,
+                language=body.language,
+                sample_rate=body.sample_rate,
+                response_format=body.response_format,
+            )
+            content = output_path.read_bytes()
+            voice = creative_canvas_audio_library_use_cases().create_voice(
+                CreateCreativeCanvasAudioVoiceCommand(
+                    context=resolved.ctx,
+                    name=body.name or body.voice_prompt[:80],
+                    filename=output_path.name,
+                    content=content,
+                    mime_type=(
+                        "audio/wav" if body.response_format == "wav" else "audio/mpeg"
+                    ),
+                )
+            )
+    except (InvalidCreativeCanvasAudioLibraryRequest, OSError, ValueError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        logger.warning("voice design request failed: %s", exc, exc_info=True)
+        raise HTTPException(503, str(exc)) from exc
+    return {
+        "ok": True,
+        "data": {
+            **voice,
+            "provider_voice_id": result.voice_id,
+        },
+    }
+
+
 @router.get(
     "/projects/{project}/freezone/audio/voices/{voice_id}/media",
     tags=["freezone-audio"],
@@ -128,6 +183,8 @@ async def freezone_audio_speech(
                     project_dir=resolved.project_dir,
                     text=body.text,
                     emotion_prompt=body.emotion_prompt,
+                    mode=body.mode,
+                    voice=body.voice,
                     voice_ref=body.voice_ref.model_dump() if body.voice_ref else None,
                     target_episode=body.target_episode,
                     target_beat=body.target_beat,

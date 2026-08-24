@@ -55,6 +55,7 @@ def _reset_model_access() -> None:
         allows_custom_models=False,
         mode=MODE_MIXED,
         model_assignments=[
+            {"modelId": "audio-speech-1", "role": "AUDIO_SPEECH"},
             {"modelId": "audio-voice-clone-1", "role": "AUDIO_VOICE_CLONE"},
             {"modelId": "audio-music-1", "role": "AUDIO_MUSIC"},
         ],
@@ -248,13 +249,84 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
 
 
 @pytest.mark.asyncio
-async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
+async def test_freezone_audio_model_preset_uses_speech_without_reference_audio(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, dict]] = []
+
+    async def fake_reserve(model: str, *, text: str) -> str:
+        calls.append(("reserve", {"model": model, "text": text}))
+        return "reservation-1"
+
+    async def fake_write(**kwargs):
+        calls.append(("write", kwargs))
+        output_path = Path(kwargs["output_path"])
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"preset-speech")
+        return SimpleNamespace(request_id="request-1", response_id="response-1")
+
+    async def fake_confirm(**kwargs):
+        calls.append(("confirm", kwargs))
+
+    monkeypatch.setattr(audio_generation, "_reserve_speech_model_call", fake_reserve)
+    monkeypatch.setattr(audio_generation, "write_model_audio_speech", fake_write)
+    monkeypatch.setattr(audio_generation, "_confirm_speech_model_call", fake_confirm)
+    monkeypatch.setattr(audio_voice_store, "audio_duration_ms", lambda _path: 2345)
+
+    result = await audio_generation.generate_freezone_audio_speech(
+        store=SimpleNamespace(),
+        username="alice",
+        project="demo",
+        project_dir=tmp_path,
+        job_id="speech-1",
+        text="这是一段试听文本。",
+        mode="SPEECH",
+        voice="alex",
+    )
+
+    output_path = freezone_audio_speech_output_path(tmp_path, "speech-1")
+    assert result.audio_path == output_path
+    assert result.duration_ms == 2345
+    assert result.model == "audio-speech-1"
+    assert result.voice_source == "model_preset:alex"
+    assert result.voice_sha256 == ""
+    assert calls == [
+        (
+            "reserve",
+            {"model": "audio-speech-1", "text": "这是一段试听文本。"},
+        ),
+        (
+            "write",
+            {
+                "output_path": output_path,
+                "model_role": "AUDIO_SPEECH",
+                "input_text": "这是一段试听文本。",
+                "voice": "alex",
+                "response_format": "mp3",
+                "timeout_seconds": 600.0,
+            },
+        ),
+        (
+            "confirm",
+            {
+                "model": "audio-speech-1",
+                "reservation_id": "reservation-1",
+                "provider_request_id": "request-1",
+                "response_id": "response-1",
+            },
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_freezone_audio_eleven_music_uses_gateway_music_contract(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[dict] = []
 
-    async def fake_write_model_audio_speech(**kwargs):
+    async def fake_write_model_audio_music(**kwargs):
         calls.append(kwargs)
         output_path = Path(kwargs["output_path"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -262,8 +334,8 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
 
     monkeypatch.setattr(
         audio_generation,
-        "write_model_audio_speech",
-        fake_write_model_audio_speech,
+        "write_model_audio_music",
+        fake_write_model_audio_music,
     )
     monkeypatch.setattr(audio_voice_store, "audio_duration_ms", lambda _path: 0)
 
@@ -283,11 +355,10 @@ async def test_freezone_audio_eleven_music_uses_newapi_music_metadata(
     assert calls == [
         {
             "output_path": freezone_audio_eleven_music_output_path(tmp_path, "music-1"),
-            "model_role": "AUDIO_MUSIC",
-            "input_text": "Mysterious original soundtrack, rainforest.",
+            "prompt": "Mysterious original soundtrack, rainforest.",
+            "duration_seconds": 30.0,
             "response_format": "mp3",
-            "metadata": {
-                "music_length_ms": 30_000,
+            "parameters": {
                 "force_instrumental": True,
                 "respect_sections_durations": True,
                 "output_format": "mp3_44100_128",

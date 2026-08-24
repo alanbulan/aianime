@@ -350,7 +350,7 @@ export interface AudioNodeData extends NodeDisplayData {
   isUploading?: boolean;
   /**
    * 音频节点的生成类型：
-   * - 'speech'(默认/缺省)：克隆音频,文本转语音(/freezone/audio/speech),用 voiceRef/语气词。
+   * - 'speech'(默认/缺省)：文本转语音(/freezone/audio/speech)。model_preset 走预设音色，其他 voiceRef 走参考音频克隆。
    * - 'music'：文字生成音乐(/freezone/audio/eleven-music),用 text 作为音乐描述 prompt。
    */
   audioKind?: 'speech' | 'music';
@@ -368,8 +368,8 @@ export interface AudioNodeData extends NodeDisplayData {
   /** 旧字段：分段编辑器留下的 segments；保留只为兼容老节点数据。 */
   segments?: AudioTextSegment[];
   /**
-   * 语气词（情绪提示词）。用户自由输入，提交时映射到后端 `emotion_prompt`。
-   * 示例："紧张、压低声音、带一点恐惧感"。留空时后端按项目解说风格走默认。
+   * 旧节点保留的语气词（情绪提示词）。当前商业音频契约不支持该参数，
+   * 前端不展示编辑入口；字段仅用于兼容已有画布数据。
    */
   emotionPrompt?: string;
   /** 选中的声线引用（freezone-audio references 接口里的一条记录）。 */

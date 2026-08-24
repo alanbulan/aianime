@@ -33,6 +33,7 @@ from ai_anime.api.routes.asset_world.characters_schemas import (
     IdentityImageGenRequest,
 )
 from ai_anime.api.routes.asset_world.voice_schemas import (
+    CharacterVoiceBindRequest,
     CharacterVoiceRecordRequest,
     CharacterVoiceTrimRequest,
 )
@@ -44,6 +45,7 @@ from ai_anime.modules.asset_world.public import (
     CreateIdentityCommand,
     RestoreCharacterAssetCommand,
     InvalidImageSelection,
+    InvalidCharacterVoiceInput,
     UnsupportedImageSourceKind,
     UpdateCharacterCommand,
     UpdateIdentityCommand,
@@ -94,6 +96,24 @@ def _character_voice_media_url(
         make_static_url_for_context,
     )
     return lambda rel_path: asset_url(project_dir / rel_path)
+
+
+def _resolve_reusable_voice(ctx: ProjectContext, voice_id: str) -> Path:
+    from ai_anime.modules.creative_canvas.public import (
+        CreativeCanvasAudioVoiceMissing,
+        GetCreativeCanvasAudioVoiceQuery,
+        creative_canvas_audio_library_use_cases,
+    )
+
+    try:
+        return creative_canvas_audio_library_use_cases().get_voice(
+            GetCreativeCanvasAudioVoiceQuery(
+                context=ctx,
+                voice_id=voice_id.strip(),
+            )
+        )
+    except CreativeCanvasAudioVoiceMissing as exc:
+        raise InvalidCharacterVoiceInput("所选声线不存在或无权访问") from exc
 
 
 @router.get("/projects/{project}/characters")
@@ -455,6 +475,33 @@ async def upload_character_voice_sample(
     return {"ok": True, "data": data}
 
 
+@router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/bind")
+async def bind_character_voice_sample(
+    project: str,
+    name: str,
+    slot: str,
+    body: CharacterVoiceBindRequest,
+    user: dict = Depends(get_api_user),
+):
+    """将账号声线库中的声线绑定到角色默认/年龄段插槽。"""
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
+    )
+    try:
+        source_path = _resolve_reusable_voice(ctx, body.voice_id)
+        data = await character_voice_use_cases().bind_sample(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            slot=slot,
+            source_path=source_path,
+            media_url=_character_voice_media_url(ctx, project_dir),
+        )
+    except CharacterVoiceRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
+
+
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/record")
 async def record_character_voice_sample(
     project: str,
@@ -526,6 +573,61 @@ async def delete_character_voice_sample(
             project_dir=project_dir,
             character_name=name,
             slot=slot,
+            media_url=_character_voice_media_url(ctx, project_dir),
+        )
+    except CharacterVoiceRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
+
+
+@router.post(
+    "/projects/{project}/characters/{name}/identities/{identity_id}/voice/bind"
+)
+async def bind_identity_voice_sample(
+    project: str,
+    name: str,
+    identity_id: str,
+    body: CharacterVoiceBindRequest,
+    user: dict = Depends(get_api_user),
+):
+    """为具体身份绑定账号声线库中的专属声线。"""
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
+    )
+    try:
+        source_path = _resolve_reusable_voice(ctx, body.voice_id)
+        data = await character_voice_use_cases().bind_identity_sample(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
+            source_path=source_path,
+            media_url=_character_voice_media_url(ctx, project_dir),
+        )
+    except CharacterVoiceRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": data}
+
+
+@router.post(
+    "/projects/{project}/characters/{name}/identities/{identity_id}/voice/delete"
+)
+async def delete_identity_voice_sample(
+    project: str,
+    name: str,
+    identity_id: str,
+    user: dict = Depends(get_api_user),
+):
+    """清除身份专属声线，恢复年龄段/角色默认继承。"""
+    ctx, _username, _project_name, project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
+    )
+    try:
+        data = await character_voice_use_cases().delete_identity_sample(
+            repository=store,
+            project_dir=project_dir,
+            character_name=name,
+            identity_id=identity_id,
             media_url=_character_voice_media_url(ctx, project_dir),
         )
     except CharacterVoiceRejected as exc:

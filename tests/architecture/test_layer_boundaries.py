@@ -3632,12 +3632,13 @@ def test_freezone_audio_library_routes_delegate_to_application() -> None:
     for endpoint_path in (
         '"/projects/{project}/freezone/audio/references"',
         '"/projects/{project}/freezone/audio/voices"',
+        '"/projects/{project}/freezone/audio/voices/design"',
         '"/projects/{project}/freezone/audio/voices/{voice_id}/media"',
     ):
         assert source.count(endpoint_path) == 1
         assert endpoint_path not in legacy_source
 
-    assert source.count("creative_canvas_audio_library_use_cases().") == 3
+    assert source.count("creative_canvas_audio_library_use_cases().") == 4
     for application_contract in (
         "ListCreativeCanvasAudioReferencesQuery",
         "CreateCreativeCanvasAudioVoiceCommand",
