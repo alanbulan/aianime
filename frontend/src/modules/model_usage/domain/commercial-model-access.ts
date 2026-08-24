@@ -273,7 +273,7 @@ const MODES_BY_ROLE: Readonly<
 };
 
 export function commercialModelRoles(
-  item: CommercialModelCatalogItem,
+  item: Pick<CommercialModelCatalogItem, "operation" | "capabilities">,
 ): ByokModelRole[] {
   const operation = item.operation.trim().toUpperCase();
   const roles = ROLES_BY_OPERATION[operation] ?? [];

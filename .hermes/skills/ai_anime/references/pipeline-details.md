@@ -27,7 +27,7 @@ ai_anime_run_production_workflow(
 实际 POST /projects/$PID/workflow/production
 ```
 
-该父任务内部调用与前端手动操作相同的应用用例，按断点完成脚本图、世界资产、草图、AI 检测、全局优化、首帧、音频、逐 beat 视频和合成。助手只等待父 `production_workflow` 的精确 `task_key`，不得按下文单步接口再编排一条完整流程。
+该父任务内部调用与前端手动操作相同的应用用例，按断点完成脚本图、生产模型前置、世界资产、草图、AI 检测、全局优化、声线与配音模型前置、首帧、Seedance 最终提示词、音频、逐 beat 视频和合成。助手只等待父 `production_workflow` 的精确 `task_key`，不得按下文单步接口再编排一条完整流程。
 
 ---
 

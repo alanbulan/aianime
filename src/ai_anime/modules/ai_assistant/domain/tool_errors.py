@@ -51,6 +51,33 @@ def _business_chat_error_from_text(text: object) -> str | None:
             "请先在「资产库」生成或确认对应 Beat 的草图后，再重新生成 Render。"
             f"\n\n错误原因：{raw[:1200]}"
         )
+    if "AI 配音模型缺失" in raw:
+        return (
+            "配音任务没有启动：当前没有可用的 AI 配音模型。"
+            "请在模型设置中启用 AUDIO_VOICE_CLONE 云端模型或配置对应 BYOK。"
+            f"\n\n缺失项：{raw[:1200]}"
+        )
+    if "model_prereq_required" in raw or "模型缺失：当前未配置可用" in raw:
+        return (
+            "生产任务没有进入模型调用：当前缺少必要模型能力。"
+            "请在模型设置中补齐返回内容列出的云端或 BYOK 模型角色。"
+            f"\n\n缺失项：{raw[:1200]}"
+        )
+    if "voice_prereq_required" in raw or "声线缺失" in raw:
+        return (
+            "配音任务没有启动：当前缺少必要声线。"
+            "请在「资产库」上传或录制对应的项目解说人、角色默认、年龄段或身份声线。"
+            f"\n\n缺失项：{raw[:1200]}"
+        )
+    if (
+        "Seedance 2.0 最终提示词为空" in raw
+        or "缺少视频提示词" in raw
+    ):
+        return (
+            "视频任务没有启动：当前 Beat 缺少 Seedance 最终提示词。"
+            "完整生产工作流会自动生成；局部生成前请先完成提示词生成。"
+            f"\n\n错误原因：{raw[:1200]}"
+        )
     return None
 
 

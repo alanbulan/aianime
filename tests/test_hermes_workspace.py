@@ -279,6 +279,31 @@ def test_hermes_translates_tool_failure_status():
     assert event.error == "远端模型调用失败"
 
 
+def test_hermes_stops_only_after_failed_write_tool_result():
+    failed_write = hermes_sdk.ChatBackendEvent(
+        type="tool_update",
+        name="ai_anime_generate_audio",
+        tool_phase="result",
+        success=False,
+    )
+    failed_read = hermes_sdk.ChatBackendEvent(
+        type="tool_update",
+        name="ai_anime_pipeline_status",
+        tool_phase="result",
+        success=False,
+    )
+    write_call = hermes_sdk.ChatBackendEvent(
+        type="tool_update",
+        name="ai_anime_generate_audio",
+        tool_phase="call",
+        success=False,
+    )
+
+    assert hermes_sdk._should_stop_after_failed_write(failed_write) is True
+    assert hermes_sdk._should_stop_after_failed_write(failed_read) is False
+    assert hermes_sdk._should_stop_after_failed_write(write_call) is False
+
+
 def test_state_root_prefers_env(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
 

@@ -13,7 +13,7 @@ CP2 判定：脚本、场景/道具上下文足够推进草图；当前后端没
 
 **整集制作入口**：
 - 用户要求“完成第 N 集 / 自动生成整集 / 做成片”时，只调用一次 `ai_anime_run_production_workflow(episodes=[N])` 并等待父任务。
-- 父任务会从持久化断点补齐脚本、资产、草图、检测、优化、首帧、音频、逐 beat 视频与合成；助手不得再逐阶段编排。
+- 父任务会从持久化断点补齐脚本、生产模型前置、资产、草图、检测、优化、声线与配音模型前置、首帧、Seedance 最终提示词、音频、逐 beat 视频与合成；助手不得再逐阶段编排。
 - 逐步确认模式只展示最近 Todo，并在每个写步骤前等待用户确认。
 
 **Step 9（服装一致性关键）**：
@@ -62,6 +62,8 @@ CP2 判定：脚本、场景/道具上下文足够推进草图；当前后端没
 **Step 12.5**：`{"language":"en"}` 默认英文 SuperPower 模式，决定 video_mode + motion prompt
 
 **Step 18 音频生成**：使用 `ai_anime_generate_audio`，即 `audio/generate` [ASYNC: `audio_generation_indextts2`]。
+
+完整生产父任务会在首帧完成后，使用现有计费与 BYOK 模型协议自动生成并保存缺失的 Seedance 最终提示词；助手不得要求用户逐 Beat 手填，也不得在最终提示词为空时直接批量启动视频。
 
 **局部音频更新**：
 - 当用户修改 beat 的 `audio_type`、`speaker`、`fish_speech_prompt` 或对白文本时，

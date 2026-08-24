@@ -82,6 +82,57 @@ def test_extract_tool_chat_error_maps_generic_failed_task_error():
     assert "resp_123" not in chat_error
 
 
+def test_extract_tool_chat_error_maps_voice_prerequisite_without_failed_prefix():
+    chat_error = tool_chat_error(
+        {
+            "status": "failed",
+            "error": "Beat 08 角色声线缺失：夏栀_七月十七日时期",
+        }
+    )
+
+    assert chat_error is not None
+    assert chat_error.startswith("配音任务没有启动：")
+    assert "夏栀" in chat_error
+    assert not chat_error.startswith("任务执行失败：")
+
+
+def test_extract_tool_chat_error_maps_missing_seedance_prompt():
+    chat_error = tool_chat_error(
+        {
+            "status": "failed",
+            "error": "Beat 1 Seedance 2.0 最终提示词为空",
+        }
+    )
+
+    assert chat_error is not None
+    assert chat_error.startswith("视频任务没有启动：")
+
+
+def test_extract_tool_chat_error_maps_missing_model_prerequisite():
+    chat_error = tool_chat_error(
+        {
+            "status": "failed",
+            "error": "参考图编辑模型缺失：当前未配置可用的 IMAGE_EDIT 云端或 BYOK 模型",
+        }
+    )
+
+    assert chat_error is not None
+    assert chat_error.startswith("生产任务没有进入模型调用：")
+    assert "IMAGE_EDIT" in chat_error
+
+
+def test_extract_tool_chat_error_maps_missing_audio_model():
+    chat_error = tool_chat_error(
+        {
+            "status": "failed",
+            "error": "AI 配音模型缺失：当前未配置可用的 AUDIO_VOICE_CLONE 云端或 BYOK 模型",
+        }
+    )
+
+    assert chat_error is not None
+    assert chat_error.startswith("配音任务没有启动：")
+
+
 def test_extract_tool_chat_error_maps_ok_false_without_error_text():
     payload = {
         "sessionUpdate": "tool_call_update",

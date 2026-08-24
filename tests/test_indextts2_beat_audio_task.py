@@ -795,7 +795,7 @@ async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
-        collect_indextts2_voice_prereq_errors,
+        build_indextts2_audio_generation_plan,
     )
 
     project_dir = tmp_path / "output" / "alice" / "demo"
@@ -811,18 +811,31 @@ async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task
         "demo",
         lambda config: config.update({"narration_style": "third_person"}),
     )
-    store = FakeStore(project_dir, state_dir / "data.db", _beats())
+    beats = [
+        _beats()[0],
+        {
+            "beat_number": 5,
+            "audio_type": "narration",
+            "speaker": "",
+            "narration_segment": "旁白继续。",
+        },
+    ]
+    store = FakeStore(project_dir, state_dir / "data.db", beats)
 
-    errors = await collect_indextts2_voice_prereq_errors(
+    plan = await build_indextts2_audio_generation_plan(
         store=store,
         username="alice",
         project="demo",
         episode=1,
-        beat_numbers=[1],
+        beat_numbers=[1, 5],
         mode="redo_selected",
     )
 
-    assert errors == ["Beat 01 解说声线缺失：项目解说人声线未配置，请上传或录制解说人音频"]
+    assert plan.errors == [
+        "Beat 01 解说声线缺失：项目解说人声线未配置，请上传或录制解说人音频"
+    ]
+    assert plan.beat_numbers == []
+    assert plan.billable_chars == 0
 
 
 @pytest.mark.asyncio

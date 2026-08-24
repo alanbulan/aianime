@@ -43,6 +43,37 @@ from ai_anime.shared.utils.path_resolver import (
 )
 
 PRODUCTION_WORKFLOW_TASK_TYPE = "production_workflow"
+
+
+class ProductionWorkflowModelPrerequisitesMissing(RuntimeError):
+    code = "model_prereq_required"
+    action_required = True
+
+    def __init__(self, errors: list[str]) -> None:
+        self.errors = tuple(errors)
+        super().__init__("；".join(errors))
+
+
+def _resolve_production_image_models() -> tuple[str, str]:
+    from ai_anime.modules.model_usage.public import resolve_model_for_role
+
+    resolved: dict[str, str] = {}
+    errors: list[str] = []
+    for role, label in (
+        ("IMAGE_GENERATION", "文生图"),
+        ("IMAGE_EDIT", "参考图编辑"),
+    ):
+        try:
+            resolved[role] = resolve_model_for_role(role)
+        except PermissionError:
+            errors.append(
+                f"{label}模型缺失：当前未配置可用的 {role} 云端或 BYOK 模型"
+            )
+    if errors:
+        raise ProductionWorkflowModelPrerequisitesMissing(errors)
+    return resolved["IMAGE_GENERATION"], resolved["IMAGE_EDIT"]
+
+
 _FAILED_STATUSES = frozenset({"failed", "cancelled", "canceled"})
 _TASK_NOT_FOUND_GRACE_SECONDS = 10.0
 
@@ -386,6 +417,8 @@ async def _generate_missing_world_assets(
     context: ProjectContext,
     episode_numbers: tuple[int, ...],
     *,
+    image_generation_model: str,
+    image_edit_model: str,
     timeout_seconds: float,
     max_parallel: int,
     reporter: _ProgressReporter,
@@ -446,7 +479,7 @@ async def _generate_missing_world_assets(
             context.owner_username,
             context.project_name,
             requested_style=None,
-            requested_model=None,
+            requested_model=image_generation_model,
         )
         for character in missing_portraits:
             character_name = str(getattr(character, "name", "") or "")
@@ -505,7 +538,7 @@ async def _generate_missing_world_assets(
             context.owner_username,
             context.project_name,
             requested_style=None,
-            requested_model=None,
+            requested_model=image_edit_model,
         )
         for character, identity in missing_identities:
             character_name = str(getattr(character, "name", "") or "")
@@ -566,14 +599,6 @@ async def _generate_missing_world_assets(
             if str(getattr(item, "scene_id", "") or "").strip()
         )
     )
-    scene_selection = str(
-        image_settings.get_asset_selection(
-            context.owner_username,
-            context.project_name,
-            "scene",
-        )["image_source_selection"]
-        or ""
-    ).strip()
     scene_style = image_settings.project_style(
         context.owner_username,
         context.project_name,
@@ -590,7 +615,11 @@ async def _generate_missing_world_assets(
                     scene_name=scene_name,
                     kind=kind,
                     style=scene_style,
-                    model=scene_selection,
+                    model=(
+                        image_generation_model
+                        if kind == "master"
+                        else image_edit_model
+                    ),
                 )
             finally:
                 await store.close()
@@ -647,14 +676,6 @@ async def _generate_missing_world_assets(
             if str(getattr(item, "prop_id", "") or "").strip()
         )
     )
-    prop_selection = str(
-        image_settings.get_asset_selection(
-            context.owner_username,
-            context.project_name,
-            "prop",
-        )["image_source_selection"]
-        or ""
-    ).strip()
     prop_jobs: list[_Job] = []
     generated_prop_ids: list[str] = []
     for prop_id in prop_ids:
@@ -677,7 +698,7 @@ async def _generate_missing_world_assets(
                     output_dir=context.output_dir,
                     prop_name=name,
                     style=scene_style,
-                    model=prop_selection,
+                    model=image_generation_model,
                 )
             finally:
                 await store.close()
@@ -718,6 +739,7 @@ async def _ensure_sketches(
     episode_num: int,
     beats: list[dict[str, Any]],
     *,
+    image_edit_model: str,
     aspect_ratio: str,
     timeout_seconds: float,
     reporter: _ProgressReporter,
@@ -744,6 +766,7 @@ async def _ensure_sketches(
             grid_index=-1,
             sketch_scene_grouping=True,
             aspect_ratio=aspect_ratio,
+            image_generation_selection=image_edit_model,
         ),
     )
     tickets = [
@@ -868,11 +891,48 @@ async def _ensure_global_optimization(
     return beats
 
 
+async def _ensure_audio_prerequisites(
+    context: ProjectContext,
+    episode_num: int,
+    beats: list[dict[str, Any]],
+    *,
+    reporter: _ProgressReporter,
+    progress: float,
+    force: bool = False,
+) -> None:
+    from ai_anime.modules.production.public import (
+        AudioVoicePrerequisitesMissing,
+        GenerateEpisodeAudioCommand,
+        episode_audio_use_cases,
+    )
+
+    paths = PathResolver(context.output_dir, episode_num)
+    candidates = [
+        number
+        for number in _beat_numbers(beats)
+        if force or not paths.audio(number).exists()
+    ]
+    if not candidates:
+        return
+    reporter.update(progress, f"第 {episode_num} 集检查配音声线前置")
+    plan = await episode_audio_use_cases().plan(
+        context,
+        GenerateEpisodeAudioCommand(
+            episode_num=episode_num,
+            mode="redo_selected",
+            beat_numbers=candidates,
+        ),
+    )
+    if plan.errors:
+        raise AudioVoicePrerequisitesMissing(list(plan.errors))
+
+
 async def _ensure_first_frames(
     context: ProjectContext,
     episode_num: int,
     beats: list[dict[str, Any]],
     *,
+    image_edit_model: str,
     aspect_ratio: str,
     timeout_seconds: float,
     reporter: _ProgressReporter,
@@ -893,6 +953,14 @@ async def _ensure_first_frames(
     ]
     if not missing:
         return
+    before_mtime_ns = {
+        number: (
+            paths.frame(number).stat().st_mtime_ns
+            if paths.frame(number).exists()
+            else None
+        )
+        for number in missing
+    }
     reporter.update(progress, f"第 {episode_num} 集生成缺失首帧")
     scheduled = await selected_regeneration_use_cases().regenerate(
         context,
@@ -901,9 +969,10 @@ async def _ensure_first_frames(
             episode_num=episode_num,
             beat_indices=tuple(missing),
             mode_key=("1x1_16-9" if aspect_ratio == "16:9" else "1x1_2-3"),
+            image_generation_selection=image_edit_model,
         ),
     )
-    await _wait_ticket(
+    result = await _wait_ticket(
         context,
         _ticket_from_scheduled(
             scheduled,
@@ -918,6 +987,110 @@ async def _ensure_first_frames(
             "首帧任务已完成但产物不完整："
             + "、".join(f"Beat {number}" for number in missing_after)
         )
+    stale_after = [
+        number
+        for number in missing
+        if before_mtime_ns[number] is not None
+        and paths.frame(number).stat().st_mtime_ns <= int(before_mtime_ns[number] or 0)
+    ]
+    if stale_after:
+        raise RuntimeError(
+            "首帧任务已完成但没有更新正式产物："
+            + "、".join(f"Beat {number}" for number in stale_after)
+        )
+    updated_beats = {
+        int(number)
+        for number in (result.get("updated_beats") or [])
+        if str(number).strip().isdigit()
+    }
+    if updated_beats and not set(missing).issubset(updated_beats):
+        omitted = sorted(set(missing) - updated_beats)
+        raise RuntimeError(
+            "首帧任务返回的更新范围不完整："
+            + "、".join(f"Beat {number}" for number in omitted)
+        )
+
+
+async def _ensure_seedance_prompts(
+    context: ProjectContext,
+    episode_num: int,
+    beats: list[dict[str, Any]],
+    *,
+    requested_model: str | None,
+    reporter: _ProgressReporter,
+    progress: float,
+    force: bool = False,
+) -> list[dict[str, Any]]:
+    from ai_anime.modules.narrative_planning.public import (
+        GenerateSeedancePromptCommand,
+        generate_seedance2_beat_prompt,
+    )
+    from ai_anime.modules.production.public import (
+        is_seedance2_model,
+        parse_seedance2_config,
+        resolve_video_generation_route,
+    )
+
+    model_route = resolve_video_generation_route(
+        context.owner_username,
+        context.project_name,
+        requested_model,
+    )
+    if not is_seedance2_model(model_route.model):
+        return beats
+
+    pending = [
+        int(beat.get("beat_number") or 0)
+        for beat in beats
+        if int(beat.get("beat_number") or 0) > 0
+        and (
+            force
+            or not parse_seedance2_config(
+                beat.get("seedance2_config_json")
+            ).final_prompt
+        )
+    ]
+    if not pending:
+        return beats
+
+    store = await make_sqlite_store_for_context(context)
+    try:
+        for index, beat_num in enumerate(pending, start=1):
+            reporter.update(
+                progress,
+                f"第 {episode_num} 集生成 Seedance 提示词 "
+                f"{index}/{len(pending)}（Beat {beat_num}）",
+            )
+            await generate_seedance2_beat_prompt(
+                store,
+                GenerateSeedancePromptCommand(
+                    episode_num=episode_num,
+                    beat_num=beat_num,
+                    project_dir=context.output_dir,
+                    requester_user_id=str(
+                        context.requester_user_id or context.requester_username
+                    ),
+                    project_id=str(context.project_id or ""),
+                ),
+            )
+    finally:
+        await store.close()
+
+    updated = await _episode_beats(context, episode_num)
+    missing_after = [
+        int(beat.get("beat_number") or 0)
+        for beat in updated
+        if int(beat.get("beat_number") or 0) > 0
+        and not parse_seedance2_config(
+            beat.get("seedance2_config_json")
+        ).final_prompt
+    ]
+    if missing_after:
+        raise RuntimeError(
+            "Seedance 最终提示词生成后仍有空值："
+            + "、".join(f"Beat {number}" for number in missing_after)
+        )
+    return updated
 
 
 async def _ensure_audio(
@@ -1167,6 +1340,9 @@ async def _run_production_workflow(
     if not episode_numbers:
         raise RuntimeError("没有可生产的分集")
 
+    reporter.update(0.27, "检查生产图片模型前置")
+    image_generation_model, image_edit_model = _resolve_production_image_models()
+
     await _plan_missing_props(
         context,
         episode_numbers,
@@ -1177,6 +1353,8 @@ async def _run_production_workflow(
     await _generate_missing_world_assets(
         context,
         episode_numbers,
+        image_generation_model=image_generation_model,
+        image_edit_model=image_edit_model,
         timeout_seconds=timeout_seconds,
         max_parallel=max_parallel,
         reporter=reporter,
@@ -1215,6 +1393,7 @@ async def _run_production_workflow(
             context,
             episode_num,
             beats,
+            image_edit_model=image_edit_model,
             aspect_ratio=aspect_ratio,
             timeout_seconds=timeout_seconds,
             reporter=reporter,
@@ -1237,14 +1416,32 @@ async def _run_production_workflow(
             progress=base + episode_span * 0.32,
             force=refresh_visuals,
         )
+        await _ensure_audio_prerequisites(
+            context,
+            episode_num,
+            beats,
+            reporter=reporter,
+            progress=base + episode_span * 0.40,
+            force=script_regenerated,
+        )
         await _ensure_first_frames(
             context,
             episode_num,
             beats,
+            image_edit_model=image_edit_model,
             aspect_ratio=aspect_ratio,
             timeout_seconds=timeout_seconds,
             reporter=reporter,
             progress=base + episode_span * 0.45,
+            force=refresh_visuals,
+        )
+        beats = await _ensure_seedance_prompts(
+            context,
+            episode_num,
+            beats,
+            requested_model=payload.get("video_model"),
+            reporter=reporter,
+            progress=base + episode_span * 0.54,
             force=refresh_visuals,
         )
         await _ensure_audio(

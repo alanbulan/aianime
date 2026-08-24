@@ -61,7 +61,12 @@ async def generate_audio(
     except EpisodeAudioBeatsMissing as exc:
         return {"ok": False, "error": str(exc)}
     except AudioVoicePrerequisitesMissing as exc:
-        return {"ok": False, "code": exc.code, "error": str(exc)}
+        return {
+            "ok": False,
+            "code": exc.code,
+            "error": str(exc),
+            "details": list(exc.errors),
+        }
     except EpisodeAudioGenerationNotRequired as exc:
         return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
@@ -86,7 +91,12 @@ async def regenerate_beat_audio(
     except EpisodeAudioBeatMissing as exc:
         return {"ok": False, "error": str(exc)}
     except AudioVoicePrerequisitesMissing as exc:
-        return {"ok": False, "code": exc.code, "error": str(exc)}
+        return {
+            "ok": False,
+            "code": exc.code,
+            "error": str(exc),
+            "details": list(exc.errors),
+        }
     except EpisodeAudioGenerationNotRequired as exc:
         return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}

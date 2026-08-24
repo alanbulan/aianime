@@ -29,6 +29,7 @@ class EpisodeAudioGenerationPlan:
     beat_numbers: tuple[int, ...] = ()
     errors: tuple[str, ...] = ()
     billable_chars: int = 0
+    pricing_model: str = ""
 
     @property
     def quantity(self) -> int:
@@ -134,12 +135,11 @@ class EpisodeAudioBeatMissing(ValueError):
 
 class AudioVoicePrerequisitesMissing(ValueError):
     code = "voice_prereq_required"
+    action_required = True
 
     def __init__(self, errors: list[str]) -> None:
         self.errors = tuple(errors)
-        preview = "；".join(errors[:5])
-        suffix = " ..." if len(errors) > 5 else ""
-        super().__init__(f"{preview}{suffix}")
+        super().__init__("；".join(errors))
 
 
 class EpisodeAudioGenerationNotRequired(ValueError):

@@ -59,4 +59,5 @@ async def test_audio_generate_prereq_error_does_not_start_task(monkeypatch, tmp_
         "ok": False,
         "code": "voice_prereq_required",
         "error": "Beat 01 解说声线缺失：请上传旁白声线",
+        "details": ["Beat 01 解说声线缺失：请上传旁白声线"],
     }

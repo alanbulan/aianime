@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type { ProductionVideoGateway } from "@/modules/production/application/ports";
+import { commercialModelRoles } from "@/modules/model_usage/public";
 import {
   imageModelOptionsFromCatalog,
   resolveAuthorizedImageModel,
@@ -20,7 +21,9 @@ export interface ProductionImageCatalogLoader {
 
 export class ProductionImageModelUnavailableError extends Error {
   constructor() {
-    super("The saved image model is not authorized by the active model catalog");
+    super(
+      "当前图片模型不支持参考图编辑，请选择支持 IMAGE_EDIT 的云端或 BYOK 模型",
+    );
     this.name = "ProductionImageModelUnavailableError";
   }
 }
@@ -48,7 +51,9 @@ export function createAuthorizedProductionImageGateway(
       persistedSelection,
     ]);
     const imageItems = catalog.items.filter(
-      (item) => item.operation.trim().toUpperCase() === "IMAGE",
+      (item) =>
+        item.operation.trim().toUpperCase() === "IMAGE" &&
+        commercialModelRoles(item).includes("IMAGE_EDIT"),
     );
     const selection = resolveAuthorizedImageModel(
       imageModelOptionsFromCatalog(imageItems),

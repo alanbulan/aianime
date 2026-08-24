@@ -1,7 +1,10 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
 
-import type { CommercialModelCatalog } from "@/modules/model_usage/public";
+import {
+  commercialModelRoles,
+  type CommercialModelCatalog,
+} from "@/modules/model_usage/public";
 import {
   imageModelOptionsFromCatalog,
   type ImageModelOption,
@@ -28,7 +31,12 @@ export function createUseImageModels(
   return function useImageModels(enabled = true): ImageModelsQuery {
     const query = useCommercialModelCatalog("IMAGE", enabled);
     const data = useMemo(
-      () => imageModelOptionsFromCatalog(query.data?.items ?? []),
+      () =>
+        imageModelOptionsFromCatalog(
+          (query.data?.items ?? []).filter((item) =>
+            commercialModelRoles(item).includes("IMAGE_EDIT"),
+          ),
+        ),
       [query.data?.items],
     );
     return {

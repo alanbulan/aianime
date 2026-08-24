@@ -15,9 +15,21 @@ vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
   loadCommercialModelCatalog: vi.fn(async () => ({
     catalogVersion: "test-image-catalog",
     items: [
-      { code: "openrouter_nanobanana2", operation: "IMAGE" },
-      { code: "cloud/image-current", operation: "IMAGE" },
-      { code: "image-platform-sku", operation: "IMAGE" },
+      {
+        code: "openrouter_nanobanana2",
+        operation: "IMAGE",
+        capabilities: { supportedModes: ["IMAGE_EDIT"] },
+      },
+      {
+        code: "cloud/image-current",
+        operation: "IMAGE",
+        capabilities: { supportedModes: ["IMAGE_EDIT"] },
+      },
+      {
+        code: "image-platform-sku",
+        operation: "IMAGE",
+        capabilities: { supportedModes: ["IMAGE_EDIT"] },
+      },
     ],
   })),
 }));

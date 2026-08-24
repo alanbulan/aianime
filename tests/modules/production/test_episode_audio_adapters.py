@@ -50,6 +50,11 @@ async def test_audio_planner_uses_context_store_and_closes_it(monkeypatch) -> No
         "build_indextts2_audio_generation_plan",
         build,
     )
+    monkeypatch.setattr(
+        episode_audio,
+        "resolve_model_for_role",
+        lambda role: "voice-clone-model" if role == "AUDIO_VOICE_CLONE" else "",
+    )
 
     result = await IndexTTS2EpisodeAudioPlanner().plan(
         context,
@@ -61,6 +66,7 @@ async def test_audio_planner_uses_context_store_and_closes_it(monkeypatch) -> No
     assert result.beat_numbers == (2,)
     assert result.errors == ("missing voice",)
     assert result.billable_chars == 12
+    assert result.pricing_model == "voice-clone-model"
     assert calls == [
         (
             "build",
@@ -75,6 +81,51 @@ async def test_audio_planner_uses_context_store_and_closes_it(monkeypatch) -> No
         ),
         ("close", None),
     ]
+
+
+@pytest.mark.asyncio
+async def test_audio_planner_reports_missing_voice_clone_model(monkeypatch) -> None:
+    class _Store:
+        async def close(self) -> None:
+            pass
+
+    async def make_store(_context):
+        return _Store()
+
+    async def build(**_kwargs):
+        return SimpleNamespace(
+            beat_numbers=[],
+            errors=["Beat 01 解说声线缺失：项目解说人声线未配置"],
+            billable_chars=0,
+        )
+
+    def missing_model(_role: str) -> str:
+        raise PermissionError("missing role")
+
+    monkeypatch.setattr(
+        episode_audio.project_stores,
+        "make_sqlite_store_for_context",
+        make_store,
+    )
+    monkeypatch.setattr(
+        episode_audio,
+        "build_indextts2_audio_generation_plan",
+        build,
+    )
+    monkeypatch.setattr(episode_audio, "resolve_model_for_role", missing_model)
+
+    result = await IndexTTS2EpisodeAudioPlanner().plan(
+        SimpleNamespace(owner_username="alice", project_name="demo"),
+        1,
+        [1],
+        "redo_selected",
+    )
+
+    assert result.pricing_model == ""
+    assert result.errors == (
+        "Beat 01 解说声线缺失：项目解说人声线未配置",
+        "AI 配音模型缺失：当前未配置可用的 AUDIO_VOICE_CLONE 云端或 BYOK 模型",
+    )
 
 
 @pytest.mark.asyncio

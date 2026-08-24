@@ -35,6 +35,7 @@ _STEP_MAP = {
     "coloring": (None, "配色+身份/道具检测"),
     "global_optimize": ("global_optimize_video", "全局视频优化"),
     "first_frames": ("selected_regen", "首帧生成"),
+    "seedance_prompts": (None, "Seedance 最终提示词"),
     "tts": (None, "TTS 配音"),
     "video": ("single_video", "视频生成"),
     "compose": ("compose_episode", "合成导出"),
@@ -72,6 +73,50 @@ def _beat_file_series_complete(directory: Path, suffix: str, beats: list[dict]) 
     return all(
         (directory / f"beat_{beat_num:02d}.{suffix}").exists()
         for beat_num in beat_numbers
+    )
+
+
+def _beat_file_series_current(
+    directory: Path,
+    suffix: str,
+    beats: list[dict],
+    dependencies: tuple[tuple[Path, str], ...],
+) -> bool:
+    if not _beat_file_series_complete(directory, suffix, beats):
+        return False
+    for beat in beats:
+        beat_num = int(beat.get("beat_number", 0) or 0)
+        if beat_num <= 0:
+            continue
+        output = directory / f"beat_{beat_num:02d}.{suffix}"
+        for dependency_dir, dependency_suffix in dependencies:
+            dependency = dependency_dir / f"beat_{beat_num:02d}.{dependency_suffix}"
+            if (
+                dependency.exists()
+                and output.stat().st_mtime_ns < dependency.stat().st_mtime_ns
+            ):
+                return False
+    return True
+
+
+def _seedance_prompts_required(username: str, project: str) -> bool:
+    from ai_anime.modules.production.public import (
+        is_seedance2_model,
+        resolve_video_generation_route,
+    )
+
+    try:
+        route = resolve_video_generation_route(username, project)
+    except (LookupError, ValueError):
+        return False
+    return is_seedance2_model(route.model)
+
+
+def _beat_has_seedance_prompt(beat: dict) -> bool:
+    from ai_anime.modules.production.public import parse_seedance2_config
+
+    return bool(
+        parse_seedance2_config(beat.get("seedance2_config_json")).final_prompt
     )
 
 
@@ -234,6 +279,20 @@ async def pipeline_status(
     has_global_optimize = _all_or_empty(
         [bool(b.get("video_mode")) and bool(b.get("video_prompt")) for b in beats]
     )
+    frames_dir = project_dir / "frames" / f"ep{target_ep:03d}"
+    audio_dir = project_dir / "audio" / f"ep{target_ep:03d}"
+    videos_dir = project_dir / "videos" / "beats" / f"ep{target_ep:03d}"
+    seedance_prompts_required = _seedance_prompts_required(username, project_name)
+    missing_seedance_prompt_beats = (
+        [
+            int(beat.get("beat_number") or 0)
+            for beat in beats
+            if int(beat.get("beat_number") or 0) > 0
+            and not _beat_has_seedance_prompt(beat)
+        ]
+        if seedance_prompts_required
+        else []
+    )
 
     episode_status = {
         "identity_plan": has_identity_plan,
@@ -243,14 +302,21 @@ async def pipeline_status(
         "sketches": has_sketches,
         "coloring": has_coloring,
         "global_optimize": has_global_optimize,
-        "first_frames": _beat_file_series_complete(
-            project_dir / "frames" / f"ep{target_ep:03d}", "png", beats
+        "first_frames": _beat_file_series_current(
+            frames_dir,
+            "png",
+            beats,
+            ((sketches_dir, "png"),),
         ),
+        "seedance_prompts": not missing_seedance_prompt_beats,
         "tts": _beat_file_series_complete(
-            project_dir / "audio" / f"ep{target_ep:03d}", "mp3", beats
+            audio_dir, "mp3", beats
         ),
-        "video": _beat_file_series_complete(
-            project_dir / "videos" / "beats" / f"ep{target_ep:03d}", "mp4", beats
+        "video": _beat_file_series_current(
+            videos_dir,
+            "mp4",
+            beats,
+            ((frames_dir, "png"), (audio_dir, "mp3")),
         ),
     }
 
@@ -264,6 +330,7 @@ async def pipeline_status(
         "coloring",
         "global_optimize",
         "first_frames",
+        "seedance_prompts",
         "tts",
         "video",
     ):
@@ -286,6 +353,7 @@ async def pipeline_status(
             "global": global_status,
             "current_episode": target_ep,
             "episode_status": episode_status,
+            "missing_seedance_prompt_beats": missing_seedance_prompt_beats,
             "next_step": task_type or next_step,
             "next_step_name": step_name,
         },

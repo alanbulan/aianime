@@ -51,13 +51,14 @@ requires:
   - 用户明确索要最终成片时，如果接口已经返回正式相对路径，就只交付该相对路径并立即收口；不要再补“可直接打开”绝对 URL、host 前缀或下载直链。
   - 对于身份图、肖像这类生成型图片请求，只要接口已返回业务结果相对路径，就视为交付完成；不要再做路径校验或拼接绝对 URL。
 - 长时间任务后台执行；对用户只用自然语言表达当前状态、完成情况和下一步。
-- **唯一流程协议**：前端“完整生成”和助手连续自动生成必须调用同一个 `POST /projects/{project}/workflow/production`，助手对应工具为 `ai_anime_run_production_workflow`。该父任务从持久化状态恢复并完成摄入、脚本、资产、草图、检测、优化、首帧、音频、逐 beat 视频和合成。连续目标只提交一次并只等待它返回的精确 `task_key`；严禁助手再用 `pipeline/status` 串接各阶段工具形成第二套客户端流程。
+- **唯一流程协议**：前端“完整生成”和助手连续自动生成必须调用同一个 `POST /projects/{project}/workflow/production`，助手对应工具为 `ai_anime_run_production_workflow`。该父任务从持久化状态恢复并完成摄入、脚本、生产模型前置、资产、草图、检测、优化、声线与配音模型前置、首帧、Seedance 最终提示词、音频、逐 beat 视频和合成。连续目标只提交一次并只等待它返回的精确 `task_key`；严禁助手再用 `pipeline/status` 串接各阶段工具形成第二套客户端流程。
 - **局部与脚本入口**：用户明确要求“每步确认/只做下一步/重做某个局部”时，才按 `pipeline/status.next_step` 调单步工具；只要求生成分集脚本或补齐脚本前置时调用 `ai_anime_run_script_workflow`。用户要求“自动跑/一口气跑完/完成整集/不要暂停”时直接调用一次 `ai_anime_run_production_workflow`，不要先调用脚本工作流再自行续跑。
 - **大任务直接提交父任务**：用户要求完成整集或跨阶段目标时，不要求用户拆成多轮提示；指定集一次传入 `episodes`，全部分集则省略。依赖、断点恢复、并发、幂等和子任务等待全部由后端父任务负责。
 - **异步任务等待规则**：自动模式必须用 `ai_anime_wait_task` 等待已启动或已在运行的目标任务，不通过密集重复 GET 轮询。一次等待超时不等于任务失败；重新读取状态后，任务仍在运行则继续等待，不重复提交写请求。
-- **视频请求规则**：完整生产父任务内部按身份/脚本/场景/草图/检测/优化/首帧/音频/逐 beat 视频/合成的固定依赖执行；局部单步请求仍必须满足对应前置，全部 beat 完成后才允许 compose。
+- **视频请求规则**：完整生产父任务内部按身份/脚本/场景/草图/检测/优化/声线前置检查/首帧/Seedance 最终提示词/音频/逐 beat 视频/合成的固定依赖执行；局部单步请求仍必须满足对应前置，全部 beat 完成后才允许 compose。
 - **错误即停**：任一写工具返回 `ok:false`、HTTP 4xx/5xx、`identity_plan_required`、`Task not found`、`当前项目 ... 队列任务已满`、404 或网络错误时，本轮必须立即停止所有后续工具调用，把后端 `error/detail/message` 原文转成简短自然语言告诉用户，并说明应该等待、补哪个前置或重新选择正确入口。禁止在同一轮反复重试同一工具、改猜其它路径或继续往下执行。
 - `ai_anime_generate_audio` 返回 `voice_prereq_required` 或“声线缺失”时，必须明确告诉用户配音任务没有启动，并按返回的缺失项说明需要补项目解说人声线或角色声线；提醒用户可以到“资产库”上传或录制缺失声线后再继续。不要继续启动视频、合成或其它写任务。
+- 父任务返回 `model_prereq_required` 时，必须明确告诉用户生产任务没有进入模型调用，并逐项转告缺少的模型角色；不要把模型配置缺失误报成素材或提示词缺失。
 - **范围边界**：用户没明确要求“自动驾驶/一口气跑完整集”时，不得从一个局部请求自动扩展为整条流水线；用户明确要求整集自动执行时，整条合法流水线就是本轮授权范围。
 - 业务结果路径、只读行为、更新行为和异步策略的细则都在对应 reference 中，不要在主 skill 里临时重写一套。
 - 当用户问“我上传了哪些文件 / 当前上传文件 / 刚才传了什么 / 已上传剧本列表”时，优先调用 `ai_anime_list_ingest_uploads` 查询当前项目本地摄入上传目录，并直接按返回的 `files` 列表回答；不要凭对话记忆猜测。若当前消息包含前端注入的 `[AI_ANIME_UPLOADED_FILES]`，可以用它作为刚上传文件的即时上下文，但本地目录工具仍是权威来源。
@@ -136,9 +137,9 @@ requires:
 当前后端没有 `literal-script/generate`、`anchor-image/*`、整集 `/videos/generate` 路由；不要调用这些旧接口。
 
 **逐集视频链的固定真实顺序**（完整生产由父任务执行；单步重做才使用对应专用工具）：
-`草图网格就绪` → `AI 检测` → `global_optimize_video` → `首帧 selected_regen` → `audio_generation_indextts2` → `单 beat 视频 single_video（逐 beat）` → `compose 合成` → `final delivery`。
+`生产图片模型前置` → `草图网格就绪` → `AI 检测` → `global_optimize_video` → `声线与配音模型前置检查` → `首帧 selected_regen` → `Seedance 最终提示词` → `audio_generation_indextts2` → `单 beat 视频 single_video（逐 beat）` → `compose 合成` → `final delivery`。
 - `compose_episode` **必须**在所有 beat 视频都生成后才可执行；否则后端报「没有可用的视频片段」——这是前置未完成，不是 compose 的 body 问题。
-- `single_video` 需要：① 该 beat 首帧已存在 ② 该 beat 有非空 `video_prompt`（来自脚本步骤）。报「首帧不存在」「prompt is required」即为对应前置缺失。
+- `single_video` 需要：① 该 beat 首帧已存在 ② 该 beat 有非空 `video_prompt`（来自脚本步骤）③ 使用 Seedance 时已有非空最终提示词。完整生产父任务会自动补齐最终提示词；局部请求报「最终提示词为空」时必须停止，不能继续提交其它视频。
 - `global_optimize_video` 需要草图**网格(grid pool)**已生成；报「找不到草图网格」即草图前置未完成。
 
 ### 执行纪律（强制，违反即错）

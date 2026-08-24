@@ -129,6 +129,11 @@ async def test_production_runner_owns_the_complete_stage_order(
         force_flags["optimize"] = kwargs.get("force", False)
         return beats
 
+    async def ensure_prompts(*args, **kwargs):
+        calls.append("prompts")
+        force_flags["prompts"] = kwargs.get("force", False)
+        return beats
+
     async def ensure_composed(*args, **kwargs):
         calls.append("compose")
         force_flags["compose"] = kwargs.get("force", False)
@@ -147,6 +152,11 @@ async def test_production_runner_owns_the_complete_stage_order(
     )
     monkeypatch.setattr(runner, "ScriptWorkflowExecutor", _ScriptExecutor)
     monkeypatch.setattr(runner, "_load_story_state", load_story_state)
+    monkeypatch.setattr(
+        runner,
+        "_resolve_production_image_models",
+        lambda: (calls.append("models") or ("image-generation", "image-edit")),
+    )
     monkeypatch.setattr(
         runner,
         "_plan_missing_props",
@@ -177,9 +187,15 @@ async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch.setattr(runner, "_ensure_global_optimization", ensure_optimization)
     monkeypatch.setattr(
         runner,
+        "_ensure_audio_prerequisites",
+        lambda *args, **kwargs: forced_stage("audio_prereq", *args, **kwargs),
+    )
+    monkeypatch.setattr(
+        runner,
         "_ensure_first_frames",
         lambda *args, **kwargs: forced_stage("frames", *args, **kwargs),
     )
+    monkeypatch.setattr(runner, "_ensure_seedance_prompts", ensure_prompts)
     monkeypatch.setattr(
         runner,
         "_ensure_audio",
@@ -214,6 +230,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     assert captured_options[0].target_beats == 12
     assert [call for call in calls if not call.startswith("progress:")] == [
         "script",
+        "models",
         "props",
         "assets",
         "markers",
@@ -221,7 +238,9 @@ async def test_production_runner_owns_the_complete_stage_order(
         "sketches",
         "detection",
         "optimize",
+        "audio_prereq",
         "frames",
+        "prompts",
         "audio",
         "videos",
         "compose",
@@ -229,7 +248,9 @@ async def test_production_runner_owns_the_complete_stage_order(
     assert force_flags == {
         "sketches": True,
         "optimize": True,
+        "audio_prereq": True,
         "frames": True,
+        "prompts": True,
         "audio": True,
         "videos": True,
         "compose": True,
@@ -242,6 +263,30 @@ async def test_production_runner_owns_the_complete_stage_order(
             "final_video": "videos/episodes/ep001_final.mp4",
         }
     ]
+
+
+def test_production_workflow_reports_missing_image_edit_model() -> None:
+    from ai_anime.modules.model_usage.public import configure_model_access
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {"modelId": "generation-only", "role": "IMAGE_GENERATION"},
+        ],
+    )
+
+    with pytest.raises(
+        runner.ProductionWorkflowModelPrerequisitesMissing,
+        match="IMAGE_EDIT",
+    ) as caught:
+        runner._resolve_production_image_models()
+
+    assert caught.value.code == "model_prereq_required"
+    assert caught.value.action_required is True
 
 
 @pytest.mark.asyncio
@@ -336,3 +381,93 @@ def test_production_workflow_resolves_exact_composition_resolution() -> None:
     assert resolve_episode_video_resolution(None, "2:3") == "720x1280"
     with pytest.raises(ValueError, match="不支持的视频分辨率"):
         resolve_episode_video_resolution("480p", "16:9")
+
+
+@pytest.mark.asyncio
+async def test_production_workflow_generates_missing_seedance_prompts(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.narrative_planning import public as narrative_public
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    beats = [
+        {
+            "beat_number": 1,
+            "seedance2_config_json": '{"final_prompt":"already ready"}',
+        },
+        {"beat_number": 2, "seedance2_config_json": "{}"},
+    ]
+    generated: list[int] = []
+
+    class _Store:
+        closed = False
+
+        async def close(self):
+            self.closed = True
+
+    store = _Store()
+
+    async def fake_generate(candidate, command):
+        assert candidate is store
+        generated.append(command.beat_num)
+        beat = next(
+            item for item in beats if item["beat_number"] == command.beat_num
+        )
+        beat["seedance2_config_json"] = (
+            f'{{"final_prompt":"generated-{command.beat_num}"}}'
+        )
+        return SimpleNamespace(final_prompt=f"generated-{command.beat_num}")
+
+    async def episode_beats(_context, episode_num):
+        assert episode_num == 1
+        return beats
+
+    async def make_store(_context):
+        return store
+
+    monkeypatch.setattr(
+        runner,
+        "make_sqlite_store_for_context",
+        make_store,
+    )
+    monkeypatch.setattr(runner, "_episode_beats", episode_beats)
+    monkeypatch.setattr(
+        narrative_public,
+        "generate_seedance2_beat_prompt",
+        fake_generate,
+    )
+    monkeypatch.setattr(
+        production_public,
+        "resolve_video_generation_route",
+        lambda *_args: SimpleNamespace(model="seedance-2.0"),
+    )
+    monkeypatch.setattr(production_public, "is_seedance2_model", lambda _model: True)
+
+    class _Reporter:
+        def update(self, _progress, _message):
+            return None
+
+    context = SimpleNamespace(
+        owner_username="alice",
+        requester_username="alice",
+        requester_user_id="user-1",
+        project_id="project-1",
+        project_name="demo",
+        output_dir=tmp_path,
+    )
+    result = await runner._ensure_seedance_prompts(
+        context,
+        1,
+        beats,
+        requested_model=None,
+        reporter=_Reporter(),
+        progress=0.5,
+    )
+
+    assert generated == [2]
+    assert store.closed is True
+    assert result == beats

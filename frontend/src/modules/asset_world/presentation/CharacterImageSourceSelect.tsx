@@ -16,6 +16,7 @@ import {
 } from "@/modules/asset_world/imageSourceComposition";
 import {
   catalogRouteValue,
+  commercialModelRoles,
   resolveCatalogRouteSelection,
   useCommercialModelCatalog,
 } from "@/modules/model_usage/public";
@@ -41,12 +42,18 @@ export function CharacterImageSourceSelect({
   const catalogQuery = useCommercialModelCatalog("IMAGE", Boolean(project));
   const updateSelection = useUpdateAssetImageSourceSelection(project, kind);
   const savedSelection = selectionQuery.data?.data.image_source_selection ?? "";
-  const optionEntries = (catalogQuery.data?.items ?? []).map((item) => [
-    catalogRouteValue(item),
-    item.displayName,
-  ] as const);
+  const compatibleItems = (catalogQuery.data?.items ?? []).filter((item) => {
+    const roles = commercialModelRoles(item);
+    return (
+      roles.includes("IMAGE_GENERATION") &&
+      (kind === "prop" || roles.includes("IMAGE_EDIT"))
+    );
+  });
+  const optionEntries = compatibleItems.map(
+    (item) => [catalogRouteValue(item), item.displayName] as const,
+  );
   const resolvedSelection = resolveCatalogRouteSelection(
-    catalogQuery.data?.items ?? [],
+    compatibleItems,
     savedSelection,
   );
   const selectedOption = optionEntries.find(

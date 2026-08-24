@@ -133,6 +133,8 @@ def test_project_task_timeout_is_independent_from_celery_hard_limit(monkeypatch)
     assert project_task_timeout_seconds() == 30 * 60
     assert project_task_timeout_seconds("script_writer") == 2 * 60 * 60
     assert project_task_timeout_seconds("literal_script_writer") == 2 * 60 * 60
+    assert project_task_timeout_seconds("selected_regen") == 2 * 60 * 60
+    assert project_task_timeout_seconds("sketch_regen") == 2 * 60 * 60
 
 
 def test_project_task_timeout_environment_override_applies_to_script_writer(
@@ -157,6 +159,24 @@ def test_celery_task_failure_maps_cooperative_task_timeout(monkeypatch) -> None:
     assert handled is True
     assert error == "任务超过 30 分钟未完成，已自动放弃"
     assert metadata == {"error_code": "TASK_TIMEOUT", "timeout_seconds": 30 * 60}
+
+
+def test_project_task_failure_maps_voice_prerequisites(monkeypatch) -> None:
+    celery_tasks = _import_celery_tasks(monkeypatch)
+    from ai_anime.modules.production.public import AudioVoicePrerequisitesMissing
+
+    errors = ["项目解说人声线未配置", "角色声线缺失：夏栀"]
+    error, metadata, handled = celery_tasks.project_task_failure_for_exception(
+        AudioVoicePrerequisitesMissing(errors)
+    )
+
+    assert handled is True
+    assert error == "；".join(errors)
+    assert metadata == {
+        "error_code": "voice_prereq_required",
+        "action_required": True,
+        "prereq_errors": errors,
+    }
 
 
 def test_celery_task_failure_reraises_non_business_base_exception(monkeypatch) -> None:

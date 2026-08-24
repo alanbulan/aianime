@@ -172,7 +172,7 @@ async def test_generate_reports_first_five_voice_errors(tmp_path: Path) -> None:
             GenerateEpisodeAudioCommand(episode_num=3),
         )
 
-    assert str(caught.value) == "error-0；error-1；error-2；error-3；error-4 ..."
+    assert str(caught.value) == "；".join(errors)
     assert caught.value.code == "voice_prereq_required"
     assert scheduler.calls == []
 

@@ -1638,7 +1638,13 @@ def _handle_generate_audio(args: dict[str, Any], **_: Any) -> str:
         for key in ("model", "mode", "beat_numbers"):
             if args.get(key) is not None:
                 body[key] = args[key]
-        return tool_result(_episode_post(args, "audio/generate", body=body))
+        result = _episode_post(args, "audio/generate", body=body)
+        if (
+            isinstance(result, dict)
+            and result.get("code") == "audio_generation_not_required"
+        ):
+            result = {**result, "ok": True, "skipped": True}
+        return tool_result(result)
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -2595,7 +2601,8 @@ TOOLS = (
             "Run the single canonical production workflow from persisted story state through final "
             "episode composition. This is the only tool for a continuous/full-generation request: "
             "it uses the same backend entry point as the frontend Complete Generation action, "
-            "resumes every missing prerequisite, processes all requested episodes, and returns one "
+            "resumes every missing prerequisite including voice checks and Seedance final prompts, "
+            "processes all requested episodes, and returns one "
             "parent task_key. Call it exactly once and wait only for that task_key; do not chain "
             "individual stage tools. Omit episodes to process all planned episodes.",
             {

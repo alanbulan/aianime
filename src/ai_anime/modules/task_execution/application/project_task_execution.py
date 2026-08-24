@@ -255,6 +255,23 @@ def project_task_failure_for_exception(
             classification_error,
         )
 
+    action_required_code = str(getattr(exc, "code", "") or "").strip()
+    if action_required_code and bool(getattr(exc, "action_required", False)):
+        details = [
+            str(item).strip()
+            for item in (getattr(exc, "errors", None) or [])
+            if str(item).strip()
+        ]
+        return (
+            str(exc),
+            {
+                "error_code": action_required_code,
+                "action_required": True,
+                "prereq_errors": details,
+            },
+            True,
+        )
+
     try:
         from ai_anime.shared.provider_errors import (
             content_moderation_payload,

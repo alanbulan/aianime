@@ -673,3 +673,25 @@ def test_wait_task_polls_until_completed(ai_anime_plugin, monkeypatch) -> None:
     assert result["data"]["status"] == "completed"
     assert result["wait"]["terminal"] is True
     assert result["wait"]["attempts"] == 2
+
+
+def test_generate_audio_treats_no_required_audio_as_successful_skip(
+    ai_anime_plugin,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *args, **kwargs: {
+            "ok": False,
+            "code": "audio_generation_not_required",
+            "error": "没有需要生成的音频",
+        },
+    )
+
+    result = ai_anime_plugin._handle_generate_audio({"episode": 1})
+
+    assert result["ok"] is True
+    assert result["skipped"] is True
+    assert result["code"] == "audio_generation_not_required"

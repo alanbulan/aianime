@@ -44,10 +44,21 @@ class IndexTTS2EpisodeAudioPlanner:
                 beat_numbers=beat_numbers,
                 mode=mode,
             )
+            errors = list(plan.errors)
+            pricing_model = ""
+            if plan.beat_numbers or plan.errors:
+                try:
+                    pricing_model = resolve_model_for_role("AUDIO_VOICE_CLONE")
+                except PermissionError:
+                    errors.append(
+                        "AI 配音模型缺失：当前未配置可用的 AUDIO_VOICE_CLONE "
+                        "云端或 BYOK 模型"
+                    )
             return EpisodeAudioGenerationPlan(
                 beat_numbers=tuple(plan.beat_numbers),
-                errors=tuple(plan.errors),
+                errors=tuple(errors),
                 billable_chars=plan.billable_chars,
+                pricing_model=pricing_model,
             )
         finally:
             await store.close()
@@ -72,6 +83,15 @@ class ModelUsageEpisodeAudioBilling:
             return EpisodeAudioBillingQuote(
                 beat_numbers=(),
                 quantity=0,
+                unit_cost=0,
+                cost=0,
+                display="",
+                prereq_errors=plan.errors,
+            )
+        if not plan.pricing_model:
+            return EpisodeAudioBillingQuote(
+                beat_numbers=plan.beat_numbers,
+                quantity=plan.quantity,
                 unit_cost=0,
                 cost=0,
                 display="",
@@ -102,7 +122,7 @@ class ModelUsageEpisodeAudioBilling:
     def task_payload(self, plan: EpisodeAudioGenerationPlan) -> dict:
         return {
             "pricing_kind": "audio",
-            "pricing_model": resolve_model_for_role("AUDIO_VOICE_CLONE"),
+            "pricing_model": plan.pricing_model,
             "pricing_params": {},
             "pricing_quantity": plan.quantity,
             "pricing_metrics": self._pricing_metrics(plan),

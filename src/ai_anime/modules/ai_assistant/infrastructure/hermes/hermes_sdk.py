@@ -180,6 +180,15 @@ def _is_ai_anime_write_tool(name: object) -> bool:
     return str(name or "").strip() in _AI_ANIME_WRITE_TOOLS
 
 
+def _should_stop_after_failed_write(event: ChatBackendEvent) -> bool:
+    return (
+        event.type == "tool_update"
+        and event.tool_phase == "result"
+        and event.success is False
+        and _is_ai_anime_write_tool(event.name)
+    )
+
+
 def _is_failed_tool_update(
     value: object,
     *,
@@ -664,6 +673,25 @@ class HermesSdkThread:
                             )
                             return
                     yield ev
+                    if _should_stop_after_failed_write(ev):
+                        _log.warning(
+                            "stopping Hermes turn after failed write tool: "
+                            "thread=%s turn=%s tool=%s",
+                            self.id,
+                            turn_id,
+                            ev.name,
+                        )
+                        await self._cancel_prompt_and_close()
+                        yield ChatBackendEvent(
+                            type="complete",
+                            thread_id=self.id,
+                            turn_id=turn_id,
+                            text=(
+                                "本轮后续操作已停止，避免在前置条件或写入失败后"
+                                "继续提交依赖任务。"
+                            ),
+                        )
+                        return
         finally:
             # Don't kill subprocess here — caller may want to send more prompts.
             # HermesPool handles cleanup on idle / shutdown.

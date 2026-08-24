@@ -4931,10 +4931,14 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
         encoding="utf-8"
     )
 
-    assert source.count("episode_audio_use_cases().") == 2
+    assert source.count("episode_audio_use_cases().") == 3
     assert "GenerateEpisodeAudioCommand" in source
     assert "production.create_router()" in api_router_source
-    for handler_name in ("generate_audio", "regenerate_beat_audio"):
+    for handler_name in (
+        "audio_generation_billing_quote",
+        "generate_audio",
+        "regenerate_beat_audio",
+    ):
         assert f"async def {handler_name}(" in source
     for removed_handler in ("generate_tts", "preview_tts", "list_tts_voices"):
         assert f"async def {removed_handler}(" not in source

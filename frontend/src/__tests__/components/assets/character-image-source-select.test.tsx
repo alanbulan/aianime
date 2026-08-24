@@ -72,7 +72,8 @@ function installImageCatalog() {
               code: "portrait",
               displayName: "Character portrait",
               operation: "IMAGE",
-              capabilityJson: "{}",
+              capabilityJson:
+                '{"supportedModes":["TEXT_TO_IMAGE","IMAGE_EDIT"]}',
               parameterSchemaJson: "{}",
             },
             {
@@ -80,7 +81,8 @@ function installImageCatalog() {
               code: "identity",
               displayName: "Identity image",
               operation: "IMAGE",
-              capabilityJson: "{}",
+              capabilityJson:
+                '{"supportedModes":["TEXT_TO_IMAGE","IMAGE_EDIT"]}',
               parameterSchemaJson: "{}",
             },
           ],
@@ -251,5 +253,49 @@ describe("CharacterImageSourceSelect", () => {
       expect(trigger).toHaveTextContent("No image models available"),
     );
     expect(trigger).toBeDisabled();
+  });
+
+  it("keeps generation-only models available for prop references", async () => {
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: {
+        commercial: {
+          modelCatalog: vi.fn(async () => ({
+            catalogVersion: "catalog-v1",
+            items: [
+              {
+                id: "generation-only",
+                code: "generation-only",
+                displayName: "Generation only",
+                operation: "IMAGE",
+                capabilityJson: '{"supportedModes":["TEXT_TO_IMAGE"]}',
+                parameterSchemaJson: "{}",
+              },
+            ],
+          })),
+        },
+      },
+    });
+    server.use(
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/image-source-selection/prop",
+        () =>
+          HttpResponse.json({
+            ok: true,
+            data: {
+              asset_kind: "prop",
+              image_source_selection: "generation-only",
+            },
+          }),
+      ),
+    );
+
+    render(<CharacterImageSourceSelect project="demo" kind="prop" />, {
+      wrapper,
+    });
+
+    const trigger = await screen.findByRole("combobox", { name: "Image source" });
+    await waitFor(() => expect(trigger).toHaveTextContent("Generation only"));
+    expect(trigger).not.toBeDisabled();
   });
 });

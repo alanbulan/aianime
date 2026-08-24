@@ -8,6 +8,7 @@ import os
 logger = logging.getLogger(__name__)
 
 _DEFAULT_PROJECT_TASK_TIMEOUT_SECONDS = 30 * 60
+_LONG_MEDIA_TASK_TIMEOUT_SECONDS = 2 * 60 * 60
 _SCRIPT_WRITER_TIMEOUT_SECONDS = 2 * 60 * 60
 _SCRIPT_WORKFLOW_TIMEOUT_SECONDS = 8 * 60 * 60
 _PRODUCTION_WORKFLOW_TIMEOUT_SECONDS = 24 * 60 * 60
@@ -19,6 +20,7 @@ _LONG_RUNNING_TASK_TYPES = frozenset(
         "production_workflow",
     }
 )
+_LONG_MEDIA_TASK_TYPES = frozenset({"selected_regen", "sketch_regen"})
 
 
 def project_task_timeout_seconds(task_type: str | None = None) -> int:
@@ -27,6 +29,8 @@ def project_task_timeout_seconds(task_type: str | None = None) -> int:
         default_timeout = _PRODUCTION_WORKFLOW_TIMEOUT_SECONDS
     elif normalized_task_type == "script_workflow":
         default_timeout = _SCRIPT_WORKFLOW_TIMEOUT_SECONDS
+    elif normalized_task_type in _LONG_MEDIA_TASK_TYPES:
+        default_timeout = _LONG_MEDIA_TASK_TIMEOUT_SECONDS
     elif normalized_task_type in _LONG_RUNNING_TASK_TYPES:
         default_timeout = _SCRIPT_WRITER_TIMEOUT_SECONDS
     else:

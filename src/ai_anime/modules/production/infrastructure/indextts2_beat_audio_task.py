@@ -275,6 +275,8 @@ async def build_indextts2_audio_generation_plan(
     force_redo = normalized_mode in {"redo_selected", "redo_all"}
     plan = IndexTTS2AudioGenerationPlan()
     narrator_resolution: tuple[Path | None, str, str, str] | None = None
+    reported_narrator_errors: set[str] = set()
+    reported_dialogue_speakers: set[str] = set()
 
     for beat in target_beats:
         beat_num = _beat_number(beat)
@@ -332,18 +334,22 @@ async def build_indextts2_audio_generation_plan(
                 continue
             narrator_error = "" if voice_path is not None else voice_error or "解说声线缺失"
             if narrator_error:
-                plan.errors.append(
-                    f"Beat {beat_num:02d} 解说声线缺失：{narrator_error}"
-                )
-            else:
-                plan.beat_numbers.append(beat_num)
-                plan.billable_chars += count_billable_text_chars(text)
+                if narrator_error not in reported_narrator_errors:
+                    reported_narrator_errors.add(narrator_error)
+                    plan.errors.append(
+                        f"Beat {beat_num:02d} 解说声线缺失：{narrator_error}"
+                    )
+                continue
+            plan.beat_numbers.append(beat_num)
+            plan.billable_chars += count_billable_text_chars(text)
             continue
 
         resolved_voice = await _resolve_dialogue_voice(beat, store)
         if resolved_voice is None:
             speaker = str(beat.get("speaker") or "").strip() or "未指定说话身份"
-            plan.errors.append(f"Beat {beat_num:02d} 角色声线缺失：{speaker}")
+            if speaker not in reported_dialogue_speakers:
+                reported_dialogue_speakers.add(speaker)
+                plan.errors.append(f"Beat {beat_num:02d} 角色声线缺失：{speaker}")
             continue
         speaker = str(beat.get("speaker") or "").strip()
         _voice_path, voice_sha256 = resolved_voice
