@@ -15,6 +15,29 @@ from pydantic_ai.output import NativeOutput
 from PIL import Image as PILImage
 
 
+VISION_INPUT_MAX_EDGE = 2048
+
+
+def _encode_vision_image(
+    image_path: str | Path,
+    *,
+    quality: int = 70,
+) -> bytes:
+    """Encode one vision input without exceeding the shared gateway limit."""
+    with PILImage.open(image_path) as source:
+        image = source.convert("RGB") if source.mode != "RGB" else source.copy()
+
+    if max(image.size) > VISION_INPUT_MAX_EDGE:
+        image.thumbnail(
+            (VISION_INPUT_MAX_EDGE, VISION_INPUT_MAX_EDGE),
+            PILImage.Resampling.LANCZOS,
+        )
+
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=quality, optimize=True)
+    return buffer.getvalue()
+
+
 class ReviewResult(BaseModel):
     """审核结果。"""
 
@@ -218,12 +241,7 @@ class GlobalVideoPromptOptimizer:
 
     def _compress_image(self, image_path: str, compress_quality: int = 70) -> bytes:
         """压缩图片并返回 bytes。"""
-        img = PILImage.open(image_path)
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=compress_quality, optimize=True)
-        image_bytes = buffer.getvalue()
+        image_bytes = _encode_vision_image(image_path, quality=compress_quality)
         original_size = os.path.getsize(image_path)
         compressed_size = len(image_bytes)
         ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
@@ -628,13 +646,11 @@ Use an empty identities array for panels with no colored markers."""
     for path in sketch_image_paths:
         if os.path.exists(path):
             try:
-                img = PILImage.open(path)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                buffer = io.BytesIO()
-                img.save(buffer, format="JPEG", quality=70, optimize=True)
                 images.append(
-                    BinaryContent(data=buffer.getvalue(), media_type="image/jpeg")
+                    BinaryContent(
+                        data=_encode_vision_image(path),
+                        media_type="image/jpeg",
+                    )
                 )
             except Exception as e:
                 print(f"[detect_identities_by_ai] 加载图片失败: {path}, {e}")

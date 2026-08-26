@@ -1,9 +1,127 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+
+import {
+  LocalBackend,
+  backendRestartDelayMs,
+  terminateBackendProcessTree,
+} from "../src/backend.ts";
+import { COMMERCIAL_GATEWAY_URL } from "../src/commercial-api-client.ts";
+
+const testDesktopApp = {
+  isPackaged: false,
+  getAppPath: () => "C:\\repo\\desktop",
+  getPath: () => "C:\\user-data",
+};
+
+test("backend restart backoff is bounded at ten seconds", () => {
+  assert.deepEqual(
+    [1, 2, 3, 4, 5, 6, 7, 20].map(backendRestartDelayMs),
+    [500, 1_000, 2_000, 4_000, 8_000, 10_000, 10_000, 10_000],
+  );
+});
+
+test("backend Windows cleanup force-terminates the complete process tree", () => {
+  const invocations = [];
+  const killer = new EventEmitter();
+  let fallbackKills = 0;
+  const child = {
+    exitCode: null,
+    pid: 4321,
+    kill: () => {
+      fallbackKills += 1;
+    },
+  };
+
+  terminateBackendProcessTree(
+    child,
+    "win32",
+    (command, args, options) => {
+      invocations.push({ command, args, options });
+      return killer;
+    },
+  );
+
+  assert.deepEqual(invocations, [
+    {
+      command: "taskkill",
+      args: ["/PID", "4321", "/T", "/F"],
+      options: { windowsHide: true, stdio: "ignore" },
+    },
+  ]);
+  assert.equal(fallbackKills, 0);
+  killer.emit("exit", 0);
+  assert.equal(fallbackKills, 1);
+});
+
+test("backend health watchdog terminates only after three consecutive failures", async () => {
+  let healthRequests = 0;
+  let terminations = 0;
+  const backend = new LocalBackend({
+    desktopApp: testDesktopApp,
+    fetchImpl: async () => {
+      healthRequests += 1;
+      return new Response(null, { status: 503 });
+    },
+  });
+  const child = { exitCode: null };
+  backend.child = child;
+  backend.readyChild = child;
+  backend.healthCheckChild = child;
+  backend._baseUrl = "http://127.0.0.1:43123";
+  backend.terminateChildTree = (target) => {
+    assert.equal(target, child);
+    terminations += 1;
+  };
+
+  try {
+    await backend.checkHealth(child);
+    await backend.checkHealth(child);
+    assert.equal(terminations, 0);
+    await backend.checkHealth(child);
+
+    assert.equal(healthRequests, 3);
+    assert.equal(backend.healthCheckFailures, 3);
+    assert.equal(terminations, 1);
+  } finally {
+    backend.stopHealthWatchdog();
+  }
+});
+
+test("backend health watchdog resets on recovery and ignores replaced children", async () => {
+  const statuses = [503, 200];
+  let healthRequests = 0;
+  const backend = new LocalBackend({
+    desktopApp: testDesktopApp,
+    fetchImpl: async () => {
+      healthRequests += 1;
+      return new Response(null, { status: statuses.shift() ?? 200 });
+    },
+  });
+  const child = { exitCode: null };
+  backend.child = child;
+  backend.readyChild = child;
+  backend.healthCheckChild = child;
+  backend._baseUrl = "http://127.0.0.1:43123";
+
+  try {
+    await backend.checkHealth(child);
+    assert.equal(backend.healthCheckFailures, 1);
+    await backend.checkHealth(child);
+    assert.equal(backend.healthCheckFailures, 0);
+
+    backend.readyChild = { exitCode: null };
+    await backend.checkHealth(child);
+    assert.equal(healthRequests, 2);
+  } finally {
+    backend.stopHealthWatchdog();
+  }
+});
 
 test("desktop backend packages graph runtime resources and enforces UTF-8 output", async () => {
   const spec = await readFile(
@@ -91,6 +209,7 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(worldEntrypoint, /import safetensors/);
   assert.match(worldEntrypoint, /hasattr\(hub_mixin, "safetensors"\)/);
   assert.match(desktopPackage.scripts["build:backend"], /smoke-backend-runtime\.mjs/);
+  assert.match(desktopPackage.scripts["build:main"], /clean-main-dist\.mjs/);
   assert.match(
     desktopPackage.scripts["build:world-runtime"],
     /smoke-world-runtime\.mjs/,
@@ -100,7 +219,14 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(desktopPackage.scripts["package:world-runtime"], /package-world-runtime\.mjs/);
   assert.doesNotMatch(builderConfig, /from: world-runtime-dist/);
   assert.doesNotMatch(builderConfig, /to: splat-transform/);
+  assert.match(builderConfig, /!\*\*\/\*\.map/);
   assert.match(builderConfig, /include: build\/installer\.nsh/);
+  const updaterUrl = builderConfig.match(/^\s+url:\s+(\S+)$/m)?.[1];
+  assert.ok(updaterUrl, "electron-builder publish URL is missing");
+  assert.equal(
+    new URL(updaterUrl).origin,
+    new URL(COMMERCIAL_GATEWAY_URL).origin,
+  );
   assert.match(installerInclude, /customPageAfterChangeDir/);
   assert.match(installerInclude, /install-runtime-dependency\.ps1/);
   assert.match(installerInclude, /runtime-dependency-install\.log/);

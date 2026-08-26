@@ -256,6 +256,7 @@ export interface CommercialModelRequest {
   body?: BodyInit;
   devicePublicKeyHash: string;
   signal?: AbortSignal;
+  retryTransientFailures?: boolean;
 }
 
 export class CommercialApiError extends Error {
@@ -671,7 +672,7 @@ export class CommercialApiClient {
     );
     return {
       resetTicket: requiredText(response.resetTicket, "resetTicket"),
-      expiresIn: positiveNumber(response.expiresIn, "expiresIn"),
+      expiresIn: requirePositiveNumber(response.expiresIn, "expiresIn"),
     };
   }
 
@@ -850,10 +851,11 @@ export class CommercialApiClient {
       // 模型写请求已经进入服务端幂等协议。收到 502/503/504 后直接重放，
       // 可能命中仍在处理且尚无可复用结果的 Invocation，并把原始故障覆盖成 409。
       // 写请求保留原始响应，由上层决定是否按 Invocation 状态恢复；
-      // 只有无副作用的读取可以自动重试。
-      const maxAttempts = isModelWriteMethod(method)
-        ? 1
-        : MODEL_TRANSIENT_MAX_ATTEMPTS;
+      // 无副作用的读取仅在未由上层代理接管重试时自动重试。
+      const maxAttempts =
+        isModelWriteMethod(method) || input.retryTransientFailures === false
+          ? 1
+          : MODEL_TRANSIENT_MAX_ATTEMPTS;
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         response = await this.requestModelResponse({
           ...input,
@@ -1070,6 +1072,7 @@ export class CommercialApiClient {
     } catch (error) {
       throw new CommercialApiError(
         error instanceof Error ? error.message : "云端模型请求失败",
+        { status: 0 },
       );
     }
   }
@@ -1318,7 +1321,7 @@ function parseLoginResponse(value: unknown): LoginResponse {
   const response = requiredRecord(value, "login response");
   return {
     accessToken: requiredText(response.accessToken, "accessToken"),
-    expiresIn: positiveNumber(response.expiresIn, "expiresIn"),
+    expiresIn: requirePositiveNumber(response.expiresIn, "expiresIn"),
     user: parseUser(response.user),
     tenant: parseTenant(response.tenant),
   };
@@ -1328,7 +1331,7 @@ function parseRefreshResponse(value: unknown): RefreshResponse {
   const response = requiredRecord(value, "refresh response");
   return {
     accessToken: requiredText(response.accessToken, "accessToken"),
-    expiresIn: positiveNumber(response.expiresIn, "expiresIn"),
+    expiresIn: requirePositiveNumber(response.expiresIn, "expiresIn"),
     ...(response.user === undefined ? {} : { user: parseUser(response.user) }),
     ...(response.tenant === undefined
       ? {}
@@ -1350,7 +1353,10 @@ function parseStoredSession(value: unknown): StoredCommercialSession {
     schemaVersion: 1,
     gatewayOrigin: requiredText(session.gatewayOrigin, "gatewayOrigin"),
     accessToken: requiredText(session.accessToken, "accessToken"),
-    expiresAtEpochMs: positiveNumber(session.expiresAtEpochMs, "expiresAtEpochMs"),
+    expiresAtEpochMs: requirePositiveNumber(
+      session.expiresAtEpochMs,
+      "expiresAtEpochMs",
+    ),
     user: parseUser(session.user),
     tenant: parseTenant(session.tenant),
     ...(rememberMe === undefined ? {} : { rememberMe }),
@@ -1513,13 +1519,12 @@ function normalizeGatewayBaseUrl(value: string): string {
     throw new CommercialApiError("Commercial Gateway 地址不能包含凭据、查询或片段");
   }
   const loopback = url.hostname === "127.0.0.1" || url.hostname === "localhost" || url.hostname === "[::1]";
-  const approvedCurrentGateway = url.origin === COMMERCIAL_GATEWAY_URL;
   if (
     url.protocol !== "https:" &&
-    !(url.protocol === "http:" && (loopback || approvedCurrentGateway))
+    !(url.protocol === "http:" && loopback)
   ) {
     throw new CommercialApiError(
-      "Commercial Gateway 必须使用 HTTPS；HTTP 只允许 loopback 或当前唯一网关",
+      "Commercial Gateway 必须使用 HTTPS；HTTP 只允许 loopback",
     );
   }
   return url.href.replace(/\/+$/, "");
@@ -1577,12 +1582,15 @@ export function requiredRawText(value: unknown, name: string): string {
 }
 
 function normalizeModelPath(value: string): string {
-  const path = requiredText(value, "model path");
+  const path = typeof value === "string" ? value.trim() : "";
+  if (!path) {
+    throw new CommercialApiError("模型请求路径无效", { status: 400 });
+  }
   let url: URL;
   try {
     url = new URL(path, "http://model-proxy.local");
   } catch {
-    throw new CommercialApiError("模型请求路径无效");
+    throw new CommercialApiError("模型请求路径无效", { status: 400 });
   }
   if (
     url.origin !== "http://model-proxy.local" ||
@@ -1591,7 +1599,9 @@ function normalizeModelPath(value: string): string {
       !url.pathname.startsWith("/v1beta/") &&
       url.pathname !== "/v1beta")
   ) {
-    throw new CommercialApiError("模型请求只能访问 Gateway /v1 或 /v1beta");
+    throw new CommercialApiError("模型请求只能访问 Gateway /v1 或 /v1beta", {
+      status: 400,
+    });
   }
   for (const key of url.searchParams.keys()) {
     if (
@@ -1604,14 +1614,16 @@ function normalizeModelPath(value: string): string {
         "x-goog-api-key",
       ].includes(key.toLowerCase())
     ) {
-      throw new CommercialApiError(`云端模型请求禁止查询参数 ${key}`);
+      throw new CommercialApiError(`云端模型请求禁止查询参数 ${key}`, {
+        status: 400,
+      });
     }
   }
   return `${url.pathname}${url.search}`;
 }
 
-function isModelWriteMethod(method: string): boolean {
-  return method === "POST" || method === "PUT" || method === "PATCH";
+export function isModelWriteMethod(method: string): boolean {
+  return method !== "GET" && method !== "HEAD";
 }
 
 function validateModelProtocolHeaders(
@@ -1658,9 +1670,14 @@ function validateModelProtocolHeaders(
 }
 
 function normalizeIdempotencyKey(value: string): string {
-  const normalized = requiredText(value, "Idempotency-Key");
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized) {
+    throw new CommercialApiError("Idempotency-Key 不能为空", { status: 400 });
+  }
   if (normalized.length > 255) {
-    throw new CommercialApiError("Idempotency-Key 长度不能超过 255");
+    throw new CommercialApiError("Idempotency-Key 长度不能超过 255", {
+      status: 400,
+    });
   }
   return normalized;
 }
@@ -1677,7 +1694,7 @@ export function requiredIdentifier(value: unknown, name: string): Identifier {
   throw new CommercialApiError(`${name} 必须是字符串或安全整数`);
 }
 
-function positiveNumber(value: unknown, name: string): number {
+function requirePositiveNumber(value: unknown, name: string): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     throw new CommercialApiError(`${name} 必须是正数`);
   }

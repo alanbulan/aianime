@@ -29,6 +29,48 @@ function wrap() {
 }
 
 describe("useEpisodeImageTaskInvalidation", () => {
+  it("refreshes incrementally when a selected grid is promoted", () => {
+    const { Wrapper, bus, invalidateSpy } = wrap();
+    renderHook(() => useEpisodeImageTaskInvalidation("demo", 1), {
+      wrapper: Wrapper,
+    });
+
+    const runningTask = sampleTask({
+      task_id: "sketch-regen-1",
+      task_type: "sketch_regen",
+      episode: 1,
+      status: "running",
+      progress: 0.23,
+    });
+    bus.emit({
+      type: "task_updated",
+      task: runningTask,
+      previous: sampleTask({
+        task_id: "sketch-regen-1",
+        task_type: "sketch_regen",
+        episode: 1,
+        status: "running",
+        progress: 0.2,
+      }),
+    });
+    bus.emit({
+      type: "task_updated",
+      task: runningTask,
+      previous: runningTask,
+    });
+
+    const beatInvalidations = invalidateSpy.mock.calls.filter(
+      ([opts]) =>
+        JSON.stringify(opts?.queryKey) === JSON.stringify(queryKeys.beats("demo", 1)),
+    );
+    const gridInvalidations = invalidateSpy.mock.calls.filter(
+      ([opts]) =>
+        JSON.stringify(opts?.queryKey) === JSON.stringify(queryKeys.grids("demo", 1)),
+    );
+    expect(beatInvalidations).toHaveLength(1);
+    expect(gridInvalidations).toHaveLength(1);
+  });
+
   it("invalidates beat image data for every completed image task scope in the current episode", () => {
     const { Wrapper, bus, invalidateSpy } = wrap();
     renderHook(() => useEpisodeImageTaskInvalidation("demo", 1), {

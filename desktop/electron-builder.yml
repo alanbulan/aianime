@@ -10,6 +10,7 @@ publish:
   url: https://aianime.122-193-11-199.sslip.io/api/v1/client/releases/updater/
 files:
   - dist/**/*
+  - "!**/*.map"
   - package.json
 extraResources:
   - from: ../frontend/dist

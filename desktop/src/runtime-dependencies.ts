@@ -154,12 +154,13 @@ function pathsAtRoot(
   };
 }
 
-function validDownloadUrl(value: string): boolean {
+export function isRuntimeDependencyDownloadUrlAllowed(value: string): boolean {
   try {
     const parsed = new URL(value);
     return (
       parsed.protocol === "https:" ||
-      (parsed.protocol === "http:" && ["127.0.0.1", "localhost", "::1"].includes(parsed.hostname))
+      (parsed.protocol === "http:" &&
+        ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname))
     );
   } catch {
     return false;
@@ -189,7 +190,11 @@ function parseManifest(
     Number(packageInfo.installedSizeBytes) <= 0 ||
     !Array.isArray(packageInfo.urls) ||
     packageInfo.urls.length === 0 ||
-    !packageInfo.urls.every((url) => typeof url === "string" && validDownloadUrl(url))
+    !packageInfo.urls.every(
+      (url) =>
+        typeof url === "string" &&
+        isRuntimeDependencyDownloadUrlAllowed(url),
+    )
   ) {
     throw new Error("运行环境清单字段不完整或与当前平台不匹配");
   }

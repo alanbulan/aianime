@@ -104,6 +104,8 @@ export const COMMERCIAL_CHANNELS = {
   byokProviderModels: "desktop:commercial:byok-provider-models",
 } as const;
 
+export const COMMERCIAL_IPC_ERROR_PREFIX = "AI_ANIME_COMMERCIAL_ERROR:";
+
 interface RegisterCommercialIpcOptions {
   ipcMain: IpcMainLike;
   client: CommercialApiClient | null;
@@ -200,11 +202,28 @@ export function registerCommercialIpc(
     listener: (input: unknown) => unknown,
   ): void => {
     options.ipcMain.removeHandler?.(channel);
-    options.ipcMain.handle(channel, (event, input) => {
-      if (!options.isAllowedSender(event.sender.id)) {
-        throw new CommercialApiError("拒绝非主窗口的 Commercial Gateway 调用");
+    options.ipcMain.handle(channel, async (event, input) => {
+      try {
+        if (!options.isAllowedSender(event.sender.id)) {
+          throw new CommercialApiError(
+            "拒绝非主窗口的 Commercial Gateway 调用",
+            { status: 403, code: "IPC_SENDER_FORBIDDEN" },
+          );
+        }
+        return await listener(input);
+      } catch (error) {
+        if (error instanceof CommercialApiError) {
+          throw new Error(
+            `${COMMERCIAL_IPC_ERROR_PREFIX}${JSON.stringify({
+              message: error.message,
+              status: error.status,
+              code: error.code,
+              requestId: error.requestId,
+            })}`,
+          );
+        }
+        throw error;
       }
-      return listener(input);
     });
   };
 

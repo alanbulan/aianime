@@ -5,15 +5,11 @@ import { createWriteStream, existsSync, mkdirSync, type WriteStream } from "node
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
-import { app } from "electron";
 import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
 import {
   bundledBackendPath,
-  bundledWorldRuntimePath,
   bundledFfmpegPath,
   bundledWhisperModelPath,
-  bundledSplatTransformCliPath,
-  bundledSplatTransformNodePath,
   developmentSplatTransformCliPath,
   developmentSplatTransformNodePath,
   developmentFfmpegPath,
@@ -46,12 +42,20 @@ interface BackendLaunch {
   worldRuntimePath?: string;
 }
 
+interface DesktopAppRuntime {
+  readonly isPackaged: boolean;
+  getAppPath(): string;
+  getPath(name: "userData"): string;
+}
+
 interface LocalBackendOptions {
+  desktopApp: DesktopAppRuntime;
   repositoryRoot?: string;
   serveFrontend?: boolean;
   environment?: Readonly<Record<string, string>>;
   runtimeDependencyPaths?: InstalledWorldRuntimePaths;
   restartOnUnexpectedExit?: boolean;
+  fetchImpl?: typeof fetch;
 }
 
 interface ModelAccessInput {
@@ -79,11 +83,13 @@ interface ModelAccessInput {
 export class LocalBackend {
   readonly token = randomBytes(32).toString("hex");
   readonly modelAdminToken = randomBytes(32).toString("hex");
+  private readonly desktopApp: DesktopAppRuntime;
   private readonly configuredRepoRoot: string | undefined;
   private readonly serveFrontend: boolean;
   private readonly environment: Readonly<Record<string, string>>;
   private readonly runtimeDependencyPaths: InstalledWorldRuntimePaths | undefined;
   private readonly restartOnUnexpectedExit: boolean;
+  private readonly fetchImpl: typeof fetch;
   private child: ChildProcessWithoutNullStreams | null = null;
   private readyChild: ChildProcessWithoutNullStreams | null = null;
   private logStream: WriteStream | null = null;
@@ -99,12 +105,14 @@ export class LocalBackend {
   private healthCheckChild: ChildProcessWithoutNullStreams | null = null;
   private healthCheckFailures = 0;
 
-  constructor(options: LocalBackendOptions = {}) {
+  constructor(options: LocalBackendOptions) {
+    this.desktopApp = options.desktopApp;
     this.configuredRepoRoot = options.repositoryRoot;
     this.serveFrontend = options.serveFrontend ?? true;
     this.environment = options.environment ?? {};
     this.runtimeDependencyPaths = options.runtimeDependencyPaths;
     this.restartOnUnexpectedExit = options.restartOnUnexpectedExit ?? false;
+    this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
   get baseUrl(): string {
@@ -132,11 +140,11 @@ export class LocalBackend {
   private async startOnce(): Promise<void> {
     const launch = this.resolveLaunch();
     const hermesRuntime = resolveHermesRuntimePaths({
-      packaged: app.isPackaged,
+      packaged: this.desktopApp.isPackaged,
       repositoryRoot: this.repoRoot(),
       resourcesPath: process.resourcesPath,
     });
-    const userData = app.getPath("userData");
+    const userData = this.desktopApp.getPath("userData");
     const dataRoot = join(userData, "data");
     const logDir = join(userData, "logs");
     mkdirSync(dataRoot, { recursive: true });
@@ -159,10 +167,14 @@ export class LocalBackend {
     if (launch.ffmpegPath) args.push("--ffmpeg-path", launch.ffmpegPath);
 
     const child = spawn(launch.command, args, {
-      cwd: app.isPackaged ? app.getPath("userData") : this.repoRoot(),
+      cwd: this.desktopApp.isPackaged
+        ? this.desktopApp.getPath("userData")
+        : this.repoRoot(),
       env: {
         ...process.env,
-        ...(app.isPackaged ? { VIDEO_CODEC: packagedVideoCodec() } : {}),
+        ...(this.desktopApp.isPackaged
+          ? { VIDEO_CODEC: packagedVideoCodec() }
+          : {}),
         HF_ENDPOINT: process.env.HF_ENDPOINT?.trim() || "https://hf-mirror.com",
         HF_HUB_DISABLE_XET: process.env.HF_HUB_DISABLE_XET?.trim() || "1",
         ...this.environment,
@@ -246,7 +258,7 @@ export class LocalBackend {
     const child = this.child;
     try {
       if (child && this._baseUrl) {
-        await fetch(`${this._baseUrl}/__desktop/shutdown`, {
+        await this.fetchImpl(`${this._baseUrl}/__desktop/shutdown`, {
           method: "POST",
           headers: { [TOKEN_HEADER]: this.token },
           signal: AbortSignal.timeout(2_000),
@@ -285,7 +297,7 @@ export class LocalBackend {
   }
 
   private async postModelAccess(input: ModelAccessInput): Promise<void> {
-    const response = await fetch(
+    const response = await this.fetchImpl(
       `${this.baseUrl}/api/v1/model-gateway/internal/capability`,
       {
         method: "POST",
@@ -304,35 +316,27 @@ export class LocalBackend {
   }
 
   private resolveLaunch(): BackendLaunch {
-    if (app.isPackaged) {
+    if (this.desktopApp.isPackaged) {
       const executable = bundledBackendPath(process.resourcesPath);
       const frontendDist = join(process.resourcesPath, "frontend");
       if (!existsSync(executable)) throw new Error(`bundled backend not found: ${executable}`);
       if (!existsSync(frontendDist)) throw new Error(`bundled frontend not found: ${frontendDist}`);
       const ffmpegPath = bundledFfmpegPath(process.resourcesPath);
       const whisperModelPath = bundledWhisperModelPath(process.resourcesPath);
-      const splatTransformCliPath = bundledSplatTransformCliPath(process.resourcesPath);
-      const splatTransformNodePath = bundledSplatTransformNodePath(process.resourcesPath);
-      const worldRuntimePath = bundledWorldRuntimePath(process.resourcesPath);
       const installed = this.runtimeDependencyPaths;
-      const resolvedSplatTransformCliPath = installed?.splatTransformCliPath ?? splatTransformCliPath;
-      const resolvedSplatTransformNodePath = installed?.splatTransformNodePath ?? splatTransformNodePath;
-      const resolvedWorldRuntimePath = installed?.worldRuntimePath ?? worldRuntimePath;
       return {
         command: executable,
         args: [],
         frontendDist,
         ...(existsSync(ffmpegPath) ? { ffmpegPath } : {}),
         ...(existsSync(whisperModelPath) ? { whisperModelPath } : {}),
-        ...(installed || (existsSync(splatTransformCliPath) && existsSync(splatTransformNodePath))
+        ...(installed
           ? {
-              splatTransformCliPath: resolvedSplatTransformCliPath,
-              splatTransformNodePath: resolvedSplatTransformNodePath,
+              splatTransformCliPath: installed.splatTransformCliPath,
+              splatTransformNodePath: installed.splatTransformNodePath,
             }
           : {}),
-        ...(installed || existsSync(worldRuntimePath)
-          ? { worldRuntimePath: resolvedWorldRuntimePath }
-          : {}),
+        ...(installed ? { worldRuntimePath: installed.worldRuntimePath } : {}),
       };
     }
 
@@ -344,10 +348,11 @@ export class LocalBackend {
       }
     }
     const configuredFfmpeg = process.env.FFMPEG_PATH?.trim();
-    const developmentFfmpeg = developmentFfmpegPath(app.getAppPath());
-    const developmentWhisperModel = developmentWhisperModelPath(app.getAppPath());
-    const developmentSplatTransformCli = developmentSplatTransformCliPath(app.getAppPath());
-    const developmentSplatTransformNode = developmentSplatTransformNodePath(app.getAppPath());
+    const appPath = this.desktopApp.getAppPath();
+    const developmentFfmpeg = developmentFfmpegPath(appPath);
+    const developmentWhisperModel = developmentWhisperModelPath(appPath);
+    const developmentSplatTransformCli = developmentSplatTransformCliPath(appPath);
+    const developmentSplatTransformNode = developmentSplatTransformNodePath(appPath);
     const ffmpegPath = configuredFfmpeg || (existsSync(developmentFfmpeg) ? developmentFfmpeg : undefined);
     return {
       command: process.env.AI_ANIME_UV_COMMAND?.trim() || "uv",
@@ -367,7 +372,7 @@ export class LocalBackend {
   }
 
   private repoRoot(): string {
-    return this.configuredRepoRoot ?? resolve(app.getAppPath(), "..");
+    return this.configuredRepoRoot ?? resolve(this.desktopApp.getAppPath(), "..");
   }
 
   private waitForSocket(child: ChildProcessWithoutNullStreams): Promise<SocketBoundEvent> {
@@ -412,7 +417,7 @@ export class LocalBackend {
     let lastError: unknown;
     while (Date.now() < deadline) {
       try {
-        const response = await fetch(`${this.baseUrl}/healthz`, {
+        const response = await this.fetchImpl(`${this.baseUrl}/healthz`, {
           headers: { [TOKEN_HEADER]: this.token },
           signal: AbortSignal.timeout(2_000),
         });
@@ -485,7 +490,7 @@ export class LocalBackend {
 
     let failure: unknown = null;
     try {
-      const response = await fetch(`${this._baseUrl}/healthz`, {
+      const response = await this.fetchImpl(`${this._baseUrl}/healthz`, {
         headers: { [TOKEN_HEADER]: this.token },
         signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
       });
@@ -518,28 +523,14 @@ export class LocalBackend {
   }
 
   private terminateChildTree(child: ChildProcessWithoutNullStreams): void {
-    if (child.exitCode !== null) return;
-    if (process.platform !== "win32" || !child.pid) {
-      child.kill();
-      return;
-    }
-    const killer = spawn(
-      "taskkill",
-      ["/PID", String(child.pid), "/T", "/F"],
-      { windowsHide: true, stdio: "ignore" },
-    );
-    const fallback = () => {
-      if (child.exitCode === null) child.kill();
-    };
-    killer.once("error", fallback);
-    killer.once("exit", fallback);
+    terminateBackendProcessTree(child);
   }
 
   private scheduleRestart(): void {
     if (this.stopping || this.restartTimer || !this.restartOnUnexpectedExit) return;
     const attempt = this.restartAttempts + 1;
     this.restartAttempts = attempt;
-    const delayMs = Math.min(500 * 2 ** Math.min(attempt - 1, 5), 10_000);
+    const delayMs = backendRestartDelayMs(attempt);
     this.restartTimer = setTimeout(() => {
       this.restartTimer = null;
       if (this.stopping) return;
@@ -552,4 +543,34 @@ export class LocalBackend {
       });
     }, delayMs);
   }
+}
+
+export function backendRestartDelayMs(attempt: number): number {
+  const normalizedAttempt = Math.max(1, Math.trunc(attempt));
+  return Math.min(
+    500 * 2 ** Math.min(normalizedAttempt - 1, 5),
+    10_000,
+  );
+}
+
+export function terminateBackendProcessTree(
+  child: ChildProcessWithoutNullStreams,
+  platform: NodeJS.Platform = process.platform,
+  spawnImpl: typeof spawn = spawn,
+): void {
+  if (child.exitCode !== null) return;
+  if (platform !== "win32" || !child.pid) {
+    child.kill();
+    return;
+  }
+  const killer = spawnImpl(
+    "taskkill",
+    ["/PID", String(child.pid), "/T", "/F"],
+    { windowsHide: true, stdio: "ignore" },
+  );
+  const fallback = () => {
+    if (child.exitCode === null) child.kill();
+  };
+  killer.once("error", fallback);
+  killer.once("exit", fallback);
 }

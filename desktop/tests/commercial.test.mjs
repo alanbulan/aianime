@@ -680,7 +680,7 @@ test("password change revokes the stored session and public reset uses three ste
   });
 });
 
-test("plain HTTP is restricted to loopback or the single approved Gateway", () => {
+test("plain HTTP is restricted to loopback addresses", () => {
   assert.doesNotThrow(
     () =>
       new CommercialApiClient({
@@ -706,6 +706,19 @@ test("plain HTTP is restricted to loopback or the single approved Gateway", () =
     (error) =>
       error instanceof CommercialApiError && error.message.includes("HTTPS"),
   );
+  for (const baseUrl of [
+    "http://127.0.0.1:8889",
+    "http://localhost:8889",
+    "http://[::1]:8889",
+  ]) {
+    assert.doesNotThrow(
+      () =>
+        new CommercialApiClient({
+          baseUrl,
+          sessionStore: new MemorySessionStore(),
+        }),
+    );
+  }
 });
 
 test("encrypted session storage atomically replaces an existing file", async (t) => {

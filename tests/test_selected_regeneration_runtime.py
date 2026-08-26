@@ -131,6 +131,61 @@ async def test_selected_regeneration_limits_concurrency_reports_progress_and_res
 
 
 @pytest.mark.asyncio
+async def test_selected_regeneration_exposes_completed_grid_before_batch_finishes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release_second = asyncio.Event()
+    first_grid_promoted = asyncio.Event()
+    completed_grids: list[int] = []
+
+    class StaggeredGridGenerator:
+        async def generate_grid(self, **kwargs):
+            output_path = Path(kwargs["output_path"])
+            if output_path.stem.endswith("g02"):
+                await release_second.wait()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            Image.new("RGB", (16, 16), "blue").save(output_path)
+            return nanobanana_grid.GridGenerationResult(
+                success=True,
+                grid_image_path=str(output_path),
+            )
+
+    def on_grid_completed(event: dict) -> None:
+        completed_grids.append(int(event["grid_index"]))
+        if int(event["grid_index"]) == 1:
+            first_grid_promoted.set()
+
+    monkeypatch.setattr(
+        nanobanana_grid,
+        "create_grid_generator",
+        lambda *_args, **_kwargs: StaggeredGridGenerator(),
+    )
+
+    task = asyncio.create_task(
+        nanobanana_grid.regenerate_selected_beats(
+            selected_beats=_beats(2),
+            mode_key="1x1_2-3",
+            character_map={},
+            style="anime",
+            output_dir=str(tmp_path / "render"),
+            is_sketch=True,
+            max_concurrency=2,
+            heartbeat_interval_seconds=0,
+            grid_completed_callback=on_grid_completed,
+        )
+    )
+
+    await asyncio.wait_for(first_grid_promoted.wait(), timeout=1.0)
+    assert completed_grids == [1]
+    assert task.done() is False
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+@pytest.mark.asyncio
 async def test_selected_regeneration_retries_only_transient_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -247,6 +302,7 @@ async def test_selected_regeneration_runner_updates_real_progress_and_rejects_pa
     output_path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (16, 16), "red").save(output_path)
     log_calls: list[dict] = []
+    save_calls: list[dict] = []
 
     async def fake_scene_refs(**_kwargs):
         return {
@@ -259,6 +315,14 @@ async def test_selected_regeneration_runner_updates_real_progress_and_rejects_pa
 
     async def fake_regenerate_selected_beats(**kwargs):
         callback = kwargs["progress_callback"]
+        completed_result = SimpleNamespace(
+            success=True,
+            grid_image_path=str(output_path),
+            error=None,
+            beat_count=1,
+            grid_rows=1,
+            grid_cols=1,
+        )
         callback(
             {
                 "event": "started",
@@ -280,15 +344,19 @@ async def test_selected_regeneration_runner_updates_real_progress_and_rejects_pa
                 "success": True,
             }
         )
+        kwargs["grid_completed_callback"](
+            {
+                "grid_index": 1,
+                "result": completed_result,
+                "beats": [{**_beats(1)[0], "scene_ref": {"scene_id": "S"}}],
+                "beat_numbers": [1],
+                "rows": 1,
+                "cols": 1,
+                "reused": False,
+            }
+        )
         return [
-            SimpleNamespace(
-                success=True,
-                grid_image_path=str(output_path),
-                error=None,
-                beat_count=1,
-                grid_rows=1,
-                grid_cols=1,
-            ),
+            completed_result,
             SimpleNamespace(
                 success=False,
                 grid_image_path=None,
@@ -299,7 +367,8 @@ async def test_selected_regeneration_runner_updates_real_progress_and_rejects_pa
             ),
         ]
 
-    def fake_save_grid_and_split(**_kwargs):
+    def fake_save_grid_and_split(**kwargs):
+        save_calls.append(kwargs)
         return {
             "grid_path": str(output_path),
             "cell_paths": [Path("beat_01.png")],
@@ -352,3 +421,5 @@ async def test_selected_regeneration_runner_updates_real_progress_and_rejects_pa
     )
     assert completed_log["progress"] == pytest.approx(0.44)
     assert completed_log["expected_task_id"] == "task-run-1"
+    assert len(save_calls) == 1
+    assert save_calls[0]["beat_nums"] == [1]

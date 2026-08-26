@@ -79,6 +79,97 @@ async def test_production_workflow_route_submits_one_parent_task(
 
 
 @pytest.mark.asyncio
+async def test_ensure_sketches_resumes_from_existing_beat_assets(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    beats = [
+        {
+            "beat_number": number,
+            "scene_ref": {"scene_id": "scene-1"},
+        }
+        for number in range(1, 9)
+    ]
+    sketches_dir = tmp_path / "sketches" / "ep001"
+    sketches_dir.mkdir(parents=True)
+    for number in range(1, 6):
+        (sketches_dir / f"beat_{number:02d}.png").write_bytes(
+            f"existing-{number}".encode()
+        )
+
+    selected_commands = []
+    waited_tickets = []
+    progress_messages = []
+
+    class _SelectedRegeneration:
+        async def regenerate(self, context, command):
+            assert context.output_dir == tmp_path
+            selected_commands.append(command)
+            for number in command.beat_indices:
+                (sketches_dir / f"beat_{number:02d}.png").write_bytes(
+                    f"generated-{number}".encode()
+                )
+            return {
+                "task_type": "sketch_regen",
+                "task_id": "missing-sketches-1",
+                "scope": "missing-sketches",
+            }
+
+    class _FullGeneration:
+        async def generate(self, _context, _command):
+            raise AssertionError("断点续跑不应触发整集草图生成")
+
+    async def wait_ticket(_context, ticket, *, timeout_seconds):
+        assert timeout_seconds == 60
+        waited_tickets.append(ticket)
+        return {"updated_beats": [6, 7, 8]}
+
+    monkeypatch.setattr(
+        production_public,
+        "selected_regeneration_use_cases",
+        lambda: _SelectedRegeneration(),
+    )
+    monkeypatch.setattr(
+        production_public,
+        "sketch_generation_use_cases",
+        lambda: _FullGeneration(),
+    )
+    monkeypatch.setattr(runner, "_wait_ticket", wait_ticket)
+
+    paths = await runner._ensure_sketches(
+        SimpleNamespace(output_dir=tmp_path),
+        1,
+        beats,
+        image_edit_model="image-edit",
+        aspect_ratio="2:3",
+        timeout_seconds=60,
+        reporter=SimpleNamespace(
+            update=lambda _progress, message: progress_messages.append(message)
+        ),
+        progress=0.5,
+        force=False,
+    )
+
+    assert [path.name for path in paths] == [
+        f"beat_{number:02d}.png" for number in range(1, 9)
+    ]
+    assert len(selected_commands) == 1
+    assert selected_commands[0].beat_indices == (6, 7, 8)
+    assert selected_commands[0].image_generation_selection == "image-edit"
+    assert [ticket.task_type for ticket in waited_tickets] == ["sketch_regen"]
+    assert progress_messages == ["第 1 集补齐 3 个缺失草图"]
+    for number in range(1, 6):
+        assert (sketches_dir / f"beat_{number:02d}.png").read_bytes() == (
+            f"existing-{number}".encode()
+        )
+
+
+@pytest.mark.asyncio
 async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

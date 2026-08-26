@@ -239,6 +239,39 @@ async def test_sketch_preparer_uses_all_beats_without_render_padding(
 
 
 @pytest.mark.asyncio
+async def test_sketch_preparer_accepts_existing_nonsequential_beat_number(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    beats = [
+        {"beat_number": 1, "detected_identities": []},
+        {
+            "beat_number": 41,
+            "is_manual_shot": True,
+            "detected_identities": [],
+        },
+    ]
+    store = _Store(beats)
+    preparer, _image_settings, _generation_context, _props = _build(
+        monkeypatch,
+        store,
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        RegenerateSelectedBeatsCommand(
+            kind=SelectedRegenerationKind.SKETCH,
+            episode_num=2,
+            beat_indices=(41,),
+            mode_key="1x1_2-3_sketch",
+        ),
+    )
+
+    assert task.config["selected_beat_numbers"] == [41]
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_scheduler_preserves_selected_regeneration_contract(
     tmp_path: Path,
 ) -> None:

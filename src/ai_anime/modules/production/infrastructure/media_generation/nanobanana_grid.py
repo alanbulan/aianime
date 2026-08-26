@@ -5757,6 +5757,7 @@ async def regenerate_selected_beats(
     heartbeat_interval_seconds: float = _SELECTED_REGEN_HEARTBEAT_INTERVAL_SECONDS,
     resume_token: str = "",
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
+    grid_completed_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> List[GridGenerationResult]:
     """再生选中的 beats（支持 render 和 sketch 模式）。
 
@@ -5794,6 +5795,26 @@ async def regenerate_selected_beats(
     beat_offset = 0
     reused_count = 0
 
+    def emit_grid_completed(
+        item: dict[str, Any],
+        result: GridGenerationResult,
+        *,
+        reused: bool,
+    ) -> None:
+        if grid_completed_callback is None:
+            return
+        grid_completed_callback(
+            {
+                "grid_index": int(item["grid_index"]),
+                "result": result,
+                "beats": list(item["beats"]),
+                "beat_numbers": list(item["beat_numbers"]),
+                "rows": int(item["rows"]),
+                "cols": int(item["cols"]),
+                "reused": reused,
+            }
+        )
+
     for grid_idx, split_mk in enumerate(grid_splits, start=1):
         split_cfg = REGEN_MODE_CONFIGS[split_mk]
         g_rows, g_cols = split_cfg["rows"], split_cfg["cols"]
@@ -5814,7 +5835,7 @@ async def regenerate_selected_beats(
             mode_key=mode_key,
             beat_numbers=beat_numbers,
         ):
-            results[grid_idx - 1] = GridGenerationResult(
+            reused_result = GridGenerationResult(
                 success=True,
                 grid_image_path=output_path,
                 generation_time=0.0,
@@ -5822,6 +5843,18 @@ async def regenerate_selected_beats(
                 beat_count=len(grid_beats),
                 grid_rows=g_rows,
                 grid_cols=g_cols,
+            )
+            results[grid_idx - 1] = reused_result
+            emit_grid_completed(
+                {
+                    "grid_index": grid_idx,
+                    "beats": grid_beats,
+                    "beat_numbers": beat_numbers,
+                    "rows": g_rows,
+                    "cols": g_cols,
+                },
+                reused_result,
+                reused=True,
             )
             reused_count += 1
             continue
@@ -5952,6 +5985,7 @@ async def regenerate_selected_beats(
                             "Could not persist selected regeneration checkpoint: grid=%s",
                             grid_index,
                         )
+                    emit_grid_completed(item, result, reused=False)
                 if result.success:
                     logger.info(
                         f"[RegenBeats] Grid {grid_index} 成功: "

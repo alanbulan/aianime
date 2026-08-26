@@ -26,11 +26,15 @@ import { saveCommercialInvocationResult } from "../src/commercial-invocation-res
 import {
   CommercialApiClient,
   COMMERCIAL_RUNTIME_DEPENDENCIES_URL,
+  EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
   registerCommercialIpc,
   resolveCommercialGatewayUrl,
 } from "../src/commercial.ts";
+import { COMMERCIAL_LEASE_SIGNING_KEYS } from "../src/commercial-trust.ts";
+import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
 import { developmentHermesCliPath } from "../src/hermes-runtime.ts";
+import { appendModelRouteAudit } from "../src/model-route-audit.ts";
 import {
   registerRuntimeDependencyIpc,
   RuntimeDependencyManager,
@@ -100,16 +104,6 @@ async function prepareHermesRuntime() {
   }
 }
 
-function installBackendHeader(localBackend) {
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: [`${localBackend.baseUrl}/*`] },
-    (details, callback) => {
-      details.requestHeaders[localBackend.tokenHeader] = localBackend.token;
-      callback({ requestHeaders: details.requestHeaders });
-    },
-  );
-}
-
 function registerWindowIpc() {
   const activeWindow = (senderId) => {
     if (!mainWindow || mainWindow.isDestroyed()) return null;
@@ -152,13 +146,14 @@ async function setDesktopSessionCookies(cloudSession, origins) {
   );
 }
 
-function registerCommercialGatewayIpc(
+async function registerCommercialGatewayIpc(
   localBackend,
   client,
   deviceIdentity,
   modelAccessStore,
 ) {
   const origins = [VITE_URL, localBackend.baseUrl];
+  const device = await deviceIdentity.summary();
   registerCommercialIpc({
     ipcMain,
     client,
@@ -208,6 +203,8 @@ function registerCommercialGatewayIpc(
           : await dialog.showSaveDialog({ defaultPath: suggestedName });
         return result.canceled ? null : result.filePath ?? null;
       }),
+    leaseSigningKeys: COMMERCIAL_LEASE_SIGNING_KEYS,
+    devicePublicKeyHash: device.publicKeyHash,
   });
 }
 
@@ -354,6 +351,10 @@ async function startApplication() {
       join(secureDirectory, "commercial-session.bin"),
       safeStorage,
     ),
+    rememberedLoginStore: new EncryptedFileCommercialRememberedLoginStore(
+      join(secureDirectory, "commercial-remembered-login.bin"),
+      safeStorage,
+    ),
   });
   const deviceIdentity = new EncryptedFileCommercialDeviceIdentity(
     join(secureDirectory, "commercial-device.bin"),
@@ -363,10 +364,20 @@ async function startApplication() {
     join(secureDirectory, "commercial-model-access.bin"),
     safeStorage,
   );
-  commercialModelProxy = new CommercialModelProxy(client, deviceIdentity);
+  const modelRouteLogPath = join(
+    app.getPath("userData"),
+    "logs",
+    "model-routing.log",
+  );
+  commercialModelProxy = new CommercialModelProxy(
+    client,
+    deviceIdentity,
+    (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
+  );
   await commercialModelProxy.start();
   const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
   backend = new LocalBackend({
+    desktopApp: app,
     repositoryRoot: REPO_ROOT,
     serveFrontend: false,
     runtimeDependencyPaths: runtimeDependencies.paths,
@@ -380,7 +391,19 @@ async function startApplication() {
   });
   try {
     await backend.start();
-    installBackendHeader(backend);
+    installDesktopSessionSecurity({
+      targetSession: session.defaultSession,
+      backend,
+      rendererOrigin: VITE_URL,
+      getMainWindow: () => mainWindow,
+      additionalConnectSources: [
+        backend.baseUrl,
+        VITE_URL.replace(/^http:/u, "ws:"),
+      ],
+      additionalScriptSources: [
+        "'sha256-Z2/iFzh9VMlVkEOar1f/oSHWwQk3ve1qk/C2WdsC4Xk='",
+      ],
+    });
     registerRuntimeDependencyIpc(
       ipcMain,
       runtimeDependencies,
@@ -391,7 +414,7 @@ async function startApplication() {
             mainWindow.webContents.id === senderId,
         ),
     );
-    registerCommercialGatewayIpc(
+    await registerCommercialGatewayIpc(
       backend,
       client,
       deviceIdentity,

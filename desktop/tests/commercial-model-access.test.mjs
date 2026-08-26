@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,6 +22,7 @@ import {
   CommercialApiError,
   registerCommercialIpc,
 } from "../src/commercial.ts";
+import { COMMERCIAL_IPC_ERROR_PREFIX } from "../src/commercial-ipc.ts";
 
 class MemorySessionStore {
   value = null;
@@ -70,6 +71,45 @@ function configureCloudProxy(proxy, assignments) {
 const user = { id: 1, username: "client" };
 const tenant = { id: 2, code: "customer-a", name: "Customer A" };
 
+test("commercial IPC serializes status, code, and request ID for the renderer", async () => {
+  const handlers = new Map();
+  registerCommercialIpc({
+    ipcMain: {
+      handle: (channel, listener) => handlers.set(channel, listener),
+      removeHandler: (channel) => handlers.delete(channel),
+    },
+    client: { baseUrl: "https://gateway.test" },
+    deviceIdentity: {},
+    modelAccessStore: {},
+    deviceName: "DESKTOP-01",
+    platform: "win32",
+    arch: "x64",
+    clientVersion: "1.0.0",
+    isAllowedSender: () => false,
+    onAuthenticated: () => undefined,
+    onModelAccessChanged: () => undefined,
+    onLoggedOut: () => undefined,
+  });
+
+  await assert.rejects(
+    handlers.get(COMMERCIAL_CHANNELS.status)({ sender: { id: 99 } }),
+    (error) => {
+      const index = error.message.indexOf(COMMERCIAL_IPC_ERROR_PREFIX);
+      assert.notEqual(index, -1);
+      const payload = JSON.parse(
+        error.message.slice(index + COMMERCIAL_IPC_ERROR_PREFIX.length),
+      );
+      assert.deepEqual(payload, {
+        message: "拒绝非主窗口的 Commercial Gateway 调用",
+        status: 403,
+        code: "IPC_SENDER_FORBIDDEN",
+        requestId: null,
+      });
+      return true;
+    },
+  );
+});
+
 test("commercial auth IPC preserves exact password text", async () => {
   const handlers = new Map();
   const calls = [];
@@ -110,11 +150,9 @@ test("commercial auth IPC preserves exact password text", async () => {
     },
     modelAccessStore: {
       load: async () => ({
-        schemaVersion: 2,
-        mode: "cloud",
-        byokBaseUrl: "",
-        byokApiKey: "",
-        byokModelAssignments: [],
+        schemaVersion: 5,
+        cloudModelAssignments: [],
+        byokProviders: [],
       }),
     },
     deviceName: "DESKTOP-01",
@@ -234,7 +272,7 @@ test("missing restored cloud session clears the local workspace session", async 
     deviceIdentity: {},
     modelAccessStore: {
       load: async () => ({
-        schemaVersion: 4,
+        schemaVersion: 5,
         cloudModelAssignments: [],
         byokProviders: [],
       }),
@@ -360,7 +398,7 @@ test("restored sessions hydrate the complete cloud model access once", async () 
     },
     modelAccessStore: {
       load: async () => ({
-        schemaVersion: 4,
+        schemaVersion: 5,
         cloudModelAssignments: [],
         byokProviders: [],
       }),
@@ -435,12 +473,13 @@ test("restored sessions hydrate the complete cloud model access once", async () 
 test("standard authorization hides persisted BYOK details from the renderer", async () => {
   const handlers = new Map();
   const storedAccess = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     cloudModelAssignments: [],
     byokProviders: [
       {
         id: "provider-one",
         name: "Provider One",
+        protocol: "OPENAI_COMPATIBLE",
         baseUrl: "https://byok.example/v1",
         apiKey: "user-secret",
         enabled: true,
@@ -526,12 +565,13 @@ test("Bootstrap merges configured BYOK models with cloud SKUs", async () => {
   const handlers = new Map();
   const synchronized = [];
   const access = {
-    schemaVersion: 4,
+    schemaVersion: 5,
     cloudModelAssignments: [],
     byokProviders: [
       {
         id: "provider-one",
         name: "Provider One",
+        protocol: "OPENAI_COMPATIBLE",
         baseUrl: "https://byok.example/v1",
         apiKey: "user-secret",
         enabled: true,
@@ -672,12 +712,27 @@ test("explicit cloud catalog requests do not reuse the active BYOK catalog", asy
     },
     modelAccessStore: {
       load: async () => ({
-        schemaVersion: 3,
-        mode: "byok",
+        schemaVersion: 5,
         cloudModelAssignments: [],
-        byokBaseUrl: "https://byok.example/v1",
-        byokApiKey: "secret",
-        byokModelAssignments: [{ modelId: "byok-text", role: "TEXT" }],
+        byokProviders: [
+          {
+            id: "provider-one",
+            name: "Provider One",
+            protocol: "OPENAI_COMPATIBLE",
+            baseUrl: "https://byok.example/v1",
+            apiKey: "secret",
+            enabled: true,
+            priority: 100,
+            modelAssignments: [
+              {
+                modelId: "byok-text",
+                role: "TEXT",
+                priority: 100,
+                enabled: true,
+              },
+            ],
+          },
+        ],
       }),
     },
     deviceName: "DESKTOP-01",
@@ -828,7 +883,7 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
     },
     modelAccessStore: {
       load: async () => ({
-        schemaVersion: 4,
+        schemaVersion: 5,
         cloudModelAssignments: [],
         byokProviders: [],
       }),
@@ -933,7 +988,7 @@ test("video catalog synchronization sends only projected duration capabilities",
     },
     modelAccessStore: {
       load: async () => ({
-        schemaVersion: 4,
+        schemaVersion: 5,
         cloudModelAssignments: [],
         byokProviders: [],
       }),
@@ -1149,6 +1204,99 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
       },
     ],
   });
+});
+
+test("legacy BYOK settings migrate without deleting encrypted credentials", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-legacy-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, "model-access.bin");
+  await writeFile(
+    filePath,
+    Buffer.from(
+      JSON.stringify({
+        schemaVersion: 3,
+        mode: "byok",
+        cloudModelAssignments: [
+          { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
+        ],
+        byokBaseUrl: "https://legacy.example/v1",
+        byokApiKey: "legacy-secret",
+        byokModelAssignments: [
+          { modelId: "legacy-text", role: "TEXT", priority: 20, enabled: true },
+        ],
+      }),
+      "utf8",
+    ),
+  );
+
+  const migrated = await new EncryptedFileCommercialModelAccessStore(
+    filePath,
+    passthroughSecureStorage,
+  ).load();
+  assert.equal(migrated.schemaVersion, 5);
+  assert.deepEqual(migrated.cloudModelAssignments, [
+    { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
+  ]);
+  assert.deepEqual(migrated.byokProviders, [
+    {
+      id: "legacy-openai-compatible",
+      name: "legacy.example",
+      protocol: "OPENAI_COMPATIBLE",
+      baseUrl: "https://legacy.example/v1",
+      apiKey: "legacy-secret",
+      enabled: true,
+      priority: 100,
+      modelAssignments: [
+        { modelId: "legacy-text", role: "TEXT", priority: 20, enabled: true },
+      ],
+    },
+  ]);
+
+  const reloaded = await new EncryptedFileCommercialModelAccessStore(
+    filePath,
+    passthroughSecureStorage,
+  ).load();
+  assert.deepEqual(reloaded, migrated);
+});
+
+test("removed BYOK roles no longer invalidate the rest of a saved provider", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-role-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, "model-access.bin");
+  await writeFile(
+    filePath,
+    Buffer.from(
+      JSON.stringify({
+        schemaVersion: 5,
+        cloudModelAssignments: [],
+        byokProviders: [
+          {
+            id: "provider-one",
+            name: "Provider One",
+            protocol: "OPENAI_COMPATIBLE",
+            baseUrl: "https://models.example/v1",
+            apiKey: "saved-secret",
+            enabled: true,
+            priority: 10,
+            modelAssignments: [
+              { modelId: "text-model", role: "TEXT", priority: 10, enabled: true },
+              { modelId: "old-reranker", role: "RERANK", priority: 20, enabled: true },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    ),
+  );
+
+  const restored = await new EncryptedFileCommercialModelAccessStore(
+    filePath,
+    passthroughSecureStorage,
+  ).load();
+  assert.equal(restored.byokProviders[0].apiKey, "saved-secret");
+  assert.deepEqual(restored.byokProviders[0].modelAssignments, [
+    { modelId: "text-model", role: "TEXT", priority: 10, enabled: true },
+  ]);
 });
 
 test("cloud model selections survive configuring and clearing BYOK providers", async (t) => {
@@ -1718,7 +1866,7 @@ test("mixed model proxy rejects calls that cannot enter a configured role", asyn
   assert.match((await unknownRole.json()).error.message, /拒绝绕过统一路由/);
 });
 
-test("mixed model proxy retries each route before falling back by priority", async (t) => {
+test("mixed model proxy tries each route once before falling back by priority", async (t) => {
   const providerCalls = [];
   const providerServer = createServer(async (request, response) => {
     const chunks = [];
@@ -1835,13 +1983,9 @@ test("mixed model proxy retries each route before falling back by priority", asy
   });
 
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "7");
+  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "3");
   assert.equal((await response.json()).choices[0].message.content, "provider two ok");
-  assert.deepEqual(cloudCalls.map((call) => call.body.model), [
-    "cloud-text",
-    "cloud-text",
-    "cloud-text",
-  ]);
+  assert.deepEqual(cloudCalls.map((call) => call.body.model), ["cloud-text"]);
   const idempotencyKeys = [
     ...cloudCalls.map((call) => call.idempotencyKey),
     ...providerCalls.map((call) => call.idempotencyKey),
@@ -1849,16 +1993,6 @@ test("mixed model proxy retries each route before falling back by priority", asy
   assert.match(idempotencyKeys[0], /^[0-9a-f-]{36}$/);
   assert.equal(new Set(idempotencyKeys).size, 1);
   assert.deepEqual(providerCalls.map(({ idempotencyKey: _, ...call }) => call), [
-    {
-      authorization: "Bearer provider-one-key",
-      model: "provider-one-text",
-      path: "/v1/chat/completions",
-    },
-    {
-      authorization: "Bearer provider-one-key",
-      model: "provider-one-text",
-      path: "/v1/chat/completions",
-    },
     {
       authorization: "Bearer provider-one-key",
       model: "provider-one-text",
@@ -2742,6 +2876,64 @@ test("cloud model writes do not blindly replay transient gateway failures", asyn
   );
 });
 
+test("DELETE cloud model mutations keep one idempotency key and are not replayed", async (t) => {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: Date.now() + 3_600_000,
+    user,
+    tenant,
+  };
+  const calls = [];
+  const client = new CommercialApiClient({
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    sessionStore: store,
+    fetchImpl: async (url, init) => {
+      const call = { url: String(url), init };
+      calls.push(call);
+      if (call.url.includes("/api/v1/client/licenses/current")) {
+        return Response.json({ device: { id: "device-42" } });
+      }
+      if (call.url.endsWith("/v1/videos/video-42")) {
+        return new Response("gateway timeout", { status: 504 });
+      }
+      throw new Error(`unexpected request ${call.url}`);
+    },
+  });
+  const proxy = new CommercialModelProxy(client, {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  });
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-video", role: "VIDEO_TEXT_TO_VIDEO" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/videos/video-42`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${proxy.token}` },
+  });
+
+  assert.equal(response.status, 504);
+  const modelCalls = calls.filter((call) =>
+    call.url.endsWith("/v1/videos/video-42"),
+  );
+  assert.equal(modelCalls.length, 1);
+  assert.equal(modelCalls[0].init.method, "DELETE");
+  assert.match(
+    new Headers(modelCalls[0].init.headers).get("Idempotency-Key"),
+    /^[0-9a-f-]{36}$/,
+  );
+});
+
 test("cloud model reads still retry transient gateway failures", async () => {
   const store = new MemorySessionStore();
   store.value = {
@@ -2777,6 +2969,55 @@ test("cloud model reads still retry transient gateway failures", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(modelAttempts, 3);
+});
+
+test("model proxy owns cloud read retries without multiplying client retries", async (t) => {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: Date.now() + 3_600_000,
+    user,
+    tenant,
+  };
+  let modelAttempts = 0;
+  const client = new CommercialApiClient({
+    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    sessionStore: store,
+    fetchImpl: async (url) => {
+      const target = String(url);
+      if (target.endsWith("/v1/models")) {
+        modelAttempts += 1;
+        return new Response("gateway timeout", { status: 504 });
+      }
+      throw new Error(`unexpected request ${target}`);
+    },
+  });
+  const proxy = new CommercialModelProxy(client, {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  });
+  configureCloudProxy(proxy, [{ modelId: "cloud-text", role: "TEXT" }]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/v1/models`, {
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "X-AI-Anime-Model-Role": "TEXT",
+    },
+  });
+
+  assert.equal(response.status, 504);
+  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "3");
+  assert.equal(modelAttempts, 3);
+  await response.text();
 });
 
 test("cloud model transport validates protocol-specific request headers", async () => {
@@ -2872,10 +3113,18 @@ test("cloud model requests reject absolute URLs and credential query parameters"
   await assert.rejects(
     client.modelRequest({
       method: "GET",
+      path: "",
+      devicePublicKeyHash: "device-public-key-hash",
+    }),
+    (error) => error instanceof CommercialApiError && error.status === 400,
+  );
+  await assert.rejects(
+    client.modelRequest({
+      method: "GET",
       path: "https://bypass.example/v1/models",
       devicePublicKeyHash: "device-public-key-hash",
     }),
-    CommercialApiError,
+    (error) => error instanceof CommercialApiError && error.status === 400,
   );
   await assert.rejects(
     client.modelRequest({
@@ -2883,7 +3132,10 @@ test("cloud model requests reject absolute URLs and credential query parameters"
       path: "/v1/models?api_key=bypass-secret",
       devicePublicKeyHash: "device-public-key-hash",
     }),
-    /禁止查询参数/,
+    (error) =>
+      error instanceof CommercialApiError &&
+      error.status === 400 &&
+      /禁止查询参数/.test(error.message),
   );
   await assert.rejects(
     client.modelRequest({
@@ -2891,6 +3143,9 @@ test("cloud model requests reject absolute URLs and credential query parameters"
       path: "/v1beta/models?key=gemini-bypass-secret",
       devicePublicKeyHash: "device-public-key-hash",
     }),
-    /禁止查询参数/,
+    (error) =>
+      error instanceof CommercialApiError &&
+      error.status === 400 &&
+      /禁止查询参数/.test(error.message),
   );
 });

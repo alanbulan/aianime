@@ -104,15 +104,30 @@ class LocalSelectedRegenerationPreparer:
                 raise SelectedRegenerationRejected(
                     f"No beats found for episode {command.episode_num}"
                 )
-
-            indices_error = selected_beat_indices_error(
-                command.beat_indices,
-                len(beats),
-            )
-            if indices_error:
-                raise SelectedRegenerationRejected(indices_error)
+            if not command.beat_indices:
+                raise SelectedRegenerationRejected(
+                    selected_beat_indices_error(command.beat_indices, len(beats))
+                    or "beat_indices 不能为空"
+                )
 
             selected_beats = pick_beats_by_number(beats, command.beat_indices)
+            selected_numbers = {
+                int(beat.get("beat_number") or 0) for beat in selected_beats
+            }
+            missing_numbers = [
+                number
+                for number in dict.fromkeys(command.beat_indices)
+                if number not in selected_numbers
+            ]
+            if missing_numbers:
+                indices_error = selected_beat_indices_error(
+                    command.beat_indices,
+                    len(beats),
+                )
+                raise SelectedRegenerationRejected(
+                    indices_error
+                    or f"未找到 beat_indices：{missing_numbers}"
+                )
             if command.kind is SelectedRegenerationKind.RENDER:
                 detection_error = render_ai_detection_error(selected_beats)
                 if detection_error:

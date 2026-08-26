@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 
-import { appendFile, mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { hostname } from "node:os";
 import {
   app,
@@ -20,7 +19,6 @@ import { EncryptedFileCommercialDeviceIdentity } from "./commercial-device.js";
 import {
   CommercialModelProxy,
   modelRoutingSnapshot,
-  type ModelRouteAuditEntry,
 } from "./commercial-model-proxy.js";
 import { EncryptedFileCommercialModelAccessStore } from "./commercial-model-access.js";
 import { saveCommercialInvocationResult } from "./commercial-invocation-result.js";
@@ -36,6 +34,8 @@ import {
 import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
 import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
+import { installDesktopSessionSecurity } from "./desktop-session-security.js";
+import { appendModelRouteAudit } from "./model-route-audit.js";
 import {
   registerRuntimeDependencyIpc,
   RuntimeDependencyManager,
@@ -63,88 +63,6 @@ const WINDOW_CHANNELS = {
 const CLIPBOARD_CHANNELS = {
   writeText: "desktop:clipboard:write-text",
 } as const;
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self';",
-  "script-src 'self';",
-  "style-src 'self' 'unsafe-inline';",
-  "img-src 'self' data: blob: https:;",
-  "media-src 'self' blob:;",
-  "font-src 'self' data:;",
-  "connect-src 'self';",
-  "worker-src 'self' blob:;",
-  "frame-ancestors 'none';",
-  "base-uri 'self';",
-  "form-action 'self';",
-  "object-src 'none';",
-].join(" ");
-function appendModelRouteAudit(
-  logPath: string,
-  entry: ModelRouteAuditEntry,
-): void {
-  void mkdir(dirname(logPath), { recursive: true })
-    .then(() => appendFile(logPath, `${JSON.stringify(entry)}\n`, "utf8"))
-    .catch((error) => {
-      console.warn(
-        "[commercial] failed to append model route audit:",
-        error instanceof Error ? error.message : String(error),
-      );
-    });
-}
-
-function installBackendHeader(localBackend: LocalBackend): void {
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: [`${localBackend.baseUrl}/*`] },
-    (details, callback) => {
-      details.requestHeaders[localBackend.tokenHeader] = localBackend.token;
-      callback({ requestHeaders: details.requestHeaders });
-    },
-  );
-  session.defaultSession.webRequest.onHeadersReceived(
-    { urls: [`${localBackend.baseUrl}/*`] },
-    (details, callback) => {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          "Content-Security-Policy": [CONTENT_SECURITY_POLICY],
-          "X-Content-Type-Options": ["nosniff"],
-        },
-      });
-    },
-  );
-}
-
-function installMediaPermissions(localBackend: LocalBackend): void {
-  const isTrustedWindow = (senderId: number | undefined): boolean =>
-    Boolean(
-      senderId !== undefined &&
-        mainWindow &&
-        !mainWindow.isDestroyed() &&
-        mainWindow.webContents.id === senderId,
-    );
-
-  session.defaultSession.setPermissionCheckHandler(
-    (webContents, permission, requestingOrigin, details) =>
-      permission === "media" &&
-      details.mediaType === "audio" &&
-      details.isMainFrame &&
-      isTrustedWindow(webContents?.id) &&
-      isSameOrigin(requestingOrigin, localBackend.baseUrl),
-  );
-  session.defaultSession.setPermissionRequestHandler(
-    (webContents, permission, callback, details) => {
-      const mediaTypes = "mediaTypes" in details ? details.mediaTypes : undefined;
-      callback(
-        permission === "media" &&
-          details.isMainFrame &&
-          isTrustedWindow(webContents.id) &&
-          isSameOrigin(details.requestingUrl, localBackend.baseUrl) &&
-          mediaTypes?.length === 1 &&
-          mediaTypes[0] === "audio",
-      );
-    },
-  );
-}
-
 async function createMainWindow(localBackend: LocalBackend): Promise<void> {
   const window = new BrowserWindow({
     title: "AI anime",
@@ -334,6 +252,7 @@ async function startApplication(): Promise<void> {
   await commercialModelProxy.start();
   const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
   backend = new LocalBackend({
+    desktopApp: app,
     runtimeDependencyPaths: runtimeDependencies.paths,
     restartOnUnexpectedExit: true,
     environment: {
@@ -345,8 +264,12 @@ async function startApplication(): Promise<void> {
   });
   try {
     await backend.start();
-    installBackendHeader(backend);
-    installMediaPermissions(backend);
+    installDesktopSessionSecurity({
+      targetSession: session.defaultSession,
+      backend,
+      rendererOrigin: backend.baseUrl,
+      getMainWindow: () => mainWindow,
+    });
     registerRuntimeDependencyIpc(
       ipcMain,
       runtimeDependencies,

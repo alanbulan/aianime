@@ -8,7 +8,7 @@
   "main": "dist/main.js",
   "packageManager": "pnpm@11.24.0",
   "scripts": {
-    "build:main": "tsc -p tsconfig.json",
+    "build:main": "node scripts/clean-main-dist.mjs && tsc -p tsconfig.json",
     "build:renderer": "pnpm --dir ../frontend build:ce",
     "build:backend": "uv run --project .. --locked --group desktop pyinstaller --clean --noconfirm --distpath backend-dist --workpath .pyinstaller backend/ai_anime_backend.spec && node scripts/smoke-backend-runtime.mjs",
     "build:world-runtime": "uv run --project .. --locked --extra world --group desktop pyinstaller --clean --noconfirm --distpath world-runtime-dist --workpath .pyinstaller-world backend/ai_anime_world_runtime.spec && node scripts/smoke-world-runtime.mjs",

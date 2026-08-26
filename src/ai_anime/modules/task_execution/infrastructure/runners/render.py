@@ -665,6 +665,73 @@ async def _run_selected_regen_async(
         progress=0.15,
     )
 
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    updated_beats: list[int] = []
+    grid_paths: dict[int, str] = {}
+    grid_results: list[dict[str, Any]] = []
+    promoted_grid_indices: set[int] = set()
+
+    def promote_grid(
+        *,
+        grid_index: int,
+        result: Any,
+        grid_beat_slice: list[dict[str, Any]],
+        grid_beat_nums: list[int],
+        rows: int,
+        cols: int,
+    ) -> None:
+        if grid_index in promoted_grid_indices:
+            return
+        if not result.success or not result.grid_image_path:
+            return
+
+        save_kwargs = {
+            "grid_image_path": result.grid_image_path,
+            "episode_grids_dir": episode_grids_dir.as_posix(),
+            "grid_type": grid_type,
+            "mode_key": mode_key,
+            "beat_nums": grid_beat_nums,
+            "preset": "custom",
+            "rows": rows,
+            "cols": cols,
+            "ts": ts,
+            "promote_dir": str(promote_dir),
+            "force_promote": bool(config.get("promote_selected_regen", True)),
+        }
+        if is_sketch:
+            save_kwargs["beats"] = list(grid_beat_slice)
+            save_kwargs["sketch_colors"] = config.get("sketch_colors")
+        save_result = save_grid_and_split(**save_kwargs)
+        if grid_beat_nums:
+            rel_path = os.path.relpath(result.grid_image_path, output_dir)
+            grid_paths[grid_beat_nums[0]] = rel_path
+            grid_results.append(
+                {
+                    "first_beat": grid_beat_nums[0],
+                    "beat_nums": list(grid_beat_nums),
+                    "rel_path": rel_path,
+                }
+            )
+        for beat_number in grid_beat_nums[: len(save_result["cell_paths"])]:
+            if beat_number not in updated_beats:
+                updated_beats.append(beat_number)
+        promoted_grid_indices.add(grid_index)
+        log(
+            f"网格 {grid_index} 已即时入池："
+            f"{save_result['added']} 新增, {save_result['skipped']} 去重跳过"
+        )
+
+    def on_grid_completed(event: dict[str, Any]) -> None:
+        result = event["result"]
+        promote_grid(
+            grid_index=int(event["grid_index"]),
+            result=result,
+            grid_beat_slice=list(event["beats"]),
+            grid_beat_nums=[int(number) for number in event["beat_numbers"]],
+            rows=int(event["rows"]),
+            cols=int(event["cols"]),
+        )
+
     log(f"生成 {mode_key} {'草图' if is_sketch else '网格'}...", progress=0.2)
     results = await regenerate_selected_beats(
         selected_beats=selected_beats,
@@ -682,24 +749,14 @@ async def _run_selected_regen_async(
         max_attempts=2,
         resume_token=run_task_id,
         progress_callback=on_regeneration_progress,
+        grid_completed_callback=on_grid_completed,
         **force_kwargs,
     )
 
-    log("分割网格并更新图片池...", progress=0.7)
-    ts = datetime.now().strftime("%Y%m%d%H%M%S")
-    updated_beats: list[int] = []
-    grid_paths: dict[int, str] = {}
-    grid_results: list[dict[str, Any]] = []
+    log("检查批次生成结果...", progress=0.7)
     failed_errors: list[str] = []
     beat_offset = 0
-    for result in results:
-        if not result.success or not result.grid_image_path:
-            error_text = str(result.error or "unknown error")
-            failed_errors.append(error_text)
-            log(f"{'草图' if is_sketch else '网格'}生成失败: {error_text}")
-            beat_offset += result.beat_count or 0
-            continue
-
+    for grid_index, result in enumerate(results, start=1):
         rows = result.grid_rows or 1
         cols = result.grid_cols or 1
         beat_count = result.beat_count or (rows * cols)
@@ -714,39 +771,19 @@ async def _run_selected_regen_async(
             ]
         beat_offset += beat_count
 
-        if grid_beat_nums:
-            rel_path = os.path.relpath(result.grid_image_path, output_dir)
-            grid_paths[grid_beat_nums[0]] = rel_path
-            grid_results.append(
-                {
-                    "first_beat": grid_beat_nums[0],
-                    "beat_nums": list(grid_beat_nums),
-                    "rel_path": rel_path,
-                }
-            )
-
-        save_kwargs = {
-            "grid_image_path": result.grid_image_path,
-            "episode_grids_dir": episode_grids_dir.as_posix(),
-            "grid_type": grid_type,
-            "mode_key": mode_key,
-            "beat_nums": grid_beat_nums,
-            "preset": "custom",
-            "rows": rows,
-            "cols": cols,
-            "ts": ts,
-            "promote_dir": str(promote_dir),
-            "force_promote": True,
-        }
-        if not bool(config.get("promote_selected_regen", True)):
-            save_kwargs["force_promote"] = False
-        if is_sketch:
-            save_kwargs["beats"] = list(grid_beat_slice)
-            save_kwargs["sketch_colors"] = config.get("sketch_colors")
-        save_result = save_grid_and_split(**save_kwargs)
-        for bn in grid_beat_nums[: len(save_result["cell_paths"])]:
-            updated_beats.append(bn)
-        log(f"入池: {save_result['added']} 新增, {save_result['skipped']} 去重跳过")
+        if not result.success or not result.grid_image_path:
+            error_text = str(result.error or "unknown error")
+            failed_errors.append(error_text)
+            log(f"{'草图' if is_sketch else '网格'}生成失败: {error_text}")
+            continue
+        promote_grid(
+            grid_index=grid_index,
+            result=result,
+            grid_beat_slice=grid_beat_slice,
+            grid_beat_nums=grid_beat_nums,
+            rows=rows,
+            cols=cols,
+        )
 
     if failed_errors:
         label = "草图重生" if is_sketch else "Render 重生"
@@ -764,9 +801,12 @@ async def _run_selected_regen_async(
 
     result_payload = {
         "mode_key": mode_key,
-        "updated_beats": updated_beats,
+        "updated_beats": sorted(updated_beats),
         "grid_paths": grid_paths,
-        "grid_results": grid_results,
+        "grid_results": sorted(
+            grid_results,
+            key=lambda item: int(item["first_beat"]),
+        ),
     }
     log(f"✅ {'草图再生' if is_sketch else 'Render 再生'}完成！更新了 {len(updated_beats)} 个 beats", progress=1.0)
     return result_payload

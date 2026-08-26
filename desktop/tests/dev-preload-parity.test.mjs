@@ -63,5 +63,29 @@ test("development and packaged main processes share routing and runtime contract
     assert.match(source, /desktopSessionCookie\(origin,/);
     assert.match(source, /isAllowedExternalUrl\(url\)/);
     assert.match(source, /isSameOrigin\(url,/);
+    assert.match(source, /EncryptedFileCommercialRememberedLoginStore/);
+    assert.match(source, /leaseSigningKeys:\s*COMMERCIAL_LEASE_SIGNING_KEYS/);
+    assert.match(source, /devicePublicKeyHash:\s*device\.publicKeyHash/);
+    assert.match(source, /appendModelRouteAudit\(modelRouteLogPath, entry\)/);
+    assert.match(source, /installDesktopSessionSecurity\(\{/);
   }
+});
+
+test("both desktop modes use the shared response and media security policy", () => {
+  const security = readFileSync(
+    `${desktopRoot}/src/desktop-session-security.ts`,
+    "utf8",
+  );
+  const production = readFileSync(`${desktopRoot}/src/main.ts`, "utf8");
+  const development = readFileSync(`${desktopRoot}/scripts/dev.mjs`, "utf8");
+
+  assert.match(security, /Content-Security-Policy/);
+  assert.match(security, /X-Content-Type-Options/);
+  assert.match(security, /setPermissionCheckHandler/);
+  assert.match(security, /setPermissionRequestHandler/);
+  assert.match(security, /mediaTypes\?\.length === 1/);
+  assert.match(security, /mediaTypes\[0\] === "audio"/);
+  assert.match(development, /additionalScriptSources:/);
+  assert.match(development, /sha256-Z2\/iFzh9VMlVkEOar1f\/oSHWwQk3ve1qk\/C2WdsC4Xk=/);
+  assert.doesNotMatch(production, /additionalScriptSources:/);
 });

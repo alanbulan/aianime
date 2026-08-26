@@ -744,37 +744,103 @@ async def _ensure_sketches(
 ) -> list[Path]:
     from ai_anime.modules.production.public import (
         GenerateSketchesCommand,
+        RegenerateSelectedBeatsCommand,
+        SELECTED_SKETCH_REGEN_TASK_TYPE,
         SKETCH_GENERATION_TASK_TYPE,
+        SelectedRegenerationKind,
         sketch_generation_use_cases,
+        sketch_scene_grid_split,
+        selected_regeneration_use_cases,
     )
 
-    paths = [
-        PathResolver(context.output_dir, episode_num).sketch(number)
-        for number in _beat_numbers(beats)
-    ]
-    if not force and all(path.exists() for path in paths):
-        return paths
-    reporter.update(progress, f"第 {episode_num} 集生成全部草图")
-    scheduled = await sketch_generation_use_cases().generate(
-        context,
-        GenerateSketchesCommand(
-            episode_num=episode_num,
-            grid_index=-1,
-            sketch_scene_grouping=True,
-            aspect_ratio=aspect_ratio,
-            image_generation_selection=image_edit_model,
-        ),
-    )
-    tickets = [
-        _ChildTicket(
-            task_type=SKETCH_GENERATION_TASK_TYPE,
-            task_id=receipt.task_id,
-            label=f"第 {episode_num} 集草图网格 {receipt.grid_index}",
-            episode=episode_num,
-            scope=receipt.scope,
+    resolver = PathResolver(context.output_dir, episode_num)
+    sketch_plan = sketch_scene_grid_split(beats, aspect_ratio=aspect_ratio)
+    sketchable_numbers = list(
+        dict.fromkeys(
+            int(number)
+            for entry in sketch_plan
+            for number in entry.get("beat_numbers", ())
+            if int(number) > 0
         )
-        for receipt in scheduled.receipts
-    ]
+    )
+    paths = [resolver.sketch(number) for number in sketchable_numbers]
+    if not paths:
+        return paths
+
+    if force:
+        reporter.update(progress, f"第 {episode_num} 集重新生成全部草图")
+        scheduled = await sketch_generation_use_cases().generate(
+            context,
+            GenerateSketchesCommand(
+                episode_num=episode_num,
+                grid_index=-1,
+                sketch_scene_grouping=True,
+                aspect_ratio=aspect_ratio,
+                image_generation_selection=image_edit_model,
+            ),
+        )
+        tickets = [
+            _ChildTicket(
+                task_type=SKETCH_GENERATION_TASK_TYPE,
+                task_id=receipt.task_id,
+                label=f"第 {episode_num} 集草图网格 {receipt.grid_index}",
+                episode=episode_num,
+                scope=receipt.scope,
+            )
+            for receipt in scheduled.receipts
+        ]
+    else:
+        missing_numbers = [
+            number
+            for number in sketchable_numbers
+            if not resolver.sketch(number).exists()
+        ]
+        if not missing_numbers:
+            return paths
+
+        missing_set = set(missing_numbers)
+        missing_beats = [
+            beat
+            for beat in beats
+            if int(beat.get("beat_number") or 0) in missing_set
+        ]
+        missing_plan = [
+            entry
+            for entry in sketch_scene_grid_split(
+                missing_beats,
+                aspect_ratio=aspect_ratio,
+            )
+            if entry.get("beat_numbers")
+        ]
+        reporter.update(
+            progress,
+            f"第 {episode_num} 集补齐 {len(missing_numbers)} 个缺失草图",
+        )
+        tickets = []
+        for plan_index, entry in enumerate(missing_plan, start=1):
+            beat_numbers = tuple(int(number) for number in entry["beat_numbers"])
+            scheduled = await selected_regeneration_use_cases().regenerate(
+                context,
+                RegenerateSelectedBeatsCommand(
+                    kind=SelectedRegenerationKind.SKETCH,
+                    episode_num=episode_num,
+                    beat_indices=beat_numbers,
+                    mode_key=str(entry["mode_key"]),
+                    image_generation_selection=image_edit_model,
+                ),
+            )
+            tickets.append(
+                _ticket_from_scheduled(
+                    scheduled,
+                    label=(
+                        f"第 {episode_num} 集缺失草图批次 {plan_index}"
+                        f"（Beat {', '.join(str(number) for number in beat_numbers)}）"
+                    ),
+                    episode=episode_num,
+                    task_type=SELECTED_SKETCH_REGEN_TASK_TYPE,
+                )
+            )
+
     await asyncio.gather(
         *(
             _wait_ticket(context, ticket, timeout_seconds=timeout_seconds)

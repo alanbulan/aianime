@@ -5,11 +5,35 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  isRuntimeDependencyDownloadUrlAllowed,
   registerRuntimeDependencyIpc,
   RUNTIME_DEPENDENCY_CHANNELS,
   RuntimeDependencyManager,
   runtimeDependencyManifestUrl,
 } from "../src/runtime-dependencies.ts";
+
+test("runtime dependency downloads allow HTTPS and all loopback URL forms", () => {
+  assert.equal(
+    isRuntimeDependencyDownloadUrlAllowed("https://downloads.example/world.tar.gz"),
+    true,
+  );
+  assert.equal(
+    isRuntimeDependencyDownloadUrlAllowed("http://127.0.0.1:8080/world.tar.gz"),
+    true,
+  );
+  assert.equal(
+    isRuntimeDependencyDownloadUrlAllowed("http://localhost:8080/world.tar.gz"),
+    true,
+  );
+  assert.equal(
+    isRuntimeDependencyDownloadUrlAllowed("http://[::1]:8080/world.tar.gz"),
+    true,
+  );
+  assert.equal(
+    isRuntimeDependencyDownloadUrlAllowed("http://downloads.example/world.tar.gz"),
+    false,
+  );
+});
 
 function validRuntimeManifest() {
   return {

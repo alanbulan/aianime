@@ -17,7 +17,11 @@ import {
   type StoredCommercialModelAccess,
   type StoredByokProvider,
 } from "./commercial-model-access.js";
-import { CommercialApiClient, CommercialApiError } from "./commercial.js";
+import {
+  CommercialApiClient,
+  CommercialApiError,
+  isModelWriteMethod,
+} from "./commercial-api-client.js";
 
 const MAX_MODEL_JSON_BODY_BYTES = 4 * 1024 * 1024;
 const MAX_MODEL_MULTIPART_BODY_BYTES = 108 * 1024 * 1024;
@@ -336,7 +340,10 @@ export class CommercialModelProxy {
     for (let index = 0; index < input.routes.length; index += 1) {
       const route = input.routes[index];
       if (!route) continue;
-      for (let routeAttempt = 1; routeAttempt <= MAX_ROUTE_ATTEMPTS; routeAttempt += 1) {
+      const routeAttempts = isModelWriteMethod(input.method)
+        ? 1
+        : MAX_ROUTE_ATTEMPTS;
+      for (let routeAttempt = 1; routeAttempt <= routeAttempts; routeAttempt += 1) {
         totalAttempts += 1;
         try {
           const prepared = await prepareBodyForRoute(
@@ -354,7 +361,7 @@ export class CommercialModelProxy {
             : await responseErrorForRouteAudit(upstream);
           if (
             RETRYABLE_ROUTE_STATUSES.has(upstream.status) &&
-            routeAttempt < MAX_ROUTE_ATTEMPTS
+            routeAttempt < routeAttempts
           ) {
             this.auditRouteAttempt(
               route,
@@ -408,19 +415,22 @@ export class CommercialModelProxy {
             this.auditRouteAttempt(route, totalAttempts, undefined, "rejected", error);
             throw error;
           }
-          if (routeAttempt < MAX_ROUTE_ATTEMPTS) {
+          if (routeAttempt < routeAttempts) {
             this.auditRouteAttempt(route, totalAttempts, undefined, "retry", error);
             await wait(150 * routeAttempt, undefined, { signal: input.signal });
             continue;
           }
+          const canFallback =
+            !isModelWriteMethod(input.method) &&
+            index < input.routes.length - 1;
           this.auditRouteAttempt(
             route,
             totalAttempts,
             undefined,
-            index === input.routes.length - 1 ? "error" : "fallback",
+            canFallback ? "fallback" : "error",
             error,
           );
-          if (index === input.routes.length - 1) throw error;
+          if (!canFallback) throw error;
         }
       }
     }
@@ -472,6 +482,7 @@ export class CommercialModelProxy {
       ...(prepared.body === undefined ? {} : { body: prepared.body }),
       devicePublicKeyHash: device.publicKeyHash,
       signal: input.signal,
+      retryTransientFailures: false,
     });
   }
 
@@ -900,7 +911,10 @@ function openAiToAnthropicPayload(
   }
   const result: Record<string, unknown> = {
     model: modelId,
-    max_tokens: positiveNumber(payload.max_tokens ?? payload.max_completion_tokens, 4096),
+    max_tokens: positiveNumberOrFallback(
+      payload.max_tokens ?? payload.max_completion_tokens,
+      4096,
+    ),
     messages,
   };
   if (system.length > 0) result.system = system.join("\n\n");
@@ -969,7 +983,7 @@ function openAiToGeminiPayload(
     contents.push({ role: role === "assistant" ? "model" : "user", parts });
   }
   const generationConfig: Record<string, unknown> = {
-    maxOutputTokens: positiveNumber(
+    maxOutputTokens: positiveNumberOrFallback(
       payload.max_tokens ?? payload.max_completion_tokens,
       4096,
     ),
@@ -1462,7 +1476,7 @@ function parseJsonArguments(value: unknown): Record<string, unknown> {
   }
 }
 
-function positiveNumber(value: unknown, fallback: number): number {
+function positiveNumberOrFallback(value: unknown, fallback: number): number {
   const number = Number(value ?? fallback);
   return Number.isFinite(number) && number > 0 ? number : fallback;
 }
@@ -1709,10 +1723,6 @@ function shouldFallback(route: ModelRoute, status: number): boolean {
     return false;
   }
   return FALLBACK_STATUSES.has(status) || status >= 500;
-}
-
-function isModelWriteMethod(method: string): boolean {
-  return method !== "GET" && method !== "HEAD";
 }
 
 function assertModelResponseContract(path: string, response: Response): void {

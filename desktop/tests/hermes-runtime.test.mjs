@@ -45,6 +45,40 @@ test("runtime resolution requires both the ACP binary and managed assets", async
   }
 });
 
+test("packaged runtime resolution validates the bundled ACP binary and assets", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ai-anime-hermes-packaged-"));
+  const platform = process.platform;
+  const cliPath = packagedHermesCliPath(root, platform);
+  const assetsPath = join(root, "hermes-assets");
+  try {
+    await mkdir(dirname(cliPath), { recursive: true });
+    await writeFile(cliPath, "runtime");
+    assert.throws(
+      () =>
+        resolveHermesRuntimePaths({
+          packaged: true,
+          repositoryRoot: join(root, "unused-repo"),
+          resourcesPath: root,
+          platform,
+        }),
+      /Hermes Agent 工具资产缺失/,
+    );
+
+    await mkdir(assetsPath, { recursive: true });
+    assert.deepEqual(
+      resolveHermesRuntimePaths({
+        packaged: true,
+        repositoryRoot: join(root, "unused-repo"),
+        resourcesPath: root,
+        platform,
+      }),
+      { cliPath, assetsPath },
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("desktop packaging pins and bundles the isolated Hermes runtime", async () => {
   const runtimeProject = await readFile(
     new URL("../hermes-runtime/pyproject.toml", import.meta.url),
