@@ -5,17 +5,13 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .paths import beat_blocking_path, world_path
+from .paths import beat_blocking_path
 
 
 def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
-
-
-def load_world(project_dir: Path, scene_id: str) -> dict[str, Any] | None:
-    return _read_json(world_path(project_dir, scene_id))
 
 
 def load_beat_blocking(project_dir: Path, episode: int, beat_num: int) -> dict[str, Any] | None:

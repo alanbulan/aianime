@@ -342,9 +342,9 @@ def test_director_control_to_sketch_delegates_to_application(monkeypatch, tmp_pa
         )
 
     class ImageSettings:
-        def sketch_settings(self, username, project_name):
+        def resolve_project_sketch_selection(self, username, project_name):
             assert (username, project_name) == ("alice", "demo")
-            return {"sketch_image_selection": "sketch-model"}
+            return "sketch-model"
 
     status = DirectorControlFrameStatus(
         ready=True,
@@ -421,9 +421,9 @@ def test_director_control_to_sketch_rejects_missing_control_frame(
         )
 
     class ImageSettings:
-        def sketch_settings(self, username, project_name):
+        def resolve_project_sketch_selection(self, username, project_name):
             assert (username, project_name) == ("alice", "demo")
-            return {"sketch_image_selection": "sketch-model"}
+            return "sketch-model"
 
     status = DirectorControlFrameStatus(
         ready=False,

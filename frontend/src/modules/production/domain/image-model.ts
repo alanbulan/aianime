@@ -3,7 +3,7 @@ import {
   catalogRouteSelector,
   catalogRouteValue,
   resolveCatalogRouteSelection,
-} from "@/modules/model_usage/domain/catalog-route";
+} from "@/modules/model_usage/public";
 
 export interface ImageCatalogItem {
   code: string;

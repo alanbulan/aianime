@@ -7,7 +7,7 @@ import i18next from "i18next";
 import ky from "ky";
 import { http, HttpResponse } from "msw";
 
-// MSW 2 + ky 2 in jsdom: the global Request is replaced by an undici-backed
+// MSW 2 + ky 2 in the DOM test runtime: Request uses an undici-backed
 // implementation that requires an absolute URL, so the production `api` (which
 // uses `prefix: "/"` + relative inputs) throws `Failed to parse URL`. Inject a
 // test-only ky instance with an absolute `baseUrl` so requests reach MSW —
@@ -16,7 +16,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import {
   TaskCenterProvider,

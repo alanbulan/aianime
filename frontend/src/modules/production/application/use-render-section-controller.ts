@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useTaskController } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/shared/aspect-ratio";
-import { formatRelativeTime } from "@/lib/format-relative-time";
+import { formatCompactAge } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { queryKeys } from "@/lib/query-keys";
 import type {
@@ -454,7 +454,7 @@ export function createUseRenderSectionController(
           !isSeen &&
           !isActive,
         src: image.cell_url ? resolveMediaUrl(image.cell_url) : null,
-        timeLabel: formatRelativeTime(image.generated_at, now),
+        timeLabel: formatCompactAge(image.generated_at, now),
       };
     });
     const backgroundData =

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -159,16 +160,20 @@ async def test_schedules_script_generation_with_owned_payload() -> None:
 
 
 @pytest.mark.asyncio
-async def test_schedules_episode_planning_with_owned_payload() -> None:
+async def test_schedules_episode_planning_with_owned_payload(tmp_path: Path) -> None:
     scheduler = _Scheduler()
     service = ScheduleEpisodePlanning(scheduler)
+    output_dir = tmp_path / "output"
+    state_dir = tmp_path / "state"
+    output_dir.mkdir()
+    (output_dir / "novel.txt").write_text("测试小说正文", encoding="utf-8")
 
     scheduled = await service.execute(
         task_context=SimpleNamespace(project_id="project-1"),
         target_episodes=12,
         planning_mode="chapters",
-        output_dir="output",
-        state_dir="state",
+        output_dir=output_dir,
+        state_dir=state_dir,
     )
 
     assert scheduler.task.backend_payload() == {
@@ -176,8 +181,8 @@ async def test_schedules_episode_planning_with_owned_payload() -> None:
             "target_episodes": 12,
             "planning_mode": "chapters",
         },
-        "output_dir": "output",
-        "state_dir": "state",
+        "output_dir": str(output_dir),
+        "state_dir": str(state_dir),
     }
     assert scheduled.as_dict()["task_type"] == "build_episodes"
 

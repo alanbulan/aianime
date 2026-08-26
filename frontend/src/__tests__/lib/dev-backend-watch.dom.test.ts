@@ -65,7 +65,11 @@ describe("dev-backend-watch", () => {
       .mockResolvedValueOnce(configResponse("ee", "instance-b"))
       .mockResolvedValueOnce(configResponse("ce", "instance-c"));
     vi.stubGlobal("fetch", fetch);
-    vi.stubGlobal("location", { ...window.location, assign });
+    vi.stubGlobal("location", {
+      ...window.location,
+      pathname: window.location.pathname,
+      assign,
+    });
 
     const { initDevBackendWatch } = await import("@/lib/dev-backend-watch");
     const teardown = initDevBackendWatch();
@@ -134,7 +138,11 @@ describe("dev-backend-watch", () => {
       .mockResolvedValueOnce(configResponse("ee", "instance-b"))
       .mockResolvedValueOnce(configResponse("ee", "instance-b"));
     vi.stubGlobal("fetch", fetch);
-    vi.stubGlobal("location", { ...window.location, assign });
+    vi.stubGlobal("location", {
+      ...window.location,
+      pathname: window.location.pathname,
+      assign,
+    });
 
     const { initDevBackendWatch } = await import("@/lib/dev-backend-watch");
     const teardown = initDevBackendWatch();

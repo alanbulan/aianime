@@ -20,6 +20,9 @@ class StartIngestionCommand:
     filename: str
     rebuild: bool = False
     spine_template: SpineTemplate | None = None
+    visual_style: str | None = None
+    narration_style: str | None = None
+    ethnicity: str | None = None
 
 
 @dataclass(frozen=True)

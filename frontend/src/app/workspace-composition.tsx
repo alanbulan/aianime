@@ -4,8 +4,13 @@ import { createElement, type ReactNode } from "react";
 import {
   CharactersPageContent as AssetCharactersPageContent,
   type AssetWorldCanvasNavigation,
+  type AssetWorldVoiceCatalog,
 } from "@/modules/asset_world/public";
-import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
+import {
+  designCanvasAudioVoice,
+  loadCanvasAudioReferences,
+  openPresetProjectionInMyCanvas,
+} from "@/modules/creative_canvas/public";
 import {
   useBeatsPageController,
   useEpisodeListItemController,
@@ -44,6 +49,24 @@ const assetWorldCanvasNavigation: AssetWorldCanvasNavigation = {
   },
 };
 
+const assetWorldVoiceCatalog: AssetWorldVoiceCatalog = {
+  async loadVoiceOptions(project) {
+    const references = await loadCanvasAudioReferences(project);
+    return references.flatMap((reference) => {
+      const voiceId = reference.ref.voiceId?.trim();
+      if (reference.ref.scope !== "user_custom" || !voiceId) return [];
+      return [
+        {
+          voiceId,
+          label: reference.label?.trim() || voiceId,
+          previewUrl: reference.previewUrl,
+        },
+      ];
+    });
+  },
+  designVoice: designCanvasAudioVoice,
+};
+
 export function CharactersPageContent({ project }: { project: string }) {
   return createElement(AssetCharactersPageContent, {
     canvasNavigation: assetWorldCanvasNavigation,
@@ -53,6 +76,7 @@ export function CharactersPageContent({ project }: { project: string }) {
         allowFirstPersonProjectVoice: true,
         project: voiceProject,
       }),
+    voiceCatalog: assetWorldVoiceCatalog,
   });
 }
 

@@ -24,7 +24,7 @@ function datePrefix(d: Date = new Date()): string {
 //      so dev mode no longer shows a stale hardcoded value.
 //   3. the nearest git tag (`git describe --tags --abbrev=0`) as a fallback.
 //   4. DEFAULT_APP_VERSION — last resort for a git-less build (source tarball).
-const DEFAULT_APP_VERSION = "1.1.61";
+const DEFAULT_APP_VERSION = "1.1.62";
 
 function resolveAppVersion(): string {
   if (process.env.VITE_APP_VERSION) return process.env.VITE_APP_VERSION;
@@ -100,14 +100,18 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(import.meta.dirname, "./src"),
+        "node:worker_threads": path.resolve(
+          import.meta.dirname,
+          "./src/shared/platform/worker-threads-browser.ts",
+        ),
       },
     },
     // Split heavy shared deps out of the main chunk so the initial payload is
     // mostly app code; vendor bundles cache across deploys.
     build: {
       emptyOutDir: true,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
           manualChunks(id) {
             if (!id.includes("node_modules")) return;

@@ -378,23 +378,25 @@ def _iter_freezone_dirs(source_dir: Path) -> list[Path]:
         followlinks=False,
     ):
         current_path = Path(current)
-        symlink_directories = {
-            name for name in directory_names if (current_path / name).is_symlink()
+        linked_directories = {
+            name
+            for name in directory_names
+            if _is_directory_link(current_path / name)
         }
         hot_directory_names = {name for name, _ in _HOT_STATE_SPECS if name}
-        unsafe_symlinks = {
+        unsafe_links = {
             name
-            for name in symlink_directories
+            for name in linked_directories
             if name == "freezone"
             or (current_path.name == "freezone" and name in hot_directory_names)
         }
-        if unsafe_symlinks:
+        if unsafe_links:
             raise HotSnapshotError(
-                "hot-state directory is a symlink: "
-                f"{current_path / sorted(unsafe_symlinks)[0]}"
+                "hot-state directory is a symlink or junction: "
+                f"{current_path / sorted(unsafe_links)[0]}"
             )
         directory_names[:] = sorted(
-            name for name in directory_names if name not in symlink_directories
+            name for name in directory_names if name not in linked_directories
         )
         if current_path.name != "freezone":
             continue
@@ -403,6 +405,11 @@ def _iter_freezone_dirs(source_dir: Path) -> list[Path]:
         # avoids walking large media/history trees just to discover snapshot roots.
         directory_names[:] = []
     return sorted(freezone_dirs)
+
+
+def _is_directory_link(path: Path) -> bool:
+    is_junction = getattr(path, "is_junction", None)
+    return path.is_symlink() or bool(is_junction and is_junction())
 
 
 def _hot_state_inventory(source_dir: Path) -> HotStateInventory:

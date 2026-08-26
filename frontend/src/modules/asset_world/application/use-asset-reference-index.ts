@@ -1,144 +1,39 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
-import {
-  episodeBeatsQueryOptions,
-  episodesQueryOptions,
-} from "@/modules/narrative_planning/public";
+import type { AssetReferenceGateway } from "@/modules/asset_world/application/asset-reference-gateway";
 import type {
   AssetReferenceIndex,
   AssetRefType,
   BeatReference,
   SceneCoOccurrence,
 } from "@/modules/asset_world/domain/character";
+import { queryKeys } from "@/lib/query-keys";
 
-/**
- * Client-side cross-asset reference index.
- *
- * The backend does not (yet) expose `GET /assets/{type}/{id}/references`, so we
- * derive "which beats use this asset" on the FE from data already present on
- * each beat:
- *   - identities → `beat.detected_identities` (matched by `identity_id`)
- *   - props      → `beat.detected_props` (sketch color-bound) UNION the
- *                  `[[prop]]` markers inside `beat.visual_description`
- *                  (matched by prop `name`)
- *   - scenes     → `beat.scene_ref.scene_id`  (matched by scene `name`)
- *
- * Props have two carriers: a prop is "in" a beat when it is either color-bound
- * on the sketch (`detected_props`) OR marked inline in the visual description
- * as `[[name]]` — the sketch workbench renders both, so the reverse index must
- * count both, otherwise a prop referenced only via the text marker (never
- * color-bound) would show zero beats.
- *
- * Matching caveat: identity matching is exact (`detected_identities` carries
- * `identity_id`). Prop/scene ids are assumed to equal the asset `name`; if the
- * backend later diverges (slug vs name), swap the key builders below. Once the
- * backend ships a references endpoint, replace the aggregation here and keep
- * the public shape.
- */
+const EMPTY_REFERENCES: BeatReference[] = [];
+const EMPTY_CO_OCCURRENCE: SceneCoOccurrence = { identities: [], props: [] };
 
-function refKey(type: AssetRefType, id: string): string {
-  return `${type}:${id}`;
-}
-
-const EMPTY: BeatReference[] = [];
-const EMPTY_CO: SceneCoOccurrence = { identities: [], props: [] };
-
-/** Inline `[[prop]]` markers inside a beat's visual description. */
-function extractMarkedProps(visualDescription: string): string[] {
-  const out: string[] = [];
-  for (const m of visualDescription.matchAll(/\[\[([^\]]+)\]\]/g)) {
-    const id = (m[1] ?? "").trim();
-    if (id) out.push(id);
-  }
-  return out;
-}
-
-export function useAssetReferenceIndex(project: string): AssetReferenceIndex {
-  const episodesRes = useQuery({
-    ...episodesQueryOptions(project),
-    enabled: !!project,
-  });
-
-  const episodeNumbers = useMemo(
-    () => (episodesRes.data?.data ?? []).map((e) => e.number),
-    [episodesRes.data?.data],
-  );
-
-  const beatQueries = useQueries({
-    queries: episodeNumbers.map((episode) => ({
-      ...episodeBeatsQueryOptions(project, episode),
-      enabled: !!project && episode > 0,
-    })),
-  });
-
-  const isLoading =
-    episodesRes.isLoading || beatQueries.some((q) => q.isLoading);
-
-  // Stable, fixed-shape dependency: the deps array length must not vary across
-  // renders, so collapse all per-episode query freshness into one signature.
-  const dataSignature = beatQueries
-    .map((q) => q.dataUpdatedAt)
-    .join(",");
-  const beatsByEpisode = beatQueries.map((q) => q.data?.data);
-
-  const { map, sceneCo } = useMemo(() => {
-    const acc = new Map<string, BeatReference[]>();
-    const co = new Map<string, { identities: Set<string>; props: Set<string> }>();
-    const push = (key: string, ref: BeatReference) => {
-      const prev = acc.get(key);
-      if (prev) prev.push(ref);
-      else acc.set(key, [ref]);
-    };
-    beatsByEpisode.forEach((beats, i) => {
-      const episode = episodeNumbers[i];
-      if (!beats) return;
-      for (const beat of beats) {
-        const ref: BeatReference = { episode, beatNumber: beat.beat_number };
-        const beatIdentities = beat.detected_identities ?? [];
-        const beatProps = [
-          ...new Set([
-            ...(beat.detected_props ?? []),
-            ...extractMarkedProps(beat.visual_description ?? ""),
-          ]),
-        ];
-        for (const id of beatIdentities) {
-          push(refKey("identity", id), ref);
-        }
-        for (const id of beatProps) {
-          push(refKey("prop", id), ref);
-        }
-        const sceneId = beat.scene_ref?.scene_id;
-        if (sceneId) {
-          push(refKey("scene", sceneId), ref);
-          let bucket = co.get(sceneId);
-          if (!bucket) {
-            bucket = { identities: new Set(), props: new Set() };
-            co.set(sceneId, bucket);
-          }
-          for (const id of beatIdentities) bucket.identities.add(id);
-          for (const id of beatProps) bucket.props.add(id);
-        }
-      }
+export function createUseAssetReferenceIndex(gateway: AssetReferenceGateway) {
+  return function useAssetReferenceIndex(project: string): AssetReferenceIndex {
+    const query = useQuery({
+      queryKey: queryKeys.assetReferences(project),
+      queryFn: ({ signal }) => gateway.loadIndex(project, signal),
+      enabled: Boolean(project),
     });
-    return { map: acc, sceneCo: co };
-  }, [episodeNumbers, dataSignature]);
+    const snapshot = query.data?.data;
 
-  return useMemo(
-    () => ({
-      referencesFor: (type, id) => map.get(refKey(type, id)) ?? EMPTY,
-      countFor: (type, id) => map.get(refKey(type, id))?.length ?? 0,
-      coOccurrenceForScene: (sceneId) => {
-        const bucket = sceneCo.get(sceneId);
-        if (!bucket) return EMPTY_CO;
-        return {
-          identities: [...bucket.identities].sort((a, b) => a.localeCompare(b)),
-          props: [...bucket.props].sort((a, b) => a.localeCompare(b)),
-        };
-      },
-      isLoading,
-    }),
-    [map, sceneCo, isLoading],
-  );
+    return useMemo(
+      () => ({
+        referencesFor: (type: AssetRefType, id: string) =>
+          snapshot?.references[type]?.[id] ?? EMPTY_REFERENCES,
+        countFor: (type: AssetRefType, id: string) =>
+          snapshot?.references[type]?.[id]?.length ?? 0,
+        coOccurrenceForScene: (sceneId: string) =>
+          snapshot?.sceneCoOccurrences[sceneId] ?? EMPTY_CO_OCCURRENCE,
+        isLoading: query.isLoading,
+      }),
+      [query.isLoading, snapshot],
+    );
+  };
 }

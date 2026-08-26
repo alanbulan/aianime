@@ -53,6 +53,8 @@ def ensure_bootstrap() -> None:
             "有控制面 DSN 即 EE,声明 CE 即应无 DSN——请二选一"
         )
     if dsn:
+        # A separately installed EE distribution owns this entry-point group;
+        # the CE package intentionally does not declare a local provider.
         for ep in entry_points(group="ai_anime.ports_bootstrap"):
             ep.load()()
         missing = [name for name in _EE_REQUIRED_PORTS if name not in _PORTS]

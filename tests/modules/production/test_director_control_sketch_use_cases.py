@@ -98,9 +98,10 @@ async def test_generate_director_control_sketch_schedules_existing_frame(
         "episode": 2,
         "beat_num": 3,
         "output_dir": str(tmp_path),
-        "state_dir": str(tmp_path / "state"),
-        "model": "sketch-image-sku",
-    }
+            "state_dir": str(tmp_path / "state"),
+            "model": "sketch-image-sku",
+            "model_selector": "",
+        }
     assert scheduled.as_dict() == {
         "task_type": "sketch_generation",
         "scope": "director_control_to_sketch:ep002:beat_03",

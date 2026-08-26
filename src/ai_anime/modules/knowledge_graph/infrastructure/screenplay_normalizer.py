@@ -160,7 +160,7 @@ def _create_screenplay_normalizer_agent():
             "low",
         ),
         output_type=NormalizedScreenplay,
-        output_retries=2,
+        retries={"output": 2},
         name="剧本标准化分析师",
     )
 

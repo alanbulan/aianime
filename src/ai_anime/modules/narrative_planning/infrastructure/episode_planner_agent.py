@@ -169,7 +169,7 @@ def create_episode_planner_agent(tools: List[Callable]) -> Agent:
         system_prompt=EPISODE_PLANNER_PROMPT,
         tools=tools,
         output_type=EpisodePlannerOutput,
-        output_retries=3,
+        retries={"output": 3},
         name="剧集规划师",
     )
 
@@ -427,20 +427,3 @@ class EpisodePlannerAgent:
 
         log(f"旧方案完成: {len(episodes)} 集")
         return episodes
-
-
-# =============================================================================
-# 工厂函数
-# =============================================================================
-
-
-def create_episode_planner(store: "CogneeStore") -> EpisodePlannerAgent:
-    """创建剧集规划 Agent。
-
-    Args:
-        store: CogneeStore 实例
-
-    Returns:
-        EpisodePlannerAgent 实例
-    """
-    return EpisodePlannerAgent(store)

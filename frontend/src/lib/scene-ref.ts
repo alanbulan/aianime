@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { STANDARD_TIME_OF_DAY_OPTIONS } from "@/lib/time-of-day";
 
-export interface SceneRefLike {
+interface SceneRefLike {
   scene_id?: string | null;
   variant_id?: string | null;
 }

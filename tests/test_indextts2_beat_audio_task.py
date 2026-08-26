@@ -33,7 +33,9 @@ class FakeGenerator:
             return TTSResult(success=False, error=f"failed beat {beat_num}")
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_bytes(f"audio-{beat_num}".encode())
-        return TTSResult(success=True, audio_path=str(output_path), duration_seconds=1.0)
+        return TTSResult(
+            success=True, audio_path=str(output_path), duration_seconds=1.0
+        )
 
 
 class InsufficientCreditGenerator:
@@ -55,13 +57,18 @@ class FakeStore:
         return list(self._beats)
 
     async def list_characters(self):
-        from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
+        from ai_anime.modules.asset_world.public import (
+            CharacterIdentity,
+            NovelCharacter,
+        )
 
         project_dir = Path(self.project_dir)
         reference_audio_path = ""
         reference_audio_sha256 = ""
         if self.include_dialogue_voice:
-            character_voice = project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
+            character_voice = (
+                project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
+            )
             character_voice.parent.mkdir(parents=True, exist_ok=True)
             character_voice.write_bytes(b"character-reference")
             reference_audio_path = "assets/characters/谢铮/voice_sample.wav"
@@ -78,6 +85,7 @@ class FakeStore:
                 identity_id="谢铮_青年时期",
                 character_name="谢铮",
                 identity_name="青年时期",
+                age_group="youth",
                 reference_audio_path="",
             )
         ]
@@ -119,12 +127,17 @@ def _beat_uploaded_narration(upload_path: Path) -> dict:
         "audio_type": "narration",
         "speaker": "",
         "narration_segment": "画外音响起。",
-        "seedance2_config_json": json.dumps({"reference_audio_paths": [str(upload_path)]}),
+        "seedance2_config_json": json.dumps(
+            {"reference_audio_paths": [str(upload_path)]}
+        ),
     }
 
 
 def _write_project_narrator(tmp_path, project_dir, monkeypatch):
-    from ai_anime.modules.project_workspace.infrastructure.project_config import set_narrator_reference_audio, update_project_config_file
+    from ai_anime.modules.project_workspace.infrastructure.project_config import (
+        set_narrator_reference_audio,
+        update_project_config_file,
+    )
 
     narrator = project_dir / "assets" / "narrator" / "voice.wav"
     narrator.parent.mkdir(parents=True, exist_ok=True)
@@ -152,7 +165,9 @@ def _write_project_template(tmp_path, monkeypatch, *, spine_template: str) -> No
         "ai_anime.modules.project_workspace.infrastructure.project_config.STATE_DIR",
         tmp_path / "state",
     )
-    from ai_anime.modules.project_workspace.infrastructure.project_config import update_project_config_file
+    from ai_anime.modules.project_workspace.infrastructure.project_config import (
+        update_project_config_file,
+    )
 
     update_project_config_file(
         "alice",
@@ -168,7 +183,9 @@ def _text_sha256(text: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_path, monkeypatch):
+async def test_indextts2_selected_runner_generates_narration_and_dialogue(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -198,7 +215,10 @@ async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_pa
     assert result.failed == []
     assert result.generated_beats == [1, 2]
     assert [call["beat"] for call in generator.calls] == [1, 2]
-    assert generator.calls[0]["emotion_prompt"] == "以第三人称旁白视角，用客观冷静的解说语气朗读"
+    assert (
+        generator.calls[0]["emotion_prompt"]
+        == "以第三人称旁白视角，用客观冷静的解说语气朗读"
+    )
     assert (project_dir / "audio" / "ep001" / "beat_01.mp3").read_bytes() == b"audio-1"
     assert (project_dir / "audio" / "ep001" / "beat_02.mp3").read_bytes() == b"audio-2"
 
@@ -216,16 +236,16 @@ async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_pa
         ).fetchall()
     assert rows == [
         (
-                "commercial",
-                "audio-speech-test",
+            "commercial",
+            "audio-speech-test",
             "audio_generation_indextts2",
             "ep001:beat_01:__narrator__",
             1,
             "completed",
         ),
         (
-                "commercial",
-                "audio-speech-test",
+            "commercial",
+            "audio-speech-test",
             "audio_generation_indextts2",
             "ep001:beat_02:谢铮_青年时期",
             1,
@@ -235,7 +255,9 @@ async def test_indextts2_selected_runner_generates_narration_and_dialogue(tmp_pa
 
 
 @pytest.mark.asyncio
-async def test_indextts2_runner_generates_manual_narration_and_dialogue(tmp_path, monkeypatch):
+async def test_indextts2_runner_generates_manual_narration_and_dialogue(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -291,7 +313,9 @@ async def test_indextts2_runner_generates_manual_narration_and_dialogue(tmp_path
 
 
 @pytest.mark.asyncio
-async def test_indextts2_runner_treats_missing_audio_type_as_narration(tmp_path, monkeypatch):
+async def test_indextts2_runner_treats_missing_audio_type_as_narration(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -341,10 +365,14 @@ async def test_indextts2_drama_narration_uses_beat_uploaded_audio_before_project
     project_dir = tmp_path / "output" / "alice" / "demo"
     state_dir = tmp_path / "state" / "alice" / "demo"
     _write_project_template(tmp_path, monkeypatch, spine_template="drama")
-    uploaded_voice = project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "voice.wav"
+    uploaded_voice = (
+        project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "voice.wav"
+    )
     uploaded_voice.parent.mkdir(parents=True, exist_ok=True)
     uploaded_voice.write_bytes(b"beat-uploaded-voice")
-    store = FakeStore(project_dir, state_dir / "data.db", [_beat_uploaded_narration(uploaded_voice)])
+    store = FakeStore(
+        project_dir, state_dir / "data.db", [_beat_uploaded_narration(uploaded_voice)]
+    )
 
     errors = await collect_indextts2_voice_prereq_errors(
         store=store,
@@ -384,10 +412,14 @@ async def test_indextts2_narrated_project_ignores_beat_uploaded_narration_voice(
     project_dir = tmp_path / "output" / "alice" / "demo"
     state_dir = tmp_path / "state" / "alice" / "demo"
     _write_project_template(tmp_path, monkeypatch, spine_template="narrated")
-    uploaded_voice = project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "voice.wav"
+    uploaded_voice = (
+        project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "voice.wav"
+    )
     uploaded_voice.parent.mkdir(parents=True, exist_ok=True)
     uploaded_voice.write_bytes(b"beat-uploaded-voice")
-    store = FakeStore(project_dir, state_dir / "data.db", [_beat_uploaded_narration(uploaded_voice)])
+    store = FakeStore(
+        project_dir, state_dir / "data.db", [_beat_uploaded_narration(uploaded_voice)]
+    )
 
     errors = await collect_indextts2_voice_prereq_errors(
         store=store,
@@ -398,7 +430,10 @@ async def test_indextts2_narrated_project_ignores_beat_uploaded_narration_voice(
         mode="redo_selected",
     )
 
-    assert errors == ["Beat 01 解说声线缺失：项目解说人声线未配置，请上传或录制解说人音频"]
+    assert errors == [
+        "Beat 01 解说声线缺失：项目解说人声线未配置，"
+        "请通过文字设计、已有声线、上传或录制完成配置"
+    ]
 
 
 @pytest.mark.asyncio
@@ -408,7 +443,9 @@ async def test_indextts2_drama_narration_ignores_first_person_protagonist_for_fa
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
-    from ai_anime.modules.project_workspace.infrastructure.project_config import update_project_config_file
+    from ai_anime.modules.project_workspace.infrastructure.project_config import (
+        update_project_config_file,
+    )
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     state_dir = tmp_path / "state" / "alice" / "demo"
@@ -450,7 +487,9 @@ async def test_indextts2_drama_narration_ignores_first_person_protagonist_for_fa
 
 
 @pytest.mark.asyncio
-async def test_indextts2_runner_treats_legacy_action_audio_type_as_silence(tmp_path, monkeypatch):
+async def test_indextts2_runner_treats_legacy_action_audio_type_as_silence(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -531,7 +570,9 @@ async def test_indextts2_runner_skips_silence_audio_type(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_indextts2_selected_runner_missing_only_skips_existing(tmp_path, monkeypatch):
+async def test_indextts2_selected_runner_missing_only_skips_existing(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -564,7 +605,9 @@ async def test_indextts2_selected_runner_missing_only_skips_existing(tmp_path, m
 
 
 @pytest.mark.asyncio
-async def test_indextts2_sync_changed_skips_current_existing_audio(tmp_path, monkeypatch):
+async def test_indextts2_sync_changed_skips_current_existing_audio(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -619,7 +662,10 @@ async def test_indextts2_runner_logs_skipped_breakdown(tmp_path, monkeypatch):
     from ai_anime.modules.production.infrastructure.seedance2_voice_records import (
         upsert_seedance2_voice_audio_record,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_voice import NARRATOR_SPEAKER, file_sha256
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        NARRATOR_SPEAKER,
+        file_sha256,
+    )
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     state_dir = tmp_path / "state" / "alice" / "demo"
@@ -669,7 +715,9 @@ async def test_indextts2_runner_logs_skipped_breakdown(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_indextts2_sync_changed_regenerates_when_text_hash_changes(tmp_path, monkeypatch):
+async def test_indextts2_sync_changed_regenerates_when_text_hash_changes(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -726,7 +774,9 @@ async def test_indextts2_sync_changed_regenerates_when_text_hash_changes(tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_indextts2_selected_runner_records_missing_voice_and_continues(tmp_path, monkeypatch):
+async def test_indextts2_selected_runner_records_missing_voice_and_continues(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -765,7 +815,7 @@ async def test_indextts2_voice_prereq_check_reports_missing_dialogue_before_task
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
-        collect_indextts2_voice_prereq_errors,
+        build_indextts2_audio_generation_plan,
     )
 
     project_dir = tmp_path / "output" / "alice" / "demo"
@@ -778,7 +828,7 @@ async def test_indextts2_voice_prereq_check_reports_missing_dialogue_before_task
         include_dialogue_voice=False,
     )
 
-    errors = await collect_indextts2_voice_prereq_errors(
+    plan = await build_indextts2_audio_generation_plan(
         store=store,
         username="alice",
         project="demo",
@@ -787,7 +837,14 @@ async def test_indextts2_voice_prereq_check_reports_missing_dialogue_before_task
         mode="redo_selected",
     )
 
-    assert errors == ["Beat 02 角色声线缺失：谢铮_青年时期"]
+    assert plan.errors == ["Beat 02 角色声线缺失：谢铮_青年时期"]
+    assert len(plan.voice_requirements) == 1
+    requirement = plan.voice_requirements[0]
+    assert requirement.target == "character_slot"
+    assert requirement.character_name == "谢铮"
+    assert requirement.slot == "youth"
+    assert requirement.identity_id == "谢铮_青年时期"
+    assert requirement.preview_text == "走。"
 
 
 @pytest.mark.asyncio
@@ -804,7 +861,9 @@ async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task
         "ai_anime.modules.project_workspace.infrastructure.project_config.STATE_DIR",
         tmp_path / "state",
     )
-    from ai_anime.modules.project_workspace.infrastructure.project_config import update_project_config_file
+    from ai_anime.modules.project_workspace.infrastructure.project_config import (
+        update_project_config_file,
+    )
 
     update_project_config_file(
         "alice",
@@ -832,8 +891,14 @@ async def test_indextts2_voice_prereq_check_reports_missing_narrator_before_task
     )
 
     assert plan.errors == [
-        "Beat 01 解说声线缺失：项目解说人声线未配置，请上传或录制解说人音频"
+        "Beat 01 解说声线缺失：项目解说人声线未配置，"
+        "请通过文字设计、已有声线、上传或录制完成配置"
     ]
+    assert len(plan.voice_requirements) == 1
+    requirement = plan.voice_requirements[0]
+    assert requirement.target == "project_narrator"
+    assert requirement.key == "project:narrator"
+    assert requirement.preview_text == "旁白开场。"
     assert plan.beat_numbers == []
     assert plan.billable_chars == 0
 
@@ -866,7 +931,9 @@ async def test_indextts2_voice_prereq_check_skips_existing_in_missing_only(
 
 
 @pytest.mark.asyncio
-async def test_indextts2_selected_runner_records_generator_failure(tmp_path, monkeypatch):
+async def test_indextts2_selected_runner_records_generator_failure(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )
@@ -912,7 +979,9 @@ async def test_indextts2_selected_runner_records_generator_failure(tmp_path, mon
 
 
 @pytest.mark.asyncio
-async def test_indextts2_selected_runner_reraises_insufficient_credit(tmp_path, monkeypatch):
+async def test_indextts2_selected_runner_reraises_insufficient_credit(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
         run_indextts2_beat_audio_generation,
     )

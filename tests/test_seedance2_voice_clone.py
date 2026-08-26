@@ -34,7 +34,9 @@ class _FakeGenerator:
         )
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_bytes(b"beat-audio")
-        return TTSResult(success=True, audio_path=str(output_path), duration_seconds=1.25)
+        return TTSResult(
+            success=True, audio_path=str(output_path), duration_seconds=1.25
+        )
 
 
 def _characters():
@@ -72,7 +74,9 @@ def test_dialogue_text_keeps_plain_dialogue_without_quotes():
 
 
 def test_dialogue_emotion_prompt_extracts_attribution_outside_quote():
-    from ai_anime.modules.production.infrastructure.seedance2_voice import dialogue_emotion_prompt
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        dialogue_emotion_prompt,
+    )
 
     assert (
         dialogue_emotion_prompt(
@@ -83,7 +87,9 @@ def test_dialogue_emotion_prompt_extracts_attribution_outside_quote():
 
 
 def test_dialogue_emotion_prompt_extracts_trailing_attribution():
-    from ai_anime.modules.production.infrastructure.seedance2_voice import dialogue_emotion_prompt
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        dialogue_emotion_prompt,
+    )
 
     assert (
         dialogue_emotion_prompt({"narration_segment": "“别走！”她哽咽着说。"})
@@ -92,26 +98,40 @@ def test_dialogue_emotion_prompt_extracts_trailing_attribution():
 
 
 def test_dialogue_emotion_prompt_ignores_plain_dialogue_without_quotes():
-    from ai_anime.modules.production.infrastructure.seedance2_voice import dialogue_emotion_prompt
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        dialogue_emotion_prompt,
+    )
 
     assert dialogue_emotion_prompt({"narration_segment": "你终于来了。"}) == ""
 
 
 def test_seedance2_audio_type_normalizes_legacy_action_to_silence():
-    from ai_anime.modules.production.infrastructure.seedance2_voice import normalize_seedance2_audio_type
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        normalize_seedance2_audio_type,
+    )
 
-    assert normalize_seedance2_audio_type({"audio_type": "action", "speaker": ""}) == "silence"
+    assert (
+        normalize_seedance2_audio_type({"audio_type": "action", "speaker": ""})
+        == "silence"
+    )
 
 
 def test_seedance2_audio_type_preserves_silence():
-    from ai_anime.modules.production.infrastructure.seedance2_voice import normalize_seedance2_audio_type
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        normalize_seedance2_audio_type,
+    )
 
-    assert normalize_seedance2_audio_type({"audio_type": "silence", "speaker": ""}) == "silence"
+    assert (
+        normalize_seedance2_audio_type({"audio_type": "silence", "speaker": ""})
+        == "silence"
+    )
 
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_uses_identity_reference_before_character(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     project_dir = tmp_path / "project"
     identity_reference = (
@@ -122,7 +142,9 @@ async def test_seedance2_voice_clone_uses_identity_reference_before_character(tm
         / "identities"
         / "幼年时期_voice.wav"
     )
-    character_reference = project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
+    character_reference = (
+        project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
+    )
     identity_reference.parent.mkdir(parents=True)
     character_reference.parent.mkdir(parents=True, exist_ok=True)
     identity_reference.write_bytes(b"identity")
@@ -147,12 +169,16 @@ async def test_seedance2_voice_clone_uses_identity_reference_before_character(tm
             "emotion_prompt": "",
         }
     ]
-    assert (project_dir / "audio" / "ep001" / "beat_03.mp3").read_bytes() == b"beat-audio"
+    assert (
+        project_dir / "audio" / "ep001" / "beat_03.mp3"
+    ).read_bytes() == b"beat-audio"
 
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_sends_only_spoken_text_to_fal(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     project_dir = tmp_path / "project"
     identity_reference = (
@@ -188,10 +214,14 @@ async def test_seedance2_voice_clone_sends_only_spoken_text_to_fal(tmp_path):
 async def test_seedance2_voice_clone_falls_back_to_character_default(tmp_path):
     """L3: 当变体没有覆盖、没有匹配的时期预设时，应使用角色默认声线。"""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     project_dir = tmp_path / "project"
-    character_reference = project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
+    character_reference = (
+        project_dir / "assets" / "characters" / "谢铮" / "voice_sample.wav"
+    )
     character_reference.parent.mkdir(parents=True)
     character_reference.write_bytes(b"character")
     character = NovelCharacter(
@@ -219,7 +249,9 @@ async def test_seedance2_voice_clone_falls_back_to_character_default(tmp_path):
     )
 
     assert result is not None and result.success
-    assert generator.calls and generator.calls[0]["audio_url"].endswith("voice_sample.wav")
+    assert generator.calls and generator.calls[0]["audio_url"].endswith(
+        "voice_sample.wav"
+    )
 
 
 @pytest.mark.asyncio
@@ -227,7 +259,9 @@ async def test_seedance2_voice_clone_loads_default_identity_voice_file_when_path
     tmp_path,
 ):
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     project_dir = tmp_path / "project"
     identity_reference = (
@@ -268,7 +302,9 @@ async def test_seedance2_voice_clone_loads_default_identity_voice_file_when_path
 async def test_seedance2_voice_clone_uses_age_group_preset(tmp_path):
     """L2: 当变体有 age_group 且角色有对应时期声线时，应使用该声线（非角色默认）。"""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     project_dir = tmp_path / "project"
     default_audio = project_dir / "audio" / "default.wav"
@@ -313,7 +349,9 @@ async def test_seedance2_voice_clone_uses_age_group_preset(tmp_path):
 async def test_seedance2_voice_clone_styling_variant_uses_character_default(tmp_path):
     """无 age_group 的造型变体（总裁/家居）应共用角色默认声线。"""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     project_dir = tmp_path / "project"
     default_audio = project_dir / "audio" / "default.wav"
@@ -350,7 +388,9 @@ async def test_seedance2_voice_clone_styling_variant_uses_character_default(tmp_
 
 @pytest.mark.asyncio
 async def test_seedance2_voice_clone_returns_none_for_narration_beat(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import generate_seedance2_dialogue_audio
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        generate_seedance2_dialogue_audio,
+    )
 
     result = await generate_seedance2_dialogue_audio(
         beat={"audio_type": "narration", "speaker": "", "narration_segment": "旁白"},
@@ -365,7 +405,9 @@ async def test_seedance2_voice_clone_returns_none_for_narration_beat(tmp_path):
 
 
 def test_seedance2_same_voice_beats_group_by_identity_speaker():
-    from ai_anime.modules.production.infrastructure.seedance2_voice import same_voice_dialogue_beats
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        same_voice_dialogue_beats,
+    )
 
     beats = [
         {
@@ -400,7 +442,9 @@ def test_seedance2_same_voice_beats_group_by_identity_speaker():
 
 
 @pytest.mark.asyncio
-async def test_seedance2_voice_batch_generates_only_missing_same_identity_beats(tmp_path):
+async def test_seedance2_voice_batch_generates_only_missing_same_identity_beats(
+    tmp_path,
+):
     from ai_anime.modules.production.infrastructure.seedance2_voice import (
         beat_audio_path,
         generate_seedance2_dialogue_audio_for_voice,
@@ -481,7 +525,9 @@ def _protagonist_characters(project_dir: Path, *, with_identity_audio: bool = Tr
 
 
 def test_resolve_narrator_source_first_person_uses_narrator_main_identity(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -503,7 +549,9 @@ def test_resolve_narrator_source_first_person_uses_narrator_main_identity(tmp_pa
 
 
 def test_resolve_narrator_source_first_person_missing_narrator_main_audio(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -526,11 +574,15 @@ def test_resolve_narrator_source_first_person_missing_narrator_main_audio(tmp_pa
 def test_resolve_narrator_source_first_person_falls_back_to_character_default(tmp_path):
     """L3 fallback: identity has no voice but the character-level default is set."""
     from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
-    default_audio = project_dir / "assets" / "characters" / "陆辰" / "voices" / "voice_default.mp3"
+    default_audio = (
+        project_dir / "assets" / "characters" / "陆辰" / "voices" / "voice_default.mp3"
+    )
     default_audio.parent.mkdir(parents=True, exist_ok=True)
     default_audio.write_bytes(b"character-default-voice")
 
@@ -566,11 +618,15 @@ def test_resolve_narrator_source_first_person_falls_back_to_character_default(tm
 
 def test_resolve_narrator_source_first_person_missing_narrator_main(tmp_path):
     from ai_anime.modules.asset_world.public import NovelCharacter
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
-    store = _FakeStore(project_dir, [NovelCharacter(name="苏曼", gender="女", is_main=False)])
+    store = _FakeStore(
+        project_dir, [NovelCharacter(name="苏曼", gender="女", is_main=False)]
+    )
 
     resolution = resolve_narrator_source(
         store=store,
@@ -583,7 +639,9 @@ def test_resolve_narrator_source_first_person_missing_narrator_main(tmp_path):
 
 
 def test_resolve_narrator_source_third_person_uses_project_narrator(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -606,7 +664,9 @@ def test_resolve_narrator_source_third_person_uses_project_narrator(tmp_path):
 
 
 def test_resolve_narrator_source_third_person_reports_unconfigured_voice(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -618,11 +678,15 @@ def test_resolve_narrator_source_third_person_reports_unconfigured_voice(tmp_pat
     )
 
     assert resolution.audio_path is None
-    assert resolution.error == "项目解说人声线未配置，请上传或录制解说人音频"
+    assert resolution.error == (
+        "项目解说人声线未配置，请通过文字设计、已有声线、上传或录制完成配置"
+    )
 
 
 def test_resolve_narrator_source_third_person_reports_missing_configured_file(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -640,7 +704,9 @@ def test_resolve_narrator_source_third_person_reports_missing_configured_file(tm
 
 
 def test_resolve_narrator_source_third_person_rejects_configured_directory(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import resolve_narrator_source
+    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+        resolve_narrator_source,
+    )
 
     project_dir = tmp_path / "proj"
     (project_dir / "assets" / "narrator" / "voice.wav").mkdir(parents=True)

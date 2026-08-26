@@ -32,15 +32,6 @@ class StyleService:
     # 预设风格缓存（避免重复读取文件）
     _preset_cache: dict[str, StyleConfig] = {}
     _catalog_lock = threading.RLock()
-    STYLE_FAMILY_LABELS = {
-        "live_action": "真人",
-        "animation": "动画",
-    }
-    ANIMATION_SUBTYPE_LABELS = {
-        "2d": "2D",
-        "3d": "3D",
-        "hybrid": "混合媒介",
-    }
     STYLE_PREVIEW_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 
     @staticmethod
@@ -502,69 +493,6 @@ class StyleService:
         return cls.get_style_family(style_id, username=username, project_dir=project_dir) == "animation"
 
     @classmethod
-    def is_live_action_style(
-        cls,
-        style_id: str,
-        username: str | None = None,
-        project_dir: str | Path | None = None,
-    ) -> bool:
-        return not cls.is_animation_style(style_id, username=username, project_dir=project_dir)
-
-    @classmethod
-    def format_style_family_label(cls, family: str, subtype: str = "") -> str:
-        base = cls.STYLE_FAMILY_LABELS.get(family or "live_action", "真人")
-        subtype = (subtype or "").lower()
-        if family == "animation" and subtype:
-            return f"{base} · {cls.ANIMATION_SUBTYPE_LABELS.get(subtype, subtype.upper())}"
-        return base
-
-    @classmethod
-    def list_styles_by_family(
-        cls,
-        username: str | None = None,
-        project_dir: str | Path | None = None,
-    ) -> dict[str, list[dict]]:
-        grouped = {
-            "live_action": [],
-            "animation": [],
-        }
-        for style in cls.list_all_styles(username=username, project_dir=project_dir):
-            family = style.get("style_family") or "live_action"
-            grouped.setdefault(family, []).append(style)
-        return grouped
-
-    @classmethod
-    def get_default_style_for_family(
-        cls,
-        family: str,
-        *,
-        animation_subtype: str | None = None,
-        username: str | None = None,
-        project_dir: str | Path | None = None,
-    ) -> str:
-        grouped = cls.list_styles_by_family(username=username, project_dir=project_dir)
-        styles = grouped.get(family or "live_action", [])
-        subtype = (animation_subtype or "").lower()
-        if family == "animation" and subtype:
-            for preferred in ("guoman_fantasy", "anime"):
-                if any(
-                    style["id"] == preferred and (style.get("animation_subtype") or "").lower() == subtype
-                    for style in styles
-                ):
-                    return preferred
-            for style in styles:
-                if (style.get("animation_subtype") or "").lower() == subtype:
-                    return style["id"]
-        if family == "animation":
-            for preferred in ("guoman_fantasy", "anime"):
-                if any(style["id"] == preferred for style in styles):
-                    return preferred
-        for preferred in ("chinese_period_drama", "realistic"):
-            if any(style["id"] == preferred for style in styles):
-                return preferred
-        return styles[0]["id"] if styles else "chinese_period_drama"
-
-    @classmethod
     def get_style_labels(
         cls,
         username: str | None = None,
@@ -581,28 +509,3 @@ class StyleService:
         for style in cls.list_all_styles(username=username, project_dir=project_dir):
             labels[style["id"]] = style["label"]
         return labels
-
-    @classmethod
-    def clear_cache(cls):
-        """清除预设缓存（用于热重载）。"""
-        cls._preset_cache.clear()
-
-    @classmethod
-    def get_legacy_style_preset(
-        cls,
-        style_id: str,
-        username: str | None = None,
-        project_dir: str | Path | None = None,
-    ) -> dict:
-        """获取旧版格式的风格预设（向后兼容）。
-
-        保持与 config.py 中 STYLE_PRESETS 相同的字典格式。
-
-        Args:
-            style_id: 风格 ID
-
-        Returns:
-            旧版格式的风格配置字典
-        """
-        config = cls.get_style_or_default(style_id, username=username, project_dir=project_dir)
-        return config.to_legacy_dict()

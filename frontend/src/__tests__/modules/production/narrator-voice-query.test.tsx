@@ -11,7 +11,7 @@ vi.mock("@/shared/api/transport", () => {
   return { api, uploadApi: api.extend({ timeout: false }) };
 });
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { queryKeys } from "@/lib/query-keys";
 import {
   useCopyProjectNarratorVoice,

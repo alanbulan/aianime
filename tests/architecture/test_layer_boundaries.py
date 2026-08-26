@@ -1208,14 +1208,6 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     domain = PACKAGE_ROOT / "modules" / "ai_assistant" / "domain" / "chat_text.py"
     public = PACKAGE_ROOT / "modules" / "ai_assistant" / "public.py"
     turn_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "turns.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     hermes_replies = (
         PACKAGE_ROOT
         / "modules"
@@ -1239,7 +1231,6 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
     )
     domain_imports = _imports(domain)
     turn_source = turn_adapter.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     project_turns_source = project_turns.read_text(encoding="utf-8")
     history_source = history.read_text(encoding="utf-8")
@@ -1254,7 +1245,6 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
         or imported.startswith("ai_anime.modules.ai_assistant.infrastructure.hermes")
     }
     assert "ai_anime.modules.ai_assistant.public" in _imports(turn_adapter)
-    assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
     for legacy_definition in (
         "def _completion_text_or_existing(",
         "def _merge_stream_text(",
@@ -1264,12 +1254,10 @@ def test_ai_assistant_owns_chat_text_projection_rules() -> None:
         "def _tool_display_payload(",
     ):
         assert legacy_definition not in turn_source
-        assert legacy_definition not in service_source
         assert legacy_definition not in history_source
     assert "chat_service._strip_replayed_chat_response" not in turn_source
     assert "chat_service._merge_stream_text" not in turn_source
     assert "strip_stored_assistant_replay" in history_source
-    assert "strip_streamed_assistant_replay" not in service_source
     assert "strip_streamed_assistant_replay" in hermes_replies_source
     for internal_rule in (
         "completion_text_or_existing",
@@ -1305,14 +1293,6 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     adapter = module / "infrastructure" / "json_render_errors.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1322,7 +1302,6 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_test_source = route_tests.read_text(encoding="utf-8")
 
     assert not {
@@ -1350,16 +1329,7 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
     ):
         assert f"def {operation}(" in domain_source
         assert operation in public_source
-    assert "redact_local_filesystem_paths" not in service_source
     assert "redact_local_filesystem_paths" in deterministic_replies_source
-    for migrated_operation in (
-        "append_tool_ui_specs",
-        "extract_tool_ui_specs",
-        "normalize_json_render_reply",
-        "dedupe_tool_ui_specs",
-        "filter_tool_ui_specs_for_prompt",
-    ):
-        assert migrated_operation not in service_source
     for owned_operation in (
         "self._presentation.append_tool_ui_specs(",
         "self._presentation.extract_tool_ui_specs(",
@@ -1369,24 +1339,6 @@ def test_ai_assistant_owns_chat_presentation_rules() -> None:
         "filter_tool_ui_specs_for_prompt(",
     ):
         assert owned_operation in hermes_replies_source
-    for legacy_implementation in (
-        "def _json_loads_with_trailing_repair(",
-        "def _canonicalize_ui_spec(",
-        "def _log_json_render_error(",
-        "def _normalize_json_render_reply(",
-        "def _redact_local_filesystem_paths(",
-        "def _extract_tool_ui_specs(",
-        "def _append_tool_ui_specs(",
-        "def _split_ui_specs_from_text(",
-        "def _dedupe_tool_ui_specs(",
-        "def _filter_tool_ui_specs_for_prompt(",
-        "_UI_SPEC_BLOCK_RE =",
-        "_UI_SPEC_FENCE_RE =",
-        "_LOCAL_FILESYSTEM_PATH_RE =",
-        "_MERGEABLE_MEDIA_SPEC_TYPES =",
-        "JR_ERROR_LOG",
-    ):
-        assert legacy_implementation not in service_source
     assert "chat_service._normalize_json_render_reply" not in route_test_source
     assert "chat_service._append_tool_ui_specs" not in route_test_source
 
@@ -1396,19 +1348,10 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     domain = module / "domain" / "tool_errors.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_test_source = route_tests.read_text(encoding="utf-8")
 
     assert not {
@@ -1424,13 +1367,6 @@ def test_ai_assistant_owns_tool_chat_error_mapping() -> None:
     assert "tool_chat_error" in public_source
     assert "tool_chat_error(" in hermes_replies_source
     assert "tool_name=event_tool_name" in hermes_replies_source
-    assert "tool_chat_error" not in service_source
-    for legacy_implementation in (
-        "def _extract_tool_chat_error(",
-        "redact_secrets",
-        "json_loads_with_trailing_repair",
-    ):
-        assert legacy_implementation not in service_source
     assert '"json_loads_with_trailing_repair"' not in public_source
     assert "chat_service._extract_tool_chat_error" not in route_test_source
 
@@ -1441,20 +1377,11 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
     fallback_application = module / "application" / "display_fallback.py"
     hermes_replies = module / "application" / "hermes_project_replies.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     fallback_application_source = fallback_application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_test_source = route_tests.read_text(encoding="utf-8")
 
     assert not {
@@ -1473,18 +1400,9 @@ def test_ai_assistant_owns_display_tool_call_rules() -> None:
         assert f"def {operation}(" in domain_source
         assert operation in public_source
         assert operation in hermes_replies_source
-        assert operation not in service_source
     assert "def is_display_tool_name(" in domain_source
     assert "is_display_tool_name" in public_source
     assert "is_display_tool_name" in fallback_application_source
-    for legacy_implementation in (
-        "_DISPLAY_TOOL_NAMES =",
-        "def _decode_tool_args(",
-        "def _extract_display_tool_call(",
-        "def _display_tool_call_key(",
-        "def _infer_display_tool_call_from_text(",
-    ):
-        assert legacy_implementation not in service_source
     assert "chat_service._extract_display_tool_call" not in route_test_source
     assert "chat_service._infer_display_tool_call_from_text" not in route_test_source
 
@@ -1498,14 +1416,6 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
     adapter = module / "infrastructure" / "display_fallback_gateway.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1514,7 +1424,6 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_test_source = route_tests.read_text(encoding="utf-8")
 
     assert not {
@@ -1543,27 +1452,7 @@ def test_ai_assistant_owns_display_tool_fallbacks() -> None:
         assert f"def {operation}(" in domain_source
         assert operation in application_source
     assert "def fallback_display_tool_ui_specs(" in public_source
-    assert "fallback_display_tool_ui_specs" not in service_source
     assert hermes_replies_source.count("await self._display_fallbacks.build(") == 2
-    for legacy_implementation in (
-        "def _limit_display_items(",
-        "def _requested_display_beats(",
-        "def _requested_display_names(",
-        "def _requested_display_queries(",
-        "def _requested_display_scene_names(",
-        "def _requested_display_scene_indices(",
-        "def _matches_any_display_scene_name(",
-        "def _flatten_display_text_fields(",
-        "def _matches_any_display_text(",
-        "def _media_ui_spec(",
-        "def _project_static_url_from_path(",
-        "def _api_response_items(",
-        "def _backend_api_get(",
-        "def _fallback_display_tool_ui_specs(",
-        "load_api_url",
-        "urlopen",
-    ):
-        assert legacy_implementation not in service_source
     assert "chat_service._backend_api_get" not in route_test_source
     assert "chat_service._fallback_display_tool_ui_specs" not in route_test_source
 
@@ -1578,14 +1467,6 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     adapter = module / "infrastructure" / "project_media_files.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
@@ -1595,7 +1476,6 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_test_source = route_tests.read_text(encoding="utf-8")
 
     assert not {
@@ -1615,7 +1495,6 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
         composition_source
     )
     assert "def extract_project_media(" in public_source
-    assert "extract_project_media" not in service_source
     assert "self._project_media.extract(" in hermes_replies_source
     assert "def normalize(" in application_source
     assert "self._media.normalize(" in message_application_source
@@ -1625,28 +1504,7 @@ def test_ai_assistant_owns_project_chat_media_projection() -> None:
     assert "def filter_markdown_duplicate_media(" in domain_source
     assert "filter_markdown_duplicate_media" in message_application_source
     assert "filter_markdown_duplicate_media" not in public_source
-    assert "filter_markdown_duplicate_media" not in service_source
     assert "def normalize_project_media(" not in public_source
-    for legacy_implementation in (
-        "_MEDIA_EXTENSIONS =",
-        "_URL_RE =",
-        "_REL_PATH_RE =",
-        "_MARKDOWN_IMAGE_RE =",
-        "def _media_path_from_static_url(",
-        "def _canonical_project_static_media_url(",
-        "def _media_project_dir(",
-        "def _output_root(",
-        "def _project_dir(",
-        "def _extract_media(",
-        "def _collect_markdown_image_refs(",
-        "def _normalize_media_items(",
-        "def _merge_media_items(",
-        "def _filter_markdown_duplicate_images(",
-        "project_static_url",
-        "urlparse",
-        "unquote",
-    ):
-        assert legacy_implementation not in service_source
     assert "chat_service._extract_media" not in route_test_source
     assert "chat_service._filter_markdown_duplicate_images" not in route_test_source
 
@@ -1690,15 +1548,6 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
     history_source = (module / "infrastructure" / "sqlite_chat_history.py").read_text(
         encoding="utf-8"
     )
-    service_source = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    ).read_text(encoding="utf-8")
-
     for operation in (
         "append_project_message",
         "append_project_trace_messages",
@@ -1709,20 +1558,6 @@ def test_ai_assistant_owns_project_chat_persistence() -> None:
         assert f"def {operation}(" in ports_source
         assert f"def {operation}(" in history_source
         assert f"self._history.{operation}(" in application_source
-        assert f"chat_history.{operation}(" not in service_source
-    for legacy_implementation in (
-        "def _legacy_chat_db_path(",
-        "def _migrate_legacy_chat_db(",
-        "def _chat_db_path(",
-        "def _connect(",
-        "def _append_message(",
-        "def _replace_trace_messages(",
-        "CREATE TABLE IF NOT EXISTS chat_messages",
-        "INSERT INTO chat_messages",
-        "DELETE FROM chat_messages",
-        "FROM chat_messages",
-    ):
-        assert legacy_implementation not in service_source
 
 
 def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
@@ -1732,14 +1567,6 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "http.py"
     route_tests = REPO_ROOT / "tests" / "test_chat_http_routes.py"
     application_source = application.read_text(encoding="utf-8")
@@ -1747,7 +1574,6 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     project_turns_source = project_turns.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
     route_test_source = route_tests.read_text(encoding="utf-8")
 
@@ -1768,23 +1594,10 @@ def test_ai_assistant_owns_project_chat_message_orchestration() -> None:
     )
     assert "def get_project_chat_messages(" not in composition_source
     assert "get_project_chat_messages" not in public_source
-    assert "project_chat_messages" not in service_source
     assert "self._project_messages.append_assistant(" in deterministic_replies_source
     assert "self._messages.append_user(" in project_turns_source
     assert "scoped_chat_messages.append_notification(" in route_source
     assert "project_chat_messages" not in route_source
-    for legacy_implementation in (
-        "def _assistant_history_contents(",
-        "def _trace_history_contents(",
-        "def list_messages(",
-        "def add_user_message(",
-        "def add_assistant_message(",
-        "def add_trace_message(",
-        "def add_trace_messages(",
-        "get_chat_history",
-        "chat_history =",
-    ):
-        assert legacy_implementation not in service_source
     for legacy_route_call in (
         "chat_service.add_assistant_message(",
         "chat_service.add_user_message(",
@@ -1855,6 +1668,8 @@ def test_ai_assistant_has_only_bundled_hermes_agent_runtime() -> None:
         module / "infrastructure" / "agent_thread_sessions.py",
         module / "infrastructure" / "agent_tool_configuration.py",
         module / "infrastructure" / "agent_workspace.py",
+        module / "infrastructure" / "hermes" / "ai_anime_mcp.py",
+        module / "infrastructure" / "hermes" / "service.py",
     )
 
     assert all(not path.exists() for path in removed_paths)
@@ -1864,36 +1679,6 @@ def test_ai_assistant_has_only_bundled_hermes_agent_runtime() -> None:
     composition_source = composition.read_text(encoding="utf-8")
     assert "LocalHermesRuntime()" in composition_source
     assert "LocalAgent" not in composition_source
-
-
-def test_chat_service_has_no_unreachable_assistant_entrypoints() -> None:
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
-    service_source = service.read_text(encoding="utf-8")
-
-    assert "ai_anime.modules.ai_assistant.public" not in _imports(service)
-    for dead_entrypoint in (
-        "async def interrupt_chat_turn(",
-        "async def generate_assistant_reply(",
-        "agent_backend =",
-        "agent_thread_runtime =",
-        "project_assistant_replies =",
-        "_REINGEST_CANCELLED_BLOCK_RE",
-    ):
-        assert dead_entrypoint not in service_source
-    for retained_storage_helper in (
-        "def load_chat_input_history(",
-        "def save_chat_input_history(",
-        "def _get_setting(",
-        "def _set_setting(",
-    ):
-        assert retained_storage_helper in service_source
 
 
 def test_ai_assistant_owns_chat_run_locks() -> None:
@@ -1906,21 +1691,12 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     local_state = module / "infrastructure" / "local_state.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     lifecycle_source = lifecycle.read_text(encoding="utf-8")
     adapter_source = adapter.read_text(encoding="utf-8")
     history_source = history_adapter.read_text(encoding="utf-8")
     local_state_source = local_state.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
     assert "class ChatRunLocks(Protocol):" in ports.read_text(encoding="utf-8")
@@ -1935,19 +1711,6 @@ def test_ai_assistant_owns_chat_run_locks() -> None:
     assert "def get_chat_run_locks(" not in composition.read_text(encoding="utf-8")
     assert "def get_chat_run_locks(" not in public.read_text(encoding="utf-8")
     assert "ChatRunLocks" not in public.read_text(encoding="utf-8")
-    for legacy_name in (
-        "def _pid_is_alive(",
-        "def _acquire_chat_run_lock(",
-        "def _release_chat_run_lock(",
-        "def _heartbeat_chat_run_lock(",
-        "def chat_run_lock_is_active(",
-        "def force_release_chat_run_lock(",
-        "def _chat_run_lock_heartbeat_loop(",
-    ):
-        assert legacy_name not in service_source
-    assert "chat_run_locks.acquire(" not in service_source
-    assert "chat_run_locks.maintain(" not in service_source
-    assert "chat_run_locks.release(" not in service_source
     assert "self._run_locks.acquire(" in application_source
     assert "self._run_locks.maintain(" in application_source
     assert "self._run_locks.release(" in application_source
@@ -1968,14 +1731,6 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     adapter = module / "infrastructure" / "hermes_runtime.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
     ports_source = ports.read_text(encoding="utf-8")
     prewarmer_source = prewarmer.read_text(encoding="utf-8")
@@ -1985,7 +1740,6 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
 
     assert "class HermesThread(Protocol):" in ports_source
     assert "class HermesRuntime(Protocol):" in ports_source
@@ -2000,20 +1754,13 @@ def test_ai_assistant_owns_hermes_runtime() -> None:
     assert "    HermesRuntime,\n" not in public_source
     assert '"HermesRuntime",' not in public_source
     assert "LocalHermesRuntime" not in public_source
-    for caller in (service, session_adapter):
-        assert (
-            "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool"
-            not in _imports(caller)
-        )
-    assert "hermes_runtime.get_for_user(" not in service_source
-    assert home_replies_source.count("self._runtime.get_for_user(") == 1
-    assert project_replies_source.count("self._runtime.get_for_user(") == 1
-    assert "hermes_runtime.prewarm(" not in service_source
-    assert prewarmer_source.count("self._runtime.prewarm(") == 1
     assert (
         "ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_pool"
         not in _imports(session_adapter)
     )
+    assert home_replies_source.count("self._runtime.get_for_user(") == 1
+    assert project_replies_source.count("self._runtime.get_for_user(") == 1
+    assert prewarmer_source.count("self._runtime.prewarm(") == 1
     assert lifecycle_source.count("self._runtime.set_scope_for_user(") == 1
     assert lifecycle_source.count("self._runtime.close_user(") == 1
 
@@ -2124,21 +1871,12 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
     ports = module / "application" / "ports.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     application_source = application.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     chat_events_source = chat_events.read_text(encoding="utf-8")
     ports_source = ports.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -2154,11 +1892,8 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
     assert "def get_hermes_project_replies(" not in composition_source
     assert "def get_hermes_project_replies(" not in public_source
     assert "HermesProjectReplies" not in public_source
-    assert "hermes_project_replies" not in service_source
     assert dispatcher_source.count("self._hermes_replies.stream(") == 1
-    assert "def _stream_assistant_reply_hermes(" not in service_source
     assert "async def emit_chat_event_best_effort(" in chat_events_source
-    assert "def _emit_chat_event_best_effort(" not in service_source
     assert "def _emit_chat_event_best_effort(" not in application_source
     for owned_operation in (
         "self._runtime.get_for_user(",
@@ -2181,19 +1916,10 @@ def test_ai_assistant_owns_deterministic_project_replies() -> None:
     dispatcher = module / "application" / "project_assistant_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     application_source = application.read_text(encoding="utf-8")
     dispatcher_source = dispatcher.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -2210,9 +1936,7 @@ def test_ai_assistant_owns_deterministic_project_replies() -> None:
     assert "def get_deterministic_project_replies(" not in composition_source
     assert "def get_deterministic_project_replies(" not in public_source
     assert "DeterministicProjectReplies" not in public_source
-    assert "deterministic_project_replies" not in service_source
     assert dispatcher_source.count("self._deterministic_replies.stream(") == 1
-    assert "def _stream_deterministic_assistant_reply(" not in service_source
     assert "redact_local_filesystem_paths(" in application_source
     assert "self._project_messages.append_assistant(" in application_source
     assert application_source.count("emit_chat_event_best_effort(") == 2
@@ -2224,14 +1948,6 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     project_turns = module / "application" / "project_chat_turns.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_tests = (
         REPO_ROOT
@@ -2244,7 +1960,6 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     project_turns_source = project_turns.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
     application_test_source = application_tests.read_text(encoding="utf-8")
 
@@ -2265,10 +1980,7 @@ def test_ai_assistant_owns_project_assistant_reply_dispatch() -> None:
     assert "ProjectAssistantReplies" not in public_source
     assert "get_project_assistant_replies" not in application_test_source
     assert "project_assistant_replies" not in route_source
-    assert "project_assistant_replies" not in service_source
     assert project_turns_source.count("self._replies.stream(") == 1
-    assert "def stream_assistant_reply(" not in service_source
-    assert "def generate_assistant_reply(" not in service_source
     for owned_operation in (
         "self._run_locks.acquire(",
         "self._run_locks.maintain(",
@@ -2330,20 +2042,11 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     application = module / "application" / "hermes_runtime_prewarm.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     session_adapter = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "session.py"
     route = PACKAGE_ROOT / "api" / "routes" / "ai_assistant" / "chat.py"
     application_source = application.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
     session_source = session_adapter.read_text(encoding="utf-8")
     route_source = route.read_text(encoding="utf-8")
 
@@ -2362,7 +2065,6 @@ def test_ai_assistant_owns_hermes_runtime_prewarm() -> None:
     assert "hermes_runtime_prewarmer = get_hermes_runtime_prewarmer()" in session_source
     assert "hermes_runtime_prewarmer" not in route_source
     assert session_source.count("hermes_runtime_prewarmer.prewarm(") == 2
-    assert "def prewarm_chat_backend(" not in service_source
     assert "ai_anime.modules.ai_assistant.infrastructure.hermes" not in _imports(
         session_adapter
     )
@@ -2376,19 +2078,10 @@ def test_ai_assistant_owns_page_agent_session_issuance() -> None:
     hermes_replies = module / "application" / "hermes_project_replies.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     application_source = application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
 
     assert "ai_anime.modules.identity_access.public" in _imports(application)
     assert not {
@@ -2405,15 +2098,6 @@ def test_ai_assistant_owns_page_agent_session_issuance() -> None:
     assert "def get_page_agent_sessions(" in composition_source
     assert "async def create_page_agent_session_token(" in public_source
     assert "PageAgentSessions" not in public_source
-    for legacy_name in (
-        "PAGE_AGENT_SCOPES",
-        "PAGE_AGENT_SESSION_TTL_SECONDS",
-        "def _create_page_agent_session_token(",
-        "ai_anime.modules.identity_access.public",
-        'metadata={"source": "chat_service"}',
-    ):
-        assert legacy_name not in service_source
-    assert "create_page_agent_session_token(" not in service_source
     assert hermes_replies_source.count("self._page_sessions.create_token(") == 2
 
 
@@ -2426,14 +2110,6 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     adapter = module / "infrastructure" / "user_preferences.py"
     composition = module / "composition.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     hermes_replies_source = hermes_replies.read_text(encoding="utf-8")
@@ -2441,7 +2117,6 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -2460,23 +2135,12 @@ def test_ai_assistant_owns_agent_prompt_context() -> None:
     assert "def build_agent_prompt_context(" in public_source
     assert "AgentPromptContext" not in public_source
     assert "UserPreferences" not in public_source
-    for legacy_name in (
-        "_JSON_RENDER_CHAT_INSTRUCTIONS",
-        "def _user_preferences_path(",
-        "def load_user_preferences(",
-        "def _prompt_with_user_context(",
-        "[AI_ANIME_USER_CONTEXT]",
-        "[USER_PREFERENCES]",
-        "[RENDERING_CONTRACT]",
-    ):
-        assert legacy_name not in service_source
     preference_file_owners = [
         path
         for path in _python_files(PACKAGE_ROOT)
         if '"preferences.md"' in path.read_text(encoding="utf-8")
     ]
     assert preference_file_owners == [adapter]
-    assert "build_agent_prompt_context(" not in service_source
     assert hermes_replies_source.count("self._prompt_context.build(") == 1
 
 
@@ -2485,18 +2149,9 @@ def test_ai_assistant_owns_turn_guidance_rules() -> None:
     domain = module / "domain" / "turn_guidance.py"
     application = module / "application" / "project_assistant_replies.py"
     public = module / "public.py"
-    service = (
-        PACKAGE_ROOT
-        / "modules"
-        / "ai_assistant"
-        / "infrastructure"
-        / "hermes"
-        / "service.py"
-    )
     domain_source = domain.read_text(encoding="utf-8")
     application_source = application.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
-    service_source = service.read_text(encoding="utf-8")
 
     assert not {
         imported
@@ -2509,21 +2164,6 @@ def test_ai_assistant_owns_turn_guidance_rules() -> None:
     assert "def script_creation_guidance_prompt(" in domain_source
     assert "reingest_confirmation_reply" not in public_source
     assert "script_creation_guidance_prompt" not in public_source
-    for legacy_name in (
-        "_REINGEST_CONFIRMATION_BLOCK_RE",
-        "_CHAT_ATTACHMENTS_BLOCK_RE",
-        "_AI_ANIME_INGEST_AUTOMATION_RE",
-        "_SCRIPT_CREATION_REQUEST_RE",
-        "_STYLE_SHORT_DRAMA_REQUEST_RE",
-        "_CONTINUE_PIPELINE_RE",
-        "_AI_ANIME_SCRIPT_UPLOAD_MODEL_REPLY_INSTRUCTIONS",
-        "def _frontend_context_reply(",
-        "def _script_creation_model_reply_prompt(",
-        "[AI_ANIME_SCRIPT_UPLOAD_GUIDANCE]",
-    ):
-        assert legacy_name not in service_source
-    assert "reingest_confirmation_reply(prompt)" not in service_source
-    assert "script_creation_guidance_prompt(prompt)" not in service_source
     assert "reingest_confirmation_reply(prompt)" in application_source
     assert "script_creation_guidance_prompt(prompt)" in application_source
 
@@ -5107,13 +4747,6 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
         / "infrastructure"
         / "beat_prompt_generators.py"
     )
-    global_optimizer = (
-        PACKAGE_ROOT
-        / "modules"
-        / "production"
-        / "infrastructure"
-        / "global_video_optimizer.py"
-    )
     legacy_source = _removed_models_source(legacy_models)
     model_source = script_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -5131,7 +4764,6 @@ def test_narrative_planning_script_models_have_one_owner() -> None:
     assert "ai_anime.modules.narrative_planning.application.script_models" in _imports(
         prompt_generators
     )
-    assert "ai_anime.modules.narrative_planning.public" in _imports(global_optimizer)
 
 
 def test_narrative_planning_event_model_has_one_owner() -> None:
@@ -5250,12 +4882,6 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py",
         PACKAGE_ROOT
         / "modules"
-        / "asset_world"
-        / "infrastructure"
-        / "director_world"
-        / "sync_global_props.py",
-        PACKAGE_ROOT
-        / "modules"
         / "creative_canvas"
         / "infrastructure"
         / "preset_contexts.py",
@@ -5350,7 +4976,6 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
     for function_name in (
         "beat_scene_id",
         "beat_scene_ref",
-        "beat_scene_variant_id",
         "build_scene_ref",
         "sync_beat_asset_refs",
     ):
@@ -5736,7 +5361,7 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
 
     assert "video_backend" not in source
     assert "video_backend_catalog" not in source
-    assert "resolve_video_generation_model" in source
+    assert "resolve_video_generation_route" in source
     assert "video_model=video_model" in source
     video_schema_source = video_schemas.read_text(encoding="utf-8")
     assert "class SingleVideoRequest(" in video_schema_source

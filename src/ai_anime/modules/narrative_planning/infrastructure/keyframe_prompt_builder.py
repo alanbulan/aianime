@@ -88,12 +88,6 @@ class KeyframePromptBuilder:
 
     def __init__(self):
         self._agents: dict[str, Agent] = {}  # 按语言缓存 agent
-        self._last_context: str = ""  # 存储上一次生成的上下文
-
-    @property
-    def last_context(self) -> str:
-        """返回上一次生成提示词时使用的上下文。"""
-        return self._last_context
 
     def _get_agent(self, language: str = "en") -> Agent:
         """获取指定语言的 Agent（懒加载）。"""
@@ -232,9 +226,6 @@ Output the transition prompt in Chinese directly."""
             "首尾帧过渡提示词生成师",
             f"生成过渡描述 ({lang_hint})"
         )
-
-        # 存储上下文供调试
-        self._last_context = task
 
         try:
             agent = self._get_agent(language)

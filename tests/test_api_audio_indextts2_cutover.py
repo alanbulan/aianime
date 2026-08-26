@@ -116,6 +116,7 @@ def _patch_audio_celery(
             beat_numbers=list(kwargs.get("beat_numbers") or [2]),
             errors=[],
             billable_chars=2,
+            voice_requirements=[],
         )
 
     monkeypatch.setattr(

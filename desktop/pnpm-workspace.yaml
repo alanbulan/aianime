@@ -8,3 +8,4 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - electron@43.2.0
+  - '@playcanvas/splat-transform@3.3.3'

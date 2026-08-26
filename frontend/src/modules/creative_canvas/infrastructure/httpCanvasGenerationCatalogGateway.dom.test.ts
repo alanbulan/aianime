@@ -116,6 +116,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
         maxDuration: 15,
         sceneOptimizeOptions: ["anime", "realistic"],
         defaultSceneOptimize: "realistic",
+        parameterSchema: {},
       },
     ]);
   });
@@ -204,6 +205,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
         resolutionOptions: ["720p", "1080p"],
         minDuration: null,
         maxDuration: null,
+        parameterSchema: {},
       },
     ]);
     expect(loadCommercialModelCatalog).toHaveBeenNthCalledWith(1, "IMAGE");

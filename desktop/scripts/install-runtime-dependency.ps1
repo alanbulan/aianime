@@ -8,6 +8,66 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+function Assert-RuntimeDependencyManifest {
+    param([Parameter(Mandatory = $true)][object]$Manifest)
+
+    function Test-PositiveSafeInteger {
+        param([object]$Value)
+        if ($null -eq $Value -or $Value -is [bool]) {
+            return $false
+        }
+        [long]$parsed = 0
+        $valid = [long]::TryParse(
+            [string]$Value,
+            [Globalization.NumberStyles]::Integer,
+            [Globalization.CultureInfo]::InvariantCulture,
+            [ref]$parsed
+        )
+        return $valid -and $parsed -gt 0 -and $parsed -le 9007199254740991
+    }
+
+    function Test-AllowedDownloadUrl {
+        param([object]$Value)
+        if ($Value -isnot [string] -or -not $Value.Trim()) {
+            return $false
+        }
+        [Uri]$parsed = $null
+        if (-not [Uri]::TryCreate($Value, [UriKind]::Absolute, [ref]$parsed)) {
+            return $false
+        }
+        if ($parsed.Scheme -eq "https") {
+            return $true
+        }
+        return (
+            $parsed.Scheme -eq "http" -and
+            @("127.0.0.1", "localhost", "::1") -contains $parsed.DnsSafeHost
+        )
+    }
+
+    $package = $Manifest.package
+    $urls = @($package.urls)
+    $validUrls = (
+        $package.urls -is [System.Array] -and
+        $urls.Count -gt 0 -and
+        @($urls | Where-Object { -not (Test-AllowedDownloadUrl $_) }).Count -eq 0
+    )
+    if (
+        $Manifest.schemaVersion -ne 1 -or
+        $package.id -ne "world" -or
+        $package.platform -ne "win32" -or
+        $package.arch -ne "x64" -or
+        $package.archive -ne "tar.gz" -or
+        -not ([string]$package.version).Trim() -or
+        ([string]$package.sha256) -notmatch "^[a-fA-F0-9]{64}$" -or
+        -not (Test-PositiveSafeInteger $package.downloadSizeBytes) -or
+        -not (Test-PositiveSafeInteger $package.installedSizeBytes) -or
+        -not $validUrls
+    ) {
+        throw "运行环境清单字段不完整或与当前平台不匹配。"
+    }
+    return $package
+}
+
 if ([Environment]::Is64BitOperatingSystem -ne $true) {
     throw "导演世界 3D 运行环境仅支持 64 位 Windows。"
 }
@@ -85,17 +145,7 @@ New-Item -ItemType Directory -Path $dependencyRoot -Force | Out-Null
 try {
     Write-Output "正在获取国内镜像安装清单: $ManifestUrl"
     $manifest = Invoke-RestMethod -Uri $ManifestUrl -Method Get -TimeoutSec 60
-    $package = $manifest.package
-    if (
-        $manifest.schemaVersion -ne 1 -or
-        $package.id -ne "world" -or
-        $package.platform -ne "win32" -or
-        $package.arch -ne "x64" -or
-        $package.archive -ne "tar.gz" -or
-        ([string]$package.sha256) -notmatch "^[a-fA-F0-9]{64}$"
-    ) {
-        throw "运行环境清单字段不完整或与当前平台不匹配。"
-    }
+    $package = Assert-RuntimeDependencyManifest -Manifest $manifest
 
     $downloaded = $false
     foreach ($url in @($package.urls)) {

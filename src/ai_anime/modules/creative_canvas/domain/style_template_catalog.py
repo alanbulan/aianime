@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 _BUILTIN_MANIFEST = Path(__file__).with_name("style_templates.json")
+_LEGACY_MANIFEST = Path(__file__).with_name("legacy_style_templates.json")
 _REQUIRED_TEXT_FIELDS = ("id", "label", "category", "cover", "style_prompt")
 
 
@@ -79,3 +80,49 @@ def creative_canvas_builtin_style_templates() -> list[dict[str, Any]]:
         {**item, "samples": list(item["samples"])}
         for item in _load_builtin_manifest()
     ]
+
+
+@lru_cache(maxsize=1)
+def _load_legacy_manifest() -> tuple[dict[str, Any], ...]:
+    try:
+        raw = json.loads(_LEGACY_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"旧版风格兼容清单不可用: {_LEGACY_MANIFEST}") from exc
+
+    templates = raw.get("templates") if isinstance(raw, dict) else None
+    if not isinstance(templates, list):
+        raise InvalidCreativeCanvasStyleManifest("旧版风格 templates 必须是数组")
+
+    parsed: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(templates):
+        if not isinstance(item, dict):
+            raise InvalidCreativeCanvasStyleManifest(
+                f"旧版第 {index} 条风格模板不是对象"
+            )
+        fields = ("id", "label", "author", "category", "style_prompt")
+        for field in fields:
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise InvalidCreativeCanvasStyleManifest(
+                    f"旧版第 {index} 条风格模板缺少字段 {field}"
+                )
+        template_id = str(item["id"]).strip()
+        if template_id in seen:
+            raise InvalidCreativeCanvasStyleManifest(
+                f"旧版风格模板 id 重复: {template_id}"
+            )
+        seen.add(template_id)
+        parsed.append(
+            {
+                field: str(item[field]).strip()
+                for field in fields
+            }
+        )
+    return tuple(parsed)
+
+
+def creative_canvas_legacy_style_templates() -> list[dict[str, Any]]:
+    """Return retired templates accepted only for saved-canvas compatibility."""
+
+    return [dict(item) for item in _load_legacy_manifest()]

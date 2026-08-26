@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -64,6 +65,9 @@ class _M04Store:
 
     def get_all_characters(self):
         return list(self.characters.values())
+
+    async def list_characters(self):
+        return self.get_all_characters()
 
     def get_character(self, name: str):
         return self.characters.get(name)
@@ -211,6 +215,17 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     source_audio = project_dir / "audio" / "ep001" / "beat_01.mp3"
     source_audio.parent.mkdir(parents=True, exist_ok=True)
     source_audio.write_bytes(b"voice-source")
+    (project_dir / "novel.txt").write_text("测试小说正文", encoding="utf-8")
+    (state_dir / "project_config.json").write_text(
+        json.dumps(
+            {
+                "spine_template": "drama",
+                "narrator_reference_audio_path": str(source_audio),
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr(project_config, "STATE_DIR", tmp_path / "state", raising=False)
     monkeypatch.setattr(
@@ -304,14 +319,20 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     for module in (characters, props, projects):
         monkeypatch.setattr(module, "make_static_url_for_context", static_url)
 
-    async def no_prereq_errors(**_kwargs):
-        return []
+    async def audio_plan(**_kwargs):
+        return SimpleNamespace(
+            beat_numbers=(1,),
+            errors=(),
+            billable_chars=3,
+            voice_requirements=(),
+        )
 
     monkeypatch.setattr(
         episode_audio,
-        "collect_indextts2_voice_prereq_errors",
-        no_prereq_errors,
+        "build_indextts2_audio_generation_plan",
+        audio_plan,
     )
+
     monkeypatch.setattr(
         character_voice_storage,
         "trim_existing_character_voice_file",
@@ -393,7 +414,9 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
     monkeypatch.setattr(StyleService, "delete_custom_style", lambda *_, **__: True)
 
-    from ai_anime.modules.production.infrastructure.media_generation import style_analyzer
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        style_analyzer,
+    )
 
     class FakeStyleAnalyzer:
         async def analyze(self, content: bytes, *, mime_type: str):
@@ -495,6 +518,26 @@ def test_image_settings_preserve_validation_error_contracts(m04_client_factory):
         "ok": False,
         "error": "Unsupported image source kind: video",
     }
+
+
+def test_portrait_generation_reports_missing_priority_route_as_prerequisite(
+    m04_client_factory,
+):
+    client, task_backend, _project_dir = m04_client_factory("inline")
+
+    response = client.post(
+        f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async",
+        json={},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "ok": False,
+        "error": ("文生图模型缺失：当前未配置可用的 IMAGE_GENERATION 云端或 BYOK 模型"),
+        "code": "model_prereq_required",
+        "action_required": True,
+    }
+    assert task_backend.calls == []
 
 
 def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):

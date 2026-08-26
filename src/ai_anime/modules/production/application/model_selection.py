@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from ai_anime.modules.model_usage.public import resolve_model_for_role
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     ModelRoute,
+    resolve_model_for_role,
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import load_project_config

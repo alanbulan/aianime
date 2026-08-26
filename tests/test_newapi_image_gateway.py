@@ -177,7 +177,10 @@ def test_newapi_sketch_config_uses_explicit_catalog_code(monkeypatch):
 
     assert image_bytes == b"sketch"
     assert error == ""
-    assert posted["timeout"] == nanobanana_grid.NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS == 1800.0
+    assert posted["timeout"].connect == nanobanana_grid.NEWAPI_IMAGE_CONNECT_TIMEOUT_SECONDS
+    assert posted["timeout"].read == nanobanana_grid.NEWAPI_IMAGE_READ_TIMEOUT_SECONDS
+    assert posted["timeout"].write == nanobanana_grid.NEWAPI_IMAGE_WRITE_TIMEOUT_SECONDS
+    assert posted["timeout"].pool == nanobanana_grid.NEWAPI_IMAGE_POOL_TIMEOUT_SECONDS
     assert posted["json"]["model"] == "LingShan-G2"
     assert posted["json"]["quality"] == "low"
     assert posted["json"]["extra_fields"] == {
@@ -397,6 +400,41 @@ def test_newapi_image_call_reports_transport_exception_type(monkeypatch):
     assert "请求异常: ReadTimeout" in error
     assert "endpoint=http://newapi.test/v1" in error
     assert "model=LingShan-G2" in error
+
+
+def test_newapi_image_call_enforces_absolute_timeout(monkeypatch):
+    import asyncio
+    import httpx
+    from ai_anime.modules.production.infrastructure.media_generation import (
+        nanobanana_grid,
+    )
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def post(self, url, *, headers, json):
+            await asyncio.Event().wait()
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(nanobanana_grid, "NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS", 0.01)
+
+    image_bytes, _text, error = run_async(
+        nanobanana_grid._call_newapi_image_api(
+            prompt="portrait prompt",
+            image_config={"aspect_ratio": "16:9", "image_size": "1K"},
+        )
+    )
+
+    assert image_bytes is None
+    assert "请求超时" in error
+    assert "已中止" in error
 
 
 def test_newapi_image_call_reraises_insufficient_credit(monkeypatch):
@@ -850,6 +888,7 @@ def test_newapi_character_image_preserves_reference_order(
         config={
             "access_mode": "mixed",
             "model": "LingShan-NB-2",
+            "model_selector": "cloud:LingShan-NB-2",
         }
     )
     output_path = tmp_path / "identity_body_temp.png"
@@ -873,6 +912,8 @@ def test_newapi_character_image_preserves_reference_order(
     assert "api_key" not in captured
     assert "base_url" not in captured
     assert captured["image_config"] == {
+        "model": "LingShan-NB-2",
+        "model_selector": "cloud:LingShan-NB-2",
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "quality": "medium",
@@ -1143,6 +1184,8 @@ def test_newapi_scene_master_uses_global_style_reference(monkeypatch, tmp_path):
     assert "避免风格漂移" in captured["prompt"]
     assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
     assert captured["image_config"] == {
+        "model": "LingShan-NB-2",
+        "model_selector": "",
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
@@ -1304,6 +1347,8 @@ def test_newapi_reverse_master_uses_master_reference_nanobanana2(monkeypatch, tm
         ("scene_master_master.png", b"master-bytes", "image/png"),
     ]
     assert captured["image_config"] == {
+        "model": "LingShan-NB-2",
+        "model_selector": "",
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
@@ -1356,6 +1401,8 @@ def test_newapi_reverse_master_uses_gpt_image2_quality_medium(monkeypatch, tmp_p
         ("scene_master_master.png", b"master-bytes", "image/png"),
     ]
     assert captured["image_config"] == {
+        "model": "LingShan-G2",
+        "model_selector": "",
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
@@ -1592,6 +1639,9 @@ def test_freezone_single_image_generation_routes_newapi(monkeypatch, tmp_path):
     assert captured["reference_images"] is None
     assert "base_url" not in captured
     assert captured["image_config"] == {
+        "model": "LingShan-G2",
+        "model_selector": "",
+        "model_params": {},
         "aspect_ratio": "1:1",
         "image_size": "2K",
         "quality": "medium",

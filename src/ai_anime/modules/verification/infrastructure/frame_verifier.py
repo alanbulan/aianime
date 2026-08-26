@@ -27,7 +27,7 @@ class FrameVerifier:
                 get_newapi_text_pydantic_model(),
                 system_prompt=FRAME_VERIFY_PROMPT,
                 output_type=VerificationResult,
-                output_retries=2,
+                retries={"output": 2},
                 name="首帧质量审核员",
             )
         return self._agent

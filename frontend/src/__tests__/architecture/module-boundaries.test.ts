@@ -5,19 +5,25 @@ import {
   readFileSync as readFileSyncStrict,
 } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import * as ts from "typescript";
-import { describe, expect, it } from "vitest";
+import * as ts from "typescript/unstable/ast";
+import { API } from "typescript/unstable/sync";
+import { afterAll, describe, expect, it } from "vitest";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
 const MODULES_ROOT = resolve(SRC_ROOT, "modules");
 const sourceFilesCache = new Map<string, string[]>();
 const sourceTextCache = new Map<string, string>();
 const importSpecifiersCache = new Map<string, string[]>();
+const typeScriptApi = new API({ cwd: process.cwd() });
+let typeScriptSnapshot: ReturnType<API["updateSnapshot"]> | undefined;
 
 function readFileSync(path: string, encoding: "utf8"): string {
-  if (!existsSync(path) && relativeSource(path) === "api/ops.ts") return "";
   const cached = sourceTextCache.get(path);
   if (cached !== undefined) return cached;
+  if (!existsSync(path) && relativeSource(path) === "api/ops.ts") {
+    sourceTextCache.set(path, "");
+    return "";
+  }
   const source = readFileSyncStrict(path, encoding);
   sourceTextCache.set(path, source);
   return source;
@@ -48,16 +54,29 @@ function sourceSection(path: string, start: string, end?: string): string {
   );
 }
 
+function parseSourceFile(path: string): ts.SourceFile {
+  typeScriptSnapshot ??= typeScriptApi.updateSnapshot({
+    openFiles: [resolve(SRC_ROOT, "main.tsx")],
+  });
+  const project = typeScriptSnapshot.getDefaultProjectForFile(path);
+  const source = project?.program.getSourceFile(path);
+  if (!source) throw new Error(`TypeScript could not parse ${path}`);
+  return source;
+}
+
+afterAll(() => {
+  typeScriptSnapshot?.dispose();
+  typeScriptApi.close();
+});
+
 function importSpecifiers(path: string): string[] {
   const cached = importSpecifiersCache.get(path);
   if (cached) return cached;
-  const source = ts.createSourceFile(
-    path,
-    readFileSync(path, "utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-    path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+  if (!existsSync(path) && relativeSource(path) === "api/ops.ts") {
+    importSpecifiersCache.set(path, []);
+    return [];
+  }
+  const source = parseSourceFile(path);
   const imports: string[] = [];
   const visit = (node: ts.Node) => {
     if (
@@ -74,7 +93,7 @@ function importSpecifiers(path: string): string[] {
     ) {
       imports.push(node.arguments[0].text);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(source);
   importSpecifiersCache.set(path, imports);
@@ -1017,7 +1036,10 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(aspectRatioPath)).toEqual([]);
     expect(aspectRatioSource).toContain(declarations[2]);
     expect(imageDataSource).not.toContain(declarations[2]);
-    expect(importSpecifiers(imageDataPath)).toEqual(["./aspectRatio"]);
+    expect(importSpecifiers(imageDataPath)).toEqual([
+      "@/lib/media-url",
+      "./aspectRatio",
+    ]);
     for (const legacyPath of legacySizingPaths) {
       expect(existsSync(legacyPath), relativeSource(legacyPath)).toBe(false);
     }
@@ -2386,7 +2408,7 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserStoryboardGenRuntime.dom.test.ts",
     );
     const caretRuntimePath = resolve(
       SRC_ROOT,
@@ -2394,7 +2416,7 @@ describe("frontend architecture boundaries", () => {
     );
     const caretRuntimeTestPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/infrastructure/browserTextareaCaret.test.ts",
+      "modules/creative_canvas/infrastructure/browserTextareaCaret.dom.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -2599,7 +2621,7 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/infrastructure/browserImageEditRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserImageEditRuntime.dom.test.ts",
     );
     const controllerPath = resolve(
       SRC_ROOT,
@@ -10088,6 +10110,7 @@ describe("frontend architecture boundaries", () => {
         "@/features/viewer-kit/public",
         "../application/canvasAssetNodeSpawning",
         "../application/canvasEventBus",
+        "../application/pendingExternalFiles",
         "../domain/assetDrag",
         "../domain/canvasConnection",
         "../domain/canvasNodeData",
@@ -13619,6 +13642,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "lucide-react",
+        "@/lib/media-url",
         "../application/assetLibraryCanvasInsertion",
         "../domain/assetDrag",
         "../domain/assetLibraryModel",
@@ -13635,7 +13659,9 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/shared/api/");
     expect(presentationSource).not.toContain("addAssetToCanvas");
     expect(presentationSource).toContain("onAddAsset(asset, index)");
-    expect(presentationSource).toContain("cacheBustImage(thumbUrl, cacheToken)");
+    expect(presentationSource).toContain(
+      'cacheBustImage(withMediaVariant(thumbUrl, "thumb"), cacheToken)',
+    );
     expect(importSpecifiers(panelViewPath)).toContain(
       "./AssetLibraryBeatPanels",
     );
@@ -13700,6 +13726,7 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "lucide-react",
+        "@/lib/media-url",
         "../application/assetLibraryCanvasInsertion",
         "../domain/assetDrag",
         "../domain/assetLibraryModel",
@@ -13715,7 +13742,9 @@ describe("frontend architecture boundaries", () => {
     expect(presentationSource).not.toContain("@/modules/creative_canvas/canvasComposition");
     expect(presentationSource).not.toContain("@/features/freezone/composition");
     expect(presentationSource).not.toContain("@/shared/api/");
-    expect(presentationSource).toContain("cacheBustImage(thumbUrl, cacheToken)");
+    expect(presentationSource).toContain(
+      'cacheBustImage(withMediaVariant(thumbUrl, "thumb"), cacheToken)',
+    );
     expect(importSpecifiers(panelViewPath)).toContain(
       "./AssetLibraryAssetCard",
     );
@@ -14536,7 +14565,9 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(controllerPath))).toEqual(
       new Set([
         "react",
+        "../application/canvasDraft",
         "../application/canvasSave",
+        "../application/canvasSaveCoordinator",
         "../application/canvasUnloadSave",
         "./useCanvasDraftPersistenceController",
         "../application/canvasSyncHydration",
@@ -14562,7 +14593,10 @@ describe("frontend architecture boundaries", () => {
     expect(syncCompositionSource).toContain("const saveControllerStore = {");
     expect(syncCompositionSource).toContain("createCanvasSaveControllerHook(");
     expect(controllerSource).toContain("const SAVE_DEBOUNCE_MS = 800");
-    expect(controllerSource).toContain("const inFlightRef = useRef<");
+    expect(controllerSource).toContain(
+      "const saveSessionRef = useRef<CanvasSaveSession | null>(null)",
+    );
+    expect(controllerSource).toContain("const session = createCanvasSaveSession({");
     expect(controllerSource).toContain(
       "const pendingClientSaveIdRef = useRef<",
     );
@@ -20209,6 +20243,9 @@ describe("frontend architecture boundaries", () => {
     expect(workspaceCompositionSource).toContain(
       "canvasNavigation: assetWorldCanvasNavigation",
     );
+    expect(workspaceCompositionSource).toContain(
+      "voiceCatalog: assetWorldVoiceCatalog",
+    );
 
     for (const source of [
       narrativeCompositionSource,
@@ -21231,14 +21268,13 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(compositionSource).toContain(
-      "const model = await resolveCanvasTextModel(params.command.model)",
+      "const selection = await resolveCanvasTextModelSelection(params.command.model)",
     );
     expect(compositionSource).toContain(
       "generateCanvasStoryScriptUseCase(",
     );
-    expect(compositionSource).toContain(
-      "{ ...params, command: { ...params.command, model } }",
-    );
+    expect(compositionSource).toContain("model: selection.model");
+    expect(compositionSource).toContain("modelSelector: selection.modelSelector");
     expect(compositionSource).toContain(
       "submissionGateway: freezoneStoryScriptGenerationGateway",
     );
@@ -26634,12 +26670,12 @@ describe("frontend architecture boundaries", () => {
       new Set([
         "react",
         "lucide-react",
+        "@/lib/media-url",
         "../domain/generationHistoryRecord",
       ]),
     );
     expect(historyViewSource).toContain("resolveMediaUrl: (url: string)");
     expect(historyViewSource).not.toContain("@/features/");
-    expect(historyViewSource).not.toContain("@/lib/media-url");
     expect(historyViewSource).not.toContain(
       "export function historyRecord",
     );
@@ -28072,6 +28108,7 @@ describe("frontend architecture boundaries", () => {
       "../application/canvasNodeCatalog",
       "../application/canvasNodeDefaultData",
       "../application/canvasNodeHydration",
+      "../application/styleNodeSync",
       "../domain/canvasHistory",
       "../domain/canvasMutation",
       "../domain/canvasNodeData",
@@ -28110,7 +28147,7 @@ describe("frontend architecture boundaries", () => {
     const implementations = [
       ["addNode", "(type, position, data = {}) {"],
       ["convertNodeType", "(nodeId, newType, dataOverrides = {}) {"],
-      ["updateNodeData", "(nodeId, data) {"],
+      ["updateNodeData", "(nodeId, data, options) {"],
       ["updateNodeSize", "(nodeId, size, options) {"],
       ["updateNodePosition", "(nodeId, position) {"],
       ["setNodePositions", "(positions) {"],
@@ -28124,16 +28161,9 @@ describe("frontend architecture boundaries", () => {
         .filter((path) => readFileSync(path, "utf8").includes(implementation))
         .map(relativeSource)
         .sort();
-      expect(owners).toEqual(
-        implementation.startsWith("updateNodeData")
-          ? [
-              "modules/creative_canvas/infrastructure/zustandCanvasGraphGateway.ts",
-              "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-            ]
-          : [
-              "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
-            ],
-      );
+      expect(owners).toEqual([
+        "modules/creative_canvas/infrastructure/zustandCanvasNodeMutationSlice.ts",
+      ]);
     }
 
     expect(new Set(importSpecifiers(slicePath))).toEqual(new Set([
@@ -29525,7 +29555,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(videoNode).toContain("<VideoConfigChip");
     expect(videoNode).toContain(
-      "aspectRatioOptions={VIDEO_NODE_ASPECT_RATIOS}",
+      "aspectRatioOptions={aspectRatioOptions}",
     );
     expect(videoNode).toContain("normalizeDuration={normalizeDuration}");
     expect(videoNodeController).toContain(
@@ -29753,7 +29783,7 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/infrastructure/browserVideoComposeMediaRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserVideoComposeMediaRuntime.dom.test.ts",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -30752,7 +30782,7 @@ describe("frontend architecture boundaries", () => {
     );
     const runtimeTestPath = resolve(
       SRC_ROOT,
-      "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.test.ts",
+      "modules/creative_canvas/infrastructure/browserVideoComposeExportRuntime.dom.test.ts",
     );
     const modalPath = resolve(
       SRC_ROOT,
@@ -31308,8 +31338,10 @@ describe("frontend architecture boundaries", () => {
       "awaitCompletion: awaitTaskCompletion",
     );
     expect(compositionSource).toContain(
-      "const model = await resolveCanvasTextModel(params.model)",
+      "const selection = await resolveCanvasTextModelSelection(params.model)",
     );
+    expect(compositionSource).toContain("model: selection.model");
+    expect(compositionSource).toContain("modelSelector: selection.modelSelector");
     expect(compositionSource).toContain(
       'const catalog = await loadCommercialModelCatalog("TEXT")',
     );

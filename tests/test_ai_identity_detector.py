@@ -4,12 +4,19 @@ from types import SimpleNamespace
 
 import pytest
 from PIL import Image
+from pydantic_ai import Agent
+from pydantic_ai.models.test import TestModel
+from pydantic_ai.output import NativeOutput
+from pydantic_ai.profiles import ModelProfile
 
 
 @pytest.mark.asyncio
-async def test_identity_detector_task_matches_structured_list_output(monkeypatch, tmp_path):
+async def test_identity_detector_task_matches_structured_object_output(monkeypatch, tmp_path):
     from ai_anime.modules.production.infrastructure import global_video_optimizer
-    from ai_anime.modules.production.infrastructure.global_video_optimizer import BeatIdentity
+    from ai_anime.modules.production.infrastructure.global_video_optimizer import (
+        BeatIdentity,
+        BeatIdentityBatch,
+    )
 
     image_path = tmp_path / "grid.png"
     Image.new("RGB", (8, 8), color=(255, 0, 0)).save(image_path)
@@ -19,7 +26,11 @@ async def test_identity_detector_task_matches_structured_list_output(monkeypatch
         async def run(self, items):
             captured["task"] = items[0]
             return SimpleNamespace(
-                output=[BeatIdentity(beat_number=1, identities=["Hero_Main"])]
+                output=BeatIdentityBatch(
+                    detections=[
+                        BeatIdentity(beat_number=1, identities=["Hero_Main"])
+                    ]
+                )
             )
 
     monkeypatch.setattr(
@@ -35,5 +46,30 @@ async def test_identity_detector_task_matches_structured_list_output(monkeypatch
     )
 
     assert result == {1: ["Hero_Main"]}
-    assert "JSON array" in captured["task"]
-    assert "JSON object" not in captured["task"]
+    assert "JSON object" in captured["task"]
+    assert '"detections"' in captured["task"]
+
+
+@pytest.mark.asyncio
+async def test_identity_detector_native_output_accepts_explicit_object_contract():
+    from ai_anime.modules.production.infrastructure.global_video_optimizer import (
+        BeatIdentityBatch,
+    )
+
+    model = TestModel(
+        custom_output_text=(
+            '{"detections":['
+            '{"beat_number":1,"identities":["Hero_Main"]}'
+            "]}"
+        ),
+        profile=ModelProfile(supports_json_schema_output=True),
+    )
+    agent = Agent(model, output_type=NativeOutput(BeatIdentityBatch))
+
+    result = await agent.run("detect")
+
+    assert result.output.model_dump() == {
+        "detections": [
+            {"beat_number": 1, "identities": ["Hero_Main"]},
+        ]
+    }

@@ -29,7 +29,7 @@ from ai_anime.modules.production.application.selected_regeneration import (
     SelectedRegenerationKind,
     SelectedRegenerationTask,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -106,22 +106,24 @@ class LocalManualSketchRegenerationPreparer:
             for beat_numbers in missing_segments:
                 selected_beats = tuple(int(number) for number in beat_numbers)
                 mode_key = choose_manual_sketch_mode_key(len(selected_beats))
+                task_config = {
+                    "beats": beats,
+                    "character_map": character_map,
+                    "style": style,
+                    "model": image_route.model,
+                    "selected_beat_numbers": list(selected_beats),
+                    "composite_key": f"{mode_key}:sketch",
+                    "sketch_colors": sketch_colors,
+                }
+                if image_route.selector:
+                    task_config["model_selector"] = image_route.selector
                 task = SelectedRegenerationTask(
                     kind=SelectedRegenerationKind.SKETCH,
                     episode_num=command.episode_num,
                     mode_key=mode_key,
                     scope=selection_scope(mode_key, selected_beats),
                     output_dir=context.output_dir,
-                    config={
-                        "beats": beats,
-                        "character_map": character_map,
-                        "style": style,
-                        "model": image_route.model,
-                        "model_selector": image_route.selector,
-                        "selected_beat_numbers": list(selected_beats),
-                        "composite_key": f"{mode_key}:sketch",
-                        "sketch_colors": sketch_colors,
-                    },
+                    config=task_config,
                 )
                 segments.append(
                     ManualSketchRegenerationSegment(

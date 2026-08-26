@@ -163,9 +163,20 @@ def run_project_task_core_sync(
         project_task_run_context,
         project_task_timeout_seconds,
     )
-    from ai_anime.modules.task_execution.infrastructure.runner_registry import (
-        get_project_task_runner as resolve_runner,
+    from ai_anime.modules.task_execution.infrastructure.native_task_isolation import (
+        wrap_project_task_runner,
     )
+    from ai_anime.modules.task_execution.infrastructure.runner_registry import (
+        get_project_task_runner as resolve_direct_runner,
+    )
+
+    def resolve_runner(task_type: str):
+        return wrap_project_task_runner(
+            task_type,
+            resolve_direct_runner(task_type),
+            metadata=metadata,
+            cancellation_check=is_cancel_requested,
+        )
 
     return execute_project_task_sync(
         envelope,

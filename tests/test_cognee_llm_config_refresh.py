@@ -104,6 +104,9 @@ async def test_embedding_gateway_keeps_parallel_call_dimensions_isolated():
 @pytest.mark.skipif(os.name != "nt", reason="Ladybug Unicode path issue is Windows-only")
 def test_ladybug_native_binding_supports_chinese_project_paths(tmp_path):
     from ai_anime.modules.knowledge_graph.infrastructure import config as nv_config
+    from cognee.infrastructure.databases.graph.kuzu.subprocess.proxy import (
+        RemoteKuzuDatabase,
+    )
     from ladybug import Connection, Database
 
     nv_config._install_ladybug_windows_path_compatibility()
@@ -121,6 +124,27 @@ def test_ladybug_native_binding_supports_chinese_project_paths(tmp_path):
 
     assert database.database_path == str(database_path)
     assert database_path.is_file()
+
+    requests = []
+
+    class FakeSession:
+        def call(self, request):
+            requests.append(request)
+            return SimpleNamespace(new_handle_id=1)
+
+        def add_replay_step(self, _step):
+            return None
+
+    RemoteKuzuDatabase(
+        FakeSession(),
+        db_path=str(database_path),
+        buffer_pool_size=1024,
+        max_num_threads=1,
+        max_db_size=1024 * 1024,
+    )
+
+    assert requests
+    assert requests[0].kwargs["database_path"] == str(database_path).encode("mbcs")
 
 
 def test_first_ce_gateway_configuration_does_not_require_restart(monkeypatch):

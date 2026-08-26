@@ -1,5 +1,22 @@
 // Copyright (c) 2026 AI anime
 
+export const TIMELINE_ACTIVE_VIEWPORT_RATIO = 1 / 3;
+
+export function calculateTimelineTurnScrollTop({
+  itemStart,
+  viewportHeight,
+  totalSize,
+}: {
+  itemStart: number;
+  viewportHeight: number;
+  totalSize: number;
+}) {
+  const desiredScrollTop = itemStart
+    - viewportHeight * TIMELINE_ACTIVE_VIEWPORT_RATIO;
+  const maxScrollTop = Math.max(0, totalSize - viewportHeight);
+  return Math.min(maxScrollTop, Math.max(0, desiredScrollTop));
+}
+
 export function calculateTimelineContextDelta({
   viewportHeight,
   nodeCenter,

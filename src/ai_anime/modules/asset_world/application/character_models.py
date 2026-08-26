@@ -282,23 +282,6 @@ class NovelCharacter(BaseModel):
                 return identity
         return None
 
-    def migrate_to_identity_format(self) -> None:
-        """将旧格式数据迁移到身份格式。"""
-        if self.identities:
-            return
-
-        from ai_anime.shared.utils.identity_resolver import compute_char_tag
-
-        default_id = f"{self.name}_默认"
-        default_identity = CharacterIdentity(
-            identity_id=default_id,
-            character_name=self.name,
-            identity_name="默认",
-            character_tag=compute_char_tag(self.name, identity_id=default_id),
-            appearance_details=self.appearance_details or self.description,
-        )
-        self.identities = [default_identity]
-
     def ensure_tag(self) -> None:
         """确保每个 identity 有独立的 tag。"""
         from ai_anime.shared.utils.identity_resolver import compute_char_tag

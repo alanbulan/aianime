@@ -280,9 +280,9 @@ export function IngestResultPanel({
                   </span>
                 </div>
                 <div className="divide-y divide-border">
-                  {chapters.slice(0, 20).map((ch) => (
+                  {chapters.slice(0, 20).map((ch, index) => (
                     <div
-                      key={ch.number}
+                      key={`${ch.number}:${ch.title ?? ""}:${index}`}
                       className="grid grid-cols-[4rem_1fr_5rem] items-center gap-2 px-4 py-2.5 text-xs"
                     >
                       <span className="tabular-nums text-muted-foreground">

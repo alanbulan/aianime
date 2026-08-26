@@ -7,7 +7,6 @@ import {
   useState,
   type PointerEvent,
   type ReactNode,
-  type WheelEvent,
 } from "react";
 import {
   Maximize2,
@@ -307,6 +306,24 @@ export function KnowledgeGraphVisualization({
       scale: Math.min(2.6, Math.max(0.55, current.scale * factor)),
     }));
   const resetView = () => setView({ x: 0, y: 0, scale: 1 });
+  const graphCanvasRef = useRef<SVGSVGElement | null>(null);
+
+  useEffect(() => {
+    const graphCanvas = graphCanvasRef.current;
+    if (!graphCanvas) return;
+
+    const handleWheel = (event: globalThis.WheelEvent) => {
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 1.12 : 0.89;
+      setView((current) => ({
+        ...current,
+        scale: Math.min(2.6, Math.max(0.55, current.scale * factor)),
+      }));
+    };
+
+    graphCanvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => graphCanvas.removeEventListener("wheel", handleWheel);
+  }, []);
 
   const handlePointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0) return;
@@ -333,11 +350,6 @@ export function KnowledgeGraphVisualization({
   const handlePointerUp = (event: PointerEvent<SVGSVGElement>) => {
     if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null;
   };
-  const handleWheel = (event: WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    zoom(event.deltaY < 0 ? 1.12 : 0.89);
-  };
-
   return (
     <section
       aria-label={t("ingest.knowledgeGraph.title")}
@@ -461,6 +473,7 @@ export function KnowledgeGraphVisualization({
 
         <div className="relative min-h-0 flex-1 overflow-hidden bg-muted/35">
           <svg
+            ref={graphCanvasRef}
             viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
             className="absolute inset-0 size-full cursor-grab touch-none active:cursor-grabbing"
             aria-label={t("ingest.knowledgeGraph.interactionHint")}
@@ -468,7 +481,6 @@ export function KnowledgeGraphVisualization({
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            onWheel={handleWheel}
             onClick={() => setSelectedId(null)}
           >
             <defs>

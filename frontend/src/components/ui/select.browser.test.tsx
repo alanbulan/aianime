@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { render } from "vitest-browser-react";
 
 import {
   Select,
@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/select";
 
 describe("Select", () => {
-  it("在菜单关闭时显示选中项标签而不是内部值", () => {
-    render(
+  it("在菜单关闭时显示选中项标签而不是内部值", async () => {
+    const screen = await render(
       <Select value="1">
         <SelectTrigger aria-label="性别">
           <SelectValue />
@@ -25,11 +25,8 @@ describe("Select", () => {
       </Select>,
     );
 
-    expect(screen.getByRole("combobox", { name: "性别" })).toHaveTextContent(
-      "男",
-    );
-    expect(screen.getByRole("combobox", { name: "性别" })).not.toHaveTextContent(
-      "1",
-    );
+    const trigger = screen.getByRole("combobox", { name: "性别" });
+    await expect.element(trigger).toHaveTextContent("男");
+    await expect.element(trigger).not.toHaveTextContent("1");
   });
 });

@@ -26,6 +26,10 @@ const outputContext = {
   globalCompositeOperation: "source-over",
   fillRect: vi.fn(),
   drawImage: vi.fn(),
+  getImageData: vi.fn(() => ({
+    data: new Uint8ClampedArray([0, 0, 0, 255]),
+  })),
+  putImageData: vi.fn(),
 } as unknown as CanvasRenderingContext2D;
 const outputCanvas = {
   width: 0,
@@ -93,6 +97,8 @@ describe("useMaskEditorController", () => {
     outputCanvas.height = 0;
     vi.mocked(outputContext.fillRect).mockClear();
     vi.mocked(outputContext.drawImage).mockClear();
+    vi.mocked(outputContext.getImageData).mockClear();
+    vi.mocked(outputContext.putImageData).mockClear();
   });
 
   it("loads the base image into both canvases", () => {
@@ -169,6 +175,7 @@ describe("useMaskEditorController", () => {
     const hook = renderController();
 
     act(() => {
+      hook.result.current.baseCanvasRef.current = maskCanvas;
       hook.result.current.maskCanvasRef.current = maskCanvas;
       hook.result.current.setPrompt("移除路人");
     });

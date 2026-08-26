@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AlertCircle, Check, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { formatRelativeTime } from "@/lib/format-relative-time";
+import { formatCompactAge } from "@/lib/format-relative-time";
 import { useSaveState } from "@/shared/stores/save-status-store";
 
 type Variant = "header" | "inline";
@@ -117,7 +117,7 @@ export function SaveStatus({
   const isFresh = ageMs < FRESH_SAVED_MS;
   const relative =
     state.lastSavedAt && !isFresh
-      ? formatRelativeTime(new Date(state.lastSavedAt).toISOString(), now)
+      ? formatCompactAge(new Date(state.lastSavedAt).toISOString(), now)
       : null;
   const label =
     isFresh || !relative

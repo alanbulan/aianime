@@ -373,7 +373,7 @@ def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
     assert agent_kwargs["model"] == "literal-model"
     assert agent_kwargs["name"] == "逐行剧本分镜标注师"
     assert agent_kwargs["output_type"] is literal_script_writing.LiteralBeatMetaOutput
-    assert agent_kwargs["output_retries"] == 2
+    assert agent_kwargs["retries"] == {"output": 2}
 
 
 def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):

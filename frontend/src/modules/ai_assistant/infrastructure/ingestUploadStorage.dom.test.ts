@@ -110,6 +110,8 @@ describe("SuperChat ingest upload storage", () => {
           size: 2048,
           total_chars: 12000,
           count: 8,
+          text_preview: "日系校园剧",
+          text_preview_truncated: true,
         },
         "original-story.txt",
         123456,
@@ -120,6 +122,8 @@ describe("SuperChat ingest upload storage", () => {
       size: 2048,
       totalChars: 12000,
       chapterCount: 8,
+      textPreview: "日系校园剧",
+      textPreviewTruncated: true,
       uploadedAt: 123456,
     });
   });

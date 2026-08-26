@@ -1,8 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
-import * as ts from "typescript";
-import { describe, expect, it } from "vitest";
+import * as ts from "typescript/unstable/ast";
+import { API } from "typescript/unstable/sync";
+import { afterAll, describe, expect, it } from "vitest";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
 const DESKTOP_ROOT = resolve(process.cwd(), "../desktop");
@@ -16,18 +17,33 @@ function sourceFiles(root: string): string[] {
   });
 }
 
+const typeScriptApi = new API({ cwd: process.cwd() });
+let typeScriptSnapshot: ReturnType<API["updateSnapshot"]> | undefined;
+
+function parseSourceFile(path: string): ts.SourceFile {
+  typeScriptSnapshot ??= typeScriptApi.updateSnapshot({
+    openFiles: [
+      resolve(SRC_ROOT, "main.tsx"),
+      resolve(DESKTOP_ROOT, "src/main.ts"),
+    ],
+  });
+  const project = typeScriptSnapshot.getDefaultProjectForFile(path);
+  const source = project?.program.getSourceFile(path);
+  if (!source) throw new Error(`TypeScript could not parse ${path}`);
+  return source;
+}
+
+afterAll(() => {
+  typeScriptSnapshot?.dispose();
+  typeScriptApi.close();
+});
+
 function relativeSource(path: string): string {
   return relative(SRC_ROOT, path).replace(/\\/g, "/");
 }
 
 function importSpecifiers(path: string): string[] {
-  const source = ts.createSourceFile(
-    path,
-    readFileSync(path, "utf8"),
-    ts.ScriptTarget.Latest,
-    true,
-    path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-  );
+  const source = parseSourceFile(path);
   const imports: string[] = [];
   const visit = (node: ts.Node) => {
     if (
@@ -37,7 +53,7 @@ function importSpecifiers(path: string): string[] {
     ) {
       imports.push(node.moduleSpecifier.text);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
   visit(source);
   return imports;
@@ -121,7 +137,7 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasStorageRetentionComposition.ts",
       "projectionComposition.ts",
       "presetProjectionComposition.ts",
-      "presetProjectionComposition.test.ts",
+      "presetProjectionComposition.dom.test.ts",
       "contextQueryComposition.ts",
       "canvasDraftComposition.ts",
       "canvasSyncComposition.ts",
@@ -269,15 +285,15 @@ describe("round 2 residual architecture boundaries", () => {
       "useCanvasMinimapVisibility.ts",
       "useCanvasMinimapVisibility.test.tsx",
       "trackpadPanStore.ts",
-      "trackpadPanStore.test.ts",
+      "trackpadPanStore.dom.test.ts",
       "CanvasMinimapButton.tsx",
       "CanvasBookmarkContextMenu.tsx",
-      "CanvasBookmarkContextMenu.test.tsx",
+      "CanvasBookmarkContextMenu.browser.test.tsx",
       "CanvasViewportBookmarks.tsx",
       "CanvasViewportBookmarks.test.tsx",
       "CanvasMinimapBookmarksOverlay.tsx",
       "edgeVisibilityStore.ts",
-      "edgeVisibilityStore.test.ts",
+      "edgeVisibilityStore.dom.test.ts",
       "CanvasZoomControl.tsx",
       "CanvasZoomControl.test.tsx",
     ];
@@ -348,7 +364,7 @@ describe("round 2 residual architecture boundaries", () => {
       "MultiSelectionConnectButton.tsx",
       "MultiSelectionConnectButton.test.tsx",
       "canvasConnectionInteraction.ts",
-      "canvasConnectionInteraction.test.ts",
+      "canvasConnectionInteraction.dom.test.ts",
       "useCanvasConnectionController.ts",
       "useCanvasConnectionController.test.tsx",
       "useCanvasBatchConnectionController.ts",
@@ -410,7 +426,7 @@ describe("round 2 residual architecture boundaries", () => {
     ];
     const generationHistoryPresentationFiles = [
       "useCanvasGenerationHistory.ts",
-      "useCanvasGenerationHistory.test.ts",
+      "useCanvasGenerationHistory.dom.test.ts",
       "useNodeGenerationHistory.ts",
       "useNodeGenerationHistory.test.tsx",
       "NodeGenerationHistory.tsx",
@@ -744,13 +760,13 @@ describe("round 2 residual architecture boundaries", () => {
     ];
     const videoComposeInfrastructureFiles = [
       "browserVideoComposeExportRuntime.ts",
-      "browserVideoComposeExportRuntime.test.ts",
+      "browserVideoComposeExportRuntime.dom.test.ts",
       "browserVideoComposeMediaRuntime.ts",
-      "browserVideoComposeMediaRuntime.test.ts",
+      "browserVideoComposeMediaRuntime.dom.test.ts",
       "browserVideoComposeCoverRuntime.ts",
-      "browserVideoComposeCoverRuntime.test.ts",
+      "browserVideoComposeCoverRuntime.dom.test.ts",
       "browserVideoFrameStrip.ts",
-      "browserVideoFrameStrip.test.ts",
+      "browserVideoFrameStrip.dom.test.ts",
       "freezoneVideoComposeGateway.ts",
       "freezoneVideoComposeGateway.test.ts",
     ];
@@ -850,7 +866,7 @@ describe("round 2 residual architecture boundaries", () => {
       "canvasAssetDragTransfer.ts",
       "NodeReplaceDragPreview.tsx",
       "canvasInteractionTargets.ts",
-      "canvasInteractionTargets.test.ts",
+      "canvasInteractionTargets.dom.test.ts",
       "useCanvasSpacePan.ts",
       "useCanvasSpacePan.test.tsx",
       "useCanvasMarqueeSelection.ts",
@@ -2396,28 +2412,34 @@ describe("round 2 residual architecture boundaries", () => {
       existsSync(resolve(moduleRoot, "infrastructure/ingestUploadStorage.ts")),
     ).toBe(true);
     expect(
-      existsSync(resolve(moduleRoot, "infrastructure/ingestUploadStorage.test.ts")),
+      existsSync(
+        resolve(moduleRoot, "infrastructure/ingestUploadStorage.dom.test.ts"),
+      ),
     ).toBe(true);
     expect(
-      existsSync(resolve(moduleRoot, "infrastructure/messageCache.test.ts")),
+      existsSync(resolve(moduleRoot, "infrastructure/messageCache.dom.test.ts")),
     ).toBe(true);
     expect(
       existsSync(resolve(moduleRoot, "infrastructure/preferencesStorage.ts")),
     ).toBe(true);
     expect(
-      existsSync(resolve(moduleRoot, "infrastructure/preferencesStorage.test.ts")),
+      existsSync(
+        resolve(moduleRoot, "infrastructure/preferencesStorage.dom.test.ts"),
+      ),
     ).toBe(true);
     expect(
       existsSync(resolve(moduleRoot, "infrastructure/activeTurnStorage.ts")),
     ).toBe(true);
     expect(
-      existsSync(resolve(moduleRoot, "infrastructure/activeTurnStorage.test.ts")),
+      existsSync(
+        resolve(moduleRoot, "infrastructure/activeTurnStorage.dom.test.ts"),
+      ),
     ).toBe(true);
     expect(
       existsSync(resolve(moduleRoot, "infrastructure/socketSession.ts")),
     ).toBe(true);
     expect(
-      existsSync(resolve(moduleRoot, "infrastructure/socketSession.test.ts")),
+      existsSync(resolve(moduleRoot, "infrastructure/socketSession.dom.test.ts")),
     ).toBe(true);
     expect(
       existsSync(resolve(moduleRoot, "presentation/timelineScroll.ts")),
@@ -2737,7 +2759,7 @@ describe("round 2 residual architecture boundaries", () => {
       "infrastructure/taskCompletionMonitor.ts",
       "infrastructure/taskCompletionMonitor.test.ts",
       "infrastructure/taskStreamClient.ts",
-      "infrastructure/taskStreamClient.test.ts",
+      "infrastructure/taskStreamClient.dom.test.ts",
       "presentation/TaskCenterProvider.tsx",
       "presentation/taskCenterStore.ts",
       "presentation/taskErrorMessage.ts",

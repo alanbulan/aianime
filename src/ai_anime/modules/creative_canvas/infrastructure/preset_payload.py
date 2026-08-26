@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from ai_anime.modules.production.public import build_scene_reference_prompt
 from ai_anime.modules.asset_world.public import NovelScene
@@ -44,20 +44,6 @@ from ai_anime.shared.utils.path_resolver import (
     canonical_scene_master_path,
     canonical_scene_reverse_master_path,
 )
-
-
-def _latest_matching(directory: Path, patterns: Iterable[str]) -> list[Path]:
-    if not directory.exists():
-        return []
-    seen: set[Path] = set()
-    out: list[Path] = []
-    for pattern in patterns:
-        for p in directory.glob(pattern):
-            if p.is_file() and p not in seen:
-                seen.add(p)
-                out.append(p)
-    out.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-    return out
 
 
 def _beat_scene_source_urls(context: dict[str, Any]) -> dict[str, Any]:
@@ -658,21 +644,6 @@ def _edge(
     return edge
 
 
-def _candidate_binding_edge(
-    edge_id: str, source: str, target: str, role: str
-) -> dict[str, Any]:
-    edge = _edge(edge_id, target, source)
-    edge["data"] = {
-        "edgeKind": "role_binding",
-        "propagates": True,
-        "role": role,
-        "sourceNodeId": source,
-        "beatContextNodeId": target,
-        "preset_managed": True,
-    }
-    return edge
-
-
 def _skill_role_edge(
     edge_id: str,
     source: str,
@@ -700,27 +671,6 @@ def _skill_role_edge(
     if source_handle:
         edge["sourceHandle"] = source_handle
     return edge
-
-
-def _reference_path_lookup_keys(raw_path: str, project_dir: Path) -> set[str]:
-    """Return stable lookup keys for matching AI anime ref-plan paths to canvas refs."""
-    value = str(raw_path or "").strip()
-    if not value:
-        return set()
-    keys = {value}
-    try:
-        path = Path(value)
-        absolute_path = path if path.is_absolute() else project_dir / path
-        resolved = absolute_path.resolve()
-        keys.add(str(resolved))
-        keys.add(resolved.as_posix())
-        try:
-            keys.add(resolved.relative_to(project_dir.resolve()).as_posix())
-        except Exception:
-            pass
-    except Exception:
-        pass
-    return {key for key in keys if key}
 
 
 def _is_asset_library_reference(ref: dict[str, Any]) -> bool:
@@ -2668,9 +2618,6 @@ def build_canvas_payload_from_context(
             if label and label in detected_prop_ids:
                 return label
             return prop_id if prop_id and not detected_prop_ids else ""
-
-        def _ref_matches_detected_identity(ref: dict[str, Any]) -> bool:
-            return bool(_matched_identity_target_id(ref))
 
         def _ref_matches_detected_prop(ref: dict[str, Any]) -> bool:
             return bool(_matched_prop_target_id(ref))

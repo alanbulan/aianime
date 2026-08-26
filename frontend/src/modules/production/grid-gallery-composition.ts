@@ -47,7 +47,7 @@ export function RenderGridGallery({
           cellAspect: spec.renderAspect,
           episode,
           group,
-          key: group.gridIndex,
+          key: `${group.gridIndex}:${group.gridUrl}`,
           project,
         }),
       ),

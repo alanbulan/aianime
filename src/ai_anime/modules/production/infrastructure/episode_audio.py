@@ -57,6 +57,7 @@ class IndexTTS2EpisodeAudioPlanner:
             return EpisodeAudioGenerationPlan(
                 beat_numbers=tuple(plan.beat_numbers),
                 errors=tuple(errors),
+                voice_requirements=tuple(plan.voice_requirements),
                 billable_chars=plan.billable_chars,
                 pricing_model=pricing_model,
             )

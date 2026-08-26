@@ -67,6 +67,7 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(workerRuntime, /"scene-overlap-analyzer"/);
   assert.match(workerRuntime, /"scene-spatial-contract"/);
   assert.match(workerRuntime, /"block-world-builder"/);
+  assert.match(workerRuntime, /"native-project-task"/);
   assert.match(workerRuntime, /"--internal-worker"/);
   assert.match(entrypoint, /from ladybug import Connection, Database/);
   assert.match(entrypoint, /_install_ladybug_windows_path_compatibility/);
@@ -81,6 +82,10 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(backendSource, /PYTHONIOENCODING: "utf-8"/);
   assert.match(backendSource, /PYTHONUTF8: "1"/);
   assert.match(backendSource, /AI_ANIME_WORLD_RUNTIME_BIN/);
+  assert.match(backendSource, /startHealthWatchdog\(child\)/);
+  assert.match(backendSource, /HEALTH_CHECK_FAILURE_THRESHOLD = 3/);
+  assert.match(backendSource, /backend health watchdog terminating unresponsive process/);
+  assert.match(backendSource, /\["\/PID", String\(child\.pid\), "\/T", "\/F"\]/);
   assert.match(worldSpec, /collect_submodules\("safetensors"\)/);
   assert.match(worldSpec, /copy_metadata\("safetensors"\)/);
   assert.match(worldEntrypoint, /import safetensors/);
@@ -141,5 +146,77 @@ test(
     );
 
     assert.equal(result.status, 0, result.stderr || result.stdout);
+  },
+);
+
+test(
+  "runtime dependency installer validates the same manifest safety fields",
+  { skip: process.platform !== "win32" },
+  () => {
+    const powershell = join(
+      process.env.SystemRoot || "C:\\Windows",
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    );
+    const scriptPath = fileURLToPath(
+      new URL("../scripts/install-runtime-dependency.ps1", import.meta.url),
+    );
+    const validate = (manifest) => {
+      const command = [
+        "$tokens = $null",
+        "$errors = $null",
+        "$ast = [System.Management.Automation.Language.Parser]::ParseFile($env:AI_ANIME_INSTALLER_SCRIPT_PATH, [ref]$tokens, [ref]$errors)",
+        "$definition = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Assert-RuntimeDependencyManifest' }, $true)",
+        "if ($null -eq $definition) { exit 2 }",
+        "Invoke-Expression $definition.Extent.Text",
+        "$manifest = $env:AI_ANIME_TEST_MANIFEST | ConvertFrom-Json",
+        "try { [void](Assert-RuntimeDependencyManifest -Manifest $manifest); exit 0 } catch { [Console]::Error.WriteLine($_.Exception.Message); exit 1 }",
+      ].join("; ");
+      return spawnSync(
+        powershell,
+        ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+        {
+          encoding: "utf8",
+          env: {
+            ...process.env,
+            AI_ANIME_INSTALLER_SCRIPT_PATH: scriptPath,
+            AI_ANIME_TEST_MANIFEST: JSON.stringify(manifest),
+          },
+        },
+      );
+    };
+    const valid = {
+      schemaVersion: 1,
+      package: {
+        id: "world",
+        version: "1.0.0",
+        platform: "win32",
+        arch: "x64",
+        archive: "tar.gz",
+        sha256: "a".repeat(64),
+        downloadSizeBytes: 1024,
+        installedSizeBytes: 2048,
+        urls: ["https://example.com/world.tar.gz"],
+      },
+    };
+
+    assert.equal(validate(valid).status, 0);
+    for (const invalid of [
+      { ...valid, package: { ...valid.package, urls: [] } },
+      {
+        ...valid,
+        package: {
+          ...valid.package,
+          urls: ["http://example.com/world.tar.gz"],
+        },
+      },
+      { ...valid, package: { ...valid.package, downloadSizeBytes: 0 } },
+    ]) {
+      const result = validate(invalid);
+      assert.equal(result.status, 1, result.stderr || result.stdout);
+      assert.match(result.stderr, /运行环境清单字段不完整/);
+    }
   },
 );

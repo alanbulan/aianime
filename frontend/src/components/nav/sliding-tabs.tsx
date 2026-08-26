@@ -1,12 +1,15 @@
 // Copyright (c) 2026 AI anime
 import {
+  startTransition,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type ElementType,
   type ReactNode,
 } from "react";
+import { flushSync } from "react-dom";
 
 import { cn } from "@/lib/utils";
 
@@ -37,6 +40,7 @@ export function SlidingTabs<T extends string>({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const triggerRefs = useRef(new Map<T, HTMLButtonElement>());
   const initializedRef = useRef(false);
+  const pendingTimerRef = useRef<number | null>(null);
   const [visualValue, setVisualValue] = useState(value);
   const [slider, setSlider] = useState({
     left: 0,
@@ -71,6 +75,15 @@ export function SlidingTabs<T extends string>({
     });
   }, []);
 
+  const cancelPendingChange = useCallback(() => {
+    if (pendingTimerRef.current !== null) {
+      window.clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => cancelPendingChange, [cancelPendingChange]);
+
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return undefined;
@@ -97,11 +110,19 @@ export function SlidingTabs<T extends string>({
   const activate = useCallback(
     (nextValue: T) => {
       if (nextValue === visualValue) return;
-      setVisualValue(nextValue);
-      positionSlider(nextValue, true);
-      onValueChange(nextValue);
+      cancelPendingChange();
+      flushSync(() => {
+        setVisualValue(nextValue);
+        positionSlider(nextValue, true);
+      });
+      // 视觉状态先同步提交；内容切换放到下一帧预算之后，避免重面板
+      // 的首次渲染吞掉点击反馈。定时器不依赖后台窗口会暂停的 rAF。
+      pendingTimerRef.current = window.setTimeout(() => {
+        pendingTimerRef.current = null;
+        startTransition(() => onValueChange(nextValue));
+      }, 16);
     },
-    [onValueChange, positionSlider, visualValue],
+    [cancelPendingChange, onValueChange, positionSlider, visualValue],
   );
 
   return (

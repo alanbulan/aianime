@@ -36,7 +36,7 @@ export function createAuthorizedProductionImageGateway(
     project: string,
     kind: "render" | "sketch",
     requested?: string,
-  ): Promise<string> => {
+  ): Promise<string | undefined> => {
     const persistedSelection = requested
       ? Promise.resolve("")
       : kind === "render"
@@ -55,6 +55,12 @@ export function createAuthorizedProductionImageGateway(
         item.operation.trim().toUpperCase() === "IMAGE" &&
         commercialModelRoles(item).includes("IMAGE_EDIT"),
     );
+    if (!requested && !persisted) {
+      if (imageItems.length === 0) {
+        throw new ProductionImageModelUnavailableError();
+      }
+      return undefined;
+    }
     const selection = resolveAuthorizedImageModel(
       imageModelOptionsFromCatalog(imageItems),
       requested || persisted,
@@ -75,7 +81,7 @@ export function createAuthorizedProductionImageGateway(
       );
       return gateway.generateSketches(project, episode, {
         ...command,
-        imageGenerationSelection,
+        ...(imageGenerationSelection ? { imageGenerationSelection } : {}),
       });
     },
     async regenerateGrid(project, episode, command) {
@@ -86,7 +92,7 @@ export function createAuthorizedProductionImageGateway(
       );
       return gateway.regenerateGrid(project, episode, {
         ...command,
-        imageGenerationSelection,
+        ...(imageGenerationSelection ? { imageGenerationSelection } : {}),
       });
     },
     async regenerateSketches(project, episode, command) {
@@ -97,7 +103,7 @@ export function createAuthorizedProductionImageGateway(
       );
       return gateway.regenerateSketches(project, episode, {
         ...command,
-        imageGenerationSelection,
+        ...(imageGenerationSelection ? { imageGenerationSelection } : {}),
       });
     },
     async regenerateRenderBeats(project, episode, command) {
@@ -108,7 +114,7 @@ export function createAuthorizedProductionImageGateway(
       );
       return gateway.regenerateRenderBeats(project, episode, {
         ...command,
-        imageGenerationSelection,
+        ...(imageGenerationSelection ? { imageGenerationSelection } : {}),
       });
     },
     async createRenderPlan(project, episode, command) {
@@ -119,7 +125,7 @@ export function createAuthorizedProductionImageGateway(
       );
       return gateway.createRenderPlan(project, episode, {
         ...command,
-        imageGenerationSelection,
+        ...(imageGenerationSelection ? { imageGenerationSelection } : {}),
       });
     },
     async executeRenderPlan(project, episode, command) {
@@ -130,7 +136,7 @@ export function createAuthorizedProductionImageGateway(
       );
       return gateway.executeRenderPlan(project, episode, {
         ...command,
-        imageGenerationSelection,
+        ...(imageGenerationSelection ? { imageGenerationSelection } : {}),
       });
     },
   };

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * AI 头像视频(`/video/ai-avatar.mp4`)在每条 assistant 消息上都会渲染一个
+ * AI 助手精灵视频(`/video/ai-assistant-familiar-v1.mp4`)在每条 assistant 消息上都会渲染一个
  * `<video>`,过去每个元素各发一次请求(即便命中 304 也是一串网络往返,调试噪音大)。
  *
  * 这里把它做成「整会话只取一次」:首次 fetch 后把视频 blob 存进 IndexedDB,并在内存
@@ -11,10 +11,10 @@ import { useEffect, useState } from "react";
  * IndexedDB 不可用(隐私模式等)时回退到原始路径,退化为旧行为,功能不受影响。
  */
 
-const AVATAR_PATH = "/video/ai-avatar.mp4";
+const AVATAR_PATH = "/video/ai-assistant-familiar-v1.mp4";
 const DB_NAME = "ai-anime-media-cache";
 const STORE_NAME = "blobs";
-const CACHE_KEY = "ai-avatar.mp4";
+const CACHE_KEY = "ai-assistant-familiar-v1.mp4";
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

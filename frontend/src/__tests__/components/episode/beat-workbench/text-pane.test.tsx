@@ -8,7 +8,7 @@ import { describe, expect, it, vi, beforeEach, beforeAll, type Mock } from "vite
 import type { ReactNode } from "react";
 
 // Local i18n instance — mirrors public/locales/zh/translation.json for the
-// keys TextPane reads. Avoids loading the HTTP backend in jsdom and keeps the
+// keys TextPane reads. Avoids loading the HTTP backend in Happy DOM and keeps the
 // Chinese-string assertions deterministic.
 const i18n = i18next.createInstance();
 

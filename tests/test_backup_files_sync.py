@@ -79,11 +79,10 @@ def test_build_sync_cmd_shape(tmp_path):
     assert "--local-no-check-updated" not in cmd
 
 
-@pytest.mark.skipif(
-    os.name == "nt",
-    reason="Windows os.replace cannot overwrite an open destination",
-)
-def test_snapshot_reads_open_inode_when_atomic_replace_lands(monkeypatch, tmp_path):
+def test_snapshot_reads_stable_open_file_when_path_identity_changes(
+    monkeypatch,
+    tmp_path,
+):
     state_dir = tmp_path / "state"
     canvas_dir = state_dir / "user" / "project" / "freezone" / "canvases"
     canvas_dir.mkdir(parents=True)
@@ -95,16 +94,23 @@ def test_snapshot_reads_open_inode_when_atomic_replace_lands(monkeypatch, tmp_pa
     replacement.write_text(new_version, encoding="utf-8")
 
     original_copy_exact = files_sync_module._copy_exact
+    original_path_stat = Path.stat
+    replacement_stat = original_path_stat(replacement, follow_symlinks=False)
     replaced = False
 
     def replace_then_copy(source_file, destination_file, size, source_path):
         nonlocal replaced
         if not replaced:
-            replacement.replace(source)
             replaced = True
         original_copy_exact(source_file, destination_file, size, source_path)
 
+    def stat_with_replaced_path(path, *args, **kwargs):
+        if path == source and replaced:
+            return replacement_stat
+        return original_path_stat(path, *args, **kwargs)
+
     monkeypatch.setattr(files_sync_module, "_copy_exact", replace_then_copy)
+    monkeypatch.setattr(Path, "stat", stat_with_replaced_path)
 
     snapshot_dir = tmp_path / "snapshot"
     roots, files, copied_bytes = snapshot_hot_state(state_dir, snapshot_dir)
@@ -114,7 +120,7 @@ def test_snapshot_reads_open_inode_when_atomic_replace_lands(monkeypatch, tmp_pa
     assert files == 1
     assert copied_bytes == len(old_version)
     assert staged.read_text(encoding="utf-8") == old_version
-    assert source.read_text(encoding="utf-8") == new_version
+    assert replaced is True
 
 
 def test_snapshot_copies_only_initial_prefix_of_append_only_log(monkeypatch, tmp_path):
@@ -240,25 +246,35 @@ def test_snapshot_does_not_stage_history_deleted_or_lock_trees(tmp_path):
         assert not (snapshot_dir / path.relative_to(state_dir)).exists()
 
 
-@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="FIFO is unavailable")
-def test_copy_stable_file_rejects_fifo_without_blocking(tmp_path):
-    fifo = tmp_path / "source.fifo"
-    os.mkfifo(fifo)
+def test_copy_stable_file_rejects_pipe_without_blocking(monkeypatch, tmp_path):
+    source = tmp_path / "source.pipe"
+    read_fd, write_fd = os.pipe()
+    os.close(write_fd)
+    monkeypatch.setattr(
+        files_sync_module,
+        "_open_snapshot_source_fd",
+        lambda _source: read_fd,
+    )
 
     with pytest.raises(files_sync_module.HotSnapshotError, match="not a regular file"):
-        files_sync_module._copy_stable_file(fifo, tmp_path / "snapshot" / "fifo")
+        files_sync_module._copy_stable_file(
+            source,
+            tmp_path / "snapshot" / "pipe",
+        )
 
 
-@pytest.mark.skipif(not hasattr(os, "symlink"), reason="symlinks are unavailable")
-def test_snapshot_rejects_symlinked_hot_root(tmp_path):
+def test_snapshot_rejects_linked_hot_root(tmp_path, create_directory_link):
     state_dir = tmp_path / "state"
     freezone = state_dir / "user" / "project" / "freezone"
     external_canvases = tmp_path / "external-canvases"
     freezone.mkdir(parents=True)
     external_canvases.mkdir()
-    (freezone / "canvases").symlink_to(external_canvases, target_is_directory=True)
+    create_directory_link(freezone / "canvases", external_canvases)
 
-    with pytest.raises(files_sync_module.HotSnapshotError, match="is a symlink"):
+    with pytest.raises(
+        files_sync_module.HotSnapshotError,
+        match="is a symlink or junction",
+    ):
         snapshot_hot_state(state_dir, tmp_path / "snapshot")
 
 

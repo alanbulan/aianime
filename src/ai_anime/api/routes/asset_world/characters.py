@@ -64,6 +64,16 @@ from ai_anime.sqlite_store import SQLiteStore
 router = APIRouter()
 
 
+def _invalid_image_selection_response(exc: InvalidImageSelection) -> JSONResponse:
+    content: dict[str, object] = {"ok": False, "error": str(exc)}
+    code = str(getattr(exc, "code", "") or "").strip()
+    if code:
+        content["code"] = code
+    if bool(getattr(exc, "action_required", False)):
+        content["action_required"] = True
+    return JSONResponse(status_code=400, content=content)
+
+
 async def _resolve_character_project(
     project: str,
     user: dict,
@@ -720,13 +730,13 @@ async def generate_single_portrait_async(
         await _resolve_character_project(project, user)
     )
 
-    options = image_settings_use_cases().character_generation_options(
-        username,
-        project_name,
-        requested_style=body.style,
-        requested_model=body.model,
-    )
     try:
+        options = image_settings_use_cases().character_generation_options(
+            username,
+            project_name,
+            requested_style=body.style,
+            requested_model=body.model,
+        )
         scheduled = await character_task_use_cases().schedule_character_portrait(
             task_context=ctx,
             project_dir=project_dir,
@@ -735,6 +745,8 @@ async def generate_single_portrait_async(
             model=options.model,
             model_selector=options.model_selector,
         )
+    except InvalidImageSelection as exc:
+        return _invalid_image_selection_response(exc)
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
@@ -775,6 +787,8 @@ async def generate_single_portrait(
                 ctx, project_dir, make_static_url_for_context
             ),
         )
+    except InvalidImageSelection as exc:
+        return _invalid_image_selection_response(exc)
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": data}
@@ -946,13 +960,13 @@ async def generate_identity_portrait_async(
     ctx, username, project_name, project_dir, _output_dir, store = await _resolve_character_project(
         project, user
     )
-    options = image_settings_use_cases().character_generation_options(
-        username,
-        project_name,
-        requested_style=body.style,
-        requested_model=body.model,
-    )
     try:
+        options = image_settings_use_cases().character_generation_options(
+            username,
+            project_name,
+            requested_style=body.style,
+            requested_model=body.model,
+        )
         scheduled = await character_task_use_cases().schedule_identity_portrait(
             repository=store,
             task_context=ctx,
@@ -963,6 +977,8 @@ async def generate_identity_portrait_async(
             model=options.model,
             model_selector=options.model_selector,
         )
+    except InvalidImageSelection as exc:
+        return _invalid_image_selection_response(exc)
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
@@ -1001,6 +1017,8 @@ async def generate_identity_portrait(
                 ctx, project_dir, make_static_url_for_context
             ),
         )
+    except InvalidImageSelection as exc:
+        return _invalid_image_selection_response(exc)
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": data}
@@ -1017,13 +1035,14 @@ async def generate_identity_image_async(
     ctx, username, project_name, project_dir, _output_dir, store = (
         await _resolve_character_project(project, user)
     )
-    options = image_settings_use_cases().character_generation_options(
-        username,
-        project_name,
-        requested_style=body.style,
-        requested_model=body.model,
-    )
     try:
+        options = image_settings_use_cases().character_generation_options(
+            username,
+            project_name,
+            requested_style=body.style,
+            requested_model=body.model,
+            fallback_role="IMAGE_EDIT",
+        )
         scheduled = await character_task_use_cases().schedule_identity_image(
             repository=store,
             task_context=ctx,
@@ -1034,6 +1053,8 @@ async def generate_identity_image_async(
             model=options.model,
             model_selector=options.model_selector,
         )
+    except InvalidImageSelection as exc:
+        return _invalid_image_selection_response(exc)
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
@@ -1085,6 +1106,7 @@ async def generate_identity_image(
             project_name,
             requested_style=body.style,
             requested_model=body.model,
+            fallback_role="IMAGE_EDIT",
         )
 
     try:
@@ -1098,6 +1120,8 @@ async def generate_identity_image(
                 ctx, project_dir, make_static_url_for_context
             ),
         )
+    except InvalidImageSelection as exc:
+        return _invalid_image_selection_response(exc)
     except CharacterCatalogRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": data}

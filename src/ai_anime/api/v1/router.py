@@ -56,6 +56,8 @@ def create_api_router(*, desktop_mode: bool | None = None) -> APIRouter:
     router = APIRouter(prefix="/api/v1")
     router.include_router(identity_access.create_router(desktop_mode=desktop_mode))
     if not runtime_env.is_ce_effective():
+        # A separately installed EE distribution owns this entry-point group;
+        # the CE package intentionally does not declare a local provider.
         for entry_point in entry_points(group="ai_anime.api_routes"):
             entry_point.load()(router)
     router.include_router(platform_release.create_router())

@@ -10,7 +10,7 @@
  *
  * Returns null for nullish / invalid inputs so callers can skip rendering.
  */
-export function formatRelativeTime(
+export function formatCompactAge(
   iso: string | null | undefined,
   now: number = Date.now(),
 ): string | null {

@@ -66,8 +66,19 @@ function BatchBarModelSelect({
 }) {
   if (control.isLoading) {
     return (
-      <div className="flex h-[26px] min-w-40 items-center justify-center text-muted-foreground">
-        <Loader2 className="size-3 animate-spin" />
+      <div className="flex items-center gap-2" aria-busy="true">
+        <Label className="whitespace-nowrap text-[11px] text-muted-foreground">
+          {label}
+        </Label>
+        <div
+          className={cn(
+            WORKBENCH_SELECT_TRIGGER_CLASS,
+            "flex w-28 items-center justify-center text-muted-foreground",
+          )}
+        >
+          <Loader2 className="size-3 animate-spin" />
+          <span className="sr-only">{placeholder}</span>
+        </div>
       </div>
     );
   }

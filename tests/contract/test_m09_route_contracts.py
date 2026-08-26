@@ -58,6 +58,7 @@ _M09_OPERATIONS = {
     ),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/optimize/video-global"),
     ("GET", "/api/v1/projects/{project}/assets/{asset_type}/{asset_id}/references"),
+    ("GET", "/api/v1/projects/{project}/assets/references"),
     ("GET", "/api/v1/projects/{project}/media/{file_path}"),
 }
 
@@ -442,7 +443,7 @@ def _assert_task_payload(payload: dict, *, backend: str, task_type: str):
     assert "celery_id" not in payload
 
 
-def test_m09_openapi_exposes_all_21_owned_operations(m09_client_factory):
+def test_m09_openapi_exposes_all_22_owned_operations(m09_client_factory):
     client, _task_backend, _project_dir, _pool_id = m09_client_factory("inline")
     spec = client.get("/openapi.json").json()
     actual = {
@@ -452,7 +453,7 @@ def test_m09_openapi_exposes_all_21_owned_operations(m09_client_factory):
         if method.lower() in {"get", "post", "patch", "delete"}
     }
 
-    assert len(_M09_OPERATIONS) == 21
+    assert len(_M09_OPERATIONS) == 22
     assert not sorted(_M09_OPERATIONS - actual)
 
 
@@ -679,3 +680,11 @@ def test_m09_asset_references_reject_invalid_type_and_empty_id(m09_client_factor
     assert scene["data"]["beats"] == [{"episode": 1, "beat_number": 1}]
     assert scene["data"]["co_identities"] == [_IDENTITY]
     assert scene["data"]["co_props"] == [_PROP]
+
+    index = _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/assets/references"))
+    assert index["data"]["references"]["identity"][_IDENTITY] == [
+        {"episode": 1, "beat_number": 1}
+    ]
+    assert index["data"]["references"]["scene"][_SCENE] == [
+        {"episode": 1, "beat_number": 1}
+    ]

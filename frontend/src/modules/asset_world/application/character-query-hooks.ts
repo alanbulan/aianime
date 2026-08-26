@@ -2,11 +2,9 @@
 import { useMemo } from "react";
 import {
   useMutation,
-  useQueries,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import type { QueryFunctionContext } from "@tanstack/react-query";
 
 import { queryKeys } from "@/lib/query-keys";
 import type {
@@ -351,44 +349,19 @@ export function createCharacterQueryHooks(gateway: CharacterGateway) {
       enabled: Boolean(project),
     });
 
-    const names = useMemo(
-      () => (charactersQuery.data?.data ?? []).map((character) => character.name),
-      [charactersQuery.data?.data],
-    );
-
-    const identityQueries = useQueries({
-      queries: names.map((name) => ({
-        queryKey: queryKeys.identities(project, name),
-        queryFn: ({ signal }: QueryFunctionContext) =>
-          gateway.listIdentities(project, name, signal),
-        enabled: Boolean(project && name),
-      })),
-    });
-
-    const dataSignature = identityQueries
-      .map((query) => query.dataUpdatedAt)
-      .join(",");
-    const identitiesByCharacter = identityQueries.map(
-      (query) => query.data?.data,
-    );
-
     const ownerById = useMemo(() => {
       const owners = new Map<string, string>();
-      identitiesByCharacter.forEach((identities, index) => {
-        const name = names[index];
-        if (!identities) return;
-        for (const identity of identities) {
-          owners.set(identity.identity_id, name);
+      for (const character of charactersQuery.data?.data ?? []) {
+        for (const identity of character.identities ?? []) {
+          owners.set(identity.identity_id, character.name);
         }
-      });
+      }
       return owners;
-    }, [names, dataSignature]);
+    }, [charactersQuery.data?.data]);
 
     return {
       ownerOf: (identityId: string) => ownerById.get(identityId) ?? null,
-      isLoading:
-        charactersQuery.isLoading ||
-        identityQueries.some((query) => query.isLoading),
+      isLoading: charactersQuery.isLoading,
     };
   }
 

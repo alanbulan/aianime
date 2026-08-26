@@ -29,7 +29,7 @@ def test_bad_colon_scene_marker_and_split_location_time_warn_with_fixes():
     )
 
     assert result["level"] == "warning"
-    assert _codes(result) >= {"scene_marker_colon_number", "split_location_time"}
+    assert _codes(result) >= {"nonstandard_scene_headers", "missing_interior_exterior"}
     assert all(issue["fix"] for issue in result["issues"])
 
 
@@ -141,10 +141,10 @@ def test_sparse_scene_headers_only_for_long_scripts():
     assert "sparse_scene_headers" not in _codes(short_result)
 
 
-def test_scene_marker_colon_number_reports_real_line_number():
+def test_incomplete_scene_header_reports_real_line_number():
     result = build_import_format_check("梗概\n这是故事。\n场次：1\n地点：人类城池\n", has_chapters=True)
 
-    assert _issue(result, "scene_marker_colon_number")["line"] == 3
+    assert _issue(result, "incomplete_scene_header")["line"] == 3
 
 
 def test_time_detection_requires_delimiters():
@@ -157,7 +157,8 @@ def test_time_detection_requires_delimiters():
         has_chapters=True,
     )
 
-    assert "split_location_time" in _codes(split_result)
+    assert "missing_interior_exterior" in _codes(split_result)
+    assert "scene_headers_missing_time" in _codes(false_time_result)
     assert "missing_interior_exterior" not in _codes(false_time_result)
 
 
@@ -210,8 +211,8 @@ async def test_upload_success_includes_format_check_in_data(tmp_path, monkeypatc
     assert response["ok"] is True
     assert response["data"]["format_check"]["level"] == "warning"
     assert _codes(response["data"]["format_check"]) >= {
-        "scene_marker_colon_number",
-        "split_location_time",
+        "nonstandard_scene_headers",
+        "missing_interior_exterior",
     }
     assert "format_check" not in response
 

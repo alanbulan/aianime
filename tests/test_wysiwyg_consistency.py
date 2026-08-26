@@ -217,9 +217,9 @@ def build_test_character_map(
         effective_face_prompt = identity_face_prompt or char.get("face_prompt", "") or char_name
 
         # Determine reference_mode by checking files on disk
-        ref_path = ""
+        ref_path = str(char.get("reference_path") or "")
         is_identity = False
-        if identity_id:
+        if identity_id and not ref_path:
             i_name = identity_id.split("_", 1)[1] if "_" in identity_id else identity_id
             id_path = char_assets_dir / "identities" / f"{i_name}.png"
             if id_path.exists():
@@ -479,7 +479,68 @@ def _collect_test_cases():
     return cases
 
 
-_TEST_CASES = _collect_test_cases()
+def _synthetic_test_case():
+    reference_path = str(Path(__file__).resolve())
+    characters = [
+        {
+            "name": "沈知薇",
+            "face_prompt": "清秀面容",
+            "appearance_details": "青衣",
+            "gender": "女",
+            "body_type": "纤细",
+            "reference_path": reference_path,
+            "identities": [
+                {
+                    "identity_id": "沈知薇_常服",
+                    "appearance_details": "青衣常服",
+                    "face_prompt": "清秀面容",
+                }
+            ],
+        },
+        {
+            "name": "萧景行",
+            "face_prompt": "青年将军",
+            "appearance_details": "玄色劲装",
+            "gender": "男",
+            "body_type": "挺拔",
+            "reference_path": reference_path,
+            "identities": [
+                {
+                    "identity_id": "萧景行_常服",
+                    "appearance_details": "玄色劲装",
+                    "face_prompt": "青年将军",
+                }
+            ],
+        },
+    ]
+    beats = [
+        {
+            "beat_number": 1,
+            "visual_description": "{{沈知薇_常服}}推门进入",
+            "location": "书房",
+            "time_of_day": "夜",
+            "detected_identities": ["沈知薇_常服"],
+        },
+        {
+            "beat_number": 2,
+            "visual_description": "{{萧景行_常服}}转身看向她",
+            "location": "书房",
+            "time_of_day": "夜",
+            "detected_identities": ["萧景行_常服"],
+        },
+    ]
+    return (
+        "synthetic/wysiwyg",
+        Path(__file__).resolve(),
+        1,
+        beats,
+        characters,
+        {"沈知薇_常服": "red", "萧景行_常服": "blue"},
+        Path(__file__).resolve().parent,
+    )
+
+
+_TEST_CASES = _collect_test_cases() or [_synthetic_test_case()]
 _TEST_IDS = [f"{c[0]}/ep{c[2]:03d}" for c in _TEST_CASES]
 
 
@@ -528,7 +589,6 @@ def _make_ctx_and_ordered(
 # Test 1: extract_panel_characters sources
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_extract_panel_characters_sources(case):
     """Render uses detected_identities, Sketch uses {{}} markers.
@@ -565,7 +625,6 @@ def test_extract_panel_characters_sources(case):
 # Test 2: build_reference_map Image N == simulated API attachment order
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_reference_map_matches_api_attachment_order(case):
     """Image N in build_reference_map must match simulated API attachment order."""
@@ -618,7 +677,6 @@ def test_reference_map_matches_api_attachment_order(case):
 # Test 3: Export UI img_idx == build_reference_map Image N
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_export_ui_matches_reference_map(case):
     """Export UI img_idx numbering must match build_reference_map Image N."""
@@ -657,7 +715,6 @@ def test_export_ui_matches_reference_map(case):
 # Test 4: build_panel_roster has no Image N references (regression)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_panel_roster_no_image_n(case):
     """build_panel_roster output must NOT contain 'Image N' strings."""
@@ -681,7 +738,6 @@ def test_panel_roster_no_image_n(case):
 # Test 5: build_identity_lock(compact=True) has no Image N references
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_compact_identity_lock_no_image_n(case):
     """Render mode compact identity lock must NOT contain 'Image N' strings."""

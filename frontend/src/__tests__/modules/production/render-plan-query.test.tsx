@@ -10,7 +10,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { createRenderPlanQueryHooks } from "@/modules/production/application/render-plan-query-hooks";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import type { RenderPlan } from "@/modules/production/public";

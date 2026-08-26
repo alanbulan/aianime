@@ -16,7 +16,7 @@ import { TaskActions } from "@/components/task-center/task-actions";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import type { TaskState } from "@/modules/task_execution/public";
 
-// Minimal inline i18n instance — avoids HTTP backend loading in jsdom.
+// Minimal inline i18n instance — avoids HTTP backend loading in the DOM test runtime.
 // Resources mirror public/locales/en/translation.json for the keys under test.
 const testI18n = i18n.createInstance();
 

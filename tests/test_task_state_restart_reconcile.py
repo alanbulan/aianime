@@ -12,6 +12,9 @@ import pytest
 
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.infrastructure.task_state import TaskStateManager
+from ai_anime.modules.task_execution.domain.task_restart_recovery import (
+    PROJECT_TASK_CHILD_PROCESS_ENV,
+)
 
 pytestmark = pytest.mark.m07
 
@@ -152,3 +155,33 @@ def test_stale_inline_task_no_longer_blocks_active_count(tmp_path: Path) -> None
     manager = _restarted()
 
     assert manager.count_active_tasks_for_project(ctx) == 0
+
+
+def test_native_task_child_does_not_reconcile_parent_owned_task(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    manager = TaskStateManager()
+    ctx = _ctx(tmp_path)
+    created = manager.create_task_for_project(
+        ctx, "ingest_fast", 0, scope="native_child", metadata={"backend": "inline"}
+    )
+    manager.update_progress_for_project(
+        ctx,
+        "ingest_fast",
+        0,
+        progress=0.1,
+        scope="native_child",
+    )
+    _backdate(manager, ctx, created.task_id)
+    monkeypatch.setenv(PROJECT_TASK_CHILD_PROCESS_ENV, "1")
+
+    state = _restarted().get_task_for_project(
+        ctx,
+        "ingest_fast",
+        0,
+        scope="native_child",
+    )
+
+    assert state is not None
+    assert state.status == "running"

@@ -43,6 +43,7 @@ from ai_anime.modules.task_execution.domain.task_identity import (
 )
 from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     ACTIVE_PROJECT_TASK_STATUSES,
+    PROJECT_TASK_CHILD_PROCESS_ENV,
     TERMINAL_TASK_STATUSES,
     build_interrupted_inline_recovery_plan,
 )
@@ -1095,6 +1096,12 @@ class TaskStateManager:
         key = str(db_path)
         with self._sweep_lock:
             if key in self._swept_dbs:
+                return
+            if os.environ.get(PROJECT_TASK_CHILD_PROCESS_ENV) == "1":
+                # Native task children share the parent's task database. They
+                # must not interpret the parent-owned active row as work left
+                # behind by a service restart.
+                self._swept_dbs.add(key)
                 return
         recovery = build_interrupted_inline_recovery_plan(
             process_started_at=_PROCESS_STARTED_AT,

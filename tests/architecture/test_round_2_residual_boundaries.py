@@ -1020,7 +1020,8 @@ def test_commercial_gateway_has_one_fixed_production_origin() -> None:
         path.read_text(encoding="utf-8")
         for root in production_roots
         for path in root.rglob("*")
-        if path.suffix in {".py", ".ts", ".tsx", ".cts", ".mjs", ".cjs"}
+        if path.is_file()
+        and path.suffix in {".py", ".ts", ".tsx", ".cts", ".mjs", ".cjs"}
         and "__tests__" not in path.parts
         and "tests" not in path.parts
     )

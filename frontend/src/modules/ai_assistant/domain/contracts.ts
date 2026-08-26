@@ -141,7 +141,7 @@ export type ChatMessage = {
   attachments?: ChatAttachment[];
   toolCallId?: string;
   toolName?: string;
-  toolState?: "running" | "success" | "error";
+  toolState?: "running" | "pending" | "success" | "error";
   toolInput?: unknown;
   toolOutput?: unknown;
   toolError?: unknown;

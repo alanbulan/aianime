@@ -98,6 +98,7 @@ export function normalizeMessage(message: unknown, fallbackRole: ChatRole = "ass
       ? value.name
       : undefined;
   const toolState = value.toolState === "running"
+    || value.toolState === "pending"
     || value.toolState === "success"
     || value.toolState === "error"
     ? value.toolState
@@ -121,6 +122,34 @@ export function normalizeMessage(message: unknown, fallbackRole: ChatRole = "ass
 }
 
 function extractAttachments(value: Record<string, unknown>): ChatAttachment[] {
+  const directAttachments = Array.isArray(value.attachments)
+    ? value.attachments
+        .filter((item) => item && typeof item === "object")
+        .map((item): ChatAttachment => {
+          const attachment = item as Record<string, unknown>;
+          const url = typeof attachment.url === "string" ? attachment.url : undefined;
+          const path = typeof attachment.path === "string" ? attachment.path : undefined;
+          const label = typeof attachment.label === "string" ? attachment.label : undefined;
+          const fileName = typeof attachment.fileName === "string"
+            ? attachment.fileName
+            : label || path?.split("/").pop() || url?.split("/").pop();
+          return {
+            id: typeof attachment.id === "string" ? attachment.id : undefined,
+            type: typeof attachment.type === "string" ? attachment.type : undefined,
+            kind: typeof attachment.kind === "string" ? attachment.kind : undefined,
+            mimeType: typeof attachment.mimeType === "string" ? attachment.mimeType : undefined,
+            fileName,
+            fileSize: typeof attachment.fileSize === "number" ? attachment.fileSize : undefined,
+            content: typeof attachment.content === "string" ? attachment.content : undefined,
+            url,
+            path,
+            label,
+          };
+        })
+    : [];
+
+  if (directAttachments.length > 0) return directAttachments;
+
   const contentAttachments = Array.isArray(value.content)
     ? value.content
     .filter((block) => block && typeof block === "object")

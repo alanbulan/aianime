@@ -337,6 +337,67 @@ async def test_start_ingest_allows_spine_template_change_during_rebuild(
 
 
 @pytest.mark.asyncio
+async def test_start_ingest_allows_unchanged_spine_template_without_rebuild(
+    monkeypatch, tmp_path
+):
+    from ai_anime.api.routes.story_intake import ingest
+    from ai_anime.modules.story_intake import bootstrap as story_intake_bootstrap
+
+    saved = {"spine_template": "drama"}
+    uploads = tmp_path / "uploads"
+    uploads.mkdir()
+    (uploads / "novel.md").write_text("# 第一章\n正文", encoding="utf-8")
+
+    monkeypatch.setattr(ingest, "resolve_project_scope", _project_scope_resolver(tmp_path))
+    monkeypatch.setattr(
+        ingest,
+        "load_project_config",
+        lambda username, project: {"visual_style": "chinese_period_drama", **saved},
+    )
+    monkeypatch.setattr(
+        ingest,
+        "save_project_config",
+        lambda username, project, config=None, **kwargs: saved.update(config or {}),
+    )
+
+    submissions = []
+
+    class _TaskSubmissions:
+        async def submit(self, ctx, submission):
+            submissions.append(submission)
+            return SimpleNamespace(
+                task_id="task-ingest",
+                task_key="task:ingest_fast:project:project-1:0",
+                backend="inline",
+                queue="inline",
+            )
+
+    monkeypatch.setattr(
+        story_intake_bootstrap,
+        "project_task_submission_use_cases",
+        lambda: _TaskSubmissions(),
+    )
+
+    response = await ingest.start_ingest(
+        "demo",
+        IngestStart(
+            filename="novel.md",
+            textModel="cloud-text-standard",
+            embeddingModel="cloud-embedding-standard",
+            rebuild=False,
+            spine_template="drama",
+        ),
+        {"username": "alice"},
+    )
+
+    assert response["ok"] is True
+    assert submissions[0].payload["config"] == {
+        "rebuild": False,
+        "spine_template": "drama",
+    }
+
+
+@pytest.mark.asyncio
 async def test_start_ingest_rejects_spine_template_change_without_rebuild(
     monkeypatch, tmp_path
 ):

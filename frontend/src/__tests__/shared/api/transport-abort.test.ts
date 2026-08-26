@@ -3,11 +3,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { api, configureApiRuntime } from "@/shared/api/transport";
 import { regionAbortController, resetRegionAbortController } from "@/lib/region-abort";
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 
-// The global MSW server is started by `src/__tests__/setup.ts`. Reusing it
-// here keeps a single `setupServer` instance in-process, avoiding the
-// dual-instance quirk described in that setup file.
+// Importing `setup-msw.ts` starts the shared server for this file. Reusing it
+// keeps a single `setupServer` instance in-process and avoids competing
+// interceptors.
 beforeEach(() => {
   resetRegionAbortController();
   configureApiRuntime({

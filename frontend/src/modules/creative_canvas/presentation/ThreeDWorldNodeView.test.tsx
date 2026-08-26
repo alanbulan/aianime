@@ -206,16 +206,21 @@ describe('ThreeDWorldNodeView', () => {
       }),
     );
     const reference = getByUiTooltip('引用上游图片');
-    fireEvent.click(reference);
-    fireEvent.mouseEnter(reference);
+    await user.click(reference);
+    await user.hover(reference);
+    expect(
+      await screen.findByAltText('上游图片引用预览'),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('combobox', { name: '3DGS 来源类型' }));
-    await user.click(screen.getByRole('option', { name: 'nodeToolbar.image360' }));
+    await user.click(
+      await screen.findByRole('option', { name: 'nodeToolbar.image360' }),
+    );
     await user.click(
       screen.getByRole('combobox', {
         name: 'nodeToolbar.directorWorldReferenceImage',
       }),
     );
-    await user.click(screen.getByRole('option', { name: '图片 B' }));
+    await user.click(await screen.findByRole('option', { name: '图片 B' }));
     fireEvent.click(
       screen.getByRole('button', {
         name: /nodeToolbar.generateDirectorWorld/,
@@ -236,7 +241,6 @@ describe('ThreeDWorldNodeView', () => {
     );
     expect(controller.refreshHistory).toHaveBeenCalled();
     expect(controller.changeDirectorDialogOpen).toHaveBeenCalledWith(false);
-    expect(screen.getByAltText('上游图片引用预览')).toBeInTheDocument();
     expect(screen.getByText('resize:280:170:1200:900')).toBeInTheDocument();
     expect(screen.getByText('handle:target')).toBeInTheDocument();
     expect(screen.getByText('handle:source')).toBeInTheDocument();

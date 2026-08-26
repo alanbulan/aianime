@@ -115,6 +115,49 @@ def test_project_history_keeps_text_and_media_projection(monkeypatch, tmp_path):
     assert [item["path"] for item in history[-1]["media"]] == ["images/frame.png"]
 
 
+def test_project_history_keeps_uploaded_document_attachment_metadata(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    project_dir = tmp_path / "output" / "admin" / "show-1"
+    messages = ProjectChatMessages(
+        SQLiteChatHistory(),
+        ProjectMedia(LocalProjectMediaFiles()),
+    )
+
+    messages.append_user(
+        "admin",
+        "show-1",
+        "按文档生成第一集",
+        [
+            {
+                "id": "attachment-1",
+                "type": "file",
+                "mimeType": "text/markdown",
+                "fileName": "第一集.md",
+                "fileSize": 128,
+                "content": "原始 Markdown 内容不应进入历史响应",
+            }
+        ],
+        turn_id="turn-1",
+        project_dir=project_dir,
+    )
+
+    history = messages.list("admin", "show-1", project_dir=project_dir)
+
+    assert history[0]["media"] == []
+    assert history[0]["attachments"] == [
+        {
+            "id": "attachment-1",
+            "type": "file",
+            "mimeType": "text/markdown",
+            "fileName": "第一集.md",
+            "fileSize": 128,
+        }
+    ]
+
+
 def test_project_assistant_message_redacts_local_path_before_persistence():
     history = StubHistory()
     messages = ProjectChatMessages(history, UnusedMedia())

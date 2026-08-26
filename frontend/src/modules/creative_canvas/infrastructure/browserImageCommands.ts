@@ -126,7 +126,9 @@ function bytesToDataUrl(bytes: Uint8Array, mime = 'image/png'): Promise<string> 
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result ?? ''));
     reader.onerror = () => reject(reader.error ?? new Error('failed to read image bytes'));
-    reader.readAsDataURL(new Blob([bytes], { type: mime }));
+    const data = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(data).set(bytes);
+    reader.readAsDataURL(new Blob([data], { type: mime }));
   });
 }
 

@@ -182,8 +182,10 @@ export function ProjectWorkspaceMenu({ project }: { project: string }) {
               to={target}
               params={{ project }}
               className={cn(
-                "flex h-7 items-center px-1.5 text-xs font-semibold transition-colors duration-150 ease-[var(--ease-out-quint)]",
-                active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                "flex h-7 items-center rounded-full px-3 text-xs font-semibold transition-[color,background-color,box-shadow,transform] duration-150 ease-[var(--ease-out-quint)] active:scale-[0.98]",
+                active
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
               aria-current={active ? "page" : undefined}
             >

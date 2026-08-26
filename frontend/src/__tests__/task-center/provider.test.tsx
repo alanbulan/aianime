@@ -8,7 +8,7 @@ import i18next from "i18next";
 import { http, HttpResponse } from "msw";
 import ky from "ky";
 
-// MSW 2 + ky 2 in jsdom: the global Request is replaced by an undici-backed
+// MSW 2 + ky 2 in the DOM test runtime: Request uses an undici-backed
 // implementation that requires an absolute URL, so the production `api` (which
 // uses `prefix: "/"` + relative inputs) throws `Failed to parse URL`. Inject a
 // test-only ky instance with an absolute `baseUrl` so requests reach MSW.
@@ -16,7 +16,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -26,6 +26,9 @@ import {
 } from "@/modules/task_execution/public";
 import { useAppStore } from "@/modules/project_workspace/public";
 import { useAuthStore } from "@/modules/identity_access/public";
+import type { TaskQueryGateway } from "@/modules/task_execution/application/taskQueryPorts";
+import type { TaskStreamClientOptions } from "@/modules/task_execution/application/taskStreamPorts";
+import { TaskCenterProviderView } from "@/modules/task_execution/presentation/TaskCenterProvider";
 
 // MockEventSource copy (keeps test file self-contained — upstream stream-client test uses same pattern)
 class MockEventSource {
@@ -133,6 +136,58 @@ describe("TaskCenterProvider", () => {
       expect(MockEventSource.instances.length).toBe(1);
     });
     expect(useTaskCenterStore.getState().tasks.size).toBe(1);
+  });
+
+  it("single-flights polling and reconnect hydration", async () => {
+    let calls = 0;
+    let resolvePending: ((tasks: []) => void) | null = null;
+    let streamOptions: TaskStreamClientOptions | null = null;
+    const pending = new Promise<[]>(resolve => {
+      resolvePending = resolve;
+    });
+    const gateway: TaskQueryGateway = {
+      async listProjectTasks() {
+        calls += 1;
+        return calls === 1 ? [] : pending;
+      },
+      cancelTask: vi.fn(async () => undefined),
+      clearCompletedTasks: vi.fn(async () => undefined),
+      deleteTask: vi.fn(async () => undefined),
+    };
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <TaskCenterProviderView
+            projectId="demo"
+            gateway={gateway}
+            streamClientFactory={(options) => {
+              streamOptions = options;
+              return { start: vi.fn(), close: vi.fn() };
+            }}
+          >
+            <div />
+          </TaskCenterProviderView>
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(streamOptions).not.toBeNull());
+    act(() => streamOptions?.onPollingStart?.());
+    await waitFor(() => expect(calls).toBe(2));
+
+    act(() => {
+      streamOptions?.onPollingStart?.();
+      streamOptions?.onReconnected?.();
+      streamOptions?.onUnrecoverable?.();
+    });
+    expect(calls).toBe(2);
+
+    act(() => streamOptions?.onPollingStop?.());
+    await act(async () => resolvePending?.([]));
   });
 
   it("shares the initial /tasks request with legacy useTasks consumers", async () => {

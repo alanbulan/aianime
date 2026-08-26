@@ -29,7 +29,7 @@ import type { FormatCheck } from "@/modules/story_intake/domain/types";
 const COMPACT_SELECT_TRIGGER_CLASS =
   "h-8 w-full rounded-[8px] border-border bg-transparent px-2.5 text-xs md:w-auto md:min-w-max";
 const COMPACT_SELECT_CONTENT_CLASS =
-  "min-w-max rounded-md border border-border bg-popover p-1 shadow-xl data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:px-2 [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-muted [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5";
+  "min-w-max rounded-md border border-border bg-popover p-1 shadow-xl data-[align-trigger=true]:animate-in [&_[data-slot=select-item]]:min-h-8 [&_[data-slot=select-item]]:rounded-sm [&_[data-slot=select-item]]:py-1.5 [&_[data-slot=select-item]]:pr-8 [&_[data-slot=select-item]]:pl-2 [&_[data-slot=select-item]]:text-xs [&_[data-slot=select-item]:focus]:bg-muted [&_[data-slot=select-item]:focus]:text-current [&_[data-slot=select-item]_svg]:size-3.5";
 const INGEST_SURFACE_CLASS = "border-border bg-card shadow-none";
 const INGEST_SURFACE_SUBTLE_CLASS = "border-border bg-muted shadow-none";
 const INGEST_DIVIDER_CLASS = "border-border";

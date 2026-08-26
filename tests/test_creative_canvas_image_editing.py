@@ -301,6 +301,7 @@ async def test_image_upscale_enqueues_exact_freezone_edit_payload(tmp_path: Path
             "aspect_ratio": "16:9",
             "image_size": "2K",
             "quality": "low",
+            "model_id": "",
             "model": "gpt-image-2",
         },
     )
@@ -346,6 +347,7 @@ async def test_image_outpaint_enqueues_padded_freezone_edit_payload(tmp_path: Pa
             "aspect_ratio": "16:9",
             "image_size": "4K",
             "quality": "medium",
+            "model_id": "",
             "model": "gpt-image-2",
         },
     )
@@ -386,6 +388,7 @@ async def test_image_redraw_without_mask_enqueues_freezone_edit_payload(
             "aspect_ratio": "16:9",
             "image_size": "2K",
             "quality": "high",
+            "model_id": "",
             "model": "gpt-image-2",
         },
     )
@@ -427,6 +430,7 @@ async def test_masked_redraw_uses_erase_prompt_and_mask_edit_payload(tmp_path: P
             "aspect_ratio": "1:1",
             "image_size": "2K",
             "quality": "medium",
+            "model_id": "",
             "model": "gpt-image-2",
         },
     )
@@ -482,6 +486,7 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
             "image_size": "4K",
             "model": "gpt-image-2",
             "quality": "high",
+            "extra_params": {},
             "canvas_id": "canvas-a",
             "node_id": "node-a",
             "model_id": "registry-model",

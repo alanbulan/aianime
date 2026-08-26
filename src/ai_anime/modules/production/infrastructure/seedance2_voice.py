@@ -16,7 +16,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Literal
 
-from ai_anime.modules.production.infrastructure.media_generation.tts_generator import TTSResult
+from ai_anime.modules.production.infrastructure.media_generation.tts_generator import (
+    TTSResult,
+)
 from ai_anime.modules.production.domain.seedance2_dialogue import (
     dialogue_emotion_prompt,
     dialogue_text,
@@ -44,14 +46,16 @@ NARRATION_STYLES: dict[str, dict[str, str]] = {
 
 def narration_style_label(style: str) -> str:
     entry = (
-        NARRATION_STYLES.get(str(style or "").strip()) or NARRATION_STYLES[DEFAULT_NARRATION_STYLE]
+        NARRATION_STYLES.get(str(style or "").strip())
+        or NARRATION_STYLES[DEFAULT_NARRATION_STYLE]
     )
     return entry["label"]
 
 
 def narration_style_prompt(style: str) -> str:
     entry = (
-        NARRATION_STYLES.get(str(style or "").strip()) or NARRATION_STYLES[DEFAULT_NARRATION_STYLE]
+        NARRATION_STYLES.get(str(style or "").strip())
+        or NARRATION_STYLES[DEFAULT_NARRATION_STYLE]
     )
     return entry["prompt"]
 
@@ -70,7 +74,12 @@ class Seedance2VoiceBatchResult:
 
 
 def beat_audio_path(project_dir: str | Path, episode: int, beat_num: int) -> Path:
-    return Path(project_dir) / "audio" / f"ep{int(episode):03d}" / f"beat_{int(beat_num):02d}.mp3"
+    return (
+        Path(project_dir)
+        / "audio"
+        / f"ep{int(episode):03d}"
+        / f"beat_{int(beat_num):02d}.mp3"
+    )
 
 
 def _absolute_project_path(project_dir: str | Path, stored_path: str) -> Path:
@@ -94,7 +103,9 @@ def find_identity_reference_audio(
     character = _safe_asset_name(character_name)
     if not identity_stem or not character:
         return None
-    identity_dir = Path(project_dir) / "assets" / "characters" / character / "identities"
+    identity_dir = (
+        Path(project_dir) / "assets" / "characters" / character / "identities"
+    )
     for ext in IDENTITY_VOICE_EXTENSIONS:
         candidate = identity_dir / f"{identity_stem}_voice{ext}"
         if candidate.exists():
@@ -102,7 +113,9 @@ def find_identity_reference_audio(
     return None
 
 
-def narrator_reference_audio_path(project_dir: str | Path, stored_path: str) -> Path | None:
+def narrator_reference_audio_path(
+    project_dir: str | Path, stored_path: str
+) -> Path | None:
     """Resolve the project-level narrator reference audio path."""
     stored = str(stored_path or "").strip()
     if not stored:
@@ -194,7 +207,9 @@ def resolve_narrator_source(
     project_dir = Path(store.project_dir)
 
     if style == "first_person":
-        chars = list(characters) if characters is not None else store.get_all_characters()
+        chars = (
+            list(characters) if characters is not None else store.get_all_characters()
+        )
         narrator_main = next((c for c in chars if getattr(c, "is_main", False)), None)
         if narrator_main is None:
             return NarratorResolution(
@@ -216,7 +231,7 @@ def resolve_narrator_source(
                 character_name=narrator_main.name,
                 identity_id=identity_id,
                 identity_name=identity_name,
-                error="解说主角声线缺失，请在角色工作台为解说主角配置参考音频（默认声线即可）",
+                error="解说主角声线缺失，请在角色工作台为解说主角配置声线",
             )
         return NarratorResolution(
             style=style,
@@ -235,7 +250,7 @@ def resolve_narrator_source(
             source="project_narrator",
             audio_path=None,
             sha256="",
-            error="项目解说人声线未配置，请上传或录制解说人音频",
+            error="项目解说人声线未配置，请通过文字设计、已有声线、上传或录制完成配置",
         )
 
     audio_path = narrator_reference_audio_path(project_dir, stored_narrator_path)
@@ -287,17 +302,22 @@ async def generate_seedance2_narration_audio(
 
     if not narrator_audio_path.exists():
         return TTSResult(
-            success=False, error=f"Narrator reference audio not found: {narrator_audio_path}"
+            success=False,
+            error=f"Narrator reference audio not found: {narrator_audio_path}",
         )
 
     if generator is None:
-        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
+        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
+            IndexTTS2Client,
+        )
 
         generator = IndexTTS2Client()
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(project_dir, episode, beat_num)
-    resolved_emotion = str(emotion_prompt or "").strip() or narration_style_prompt(narration_style)
+    resolved_emotion = str(emotion_prompt or "").strip() or narration_style_prompt(
+        narration_style
+    )
     maybe_result = generator.generate(
         prompt=text,
         audio_url=builder(narrator_audio_path),
@@ -385,7 +405,9 @@ def resolve_character_voice(
             if stored:
                 candidate = _absolute_project_path(project_dir, stored)
                 if candidate.exists():
-                    sha = str(entry.get("sha256", "") or "").strip() or file_sha256(candidate)
+                    sha = str(entry.get("sha256", "") or "").strip() or file_sha256(
+                        candidate
+                    )
                     return CharacterVoiceResolution(
                         audio_path=candidate,
                         sha256=sha,
@@ -409,7 +431,9 @@ def resolve_character_voice(
     return CharacterVoiceResolution(audio_path=None, sha256="", tier=None)
 
 
-async def resolve_dialogue_reference_audio(beat: dict, store) -> tuple[Path, str] | None:
+async def resolve_dialogue_reference_audio(
+    beat: dict, store
+) -> tuple[Path, str] | None:
     """Resolve the speaker's voice path and hash via the 3-tier fallback."""
     speaker = str(beat.get("speaker") or "").strip()
     if not speaker:
@@ -473,16 +497,22 @@ async def generate_seedance2_dialogue_audio(
         return None
     reference_path, _scope = resolved
     if not reference_path.exists():
-        return TTSResult(success=False, error=f"Reference audio not found: {reference_path}")
+        return TTSResult(
+            success=False, error=f"Reference audio not found: {reference_path}"
+        )
 
     if generator is None:
-        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
+        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
+            IndexTTS2Client,
+        )
 
         generator = IndexTTS2Client()
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(store.project_dir, episode, beat_num)
-    resolved_emotion_prompt = str(emotion_prompt or "").strip() or dialogue_emotion_prompt(beat)
+    resolved_emotion_prompt = str(
+        emotion_prompt or ""
+    ).strip() or dialogue_emotion_prompt(beat)
     maybe_result = generator.generate(
         prompt=narration,
         audio_url=builder(reference_path),
@@ -513,7 +543,9 @@ async def generate_seedance2_dialogue_audio_for_voice(
         return result
 
     if generator is None:
-        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
+        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
+            IndexTTS2Client,
+        )
 
         generator = IndexTTS2Client()
 

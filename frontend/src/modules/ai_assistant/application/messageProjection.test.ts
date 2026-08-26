@@ -117,6 +117,42 @@ describe("assistant message projection", () => {
 
     expect(result[0]?.turnId).toBe("turn-server");
   });
+
+  it("marks tool calls without results as failed when the final reply arrives", () => {
+    const current: ChatMessage[] = [
+      message("user-1", "user", "生成全部肖像", 10, "turn-1"),
+      {
+        ...message("tool-call-1", "tool", "生成角色肖像", 20, "turn-1"),
+        toolCallId: "call-1",
+        toolState: "running",
+      },
+      {
+        ...message("tool-call-other", "tool", "其他回合", 5, "turn-2"),
+        toolCallId: "call-other",
+        toolState: "running",
+      },
+    ];
+
+    const result = upsertServerAssistantMessage(
+      current,
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "任务执行失败",
+        turn_id: "turn-1",
+        timestamp: 30,
+      },
+      "turn-1",
+    );
+
+    expect(result.find((item) => item.toolCallId === "call-1")).toMatchObject({
+      toolState: "error",
+      toolError: "未执行：本轮已结束，工具未返回结果",
+    });
+    expect(result.find((item) => item.toolCallId === "call-other")).toMatchObject({
+      toolState: "running",
+    });
+  });
 });
 
 describe("tool message projection", () => {
@@ -178,6 +214,31 @@ describe("tool message projection", () => {
       raw: payload,
     });
     expect(result[0]?.text).toContain('"value": 1');
+  });
+
+  it("projects a wait-window timeout as pending instead of failed or completed", () => {
+    const payload = {
+      name: "ai_anime_wait_task",
+      turn_id: "turn-1",
+      tool_call_id: "call-1",
+      success: true,
+      result: [
+        {
+          content: {
+            text: "- **wait:**\n  - **terminal:** False\n  - **timed_out:** True",
+          },
+        },
+      ],
+    };
+
+    const result = upsertToolMessage([], "tool.result", payload);
+
+    expect(result[0]).toMatchObject({
+      toolCallId: "call-1",
+      toolName: "ai_anime_wait_task",
+      toolState: "pending",
+      toolError: undefined,
+    });
   });
 
   it("appends a project event without reordering the existing timeline", () => {

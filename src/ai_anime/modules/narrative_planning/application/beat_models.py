@@ -85,11 +85,6 @@ def beat_scene_id(value: Any) -> str:
     return scene_ref.scene_id if scene_ref else ""
 
 
-def beat_scene_variant_id(value: Any) -> str:
-    scene_ref = beat_scene_ref(value)
-    return scene_ref.variant_id if scene_ref else ""
-
-
 def sync_beat_asset_refs(beat: dict[str, Any]) -> dict[str, Any]:
     """规范化 beat 中的场景引用字段。
 
@@ -199,7 +194,6 @@ __all__ = [
     "SceneRef",
     "beat_scene_id",
     "beat_scene_ref",
-    "beat_scene_variant_id",
     "build_scene_ref",
     "sync_beat_asset_refs",
 ]

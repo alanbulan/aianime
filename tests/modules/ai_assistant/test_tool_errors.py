@@ -211,6 +211,37 @@ def test_read_only_domain_miss_does_not_mark_a_recovered_turn_failed():
     assert tool_chat_error(payload, tool_name="ai_anime_get") is None
 
 
+def test_failed_read_tool_surfaces_nested_reason_as_read_failure():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "failed",
+        "result": [
+            {
+                "content": {
+                    "text": "ai_anime_get failed: Not Found",
+                }
+            }
+        ],
+    }
+
+    assert (
+        tool_chat_error(payload, tool_name="ai_anime_get")
+        == "读取失败：Not Found"
+    )
+
+
+def test_failed_display_read_tool_uses_read_failure_prefix():
+    payload = {
+        "sessionUpdate": "tool_call_update",
+        "status": "failed",
+    }
+
+    assert (
+        tool_chat_error(payload, tool_name="ai_anime_get_character_media")
+        == "读取失败：当前状态为 failed。"
+    )
+
+
 def test_failed_task_list_request_still_surfaces_transport_error():
     payload = {
         "sessionUpdate": "tool_call_update",

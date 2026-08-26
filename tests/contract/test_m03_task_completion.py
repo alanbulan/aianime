@@ -83,9 +83,12 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.narrative_planning import episodes
     from ai_anime.api.routes.narrative_planning import scripts
     from ai_anime.api.routes.task_execution import tasks
+    from ai_anime.modules.task_execution.infrastructure import native_task_isolation
     from ai_anime.modules.task_execution.infrastructure.runners import graph_build as _graph_build  # noqa: F401
     from ai_anime.modules.task_execution.infrastructure.runners import script as _script  # noqa: F401
     from ai_anime.modules.task_execution.public import register_project_task_runner
+
+    monkeypatch.setattr(native_task_isolation, "ISOLATED_NATIVE_TASK_TYPES", frozenset())
 
     async def resolve_project_scope(project: str, user: dict, *, required_role: str = "viewer"):
         return ProjectResolution(
@@ -271,6 +274,13 @@ async def _load_beats(ctx):
         await store.close()
 
 
+def _seed_imported_story(ctx) -> None:
+    (ctx.output_dir / "novel.txt").write_text(
+        "第一章 启程\n秦王入宫。",
+        encoding="utf-8",
+    )
+
+
 def _task_payload(
     client: TestClient,
     task_type: str,
@@ -290,6 +300,7 @@ def _task_payload(
 
 def test_plan_task_completion_writes_episodes_and_task_envelope(m03_completion_client):
     client, ctx = m03_completion_client
+    _seed_imported_story(ctx)
     response = client.post(
         "/api/v1/projects/proj_m03_completion/episodes/plan",
         json={"planning_mode": "chapters", "target_episodes": 1},
@@ -330,6 +341,7 @@ def test_plan_task_completion_writes_episodes_and_task_envelope(m03_completion_c
 
 def test_script_and_video_prompt_tasks_complete_with_sorted_persisted_beats(m03_completion_client):
     client, ctx = m03_completion_client
+    _seed_imported_story(ctx)
     client.post(
         "/api/v1/projects/proj_m03_completion/episodes/plan",
         json={"planning_mode": "chapters", "target_episodes": 1},
@@ -375,6 +387,7 @@ def test_script_and_video_prompt_tasks_complete_with_sorted_persisted_beats(m03_
 
 def test_negative_manual_shot_delete_rejects_regular_beat(m03_completion_client):
     client, ctx = m03_completion_client
+    _seed_imported_story(ctx)
     client.post(
         "/api/v1/projects/proj_m03_completion/episodes/plan",
         json={"planning_mode": "chapters", "target_episodes": 1},
@@ -396,6 +409,7 @@ def test_negative_manual_shot_delete_rejects_regular_beat(m03_completion_client)
 
 def test_seedance2_prompt_does_not_create_media_side_effects(m03_completion_client):
     client, ctx = m03_completion_client
+    _seed_imported_story(ctx)
     client.post(
         "/api/v1/projects/proj_m03_completion/episodes/plan",
         json={"planning_mode": "chapters", "target_episodes": 1},

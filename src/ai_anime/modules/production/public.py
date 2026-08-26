@@ -41,6 +41,10 @@ if TYPE_CHECKING:
         collect_indextts2_voice_prereq_errors,
         run_indextts2_beat_audio_generation,
     )
+    from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
+        VoiceDesignModelUnavailable,
+        provision_voice_design_requirements,
+    )
     from ai_anime.modules.production.infrastructure.seedance2_assets import (
         Seedance2ResolvedAsset,
         append_seedance2_user_reference_assets,
@@ -361,6 +365,7 @@ from ai_anime.modules.production.domain.detected_refs import (
 from ai_anime.modules.production.domain.seedance2_dialogue import (
     normalize_seedance2_audio_type,
 )
+from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
 from ai_anime.modules.production.domain.video_model import (
     grok_video_ratio,
     grok_video_resolution,
@@ -478,6 +483,14 @@ _LAZY_EXPORTS = {
     "run_indextts2_beat_audio_generation": (
         "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
         "run_indextts2_beat_audio_generation",
+    ),
+    "provision_voice_design_requirements": (
+        "ai_anime.modules.production.infrastructure.voice_design_provisioning",
+        "provision_voice_design_requirements",
+    ),
+    "VoiceDesignModelUnavailable": (
+        "ai_anime.modules.production.infrastructure.voice_design_provisioning",
+        "VoiceDesignModelUnavailable",
     ),
     "selected_reference_paths": (
         "ai_anime.modules.production.infrastructure.seedance2_assets",
@@ -1057,6 +1070,8 @@ __all__ = [
     "VideoPoolEntryUnavailable",
     "VideoPoolListing",
     "VideoPoolUseCases",
+    "VoiceDesignRequirement",
+    "VoiceDesignModelUnavailable",
     "assign_identity_sketch_colors",
     "apply_style_reference",
     "append_seedance2_user_reference_assets",
@@ -1104,6 +1119,7 @@ __all__ = [
     "prepare_global_optimizer_input",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
+    "provision_voice_design_requirements",
     "real_detected_identities",
     "real_detected_props",
     "render_plan_use_cases",

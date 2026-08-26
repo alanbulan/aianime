@@ -84,6 +84,7 @@ async def test_schedules_prop_reference_with_owned_scope_payload_and_response(
         "prop_name": "玉佩",
         "style": "period-drama",
         "model": "image-model",
+        "model_selector": "",
         "output_dir": str(tmp_path),
     }
     assert scheduled.as_dict() == {
@@ -114,6 +115,7 @@ async def test_schedules_batch_prop_references_with_owned_payload(
     assert scheduler.batch_task.backend_payload() == {
         "style": "period-drama",
         "model": "image-model",
+        "model_selector": "",
         "output_dir": str(tmp_path),
     }
     assert scheduled.as_dict() == {

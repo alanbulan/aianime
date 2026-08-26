@@ -18,7 +18,7 @@ function renderBar() {
 }
 
 beforeAll(async () => {
-  // HttpBackend can't reach /locales/*.json under jsdom, so seed the bundles
+  // HttpBackend can't reach /locales/*.json in the DOM test runtime, so seed the bundles
   // synchronously and drive init to completion so useTranslation() doesn't suspend.
   if (!i18n.isInitialized) {
     await i18n.init({

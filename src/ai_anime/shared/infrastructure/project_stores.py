@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextvars import ContextVar, Token
 from typing import TYPE_CHECKING
 
@@ -12,6 +13,28 @@ from ai_anime.shared.utils.project_paths import ProjectPaths
 if TYPE_CHECKING:
     from ai_anime.modules.knowledge_graph.public import CogneeStore
     from ai_anime.sqlite_store import SQLiteStore
+
+
+logger = logging.getLogger("ai_anime.shared.infrastructure.project_stores")
+
+
+def _import_cognee_store_class():
+    from ai_anime.modules.knowledge_graph.public import CogneeStore
+
+    return CogneeStore
+
+
+async def load_cognee_store_class():
+    """Load Cognee's heavy runtime without blocking the API event loop."""
+    return await asyncio.to_thread(_import_cognee_store_class)
+
+
+async def prewarm_knowledge_graph_runtime() -> None:
+    """Best-effort desktop cold-start warmup for the Cognee module graph."""
+    try:
+        await load_cognee_store_class()
+    except Exception:
+        logger.exception("knowledge graph runtime prewarm failed")
 
 
 # Request-scoped SQLiteStore registry. Legacy project routes open stores via
@@ -79,7 +102,7 @@ async def _initialize_sqlite_store(store: "SQLiteStore") -> "SQLiteStore":
 
 
 async def make_cognee_store(username: str, project: str) -> CogneeStore:
-    from ai_anime.modules.knowledge_graph.public import CogneeStore
+    CogneeStore = await load_cognee_store_class()
 
     paths = ProjectPaths(username, project)
     store = CogneeStore(
@@ -121,7 +144,7 @@ async def make_cognee_store_for_context(
     embedding_dimensions: int | None = None,
     load_graph_state: bool = False,
 ) -> CogneeStore:
-    from ai_anime.modules.knowledge_graph.public import CogneeStore
+    CogneeStore = await load_cognee_store_class()
 
     require_project_home_node(ctx, operation="open project graph store")
     store = CogneeStore(
@@ -139,6 +162,8 @@ async def make_cognee_store_for_context(
 __all__ = [
     "make_cognee_store",
     "make_cognee_store_for_context",
+    "load_cognee_store_class",
+    "prewarm_knowledge_graph_runtime",
     "make_sqlite_store",
     "make_sqlite_store_for_context",
 ]

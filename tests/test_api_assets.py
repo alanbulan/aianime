@@ -1635,6 +1635,7 @@ async def test_build_scenes_allows_supplement_when_derived_scenes_exist(
         ]
     )
     _patch_project(monkeypatch, scenes, tmp_path, store)
+    (tmp_path / "novel.txt").write_text("测试小说正文", encoding="utf-8")
 
     async def fake_resolve_scene_project(
         project: str, user: dict, *, required_role: str = "editor"
@@ -1818,7 +1819,7 @@ async def test_asset_references_match_beat_asset_ids(monkeypatch, tmp_path):
                     episode_number=1,
                     beat_number=12,
                     narration="n",
-                    visual_description="v",
+                    visual_description="桌上放着[[未绑定道具]]",
                     detected_identities_json='["苏清晏_少女"]',
                     detected_props_json='["油泼辣子"]',
                     scene_ref_json='{"scene_id": "兰州拉面馆"}',
@@ -1880,9 +1881,22 @@ async def test_asset_references_match_beat_asset_ids(monkeypatch, tmp_path):
                 {"episode": 3, "beat_number": 4},
             ],
             "co_identities": ["苏清晏_少女", "路人_青年"],
-            "co_props": ["木凳", "油泼辣子"],
+            "co_props": ["木凳", "未绑定道具", "油泼辣子"],
         },
     }
+
+    index_res = await assets.get_project_asset_references(
+        project="proj_demo",
+        user={"username": "admin"},
+    )
+    assert index_res["ok"] is True
+    assert index_res["data"]["references"]["scene"]["兰州拉面馆"] == [
+        {"episode": 1, "beat_number": 12},
+        {"episode": 3, "beat_number": 4},
+    ]
+    assert index_res["data"]["references"]["prop"]["未绑定道具"] == [
+        {"episode": 1, "beat_number": 12}
+    ]
 
 
 @pytest.mark.asyncio

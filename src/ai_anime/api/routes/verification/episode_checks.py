@@ -15,7 +15,7 @@ from ai_anime.modules.production.public import (
     production_image_settings_use_cases,
     sketch_edit_execution_use_cases,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.verification.public import (
@@ -51,10 +51,10 @@ async def start_sketch_edit_execute(
     resolved = await resolve_project_scope(project, user, required_role="editor")
     ctx = resolved.ctx
     project_dir = resolved.project_dir
-    selection = production_image_settings_use_cases().sketch_settings(
+    selection = production_image_settings_use_cases().resolve_project_sketch_selection(
         resolved.username,
         resolved.project_name,
-    )["sketch_image_selection"]
+    )
     model_route = resolve_model_route(selection)
     if not model_route.model:
         return {"ok": False, "error": "请先选择草图图片模型"}

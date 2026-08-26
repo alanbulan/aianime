@@ -16,6 +16,33 @@ from ai_anime.modules.ai_assistant.domain import (
 )
 
 
+_HISTORY_ATTACHMENT_FIELDS = (
+    "id",
+    "type",
+    "kind",
+    "mimeType",
+    "fileName",
+    "fileSize",
+    "url",
+    "path",
+    "label",
+)
+
+
+def _history_attachments(media: object) -> list[dict[str, Any]]:
+    if not isinstance(media, list):
+        return []
+    return [
+        {
+            key: item[key]
+            for key in _HISTORY_ATTACHMENT_FIELDS
+            if key in item and item[key] is not None
+        }
+        for item in media
+        if isinstance(item, dict)
+    ]
+
+
 class ProjectChatMessages:
     def __init__(self, history: ChatHistory, media: ProjectMedia) -> None:
         self._history = history
@@ -78,6 +105,7 @@ class ProjectChatMessages:
                         content,
                         merged_media,
                     ),
+                    "attachments": _history_attachments(message.get("media")),
                     **(
                         {"ui_events": message["ui_events"]}
                         if isinstance(message.get("ui_events"), list)

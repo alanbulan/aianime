@@ -289,10 +289,28 @@ def _normalize_api_path(path: str) -> str:
         raw = f"/api/v1{raw}"
     if not raw.startswith(API_PREFIX):
         raise ValueError("path must start with /api/v1/ or /projects/")
+    current_project = _default_project_id()
+    parts = raw.split("/")
+    if current_project and len(parts) >= 5 and parts[1:4] == ["api", "v1", "projects"]:
+        parts[4] = current_project
+        raw = "/".join(parts)
     if any(part == ".." for part in raw.split("/")):
         raise ValueError("path traversal is not allowed")
     _validate_ingest_api_path(raw)
-    return raw
+    return quote(raw, safe="/%:@-._~")
+
+
+def _episode_collection_read(path: str) -> tuple[str, int, str] | None:
+    parts = [part for part in path.strip("/").split("/") if part]
+    if (
+        len(parts) != 7
+        or parts[:3] != ["api", "v1", "projects"]
+        or parts[4] != "episodes"
+        or not parts[5].isdigit()
+        or parts[6] not in {"identities", "scenes"}
+    ):
+        return None
+    return parts[3], int(parts[5]), parts[6]
 
 
 def _validate_ingest_api_path(path: str) -> None:
@@ -517,7 +535,12 @@ def _read_tool_result(response: dict[str, Any]) -> str:
 
 
 def _project_from_args(args: dict[str, Any]) -> str:
-    project = str(args.get("project_id") or args.get("project") or _default_project_id()).strip()
+    project = str(
+        _default_project_id()
+        or args.get("project_id")
+        or args.get("project")
+        or ""
+    ).strip()
     if not project:
         raise ValueError("project_id is required and AI_ANIME_PROJECT_ID is not set")
     return project
@@ -713,10 +736,22 @@ def _audio_ui_spec(items: list[dict[str, Any]]) -> dict[str, Any]:
 def _handle_get(args: dict[str, Any], **_: Any) -> str:
     try:
         path = str(args.get("path") or "")
+        normalized_path = _normalize_api_path(path)
+        episode_collection = _episode_collection_read(normalized_path)
+        if episode_collection is not None:
+            project, _episode, collection = episode_collection
+            if collection == "identities":
+                return _handle_get_character_media(
+                    {
+                        "project_id": project,
+                        "media_kind": "identity",
+                    }
+                )
+            normalized_path = f"/api/v1/projects/{project}/scenes"
         return _read_tool_result(
             _request(
                 "GET",
-                path,
+                normalized_path,
                 query=args.get("query"),
             )
         )
@@ -1109,6 +1144,7 @@ def _handle_wait_task(args: dict[str, Any], **_: Any) -> str:
             status = _task_status_from_response(latest)
             elapsed = time.monotonic() - started_at
             if status in terminal_statuses or elapsed >= timeout_seconds:
+                timed_out = status not in terminal_statuses
                 data = latest.get("data")
                 task_type = (
                     str(data.get("task_type") or "").strip()
@@ -1123,6 +1159,15 @@ def _handle_wait_task(args: dict[str, Any], **_: Any) -> str:
                             "直接向用户报告成功，不要再调用风格详情或预览 GET 接口验证。"
                         ),
                     }
+                elif timed_out:
+                    latest = {
+                        **latest,
+                        "agent_instruction": (
+                            "本次等待窗口已结束，但后台任务仍在运行。"
+                            "这不是任务失败；继续使用同一个 task_key 调用 "
+                            "ai_anime_wait_task，不要重复提交创建任务的写请求。"
+                        ),
+                    }
                 return _read_tool_result(
                     {
                         **latest,
@@ -1131,7 +1176,7 @@ def _handle_wait_task(args: dict[str, Any], **_: Any) -> str:
                             "status": status or "not_found",
                             "attempts": attempts,
                             "elapsed_seconds": round(elapsed, 2),
-                            "timed_out": status not in terminal_statuses,
+                            "timed_out": timed_out,
                         },
                     }
                 )
@@ -1272,6 +1317,9 @@ def _start_script_workflow(
         "filename",
         "rebuild",
         "spine_template",
+        "visual_style",
+        "narration_style",
+        "ethnicity",
         "target_episodes",
         "planning_mode",
         "script_mode",
@@ -1296,6 +1344,9 @@ def _start_production_workflow(args: dict[str, Any]) -> dict[str, Any]:
         "filename",
         "rebuild",
         "spine_template",
+        "visual_style",
+        "narration_style",
+        "ethnicity",
         "target_episodes",
         "planning_mode",
         "script_mode",
@@ -2025,8 +2076,6 @@ def _handle_get_character_media(args: dict[str, Any], **_: Any) -> str:
                         or identity.get("costume_image_url")
                         or ""
                     ).strip()
-                    if not image_url:
-                        continue
                     title = str(
                         identity.get("identity_name")
                         or identity.get("name")
@@ -2063,7 +2112,18 @@ def _handle_get_character_media(args: dict[str, Any], **_: Any) -> str:
                     identity_match = identity_name_match and identity_query_match
                     if not identity_match:
                         continue
-                    identity_items.append({"title": title, "image_url": image_url})
+                    identity_items.append(
+                        {
+                            "title": title,
+                            "identity_id": identity.get("identity_id") or "",
+                            "identity_name": identity.get("identity_name") or title,
+                            "appearance_details": identity.get("appearance_details") or "",
+                            "age_group": identity.get("age_group") or "",
+                            "image_url": image_url,
+                        }
+                    )
+                    if not image_url:
+                        continue
                     media_items.append(
                         {
                             "src": image_url,
@@ -2270,8 +2330,17 @@ def _handle_generate_portrait(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         name = _require_name(args)
+        body = {
+            key: args[key]
+            for key in ("model", "style")
+            if args.get(key) not in (None, "")
+        }
         return tool_result(
-            _request("POST", f"/api/v1/projects/{project}/characters/{quote(name, safe='')}/portrait-async")
+            _request(
+                "POST",
+                f"/api/v1/projects/{project}/characters/{quote(name, safe='')}/portrait-async",
+                body=body or None,
+            )
         )
     except Exception as exc:
         return tool_error(str(exc))
@@ -2294,7 +2363,12 @@ def _handle_generate_identity_image(args: dict[str, Any], **_: Any) -> str:
             f"/api/v1/projects/{project}/characters/{quote(name, safe='')}"
             f"/identities/{quote(identity_id, safe='')}/generate-async"
         )
-        return tool_result(_request("POST", path))
+        body = {
+            key: args[key]
+            for key in ("model", "style")
+            if args.get(key) not in (None, "")
+        }
+        return tool_result(_request("POST", path, body=body or None))
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -2332,7 +2406,10 @@ _PATH_PROPS = {
             "Absolute URLs are rejected. Ingest routes are only "
             "/projects/{project}/ingest/upload and /projects/{project}/ingest/start; "
             "use ai_anime_start_ingest instead of ai_anime_post for ingest/start; "
-            "ingest_fast is a task_type, not an endpoint."
+            "ingest_fast is a task_type, not an endpoint. For identity results use "
+            "ai_anime_get_character_media(media_kind='identity'); for scenes use "
+            "/projects/{project}/scenes. Do not invent episode-scoped GET identity "
+            "or scene collection endpoints."
         ),
     },
     "query": {"type": "object", "description": "Optional query parameters."},
@@ -2340,13 +2417,16 @@ _PATH_PROPS = {
 
 
 def _schema(name: str, description: str, properties: dict[str, Any], required: list[str] | None = None) -> dict[str, Any]:
+    bound_properties = dict(properties)
+    if _default_project_id():
+        bound_properties.pop("project_id", None)
     return {
         "name": name,
         "description": description,
         "parameters": {
             "type": "object",
-            "properties": properties,
-            "required": required or [],
+            "properties": bound_properties,
+            "required": [key for key in (required or []) if key in bound_properties],
         },
     }
 
@@ -2557,7 +2637,9 @@ TOOLS = (
         _schema(
             "ai_anime_wait_task",
             "Wait for one asynchronous AI anime task to reach completed, failed, or cancelled. "
-            "Pass the exact task_key returned by the task creation tool.",
+            "Pass the exact task_key returned by the task creation tool. A wait timeout only ends "
+            "the observation window: the background task keeps running, so wait again with the "
+            "same task_key and never resubmit the creating write request.",
             {
                 "project_id": {"type": "string"},
                 "task_key": {"type": "string"},
@@ -2614,7 +2696,26 @@ TOOLS = (
                 },
                 "filename": {"type": "string", "description": "Uploaded story filename when ingest is missing."},
                 "rebuild": {"type": "boolean", "description": "Rebuild story/script data before production. Default: false."},
-                "spine_template": {"type": "string", "enum": ["drama", "narrated"]},
+                "spine_template": {
+                    "type": "string",
+                    "enum": ["drama", "narrated"],
+                    "description": "Story structure: drama for scene/dialogue scripts; narrated for voice-over narration.",
+                },
+                "visual_style": {
+                    "type": "string",
+                    "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
+                    "description": "Visual preset inferred from the uploaded source. Pass anime for Japanese/2D anime material; do not rely on the project default when filename is present.",
+                },
+                "narration_style": {
+                    "type": "string",
+                    "enum": ["first_person", "third_person"],
+                    "description": "Narration viewpoint. Pass only for spine_template=narrated.",
+                },
+                "ethnicity": {
+                    "type": "string",
+                    "enum": ["Chinese", "Japanese", "Korean", "Western"],
+                    "description": "Default character ethnicity inferred from names and setting. Pass Japanese for Japanese settings; do not rely on the project default when filename is present.",
+                },
                 "target_episodes": {"type": "integer", "minimum": 1, "maximum": 200},
                 "planning_mode": {"type": "string", "enum": ["chapters", "ai_events", "ai"]},
                 "script_mode": {"type": "string", "enum": ["duration", "literal"]},
@@ -2659,7 +2760,26 @@ TOOLS = (
                 },
                 "filename": {"type": "string", "description": "Uploaded story filename, required only when ingest is missing."},
                 "rebuild": {"type": "boolean", "description": "Rebuild ingestion. Default: false."},
-                "spine_template": {"type": "string", "enum": ["drama", "narrated"]},
+                "spine_template": {
+                    "type": "string",
+                    "enum": ["drama", "narrated"],
+                    "description": "Story structure: drama for scene/dialogue scripts; narrated for voice-over narration.",
+                },
+                "visual_style": {
+                    "type": "string",
+                    "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
+                    "description": "Visual preset inferred from the uploaded source. Pass anime for Japanese/2D anime material.",
+                },
+                "narration_style": {
+                    "type": "string",
+                    "enum": ["first_person", "third_person"],
+                    "description": "Narration viewpoint. Pass only for spine_template=narrated.",
+                },
+                "ethnicity": {
+                    "type": "string",
+                    "enum": ["Chinese", "Japanese", "Korean", "Western"],
+                    "description": "Default character ethnicity inferred from names and setting.",
+                },
                 "target_episodes": {"type": "integer", "description": "Episode count used when planning is missing."},
                 "planning_mode": {"type": "string", "enum": ["chapters", "ai_events", "ai"]},
                 "script_mode": {"type": "string", "enum": ["duration", "literal"]},
@@ -2693,10 +2813,25 @@ TOOLS = (
                 "spine_template": {
                     "type": "string",
                     "enum": ["drama", "narrated"],
-                    "description": "Optional narrative spine template.",
+                    "description": "Required story structure: drama for scene/dialogue scripts; narrated for voice-over narration.",
+                },
+                "visual_style": {
+                    "type": "string",
+                    "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
+                    "description": "Required visual preset inferred from the uploaded source; Japanese/2D anime material uses anime.",
+                },
+                "narration_style": {
+                    "type": "string",
+                    "enum": ["first_person", "third_person"],
+                    "description": "Narration viewpoint; pass only for spine_template=narrated.",
+                },
+                "ethnicity": {
+                    "type": "string",
+                    "enum": ["Chinese", "Japanese", "Korean", "Western"],
+                    "description": "Required default character ethnicity inferred from names and setting.",
                 },
             },
-            ["filename"],
+            ["filename", "spine_template", "visual_style", "ethnicity"],
         ),
         _handle_start_ingest,
     ),
@@ -2861,6 +2996,11 @@ TOOLS = (
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "name": {"type": "string", "description": "Character name (required; from the character list)."},
+                "model": {
+                    "type": "string",
+                    "description": "Optional explicit model selector. Omit it to use the configured IMAGE_GENERATION cloud/BYOK priority route.",
+                },
+                "style": {"type": "string", "description": "Optional visual style override."},
             },
             ["name"],
         ),
@@ -2877,6 +3017,11 @@ TOOLS = (
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "name": {"type": "string", "description": "Character name (required)."},
                 "identity_id": {"type": "string", "description": "Identity id from the character's identity list (required)."},
+                "model": {
+                    "type": "string",
+                    "description": "Optional explicit model selector. Omit it to use the configured IMAGE_EDIT cloud/BYOK priority route.",
+                },
+                "style": {"type": "string", "description": "Optional visual style override."},
             },
             ["name", "identity_id"],
         ),

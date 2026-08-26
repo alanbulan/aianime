@@ -4,6 +4,7 @@ import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
 import {
   buildToolMessage,
   mergeToolMessageState,
+  settleRunningToolMessages,
 } from "@/modules/ai_assistant/domain/toolMessage";
 
 function historyEntryMessages(source: unknown): ChatMessage[] {
@@ -32,8 +33,11 @@ function historyEntryMessages(source: unknown): ChatMessage[] {
     }
   }
 
-  return message.role === "assistant"
-    ? [...toolMessages, message]
+  return message.role === "assistant" && message.turnId
+    ? [
+        ...settleRunningToolMessages(toolMessages, message.turnId),
+        message,
+      ]
     : [message, ...toolMessages];
 }
 
@@ -95,7 +99,12 @@ export function sortMessages(messages: ChatMessage[]): ChatMessage[] {
 
 function hasSameTurnMessage(message: ChatMessage, history: ChatMessage[]): boolean {
   if (!message.turnId) return false;
-  return history.some((entry) => entry.role === message.role && entry.turnId === message.turnId);
+  return history.some((entry) => {
+    if (entry.role !== message.role || entry.turnId !== message.turnId) return false;
+    if (message.role !== "tool") return true;
+    if (message.toolCallId) return entry.toolCallId === message.toolCallId;
+    return entry.id === message.id;
+  });
 }
 
 function hasEquivalentHistoryMessage(
@@ -110,37 +119,19 @@ function hasEquivalentHistoryMessage(
 function hasCompletedTurnInHistory(
   message: ChatMessage,
   history: ChatMessage[],
-  current: ChatMessage[],
 ): boolean {
   if (!message.turnId) return false;
-  return turnCompletedInHistory(message.turnId, history, current);
+  return turnCompletedInHistory(message.turnId, history);
 }
 
 export function turnCompletedInHistory(
   turnId: string,
   history: ChatMessage[],
-  current: ChatMessage[],
 ): boolean {
-  if (history.some((entry) => entry.role === "assistant" && entry.turnId === turnId)) {
-    return true;
-  }
-  const localUser = current.find(
-    (entry) => entry.turnId === turnId && entry.role === "user",
-  );
-  if (!localUser) return false;
-
-  const backendUser = history.find(
-    (entry) =>
-      entry.role === "user"
-      && normalizedText(entry.text) === normalizedText(localUser.text)
-      && entry.timestamp >= localUser.timestamp,
-  );
-  if (!backendUser) return false;
-
   return history.some(
     (entry) =>
       entry.role === "assistant"
-      && entry.timestamp >= backendUser.timestamp,
+      && entry.turnId === turnId,
   );
 }
 
@@ -163,7 +154,7 @@ export function mergeHistorySnapshot(
       if (!preserveTransient && !isProtectedTurn) return false;
       return !hasEquivalentHistoryMessage(message, history);
     }
-    if (hasCompletedTurnInHistory(message, history, current)) return false;
+    if (hasCompletedTurnInHistory(message, history)) return false;
     return !hasEquivalentHistoryMessage(message, history);
   });
 

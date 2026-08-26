@@ -37,7 +37,7 @@ from ai_anime.modules.production.public import (
     sketch_marker_detection_task_use_cases,
     sketch_marker_use_cases,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 
@@ -142,10 +142,10 @@ async def director_control_to_sketch(
 ):
     """Start the existing Direct Render combined.png -> canonical sketch task."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    selection = production_image_settings_use_cases().sketch_settings(
+    selection = production_image_settings_use_cases().resolve_project_sketch_selection(
         resolved.username,
         resolved.project_name,
-    )["sketch_image_selection"]
+    )
     model_route = resolve_model_route(selection)
     try:
         scheduled = await director_control_sketch_use_cases().generate(

@@ -17,7 +17,7 @@ from ai_anime.modules.production.domain.render_planning import (
     custom_render_plan_error,
     normalize_render_beat_numbers,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -284,13 +284,14 @@ class RenderPlanUseCases:
             "character_map": materials.character_map,
             "style": materials.style,
             "model": image_route.model,
-            "model_selector": image_route.selector,
             "sketch_colors": materials.sketch_colors,
             "prop_menu": execution_materials.prop_menu,
             "sketch_aspect_padding": (
                 execution_materials.sketch_aspect_padding
             ),
         }
+        if image_route.selector:
+            base_config["model_selector"] = image_route.selector
         receipts: list[RenderPlanGridTaskReceipt] = []
         for grid in execution_plan:
             receipts.append(

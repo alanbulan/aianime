@@ -31,13 +31,15 @@ class SketchEditExecutionTask:
         )
 
     def backend_payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             "episode": self.episode_num,
             "project_dir": str(self.project_dir),
             "labels_name": self.labels_name,
             "model": self.model,
-            "model_selector": self.model_selector,
         }
+        if self.model_selector:
+            payload["model_selector"] = self.model_selector
+        return payload
 
 
 @dataclass(frozen=True)

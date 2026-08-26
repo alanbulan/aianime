@@ -28,6 +28,7 @@ import {
   normalizeHistory,
   turnCompletedInHistory,
 } from "@/modules/ai_assistant/application/messageTimeline";
+import { settleRunningToolMessages } from "@/modules/ai_assistant/domain/toolMessage";
 
 type MutableValue<T> = {
   current: T;
@@ -118,7 +119,7 @@ export function useSuperChatFrameController({
         const activeTurnId = activeTurnIdRef.current;
         if (
           activeTurnId
-          && turnCompletedInHistory(activeTurnId, history, currentMessages)
+          && turnCompletedInHistory(activeTurnId, history)
         ) {
           markTurnInactive(activeTurnId);
         } else if (frame.busy === true) {
@@ -249,9 +250,7 @@ export function useSuperChatFrameController({
         const turnId =
           (typeof frame.turn_id === "string" && frame.turn_id.trim()
             ? frame.turn_id
-            : null)
-          ?? activeTurnIdRef.current
-          ?? pendingClientTurnIdRef.current;
+            : null);
         if (turnId && cancelledTurnIdsRef.current.has(turnId)) break;
         setMessages((current) =>
           upsertServerAssistantMessage(
@@ -298,23 +297,35 @@ export function useSuperChatFrameController({
           setMessages((current) => upsertToolMessage(current, frame.type, frame));
         }
         break;
-      case "chat.done":
+      case "chat.done": {
+        const doneTurnId = typeof frame.turn_id === "string"
+          ? frame.turn_id.trim()
+          : "";
         if (
-          typeof frame.turn_id === "string"
-          && cancelledTurnIdsRef.current.has(frame.turn_id)
+          doneTurnId
+          && cancelledTurnIdsRef.current.has(doneTurnId)
         ) {
-          cancelledTurnIdsRef.current.delete(frame.turn_id);
-          markTurnInactive(frame.turn_id);
+          setMessages((current) => settleRunningToolMessages(
+            current,
+            doneTurnId,
+            "未执行：本轮已取消",
+          ));
+          cancelledTurnIdsRef.current.delete(doneTurnId);
+          markTurnInactive(doneTurnId);
           break;
         }
         if (
-          typeof frame.turn_id === "string"
-          && recentlyCompletedTurnIdRef.current === frame.turn_id
+          doneTurnId
+          && recentlyCompletedTurnIdRef.current === doneTurnId
         ) {
           break;
+        }
+        if (doneTurnId) {
+          setMessages((current) => settleRunningToolMessages(current, doneTurnId));
         }
         finalizeStream();
         break;
+      }
       case "project.created":
         setMessages((current) => appendToolMessage(current, frame.type, frame));
         break;
@@ -327,7 +338,17 @@ export function useSuperChatFrameController({
           setBusy(true);
           break;
         }
-        markTurnInactive(activeTurnIdRef.current ?? pendingClientTurnIdRef.current);
+        {
+          const failedTurnId = activeTurnIdRef.current ?? pendingClientTurnIdRef.current;
+          if (failedTurnId) {
+            setMessages((current) => settleRunningToolMessages(
+              current,
+              failedTurnId,
+              "未执行：本轮因错误结束",
+            ));
+          }
+          markTurnInactive(failedTurnId);
+        }
         setConnecting(false);
         break;
       default:

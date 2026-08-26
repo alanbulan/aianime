@@ -198,6 +198,7 @@ def _log(
     *,
     progress: float | None = None,
     scope: str | None = None,
+    expected_task_id: str | None = None,
 ) -> None:
     manager.update_progress_for_project(
         ctx,
@@ -207,6 +208,7 @@ def _log(
         progress=progress,
         current_task=message,
         logs=[message],
+        expected_task_id=expected_task_id,
     )
 
 
@@ -462,9 +464,58 @@ async def _run_selected_regen_async(
         )
     output_dir = str(payload.get("output_dir") or ctx.output_dir)
     manager = get_task_manager()
+    run_task_id = str(envelope.get("__run_task_id") or "").strip()
 
     def log(message: str, *, progress: float | None = None) -> None:
-        _log(manager, ctx, task_type, episode, message, progress=progress, scope=scope)
+        _log(
+            manager,
+            ctx,
+            task_type,
+            episode,
+            message,
+            progress=progress,
+            scope=scope,
+            expected_task_id=run_task_id or None,
+        )
+
+    def on_regeneration_progress(event: dict[str, Any]) -> None:
+        completed = max(0, int(event.get("completed") or 0))
+        total = max(1, int(event.get("total") or 1))
+        active = max(0, int(event.get("active") or 0))
+        grid_index = max(0, int(event.get("grid_index") or 0))
+        event_name = str(event.get("event") or "")
+        progress = min(0.68, 0.2 + 0.48 * completed / total)
+        summary = f"生成 {mode_key} 网格：{completed}/{total} 已完成"
+        if active:
+            summary += f"，{active} 个请求执行中"
+        if event_name == "resumed":
+            summary = (
+                f"恢复 {mode_key} 网格任务：已复用 "
+                f"{int(event.get('reused') or 0)}/{total} 张"
+            )
+        elif event_name == "retry":
+            summary = (
+                f"网格 {grid_index}/{total} 请求暂时失败，"
+                f"正在进行第 {int(event.get('attempt') or 1)}/"
+                f"{int(event.get('max_attempts') or 1)} 次尝试"
+            )
+        elif event_name == "completed" and grid_index:
+            outcome = "完成" if bool(event.get("success")) else "失败"
+            summary = f"网格 {grid_index}/{total} 生成{outcome}；已处理 {completed}/{total}"
+
+        if event_name == "heartbeat":
+            manager.update_progress_for_project(
+                ctx,
+                task_type,
+                episode,
+                scope=scope,
+                progress=progress,
+                current_task=summary,
+                expected_task_id=run_task_id or None,
+            )
+            return
+        if event_name != "finished":
+            log(summary, progress=progress)
 
     paths = PathResolver(output_dir, episode)
     episode_grids_dir = Path(output_dir) / "grids" / f"ep{episode:03d}"
@@ -627,6 +678,10 @@ async def _run_selected_regen_async(
         ethnicity=ethnicity,
         is_sketch=is_sketch,
         generator_config=generator_config,
+        max_concurrency=int(config.get("max_parallel") or 3),
+        max_attempts=2,
+        resume_token=run_task_id,
+        progress_callback=on_regeneration_progress,
         **force_kwargs,
     )
 
@@ -692,6 +747,13 @@ async def _run_selected_regen_async(
         for bn in grid_beat_nums[: len(save_result["cell_paths"])]:
             updated_beats.append(bn)
         log(f"入池: {save_result['added']} 新增, {save_result['skipped']} 去重跳过")
+
+    if failed_errors:
+        label = "草图重生" if is_sketch else "Render 重生"
+        raise RuntimeError(
+            f"{label}有 {len(failed_errors)} 个网格生成失败："
+            f"{'; '.join(failed_errors[:3])}"
+        )
 
     if not updated_beats:
         label = "草图重生" if is_sketch else "Render 重生"

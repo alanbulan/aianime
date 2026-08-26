@@ -258,6 +258,9 @@ class ProjectScriptWorkflowRuntime:
                     filename=options.filename,
                     rebuild=options.rebuild,
                     spine_template=options.spine_template,
+                    visual_style=options.visual_style,
+                    narration_style=options.narration_style,
+                    ethnicity=options.ethnicity,
                 ),
             )
         elif node.stage == "characters":
@@ -422,6 +425,9 @@ async def _run_script_workflow(
         filename=str(payload.get("filename") or ""),
         rebuild=bool(payload.get("rebuild", False)),
         spine_template=payload.get("spine_template"),
+        visual_style=payload.get("visual_style"),
+        narration_style=payload.get("narration_style"),
+        ethnicity=payload.get("ethnicity"),
         target_episodes=int(payload.get("target_episodes") or 10),
         planning_mode=str(payload.get("planning_mode") or "chapters"),
         script_mode=str(payload.get("script_mode") or "duration"),

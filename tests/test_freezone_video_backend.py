@@ -205,6 +205,8 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
 
     assert out.exists()
     assert captured["create"] == {
+        "model": "cloud-video-standard",
+        "model_selector": None,
         "model_role": "VIDEO_ALL_REFERENCE",
         "resolution": "720p",
         "generate_audio": False,

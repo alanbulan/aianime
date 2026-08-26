@@ -38,10 +38,29 @@ beforeEach(() => {
   fetchCanvasGenerationResult.mockReset();
   submitStoryScript.mockReset();
   loadCommercialModelCatalog.mockResolvedValue({
+    catalogVersion: "text-test-v1",
     items: [
-      { code: "text-default", operation: "TEXT", isDefault: true },
-      { code: "text-pro", operation: "TEXT", isDefault: false },
-      { code: "image-default", operation: "IMAGE", isDefault: true },
+      {
+        code: "text-default",
+        operation: "TEXT",
+        isDefault: true,
+        capabilities: {},
+        parameterSchema: {},
+      },
+      {
+        code: "text-pro",
+        operation: "TEXT",
+        isDefault: false,
+        capabilities: {},
+        parameterSchema: {},
+      },
+      {
+        code: "image-default",
+        operation: "IMAGE",
+        isDefault: true,
+        capabilities: {},
+        parameterSchema: {},
+      },
     ],
   });
   resolveRequiredCatalogModelCode.mockReturnValue("text-default");

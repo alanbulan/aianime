@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import importlib
 import sys
 from types import SimpleNamespace
 
 import pytest
 
 from ai_anime.modules.asset_world.infrastructure.director_world import worker_runtime
+
+
+def test_allowlisted_worker_modules_are_importable() -> None:
+    for worker_name, module_name in worker_runtime._WORKER_MODULES.items():
+        module = importlib.import_module(module_name)
+
+        assert callable(getattr(module, "main", None)), worker_name
 
 
 def test_worker_command_uses_python_module_in_source_runtime(monkeypatch):

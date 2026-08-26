@@ -166,6 +166,8 @@ async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path
     from ai_anime.api.routes.narrative_planning.episodes_schemas import EpisodePlanRequest
 
     ctx = _ctx(tmp_path)
+    ctx.output_dir.mkdir(parents=True, exist_ok=True)
+    (ctx.output_dir / "novel.txt").write_text("测试小说正文", encoding="utf-8")
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return SimpleNamespace(

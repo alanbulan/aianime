@@ -10,10 +10,6 @@ import {
   useCommercialModelCatalog,
   useGenerationCreditCost,
 } from "@/modules/model_usage/public";
-import {
-  designCanvasAudioVoice,
-  loadCanvasAudioReferences,
-} from "@/modules/creative_canvas/audioVoiceCatalogComposition";
 import { isCeRuntime } from "@/lib/runtime-config";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
 import {
@@ -29,7 +25,7 @@ import type {
   SceneDirectorWorldPayload,
   SceneDirectorWorldSourcePayload,
 } from "@/modules/asset_world/application/scene-gateway";
-import { useAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
+import { createUseAssetReferenceIndex } from "@/modules/asset_world/application/use-asset-reference-index";
 import { createCharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
 import {
   listCharacterIdentities as listCharacterIdentitiesUseCase,
@@ -46,7 +42,10 @@ import {
   createUseCharacterDetailController,
   type CharacterDetailControllerOptions,
 } from "@/modules/asset_world/application/use-character-detail-controller";
-import { createUseCharacterVoiceController } from "@/modules/asset_world/application/use-character-voice-controller";
+import {
+  createUseCharacterVoiceController,
+  type CharacterVoiceControllerOptions,
+} from "@/modules/asset_world/application/use-character-voice-controller";
 import { createUseCharactersPageController } from "@/modules/asset_world/application/use-characters-page-controller";
 import { createUseCreateStyleController } from "@/modules/asset_world/application/use-create-style-controller";
 import { createUseIdentitiesGridController } from "@/modules/asset_world/application/use-identities-grid-controller";
@@ -90,6 +89,7 @@ import { useAssetWorkspaceNavigation } from "@/modules/asset_world/infrastructur
 import { createBrowserVoiceRecorder } from "@/shared/voice-recording/browser-voice-recorder";
 import { httpCharacterGateway } from "@/modules/asset_world/infrastructure/http-character-gateway";
 import { httpBeatViewerGateway } from "@/modules/asset_world/infrastructure/http-beat-viewer-gateway";
+import { httpAssetReferenceGateway } from "@/modules/asset_world/infrastructure/http-asset-reference-gateway";
 import {
   httpIdentityAssetGateway,
 } from "@/modules/asset_world/infrastructure/http-identity-asset-gateway";
@@ -139,6 +139,9 @@ const beatViewerQueries = createBeatViewerQueryHooks(httpBeatViewerGateway);
 const characterQueries = createCharacterQueryHooks(httpCharacterGateway);
 const propQueries = createPropQueryHooks(httpPropGateway);
 const sceneQueries = createSceneQueryHooks(httpSceneGateway);
+const useAssetReferenceIndex = createUseAssetReferenceIndex(
+  httpAssetReferenceGateway,
+);
 const usePropsPanelController = createUsePropsPanelController(
   propQueries,
   imageSourceQueries,
@@ -459,21 +462,6 @@ const useCharacterVoiceController = createUseCharacterVoiceController(
   characterQueries,
   {
     createVoiceRecorder: createBrowserVoiceRecorder,
-    async loadVoiceOptions(project) {
-      const references = await loadCanvasAudioReferences(project);
-      return references.flatMap((reference) => {
-        const voiceId = reference.ref.voiceId?.trim();
-        if (reference.ref.scope !== "user_custom" || !voiceId) return [];
-        return [
-          {
-            voiceId,
-            label: reference.label?.trim() || voiceId,
-            previewUrl: reference.previewUrl,
-          },
-        ];
-      });
-    },
-    designVoice: designCanvasAudioVoice,
   },
 );
 const useIdentityCardController = createUseIdentityCardController(
@@ -661,8 +649,10 @@ function CharacterDetailContent({
   openCharacterFreezone,
   onRenamed,
   project,
+  voiceCatalog,
 }: CharacterDetailControllerOptions & {
   openCharacterFreezone: AssetWorldCanvasNavigation["openCharacter"];
+  voiceCatalog: AssetWorldVoiceCatalog;
 }) {
   const useController = useMemo(
     () =>
@@ -703,6 +693,7 @@ function CharacterDetailContent({
     voiceContent: createElement(CharacterVoicePanelContent, {
       character,
       project,
+      voiceCatalog,
     }),
   });
 }
@@ -710,9 +701,11 @@ function CharacterDetailContent({
 export function CharacterVoicePanelContent({
   character,
   project,
+  voiceCatalog,
 }: {
   character: Character;
   project: string;
+  voiceCatalog: AssetWorldVoiceCatalog;
 }) {
   const commercialBridgeAvailable =
     typeof window !== "undefined" &&
@@ -743,6 +736,7 @@ export function CharacterVoicePanelContent({
   }, [voiceDesignCatalog.data]);
   const controller = useCharacterVoiceController({
     character,
+    ...voiceCatalog,
     project,
     voiceDesign,
   });
@@ -770,6 +764,7 @@ function CharactersPageBody({
   canvasNavigation,
   project,
   renderNarratorVoicePanel,
+  voiceCatalog,
 }: CharactersPageContentProps) {
   const controller = useCharactersPageController(project);
   const selectedCharacter = controller.selectedCharacter;
@@ -785,6 +780,7 @@ function CharactersPageBody({
         onRenamed: controller.selectCharacter,
         openCharacterFreezone: canvasNavigation.openCharacter,
         project,
+        voiceCatalog,
       })
     : createElement(EmptyCharacterDetailView);
   return createElement(CharactersPageView, {
@@ -823,18 +819,26 @@ export interface CharactersPageContentProps {
   canvasNavigation: AssetWorldCanvasNavigation;
   project: string;
   renderNarratorVoicePanel(project: string): ReactNode;
+  voiceCatalog: AssetWorldVoiceCatalog;
 }
+
+export type AssetWorldVoiceCatalog = Pick<
+  CharacterVoiceControllerOptions,
+  "designVoice" | "loadVoiceOptions"
+>;
 
 export function CharactersPageContent({
   canvasNavigation,
   project,
   renderNarratorVoicePanel,
+  voiceCatalog,
 }: CharactersPageContentProps) {
   return createElement(TaskControllerProvider, {
     children: createElement(CharactersPageBody, {
       canvasNavigation,
       project,
       renderNarratorVoicePanel,
+      voiceCatalog,
     }),
     episode: 0,
     project,

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { formatRelativeTime } from "@/lib/format-relative-time";
+import { formatCompactAge } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import type { VideoPoolResponse } from "@/modules/production/application/ports";
 import { videoModelDisplayLabel } from "@/modules/production/domain/video-config";
@@ -112,7 +112,7 @@ export function createUseVideoPaneMediaController(
             ),
             id: entry.id,
             previewSource: source ? `${source}#t=0.1` : null,
-            timeLabel: formatRelativeTime(entry.generated_at ?? null, now),
+            timeLabel: formatCompactAge(entry.generated_at ?? null, now),
           };
         });
       return { candidates: entries, activePoolId: activeId };

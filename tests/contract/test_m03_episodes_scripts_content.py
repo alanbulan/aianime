@@ -277,6 +277,7 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 def test_m03_l2_covers_episodes_scripts_and_content_endpoints(m03_client):
     client, store = m03_client
+    Path(store.project_dir, "novel.txt").write_text(store.novel_text, encoding="utf-8")
 
     chapters = client.get("/api/v1/projects/demo/chapters")
     assert chapters.status_code == 200

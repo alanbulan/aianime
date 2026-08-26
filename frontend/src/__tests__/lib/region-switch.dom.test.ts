@@ -16,11 +16,13 @@ describe("switchRegion orchestrator", () => {
     useRegionStore.setState({ selectedRegionId: "cn-1", isSwitching: false, isLocked: false });
     clearRegionCookie();
     setRegionCookie("cn-1");
-    vi.stubGlobal("location", { ...window.location, assign: vi.fn() });
+    vi.spyOn(window.location, "assign").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.resetModules();
   });
 
   it("runs the full flow in order, sets new cookie, and hard-reloads", async () => {
@@ -50,7 +52,6 @@ describe("switchRegion orchestrator", () => {
     await p;
     expect(getRegionCookie()).toBe("us-1");
     expect(window.location.assign).toHaveBeenCalledWith("/login");
-    vi.useRealTimers();
   });
 
   it("backs off if nav-lock is already held", async () => {

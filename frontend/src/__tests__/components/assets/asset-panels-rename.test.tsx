@@ -9,7 +9,7 @@ import ky from "ky";
 import type { ReactNode } from "react";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),

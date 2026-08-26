@@ -128,3 +128,45 @@ def test_runtime_resolution_prefers_explicit_request() -> None:
     assert use_cases.resolve_sketch_selection(config, "image-b") == "image-b"
     assert use_cases.resolve_sketch_aspect_padding(config, None) is False
     assert use_cases.resolve_sketch_aspect_padding(config, True) is True
+
+
+def test_runtime_resolution_falls_back_to_image_edit_priority_route(
+    monkeypatch,
+) -> None:
+    from ai_anime.modules.production.application import image_settings
+
+    roles: list[str] = []
+
+    def resolve_role(role: str) -> str:
+        roles.append(role)
+        return "priority-image-edit"
+
+    monkeypatch.setattr(image_settings, "resolve_model_for_role", resolve_role)
+    use_cases, _repository = _use_cases()
+
+    assert use_cases.resolve_render_selection({}) == "priority-image-edit"
+    assert use_cases.resolve_sketch_selection({}) == "priority-image-edit"
+    assert roles == ["IMAGE_EDIT", "IMAGE_EDIT"]
+
+
+def test_runtime_resolution_prefers_project_selection_before_priority_route(
+    monkeypatch,
+) -> None:
+    from ai_anime.modules.production.application import image_settings
+
+    def unexpected_role_resolution(_role: str) -> str:
+        raise AssertionError("project selection must win")
+
+    monkeypatch.setattr(
+        image_settings,
+        "resolve_model_for_role",
+        unexpected_role_resolution,
+    )
+    use_cases, _repository = _use_cases()
+    config = {
+        "render_image_selection": "project-render",
+        "sketch_image_selection": "project-sketch",
+    }
+
+    assert use_cases.resolve_render_selection(config) == "project-render"
+    assert use_cases.resolve_sketch_selection(config, "   ") == "project-sketch"

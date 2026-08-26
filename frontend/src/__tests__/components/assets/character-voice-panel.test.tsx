@@ -14,7 +14,14 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import { CharacterVoicePanelContent } from "@/modules/asset_world/composition";
-import type { Character } from "@/modules/asset_world/public";
+import type {
+  AssetWorldVoiceCatalog,
+  Character,
+} from "@/modules/asset_world/public";
+import {
+  designCanvasAudioVoice,
+  loadCanvasAudioReferences,
+} from "@/modules/creative_canvas/public";
 
 const server = setupServer();
 const i18n = i18next.createInstance();
@@ -112,9 +119,31 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
+const voiceCatalog: AssetWorldVoiceCatalog = {
+  async loadVoiceOptions(project) {
+    const references = await loadCanvasAudioReferences(project);
+    return references.flatMap((reference) => {
+      const voiceId = reference.ref.voiceId?.trim();
+      if (reference.ref.scope !== "user_custom" || !voiceId) return [];
+      return [
+        {
+          voiceId,
+          label: reference.label?.trim() || voiceId,
+          previewUrl: reference.previewUrl,
+        },
+      ];
+    });
+  },
+  designVoice: designCanvasAudioVoice,
+};
+
 function renderPanel(character: Character) {
   return render(
-    <CharacterVoicePanelContent project="demo" character={character} />,
+    <CharacterVoicePanelContent
+      project="demo"
+      character={character}
+      voiceCatalog={voiceCatalog}
+    />,
     { wrapper },
   );
 }

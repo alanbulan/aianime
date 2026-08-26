@@ -27,7 +27,6 @@ from ai_anime.modules.narrative_planning.application.beat_models import (
     SceneRef,
     beat_scene_id,
     beat_scene_ref,
-    beat_scene_variant_id,
     build_scene_ref,
     sync_beat_asset_refs,
 )
@@ -517,7 +516,6 @@ __all__ = [
     "beat_order_value",
     "beat_scene_id",
     "beat_scene_ref",
-    "beat_scene_variant_id",
     "build_prop_menu",
     "build_scene_menu",
     "build_scene_ref",

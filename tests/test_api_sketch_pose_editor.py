@@ -137,8 +137,9 @@ def test_save_sketch_pose_editor_state(monkeypatch, tmp_path):
     body = response.json()
     assert body["ok"] is True
     assert body["data"]["sketch_url"] == _sketch_url(sketch_path)
-    saved = Image.open(sketch_path).convert("RGBA")
-    assert saved.getpixel((10, 10))[:3] == (255, 0, 0)
+    with Image.open(sketch_path) as saved_image:
+        saved = saved_image.convert("RGBA")
+        assert saved.getpixel((10, 10))[:3] == (255, 0, 0)
 
 
 def test_crop_current_sketch_saves_canonical_image(monkeypatch, tmp_path):
@@ -156,8 +157,8 @@ def test_crop_current_sketch_saves_canonical_image(monkeypatch, tmp_path):
     assert body["data"]["width"] == 20
     assert body["data"]["height"] == 30
     assert body["data"]["sketch_url"] == _sketch_url(sketch_path)
-    cropped = Image.open(sketch_path)
-    assert cropped.size == (20, 30)
+    with Image.open(sketch_path) as cropped:
+        assert cropped.size == (20, 30)
 
 
 @pytest.mark.parametrize(

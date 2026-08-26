@@ -163,6 +163,22 @@ def test_missing_episode_is_a_visible_block_after_episode_planning() -> None:
     assert "仍不存在第 3 集" in _nodes(plan)["identities:ep003"].blocked_reason
 
 
+def test_completed_character_task_without_output_is_ready_to_retry() -> None:
+    plan = build_script_workflow_plan(
+        ScriptWorkflowSnapshot(
+            ingested=True,
+            has_characters=False,
+            task_statuses={"characters": "completed"},
+        ),
+        ScriptWorkflowOptions(mode="through", target="characters"),
+    )
+
+    characters = _nodes(plan)["characters"]
+    assert characters.execute is True
+    assert characters.status == "ready"
+    assert characters.blocked_reason == ""
+
+
 class _ConcurrentRuntime:
     def __init__(self) -> None:
         self.identities: set[int] = set()
@@ -241,6 +257,32 @@ async def test_executor_runs_independent_nodes_concurrently_and_respects_depende
 
 
 @pytest.mark.asyncio
+async def test_executor_preserves_empty_start_error_type() -> None:
+    class _FailingRuntime:
+        async def snapshot(self, _options):
+            return ScriptWorkflowSnapshot()
+
+        async def start(self, _node, _options):
+            raise ValueError
+
+        async def wait(self, _ticket, *, timeout_seconds):
+            raise AssertionError("start failure must not create a ticket")
+
+        def report(self, _plan, *, batches, current_batch=None):
+            return None
+
+    with pytest.raises(RuntimeError, match="ValueError"):
+        await ScriptWorkflowExecutor(_FailingRuntime()).execute(
+            ScriptWorkflowOptions(
+                mode="single",
+                target="ingest",
+                filename="novel.md",
+            ),
+            timeout_seconds=30,
+        )
+
+
+@pytest.mark.asyncio
 async def test_workflow_route_submits_one_parent_task_with_complete_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -283,6 +325,9 @@ async def test_workflow_route_submits_one_parent_task_with_complete_config(
             max_parallel=6,
             filename="novel.txt",
             target_beats=12,
+            spine_template="drama",
+            visual_style="anime",
+            ethnicity="Japanese",
         ),
         user={"id": "user-1"},
     )
@@ -295,4 +340,7 @@ async def test_workflow_route_submits_one_parent_task_with_complete_config(
     assert submissions[0].payload["episodes"] == [2, 1]
     assert submissions[0].payload["max_parallel"] == 6
     assert submissions[0].payload["target_beats"] == 12
+    assert submissions[0].payload["spine_template"] == "drama"
+    assert submissions[0].payload["visual_style"] == "anime"
+    assert submissions[0].payload["ethnicity"] == "Japanese"
     assert submissions[0].scope.startswith("script_workflow__")

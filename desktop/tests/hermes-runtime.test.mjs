@@ -5,15 +5,10 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import {
-  BUNDLED_HERMES_AGENT_VERSION,
   developmentHermesCliPath,
   packagedHermesCliPath,
   resolveHermesRuntimePaths,
 } from "../src/hermes-runtime.ts";
-
-test("Hermes runtime version stays pinned to the isolated project", () => {
-  assert.equal(BUNDLED_HERMES_AGENT_VERSION, "0.19.0");
-});
 
 test("development and packaged Hermes paths are deterministic", () => {
   assert.equal(
@@ -99,7 +94,10 @@ test("desktop packaging pins and bundles the isolated Hermes runtime", async () 
   assert.match(builderConfig, /\.\.\/\.hermes/);
   assert.match(desktopPackage.scripts["build:hermes"], /--locked/);
   assert.match(desktopPackage.scripts["runtime:hermes"], /uv sync/);
-  assert.equal(desktopPackage.scripts.dev, "electron scripts/dev-entry.mjs");
+  assert.equal(
+    desktopPackage.scripts.dev,
+    "electron --disable-warning=ExperimentalWarning --experimental-transform-types scripts/dev-entry.mjs",
+  );
   assert.match(developmentSource, /await prepareHermesRuntime\(\)/);
   assert.match(developmentSource, /\["sync", "--project", HERMES_RUNTIME_ROOT, "--locked", "--no-dev"\]/);
   assert.doesNotMatch(backendSource, /AI_ANIME_CHAT_BACKEND/);

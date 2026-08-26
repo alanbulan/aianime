@@ -1,6 +1,4 @@
-"""Identity Planner — 批量为所有剧集规划角色身份。
-
-在剧集工作台中一次性运行，为每集分析并落库角色身份。
+"""Identity Planner — 为单集规划角色身份。
 
 当前流程（每集）：
 1. 预筛本集出场角色
@@ -303,15 +301,7 @@ OTHER_IDENTITY_PROMPT = """# 你是影视视觉身份分析师
 
 
 class IdentityPlanner:
-    """批量为所有剧集规划角色身份。
-
-    按集数顺序处理每集，后面的集数能看到前面新建的身份，自然复用。
-
-    示例:
-        >>> planner = IdentityPlanner(cognee_store)
-        >>> results = await planner.plan_all_episodes(episodes)
-        >>> # results = {1: 2, 2: 0, 3: 1}  # {集数: 新建身份数}
-    """
+    """为单集规划角色身份。"""
 
     def __init__(self, cognee_store: "CogneeStore"):
         self.cognee_store = cognee_store
@@ -498,38 +488,6 @@ class IdentityPlanner:
             )
 
         return new_count, len(resolved_ids)
-
-    async def plan_all_episodes(
-        self,
-        episodes: list["NovelEpisode"],
-        on_log: Optional[Callable] = None,
-        on_progress: Optional[Callable] = None,
-    ) -> dict[int, int]:
-        """批量规划所有剧集的身份。按集数顺序处理。
-
-        Returns:
-            {集数: 新建身份数；失败时为 -1}
-        """
-        results = {}
-        sorted_eps = sorted(episodes, key=lambda e: e.number)
-
-        for i, episode in enumerate(sorted_eps):
-            if on_progress:
-                on_progress(
-                    (i + 1) / len(sorted_eps),
-                    f"规划第 {episode.number} 集身份..."
-                )
-            try:
-                new_count, resolved_count = await self.plan_single_episode(episode, on_log)
-                results[episode.number] = new_count
-                if on_log:
-                    on_log(f"[EP{episode.number:03d}] 完成, 新建 {new_count} / 复用 {resolved_count - new_count} 个身份")
-            except Exception as e:
-                results[episode.number] = -1
-                if on_log:
-                    on_log(f"[EP{episode.number:03d}] 失败: {e}")
-
-        return results
 
     async def _filter_cast(
         self,

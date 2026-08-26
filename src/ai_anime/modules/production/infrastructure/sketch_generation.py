@@ -30,7 +30,7 @@ from ai_anime.modules.production.domain.sketch_generation import (
     invalid_sketch_grid_error,
     sketch_dispatch_indices,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -158,7 +158,6 @@ class LocalSketchGenerationPreparer:
                 "character_map": character_map,
                 "style": style,
                 "model": image_route.model,
-                "model_selector": image_route.selector,
                 "sketch_scene_grouping": command.sketch_scene_grouping,
                 "aspect_ratio": command.aspect_ratio,
                 "sketch_colors": (
@@ -166,6 +165,8 @@ class LocalSketchGenerationPreparer:
                 ),
                 "prop_menu": prop_menu,
             }
+            if image_route.selector:
+                base_config["model_selector"] = image_route.selector
             tasks = tuple(
                 SketchGenerationTask(
                     episode_num=command.episode_num,

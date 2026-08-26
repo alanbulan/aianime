@@ -1,5 +1,6 @@
 export {
   type AssetWorldCanvasNavigation,
+  type AssetWorldVoiceCatalog,
   CharactersPageContent,
   clearSceneDirectorWorld,
   createIdentityAsset,

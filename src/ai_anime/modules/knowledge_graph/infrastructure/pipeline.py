@@ -365,6 +365,7 @@ async def extract_characters_from_graph(
 
         logging.warning(f"cognee.search 失败: {e}")
         log(f"cognee.search 失败: {e}")
+        raise RuntimeError(f"图谱人物检索失败: {e}") from e
 
     if not context_text.strip():
         log("⚠️ 图谱搜索无数据，请先构建图谱（cognify）")
@@ -458,7 +459,7 @@ async def extract_characters_from_graph(
 
         logging.error(f"LLM 结构化提取失败: {e}")
         log(f"⚠️ LLM 结构化提取失败: {e}")
-        return []
+        raise RuntimeError(f"角色结构化提取失败: {e}") from e
 
     report(0.9, "提取完成")
 

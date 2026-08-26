@@ -90,22 +90,6 @@ class PoolIndex(BaseModel):
                 return img
         return None
 
-    def filter_by_mode(self, mode: str) -> list[PoolImage]:
-        """按模式筛选图片。"""
-        return [img for img in self.images if img.mode == mode]
-
-    def filter_by_beat(self, beat: int) -> list[PoolImage]:
-        """按原始 beat 筛选图片。"""
-        return [img for img in self.images if img.original_beat == beat]
-
-    def get_recommended_for_beat(self, beat: int) -> list[PoolImage]:
-        """获取某个 beat 的推荐图片（来自不同模式）。"""
-        return self.filter_by_beat(beat)
-
-    def filter_by_type(self, img_type: str) -> list[PoolImage]:
-        """按类型筛选图片（render 或 sketch）。"""
-        return [img for img in self.images if img.type == img_type]
-
     def filter_by_beat_and_type(self, beat: int, img_type: str) -> list[PoolImage]:
         """按 beat 和类型筛选图片。"""
         return [img for img in self.images if img.original_beat == beat and img.type == img_type]

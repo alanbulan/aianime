@@ -20,6 +20,12 @@ from ai_anime.modules.asset_world.application.errors import (
 
 
 @dataclass
+class _Identity:
+    identity_id: str
+    identity_name: str
+
+
+@dataclass
 class _Character:
     name: str
     role: str = ""
@@ -35,6 +41,7 @@ class _Character:
     reference_audio_sha256: str = ""
     reference_audio_updated_at: str = ""
     voice_samples_by_age_group: dict = field(default_factory=dict)
+    identities: list[_Identity] = field(default_factory=list)
 
 
 class _Repository:
@@ -91,6 +98,7 @@ async def test_list_repairs_duplicate_main_and_projects_catalog_fields(
     duplicate = _Character(
         name="沈月白",
         is_main=True,
+        identities=[_Identity(identity_id="shen_youth", identity_name="青年")],
         reference_audio_path="assets/characters/沈月白/voices/voice_default.wav",
         reference_audio_sha256="voice-sha",
     )
@@ -107,6 +115,9 @@ async def test_list_repairs_duplicate_main_and_projects_catalog_fields(
     assert duplicate.is_main is False
     assert data[1]["reference_audio_url"] == "/media/voice_default.wav"
     assert data[1]["reference_audio_sha256"] == "voice-sha"
+    assert data[1]["identities"] == [
+        {"identity_id": "shen_youth", "identity_name": "青年"}
+    ]
     assert data[1]["history_url"] == (
         "/api/v1/projects/project-id/characters/"
         "%E6%B2%88%E6%9C%88%E7%99%BD/asset-history?kind=portrait"

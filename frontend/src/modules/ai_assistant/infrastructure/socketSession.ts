@@ -101,8 +101,11 @@ export function createSuperChatSocketSession(
     };
     nextSocket.onerror = () => {
       if (!isCurrent(nextSocket, currentConnectionId)) return;
-      options.onErrorChange("WebSocket connection failed");
-      options.onConnectingChange(false);
+      // A local-backend restart is transient and the close handler reconnects
+      // automatically. Keep it in the reconnecting state instead of surfacing
+      // a stale fatal-error banner while recovery is already in progress.
+      options.onErrorChange(null);
+      options.onConnectingChange(true);
     };
     nextSocket.onclose = (event) => {
       if (!isCurrent(nextSocket, currentConnectionId)) return;

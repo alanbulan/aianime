@@ -15,12 +15,12 @@ from typing import Any
 
 import aiosqlite
 
-from ai_anime.modules.asset_world.domain.asset_names import (
+from ai_anime.modules.asset_world.public import (
     asset_dir_within,
     is_path_safe_asset_name,
+    stage_manifest,
     unique_path_safe_asset_name,
 )
-from ai_anime.modules.asset_world.infrastructure.director_world import stage_manifest
 from ai_anime.shared.utils.identity_refs import (
     remap_character_asset_path,
     remap_default_map,

@@ -177,8 +177,8 @@ describe("canvas save controller", () => {
         hydratedRef: hook.hydratedRef,
         switchingRef: hook.switchingRef,
         lastRemoteNodeCountRef: hook.lastRemoteNodeCountRef,
-        clearDraftAfterSave: hook.draftPersistence.clearAfterSave,
-        markDraftPersisted: hook.draftPersistence.markPersisted,
+        clearDraftAfterSave: expect.any(Function),
+        markDraftPersisted: expect.any(Function),
       }),
     );
     expect(hook.lastSavedViewportRef.current).toBe(

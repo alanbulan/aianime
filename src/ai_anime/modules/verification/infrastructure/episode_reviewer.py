@@ -83,7 +83,7 @@ class EpisodeReviewer:
                 get_newapi_text_pydantic_model(),
                 system_prompt=EPISODE_OVERVIEW_PROMPT,
                 output_type=EpisodeOverviewResult,
-                output_retries=2,
+                retries={"output": 2},
                 name="导演分镜审片员",
             )
         return self._agent

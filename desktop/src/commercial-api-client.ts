@@ -1288,7 +1288,9 @@ export class CommercialApiClient {
         "Content-Type",
         options.contentType ?? "application/octet-stream",
       );
-      body = options.rawBody;
+      const rawBody = new ArrayBuffer(options.rawBody.byteLength);
+      new Uint8Array(rawBody).set(options.rawBody);
+      body = rawBody;
     } else if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(options.body);

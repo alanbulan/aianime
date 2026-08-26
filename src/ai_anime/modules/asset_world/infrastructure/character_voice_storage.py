@@ -10,7 +10,6 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
-import json
 import re
 import shutil
 import subprocess
@@ -191,78 +190,6 @@ def trim_voice_sample_content(
         if not output:
             raise ValueError("ffmpeg 裁剪后输出为空")
         return output, "voice_trimmed.mp3"
-
-
-def voice_recorder_bootstrap_js(recorder_key: str) -> str:
-    """Return the JS payload that primes a MediaRecorder under ``recorder_key``."""
-    key = json.dumps(recorder_key)
-    return f"""
-    (() => {{
-      window.__characterVoiceRecorders = window.__characterVoiceRecorders || {{}};
-      window.__characterVoiceRecorders[{key}] = {{
-        stream: null,
-        recorder: null,
-        chunks: [],
-        startedAt: 0,
-        async start() {{
-          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {{
-            throw new Error('当前浏览器不支持麦克风录音');
-          }}
-          if (typeof MediaRecorder === 'undefined') {{
-            throw new Error('当前浏览器不支持 MediaRecorder');
-          }}
-          const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-            ? 'audio/webm;codecs=opus'
-            : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '');
-          this.stream = await navigator.mediaDevices.getUserMedia({{ audio: true }});
-          this.chunks = [];
-          this.recorder = new MediaRecorder(
-            this.stream,
-            mimeType ? {{ mimeType }} : undefined
-          );
-          this.recorder.ondataavailable = event => {{
-            if (event.data && event.data.size > 0) this.chunks.push(event.data);
-          }};
-          this.recorder.start();
-          this.startedAt = Date.now();
-          return true;
-        }},
-        async stop() {{
-          const recorder = this.recorder;
-          if (!recorder) throw new Error('尚未开始录音');
-          const chunks = this.chunks;
-          const mimeType = recorder.mimeType || 'audio/webm';
-          const durationMs = Date.now() - this.startedAt;
-          const result = await new Promise((resolve, reject) => {{
-            recorder.onstop = () => {{
-              const blob = new Blob(chunks, {{ type: mimeType }});
-              const reader = new FileReader();
-              reader.onload = () => resolve({{
-                dataUrl: reader.result,
-                durationMs,
-                mimeType,
-              }});
-              reader.onerror = () => reject(reader.error);
-              reader.readAsDataURL(blob);
-            }};
-            recorder.stop();
-          }});
-          if (this.stream) this.stream.getTracks().forEach(track => track.stop());
-          this.stream = null;
-          this.recorder = null;
-          this.chunks = [];
-          return result;
-        }},
-        cancel() {{
-          if (this.recorder && this.recorder.state !== 'inactive') this.recorder.stop();
-          if (this.stream) this.stream.getTracks().forEach(track => track.stop());
-          this.stream = null;
-          this.recorder = null;
-          this.chunks = [];
-        }},
-      }};
-    }})()
-    """
 
 
 def _safe_asset_name(value: str) -> str:

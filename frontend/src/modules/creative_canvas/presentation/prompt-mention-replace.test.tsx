@@ -7,7 +7,7 @@ import {
   type MentionCandidate,
 } from "./PromptMentionEditor";
 
-// jsdom 未实现 scrollIntoView（弹层高亮行的 ref 回调会用到）。
+// Happy DOM 未实现 scrollIntoView（弹层高亮行的 ref 回调会用到）。
 beforeAll(() => {
   if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = vi.fn();

@@ -122,15 +122,15 @@ describe("SuperChat socket session", () => {
     });
   });
 
-  it("reports socket errors without throwing", () => {
+  it("projects transient socket errors as reconnecting", () => {
     const options = sessionOptions();
     const session = createSuperChatSocketSession(options);
     session.connect();
 
     FakeWebSocket.instances[0].fail();
 
-    expect(options.onErrorChange).toHaveBeenLastCalledWith("WebSocket connection failed");
-    expect(options.onConnectingChange).toHaveBeenLastCalledWith(false);
+    expect(options.onErrorChange).toHaveBeenLastCalledWith(null);
+    expect(options.onConnectingChange).toHaveBeenLastCalledWith(true);
   });
 
   it("keeps an active turn busy and reconnects after an unexpected close", () => {

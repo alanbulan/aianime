@@ -20,7 +20,7 @@ from ai_anime.modules.asset_world.application.ports import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import task_config_scope
-from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
+from ai_anime.modules.model_usage.public import resolve_model_route
 
 
 class PropTaskUseCases:

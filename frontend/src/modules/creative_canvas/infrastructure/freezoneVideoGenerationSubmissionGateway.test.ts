@@ -21,6 +21,7 @@ const common = {
   durationSeconds: 8,
   generateAudio: true,
   model: "model-1",
+  modelSelector: "route-model-1",
   canvasId: "canvas-1",
   nodeId: "node-1",
 };
@@ -34,7 +35,7 @@ const commonBody = {
   duration_seconds: 8,
   generate_audio: true,
   model: "model-1",
-  model_id: "model-1",
+  model_id: "route-model-1",
   canvas_id: "canvas-1",
   node_id: "node-1",
 };

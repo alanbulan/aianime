@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.api.routes.model_usage import gateway as model_gateway
-from ai_anime.modules.model_usage.infrastructure import model_gateway_settings
+from ai_anime.migrations.model_usage import legacy_gateway_secrets
 from ai_anime.modules.model_usage.infrastructure import model_runtime as config
 from ai_anime.modules.model_usage.public import (
     MODE_MIXED,
@@ -34,11 +34,6 @@ def _reset_model_access() -> None:
 
 
 def _isolate_runtime(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    monkeypatch.setattr(
-        model_gateway_settings,
-        "STATE_DIR",
-        str(tmp_path / "state"),
-    )
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv(
@@ -280,11 +275,12 @@ def test_synchronous_text_operation_owns_one_idempotency_key(
     assert role == "TEXT"
 
 
-def test_model_gateway_status_purges_retired_local_gateway_secrets(
+def test_startup_migration_purges_retired_local_gateway_secrets(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path,
 ) -> None:
     _isolate_runtime(monkeypatch, tmp_path)
+    monkeypatch.setattr(legacy_gateway_secrets, "STATE_DIR", str(tmp_path / "state"))
     database = tmp_path / "state" / "local" / "settings.db"
     database.parent.mkdir(parents=True)
     with sqlite3.connect(database) as connection:
@@ -302,10 +298,7 @@ def test_model_gateway_status_purges_retired_local_gateway_secrets(
             ],
         )
 
-    app = FastAPI()
-    app.include_router(model_gateway.router)
-    response = TestClient(app).get("/model-gateway/config")
-    assert response.status_code == 200
+    legacy_gateway_secrets.migrate_legacy_gateway_secrets()
 
     with sqlite3.connect(database) as connection:
         keys = {

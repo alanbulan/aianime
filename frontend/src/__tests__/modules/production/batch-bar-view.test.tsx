@@ -42,6 +42,47 @@ describe("BatchBarView sketch aspect select", () => {
     expect(onAspectRatioChange).toHaveBeenCalledWith("2:3");
   });
 
+  it("keeps both model purposes visible while their catalogs are loading", () => {
+    const loadingModelControl = {
+      isLoading: true,
+      isPending: false,
+      isVisible: true,
+      onChange: vi.fn(),
+      options: [],
+      value: "",
+    };
+    const controller: BatchBarController = {
+      assignColorsPending: false,
+      audioPending: false,
+      audioPrerequisiteErrors: [],
+      audioUnavailableForVideoModel: false,
+      detectIdentitiesCostDisplay: null,
+      detectIdentitiesPending: false,
+      episodeAudioCostDisplay: "",
+      errorDialog: null,
+      globalOptimizePending: false,
+      productionWorkflowPending: false,
+      renderModel: loadingModelControl,
+      sketchAspectRatio: "2:3",
+      sketchModel: loadingModelControl,
+      showEpisodeAudio: false,
+      showGlobalOptimize: false,
+      onDetectIdentities: vi.fn(),
+      onDismissError: vi.fn(),
+      onGenerateAudio: vi.fn(),
+      onGlobalOptimize: vi.fn(),
+      onRunProductionWorkflow: vi.fn(),
+      onReassignColors: vi.fn(),
+      onSketchAspectRatioChange: vi.fn(),
+    };
+
+    render(<BatchBarView controller={controller} />);
+
+    expect(screen.getByText("episode.sketchSettings.model")).toBeInTheDocument();
+    expect(screen.getByText("episode.renderSettings.model")).toBeInTheDocument();
+    expect(document.querySelectorAll('[aria-busy="true"]')).toHaveLength(2);
+  });
+
   it("routes complete generation through the controller's canonical workflow action", async () => {
     const user = userEvent.setup();
     const onRunProductionWorkflow = vi.fn();

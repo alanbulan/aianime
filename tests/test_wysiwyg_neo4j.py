@@ -247,9 +247,9 @@ def build_test_character_map(
         )
 
         # reference_mode
-        ref_path = ""
+        ref_path = str(char.get("reference_path") or "")
         is_identity = False
-        if identity_id:
+        if identity_id and not ref_path:
             i_name = (
                 identity_id.split("_", 1)[1]
                 if "_" in identity_id
@@ -506,7 +506,63 @@ def _collect_test_cases():
     return cases
 
 
-_TEST_CASES = _collect_test_cases()
+def _synthetic_test_case():
+    reference_path = str(Path(__file__).resolve())
+    characters = [
+        {
+            "name": "沈知薇",
+            "face_prompt": "清秀面容",
+            "appearance_details": "青衣",
+            "gender": "女",
+            "body_type": "纤细",
+            "reference_path": reference_path,
+            "identities": [
+                {
+                    "identity_id": "沈知薇_常服",
+                    "appearance_details": "青衣常服",
+                    "face_prompt": "清秀面容",
+                }
+            ],
+        },
+        {
+            "name": "萧景行",
+            "face_prompt": "青年将军",
+            "appearance_details": "玄色劲装",
+            "gender": "男",
+            "body_type": "挺拔",
+            "reference_path": reference_path,
+            "identities": [
+                {
+                    "identity_id": "萧景行_常服",
+                    "appearance_details": "玄色劲装",
+                    "face_prompt": "青年将军",
+                }
+            ],
+        },
+    ]
+    beats = [
+        {
+            "beat_number": 1,
+            "visual_description": "{{沈知薇_常服}}推门进入",
+            "detected_identities": ["沈知薇_常服"],
+        },
+        {
+            "beat_number": 2,
+            "visual_description": "{{萧景行_常服}}转身看向她",
+            "detected_identities": ["萧景行_常服"],
+        },
+    ]
+    return (
+        "synthetic/wysiwyg",
+        Path(__file__).resolve().parent,
+        1,
+        beats,
+        characters,
+        {"沈知薇_常服": "red", "萧景行_常服": "blue"},
+    )
+
+
+_TEST_CASES = _collect_test_cases() or [_synthetic_test_case()]
 _TEST_IDS = [f"{c[0]}/ep{c[2]:03d}" for c in _TEST_CASES]
 
 
@@ -549,7 +605,6 @@ def _make_ctx_and_ordered(beats, characters, project_dir, sketch_colors):
 # Test 1: extract_panel_characters 返回有效角色
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_extract_panel_characters_valid(case):
     """extract_panel_characters 和 _from_detected 返回的角色名必须存在于角色列表中。"""
@@ -581,7 +636,6 @@ def test_extract_panel_characters_valid(case):
 # Test 2: build_reference_map Image N == simulated API attachment order
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_reference_map_matches_api_attachment(case):
     """build_reference_map Image N 必须与 generate_grid API 附件顺序一致。
@@ -637,7 +691,6 @@ def test_reference_map_matches_api_attachment(case):
 #          *** 预期 FAIL — main 的 export UI 用 character_map.items() 不重排 ***
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_export_ui_matches_reference_map(case):
     """Export UI img_idx 必须与 build_reference_map Image N 一致。
@@ -698,7 +751,6 @@ def test_export_ui_matches_reference_map(case):
 # Test 4: build_panel_roster 不应包含 Image N 引用
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_panel_roster_no_image_n(case):
     """build_panel_roster 输出不应包含 'Image N' 字符串。"""
@@ -722,7 +774,6 @@ def test_panel_roster_no_image_n(case):
 # Test 5: build_identity_lock(compact=True) 不应包含 Image N 引用
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_compact_identity_lock_no_image_n(case):
     """Render 模式 compact identity lock 不应包含 'Image N' 字符串。"""
@@ -747,7 +798,6 @@ def test_compact_identity_lock_no_image_n(case):
 #          但 per-panel 内容用 detected_identities — 验证覆盖一致
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skipif(not _TEST_CASES, reason="No project data found")
 @pytest.mark.parametrize("case", _TEST_CASES, ids=_TEST_IDS)
 def test_panel_roster_covers_detected_identities(case):
     """build_panel_roster 的 tag→img 映射必须覆盖所有 detected_identities 中的角色。

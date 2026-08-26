@@ -118,6 +118,7 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             project_dir=context.output_dir,
             text="  雨夜街头  ",
             model="cloud-text-standard",
+            model_selector=None,
             node_type="image",
             canvas_id="canvas-1",
             node_id="node-1",
@@ -131,6 +132,12 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             source_url="must-not-be-read.txt",
             prompt="节奏要快",
             model="newapi_gemini_flash",
+            model_selector=None,
+            video_url=None,
+            duration_sec=None,
+            character_refs=(),
+            max_frames=20,
+            scene_threshold=0.3,
             canvas_id="canvas-2",
             node_id="node-2",
         )
@@ -149,6 +156,7 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             payload={
                 "text": "  雨夜街头  ",
                 "model": "cloud-text-standard",
+                "model_id": "",
                 "node_type": "image",
                 "canvas_id": "canvas-1",
                 "node_id": "node-1",
@@ -163,6 +171,13 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
                 "source_text": "沈昭昭在深夜办公室醒来。",
                 "prompt": "节奏要快",
                 "model": "newapi_gemini_flash",
+                "model_id": "",
+                "video_path": "",
+                "duration_sec": None,
+                "max_frames": 20,
+                "scene_threshold": 0.3,
+                "character_refs": [],
+                "character_image_paths": [],
                 "canvas_id": "canvas-2",
                 "node_id": "node-2",
             },
@@ -199,6 +214,12 @@ async def test_story_script_reads_gb18030_source_file(tmp_path: Path) -> None:
             source_url="script.txt",
             prompt="",
             model="model-1",
+            model_selector=None,
+            video_url=None,
+            duration_sec=None,
+            character_refs=(),
+            max_frames=20,
+            scene_threshold=0.3,
         )
     )
 
@@ -226,12 +247,13 @@ async def test_text_processing_rejects_blank_inputs(tmp_path: Path) -> None:
                 project_dir=context.output_dir,
                 text=" \t ",
                 model="model-1",
+                model_selector=None,
                 node_type="generic",
             )
         )
     with pytest.raises(
         InvalidCreativeCanvasTextProcessingRequest,
-        match="source_text or source_url is required",
+        match="source_text, source_url, video_url or character_refs is required",
     ):
         await use_cases.start_story_script(
             StartCreativeCanvasStoryScriptCommand(
@@ -241,6 +263,12 @@ async def test_text_processing_rejects_blank_inputs(tmp_path: Path) -> None:
                 source_url=None,
                 prompt="",
                 model="model-1",
+                model_selector=None,
+                video_url=None,
+                duration_sec=None,
+                character_refs=(),
+                max_frames=20,
+                scene_threshold=0.3,
             )
         )
 
@@ -254,6 +282,7 @@ async def test_text_processing_rejects_blank_inputs(tmp_path: Path) -> None:
                 project_dir=context.output_dir,
                 text="hello",
                 model=" \t ",
+                model_selector=None,
                 node_type="generic",
             )
         )
@@ -269,6 +298,12 @@ async def test_text_processing_rejects_blank_inputs(tmp_path: Path) -> None:
                 source_url=None,
                 prompt="",
                 model=" \t ",
+                model_selector=None,
+                video_url=None,
+                duration_sec=None,
+                character_refs=(),
+                max_frames=20,
+                scene_threshold=0.3,
             )
         )
 
@@ -309,6 +344,12 @@ async def test_story_script_maps_invalid_missing_and_unsupported_sources(
         source_url="script.txt",
         prompt="",
         model="model-1",
+        model_selector=None,
+        video_url=None,
+        duration_sec=None,
+        character_refs=(),
+        max_frames=20,
+        scene_threshold=0.3,
     )
     unused = _UnusedReader()
     with pytest.raises(

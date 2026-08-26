@@ -22,6 +22,9 @@ class ScriptWorkflowRequest(BaseModel):
     filename: str = ""
     rebuild: bool = False
     spine_template: Literal["drama", "narrated"] | None = None
+    visual_style: str | None = None
+    narration_style: Literal["first_person", "third_person"] | None = None
+    ethnicity: Literal["Chinese", "Japanese", "Korean", "Western"] | None = None
     target_episodes: int = Field(default=10, ge=1, le=200)
     planning_mode: Literal["chapters", "ai_events", "ai"] = "chapters"
     script_mode: Literal["duration", "literal"] = "duration"

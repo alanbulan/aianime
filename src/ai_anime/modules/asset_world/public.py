@@ -177,6 +177,11 @@ from ai_anime.modules.asset_world.domain.character_assets import (
     find_character_identity,
     safe_character_asset_name,
 )
+from ai_anime.modules.asset_world.domain.asset_names import (
+    asset_dir_within,
+    is_path_safe_asset_name,
+    unique_path_safe_asset_name,
+)
 from ai_anime.modules.asset_world.domain.director_stage import director_control_scope
 from ai_anime.modules.asset_world.infrastructure.asset_metadata import (
     newest_path_updated_at,
@@ -287,6 +292,15 @@ def __getattr__(name: str) -> Any:
     value = getattr(import_module(module_name), attribute_name)
     globals()[name] = value
     return value
+
+
+def native_project_task_worker_command() -> list[str]:
+    from ai_anime.modules.asset_world.infrastructure.director_world.worker_runtime import (
+        NATIVE_PROJECT_TASK_MODULE,
+        worker_command,
+    )
+
+    return worker_command(NATIVE_PROJECT_TASK_MODULE)
 
 
 def style_catalog_use_cases() -> StyleCatalogUseCases:
@@ -576,6 +590,7 @@ __all__ = [
     "UploadBeatBackgroundCommand",
     "VOICE_SAMPLE_EXTENSIONS",
     "analyze_style",
+    "asset_dir_within",
     "beat_viewer_use_cases",
     "build_scene_effective_prompt",
     "build_character_map_for_grid",
@@ -604,6 +619,7 @@ __all__ = [
     "decode_recorded_audio_data_url",
     "director_control_scope",
     "is_supported_voice_sample",
+    "is_path_safe_asset_name",
     "identity_voice_fields",
     "find_character_identity",
     "newest_path_updated_at",
@@ -633,6 +649,7 @@ __all__ = [
     "fs_url",
     "generate_ai_staging_prop",
     "load_beat_blocking",
+    "native_project_task_worker_command",
     "run_pano_sharp",
     "run_scene_360",
     "run_single_face_sharp",
@@ -641,4 +658,5 @@ __all__ = [
     "save_beat_blocking",
     "stage_manifest",
     "upload_scene_package",
+    "unique_path_safe_asset_name",
 ]

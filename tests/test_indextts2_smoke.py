@@ -70,7 +70,7 @@ def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
         IndexTTS2Client,
     )
 
-    async def fake_reserve(model, *, source):
+    async def fake_reserve(model, *, source, billable_chars):
         return "reservation_1"
 
     async def fake_refund(*args, **kwargs):

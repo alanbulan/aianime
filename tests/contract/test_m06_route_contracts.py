@@ -1484,6 +1484,7 @@ def test_m06_freezone_task_backend_l1_helper_payloads_keep_backend_and_queue(
                 project_dir=project_dir,
                 text="hello",
                 model="cloud-text-standard",
+                model_selector=None,
                 node_type="text",
             )
         )

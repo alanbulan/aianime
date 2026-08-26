@@ -21,7 +21,10 @@ from ai_anime.modules.story_intake.application.use_cases import (
     StartIngestion,
     UploadStoryDocument,
 )
-from ai_anime.modules.story_intake.domain import MAX_STORY_IMPORT_BYTES
+from ai_anime.modules.story_intake.domain import (
+    MAX_STORY_IMPORT_BYTES,
+    SpineTemplateChangeRequiresRebuild,
+)
 
 
 class FakeStoryDocuments:
@@ -62,8 +65,12 @@ class FakeStoryDocuments:
 
 
 class FakeProjectSettings:
-    def __init__(self) -> None:
+    def __init__(self, spine_template: str = "drama") -> None:
         self.calls: list[dict[str, str]] = []
+        self.spine_template = spine_template
+
+    def get_spine_template(self, username, project_name):
+        return self.spine_template
 
     def set_ingestion_configuration(
         self,
@@ -71,12 +78,18 @@ class FakeProjectSettings:
         project_name,
         *,
         spine_template,
+        visual_style,
+        narration_style,
+        ethnicity,
     ):
         self.calls.append(
             {
                 "username": username,
                 "project_name": project_name,
                 "spine_template": spine_template,
+                "visual_style": visual_style,
+                "narration_style": narration_style,
+                "ethnicity": ethnicity,
             }
         )
 
@@ -126,6 +139,8 @@ def test_upload_story_document_combines_preview_and_format_check(tmp_path):
 
     assert documents.upload_stream is stream
     assert result["filename"] == "novel.txt"
+    assert result["text_preview"] == documents.story_text
+    assert result["text_preview_truncated"] is False
     assert result["chapters"] == documents.preview["chapters"]
     assert result["format_check"] == documents.format_check
 
@@ -144,6 +159,9 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
             filename="novel.txt",
             rebuild=True,
             spine_template="narrated",
+            visual_style="anime",
+            narration_style="third_person",
+            ethnicity="Japanese",
         ),
     )
 
@@ -152,6 +170,9 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
             "username": "alice",
             "project_name": "demo",
             "spine_template": "narrated",
+            "visual_style": "anime",
+            "narration_style": "third_person",
+            "ethnicity": "Japanese",
         }
     ]
     assert len(scheduler.calls) == 1
@@ -171,6 +192,54 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         "queue": "inline",
         "message": "导入任务已进入队列: novel.txt",
     }
+
+
+@pytest.mark.asyncio
+async def test_start_ingestion_allows_unchanged_spine_template_without_rebuild(
+    tmp_path,
+):
+    documents = FakeStoryDocuments(tmp_path)
+    settings = FakeProjectSettings(spine_template="drama")
+    scheduler = FakeTaskScheduler()
+
+    await StartIngestion(documents, settings, scheduler).execute(
+        _scope(tmp_path),
+        StartIngestionCommand(
+            filename="novel.txt",
+            rebuild=False,
+            spine_template="drama",
+        ),
+    )
+
+    assert scheduler.calls[0][1].config == {
+        "rebuild": False,
+        "spine_template": "drama",
+    }
+
+
+@pytest.mark.asyncio
+async def test_start_ingestion_rejects_changed_spine_template_without_rebuild(
+    tmp_path,
+):
+    documents = FakeStoryDocuments(tmp_path)
+    settings = FakeProjectSettings(spine_template="drama")
+    scheduler = FakeTaskScheduler()
+
+    with pytest.raises(
+        SpineTemplateChangeRequiresRebuild,
+        match="必须使用重新导入",
+    ):
+        await StartIngestion(documents, settings, scheduler).execute(
+            _scope(tmp_path),
+            StartIngestionCommand(
+                filename="novel.txt",
+                rebuild=False,
+                spine_template="narrated",
+            ),
+        )
+
+    assert settings.calls == []
+    assert scheduler.calls == []
 
 
 @pytest.mark.asyncio

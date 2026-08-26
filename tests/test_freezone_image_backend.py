@@ -2707,7 +2707,7 @@ async def test_mask_edit_job_uses_commercial_model_routing(
     assert captured["reference_images"] == [str(base), str(mask)]
     assert captured["config"]["provider"] == "commercial"
     assert captured["config"]["model"] == "image-platform-sku"
-    assert "Use Image 2 as the edit mask reference" in captured["prompt"]
+    assert "translucent RED highlight" in captured["prompt"]
     assert "project_dir" not in captured
 
 
@@ -2727,11 +2727,12 @@ def test_camera_prompt_contains_camera_body_lens_focal_and_aperture() -> None:
     assert "f/4" in prompt
 
 
-def test_image_style_templates_builtin_count_is_30() -> None:
+def test_image_style_templates_builtin_count_is_45() -> None:
     data = generation_catalog_queries().image_style_templates()
 
-    assert len(data) == 30
-    assert any(item["id"] == "three_oclock_2300" for item in data)
+    assert len(data) == 45
+    assert any(item["id"] == "period_idol" for item in data)
+    assert all(item["id"] != "three_oclock_2300" for item in data)
 
 
 @pytest.mark.asyncio
@@ -2901,10 +2902,12 @@ async def test_freezone_celery_text_runner_records_project_node_history(
         *,
         text: str,
         model: str,
+        model_selector: str | None,
         node_type: str,
     ):
         assert text == "你好"
         assert model == "cloud-text-standard"
+        assert model_selector is None
         assert node_type == "text"
         return "hello", "zh", "en"
 
@@ -2968,10 +2971,14 @@ async def test_freezone_celery_story_script_runner_accepts_plain_dict(
         source_text: str,
         prompt: str,
         model: str,
+        model_selector: str | None,
+        character_refs: list[dict],
     ) -> dict:
         assert source_text == "沈昭昭在深夜办公室醒来。"
         assert prompt == "节奏要快"
         assert model == "newapi_gemini_flash"
+        assert model_selector is None
+        assert character_refs == []
         return payload_data
 
     class FakeTaskManager:

@@ -112,6 +112,7 @@ def _context():
 async def test_schedules_scene_build_with_owned_payload(tmp_path: Path) -> None:
     scheduler = _Scheduler()
     use_cases = SceneTaskUseCases(scheduler, _Assets())
+    (tmp_path / "novel.txt").write_text("测试小说正文", encoding="utf-8")
 
     scheduled = await use_cases.schedule_build_scenes(
         task_context=_context(),
@@ -157,6 +158,7 @@ async def test_schedules_scene_reference_with_owned_scope_payload_and_response(
         "scene_name": "大殿",
         "kind": kind,
         "model": "image-model",
+        "model_selector": "",
         "style": "period-drama",
         "output_dir": str(tmp_path),
     }

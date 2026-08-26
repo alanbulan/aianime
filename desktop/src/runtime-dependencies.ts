@@ -14,6 +14,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
+import type { IpcMain } from "electron";
 import {
   executableName,
   installedWorldRuntimePaths,
@@ -180,9 +181,12 @@ function parseManifest(
     packageInfo.arch !== arch ||
     packageInfo.archive !== "tar.gz" ||
     typeof packageInfo.version !== "string" ||
+    packageInfo.version.trim().length === 0 ||
     !/^[a-f0-9]{64}$/iu.test(String(packageInfo.sha256 || "")) ||
-    !Number.isFinite(packageInfo.downloadSizeBytes) ||
-    !Number.isFinite(packageInfo.installedSizeBytes) ||
+    !Number.isSafeInteger(packageInfo.downloadSizeBytes) ||
+    Number(packageInfo.downloadSizeBytes) <= 0 ||
+    !Number.isSafeInteger(packageInfo.installedSizeBytes) ||
+    Number(packageInfo.installedSizeBytes) <= 0 ||
     !Array.isArray(packageInfo.urls) ||
     packageInfo.urls.length === 0 ||
     !packageInfo.urls.every((url) => typeof url === "string" && validDownloadUrl(url))
@@ -577,4 +581,29 @@ export class RuntimeDependencyManager {
       return null;
     }
   }
+}
+
+export function registerRuntimeDependencyIpc(
+  ipcMain: Pick<IpcMain, "handle">,
+  manager: Pick<RuntimeDependencyManager, "status" | "install">,
+  isAllowedSender: (senderId: number) => boolean,
+): void {
+  const requireAllowedSender = (senderId: number): void => {
+    if (!isAllowedSender(senderId)) {
+      throw new Error("runtime dependency sender is not the active desktop window");
+    }
+  };
+  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.status, async (event) => {
+    requireAllowedSender(event.sender.id);
+    return await manager.status();
+  });
+  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.install, async (event) => {
+    requireAllowedSender(event.sender.id);
+    const sender = event.sender;
+    return await manager.install((progress) => {
+      if (!sender.isDestroyed()) {
+        sender.send(RUNTIME_DEPENDENCY_CHANNELS.progress, progress);
+      }
+    });
+  });
 }

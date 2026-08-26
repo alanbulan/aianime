@@ -281,7 +281,7 @@ describe("ownership transitions emit snapshot updates", () => {
 
 // ─── Integration tests: provider + useTaskController ───────────────────────
 //
-// These tests exercise the real React tree (jsdom + React Testing Library)
+// These tests exercise the real React tree (Happy DOM + React Testing Library)
 // and guard the two architectural invariants of Slice 5a:
 //
 //   (C1) Exactly one registry entry per serialized TaskKey, even under

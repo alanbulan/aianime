@@ -27,7 +27,7 @@ class SketchScorer:
                 get_newapi_text_pydantic_model(),
                 system_prompt=SKETCH_SCORE_PROMPT,
                 output_type=ObjectiveScore,
-                output_retries=2,
+                retries={"output": 2},
                 name="内容匹配评分员",
             )
         return self._agent

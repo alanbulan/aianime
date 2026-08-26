@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from ai_anime.modules.model_usage.public import resolve_model_for_role
 from ai_anime.modules.production.application.ports import (
     ProductionImageModelPolicy,
     ProductionSettingsRepository,
@@ -38,7 +39,9 @@ class ProductionImageSettingsUseCases:
     def render_settings(self, username: str, project: str) -> dict[str, Any]:
         config = self._repository.load(username, project)
         return {
-            "render_image_selection": self.resolve_render_selection(config),
+            "render_image_selection": self._models.normalize(
+                config.get("render_image_selection")
+            ),
             "sketch_aspect_padding": self.resolve_sketch_aspect_padding(
                 config,
                 None,
@@ -70,7 +73,9 @@ class ProductionImageSettingsUseCases:
     def sketch_settings(self, username: str, project: str) -> dict[str, Any]:
         config = self._repository.load(username, project)
         return {
-            "sketch_image_selection": self.resolve_sketch_selection(config),
+            "sketch_image_selection": self._models.normalize(
+                config.get("sketch_image_selection")
+            ),
         }
 
     def update_sketch_settings(
@@ -96,10 +101,9 @@ class ProductionImageSettingsUseCases:
         project_config: dict[str, Any],
         requested_selection: str | None = None,
     ) -> str:
-        return self._models.normalize(
-            requested_selection
-            if requested_selection is not None
-            else project_config.get("render_image_selection")
+        return self._resolve_runtime_selection(
+            requested_selection,
+            project_config.get("render_image_selection"),
         )
 
     def resolve_sketch_selection(
@@ -107,11 +111,37 @@ class ProductionImageSettingsUseCases:
         project_config: dict[str, Any],
         requested_selection: str | None = None,
     ) -> str:
-        return self._models.normalize(
-            requested_selection
-            if requested_selection is not None
-            else project_config.get("sketch_image_selection")
+        return self._resolve_runtime_selection(
+            requested_selection,
+            project_config.get("sketch_image_selection"),
         )
+
+    def resolve_project_sketch_selection(
+        self,
+        username: str,
+        project: str,
+        requested_selection: str | None = None,
+    ) -> str:
+        return self.resolve_sketch_selection(
+            self._repository.load(username, project),
+            requested_selection,
+        )
+
+    def _resolve_runtime_selection(
+        self,
+        requested_selection: str | None,
+        configured_selection: Any,
+    ) -> str:
+        requested = self._models.normalize(requested_selection)
+        if requested:
+            return requested
+        configured = self._models.normalize(configured_selection)
+        if configured:
+            return configured
+        try:
+            return self._models.normalize(resolve_model_for_role("IMAGE_EDIT"))
+        except PermissionError:
+            return ""
 
     @staticmethod
     def resolve_sketch_aspect_padding(

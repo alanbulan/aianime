@@ -2583,6 +2583,56 @@ test("local model proxy aborts an upstream stream when the local client disconne
   assert.equal(upstreamSignal.aborted, true);
 });
 
+test("local model proxy terminates a model request at its absolute deadline", async (t) => {
+  let upstreamSignal;
+  const client = {
+    async modelRequest(input) {
+      upstreamSignal = input.signal;
+      return await new Promise((resolve, reject) => {
+        input.signal.addEventListener(
+          "abort",
+          () => reject(input.signal.reason),
+          { once: true },
+        );
+      });
+    },
+  };
+  const device = {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  };
+  const proxy = new CommercialModelProxy(
+    client,
+    device,
+    undefined,
+    { requestTimeoutMs: 25 },
+  );
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-text-standard", role: "TEXT" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "cloud-text-standard", messages: [] }),
+  });
+
+  assert.equal(response.status, 504);
+  assert.equal(upstreamSignal.aborted, true);
+  const payload = await response.json();
+  assert.equal(payload.error.code, "MODEL_REQUEST_TIMEOUT");
+});
+
 test("cloud model writes inject JWT, device ID, and one idempotency key", async () => {
   const store = new MemorySessionStore();
   store.value = {

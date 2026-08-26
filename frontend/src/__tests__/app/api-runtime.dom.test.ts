@@ -1,14 +1,15 @@
 // Copyright (c) 2026 AI anime
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { QueryClient } from "@tanstack/react-query";
 import { installApiRuntime } from "@/app/api-runtime";
 import { api } from "@/shared/api/transport";
 import { setRegionCookie, getRegionCookie } from "@/lib/region-cookie";
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { useRegionStore } from "@/shared/stores/region-store";
 
 let queryClient: QueryClient;
+let locationHrefWrites: string[];
 
 beforeEach(() => {
   server.resetHandlers();
@@ -16,7 +17,15 @@ beforeEach(() => {
   installApiRuntime(queryClient);
   useRegionStore.getState().setRegion("cn-1");
   setRegionCookie("cn-1");
-  vi.stubGlobal("location", { ...window.location, href: "/" });
+  locationHrefWrites = [];
+  vi.spyOn(window.location, "href", "set").mockImplementation((value) => {
+    locationHrefWrites.push(value);
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.resetModules();
 });
 
 describe("api 400 no_region handling", () => {
@@ -31,7 +40,7 @@ describe("api 400 no_region handling", () => {
     expect(clearSpy).toHaveBeenCalled();
     expect(getRegionCookie()).toBeNull();
     expect(useRegionStore.getState().selectedRegionId).toBeNull();
-    expect(window.location.href).toBe("/login");
+    expect(locationHrefWrites).toContain("/login");
   });
 
   it("ignores generic 400s that do not carry error=no_region", async () => {

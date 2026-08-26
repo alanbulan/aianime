@@ -178,6 +178,118 @@ def test_character_model_prefers_explicit_request_then_project_selection() -> No
     assert use_cases.resolve_character_model("alice", "demo", None) == "shared-model"
 
 
+def test_character_model_falls_back_to_global_priority_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested_roles: list[str] = []
+
+    def resolve(role: str) -> str:
+        requested_roles.append(role)
+        return "highest-priority-model"
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role",
+        resolve,
+    )
+    use_cases = _use_cases()
+
+    options = use_cases.character_generation_options(
+        "alice",
+        "demo",
+        requested_style=None,
+        requested_model=None,
+    )
+
+    assert options.model == "highest-priority-model"
+    assert options.model_selector == ""
+    assert requested_roles == ["IMAGE_GENERATION"]
+
+
+def test_character_model_uses_lowest_configured_priority() -> None:
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    configure_model_access(
+        allows_custom_models=True,
+        mode="mixed",
+        model_assignments=[
+            {
+                "modelId": "cloud-image",
+                "role": "IMAGE_GENERATION",
+                "priority": 100,
+            },
+            {
+                "modelId": "byok-image",
+                "role": "IMAGE_GENERATION",
+                "priority": 1,
+            },
+        ],
+    )
+
+    options = _use_cases().character_generation_options(
+        "alice",
+        "demo",
+        requested_style=None,
+        requested_model=None,
+    )
+
+    assert options.model == "byok-image"
+    assert options.model_selector == ""
+
+
+def test_identity_image_falls_back_to_image_edit_priority_route(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requested_roles: list[str] = []
+
+    def resolve(role: str) -> str:
+        requested_roles.append(role)
+        return "highest-priority-edit-model"
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role",
+        resolve,
+    )
+    use_cases = _use_cases()
+
+    options = use_cases.character_generation_options(
+        "alice",
+        "demo",
+        requested_style=None,
+        requested_model=None,
+        fallback_role="IMAGE_EDIT",
+    )
+
+    assert options.model == "highest-priority-edit-model"
+    assert options.model_selector == ""
+    assert requested_roles == ["IMAGE_EDIT"]
+
+
+def test_character_model_reports_structured_missing_role(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def reject(_role: str) -> str:
+        raise PermissionError("missing")
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role",
+        reject,
+    )
+
+    with pytest.raises(
+        InvalidImageSelection,
+        match="文生图模型缺失：当前未配置可用的 IMAGE_GENERATION 云端或 BYOK 模型",
+    ) as caught:
+        _use_cases().character_generation_options(
+            "alice",
+            "demo",
+            requested_style=None,
+            requested_model=None,
+        )
+
+    assert getattr(caught.value, "code", "") == "model_prereq_required"
+    assert getattr(caught.value, "action_required", False) is True
+
+
 def test_character_generation_options_merge_effective_project_defaults() -> None:
     store = _Store(
         {

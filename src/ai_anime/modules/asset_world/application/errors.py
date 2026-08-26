@@ -97,6 +97,24 @@ class InvalidImageSelection(ImageSettingsRejected):
     """The requested image source is not available."""
 
 
+class ImageModelPrerequisiteMissing(InvalidImageSelection):
+    """No runtime model route is configured for the required image role."""
+
+    code = "model_prereq_required"
+    action_required = True
+
+    def __init__(self, role: str) -> None:
+        clean_role = str(role or "").strip().upper()
+        labels = {
+            "IMAGE_GENERATION": "文生图",
+            "IMAGE_EDIT": "参考图编辑",
+        }
+        label = labels.get(clean_role, "图片生成")
+        super().__init__(
+            f"{label}模型缺失：当前未配置可用的 {clean_role} 云端或 BYOK 模型"
+        )
+
+
 class UnsupportedImageSourceKind(ImageSettingsRejected):
     """The requested asset kind has no image-source setting."""
 

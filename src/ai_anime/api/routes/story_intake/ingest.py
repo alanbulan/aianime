@@ -78,6 +78,9 @@ async def start_ingest(
                 filename=body.filename,
                 rebuild=body.rebuild,
                 spine_template=body.spine_template,
+                visual_style=body.visual_style,
+                narration_style=body.narration_style,
+                ethnicity=body.ethnicity,
             ),
         )
     except (StoryIntakeError, SpineTemplateChangeRequiresRebuild) as exc:

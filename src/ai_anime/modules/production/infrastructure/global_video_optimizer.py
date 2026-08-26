@@ -32,6 +32,15 @@ class BeatIdentity(BaseModel):
     )
 
 
+class BeatIdentityBatch(BaseModel):
+    """一批 Beat 的角色识别结果。"""
+
+    detections: list[BeatIdentity] = Field(
+        default_factory=list,
+        description="按面板顺序排列的 Beat 身份与道具检测结果",
+    )
+
+
 GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN = """# Global Video Motion Director
 
 You are a cinematic motion director. Given sketch panels and character color mappings, you write a first-frame motion prompt for each Beat.
@@ -201,7 +210,6 @@ class GlobalVideoPromptOptimizer:
 
     def __init__(self):
         self._agents: dict[str, Agent] = {}
-        self._review_agent: Optional[Agent] = None
 
     def _get_agent(self, language: str = "en") -> Agent:
         if language not in self._agents:
@@ -395,177 +403,6 @@ Output the Chinese motion prompt directly. No JSON, explanation, or markdown."""
         )
         return result
 
-    async def optimize(
-        self,
-        sketch_image_paths: list[str],
-        character_color_map: dict,
-        total_beats: int,
-        language: str = "en",
-        beats: list[dict] | None = None,
-        sketches_dir: str | None = None,
-        progress_callback=None,
-    ) -> list[dict]:
-        """优化整集所有 Beat 的视频提示词（逐 beat 调用 optimize_single_beat）。
-
-        Args:
-            sketch_image_paths: 草图网格图片路径列表 (legacy, used as fallback)
-            character_color_map: 角色颜色→外貌映射
-            total_beats: 总 beat 数
-            language: 输出语言
-            beats: beat 数据列表
-            sketches_dir: 草图帧目录路径，用于查找单帧
-            progress_callback: 进度回调 fn(beat_num, total)
-
-        Returns:
-            [{"beat_number": int, "video_mode": str, "prompt": str}, ...]
-        """
-        if not beats:
-            raise RuntimeError("beats 参数不能为空")
-
-        validated = []
-        sorted_beats = sorted(beats, key=lambda b: b.get("beat_number", 0))
-
-        prev_prompt = None
-        for i, beat in enumerate(sorted_beats):
-            bn = beat.get("beat_number", 0)
-
-            # Find sketch frame for this beat
-            sketch_path = None
-            if sketches_dir:
-                for ext in ("png", "jpg"):
-                    candidate = os.path.join(sketches_dir, f"beat_{bn:02d}.{ext}")
-                    if os.path.exists(candidate):
-                        sketch_path = candidate
-                        break
-
-            if not sketch_path:
-                print(f"[GlobalVideoOptimizer] Beat {bn}: 无单帧草图，跳过")
-                continue
-
-            # prev/next beat for continuity
-            prev_beat = sorted_beats[i - 1] if i > 0 else None
-            next_beat = sorted_beats[i + 1] if i < len(sorted_beats) - 1 else None
-
-            try:
-                result = await self.optimize_single_beat(
-                    beat=beat,
-                    sketch_image_path=sketch_path,
-                    character_color_map=character_color_map,
-                    language=language,
-                    prev_beat=prev_beat,
-                    next_beat=next_beat,
-                    prev_prompt=prev_prompt,
-                    total_beats=len(sorted_beats),
-                )
-                validated.append(result)
-                prev_prompt = result["prompt"]
-            except Exception as e:
-                print(f"[GlobalVideoOptimizer] Beat {bn}: 优化失败 ({e})")
-
-            if progress_callback:
-                progress_callback(bn, len(sorted_beats), i + 1)
-
-        return validated
-
-    async def review_and_fix(
-        self,
-        results: list[dict],
-        beats: list,
-        sketches_dir: str,
-        character_color_map: dict,
-        log_fn=None,
-    ) -> list[dict]:
-        """逐 beat 审核提示词与草图帧是否一致，不一致则自动修正。
-
-        Args:
-            results: optimize() 返回的结果列表
-            beats: beat 数据列表（含 visual_description, narration_segment）
-            sketches_dir: 草图帧目录路径
-            character_color_map: 角色颜色→外貌映射
-            log_fn: 日志回调函数
-
-        Returns:
-            更新后的 results 列表
-        """
-        if self._review_agent is None:
-            self._review_agent = create_global_video_reviewer_agent("en")
-
-        def _log(msg: str):
-            if log_fn:
-                log_fn(msg)
-
-        color_map_text = self._build_color_map_text(character_color_map)
-        beats_by_num = {b.get("beat_number"): b for b in beats}
-        sketches_path = Path(sketches_dir)
-        fixed_count = 0
-
-        for result in results:
-            beat_num = result["beat_number"]
-            video_mode = result["video_mode"]
-            prompt = result["prompt"]
-
-            # 查找草图帧
-            sketch_file = sketches_path / f"beat_{beat_num:02d}.png"
-            if not sketch_file.exists():
-                _log(f"Beat {beat_num}: 草图帧不存在，跳过审核")
-                continue
-
-            beat = beats_by_num.get(beat_num, {})
-            visual_desc = beat.get("visual_description", "")
-            narration = beat.get("narration_segment", "")
-            audio_type = beat.get("audio_type", "narration")
-            speaker = beat.get("speaker", "")
-            from ai_anime.modules.narrative_planning.public import (
-                format_beat_narration,
-            )
-
-            if audio_type == "dialogue":
-                narration_label = format_beat_narration(audio_type, speaker, narration)
-            else:
-                narration_label = f"旁白: {narration}"
-
-            try:
-                image_bytes = self._compress_image(str(sketch_file))
-                image_content = BinaryContent(data=image_bytes, media_type="image/jpeg")
-
-                dialogue_hint = ""
-                if audio_type == "dialogue":
-                    dialogue_hint = f"\n- ⚠️ 此 Beat 为角色台词，prompt 中需描述说话动作（张嘴说话等）。台词由系统追加。"
-
-                review_task = f"""审核 Beat {beat_num} 的视频提示词是否与草图画面吻合。
-
-## 角色颜色映射
-{color_map_text}
-
-## 当前视频策略
-- video_mode: {video_mode}
-- prompt: {prompt}
-
-## Beat 上下文
-- 画面描述: {visual_desc}
-- {narration_label}{dialogue_hint}
-
-请对比草图画面与 prompt，判断是否需要修正。prompt 必须从草图这一帧之后开始，不能描述抵达这一帧之前发生的动作。直接输出 JSON 对象。"""
-
-                response = await self._review_agent.run([review_task, image_content])
-
-                if response.output:
-                    review: ReviewResult = response.output
-                    if review.needs_fix:
-                        result["prompt"] = review.prompt or prompt
-                        fixed_count += 1
-                        _log(f"Beat {beat_num}: ✏️ 已修正 — {review.reason}")
-                    else:
-                        _log(f"Beat {beat_num}: ✅ 通过审核")
-                else:
-                    _log(f"Beat {beat_num}: 审核返回空，跳过")
-
-            except Exception as e:
-                _log(f"Beat {beat_num}: 审核异常 ({e})，保留原 prompt")
-
-        _log(f"审核完成：{fixed_count}/{len(results)} 个 Beat 已修正")
-        return results
-
     def _build_color_map_text(self, character_color_map: dict) -> str:
         """将角色颜色映射构建为文本描述（颜色→外貌描述，不含角色名）。"""
         lines = []
@@ -721,8 +558,8 @@ You receive a sketch grid image and a color-to-marker mapping.
 - If several colored markers appear in one panel, output all matching marker ids.
 
 ## Output format
-Output a JSON array of objects, one per panel:
-[{"beat_number": 1, "identities": ["identity_A", "tracked_prop_A"]}, {"beat_number": 2, "identities": []}, ...]
+Output one JSON object with a `detections` array containing one object per panel:
+{"detections": [{"beat_number": 1, "identities": ["identity_A", "tracked_prop_A"]}, {"beat_number": 2, "identities": []}, ...]}
 """
 
 
@@ -744,7 +581,7 @@ def _create_identity_detector_agent() -> Agent:
     return Agent(
         get_newapi_text_pydantic_model(),
         system_prompt=AI_IDENTITY_DETECTOR_INSTRUCTIONS,
-        output_type=NativeOutput(list[BeatIdentity]),
+        output_type=NativeOutput(BeatIdentityBatch),
         name="角色颜色识别",
         **agent_kwargs,
     )
@@ -782,8 +619,8 @@ async def detect_identities_by_ai(
 ## Color → Marker mapping
 {color_text}
 
-Output a JSON array of objects, one per panel:
-[{{"beat_number": 1, "identities": ["identity_A"]}}, {{"beat_number": 2, "identities": []}}, ...]
+Output one JSON object with a `detections` array containing one object per panel:
+{{"detections": [{{"beat_number": 1, "identities": ["identity_A"]}}, {{"beat_number": 2, "identities": []}}, ...]}}
 Use an empty identities array for panels with no colored markers."""
 
     # 准备图片
@@ -810,11 +647,10 @@ Use an empty identities array for panels with no colored markers."""
     )
     response = await agent.run([task] + images)
 
-    if not response.output:
+    if not response.output.detections:
         raise RuntimeError("AI 返回空内容")
 
-    # structured output: response.output 直接是 list[BeatIdentity]
-    beat_identities: list[BeatIdentity] = response.output
+    beat_identities = response.output.detections
     result: dict[int, list[str]] = {
         bi.beat_number: bi.identities for bi in beat_identities
     }

@@ -19,4 +19,37 @@ file_1_filename: 她与她的江山.docx
 
     expect(normalized?.text).toBe("上传了哪些文件了");
   });
+
+  it("restores uploaded document metadata from project history", () => {
+    const normalized = normalizeMessage({
+      id: "backend-user-2",
+      role: "user",
+      content: "按文档生成第一集",
+      attachments: [
+        {
+          id: "attachment-1",
+          type: "file",
+          mimeType: "text/markdown",
+          fileName: "第一集.md",
+          fileSize: 128,
+        },
+      ],
+      created_at: "2026-06-03T09:00:00Z",
+    });
+
+    expect(normalized?.attachments).toEqual([
+      {
+        id: "attachment-1",
+        type: "file",
+        kind: undefined,
+        mimeType: "text/markdown",
+        fileName: "第一集.md",
+        fileSize: 128,
+        content: undefined,
+        url: undefined,
+        path: undefined,
+        label: undefined,
+      },
+    ]);
+  });
 });

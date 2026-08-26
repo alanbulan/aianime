@@ -37,6 +37,7 @@ async def test_audio_planner_uses_context_store_and_closes_it(monkeypatch) -> No
         return SimpleNamespace(
             beat_numbers=[2],
             errors=["missing voice"],
+            voice_requirements=["design-voice"],
             billable_chars=12,
         )
 
@@ -65,6 +66,7 @@ async def test_audio_planner_uses_context_store_and_closes_it(monkeypatch) -> No
 
     assert result.beat_numbers == (2,)
     assert result.errors == ("missing voice",)
+    assert result.voice_requirements == ("design-voice",)
     assert result.billable_chars == 12
     assert result.pricing_model == "voice-clone-model"
     assert calls == [
@@ -96,6 +98,7 @@ async def test_audio_planner_reports_missing_voice_clone_model(monkeypatch) -> N
         return SimpleNamespace(
             beat_numbers=[],
             errors=["Beat 01 解说声线缺失：项目解说人声线未配置"],
+            voice_requirements=[],
             billable_chars=0,
         )
 

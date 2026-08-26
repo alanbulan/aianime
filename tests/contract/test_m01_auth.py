@@ -130,8 +130,7 @@ def test_ce_auth_me_logout_and_project_crud_contract(
         assert detail.json()["data"]["project_id"] == project_id
 
 
-@pytest.mark.ee
-def test_ee_auth_missing_and_bad_cookie_contract() -> None:
+def test_auth_missing_and_bad_cookie_contract() -> None:
     registry, _, _ = _reset_port_modules()
     registry.register_port("auth", _RejectingAuthPort())
 
@@ -145,6 +144,7 @@ def test_ee_auth_missing_and_bad_cookie_contract() -> None:
         assert missing.status_code == 401
         assert missing.json()["detail"] == "Missing session or agent token"
 
-        bad = client.get("/api/v1/auth/me", cookies={"ai_anime_session": "bad-cookie"})
+        client.cookies.set("ai_anime_session", "bad-cookie")
+        bad = client.get("/api/v1/auth/me")
         assert bad.status_code == 401
         assert bad.json()["detail"] == "Invalid session"

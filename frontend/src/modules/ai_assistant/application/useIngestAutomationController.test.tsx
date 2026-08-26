@@ -87,21 +87,18 @@ describe("SuperChat ingest automation controller", () => {
     uploadNovelForIngest.mockReset();
   });
 
-  it("starts ingest for a novel attachment and exposes format warning details", async () => {
+  it("uploads a novel and hands one profiled production call to the assistant", async () => {
     const formatCheck = { level: "warning" as const, summary: "格式有风险" };
     uploadNovelForIngest.mockResolvedValue({
       filename: "stored.txt",
       size: 5,
       total_chars: 5,
       count: 1,
+      text_preview: "日本神奈川县的高校，日系二次元校园剧。",
+      text_preview_truncated: true,
       format_check: formatCheck,
     });
     projectHasIngestedContent.mockResolvedValue(false);
-    startNovelIngest.mockResolvedValue({
-      taskType: "story_ingest",
-      taskKey: "task-1",
-      message: "started",
-    });
     const sendChatMessage = createSendChatMessage();
     const { result } = renderHook(() =>
       useIngestAutomationControllerWithPorts({
@@ -126,7 +123,7 @@ describe("SuperChat ingest automation controller", () => {
       expect.objectContaining({ filename: "story.txt" }),
     );
     expect(projectHasIngestedContent).toHaveBeenCalledWith("project-a");
-    expect(startNovelIngest).toHaveBeenCalledWith("project-a", "stored.txt");
+    expect(startNovelIngest).not.toHaveBeenCalled();
     expect(sendChatMessage).toHaveBeenCalledWith(
       "根据剧本生成视频",
       [
@@ -136,9 +133,11 @@ describe("SuperChat ingest automation controller", () => {
           mimeType: "text/plain",
         },
       ],
-      expect.stringContaining("[AI_ANIME_INGEST_AUTOMATION]"),
+      expect.stringContaining("[AI_ANIME_PRODUCTION_SOURCE]"),
     );
-    expect(toastSuccess).toHaveBeenCalled();
+    expect(sendChatMessage.mock.calls[0]?.[2]).toContain(
+      "日本神奈川县的高校",
+    );
     expect(toastWarning).toHaveBeenCalledWith(
       "格式有风险",
       expect.objectContaining({ action: expect.any(Object) }),
@@ -157,14 +156,13 @@ describe("SuperChat ingest automation controller", () => {
     expect(result.current.preparingSend).toBe(false);
   });
 
-  it("requires both overwrite confirmations before starting a rebuild", async () => {
-    uploadNovelForIngest.mockResolvedValue({ filename: "stored.txt", size: 5 });
-    projectHasIngestedContent.mockResolvedValue(true);
-    startNovelIngest.mockResolvedValue({
-      taskType: "story_ingest",
-      taskKey: "task-rebuild",
-      message: "rebuilding",
+  it("requires both overwrite confirmations before handing off a rebuild", async () => {
+    uploadNovelForIngest.mockResolvedValue({
+      filename: "stored.txt",
+      size: 5,
+      text_preview: "日本校园剧",
     });
+    projectHasIngestedContent.mockResolvedValue(true);
     const sendChatMessage = createSendChatMessage();
     const { result } = renderHook(() =>
       useIngestAutomationControllerWithPorts({
@@ -190,10 +188,9 @@ describe("SuperChat ingest automation controller", () => {
     await act(async () => {
       await result.current.sendWithIngestAutomation("确定", []);
     });
-    expect(startNovelIngest).toHaveBeenCalledWith(
-      "project-a",
-      "stored.txt",
-      { rebuild: true },
+    expect(startNovelIngest).not.toHaveBeenCalled();
+    expect(sendChatMessage.mock.calls[2]?.[2]).toContain(
+      "[AI_ANIME_PRODUCTION_SOURCE]",
     );
     expect(sendChatMessage.mock.calls[2]?.[2]).toContain("rebuild: true");
   });

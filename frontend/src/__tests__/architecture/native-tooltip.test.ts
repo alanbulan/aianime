@@ -1,9 +1,10 @@
 // Copyright (c) 2026 AI anime
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 
-import ts from "typescript";
-import { describe, expect, it } from "vitest";
+import * as ts from "typescript/unstable/ast";
+import { API } from "typescript/unstable/sync";
+import { afterAll, describe, expect, it } from "vitest";
 
 const SOURCE_ROOT = resolve(process.cwd(), "src");
 const TOOLTIP_PRIMITIVES = new Set([
@@ -27,6 +28,24 @@ function productionTsxFiles(directory: string): string[] {
   });
 }
 
+const typeScriptApi = new API({ cwd: process.cwd() });
+let typeScriptSnapshot: ReturnType<API["updateSnapshot"]> | undefined;
+
+function parseSourceFile(path: string): ts.SourceFile {
+  typeScriptSnapshot ??= typeScriptApi.updateSnapshot({
+    openFiles: [resolve(SOURCE_ROOT, "main.tsx")],
+  });
+  const project = typeScriptSnapshot.getDefaultProjectForFile(path);
+  const source = project?.program.getSourceFile(path);
+  if (!source) throw new Error(`TypeScript could not parse ${path}`);
+  return source;
+}
+
+afterAll(() => {
+  typeScriptSnapshot?.dispose();
+  typeScriptApi.close();
+});
+
 function location(source: ts.SourceFile, node: ts.Node): string {
   const { line } = source.getLineAndCharacterOfPosition(node.getStart(source));
   return `${relative(SOURCE_ROOT, source.fileName)}:${line + 1}`;
@@ -37,13 +56,7 @@ describe("native tooltip boundary", () => {
     const violations: string[] = [];
 
     for (const file of productionTsxFiles(SOURCE_ROOT)) {
-      const source = ts.createSourceFile(
-        file,
-        readFileSync(file, "utf8"),
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX,
-      );
+      const source = parseSourceFile(file);
 
       const visit = (node: ts.Node) => {
         if (
@@ -63,7 +76,7 @@ describe("native tooltip boundary", () => {
             violations.push(location(source, node));
           }
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       };
 
       visit(source);

@@ -27,7 +27,7 @@ class ContinuityVerifier:
                 get_newapi_text_pydantic_model(),
                 system_prompt=SKETCH_CONTINUITY_PROMPT,
                 output_type=ContinuityResult,
-                output_retries=2,
+                retries={"output": 2},
                 name="分镜连贯性审核员",
             )
         return self._agent

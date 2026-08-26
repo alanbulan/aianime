@@ -614,7 +614,6 @@ async def test_delete_manual_shot_rejects_normal_beat(tmp_path):
     assert [beat["beat_number"] for beat in await store.get_beats_as_dicts(1)] == [1, 2]
 
 
-@pytest.mark.skip(reason="v2.0: SketchModeStrategy 提示词模板已重写，feature 分支断言不再适用")
 def test_sketch_prompt_treats_manual_panels_as_normal_visual_descriptions():
     from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
         GridConfig,
@@ -642,9 +641,6 @@ def test_sketch_prompt_treats_manual_panels_as_normal_visual_descriptions():
 
     prompt = SketchModeStrategy().build(ctx, PromptComponents())
 
-    assert "Read each panel's scene description, then DIRECT the shot yourself" in prompt
-    assert "Panel 1**: 普通画面" in prompt
-    assert "Panel 1** [MANDATORY SHOT DIRECTIVE]" not in prompt
-    assert "Panel 2** [MANDATORY SHOT DIRECTIVE]" not in prompt
-    assert "Panel 2**: 手工补眼神" in prompt
-    assert "DIRECT the shot yourself" in prompt
+    assert "- **Panel 1**: 普通画面" in prompt
+    assert "- **Panel 2**: 手工补眼神" in prompt
+    assert "MANDATORY SHOT DIRECTIVE" not in prompt

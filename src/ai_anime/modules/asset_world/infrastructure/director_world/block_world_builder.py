@@ -30,7 +30,7 @@ def node_available() -> bool:
     return shutil.which("node") is not None
 
 try:
-    from .ai_anime_lanzhou_demo import PALETTE, BlockWorld
+    from .block_world_model import PALETTE, BlockWorld
     from .ai_anime_voxel_palette import (
         custom_block_meta,
         ensure_block_type,
@@ -39,7 +39,7 @@ try:
         palette_prompt_text,
     )
 except ImportError:  # pragma: no cover - allows direct script execution
-    from ai_anime_lanzhou_demo import PALETTE, BlockWorld
+    from block_world_model import PALETTE, BlockWorld
     from ai_anime_voxel_palette import (
         custom_block_meta,
         ensure_block_type,

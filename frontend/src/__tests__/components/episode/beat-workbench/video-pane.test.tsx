@@ -1344,12 +1344,14 @@ describe("VideoPane Seedance2 inspector", () => {
     fireEvent.load(image);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("移动裁剪区域")).toHaveStyle({
-        left: "8.611599297012302%",
-        top: "0%",
-        width: "82.95254833040421%",
-        height: "100%",
-      });
+      const cropArea = screen.getByLabelText("移动裁剪区域");
+      expect(Number.parseFloat(cropArea.style.left)).toBeCloseTo(
+        8.611599297012302,
+      );
+      expect(Number.parseFloat(cropArea.style.width)).toBeCloseTo(
+        82.95254833040421,
+      );
+      expect(cropArea).toHaveStyle({ top: "0%", height: "100%" });
     });
 
     const cropButtons = screen.getAllByRole("button", { name: "裁剪" });
@@ -1396,12 +1398,14 @@ describe("VideoPane Seedance2 inspector", () => {
     fireEvent.load(image);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("移动裁剪区域")).toHaveStyle({
-        left: "8.611599297012302%",
-        top: "0%",
-        width: "82.95254833040421%",
-        height: "100%",
-      });
+      const cropArea = screen.getByLabelText("移动裁剪区域");
+      expect(Number.parseFloat(cropArea.style.left)).toBeCloseTo(
+        8.611599297012302,
+      );
+      expect(Number.parseFloat(cropArea.style.width)).toBeCloseTo(
+        82.95254833040421,
+      );
+      expect(cropArea).toHaveStyle({ top: "0%", height: "100%" });
     });
 
     const cropButtons = screen.getAllByRole("button", { name: "裁剪" });
@@ -1454,7 +1458,7 @@ describe("VideoPane Seedance2 inspector", () => {
       .find((element) => element.closest('[role="dialog"]'));
     if (!cropImage) throw new Error("crop image not found");
     expect(cropImage).toHaveAttribute("src", "/static/demo/frames/ep001/beat_01.png");
-    // jsdom never decodes images, so the dialog's onLoad would never fire and
+    // Happy DOM never decodes images, so the dialog's onLoad would never fire and
     // saving stays disabled until a real crop box exists. Simulate the decode a
     // browser performs.
     Object.defineProperty(cropImage, "naturalWidth", {

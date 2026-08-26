@@ -6,23 +6,35 @@ import hashlib
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Awaitable, Callable, Literal
+from typing import Any, Awaitable, Callable, Literal
 
+from ai_anime.modules.asset_world.public import AGE_GROUP_SLOTS, DEFAULT_SLOT
 from ai_anime.modules.model_usage.public import (
     record_audio_generation_attempt,
     update_audio_generation_attempt,
 )
+from ai_anime.modules.production.domain.voice_design import (
+    VoiceDesignRequirement,
+    build_character_voice_prompt,
+    build_narrator_voice_prompt,
+    infer_voice_design_language,
+    voice_design_preview,
+)
 from ai_anime.modules.production.infrastructure.media_generation_settings import (
     INDEXTTS2_RECORD_PROVIDER,
 )
-from ai_anime.modules.production.infrastructure.media_generation.indextts2 import IndexTTS2Client
+from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
+    IndexTTS2Client,
+)
 from ai_anime.modules.model_usage.public import is_insufficient_credits_error
 from ai_anime.modules.project_workspace.public import (
     is_narrated_project,
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.modules.production.application.seedance2_config import parse_seedance2_config
+from ai_anime.modules.production.application.seedance2_config import (
+    parse_seedance2_config,
+)
 from ai_anime.modules.production.infrastructure.seedance2_voice_records import (
     classify_seedance2_voice_audio,
     upsert_seedance2_voice_audio_record,
@@ -30,6 +42,7 @@ from ai_anime.modules.production.infrastructure.seedance2_voice_records import (
 from ai_anime.modules.production.infrastructure.seedance2_voice import (
     IDENTITY_VOICE_EXTENSIONS,
     NARRATOR_SPEAKER,
+    NarratorResolution,
     beat_audio_path,
     dialogue_text,
     file_sha256,
@@ -37,6 +50,7 @@ from ai_anime.modules.production.infrastructure.seedance2_voice import (
     generate_seedance2_narration_audio,
     narration_beat_text,
     normalize_seedance2_audio_type,
+    narration_style_prompt,
     resolve_dialogue_reference_audio,
     resolve_narrator_source,
 )
@@ -85,6 +99,7 @@ class IndexTTS2BeatAudioTaskResult:
 class IndexTTS2AudioGenerationPlan:
     beat_numbers: list[int] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
+    voice_requirements: list[VoiceDesignRequirement] = field(default_factory=list)
     billable_chars: int = 0
 
 
@@ -153,7 +168,9 @@ def _is_narrated_project(username: str, project: str) -> bool:
     return is_narrated_project(username, project)
 
 
-def _resolve_beat_uploaded_narration_voice(beat: dict, project_dir: str | Path) -> Path | None:
+def _resolve_beat_uploaded_narration_voice(
+    beat: dict, project_dir: str | Path
+) -> Path | None:
     config = parse_seedance2_config(beat.get("seedance2_config_json"))
     root = Path(project_dir)
     for stored_path in config.reference_audio_paths:
@@ -213,7 +230,7 @@ async def _diagnose_missing_dialogue_voice(speaker: str, store) -> str:
         f"角色默认 reference_audio_path={matched.reference_audio_path or '<空>'}; "
         f"年龄段插槽 keys={sorted(samples.keys()) or '<无>'}"
     )
-    parts.append("请在角色工作区上传「默认」或对应年龄段声线")
+    parts.append("请在角色工作区配置「默认」或对应年龄段声线")
     return "；".join(parts)
 
 
@@ -223,22 +240,163 @@ async def _resolve_narrator_voice(
     username: str,
     project: str,
 ) -> tuple[Path | None, str, str, str]:
+    resolution = await _resolve_narrator_voice_details(
+        store=store,
+        username=username,
+        project=project,
+    )
+    if resolution.audio_path is None:
+        return None, "", resolution.style, resolution.error
+    return (
+        resolution.audio_path,
+        resolution.sha256 or file_sha256(resolution.audio_path),
+        resolution.style,
+        "",
+    )
+
+
+async def _resolve_narrator_voice_details(
+    *,
+    store,
+    username: str,
+    project: str,
+) -> NarratorResolution:
     narration_style = load_effective_narration_style_for_voice(username, project)
     narrator_reference = load_narrator_reference_audio(username, project)
     characters = await store.list_characters()
-    resolution = resolve_narrator_source(
+    return resolve_narrator_source(
         store=store,
         narration_style=narration_style,
         project_narrator_stored_path=narrator_reference.get("path", ""),
         characters=characters,
     )
-    if resolution.audio_path is None:
-        return None, "", narration_style, resolution.error
-    return (
-        resolution.audio_path,
-        resolution.sha256 or file_sha256(resolution.audio_path),
-        narration_style,
-        "",
+
+
+def _character_voice_requirement(
+    *,
+    character: Any,
+    identity: Any | None,
+    preview_text: str,
+) -> VoiceDesignRequirement:
+    character_name = str(getattr(character, "name", "") or "").strip()
+    identity_id = str(getattr(identity, "identity_id", "") or "").strip()
+    identity_name = str(getattr(identity, "identity_name", "") or "").strip()
+    identity_age = str(getattr(identity, "age_group", "") or "").strip()
+    if identity is not None and identity_age in AGE_GROUP_SLOTS:
+        target = "character_slot"
+        slot = identity_age
+        key = f"character:{character_name}:slot:{slot}"
+    elif identity is not None:
+        target = "identity"
+        slot = ""
+        key = f"character:{character_name}:identity:{identity_id}"
+    else:
+        target = "character_slot"
+        slot = DEFAULT_SLOT
+        key = f"character:{character_name}:slot:{slot}"
+    preview = voice_design_preview(preview_text)
+    return VoiceDesignRequirement(
+        key=key,
+        target=target,
+        label=(
+            f"{character_name}·{identity_name or identity_id}"
+            if identity is not None
+            else character_name
+        ),
+        voice_prompt=build_character_voice_prompt(
+            character_name=character_name,
+            gender=str(getattr(character, "gender", "") or ""),
+            age_group=identity_age or str(getattr(character, "age_group", "") or ""),
+            role=str(getattr(character, "role", "") or ""),
+            description=str(getattr(character, "description", "") or ""),
+            identity_name=identity_name,
+        ),
+        preview_text=preview,
+        language=infer_voice_design_language(preview),
+        character_name=character_name,
+        identity_id=identity_id,
+        slot=slot,
+    )
+
+
+async def _dialogue_voice_requirement(
+    *,
+    speaker: str,
+    preview_text: str,
+    store,
+) -> VoiceDesignRequirement | None:
+    if not speaker:
+        return None
+    characters = await store.list_characters()
+    character = next(
+        (
+            candidate
+            for candidate in characters
+            if speaker.startswith(str(getattr(candidate, "name", "") or ""))
+        ),
+        None,
+    )
+    if character is None:
+        return None
+    identity = next(
+        (
+            candidate
+            for candidate in list(getattr(character, "identities", None) or [])
+            if str(getattr(candidate, "identity_id", "") or "") == speaker
+        ),
+        None,
+    )
+    return _character_voice_requirement(
+        character=character,
+        identity=identity,
+        preview_text=preview_text,
+    )
+
+
+async def _narrator_voice_requirement(
+    *,
+    resolution: NarratorResolution,
+    preview_text: str,
+    store,
+) -> VoiceDesignRequirement | None:
+    preview = voice_design_preview(preview_text)
+    if resolution.source == "project_narrator":
+        return VoiceDesignRequirement(
+            key="project:narrator",
+            target="project_narrator",
+            label="项目解说人",
+            voice_prompt=build_narrator_voice_prompt(
+                narration_style_prompt(resolution.style)
+            ),
+            preview_text=preview,
+            language=infer_voice_design_language(preview),
+        )
+    if resolution.source != "protagonist_identity" or not resolution.character_name:
+        return None
+    characters = await store.list_characters()
+    character = next(
+        (
+            candidate
+            for candidate in characters
+            if str(getattr(candidate, "name", "") or "") == resolution.character_name
+        ),
+        None,
+    )
+    if character is None:
+        return None
+    identity = next(
+        (
+            candidate
+            for candidate in list(getattr(character, "identities", None) or [])
+            if str(getattr(candidate, "identity_id", "") or "")
+            == resolution.identity_id
+        ),
+        None,
+    )
+    return _character_voice_requirement(
+        character=character,
+        identity=identity,
+        preview_text=preview,
     )
 
 
@@ -252,9 +410,13 @@ async def _resolve_narration_voice_for_beat(
     if not _is_narrated_project(username, project):
         beat_voice = _resolve_beat_uploaded_narration_voice(beat, store.project_dir)
         if beat_voice is not None:
-            narration_style = load_effective_narration_style_for_voice(username, project)
+            narration_style = load_effective_narration_style_for_voice(
+                username, project
+            )
             return beat_voice, file_sha256(beat_voice), narration_style, ""
-    return await _resolve_narrator_voice(store=store, username=username, project=project)
+    return await _resolve_narrator_voice(
+        store=store, username=username, project=project
+    )
 
 
 async def build_indextts2_audio_generation_plan(
@@ -274,9 +436,10 @@ async def build_indextts2_audio_generation_plan(
     target_beats = _target_beats_for_audio_generation(all_beats, selected_numbers)
     force_redo = normalized_mode in {"redo_selected", "redo_all"}
     plan = IndexTTS2AudioGenerationPlan()
-    narrator_resolution: tuple[Path | None, str, str, str] | None = None
+    narrator_resolution: NarratorResolution | None = None
     reported_narrator_errors: set[str] = set()
     reported_dialogue_speakers: set[str] = set()
+    reported_voice_requirements: set[str] = set()
 
     for beat in target_beats:
         beat_num = _beat_number(beat)
@@ -304,19 +467,23 @@ async def build_indextts2_audio_generation_plan(
         if is_narration:
             beat_voice = None
             if not _is_narrated_project(username, project):
-                beat_voice = _resolve_beat_uploaded_narration_voice(beat, store.project_dir)
+                beat_voice = _resolve_beat_uploaded_narration_voice(
+                    beat, store.project_dir
+                )
             if beat_voice is not None:
                 voice_path = beat_voice
                 voice_sha256 = file_sha256(beat_voice)
                 voice_error = ""
             else:
                 if narrator_resolution is None:
-                    narrator_resolution = await _resolve_narrator_voice(
+                    narrator_resolution = await _resolve_narrator_voice_details(
                         store=store,
                         username=username,
                         project=project,
                     )
-                voice_path, voice_sha256, _style, voice_error = narrator_resolution
+                voice_path = narrator_resolution.audio_path
+                voice_sha256 = narrator_resolution.sha256
+                voice_error = narrator_resolution.error
             if (
                 not force_redo
                 and voice_path is not None
@@ -332,13 +499,27 @@ async def build_indextts2_audio_generation_plan(
                 == "current"
             ):
                 continue
-            narrator_error = "" if voice_path is not None else voice_error or "解说声线缺失"
+            narrator_error = (
+                "" if voice_path is not None else voice_error or "解说声线缺失"
+            )
             if narrator_error:
                 if narrator_error not in reported_narrator_errors:
                     reported_narrator_errors.add(narrator_error)
                     plan.errors.append(
                         f"Beat {beat_num:02d} 解说声线缺失：{narrator_error}"
                     )
+                    if narrator_resolution is not None:
+                        requirement = await _narrator_voice_requirement(
+                            resolution=narrator_resolution,
+                            preview_text=text,
+                            store=store,
+                        )
+                        if (
+                            requirement is not None
+                            and requirement.key not in reported_voice_requirements
+                        ):
+                            reported_voice_requirements.add(requirement.key)
+                            plan.voice_requirements.append(requirement)
                 continue
             plan.beat_numbers.append(beat_num)
             plan.billable_chars += count_billable_text_chars(text)
@@ -350,6 +531,17 @@ async def build_indextts2_audio_generation_plan(
             if speaker not in reported_dialogue_speakers:
                 reported_dialogue_speakers.add(speaker)
                 plan.errors.append(f"Beat {beat_num:02d} 角色声线缺失：{speaker}")
+                requirement = await _dialogue_voice_requirement(
+                    speaker=speaker,
+                    preview_text=text,
+                    store=store,
+                )
+                if (
+                    requirement is not None
+                    and requirement.key not in reported_voice_requirements
+                ):
+                    reported_voice_requirements.add(requirement.key)
+                    plan.voice_requirements.append(requirement)
             continue
         speaker = str(beat.get("speaker") or "").strip()
         _voice_path, voice_sha256 = resolved_voice
@@ -425,12 +617,16 @@ async def run_indextts2_beat_audio_generation(
     result.total_targets = len(target_beats)
     force_redo = normalized_mode in {"redo_selected", "redo_all"}
 
-    await _maybe_call(log_callback, f"IndexTTS2 audio task started: {len(target_beats)} beats")
+    await _maybe_call(
+        log_callback, f"IndexTTS2 audio task started: {len(target_beats)} beats"
+    )
 
     for index, beat in enumerate(target_beats, start=1):
         beat_num = _beat_number(beat)
         output_path = beat_audio_path(store.project_dir, episode, beat_num)
-        await _maybe_call(progress_callback, index - 1, len(target_beats), f"Beat {beat_num:02d}")
+        await _maybe_call(
+            progress_callback, index - 1, len(target_beats), f"Beat {beat_num:02d}"
+        )
 
         audio_type = normalize_seedance2_audio_type(beat)
         if audio_type == "silence":
@@ -476,7 +672,9 @@ async def run_indextts2_beat_audio_generation(
                 speaker = str(beat.get("speaker") or "").strip()
                 if resolved_voice is None:
                     diag = await _diagnose_missing_dialogue_voice(speaker, store)
-                    raise ValueError(f"角色声线缺失（speaker={speaker or '<空>'}）：{diag}")
+                    raise ValueError(
+                        f"角色声线缺失（speaker={speaker or '<空>'}）：{diag}"
+                    )
                 voice_path, voice_sha256 = resolved_voice
 
             if (
@@ -549,7 +747,9 @@ async def run_indextts2_beat_audio_generation(
                     error_message=item_result.error or "IndexTTS2 generation failed",
                 )
                 if is_insufficient_credits_error(message=item_result.error or ""):
-                    raise RuntimeError(item_result.error or "IndexTTS2 generation failed")
+                    raise RuntimeError(
+                        item_result.error or "IndexTTS2 generation failed"
+                    )
                 raise RuntimeError(item_result.error or "IndexTTS2 generation failed")
 
             result.generated += 1

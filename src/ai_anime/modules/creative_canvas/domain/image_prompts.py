@@ -8,6 +8,7 @@ from ai_anime.modules.creative_canvas.domain.image_editing import (
 )
 from ai_anime.modules.creative_canvas.domain.style_template_catalog import (
     creative_canvas_builtin_style_templates,
+    creative_canvas_legacy_style_templates,
 )
 
 CREATIVE_CANVAS_IMAGE_CAMERA_OPTIONS = {
@@ -27,6 +28,9 @@ CREATIVE_CANVAS_IMAGE_CAMERA_OPTIONS = {
     "apertures": ["f/1.4", "f/2", "f/2.8", "f/4", "f/5.6", "f/8"],
 }
 CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES = creative_canvas_builtin_style_templates()
+_LEGACY_CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES = (
+    creative_canvas_legacy_style_templates()
+)
 
 
 class UnknownCreativeCanvasImageStyleTemplate(ValueError):
@@ -75,6 +79,9 @@ def resolve_creative_canvas_image_style_template(
     if not template_id:
         return None
     for item in CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES:
+        if item["id"] == template_id:
+            return item
+    for item in _LEGACY_CREATIVE_CANVAS_IMAGE_STYLE_TEMPLATES:
         if item["id"] == template_id:
             return item
     raise UnknownCreativeCanvasImageStyleTemplate(

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.asset_world.application.errors import (
+    ImageModelPrerequisiteMissing,
     InvalidImageSelection,
     UnsupportedImageSourceKind,
 )
@@ -25,7 +26,10 @@ from ai_anime.modules.asset_world.domain.image_settings import (
     normalize_asset_image_kind,
     stored_project_style,
 )
-from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
+from ai_anime.modules.model_usage.public import (
+    resolve_model_for_role,
+    resolve_model_route,
+)
 
 
 class ImageSettingsUseCases:
@@ -95,9 +99,12 @@ class ImageSettingsUseCases:
             # fallback in the application layer gives every selector and task
             # submission the same effective default instead of leaving some
             # screens with an empty model.
-            selection = saved or self.get_character_selection(username, project)[
-                "character_image_selection"
-            ]
+            selection = (
+                saved
+                or self.get_character_selection(username, project)[
+                    "character_image_selection"
+                ]
+            )
         return {
             "asset_kind": asset_kind,
             "image_source_selection": selection,
@@ -126,13 +133,21 @@ class ImageSettingsUseCases:
         username: str,
         project: str,
         requested_model: str | None,
+        *,
+        fallback_role: str = "IMAGE_GENERATION",
     ) -> str:
         requested = str(requested_model or "").strip()
         if requested:
             return requested
-        return str(
+        project_selection = str(
             self.get_character_selection(username, project)["character_image_selection"]
-        )
+        ).strip()
+        if project_selection:
+            return project_selection
+        try:
+            return resolve_model_for_role(fallback_role)
+        except PermissionError as exc:
+            raise ImageModelPrerequisiteMissing(fallback_role) from exc
 
     def character_generation_options(
         self,
@@ -142,12 +157,14 @@ class ImageSettingsUseCases:
         requested_style: str | None,
         requested_model: str | None,
         requested_ethnicity: str | None = None,
+        fallback_role: str = "IMAGE_GENERATION",
     ) -> CharacterGenerationOptions:
         config = self._generation_settings.effective(username, project)
         selection = self.resolve_character_model(
             username,
             project,
             requested_model,
+            fallback_role=fallback_role,
         )
         model_route = resolve_model_route(selection)
         if not model_route.model:
@@ -163,9 +180,7 @@ class ImageSettingsUseCases:
         )
 
     def project_style(self, username: str, project: str) -> str:
-        return stored_project_style(
-            self._generation_settings.stored(username, project)
-        )
+        return stored_project_style(self._generation_settings.stored(username, project))
 
     def get_character_usage(self, project_dir: str | Path) -> dict[str, Any]:
         return self._usage.summary(

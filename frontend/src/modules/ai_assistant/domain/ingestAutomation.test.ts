@@ -4,6 +4,7 @@ import {
   appendAttachmentAnalysisContext,
   appendIngestAutomationContext,
   buildAttachmentAnalysisContext,
+  buildProductionSourceContext,
   buildReingestCancelledContext,
   buildReingestConfirmationContext,
   buildUploadedFilesContext,
@@ -112,6 +113,11 @@ describe("SuperChat ingest contexts", () => {
       stage: "choose_overwrite" as const,
       project: "project-a",
       filename: "story.txt",
+      source: {
+        filename: "story.txt",
+        size: 5,
+        uploadedAt: 1,
+      },
     };
     const first = buildReingestConfirmationContext(pending);
     const second = buildReingestConfirmationContext({
@@ -127,7 +133,7 @@ describe("SuperChat ingest contexts", () => {
     expect(cancelled).toContain("Do not call any write API");
   });
 
-  it("includes decoded inline text and canonical upload metadata", () => {
+  it("uses canonical upload metadata with a bounded source preview", () => {
     const context = buildAttachmentAnalysisContext("project-a", [
       {
         original: {
@@ -145,6 +151,8 @@ describe("SuperChat ingest contexts", () => {
           size: 11,
           total_chars: 11,
           count: 1,
+          text_preview: "hello world",
+          text_preview_truncated: false,
         },
       },
     ]);
@@ -154,7 +162,50 @@ describe("SuperChat ingest contexts", () => {
     expect(context).toContain("ai_anime_upload_filename: stored.md");
     expect(context).toContain("ai_anime_total_chars: 11");
     expect(context).toContain("ai_anime_chapter_count: 1");
+    expect(context).toContain("text_content_available_via_upload: true");
+    expect(context).toContain("source_text_preview:");
     expect(context).toContain("```text\nhello world\n```");
+  });
+
+  it("builds one production handoff with explicit source-profile instructions", () => {
+    const context = buildProductionSourceContext(
+      "project-a",
+      {
+        filename: "story.md",
+        size: 100,
+        textPreview: "日本神奈川县的高校，日系二次元校园剧。",
+        textPreviewTruncated: true,
+        uploadedAt: 1,
+      },
+      false,
+    );
+
+    expect(context).toContain("[AI_ANIME_PRODUCTION_SOURCE]");
+    expect(context).toContain("ai_anime_upload_filename: story.md");
+    expect(context).toContain("rebuild: false");
+    expect(context).toContain("spine_template, visual_style, and ethnicity");
+    expect(context).toContain("日本神奈川县的高校");
+  });
+
+  it("keeps only a bounded preview for text that was not uploaded", () => {
+    const context = buildAttachmentAnalysisContext(undefined, [
+      {
+        original: {
+          fileName: "notes.md",
+          mimeType: "text/markdown",
+          content: `data:text/markdown,${"a".repeat(9_000)}`,
+        },
+        attachment: {
+          fileName: "notes.md",
+          mimeType: "text/markdown",
+          fileSize: 9_000,
+        },
+      },
+    ]);
+
+    expect(context).toContain("text_content_truncated:");
+    expect(context).toContain("truncated_after_chars: 8000");
+    expect(context).not.toContain("a".repeat(8_001));
   });
 
   it("reports decode, upload, and browser-preview limitations", () => {

@@ -27,7 +27,6 @@ from ai_anime.modules.narrative_planning.application.script_models import (
 from ai_anime.shared.time_of_day import normalize_time_of_day
 from ai_anime.shared.utils.screenplay_quality import check_screenplay_import_quality
 from ai_anime.shared.utils.screenplay_scene_parser import (
-    parse_character_line,
     parse_location_header,
     parse_scene_blocks,
     split_screenplay_lines,
@@ -358,17 +357,6 @@ def split_literal_source_text(source_text: str) -> list[str]:
     return split_screenplay_lines(source_text)
 
 
-def _parse_scene_characters(character_text: str) -> list[str]:
-    return parse_character_line(character_text)
-
-
-def _parse_scene_block_location(location_text: str) -> tuple[str, str, str]:
-    parsed = parse_location_header(location_text)
-    if parsed:
-        return parsed
-    return (location_text or "").strip(), "", ""
-
-
 class LiteralScriptWritingWorkflow:
     """适配 2.0 beat schema 的逐行剧本工作流。"""
 
@@ -406,7 +394,7 @@ class LiteralScriptWritingWorkflow:
                     "low",
                 ),
                 output_type=LiteralBeatMetaOutput,
-                output_retries=2,
+                retries={"output": 2},
                 validation_context={
                     "valid_identity_ids": self._valid_identity_ids,
                     "valid_scene_ids": self._valid_scene_ids,
@@ -736,13 +724,6 @@ class LiteralScriptWritingWorkflow:
         await self.cognee_store.persist_narration_script(script)
         report_progress(1.0, "完成")
         return script
-
-    async def run_all_episodes(self) -> list[NarrationScript]:
-        episodes = await self.sqlite_store.list_episodes()
-        scripts: list[NarrationScript] = []
-        for episode in episodes:
-            scripts.append(await self.run(episode_num=episode.number))
-        return scripts
 
     def _build_identity_menu_for_episode(self, episode_number: int) -> tuple[str, set[str]]:
         episode = self.sqlite_store.get_episode(episode_number)

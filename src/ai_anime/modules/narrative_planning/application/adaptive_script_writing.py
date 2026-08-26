@@ -124,7 +124,7 @@ class AdaptiveScriptWritingWorkflow(LiteralScriptWritingWorkflow):
                     "low",
                 ),
                 output_type=AdaptiveScriptOutput,
-                output_retries=3,
+                retries={"output": 3},
                 validation_context={
                     "valid_identity_ids": self._valid_identity_ids,
                     "valid_scene_ids": self._valid_scene_ids,

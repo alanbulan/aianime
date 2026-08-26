@@ -36,15 +36,6 @@ class EffectiveCogneeEmbeddingConfig:
     batch_size: str = ""
 
 
-def mask_secret(value: str) -> str:
-    clean = str(value or "").strip()
-    if not clean:
-        return ""
-    if len(clean) <= 10:
-        return "*" * len(clean)
-    return f"{clean[:4]}...{clean[-4:]}"
-
-
 def normalize_relay_base_url(value: str | None) -> str:
     base = str(value or "").strip().rstrip("/")
     if not base:

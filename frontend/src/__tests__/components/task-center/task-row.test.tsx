@@ -6,7 +6,7 @@ import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 // Mock react-i18next — matches the repo convention (see save-status.test.tsx).
 // Using I18nextProvider + the real HTTP-backed i18n instance would require a
-// Suspense boundary in jsdom (translations are lazy-loaded), leaving the tree
+// Suspense boundary in the DOM test runtime (translations are lazy-loaded), leaving the tree
 // empty. A deterministic mock keeps component tests focused on render logic.
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({

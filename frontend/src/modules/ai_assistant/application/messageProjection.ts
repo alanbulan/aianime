@@ -7,6 +7,7 @@ import type {
 import {
   buildToolMessage,
   mergeToolMessageState,
+  settleRunningToolMessages,
 } from "@/modules/ai_assistant/domain/toolMessage";
 import { sortMessages } from "@/modules/ai_assistant/application/messageTimeline";
 
@@ -58,13 +59,19 @@ export function upsertServerAssistantMessage(
       )
     : messages;
   if (existingIndex >= 0) {
-    return sortMessages(
+    const merged = sortMessages(
       withoutTransient.map(
         (message) => (message.id === mergedMessage.id ? mergedMessage : message),
       ),
     );
+    return normalizedTurnId
+      ? settleRunningToolMessages(merged, normalizedTurnId)
+      : merged;
   }
-  return sortMessages([...withoutTransient, mergedMessage]);
+  const merged = sortMessages([...withoutTransient, mergedMessage]);
+  return normalizedTurnId
+    ? settleRunningToolMessages(merged, normalizedTurnId)
+    : merged;
 }
 
 export function appendToolMessage(

@@ -49,6 +49,10 @@ async def _run_build_characters(ctx: ProjectContext) -> dict[str, Any]:
             on_progress=lambda progress, task: _progress(ctx, "build_characters", progress, task),
             on_log=lambda message: _progress(ctx, "build_characters", 0.0, message),
         )
+        if not characters:
+            raise RuntimeError(
+                "角色提取没有产出可用角色；任务未标记为完成，可在恢复模型额度或修复模型配置后重试"
+            )
         return {"characters": len(characters), "added_characters": len(characters)}
     finally:
         await store.close()

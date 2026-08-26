@@ -14,19 +14,12 @@ from .paths import (
     fs_url,
     shape_hint_registry_path,
     shape_hints_dir,
-    scene_gaussian_splat_collision_glb_path,
-    scene_gaussian_splat_ply_path,
     session_id,
-    session_target_name,
     states_dir,
-    world_path,
 )
 
 DEFAULT_DIRECTOR_VIEWER_ORIGIN = "http://127.0.0.1:9024"
-DIRECTOR_STAGE_PATH = "/app/viewer/ai_anime_director_stage.html"
 PLAYCANVAS_3GS_STAGE_PATH = "/app/viewer/ai_anime_playcanvas_3gs_stage.html"
-DEFAULT_DIRECTOR_EDITOR_URL = f"{DEFAULT_DIRECTOR_VIEWER_ORIGIN}{DIRECTOR_STAGE_PATH}"
-DEFAULT_PLAYCANVAS_3GS_STAGE_URL = f"{DEFAULT_DIRECTOR_VIEWER_ORIGIN}{PLAYCANVAS_3GS_STAGE_PATH}"
 
 
 def _configured_director_viewer_origin() -> str:
@@ -109,92 +102,18 @@ class DirectorWorldService:
     def __init__(
         self,
         project_dir: Path,
-        editor_url: str | None = None,
         playcanvas_3gs_url: str | None = None,
     ):
         self.project_dir = Path(project_dir)
-        self.editor_url = editor_url or _director_viewer_url(DIRECTOR_STAGE_PATH)
         self.playcanvas_3gs_url = playcanvas_3gs_url or _director_viewer_url(
             PLAYCANVAS_3GS_STAGE_PATH
         )
-
-    def world_path(self, scene_id: str) -> Path:
-        return world_path(self.project_dir, scene_id)
 
     def blockings_dir(self, episode: int) -> Path:
         return blockings_dir(self.project_dir, episode)
 
     def session_id(self, *, user: str, project: str, episode: int, scene_id: str) -> str:
         return session_id(user, project, episode, scene_id)
-
-    def session_target_name(self, *, user: str, project: str, episode: int, scene_id: str) -> str:
-        return session_target_name(
-            self.session_id(
-                user=user,
-                project=project,
-                episode=episode,
-                scene_id=scene_id,
-            )
-        )
-
-    def make_editor_url(
-        self,
-        *,
-        episode: int,
-        scene_id: str,
-        user: str,
-        project: str,
-        slate_beat: int | None = None,
-        world_url: str = "",
-        beat_nav_fs: str = "",
-    ) -> str:
-        world = self.world_path(scene_id)
-        blockings = self.blockings_dir(episode)
-        control_frames_dir = self.project_dir / "director_control_frames"
-        params = {
-            "scene_id": scene_id,
-            "display_name": scene_id,
-            "scope": "scene",
-            "episode": str(int(episode)),
-            "session_id": self.session_id(
-                user=user,
-                project=project,
-                episode=episode,
-                scene_id=scene_id,
-            ),
-            "save_fs": fs_url(world),
-            "world_fs": fs_url(world),
-            "regen_world_fs": fs_url(world),
-            "blockings_dir_fs": fs_url(blockings),
-            "control_frames_dir_fs": fs_url(control_frames_dir),
-            "sketch_mode_key": "1x1_2-3_sketch",
-            "sketch_aspect_ratio": "2:3",
-            "shape_hint_registry_fs": fs_url(shape_hint_registry_path()),
-            "shape_hints_dir_fs": fs_url(shape_hints_dir()),
-            "actor_state_registry_fs": fs_url(actor_state_registry_path()),
-            "actor_states_dir_fs": fs_url(states_dir()),
-        }
-        scene_3gs_ply = scene_gaussian_splat_ply_path(self.project_dir, scene_id)
-        if scene_3gs_ply:
-            params["scene_3gs_ply_fs"] = fs_url(scene_3gs_ply)
-        _add_scene_3gs_ply_params(params, self.project_dir, scene_id)
-        scene_collision_glb = scene_gaussian_splat_collision_glb_path(
-            self.project_dir,
-            scene_id,
-            scene_3gs_ply,
-        )
-        if scene_collision_glb:
-            params["scene_collision_glb_fs"] = fs_url(scene_collision_glb)
-        if slate_beat is not None:
-            params["slate_beat"] = str(int(slate_beat))
-        beats = _scene_beat_numbers(user, project, episode, scene_id)
-        if beats:
-            params["slate_beats"] = ",".join(str(b) for b in beats)
-        if beat_nav_fs:
-            params["beat_nav_fs"] = beat_nav_fs
-        if world_url:
-            params["world"] = world_url
-        return f"{self.editor_url}?{urlencode(params)}"
 
     def make_3gs_editor_url(
         self,

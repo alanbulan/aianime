@@ -138,6 +138,7 @@ describe("freezoneAiGateway", () => {
           model_id: "registry-model",
           gen_mode: "image_reference",
           quality: "high",
+          extra_params: { quality: "high" },
           canvas_id: "canvas-1",
           node_id: "node-1",
         },

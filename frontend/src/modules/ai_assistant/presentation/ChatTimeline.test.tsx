@@ -1,7 +1,14 @@
 // Copyright (c) 2026 AI anime
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useRef } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
 import { ChatTimeline } from "./ChatTimeline";
@@ -21,33 +28,57 @@ function message(
   };
 }
 
-function TimelineHarness({ messages }: { messages: ChatMessage[] }) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+function TimelineHarness({
+  activeTurnId = null,
+  messages,
+  onSelectTurn = vi.fn(),
+}: {
+  activeTurnId?: string | null;
+  messages: ChatMessage[];
+  onSelectTurn?: (turnId: string) => void;
+}) {
   return (
-    <div ref={scrollRef}>
-      {messages
-        .filter((item) => item.role === "user")
-        .map((item) => (
-          <article key={item.id} data-turn-id={item.id} />
-        ))}
-      <ChatTimeline messages={messages} scrollRef={scrollRef} />
+    <div>
+      <ChatTimeline
+        activeTurnId={activeTurnId}
+        messages={messages}
+        onSelectTurn={onSelectTurn}
+      />
     </div>
   );
 }
 
-describe("SuperChat timeline", () => {
-  const scrollIntoView = vi.fn();
+const originalOffsetWidth = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "offsetWidth",
+);
+const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  "offsetHeight",
+);
 
+beforeAll(() => {
+  Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+    configurable: true,
+    get: () => 36,
+  });
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get: () => 600,
+  });
+});
+
+afterAll(() => {
+  if (originalOffsetWidth) {
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", originalOffsetWidth);
+  }
+  if (originalOffsetHeight) {
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight);
+  }
+});
+
+describe("SuperChat timeline", () => {
   beforeEach(() => {
-    scrollIntoView.mockReset();
-    Object.defineProperty(CSS, "escape", {
-      configurable: true,
-      value: (value: string) => value,
-    });
-    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
-      configurable: true,
-      value: scrollIntoView,
-    });
     Object.defineProperty(HTMLElement.prototype, "scrollBy", {
       configurable: true,
       value: vi.fn(),
@@ -100,12 +131,14 @@ describe("SuperChat timeline", () => {
   });
 
   it("scrolls to a selected turn and renders its hover preview in a portal", () => {
+    const onSelectTurn = vi.fn();
     render(
       <TimelineHarness
         messages={[
           message("user-1", "user", "First request"),
           message("user-2", "user", "Second request"),
         ]}
+        onSelectTurn={onSelectTurn}
       />,
     );
     const first = screen.getByRole("button", {
@@ -113,14 +146,23 @@ describe("SuperChat timeline", () => {
     });
 
     fireEvent.click(first);
-    expect(scrollIntoView).toHaveBeenCalledWith({
-      behavior: "smooth",
-      block: "start",
-    });
+    expect(onSelectTurn).toHaveBeenCalledWith("user-1");
 
     fireEvent.mouseEnter(first);
     expect(screen.getByText("First request")).toBeInTheDocument();
     fireEvent.mouseLeave(first);
     expect(screen.queryByText("First request")).toBeNull();
+  });
+
+  it("virtualizes large turn lists", () => {
+    const messages = Array.from({ length: 200 }, (_, index) =>
+      message(`user-${index}`, "user", `Request ${index}`),
+    );
+
+    render(<TimelineHarness messages={messages} />);
+
+    const renderedTurns = screen.getAllByRole("button");
+    expect(renderedTurns.length).toBeGreaterThan(0);
+    expect(renderedTurns.length).toBeLessThan(messages.length);
   });
 });

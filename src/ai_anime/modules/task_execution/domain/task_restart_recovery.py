@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 ACTIVE_PROJECT_TASK_STATUSES = frozenset({"submitting", "queued", "running"})
 TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "cancelled"})
+PROJECT_TASK_CHILD_PROCESS_ENV = "AI_ANIME_PROJECT_TASK_CHILD_PROCESS"
 
 
 @dataclass(frozen=True)
@@ -50,6 +51,7 @@ def build_interrupted_inline_recovery_plan(
 __all__ = [
     "ACTIVE_PROJECT_TASK_STATUSES",
     "InterruptedTaskRecoveryPlan",
+    "PROJECT_TASK_CHILD_PROCESS_ENV",
     "TERMINAL_TASK_STATUSES",
     "build_interrupted_inline_recovery_plan",
 ]

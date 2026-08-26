@@ -388,65 +388,6 @@ class AssetCompiler:
     def __init__(self, cognee_store: Any):
         self.cognee_store = cognee_store
 
-    async def compile_single_episode(
-        self,
-        episode: Any,
-        on_log: Optional[Callable[[str], None]] = None,
-        on_progress: Optional[Callable[[float, str], None]] = None,
-    ) -> tuple[list[SceneMenuItem], list[PropMenuItem], int]:
-        """兼容旧入口：一次性编译场景和道具。新 UI 应优先调用拆分入口。"""
-
-        def log(message: str) -> None:
-            if on_log:
-                on_log(message)
-
-        def report(progress: float, task: str) -> None:
-            if on_progress:
-                on_progress(progress, task)
-
-        source_text = await self._load_source_text(episode)
-        if not source_text.strip():
-            raise ValueError("当前集原文为空，无法编译资产")
-
-        lines = split_literal_source_text(source_text)
-        if not lines:
-            raise ValueError("原文无法切分出有效行")
-
-        scene_blocks = LiteralScriptWritingWorkflow._build_scene_blocks(lines)
-        if not scene_blocks:
-            raise ValueError("原文无法切分出有效场景块")
-
-        report(0.05, "解析场景块...")
-        log(f"[AssetCompiler] 共识别 {len(scene_blocks)} 个场景块")
-
-        report(0.12, "AI校对基础场景...")
-        await self._reconcile_base_scenes_from_text(source_text, episode, log)
-
-        report(0.2, "编译场景资产...")
-        scene_menu, pending_scenes = await self._compile_scenes(scene_blocks, episode, log)
-        if not scene_menu:
-            report(0.3, "从解说稿规划场景资产...")
-            scene_menu, pending_scenes = await self._compile_narrated_scenes(
-                source_text, episode, log
-            )
-        if not scene_menu:
-            raise ValueError("未识别到任何场景，请补充分集中的场次地点信息")
-
-        report(0.55, "编译道具资产...")
-        prop_menu = await self._compile_props(scene_blocks, episode, log)
-
-        report(0.9, "写入本集资产...")
-        for scene in pending_scenes:
-            await self.cognee_store.sqlite_store.add_scene(scene)
-        await self.cognee_store.update_episode(
-            episode.number,
-            scene_menu=scene_menu,
-            prop_menu=prop_menu,
-        )
-
-        report(1.0, "完成")
-        return scene_menu, prop_menu, len(pending_scenes)
-
     async def compile_episode_scenes(
         self,
         episode: Any,
@@ -559,7 +500,7 @@ class AssetCompiler:
                 "low",
             ),
             output_type=EpisodeBaseSceneReconcileOutput,
-            output_retries=2,
+            retries={"output": 2},
             name="基础场景资产校对员",
         )
         result = await agent.run(f"""## 已有基础场景
@@ -870,7 +811,7 @@ class AssetCompiler:
                 "low",
             ),
             output_type=NarratedScenePlanOutput,
-            output_retries=2,
+            retries={"output": 2},
             validation_context={
                 "source_text": source_text,
                 "existing_scene_names": existing_scene_names,
@@ -964,7 +905,7 @@ class AssetCompiler:
                 "low",
             ),
             output_type=BlockDerivedSceneOutput,
-            output_retries=2,
+            retries={"output": 2},
             name="派生场景分析师",
         )
         result = await agent.run(task)
@@ -1126,7 +1067,7 @@ class AssetCompiler:
                 "low",
             ),
             output_type=BlockPropRequirements,
-            output_retries=2,
+            retries={"output": 2},
             validation_context={
                 "block_text": block_text,
                 "allowed_existing_names": allowed_existing_names,

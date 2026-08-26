@@ -377,12 +377,24 @@ def _asset_tree_digest(source: Path) -> str:
     return digest.hexdigest()
 
 
+def _is_directory_link(path: Path) -> bool:
+    is_junction = getattr(path, "is_junction", None)
+    return path.is_symlink() or bool(is_junction and is_junction())
+
+
+def _remove_directory_link(path: Path) -> None:
+    if path.is_symlink():
+        path.unlink()
+    else:
+        path.rmdir()
+
+
 def _materialize_managed_asset(link: Path, target: Path, *, kind: str) -> None:
-    if link.is_symlink():
+    if _is_directory_link(link):
         try:
             if link.resolve() == target:
                 return
-            link.unlink()
+            _remove_directory_link(link)
         except OSError:
             return
     elif link.exists():
@@ -431,8 +443,8 @@ def _materialize_managed_asset(link: Path, target: Path, *, kind: str) -> None:
 
 def _remove_stale_managed_asset(entry: Path) -> None:
     try:
-        if entry.is_symlink():
-            entry.unlink()
+        if _is_directory_link(entry):
+            _remove_directory_link(entry)
         elif (entry / _MANAGED_ASSET_MARKER).is_file():
             shutil.rmtree(entry)
     except OSError:

@@ -37,7 +37,7 @@ describe("NodeSideActionRail", () => {
 
     const toolbar = screen.getByTestId("toolbar");
     expect(toolbar).toHaveAttribute("data-visible", "false");
-    expect(toolbar).toHaveStyle({ zIndex: 6 });
+    expect(toolbar).toHaveStyle({ zIndex: "6" });
 
     rerender(
       <NodeSideActionRail nodeId="node-1" autoHide nodeHovered>

@@ -103,7 +103,13 @@ def _newapi_request_id_from_headers(headers: Any) -> str:
     )
 
 
-NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS = 1800.0
+NEWAPI_IMAGE_CONNECT_TIMEOUT_SECONDS = 15.0
+NEWAPI_IMAGE_READ_TIMEOUT_SECONDS = 1200.0
+NEWAPI_IMAGE_WRITE_TIMEOUT_SECONDS = 60.0
+NEWAPI_IMAGE_POOL_TIMEOUT_SECONDS = 15.0
+NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS = 30 * 60.0
+# 保留旧常量名，避免外部集成导入失败；实际请求使用上面的分阶段超时。
+NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS = NEWAPI_IMAGE_READ_TIMEOUT_SECONDS
 
 
 def _newapi_safe_header_summary(headers: Any) -> dict[str, str]:
@@ -1411,7 +1417,7 @@ def filter_character_map_for_beats(
 
     non_panel = [c for c in character_map if c not in filtered]
     if non_panel:
-        print(f"[filter_character_map] 过滤非出场角色: {non_panel}")
+        logger.info(f"[filter_character_map] 过滤非出场角色: {non_panel}")
 
     return filtered
 
@@ -1514,7 +1520,7 @@ def filter_character_map_by_sketch(
             removed.append(char_name)
 
     if removed:
-        print(f"[filter_by_sketch] 草图中未检测到颜色，移除角色: {removed}")
+        logger.info(f"[filter_by_sketch] 草图中未检测到颜色，移除角色: {removed}")
 
     return filtered
 
@@ -1569,7 +1575,7 @@ def filter_character_map_by_precomputed(
             removed.append(char_name)
 
     if removed:
-        print(f"[filter_by_precomputed] 预计算未检测到，移除角色: {removed}")
+        logger.info(f"[filter_by_precomputed] 预计算未检测到，移除角色: {removed}")
 
     return filtered
 
@@ -1664,7 +1670,7 @@ def crop_sketch_panels(
     if pool_hit > 0:
         now = time.time()
         if now - getattr(crop_sketch_panels, "_last_log_t", 0.0) >= 5.0:
-            print(f"[crop_sketch_panels] 从图片池取 {pool_hit}/{len(beat_numbers)} 个 beat 草图")
+            logger.info(f"[crop_sketch_panels] 从图片池取 {pool_hit}/{len(beat_numbers)} 个 beat 草图")
             crop_sketch_panels._last_log_t = now
 
     if not panels or panel_width is None:
@@ -2706,32 +2712,38 @@ async def _call_newapi_image_api(
         request_headers["Idempotency-Key"] = str(uuid.uuid4())
 
         async with httpx.AsyncClient(
-            timeout=NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS,
+            timeout=httpx.Timeout(
+                connect=NEWAPI_IMAGE_CONNECT_TIMEOUT_SECONDS,
+                read=NEWAPI_IMAGE_READ_TIMEOUT_SECONDS,
+                write=NEWAPI_IMAGE_WRITE_TIMEOUT_SECONDS,
+                pool=NEWAPI_IMAGE_POOL_TIMEOUT_SECONDS,
+            ),
             follow_redirects=True,
         ) as client:
             logger.info("AI anime API image POST start: %s", request_context.get("endpoint"))
-            if multipart_files:
-                request_headers.pop("Content-Type", None)
-                form_fields = {
-                    key: (
-                        json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-                        if isinstance(value, (dict, list))
-                        else str(value)
+            async with asyncio.timeout(NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS):
+                if multipart_files:
+                    request_headers.pop("Content-Type", None)
+                    form_fields = {
+                        key: (
+                            json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+                            if isinstance(value, (dict, list))
+                            else str(value)
+                        )
+                        for key, value in payload.items()
+                    }
+                    response = await client.post(
+                        f"{endpoint}/{request_path}",
+                        headers=request_headers,
+                        data=form_fields,
+                        files=multipart_files,
                     )
-                    for key, value in payload.items()
-                }
-                response = await client.post(
-                    f"{endpoint}/{request_path}",
-                    headers=request_headers,
-                    data=form_fields,
-                    files=multipart_files,
-                )
-            else:
-                response = await client.post(
-                    f"{endpoint}/{request_path}",
-                    headers=request_headers,
-                    json=payload,
-                )
+                else:
+                    response = await client.post(
+                        f"{endpoint}/{request_path}",
+                        headers=request_headers,
+                        json=payload,
+                    )
             logger.info(
                 "AI anime API image POST response: status=%s bytes=%s",
                 getattr(response, "status_code", "?"),
@@ -2829,7 +2841,7 @@ async def _call_newapi_image_api(
             if image_url:
                 # NewAPI 返 URL 而非 b64 时,要二次 GET 拉图。这个 await 是常见的
                 # "newapi 已生成但任务还在 await" hang 点 —— 用单独的短 timeout
-                # (60s),避免落入外层 client 的 600s global timeout 拖很久。
+                # (60s),避免落入主生成请求的长读取超时。
                 # 加 phase log 让 hang 时能定位卡在哪。
                 logger.info("AI anime API image GET url start: %s", image_url[:120])
                 async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as fetch:
@@ -2855,6 +2867,20 @@ async def _call_newapi_image_api(
                 request_id=provider_request_id,
             )
             return None, "", f"AI anime API Images response missing b64_json/url: {first}"
+    except TimeoutError:
+        await _refund(
+            reservation_id,
+            "newapi_image_api",
+            "total_timeout",
+            request_id=provider_request_id,
+        )
+        timeout_minutes = int(NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS // 60)
+        logger.warning(
+            "AI anime API image request exceeded absolute timeout: %s minutes; %s",
+            timeout_minutes,
+            _newapi_context_for_error(request_context),
+        )
+        return None, "", f"请求超时：图片生成超过 {timeout_minutes} 分钟，已中止"
     except httpx.HTTPStatusError as exc:
         body = (exc.response.text or "")[:2000]
         status_code = exc.response.status_code
@@ -2958,7 +2984,7 @@ class NanoBananaGridGenerator:
         self.batch_size = config.get("batch_size", self.rows * self.cols)
         self.total_panels = config["total_panels"]
 
-        print(f"[NanoBanana Grid] Model: {self.model}")
+        logger.info(f"[NanoBanana Grid] Model: {self.model}")
 
     async def generate_grid(
         self,
@@ -3033,7 +3059,7 @@ class NanoBananaGridGenerator:
         # 使用全局默认风格
         if style is None:
             style = IMAGE_DEFAULT_STYLE
-        print(f"[NanoBananaPro] 使用风格: {style}, 网格: {rows}x{cols}")
+        logger.info(f"[NanoBananaPro] 使用风格: {style}, 网格: {rows}x{cols}")
 
         if len(beats) < 1:
             return GridGenerationResult(
@@ -3044,13 +3070,13 @@ class NanoBananaGridGenerator:
 
         # 如果不足网格容量，后面会用黑色填充
         actual_beat_count = min(len(beats), grid_capacity)
-        print(
+        logger.info(
             f"[NanoBananaPro] 有效 beats: {actual_beat_count}/{grid_capacity}，不足部分用黑色填充"
         )
         if not sketch and sketch_dir:
             detection_error = render_ai_detection_error(beats[:grid_capacity])
             if detection_error:
-                print(f"[NanoBananaPro] ❌ {detection_error}")
+                logger.info(f"[NanoBananaPro] ❌ {detection_error}")
                 return GridGenerationResult(
                     success=False,
                     error=detection_error,
@@ -3068,20 +3094,20 @@ class NanoBananaGridGenerator:
                 if upstream_mode == "composite" and ref_path and os.path.exists(ref_path):
                     char_info["reference_path"] = ref_path
                     char_info["reference_mode"] = "composite"
-                    print(f"[NanoBananaPro] {char_name}: 复合图模式 -> {ref_path}")
+                    logger.info(f"[NanoBananaPro] {char_name}: 复合图模式 -> {ref_path}")
                     valid_character_map[char_name] = char_info
                     continue
 
                 if ref_path and os.path.exists(ref_path):
                     char_info["reference_path"] = ref_path
                     char_info["reference_mode"] = "portrait_only"
-                    print(f"[NanoBananaPro] {char_name}: Portrait 模式（仅锁脸）-> {ref_path}")
+                    logger.info(f"[NanoBananaPro] {char_name}: Portrait 模式（仅锁脸）-> {ref_path}")
                     valid_character_map[char_name] = char_info
                     continue
 
                 char_info["reference_path"] = None
                 char_info["reference_mode"] = "prompt_only"
-                print(f"[NanoBananaPro] {char_name}: 提示词模式（无参考图）")
+                logger.info(f"[NanoBananaPro] {char_name}: 提示词模式（无参考图）")
                 valid_character_map[char_name] = char_info
 
             # 1. 构建网格 Prompt
@@ -3159,7 +3185,7 @@ class NanoBananaGridGenerator:
                     director_sheet_path and os.path.exists(director_sheet_path)
                 )
                 if has_director_sheet:
-                    print(f"[DirectorSheet] 使用 DirectorWorld sheet: {director_sheet_path}")
+                    logger.info(f"[DirectorSheet] 使用 DirectorWorld sheet: {director_sheet_path}")
                 elif actual_beat_count != 1 or rows != 1 or cols != 1:
                     return GridGenerationResult(
                         success=False,
@@ -3185,7 +3211,7 @@ class NanoBananaGridGenerator:
 
             if sketch:
                 # Sketch 模式使用 UnifiedPromptBuilder（与导出逻辑一致）
-                print(f"[NanoBananaPro] 进入 Sketch 模式")
+                logger.info(f"[NanoBananaPro] 进入 Sketch 模式")
 
                 # prompt_aspect_ratio 优先（two-pass 时图用 1:1 但 prompt 写 2:3）
                 _prompt_ar = prompt_aspect_ratio or (
@@ -3246,17 +3272,17 @@ class NanoBananaGridGenerator:
                     bn in beat_sketch_paths for bn in actual_beat_numbers
                 )
                 if sketch_result is None and not has_all_pool_sketches:
-                    print(
+                    logger.info(
                         f"[Render] 警告：未找到覆盖 beat {beat_range_start}-{beat_range_end} 的草图"
                     )
 
                 if sketch_result or has_all_pool_sketches:
-                    print(f"[NanoBananaPro] 进入 Render 模式 (基于草图渲染)")
+                    logger.info(f"[NanoBananaPro] 进入 Render 模式 (基于草图渲染)")
                     if has_all_pool_sketches:
-                        print(f"[Render] 使用图片池草图: {len(beat_sketch_paths)} 个 beat")
+                        logger.info(f"[Render] 使用图片池草图: {len(beat_sketch_paths)} 个 beat")
                     elif sketch_result:
                         sketch_file, s_rows, s_cols = sketch_result
-                        print(f"[Render] 使用草图: {sketch_file} ({s_rows}x{s_cols})")
+                        logger.info(f"[Render] 使用草图: {sketch_file} ({s_rows}x{s_cols})")
                     is_render_mode = True
 
                     # Render 模式：先切片草图，再用颜色检测过滤角色
@@ -3265,7 +3291,10 @@ class NanoBananaGridGenerator:
                     else:
                         temp_dir = Path("output")
                     temp_dir.mkdir(parents=True, exist_ok=True)
-                    sub_sketch_path = str(temp_dir / "temp_sub_sketch.jpg")
+                    output_stem = Path(output_path).stem if output_path else uuid.uuid4().hex
+                    sub_sketch_path = str(
+                        temp_dir / f"temp_sub_sketch_{output_stem}.jpg"
+                    )
 
                     target_aspect = None
                     if sketch_aspect_padding and mode_key:
@@ -3280,8 +3309,8 @@ class NanoBananaGridGenerator:
                         beat_sketch_paths=beat_sketch_paths,
                         target_aspect=target_aspect,
                     )
-                    print(f"[Render] 草图切片: beat_numbers={actual_beat_numbers} -> {rows}x{cols}")
-                    print(f"[Render] 子草图已保存: {sub_sketch_path}")
+                    logger.info(f"[Render] 草图切片: beat_numbers={actual_beat_numbers} -> {rows}x{cols}")
+                    logger.info(f"[Render] 子草图已保存: {sub_sketch_path}")
 
                     # 用切片后的草图作为参考
                     previous_grid_path = sub_sketch_path
@@ -3317,7 +3346,7 @@ class NanoBananaGridGenerator:
                 else:
                     # 草图未找到，明确报错终止（不 fallback）
                     msg = f"Render 模式需要草图但未找到覆盖 beat {beat_range_start}-{beat_range_end} 的草图"
-                    print(f"[NanoBananaPro] ❌ {msg}")
+                    logger.info(f"[NanoBananaPro] ❌ {msg}")
                     return GridGenerationResult(
                         success=False,
                         error=msg,
@@ -3325,7 +3354,7 @@ class NanoBananaGridGenerator:
             else:
                 # 需要草图或草图目录
                 msg = "generate_grid() 需要 sketch 或 sketch_dir 参数"
-                print(f"[NanoBananaPro] ❌ {msg}")
+                logger.info(f"[NanoBananaPro] ❌ {msg}")
                 return GridGenerationResult(
                     success=False,
                     error=msg,
@@ -3340,7 +3369,7 @@ class NanoBananaGridGenerator:
                 None,
                 runtime_style_preset,
             )
-            print(f"[NanoBananaPro] 构建 Prompt 完成，共 {len(beats[:grid_capacity])} 个分镜")
+            logger.info(f"[NanoBananaPro] 构建 Prompt 完成，共 {len(beats[:grid_capacity])} 个分镜")
 
             # 保存 prompt 到文件（审计用）
             # 目录结构: grids/ep001/2x2/prompts/grid_01.prompt.txt
@@ -3351,20 +3380,20 @@ class NanoBananaGridGenerator:
                 grid_basename = Path(output_path).stem  # "grid_01"
                 prompt_file = prompts_dir / f"{grid_basename}.prompt.txt"
                 prompt_file.write_text(prompt, encoding="utf-8")
-                print(f"[NanoBananaPro] Grid Prompt 已保存: {prompt_file}")
+                logger.info(f"[NanoBananaPro] Grid Prompt 已保存: {prompt_file}")
 
             # Prompt-Only 模式：只生成提示词，跳过 API 调用
             if prompt_only:
-                print(f"[NanoBananaPro] Prompt-Only 模式，跳过 API 调用")
+                logger.info(f"[NanoBananaPro] Prompt-Only 模式，跳过 API 调用")
                 # 在 Render 模式下，显示 sketch 切片信息（用于验证）
                 if is_render_mode:
                     sketch_capacity = SKETCH_GRID_CONFIG["rows"] * SKETCH_GRID_CONFIG["cols"]
                     local_offset = beat_start_index % sketch_capacity
                     end_index = local_offset + len(beats[:grid_capacity])
-                    print(
+                    logger.info(
                         f"[NanoBananaPro] [Render 预览] 草图 {SKETCH_GRID_CONFIG['rows']}x{SKETCH_GRID_CONFIG['cols']}"
                     )
-                    print(
+                    logger.info(
                         f"[NanoBananaPro] [Render 预览] 本地切片: [{local_offset}:{end_index}] (共 {end_index - local_offset} panels)"
                     )
                 return GridGenerationResult(
@@ -3461,7 +3490,7 @@ class NanoBananaGridGenerator:
                             ),
                         }
                     )
-                    print(
+                    logger.info(
                         "[NanoBananaPro] 添加草图底图 (Image 1 composition lock): "
                         f"{previous_grid_path}"
                     )
@@ -3492,7 +3521,7 @@ class NanoBananaGridGenerator:
                     ctx, beats, grid_capacity, valid_character_map
                 )
 
-                print(f"[NanoBananaPro] 角色参考图顺序: {ordered_chars}")
+                logger.info(f"[NanoBananaPro] 角色参考图顺序: {ordered_chars}")
                 self._append_reference_parts_from_plan(
                     contents,
                     ctx,
@@ -3531,7 +3560,7 @@ class NanoBananaGridGenerator:
                     json.dumps(submitted_payload, ensure_ascii=False, indent=2),
                     encoding="utf-8",
                 )
-                print(f"[NanoBananaPro] Submitted Prompt/Refs 已保存: {submitted_file}")
+                logger.info(f"[NanoBananaPro] Submitted Prompt/Refs 已保存: {submitted_file}")
 
             # contents 结构:
             # - Render 模式: [prompt, char/scene/prop refs..., sketch(最后)]
@@ -3576,7 +3605,7 @@ class NanoBananaGridGenerator:
                 image_size = force_image_size
 
             effective_image_size = normalize_image_size(image_size)
-            print(
+            logger.info(
                 f"[Commercial Images] 调用 {self.model} 生成网格图 "
                 f"(分辨率: {effective_image_size}, 比例: {aspect_ratio})..."
             )
@@ -3609,7 +3638,7 @@ class NanoBananaGridGenerator:
                     os.makedirs(output_dir, exist_ok=True)
                 with open(output_path, "wb") as f:
                     f.write(image_bytes)
-                print(f"[NanoBananaPro] 网格图已保存: {output_path}")
+                logger.info(f"[NanoBananaPro] 网格图已保存: {output_path}")
 
                 # 5.1 后处理：移除面板间缝隙并覆盖
                 try:
@@ -3624,12 +3653,12 @@ class NanoBananaGridGenerator:
                     # 更新 image_bytes 以保持返回值一致
                     with open(output_path, "rb") as f:
                         image_bytes = f.read()
-                    print(f"[NanoBananaPro] Gap removal 后处理完成: {output_path}")
+                    logger.info(f"[NanoBananaPro] Gap removal 后处理完成: {output_path}")
                 except Exception as e:
-                    print(f"[NanoBananaPro] Gap removal 失败，保留原图: {e}")
+                    logger.info(f"[NanoBananaPro] Gap removal 失败，保留原图: {e}")
 
             generation_time = time.time() - start_time
-            print(f"[NanoBananaPro] 生成完成，耗时 {generation_time:.1f}s")
+            logger.info(f"[NanoBananaPro] 生成完成，耗时 {generation_time:.1f}s")
 
             return _usage_success(output_path, image_bytes)
 
@@ -3690,7 +3719,7 @@ class NanoBananaGridGenerator:
         mode_cfg = REGEN_MODE_CONFIGS.get(mode_key, REGEN_MODE_CONFIGS["5x5_2-3_sketch"])
         rows = mode_cfg["rows"]
         cols = mode_cfg["cols"]
-        print(f"[ActionGrid] 生成 {rows}x{cols} 动作分镜, 风格: {style}")
+        logger.info(f"[ActionGrid] 生成 {rows}x{cols} 动作分镜, 风格: {style}")
 
         # 构建伪 beat 列表（单个 action beat 扩展为 25 panel 占位）
         action_beat = {
@@ -3805,10 +3834,10 @@ class NanoBananaGridGenerator:
                     with open(output_path, "rb") as f:
                         image_bytes = f.read()
                 except Exception as e:
-                    print(f"[ActionGrid] Gap removal 失败，保留原图: {e}")
+                    logger.info(f"[ActionGrid] Gap removal 失败，保留原图: {e}")
 
             generation_time = time.time() - start_time
-            print(f"[ActionGrid] 生成完成，耗时 {generation_time:.1f}s")
+            logger.info(f"[ActionGrid] 生成完成，耗时 {generation_time:.1f}s")
 
             return GridGenerationResult(
                 success=True,
@@ -3870,7 +3899,7 @@ class NanoBananaGridGenerator:
             original_prompt = ""
             if prompt_file.exists():
                 original_prompt = prompt_file.read_text(encoding="utf-8")
-                print(
+                logger.info(
                     f"[Reformat] 读取 Pass 1 提示词: {prompt_file} ({len(original_prompt)} chars)"
                 )
 
@@ -3899,7 +3928,7 @@ class NanoBananaGridGenerator:
                     flags=_re.DOTALL,
                 )
                 prompt = f"{reformat_instruction}\n\n{structural_prompt}"
-                print(
+                logger.info(
                     f"[Reformat] Outpaint 模式，提示词精简: {len(original_prompt)} → {len(prompt)} chars"
                 )
             else:
@@ -3921,12 +3950,12 @@ class NanoBananaGridGenerator:
             pass2_prompt_file = source_dir / "prompts" / f"{output_stem}.prompt.txt"
             pass2_prompt_file.parent.mkdir(parents=True, exist_ok=True)
             pass2_prompt_file.write_text(prompt, encoding="utf-8")
-            print(f"[Reformat] Pass 2 Prompt 已保存: {pass2_prompt_file} ({len(prompt)} chars)")
+            logger.info(f"[Reformat] Pass 2 Prompt 已保存: {pass2_prompt_file} ({len(prompt)} chars)")
 
             ref_image = self._load_image_as_part(source_path)
             contents = [prompt, ref_image]
             self._append_style_reference_part(contents, style_reference_images)
-            print(f"[Reformat] 调用商业图片模型 ({self.model}) 转换 → {target_aspect} ...")
+            logger.info(f"[Reformat] 调用商业图片模型 ({self.model}) 转换 → {target_aspect} ...")
             prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
                 contents,
                 include_mime=True,
@@ -3962,7 +3991,7 @@ class NanoBananaGridGenerator:
                 f.write(image_bytes)
 
             generation_time = time.time() - start_time
-            print(f"[Reformat] 完成 → {output_path}，耗时 {generation_time:.1f}s")
+            logger.info(f"[Reformat] 完成 → {output_path}，耗时 {generation_time:.1f}s")
 
             return GridGenerationResult(
                 success=True,
@@ -4141,7 +4170,10 @@ class NanoBananaGridGenerator:
                 else:
                     temp_dir = Path("output")
                 temp_dir.mkdir(parents=True, exist_ok=True)
-                sub_sketch_path = str(temp_dir / f"temp_sub_sketch_batch.jpg")
+                output_stem = Path(output_path).stem if output_path else uuid.uuid4().hex
+                sub_sketch_path = str(
+                    temp_dir / f"temp_sub_sketch_batch_{output_stem}.jpg"
+                )
                 target_aspect_batch = None
                 if sketch_aspect_padding and mode_key:
                     target_aspect_batch = cell_aspect_ratio(mode_key)
@@ -4336,7 +4368,7 @@ class NanoBananaGridGenerator:
                         grid_img.save(output_path)
                         image_bytes = output.read_bytes()
                     except Exception as exc:
-                        print(f"[ConcurrentImages] Grid {index} gap removal 失败: {exc}")
+                        logger.info(f"[ConcurrentImages] Grid {index} gap removal 失败: {exc}")
 
                 return GridGenerationResult(
                     success=True,
@@ -4360,7 +4392,7 @@ class NanoBananaGridGenerator:
         )
         if on_status_change:
             on_status_change("SUCCEEDED")
-        print(
+        logger.info(
             f"[ConcurrentImages] 完成: "
             f"{sum(1 for result in results if result.success)}/{len(results)} 成功"
         )
@@ -4414,10 +4446,10 @@ class NanoBananaGridGenerator:
         max_grid_cols = max_grid_rows
 
         total_beats = len(all_beats)
-        print(
+        logger.info(
             f"[NanoBananaPro Batch] 共 {total_beats} 个 beats，最大网格: {max_grid_rows}x{max_grid_cols}"
         )
-        print(f"[NanoBananaPro Batch] 动态网格优化已启用（最小化黑色填充）")
+        logger.info(f"[NanoBananaPro Batch] 动态网格优化已启用（最小化黑色填充）")
 
         # 确保输出目录存在
         if output_dir:
@@ -4434,7 +4466,7 @@ class NanoBananaGridGenerator:
                 f"{REGEN_MODE_CONFIGS[mk]['rows']}x{REGEN_MODE_CONFIGS[mk]['cols']}({loc})"
                 for mk, loc in zip(grid_plan_tuples, loc_labels)
             ]
-            print(
+            logger.info(
                 f"[NanoBananaPro Batch] 场景分组模式: "
                 f"{' + '.join(scene_grid_labels)} "
                 f"(共 {len(grid_plan_tuples)} 个网格)"
@@ -4472,7 +4504,7 @@ class NanoBananaGridGenerator:
                 f"{REGEN_MODE_CONFIGS[mk]['rows']}x{REGEN_MODE_CONFIGS[mk]['cols']}"
                 for mk in grid_plan_tuples
             ]
-            print(
+            logger.info(
                 f"[NanoBananaPro Batch] 完美分割方案: {' + '.join(grid_labels)} "
                 f"= {sum(grid_capacities)} (共 {len(grid_plan_tuples)} 个网格，0 填充)"
             )
@@ -4500,7 +4532,7 @@ class NanoBananaGridGenerator:
 
             # 角色过滤交给 generate_grid 内部完成，避免批量阶段重复解析引用。
             batch_character_map = character_map
-            print(
+            logger.info(
                 f"[NanoBananaPro Batch] 网格 {batch_idx + 1} 候选角色: "
                 f"{list(batch_character_map.keys())}"
             )
@@ -4508,7 +4540,7 @@ class NanoBananaGridGenerator:
             # 完美分割不需要填充，直接使用 batch_beats
             # （如果因为某种原因 beat 数量不匹配，这里会有问题，但理论上不会发生）
             if len(batch_beats) != batch_capacity:
-                print(
+                logger.info(
                     f"[NanoBananaPro Batch] 警告: 网格 {batch_idx + 1} beat 数量不匹配 ({len(batch_beats)} vs {batch_capacity})"
                 )
 
@@ -4517,7 +4549,7 @@ class NanoBananaGridGenerator:
             if output_dir:
                 output_path = str(Path(output_dir) / f"grid_{batch_idx + 1:02d}.png")
 
-            print(
+            logger.info(
                 f"[NanoBananaPro Batch] 生成网格 {batch_idx + 1} (beats {start_idx}-{end_idx}, 网格: {batch_rows}x{batch_cols})"
             )
 
@@ -4554,15 +4586,15 @@ class NanoBananaGridGenerator:
                 try:
                     on_grid_complete(batch_idx, result)
                 except Exception as e:
-                    print(f"[NanoBananaPro Batch] 回调错误: {e}")
+                    logger.info(f"[NanoBananaPro Batch] 回调错误: {e}")
 
             if not result.success:
-                print(f"[NanoBananaPro Batch] 网格 {batch_idx + 1} 生成失败: {result.error}")
+                logger.info(f"[NanoBananaPro Batch] 网格 {batch_idx + 1} 生成失败: {result.error}")
                 # 继续生成下一个网格，不中断整个流程
 
         successful = sum(1 for r in results if r.success)
         total_grids = len(results)
-        print(f"[NanoBananaPro Batch] 批量生成完成: {successful}/{total_grids} 成功")
+        logger.info(f"[NanoBananaPro Batch] 批量生成完成: {successful}/{total_grids} 成功")
 
         return results
 
@@ -4625,7 +4657,7 @@ class NanoBananaGridGenerator:
             total_beats = len(all_beats)
             target_start_idx = 0  # 场景分组无连续起始索引
             loc_name = entry.get("scene_id", "")
-            print(
+            logger.info(
                 f"[NanoBananaPro Regen] 场景分组: 网格 {grid_index + 1} ({loc_name}, "
                 f"{len(target_batch_beats)} beats, "
                 f"网格: {target_batch_rows}x{target_batch_cols})"
@@ -4655,7 +4687,7 @@ class NanoBananaGridGenerator:
 
         actual_beat_count = len(target_batch_beats)
         if not scene_grid_plan:
-            print(
+            logger.info(
                 f"[NanoBananaPro Regen] 重新生成网格 {grid_index + 1} "
                 f"(beats {target_start_idx + 1}-{target_start_idx + actual_beat_count}, "
                 f"网格: {target_batch_rows}x{target_batch_cols})"
@@ -4663,14 +4695,14 @@ class NanoBananaGridGenerator:
 
         # 角色过滤交给 generate_grid 内部完成，避免重生阶段重复解析引用。
         batch_character_map = character_map
-        print(
+        logger.info(
             f"[NanoBananaPro Regen] 网格 {grid_index + 1} 候选角色: "
             f"{list(batch_character_map.keys())}"
         )
 
         # 完美分割不需要填充，但检查以防万一
         if len(target_batch_beats) != batch_capacity:
-            print(
+            logger.info(
                 f"[NanoBananaPro Regen] 警告: 网格 {grid_index + 1} beat 数量不匹配 "
                 f"({len(target_batch_beats)} vs {batch_capacity})"
             )
@@ -4705,9 +4737,9 @@ class NanoBananaGridGenerator:
         )
 
         if result.success:
-            print(f"[NanoBananaPro Regen] 网格 {grid_index + 1} 重新生成成功")
+            logger.info(f"[NanoBananaPro Regen] 网格 {grid_index + 1} 重新生成成功")
         else:
-            print(f"[NanoBananaPro Regen] 网格 {grid_index + 1} 重新生成失败: {result.error}")
+            logger.info(f"[NanoBananaPro Regen] 网格 {grid_index + 1} 重新生成失败: {result.error}")
 
         # 添加额外的元数据到结果
         result.beat_start_index = target_start_idx
@@ -4758,7 +4790,7 @@ class NanoBananaGridGenerator:
                         max(1, int(round(img.size[1] * scale))),
                     )
                     img = img.resize(new_size, Image.Resampling.LANCZOS)
-                    print(
+                    logger.info(
                         f"[参考图放大] {os.path.basename(image_path)}: "
                         f"{original_dimensions[0]}x{original_dimensions[1]} → "
                         f"{new_size[0]}x{new_size[1]}"
@@ -4778,7 +4810,7 @@ class NanoBananaGridGenerator:
 
                 compressed_size = len(image_data)
                 ratio = (1 - compressed_size / original_size) * 100
-                print(
+                logger.info(
                     f"[压缩] {os.path.basename(image_path)}: "
                     f"{original_size/1024:.0f}KB → {compressed_size/1024:.0f}KB "
                     f"({ratio:.0f}% 压缩)"
@@ -4804,7 +4836,7 @@ class NanoBananaGridGenerator:
             return _InlineImagePart(image_data, mime_type)
 
         except Exception as e:
-            print(f"[NanoBananaPro] 加载参考图失败: {image_path}, {e}")
+            logger.info(f"[NanoBananaPro] 加载参考图失败: {image_path}, {e}")
             return None
 
     def _append_reference_parts_from_plan(
@@ -4843,7 +4875,7 @@ class NanoBananaGridGenerator:
                         sheets.append(sheet)
                         names.append(char_name)
                         if verbose:
-                            print(
+                            logger.info(
                                 f"[NanoBananaPro] 添加完整多视图参考 sheet: {char_name} -> "
                                 f"{sheet.size[0]}x{sheet.size[1]}px"
                             )
@@ -4852,7 +4884,7 @@ class NanoBananaGridGenerator:
                         if merged_part:
                             contents.append(merged_part)
                             if verbose:
-                                print(f"[NanoBananaPro] 多人完整 sheet 合并参考图: {names}")
+                                logger.info(f"[NanoBananaPro] 多人完整 sheet 合并参考图: {names}")
                 finally:
                     for sheet in sheets:
                         try:
@@ -4879,17 +4911,17 @@ class NanoBananaGridGenerator:
                 if not verbose:
                     continue
                 if kind == "composite":
-                    print(
+                    logger.info(
                         "[NanoBananaPro] 添加参考图 (复合图): "
                         f"{entry.get('char_name', '')} -> {path}"
                     )
                 elif kind == "portrait_only":
-                    print(
+                    logger.info(
                         "[NanoBananaPro] 添加参考图 (Portrait): "
                         f"{entry.get('char_name', '')} -> {path}"
                     )
                 else:
-                    print(
+                    logger.info(
                         "[NanoBananaPro] 添加身份级 Portrait (年龄变体): "
                         f"{entry.get('char_name', '')}/{entry.get('tag', '')}"
                     )
@@ -4927,12 +4959,12 @@ class NanoBananaGridGenerator:
                         size_bytes = os.path.getsize(path)
                     except OSError:
                         size_bytes = -1
-                    print(
+                    logger.info(
                         f"[NanoBananaPro][RefPlan] kind={kind} "
                         f"base_id={getattr(ref, 'base_id', '')} "
                         f"path={path} bytes={size_bytes}"
                     )
-                    print(f"[NanoBananaPro] 添加{label}参考图: " f"{getattr(ref, 'base_id', '')}")
+                    logger.info(f"[NanoBananaPro] 添加{label}参考图: " f"{getattr(ref, 'base_id', '')}")
 
     def _extract_ref_bytes_from_contents(
         self, contents: list, *, include_mime: bool = False
@@ -5011,7 +5043,7 @@ class NanoBananaGridGenerator:
         buffer = io.BytesIO()
         merged.save(buffer, format="JPEG", quality=compress_quality, optimize=True)
         image_data = buffer.getvalue()
-        print(
+        logger.info(
             f"[NanoBananaPro] 合并参考图: {len(panels)} 角色, "
             f"{total_w}x{max_h}px, {len(image_data)/1024:.0f}KB"
         )
@@ -5063,7 +5095,7 @@ class NanoBananaGridGenerator:
                 s_rows = SKETCH_GRID_CONFIG["rows"]
                 s_cols = SKETCH_GRID_CONFIG["cols"]
                 local_offset = beat_start_index  # 单文件 fallback
-                print(f"[Render] 回退：使用传入草图 {sketch_path}")
+                logger.info(f"[Render] 回退：使用传入草图 {sketch_path}")
 
             sketch_img = Image.open(actual_sketch_file)
             sketch_w, sketch_h = sketch_img.size
@@ -5071,8 +5103,8 @@ class NanoBananaGridGenerator:
             panel_w = sketch_w // s_cols
             panel_h = sketch_h // s_rows
 
-            print(f"[Render] Sketch: {actual_sketch_file} ({s_rows}x{s_cols})")
-            print(f"[Render] Panel 尺寸: {panel_w}x{panel_h}")
+            logger.info(f"[Render] Sketch: {actual_sketch_file} ({s_rows}x{s_cols})")
+            logger.info(f"[Render] Panel 尺寸: {panel_w}x{panel_h}")
 
             # 2. 切分草图得到所有 panel
             all_panels = []
@@ -5085,7 +5117,7 @@ class NanoBananaGridGenerator:
             # 3. 根据 local_offset 取对应的 panel
             panels = all_panels[local_offset : local_offset + len(beats)]
 
-            print(
+            logger.info(
                 f"[Render] 从 {len(all_panels)} 个 sketch panel 中取 [local {local_offset}:{local_offset + len(beats)}] = {len(panels)} panels"
             )
 
@@ -5179,7 +5211,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
             # 输出路径
             panel_output_path = os.path.join(temp_dir, f"render_panel_{panel_idx}.png")
 
-            print(
+            logger.info(
                 f"[Render] Panel {panel_idx}: {len(panel_char_refs)} character refs, prompt: {simple_prompt[:60]}..."
             )
 
@@ -5202,12 +5234,12 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
 
         for idx, res in enumerate(results):
             if isinstance(res, Exception):
-                print(f"[Render] Panel {idx+1} failed: {res}")
+                logger.info(f"[Render] Panel {idx+1} failed: {res}")
                 rendered_panels.append(panels[idx])  # 回退到草图
             elif (
                 not res
             ):
-                print(f"[Render] Panel {idx+1} failed (Empty result)")
+                logger.info(f"[Render] Panel {idx+1} failed (Empty result)")
                 rendered_panels.append(panels[idx])
             else:
                 # 加载渲染好的图
@@ -5223,7 +5255,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                     )
                     rendered_panels.append(panels[idx])
 
-        print(f"[Render] Completed {success_count}/{len(beats)} panels.")
+        logger.info(f"[Render] Completed {success_count}/{len(beats)} panels.")
 
         # 6. 拼合回网格（补白后 panel 尺寸可能变化）
         final_pw, final_ph = panel_w, panel_h
@@ -5242,7 +5274,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
             final_grid.paste(p_img, (c * final_pw, r * final_ph))
 
         final_grid.save(output_path)
-        print(f"[Render] Final grid assembled: {output_path}")
+        logger.info(f"[Render] Final grid assembled: {output_path}")
 
         return GridGenerationResult(success=True, grid_image_path=output_path)
 
@@ -5305,12 +5337,12 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
             )
             if not image_bytes:
                 if error_detail:
-                    print(f"[Commercial Render] 失败: {error_detail}")
+                    logger.info(f"[Commercial Render] 失败: {error_detail}")
                 return None
             Path(output_path).write_bytes(image_bytes)
             return output_path
         except Exception as e:
-            print(f"Commercial Render Error: {e}")
+            logger.info(f"Commercial Render Error: {e}")
             return None
 
     async def upscale_with_nanobanana(
@@ -5372,7 +5404,7 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
 """
 
         try:
-            print(f"[NanoBananaPro Upscale] 处理: {input_path}")
+            logger.info(f"[NanoBananaPro Upscale] 处理: {input_path}")
             ref_bytes = []
             if hasattr(ref_image, "inline_data") and ref_image.inline_data:
                 ref_bytes.append(
@@ -5411,11 +5443,11 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
             img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
             img.save(output_path)
             Path(temp_path).unlink()
-            print(f"[NanoBananaPro Upscale] 完成: {output_path}")
+            logger.info(f"[NanoBananaPro Upscale] 完成: {output_path}")
             return Path(output_path)
 
         except Exception as e:
-            print(f"[NanoBananaPro Upscale] 失败: {e}")
+            logger.info(f"[NanoBananaPro Upscale] 失败: {e}")
             raise
 
     async def generate_single_preview(
@@ -5472,9 +5504,9 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                         ref_image = self._load_image_as_part(ref_path)
                         if ref_image:
                             contents.append(ref_image)
-                            print(f"[StylePreview] 添加参考图: {ref_path}")
+                            logger.info(f"[StylePreview] 添加参考图: {ref_path}")
 
-            print(f"[StylePreview] 调用商业图片模型 ({self.model}) 生成预览图...")
+            logger.info(f"[StylePreview] 调用商业图片模型 ({self.model}) 生成预览图...")
             prompt_text, ref_bytes = self._extract_ref_bytes_from_contents(
                 contents,
                 include_mime=True,
@@ -5497,7 +5529,7 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                 },
             )
             if not image_bytes and error_detail:
-                print(f"[StylePreview] 商业图片模型失败详情: {error_detail}")
+                logger.info(f"[StylePreview] 商业图片模型失败详情: {error_detail}")
 
             if not image_bytes:
                 raise ValueError("API 未返回图像数据")
@@ -5509,15 +5541,15 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                     os.makedirs(output_dir, exist_ok=True)
                 with open(output_path, "wb") as f:
                     f.write(image_bytes)
-                print(f"[StylePreview] 预览图已保存: {output_path}")
+                logger.info(f"[StylePreview] 预览图已保存: {output_path}")
 
             generation_time = time.time() - start_time
-            print(f"[StylePreview] 生成完成，耗时 {generation_time:.1f}s")
+            logger.info(f"[StylePreview] 生成完成，耗时 {generation_time:.1f}s")
 
             return image_bytes
 
         except Exception as e:
-            print(f"[StylePreview] 生成失败: {e}")
+            logger.info(f"[StylePreview] 生成失败: {e}")
             raise
 
     async def generate_shot_grid(
@@ -5557,7 +5589,7 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
         aspect_ratio = cfg["aspect_ratio"]
         image_size = cfg["image_size"]
 
-        print(f"[ShotGrid] 生成 Shot Grid: {beat_count} beats → {rows}x{cols} ({aspect_ratio})")
+        logger.info(f"[ShotGrid] 生成 Shot Grid: {beat_count} beats → {rows}x{cols} ({aspect_ratio})")
 
         return await self.generate_grid(
             beats=shot_beats,
@@ -5592,6 +5624,115 @@ def _generation_beat_number(beat: dict, fallback_index: int) -> int:
     return fallback_index + 1
 
 
+_SELECTED_REGEN_DEFAULT_MAX_CONCURRENCY = 3
+_SELECTED_REGEN_MAX_CONCURRENCY = 4
+_SELECTED_REGEN_DEFAULT_MAX_ATTEMPTS = 2
+_SELECTED_REGEN_HEARTBEAT_INTERVAL_SECONDS = 15.0
+_SELECTED_REGEN_RETRYABLE_ERROR_MARKERS = (
+    "http 429",
+    "http 502",
+    "http 503",
+    "http 504",
+    "http 524",
+    "connecterror",
+    "connecttimeout",
+    "connection reset",
+    "pooltimeout",
+    "readtimeout",
+    "remoteprotocolerror",
+    "server disconnected",
+    "too many requests",
+    "请求超时",
+    "暂时不可用",
+    "连接中断",
+)
+
+
+def _selected_regen_checkpoint_path(output_path: str) -> Path:
+    output = Path(output_path)
+    return output.parent / "prompts" / f"{output.stem}.completed.json"
+
+
+def _selected_regen_output_is_valid(output_path: str) -> bool:
+    output = Path(output_path)
+    try:
+        if not output.is_file() or output.stat().st_size <= 0:
+            return False
+    except OSError:
+        return False
+    try:
+        from PIL import Image
+
+        with Image.open(output) as image:
+            image.verify()
+    except (OSError, ValueError):
+        return False
+    return True
+
+
+def _selected_regen_checkpoint_matches(
+    *,
+    output_path: str,
+    resume_token: str,
+    mode_key: str,
+    beat_numbers: list[int],
+) -> bool:
+    if not resume_token or not _selected_regen_output_is_valid(output_path):
+        return False
+    checkpoint_path = _selected_regen_checkpoint_path(output_path)
+    try:
+        payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    try:
+        checkpoint_beats = [int(value) for value in payload.get("beat_numbers") or []]
+    except (TypeError, ValueError):
+        return False
+    return (
+        str(payload.get("resume_token") or "") == resume_token
+        and str(payload.get("mode_key") or "") == mode_key
+        and checkpoint_beats == beat_numbers
+    )
+
+
+def _write_selected_regen_checkpoint(
+    *,
+    output_path: str,
+    resume_token: str,
+    mode_key: str,
+    beat_numbers: list[int],
+) -> None:
+    if not resume_token or not _selected_regen_output_is_valid(output_path):
+        return
+    checkpoint_path = _selected_regen_checkpoint_path(output_path)
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = checkpoint_path.with_suffix(f"{checkpoint_path.suffix}.tmp")
+    temp_path.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "resume_token": resume_token,
+                "mode_key": mode_key,
+                "beat_numbers": beat_numbers,
+                "output_file": Path(output_path).name,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    os.replace(temp_path, checkpoint_path)
+
+
+def _selected_regen_error_is_retryable(error: str | None) -> bool:
+    normalized = str(error or "").strip().lower()
+    return bool(normalized) and any(
+        marker in normalized for marker in _SELECTED_REGEN_RETRYABLE_ERROR_MARKERS
+    )
+
+
 async def regenerate_selected_beats(
     selected_beats: List[dict],
     mode_key: str,
@@ -5611,6 +5752,11 @@ async def regenerate_selected_beats(
     sketch_aspect_padding: bool = False,
     force_image_size: Optional[str] = None,
     generator_config: Optional[dict] = None,
+    max_concurrency: int = _SELECTED_REGEN_DEFAULT_MAX_CONCURRENCY,
+    max_attempts: int = _SELECTED_REGEN_DEFAULT_MAX_ATTEMPTS,
+    heartbeat_interval_seconds: float = _SELECTED_REGEN_HEARTBEAT_INTERVAL_SECONDS,
+    resume_token: str = "",
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> List[GridGenerationResult]:
     """再生选中的 beats（支持 render 和 sketch 模式）。
 
@@ -5637,19 +5783,22 @@ async def regenerate_selected_beats(
     # 分割 beats
     num_grids = math.ceil(len(selected_beats) / capacity)
     grid_splits = [mode_key] * num_grids
-    print(
+    logger.info(
         f"[RegenBeats] mode={mode_key}, beats={len(selected_beats)}, "
         f"splits={grid_splits}, aspect_ratio={aspect_ratio}"
     )
 
     generator = create_grid_generator(config=generator_config)
-    results = []
+    results: list[GridGenerationResult | None] = [None] * num_grids
+    pending_grids: list[dict[str, Any]] = []
     beat_offset = 0
+    reused_count = 0
 
     for grid_idx, split_mk in enumerate(grid_splits, start=1):
         split_cfg = REGEN_MODE_CONFIGS[split_mk]
         g_rows, g_cols = split_cfg["rows"], split_cfg["cols"]
         grid_beat_count = split_cfg["capacity"]
+        beat_start_index = beat_offset
         grid_beats = selected_beats[beat_offset : beat_offset + grid_beat_count]
         beat_offset += grid_beat_count
 
@@ -5658,6 +5807,24 @@ async def regenerate_selected_beats(
 
         # 提取 beat 编号用于 location_beat_numbers
         beat_numbers = [_generation_beat_number(b, i) for i, b in enumerate(grid_beats)]
+
+        if _selected_regen_checkpoint_matches(
+            output_path=output_path,
+            resume_token=resume_token,
+            mode_key=mode_key,
+            beat_numbers=beat_numbers,
+        ):
+            results[grid_idx - 1] = GridGenerationResult(
+                success=True,
+                grid_image_path=output_path,
+                generation_time=0.0,
+                beat_start_index=beat_start_index,
+                beat_count=len(grid_beats),
+                grid_rows=g_rows,
+                grid_cols=g_cols,
+            )
+            reused_count += 1
+            continue
 
         # 从图片池构建 per-beat 草图路径
         grid_beat_sketch_paths = None
@@ -5674,39 +5841,161 @@ async def regenerate_selected_beats(
                 if int(beat_num) in {int(value) for value in beat_numbers}
             }
 
-        result = await generator.generate_grid(
-            beats=grid_beats,
-            character_map=character_map,
-            scene_menu=scene_menu,
-            prop_menu=prop_menu,
-            sketch_colors=sketch_colors,
-            style=style,
-            output_path=output_path,
-            ethnicity=ethnicity,
-            rows=g_rows,
-            cols=g_cols,
-            sketch=is_sketch,
-            sketch_dir=sketch_dir if not is_sketch else "",
-            location_beat_numbers=beat_numbers,
-            mode_key=split_mk,
-            beat_sketch_paths=grid_beat_sketch_paths,
-            scene_refs_override=scene_refs_override,
-            prop_refs_override=prop_refs_override,
-            sketch_aspect_padding=sketch_aspect_padding,
-            force_image_size=force_image_size,
+        pending_grids.append(
+            {
+                "grid_index": grid_idx,
+                "split_mode_key": split_mk,
+                "rows": g_rows,
+                "cols": g_cols,
+                "beats": grid_beats,
+                "beat_numbers": beat_numbers,
+                "beat_start_index": beat_start_index,
+                "output_path": output_path,
+                "beat_sketch_paths": grid_beat_sketch_paths,
+            }
         )
-        result.beat_start_index = beat_offset - grid_beat_count
-        result.beat_count = len(grid_beats)
-        result.grid_rows = g_rows
-        result.grid_cols = g_cols
-        results.append(result)
 
-        if result.success:
-            print(f"[RegenBeats] Grid {grid_idx} 成功: {result.grid_image_path}")
-        else:
-            print(f"[RegenBeats] Grid {grid_idx} 失败: {result.error}")
+    total_count = num_grids
+    completed_count = reused_count
+    active_count = 0
 
-    return results
+    def emit_progress(event: str, **details: Any) -> None:
+        if progress_callback is None:
+            return
+        payload = {
+            "event": event,
+            "completed": completed_count,
+            "total": total_count,
+            "active": active_count,
+            "reused": reused_count,
+            **details,
+        }
+        try:
+            progress_callback(payload)
+        except Exception:
+            logger.exception("Selected regeneration progress callback failed")
+
+    if reused_count:
+        emit_progress("resumed")
+    if not pending_grids:
+        emit_progress("finished")
+        return [result for result in results if result is not None]
+
+    concurrency = min(
+        max(1, int(max_concurrency or _SELECTED_REGEN_DEFAULT_MAX_CONCURRENCY)),
+        _SELECTED_REGEN_MAX_CONCURRENCY,
+        len(pending_grids),
+    )
+    attempts = min(max(1, int(max_attempts or 1)), 3)
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def generate_one(item: dict[str, Any]) -> None:
+        nonlocal active_count, completed_count
+        grid_index = int(item["grid_index"])
+        async with semaphore:
+            active_count += 1
+            emit_progress("started", grid_index=grid_index)
+            try:
+                result: GridGenerationResult | None = None
+                for attempt in range(1, attempts + 1):
+                    result = await generator.generate_grid(
+                        beats=item["beats"],
+                        character_map=character_map,
+                        scene_menu=scene_menu,
+                        prop_menu=prop_menu,
+                        sketch_colors=sketch_colors,
+                        style=style,
+                        output_path=item["output_path"],
+                        ethnicity=ethnicity,
+                        rows=item["rows"],
+                        cols=item["cols"],
+                        sketch=is_sketch,
+                        sketch_dir=sketch_dir if not is_sketch else "",
+                        location_beat_numbers=item["beat_numbers"],
+                        mode_key=item["split_mode_key"],
+                        beat_sketch_paths=item["beat_sketch_paths"],
+                        scene_refs_override=scene_refs_override,
+                        prop_refs_override=prop_refs_override,
+                        sketch_aspect_padding=sketch_aspect_padding,
+                        force_image_size=force_image_size,
+                    )
+                    if result.success or attempt >= attempts:
+                        break
+                    if not _selected_regen_error_is_retryable(result.error):
+                        break
+                    emit_progress(
+                        "retry",
+                        grid_index=grid_index,
+                        attempt=attempt + 1,
+                        max_attempts=attempts,
+                        error=str(result.error or ""),
+                    )
+                    await asyncio.sleep(min(2.0**attempt, 5.0))
+
+                if result is None:
+                    raise RuntimeError(f"网格 {grid_index} 未返回生成结果")
+                result.beat_start_index = int(item["beat_start_index"])
+                result.beat_count = len(item["beats"])
+                result.grid_rows = int(item["rows"])
+                result.grid_cols = int(item["cols"])
+                results[grid_index - 1] = result
+                if result.success and result.grid_image_path:
+                    try:
+                        _write_selected_regen_checkpoint(
+                            output_path=result.grid_image_path,
+                            resume_token=resume_token,
+                            mode_key=mode_key,
+                            beat_numbers=item["beat_numbers"],
+                        )
+                    except OSError:
+                        logger.exception(
+                            "Could not persist selected regeneration checkpoint: grid=%s",
+                            grid_index,
+                        )
+                if result.success:
+                    logger.info(
+                        f"[RegenBeats] Grid {grid_index} 成功: "
+                        f"{result.grid_image_path}"
+                    )
+                else:
+                    logger.info(f"[RegenBeats] Grid {grid_index} 失败: {result.error}")
+            finally:
+                active_count = max(0, active_count - 1)
+
+            completed_count += 1
+            emit_progress(
+                "completed",
+                grid_index=grid_index,
+                success=bool(result.success),
+                error=str(result.error or ""),
+            )
+
+    async def heartbeat() -> None:
+        interval = max(0.1, float(heartbeat_interval_seconds))
+        while completed_count < total_count:
+            await asyncio.sleep(interval)
+            if completed_count < total_count:
+                emit_progress("heartbeat")
+
+    grid_tasks = [asyncio.create_task(generate_one(item)) for item in pending_grids]
+    heartbeat_task = (
+        asyncio.create_task(heartbeat()) if heartbeat_interval_seconds > 0 else None
+    )
+    try:
+        await asyncio.gather(*grid_tasks)
+    except BaseException:
+        for task in grid_tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*grid_tasks, return_exceptions=True)
+        raise
+    finally:
+        if heartbeat_task is not None:
+            heartbeat_task.cancel()
+            await asyncio.gather(heartbeat_task, return_exceptions=True)
+
+    emit_progress("finished")
+    return [result for result in results if result is not None]
 
 
 def create_grid_generator(config: Optional[dict] = None) -> NanoBananaGridGenerator:

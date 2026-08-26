@@ -10,7 +10,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {

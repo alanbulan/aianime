@@ -76,7 +76,7 @@ def _create_translation_agent(model: str, model_selector: str | None) -> Agent:
         system_prompt=CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT,
         model_settings=get_newapi_structured_output_model_settings(),
         output_type=_CreativeCanvasTranslationResult,
-        output_retries=1,
+        retries={"output": 1},
         name="Freezone Prompt Translator",
     )
 
@@ -119,7 +119,7 @@ def _create_story_script_agent(model: str, model_selector: str | None) -> Agent:
         model_settings=get_newapi_structured_output_model_settings(),
         output_type=_CreativeCanvasStoryScriptResult,
         # 多字段结构化脚本偶尔需要多轮校验反馈才能修正字段类型。
-        output_retries=3,
+        retries={"output": 3},
         name="Freezone Story Script Generator",
     )
 

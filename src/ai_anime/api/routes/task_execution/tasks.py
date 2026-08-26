@@ -51,7 +51,7 @@ async def list_project_tasks(project: str, user: dict = Depends(get_api_user)):
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="viewer"
     )
-    tasks = project_task_use_cases().list_for_project(ctx)
+    tasks = await asyncio.to_thread(project_task_use_cases().list_for_project, ctx)
     return {
         "ok": True,
         "data": [serialize_project_task(task, context=ctx) for task in tasks],
@@ -84,7 +84,8 @@ async def get_project_task_by_key(
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="viewer"
     )
-    for task in project_task_use_cases().list_for_project(ctx):
+    tasks = await asyncio.to_thread(project_task_use_cases().list_for_project, ctx)
+    for task in tasks:
         payload = serialize_project_task(task, context=ctx)
         if payload["task_key"] == task_key:
             return {"ok": True, "data": payload}
@@ -99,7 +100,7 @@ async def clear_project_completed_tasks(
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="editor"
     )
-    deleted = project_task_use_cases().clear_completed(ctx)
+    deleted = await asyncio.to_thread(project_task_use_cases().clear_completed, ctx)
     return {"ok": True, "data": {"deleted": deleted}}
 
 
@@ -120,7 +121,8 @@ async def get_project_task(
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="viewer"
     )
-    task = project_task_use_cases().get_for_project(
+    task = await asyncio.to_thread(
+        project_task_use_cases().get_for_project,
         ctx,
         ProjectTaskRef(
             task_type=task_type,
@@ -160,7 +162,8 @@ async def stream_project_tasks(
         last_heartbeat = asyncio.get_event_loop().time()
         last_auth_check = last_heartbeat
 
-        for task in use_cases.list_for_project(ctx):
+        initial_tasks = await asyncio.to_thread(use_cases.list_for_project, ctx)
+        for task in initial_tasks:
             payload = serialize_project_task(task, context=ctx)
             key = payload["task_key"]
             last[key] = (task.status, round(task.progress, 3), task.updated_at)
@@ -176,7 +179,7 @@ async def stream_project_tasks(
         }
 
         while True:
-            tasks = use_cases.list_for_project(ctx)
+            tasks = await asyncio.to_thread(use_cases.list_for_project, ctx)
             seen: set[str] = set()
             for task in tasks:
                 payload = serialize_project_task(task, context=ctx)
@@ -264,7 +267,7 @@ async def stream_project_task(
                 }
                 return
 
-            task = use_cases.get_for_project(ctx, reference)
+            task = await asyncio.to_thread(use_cases.get_for_project, ctx, reference)
 
             if not task:
                 import time

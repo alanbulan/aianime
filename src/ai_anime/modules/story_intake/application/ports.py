@@ -43,12 +43,21 @@ class KnowledgeGraph(Protocol):
 
 
 class ProjectSettings(Protocol):
+    def get_spine_template(
+        self,
+        username: str,
+        project_name: str,
+    ) -> SpineTemplate: ...
+
     def set_ingestion_configuration(
         self,
         username: str,
         project_name: str,
         *,
         spine_template: SpineTemplate | None,
+        visual_style: str | None,
+        narration_style: str | None,
+        ethnicity: str | None,
     ) -> None: ...
 
 

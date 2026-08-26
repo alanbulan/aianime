@@ -66,9 +66,7 @@ def _resolve_production_image_models() -> tuple[str, str]:
         try:
             resolved[role] = resolve_model_for_role(role)
         except PermissionError:
-            errors.append(
-                f"{label}模型缺失：当前未配置可用的 {role} 云端或 BYOK 模型"
-            )
+            errors.append(f"{label}模型缺失：当前未配置可用的 {role} 云端或 BYOK 模型")
     if errors:
         raise ProductionWorkflowModelPrerequisitesMissing(errors)
     return resolved["IMAGE_GENERATION"], resolved["IMAGE_EDIT"]
@@ -616,9 +614,7 @@ async def _generate_missing_world_assets(
                     kind=kind,
                     style=scene_style,
                     model=(
-                        image_generation_model
-                        if kind == "master"
-                        else image_edit_model
+                        image_generation_model if kind == "master" else image_edit_model
                     ),
                 )
             finally:
@@ -903,7 +899,9 @@ async def _ensure_audio_prerequisites(
     from ai_anime.modules.production.public import (
         AudioVoicePrerequisitesMissing,
         GenerateEpisodeAudioCommand,
+        VoiceDesignModelUnavailable,
         episode_audio_use_cases,
+        provision_voice_design_requirements,
     )
 
     paths = PathResolver(context.output_dir, episode_num)
@@ -915,14 +913,31 @@ async def _ensure_audio_prerequisites(
     if not candidates:
         return
     reporter.update(progress, f"第 {episode_num} 集检查配音声线前置")
-    plan = await episode_audio_use_cases().plan(
-        context,
-        GenerateEpisodeAudioCommand(
-            episode_num=episode_num,
-            mode="redo_selected",
-            beat_numbers=candidates,
-        ),
+    command = GenerateEpisodeAudioCommand(
+        episode_num=episode_num,
+        mode="redo_selected",
+        beat_numbers=candidates,
     )
+    plan = await episode_audio_use_cases().plan(context, command)
+    if plan.errors and plan.voice_requirements:
+        reporter.update(
+            progress,
+            f"第 {episode_num} 集自动设计 {len(plan.voice_requirements)} 条缺失声线",
+        )
+        try:
+            await provision_voice_design_requirements(
+                context,
+                plan.voice_requirements,
+            )
+        except VoiceDesignModelUnavailable as exc:
+            raise ProductionWorkflowModelPrerequisitesMissing(
+                [
+                    "文字声线设计模型缺失：当前未配置可用的 "
+                    "AUDIO_VOICE_DESIGN 云端或 BYOK 模型"
+                ]
+            ) from exc
+        reporter.update(progress, f"第 {episode_num} 集重新检查配音声线前置")
+        plan = await episode_audio_use_cases().plan(context, command)
     if plan.errors:
         raise AudioVoicePrerequisitesMissing(list(plan.errors))
 
@@ -1081,9 +1096,7 @@ async def _ensure_seedance_prompts(
         int(beat.get("beat_number") or 0)
         for beat in updated
         if int(beat.get("beat_number") or 0) > 0
-        and not parse_seedance2_config(
-            beat.get("seedance2_config_json")
-        ).final_prompt
+        and not parse_seedance2_config(beat.get("seedance2_config_json")).final_prompt
     ]
     if missing_after:
         raise RuntimeError(
@@ -1139,9 +1152,7 @@ async def _ensure_audio(
         timeout_seconds=timeout_seconds,
     )
     missing_after = [
-        number
-        for number in scheduled.beat_numbers
-        if not paths.audio(number).exists()
+        number for number in scheduled.beat_numbers if not paths.audio(number).exists()
     ]
     if missing_after:
         raise RuntimeError(
@@ -1289,6 +1300,9 @@ async def _run_production_workflow(
         filename=str(payload.get("filename") or ""),
         rebuild=bool(payload.get("rebuild", False)),
         spine_template=payload.get("spine_template"),
+        visual_style=payload.get("visual_style"),
+        narration_style=payload.get("narration_style"),
+        ethnicity=payload.get("ethnicity"),
         target_episodes=int(payload.get("target_episodes") or 10),
         planning_mode=str(payload.get("planning_mode") or "chapters"),
         script_mode=str(payload.get("script_mode") or "duration"),

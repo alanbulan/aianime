@@ -120,7 +120,7 @@ export function StyleNodeView({
         <button
           type="button"
           aria-label="更换风格"
-          title="更换风格"
+          data-ui-tooltip="更换风格"
           onClick={(event) => {
             event.stopPropagation();
             openGallery();

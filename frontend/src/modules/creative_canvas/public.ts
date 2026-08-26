@@ -2725,6 +2725,8 @@ export {
 export type {
   CanvasAudioReference,
   CanvasAudioVoiceCatalogGateway,
+  DesignedCanvasAudioVoice,
+  DesignCanvasAudioVoiceInput,
 } from "@/modules/creative_canvas/application/audioVoiceCatalog";
 export {
   projectAudioNodeToolbar,
@@ -3188,6 +3190,7 @@ export type {
 } from "@/modules/creative_canvas/application/generateCanvasVideoUpscale";
 export {
   createCanvasAudioVoice,
+  designCanvasAudioVoice,
   loadCanvasAudioReferences,
 } from "@/modules/creative_canvas/audioVoiceCatalogComposition";
 export {

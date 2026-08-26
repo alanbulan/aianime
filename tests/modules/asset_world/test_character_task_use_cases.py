@@ -85,6 +85,7 @@ def _repository() -> _Repository:
 async def test_schedules_character_build_with_owned_payload(tmp_path: Path) -> None:
     scheduler = _Scheduler()
     use_cases = CharacterTaskUseCases(scheduler)
+    (tmp_path / "novel.txt").write_text("测试小说正文", encoding="utf-8")
 
     scheduled = await use_cases.schedule_build_characters(
         task_context=_context(),
@@ -123,6 +124,7 @@ async def test_schedules_character_portrait_with_scope_and_backend_payload(
         "character_name": "秦",
         "style": "period-drama",
         "model": "image-model",
+        "model_selector": "",
         "scope": "character:秦:portrait",
         "output_dir": str(tmp_path),
     }
@@ -162,6 +164,7 @@ async def test_schedules_identity_portrait_from_repository_identity(
         "identity_name": "少年",
         "style": "period-drama",
         "model": "image-model",
+        "model_selector": "",
         "scope": "character:秦:identity_portrait:少年",
         "output_dir": str(tmp_path),
     }
@@ -191,6 +194,7 @@ async def test_schedules_identity_image_with_distinct_task_type(tmp_path: Path) 
         "identity_name": "少年",
         "style": "period-drama",
         "model": "image-model",
+        "model_selector": "",
         "scope": "character:秦:identity:少年",
         "output_dir": str(tmp_path),
     }

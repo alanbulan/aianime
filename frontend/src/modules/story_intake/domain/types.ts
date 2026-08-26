@@ -27,6 +27,8 @@ export interface FormatCheck {
 export interface UploadResult {
   filename: string;
   size: number;
+  text_preview?: string;
+  text_preview_truncated?: boolean;
   total_chars?: number;
   billable_chars?: number;
   count?: number;
@@ -70,4 +72,7 @@ export interface StartIngestionParams {
   filename: string;
   rebuild?: boolean;
   spine_template?: SpineTemplate;
+  visual_style?: string;
+  narration_style?: "first_person" | "third_person";
+  ethnicity?: "Chinese" | "Japanese" | "Korean" | "Western";
 }

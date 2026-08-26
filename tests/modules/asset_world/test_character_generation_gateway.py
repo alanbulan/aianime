@@ -86,6 +86,7 @@ async def test_character_portrait_uses_canonical_path_and_preserves_old_content(
         "style": "period-drama",
         "ethnicity": "Chinese",
         "model": "image-model",
+        "model_selector": None,
         "output_dir": tmp_path / "output",
         "project_dir": str(tmp_path),
     }
@@ -264,6 +265,7 @@ async def test_identity_image_prepares_canonical_output_and_passes_generator_con
         "ethnicity": "Chinese",
         "style": "period-drama",
         "model": "image-model",
+        "model_selector": None,
         "project_dir": str(tmp_path),
         "costume_image_path": str(tmp_path / "costume.png"),
         "usage_task_type": "identity_image",

@@ -107,6 +107,8 @@ export type {
 } from "@/modules/ai_assistant/infrastructure/socketSession";
 export {
   calculateTimelineContextDelta,
+  calculateTimelineTurnScrollTop,
+  TIMELINE_ACTIVE_VIEWPORT_RATIO,
 } from "@/modules/ai_assistant/presentation/timelineScroll";
 export {
   useComposerAttachmentsController,

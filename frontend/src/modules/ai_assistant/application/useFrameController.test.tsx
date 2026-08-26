@@ -210,6 +210,39 @@ describe("useSuperChatFrameController", () => {
     expect(options.finalizeStream).not.toHaveBeenCalled();
   });
 
+  it("does not end the active turn for an unscoped task notification", () => {
+    const options = createOptions({
+      activeTurnIdRef: { current: "turn-1" },
+      pendingClientTurnIdRef: { current: "turn-1" },
+    });
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+    const current: ChatMessage[] = [
+      {
+        ...message("tool-call-1", "tool", "等待任务完成", 20, "turn-1"),
+        toolCallId: "call-1",
+        toolState: "running",
+      },
+    ];
+
+    act(() => result.current({
+      type: "assistant.message",
+      message: {
+        id: "notification-1",
+        role: "assistant",
+        content: "角色肖像已完成",
+        created_at: "2026-08-11T19:23:14+08:00",
+      },
+    }));
+
+    expect(options.markTurnInactive).not.toHaveBeenCalled();
+    expect(applyLastMessageUpdate(options, current)).toContainEqual(
+      expect.objectContaining({
+        id: "tool-call-1",
+        toolState: "running",
+      }),
+    );
+  });
+
   it("reconciles a persisted completed turn even while the busy flag is stale", () => {
     const current = [message("local-user", "user", "继续", 100, "turn-1")];
     const options = createOptions({
@@ -257,6 +290,25 @@ describe("useSuperChatFrameController", () => {
 
     act(() => result.current({ type: "chat.done", turn_id: "turn-2" }));
     expect(options.finalizeStream).toHaveBeenCalledTimes(1);
+  });
+
+  it("settles running tools when done arrives without a persisted assistant frame", () => {
+    const options = createOptions();
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+    const current: ChatMessage[] = [
+      {
+        ...message("tool-call-1", "tool", "生成角色肖像", 20, "turn-1"),
+        toolCallId: "call-1",
+        toolState: "running",
+      },
+    ];
+
+    act(() => result.current({ type: "chat.done", turn_id: "turn-1" }));
+
+    expect(applyLastMessageUpdate(options, current)[0]).toMatchObject({
+      toolState: "error",
+      toolError: "未执行：本轮已结束，工具未返回结果",
+    });
   });
 
   it("hides ordinary tool calls but preserves executable Canvas commands", () => {

@@ -27,7 +27,7 @@ class SketchComparer:
                 get_newapi_text_pydantic_model(),
                 system_prompt=SKETCH_COMPARE_PROMPT,
                 output_type=CompareResult,
-                output_retries=2,
+                retries={"output": 2},
                 name="导演级分镜评审",
             )
         return self._agent

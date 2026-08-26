@@ -63,7 +63,12 @@ def test_start_ingest_uses_canonical_workflow_endpoint(
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
     result = ai_anime_plugin._handle_start_ingest(
-        {"filename": "小说.txt", "spine_template": "drama"}
+        {
+            "filename": "小说.txt",
+            "spine_template": "drama",
+            "visual_style": "anime",
+            "ethnicity": "Japanese",
+        }
     )
 
     assert result["ok"] is True
@@ -77,6 +82,8 @@ def test_start_ingest_uses_canonical_workflow_endpoint(
                 "filename": "小说.txt",
                 "rebuild": False,
                 "spine_template": "drama",
+                "visual_style": "anime",
+                "ethnicity": "Japanese",
             },
         ),
     ]
@@ -125,6 +132,77 @@ def test_generate_script_runs_missing_prerequisites_through_one_graph(
             },
         )
     ]
+
+
+def test_generate_portrait_forwards_only_explicit_model_overrides(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "task_type": "character_portrait"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_generate_portrait(
+        {"name": "白石夏音", "model": "byok:trae:Seedream-5.0-lite"}
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/characters/%E7%99%BD%E7%9F%B3%E5%A4%8F%E9%9F%B3/portrait-async",
+            {"model": "byok:trae:Seedream-5.0-lite"},
+        )
+    ]
+
+
+def test_generate_portrait_omits_body_to_use_global_priority(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[object] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append(body)
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    assert ai_anime_plugin._handle_generate_portrait({"name": "白石夏音"})["ok"]
+    assert calls == [None]
+
+
+def test_portrait_tools_expose_optional_model_override_contract(
+    ai_anime_plugin,
+) -> None:
+    schemas = {
+        name: schema["parameters"]
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name in {"ai_anime_generate_portrait", "ai_anime_generate_identity_image"}
+    }
+
+    assert set(schemas) == {
+        "ai_anime_generate_portrait",
+        "ai_anime_generate_identity_image",
+    }
+    assert "model" in schemas["ai_anime_generate_portrait"]["properties"]
+    assert "model" not in schemas["ai_anime_generate_portrait"]["required"]
+    assert (
+        "IMAGE_GENERATION"
+        in schemas["ai_anime_generate_portrait"]["properties"]["model"]["description"]
+    )
+    assert (
+        "IMAGE_EDIT"
+        in schemas["ai_anime_generate_identity_image"]["properties"]["model"][
+            "description"
+        ]
+    )
 
 
 def test_whole_script_workflow_supports_all_episodes_and_parallel_limit(
@@ -189,6 +267,153 @@ def test_complete_generation_uses_one_canonical_production_endpoint(
             },
         )
     ]
+
+
+def test_complete_generation_uses_bound_project_instead_of_model_supplied_id(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-bound")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "task_type": "production_workflow"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_run_production_workflow(
+        {"project_id": "project-typo", "episodes": [1]}
+    )
+
+    assert result["task_type"] == "production_workflow"
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-bound/workflow/production",
+            {"episodes": [1]},
+        )
+    ]
+
+
+def test_bound_project_rewrites_generic_paths_and_hides_project_schema_field(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-bound")
+
+    assert (
+        ai_anime_plugin._normalize_api_path("/projects/project-typo/pipeline/status")
+        == "/api/v1/projects/project-bound/pipeline/status"
+    )
+    schema = ai_anime_plugin._schema(
+        "bound_tool",
+        "Bound project tool",
+        {
+            "project_id": {"type": "string"},
+            "episode": {"type": "integer"},
+        },
+        ["project_id", "episode"],
+    )
+    assert schema["parameters"] == {
+        "type": "object",
+        "properties": {"episode": {"type": "integer"}},
+        "required": ["episode"],
+    }
+
+
+def test_normalize_api_path_encodes_unicode_segments_without_double_encoding(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-bound")
+
+    expected = (
+        "/api/v1/projects/project-bound/characters/"
+        "%E7%99%BD%E7%9F%B3%E5%A4%8F%E9%9F%B3"
+    )
+    assert (
+        ai_anime_plugin._normalize_api_path(
+            "/projects/project-typo/characters/白石夏音"
+        )
+        == expected
+    )
+    assert ai_anime_plugin._normalize_api_path(expected) == expected
+
+
+def test_generic_get_canonicalizes_episode_identity_collection(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[str] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        assert method == "GET"
+        calls.append(path)
+        if path.endswith("/characters"):
+            return {
+                "ok": True,
+                "status_code": 200,
+                "data": [{"name": "白石夏音", "role": "主角"}],
+            }
+        return {
+            "ok": True,
+            "status_code": 200,
+            "data": [
+                {
+                    "identity_id": "白石夏音_学生时期",
+                    "identity_name": "学生时期",
+                    "appearance_details": "校服",
+                    "age_group": "youth",
+                    "image_url": "",
+                }
+            ],
+        }
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_get(
+        {"path": "/projects/project-1/episodes/1/identities"}
+    )
+
+    assert result["ok"] is True
+    assert result["media_count"] == 0
+    assert result["characters"][0]["identities"] == [
+        {
+            "title": "学生时期",
+            "identity_id": "白石夏音_学生时期",
+            "identity_name": "学生时期",
+            "appearance_details": "校服",
+            "age_group": "youth",
+            "image_url": "",
+        }
+    ]
+    assert calls == [
+        "/api/v1/projects/project-1/characters",
+        "/api/v1/projects/project-1/characters/%E7%99%BD%E7%9F%B3%E5%A4%8F%E9%9F%B3/identities",
+    ]
+
+
+def test_generic_get_canonicalizes_episode_scene_collection(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path))
+        return {"ok": True, "status_code": 200, "data": []}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_get(
+        {"path": "/projects/project-1/episodes/1/scenes"}
+    )
+
+    assert result["ok"] is True
+    assert calls == [("GET", "/api/v1/projects/project-1/scenes")]
 
 
 def test_generic_post_cannot_bypass_production_workflow_tool(
@@ -464,9 +689,7 @@ def test_generate_style_preview_default_covers_character_and_environment(
 
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
-    result = ai_anime_plugin._handle_generate_style_preview(
-        {"style_id": "custom_abc"}
-    )
+    result = ai_anime_plugin._handle_generate_style_preview({"style_id": "custom_abc"})
 
     assert result["ok"] is True
     assert calls == [
@@ -592,9 +815,7 @@ def test_generic_style_get_uses_account_scope(
 
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
-    result = ai_anime_plugin._handle_get(
-        {"path": "/api/v1/styles/custom_abc"}
-    )
+    result = ai_anime_plugin._handle_get({"path": "/api/v1/styles/custom_abc"})
 
     assert result["ok"] is True
     assert calls == [
@@ -635,9 +856,13 @@ def test_binary_style_preview_get_returns_metadata_without_decoding_image(
 
         @staticmethod
         def read():
-            raise AssertionError("binary response body must not be decoded into tool text")
+            raise AssertionError(
+                "binary response body must not be decoded into tool text"
+            )
 
-    monkeypatch.setattr(ai_anime_plugin, "urlopen", lambda *_args, **_kwargs: Response())
+    monkeypatch.setattr(
+        ai_anime_plugin, "urlopen", lambda *_args, **_kwargs: Response()
+    )
 
     result = ai_anime_plugin._request(
         "GET",
@@ -660,7 +885,9 @@ def test_wait_task_polls_until_completed(ai_anime_plugin, monkeypatch) -> None:
             {"ok": True, "status_code": 200, "data": {"status": "completed"}},
         ]
     )
-    monkeypatch.setattr(ai_anime_plugin, "_request", lambda *_args, **_kwargs: next(responses))
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request", lambda *_args, **_kwargs: next(responses)
+    )
     monkeypatch.setattr(ai_anime_plugin.time, "sleep", lambda _seconds: None)
 
     result = ai_anime_plugin._handle_wait_task(
@@ -673,6 +900,52 @@ def test_wait_task_polls_until_completed(ai_anime_plugin, monkeypatch) -> None:
     assert result["data"]["status"] == "completed"
     assert result["wait"]["terminal"] is True
     assert result["wait"]["attempts"] == 2
+
+
+def test_wait_task_timeout_reports_non_terminal_without_resubmission(
+    ai_anime_plugin,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "status_code": 200,
+            "data": {"status": "running"},
+        },
+    )
+    original_monotonic = ai_anime_plugin.time.monotonic
+    monotonic_calls = 0
+
+    def advanced_monotonic() -> float:
+        nonlocal monotonic_calls
+        monotonic_calls += 1
+        return original_monotonic() + (2.0 if monotonic_calls > 1 else 0.0)
+
+    monkeypatch.setattr(
+        ai_anime_plugin.time,
+        "monotonic",
+        advanced_monotonic,
+    )
+
+    result = ai_anime_plugin._handle_wait_task(
+        {
+            "task_key": "task:script_workflow:project:project-1:0",
+            "timeout_seconds": 1,
+        }
+    )
+
+    assert result["wait"] == {
+        "terminal": False,
+        "status": "running",
+        "attempts": 1,
+        "elapsed_seconds": pytest.approx(2.0, abs=0.1),
+        "timed_out": True,
+    }
+    assert "不是任务失败" in result["agent_instruction"]
+    assert "同一个 task_key" in result["agent_instruction"]
 
 
 def test_generate_audio_treats_no_required_audio_as_successful_skip(

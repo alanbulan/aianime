@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 
 // Match repo convention: mock react-i18next to return the key verbatim so
-// assertions stay stable without loading translation files over HTTP in jsdom.
+// assertions stay stable without loading translation files over HTTP in tests.
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,

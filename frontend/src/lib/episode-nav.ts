@@ -39,7 +39,7 @@ export interface TopTabDef {
   isCompose?: boolean;
 }
 
-export interface BeatSubTabDef {
+interface BeatSubTabDef {
   id: BeatSubTabId;
   labelKey: string;
   icon: LucideIcon;
@@ -82,31 +82,3 @@ export const BEAT_SUB_TABS: readonly BeatSubTabDef[] = [
   { id: "audio", labelKey: "episode.nav.audio", icon: Mic2, stageId: "audio" },
   { id: "video", labelKey: "episode.nav.video", icon: Video, stageId: "video" },
 ];
-
-const TOP_TAB_PATHS: readonly string[] = TOP_TABS.map((t) => t.routeSegment);
-
-/** Map a URL path to the active top tab id. */
-export function topTabForPathname(pathname: string): TopTabId {
-  const m = pathname.match(/\/episodes\/\d+(\/[a-z-]+)?/);
-  const found = m?.[1] ?? "";
-  if (TOP_TAB_PATHS.includes(found)) {
-    return TOP_TABS.find((t) => t.routeSegment === found)!.id;
-  }
-  return "script";
-}
-
-/** Parse a URL search `sub` param to a valid BeatSubTabId; default to `text`. */
-export function parseSubTabParam(raw: unknown): BeatSubTabId {
-  if (typeof raw !== "string") return "text";
-  return (BEAT_SUB_TABS.some((s) => s.id === raw) ? raw : "text") as BeatSubTabId;
-}
-
-/**
- * Legacy → new sub routing. Old stage tabs (/sketches, /audio, /video)
- * redirect to /beats with the corresponding sub param.
- */
-export const LEGACY_STAGE_TO_SUB: Record<string, BeatSubTabId> = {
-  sketches: "sketch",
-  audio: "audio",
-  video: "video",
-};

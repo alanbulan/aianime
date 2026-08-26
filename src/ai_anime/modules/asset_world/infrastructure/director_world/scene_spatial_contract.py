@@ -629,11 +629,6 @@ def _clean_shared_overlap(
             )
 
 
-def _merge_join_values(join: dict[str, Any], key: str, values: list[str]) -> None:
-    existing = _names(join.get(key), include_scale=False)
-    join[key] = _unique_strings([*existing, *values])
-
-
 def apply_overlap_analysis(
     contract: dict[str, Any],
     overlap_analysis: dict[str, Any] | None,

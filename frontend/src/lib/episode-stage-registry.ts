@@ -70,10 +70,6 @@ export const EPISODE_STAGE_REGISTRY: readonly StageDef[] = [
   },
 ];
 
-export const STAGES_BY_ID: Record<StageId, StageDef> = Object.fromEntries(
-  EPISODE_STAGE_REGISTRY.map((s) => [s.id, s]),
-) as Record<StageId, StageDef>;
-
 /**
  * Look up the stage that owns a given backend task_type. Returns undefined
  * for project-level task types (build_characters, ingest_fast, build_episodes).

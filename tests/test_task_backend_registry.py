@@ -30,7 +30,7 @@ def test_removed_render_plan_runner_does_not_import_deleted_scope_helper():
     source = (
         "src/ai_anime/modules/task_execution/infrastructure/runners/render.py"
     )
-    text = open(source, encoding="utf-8").read()
+    text = Path(source).read_text(encoding="utf-8")
 
     assert "render_plan_scope" not in text
 

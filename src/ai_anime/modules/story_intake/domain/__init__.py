@@ -5,6 +5,7 @@ from ai_anime.modules.story_intake.domain.ingestion import (
     MAX_STORY_IMPORT_CHARS,
     MAX_STORY_IMPORT_BYTES,
     MAX_STORY_UPLOAD_BYTES,
+    STORY_UPLOAD_PREVIEW_CHARS,
     SpineTemplate,
     SpineTemplateChangeRequiresRebuild,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "MAX_STORY_IMPORT_CHARS",
     "MAX_STORY_IMPORT_BYTES",
     "MAX_STORY_UPLOAD_BYTES",
+    "STORY_UPLOAD_PREVIEW_CHARS",
     "STORY_IMPORT_REQUIRED_CODE",
     "STORY_IMPORT_REQUIRED_MESSAGE",
     "SpineTemplate",

@@ -106,23 +106,6 @@ def narration_beat_text(beat: dict[str, Any]) -> str:
     )
 
 
-def narration_beats(
-    beats: list[dict[str, Any]],
-) -> list[tuple[int, dict[str, Any]]]:
-    """Return numbered narration beats that contain spoken text."""
-
-    grouped: list[tuple[int, dict[str, Any]]] = []
-    for beat in beats:
-        if normalize_seedance2_audio_type(beat) != "narration":
-            continue
-        if not narration_beat_text(beat):
-            continue
-        beat_num = int(beat.get("beat_number") or 0)
-        if beat_num > 0:
-            grouped.append((beat_num, beat))
-    return grouped
-
-
 def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLine]:
     """Parse dialogue text into speaker/action/text lines.
 

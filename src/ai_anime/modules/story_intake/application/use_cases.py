@@ -26,6 +26,7 @@ from ai_anime.modules.story_intake.domain import (
     IngestionOptions,
     MAX_STORY_IMPORT_CHARS,
     MAX_STORY_IMPORT_BYTES,
+    STORY_UPLOAD_PREVIEW_CHARS,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -87,6 +88,8 @@ class UploadStoryDocument:
         return {
             "filename": document.filename,
             "size": int(document.size or 0),
+            "text_preview": story_text[:STORY_UPLOAD_PREVIEW_CHARS],
+            "text_preview_truncated": len(story_text) > STORY_UPLOAD_PREVIEW_CHARS,
             **preview,
             "format_check": format_check,
         }
@@ -127,15 +130,23 @@ class StartIngestion:
             )
             raise StoryDocumentParseFailed() from exc
 
+        current_spine_template = self._project_settings.get_spine_template(
+            scope.owner_username,
+            scope.project_name,
+        )
         options = IngestionOptions(
             rebuild=command.rebuild,
             spine_template=command.spine_template,
+            current_spine_template=current_spine_template,
         )
         task_config = options.task_config()
         self._project_settings.set_ingestion_configuration(
             scope.owner_username,
             scope.project_name,
             spine_template=command.spine_template,
+            visual_style=command.visual_style,
+            narration_style=command.narration_style,
+            ethnicity=command.ethnicity,
         )
 
         scheduled = await self._task_scheduler.enqueue_ingestion(

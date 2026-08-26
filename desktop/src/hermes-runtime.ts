@@ -1,8 +1,6 @@
 import { statSync } from "node:fs";
 import { posix, win32 } from "node:path";
 
-export const BUNDLED_HERMES_AGENT_VERSION = "0.19.0";
-
 interface HermesRuntimePathOptions {
   packaged: boolean;
   repositoryRoot: string;

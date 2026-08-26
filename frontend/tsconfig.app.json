@@ -15,6 +15,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "types": ["node"],
 
     /* Linting */
     "strict": true,
@@ -24,7 +25,6 @@
     "noUncheckedSideEffectImports": true,
 
     /* Path alias */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

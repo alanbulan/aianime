@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -36,6 +37,18 @@ async def startup_application(application: FastAPI) -> None:
         await asyncio.to_thread(migrate_legacy_gateway_secrets)
         container = application_container(application)
         await container.lifecycle.on_startup(register_as_worker=True)
+
+        if os.environ.get("AI_ANIME_DESKTOP_MODE") == "1":
+            from ai_anime.shared.infrastructure.project_stores import (
+                prewarm_knowledge_graph_runtime,
+            )
+
+            # Cognee's import graph takes about 20 seconds on Windows. Warm it
+            # in a worker so the API can answer /healthz and the desktop UI
+            # remains responsive while the optional graph feature gets ready.
+            application.state.knowledge_graph_runtime_warmup = asyncio.create_task(
+                prewarm_knowledge_graph_runtime()
+            )
 
         from ai_anime.shared.infrastructure.sqlite_pragmas import litestream_enabled
 

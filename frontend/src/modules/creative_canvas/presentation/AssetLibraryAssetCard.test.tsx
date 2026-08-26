@@ -147,9 +147,14 @@ describe("AssetLibraryAssetCard", () => {
       };
       const { container } = renderCard(currentAsset);
 
-      fireEvent.dragStart(container.firstElementChild as HTMLElement, {
-        dataTransfer,
+      const dragStart = new Event("dragstart", {
+        bubbles: true,
+        cancelable: true,
       });
+      Object.defineProperty(dragStart, "dataTransfer", {
+        value: dataTransfer,
+      });
+      fireEvent(container.firstElementChild as HTMLElement, dragStart);
 
       expect(dataTransfer.setData).toHaveBeenCalledWith(
         CANVAS_ASSET_DRAG_MIME,

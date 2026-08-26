@@ -44,6 +44,9 @@ class ScriptWorkflowOptions:
     filename: str = ""
     rebuild: bool = False
     spine_template: str | None = None
+    visual_style: str | None = None
+    narration_style: str | None = None
+    ethnicity: str | None = None
     target_episodes: int = 10
     planning_mode: str = "chapters"
     script_mode: str = "duration"
@@ -60,6 +63,8 @@ class ScriptWorkflowOptions:
             raise ValueError("episode numbers must be positive")
         if self.spine_template not in {None, "drama", "narrated"}:
             raise ValueError("spine_template must be drama or narrated")
+        if self.narration_style not in {None, "first_person", "third_person"}:
+            raise ValueError("narration_style must be first_person or third_person")
         if self.script_mode not in {"duration", "literal"}:
             raise ValueError("script_mode must be duration or literal")
         if self.target_beats is not None and not 5 <= self.target_beats <= 80:
@@ -302,6 +307,14 @@ def build_script_workflow_plan(
             status = "completed"
         elif task_status in _ACTIVE_TASK_STATUSES:
             status = "running"
+        elif task_status == "completed" and execute and all(
+            completion.get(dependency, False) for dependency in dependencies
+        ):
+            # A terminal task with no persisted output is not completion. Older
+            # versions could store this state after swallowing an upstream model
+            # failure. Re-submit it on the next workflow run; active tasks are
+            # still protected by the task reservation lock.
+            status = "ready"
         elif task_status == "completed":
             status = "blocked"
             blocked_reason = f"{label}任务已完成，但没有产出可用数据"
@@ -447,7 +460,8 @@ class ScriptWorkflowExecutor:
                 wait_errors = []
             if start_errors or wait_errors:
                 error = (start_errors or wait_errors)[0]
-                raise RuntimeError(str(error)) from error
+                error_message = str(error).strip() or type(error).__name__
+                raise RuntimeError(error_message) from error
             batches.append(batch_ids)
             if "ingest" in batch_ids:
                 force_ingest_pending = False

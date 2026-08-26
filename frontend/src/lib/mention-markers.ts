@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-export interface MentionMarkerOptions {
+interface MentionMarkerOptions {
   identities?: string[];
   props?: string[];
 }

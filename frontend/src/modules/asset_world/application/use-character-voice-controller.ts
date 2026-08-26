@@ -20,10 +20,6 @@ import type {
   CharacterVoiceSlot,
   CharacterVoiceSlotId,
 } from "@/modules/asset_world/domain/character";
-import type {
-  DesignedCanvasAudioVoice,
-  DesignCanvasAudioVoiceInput,
-} from "@/modules/creative_canvas/application/audioVoiceCatalog";
 import type { AudioVoiceDesignConfig } from "@/modules/model_usage/public";
 
 const AGE_SLOT_ORDER: CharacterVoiceSlotId[] = [
@@ -47,21 +43,32 @@ export interface CharacterVoiceLibraryOption {
   previewUrl: string | null;
 }
 
+interface CharacterVoiceDesignInput {
+  readonly language: string;
+  readonly modelSelector: string;
+  readonly name: string;
+  readonly preferredName: string;
+  readonly previewText: string;
+  readonly responseFormat: "wav" | "mp3";
+  readonly sampleRate: number;
+  readonly voicePrompt: string;
+}
+
 export type CharacterVoiceBindingTarget =
   | { kind: "slot"; slot: string; label: string }
   | { kind: "identity"; identityId: string; label: string };
 
 export interface CharacterVoiceControllerDependencies {
   createVoiceRecorder(): VoiceRecorder;
-  loadVoiceOptions(project: string): Promise<CharacterVoiceLibraryOption[]>;
-  designVoice?(
-    project: string,
-    input: DesignCanvasAudioVoiceInput,
-  ): Promise<DesignedCanvasAudioVoice>;
 }
 
 export interface CharacterVoiceControllerOptions {
   character: Character;
+  designVoice?(
+    project: string,
+    input: CharacterVoiceDesignInput,
+  ): Promise<{ readonly voiceId: string }>;
+  loadVoiceOptions(project: string): Promise<CharacterVoiceLibraryOption[]>;
   project: string;
   voiceDesign?: {
     config: AudioVoiceDesignConfig;
@@ -159,7 +166,7 @@ export function createUseCharacterVoiceController(
 
     const voiceLibrary = useQuery({
       queryKey: queryKeys.characterVoiceLibrary(project),
-      queryFn: () => dependencies.loadVoiceOptions(project),
+      queryFn: () => options.loadVoiceOptions(project),
       enabled: Boolean(project && voiceBindingTarget),
       staleTime: 30_000,
     });
@@ -469,7 +476,7 @@ export function createUseCharacterVoiceController(
     const designAndBindVoice = async () => {
       const target = voiceBindingTarget;
       const design = options.voiceDesign;
-      const designVoice = dependencies.designVoice;
+      const designVoice = options.designVoice;
       if (!target || !design || !designVoice) return;
       const voicePrompt = designPrompt.trim();
       const previewText = designPreviewText.trim();

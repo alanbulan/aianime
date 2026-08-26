@@ -36,7 +36,7 @@ class ConsistencyVerifier:
                 get_newapi_text_pydantic_model(),
                 system_prompt=CONSISTENCY_VERIFY_PROMPT,
                 output_type=ConsistencyResult,
-                output_retries=2,
+                retries={"output": 2},
                 name="角色一致性审核员",
             )
         return self._agent

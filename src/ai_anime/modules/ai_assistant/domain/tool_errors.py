@@ -14,10 +14,31 @@ from ai_anime.shared.utils.error_redaction import redact_secrets
 
 _READ_ONLY_AGENT_TOOLS = {
     "ai_anime_get",
-    "ai_anime_pipeline_status",
-    "ai_anime_list_tasks",
-    "ai_anime_get_task",
+    "ai_anime_get_character_media",
+    "ai_anime_get_episode_media",
     "ai_anime_get_episode_script",
+    "ai_anime_get_final_video",
+    "ai_anime_get_first_frames",
+    "ai_anime_get_scene_images",
+    "ai_anime_get_sketch_candidates",
+    "ai_anime_get_sketches",
+    "ai_anime_get_task",
+    "ai_anime_list_ingest_uploads",
+    "ai_anime_list_tasks",
+    "ai_anime_pipeline_status",
+}
+
+_PROJECT_DATA_READ_TOOLS = {
+    "ai_anime_get",
+    "ai_anime_get_character_media",
+    "ai_anime_get_episode_media",
+    "ai_anime_get_episode_script",
+    "ai_anime_get_final_video",
+    "ai_anime_get_first_frames",
+    "ai_anime_get_scene_images",
+    "ai_anime_get_sketch_candidates",
+    "ai_anime_get_sketches",
+    "ai_anime_list_ingest_uploads",
 }
 
 
@@ -81,14 +102,44 @@ def _business_chat_error_from_text(text: object) -> str | None:
     return None
 
 
-def _generic_chat_error_from_text(text: object) -> str | None:
+def _generic_chat_error_from_text(
+    text: object,
+    *,
+    prefix: str = "任务执行失败",
+) -> str | None:
     raw = _normalize_error_text(text)
     if not raw:
         return None
     lowered = raw.casefold()
     if "provider_response_id" in lowered and "content_filter" in lowered:
         return None
-    return f"任务执行失败：{raw}"
+    if prefix == "读取失败":
+        raw = re.sub(r"^ai_anime_[a-z0-9_]+\s+failed:\s*", "", raw, flags=re.IGNORECASE)
+    return f"{prefix}：{raw}"
+
+
+def _nested_failure_reason(value: Any) -> str | None:
+    if isinstance(value, str):
+        decoded = _parse_jsonish(value)
+        if decoded is not None:
+            return _nested_failure_reason(decoded)
+        raw = _normalize_error_text(value)
+        if raw.casefold() in {"", "failed", "error", "cancelled", "canceled"}:
+            return None
+        return raw
+    if isinstance(value, list):
+        for item in value:
+            reason = _nested_failure_reason(item)
+            if reason:
+                return reason
+        return None
+    if not isinstance(value, dict):
+        return None
+    for key in ("chat_error", "error", "detail", "message", "text", "result", "content", "data", "output"):
+        reason = _nested_failure_reason(value.get(key))
+        if reason:
+            return reason
+    return None
 
 
 def _parse_jsonish(text: str) -> Any | None:
@@ -106,7 +157,13 @@ def _parse_jsonish(text: str) -> Any | None:
 
 
 def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
-    suppress_domain_failures = str(tool_name or "").strip() in _READ_ONLY_AGENT_TOOLS
+    normalized_tool_name = str(tool_name or "").strip()
+    read_only_tool = normalized_tool_name in _READ_ONLY_AGENT_TOOLS
+    failure_prefix = (
+        "读取失败"
+        if normalized_tool_name in _PROJECT_DATA_READ_TOOLS
+        else "任务执行失败"
+    )
 
     def visit(node: Any) -> str | None:
         if isinstance(node, str):
@@ -129,12 +186,12 @@ def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
 
         status_code = node.get("status_code")
         if (
-            suppress_domain_failures
+            read_only_tool
             and isinstance(status_code, int)
             and 200 <= status_code < 300
         ):
             return None
-        if suppress_domain_failures and node.get("ok") is True:
+        if read_only_tool and node.get("ok") is True:
             return None
 
         for key in ("error", "detail", "message"):
@@ -151,17 +208,23 @@ def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
                 found = visit(nested)
                 if found:
                     return found
-                if isinstance(nested, str):
-                    generic = _generic_chat_error_from_text(nested)
-                    if generic:
-                        return generic
+                reason = _nested_failure_reason(nested)
+                generic = _generic_chat_error_from_text(
+                    reason,
+                    prefix=failure_prefix,
+                )
+                if generic:
+                    return generic
             for key in ("error", "detail", "message"):
-                generic = _generic_chat_error_from_text(node.get(key))
+                generic = _generic_chat_error_from_text(
+                    node.get(key),
+                    prefix=failure_prefix,
+                )
                 if generic:
                     return generic
             if failed_status:
-                return f"任务执行失败：当前状态为 {status}。"
-            return "任务执行失败：接口返回 ok=false，但没有提供具体错误原因。"
+                return f"{failure_prefix}：当前状态为 {status}。"
+            return f"{failure_prefix}：接口返回 ok=false，但没有提供具体错误原因。"
 
         for key in ("result", "message", "content", "data", "output"):
             found = visit(node.get(key))

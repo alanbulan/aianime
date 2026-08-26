@@ -67,6 +67,9 @@ CONTENT_FILTER_MESSAGE = (
     "请把需求拆得更具体，避免一次性要求完成整集或包含敏感/违规描述；"
     "也可以先让我只列当前制作进度和下一步。"
 )
+_CONTEXT_CHUNK_ERROR_MARKERS = (
+    "separator is found, but chunk is longer than limit",
+)
 _AI_ANIME_WRITE_TOOLS = {
     "ai_anime_post",
     "ai_anime_patch",
@@ -99,10 +102,18 @@ _AI_ANIME_WRITE_TOOLS = {
 
 _AI_ANIME_READ_TOOLS = {
     "ai_anime_get",
-    "ai_anime_pipeline_status",
-    "ai_anime_list_tasks",
-    "ai_anime_get_task",
+    "ai_anime_get_character_media",
+    "ai_anime_get_episode_media",
     "ai_anime_get_episode_script",
+    "ai_anime_get_final_video",
+    "ai_anime_get_first_frames",
+    "ai_anime_get_scene_images",
+    "ai_anime_get_sketch_candidates",
+    "ai_anime_get_sketches",
+    "ai_anime_get_task",
+    "ai_anime_list_ingest_uploads",
+    "ai_anime_list_tasks",
+    "ai_anime_pipeline_status",
 }
 
 _TOOL_DETAIL_FIELDS = (
@@ -173,6 +184,22 @@ def _has_content_filter_signal(value: object) -> bool:
         return False
     if isinstance(value, (list, tuple)):
         return any(_has_content_filter_signal(item) for item in value)
+    return False
+
+
+def _is_context_chunk_error(value: object) -> bool:
+    if isinstance(value, str):
+        lowered = value.casefold()
+        return any(marker in lowered for marker in _CONTEXT_CHUNK_ERROR_MARKERS)
+    if isinstance(value, dict):
+        return any(
+            _is_context_chunk_error(key) or _is_context_chunk_error(item)
+            for key, item in value.items()
+        )
+    if isinstance(value, (list, tuple)):
+        return any(_is_context_chunk_error(item) for item in value)
+    if isinstance(value, BaseException):
+        return _is_context_chunk_error(str(value))
     return False
 
 
@@ -565,133 +592,170 @@ class HermesSdkThread:
         if self._closed:
             raise RuntimeError("HermesSdkThread is closed")
 
+        text = prompt
+        if current_project:
+            text = f"[CONTEXT: current_project={current_project}]\n\n{prompt}"
+        turn_id = uuid.uuid4().hex
+        recovered_context_session = False
+
         await self._turn_lock.acquire()
         try:
-            if self._closed:
-                raise RuntimeError("HermesSdkThread is closed")
-            await self._prepare()
-            assert self._proc is not None and self._proc.stdout is not None
-            # Compose prompt blocks (ACP supports rich content; we send plain text).
-            text = prompt
-            if current_project:
-                text = f"[CONTEXT: current_project={current_project}]\n\n{prompt}"
-            turn_id = uuid.uuid4().hex
-            yield ChatBackendEvent(type="thread_started", thread_id=self.id, turn_id=turn_id)
-
-            req_id = await self._send(
-                "session/prompt",
-                {
-                    "sessionId": self.id,
-                    "messageId": turn_id,
-                    "prompt": [{"type": "text", "text": text}],
-                },
-            )
-
-            # Read until we see the final session/prompt response (id matches).
-            # Along the way emit assistant_delta / tool_update for any
-            # session/update notifications hermes sends.
-            assert self._proc.stdout is not None
-            tool_call_count = 0
             while True:
+                if self._closed:
+                    raise RuntimeError("HermesSdkThread is closed")
                 try:
-                    line = await asyncio.wait_for(
-                        self._proc.stdout.readline(), timeout=STREAM_READ_TIMEOUT
-                    )
-                except asyncio.TimeoutError:
-                    _log.warning(
-                        "Hermes prompt produced no ACP frames for %.0f seconds; "
-                        "cancelling worker session=%s turn=%s",
-                        STREAM_READ_TIMEOUT,
-                        self.id,
-                        turn_id,
-                    )
-                    await self._cancel_prompt_and_close()
-                    yield ChatBackendEvent(
-                        type="complete", thread_id=self.id, turn_id=turn_id,
-                        text=(
-                            "AI anime 助手长时间没有返回任何进度，本轮已安全停止。"
-                            "你可以直接重试，上一轮不会继续在后台占用会话。"
-                        ),
-                    )
-                    return
-                if not line:
-                    break
-                try:
-                    msg = json.loads(line.decode("utf-8"))
-                except json.JSONDecodeError:
-                    continue
+                    await self._prepare()
+                except Exception as exc:
+                    if (
+                        not recovered_context_session
+                        and _is_context_chunk_error(exc)
+                    ):
+                        recovered_context_session = True
+                        await self._reset_for_fresh_session(str(exc))
+                        continue
+                    raise
 
-                # Final response for our session/prompt call
-                if msg.get("id") == req_id:
-                    if _has_content_filter_signal(msg):
+                assert self._proc is not None and self._proc.stdout is not None
+                yield ChatBackendEvent(
+                    type="thread_started", thread_id=self.id, turn_id=turn_id
+                )
+                req_id = await self._send(
+                    "session/prompt",
+                    {
+                        "sessionId": self.id,
+                        "messageId": turn_id,
+                        "prompt": [{"type": "text", "text": text}],
+                    },
+                )
+
+                # A context-chunk failure is safe to retry only before Hermes has
+                # emitted assistant content or invoked a tool. This prevents a
+                # fresh-session recovery from duplicating write operations.
+                tool_call_count = 0
+                emitted_response = False
+                retry_fresh_session = False
+                while True:
+                    try:
+                        line = await asyncio.wait_for(
+                            self._proc.stdout.readline(), timeout=STREAM_READ_TIMEOUT
+                        )
+                    except asyncio.TimeoutError:
+                        _log.warning(
+                            "Hermes prompt produced no ACP frames for %.0f seconds; "
+                            "cancelling worker session=%s turn=%s",
+                            STREAM_READ_TIMEOUT,
+                            self.id,
+                            turn_id,
+                        )
+                        await self._cancel_prompt_and_close()
+                        yield ChatBackendEvent(
+                            type="complete", thread_id=self.id, turn_id=turn_id,
+                            text=(
+                                "AI anime 助手长时间没有返回任何进度，本轮已安全停止。"
+                                "你可以直接重试，上一轮不会继续在后台占用会话。"
+                            ),
+                        )
+                        return
+                    if not line:
                         yield ChatBackendEvent(
                             type="complete",
                             thread_id=self.id,
                             turn_id=turn_id,
-                            text=CONTENT_FILTER_MESSAGE,
+                            text="AI anime 助手连接意外中断，请重新发送当前指令。",
                         )
                         return
-                    err = msg.get("error")
-                    if err:
-                        yield ChatBackendEvent(
-                            type="complete", thread_id=self.id, turn_id=turn_id,
-                            text=(
-                                CONTENT_FILTER_MESSAGE
-                                if _has_content_filter_signal(err)
-                                else f"error: {err.get('message', err)}"
-                            ),
-                        )
-                    else:
-                        yield ChatBackendEvent(
-                            type="complete", thread_id=self.id, turn_id=turn_id,
-                            text="",
-                        )
-                    return
+                    try:
+                        msg = json.loads(line.decode("utf-8"))
+                    except json.JSONDecodeError:
+                        continue
 
-                # Server-initiated notifications (session/update etc.)
-                # ACP notifications carry assistant chunks, tool calls, etc.
-                ev = self._translate_notification(msg, turn_id)
-                if ev is not None:
-                    if ev.type == "tool_update" and (ev.raw or {}).get("sessionUpdate") == "tool_call":
-                        tool_call_count += 1
-                        if tool_call_count > TURN_TOOL_CALL_LIMIT:
+                    if msg.get("id") == req_id:
+                        if _has_content_filter_signal(msg):
+                            yield ChatBackendEvent(
+                                type="complete",
+                                thread_id=self.id,
+                                turn_id=turn_id,
+                                text=CONTENT_FILTER_MESSAGE,
+                            )
+                            return
+                        err = msg.get("error")
+                        if (
+                            err
+                            and not recovered_context_session
+                            and not emitted_response
+                            and tool_call_count == 0
+                            and _is_context_chunk_error(err)
+                        ):
+                            recovered_context_session = True
+                            await self._reset_for_fresh_session(str(err))
+                            retry_fresh_session = True
+                            break
+                        if err:
+                            yield ChatBackendEvent(
+                                type="complete", thread_id=self.id, turn_id=turn_id,
+                                text=(
+                                    CONTENT_FILTER_MESSAGE
+                                    if _has_content_filter_signal(err)
+                                    else f"error: {err.get('message', err)}"
+                                ),
+                            )
+                        else:
+                            yield ChatBackendEvent(
+                                type="complete", thread_id=self.id, turn_id=turn_id,
+                                text="",
+                            )
+                        return
+
+                    ev = self._translate_notification(msg, turn_id)
+                    if ev is not None:
+                        if ev.type == "assistant_delta" and str(ev.text or "").strip():
+                            emitted_response = True
+                        if ev.type == "tool_update":
+                            emitted_response = True
+                            if (ev.raw or {}).get("sessionUpdate") == "tool_call":
+                                tool_call_count += 1
+                                if tool_call_count > TURN_TOOL_CALL_LIMIT:
+                                    _log.warning(
+                                        "Hermes turn exceeded tool call limit: "
+                                        "thread=%s turn=%s limit=%s",
+                                        self.id,
+                                        turn_id,
+                                        TURN_TOOL_CALL_LIMIT,
+                                    )
+                                    await self.close()
+                                    yield ChatBackendEvent(
+                                        type="complete",
+                                        thread_id=self.id,
+                                        turn_id=turn_id,
+                                        text=(
+                                            "本轮操作已停止：AI anime 助手连续调用工具超过安全上限。"
+                                            "已保留已完成步骤和任务状态，请从当前进度继续。"
+                                        ),
+                                    )
+                                    return
+                        yield ev
+                        if _should_stop_after_failed_write(ev):
                             _log.warning(
-                                "Hermes turn exceeded tool call limit: thread=%s turn=%s limit=%s",
+                                "stopping Hermes turn after failed write tool: "
+                                "thread=%s turn=%s tool=%s",
                                 self.id,
                                 turn_id,
-                                TURN_TOOL_CALL_LIMIT,
+                                ev.name,
                             )
-                            await self.close()
+                            await self._cancel_prompt_and_close()
                             yield ChatBackendEvent(
                                 type="complete",
                                 thread_id=self.id,
                                 turn_id=turn_id,
                                 text=(
-                                    "本轮操作已停止：AI anime 助手连续调用工具超过安全上限。"
-                                    "已保留已完成步骤和任务状态，请从当前进度继续。"
+                                    "本轮后续操作已停止，避免在前置条件或写入失败后"
+                                    "继续提交依赖任务。"
                                 ),
                             )
                             return
-                    yield ev
-                    if _should_stop_after_failed_write(ev):
-                        _log.warning(
-                            "stopping Hermes turn after failed write tool: "
-                            "thread=%s turn=%s tool=%s",
-                            self.id,
-                            turn_id,
-                            ev.name,
-                        )
-                        await self._cancel_prompt_and_close()
-                        yield ChatBackendEvent(
-                            type="complete",
-                            thread_id=self.id,
-                            turn_id=turn_id,
-                            text=(
-                                "本轮后续操作已停止，避免在前置条件或写入失败后"
-                                "继续提交依赖任务。"
-                            ),
-                        )
-                        return
+
+                if retry_fresh_session:
+                    continue
         finally:
             # Don't kill subprocess here — caller may want to send more prompts.
             # HermesPool handles cleanup on idle / shutdown.
@@ -783,27 +847,48 @@ class HermesSdkThread:
             return None
         return None
 
+    async def _terminate_subprocess(self) -> None:
+        proc = self._proc
+        self._proc = None
+        if proc is None:
+            await self._stop_stderr_drain()
+            return
+        try:
+            if proc.stdin is not None and not proc.stdin.is_closing():
+                proc.stdin.close()
+        except Exception:
+            pass
+        try:
+            proc.terminate()
+            await asyncio.wait_for(proc.wait(), timeout=3.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+        except ProcessLookupError:
+            pass
+        await self._stop_stderr_drain()
+
+    async def _reset_for_fresh_session(self, reason: str) -> None:
+        old_session_id = self.id
+        await self._terminate_subprocess()
+        self.id = ""
+        self._is_new = True
+        self._initialized = False
+        self._req_counter = 0
+        self._tool_names_by_call_id.clear()
+        _log.warning(
+            "resetting Hermes context session for user=%s old_session=%s reason=%s",
+            self._username,
+            old_session_id,
+            reason,
+        )
+
     async def close(self) -> None:
         """Terminate the hermes subprocess."""
         if self._closed:
             return
         self._closed = True
-        if self._proc is None:
-            return
-        try:
-            if self._proc.stdin is not None and not self._proc.stdin.is_closing():
-                self._proc.stdin.close()
-        except Exception:
-            pass
-        try:
-            self._proc.terminate()
-            await asyncio.wait_for(self._proc.wait(), timeout=3.0)
-        except asyncio.TimeoutError:
-            self._proc.kill()
-            await self._proc.wait()
-        except ProcessLookupError:
-            pass
-        await self._stop_stderr_drain()
+        await self._terminate_subprocess()
 
     async def _stop_stderr_drain(self) -> None:
         task = self._stderr_task

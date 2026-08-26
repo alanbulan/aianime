@@ -7,6 +7,7 @@ import { hostname } from "node:os";
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -16,16 +17,32 @@ import {
 } from "electron";
 import { LocalBackend } from "../src/backend.ts";
 import { EncryptedFileCommercialDeviceIdentity } from "../src/commercial-device.ts";
-import { CommercialModelProxy } from "../src/commercial-model-proxy.ts";
+import {
+  CommercialModelProxy,
+  modelRoutingSnapshot,
+} from "../src/commercial-model-proxy.ts";
 import { EncryptedFileCommercialModelAccessStore } from "../src/commercial-model-access.ts";
 import { saveCommercialInvocationResult } from "../src/commercial-invocation-result.ts";
 import {
   CommercialApiClient,
+  COMMERCIAL_RUNTIME_DEPENDENCIES_URL,
   EncryptedFileCommercialSessionStore,
   registerCommercialIpc,
   resolveCommercialGatewayUrl,
 } from "../src/commercial.ts";
 import { developmentHermesCliPath } from "../src/hermes-runtime.ts";
+import {
+  registerRuntimeDependencyIpc,
+  RuntimeDependencyManager,
+} from "../src/runtime-dependencies.ts";
+import {
+  AUTH_COOKIE_NAME,
+  commercialArchitecture,
+  commercialPlatform,
+  desktopSessionCookie,
+  isAllowedExternalUrl,
+  isSameOrigin,
+} from "../src/desktop-runtime-contracts.ts";
 
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
@@ -34,20 +51,27 @@ const WINDOW_CHANNELS = {
   isMaximized: "desktop:window:is-maximized",
   maximizedChanged: "desktop:window:maximized-changed",
 };
-const VITE_URL = "http://127.0.0.1:5173";
+const CLIPBOARD_CHANNELS = {
+  writeText: "desktop:clipboard:write-text",
+};
+const VITE_PORT = process.env.AI_ANIME_DEV_VITE_PORT?.trim() || "5173";
+const VITE_URL = `http://127.0.0.1:${VITE_PORT}`;
 const START_TIMEOUT_MS = 30_000;
 const REPO_ROOT = resolve(import.meta.dirname, "..", "..");
 const FRONTEND_ROOT = join(REPO_ROOT, "frontend");
 const VITE_ENTRY = join(FRONTEND_ROOT, "node_modules", "vite", "bin", "vite.js");
 const HERMES_RUNTIME_ROOT = join(REPO_ROOT, "desktop", "hermes-runtime");
-const AUTH_COOKIE_NAME = "ai_anime_session";
-const AUTH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
-
 let mainWindow = null;
 let backend = null;
 let commercialModelProxy = null;
 let viteProcess = null;
 let quitting = false;
+
+const configuredUserData = process.env.AI_ANIME_DEV_USER_DATA_DIR?.trim();
+const developmentUserData = configuredUserData
+  ? resolve(configuredUserData)
+  : join(app.getPath("appData"), "@ai-anime", "desktop");
+app.setPath("userData", developmentUserData);
 
 async function prepareHermesRuntime() {
   const uvCommand = process.env.AI_ANIME_UV_COMMAND?.trim() || "uv";
@@ -73,22 +97,6 @@ async function prepareHermesRuntime() {
   const cliPath = developmentHermesCliPath(REPO_ROOT);
   if (!existsSync(cliPath)) {
     throw new Error(`Hermes runtime sync completed but CLI is missing: ${cliPath}`);
-  }
-}
-
-function sameOrigin(url, baseUrl) {
-  try {
-    return new URL(url).origin === new URL(baseUrl).origin;
-  } catch {
-    return false;
-  }
-}
-
-function isAllowedExternalUrl(url) {
-  try {
-    return new URL(url).protocol === "https:";
-  } catch {
-    return false;
   }
 }
 
@@ -123,25 +131,23 @@ function registerWindowIpc() {
   ipcMain.handle(WINDOW_CHANNELS.isMaximized, (event) => {
     return activeWindow(event.sender.id)?.isMaximized() ?? false;
   });
-}
-
-function desktopSessionCookieValue(username) {
-  return `desktop.${Buffer.from(username, "utf8").toString("base64url")}`;
+  ipcMain.handle(CLIPBOARD_CHANNELS.writeText, (event, value) => {
+    if (!activeWindow(event.sender.id)) {
+      throw new Error("clipboard sender is not the active desktop window");
+    }
+    if (typeof value !== "string") {
+      throw new TypeError("clipboard value must be a string");
+    }
+    clipboard.writeText(value);
+  });
 }
 
 async function setDesktopSessionCookies(cloudSession, origins) {
   await Promise.all(
     origins.map((origin) =>
-      session.defaultSession.cookies.set({
-        url: origin,
-        name: AUTH_COOKIE_NAME,
-        value: desktopSessionCookieValue(cloudSession.user.username),
-        path: "/",
-        httpOnly: true,
-        secure: origin.startsWith("https://"),
-        sameSite: "lax",
-        expirationDate: Date.now() / 1000 + AUTH_COOKIE_MAX_AGE_SECONDS,
-      }),
+      session.defaultSession.cookies.set(
+        desktopSessionCookie(origin, cloudSession.user.username),
+      ),
     ),
   );
 }
@@ -159,8 +165,8 @@ function registerCommercialGatewayIpc(
     deviceIdentity,
     modelAccessStore,
     deviceName: hostname(),
-    platform: process.platform === "win32" ? "windows" : process.platform,
-    arch: process.arch === "x64" ? "x86_64" : process.arch,
+    platform: commercialPlatform(),
+    arch: commercialArchitecture(),
     clientVersion: app.getVersion(),
     isAllowedSender: (senderId) =>
       Boolean(
@@ -176,25 +182,16 @@ function registerCommercialGatewayIpc(
       cloudModelAssignments,
       modelCapabilities,
     ) => {
-      commercialModelProxy?.configureRouting({
+      const routing = {
         access,
         allowsCustomModels,
         cloudModelAssignments,
-      });
-      const modelAssignments = [
-        ...cloudModelAssignments,
-        ...(allowsCustomModels
-          ? access.byokProviders.flatMap((provider) =>
-              provider.enabled
-                ? provider.modelAssignments.filter((assignment) => assignment.enabled)
-                : [],
-            )
-          : []),
-      ];
+      };
+      commercialModelProxy?.configureRouting(routing);
       return localBackend.configureModelAccess({
         allowsCustomModels,
         mode: "mixed",
-        modelAssignments,
+        modelAssignments: modelRoutingSnapshot(routing),
         modelCapabilities: [...modelCapabilities],
       });
     },
@@ -220,7 +217,7 @@ function startVite(localBackend) {
   }
   const child = spawn(
     process.execPath,
-    [VITE_ENTRY, "--host", "127.0.0.1", "--port", "5173", "--strictPort", "--mode", "ce"],
+    [VITE_ENTRY, "--host", "127.0.0.1", "--port", VITE_PORT, "--strictPort", "--mode", "ce"],
     {
       cwd: FRONTEND_ROOT,
       env: {
@@ -324,7 +321,7 @@ async function createMainWindow() {
     return { action: "deny" };
   });
   window.webContents.on("will-navigate", (event, url) => {
-    if (!sameOrigin(url, VITE_URL)) event.preventDefault();
+    if (!isSameOrigin(url, VITE_URL)) event.preventDefault();
   });
   await window.loadURL(VITE_URL);
 }
@@ -368,17 +365,32 @@ async function startApplication() {
   );
   commercialModelProxy = new CommercialModelProxy(client, deviceIdentity);
   await commercialModelProxy.start();
+  const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
   backend = new LocalBackend({
     repositoryRoot: REPO_ROOT,
     serveFrontend: false,
+    runtimeDependencyPaths: runtimeDependencies.paths,
+    restartOnUnexpectedExit: true,
     environment: {
       AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
       AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
+      AI_ANIME_SHARP_MODEL_URL:
+        `${COMMERCIAL_RUNTIME_DEPENDENCIES_URL}/models/sharp/sharp_2572gikvuh.pt`,
     },
   });
   try {
     await backend.start();
     installBackendHeader(backend);
+    registerRuntimeDependencyIpc(
+      ipcMain,
+      runtimeDependencies,
+      (senderId) =>
+        Boolean(
+          mainWindow &&
+            !mainWindow.isDestroyed() &&
+            mainWindow.webContents.id === senderId,
+        ),
+    );
     registerCommercialGatewayIpc(
       backend,
       client,

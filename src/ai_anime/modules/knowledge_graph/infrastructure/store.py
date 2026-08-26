@@ -30,6 +30,7 @@ with preserve_st_env():
     import cognee
     from cognee.api.v1.search import SearchType
     from cognee.modules.engine.operations.setup import setup
+    from cognee.modules.migrations.startup import apply_all_migrations
 from rich.console import Console
 from ai_anime.modules.model_usage.public import get_newapi_reasoning_kwargs
 from ai_anime.modules.model_usage.public import DEFAULT_COGNEE_EMBEDDING_DIM
@@ -62,6 +63,22 @@ from ai_anime.modules.narrative_planning.public import (
 
 console = Console()
 logger = logging.getLogger(__name__)
+_cognee_initialized_state_dirs: set[str] = set()
+_cognee_initialization_lock: asyncio.Lock | None = None
+_cognee_initialization_lock_loop = None
+
+
+def _get_cognee_initialization_lock() -> asyncio.Lock:
+    """Return a lock bound to the current event loop."""
+    global _cognee_initialization_lock, _cognee_initialization_lock_loop
+    loop = asyncio.get_running_loop()
+    if (
+        _cognee_initialization_lock is None
+        or _cognee_initialization_lock_loop is not loop
+    ):
+        _cognee_initialization_lock = asyncio.Lock()
+        _cognee_initialization_lock_loop = loop
+    return _cognee_initialization_lock
 
 
 def _json_list_payload(values: list[str]) -> str:
@@ -269,26 +286,6 @@ class CogneeStore:
         self._alias_index.update(alias_cache)
         self._share_sqlite_caches()
 
-    # 已知的风格前缀（用于清洗历史数据）
-    _STYLE_PREFIXES = [
-        "写实古装剧风格，",
-        "写实古装剧风格,",
-        "anime style,",
-        "anime风格，",
-        "动漫风格，",
-        "realistic style,",
-        "chinese period drama style,",
-    ]
-
-    def _clean_style_prefix(self, prompt: str) -> str:
-        """清理 base_prompt 中的风格前缀。"""
-        if not prompt:
-            return prompt
-        for prefix in self._STYLE_PREFIXES:
-            if prompt.lower().startswith(prefix.lower()):
-                return prompt[len(prefix) :].strip()
-        return prompt
-
     @staticmethod
     def _normalize_alias_lookup(value: str) -> str:
         """统一别名查找键，降低空格/大小写差异导致的失配。"""
@@ -478,6 +475,25 @@ class CogneeStore:
         store = self._ensure_sqlite_store()
         return await store._ensure_db()
 
+    async def _initialize_cognee_storage(self) -> None:
+        """Migrate and initialize the current project-local Cognee database."""
+        state_key = str(Path(self.state_dir).resolve())
+        async with _get_cognee_initialization_lock():
+            # Cognee keeps storage paths in process-global configuration. Apply
+            # the project context while holding the initialization lock so a
+            # concurrent project cannot redirect Alembic midway through setup.
+            self._set_cognee_context(verbose=True)
+            if state_key not in _cognee_initialized_state_dirs:
+                await apply_all_migrations("head")
+                _cognee_initialized_state_dirs.add(state_key)
+
+            try:
+                await setup()
+            except Exception as exc:
+                # Cognee 0.5.3 could race on repeated CREATE TABLE data calls.
+                if "already exists" not in str(exc):
+                    raise
+
     async def initialize(self):
         """初始化 SQLite 数据库和 Cognee 配置。"""
         self._init_cognee()
@@ -485,17 +501,9 @@ class CogneeStore:
         # 初始化项目 SQLite；Cognee 图谱上下文独立设置。
         await self._ensure_db()
 
-        # 设置 Cognee 上下文（包含 project-local system/data 路径）
-        self._set_cognee_context(verbose=True)
-
-        try:
-            await setup()
-        except Exception as e:
-            # cognee 0.5.3 bug: 重复初始化时 CREATE TABLE data 报 already exists
-            if "already exists" in str(e):
-                pass
-            else:
-                raise
+        # 先升级已有 Cognee schema，再执行幂等 setup。create_all 只能创建表，
+        # 无法为旧表补列；Cognee 1.5.x 的 dataset_database 新字段必须走 Alembic。
+        await self._initialize_cognee_storage()
 
         # 确保当前用户拥有该 dataset
         with preserve_st_env():
@@ -537,7 +545,6 @@ class CogneeStore:
     def _release_cognee_graph_engine() -> None:
         """Close Cognee's cached graph engine so worker processes release file locks."""
         try:
-            graph_config_module = import_module("cognee.infrastructure.databases.graph.config")
             graph_engine_module = import_module(
                 "cognee.infrastructure.databases.graph.get_graph_engine"
             )
@@ -545,53 +552,12 @@ class CogneeStore:
             return
 
         cached_factory = getattr(graph_engine_module, "_create_graph_engine", None)
-        cache_info = getattr(cached_factory, "cache_info", None)
-        has_cached_engine = True
-        if callable(cache_info):
-            try:
-                has_cached_engine = cache_info().currsize > 0
-            except Exception:
-                has_cached_engine = True
-
-        graph_engine = None
-        if has_cached_engine:
-            try:
-                config = graph_config_module.get_graph_context_config()
-                graph_engine = graph_engine_module.create_graph_engine(**config)
-            except Exception:
-                graph_engine = None
-
-        if graph_engine is not None:
-            for attr_name in ("connection", "db"):
-                handle = getattr(graph_engine, attr_name, None)
-                close = getattr(handle, "close", None)
-                if callable(close):
-                    try:
-                        close()
-                    except Exception as exc:
-                        logger.debug(
-                            "failed to close Cognee graph handle %s: %s",
-                            attr_name,
-                            exc,
-                        )
-            close_engine = getattr(graph_engine, "close", None)
-            if callable(close_engine):
-                try:
-                    close_engine()
-                except Exception as exc:
-                    logger.debug("failed to close Cognee graph engine: %s", exc)
-            executor = getattr(graph_engine, "executor", None)
-            shutdown = getattr(executor, "shutdown", None)
-            if callable(shutdown):
-                try:
-                    shutdown(wait=False, cancel_futures=True)
-                except TypeError:
-                    shutdown(wait=False)
-                except Exception as exc:
-                    logger.debug("failed to stop Cognee graph executor: %s", exc)
-
         cache_clear = getattr(cached_factory, "cache_clear", None)
         if callable(cache_clear):
+            # closing_lru_cache owns async adapter shutdown. On a running API
+            # loop cache_clear schedules it safely in the background; waiting
+            # here would hold the HTTP dependency teardown (and /healthz) for
+            # tens of seconds after the response data is already ready.
             cache_clear()
 
     # ============================================================
@@ -885,11 +851,6 @@ class CogneeStore:
         log(f"角色提取完成: 新增 {len(added)} 个，已有 {skipped} 个")
 
         return added
-
-    async def _delete_old_characters(self) -> int:
-        """删除所有角色。"""
-        await self._ensure_db()
-        return await self.sqlite_store.delete_all_characters()
 
     async def _delete_old_episodes(self) -> int:
         """删除所有剧集。"""
@@ -1486,11 +1447,6 @@ class CogneeStore:
         primary = self.resolve_name(name)
         return self._characters.get(primary)
 
-    def get_character_prompt(self, name: str) -> Optional[str]:
-        """获取角色的面部 Prompt（支持别名）。"""
-        char = self.get_character(name)
-        return char.face_prompt if char else None
-
     def get_episode(self, number: int) -> Optional[NovelEpisode]:
         """获取剧集。"""
         return self._episodes.get(number)
@@ -1669,113 +1625,6 @@ class CogneeStore:
                 else:
                     ids = [x for x in ids if x != old_id]
                 await self.update_episode(ep.number, identity_ids=ids)
-
-    def get_identity_for_alias(
-        self,
-        alias: str,
-    ) -> Optional[CharacterIdentity]:
-        """根据别名获取对应的身份。
-
-        无剧集上下文时只在角色只有一个身份时返回；多身份角色必须由上层提供 episode 级约束。
-        """
-        char = self.get_character(alias)
-        if not char:
-            return None
-        if len(char.identities) != 1:
-            return None
-        return char.identities[0]
-
-    async def select_identity_for_beat(
-        self,
-        character_ref: str,
-        episode_number: int,
-        visual_description: str = "",
-    ) -> Optional[CharacterIdentity]:
-        """为 beat 选择角色应该使用的身份。"""
-        char = self.get_character(character_ref)
-        if not char or not char.identities:
-            return None
-
-        episode = self.get_episode(episode_number)
-        ep_identity_ids = set(episode.identity_ids) if episode and episode.identity_ids else set()
-
-        valid_identities = [id_ for id_ in char.identities if id_.identity_id in ep_identity_ids]
-
-        if len(valid_identities) == 1:
-            return valid_identities[0]
-
-        if not valid_identities:
-            return None
-
-        if visual_description and len(valid_identities) > 1:
-            selected = await self._ai_select_identity(
-                character_name=char.name,
-                character_ref=character_ref,
-                visual_description=visual_description,
-                identities=valid_identities,
-            )
-            if selected:
-                return selected
-
-        return valid_identities[0] if valid_identities else None
-
-    async def _ai_select_identity(
-        self,
-        character_name: str,
-        character_ref: str,
-        visual_description: str,
-        identities: List[CharacterIdentity],
-    ) -> Optional[CharacterIdentity]:
-        """使用 AI 根据画面描述选择最合适的身份。"""
-        try:
-            import litellm
-
-            identity_options = []
-            for i, identity in enumerate(identities):
-                desc = f"{i+1}. {identity.identity_name}"
-                if identity.appearance_details:
-                    desc += f" - {identity.appearance_details}"
-                identity_options.append(desc)
-
-            prompt = f"""根据画面描述，判断角色"{character_name}"在这个场景中应该使用哪个身份形象。
-
-画面描述：{visual_description}
-
-脚本中的角色称呼：{character_ref}
-
-可选身份：
-{chr(10).join(identity_options)}
-
-请直接回复身份编号（如 1、2、3），不要有其他内容。"""
-
-            response = await litellm.acompletion(
-                model=self._configured_text_transport_model(),
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0,
-                max_tokens=10,
-                **get_newapi_reasoning_kwargs(
-                    thinking_env="COGNEE_LLM_THINKING_LEVEL",
-                    default_thinking_level="high",
-                ),
-            )
-
-            answer = response.choices[0].message.content.strip()
-
-            for char in answer:
-                if char.isdigit():
-                    idx = int(char) - 1
-                    if 0 <= idx < len(identities):
-                        selected = identities[idx]
-                        console.print(
-                            f"[dim]AI 身份选择: {character_name} → {selected.identity_name}[/dim]"
-                        )
-                        return selected
-                    break
-
-        except Exception as e:
-            console.print(f"[yellow]AI 身份选择失败: {e}[/yellow]")
-
-        return None
 
     async def add_episode(self, episode: NovelEpisode):
         """添加单个剧集。"""
@@ -2081,23 +1930,11 @@ class CogneeStore:
 
         return props
 
-    async def attach_beats_to_episode(self, episode_number: int, beats: List[NovelVisualBeat]):
-        """将视觉节拍关联到指定剧集（SQLite 中通过 episode_number 自动关联）。"""
-        pass  # beats 表已有 episode_number 外键
-
     async def persist_beats_from_script(self, episode_number: int, beats_data: List[dict]):
         """从脚本数据持久化 Beats。"""
         existing_rows = await self.get_beats_for_episode(episode_number)
         existing_by_num = {beat.beat_number: beat for beat in existing_rows}
         await self._do_persist_beats(episode_number, beats_data, existing_by_num=existing_by_num)
-
-    async def _patch_beats_missing_fields(
-        self,
-        episode_number: int,
-        beats_data: List[dict],
-    ) -> int:
-        """只更新 beats 的缺失字段。"""
-        return await self.sqlite_store.patch_beats_missing_fields(episode_number, beats_data)
 
     async def _episode_asset_ref_scope(self, episode_number: int) -> tuple[set[str], set[str]]:
         episode = await self.get_episode_from_graph(episode_number)

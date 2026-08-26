@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from unittest.mock import ANY
 
@@ -98,6 +99,82 @@ def test_project_database_path_uses_current_state_layout(
 
     assert database == tmp_path / "state" / "admin" / "show-1" / "chat.db"
     assert not database.exists()
+
+
+def test_legacy_chat_database_is_upgraded_without_losing_history(
+    monkeypatch,
+    tmp_path,
+):
+    state_root = tmp_path / "state"
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_root))
+    database = state_root / "alice" / "_home" / "chat.db"
+    database.parent.mkdir(parents=True)
+    conn = sqlite3.connect(database)
+    conn.executescript(
+        """
+        CREATE TABLE chat_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          media_json TEXT NOT NULL DEFAULT '[]',
+          turn_id TEXT,
+          metadata_json TEXT NOT NULL DEFAULT '{}',
+          created_at TEXT NOT NULL
+        );
+        CREATE TABLE chat_ui_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          turn_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+        CREATE TABLE chat_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        INSERT INTO chat_messages(
+          role, content, media_json, turn_id, metadata_json, created_at
+        ) VALUES (
+          'user', '保留的旧消息', '[]', 'turn-1', '{}',
+          '2026-08-25T01:00:00+00:00'
+        );
+        INSERT INTO chat_ui_events(
+          turn_id, event_type, payload_json, created_at
+        ) VALUES (
+          'turn-1', 'tool.call', '{"name":"legacy_tool"}',
+          '2026-08-25T01:00:01+00:00'
+        );
+        """
+    )
+    conn.close()
+
+    history = SQLiteChatHistory()
+    scope = ChatScope(kind="home")
+
+    messages = history.list_messages("alice", scope)
+
+    assert [message["content"] for message in messages] == ["保留的旧消息"]
+    assert messages[0]["ui_events"][0]["name"] == "legacy_tool"
+    assert history.list_conversations("alice", scope) == [
+        {
+            "id": "main",
+            "title": "保留的旧消息",
+            "updatedAt": "2026-08-25T01:00:01+00:00",
+            "messageCount": 1,
+        }
+    ]
+    conn = sqlite3.connect(database)
+    assert "conversation_id" in {
+        row[1] for row in conn.execute("PRAGMA table_info(chat_messages)")
+    }
+    assert "conversation_id" in {
+        row[1] for row in conn.execute("PRAGMA table_info(chat_ui_events)")
+    }
+    assert conn.execute(
+        "SELECT version FROM schema_migrations"
+    ).fetchone() == ("1_initial_chat_history",)
+    conn.close()
 
 
 def test_project_conversations_share_one_database_and_keep_history_isolated(
@@ -317,6 +394,42 @@ def test_ui_events_are_attached_to_the_matching_assistant_turn(
             "task_id": "task-1",
         }
     ]
+
+
+def test_inflight_ui_events_do_not_attach_to_unscoped_task_notification(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    history = SQLiteChatHistory()
+    scope = ChatScope(kind="project", id="show-1")
+    history.append_message("alice", scope, "user", "继续", turn_id="turn-1")
+    history.append_message("alice", scope, "assistant", "角色肖像已完成")
+    event = history.append_ui_event(
+        "alice",
+        scope,
+        "turn-1",
+        {
+            "type": "tool.call",
+            "tool_call_id": "call-1",
+            "name": "ai_anime_wait_task",
+        },
+    )
+
+    messages = history.list_messages("alice", scope)
+
+    assert messages[0]["role"] == "user"
+    assert messages[0]["ui_events"] == [
+        {
+            "id": event["id"],
+            "type": "tool.call",
+            "turn_id": "turn-1",
+            "created_at": event["created_at"],
+            "tool_call_id": "call-1",
+            "name": "ai_anime_wait_task",
+        }
+    ]
+    assert "ui_events" not in messages[1]
 
 
 def test_project_ui_events_use_project_state_database_and_survive_refresh(tmp_path):

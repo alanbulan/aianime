@@ -2,7 +2,7 @@
 // Deterministic cover art for projects — gradient + initial derived from the
 // project name. Used until the backend API returns real thumbnail/genre data.
 
-export interface CoverPaletteStop {
+interface CoverPaletteStop {
   gradient: string;
   name: string;
   primary: string;

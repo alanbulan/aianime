@@ -19,12 +19,16 @@ SCENE_SPATIAL_CONTRACT_MODULE = (
 BLOCK_WORLD_BUILDER_MODULE = (
     "ai_anime.modules.asset_world.infrastructure.director_world.block_world_builder"
 )
+NATIVE_PROJECT_TASK_MODULE = (
+    "ai_anime.modules.task_execution.infrastructure.native_task_isolation"
+)
 
 _WORKER_MODULES = {
     "scene-360-builder": SCENE_360_BUILDER_MODULE,
     "scene-overlap-analyzer": SCENE_OVERLAP_ANALYZER_MODULE,
     "scene-spatial-contract": SCENE_SPATIAL_CONTRACT_MODULE,
     "block-world-builder": BLOCK_WORLD_BUILDER_MODULE,
+    "native-project-task": NATIVE_PROJECT_TASK_MODULE,
 }
 _WORKER_NAMES_BY_MODULE = {module: name for name, module in _WORKER_MODULES.items()}
 
@@ -64,6 +68,7 @@ def dispatch_internal_worker(args: Sequence[str] | None = None) -> int | None:
 
 __all__ = [
     "BLOCK_WORLD_BUILDER_MODULE",
+    "NATIVE_PROJECT_TASK_MODULE",
     "SCENE_360_BUILDER_MODULE",
     "SCENE_OVERLAP_ANALYZER_MODULE",
     "SCENE_SPATIAL_CONTRACT_MODULE",

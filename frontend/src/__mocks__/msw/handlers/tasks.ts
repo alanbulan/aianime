@@ -29,7 +29,7 @@ export const sampleTask = (overrides: Partial<TaskState> = {}): TaskState => ({
 });
 
 export const handlers = [
-  http.get("/api/v1/projects/:project/tasks", () => {
+  http.get("*/api/v1/projects/:project/tasks", () => {
     return HttpResponse.json({ ok: true, data: [sampleTask()] });
   }),
   // /api/v1/projects/:project/tasks/stream — SSE handler is defined per-test with server.use()

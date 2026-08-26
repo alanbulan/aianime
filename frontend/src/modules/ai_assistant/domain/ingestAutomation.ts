@@ -28,7 +28,8 @@ const CHAT_IMAGE_ATTACHMENT_MIME_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-const INLINE_TEXT_ATTACHMENT_LIMIT = 120_000;
+const INLINE_TEXT_ATTACHMENT_LIMIT = 8_000;
+const UPLOADED_STORY_PREVIEW_LIMIT = 3_000;
 export const UPLOADED_INGEST_FILES_LIMIT = 20;
 
 export type UploadedIngestFile = {
@@ -37,6 +38,8 @@ export type UploadedIngestFile = {
   size: number;
   totalChars?: number;
   chapterCount?: number;
+  textPreview?: string;
+  textPreviewTruncated?: boolean;
   uploadedAt: number;
 };
 
@@ -51,6 +54,7 @@ export type ReingestConfirmation = {
   stage: "choose_overwrite" | "confirm_clear";
   filename: string;
   project: string;
+  source: UploadedIngestFile;
 };
 
 export type AttachmentBlob = {
@@ -90,8 +94,43 @@ export function uploadedIngestFileFromUpload(
     size: upload.size,
     totalChars: upload.total_chars,
     chapterCount: upload.count,
+    textPreview: upload.text_preview,
+    textPreviewTruncated: upload.text_preview_truncated,
     uploadedAt,
   };
+}
+
+function appendSourcePreview(lines: string[], file: UploadedIngestFile): void {
+  const sourceText = file.textPreview;
+  const preview = sourceText?.slice(0, UPLOADED_STORY_PREVIEW_LIMIT);
+  if (!preview) {
+    lines.push("source_text_preview_unavailable: true");
+    return;
+  }
+  lines.push("source_text_preview:");
+  lines.push("```text");
+  lines.push(preview);
+  lines.push("```");
+  if (file.textPreviewTruncated || (sourceText?.length ?? 0) > preview.length) {
+    lines.push(`source_text_preview_truncated_after_chars: ${preview.length}`);
+  }
+}
+
+export function buildProductionSourceContext(
+  project: string,
+  file: UploadedIngestFile,
+  rebuild: boolean,
+): string {
+  const lines = [
+    "[AI_ANIME_PRODUCTION_SOURCE]",
+    `ai_anime_project_id: ${project}`,
+    `ai_anime_upload_filename: ${file.filename}`,
+    `rebuild: ${rebuild ? "true" : "false"}`,
+    "The user explicitly requested the full AI anime production flow. Do not start a separate ingest task. Inspect the bounded source preview, infer spine_template, visual_style, and ethnicity from the source, then call ai_anime_run_production_workflow exactly once with filename, rebuild, and all three inferred fields. Use narration_style only for narrated projects.",
+  ];
+  appendSourcePreview(lines, file);
+  lines.push("[/AI_ANIME_PRODUCTION_SOURCE]");
+  return lines.join("\n");
 }
 
 function extensionOf(filename?: string): string {
@@ -304,7 +343,19 @@ export function buildAttachmentAnalysisContext(
       }
     }
 
-    if (isInlineTextAttachment(originalAttachment)) {
+    const uploadedProjectNovel = Boolean(
+      project && prepared.upload && isNovelAttachment(originalAttachment),
+    );
+    if (uploadedProjectNovel) {
+      lines.push("text_content_available_via_upload: true");
+      appendSourcePreview(
+        lines,
+        uploadedIngestFileFromUpload(
+          prepared.upload as UploadResult,
+          originalAttachment.fileName,
+        ),
+      );
+    } else if (isInlineTextAttachment(originalAttachment)) {
       const text = dataUrlToText(originalAttachment);
       if (text) {
         const truncated = text.length > INLINE_TEXT_ATTACHMENT_LIMIT;

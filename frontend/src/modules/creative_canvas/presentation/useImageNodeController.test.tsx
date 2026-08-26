@@ -288,6 +288,7 @@ describe('useImageNodeController', () => {
       { width: 533, height: 300 },
       {
         lockManualSize: undefined,
+        recordHistory: true,
         data: {
           aspectRatio: '16:9',
           imageNaturalWidth: 1920,

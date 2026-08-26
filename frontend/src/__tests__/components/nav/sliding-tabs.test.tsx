@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -40,7 +40,7 @@ describe("SlidingTabs", () => {
     expect(script).toHaveAttribute("aria-selected", "false");
   });
 
-  it("optimistically updates the active tab before the controlled value changes", () => {
+  it("optimistically updates the active tab before the controlled value changes", async () => {
     const onValueChange = vi.fn();
     render(
       <SlidingTabs
@@ -54,8 +54,8 @@ describe("SlidingTabs", () => {
     const shots = screen.getByRole("tab", { name: "Shots" });
     fireEvent.click(shots);
 
-    expect(onValueChange).toHaveBeenCalledWith("shots");
     expect(shots).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => expect(onValueChange).toHaveBeenCalledWith("shots"));
   });
 
   it("follows controlled value changes from its parent", () => {

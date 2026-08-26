@@ -25,7 +25,7 @@ from ai_anime.modules.production.application.image_settings import (
 from ai_anime.modules.production.application.ports import (
     ProductionSettingsRepository,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -176,26 +176,28 @@ class LocalGridRegenerationPreparer:
             if detection_error:
                 raise GridRegenerationRejected(detection_error)
 
+            task_config = {
+                "beats": beats,
+                "character_map": character_map,
+                "style": style,
+                "model": image_route.model,
+                "render_mode": "Render",
+                "scene_grouping": command.scene_grouping,
+                "character_grouping": command.character_grouping,
+                "sketch_aspect_padding": (
+                    self._image_settings.resolve_sketch_aspect_padding(
+                        project_config,
+                        command.sketch_aspect_padding,
+                    )
+                ),
+            }
+            if image_route.selector:
+                task_config["model_selector"] = image_route.selector
             return GridRegenerationTask(
                 episode_num=command.episode_num,
                 grid_index=command.grid_index,
                 output_dir=context.output_dir,
-                config={
-                    "beats": beats,
-                    "character_map": character_map,
-                    "style": style,
-                    "model": image_route.model,
-                    "model_selector": image_route.selector,
-                    "render_mode": "Render",
-                    "scene_grouping": command.scene_grouping,
-                    "character_grouping": command.character_grouping,
-                    "sketch_aspect_padding": (
-                        self._image_settings.resolve_sketch_aspect_padding(
-                            project_config,
-                            command.sketch_aspect_padding,
-                        )
-                    ),
-                },
+                config=task_config,
             )
         finally:
             await store.close()

@@ -30,7 +30,7 @@ from ai_anime.modules.production.application.selected_regeneration import (
 from ai_anime.modules.production.domain.selected_regeneration import (
     selected_beat_indices_error,
 )
-from ai_anime.modules.model_usage.domain.model_route import (
+from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -159,13 +159,14 @@ class LocalSelectedRegenerationPreparer:
                 "character_map": character_map,
                 "style": style,
                 "model": image_route.model,
-                "model_selector": image_route.selector,
                 "selected_beat_numbers": list(command.beat_indices),
                 "sketch_colors": (
                     store.get_sketch_colors(command.episode_num) or {}
                 ),
                 "prop_menu": prop_menu,
             }
+            if image_route.selector:
+                config["model_selector"] = image_route.selector
             if command.kind is SelectedRegenerationKind.RENDER:
                 config["sketch_aspect_padding"] = (
                     self._image_settings.resolve_sketch_aspect_padding(

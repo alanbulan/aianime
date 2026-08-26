@@ -278,6 +278,7 @@ describe("RenderGridGallery", () => {
   });
 
   it("keeps custom render grids separate when backend pool grid_index is reused", () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     gridImages = [
       {
         id: "basement-1",
@@ -449,6 +450,12 @@ describe("RenderGridGallery", () => {
     expect(screen.getByText(/B1-6/)).toBeInTheDocument();
     expect(screen.getByText(/B7-8,18-19/)).toBeInTheDocument();
     expect(screen.getByAltText("Grid #1")).toHaveAttribute("src", "/static/store-grid.png");
+    expect(
+      consoleError.mock.calls.some((call) =>
+        String(call[0]).includes("same key"),
+      ),
+    ).toBe(false);
+    consoleError.mockRestore();
   });
 
   it("can regenerate and cut a render grid", async () => {

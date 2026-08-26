@@ -664,31 +664,4 @@ class NarrativeSQLiteRepositoryMixin:
         await db.commit()
         return cursor.rowcount or 0
 
-    async def patch_beats_missing_fields(
-        self,
-        episode_number: int,
-        beats_data: list[dict],
-    ) -> int:
-        """只补写从旧 JSON 同步来的静态字段。"""
-        updated_count = 0
-        db = await self._ensure_db()
-        for beat in beats_data:
-            beat_number = int(beat.get("beat_number", 0) or 0)
-            scene_ref = beat.get("scene_ref")
-            if beat_number <= 0 or scene_ref is None:
-                continue
-            cursor = await db.execute(
-                "UPDATE beats SET scene_ref_json = ?, updated_at = datetime('now') "
-                "WHERE episode_number = ? AND beat_number = ?",
-                (
-                    json.dumps(scene_ref, ensure_ascii=False) if scene_ref else "",
-                    episode_number,
-                    beat_number,
-                ),
-            )
-            updated_count += cursor.rowcount or 0
-        await db.commit()
-        return updated_count
-
-
 __all__ = ["NarrativeSQLiteRepositoryMixin"]

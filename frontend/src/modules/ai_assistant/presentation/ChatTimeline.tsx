@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { File as FileIcon, Image } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -23,46 +23,67 @@ type TimelineTurn = {
   hasImage: boolean;
 };
 
+const TIMELINE_BUTTON_HEIGHT = 24;
+const TIMELINE_ROW_HEIGHT = 32;
+
 function buildTimelineTurns(messages: ChatMessage[]): TimelineTurn[] {
-  return messages
-    .filter((message) => message.role === "user")
-    .map((message, index) => {
-      const attachments = message.attachments ?? [];
-      const hasImage = attachments.some((attachment) =>
-        attachment.mimeType?.startsWith("image/"),
-      );
-      const hasAttachment = attachments.length > 0;
-      const preview =
-        message.text.trim().slice(0, 60) ||
-        (hasImage ? "Image" : hasAttachment ? "File" : "...");
-      return {
-        id: message.id,
-        index,
-        preview,
-        timestamp: message.timestamp,
-        hasAttachment,
-        hasImage,
-      };
+  const turns: TimelineTurn[] = [];
+  for (const message of messages) {
+    if (message.role !== "user") continue;
+    const attachments = message.attachments ?? [];
+    const hasImage = attachments.some((attachment) =>
+      attachment.mimeType?.startsWith("image/"),
+    );
+    const hasAttachment = attachments.length > 0;
+    const preview =
+      message.text.trim().slice(0, 60) ||
+      (hasImage ? "Image" : hasAttachment ? "File" : "...");
+    turns.push({
+      id: message.id,
+      index: turns.length,
+      preview,
+      timestamp: message.timestamp,
+      hasAttachment,
+      hasImage,
     });
+  }
+  return turns;
 }
 
 export function ChatTimeline({
+  activeTurnId,
   messages,
-  scrollRef,
+  onSelectTurn,
 }: {
+  activeTurnId: string | null;
   messages: ChatMessage[];
-  scrollRef: RefObject<HTMLDivElement | null>;
+  onSelectTurn: (turnId: string) => void;
 }) {
   const turns = useMemo(() => buildTimelineTurns(messages), [messages]);
-  const [activeIndex, setActiveIndex] = useState(-1);
+  const turnIndexById = useMemo(() => {
+    const indexById = new Map<string, number>();
+    turns.forEach((turn, index) => indexById.set(turn.id, index));
+    return indexById;
+  }, [turns]);
+  const activeIndex = activeTurnId
+    ? turnIndexById.get(activeTurnId) ?? -1
+    : -1;
   const [hoveredTurn, setHoveredTurn] = useState<{
     index: number;
     top: number;
     right: number;
   } | null>(null);
-  const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const timelineListRef = useRef<HTMLDivElement | null>(null);
   const [scrollEdges, setScrollEdges] = useState({ up: false, down: false });
+  const timelineVirtualizer = useVirtualizer({
+    count: turns.length,
+    getScrollElement: () => timelineListRef.current,
+    estimateSize: () => TIMELINE_ROW_HEIGHT,
+    getItemKey: (index) => turns[index]?.id ?? index,
+    overscan: 8,
+    useAnimationFrameWithResizeObserver: true,
+    useFlushSync: false,
+  });
 
   const updateScrollEdges = useCallback(() => {
     const list = timelineListRef.current;
@@ -77,67 +98,12 @@ export function ChatTimeline({
   }, []);
 
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || turns.length < 2) return;
-    const turnElements = turns.map((turn) =>
-      container.querySelector(`[data-turn-id="${CSS.escape(turn.id)}"]`),
-    );
-    let animationFrame: number | null = null;
-
-    const updateActiveTurn = () => {
-      const containerRect = container.getBoundingClientRect();
-      const targetY = containerRect.top + containerRect.height / 3;
-      let closest = -1;
-      let closestDistance = Infinity;
-
-      for (let index = turns.length - 1; index >= 0; index -= 1) {
-        const element = turnElements[index];
-        if (!element) continue;
-        const rect = element.getBoundingClientRect();
-        const distance = Math.abs(rect.top - targetY);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closest = index;
-        }
-      }
-      setActiveIndex(closest);
-    };
-
-    const handleScroll = () => {
-      if (animationFrame !== null) return;
-      animationFrame = window.requestAnimationFrame(() => {
-        animationFrame = null;
-        updateActiveTurn();
-      });
-    };
-
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    updateActiveTurn();
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
-    };
-  }, [scrollRef, turns]);
-
-  useEffect(() => {
-    const list = timelineListRef.current;
-    const button = activeButtonRef.current;
-    if (!list || !button) return;
-    const listRect = list.getBoundingClientRect();
-    const buttonRect = button.getBoundingClientRect();
-    const edgePadding = 8;
-    if (buttonRect.top < listRect.top + edgePadding) {
-      list.scrollBy({
-        top: buttonRect.top - listRect.top - edgePadding,
-        behavior: "auto",
-      });
-    } else if (buttonRect.bottom > listRect.bottom - edgePadding) {
-      list.scrollBy({
-        top: buttonRect.bottom - listRect.bottom + edgePadding,
-        behavior: "auto",
-      });
-    }
-  }, [activeIndex]);
+    if (activeIndex < 0) return;
+    timelineVirtualizer.scrollToIndex(activeIndex, {
+      align: "auto",
+      behavior: "auto",
+    });
+  }, [activeIndex, timelineVirtualizer]);
 
   useEffect(() => {
     const list = timelineListRef.current;
@@ -157,14 +123,9 @@ export function ChatTimeline({
 
   const scrollToTurn = useCallback(
     (turn: TimelineTurn) => {
-      const container = scrollRef.current;
-      if (!container) return;
-      const element = container.querySelector(
-        `[data-turn-id="${CSS.escape(turn.id)}"]`,
-      );
-      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      onSelectTurn(turn.id);
     },
-    [scrollRef],
+    [onSelectTurn],
   );
 
   const revealTimelineContext = useCallback((button: HTMLButtonElement) => {
@@ -190,51 +151,67 @@ export function ChatTimeline({
         <div className="absolute inset-y-2 left-1/2 w-px -translate-x-1/2 bg-border/70" />
         <div
           ref={timelineListRef}
-          className="flex max-h-full flex-col items-center gap-2 overflow-y-auto px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex max-h-full flex-col items-center overflow-y-auto px-2 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {turns.map((turn, index) => (
-            <button
-              key={turn.id}
-              ref={index === activeIndex ? activeButtonRef : null}
-              type="button"
-              className="group/timeline-dot relative z-10 flex h-6 w-4 shrink-0 items-center justify-center"
-              onClick={(event) => {
-                revealTimelineContext(event.currentTarget);
-                scrollToTurn(turn);
-              }}
-              onMouseEnter={(event) => {
-                const rect = event.currentTarget.getBoundingClientRect();
-                setHoveredTurn({
-                  index,
-                  top: rect.top + rect.height / 2,
-                  right: window.innerWidth - rect.left + 12,
-                });
-              }}
-              onMouseLeave={() => setHoveredTurn(null)}
-              aria-label={`Turn ${index + 1}: ${turn.preview}`}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "rounded-full border transition-[width,height,background-color,border-color] duration-150",
-                  index === activeIndex
-                    ? turns.length > 80
-                      ? "size-2 border-primary bg-primary"
-                      : turns.length > 40
-                        ? "size-2.5 border-primary bg-primary"
-                        : "size-3 border-primary bg-primary"
-                    : cn(
-                        "border-muted-foreground/40 bg-background group-hover/timeline-dot:border-primary group-hover/timeline-dot:bg-primary/20",
-                        turns.length > 80
-                          ? "size-1.5"
+          <div
+            className="relative w-4 shrink-0"
+            style={{
+              height: Math.max(
+                0,
+                timelineVirtualizer.getTotalSize()
+                  - (TIMELINE_ROW_HEIGHT - TIMELINE_BUTTON_HEIGHT),
+              ),
+            }}
+          >
+            {timelineVirtualizer.getVirtualItems().map((virtualRow) => {
+              const turn = turns[virtualRow.index];
+              if (!turn) return null;
+              const index = virtualRow.index;
+              return (
+                <button
+                  key={virtualRow.key}
+                  type="button"
+                  className="group/timeline-dot absolute left-0 top-0 z-10 flex h-6 w-4 items-center justify-center"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                  onClick={(event) => {
+                    revealTimelineContext(event.currentTarget);
+                    scrollToTurn(turn);
+                  }}
+                  onMouseEnter={(event) => {
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setHoveredTurn({
+                      index,
+                      top: rect.top + rect.height / 2,
+                      right: window.innerWidth - rect.left + 12,
+                    });
+                  }}
+                  onMouseLeave={() => setHoveredTurn(null)}
+                  aria-label={`Turn ${index + 1}: ${turn.preview}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "rounded-full border transition-[width,height,background-color,border-color] duration-150",
+                      index === activeIndex
+                        ? turns.length > 80
+                          ? "size-2 border-primary bg-primary"
                           : turns.length > 40
-                            ? "size-2"
-                            : "size-2.5",
-                      ),
-                )}
-              />
-            </button>
-          ))}
+                            ? "size-2.5 border-primary bg-primary"
+                            : "size-3 border-primary bg-primary"
+                        : cn(
+                            "border-muted-foreground/40 bg-background group-hover/timeline-dot:border-primary group-hover/timeline-dot:bg-primary/20",
+                            turns.length > 80
+                              ? "size-1.5"
+                              : turns.length > 40
+                                ? "size-2"
+                                : "size-2.5",
+                          ),
+                    )}
+                  />
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div
           className={cn(

@@ -190,7 +190,7 @@ async def rewrite_episode_content(
         get_newapi_text_pydantic_model(),
         system_prompt=REWRITE_PROMPT,
         output_type=AdaptedContentOutput,
-        output_retries=3,
+        retries={"output": 3},
         model_settings=get_newapi_text_pydantic_model_settings(
             "CONTENT_REWRITER_THINKING_LEVEL",
             "medium",

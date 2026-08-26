@@ -2,7 +2,7 @@
 
 AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、Electron 主进程、FastAPI 本地 sidecar、Python 业务运行时、SQLite、FFmpeg 和 Hermes ACP 组成，最终用户不需要单独安装 Python、Node.js 或 FFmpeg。
 
-当前客户端版本：`1.1.61`。
+当前客户端版本：`1.1.62`。
 
 `master` 分支已接入 Gitee Go 自动版本流水线。普通代码提交会先串行执行 Electron 测试与类型检查、前端架构回归测试与全量类型检查、前端 CE 构建、Python 关键路径测试；全部通过后自动递增补丁版本，生成中英文更新记录，并以 `chore(release): 自动升级版本至 vX.Y.Z` 提交回写仓库。流水线生成的版本提交会被守卫识别，不会再次递增；前端测试构件同时保存在本次 Gitee Go 构建产物中。Windows NSIS 和 macOS 安装包仍需在对应系统构建，避免把错误平台的 Python sidecar 打进安装包。
 
@@ -25,9 +25,11 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 - 普通版 Cloud 模型请求经 Electron 本地模型代理转发到 Gateway；专业版 BYOK 由用户配置标准模型接口。
 - Windows x64 与 macOS arm64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
 - 旧 `agents`、`director_world`、`generators`、`seedance2_i2v` Python 路径已经退役；Backup、Knowledge Graph 和 Verification 已按实际职责分层。
+- 桌面任务默认使用有界内联执行器，原生重任务进入可终止子进程；服务重启会按任务契约恢复或终止遗留状态。
+- SuperChat 消息、右侧时间轴和任务列表已经使用可变高度虚拟列表，长会话不再持续累积 DOM 节点。
 - 真实租户登录、会话恢复、许可、模型目录、文本生成和额度结算已闭环；文本调用返回预期结果，个人额度从 `960` 扣减到 `940`。
 
-当前线上状态补充：
+最近一次有记录的线上联调状态如下（2026-08-09 的历史结果，不代表当前服务健康状态）：
 
 - `CODEX_SMOKE_IMAGE` 已进入真实 Gateway，但供应商返回 HTTP `404`；云端需修正图片供应商 Base URL、生成路径或模型映射。
 - 当前租约已使用受信任的 `lease-2026-08-v1`，有效期至 `2026-08-16T12:09:16Z`，客户端可用内置 SPKI 公钥完成 Ed25519 验签。
@@ -39,21 +41,61 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 
 ## 2. 运行架构
 
+AI anime 是“单桌面壳 + 多个受控本地运行时 + 一个远端商业控制面”的模块化单体。React、Electron、FastAPI 和 Hermes 各有独立职责，但项目数据与业务事务仍由同一个本地应用管理，不按微服务方式部署。
+
+### 2.1 进程与信任边界
+
 ```mermaid
-flowchart LR
-    UI[React Renderer] -->|白名单方法| Preload[Electron preload]
-    Preload -->|IPC| Main[Electron 主进程]
-    Main -->|启动/停止| API[FastAPI sidecar]
-    UI -->|/api/v1/* + Cookie| API
-    API --> App[Application 用例]
-    App --> Domain[Domain]
-    App --> Ports[Ports]
-    Ports --> Infra[Infrastructure]
-    Infra --> Local[SQLite / 文件 / FFmpeg]
-    Main -->|HTTPS + JWT| Gateway[Commercial Gateway]
-    API -->|loopback token| Proxy[Electron 模型代理]
-    Proxy -->|/v1 或 /v1beta| Gateway
+flowchart TB
+    subgraph Desktop[Electron 桌面进程]
+        UI[React Renderer]
+        Preload[Preload 白名单桥]
+        Main[Electron Main]
+        Proxy[Loopback 模型代理]
+        UI -->|受限 window.aiAnimeDesktop API| Preload
+        Preload -->|IPC| Main
+        Main --> Proxy
+    end
+
+    subgraph Local[本地 Python 运行时]
+        API[FastAPI sidecar]
+        App[Application / Domain]
+        Tasks[桌面内联任务执行器]
+        Native[可终止原生子进程]
+        Hermes[Hermes ACP 子进程池]
+        World[可选 3D World Runtime]
+        Store[(SQLite / 项目文件)]
+        Media[FFmpeg / Whisper / 图像与 3D 工具]
+        API --> App
+        App --> Store
+        App --> Tasks
+        Tasks --> Native
+        Native --> Media
+        Native --> World
+        API --> Hermes
+        Hermes -->|受限 AI anime 工具| API
+    end
+
+    UI -->|同源 /api/v1 + HttpOnly Cookie| API
+    Main -->|启动、健康检查、关闭| API
+    API -->|随机代理令牌 + 模型角色| Proxy
+    Hermes -->|OpenAI-compatible| Proxy
+
+    Main -->|账户、许可、目录、更新| Gateway[Commercial Gateway]
+    Proxy -->|Cloud 路由| Gateway
+    Proxy -->|BYOK 路由| Provider[用户配置的模型服务]
 ```
+
+| 运行单元 | 主要职责 | 明确不负责 |
+| --- | --- | --- |
+| React Renderer | 工作台、自由画布、资产库、生产面板、SuperChat、任务状态展示 | 保存 Gateway JWT/BYOK 密钥、直接拉起进程、直接访问 SQLite |
+| Electron preload | 把窗口、商业账户、模型配置和保存对话框等能力收敛为白名单 IPC | 暴露任意 `ipcRenderer`、Node.js 或文件系统接口 |
+| Electron Main | 窗口生命周期、`safeStorage`、商业 Gateway、模型路由、sidecar 与更新器 | 承载业务用例或渲染 UI |
+| FastAPI sidecar | 本地 API、DDD 用例组合、SQLite/文件事务、任务编排和 SSE | 持久化 Gateway JWT、设备私钥或 BYOK 明文 |
+| Hermes ACP | 每用户 Agent 会话、上下文压缩、工具选择和流式事件 | 直接改写项目数据库、绕过 API 调用业务代码 |
+| Native / World Runtime | 隔离重型模型、3D 与可终止外部命令，避免阻塞 API 事件循环 | 提供独立产品 API 或保存长期会话 |
+
+### 2.2 本地通信与生命周期
 
 桌面启动顺序：
 
@@ -62,8 +104,35 @@ flowchart LR
 3. FastAPI 只绑定 loopback 随机端口，并通过标准输出报告实际地址。
 4. Electron 为本地请求注入 `X-AI-Anime-Desktop-Token`。
 5. 开发模式加载 Vite；发布模式由 FastAPI 托管已构建的 React SPA。
-6. Electron 启动只监听 loopback 的商业模型代理，并把地址和随机代理令牌传给 sidecar。
-7. 窗口退出时，Electron 请求 sidecar 关闭并回收 FastAPI、Hermes 和模型代理进程。
+6. Electron 启动只监听 loopback 的商业模型代理，把地址、随机代理令牌和模型能力快照传给 sidecar。
+7. FastAPI 按用户惰性启动沙箱化 Hermes ACP 子进程；CPU/GPU 或外部工具任务可进入独立可终止子进程。
+8. 窗口退出时，Electron 请求 sidecar 关闭并回收 FastAPI、Hermes、任务子进程和模型代理。
+
+本地交互分成四条路径：
+
+| 路径 | 协议 | 用途 |
+| --- | --- | --- |
+| Renderer -> FastAPI | 同源 HTTP、SSE、WebSocket | 业务读写、任务事件和 SuperChat 流 |
+| Renderer -> Electron Main | context-isolated IPC | 登录、许可、BYOK 设置、系统窗口、文件保存和更新 |
+| FastAPI/Hermes -> Electron Proxy | loopback HTTP，随机令牌与模型角色标头 | 文本、Embedding、图片、音频和视频模型调用 |
+| Hermes -> FastAPI | worker-scoped Token + AI anime 工具 | 查询项目状态并提交受业务规则约束的操作 |
+
+任务中心先用 HTTP 快照完成水合，再建立项目级 SSE；连接失败会按受控退避重连并降级为轮询。桌面默认执行后端使用有界线程池调度任务，原生命令和需要硬取消的模型步骤进入独立进程组，取消或超时时会回收整组子进程，避免阻塞 FastAPI 事件循环。
+
+### 2.3 模型路由
+
+模型用途统一为显式角色，例如 `TEXT`、`EMBEDDING`、`IMAGE_GENERATION`、`IMAGE_EDIT`、`VIDEO_TEXT_TO_VIDEO`、`AUDIO_SPEECH`。FastAPI 与 Hermes 只看到当前角色的有序模型选择器，不接触实际密钥：
+
+```text
+业务用例 / Pydantic AI / Hermes
+  -> Electron loopback 模型代理
+     -> Cloud：Commercial Gateway -> 平台供应商
+     -> BYOK：用户配置的 OpenAI-compatible / Anthropic / Gemini 接口
+```
+
+Electron 代理负责优先级、fallback、协议转换、超时、取消、幂等键、响应契约检查和敏感日志脱敏。Cloud 认证使用 Electron 保存的 Gateway 会话；BYOK 配置使用 `safeStorage` 加密保存。两者不会下放到 React，也不会写入项目文件。
+
+### 2.4 身份与密钥边界
 
 三类身份不能混用：
 
@@ -75,9 +144,75 @@ flowchart LR
 
 React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线租约原文。
 
-## 3. DDD 边界
+## 3. 技术栈
 
-### 3.1 已建立标准分层的上下文
+以下版本来自当前 `uv.lock`、`frontend/pnpm-lock.yaml`、`desktop/pnpm-lock.yaml` 和对应 manifest；锁文件是可复现安装的唯一版本依据。
+
+### 3.1 前端与交互层
+
+| 类别 | 技术 | 当前版本 | 用途 |
+| --- | --- | --- | --- |
+| UI Runtime | React / React DOM | 19.2.8 | Renderer 组件、并发更新与桌面工作台 |
+| 语言与构建 | TypeScript / Vite | 7.0.2 / 8.2.2 | 类型检查、开发 HMR 与 CE 生产构建 |
+| 路由与服务端状态 | TanStack Router / Query | 1.170.32 / 5.102.3 | 类型化路由、缓存、失效和异步状态 |
+| 长列表 | TanStack Virtual | 3.14.10 | SuperChat 消息、时间轴和任务列表的可变高度虚拟化 |
+| 本地 UI 状态 | Zustand | 5.0.15 | 画布、任务中心和跨组件轻量状态 |
+| 表单与契约 | React Hook Form / Zod | 7.86.0 / 4.4.3 | 表单状态、输入校验和运行时 schema |
+| 样式与组件 | Tailwind CSS / Base UI / Radix UI / shadcn | 4.3.3 / 1.7.0 / 2.1.x / 4.19.0 | 主题、无障碍交互和基础组件 |
+| 动效 | GSAP / Framer Motion | 3.15.0 / 13.1.1 | 导航滑块、面板切换和局部动效 |
+| 画布与图形 | XYFlow / Konva / React Konva | 12.11.3 / 10.3.1 / 19.2.5 | 节点画布、2D 编辑与交互覆盖层 |
+| 3D 与全景 | PlayCanvas / Photo Sphere Viewer | 2.21.4 / 5.15.1 | 3DGS、场景查看和 360° 预览 |
+| 浏览器媒体 | FFmpeg.wasm / Mediabunny / lamejs | 0.12.x / 1.55.2 / 1.2.7 | 前端转码、封装、波形与音频处理 |
+| 本地推理 | Transformers.js | 4.2.0 | 浏览器侧可选轻量模型能力 |
+
+前端按 `app -> routes -> modules -> shared` 组合。业务模块内部继续使用 `domain/application/infrastructure/presentation/composition/public`；路由只读取参数并组合页面，不直接持有 transport。SuperChat 和任务列表使用真实虚拟列表，长会话只挂载视口附近节点，不再依赖单纯的 `content-visibility`。
+
+### 3.2 Electron 与桌面发布层
+
+| 技术 | 当前版本 | 用途 |
+| --- | --- | --- |
+| Electron | 44.0.0 | Windows/macOS 桌面壳、窗口、Session、IPC 与 `safeStorage` |
+| electron-builder | 26.15.3 | NSIS、DMG、ZIP 与资源装配 |
+| electron-updater | 6.8.9 | 标准更新 Feed、下载、校验与安装 |
+| Node.js | 24.19.0 LTS | 开发脚本、构建和 Electron 主进程基线 |
+| pnpm | 11.24.0 | 前端与桌面端两个独立 lock workspace |
+| PyInstaller | 6.22.x | FastAPI、Hermes ACP 与可选 World Runtime sidecar |
+| `@playcanvas/splat-transform` | 3.3.3 | PLY/3DGS 到 PlayCanvas SOG 的离线转换 |
+
+开发入口直接用 Electron 的 TypeScript transform 运行 `desktop/scripts/dev-entry.mjs`；发布入口只执行 `tsc` 产出的 `desktop/dist/main.js`。Renderer 始终启用 `contextIsolation` 和 sandbox，正式版由主进程给 FastAPI 托管的页面注入严格 CSP。
+
+### 3.3 Python 业务与 AI 层
+
+| 类别 | 技术 | 当前锁定版本 | 用途 |
+| --- | --- | --- | --- |
+| API | FastAPI / Uvicorn | 0.141.1 / 0.52.4 | 本地 REST、SSE、WebSocket、生命周期与 OpenAPI |
+| 数据契约 | Pydantic | 2.13.4 | API schema、配置与领域边界 DTO |
+| Agent/结构化输出 | Pydantic AI Slim | 2.31.1 | OpenAI、Anthropic、Gemini、OpenRouter Provider 与结构化 Agent |
+| 模型 SDK | OpenAI Python | 2.54.0 | OpenAI-compatible 调用和同步辅助路径 |
+| 知识图谱 | Cognee | 1.5.3 | 文本切分、图谱构建、Embedding 与检索 |
+| Cognee 传输适配 | LiteLLM | 1.98.0 | 仅服务 Cognee 的文本/Embedding 适配与计量钩子，不承担产品模型路由 |
+| 数据与并发 | SQLite / aiosqlite / portalocker | SQLite / 0.22.1 / 4.3.0 | 本地事务、WAL、异步访问和跨进程文件锁 |
+| 任务合同 | Celery / 本地执行后端 | 5.6.3 / 内置 | 保持任务 envelope 与取消语义；桌面默认不依赖外部 Broker |
+| 媒体与数值 | Pillow / NumPy | 12.3.0 / 2.5.2 | 图片处理、网格拆分和数值计算 |
+| 桌面语音 | faster-whisper | 1.2.1 | 本地语音转写运行时 |
+| 3D World 可选栈 | PyTorch / Transformers / SHARP / DA2 | 2.13.0 / 5.15.1 / 0.1 / 0.1.0 | 深度、3DGS 和场景世界生成；使用独立构建路径 |
+
+主 Python 环境要求 3.11 或 3.12。Hermes 不进入主锁文件，而是由 `desktop/hermes-runtime/uv.lock` 独立固定 `hermes-agent[acp] 0.19.0`，避免 Agent 运行时依赖改变 FastAPI sidecar 的模型 SDK 组合。
+
+### 3.4 测试与质量工具
+
+| 范围 | 技术 | 当前版本/策略 |
+| --- | --- | --- |
+| Python | Pytest 9.1.1、pytest-asyncio 1.4.0、Ruff 0.16.4 | 领域、合同、迁移、架构和运行时测试 |
+| 前端 Unit | Vitest 4.1.11 + Node `vmThreads` | 纯规则、数据投影和架构门禁 |
+| 前端 Component | Vitest + Happy DOM 20.11.6 + Testing Library 16.3.2 | React 组件、DOM 存储和交互合同 |
+| 前端 Browser | Vitest Browser + Playwright 1.62.1 / Chromium | 浏览器真实布局、Canvas 和复杂组件 |
+| API Mock | MSW 2.15.0 | 未登记请求直接报错，防止测试静默访问真实服务 |
+| Electron | Node test runner | 主进程合同、IPC 对称性、打包路径与安全边界 |
+
+## 4. DDD 边界
+
+### 4.1 已建立标准分层的上下文
 
 后端和前端的主要上下文采用 `domain/application/infrastructure/presentation/composition/public` 中适用的层：
 
@@ -86,6 +221,7 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 | `identity_access` | 商业登录、本地会话、授权与许可 |
 | `project_workspace` | 项目生命周期、权限和工作区状态 |
 | `story_intake` | 原文上传、章节预览和知识导入 |
+| `knowledge_graph` | 文本切分、图谱构建、Embedding、迁移和检索 |
 | `narrative_planning` | 剧集、剧本、Beat 和镜头规划 |
 | `asset_world` | 风格、角色、身份、声线、场景和道具 |
 | `production` | 草图、Render、音频、视频和合成 |
@@ -93,6 +229,8 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 | `ai_assistant` | SuperChat、Agent 会话和工具调用 |
 | `task_execution` | 任务队列、状态、取消与运行器 |
 | `model_usage` | 模型目录、额度、计费和调用观测 |
+| `verification` | 剧本、画面、连续性和成片质量检查 |
+| `backup` | 项目恢复计划、文件快照、SQLite/WAL 备份与恢复 CLI |
 | `platform_release` | 运行时配置、项目文件交付和本地发布说明解析 |
 
 层职责：
@@ -108,7 +246,7 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 跨上下文调用应经过目标上下文的 `public.py` 或 `public.ts`。FastAPI route 只负责认证、schema、用例调用和 HTTP 错误映射；React route 只负责路由参数和页面装配。
 
-### 3.2 本轮 DDD 收敛结果
+### 4.2 本轮 DDD 收敛结果
 
 | 原架构债 | 当前所有权 |
 | --- | --- |
@@ -125,14 +263,14 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 架构门禁会阻止旧路径、兼容 re-export、业务上下文反向导入 shared 和 presentation 直接依赖 infrastructure 回流。较大的基础设施适配文件可以继续按行为边界演进，但不能仅为减少行数制造无业务含义的目录或 facade。
 
-### 3.3 目录规则
+### 4.3 目录规则
 
 - 只有一个文件并不自动代表目录错误。`domain/application/infrastructure/presentation`、API 版本目录、locale 和资源目录表达稳定边界，可以保留。
 - 没有独立边界、只增加一层跳转的包装目录应打平。
 - 迁移完成后不保留旧 re-export、兼容 facade、第二套请求路径或只供源码字符串测试读取的旧文件。
 - 历史数据兼容只允许存在于读取和迁移边界，不得成为新写入路径。
 
-## 4. 项目结构
+## 5. 项目结构
 
 ```text
 ai-anime-desktop/
@@ -188,7 +326,7 @@ ai-anime-desktop/
 | `desktop/runtime/` | 平台 FFmpeg |
 | `desktop/release/` | 安装包与 unpacked 应用 |
 
-## 5. 商业 Gateway 接入状态
+## 6. 商业 Gateway 接入状态
 
 固定 Gateway：
 
@@ -207,7 +345,7 @@ React module
   -> Gateway HTTPS
 ```
 
-### 5.1 已进入产品调用链
+### 6.1 已进入产品调用链
 
 | 能力 | Gateway 路径 | 产品入口 |
 | --- | --- | --- |
@@ -241,7 +379,7 @@ React module
 
 上表表示代码调用链和合同测试存在，不表示远端生产数据已经在线验收。
 
-### 5.2 当前版本明确不消费
+### 6.2 当前版本明确不消费
 
 以下接口没有伪装成“已接入”：
 
@@ -252,7 +390,7 @@ React module
 
 本地 FastAPI 原有的 `/api/v1/release-notifications` 只返回空 feed，渲染层也不消费；该虚假接口已删除。公告和版本更新只走真实商业 Gateway。
 
-### 5.3 真实联调结果与云端待处理
+### 6.3 真实联调结果与云端待处理
 
 2026-08-09 使用隔离测试租户对固定 Gateway 和桌面开发实例执行了真实联调。凭据只用于本机测试，未写入仓库：
 
@@ -274,20 +412,20 @@ React module
 
 可直接交给云端实施的字段、JSON 示例、密钥位置和发布顺序见 [云端接入与安全更新交接](docs/cloud-integration-handoff.md)。
 
-## 6. 本地认证与模型路径
+## 7. 本地认证与模型路径
 
 Electron 产品登录使用真实商业 Gateway。登录成功后，主进程只为本地 FastAPI 写入 HttpOnly `ai_anime_session` Cookie；Cookie 是本地 BFF 身份标记，不是 Gateway JWT。
 
 `AI_ANIME_DESKTOP_MODE=1` 下 FastAPI 仍包含桌面专用本地认证适配入口，用于 sidecar 合同和本地工作区映射。React 商业登录页不把账号密码发送给这些本地入口。普通浏览器 API 不暴露桌面专用 `login/authorize` 操作。
 
-模型访问只有两条：
+模型访问只有两条，并且都经过 Electron loopback 模型代理：
 
-- Cloud：Python sidecar -> loopback 商业模型代理 -> Gateway -> 上游模型。
-- BYOK：专业版权益允许时，React 只通过白名单 IPC 提交用户输入，Electron 加密保存并同步给 sidecar；密钥不写入 React 持久化状态。
+- Cloud：Python sidecar / Hermes -> Electron 模型代理 -> Gateway -> 平台供应商。
+- BYOK：Python sidecar / Hermes -> Electron 模型代理 -> 用户的 OpenAI-compatible、Anthropic 或 Gemini 接口。专业版权益允许时，React 只通过白名单 IPC 提交配置，Electron 使用 `safeStorage` 加密保存；密钥不会同步给 sidecar，也不写入 React 持久化状态。
 
 对象存储统一使用平台配置，不提供用户 BYOK 对象存储入口。Hermes ACP 只负责 Agent 协议执行，模型请求仍遵守 Cloud/BYOK 边界。
 
-## 7. 本地数据
+## 8. 本地数据
 
 Electron 使用 `app.getPath("userData")`：
 
@@ -312,14 +450,14 @@ Electron 使用 `app.getPath("userData")`：
 
 重构必须保持现有 SQLite schema、用户文件布局、静态 URL 和任务 payload 兼容。敏感文件由 Electron `safeStorage` 加密，不得提交到仓库或复制进发布制品。
 
-## 8. 开发环境
+## 9. 开发环境
 
 要求：
 
 - Python 3.11 或 3.12
 - `uv`
-- Node.js
-- pnpm 11.5.0
+- Node.js 24.19.0 LTS
+- pnpm 11.24.0
 - Windows x64 或 Apple Silicon Mac
 
 安装依赖：
@@ -327,8 +465,12 @@ Electron 使用 `app.getPath("userData")`：
 ```powershell
 uv sync --group desktop
 pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend test:browser:install
 pnpm --dir desktop install --frozen-lockfile
 ```
+
+`test:browser:install` 安装前端 Browser Mode 所需的 Chromium；本机和 CI
+首次运行前端全量测试前都必须执行一次。
 
 启动桌面开发模式：
 
@@ -336,7 +478,9 @@ pnpm --dir desktop install --frozen-lockfile
 pnpm --dir desktop dev
 ```
 
-该命令直接启动 FastAPI、Vite、Electron 和 Hermes 运行时。Vite 固定使用 `127.0.0.1:5173` 且启用 strict port；端口被占用时会明确失败。
+该命令直接启动 FastAPI、Vite、Electron 和 Hermes 运行时。Vite 默认使用 `127.0.0.1:5173` 且启用 strict port；端口被占用时可通过 `AI_ANIME_DEV_VITE_PORT` 指定其他端口。
+
+需要在开发模式复用已安装客户端的项目和登录状态时，可将 `AI_ANIME_DEV_USER_DATA_DIR` 指向安装版 `userData`；复用期间不要同时启动安装版。
 
 常用验证：
 
@@ -344,7 +488,7 @@ pnpm --dir desktop dev
 uv run ruff check src tests
 uv run pytest
 pnpm --dir frontend typecheck
-pnpm --dir frontend exec vitest run --maxWorkers=1 --no-file-parallelism
+pnpm --dir frontend test
 pnpm --dir desktop typecheck
 pnpm --dir desktop test
 git diff --check
@@ -352,21 +496,23 @@ git diff --check
 
 Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个大型 Node/Python 进程同时占用内存。
 
-## 9. 测试与架构门禁
+前端测试不要用 `--no-isolate` 提速：实测失败集会随文件调度顺序变化；仓库统一使用配置中的 `vmThreads`、4 worker 和固定内存回收阈值。非 TSX DOM 测试统一使用 `.dom.test.ts` 后缀并由 Vitest 自动路由到 Happy DOM；Browser Mode 测试使用 `.browser.test.ts` 或 `.browser.test.tsx`。启用 MSW 的测试对未 mock 请求采用 `onUnhandledRequest: "error"`，请求缺少 handler 时应快速失败。
+
+## 10. 测试与架构门禁
 
 | 门禁 | 文件 | 主要约束 |
 | --- | --- | --- |
 | 后端依赖方向 | `tests/architecture/test_layer_boundaries.py` | 非 API 不反向依赖 API、route 不互相导入、上下文边界 |
-| OpenAPI 合同 | `tests/architecture/openapi-contract.json` | 浏览器 279、桌面 281 个规范化操作 |
+| OpenAPI 合同 | `tests/architecture/openapi-contract.json` | 浏览器 292、桌面 294 个规范化操作 |
 | 前端模块边界 | `frontend/src/__tests__/architecture/module-boundaries.test.ts` | route、domain、application、infrastructure、presentation、public |
-| SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.test.ts` | Agent、消息、存储、WebSocket 和视图所有权 |
+| SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.dom.test.ts` | Agent、消息、存储、WebSocket 和视图所有权 |
 | UI 颜色 | `frontend/src/__tests__/architecture/ui-color-literals.test.ts` | 不新增未登记的硬编码 UI 色值 |
 | 主题对比度 | `frontend/src/__tests__/architecture/theme-contrast.test.ts` | 正文不低于 4.5:1，关键边界不低于 3:1 |
 | Electron 商业合同 | `desktop/tests/*.test.mjs` | JWT、设备身份、许可、模型代理、标准更新器和跨平台路径 |
 
 门禁通过只证明已纳入规则的边界没有回退，不能替代真实 Gateway 联调、安装包冒烟或人工工作流验收。
 
-## 10. 打包
+## 11. 打包
 
 打包链路依次执行：
 
@@ -421,7 +567,7 @@ latest-mac.yml
 - 记录安装包文件名、字节数、目标平台和对应 `latest*.yml`。
 - 不上传 `secure/`、用户数据、日志、`.env`、JWT、API Key 或私钥。
 
-## 11. 代码来源与上游同步
+## 12. 代码来源与上游同步
 
 | Remote | 地址 | 用途 |
 | --- | --- | --- |

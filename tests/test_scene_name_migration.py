@@ -487,7 +487,10 @@ def test_apply_with_missing_schema_returns_warning_without_backup_or_writes(tmp_
     conn.close()
 
 
-def test_symlink_asset_inside_root_but_outside_old_dir_warns_without_crashing(tmp_path: Path):
+def test_linked_asset_inside_root_but_outside_old_dir_warns_without_crashing(
+    tmp_path: Path,
+    create_directory_link,
+):
     _create_db(tmp_path)
     _insert_scene(tmp_path, DIRTY)
     old_dir = tmp_path / "assets" / "scenes" / DIRTY
@@ -496,7 +499,7 @@ def test_symlink_asset_inside_root_but_outside_old_dir_warns_without_crashing(tm
     sibling_dir.mkdir(parents=True)
     target = sibling_dir / "layout.txt"
     target.write_text("shared", encoding="utf-8")
-    (old_dir / "linked.txt").symlink_to(target)
+    create_directory_link(old_dir / "linked", sibling_dir)
 
     report = asyncio.run(migrate_scene_names(tmp_path, dry_run=True))
 

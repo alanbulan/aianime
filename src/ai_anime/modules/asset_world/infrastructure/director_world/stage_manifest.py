@@ -5,7 +5,6 @@ records which 3GS assets exist for a scene. It's the shared truth between:
 
 - scene_workspace UI (writes after each build step)
 - DirectorWorldService.make_3gs_editor_url (reads to gate the 3GS entry)
-- paths.scene_gaussian_splat_ply_path (reads for asset discovery)
 
 Schema:
     {
@@ -135,27 +134,6 @@ def update_manifest(
         existing[field] = None
     existing.update({k: v for k, v in fields.items() if v is not None})
     return save_manifest(project_dir, scene_id, existing, version=version)
-
-
-def has_3gs_assets(
-    project_dir: Path,
-    scene_id: str,
-    *,
-    require_collision: bool = True,
-    version: str = "v1",
-) -> bool:
-    """Return True if PLY exists (and optionally collision GLB)."""
-    mani = load_manifest(project_dir, scene_id, version)
-    if not mani:
-        return False
-    if resolve_ply_path(project_dir, scene_id, version=version) is None:
-        return False
-    if require_collision:
-        base = stage_dir(project_dir, scene_id, version)
-        glb_name = mani.get("collision_glb_path")
-        if not glb_name or not (base / glb_name).exists():
-            return False
-    return True
 
 
 def resolve_ply_path(

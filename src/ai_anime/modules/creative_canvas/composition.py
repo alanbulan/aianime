@@ -187,6 +187,7 @@ from ai_anime.modules.creative_canvas.infrastructure.text_sources import (
     LocalCreativeCanvasTextSourceReader,
 )
 from ai_anime.modules.creative_canvas.infrastructure.text_generation import (
+    bind_story_script_assets as bind_story_script_assets_impl,
     generate_creative_canvas_story_script as generate_story_script,
     generate_creative_canvas_story_script_with_vision as generate_story_script_with_vision_impl,
     translate_creative_canvas_text as translate_text,
@@ -274,6 +275,19 @@ async def generate_story_script_with_vision(
         character_refs=character_refs,
         model=model,
         model_selector=model_selector,
+    )
+
+
+def bind_story_script_assets(
+    payload: dict[str, object],
+    *,
+    frame_urls: Sequence[str] = (),
+    character_refs: Sequence[Mapping[str, object]] | None = None,
+) -> dict[str, object]:
+    return bind_story_script_assets_impl(
+        payload,
+        frame_urls=frame_urls,
+        character_refs=character_refs,
     )
 
 

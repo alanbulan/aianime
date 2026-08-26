@@ -10,6 +10,16 @@ from ai_anime.api.routes.creative_canvas import video as video_routes
 from ai_anime.modules.creative_canvas.application.generation_catalog import (
     GenerationCatalogQueries,
 )
+from ai_anime.modules.creative_canvas.domain.image_editing import (
+    CreativeCanvasImageStyleConfig,
+)
+from ai_anime.modules.creative_canvas.domain.image_prompts import (
+    creative_canvas_image_style_templates,
+    resolve_creative_canvas_image_style_template,
+)
+from ai_anime.modules.creative_canvas.domain.style_template_catalog import (
+    creative_canvas_legacy_style_templates,
+)
 from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
     ConfiguredGenerationCatalogSource,
 )
@@ -84,6 +94,21 @@ def test_style_catalog_keeps_configured_asset_base_override(
         url.startswith("https://assets.example.com/styles/")
         for url in templates[0]["sample_urls"]
     )
+
+
+def test_retired_style_ids_remain_resolvable_but_are_not_advertised() -> None:
+    current_ids = {
+        item["id"] for item in creative_canvas_image_style_templates()
+    }
+    legacy_templates = creative_canvas_legacy_style_templates()
+
+    assert len(legacy_templates) == 30
+    assert current_ids.isdisjoint({item["id"] for item in legacy_templates})
+    for item in legacy_templates:
+        resolved = resolve_creative_canvas_image_style_template(
+            CreativeCanvasImageStyleConfig(template_id=item["id"])
+        )
+        assert resolved == item
 
 
 def test_generation_catalog_subrouters_include_catalog_paths() -> None:

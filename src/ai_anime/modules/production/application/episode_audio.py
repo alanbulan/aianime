@@ -12,6 +12,7 @@ from ai_anime.modules.production.application.ports import (
     ProductionEpisodeAudioScheduler,
     ProductionEpisodeBeatSource,
 )
+from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 INDEXTTS2_AUDIO_TASK_TYPE = "audio_generation_indextts2"
@@ -28,6 +29,7 @@ class GenerateEpisodeAudioCommand:
 class EpisodeAudioGenerationPlan:
     beat_numbers: tuple[int, ...] = ()
     errors: tuple[str, ...] = ()
+    voice_requirements: tuple[VoiceDesignRequirement, ...] = ()
     billable_chars: int = 0
     pricing_model: str = ""
 

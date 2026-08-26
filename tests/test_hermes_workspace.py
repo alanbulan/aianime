@@ -40,6 +40,13 @@ def _ai_anime_provider(config: dict) -> dict:
     )
 
 
+def _assert_managed_asset(path: Path, expected_file: str) -> None:
+    assert path.is_dir()
+    assert (path / expected_file).is_file()
+    if not hw._is_directory_link(path):
+        assert (path / hw._MANAGED_ASSET_MARKER).is_file()
+
+
 @pytest.fixture
 def isolated_workspace(tmp_path, monkeypatch):
     """Redirect AI_ANIME_ROOT/state and repo-pinned skills to a tmp tree."""
@@ -113,12 +120,12 @@ def test_fresh_create_layout(isolated_workspace, repo_skills, repo_plugins):
     assert (home / ".env").exists()
     assert (home / "tmp").is_dir()
     assert (home / "skills" / "_user").is_dir()
-    # Default allowlist should be symlinked in.
-    assert (home / "skills" / "ai_anime").is_symlink()
+    # Windows without Developer Mode/admin privileges receives a managed copy.
+    _assert_managed_asset(home / "skills" / "ai_anime", "SKILL.md")
     assert not (home / "skills" / "json-render").exists()
     assert not (home / "skills" / "other-skill").exists()
     plugin_link = home / "plugins" / "ai_anime"
-    assert plugin_link.is_symlink()
+    _assert_managed_asset(plugin_link, "plugin.yaml")
     assert not (home / "plugins" / "other-plugin").exists()
     config = (home / "config.yaml").read_text()
     assert _enabled_toolsets(config) == ["hermes-acp", "memory"]
@@ -601,15 +608,20 @@ def test_legacy_identity_context_is_migrated(isolated_workspace, repo_skills, re
     assert "AI anime 管理的 Hermes 会话" not in memory
 
 
-def test_stale_symlinks_removed(isolated_workspace, repo_skills, repo_plugins):
+def test_stale_directory_links_removed(
+    isolated_workspace,
+    repo_skills,
+    repo_plugins,
+    create_directory_link,
+):
     home = hw.ensure_user_hermes_workspace("admin")
     stale = home / "skills" / "json-render"
-    stale.symlink_to(repo_skills / "json-render", target_is_directory=True)
+    create_directory_link(stale, repo_skills / "json-render")
 
     # Re-run; stale non-allowlisted symlink should be removed
     hw.ensure_user_hermes_workspace("admin")
     assert not (home / "skills" / "json-render").exists()
-    assert (home / "skills" / "ai_anime").is_symlink()  # still there
+    _assert_managed_asset(home / "skills" / "ai_anime", "SKILL.md")
 
 
 def test_stale_plugin_symlinks_removed(isolated_workspace, repo_skills, repo_plugins):

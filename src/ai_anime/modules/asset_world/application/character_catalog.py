@@ -215,6 +215,13 @@ class CharacterCatalogUseCases:
             "is_main": bool(getattr(character, "is_main", False)),
             "portrait_path": portrait_path,
             "portrait_url": asset_url(portrait_path) if portrait_path else "",
+            "identities": [
+                {
+                    "identity_id": getattr(identity, "identity_id", ""),
+                    "identity_name": getattr(identity, "identity_name", ""),
+                }
+                for identity in getattr(character, "identities", [])
+            ],
             "updated_at": self._assets.updated_at(project_dir, character),
         }
         item.update(

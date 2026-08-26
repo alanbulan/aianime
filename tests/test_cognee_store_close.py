@@ -7,7 +7,6 @@ from types import SimpleNamespace
 async def test_close_releases_cached_cognee_graph_engine(monkeypatch):
     from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
 
-    graph_config_module = import_module("cognee.infrastructure.databases.graph.config")
     graph_engine_module = import_module("cognee.infrastructure.databases.graph.get_graph_engine")
 
     calls = []
@@ -16,37 +15,10 @@ async def test_close_releases_cached_cognee_graph_engine(monkeypatch):
         async def close(self):
             calls.append("sqlite.close")
 
-    class FakeGraphConnection:
-        def close(self):
-            calls.append("graph.connection.close")
-
-    class FakeGraphDatabase:
-        def close(self):
-            calls.append("graph.db.close")
-
-    class FakeGraphEngine:
-        def __init__(self):
-            self.connection = FakeGraphConnection()
-            self.db = FakeGraphDatabase()
-
-        def close(self):
-            calls.append("graph.close")
-
     class FakeCachedFactory:
         def cache_clear(self):
             calls.append("graph.cache_clear")
 
-    fake_engine = FakeGraphEngine()
-    monkeypatch.setattr(
-        graph_config_module,
-        "get_graph_context_config",
-        lambda: {"graph_database_provider": "kuzu", "graph_file_path": "/tmp/project.pkl"},
-    )
-    monkeypatch.setattr(
-        graph_engine_module,
-        "create_graph_engine",
-        lambda **config: fake_engine,
-    )
     monkeypatch.setattr(graph_engine_module, "_create_graph_engine", FakeCachedFactory())
 
     store = CogneeStore.__new__(CogneeStore)
@@ -57,11 +29,35 @@ async def test_close_releases_cached_cognee_graph_engine(monkeypatch):
 
     assert calls == [
         "sqlite.close",
-        "graph.connection.close",
-        "graph.db.close",
-        "graph.close",
         "graph.cache_clear",
     ]
+
+
+def test_windows_ladybug_patch_closes_aliased_pybind_database_once(monkeypatch):
+    from ai_anime.modules.knowledge_graph.infrastructure import config
+    from ladybug.database import Database
+
+    calls = []
+
+    class FakeNativeDatabase:
+        def close(self):
+            calls.append("native.close")
+
+    monkeypatch.setattr(config.os, "name", "nt")
+    monkeypatch.setattr(config, "_ladybug_windows_path_patch_installed", False)
+    config._install_ladybug_windows_path_compatibility()
+
+    native_database = FakeNativeDatabase()
+    database = Database.__new__(Database)
+    database.is_closed = False
+    database._database = native_database
+    database._pybind_database = native_database
+
+    database.close()
+
+    assert calls == ["native.close"]
+    assert database._database is None
+    assert database._pybind_database is None
 
 
 @pytest.mark.asyncio

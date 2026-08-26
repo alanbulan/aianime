@@ -23,7 +23,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/messageCache.test.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/infrastructure/messageCache.dom.test.ts",
+      ),
       "utf8",
     );
 
@@ -76,7 +79,7 @@ describe("SuperChat boundaries", () => {
     const storageTests = readFileSync(
       resolve(
         SRC_ROOT,
-        "modules/ai_assistant/infrastructure/activeTurnStorage.test.ts",
+        "modules/ai_assistant/infrastructure/activeTurnStorage.dom.test.ts",
       ),
       "utf8",
     );
@@ -135,7 +138,10 @@ describe("SuperChat boundaries", () => {
       "utf8",
     );
     const tests = readFileSync(
-      resolve(SRC_ROOT, "modules/ai_assistant/infrastructure/preferencesStorage.test.ts"),
+      resolve(
+        SRC_ROOT,
+        "modules/ai_assistant/infrastructure/preferencesStorage.dom.test.ts",
+      ),
       "utf8",
     );
 
@@ -177,7 +183,7 @@ describe("SuperChat boundaries", () => {
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "modules/ai_assistant/infrastructure/ingestUploadStorage.test.ts",
+        "modules/ai_assistant/infrastructure/ingestUploadStorage.dom.test.ts",
       ),
       "utf8",
     );
@@ -1940,7 +1946,7 @@ describe("SuperChat boundaries", () => {
     const tests = readFileSync(
       resolve(
         SRC_ROOT,
-        "modules/ai_assistant/infrastructure/socketSession.test.ts",
+        "modules/ai_assistant/infrastructure/socketSession.dom.test.ts",
       ),
       "utf8",
     );

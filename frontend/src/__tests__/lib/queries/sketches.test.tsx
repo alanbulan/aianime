@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
+  uploadApi: ky.create({ baseUrl: "http://localhost:3000/", timeout: false }),
 }));
 
 vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
@@ -34,7 +35,7 @@ vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
   })),
 }));
 
-import { server } from "@/__mocks__/msw/server";
+import { server } from "@/__tests__/setup-msw";
 import { queryKeys } from "@/lib/query-keys";
 import {
   useBeatBackgroundAnchors,

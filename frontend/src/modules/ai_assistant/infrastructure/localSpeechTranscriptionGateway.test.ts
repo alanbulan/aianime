@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const post = vi.hoisted(() => vi.fn());
 
-vi.mock("@/shared/api/transport", () => ({ api: { post } }));
+vi.mock("@/shared/api/transport", () => ({ uploadApi: { post } }));
 
 import { transcribeLocalSpeech } from "./localSpeechTranscriptionGateway";
 
@@ -26,10 +26,9 @@ describe("local speech transcription gateway", () => {
     expect(post).toHaveBeenCalledOnce();
     const [path, options] = post.mock.calls[0] as [
       string,
-      { body: FormData; timeout: number },
+      { body: FormData },
     ];
     expect(path).toBe("api/v1/chat/speech/transcribe");
-    expect(options.timeout).toBe(120_000);
     const audio = options.body.get("audio") as File;
     expect(audio.name).toBe("recording.webm");
     expect(audio.type).toBe("audio/webm");

@@ -1,8 +1,37 @@
 from __future__ import annotations
 
 import os
+import subprocess
+from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture
+def create_directory_link():
+    """Create a directory link, using an unprivileged junction on Windows."""
+
+    def create(link: Path, target: Path) -> None:
+        try:
+            link.symlink_to(target, target_is_directory=True)
+        except OSError:
+            if os.name != "nt":
+                raise
+            completed = subprocess.run(
+                ["cmd.exe", "/d", "/c", "mklink", "/J", str(link), str(target)],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if completed.returncode != 0:
+                raise AssertionError(
+                    "failed to create Windows directory junction: "
+                    f"{completed.stderr or completed.stdout}"
+                )
+        assert link.is_dir()
+        assert link.resolve() == target.resolve()
+
+    return create
 
 
 @pytest.fixture(autouse=True)

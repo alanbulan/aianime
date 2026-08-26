@@ -25,6 +25,9 @@ import type { InstalledWorldRuntimePaths } from "./platform-runtime.js";
 const EVENT_PREFIX = "AI_ANIME_DESKTOP ";
 const TOKEN_HEADER = "X-AI-Anime-Desktop-Token";
 const START_TIMEOUT_MS = 120_000;
+const HEALTH_CHECK_INTERVAL_MS = 10_000;
+const HEALTH_CHECK_TIMEOUT_MS = 2_000;
+const HEALTH_CHECK_FAILURE_THRESHOLD = 3;
 
 interface SocketBoundEvent {
   event: "socket_bound";
@@ -48,6 +51,29 @@ interface LocalBackendOptions {
   serveFrontend?: boolean;
   environment?: Readonly<Record<string, string>>;
   runtimeDependencyPaths?: InstalledWorldRuntimePaths;
+  restartOnUnexpectedExit?: boolean;
+}
+
+interface ModelAccessInput {
+  allowsCustomModels: boolean;
+  mode: "mixed";
+  modelAssignments?: Array<{
+    modelId: string;
+    role: string;
+    priority: number;
+    enabled: boolean;
+  }>;
+  modelCapabilities?: Array<{
+    modelId: string;
+    referenceAudioMinSeconds?: number;
+    referenceAudioMaxSeconds?: number;
+    referenceAudioTotalMinSeconds?: number;
+    referenceAudioTotalMaxSeconds?: number;
+    referenceVideoMinSeconds?: number;
+    referenceVideoMaxSeconds?: number;
+    referenceVideoTotalMinSeconds?: number;
+    referenceVideoTotalMaxSeconds?: number;
+  }>;
 }
 
 export class LocalBackend {
@@ -57,16 +83,28 @@ export class LocalBackend {
   private readonly serveFrontend: boolean;
   private readonly environment: Readonly<Record<string, string>>;
   private readonly runtimeDependencyPaths: InstalledWorldRuntimePaths | undefined;
+  private readonly restartOnUnexpectedExit: boolean;
   private child: ChildProcessWithoutNullStreams | null = null;
+  private readyChild: ChildProcessWithoutNullStreams | null = null;
   private logStream: WriteStream | null = null;
   private stopping = false;
   private _baseUrl: string | null = null;
+  private boundPort: number | null = null;
+  private startPromise: Promise<void> | null = null;
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private restartAttempts = 0;
+  private hasStarted = false;
+  private modelAccess: ModelAccessInput | null = null;
+  private healthCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  private healthCheckChild: ChildProcessWithoutNullStreams | null = null;
+  private healthCheckFailures = 0;
 
   constructor(options: LocalBackendOptions = {}) {
     this.configuredRepoRoot = options.repositoryRoot;
     this.serveFrontend = options.serveFrontend ?? true;
     this.environment = options.environment ?? {};
     this.runtimeDependencyPaths = options.runtimeDependencyPaths;
+    this.restartOnUnexpectedExit = options.restartOnUnexpectedExit ?? false;
   }
 
   get baseUrl(): string {
@@ -79,7 +117,19 @@ export class LocalBackend {
   }
 
   async start(): Promise<void> {
-    if (this.child) return;
+    if (this.readyChild && this.child === this.readyChild) return;
+    if (this.startPromise) return this.startPromise;
+    if (this.stopping) throw new Error("local backend is stopping");
+    const pending = this.startOnce();
+    this.startPromise = pending;
+    try {
+      await pending;
+    } finally {
+      if (this.startPromise === pending) this.startPromise = null;
+    }
+  }
+
+  private async startOnce(): Promise<void> {
     const launch = this.resolveLaunch();
     const hermesRuntime = resolveHermesRuntimePaths({
       packaged: app.isPackaged,
@@ -101,7 +151,7 @@ export class LocalBackend {
       "--host",
       "127.0.0.1",
       "--port",
-      "0",
+      String(this.boundPort ?? 0),
       "--data-root",
       dataRoot,
     ];
@@ -149,63 +199,92 @@ export class LocalBackend {
       // stop()→start() sequence can install a replacement before the old
       // child's exit fires, and clearing unconditionally would orphan the new
       // process by making stop() a no-op.
-      if (this.child === child) this.child = null;
+      const exitedAfterReady = this.readyChild === child;
+      this.stopHealthWatchdog(child);
+      if (this.child === child) {
+        this.child = null;
+        this.readyChild = null;
+        this.endLogStream();
+      }
+      if (exitedAfterReady && !this.stopping && this.restartOnUnexpectedExit) {
+        this.scheduleRestart();
+      }
     });
 
-    const socketEvent = await this.waitForSocket(child);
-    this._baseUrl = `http://${socketEvent.host}:${socketEvent.port}`;
-    await this.waitForHealth();
+    try {
+      const socketEvent = await this.waitForSocket(child);
+      this.boundPort = socketEvent.port;
+      this._baseUrl = `http://${socketEvent.host}:${socketEvent.port}`;
+      await this.waitForHealth();
+      if (this.modelAccess) await this.postModelAccess(this.modelAccess);
+      this.readyChild = child;
+      this.startHealthWatchdog(child);
+      const restarted = this.hasStarted;
+      this.hasStarted = true;
+      this.restartAttempts = 0;
+      if (restarted) this.writeLog("backend restart completed\n");
+    } catch (error) {
+      this.terminateChildTree(child);
+      if (this.child === child) {
+        this.stopHealthWatchdog(child);
+        this.child = null;
+        this.readyChild = null;
+        this.endLogStream();
+      }
+      throw error;
+    }
   }
 
   async stop(): Promise<void> {
-    if (!this.child || this.stopping) return;
+    if (this.stopping) return;
     this.stopping = true;
+    this.stopHealthWatchdog();
+    if (this.restartTimer) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
     const child = this.child;
     try {
-      if (this._baseUrl) {
+      if (child && this._baseUrl) {
         await fetch(`${this._baseUrl}/__desktop/shutdown`, {
           method: "POST",
           headers: { [TOKEN_HEADER]: this.token },
           signal: AbortSignal.timeout(2_000),
         }).catch(() => undefined);
       }
-      await Promise.race([
-        new Promise<void>((done) => child.once("exit", () => done())),
-        new Promise<void>((done) => setTimeout(done, 4_000)),
-      ]);
-      if (child.exitCode === null) child.kill();
+      if (child) {
+        await Promise.race([
+          new Promise<void>((done) => child.once("exit", () => done())),
+          new Promise<void>((done) => setTimeout(done, 4_000)),
+        ]);
+        this.terminateChildTree(child);
+      }
     } finally {
       // Same guard as the exit handler: never clear a handle that a concurrent
       // start() has already replaced.
       if (this.child === child) this.child = null;
+      if (this.readyChild === child) this.readyChild = null;
       this._baseUrl = null;
-      this.logStream?.end();
-      this.logStream = null;
+      this.endLogStream();
       this.stopping = false;
     }
   }
 
-  async configureModelAccess(input: {
-    allowsCustomModels: boolean;
-    mode: "mixed";
-    modelAssignments?: Array<{
-      modelId: string;
-      role: string;
-      priority: number;
-      enabled: boolean;
-    }>;
-    modelCapabilities?: Array<{
-      modelId: string;
-      referenceAudioMinSeconds?: number;
-      referenceAudioMaxSeconds?: number;
-      referenceAudioTotalMinSeconds?: number;
-      referenceAudioTotalMaxSeconds?: number;
-      referenceVideoMinSeconds?: number;
-      referenceVideoMaxSeconds?: number;
-      referenceVideoTotalMinSeconds?: number;
-      referenceVideoTotalMaxSeconds?: number;
-    }>;
-  }): Promise<void> {
+  async configureModelAccess(input: ModelAccessInput): Promise<void> {
+    const snapshot: ModelAccessInput = {
+      ...input,
+      ...(input.modelAssignments
+        ? { modelAssignments: input.modelAssignments.map((item) => ({ ...item })) }
+        : {}),
+      ...(input.modelCapabilities
+        ? { modelCapabilities: input.modelCapabilities.map((item) => ({ ...item })) }
+        : {}),
+    };
+    this.modelAccess = snapshot;
+    await this.postModelAccess(snapshot);
+  }
+
+  private async postModelAccess(input: ModelAccessInput): Promise<void> {
     const response = await fetch(
       `${this.baseUrl}/api/v1/model-gateway/internal/capability`,
       {
@@ -349,5 +428,128 @@ export class LocalBackend {
 
   private writeLog(line: string): void {
     this.logStream?.write(line);
+  }
+
+  private endLogStream(): void {
+    this.logStream?.end();
+    this.logStream = null;
+  }
+
+  private startHealthWatchdog(child: ChildProcessWithoutNullStreams): void {
+    this.stopHealthWatchdog();
+    this.healthCheckChild = child;
+    this.healthCheckFailures = 0;
+    this.scheduleHealthCheck(child);
+  }
+
+  private stopHealthWatchdog(
+    child?: ChildProcessWithoutNullStreams,
+  ): void {
+    if (child && this.healthCheckChild !== child) return;
+    if (this.healthCheckTimer) {
+      clearTimeout(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+    this.healthCheckChild = null;
+    this.healthCheckFailures = 0;
+  }
+
+  private scheduleHealthCheck(child: ChildProcessWithoutNullStreams): void {
+    if (
+      this.stopping ||
+      this.healthCheckTimer ||
+      this.healthCheckChild !== child ||
+      this.readyChild !== child ||
+      this.child !== child ||
+      child.exitCode !== null
+    ) {
+      return;
+    }
+    this.healthCheckTimer = setTimeout(() => {
+      this.healthCheckTimer = null;
+      void this.checkHealth(child);
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
+
+  private async checkHealth(child: ChildProcessWithoutNullStreams): Promise<void> {
+    if (
+      this.stopping ||
+      this.healthCheckChild !== child ||
+      this.readyChild !== child ||
+      this.child !== child ||
+      child.exitCode !== null ||
+      !this._baseUrl
+    ) {
+      return;
+    }
+
+    let failure: unknown = null;
+    try {
+      const response = await fetch(`${this._baseUrl}/healthz`, {
+        headers: { [TOKEN_HEADER]: this.token },
+        signal: AbortSignal.timeout(HEALTH_CHECK_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        failure = new Error(`health check returned HTTP ${response.status}`);
+      }
+    } catch (error) {
+      failure = error;
+    }
+
+    if (failure === null) {
+      this.healthCheckFailures = 0;
+      this.scheduleHealthCheck(child);
+      return;
+    }
+
+    this.healthCheckFailures += 1;
+    this.writeLog(
+      `backend health check failed (${this.healthCheckFailures}/${HEALTH_CHECK_FAILURE_THRESHOLD}): ${String(failure)}\n`,
+    );
+    if (this.healthCheckFailures >= HEALTH_CHECK_FAILURE_THRESHOLD) {
+      this.writeLog("backend health watchdog terminating unresponsive process\n");
+      console.error(
+        "[backend] health watchdog terminating unresponsive process:",
+        failure instanceof Error ? failure.message : String(failure),
+      );
+      this.terminateChildTree(child);
+    }
+    this.scheduleHealthCheck(child);
+  }
+
+  private terminateChildTree(child: ChildProcessWithoutNullStreams): void {
+    if (child.exitCode !== null) return;
+    if (process.platform !== "win32" || !child.pid) {
+      child.kill();
+      return;
+    }
+    const killer = spawn(
+      "taskkill",
+      ["/PID", String(child.pid), "/T", "/F"],
+      { windowsHide: true, stdio: "ignore" },
+    );
+    const fallback = () => {
+      if (child.exitCode === null) child.kill();
+    };
+    killer.once("error", fallback);
+    killer.once("exit", fallback);
+  }
+
+  private scheduleRestart(): void {
+    if (this.stopping || this.restartTimer || !this.restartOnUnexpectedExit) return;
+    const attempt = this.restartAttempts + 1;
+    this.restartAttempts = attempt;
+    const delayMs = Math.min(500 * 2 ** Math.min(attempt - 1, 5), 10_000);
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
+      if (this.stopping) return;
+      void this.start().catch((error) => {
+        console.error(
+          `[backend] restart attempt ${attempt} failed:`,
+          error instanceof Error ? error.message : String(error),
+        );
+        this.scheduleRestart();
+      });
+    }, delayMs);
   }
 }

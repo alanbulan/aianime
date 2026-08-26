@@ -178,7 +178,7 @@ def _detach_cognee_private_file_handlers(logging_utils) -> int:
 def _import_cognee_without_logging_takeover():
     """Import Cognee without letting it replace application logging.
 
-    Cognee 1.0.5 configures logging from its package ``__init__``. That setup
+    Cognee configures logging from its package ``__init__``. That setup
     clears every root handler, installs a Rich traceback renderer with
     ``show_locals=True``, and adds its own file handler. In a Celery thread
     worker this can remove the worker handlers and spend long periods rendering
@@ -218,7 +218,21 @@ def _import_cognee_without_logging_takeover():
             # but restoring the host state immediately afterwards prevents the
             # takeover from persisting for the worker lifetime.
             with _preserve_application_logging():
-                loaded = importlib.import_module("cognee")
+                with warnings.catch_warnings():
+                    # Cognee 1.5.3 still constructs models with two deprecated
+                    # Pydantic APIs. Limit the allowance to its package import;
+                    # application deprecations remain visible and fail tests.
+                    warnings.filterwarnings(
+                        "ignore",
+                        message=(
+                            "Using extra keyword arguments on `Field` is deprecated.*"
+                        ),
+                    )
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="`json_encoders` is deprecated.*",
+                    )
+                    loaded = importlib.import_module("cognee")
         _install_cognee_logging_guard()
     return loaded
 
@@ -427,7 +441,7 @@ def _ladybug_native_database_path(database_path: object) -> object:
 
 
 def _install_ladybug_windows_path_compatibility() -> None:
-    """Keep logical paths as Unicode while passing native Windows paths as MBCS bytes."""
+    """Patch Ladybug's Windows path conversion and aliased pybind close."""
     global _ladybug_windows_path_patch_installed
     if os.name != "nt" or _ladybug_windows_path_patch_installed:
         return
@@ -435,29 +449,64 @@ def _install_ladybug_windows_path_compatibility() -> None:
     database_module = importlib.import_module("ladybug.database")
     database_cls = getattr(database_module, "Database")
     original_init_pybind_database = database_cls.init_pybind_database
-    if getattr(
+    original_close = database_cls.close
+    path_patch_installed = getattr(
         original_init_pybind_database,
         "_ai_anime_windows_path_patch",
         False,
-    ):
-        _ladybug_windows_path_patch_installed = True
-        return
+    )
+    if not path_patch_installed:
+        @wraps(original_init_pybind_database)
+        def patched_init_pybind_database(self):
+            logical_path = self.database_path
+            native_path = _ladybug_native_database_path(logical_path)
+            if native_path is logical_path:
+                return original_init_pybind_database(self)
 
-    @wraps(original_init_pybind_database)
-    def patched_init_pybind_database(self):
-        logical_path = self.database_path
-        native_path = _ladybug_native_database_path(logical_path)
-        if native_path is logical_path:
-            return original_init_pybind_database(self)
+            self.database_path = native_path
+            try:
+                return original_init_pybind_database(self)
+            finally:
+                self.database_path = logical_path
 
-        self.database_path = native_path
-        try:
-            return original_init_pybind_database(self)
-        finally:
-            self.database_path = logical_path
+        patched_init_pybind_database._ai_anime_windows_path_patch = True
+        database_cls.init_pybind_database = patched_init_pybind_database
 
-    patched_init_pybind_database._ai_anime_windows_path_patch = True
-    database_cls.init_pybind_database = patched_init_pybind_database
+    # Cognee 1.5 opens Ladybug in a worker process by default. Patching the
+    # in-process Database class does not reach that spawned interpreter, so
+    # encode the path before it crosses the worker protocol as well.
+    proxy_module = importlib.import_module(
+        "cognee.infrastructure.databases.graph.kuzu.subprocess.proxy"
+    )
+    remote_database_cls = getattr(proxy_module, "RemoteKuzuDatabase")
+    original_remote_init = remote_database_cls.__init__
+    if not getattr(original_remote_init, "_ai_anime_windows_path_patch", False):
+        @wraps(original_remote_init)
+        def patched_remote_init(self, *args, **kwargs):
+            database_path = kwargs.get("db_path")
+            native_path = _ladybug_native_database_path(database_path)
+            if native_path is not database_path:
+                kwargs = {**kwargs, "db_path": native_path}
+            return original_remote_init(self, *args, **kwargs)
+
+        patched_remote_init._ai_anime_windows_path_patch = True
+        remote_database_cls.__init__ = patched_remote_init
+
+    if not getattr(original_close, "_ai_anime_single_native_close_patch", False):
+        @wraps(original_close)
+        def patched_close(self):
+            # Ladybug 0.16 assigns the same pybind object to both attributes.
+            # Its close() then releases that native pointer twice, which raises
+            # Windows heap-corruption 0xC0000374 after a Cognee graph task.
+            if (
+                getattr(self, "_database", None) is not None
+                and self._database is getattr(self, "_pybind_database", None)
+            ):
+                self._pybind_database = None
+            return original_close(self)
+
+        patched_close._ai_anime_single_native_close_patch = True
+        database_cls.close = patched_close
     _ladybug_windows_path_patch_installed = True
 
 

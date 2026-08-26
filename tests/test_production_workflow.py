@@ -58,6 +58,9 @@ async def test_production_workflow_route_submits_one_parent_task(
             episodes=[2, 1, 2],
             target_beats=12,
             max_parallel=6,
+            spine_template="drama",
+            visual_style="anime",
+            ethnicity="Japanese",
         ),
         user={"id": "user-1"},
     )
@@ -69,6 +72,9 @@ async def test_production_workflow_route_submits_one_parent_task(
     assert submissions[0].episode == 0
     assert submissions[0].payload["episodes"] == [2, 1]
     assert submissions[0].payload["target_beats"] == 12
+    assert submissions[0].payload["spine_template"] == "drama"
+    assert submissions[0].payload["visual_style"] == "anime"
+    assert submissions[0].payload["ethnicity"] == "Japanese"
     assert submissions[0].scope.startswith("production_workflow__")
 
 
@@ -155,7 +161,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch.setattr(
         runner,
         "_resolve_production_image_models",
-        lambda: (calls.append("models") or ("image-generation", "image-edit")),
+        lambda: calls.append("models") or ("image-generation", "image-edit"),
     )
     monkeypatch.setattr(
         runner,
@@ -290,6 +296,139 @@ def test_production_workflow_reports_missing_image_edit_model() -> None:
 
 
 @pytest.mark.asyncio
+async def test_production_workflow_designs_and_rechecks_missing_voices(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.production.public import VoiceDesignRequirement
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    requirement = VoiceDesignRequirement(
+        key="character:白石夏音:slot:youth",
+        target="character_slot",
+        label="白石夏音·学生时期",
+        voice_prompt="清澈自然的青年女声",
+        preview_text="我们回去吧。",
+        character_name="白石夏音",
+        identity_id="白石夏音_学生时期",
+        slot="youth",
+    )
+    plans = [
+        SimpleNamespace(
+            errors=("Beat 06 角色声线缺失：白石夏音_学生时期",),
+            voice_requirements=(requirement,),
+        ),
+        SimpleNamespace(errors=(), voice_requirements=()),
+    ]
+    plan_commands = []
+    provisioned = []
+    progress_messages: list[str] = []
+
+    class _AudioUseCases:
+        async def plan(self, context, command):
+            plan_commands.append((context, command))
+            return plans.pop(0)
+
+    async def provision(context, requirements):
+        provisioned.append((context, tuple(requirements)))
+        return ("白石夏音·学生时期",)
+
+    class _Reporter:
+        def update(self, _progress, message):
+            progress_messages.append(message)
+
+    monkeypatch.setattr(
+        production_public,
+        "episode_audio_use_cases",
+        lambda: _AudioUseCases(),
+    )
+    monkeypatch.setattr(
+        production_public,
+        "provision_voice_design_requirements",
+        provision,
+    )
+    context = SimpleNamespace(output_dir=tmp_path)
+
+    await runner._ensure_audio_prerequisites(
+        context,
+        1,
+        [{"beat_number": 6}],
+        reporter=_Reporter(),
+        progress=0.5,
+        force=True,
+    )
+
+    assert len(plan_commands) == 2
+    assert plan_commands[0][1] is plan_commands[1][1]
+    assert plan_commands[0][1].beat_numbers == [6]
+    assert provisioned == [(context, (requirement,))]
+    assert progress_messages == [
+        "第 1 集检查配音声线前置",
+        "第 1 集自动设计 1 条缺失声线",
+        "第 1 集重新检查配音声线前置",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_production_workflow_reports_missing_voice_design_model(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.production.public import VoiceDesignRequirement
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    requirement = VoiceDesignRequirement(
+        key="project:narrator",
+        target="project_narrator",
+        label="项目解说人",
+        voice_prompt="沉稳的旁白声线",
+        preview_text="故事从这里开始。",
+    )
+
+    class _AudioUseCases:
+        async def plan(self, _context, _command):
+            return SimpleNamespace(
+                errors=("missing narrator",),
+                voice_requirements=(requirement,),
+            )
+
+    async def provision(_context, _requirements):
+        raise production_public.VoiceDesignModelUnavailable(
+            "missing AUDIO_VOICE_DESIGN"
+        )
+
+    monkeypatch.setattr(
+        production_public,
+        "episode_audio_use_cases",
+        lambda: _AudioUseCases(),
+    )
+    monkeypatch.setattr(
+        production_public,
+        "provision_voice_design_requirements",
+        provision,
+    )
+
+    with pytest.raises(
+        runner.ProductionWorkflowModelPrerequisitesMissing,
+        match="AUDIO_VOICE_DESIGN",
+    ):
+        await runner._ensure_audio_prerequisites(
+            SimpleNamespace(output_dir=tmp_path),
+            1,
+            [{"beat_number": 1}],
+            reporter=SimpleNamespace(update=lambda *_args: None),
+            progress=0.5,
+            force=True,
+        )
+
+
+@pytest.mark.asyncio
 async def test_production_workflow_repairs_legacy_identity_markers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -414,9 +553,7 @@ async def test_production_workflow_generates_missing_seedance_prompts(
     async def fake_generate(candidate, command):
         assert candidate is store
         generated.append(command.beat_num)
-        beat = next(
-            item for item in beats if item["beat_number"] == command.beat_num
-        )
+        beat = next(item for item in beats if item["beat_number"] == command.beat_num)
         beat["seedance2_config_json"] = (
             f'{{"final_prompt":"generated-{command.beat_num}"}}'
         )

@@ -11,6 +11,7 @@ import {
   Maximize2,
   Pin,
   PinOff,
+  Timer,
   Volume2,
   Wrench,
   X,
@@ -156,6 +157,8 @@ function ToolActivityCard({
   const error = toolValueText(message.toolError);
   const stateLabel = state === "running"
     ? t("aiAssistant.toolRunning", "执行中")
+    : state === "pending"
+      ? t("aiAssistant.toolPending", "任务仍在运行")
     : state === "error"
       ? t("aiAssistant.toolFailed", "失败")
       : t("aiAssistant.toolCompleted", "已完成");
@@ -170,6 +173,8 @@ function ToolActivityCard({
       <div className={cn("flex items-center gap-2", !grouped && "pr-24")}>
         {state === "running" ? (
           <LoaderCircle className="size-4 animate-spin text-primary" />
+        ) : state === "pending" ? (
+          <Timer className="size-4 text-warning" />
         ) : state === "error" ? (
           <CircleX className="size-4 text-destructive" />
         ) : (
@@ -181,6 +186,7 @@ function ToolActivityCard({
           className={cn(
             "h-5 shrink-0 rounded-md px-1.5 text-[10px]",
             state === "error" && "border-destructive/30 bg-destructive/8 text-destructive",
+            state === "pending" && "border-warning/30 bg-warning/8 text-warning",
             state === "success" && "border-success/30 bg-success/8 text-success",
           )}
         >
@@ -209,9 +215,11 @@ function ToolActivityCard({
             ) : null}
           </div>
         </details>
-      ) : state === "running" ? (
+      ) : state === "running" || state === "pending" ? (
         <div className="mt-1.5 text-xs text-muted-foreground">
-          {t("aiAssistant.toolWaiting", "正在等待工具返回结果…")}
+          {state === "pending"
+            ? t("aiAssistant.toolPendingDescription", "等待窗口已结束，后台任务仍在运行。")
+            : t("aiAssistant.toolWaiting", "正在等待工具返回结果…")}
         </div>
       ) : null}
     </div>

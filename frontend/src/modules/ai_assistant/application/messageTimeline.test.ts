@@ -87,6 +87,61 @@ describe("AI Assistant message timeline primitives", () => {
     });
   });
 
+  it("restores orphaned persisted tool calls as terminal failures", () => {
+    const history = normalizeHistory([
+      {
+        id: "assistant-1",
+        role: "assistant",
+        content: "任务执行失败：当前状态为 failed。",
+        turn_id: "turn-1",
+        created_at: "2026-06-03T09:00:03Z",
+        ui_events: [
+          {
+            id: 1,
+            type: "tool.call",
+            turn_id: "turn-1",
+            tool_call_id: "call-1",
+            name: "ai_anime_generate_portrait",
+            input: { name: "白石夏音" },
+            created_at: "2026-06-03T09:00:01Z",
+          },
+        ],
+      },
+    ]);
+
+    expect(history[0]).toMatchObject({
+      toolCallId: "call-1",
+      toolState: "error",
+      toolError: "未执行：本轮已结束，工具未返回结果",
+    });
+  });
+
+  it("keeps an in-flight tool running when it is attached to an unscoped notification", () => {
+    const history = normalizeHistory([
+      {
+        id: "notification-1",
+        role: "assistant",
+        content: "角色肖像已完成",
+        created_at: "2026-06-03T09:00:03Z",
+        ui_events: [
+          {
+            id: 1,
+            type: "tool.call",
+            turn_id: "turn-1",
+            tool_call_id: "call-1",
+            name: "ai_anime_wait_task",
+            created_at: "2026-06-03T09:00:01Z",
+          },
+        ],
+      },
+    ]);
+
+    expect(history.find((item) => item.toolCallId === "call-1")).toMatchObject({
+      toolState: "running",
+      toolError: undefined,
+    });
+  });
+
   it("sorts messages in one turn as user, tool, assistant without mutating input", () => {
     const messages = [
       message("assistant-1", "assistant", "完成", 1, "turn-1"),
@@ -100,16 +155,17 @@ describe("AI Assistant message timeline primitives", () => {
     expect(messages.map((item) => item.id)).toEqual(["assistant-1", "user-1", "tool-1"]);
   });
 
-  it("detects completion only after matching newer backend user and assistant messages", () => {
-    const current = [message("local-user", "user", "开始  生成", 100, "turn-1")];
-    const completedHistory = [
-      message("backend-user", "user", "开始 生成", 110),
-      message("backend-assistant", "assistant", "已完成", 120),
+  it("does not treat an unscoped task notification as the active turn's completion", () => {
+    const notificationHistory = [
+      message("backend-user", "user", "开始生成", 110, "turn-1"),
+      message("task-notification", "assistant", "角色肖像已完成", 120),
     ];
 
-    expect(turnCompletedInHistory("turn-1", completedHistory, current)).toBe(true);
-    expect(turnCompletedInHistory("turn-1", completedHistory.slice(0, 1), current)).toBe(false);
-    expect(turnCompletedInHistory("turn-missing", completedHistory, current)).toBe(false);
+    expect(turnCompletedInHistory("turn-1", notificationHistory)).toBe(false);
+    expect(turnCompletedInHistory("turn-1", [
+      ...notificationHistory,
+      message("backend-assistant", "assistant", "本轮完成", 130, "turn-1"),
+    ])).toBe(true);
   });
 
   it("detects completion directly from a persisted turn id", () => {
@@ -117,7 +173,7 @@ describe("AI Assistant message timeline primitives", () => {
       message("backend-assistant", "assistant", "已完成", 120, "turn-1"),
     ];
 
-    expect(turnCompletedInHistory("turn-1", history, [])).toBe(true);
+    expect(turnCompletedInHistory("turn-1", history)).toBe(true);
   });
 });
 
@@ -128,8 +184,8 @@ describe("mergeHistorySnapshot", () => {
       message("assistant-turn-1", "assistant", "你好，有什么可以帮你？", 20, "turn-1"),
     ];
     const history = [
-      message("backend-user-1", "user", "你好", 30),
-      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 40),
+      message("backend-user-1", "user", "你好", 30, "turn-1"),
+      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 40, "turn-1"),
     ];
 
     const merged = mergeHistorySnapshot(current, history, "turn-1");
@@ -143,8 +199,8 @@ describe("mergeHistorySnapshot", () => {
       message("assistant-turn-1", "assistant", "你好，有什么可以帮你？", 300, "turn-1"),
     ];
     const history = [
-      message("backend-user-1", "user", "你好", 150),
-      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 250),
+      message("backend-user-1", "user", "你好", 150, "turn-1"),
+      message("backend-assistant-1", "assistant", "你好，有什么可以帮你？", 250, "turn-1"),
     ];
 
     const merged = mergeHistorySnapshot(current, history, "turn-1");
@@ -158,8 +214,8 @@ describe("mergeHistorySnapshot", () => {
       message("assistant-turn-1", "assistant", "正在生成", 120, "turn-1"),
     ];
     const history = [
-      message("backend-user-1", "user", "你好", 150),
-      message("backend-assistant-1", "assistant", "你好！有什么我可以帮你的吗？", 250),
+      message("backend-user-1", "user", "你好", 150, "turn-1"),
+      message("backend-assistant-1", "assistant", "你好！有什么我可以帮你的吗？", 250, "turn-1"),
     ];
 
     const merged = mergeHistorySnapshot(current, history, "turn-1");

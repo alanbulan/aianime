@@ -9,7 +9,7 @@ import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 const i18n = i18next.createInstance();
 
-// jsdom reports offsetWidth/offsetHeight of 0 for every element, which makes
+// Happy DOM reports offsetWidth/offsetHeight of 0 for every element, which makes
 // @tanstack/react-virtual's internal getRect() measure the scroll viewport as
 // empty and emit zero virtual items. Patch the prototype descriptors so the
 // virtualizer sees a realistic viewport and actually renders rows.

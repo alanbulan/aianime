@@ -24,6 +24,7 @@ import type { OkResponse } from "@/types/api";
 
 const PRUNE_INTERVAL_MS = 5 * 60 * 1000;
 const POLLING_FALLBACK_INTERVAL_MS = 5000;
+const POLLING_FALLBACK_MAX_INTERVAL_MS = 30_000;
 // A terminal task whose completion is older than this is treated as a replay,
 // not a fresh transition — no toast, no auto-expand. Covers the case where
 // the user returns from a long idle / sleep and the stream replays or the
@@ -201,7 +202,7 @@ export function TaskCenterProviderView({
   const username = useAuthStore((s) => s.username);
   const queryClient = useQueryClient();
   const bus = useMemo(createTaskEventBus, []);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeSessionRef = useRef<{ username: string; projectId: string } | null>(null);
   const tRef = useRef(t);
   tRef.current = t;
@@ -248,8 +249,11 @@ export function TaskCenterProviderView({
 
     let cancelled = false;
     let client: TaskStreamClient | null = null;
+    let hydrateInFlight: Promise<boolean> | null = null;
+    let pollingActive = false;
+    let pollingFailureCount = 0;
 
-    const hydrate = async (): Promise<void> => {
+    const runHydrate = async (): Promise<boolean> => {
       try {
         const res = await queryClient.fetchQuery({
           queryKey: queryKeys.tasks(projectId),
@@ -261,19 +265,57 @@ export function TaskCenterProviderView({
         if (!cancelled) {
           useTaskCenterStore.getState().hydrate(res.data);
         }
+        return true;
       } catch (err) {
-        if (isHydrateCancelledError(err)) return;
+        if (isHydrateCancelledError(err)) return false;
         console.error("[task-center] hydrate failed", err);
+        return false;
       }
     };
 
+    const hydrate = (): Promise<boolean> => {
+      if (hydrateInFlight) return hydrateInFlight;
+      const pending = runHydrate();
+      hydrateInFlight = pending;
+      const clear = () => {
+        if (hydrateInFlight === pending) hydrateInFlight = null;
+      };
+      void pending.then(clear, clear);
+      return pending;
+    };
+
+    const schedulePolling = (delayMs: number) => {
+      if (!pollingActive || cancelled || pollIntervalRef.current) return;
+      pollIntervalRef.current = setTimeout(() => {
+        pollIntervalRef.current = null;
+        void (async () => {
+          const succeeded = await hydrate();
+          if (!pollingActive || cancelled) return;
+          pollingFailureCount = succeeded
+            ? 0
+            : Math.min(pollingFailureCount + 1, 3);
+          const nextDelay = succeeded
+            ? POLLING_FALLBACK_INTERVAL_MS
+            : Math.min(
+                POLLING_FALLBACK_INTERVAL_MS * 2 ** pollingFailureCount,
+                POLLING_FALLBACK_MAX_INTERVAL_MS,
+              );
+          schedulePolling(nextDelay);
+        })();
+      }, delayMs);
+    };
+
     const startPolling = () => {
-      if (pollIntervalRef.current) return;
-      pollIntervalRef.current = setInterval(hydrate, POLLING_FALLBACK_INTERVAL_MS);
+      if (pollingActive) return;
+      pollingActive = true;
+      pollingFailureCount = 0;
+      schedulePolling(0);
     };
     const stopPolling = () => {
+      pollingActive = false;
+      pollingFailureCount = 0;
       if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+        clearTimeout(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
     };

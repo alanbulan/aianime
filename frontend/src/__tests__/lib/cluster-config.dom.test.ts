@@ -4,23 +4,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const CACHE_KEY = "ai-anime-cluster-config-cache";
 
 describe("cluster-config", () => {
-  const originalMode = import.meta.env.VITE_CLUSTER_MODE;
-  const originalUrl = import.meta.env.VITE_CLUSTER_REGIONS_URL;
-
   beforeEach(() => {
     localStorage.clear();
     vi.resetModules();
+    vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
 
   afterEach(() => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = originalMode;
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = originalUrl;
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.resetModules();
   });
 
   it("mode defaults to 'none' with empty regions when env is unset", async () => {
-    delete (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE;
-    delete (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL;
+    vi.stubEnv("VITE_CLUSTER_MODE", undefined);
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", undefined);
     const { clusterConfig, loadClusterConfig } = await import("@/shared/cluster-config");
     await loadClusterConfig();
     expect(clusterConfig.mode).toBe("none");
@@ -28,21 +27,21 @@ describe("cluster-config", () => {
   });
 
   it("rejects unknown mode values at module import", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "bogus";
+    vi.stubEnv("VITE_CLUSTER_MODE", "bogus");
     await expect(import("@/shared/cluster-config")).rejects.toThrow();
   });
 
   it("graceful-degrades when VITE_CLUSTER_REGIONS_URL is missing in multi-region", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
-    delete (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL;
+    vi.stubEnv("VITE_CLUSTER_MODE", "multi-region");
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", undefined);
     const { clusterConfig, loadClusterConfig } = await import("@/shared/cluster-config");
     await loadClusterConfig(); // must NOT throw
     expect(clusterConfig.regions).toEqual([]);
   });
 
   it("multi-region fetches the regions URL and populates clusterConfig.regions", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = "/cluster-config.json";
+    vi.stubEnv("VITE_CLUSTER_MODE", "multi-region");
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", "/cluster-config.json");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -62,8 +61,8 @@ describe("cluster-config", () => {
   });
 
   it("falls back to localStorage cache when fetch fails and cache is fresh", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = "/cluster-config.json";
+    vi.stubEnv("VITE_CLUSTER_MODE", "multi-region");
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", "/cluster-config.json");
     localStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
@@ -78,8 +77,8 @@ describe("cluster-config", () => {
   });
 
   it("graceful degrades to empty regions when fetch fails and cache is stale/absent", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = "/cluster-config.json";
+    vi.stubEnv("VITE_CLUSTER_MODE", "multi-region");
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", "/cluster-config.json");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
     const { clusterConfig, loadClusterConfig } = await import("@/shared/cluster-config");
     await loadClusterConfig();
@@ -88,8 +87,8 @@ describe("cluster-config", () => {
   });
 
   it("rejects response with duplicate region ids", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = "/cluster-config.json";
+    vi.stubEnv("VITE_CLUSTER_MODE", "multi-region");
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", "/cluster-config.json");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -110,8 +109,8 @@ describe("cluster-config", () => {
   });
 
   it("treats a 404 response like a fetch failure and graceful-degrades", async () => {
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_MODE = "multi-region";
-    (import.meta.env as Record<string, unknown>).VITE_CLUSTER_REGIONS_URL = "/cluster-config.json";
+    vi.stubEnv("VITE_CLUSTER_MODE", "multi-region");
+    vi.stubEnv("VITE_CLUSTER_REGIONS_URL", "/cluster-config.json");
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response("not found", { status: 404 })),

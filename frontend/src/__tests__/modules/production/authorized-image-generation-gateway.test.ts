@@ -77,6 +77,38 @@ describe("authorized production image gateway", () => {
     });
   });
 
+  it("leaves the selector unset when project settings are empty so the priority router can decide", async () => {
+    const regenerateSketches = vi.fn().mockResolvedValue({ ok: true });
+    const gateway = gatewayStub({
+      getSketchSettings: vi.fn().mockResolvedValue({
+        ok: true,
+        data: { sketch_image_selection: "" },
+      }),
+      regenerateSketches,
+    });
+    const guarded = createAuthorizedProductionImageGateway(gateway, {
+      load: vi.fn().mockResolvedValue({
+        items: [
+          {
+            code: "cloud/image-current",
+            operation: "IMAGE",
+            capabilities: { supportedModes: ["IMAGE_EDIT"] },
+          },
+        ],
+      }),
+    });
+
+    await guarded.regenerateSketches("demo", 2, {
+      beatIndices: [3],
+      modeKey: "1x1_2-3_sketch",
+    });
+
+    expect(regenerateSketches).toHaveBeenCalledWith("demo", 2, {
+      beatIndices: [3],
+      modeKey: "1x1_2-3_sketch",
+    });
+  });
+
   it("validates an explicit render SKU without reading stale project settings", async () => {
     const getRenderSettings = vi.fn();
     const createRenderPlan = vi.fn().mockResolvedValue({ ok: true });

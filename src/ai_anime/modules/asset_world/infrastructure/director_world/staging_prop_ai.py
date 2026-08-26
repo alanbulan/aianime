@@ -236,7 +236,7 @@ def create_staging_prop_agent():
         get_newapi_text_pydantic_model(),
         system_prompt=SYSTEM_PROMPT,
         output_type=StagingPropAgentOutput,
-        output_retries=2,
+        retries={"output": 2},
         name="DirectorWorld Staging Prop Planner",
         **agent_kwargs,
     )
@@ -257,28 +257,6 @@ def read_request() -> dict[str, Any]:
     data = json.loads(raw)
     if not isinstance(data, dict):
         raise ValueError("request body must be a JSON object")
-    return data
-
-
-def extract_json_object(text: str) -> dict[str, Any]:
-    raw = str(text or "").strip()
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        fence = re.search(r"```(?:json)?\s*(.*?)```", raw, flags=re.DOTALL | re.IGNORECASE)
-        if fence:
-            try:
-                data = json.loads(fence.group(1))
-            except json.JSONDecodeError:
-                data = None
-        else:
-            data = None
-        if data is None:
-            start = raw.index("{")
-            end = raw.rindex("}")
-            data = json.loads(raw[start : end + 1])
-    if not isinstance(data, dict):
-        raise ValueError("model response JSON must be an object")
     return data
 
 

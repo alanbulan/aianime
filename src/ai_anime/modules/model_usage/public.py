@@ -43,6 +43,10 @@ from ai_anime.modules.model_usage.domain.official_defaults import (
     DEFAULT_TEXT_MODEL_BY_ENV,
     DEFAULT_VIDEO_PROMPT_OPTIMIZER_MODEL,
 )
+from ai_anime.modules.model_usage.domain.model_route import (
+    ModelRoute,
+    resolve_model_route,
+)
 from ai_anime.modules.model_usage.infrastructure.audio_request_usage import (
     count_audio_scope_attempts,
     get_audio_request_usage_db_path,
@@ -199,6 +203,7 @@ __all__ = [
     "MODEL_ACCESS_STDIN_ENV",
     "ModelAudioTransportError",
     "ModelAudioWriteResult",
+    "ModelRoute",
     "ModelTextTransportError",
     "ProviderInstrumentation",
     "RuntimeModelAccess",
@@ -251,6 +256,7 @@ __all__ = [
     "require_model_admin_token",
     "reset_model_call_reservation_active",
     "resolve_model_for_role",
+    "resolve_model_route",
     "runtime_model_access",
     "runtime_model_capability",
     "serialize_model_access_for_subprocess",

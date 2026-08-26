@@ -12,7 +12,7 @@ export interface FreezoneUrl {
   canvas: string | null;
 }
 
-export interface WriteUrlOptions {
+interface WriteUrlOptions {
   replace?: boolean;
   notify?: boolean;
 }
@@ -116,9 +116,4 @@ export function rememberLastCanvas(projectId: string | null | undefined, canvasI
   } catch {
     // localStorage can be unavailable in restricted browser contexts.
   }
-}
-
-export function useUrlParam<K extends keyof FreezoneUrl>(_key: K): FreezoneUrl[K] {
-  // Lightweight non-hook helper for places that want a synchronous read.
-  return readUrl()[_key];
 }

@@ -612,6 +612,7 @@ def test_scene_stage_generation_uses_world_queue_and_owned_payload(
 
 def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
     client, _backend, project_dir, _store = m05_client_factory("inline")
+    (project_dir / "novel.txt").write_text("测试小说正文", encoding="utf-8")
     _seed_stage_files(project_dir)
     _seed_labels(project_dir)
 

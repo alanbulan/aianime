@@ -410,12 +410,11 @@ class SQLiteChatHistory:
                     None,
                 )
                 if user_index is not None:
-                    for index in range(user_index + 1, len(messages)):
-                        if messages[index].get("role") == "assistant":
-                            target_index = index
-                            break
-                    if target_index is None:
-                        target_index = user_index
+                    # An in-flight turn may be followed by unrelated task
+                    # notifications that intentionally have no turn_id.  Keep
+                    # its tool events on the matching user message until the
+                    # real assistant reply for this turn is persisted.
+                    target_index = user_index
             if target_index is None:
                 continue
             existing = messages[target_index].get("ui_events")

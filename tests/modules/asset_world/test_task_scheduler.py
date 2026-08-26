@@ -154,6 +154,7 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "identity_name": "少年",
         "style": "period-drama",
         "model": "cloud-image-standard",
+        "model_selector": "",
         "scope": "character-scope",
         "output_dir": "output",
     }

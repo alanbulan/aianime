@@ -14,12 +14,13 @@
   background: var(--foreground);
   opacity: 0;
   transition: opacity 120ms ease;
+  will-change: transform;
 }
 
 .sliding-tabs__slider[data-animate="true"] {
   transition:
-    transform 300ms cubic-bezier(0.22, 0.8, 0.24, 1),
-    width 300ms cubic-bezier(0.22, 0.8, 0.24, 1),
+    transform 180ms cubic-bezier(0.22, 0.8, 0.24, 1),
+    width 180ms cubic-bezier(0.22, 0.8, 0.24, 1),
     opacity 120ms ease;
 }
 
@@ -45,8 +46,8 @@
   line-height: 1;
   padding: 0.375rem 1rem;
   transition:
-    color 180ms ease,
-    background-color 180ms ease;
+    color 80ms ease,
+    background-color 120ms ease;
 }
 
 .sliding-tabs__trigger:hover {
@@ -61,6 +62,7 @@
 
 .sliding-tabs__trigger[data-active="true"] {
   color: var(--background);
+  transition-delay: 70ms, 0ms;
 }
 
 .sliding-tabs__content {

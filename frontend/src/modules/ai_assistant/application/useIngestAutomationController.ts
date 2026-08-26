@@ -5,8 +5,8 @@ import { toast } from "sonner";
 
 import {
   appendAttachmentAnalysisContext,
-  appendIngestAutomationContext,
   buildAttachmentAnalysisContext,
+  buildProductionSourceContext,
   buildReingestCancelledContext,
   buildReingestConfirmationContext,
   buildUploadedFilesContext,
@@ -148,7 +148,6 @@ export function useIngestAutomationControllerWithPorts({
     loadUploadedIngestFiles,
     projectHasIngestedContent,
     saveUploadedIngestFiles,
-    startNovelIngest,
     uploadNovelForIngest,
   } = ports;
   const [uploadedIngestFiles, setUploadedIngestFiles] = useState<
@@ -239,34 +238,17 @@ export function useIngestAutomationControllerWithPorts({
           );
         }
 
-        setPreparingSend(true);
-        try {
-          const started = await startNovelIngest(
-            reingestConfirmation.project,
-            reingestConfirmation.filename,
-            { rebuild: true },
-          );
-          nextText = appendIngestAutomationContext(text, {
-            filename: reingestConfirmation.filename,
-            taskType: started.taskType,
-            taskKey: started.taskKey,
-            message: started.message,
-            rebuild: true,
-          });
-          toast.success(
-            t("aiAssistant.ingestAutomationStarted", {
-              filename: reingestConfirmation.filename,
-            }),
-          );
-          setReingestConfirmation(null);
-          return sendChatMessage(text, [], nextText);
-        } catch (error) {
-          const message = backendErrorToastMessage(error, t);
-          toast.error(t("aiAssistant.ingestAutomationFailed", { message }));
-          return false;
-        } finally {
-          setPreparingSend(false);
-        }
+        const pending = reingestConfirmation;
+        setReingestConfirmation(null);
+        nextText = appendAttachmentAnalysisContext(
+          text,
+          buildProductionSourceContext(
+            pending.project,
+            pending.source,
+            true,
+          ),
+        );
+        return sendChatMessage(text, [], nextText);
       }
 
       if (videoIntent && hasNovelAttachments) {
@@ -296,10 +278,15 @@ export function useIngestAutomationControllerWithPorts({
             );
           }
           if (await projectHasIngestedContent(targetProject)) {
+            const source = uploadedIngestFileFromUpload(
+              uploaded,
+              prepared.find((item) => item.upload === uploaded)?.original.fileName,
+            );
             const pending: ReingestConfirmation = {
               stage: "choose_overwrite",
               filename: uploaded.filename,
               project: targetProject,
+              source,
             };
             setReingestConfirmation(pending);
             nextText = appendAttachmentAnalysisContext(
@@ -308,21 +295,16 @@ export function useIngestAutomationControllerWithPorts({
             );
             return sendChatMessage(text, transportAttachments, nextText);
           }
-          const started = await startNovelIngest(
-            targetProject,
-            uploaded.filename,
-          );
-          nextText = appendIngestAutomationContext(text, {
-            filename: uploaded.filename,
-            taskType: started.taskType,
-            taskKey: started.taskKey,
-            message: started.message,
-            rebuild: false,
-          });
-          toast.success(
-            t("aiAssistant.ingestAutomationStarted", {
-              filename: uploaded.filename,
-            }),
+          nextText = appendAttachmentAnalysisContext(
+            text,
+            buildProductionSourceContext(
+              targetProject,
+              uploadedIngestFileFromUpload(
+                uploaded,
+                prepared.find((item) => item.upload === uploaded)?.original.fileName,
+              ),
+              false,
+            ),
           );
         } catch (error) {
           const message = backendErrorToastMessage(error, t);
@@ -349,6 +331,7 @@ export function useIngestAutomationControllerWithPorts({
               stage: "choose_overwrite",
               filename: uploaded.filename,
               project: targetProject,
+              source: uploaded,
             };
             setReingestConfirmation(pending);
             nextText = appendAttachmentAnalysisContext(
@@ -357,21 +340,9 @@ export function useIngestAutomationControllerWithPorts({
             );
             return sendChatMessage(text, [], nextText);
           }
-          const started = await startNovelIngest(
-            targetProject,
-            uploaded.filename,
-          );
-          nextText = appendIngestAutomationContext(text, {
-            filename: uploaded.filename,
-            taskType: started.taskType,
-            taskKey: started.taskKey,
-            message: started.message,
-            rebuild: false,
-          });
-          toast.success(
-            t("aiAssistant.ingestAutomationStarted", {
-              filename: uploaded.filename,
-            }),
+          nextText = appendAttachmentAnalysisContext(
+            text,
+            buildProductionSourceContext(targetProject, uploaded, false),
           );
         } catch (error) {
           const message = backendErrorToastMessage(error, t);
@@ -423,7 +394,6 @@ export function useIngestAutomationControllerWithPorts({
       recordUploadedFiles,
       reingestConfirmation,
       sendChatMessage,
-      startNovelIngest,
       t,
       uploadNovelForIngest,
       uploadedIngestFiles,

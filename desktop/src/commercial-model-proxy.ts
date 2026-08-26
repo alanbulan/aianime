@@ -24,6 +24,7 @@ const MAX_MODEL_MULTIPART_BODY_BYTES = 108 * 1024 * 1024;
 const FALLBACK_STATUSES = new Set([401, 403, 404, 408, 409, 425, 429, 500, 502, 503, 504]);
 const RETRYABLE_ROUTE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const MAX_ROUTE_ATTEMPTS = 3;
+const MODEL_PROXY_REQUEST_TIMEOUT_MS = 30 * 60_000;
 const BYOK_CONFIGURATION_ERROR_STATUSES = new Set([401, 403, 404]);
 const FORBIDDEN_MODEL_FIELDS = new Set([
   "apikey",
@@ -91,6 +92,10 @@ interface PreparedBody {
   contentType?: string;
 }
 
+interface CommercialModelProxyOptions {
+  requestTimeoutMs?: number;
+}
+
 /**
  * A video task pinned to the provider that created it.
  *
@@ -124,12 +129,19 @@ export class CommercialModelProxy {
     cloudModelAssignments: [],
   };
   private readonly videoTaskRoutes = new Map<string, StickyVideoRoute>();
+  private readonly requestTimeoutMs: number;
 
   constructor(
     private readonly client: CommercialApiClient,
     private readonly deviceIdentity: CommercialDeviceSigner,
     private readonly audit: (entry: ModelRouteAuditEntry) => void = () => undefined,
-  ) {}
+    options: CommercialModelProxyOptions = {},
+  ) {
+    this.requestTimeoutMs = Math.max(
+      1,
+      Math.floor(options.requestTimeoutMs ?? MODEL_PROXY_REQUEST_TIMEOUT_MS),
+    );
+  }
 
   get baseUrl(): string {
     if (!this.origin) throw new Error("commercial model proxy has not started");
@@ -233,6 +245,10 @@ export class CommercialModelProxy {
       const abortUpstream = () => abortController.abort();
       request.once("aborted", abortUpstream);
       response.once("close", abortUpstream);
+      const requestSignal = AbortSignal.any([
+        abortController.signal,
+        AbortSignal.timeout(this.requestTimeoutMs),
+      ]);
 
       const upstream = await this.requestWithFallback({
         method,
@@ -241,7 +257,7 @@ export class CommercialModelProxy {
         ...(rawBody === undefined ? {} : { rawBody }),
         routes,
         requestHeaders,
-        signal: abortController.signal,
+        signal: requestSignal,
       });
       assertModelResponseContract(path, upstream.response);
       await this.rememberVideoTaskRoute(
@@ -375,7 +391,15 @@ export class CommercialModelProxy {
           break;
         } catch (error) {
           lastError = error;
-          if (input.signal.aborted) throw error;
+          if (input.signal.aborted) {
+            if (isTimeoutAbort(input.signal.reason)) {
+              throw new CommercialApiError(
+                `模型请求超过 ${Math.ceil(this.requestTimeoutMs / 60_000)} 分钟，已中止`,
+                { status: 504, code: "MODEL_REQUEST_TIMEOUT" },
+              );
+            }
+            throw error;
+          }
           if (!isRetryableRequestFailure(error)) {
             // Deterministic client-side rejection (unparseable body, forbidden
             // field, bad protocol header). The body is identical on every
@@ -1668,6 +1692,13 @@ function isRetryableRequestFailure(error: unknown): boolean {
     return !(error.status >= 400 && error.status < 500);
   }
   return true;
+}
+
+function isTimeoutAbort(reason: unknown): boolean {
+  return (
+    reason instanceof Error &&
+    (reason.name === "TimeoutError" || /timeout/i.test(reason.message))
+  );
 }
 
 function shouldFallback(route: ModelRoute, status: number): boolean {

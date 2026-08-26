@@ -37,9 +37,17 @@ import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
 import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
 import {
-  RUNTIME_DEPENDENCY_CHANNELS,
+  registerRuntimeDependencyIpc,
   RuntimeDependencyManager,
 } from "./runtime-dependencies.js";
+import {
+  AUTH_COOKIE_NAME,
+  commercialArchitecture,
+  commercialPlatform,
+  desktopSessionCookie,
+  isAllowedExternalUrl,
+  isSameOrigin,
+} from "./desktop-runtime-contracts.js";
 
 let mainWindow: BrowserWindow | null = null;
 let backend: LocalBackend | null = null;
@@ -69,9 +77,6 @@ const CONTENT_SECURITY_POLICY = [
   "form-action 'self';",
   "object-src 'none';",
 ].join(" ");
-const AUTH_COOKIE_NAME = "ai_anime_session";
-const AUTH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
-
 function appendModelRouteAudit(
   logPath: string,
   entry: ModelRouteAuditEntry,
@@ -84,23 +89,6 @@ function appendModelRouteAudit(
         error instanceof Error ? error.message : String(error),
       );
     });
-}
-
-function isSameOrigin(url: string, baseUrl: string): boolean {
-  try {
-    return new URL(url).origin === new URL(baseUrl).origin;
-  } catch {
-    return false;
-  }
-}
-
-function isAllowedExternalUrl(url: string): boolean {
-  try {
-    const protocol = new URL(url).protocol;
-    return protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function installBackendHeader(localBackend: LocalBackend): void {
@@ -229,49 +217,13 @@ function registerWindowIpc(): void {
   });
 }
 
-function registerRuntimeDependencyIpc(manager: RuntimeDependencyManager): void {
-  const requireActiveWindow = (senderId: number): void => {
-    if (
-      !mainWindow ||
-      mainWindow.isDestroyed() ||
-      mainWindow.webContents.id !== senderId
-    ) {
-      throw new Error("runtime dependency sender is not the active desktop window");
-    }
-  };
-  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.status, async (event) => {
-    requireActiveWindow(event.sender.id);
-    return await manager.status();
-  });
-  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.install, async (event) => {
-    requireActiveWindow(event.sender.id);
-    const sender = event.sender;
-    return await manager.install((progress) => {
-      if (!sender.isDestroyed()) {
-        sender.send(RUNTIME_DEPENDENCY_CHANNELS.progress, progress);
-      }
-    });
-  });
-}
-
-function desktopSessionCookieValue(username: string): string {
-  return `desktop.${Buffer.from(username, "utf8").toString("base64url")}`;
-}
-
 async function setDesktopSessionCookie(
   origin: string,
   cloudSession: CommercialSessionSummary,
 ): Promise<void> {
-  await session.defaultSession.cookies.set({
-    url: origin,
-    name: AUTH_COOKIE_NAME,
-    value: desktopSessionCookieValue(cloudSession.user.username),
-    path: "/",
-    httpOnly: true,
-    secure: origin.startsWith("https://"),
-    sameSite: "lax",
-    expirationDate: Date.now() / 1000 + AUTH_COOKIE_MAX_AGE_SECONDS,
-  });
+  await session.defaultSession.cookies.set(
+    desktopSessionCookie(origin, cloudSession.user.username),
+  );
 }
 
 async function registerCommercialGatewayIpc(
@@ -347,16 +299,6 @@ async function registerCommercialGatewayIpc(
   });
 }
 
-function commercialPlatform(): string {
-  if (process.platform === "win32") return "windows";
-  if (process.platform === "darwin") return "macos";
-  return process.platform;
-}
-
-function commercialArchitecture(): string {
-  return process.arch === "x64" ? "x86_64" : process.arch;
-}
-
 async function startApplication(): Promise<void> {
   const secureDirectory = join(app.getPath("userData"), "secure");
   const commercialGatewayUrl = resolveCommercialGatewayUrl();
@@ -393,6 +335,7 @@ async function startApplication(): Promise<void> {
   const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
   backend = new LocalBackend({
     runtimeDependencyPaths: runtimeDependencies.paths,
+    restartOnUnexpectedExit: true,
     environment: {
       AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
       AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
@@ -404,7 +347,16 @@ async function startApplication(): Promise<void> {
     await backend.start();
     installBackendHeader(backend);
     installMediaPermissions(backend);
-    registerRuntimeDependencyIpc(runtimeDependencies);
+    registerRuntimeDependencyIpc(
+      ipcMain,
+      runtimeDependencies,
+      (senderId) =>
+        Boolean(
+          mainWindow &&
+            !mainWindow.isDestroyed() &&
+            mainWindow.webContents.id === senderId,
+        ),
+    );
     await registerCommercialGatewayIpc(
       backend,
       client,

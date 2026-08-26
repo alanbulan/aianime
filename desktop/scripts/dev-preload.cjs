@@ -24,8 +24,19 @@ const COMMERCIAL_CHANNELS = {
   publicCaptcha: "desktop:commercial:public-captcha",
   register: "desktop:commercial:register",
   session: "desktop:commercial:session",
+  rememberedLogin: "desktop:commercial:remembered-login",
   login: "desktop:commercial:login",
+  loginRemembered: "desktop:commercial:login-remembered",
   logout: "desktop:commercial:logout",
+  profile: "desktop:commercial:profile",
+  updateProfile: "desktop:commercial:update-profile",
+  avatar: "desktop:commercial:avatar",
+  uploadAvatar: "desktop:commercial:upload-avatar",
+  deleteAvatar: "desktop:commercial:delete-avatar",
+  changePassword: "desktop:commercial:change-password",
+  sendPasswordResetCode: "desktop:commercial:send-password-reset-code",
+  verifyPasswordResetCode: "desktop:commercial:verify-password-reset-code",
+  resetPassword: "desktop:commercial:reset-password",
   bootstrap: "desktop:commercial:bootstrap",
   quotaBalance: "desktop:commercial:quota-balance",
   modelCatalog: "desktop:commercial:model-catalog",
@@ -47,6 +58,7 @@ const COMMERCIAL_CHANNELS = {
   configureByok: "desktop:commercial:configure-byok",
   selectCloudModels: "desktop:commercial:select-cloud-models",
   clearByok: "desktop:commercial:clear-byok",
+  byokProviderModels: "desktop:commercial:byok-provider-models",
 };
 
 contextBridge.exposeInMainWorld("aiAnimeDesktop", {
@@ -90,8 +102,27 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.publicCaptcha, tenantCode),
     register: (input) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.register, input),
     session: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.session),
+    rememberedLogin: () =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.rememberedLogin),
     login: (input) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.login, input),
+    loginRemembered: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.loginRemembered, input),
     logout: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.logout),
+    profile: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.profile),
+    updateProfile: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.updateProfile, input),
+    avatar: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.avatar),
+    uploadAvatar: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.uploadAvatar, input),
+    deleteAvatar: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.deleteAvatar),
+    changePassword: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.changePassword, input),
+    sendPasswordResetCode: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.sendPasswordResetCode, input),
+    verifyPasswordResetCode: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.verifyPasswordResetCode, input),
+    resetPassword: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.resetPassword, input),
     bootstrap: (query) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.bootstrap, query),
     currentLicense: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.currentLicense),
     activateLicense: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.activateLicense),
@@ -102,9 +133,11 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     modelAccessStatus: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelAccessStatus),
     configureByok: (input) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.configureByok, input),
-    selectCloudModels: () =>
-      ipcRenderer.invoke(COMMERCIAL_CHANNELS.selectCloudModels),
-    clearByok: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.clearByok),
+    selectCloudModels: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.selectCloudModels, input),
+    clearByok: (input) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.clearByok, input),
+    byokProviderModels: (input) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.byokProviderModels, input),
     quotaBalance: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.quotaBalance),
     modelCatalog: (query) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelCatalog, query),
     modelDetails: (sku) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelDetails, sku),
