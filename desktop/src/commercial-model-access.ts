@@ -5,8 +5,7 @@ import {
   writeEncryptedJsonFile,
   type SecureStorageAdapter,
 } from "./secure-file-store.js";
-
-export type CommercialModelAccessMode = "mixed";
+import { requiredRecordZh as requiredRecord } from "./value-validation.js";
 
 export const BYOK_PROVIDER_PROTOCOLS = [
   "OPENAI_COMPATIBLE",
@@ -72,7 +71,7 @@ export interface StoredCommercialModelAccess {
 }
 
 export interface CommercialModelAccessStatus {
-  mode: CommercialModelAccessMode;
+  mode: "mixed";
   cloudModelAssignments: ByokModelAssignment[];
   byokConfigured: boolean;
   byokProviders: ByokProviderStatus[];
@@ -688,11 +687,4 @@ function maskSecret(value: string): string {
   if (!value) return "";
   if (value.length <= 8) return "*".repeat(value.length);
   return `${value.slice(0, 4)}...${value.slice(-4)}`;
-}
-
-function requiredRecord(value: unknown, name: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${name} 必须是对象`);
-  }
-  return value as Record<string, unknown>;
 }

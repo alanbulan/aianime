@@ -27,7 +27,6 @@ export interface CommercialModelUsageBootstrap {
   catalog: CommercialModelCatalog | null;
 }
 
-export type CommercialModelAccessMode = "mixed";
 export type CommercialModelCatalogSource = "active" | "cloud";
 
 export const BYOK_PROVIDER_PROTOCOLS = [
@@ -85,7 +84,7 @@ export interface ByokProviderModelDiscoveryInput {
 }
 
 export interface CommercialModelAccessStatus {
-  mode: CommercialModelAccessMode;
+  mode: "mixed";
   allowsCustomModels: boolean;
   gatewayOrigin: string;
   cloudModelAssignments: ByokModelAssignment[];

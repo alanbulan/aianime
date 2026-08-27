@@ -1,12 +1,17 @@
 ﻿# Copyright (c) 2026 AI anime
 
 param(
-    [string]$ManifestUrl = ""
+    [string]$ManifestUrl = "",
+    [string]$InstallRoot = "",
+    [string]$InstallLogPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$utf8Encoding = New-Object System.Text.UTF8Encoding($false)
+[Console]::OutputEncoding = $utf8Encoding
+$OutputEncoding = $utf8Encoding
 
 function Assert-RuntimeDependencyManifest {
     param([Parameter(Mandatory = $true)][object]$Manifest)
@@ -86,9 +91,21 @@ if (-not $ManifestUrl) {
 }
 
 $appDataPath = [Environment]::GetFolderPath("ApplicationData")
-$dependencyRoot = [IO.Path]::GetFullPath((Join-Path $appDataPath "@ai-anime\desktop\dependencies\world"))
-$logDirectory = Join-Path $appDataPath "@ai-anime\desktop\logs"
-$logPath = Join-Path $logDirectory "runtime-dependency-install.log"
+$dependencyRoot = [IO.Path]::GetFullPath($(if ($InstallRoot) {
+    $InstallRoot
+} else {
+    Join-Path $appDataPath "@ai-anime\desktop\dependencies\world"
+}))
+$logPath = [IO.Path]::GetFullPath($(if ($InstallLogPath) {
+    $InstallLogPath
+} else {
+    Join-Path $appDataPath "@ai-anime\desktop\logs\runtime-dependency-install.log"
+}))
+$logDirectory = Split-Path -Parent $logPath
+$tarExecutable = [IO.Path]::GetFullPath((Join-Path $env:SystemRoot "System32\tar.exe"))
+if (-not (Test-Path -LiteralPath $tarExecutable -PathType Leaf)) {
+    throw "Windows 系统 tar.exe 不存在: $tarExecutable"
+}
 $nonce = [Guid]::NewGuid().ToString("N")
 $archivePath = Join-Path $dependencyRoot ".world-$nonce.tar.gz"
 $stagingPath = Join-Path $dependencyRoot ".staging-$nonce"
@@ -131,6 +148,23 @@ function Invoke-NativeCommandCapture {
     }
 }
 
+function Get-FileSha256 {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $stream = [IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [Security.Cryptography.SHA256]::Create()
+        try {
+            $digest = $sha256.ComputeHash($stream)
+            return ([BitConverter]::ToString($digest)).Replace("-", "").ToLowerInvariant()
+        } finally {
+            $sha256.Dispose()
+        }
+    } finally {
+        $stream.Dispose()
+    }
+}
+
 $transcriptStarted = $false
 try {
     New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
@@ -166,12 +200,12 @@ try {
     }
 
     Write-Output "正在校验 SHA-256..."
-    $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $actualHash = Get-FileSha256 -Path $archivePath
     if ($actualHash -ne ([string]$package.sha256).ToLowerInvariant()) {
         throw "运行环境安装包 SHA-256 校验失败。"
     }
 
-    $entries = & tar -tzf $archivePath
+    $entries = & $tarExecutable -tzf $archivePath
     if ($LASTEXITCODE -ne 0 -or -not $entries) {
         throw "无法读取运行环境压缩包。"
     }
@@ -190,7 +224,7 @@ try {
 
     New-Item -ItemType Directory -Path $stagingPath -Force | Out-Null
     Write-Output "正在解压运行环境..."
-    & tar -xzf $archivePath -C $stagingPath
+    & $tarExecutable -xzf $archivePath -C $stagingPath
     if ($LASTEXITCODE -ne 0) {
         throw "运行环境解压失败。"
     }

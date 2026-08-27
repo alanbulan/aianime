@@ -26,7 +26,6 @@ export type {
   ByokProviderStatus,
   CommercialModelCatalog,
   CommercialModelCatalogItem,
-  CommercialModelAccessMode,
   CommercialModelCatalogSource,
   CommercialModelAccessStatus,
   CommercialQuota,

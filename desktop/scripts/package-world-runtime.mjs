@@ -10,8 +10,18 @@ import { basename, join, resolve } from "node:path";
 const desktopRoot = process.cwd();
 const platform = process.platform;
 const arch = process.arch;
+const tarExecutable = platform === "win32"
+  ? join(
+      process.env.SystemRoot || process.env.WINDIR || "C:\\Windows",
+      "System32",
+      "tar.exe",
+    )
+  : "tar";
 if (!((platform === "win32" && arch === "x64") || (platform === "darwin" && arch === "arm64"))) {
   throw new Error(`unsupported world runtime package target: ${platform}-${arch}`);
+}
+if (platform === "win32" && !existsSync(tarExecutable)) {
+  throw new Error(`Windows system tar.exe is missing: ${tarExecutable}`);
 }
 
 const runtimeVersions = JSON.parse(
@@ -67,7 +77,7 @@ try {
   await symlink(worldSource, join(staging, "world-runtime"), "junction");
   await symlink(splatSource, join(staging, "splat-transform"), "junction");
   const result = spawnSync(
-    "tar",
+    tarExecutable,
     ["-czhf", archivePath, "-C", staging, "world-runtime", "splat-transform"],
     { encoding: "utf8", timeout: 3_600_000, windowsHide: true },
   );

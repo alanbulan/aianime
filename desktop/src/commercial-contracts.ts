@@ -1,3 +1,8 @@
+import {
+  requiredRecord,
+  requiredText,
+} from "./value-validation.js";
+
 type Identifier = string | number;
 
 export type CommercialEditionType = "STANDARD" | "PROFESSIONAL";
@@ -454,16 +459,6 @@ function preferredInstallerKind(target: string): string | null {
   return null;
 }
 
-function requiredRecord(
-  value: unknown,
-  name: string,
-): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${name} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
 function nullableRecord(value: unknown): Record<string, unknown> | null {
   if (value === undefined || value === null) return null;
   return requiredRecord(value, "authorization field");
@@ -473,12 +468,6 @@ function optionalRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
-}
-
-function requiredText(value: unknown, name: string): string {
-  const text = optionalText(value);
-  if (!text) throw new Error(`${name} must be a non-empty string`);
-  return text;
 }
 
 function optionalText(value: unknown): string | undefined {

@@ -34,6 +34,15 @@ const MAX_PROCESS_OUTPUT = 2 * 1024 * 1024;
  */
 const RUNTIME_SMOKE_CACHE_MS = 30_000;
 
+function tarExecutable(platform: NodeJS.Platform): string {
+  if (platform !== "win32") return "tar";
+  return join(
+    process.env.SystemRoot || process.env.WINDIR || "C:\\Windows",
+    "System32",
+    "tar.exe",
+  );
+}
+
 export const RUNTIME_DEPENDENCY_CHANNELS = {
   status: "desktop:runtime-dependencies:status",
   install: "desktop:runtime-dependencies:install",
@@ -261,8 +270,11 @@ async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-async function verifyArchiveEntries(archivePath: string): Promise<void> {
-  const { stdout } = await runProcess("tar", ["-tzf", archivePath], {
+async function verifyArchiveEntries(
+  archivePath: string,
+  platform: NodeJS.Platform,
+): Promise<void> {
+  const { stdout } = await runProcess(tarExecutable(platform), ["-tzf", archivePath], {
     timeoutMs: 120_000,
   });
   const entries = stdout.split(/\r?\n/u).filter(Boolean);
@@ -460,11 +472,11 @@ export class RuntimeDependencyManager {
       if (digest.toLowerCase() !== manifest.package.sha256.toLowerCase()) {
         throw new Error("运行环境安装包 SHA-256 校验失败");
       }
-      await verifyArchiveEntries(archivePath);
+      await verifyArchiveEntries(archivePath, this.platform);
 
       onProgress({ phase: "extracting", message: "正在解压运行环境…" });
       await mkdir(stagingPath, { recursive: true });
-      await runProcess("tar", ["-xzf", archivePath, "-C", stagingPath], {
+      await runProcess(tarExecutable(this.platform), ["-xzf", archivePath, "-C", stagingPath], {
         timeoutMs: 900_000,
       });
 

@@ -237,6 +237,8 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(String(runtimeVersions.world), /^\d+\.\d+\.\d+$/u);
   assert.match(runtimePackager, /runtime-version\.json/);
   assert.doesNotMatch(runtimePackager, /package\.json/);
+  assert.match(runtimePackager, /"System32",\s*"tar\.exe"/u);
+  assert.doesNotMatch(runtimePackager, /spawnSync\(\s*"tar"/u);
 });
 
 test(
@@ -254,6 +256,7 @@ test(
       new URL("../scripts/install-runtime-dependency.ps1", import.meta.url),
     );
     const command = [
+      "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)",
       "$tokens = $null",
       "$errors = $null",
       "[void][System.Management.Automation.Language.Parser]::ParseFile($env:AI_ANIME_INSTALLER_SCRIPT_PATH, [ref]$tokens, [ref]$errors)",
@@ -291,6 +294,7 @@ test(
     );
     const validate = (manifest) => {
       const command = [
+        "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)",
         "$tokens = $null",
         "$errors = $null",
         "$ast = [System.Management.Automation.Language.Parser]::ParseFile($env:AI_ANIME_INSTALLER_SCRIPT_PATH, [ref]$tokens, [ref]$errors)",

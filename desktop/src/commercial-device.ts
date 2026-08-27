@@ -11,6 +11,10 @@ import {
   writeEncryptedJsonFile,
   type SecureStorageAdapter,
 } from "./secure-file-store.js";
+import {
+  requiredRecord,
+  requiredText,
+} from "./value-validation.js";
 
 interface StoredDeviceIdentity {
   schemaVersion: 1;
@@ -149,22 +153,6 @@ function parseStoredDeviceIdentity(value: unknown): StoredDeviceIdentity {
     publicKeyHash,
     privateKeyPkcs8,
   };
-}
-
-function requiredRecord(
-  value: unknown,
-  name: string,
-): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${name} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function requiredText(value: unknown, name: string): string {
-  const text = typeof value === "string" ? value.trim() : "";
-  if (!text) throw new Error(`${name} must be a non-empty string`);
-  return text;
 }
 
 function withoutBase64Padding(value: string): string {
