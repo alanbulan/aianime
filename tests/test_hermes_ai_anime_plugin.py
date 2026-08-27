@@ -968,3 +968,21 @@ def test_generate_audio_treats_no_required_audio_as_successful_skip(
     assert result["ok"] is True
     assert result["skipped"] is True
     assert result["code"] == "audio_generation_not_required"
+
+
+def test_voice_design_failure_reports_automatic_route_without_manual_only_claim(
+    ai_anime_plugin,
+) -> None:
+    result = ai_anime_plugin._with_chat_error_hints(
+        {
+            "ok": False,
+            "code": "voice_design_failed",
+            "error": "夏栀·青年时期自动文字声线生成失败：上游服务暂不可用",
+        }
+    )
+
+    assert "云端/BYOK 优先级" in result["chat_error"]
+    assert "上游服务暂不可用" in result["chat_error"]
+    assert "Do not claim upload or recording is the only solution" in result[
+        "agent_instruction"
+    ]

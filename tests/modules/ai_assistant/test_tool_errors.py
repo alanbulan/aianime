@@ -92,8 +92,24 @@ def test_extract_tool_chat_error_maps_voice_prerequisite_without_failed_prefix()
 
     assert chat_error is not None
     assert chat_error.startswith("配音任务没有启动：")
+    assert "自动设计" in chat_error
+    assert "上传或录制" not in chat_error
     assert "夏栀" in chat_error
     assert not chat_error.startswith("任务执行失败：")
+
+
+def test_extract_tool_chat_error_maps_voice_design_route_failure():
+    chat_error = tool_chat_error(
+        {
+            "ok": False,
+            "code": "voice_design_failed",
+            "error": "夏栀·青年时期自动文字声线生成失败：上游服务暂不可用",
+        }
+    )
+
+    assert chat_error is not None
+    assert chat_error.startswith("配音任务没有启动：")
+    assert "上游服务暂不可用" in chat_error
 
 
 def test_extract_tool_chat_error_maps_missing_seedance_prompt():

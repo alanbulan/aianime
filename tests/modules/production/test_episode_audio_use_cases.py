@@ -15,6 +15,7 @@ from ai_anime.modules.production.application.episode_audio import (
     EpisodeAudioUseCases,
     GenerateEpisodeAudioCommand,
 )
+from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
 
 
 class _BeatSource:
@@ -175,6 +176,68 @@ async def test_generate_reports_first_five_voice_errors(tmp_path: Path) -> None:
     assert str(caught.value) == "；".join(errors)
     assert caught.value.code == "voice_prereq_required"
     assert scheduler.calls == []
+
+
+@pytest.mark.asyncio
+async def test_generate_auto_designs_missing_voices_then_schedules(
+    tmp_path: Path,
+) -> None:
+    context = _context(tmp_path)
+    requirement = VoiceDesignRequirement(
+        key="character:夏栀:slot:youth",
+        target="character_slot",
+        label="夏栀·青年时期",
+        voice_prompt="清澈自然的青年女声",
+        preview_text="我们开始吧。",
+        character_name="夏栀",
+        slot="youth",
+    )
+
+    class _RecoveringPlanner:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def plan(self, *_args) -> EpisodeAudioGenerationPlan:
+            self.calls += 1
+            if self.calls == 1:
+                return EpisodeAudioGenerationPlan(
+                    beat_numbers=(1,),
+                    errors=("Beat 01 角色声线缺失：夏栀_青年时期",),
+                    voice_requirements=(requirement,),
+                )
+            return EpisodeAudioGenerationPlan(
+                beat_numbers=(1,),
+                billable_chars=8,
+            )
+
+    class _Provisioner:
+        def __init__(self) -> None:
+            self.calls: list[tuple[object, tuple[VoiceDesignRequirement, ...]]] = []
+
+        async def provision(self, candidate, requirements):
+            self.calls.append((candidate, requirements))
+            return tuple(item.label for item in requirements)
+
+    planner = _RecoveringPlanner()
+    provisioner = _Provisioner()
+    scheduler = _Scheduler()
+    use_cases = EpisodeAudioUseCases(
+        _BeatSource([{"beat_number": 1}]),
+        planner,
+        _Billing(),
+        scheduler,
+        provisioner,
+    )
+
+    result = await use_cases.generate(
+        context,
+        GenerateEpisodeAudioCommand(episode_num=3),
+    )
+
+    assert result.task_id == "task-1"
+    assert planner.calls == 2
+    assert provisioner.calls == [(context, (requirement,))]
+    assert len(scheduler.calls) == 1
 
 
 @pytest.mark.asyncio

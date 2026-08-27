@@ -14,6 +14,8 @@ from ai_anime.modules.production.public import (
     EpisodeAudioBeatsMissing,
     EpisodeAudioGenerationNotRequired,
     GenerateEpisodeAudioCommand,
+    VoiceDesignModelUnavailable,
+    VoiceDesignProvisioningFailed,
     episode_audio_use_cases,
 )
 
@@ -67,6 +69,8 @@ async def generate_audio(
             "error": str(exc),
             "details": list(exc.errors),
         }
+    except (VoiceDesignModelUnavailable, VoiceDesignProvisioningFailed) as exc:
+        return {"ok": False, "code": exc.code, "error": str(exc)}
     except EpisodeAudioGenerationNotRequired as exc:
         return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
@@ -97,6 +101,8 @@ async def regenerate_beat_audio(
             "error": str(exc),
             "details": list(exc.errors),
         }
+    except (VoiceDesignModelUnavailable, VoiceDesignProvisioningFailed) as exc:
+        return {"ok": False, "code": exc.code, "error": str(exc)}
     except EpisodeAudioGenerationNotRequired as exc:
         return {"ok": False, "code": exc.code, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}

@@ -84,10 +84,19 @@ def _business_chat_error_from_text(text: object) -> str | None:
             "请在模型设置中补齐返回内容列出的云端或 BYOK 模型角色。"
             f"\n\n缺失项：{raw[:1200]}"
         )
-    if "voice_prereq_required" in raw or "声线缺失" in raw:
+    if any(
+        marker in raw
+        for marker in (
+            "voice_prereq_required",
+            "voice_design_model_unavailable",
+            "voice_design_failed",
+            "声线缺失",
+            "声线生成失败",
+        )
+    ):
         return (
-            "配音任务没有启动：当前缺少必要声线。"
-            "请在「资产库」上传或录制对应的项目解说人、角色默认、年龄段或身份声线。"
+            "配音任务没有启动：系统已按当前云端/BYOK 优先级尝试自动设计并绑定缺失声线，"
+            "但仍有未满足的模型或声线前置。"
             f"\n\n缺失项：{raw[:1200]}"
         )
     if (
@@ -183,6 +192,11 @@ def tool_chat_error(value: Any, *, tool_name: str | None = None) -> str | None:
         chat_error = node.get("chat_error")
         if isinstance(chat_error, str) and chat_error.strip():
             return chat_error.strip()
+
+        code = str(node.get("code") or "").strip()
+        if code in {"voice_design_model_unavailable", "voice_design_failed"}:
+            reason = node.get("error") or node.get("detail") or code
+            return _business_chat_error_from_text(f"{code}: {reason}")
 
         status_code = node.get("status_code")
         if (

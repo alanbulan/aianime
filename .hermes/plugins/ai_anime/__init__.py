@@ -58,8 +58,8 @@ TEXT_CONTENT_FILTER_CHAT_ERROR = (
     "模型内容安全过滤拦截了本次文本生成，请调整原文或改写稿中的敏感描述后重试。"
 )
 VOICE_PREREQ_CHAT_PREFIX = (
-    "配音任务没有成功启动：当前缺少声线前置。请到「资产库」上传或录制缺失的"
-    "项目解说人声线/角色声线后，再回来继续生成配音。"
+    "配音任务没有成功启动。系统已按当前云端/BYOK 优先级尝试通过文字声线设计模型"
+    "自动创建并绑定缺失声线；以下仍有未满足的模型或声线前置。"
 )
 RENDER_PREREQ_CHAT_PREFIX = (
     "Render 任务没有生成可用图片：当前缺少必要草图前置。请先在「资产库」生成或确认对应 "
@@ -87,13 +87,26 @@ def _has_text_content_filter(value: Any) -> bool:
 def _voice_prereq_error_text(value: Any) -> str:
     if isinstance(value, str):
         text = value.strip()
-        if "voice_prereq_required" in text or "声线缺失" in text:
+        if any(
+            marker in text
+            for marker in (
+                "voice_prereq_required",
+                "voice_design_model_unavailable",
+                "voice_design_failed",
+                "声线缺失",
+                "声线生成失败",
+            )
+        ):
             return text[:1200]
         return ""
     if isinstance(value, dict):
         code = str(value.get("code") or "").strip()
         error = str(value.get("error") or value.get("detail") or value.get("message") or "").strip()
-        if code == "voice_prereq_required":
+        if code in {
+            "voice_prereq_required",
+            "voice_design_model_unavailable",
+            "voice_design_failed",
+        }:
             return error[:1200] if error else "voice_prereq_required"
         if "声线缺失" in error:
             return error[:1200]
@@ -150,8 +163,9 @@ def _with_chat_error_hints(value: Any) -> Any:
             "agent_instruction",
             (
                 "Reply to the user with chat_error in natural Chinese. Make clear the audio task "
-                "was not started. Tell the user they can go to 资产库 to upload or record the missing "
-                "voice lines, then continue. Do not retry this dependent task until the prerequisite is fixed."
+                "was not started. Report the exact backend model/voice prerequisite that remains after "
+                "automatic voice design. Do not claim upload or recording is the only solution, and do "
+                "not retry this dependent task until the reported prerequisite is fixed."
             ),
         )
     render_error = _render_prereq_error_text(value)
@@ -3324,7 +3338,9 @@ TOOLS = (
             "ai_anime_generate_audio",
             "Generate episode audio/voiceover using the current IndexTTS2 audio pipeline "
             "(音频生成, audio_generation_indextts2 task). Real endpoint POST /projects/{project}/"
-            "episodes/{episode}/audio/generate. Wait with "
+            "episodes/{episode}/audio/generate. Missing narrator or character voices are automatically "
+            "designed and bound through the configured AUDIO_VOICE_DESIGN cloud/BYOK priority route "
+            "before the audio task starts. Wait with "
             "ai_anime_wait_task(task_key=<returned task_key>).",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},

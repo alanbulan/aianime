@@ -11,6 +11,7 @@ from ai_anime.modules.production.application.ports import (
     ProductionEpisodeAudioPlanner,
     ProductionEpisodeAudioScheduler,
     ProductionEpisodeBeatSource,
+    ProductionVoiceDesignProvisioner,
 )
 from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -158,11 +159,13 @@ class EpisodeAudioUseCases:
         planner: ProductionEpisodeAudioPlanner,
         billing: ProductionEpisodeAudioBilling,
         scheduler: ProductionEpisodeAudioScheduler,
+        voice_provisioner: ProductionVoiceDesignProvisioner | None = None,
     ) -> None:
         self._beat_source = beat_source
         self._planner = planner
         self._billing = billing
         self._scheduler = scheduler
+        self._voice_provisioner = voice_provisioner
 
     async def plan(
         self,
@@ -193,7 +196,7 @@ class EpisodeAudioUseCases:
             raise EpisodeAudioBeatsMissing(command.episode_num)
 
         mode = command.mode or "sync_changed"
-        plan = await self.plan(context, command)
+        plan = await self._generation_plan(context, command)
         self._require_generation_plan(plan)
         return await self._schedule(
             context,
@@ -217,7 +220,7 @@ class EpisodeAudioUseCases:
         if not beat and not (1 <= beat_num <= len(beats)):
             raise EpisodeAudioBeatMissing(beat_num)
 
-        plan = await self.plan(
+        plan = await self._generation_plan(
             context,
             GenerateEpisodeAudioCommand(
                 episode_num=episode_num,
@@ -273,3 +276,21 @@ class EpisodeAudioUseCases:
             message=message,
             beat_numbers=plan.beat_numbers,
         )
+
+    async def _generation_plan(
+        self,
+        context: ProjectContext,
+        command: GenerateEpisodeAudioCommand,
+    ) -> EpisodeAudioGenerationPlan:
+        plan = await self.plan(context, command)
+        if (
+            plan.errors
+            and plan.voice_requirements
+            and self._voice_provisioner is not None
+        ):
+            await self._voice_provisioner.provision(
+                context,
+                plan.voice_requirements,
+            )
+            plan = await self.plan(context, command)
+        return plan

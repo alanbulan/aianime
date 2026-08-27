@@ -105,6 +105,9 @@ from ai_anime.modules.production.infrastructure.episode_audio import (
     ModelUsageEpisodeAudioBilling,
     TaskExecutionEpisodeAudioScheduler,
 )
+from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
+    ModelUsageVoiceDesignProvisioner,
+)
 from ai_anime.modules.production.infrastructure.director_control_sketch import (
     AssetWorldDirectorControlFrameSource,
     TaskExecutionDirectorControlSketchScheduler,
@@ -185,6 +188,7 @@ def episode_audio_use_cases() -> EpisodeAudioUseCases:
         IndexTTS2EpisodeAudioPlanner(),
         ModelUsageEpisodeAudioBilling(),
         TaskExecutionEpisodeAudioScheduler(project_task_submission_use_cases()),
+        ModelUsageVoiceDesignProvisioner(),
     )
 
 

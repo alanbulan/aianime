@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     )
     from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
         VoiceDesignModelUnavailable,
+        VoiceDesignProvisioningFailed,
         provision_voice_design_requirements,
     )
     from ai_anime.modules.production.infrastructure.seedance2_assets import (
@@ -491,6 +492,10 @@ _LAZY_EXPORTS = {
     "VoiceDesignModelUnavailable": (
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
         "VoiceDesignModelUnavailable",
+    ),
+    "VoiceDesignProvisioningFailed": (
+        "ai_anime.modules.production.infrastructure.voice_design_provisioning",
+        "VoiceDesignProvisioningFailed",
     ),
     "selected_reference_paths": (
         "ai_anime.modules.production.infrastructure.seedance2_assets",
@@ -1072,6 +1077,7 @@ __all__ = [
     "VideoPoolUseCases",
     "VoiceDesignRequirement",
     "VoiceDesignModelUnavailable",
+    "VoiceDesignProvisioningFailed",
     "assign_identity_sketch_colors",
     "apply_style_reference",
     "append_seedance2_user_reference_assets",

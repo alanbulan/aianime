@@ -15,21 +15,13 @@ from ai_anime.modules.model_usage.public import configure_model_access
 from ai_anime.modules.model_usage.public import MODE_MIXED
 
 
-def _enabled_toolsets(config: str) -> list[str]:
-    lines = config.splitlines()
-    values: list[str] = []
-    in_block = False
-    for line in lines:
-        if line.strip() == "enabled_toolsets:":
-            in_block = True
-            continue
-        if in_block:
-            if line.startswith("  - "):
-                values.append(line.split("#", 1)[0].replace("  - ", "", 1).strip())
-                continue
-            if line and not line.startswith(" "):
-                break
-    return values
+def _assert_toolset_policy(config: str) -> None:
+    parsed = yaml.safe_load(config)
+    assert "enabled_toolsets" not in parsed
+    assert "disabled_toolsets" not in parsed
+    assert parsed["agent"]["disabled_toolsets"] == sorted(
+        hw.BLOCKED_HERMES_TOOLSETS
+    )
 
 
 def _ai_anime_provider(config: dict) -> dict:
@@ -128,8 +120,8 @@ def test_fresh_create_layout(isolated_workspace, repo_skills, repo_plugins):
     _assert_managed_asset(plugin_link, "plugin.yaml")
     assert not (home / "plugins" / "other-plugin").exists()
     config = (home / "config.yaml").read_text()
-    assert _enabled_toolsets(config) == ["hermes-acp", "memory"]
-    assert "    - ai_anime" in config
+    _assert_toolset_policy(config)
+    assert yaml.safe_load(config)["plugins"]["enabled"] == ["ai_anime"]
     assert "你是 AI anime 助手" in (home / "SOUL.md").read_text()
     memory = (home / "memories" / "MEMORY.md").read_text()
     assert "AI anime 助手在 AI anime 会话中面向用户自称“AI anime 助手”" in memory
@@ -412,14 +404,13 @@ def test_existing_config_syncs_router_model_without_persisting_provider_keys(
         "model": "new-text",
         "timeout": 300,
     }
-    assert _enabled_toolsets(config_path.read_text(encoding="utf-8")) == [
-        "hermes-acp",
-        "memory",
-    ]
+    _assert_toolset_policy(config_path.read_text(encoding="utf-8"))
 
     hw.ensure_user_hermes_workspace("admin")
     reparsed = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    assert reparsed["enabled_toolsets"] == ["hermes-acp", "memory"]
+    assert reparsed["agent"]["disabled_toolsets"] == sorted(
+        hw.BLOCKED_HERMES_TOOLSETS
+    )
 
 
 def test_hermes_uses_highest_priority_router_text_model_before_root_env(
@@ -577,25 +568,44 @@ def test_existing_env_is_preserved(
 def test_legacy_config_gets_default_plugin_block(isolated_workspace, repo_skills, repo_plugins):
     home = isolated_workspace / "state" / "admin" / ".hermes"
     home.mkdir(parents=True)
-    (home / "config.yaml").write_text("enabled_toolsets:\n  - ai_anime\n")
+    (home / "config.yaml").write_text(
+        """enabled_toolsets:
+  - ai_anime
+disabled_toolsets:
+  - grep
+agent:
+  custom_setting: keep
+""",
+        encoding="utf-8",
+    )
 
     hw.ensure_user_hermes_workspace("admin")
 
     config = (home / "config.yaml").read_text()
     parsed = yaml.safe_load(config)
-    assert _enabled_toolsets(config) == ["hermes-acp"]
-    assert "plugins:\n  enabled:\n    - ai_anime" in config
+    _assert_toolset_policy(config)
+    assert parsed["plugins"]["enabled"] == ["ai_anime"]
+    assert parsed["agent"]["custom_setting"] == "keep"
     assert parsed["model"]["default"] == "cloud-text-default"
     assert parsed["model"]["provider"] == "custom:custom"
     assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
 
 
-def test_legacy_identity_context_is_migrated(isolated_workspace, repo_skills, repo_plugins):
+@pytest.mark.parametrize(
+    "legacy_memory",
+    [hw._OLD_MEMORY_LINE, hw._LEGACY_ACP_MEMORY_LINE],
+)
+def test_legacy_identity_context_is_migrated(
+    isolated_workspace,
+    repo_skills,
+    repo_plugins,
+    legacy_memory,
+):
     home = isolated_workspace / "state" / "admin" / ".hermes"
     memories = home / "memories"
     memories.mkdir(parents=True)
     (home / "SOUL.md").write_text(hw._OLD_SOUL_PREFIX + "\n", encoding="utf-8")
-    (memories / "MEMORY.md").write_text(hw._OLD_MEMORY_LINE + "\n", encoding="utf-8")
+    (memories / "MEMORY.md").write_text(legacy_memory + "\n", encoding="utf-8")
 
     hw.ensure_user_hermes_workspace("admin")
 
@@ -604,8 +614,9 @@ def test_legacy_identity_context_is_migrated(isolated_workspace, repo_skills, re
     assert "你是 AI anime 助手" in soul
     assert "You are Hermes Agent" not in soul
     assert "我是 AI anime 助手，AI anime 的小说转视频创作助手。" not in memory
-    assert "AI anime 管理的 AI anime 助手会话" in memory
+    assert "AI anime 助手只可调用 AI anime 漫剧业务工具与会话记忆" in memory
     assert "AI anime 管理的 Hermes 会话" not in memory
+    assert "hermes-acp" not in memory
 
 
 def test_stale_directory_links_removed(

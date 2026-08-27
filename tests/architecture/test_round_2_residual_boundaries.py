@@ -1087,8 +1087,14 @@ def test_desktop_model_access_routes_cloud_and_multiple_byok_providers_together(
     commercial_ipc = (REPO_ROOT / "desktop" / "src" / "commercial-ipc.ts").read_text(
         encoding="utf-8"
     )
+    commercial_ipc_support = (
+        REPO_ROOT / "desktop" / "src" / "commercial-ipc-support.ts"
+    ).read_text(encoding="utf-8")
     cloud_proxy = (
         REPO_ROOT / "desktop" / "src" / "commercial-model-proxy.ts"
+    ).read_text(encoding="utf-8")
+    cloud_proxy_http = (
+        REPO_ROOT / "desktop" / "src" / "commercial-model-proxy-http.ts"
     ).read_text(encoding="utf-8")
 
     assert "commercialModelProxy = new CommercialModelProxy(" in main
@@ -1104,7 +1110,7 @@ def test_desktop_model_access_routes_cloud_and_multiple_byok_providers_together(
     assert "requestByok(route, input, prepared)" in cloud_proxy
     assert "requestWithFallback" in cloud_proxy
     assert "modelRoutingSnapshot" in cloud_proxy
-    assert "BYOK_CONFIGURATION_ERROR_STATUSES" in cloud_proxy
+    assert "BYOK_CONFIGURATION_ERROR_STATUSES" in cloud_proxy_http
     assert "shouldFallback(route, upstream.status)" in cloud_proxy
     assert "requestedModel" not in cloud_proxy
     assert "cloudPassthroughRoute" not in cloud_proxy
@@ -1117,7 +1123,10 @@ def test_desktop_model_access_routes_cloud_and_multiple_byok_providers_together(
     assert "function registerCommercialIpc" in commercial_ipc
     assert "requestResponse(" not in commercial_ipc
     assert "fetchImpl" not in commercial_ipc
-    assert "authorization?.capabilities.allowsCustomModels === true" in commercial_ipc
+    assert (
+        "authorization?.capabilities.allowsCustomModels === true"
+        in commercial_ipc_support
+    )
 
     assert "function registerCommercialIpc" not in commercial_client
     assert "COMMERCIAL_CHANNELS" not in commercial_client

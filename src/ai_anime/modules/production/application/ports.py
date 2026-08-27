@@ -103,6 +103,7 @@ if TYPE_CHECKING:
         VideoPoolEntry,
     )
     from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
+    from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
     from ai_anime.modules.project_workspace.public import ProjectContext
 
 
@@ -438,6 +439,14 @@ class ProductionEpisodeAudioScheduler(Protocol):
         context: ProjectContext,
         task: EpisodeAudioTask,
     ) -> EpisodeAudioTaskReceipt: ...
+
+
+class ProductionVoiceDesignProvisioner(Protocol):
+    async def provision(
+        self,
+        context: ProjectContext,
+        requirements: tuple[VoiceDesignRequirement, ...],
+    ) -> tuple[str, ...]: ...
 
 
 class ProductionVideoPoolStorage(Protocol):

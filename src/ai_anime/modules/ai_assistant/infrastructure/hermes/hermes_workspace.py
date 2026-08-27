@@ -13,7 +13,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
-import re
 import shutil
 from pathlib import Path
 
@@ -25,7 +24,31 @@ AI_ANIME_ROOT = Path(__file__).resolve().parents[3]
 STATE_ROOT = AI_ANIME_ROOT / "state"
 DEFAULT_HERMES_SKILLS = {"ai_anime"}
 DEFAULT_HERMES_PLUGINS = {"ai_anime"}
-DEFAULT_HERMES_TOOLSETS = {"hermes-acp"}
+BLOCKED_HERMES_TOOLSETS = {
+    "browser",
+    "clarify",
+    "code_execution",
+    "computer_use",
+    "context_engine",
+    "cronjob",
+    "delegation",
+    "file",
+    "homeassistant",
+    "image_gen",
+    "kanban",
+    "project",
+    "search",
+    "session_search",
+    "skills",
+    "terminal",
+    "todo",
+    "tts",
+    "video",
+    "video_gen",
+    "vision",
+    "web",
+    "x_search",
+}
 _warned_repo_state_fallback = False
 _MANAGED_ASSET_MARKER = ".ai-anime-managed-asset"
 
@@ -38,7 +61,7 @@ _DEFAULT_HERMES_MODEL_API_MODE = "chat_completions"
 _DEFAULT_HERMES_MODEL_CONTEXT_LENGTH = "131072"
 
 _CONFIG_YAML_TEMPLATE = """# AI anime-managed hermes config.
-# Toolset whitelist enforces L1 defense (no direct file write / shell).
+# Toolset policy enforces L1 defense (business tools + memory only).
 #
 # Edit with care; this file may be regenerated.
 #
@@ -75,10 +98,6 @@ auxiliary:
     model: {model}
     timeout: 300
 
-enabled_toolsets:
-  - hermes-acp         # Repo plugins exposed through ACP
-  - memory             # hermes built-in cross-session memory
-
 plugins:
   enabled:
     - ai_anime
@@ -87,19 +106,33 @@ display:
   tool_progress: verbose
   tool_progress_command: true
 
-# Tools disabled at L1 so a sandbox bypass is layered with "no tool to misuse":
-disabled_toolsets:
-  - bash
-  - shell
+# ACP 0.19 always starts from the hermes-acp bundle. Subtract every generic
+# capability category so only the AI anime plugin tools and memory remain.
+agent:
+  disabled_toolsets:
+  - browser
+  - clarify
+  - code_execution
+  - computer_use
+  - context_engine
+  - cronjob
+  - delegation
+  - file
+  - homeassistant
+  - image_gen
+  - kanban
+  - project
+  - search
+  - session_search
+  - skills
   - terminal
-  - subprocess
-  - file_write
-  - file_read         # We allow read by sandbox; disable agent-side tool too
-  - edit
-  - write
-  - read
-  - glob
-  - grep
+  - todo
+  - tts
+  - video
+  - video_gen
+  - vision
+  - web
+  - x_search
 """
 
 
@@ -208,7 +241,7 @@ _DEFAULT_SOUL_MD = (
 
 _DEFAULT_MEMORY_MD = """AI anime 助手在 AI anime 会话中面向用户自称“AI anime 助手”，不要自称 Hermes Agent，不要提 Nous Research 或底层代理框架。自我介绍时只回答“我是 AI anime 助手”，不要附加“AI anime 的小说转视频创作助手”之类的头衔或职能描述。
 §
-AI anime 管理的 AI anime 助手会话中 `terminal` 被禁用（在 config.yaml disabled_toolsets 中），curl 等 shell 命令会被直接拒绝。调用 AI anime API 时应使用已启用的 `hermes-acp` toolset 中的 AI anime 插件工具，不要用 curl。
+AI anime 助手只可调用 AI anime 漫剧业务工具与会话记忆；终端、任意文件搜索/读写、网页浏览、代码执行和任务委派均不可用。项目检索、生成和任务操作必须使用对应的 AI anime 业务工具，不要尝试通用电脑操作。
 """
 
 _OLD_SOUL_PREFIX = (
@@ -240,10 +273,16 @@ _OLD_MEMORY_LINE = (
     "时应使用已启用的 `ai_anime` 插件 toolset 提供的内置 HTTP 工具，不要用 curl。"
 )
 
-_NEW_MEMORY_LINE = (
+_LEGACY_ACP_MEMORY_LINE = (
     "AI anime 管理的 AI anime 助手会话中 `terminal` 被禁用（在 config.yaml "
     "disabled_toolsets 中），curl 等 shell 命令会被直接拒绝。调用 AI anime API "
     "时应使用已启用的 `hermes-acp` toolset 中的 AI anime 插件工具，不要用 curl。"
+)
+
+_NEW_MEMORY_LINE = (
+    "AI anime 助手只可调用 AI anime 漫剧业务工具与会话记忆；终端、任意文件搜索/读写、"
+    "网页浏览、代码执行和任务委派均不可用。项目检索、生成和任务操作必须使用对应的 "
+    "AI anime 业务工具，不要尝试通用电脑操作。"
 )
 
 _OLD_SOUL_IDENTITY_TEXT = (
@@ -257,7 +296,7 @@ def ensure_user_hermes_workspace(username: str) -> Path:
     """Create / refresh per-user HERMES_HOME. Idempotent and cheap.
 
     Layout under ``state/{username}/.hermes/``:
-        config.yaml         L1 toolset whitelist (overwritten only if missing)
+        config.yaml         managed model and vertical-assistant tool policy
         .env                compatibility file (model credentials are not stored)
         tmp/                per-user TMPDIR (sandbox writable)
         skills/
@@ -295,12 +334,13 @@ def ensure_user_hermes_workspace(username: str) -> Path:
     plugins_dir.mkdir(exist_ok=True)
     _materialize_plugin_links(plugins_dir)
 
-    # hermes config (only write if missing — user may have customized)
+    # Hermes config is created once; managed model and tool-policy fields are
+    # reconciled on every spawn while unrelated user settings are preserved.
     config_yaml = home / "config.yaml"
     if not config_yaml.exists():
         config_yaml.write_text(_default_config_yaml(), encoding="utf-8")
     _ensure_default_plugin_enabled(config_yaml)
-    _ensure_default_toolsets_enabled(config_yaml)
+    _ensure_toolset_policy(config_yaml)
     _ensure_model_config_from_env(config_yaml)
     _ensure_model_gateway_config(config_yaml)
     _ensure_identity_context(home)
@@ -358,6 +398,7 @@ def _ensure_identity_context(home: Path) -> None:
             text = memory_file.read_text(encoding="utf-8")
             text = text.replace(_OLD_IDENTITY_MEMORY_LINE, _IDENTITY_MEMORY_LINE)
             text = text.replace(_OLD_MEMORY_LINE, _NEW_MEMORY_LINE)
+            text = text.replace(_LEGACY_ACP_MEMORY_LINE, _NEW_MEMORY_LINE)
             if _IDENTITY_MEMORY_LINE not in text:
                 text = _IDENTITY_MEMORY_LINE + "\n§\n" + text.lstrip()
             memory_file.write_text(text.rstrip() + "\n", encoding="utf-8")
@@ -512,80 +553,42 @@ def _ensure_default_plugin_enabled(config_yaml: Path) -> None:
         return
 
 
-def _ensure_default_toolsets_enabled(config_yaml: Path) -> None:
-    """Non-destructively add repo default toolsets to legacy configs."""
+def _ensure_toolset_policy(config_yaml: Path) -> None:
+    """Enforce the vertical assistant's tool boundary on every worker spawn."""
     try:
         text = config_yaml.read_text(encoding="utf-8")
-    except OSError:
+        config = yaml.safe_load(text) or {}
+    except (OSError, yaml.YAMLError):
         return
-    original_text = text
-    text = _migrate_acp_toolsets(text)
-    missing = [
-        name
-        for name in sorted(DEFAULT_HERMES_TOOLSETS)
-        if not re.search(rf"(?m)^  - {re.escape(name)}(?:\s*(?:#.*)?)?$", text)
-    ]
-    if not missing:
-        if text == original_text:
-            return
-        try:
-            config_yaml.write_text(text.rstrip() + "\n", encoding="utf-8")
-        except OSError:
-            return
+    if not isinstance(config, dict):
         return
-    if "enabled_toolsets:" not in text:
-        addition = "enabled_toolsets:\n" + "".join(f"  - {name}\n" for name in missing)
-        new_text = text.rstrip() + "\n\n" + addition
-    else:
-        new_text = re.sub(
-            r"(?m)^enabled_toolsets:\s*$",
-            lambda m: m.group(0) + "\n" + "".join(f"  - {name}\n" for name in missing).rstrip(),
-            text,
-            count=1,
-        )
-        if new_text == text:
-            return
+
+    changed = False
+    # These legacy top-level keys are ignored by Hermes ACP 0.19 and gave a
+    # false impression that the generic ACP tool bundle was restricted.
+    for legacy_key in ("enabled_toolsets", "disabled_toolsets"):
+        if legacy_key in config:
+            config.pop(legacy_key, None)
+            changed = True
+
+    agent = config.get("agent")
+    if not isinstance(agent, dict):
+        agent = {}
+        config["agent"] = agent
+        changed = True
+    blocked = sorted(BLOCKED_HERMES_TOOLSETS)
+    if agent.get("disabled_toolsets") != blocked:
+        agent["disabled_toolsets"] = blocked
+        changed = True
+    if not changed:
+        return
     try:
-        config_yaml.write_text(new_text.rstrip() + "\n", encoding="utf-8")
+        config_yaml.write_text(
+            yaml.safe_dump(config, allow_unicode=True, sort_keys=False),
+            encoding="utf-8",
+        )
     except OSError:
         return
-
-
-def _migrate_acp_toolsets(text: str) -> str:
-    """Collapse legacy plugin-specific toolsets into the ACP toolset."""
-    if "enabled_toolsets:" not in text:
-        return text
-    legacy = DEFAULT_HERMES_PLUGINS
-    lines = text.splitlines()
-    out: list[str] = []
-    in_toolsets = False
-    inserted_acp = False
-    saw_legacy = False
-    saw_acp = False
-    for line in lines:
-        if re.match(r"^enabled_toolsets:\s*$", line):
-            in_toolsets = True
-            out.append(line)
-            continue
-        if in_toolsets:
-            match = re.match(r"^(\s*)-\s*([^\s#]+)(.*)$", line)
-            if match and len(match.group(1)) >= 2:
-                name = match.group(2)
-                if name in legacy:
-                    saw_legacy = True
-                    continue
-                if name == "hermes-acp":
-                    saw_acp = True
-                out.append(line)
-                continue
-            if saw_legacy and not saw_acp and not inserted_acp:
-                out.append("  - hermes-acp")
-                inserted_acp = True
-            in_toolsets = False
-        out.append(line)
-    if in_toolsets and saw_legacy and not saw_acp and not inserted_acp:
-        out.append("  - hermes-acp")
-    return "\n".join(out)
 
 
 def _ensure_model_gateway_config(config_yaml: Path) -> None:

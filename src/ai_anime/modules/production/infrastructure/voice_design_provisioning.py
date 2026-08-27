@@ -24,6 +24,14 @@ from ai_anime.shared.infrastructure import project_stores
 class VoiceDesignModelUnavailable(PermissionError):
     """Raised when no priority route can serve AUDIO_VOICE_DESIGN."""
 
+    code = "voice_design_model_unavailable"
+
+
+class VoiceDesignProvisioningFailed(RuntimeError):
+    """Raised when the configured voice-design route fails to create a voice."""
+
+    code = "voice_design_failed"
+
 
 def _file_sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -108,7 +116,7 @@ async def provision_voice_design_requirements(
                             media_url=lambda _path: "",
                         )
                 except Exception as exc:
-                    raise RuntimeError(
+                    raise VoiceDesignProvisioningFailed(
                         f"{requirement.label}自动文字声线生成失败：{exc}"
                     ) from exc
                 completed.append(requirement.label)
@@ -117,7 +125,18 @@ async def provision_voice_design_requirements(
     return tuple(completed)
 
 
+class ModelUsageVoiceDesignProvisioner:
+    async def provision(
+        self,
+        context: ProjectContext,
+        requirements: tuple[VoiceDesignRequirement, ...],
+    ) -> tuple[str, ...]:
+        return await provision_voice_design_requirements(context, requirements)
+
+
 __all__ = [
+    "ModelUsageVoiceDesignProvisioner",
     "VoiceDesignModelUnavailable",
+    "VoiceDesignProvisioningFailed",
     "provision_voice_design_requirements",
 ]
