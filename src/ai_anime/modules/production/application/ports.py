@@ -44,6 +44,8 @@ if TYPE_CHECKING:
         BeatSketchCandidates,
         BuildGridSketchPreviewCommand,
         CutGridResult,
+        DeleteGridPoolImageCommand,
+        DeletedGridPoolImage,
         GridSketchPreview,
         GridPrompt,
         GridPoolListing,
@@ -227,14 +229,6 @@ class ProductionRuntimePropMenuSource(Protocol):
         episode: Any,
         beats: list[dict[str, Any]],
     ) -> list[dict[str, Any]]: ...
-
-
-class ProductionSketchWorkspace(Protocol):
-    def clear_episode_sketches(
-        self,
-        output_dir: str | Path,
-        episode_num: int,
-    ) -> None: ...
 
 
 class ProductionSketchMarkerDetectionStore(Protocol):
@@ -470,6 +464,13 @@ class ProductionVideoPoolStorage(Protocol):
         pool_id: str,
     ) -> bool: ...
 
+    def delete(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        pool_id: str,
+    ) -> str: ...
+
 
 class ProductionGridPoolGateway(Protocol):
     async def list_pool(
@@ -496,6 +497,12 @@ class ProductionGridPoolGateway(Protocol):
         context: ProjectContext,
         command: SelectGridPoolImageCommand,
     ) -> SelectedGridPoolImage: ...
+
+    def delete(
+        self,
+        context: ProjectContext,
+        command: DeleteGridPoolImageCommand,
+    ) -> DeletedGridPoolImage: ...
 
     def upload(
         self,

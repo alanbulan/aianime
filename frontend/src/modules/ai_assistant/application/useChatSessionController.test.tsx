@@ -108,6 +108,10 @@ describe("useChatSessionController", () => {
 
   it("sends a local turn and aborts it through the injected command ports", () => {
     const harness = createHarness();
+    vi.mocked(harness.ports.loadSuperChatSettings).mockReturnValue({
+      showStructuredSourceWhileStreaming: true,
+      showToolEvents: true,
+    });
     const { result } = renderHook(() =>
       useChatSessionController({
         project: "project-a",
@@ -147,6 +151,18 @@ describe("useChatSessionController", () => {
     }));
 
     const turnId = result.current.activeTurnId;
+    act(() => harness.getSocketOptions()?.onFrame({
+      type: "tool.result",
+      name: "ai_anime_wait_task",
+      turn_id: turnId ?? undefined,
+      tool_call_id: "wait-1",
+      success: true,
+      result: { timed_out: true },
+    }));
+    expect(result.current.messages.find((item) => item.toolCallId === "wait-1")).toMatchObject({
+      toolState: "pending",
+    });
+
     act(() => result.current.abort());
 
     expect(harness.ports.clearActiveTurn).toHaveBeenCalledWith(
@@ -157,6 +173,10 @@ describe("useChatSessionController", () => {
     expect(harness.close).toHaveBeenCalledWith(4000, "client abort");
     expect(result.current.activeTurnId).toBeNull();
     expect(result.current.busy).toBe(false);
+    expect(result.current.messages.find((item) => item.toolCallId === "wait-1")).toMatchObject({
+      toolState: "error",
+      toolError: "本轮已取消，当前没有任务在执行",
+    });
   });
 
   it("requests a history snapshot when an active turn has not finalized", () => {

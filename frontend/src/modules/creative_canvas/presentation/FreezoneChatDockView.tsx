@@ -12,7 +12,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { SuperChatPanel } from "@/modules/ai_assistant/public";
+import {
+  QiuQiuAvatar,
+  SuperChatPanel,
+} from "@/modules/ai_assistant/public";
 import { cn } from "@/lib/utils";
 
 import type { ChatLauncherPosition } from "./useFreezoneChatDockController";
@@ -20,7 +23,6 @@ import type { ChatLauncherPosition } from "./useFreezoneChatDockController";
 const FREEZONE_CHAT_WIDTH = "clamp(500px, 34vw, 540px)";
 
 interface FreezoneChatLauncherViewState {
-  videoRef: RefObject<HTMLVideoElement | null>;
   buttonRef: RefObject<HTMLButtonElement | null>;
   motionActive: boolean;
   entered: boolean;
@@ -139,7 +141,7 @@ function FreezoneChatToggleButton({
       size="icon-lg"
       variant="secondary"
       className={cn(
-        "absolute z-50 size-[58px] cursor-grab touch-none overflow-hidden rounded-full border-0 bg-transparent p-0 shadow-lg brightness-110 transition-[opacity,transform] duration-200 ease-out hover:scale-[1.03] active:cursor-grabbing",
+        "absolute z-50 size-[58px] cursor-grab touch-none overflow-visible rounded-full border-0 bg-transparent p-0 shadow-none transition-[opacity,transform] duration-200 ease-out hover:scale-[1.03] active:cursor-grabbing",
         launcher.entered ? "opacity-100" : "opacity-0",
       )}
       style={{
@@ -155,27 +157,11 @@ function FreezoneChatToggleButton({
       onPointerDown={launcher.onPointerDown}
       onClick={launcher.onClick}
     >
-      <img
-        src="/images/avatar-ai-anime.png"
-        alt=""
-        className={cn(
-          "absolute inset-0 size-full rounded-full object-cover transition-opacity duration-[350ms] ease-out",
-          launcher.motionActive ? "opacity-0" : "opacity-100",
-        )}
-        aria-hidden="true"
-      />
-      <video
-        ref={launcher.videoRef}
-        src="/images/avatar-motion.mp4"
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        className={cn(
-          "absolute inset-0 size-full rounded-full object-cover brightness-90 saturate-95 transition-opacity duration-[350ms] ease-out",
-          launcher.motionActive ? "opacity-100" : "opacity-0",
-        )}
-        aria-hidden="true"
+      <QiuQiuAvatar
+        className="size-full"
+        decorative
+        emotionId={launcher.motionActive ? "10" : "02"}
+        label="球球"
       />
     </Button>
   );

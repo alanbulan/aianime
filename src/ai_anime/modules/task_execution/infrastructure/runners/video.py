@@ -437,6 +437,7 @@ async def _run_video_generation_async(
 
     for index, beat in enumerate(beats):
         beat_num = int(beat.get("beat_number") or index + 1)
+        next_beat = beats[index + 1] if index + 1 < len(beats) else None
         manager.update_progress_for_project(
             ctx,
             "video_generation",
@@ -473,14 +474,17 @@ async def _run_video_generation_async(
         )
         last_frame_path = None
         if video_mode == "keyframe":
-            next_frame = paths.first_frame_for_video(
-                beat_num + 1,
-                use_director_render=use_director_render,
-            )
-            if next_frame.exists():
-                last_frame_path = str(next_frame)
-            else:
+            next_beat_number = int((next_beat or {}).get("beat_number") or 0)
+            if next_beat_number > 0:
+                next_frame = paths.first_frame_for_video(
+                    next_beat_number,
+                    use_director_render=use_director_render,
+                )
+                if next_frame.exists():
+                    last_frame_path = str(next_frame)
+            if not last_frame_path:
                 video_mode = "first_frame"
+                prompt = str(beat.get("video_prompt") or "")
 
         model_role = (
             "VIDEO_FIRST_LAST_FRAME"
@@ -511,7 +515,7 @@ async def _run_video_generation_async(
                 "output_dir": output_dir,
                 "config": {
                     "beat": beat,
-                    "next_beat": beats[index + 1] if index + 1 < len(beats) else None,
+                    "next_beat": next_beat,
                     "frame_path": str(frame_path),
                     "video_mode": video_mode,
                     "prompt": prompt,
@@ -756,8 +760,10 @@ async def _run_global_optimize_video_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
-    import os
-
+    from ai_anime.modules.narrative_planning.public import (
+        generate_and_save_beat_video_prompt,
+        sort_beats_for_display,
+    )
     from ai_anime.modules.production.public import (
         get_global_video_optimizer,
         prepare_global_optimizer_input,
@@ -785,26 +791,25 @@ async def _run_global_optimize_video_async(
             logs=[message],
         )
 
-    log("开始全局视频提示词优化（仅 first_frame）...", progress=0.02)
+    log("开始全局视频提示词优化...", progress=0.02)
     store = await make_cognee_store_for_context(
         ctx,
         load_graph_state=True,
     )
     try:
-        sketch_paths, color_map, _total_beats = prepare_global_optimizer_input(
+        reference_paths, color_map, _total_beats = prepare_global_optimizer_input(
             beats=beats,
             characters=characters,
             output_dir=output_dir,
             episode=episode,
             project=ctx.project_name,
         )
-        if not sketch_paths:
-            raise RuntimeError("找不到草图网格，请先生成草图")
+        if not reference_paths:
+            raise RuntimeError("找不到可用的渲染图或草图，请先生成镜头画面")
 
         resolver = PathResolver(output_dir, episode)
-        sketches_dir = str(resolver.sketches_dir())
         optimizer = get_global_video_optimizer()
-        sorted_beats = sorted(beats, key=lambda beat: beat.get("beat_number", 0))
+        sorted_beats = list(sort_beats_for_display(beats))
         updated_count = 0
         failure_messages: list[str] = []
         prev_prompt = None
@@ -816,10 +821,12 @@ async def _run_global_optimize_video_async(
                 progress=0.2 + 0.7 * index / max(1, len(sorted_beats)),
             )
             sketch_path = None
-            for ext in ("png", "jpg"):
-                candidate = os.path.join(sketches_dir, f"beat_{beat_num:02d}.{ext}")
-                if os.path.exists(candidate):
-                    sketch_path = candidate
+            for candidate in (
+                resolver.frame(beat_num),
+                resolver.sketch(beat_num),
+            ):
+                if candidate.exists():
+                    sketch_path = str(candidate)
                     break
             if not sketch_path:
                 log(f"Beat {beat_num}: 无草图帧，跳过")
@@ -830,6 +837,25 @@ async def _run_global_optimize_video_async(
                 sorted_beats[index + 1] if index < len(sorted_beats) - 1 else None
             )
             try:
+                requested_mode = str(
+                    beat.get("video_mode") or "first_frame"
+                ).strip()
+                if requested_mode == "keyframe" and next_beat is not None:
+                    generated = await generate_and_save_beat_video_prompt(
+                        store,
+                        output_dir=output_dir,
+                        project_name=ctx.project_name,
+                        episode_num=episode,
+                        beat_num=beat_num,
+                        language=language,
+                    )
+                    prompt = generated.prompt
+                    beat["video_mode"] = "keyframe"
+                    beat["keyframe_prompt"] = prompt
+                    updated_count += 1
+                    prev_prompt = prompt
+                    continue
+
                 result = await optimizer.optimize_single_beat(
                     beat=beat,
                     sketch_image_path=sketch_path,
@@ -838,6 +864,7 @@ async def _run_global_optimize_video_async(
                     prev_beat=prev_beat,
                     next_beat=next_beat,
                     prev_prompt=prev_prompt,
+                    beat_position=index + 1,
                     total_beats=len(sorted_beats),
                 )
                 prompt = result["prompt"]

@@ -7,7 +7,7 @@ import hashlib
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 
 from ai_anime.shared.utils.state_index_files import (
@@ -411,7 +411,7 @@ def select_frame_from_pool(
 def delete_cell_from_pool(
     episode_grids_dir: Union[str, Path],
     pool_id: str,
-) -> bool:
+) -> Literal["deleted", "missing", "assigned"]:
     """从图片池删除指定的 cell。
 
     Args:
@@ -419,7 +419,7 @@ def delete_cell_from_pool(
         pool_id: 图片池 ID（如 "3x3_01_05"）
 
     Returns:
-        是否删除成功
+        deleted / missing / assigned
     """
     grids_dir = Path(episode_grids_dir)
     index_path = _state_pool_index_path(grids_dir)
@@ -429,23 +429,57 @@ def delete_cell_from_pool(
         index_path, pool = _load_pool_index_for_update(grids_dir)
         if pool is None:
             print(f"[PoolIndexer] 警告: 无法加载池索引 {grids_dir}")
-            return False
+            return "missing"
 
         # 2. 找到图片
         img = pool.get_image(pool_id)
         if img is None:
             print(f"[PoolIndexer] 警告: 找不到图片 {pool_id}")
-            return False
+            return "missing"
+
+        assignment_aliases = _pool_image_assignment_aliases(img)
+        if any(
+            str(assignment or "").strip() in assignment_aliases
+            for assignment in pool.beat_assignments.values()
+        ):
+            return "assigned"
+
+        root = grids_dir.resolve()
+
+        def safe_file(relative_path: str | None) -> Path | None:
+            if not relative_path:
+                return None
+            candidate = (grids_dir / relative_path).resolve()
+            if candidate == root or root not in candidate.parents:
+                return None
+            return candidate
 
         # 3. 删除 cell 文件（如果存在）
         if img.cell_path:
-            cell_path = grids_dir / img.cell_path
-            if cell_path.exists():
+            cell_path = safe_file(img.cell_path)
+            if cell_path is not None and cell_path.is_file():
                 cell_path.unlink()
                 print(f"[PoolIndexer] 已删除文件: {cell_path}")
 
         # 4. 从索引中移除
         pool.images = [i for i in pool.images if i.id != pool_id]
+
+        # 一个整图会切出多个 cell；仅在最后一个引用被删除时清理整图和提示词。
+        if img.grid_path and not any(
+            item.grid_path == img.grid_path for item in pool.images
+        ):
+            removed_entries = [
+                entry for entry in pool.grids if entry.grid_path == img.grid_path
+            ]
+            for entry in removed_entries:
+                for relative_path in (entry.grid_path, entry.prompt_path):
+                    path = safe_file(relative_path)
+                    if path is not None and path.is_file():
+                        path.unlink()
+                        print(f"[PoolIndexer] 已删除文件: {path}")
+            pool.grids = [
+                entry for entry in pool.grids if entry.grid_path != img.grid_path
+            ]
 
         # 5. 更新模式统计
         for mode in pool.modes:
@@ -455,7 +489,7 @@ def delete_cell_from_pool(
         _save_pool_index_unlocked(pool, index_path)
     print(f"[PoolIndexer] 已从池中删除: {pool_id}")
 
-    return True
+    return "deleted"
 
 
 # =============================================================================
@@ -619,6 +653,8 @@ def save_grid_and_split(
     force_promote: bool = False,
     beats: Optional[list[dict]] = None,
     sketch_colors: Optional[Dict[str, str]] = None,
+    model: str = "",
+    model_selector: str = "",
 ) -> dict:
     """保存整图到 preset 目录，切割 cell 到 cells/，注册到池。
 
@@ -690,6 +726,8 @@ def save_grid_and_split(
         preset=preset,
         grid_path=grid_rel,
         prompt_path=prompt_path,
+        model=model,
+        model_selector=model_selector,
     )
 
     # 4. 切割到 render/ 或 sketch/ 目录（flat，beat 中心命名）
@@ -743,6 +781,8 @@ def save_grid_and_split(
             row=i // cols,
             col=i % cols,
             beat_content_hash=beat_hash_map.get(beat_num, ""),
+            model=model,
+            model_selector=model_selector,
         )
         if result:
             added += 1
@@ -856,6 +896,8 @@ def add_cell_with_dedup(
     row: int = 0,
     col: int = 0,
     beat_content_hash: str = "",
+    model: str = "",
+    model_selector: str = "",
 ) -> Optional[PoolImage]:
     """将 cell 入池，入池前检查去重。
 
@@ -903,6 +945,8 @@ def add_cell_with_dedup(
         type=img_type,
         content_hash=content_hash,
         beat_content_hash=beat_content_hash or None,
+        model=str(model or "").strip(),
+        model_selector=str(model_selector or "").strip(),
     )
     pool.images.append(pool_image)
     return pool_image
@@ -916,6 +960,8 @@ def register_grid_entry(
     preset: str,
     grid_path: str,
     prompt_path: str = "",
+    model: str = "",
+    model_selector: str = "",
 ) -> GridEntry:
     """注册整图元数据到池索引。
 
@@ -938,6 +984,8 @@ def register_grid_entry(
         preset=preset,
         grid_path=grid_path,
         prompt_path=prompt_path,
+        model=str(model or "").strip(),
+        model_selector=str(model_selector or "").strip(),
         generated_at=datetime.now(),
     )
     pool.add_grid(entry)

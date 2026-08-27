@@ -76,6 +76,7 @@ beforeAll(async () => {
 });
 
 const poolSelectMock: Mock = vi.fn();
+const poolDeleteMock: Mock = vi.fn();
 const regenerateMock: Mock = vi.fn();
 const uploadMock: Mock = vi.fn();
 const backgroundAnchorsMock: Mock = vi.fn();
@@ -140,6 +141,10 @@ vi.mock("@/modules/asset_world/public", () => ({
 vi.mock("@/modules/production/composition", () => ({
   usePoolSelect: () => ({
     mutateAsync: poolSelectMock,
+    isPending: false,
+  }),
+  usePoolDelete: () => ({
+    mutateAsync: poolDeleteMock,
     isPending: false,
   }),
   useRegenerateRenderBeats: () => ({

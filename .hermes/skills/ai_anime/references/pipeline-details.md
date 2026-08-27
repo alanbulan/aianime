@@ -29,6 +29,8 @@ ai_anime_run_production_workflow(
 
 该父任务内部调用与前端手动操作相同的应用用例，按断点完成脚本图、生产模型前置、世界资产、草图、AI 检测、全局优化、声线与配音模型前置、首帧、Seedance 最终提示词、音频、逐 beat 视频和合成。助手只等待父 `production_workflow` 的精确 `task_key`，不得按下文单步接口再编排一条完整流程。
 
+完整生产父任务失败或取消后，用户说“继续/重试/接着做”仍调用该入口恢复同一目标。状态接口的 `next_step` 只说明断点，不授权助手改用下文单步写接口。
+
 ---
 
 ## 脚本生产图唯一入口
@@ -252,13 +254,22 @@ POST /projects/$PID/props/$PROP_NAME/delete
 POST /projects/$PID/episodes/$EP/sketches/assign-colors
 
 POST /projects/$PID/episodes/$EP/sketches/generate
-Body: {"style": "...", "grid_index": 0, "sketch_scene_grouping": true, "aspect_ratio": "2:3", "image_generation_selection": "..."}
+Body: {"style": "...", "grid_index": -1, "sketch_scene_grouping": true, "aspect_ratio": "2:3", "image_generation_selection": "...", "replace_existing": false}
 
 GET /projects/$PID/tasks/sketch_generation/$EP?scope=grid_0
 SSE /projects/$PID/tasks/sketch_generation/$EP/stream?scope=grid_0
 ```
 
-按 `grid_index` 串行生成每张 grid。每个 grid 对应 task scope `grid_N`。
+正式生产计划固定为每个 Beat 独立生成一张 1x1 草图；`grid_index=-1` 补齐全部缺失 Beat，每个 `grid_N` scope 只对应一个 Beat。普通继续不得传 `replace_existing=true`，已有正式草图会跳过。
+
+用户明确指定局部重做时，助手与前端都调用同一接口：
+
+```
+POST /projects/$PID/episodes/$EP/sketches/regenerate
+Body: {"beat_indices": [2,6], "mode_key": "1x1_2-3_sketch", "image_generation_selection": "..."}
+```
+
+该局部入口只在新图成功后替换指定 Beat；不得用 3x3/5x5 批量图裁切作为正式生产草图。
 
 状态/结果查看：
 
@@ -275,7 +286,21 @@ GET /projects/$PID/tasks/ai_identity_detection/$EP
 SSE /projects/$PID/tasks/ai_identity_detection/$EP/stream
 ```
 
-### Step 12.5: 全局视频优化 [ASYNC -> global_optimize_video]
+### Step 12.5: 首帧生成 [ASYNC -> selected_regen]
+
+该接口是显式覆盖已有首帧的局部重做入口，必须给出用户明确指定的 `beat_indices`。助手工具只有在用户明确要求整集所有首帧重做时才允许使用 `all_beats=true`；普通继续/恢复不得调用此接口。
+
+```
+POST /projects/$PID/episodes/$EP/beats/regenerate
+Body: {"beat_indices": [1,2,3], "style": "...", "image_generation_selection": "..."}
+
+GET /projects/$PID/tasks/selected_regen/$EP
+SSE /projects/$PID/tasks/selected_regen/$EP/stream
+```
+
+### Step 13: 全局视频优化 [ASYNC -> global_optimize_video]
+
+必须先有该 Beat 的正式渲染图或草图。优化器逐镜头读取单图并带入相邻镜头上下文，不创建整集临时网格。
 
 ```
 POST /projects/$PID/episodes/$EP/optimize/video-global
@@ -283,16 +308,6 @@ Body: {"language":"en"}
 
 GET /projects/$PID/tasks/global_optimize_video/$EP
 SSE /projects/$PID/tasks/global_optimize_video/$EP/stream
-```
-
-### Step 13: 首帧生成 [ASYNC -> selected_regen]
-
-```
-POST /projects/$PID/episodes/$EP/beats/regenerate
-Body: {"beat_indices": [1,2,3], "style": "...", "model": "nanobanana"}
-
-GET /projects/$PID/tasks/selected_regen/$EP
-SSE /projects/$PID/tasks/selected_regen/$EP/stream
 ```
 
 ### Step 14: 音频生成 [ASYNC -> audio_generation_indextts2]

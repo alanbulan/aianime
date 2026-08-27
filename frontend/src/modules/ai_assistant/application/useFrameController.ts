@@ -104,28 +104,43 @@ export function useSuperChatFrameController({
             : [],
         );
         const history = normalizeHistory(Array.isArray(frame.history) ? frame.history : []);
-        const currentMessages = messagesRef.current;
+        const remoteBusy = frame.busy === true;
+        const remoteIdle = frame.busy === false;
+        const activeTurnId = activeTurnIdRef.current;
+        const awaitingServerAcceptance = Boolean(
+          activeTurnId
+          && pendingClientTurnIdRef.current === activeTurnId,
+        );
         const protectedTurnId = activeTurnIdRef.current ?? recentlyCompletedTurnIdRef.current;
         setMessages((current) => {
-          const preserveRemoteBusy = frame.busy === true
+          const preserveRemoteBusy = (remoteBusy || awaitingServerAcceptance)
             && currentTurnIsLive(protectedTurnId, current);
-          return mergeHistorySnapshot(
+          const merged = mergeHistorySnapshot(
             current,
             history,
             protectedTurnId,
             preserveRemoteBusy,
           );
+          return remoteIdle && !awaitingServerAcceptance
+            ? settleRunningToolMessages(
+                merged,
+                null,
+                "本轮已结束，当前没有任务在执行",
+              )
+            : merged;
         });
-        const activeTurnId = activeTurnIdRef.current;
         if (
           activeTurnId
           && turnCompletedInHistory(activeTurnId, history)
         ) {
           markTurnInactive(activeTurnId);
-        } else if (frame.busy === true) {
+        } else if (remoteBusy) {
+          pendingClientTurnIdRef.current = null;
           setBusy(true);
+        } else if (remoteIdle && activeTurnId && !awaitingServerAcceptance) {
+          markTurnInactive(activeTurnId);
         } else if (activeTurnId) {
-          if (!currentTurnIsLive(activeTurnId, currentMessages)) {
+          if (!currentTurnIsLive(activeTurnId, messagesRef.current)) {
             markTurnInactive(activeTurnId);
           } else {
             setBusy(true);
@@ -194,6 +209,9 @@ export function useSuperChatFrameController({
             ? frame.turn_id
             : null);
         if (turnId) {
+          if (pendingClientTurnIdRef.current === turnId) {
+            pendingClientTurnIdRef.current = null;
+          }
           markTurnActive(turnId);
         } else {
           setBusy(true);
@@ -211,6 +229,7 @@ export function useSuperChatFrameController({
           ?? (typeof frame.turn_id === "string" && frame.turn_id.trim()
             ? frame.turn_id
             : activeTurnIdRef.current);
+        pendingClientTurnIdRef.current = null;
         if (activeTurnIdRef.current) {
           markTurnActive(activeTurnIdRef.current);
         }
@@ -236,6 +255,10 @@ export function useSuperChatFrameController({
             ? frame.turn_id
             : null);
         if (turnId && streamTextRef.current.trim()) {
+          if (pendingClientTurnIdRef.current === turnId) {
+            activeTurnIdRef.current = turnId;
+            pendingClientTurnIdRef.current = null;
+          }
           markTurnActive(turnId);
           setMessages((current) => {
             const displayText = streamTextRef.current;
@@ -277,6 +300,13 @@ export function useSuperChatFrameController({
         ) {
           break;
         }
+        if (
+          typeof frame.turn_id === "string"
+          && pendingClientTurnIdRef.current === frame.turn_id
+        ) {
+          activeTurnIdRef.current = frame.turn_id;
+          pendingClientTurnIdRef.current = null;
+        }
         if (showToolEventsRef.current || shouldPreserveToolMessage(frame)) {
           setMessages((current) => upsertToolMessage(current, frame.type, frame));
         }
@@ -289,6 +319,9 @@ export function useSuperChatFrameController({
           break;
         }
         if (typeof frame.turn_id === "string" && frame.turn_id.trim()) {
+          if (pendingClientTurnIdRef.current === frame.turn_id) {
+            pendingClientTurnIdRef.current = null;
+          }
           markTurnActive(frame.turn_id);
         } else {
           setBusy(true);

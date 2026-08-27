@@ -144,12 +144,13 @@ beforeAll(async () => {
             reupload: "Reupload",
             unsupportedPreviewType: "Use PNG, JPEG, WebP, or GIF.",
             uploadedPreview: "Uploaded preview",
-            uploadCover: "Upload style reference",
-            replaceCover: "Replace style reference",
+            uploadCover: "Upload style preview",
+            replaceCover: "Replace style preview",
             uploadingCover: "Uploading...",
-            previewUploaded: "Style reference updated",
-            referenceUsageHint: "Reference image usage guidance",
-            analyzingPreview: "Analyzing image...",
+            previewUploaded: "Style preview updated",
+            referenceUsageHint:
+              "Preview only; remote generation sends text directives, not this image.",
+            analyzingPreview: "Analyzing style preview...",
             styleIdRequiredBeforeUpload: "Enter a style ID first.",
           },
         },
@@ -207,6 +208,11 @@ describe("styles page CE generation credit gating", () => {
 
     expect(await screen.findByText("Ink style")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Create style" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Preview only; remote generation sends text directives, not this image.",
+      ),
+    ).toBeInTheDocument();
 
     expect(screen.queryByText(/credits?/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/积分|额度/)).not.toBeInTheDocument();
@@ -296,7 +302,7 @@ describe("styles page CE generation credit gating", () => {
     expect(styleMutationMocks.analyze).not.toHaveBeenCalled();
   });
 
-  it("creates an account style with the uploaded reference and complete analyzed config", async () => {
+  it("creates an account style with the uploaded preview and complete analyzed config", async () => {
     styleMutationMocks.analyze.mockResolvedValue({
       ok: true,
       data: {
@@ -397,7 +403,7 @@ describe("styles page CE generation credit gating", () => {
     );
   });
 
-  it("uploads or replaces the reference image of an existing custom style", async () => {
+  it("uploads or replaces the preview image of an existing custom style", async () => {
     styleQueryState.list = [
       {
         id: "custom",
@@ -428,9 +434,13 @@ describe("styles page CE generation credit gating", () => {
     );
 
     expect(
-      await screen.findByRole("button", { name: "Upload style reference" }),
+      await screen.findByRole("button", { name: "Upload style preview" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Reference image usage guidance")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Preview only; remote generation sends text directives, not this image.",
+      ),
+    ).toBeInTheDocument();
     const input = container.querySelector<HTMLInputElement>(
       "input[data-style-preview-upload]",
     );
@@ -449,6 +459,6 @@ describe("styles page CE generation credit gating", () => {
       "src",
       expect.stringContaining("/api/v1/styles/custom/preview"),
     );
-    expect(toastSuccessMock).toHaveBeenCalledWith("Style reference updated");
+    expect(toastSuccessMock).toHaveBeenCalledWith("Style preview updated");
   });
 });

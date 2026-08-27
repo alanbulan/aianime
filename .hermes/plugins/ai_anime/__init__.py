@@ -1084,14 +1084,26 @@ def _handle_pipeline_status(args: dict[str, Any], **_: Any) -> str:
 def _handle_list_tasks(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
-        query = {
-            "episode": args.get("episode"),
-            "task_type": args.get("task_type"),
-            "status": args.get("status"),
-        }
-        return _read_tool_result(
-            _request("GET", f"/api/v1/projects/{project}/tasks", query=query)
-        )
+        response = _request("GET", f"/api/v1/projects/{project}/tasks")
+        data = response.get("data")
+        if isinstance(data, list):
+            episode = args.get("episode")
+            episode_filter = int(episode) if episode is not None else None
+            task_type_filter = str(args.get("task_type") or "").strip()
+            status_filter = str(args.get("status") or "").strip().lower()
+            filtered = []
+            for task in data:
+                if not isinstance(task, dict):
+                    continue
+                if episode_filter is not None and int(task.get("episode") or 0) != episode_filter:
+                    continue
+                if task_type_filter and str(task.get("task_type") or "") != task_type_filter:
+                    continue
+                if status_filter and str(task.get("status") or "").strip().lower() != status_filter:
+                    continue
+                filtered.append(task)
+            response = {**response, "data": filtered}
+        return _read_tool_result(response)
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -1142,6 +1154,7 @@ def _handle_wait_task(args: dict[str, Any], **_: Any) -> str:
         latest: dict[str, Any] = {"ok": True, "status_code": 200, "data": None}
         terminal_statuses = {"completed", "failed", "cancelled", "canceled"}
 
+        missing_attempts = 0
         while True:
             attempts += 1
             latest = _request(
@@ -1157,6 +1170,29 @@ def _handle_wait_task(args: dict[str, Any], **_: Any) -> str:
 
             status = _task_status_from_response(latest)
             elapsed = time.monotonic() - started_at
+            if status:
+                missing_attempts = 0
+            else:
+                missing_attempts += 1
+                if missing_attempts >= 3:
+                    return _read_tool_result(
+                        {
+                            **latest,
+                            "ok": False,
+                            "error": f"任务不存在：{task_key}",
+                            "wait": {
+                                "terminal": True,
+                                "status": "not_found",
+                                "attempts": attempts,
+                                "elapsed_seconds": round(elapsed, 2),
+                                "timed_out": False,
+                            },
+                            "agent_instruction": (
+                                "该 task_key 在连续三次查询中都不存在。不要继续等待或重复提交写请求；"
+                                "请核对创建任务时返回的 task_key。"
+                            ),
+                        }
+                    )
             if status in terminal_statuses or elapsed >= timeout_seconds:
                 timed_out = status not in terminal_statuses
                 data = latest.get("data")
@@ -1368,7 +1404,6 @@ def _start_production_workflow(args: dict[str, Any]) -> dict[str, Any]:
         "target_beats",
         "max_parallel",
         "node_timeout_seconds",
-        "audio_model",
         "video_model",
         "video_resolution",
         "add_subtitles",
@@ -1601,6 +1636,16 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
+        requested_beats = sorted(_requested_beats(args) or ())
+        all_beats = args.get("all_beats") is True
+        if requested_beats and all_beats:
+            raise ValueError("pass either beat_indices or all_beats=true, not both")
+        if all_beats:
+            requested_beats = _resolve_episode_beats(project, episode)
+            if not requested_beats:
+                raise ValueError(
+                    "could not resolve beats for this episode; pass beat_indices explicitly"
+                )
         body = {
             "grid_index": -1,
             "sketch_scene_grouping": True,
@@ -1618,6 +1663,7 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
                         "sketch_scene_grouping",
                         "aspect_ratio",
                         "image_generation_selection",
+                        "replace_existing",
                     }
                     and value is not None
                 }
@@ -1628,11 +1674,27 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
             "sketch_scene_grouping",
             "aspect_ratio",
             "image_generation_selection",
+            "replace_existing",
         ):
             if key in args and args[key] is not None:
                 body[key] = args[key]
         if args.get("model") is not None and "image_generation_selection" not in body:
             body["image_generation_selection"] = args["model"]
+
+        grid_index = int(
+            body.get("grid_index")
+            if body.get("grid_index") is not None
+            else -1
+        )
+        if (
+            body.get("replace_existing") is True
+            and not requested_beats
+            and grid_index < 0
+        ):
+            raise ValueError(
+                "replace_existing=true requires beat_indices, all_beats=true, "
+                "or an explicit non-negative grid_index"
+            )
 
         if args.get("auto_assign_colors", True):
             colors = _request(
@@ -1649,13 +1711,38 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
                     }
                 )
 
-        result = _request(
-            "POST",
-            f"/api/v1/projects/{project}/episodes/{episode}/sketches/generate",
-            body=body,
-        )
+        if requested_beats:
+            aspect_ratio = str(body.get("aspect_ratio") or "2:3")
+            selected_body: dict[str, Any] = {
+                "beat_indices": [int(beat) for beat in requested_beats],
+                "mode_key": str(
+                    args.get("mode_key")
+                    or (
+                        "1x1_16-9_sketch"
+                        if aspect_ratio == "16:9"
+                        else "1x1_2-3_sketch"
+                    )
+                ),
+            }
+            for key in ("style", "image_generation_selection"):
+                if body.get(key) is not None:
+                    selected_body[key] = body[key]
+            result = _request(
+                "POST",
+                f"/api/v1/projects/{project}/episodes/{episode}/sketches/regenerate",
+                body=selected_body,
+            )
+        else:
+            result = _request(
+                "POST",
+                f"/api/v1/projects/{project}/episodes/{episode}/sketches/generate",
+                body=body,
+            )
         if isinstance(result, dict):
-            result.setdefault("request_body", body)
+            result.setdefault(
+                "request_body",
+                selected_body if requested_beats else body,
+            )
         return tool_result(result)
     except Exception as exc:
         return tool_error(str(exc))
@@ -1700,7 +1787,7 @@ def _handle_generate_audio(args: dict[str, Any], **_: Any) -> str:
     """Generate episode audio via the current IndexTTS2 audio pipeline."""
     try:
         body: dict[str, Any] = {}
-        for key in ("model", "mode", "beat_numbers"):
+        for key in ("mode", "beat_numbers"):
             if args.get(key) is not None:
                 body[key] = args[key]
         result = _episode_post(args, "audio/generate", body=body)
@@ -1709,6 +1796,30 @@ def _handle_generate_audio(args: dict[str, Any], **_: Any) -> str:
             and result.get("code") == "audio_generation_not_required"
         ):
             result = {**result, "ok": True, "skipped": True}
+        return tool_result(result)
+    except Exception as exc:
+        return tool_error(str(exc))
+
+
+def _handle_design_character_voices(args: dict[str, Any], **_: Any) -> str:
+    """Generate missing voices or explicitly replace selected character voices."""
+    try:
+        project = _project_from_args(args)
+        names = sorted(_requested_names(args) or ())
+        replace_existing = args.get("replace_existing") is True
+        if replace_existing and not names:
+            raise ValueError(
+                "names is required when replace_existing=true; pass every explicitly "
+                "requested character name"
+            )
+        body: dict[str, Any] = {"character_names": names}
+        if replace_existing:
+            body["replace_existing"] = True
+        result = _request(
+            "POST",
+            f"/api/v1/projects/{quote(project, safe='')}/characters/voices/design-missing",
+            body=body,
+        )
         return tool_result(result)
     except Exception as exc:
         return tool_error(str(exc))
@@ -2263,24 +2374,33 @@ def _handle_get_episode_media(args: dict[str, Any], **_: Any) -> str:
 
 
 def _handle_render_first_frames(args: dict[str, Any], **_: Any) -> str:
-    """Generate first frames for an episode (首帧生成, selected_regen task).
+    """Explicitly regenerate selected first frames (selected_regen task).
 
     Wraps POST /projects/{project}/episodes/{episode}/beats/regenerate with
-    ``{"beat_indices": [...]}``. If ``beat_indices`` is omitted, ALL beats of the
-    episode are resolved automatically (GET /episodes/{ep}/beats). Requires sketches
-    to exist first. Wait with ai_anime_wait_task(task_key=<returned task_key>).
+    ``{"beat_indices": [...]}``. Callers must provide explicit beat numbers, or set
+    ``all_beats=true`` only when the user explicitly requested a whole-episode rebuild.
+    Ordinary continuation must use ai_anime_run_production_workflow instead.
     """
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
-        beats = args.get("beat_indices") or args.get("beats")
-        if not isinstance(beats, list) or not beats:
+        beats = sorted(_requested_beats(args) or ())
+        all_beats = args.get("all_beats") is True
+        if beats and all_beats:
+            raise ValueError("pass either beat_indices or all_beats=true, not both")
+        if all_beats:
             beats = _resolve_episode_beats(project, episode)
             if not beats:
                 raise ValueError(
                     "could not resolve beats for this episode; generate sketches first "
                     "or pass beat_indices explicitly"
                 )
+        elif not beats:
+            raise ValueError(
+                "beat_indices is required for explicit first-frame regeneration; "
+                "pass all_beats=true only when the user explicitly requested every "
+                "beat, or use ai_anime_run_production_workflow to continue production"
+            )
         body: dict[str, Any] = {"beat_indices": [int(b) for b in beats]}
         if args.get("style"):
             body["style"] = str(args["style"])
@@ -2709,7 +2829,14 @@ TOOLS = (
                     "description": "Optional 1-based episodes; omit for every planned episode.",
                 },
                 "filename": {"type": "string", "description": "Uploaded story filename when ingest is missing."},
-                "rebuild": {"type": "boolean", "description": "Rebuild story/script data before production. Default: false."},
+                "rebuild": {
+                    "type": "boolean",
+                    "description": (
+                        "Explicitly rebuild story/script and replace existing downstream media assets. "
+                        "Pass true only after the user explicitly requests a full rebuild/overwrite. "
+                        "Default: false; ordinary continuation preserves existing assets."
+                    ),
+                },
                 "spine_template": {
                     "type": "string",
                     "enum": ["drama", "narrated"],
@@ -2737,7 +2864,6 @@ TOOLS = (
                 "target_beats": {"type": "integer", "minimum": 5, "maximum": 80},
                 "max_parallel": {"type": "integer", "minimum": 1, "maximum": 6},
                 "node_timeout_seconds": {"type": "integer", "minimum": 30, "maximum": 28800},
-                "audio_model": {"type": "string"},
                 "video_model": {"type": "string"},
                 "video_resolution": {"type": "string"},
                 "add_subtitles": {"type": "boolean"},
@@ -3048,8 +3174,10 @@ TOOLS = (
             "Generate beat sketches for one episode (草图生成, sketch_generation task). Real endpoint "
             "POST /projects/{project}/episodes/{episode}/sketches/generate with a canonical body. "
             "This tool automatically runs assign-colors first by default and fills safe defaults: "
-            "grid_index=-1 (all grids), sketch_scene_grouping=true, "
-            "aspect_ratio='2:3'. Use THIS instead of ai_anime_post or guessing the body. Runs "
+            "one independent 1x1 image per Beat, grid_index=-1 (all missing Beats), "
+            "sketch_scene_grouping=true, aspect_ratio='2:3'. Pass beat_indices for explicit local "
+            "regeneration; that path uses the same /sketches/regenerate endpoint as the frontend. "
+            "Use THIS instead of ai_anime_post or guessing the body. Runs "
             "after the script exists. Wait with ai_anime_wait_task(task_key=<returned task_key>).",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
@@ -3071,6 +3199,23 @@ TOOLS = (
                 "image_generation_selection": {
                     "type": "string",
                     "description": "Optional backend/provider selection from sketch settings.",
+                },
+                "beat_indices": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "Explicit Beat numbers to regenerate through the same local endpoint used by the frontend.",
+                },
+                "all_beats": {
+                    "type": "boolean",
+                    "description": "Set true only when the user explicitly requests every Beat to be regenerated.",
+                },
+                "mode_key": {
+                    "type": "string",
+                    "description": "Optional explicit 1x1 sketch mode for selected Beat regeneration.",
+                },
+                "replace_existing": {
+                    "type": "boolean",
+                    "description": "Legacy grid-generation overwrite flag. Requires an explicit Beat/all-Beat scope or non-negative grid_index; ordinary continuation must omit it.",
                 },
                 "auto_assign_colors": {
                     "type": "boolean",
@@ -3314,23 +3459,57 @@ TOOLS = (
         "ai_anime_render_first_frames",
         _schema(
             "ai_anime_render_first_frames",
-            "Generate first frames for an episode (首帧生成, selected_regen task). Real endpoint POST "
-            "/projects/{project}/episodes/{episode}/beats/regenerate with {beat_indices:[...]}. Omit "
-            "beat_indices to render ALL beats of the episode (resolved automatically). Requires sketches "
-            "first. Wait with ai_anime_wait_task(task_key=<returned task_key>).",
+            "Explicitly regenerate selected first frames (首帧重做, selected_regen task). This tool "
+            "overwrites the current first-frame selection for the requested beats. Pass beat_indices "
+            "for an explicit local rebuild. Use all_beats=true only when the user explicitly asks to "
+            "rebuild every beat. Never use this tool for ordinary continue/resume requests; use "
+            "ai_anime_run_production_workflow, which preserves existing assets and fills only missing ones.",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "episode": {"type": "integer", "description": "Episode number (required)."},
                 "beat_indices": {
                     "type": "array",
                     "items": {"type": "integer"},
-                    "description": "Beat numbers to render. Omit to render all beats of the episode.",
+                    "description": "Explicit Beat numbers to rebuild. Required unless all_beats=true.",
+                },
+                "all_beats": {
+                    "type": "boolean",
+                    "description": "Set true only for an explicit user request to rebuild every Beat.",
                 },
                 "style": {"type": "string", "description": "Optional visual style override."},
             },
             ["episode"],
         ),
         _handle_render_first_frames,
+    ),
+    (
+        "ai_anime_design_character_voices",
+        _schema(
+            "ai_anime_design_character_voices",
+            "Use the configured AUDIO_VOICE_DESIGN cloud/BYOK priority route to generate and bind "
+            "missing character voices in the current asset library and replace existing samples that "
+            "are missing on disk, unreadable, shorter than 1.8 seconds, or longer than 15 seconds. "
+            "Usable existing voices are preserved by default. When the user explicitly asks to "
+            "redesign or replace existing voices, pass every requested character in names and set "
+            "replace_existing=true; this safely replaces only those voice assets and keeps timestamped "
+            "backups. Character-voice requests must use this tool and must never call "
+            "ai_anime_run_production_workflow. This does not generate episode audio. Omit names only "
+            "when filling missing voices for every character.",
+            {
+                "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
+                "names": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional exact character names. Omit to process all characters.",
+                },
+                "name": {"type": "string", "description": "Optional single exact character name."},
+                "replace_existing": {
+                    "type": "boolean",
+                    "description": "Set true only when the user explicitly asks to redesign/replace the named characters' existing voices. Requires name or names.",
+                },
+            },
+        ),
+        _handle_design_character_voices,
     ),
     (
         "ai_anime_generate_audio",
@@ -3354,7 +3533,6 @@ TOOLS = (
                     "items": {"type": "integer"},
                     "description": "Optional beat numbers for partial audio generation.",
                 },
-                "model": {"type": "string", "description": "Optional model override."},
             },
             ["episode"],
         ),

@@ -23,22 +23,6 @@ export interface SketchGridGroup {
   sceneId?: string;
 }
 
-const SKETCH_2_3_MODES = [
-  { capacity: 1, rows: 1, cols: 1, modeKey: "1x1_2-3_sketch" },
-  { capacity: 4, rows: 2, cols: 2, modeKey: "2x2_2-3_sketch" },
-  { capacity: 9, rows: 3, cols: 3, modeKey: "3x3_2-3_sketch" },
-  { capacity: 16, rows: 4, cols: 4, modeKey: "4x4_2-3_sketch" },
-  { capacity: 25, rows: 5, cols: 5, modeKey: "5x5_2-3_sketch" },
-];
-
-const SKETCH_16_9_MODES = [
-  { capacity: 1, rows: 1, cols: 1, modeKey: "1x1_16-9_sketch" },
-  { capacity: 4, rows: 2, cols: 2, modeKey: "2x2_16-9_sketch" },
-  { capacity: 9, rows: 3, cols: 3, modeKey: "3x3_16-9_sketch" },
-  { capacity: 16, rows: 4, cols: 4, modeKey: "4x4_16-9_sketch" },
-  { capacity: 25, rows: 5, cols: 5, modeKey: "5x5_16-9_sketch" },
-];
-
 export function buildSketchGridGroups(
   images: PoolImage[],
   beats: SketchGridBeat[] = [],
@@ -66,6 +50,7 @@ export function buildSketchGridGroups(
   const plannedGroups = [...groups.values()];
   for (const cells of byGridUrl.values()) {
     const gridIndex = findBestPlannedGridIndex(cells, plannedGroups);
+    if (gridIndex === null) continue;
     const next = byGrid.get(gridIndex) ?? [];
     next.push(cells);
     byGrid.set(gridIndex, next);
@@ -118,8 +103,12 @@ export function buildSketchGridGroups(
 function findBestPlannedGridIndex(
   cells: PoolImage[],
   plannedGroups: SketchGridGroup[],
-): number {
+): number | null {
   const fallbackGridIndex = Number(cells[0]?.grid_index);
+  if (plannedGroups.length === 0) {
+    return Number.isFinite(fallbackGridIndex) ? fallbackGridIndex : 0;
+  }
+
   let bestMatch: { gridIndex: number; score: number } | null = null;
   const cellBeats = new Set(
     cells
@@ -131,18 +120,18 @@ function findBestPlannedGridIndex(
   for (const group of plannedGroups) {
     const plannedBeats = new Set(group.beatNumbers);
     const overlap = beatOverlap(cells, plannedBeats);
-    if (overlap === 0) continue;
     const exactBeatSet =
-      overlap === plannedBeats.size && overlap === cellBeats.size ? 1000 : 0;
+      overlap === plannedBeats.size && overlap === cellBeats.size;
+    if (!exactBeatSet) continue;
     const modeBonus = mode && mode === group.modeKey ? 50 : 0;
-    const score = exactBeatSet + modeBonus + overlap;
+    const score = modeBonus + overlap;
     if (!bestMatch || score > bestMatch.score) {
       bestMatch = { gridIndex: group.gridIndex, score };
     }
   }
 
   if (bestMatch) return bestMatch.gridIndex;
-  return Number.isFinite(fallbackGridIndex) ? fallbackGridIndex : 0;
+  return null;
 }
 
 function buildLatestSketchByBeat(images: PoolImage[]): Map<number, PoolImage> {
@@ -213,43 +202,26 @@ function buildPlannedSketchGridGroups(
   aspectRatio: SketchAspectRatio,
 ): SketchGridGroup[] {
   if (beats.length === 0) return [];
-  const byScene = new Map<string, SketchGridBeat[]>();
-  for (const beat of beats) {
-    if (isSpaceMapBeat(beat)) continue;
-    const scene = getBeatSceneId(beat);
-    const sceneBeats = byScene.get(scene) ?? [];
-    sceneBeats.push(beat);
-    byScene.set(scene, sceneBeats);
-  }
-
-  const groups: SketchGridGroup[] = [];
-  const modes = aspectRatio === "16:9" ? SKETCH_16_9_MODES : SKETCH_2_3_MODES;
-  for (const [sceneId, sceneBeats] of byScene.entries()) {
-    let offset = 0;
-    while (offset < sceneBeats.length) {
-      const remaining = Math.min(sceneBeats.length - offset, 25);
-      const mode =
-        modes.find((item) => remaining <= item.capacity) ??
-        modes[modes.length - 1];
-      const chunk = sceneBeats.slice(offset, offset + mode.capacity);
-      groups.push({
-        gridIndex: groups.length,
-        gridUrl: null,
-        cells: [],
-        fallbackCells: chunk.map((beat) => ({
+  const modeKey =
+    aspectRatio === "16:9" ? "1x1_16-9_sketch" : "1x1_2-3_sketch";
+  return beats
+    .filter((beat) => !isSpaceMapBeat(beat))
+    .map((beat, gridIndex) => ({
+      gridIndex,
+      gridUrl: null,
+      cells: [],
+      fallbackCells: [
+        {
           beatNumber: beat.beat_number,
           url: beat.sketch_url ?? null,
-        })),
-        rows: mode.rows,
-        cols: mode.cols,
-        modeKey: mode.modeKey,
-        beatNumbers: chunk.map((beat) => beat.beat_number),
-        sceneId,
-      });
-      offset += mode.capacity;
-    }
-  }
-  return groups;
+        },
+      ],
+      rows: 1,
+      cols: 1,
+      modeKey,
+      beatNumbers: [beat.beat_number],
+      sceneId: getBeatSceneId(beat),
+    }));
 }
 
 function getBeatSceneId(beat: SketchGridBeat): string {

@@ -243,6 +243,7 @@ export function createUseSketchGridCardController(
           gridIndex: options.group.gridIndex,
           sketchSceneGrouping: true,
           aspectRatio: options.aspectRatio,
+          replaceExisting: true,
           ...(options.imageGenerationSelection
             ? {
                 imageGenerationSelection:

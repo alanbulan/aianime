@@ -12,6 +12,8 @@ from ai_anime.api.routes.production.pool_schemas import (
 )
 from ai_anime.modules.production.public import (
     CutGridCommand,
+    DeleteGridPoolImageCommand,
+    GridPoolDeleteRejected,
     GridPoolCutRejected,
     GridPoolImageStale,
     GridPoolPreviewRejected,
@@ -24,6 +26,7 @@ from ai_anime.modules.production.public import (
     UploadBeatPoolImageCommand,
     UploadGridImageCommand,
     VideoPoolEntryUnavailable,
+    VideoPoolEntryInUse,
     grid_pool_use_cases,
     video_pool_use_cases,
 )
@@ -65,6 +68,28 @@ async def select_video_pool(
     except VideoPoolEntryUnavailable as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": selected.as_dict()}
+
+
+@router.delete(
+    "/projects/{project}/episodes/{episode_num}/video-pool/{pool_id}"
+)
+async def delete_video_pool_entry(
+    project: str,
+    episode_num: int,
+    pool_id: str,
+    user: dict = Depends(get_api_user),
+):
+    """Delete one inactive generated video version and its local file."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        deleted = video_pool_use_cases().delete(
+            resolved.ctx,
+            episode_num,
+            pool_id,
+        )
+    except (VideoPoolEntryUnavailable, VideoPoolEntryInUse) as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": deleted.as_dict()}
 
 
 @router.get("/projects/{project}/episodes/{episode_num}/grids")
@@ -143,6 +168,30 @@ async def select_pool_image(
     except GridPoolSelectionRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": selected.as_dict()}
+
+
+@router.delete(
+    "/projects/{project}/episodes/{episode_num}/image-pool/{pool_id}"
+)
+async def delete_pool_image(
+    project: str,
+    episode_num: int,
+    pool_id: str,
+    user: dict = Depends(get_api_user),
+):
+    """Delete one inactive sketch/render version and its local file."""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    try:
+        deleted = grid_pool_use_cases().delete(
+            resolved.ctx,
+            DeleteGridPoolImageCommand(
+                episode_num=episode_num,
+                pool_id=pool_id,
+            ),
+        )
+    except GridPoolDeleteRejected as exc:
+        return {"ok": False, "error": str(exc)}
+    return {"ok": True, "data": deleted.as_dict()}
 
 
 @router.post(

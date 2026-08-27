@@ -2,6 +2,7 @@
 import { Play, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import {
   extractKeyframeVideoPreviewItems,
   extractPendingKeyframeVideoItem,
@@ -239,11 +240,11 @@ function UnifiedMediaCard({
                   <Volume2 className="size-7" />
                 </span>
                 {src && (
-                  <audio
+                  <PreciseAudioPlayer
                     className="ai-anime-unified-media-audio w-full"
                     src={src}
-                    controls
                     preload="metadata"
+                    media
                   />
                 )}
                 {!src && (

@@ -49,7 +49,7 @@ beforeAll(async () => {
               clear: "清除",
               loading: "正在读取声线样本",
               loadFailed: "读取声线样本失败",
-              currentDuration: "当前约 {{seconds}} 秒",
+              currentDuration: "精确时长 {{seconds}} 秒",
               selectExisting: "选择声线",
               voiceLibraryTitle: "为「{{target}}」选择声线",
               voiceLibraryHint: "选择账号声线库中的声线。",
@@ -237,7 +237,7 @@ describe("CharacterVoicePanel", () => {
     });
     Object.defineProperty(audio, "duration", { value: 6.5, configurable: true });
     fireEvent.loadedMetadata(audio);
-    expect(await screen.findByText("当前约 6.5 秒")).toBeInTheDocument();
+    expect(await screen.findByText("精确时长 6.50 秒")).toBeInTheDocument();
   });
 
   it("warns when the default voice is missing", async () => {

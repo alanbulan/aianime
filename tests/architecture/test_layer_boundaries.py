@@ -4610,10 +4610,15 @@ def test_production_video_pool_routes_and_runner_delegate_to_application() -> No
     )
     runner_source = video_runner.read_text(encoding="utf-8")
 
-    assert source.count("video_pool_use_cases().") == 2
+    assert source.count("video_pool_use_cases().") == 3
     assert "VideoPoolEntryUnavailable" in source
+    assert "VideoPoolEntryInUse" in source
     assert "production.create_router()" in api_router_source
-    for handler_name in ("list_video_pool", "select_video_pool"):
+    for handler_name in (
+        "list_video_pool",
+        "select_video_pool",
+        "delete_video_pool_entry",
+    ):
         assert f"async def {handler_name}(" in source
     for implementation_detail in (
         "load_video_pool_index",
@@ -4636,8 +4641,10 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
     route_start = pool_source.index("async def list_grids(")
     route_source = pool_source[route_start:]
 
-    assert route_source.count("grid_pool_use_cases") == 10
+    assert route_source.count("grid_pool_use_cases") == 11
     assert "SelectGridPoolImageCommand" in route_source
+    assert "DeleteGridPoolImageCommand" in route_source
+    assert "GridPoolDeleteRejected" in route_source
     assert route_source.count("UploadBeatPoolImageCommand") == 2
     assert route_source.count("UploadGridImageCommand") == 1
     assert route_source.count("GridPromptQuery") == 1
@@ -4650,6 +4657,7 @@ def test_production_grid_pool_routes_delegate_to_application() -> None:
         "rebuild_grids_pool_index",
         "get_beat_sketch_candidates",
         "select_pool_image",
+        "delete_pool_image",
         "upload_beat_sketch",
         "upload_beat_render",
         "upload_grid",
@@ -4953,7 +4961,7 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         / "production"
         / "infrastructure"
         / "media_generation"
-        / "prompt_builder.py",
+        / "prompt_components.py",
         PACKAGE_ROOT
         / "modules"
         / "production"
@@ -5230,7 +5238,7 @@ def test_production_detected_refs_have_one_owner() -> None:
         / "production"
         / "infrastructure"
         / "media_generation"
-        / "prompt_builder.py",
+        / "prompt_components.py",
     )
     external_callers = (
         PACKAGE_ROOT / "api" / "routes" / "asset_world" / "assets.py",
@@ -5746,6 +5754,7 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
         assert "ai_anime.modules.generators.episode_optimizer" not in _imports(path)
     script_runner_source = (TASK_RUNNERS_ROOT / "script.py").read_text(encoding="utf-8")
     assert "assign_identity_sketch_colors" not in script_runner_source
+    assert "clean_sketches" not in script_runner_source
     generation_context = (
         PACKAGE_ROOT
         / "modules"

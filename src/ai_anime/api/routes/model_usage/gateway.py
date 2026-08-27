@@ -27,6 +27,21 @@ class CommercialModelAssignmentBody(BaseModel):
 
 class CommercialModelCapabilityBody(BaseModel):
     model_id: str = Field(alias="modelId", min_length=1, max_length=256)
+    video_profile: str | None = Field(
+        default=None,
+        alias="videoProfile",
+        pattern="^(standard|seedance2|happyhorse|grok)$",
+    )
+    video_generation_min_seconds: float | None = Field(
+        default=None,
+        alias="videoGenerationMinSeconds",
+        gt=0,
+    )
+    video_generation_max_seconds: float | None = Field(
+        default=None,
+        alias="videoGenerationMaxSeconds",
+        gt=0,
+    )
     reference_audio_min_seconds: float | None = Field(
         default=None,
         alias="referenceAudioMinSeconds",

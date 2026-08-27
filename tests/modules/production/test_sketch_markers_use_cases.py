@@ -129,7 +129,6 @@ async def test_project_sketch_markers_project_context_and_close_sessions(
             "store": store,
             "episode_num": 2,
             "beats": [{"beat_number": 1}],
-            "output_dir": context.output_dir,
         }
     ]
     detection_store, detection_command = detection.calls[0]

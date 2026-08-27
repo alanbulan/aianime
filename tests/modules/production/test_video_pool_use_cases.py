@@ -7,6 +7,7 @@ import pytest
 
 from ai_anime.modules.production.application.video_pool import (
     AddGeneratedVideoCommand,
+    VideoPoolEntryInUse,
     VideoPoolEntryUnavailable,
     VideoPoolUseCases,
 )
@@ -47,9 +48,16 @@ def _entry() -> VideoPoolEntry:
 
 
 class _Storage:
-    def __init__(self, pool: VideoPool | None, *, assigned: bool = True) -> None:
+    def __init__(
+        self,
+        pool: VideoPool | None,
+        *,
+        assigned: bool = True,
+        delete_outcome: str = "deleted",
+    ) -> None:
         self.pool = pool
         self.assigned = assigned
+        self.delete_outcome = delete_outcome
         self.added: AddGeneratedVideoCommand | None = None
 
     def load(self, _context: ProjectContext, _episode_num: int) -> VideoPool | None:
@@ -71,6 +79,14 @@ class _Storage:
     ) -> VideoPoolEntry:
         self.added = command
         return _entry()
+
+    def delete(
+        self,
+        _context: ProjectContext,
+        _episode_num: int,
+        _pool_id: str,
+    ) -> str:
+        return self.delete_outcome
 
 
 class _MediaUrls:
@@ -156,3 +172,21 @@ def test_select_and_add_generated_video(tmp_path: Path) -> None:
     }
     assert added == _entry()
     assert storage.added == command
+
+
+def test_delete_rejects_active_entry_and_returns_deleted_id(tmp_path: Path) -> None:
+    context = _context(tmp_path)
+    use_cases = VideoPoolUseCases(
+        _Storage(None, delete_outcome="assigned"),
+        _MediaUrls(),
+    )
+
+    with pytest.raises(VideoPoolEntryInUse, match="请先切换"):
+        use_cases.delete(context, 1, "active")
+
+    deleted = VideoPoolUseCases(_Storage(None), _MediaUrls()).delete(
+        context,
+        1,
+        "inactive",
+    )
+    assert deleted.as_dict() == {"pool_id": "inactive"}

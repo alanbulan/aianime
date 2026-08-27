@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Maximize2, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 import {
   MEDIA_VIEWER_CLOSE_BUTTON_CLASS,
   MEDIA_VIEWER_CLOSE_ICON_CLASS,
@@ -127,8 +128,6 @@ export function VideoViewerModal({
     void el.requestFullscreen();
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
   return (
     <div
       ref={viewerRef}
@@ -198,17 +197,17 @@ export function VideoViewerModal({
         <span className="w-[72px] shrink-0 text-xs tabular-nums text-media-foreground/72">
           {formatVideoTime(currentTime)} / {formatVideoTime(duration)}
         </span>
-        <input
-          type="range"
+        <Slider
           min={0}
-          max={duration || 0}
+          max={duration || 1}
           step={0.01}
-          value={Math.min(currentTime, duration || currentTime)}
-          onChange={(event) => handleSeek(event.target.value)}
-          className="h-1 min-w-[160px] flex-1 cursor-pointer appearance-none rounded-full bg-media-foreground/18 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-media-foreground [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-media-foreground"
-          style={{
-            background: `linear-gradient(to right, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.92) ${progress}%, rgba(255,255,255,0.18) ${progress}%, rgba(255,255,255,0.18) 100%)`,
-          }}
+          value={[Math.min(currentTime, duration || 0)]}
+          disabled={duration <= 0}
+          onValueChange={([value]) => handleSeek(String(value ?? 0))}
+          className="min-w-[160px] flex-1"
+          trackClassName="h-1 bg-media-foreground/18"
+          rangeClassName="bg-media-foreground/90"
+          thumbClassName="size-3 border-0 bg-media-foreground"
           aria-label={t('viewer.videoSeek', '视频进度')}
         />
         <button

@@ -29,6 +29,9 @@ function invalidateNarratorVoiceQueries(
   queryClient.invalidateQueries({
     queryKey: queryKeys.audioBillingQuotes(project),
   });
+  queryClient.invalidateQueries({
+    queryKey: queryKeys.characterVoiceLibrary(project),
+  });
 }
 
 export function createNarratorVoiceQueryHooks(

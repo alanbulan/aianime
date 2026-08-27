@@ -132,9 +132,17 @@ def _consume_cancel_killed(proc: subprocess.Popen) -> bool:
         return True
 
 
-def _kill_process_group(proc: subprocess.Popen) -> None:
+def _wait_for_process_exit(proc: subprocess.Popen, timeout: float = 1.0) -> bool:
     if proc.poll() is not None:
-        return
+        return True
+    with contextlib.suppress(Exception):
+        proc.wait(timeout=timeout)
+    return proc.poll() is not None
+
+
+def _kill_process_group(proc: subprocess.Popen) -> bool:
+    if proc.poll() is not None:
+        return True
     if os.name == "nt":
         # Windows 没有 killpg;taskkill /T 按父子关系终止整棵进程树,
         # 对齐 POSIX 进程组语义(cancel/deadline 必须连孙进程一起杀)。
@@ -148,14 +156,15 @@ def _kill_process_group(proc: subprocess.Popen) -> None:
         if proc.poll() is None:
             with contextlib.suppress(Exception):
                 proc.kill()
-        return
+        return _wait_for_process_exit(proc)
     try:
         os.killpg(proc.pid, signal.SIGKILL)
     except ProcessLookupError:
-        return
+        return _wait_for_process_exit(proc)
     except Exception:
         with contextlib.suppress(Exception):
             proc.kill()
+    return _wait_for_process_exit(proc)
 
 
 def kill_task_processes(task_id: str) -> int:
@@ -165,8 +174,10 @@ def kill_task_processes(task_id: str) -> int:
     for proc in processes:
         if proc.poll() is None:
             _mark_cancel_killed(proc)
-            _kill_process_group(proc)
-            killed += 1
+            if _kill_process_group(proc):
+                killed += 1
+            else:
+                _consume_cancel_killed(proc)
     return killed
 
 
@@ -338,14 +349,22 @@ def run_project_subprocess(
         while True:
             remaining = None if deadline is None else deadline - time.monotonic()
             if remaining is not None and remaining <= 0:
-                _kill_process_group(proc)
+                killed = _kill_process_group(proc)
                 with contextlib.suppress(Exception):
                     proc.communicate(timeout=1)
+                if not killed:
+                    raise RuntimeError(
+                        f"Failed to terminate timed-out subprocess {proc.pid}"
+                    )
                 raise TaskTimedOut(timeout_seconds=timeout_seconds or int(timeout or 30 * 60))
             if cancel_poller.requested():
-                _kill_process_group(proc)
+                killed = _kill_process_group(proc)
                 with contextlib.suppress(Exception):
                     proc.communicate(timeout=1)
+                if not killed:
+                    raise RuntimeError(
+                        f"Failed to terminate cancelled subprocess {proc.pid}"
+                    )
                 raise TaskCancelled()
             wait_for = poll_seconds if remaining is None else min(poll_seconds, max(remaining, 0.001))
             try:
@@ -369,7 +388,8 @@ def run_project_subprocess(
                 continue
     finally:
         cancel_poller.close()
-        _unregister_process(task_id, proc)
+        if proc.poll() is not None:
+            _unregister_process(task_id, proc)
 
 
 def run_project_model_subprocess(

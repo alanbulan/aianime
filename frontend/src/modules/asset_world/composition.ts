@@ -1,6 +1,8 @@
 import { createElement, useMemo, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { TaskControllerProvider } from "@/modules/task_execution/public";
+import { queryKeys } from "@/lib/query-keys";
 import { useAssetFocus } from "./application/useAssetFocus";
 import { useNavigateToAsset } from "./application/useAssetsDeepLink";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
@@ -767,6 +769,13 @@ function CharactersPageBody({
   voiceCatalog,
 }: CharactersPageContentProps) {
   const controller = useCharactersPageController(project);
+  const accountVoices = useQuery({
+    queryKey: queryKeys.characterVoiceLibrary(project),
+    queryFn: () => voiceCatalog.loadVoiceOptions(project),
+    enabled: controller.assetTab === "voices",
+    refetchInterval: controller.assetTab === "voices" ? 15_000 : false,
+    staleTime: 30_000,
+  });
   const selectedCharacter = controller.selectedCharacter;
   const detailContent = selectedCharacter
     ? createElement(CharacterDetailContent, {
@@ -784,6 +793,9 @@ function CharactersPageBody({
       })
     : createElement(EmptyCharacterDetailView);
   return createElement(CharactersPageView, {
+    accountVoices: accountVoices.data ?? [],
+    accountVoicesFailed: accountVoices.isError,
+    accountVoicesLoading: accountVoices.isLoading,
     addDialogContent: createElement(AddCharacterDialogContent, {
       onOpenChange: controller.setAddDialogOpen,
       open: controller.addDialogOpen,
@@ -797,9 +809,7 @@ function CharactersPageBody({
       onSelectionChange: controller.setImageModel,
       project,
     }),
-    narratorVoiceContent: controller.isNarratedFirstPerson
-      ? null
-      : renderNarratorVoicePanel(project),
+    narratorVoiceContent: renderNarratorVoicePanel(project),
     propsContent: createElement(PropsPanelContent, {
       focusId:
         controller.assetTab === "props" ? controller.assetFocusId : null,

@@ -115,6 +115,9 @@ export interface CommercialInvocationListSnapshot {
 
 export interface CommercialModelCapabilitySnapshot {
   modelId: string;
+  videoProfile?: "standard" | "seedance2" | "happyhorse" | "grok";
+  videoGenerationMinSeconds?: number;
+  videoGenerationMaxSeconds?: number;
   referenceAudioMinSeconds?: number;
   referenceAudioMaxSeconds?: number;
   referenceAudioTotalMinSeconds?: number;

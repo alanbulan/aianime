@@ -42,6 +42,32 @@ def test_complete_detected_refs_adds_markers_from_visual_description():
     assert props == ["羊皮笔记本"]
 
 
+def test_explicit_visual_markers_override_false_positive_detection():
+    identities, props = complete_detected_refs_from_visual_description(
+        visual_description="{{陆辰_青年时期}}独自站在雨中。",
+        detected_identities=["陆辰_青年时期", "白石夏音_学生时期"],
+        detected_props=["羊皮笔记本"],
+        allowed_identity_ids={"陆辰_青年时期", "白石夏音_学生时期"},
+        allowed_prop_ids={"羊皮笔记本"},
+    )
+
+    assert identities == ["陆辰_青年时期"]
+    assert props == ["羊皮笔记本"]
+
+
+def test_detection_remains_fallback_when_visual_has_no_markers():
+    identities, props = complete_detected_refs_from_visual_description(
+        visual_description="一个人站在雨中。",
+        detected_identities=["陆辰_青年时期"],
+        detected_props=["羊皮笔记本"],
+        allowed_identity_ids={"陆辰_青年时期"},
+        allowed_prop_ids={"羊皮笔记本"},
+    )
+
+    assert identities == ["陆辰_青年时期"]
+    assert props == ["羊皮笔记本"]
+
+
 def test_complete_detected_refs_writes_empty_markers_when_no_valid_refs():
     identities, props = complete_detected_refs_from_visual_description(
         visual_description="没有合法 marker。",

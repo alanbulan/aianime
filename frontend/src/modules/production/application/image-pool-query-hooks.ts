@@ -99,6 +99,26 @@ export function createImagePoolQueryHooks(gateway: ProductionVideoGateway) {
     });
   }
 
+  function usePoolDelete(project: string, episode: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: async ({ poolId }: { poolId: string }) => {
+        const response = await gateway.deleteImagePoolEntry(
+          project,
+          episode,
+          poolId,
+        );
+        if (!response.ok) throw new Error(response.error || "删除失败");
+        return response;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.grids(project, episode),
+        });
+      },
+    });
+  }
+
   function useUploadBeatImage(
     project: string,
     episode: number,
@@ -148,6 +168,7 @@ export function createImagePoolQueryHooks(gateway: ProductionVideoGateway) {
   return {
     useGrids,
     useGridsByBeat,
+    usePoolDelete,
     usePoolSelect,
     useRebuildPoolIndex,
     useUploadBeatImage,

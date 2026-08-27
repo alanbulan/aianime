@@ -26,6 +26,7 @@ def _generator(
     api_key: str = "loopback-token",
     model: str = "cloud-video-standard",
     model_role: str = "VIDEO_TEXT_TO_VIDEO",
+    model_capabilities: list[dict] | None = None,
 ) -> CommercialVideoGenerator:
     from ai_anime.modules.model_usage import public as model_usage
 
@@ -33,6 +34,7 @@ def _generator(
         allows_custom_models=True,
         mode="mixed",
         model_assignments=[{"modelId": model, "role": model_role}],
+        model_capabilities=model_capabilities,
     )
     monkeypatch.setattr(
         model_usage,
@@ -89,6 +91,67 @@ def test_text_video_builds_standard_json_payload(
     }
     assert media == []
     assert return_last_frame is True
+
+
+def test_seedance_request_clamps_short_duration_before_gateway_submission(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = "video-seeddance-4wlmqpxwma4r65j3"
+    generator = _generator(
+        monkeypatch,
+        model=model,
+        model_role="VIDEO_IMAGE_TO_VIDEO",
+        model_capabilities=[
+            {
+                "modelId": model,
+                "videoProfile": "seedance2",
+                "videoGenerationMinSeconds": 4,
+                "videoGenerationMaxSeconds": 15,
+            }
+        ],
+    )
+
+    payload, _media, _return_last_frame = generator._build_request(
+        image_path=None,
+        last_frame_path=None,
+        references=[],
+        prompt="短对白镜头",
+        aspect_ratio="9:16",
+        duration=0.768,
+        kwargs={"seedance2_config": {"duration": 1, "resolution": "720p"}},
+    )
+
+    assert payload["seconds"] == "4"
+
+
+def test_video_request_rejects_duration_above_catalog_maximum(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = "video-seeddance-4wlmqpxwma4r65j3"
+    generator = _generator(
+        monkeypatch,
+        model=model,
+        model_role="VIDEO_IMAGE_TO_VIDEO",
+        model_capabilities=[
+            {
+                "modelId": model,
+                "videoProfile": "seedance2",
+                "videoGenerationMinSeconds": 4,
+                "videoGenerationMaxSeconds": 15,
+            }
+        ],
+    )
+
+    with pytest.raises(ValueError, match="超过所选模型支持的最大时长"):
+        generator._build_request(
+            image_path=None,
+            last_frame_path=None,
+            references=[],
+            prompt="过长镜头",
+            aspect_ratio="9:16",
+            duration=15.2,
+            kwargs={"seedance2_config": {"duration": 15}},
+        )
 
 
 def test_reference_video_builds_standard_multipart_parts(

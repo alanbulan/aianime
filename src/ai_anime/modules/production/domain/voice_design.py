@@ -33,6 +33,7 @@ class VoiceDesignRequirement:
     character_name: str = ""
     identity_id: str = ""
     slot: str = ""
+    additional_slots: tuple[str, ...] = ()
 
 
 def infer_voice_design_language(text: str) -> str:

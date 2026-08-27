@@ -38,7 +38,7 @@
 
 ## 固定顺序
 
-- 当修改 `audio_type`、`speaker`、`fish_speech_prompt` 或 beat 对白文本时，默认顺序是：
+- 当修改 `audio_type`、`speaker` 或 `narration_segment` 台词文本时，默认顺序是：
   1. 先更新 beat
   2. 再重做该 beat 音频
   3. 最后再触发合成

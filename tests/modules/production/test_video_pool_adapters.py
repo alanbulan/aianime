@@ -130,3 +130,41 @@ def test_assign_copies_pool_version_and_updates_assignment(monkeypatch, tmp_path
     assert assigned is True
     assert canonical.read_bytes() == b"selected-video"
     assert storage.load(context, 1).beat_assignments["7"] == entry.id
+
+
+def test_delete_removes_inactive_file_but_protects_active_version(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    _configure_roots(monkeypatch, tmp_path)
+    context = _context(tmp_path)
+    storage = LocalVideoPoolStorage()
+    first_source = tmp_path / "first.mp4"
+    first_source.write_bytes(b"first")
+    first = storage.add(
+        context,
+        AddGeneratedVideoCommand(
+            episode_num=1,
+            beat_num=2,
+            source_video_path=first_source,
+        ),
+    )
+    second_source = tmp_path / "second.mp4"
+    second_source.write_bytes(b"second")
+    second = storage.add(
+        context,
+        AddGeneratedVideoCommand(
+            episode_num=1,
+            beat_num=2,
+            source_video_path=second_source,
+        ),
+    )
+    pool_dir = Path(context.output_dir) / "videos" / "beats" / "ep001" / "pool"
+
+    assert storage.delete(context, 1, second.id) == "assigned"
+    assert storage.delete(context, 1, first.id) == "deleted"
+    assert not (pool_dir / first.video_path).exists()
+    assert (pool_dir / second.video_path).exists()
+    remaining = storage.load(context, 1)
+    assert remaining is not None
+    assert [entry.id for entry in remaining.videos] == [second.id]

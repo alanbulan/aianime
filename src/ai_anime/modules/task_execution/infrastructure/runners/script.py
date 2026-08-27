@@ -93,7 +93,6 @@ async def _run_script_writer(
     from ai_anime.shared.infrastructure.project_stores import (
         make_cognee_store_for_context,
     )
-    from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
     episode = int(envelope.get("episode") or payload.get("episode") or 0)
@@ -148,16 +147,6 @@ async def _run_script_writer(
                 logs=[message],
             ),
         )
-
-        paths = PathResolver(output_dir, episode)
-        deleted = paths.clean_sketches()
-        if deleted:
-            manager.update_progress_for_project(
-                ctx,
-                "script_writer",
-                episode,
-                logs=[f"已清理 {deleted} 个旧草图文件"],
-            )
 
         result = {
             "episode": episode,

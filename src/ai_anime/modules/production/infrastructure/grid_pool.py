@@ -15,8 +15,12 @@ from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidateView,
     BuildGridSketchPreviewCommand,
     CutGridResult,
+    DeleteGridPoolImageCommand,
+    DeletedGridPoolImage,
     GridPoolCutRejected,
+    GridPoolImageInUse,
     GridPoolImageStale,
+    GridPoolImageUnavailable,
     GridPoolImageView,
     GridPoolListing,
     GridPoolPreviewRejected,
@@ -208,6 +212,8 @@ class LocalGridPoolGateway:
                 beat_hashes,
                 None,
             ),
+            model=image.model,
+            model_selector=image.model_selector,
         )
 
     async def sketch_candidates(
@@ -289,6 +295,8 @@ class LocalGridPoolGateway:
                         beat_hashes,
                         None,
                     ),
+                    model=image.model,
+                    model_selector=image.model_selector,
                 )
             )
         candidates.sort(
@@ -388,6 +396,21 @@ class LocalGridPoolGateway:
             frame_url=media_url if image_type != "sketch" else None,
         )
 
+    def delete(
+        self,
+        context: ProjectContext,
+        command: DeleteGridPoolImageCommand,
+    ) -> DeletedGridPoolImage:
+        outcome = pool_indexer.delete_cell_from_pool(
+            self._grids_dir(context, command.episode_num),
+            command.pool_id,
+        )
+        if outcome == "assigned":
+            raise GridPoolImageInUse(command.pool_id)
+        if outcome != "deleted":
+            raise GridPoolImageUnavailable(command.pool_id)
+        return DeletedGridPoolImage(pool_id=command.pool_id)
+
     def upload(
         self,
         context: ProjectContext,
@@ -446,6 +469,7 @@ class LocalGridPoolGateway:
             grid_path="",
             row=0,
             col=0,
+            model="upload",
         )
         if pool_image is None:
             pool_id = f"beat_{command.beat_num:02d}_t{timestamp}_{image_type}"
@@ -500,10 +524,13 @@ class LocalGridPoolGateway:
                 preset="custom",
                 grid_path=grid_relative_path,
                 prompt_path="",
+                model="upload",
             )
         else:
             entry.grid_path = grid_relative_path
             entry.preset = "custom"
+            entry.model = "upload"
+            entry.model_selector = ""
             entry.generated_at = datetime.now()
 
         for image in pool.images:
@@ -516,6 +543,8 @@ class LocalGridPoolGateway:
                 continue
             image.grid_path = grid_relative_path
             image.mode = command.mode_key
+            image.model = "upload"
+            image.model_selector = ""
 
         pool_indexer.save_pool_index(pool, grids_dir)
         grid_url = self._media_url_builder(
@@ -629,6 +658,8 @@ class LocalGridPoolGateway:
             ts=datetime.now().strftime("%Y%m%d%H%M%S"),
             promote_dir=promote_dir,
             force_promote=command.grid_type == "render",
+            model=entry.model if entry is not None else "",
+            model_selector=entry.model_selector if entry is not None else "",
         )
         return CutGridResult(
             grid_index=command.grid_index,

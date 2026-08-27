@@ -152,6 +152,62 @@ def test_every_project_task_type_promotes_progress_steps_to_logs(tmp_path, task_
     ]
 
 
+def test_cancelled_project_task_is_not_resurrected_by_racing_progress(
+    monkeypatch,
+    tmp_path,
+):
+    ctx = _ctx(tmp_path)
+    manager = TaskStateManager()
+    task = manager.create_task_for_project(
+        ctx,
+        "m07_atomic_cancel",
+        1,
+        status="running",
+    )
+    original_get = manager.get_task_for_project
+    stale_read = threading.Event()
+    release_stale_writer = threading.Event()
+
+    def delayed_get(*args, **kwargs):
+        state = original_get(*args, **kwargs)
+        if threading.current_thread().name == "stale-progress-writer":
+            stale_read.set()
+            release_stale_writer.wait(timeout=2)
+        return state
+
+    monkeypatch.setattr(manager, "get_task_for_project", delayed_get)
+    progress_writer = threading.Thread(
+        name="stale-progress-writer",
+        target=manager.update_progress_for_project,
+        args=(ctx, task.task_type, task.episode),
+        kwargs={
+            "progress": 0.8,
+            "current_task": "即将完成",
+            "expected_task_id": task.task_id,
+        },
+    )
+    progress_writer.start()
+    stale_read.wait(timeout=0.25)
+
+    manager.update_progress_for_project(
+        ctx,
+        task.task_type,
+        task.episode,
+        progress=task.progress,
+        current_task="任务已取消",
+        status="cancelled",
+        expected_task_id=task.task_id,
+    )
+    release_stale_writer.set()
+    progress_writer.join(timeout=2)
+
+    assert progress_writer.is_alive() is False
+    stored = original_get(ctx, task.task_type, task.episode)
+    assert stored is not None
+    assert stored.status == "cancelled"
+    assert stored.current_task == "任务已取消"
+
+
 @pytest.fixture(autouse=True)
 def _task_ports(monkeypatch):
     monkeypatch.setattr(registry, "_PORTS", dict(registry._PORTS))

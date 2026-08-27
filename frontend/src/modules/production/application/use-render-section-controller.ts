@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { useTaskController } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/shared/aspect-ratio";
-import { formatCompactAge } from "@/lib/format-relative-time";
+import { formatGeneratedAgeLabel } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { queryKeys } from "@/lib/query-keys";
 import type {
@@ -26,7 +26,10 @@ import type {
   ProductionErrorResponse,
   ProductionTaskResponse,
 } from "@/modules/production/application/ports";
-import type { PoolImage } from "@/modules/production/domain/image-pool";
+import {
+  imagePoolModelSource,
+  type PoolImage,
+} from "@/modules/production/domain/image-pool";
 import type { RenderSettingsData } from "@/modules/production/domain/image-settings";
 import type { RegenerateRenderBeatsCommand } from "@/modules/production/domain/sketch-generation";
 
@@ -47,6 +50,11 @@ interface PoolSelectMutation {
     force?: boolean;
     poolId: string;
   }): Promise<ImagePoolSelectResponse>;
+}
+
+interface PoolDeleteMutation {
+  isPending: boolean;
+  mutateAsync(command: { poolId: string }): Promise<unknown>;
 }
 
 interface RegenerateRenderMutation {
@@ -86,6 +94,7 @@ export interface RenderSectionControllerQueries {
     episode: number,
     beatNumber: number,
   ): RenderDirectorStatusQuery;
+  usePoolDelete(project: string, episode: number): PoolDeleteMutation;
   usePoolSelect(project: string, episode: number): PoolSelectMutation;
   useRegenerateRenderBeats(
     project: string,
@@ -203,8 +212,11 @@ export interface RenderCandidateViewModel {
   id: string;
   isActive: boolean;
   isNew: boolean;
+  modelLabel: string;
+  modelTooltip: string;
   src: string | null;
   timeLabel: string | null;
+  timeTooltip: string | null;
 }
 
 export interface RenderBackgroundReferenceViewModel {
@@ -244,6 +256,7 @@ export interface RenderSectionController {
   directorWorldOpen: boolean;
   downloadEnabled: boolean;
   freezonePending: boolean;
+  poolDeletePending: boolean;
   poolSelectPending: boolean;
   previewUrl: string | null;
   regenConfirmOpen: boolean;
@@ -260,6 +273,7 @@ export interface RenderSectionController {
   commitDirectorCapture(meta: RenderDirectorCaptureMeta): Promise<void>;
   onConfirmRegen(): void;
   onDownload(): void;
+  onDelete(poolId: string): Promise<void>;
   onForceStale(): void;
   onOpenFreezone(): void;
   onRegenConfirmOpenChange(open: boolean): void;
@@ -352,6 +366,7 @@ export function createUseRenderSectionController(
       options.beat.beat_number,
     );
     const poolSelect = queries.usePoolSelect(options.project, options.episode);
+    const poolDelete = queries.usePoolDelete(options.project, options.episode);
     const regenerate = queries.useRegenerateRenderBeats(
       options.project,
       options.episode,
@@ -445,6 +460,12 @@ export function createUseRenderSectionController(
         ? Date.parse(image.generated_at)
         : Number.NaN;
       const isSeen = Boolean(seenCandidates.seenIds?.includes(image.id));
+      const generatedAge = formatGeneratedAgeLabel(image.generated_at, t, now);
+      const modelSource = imagePoolModelSource(image);
+      const fallbackModelLabel =
+        image.mode === "upload"
+          ? t("episode.workbench.media.uploadedModel")
+          : t("episode.workbench.media.legacyModel");
       return {
         id: image.id,
         isActive,
@@ -453,8 +474,11 @@ export function createUseRenderSectionController(
           now - generatedAtMs < NEW_WINDOW_MS &&
           !isSeen &&
           !isActive,
+        modelLabel: modelSource?.label ?? fallbackModelLabel,
+        modelTooltip: modelSource?.tooltip ?? fallbackModelLabel,
         src: image.cell_url ? resolveMediaUrl(image.cell_url) : null,
-        timeLabel: formatCompactAge(image.generated_at, now),
+        timeLabel: generatedAge?.label ?? null,
+        timeTooltip: generatedAge?.tooltip ?? null,
       };
     });
     const backgroundData =
@@ -496,6 +520,19 @@ export function createUseRenderSectionController(
           error instanceof Error
             ? error.message
             : t("episode.workbench.render.switchFailed"),
+        );
+      }
+    };
+
+    const handleDelete = async (poolId: string) => {
+      try {
+        await poolDelete.mutateAsync({ poolId });
+        toast.success(t("episode.workbench.media.deleteSuccess"));
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("episode.workbench.media.deleteFailed"),
         );
       }
     };
@@ -734,6 +771,7 @@ export function createUseRenderSectionController(
       directorWorldOpen,
       downloadEnabled: detailRender !== null,
       freezonePending,
+      poolDeletePending: poolDelete.isPending,
       poolSelectPending: poolSelect.isPending,
       previewUrl,
       regenConfirmOpen,
@@ -766,6 +804,7 @@ export function createUseRenderSectionController(
           `beat_${options.beat.beat_number}_render.png`,
         );
       },
+      onDelete: handleDelete,
       onForceStale: () => {
         void handleStaleForce();
       },

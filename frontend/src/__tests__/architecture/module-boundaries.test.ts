@@ -16,6 +16,8 @@ const sourceTextCache = new Map<string, string>();
 const importSpecifiersCache = new Map<string, string[]>();
 const typeScriptApi = new API({ cwd: process.cwd() });
 let typeScriptSnapshot: ReturnType<API["updateSnapshot"]> | undefined;
+const CANVAS_SHELL_INTERNAL =
+  "@/modules/creative_canvas/presentation/canvas-shell/internal";
 
 function readFileSync(path: string, encoding: "utf8"): string {
   const cached = sourceTextCache.get(path);
@@ -84,7 +86,14 @@ function importSpecifiers(path: string): string[] {
       node.moduleSpecifier &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
-      imports.push(node.moduleSpecifier.text);
+      const specifier = node.moduleSpecifier.text;
+      imports.push(
+        relativeSource(path).startsWith(
+          "modules/creative_canvas/presentation/canvas-shell/",
+        ) && specifier === CANVAS_SHELL_INTERNAL
+          ? "@/modules/creative_canvas/public"
+          : specifier,
+      );
     } else if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
@@ -132,11 +141,53 @@ describe("frontend architecture boundaries", () => {
   it("keeps main.tsx as a thin application entrypoint", () => {
     const main = readFileSync(resolve(SRC_ROOT, "main.tsx"), "utf8");
 
-    expect(main).toContain('import { bootstrapApplication } from "@/app/bootstrap";');
-    expect(main).toContain("void bootstrapApplication();");
+    expect(main).toContain("bootstrapApplication,");
+    expect(main).toContain("renderBootstrapFailure,");
+    expect(main).toContain(
+      "void bootstrapApplication().catch(renderBootstrapFailure);",
+    );
     expect(main).not.toContain("new QueryClient");
     expect(main).not.toContain("createRouter(");
     expect(main).not.toContain("<RouterProvider");
+  });
+
+  it("keeps the Canvas shell off the external public facade", () => {
+    const shellRoot = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/presentation/canvas-shell",
+    );
+    const offenders = sourceFiles(shellRoot)
+      .filter((path) => !path.includes(".test."))
+      .filter((path) =>
+        readFileSync(path, "utf8").includes(
+          "@/modules/creative_canvas/public",
+        ),
+      )
+      .map(relativeSource)
+      .sort();
+
+    expect(offenders).toEqual([]);
+    expect(readFileSync(resolve(shellRoot, "internal.ts"), "utf8")).not.toContain(
+      "@/modules/creative_canvas/public",
+    );
+  });
+
+  it("keeps shared UI primitives in one canonical directory", () => {
+    const legacyRoot = resolve(SRC_ROOT, "components/shadcn");
+    const legacyImports = sourceFiles(SRC_ROOT).flatMap((path) =>
+      importSpecifiers(path)
+        .filter((specifier) => specifier.startsWith("@/components/shadcn/"))
+        .map((specifier) => `${relativeSource(path)}: ${specifier}`),
+    );
+
+    expect(sourceFiles(legacyRoot)).toEqual([]);
+    expect(legacyImports).toEqual([]);
+    expect(
+      existsSync(resolve(SRC_ROOT, "components/ui/dropdown-menu.tsx")),
+    ).toBe(true);
+    expect(existsSync(resolve(SRC_ROOT, "components/ui/slider.tsx"))).toBe(
+      true,
+    );
   });
 
   it("keeps routes behind application and module data boundaries", () => {
@@ -6880,7 +6931,8 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).toContain("<FreezoneChatDockView");
     expect(viewSource).toContain('<SuperChatPanel');
     expect(viewSource).toContain("<Sheet open={open}");
-    expect(viewSource).toContain('src="/images/avatar-motion.mp4"');
+    expect(viewSource).toContain('<QiuQiuAvatar');
+    expect(viewSource).not.toContain('src="/images/avatar-motion.mp4"');
     expect(controllerSource).toContain("CHAT_LAUNCHER_POS_STORAGE_KEY");
     expect(controllerSource).toContain(
       'window.addEventListener("pointermove"',
@@ -8315,6 +8367,7 @@ describe("frontend architecture boundaries", () => {
       "react",
       "react-i18next",
       "lucide-react",
+      "@/components/ui/slider",
       "./mediaViewerStyles",
     ]);
     expect(importSpecifiers(publicPath)).toEqual(
@@ -8552,7 +8605,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).not.toContain("const overlapsView =");
     expect(canvasView).not.toContain("initialViewportCorrectionPendingRef");
     expect(canvasView).not.toContain("useNodesInitialized");
-    expect(backToNodesAdapter).toContain("@/modules/creative_canvas/public");
+    expect(backToNodesAdapter).toContain(CANVAS_SHELL_INTERNAL);
     expect(backToNodesAdapter).toContain("<BackToNodesHintView");
     expect(backToNodesViewOwners).toEqual([
       "modules/creative_canvas/presentation/BackToNodesHintView.tsx",
@@ -8698,7 +8751,7 @@ describe("frontend architecture boundaries", () => {
     for (const declaration of declarations) {
       expect(interactionModel).toContain(declaration);
     }
-    expect(stageView).toContain("@/modules/creative_canvas/public");
+    expect(stageView).toContain(CANVAS_SHELL_INTERNAL);
     expect(zoomView).toContain("./canvasInteractionTargets");
     expect(canvasView).not.toContain("./ui/canvasInteractionTargets");
     expect(canvasView).not.toContain("function isCanvasPaneTarget(");
@@ -10011,7 +10064,7 @@ describe("frontend architecture boundaries", () => {
       "@/features/viewer-kit/useViewerImmersiveBody",
     );
     expect(canvasView).toContain("isImmersiveViewerActive,");
-    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(CANVAS_SHELL_INTERNAL);
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("./hooks/useCanvasSpacePan");
@@ -10065,7 +10118,7 @@ describe("frontend architecture boundaries", () => {
     expect(hookModel).toContain("event.key === 'Escape'");
     expect(commandSurface).toContain("./useCanvasKeyboardShortcuts");
     expect(hookModel).not.toContain("useViewerImmersiveBody");
-    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(CANVAS_SHELL_INTERNAL);
     expect(canvasView).toContain("useCanvasCommandSurfaceController");
     expect(canvasView).toContain("isImmersiveViewerActive,");
     expect(canvasView).not.toContain("./hooks/useCanvasCommandSurfaceController");
@@ -11190,7 +11243,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).toContain(
       "isEdgeDeletionLocked: isPresetManagedEdge",
     );
-    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(CANVAS_SHELL_INTERNAL);
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain(
       "./hooks/useCanvasSelectionCommandController",
@@ -11688,7 +11741,7 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).not.toContain("isPresetManagedEdge");
     expect(controllerSource).toContain("nativeSelectionStore.setState({");
     expect(controllerSource).toContain("() => getGraph().edges");
-    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(CANVAS_SHELL_INTERNAL);
     expect(canvasView).toContain(
       "nodeIntersectsSelectionRect: canvasNodeIntersectsSelectionRect",
     );
@@ -11769,7 +11822,7 @@ describe("frontend architecture boundaries", () => {
     expect(selectionSurface).toContain("isUploadNode,");
     expect(selectionSurface).not.toContain("CANVAS_NODE_TYPES");
     expect(canvasView).toContain("isUploadNode,");
-    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(CANVAS_SHELL_INTERNAL);
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSync");
     expect(canvasView).not.toContain("selectedNodeIds.length === 1");
@@ -15301,7 +15354,7 @@ describe("frontend architecture boundaries", () => {
     expect(canvasView).toContain(
       "nodeIntersectsSelectionRect: canvasNodeIntersectsSelectionRect",
     );
-    expect(canvasView).toContain("@/modules/creative_canvas/public");
+    expect(canvasView).toContain(CANVAS_SHELL_INTERNAL);
     expect(canvasView).not.toContain("./hooks/useCanvasSelectionSurfaceController");
     expect(canvasView).not.toContain("./hooks/useCanvasMarqueeSelection");
     expect(canvasView).not.toContain("marqueeSelectionRef");
@@ -24634,7 +24687,7 @@ describe("frontend architecture boundaries", () => {
     expect(new Set(importSpecifiers(viewPath))).toEqual(
       new Set([
         "lucide-react",
-        "@/components/shadcn/dropdown-menu",
+        "@/components/ui/dropdown-menu",
         "@/components/ui",
         "@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController",
       ]),
@@ -26346,7 +26399,7 @@ describe("frontend architecture boundaries", () => {
     expect(historyAdapterSource).toContain(
       "extractCanvasAssets(nodes, resolveMediaUrl)",
     );
-    expect(historyAdapterSource).toContain("@/modules/creative_canvas/public");
+    expect(historyAdapterSource).toContain(CANVAS_SHELL_INTERNAL);
     expect(historyAdapterSource).not.toContain(
       "@/features/canvas/domain/canvasAssets",
     );
@@ -27235,7 +27288,7 @@ describe("frontend architecture boundaries", () => {
     expect(commandSurface).not.toContain("useCanvasStore");
     expect(commandSurface).not.toContain("CANVAS_NODE_TYPES");
     expect(menuView).toContain("MENU_VIEWPORT_MARGIN = 12");
-    expect(stageView).toContain("@/modules/creative_canvas/public");
+    expect(stageView).toContain(CANVAS_SHELL_INTERNAL);
     expect(stageView).not.toContain("./CanvasContextMenu");
     expect(importSpecifiers(resolve(moduleRoot, "public.ts"))).toEqual(
       expect.arrayContaining([
@@ -28922,7 +28975,7 @@ describe("frontend architecture boundaries", () => {
       ) {
         expect(source).toContain("./VideoUploadActionRail");
       } else {
-        expect(source).toContain("@/modules/creative_canvas/public");
+        expect(source).toContain(CANVAS_SHELL_INTERNAL);
       }
       expect(source).not.toContain("@/features/canvas/ui/NodeSideActionRail");
       expect(source).not.toContain(
@@ -30524,6 +30577,7 @@ describe("frontend architecture boundaries", () => {
         "react",
         "lucide-react",
         "react-i18next",
+        "@/components/ui/slider",
         "../domain/videoComposeTimelineEdits",
       ]),
     );

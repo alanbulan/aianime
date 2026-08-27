@@ -108,6 +108,27 @@ def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
         ]
 
 
+def test_single_sketch_plan_preserves_storyboard_order_across_repeated_scenes():
+    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+        sketch_scene_grid_split,
+    )
+
+    beats = [
+        {"beat_number": 1, "scene_ref": {"scene_id": "A"}},
+        {"beat_number": 2, "scene_ref": {"scene_id": "B"}},
+        {"beat_number": 3, "scene_ref": {"scene_id": "A"}},
+    ]
+
+    plan = sketch_scene_grid_split(beats)
+
+    assert [entry["beat_numbers"] for entry in plan] == [[1], [2], [3]]
+    assert [(entry["rows"], entry["cols"]) for entry in plan] == [
+        (1, 1),
+        (1, 1),
+        (1, 1),
+    ]
+
+
 @pytest.mark.asyncio
 async def test_sqlite_manual_shot_fields_roundtrip_and_sort(tmp_path):
     from ai_anime.modules.narrative_planning.public import NovelVisualBeat

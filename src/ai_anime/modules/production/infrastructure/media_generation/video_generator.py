@@ -8,7 +8,6 @@ import base64
 import hashlib
 import json
 import logging
-import math
 import mimetypes
 import os
 import re
@@ -23,7 +22,16 @@ from urllib.parse import quote, urlparse
 
 import aiohttp
 
-from ai_anime.modules.model_usage.public import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import (
+    is_insufficient_credits_error,
+    runtime_model_capability,
+)
+from ai_anime.modules.production.domain.video_model import (
+    SEEDANCE2_DEFAULT_MIN_DURATION,
+    is_seedance2_model,
+    normalize_video_generation_duration,
+    video_output_size,
+)
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
 from ai_anime.modules.task_execution.public import run_project_subprocess
 from ai_anime.modules.model_usage.public import (
@@ -280,29 +288,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
 
     @staticmethod
     def _size(aspect_ratio: str, resolution: str) -> str:
-        ratio = str(aspect_ratio or "16:9").strip()
-        quality = str(resolution or "720p").strip().lower()
-        long_edge = 1920 if "1080" in quality else 1280
-        short_edge = 1080 if long_edge == 1920 else 720
-        try:
-            ratio_width, ratio_height = (
-                int(part) for part in ratio.split(":", 1)
-            )
-        except (TypeError, ValueError):
-            ratio_width, ratio_height = 16, 9
-        if ratio_width <= 0 or ratio_height <= 0:
-            ratio_width, ratio_height = 16, 9
-        if ratio_width == ratio_height:
-            return f"{short_edge}x{short_edge}"
-        if ratio_width > ratio_height:
-            width = long_edge
-            height = round(width * ratio_height / ratio_width)
-        else:
-            height = long_edge
-            width = round(height * ratio_width / ratio_height)
-        width += width % 2
-        height += height % 2
-        return f"{width}x{height}"
+        return video_output_size(aspect_ratio, resolution)
 
     @staticmethod
     def _form_value(value: object) -> str:
@@ -378,8 +364,32 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                 if key != "seedance2_config"
             }
         )
-        duration = _seedance2_duration_from_config(config, duration)
-        duration_seconds = max(1, int(math.ceil(float(duration))))
+        configured_duration = _seedance2_duration_from_config(config, duration)
+        capability = runtime_model_capability(self.model)
+        uses_seedance2 = is_seedance2_model(
+            self.model,
+            getattr(capability, "video_profile", None),
+        )
+        minimum_duration = getattr(
+            capability,
+            "video_generation_min_seconds",
+            None,
+        )
+        if uses_seedance2:
+            minimum_duration = max(
+                float(minimum_duration or 0),
+                SEEDANCE2_DEFAULT_MIN_DURATION,
+            )
+        duration_seconds = normalize_video_generation_duration(
+            configured_duration,
+            duration,
+            minimum_seconds=minimum_duration,
+            maximum_seconds=getattr(
+                capability,
+                "video_generation_max_seconds",
+                None,
+            ),
+        )
         resolution = str(config.get("resolution") or self.resolution).strip()
         ratio = str(config.get("ratio") or aspect_ratio or "16:9").strip()
 

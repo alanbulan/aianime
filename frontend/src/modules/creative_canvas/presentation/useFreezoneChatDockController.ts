@@ -46,7 +46,6 @@ export function useFreezoneChatDockController({
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [shouldRenderPanel, setShouldRenderPanel] = useState(open);
   const [panelVisible, setPanelVisible] = useState(open);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const suppressClickRef = useRef(false);
   const [motionActive, setMotionActive] = useState(false);
@@ -173,20 +172,12 @@ export function useFreezoneChatDockController({
     onOpenChange(true);
   }, [onOpenChange]);
 
-  const playLauncherMotion = useCallback(() => {
-    const video = videoRef.current;
+  const startLauncherMotion = useCallback(() => {
     setMotionActive(true);
-    if (!video) return;
-    video.currentTime = 0;
-    void video.play().catch(() => undefined);
   }, []);
 
   const stopLauncherMotion = useCallback(() => {
-    const video = videoRef.current;
     setMotionActive(false);
-    if (!video) return;
-    video.pause();
-    video.currentTime = 0;
   }, []);
 
   const setOpen = useCallback(
@@ -202,14 +193,13 @@ export function useFreezoneChatDockController({
     setOpen,
     close,
     launcher: {
-      videoRef,
       buttonRef,
       motionActive,
       entered,
       position,
       onPointerDown: handleLauncherPointerDown,
       onClick: handleLauncherClick,
-      onMotionStart: playLauncherMotion,
+      onMotionStart: startLauncherMotion,
       onMotionEnd: stopLauncherMotion,
     },
   };

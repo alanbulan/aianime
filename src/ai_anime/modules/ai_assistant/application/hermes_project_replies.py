@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application.chat_events import (
+    emit_chat_event,
     emit_chat_event_best_effort,
 )
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
@@ -180,7 +181,7 @@ class HermesProjectReplies:
                 current_project=project or None,
             ):
                 if event.type == "thread_started":
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "thread_started",
@@ -197,7 +198,7 @@ class HermesProjectReplies:
                         prompt,
                         suppress_partial_replay=True,
                     )
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "assistant_delta",
@@ -229,7 +230,7 @@ class HermesProjectReplies:
                                 ("\n\n" if assistant_text.strip() else "")
                                 + mapped_chat_error,
                             )
-                            await emit_chat_event_best_effort(
+                            await emit_chat_event(
                                 on_event,
                                 {
                                     "type": "assistant_delta",
@@ -299,7 +300,7 @@ class HermesProjectReplies:
                         tool_phase = getattr(event, "tool_phase", None)
                         tool_input = getattr(event, "tool_input", None)
                         tool_output = getattr(event, "tool_output", None)
-                        await emit_chat_event_best_effort(
+                        await emit_chat_event(
                             on_event,
                             {
                                 "type": "tool_update",

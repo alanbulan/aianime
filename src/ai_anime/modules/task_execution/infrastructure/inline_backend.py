@@ -34,7 +34,10 @@ from ai_anime.modules.project_workspace.public import require_project_home_node
 from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     ACTIVE_PROJECT_TASK_STATUSES,
 )
-from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import (
+    get_current_project_task_id,
+    get_task_manager,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -109,11 +112,15 @@ class InlineTaskBackend:
             "project_id": ctx.project_id,
             **display_metadata_for_task(task_type, payload),
         }
+        parent_task_id = get_current_project_task_id()
+        if parent_task_id:
+            metadata["parent_task_id"] = parent_task_id
         project_lane_limit = project_lane_effective_active_limit(
             lane_name,
             eligible_user_count=1,
         )
-        state, reserved = manager.reserve_task_for_project(
+        state, reserved = await asyncio.to_thread(
+            manager.reserve_task_for_project,
             ctx,
             task_type,
             episode,
@@ -132,7 +139,8 @@ class InlineTaskBackend:
                 celery_id=None,
             )
 
-        manager.update_progress_for_project(
+        await asyncio.to_thread(
+            manager.update_progress_for_project,
             ctx,
             task_type,
             episode,
@@ -157,7 +165,7 @@ class InlineTaskBackend:
         billing_metadata = payload.get("billing")
         if isinstance(billing_metadata, dict) and billing_metadata:
             envelope["billing_metadata"] = dict(billing_metadata)
-        self._submit_lane_job(
+        await self._submit_lane_job(
             _InlineLaneJob(
                 envelope=envelope,
                 ctx=ctx,
@@ -178,13 +186,14 @@ class InlineTaskBackend:
             for name, lane in sorted(self._lanes.items())
         }
 
-    def _submit_lane_job(self, job: _InlineLaneJob) -> None:
+    async def _submit_lane_job(self, job: _InlineLaneJob) -> None:
         lane = self._lanes[normalize_queue_kind(job.envelope.get("queue_kind"))]
         if lane.active < lane.concurrency:
             self._start_lane_job(lane, job)
             return
         if len(lane.queued) >= lane.queue_limit:
-            job.manager.fail_task_for_project(
+            await asyncio.to_thread(
+                job.manager.fail_task_for_project,
                 job.ctx,
                 str(job.envelope["task_type"]),
                 int(job.envelope.get("episode") or 0),
@@ -246,7 +255,7 @@ class InlineTaskBackend:
         job: _InlineLaneJob,
     ) -> None:
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(
+        execution = loop.run_in_executor(
             lane.executor,
             partial(
                 self._execute_project_task,
@@ -257,6 +266,14 @@ class InlineTaskBackend:
                 metadata=job.metadata,
             ),
         )
+        try:
+            await asyncio.shield(execution)
+        except asyncio.CancelledError:
+            # Cancelling the asyncio wrapper cannot stop a running worker
+            # thread. Keep the lane occupied until that thread has actually
+            # returned, otherwise another job can exceed the lane limit.
+            await asyncio.shield(execution)
+            raise
 
     def _on_background_task_done(
         self,
@@ -268,14 +285,14 @@ class InlineTaskBackend:
         lane = self._lanes[lane_name]
         lane.active = max(lane.active - 1, 0)
         if task.cancelled():
-            self._settle_escaped_task(job, "任务执行器被取消")
+            self._schedule_escaped_task_settlement(job, "任务执行器被取消")
             self._drain_lane(lane_name)
             return
         try:
             exc = task.exception()
         except Exception:
             logger.exception("Inline project task background runner failed")
-            self._settle_escaped_task(job, "任务执行器状态不可读")
+            self._schedule_escaped_task_settlement(job, "任务执行器状态不可读")
             self._drain_lane(lane_name)
             return
         if exc is not None:
@@ -283,8 +300,26 @@ class InlineTaskBackend:
                 "Inline project task background runner failed",
                 exc_info=(type(exc), exc, exc.__traceback__),
             )
-            self._settle_escaped_task(job, f"任务执行器异常退出: {exc}")
+            self._schedule_escaped_task_settlement(job, f"任务执行器异常退出: {exc}")
         self._drain_lane(lane_name)
+
+    def _schedule_escaped_task_settlement(
+        self,
+        job: _InlineLaneJob,
+        error: str,
+    ) -> None:
+        task = asyncio.create_task(asyncio.to_thread(self._settle_escaped_task, job, error))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._on_settlement_done)
+
+    def _on_settlement_done(self, task: asyncio.Task) -> None:
+        self._background_tasks.discard(task)
+        if task.cancelled():
+            return
+        try:
+            task.result()
+        except Exception:
+            logger.exception("Inline project task failure settlement escaped")
 
     def _settle_escaped_task(self, job: _InlineLaneJob, error: str) -> None:
         """Fail a task whose runner died outside the runner's own guard.
@@ -344,7 +379,8 @@ class InlineTaskBackend:
             scope=task_state.scope,
         )
         self._remove_queued_task(task_state.task_id)
-        get_task_manager().update_progress_for_project(
+        await asyncio.to_thread(
+            get_task_manager().update_progress_for_project,
             ctx,
             task_state.task_type,
             task_state.episode,

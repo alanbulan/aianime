@@ -90,9 +90,9 @@ describe("VideoConfigChip", () => {
     expect(onChange).toHaveBeenCalledWith({ durationSec: 15 });
     expect(durationInput).toHaveValue(15);
 
-    fireEvent.change(screen.getByRole("slider"), { target: { value: "6" } });
-    expect(normalizeDuration).toHaveBeenCalledWith(6);
-    expect(onChange).toHaveBeenLastCalledWith({ durationSec: 6 });
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowLeft" });
+    expect(normalizeDuration).toHaveBeenCalledWith(7);
+    expect(onChange).toHaveBeenLastCalledWith({ durationSec: 7 });
   });
 
   it("syncs duration props and closes on an outside pointer", () => {

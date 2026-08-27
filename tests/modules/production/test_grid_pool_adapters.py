@@ -69,6 +69,13 @@ def _context(tmp_path: Path) -> ProjectContext:
     )
 
 
+def _configure_state_roots(monkeypatch, tmp_path: Path) -> None:
+    from ai_anime.shared.utils import state_index_files
+
+    monkeypatch.setattr(state_index_files, "OUTPUT_DIR", str(tmp_path / "output"))
+    monkeypatch.setattr(state_index_files, "STATE_DIR", str(tmp_path / "state"))
+
+
 @pytest.mark.asyncio
 async def test_list_pool_returns_none_without_opening_store(
     monkeypatch,
@@ -733,3 +740,85 @@ def test_rebuild_pool_uses_episode_directory_and_projects_counts(
         "image_count": 2,
         "mode_count": 2,
     }
+
+
+def test_pool_delete_removes_inactive_files_and_preserves_model_source(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _configure_state_roots(monkeypatch, tmp_path)
+    context = _context(tmp_path)
+    grids_dir = Path(context.output_dir) / "grids" / "ep002"
+    (grids_dir / "render").mkdir(parents=True)
+    (grids_dir / "custom").mkdir(parents=True)
+    for relative_path, content in (
+        ("render/first.png", b"first"),
+        ("render/second.png", b"second"),
+        ("custom/grid.png", b"grid"),
+        ("custom/prompt.txt", b"prompt"),
+    ):
+        (grids_dir / relative_path).write_bytes(content)
+    selector = "byok:provider-1:Seedream-5.0-lite"
+    pool = PoolIndex(
+        episode=2,
+        modes={"2x1": {"total_cells": 2}},
+        grids=[
+            GridEntry(
+                type="render",
+                mode_key="2x1",
+                beat_nums=[1, 2],
+                grid_path="custom/grid.png",
+                prompt_path="custom/prompt.txt",
+                model="Seedream-5.0-lite",
+                model_selector=selector,
+            )
+        ],
+        images=[
+            PoolImage(
+                id="first",
+                mode="2x1",
+                grid_index=1,
+                cell_index=1,
+                grid_path="custom/grid.png",
+                cell_path="render/first.png",
+                row=0,
+                col=0,
+                original_beat=1,
+                type="render",
+                model="Seedream-5.0-lite",
+                model_selector=selector,
+            ),
+            PoolImage(
+                id="second",
+                mode="2x1",
+                grid_index=1,
+                cell_index=2,
+                grid_path="custom/grid.png",
+                cell_path="render/second.png",
+                row=0,
+                col=1,
+                original_beat=2,
+                type="render",
+                model="Seedream-5.0-lite",
+                model_selector=selector,
+            ),
+        ],
+        beat_assignments={"2": "second"},
+    )
+    pool_indexer.save_pool_index(pool, grids_dir)
+
+    assert pool_indexer.delete_cell_from_pool(grids_dir, "second") == "assigned"
+    assert pool_indexer.delete_cell_from_pool(grids_dir, "first") == "deleted"
+    assert not (grids_dir / "render" / "first.png").exists()
+    assert (grids_dir / "custom" / "grid.png").exists()
+
+    reloaded = pool_indexer.load_pool_index(grids_dir)
+    assert reloaded is not None
+    assert reloaded.images[0].model_selector == selector
+    reloaded.beat_assignments.clear()
+    pool_indexer.save_pool_index(reloaded, grids_dir)
+
+    assert pool_indexer.delete_cell_from_pool(grids_dir, "second") == "deleted"
+    assert not (grids_dir / "render" / "second.png").exists()
+    assert not (grids_dir / "custom" / "grid.png").exists()
+    assert not (grids_dir / "custom" / "prompt.txt").exists()

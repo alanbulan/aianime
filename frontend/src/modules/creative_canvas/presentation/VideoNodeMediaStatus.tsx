@@ -2,6 +2,8 @@
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { UnifiedVideoPlayer } from "@/components/media/UnifiedVideoPlayer";
+
 import { NodeGenerationOverlay } from "./NodeGenerationOverlay";
 import { RegenerateButton } from "./RegenerateButton";
 
@@ -29,12 +31,11 @@ export function VideoGenerationHistoryPreview({
 }: VideoGenerationHistoryPreviewProps) {
   return (
     <div className="relative h-full w-full">
-      <video
+      <UnifiedVideoPlayer
         src={videoUrl}
         className="h-full w-full object-contain"
-        controls
-        playsInline
         preload="metadata"
+        compact
         onClick={(event) => event.stopPropagation()}
       />
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-2">

@@ -154,6 +154,7 @@ describe("sketch generation query", () => {
     result.current.mutate({
       aspectRatio: "16:9",
       imageGenerationSelection: "openrouter_nanobanana2",
+      replaceExisting: true,
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
@@ -161,6 +162,7 @@ describe("sketch generation query", () => {
       grid_index: 0,
       aspect_ratio: "16:9",
       image_generation_selection: "openrouter_nanobanana2",
+      replace_existing: true,
     });
   });
 });

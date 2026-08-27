@@ -629,6 +629,66 @@ class TaskStateManager:
         ).fetchone()
         return int(row[0]) if row else 0
 
+    def _project_task_for_mutation(
+        self,
+        conn: sqlite3.Connection,
+        ctx: ProjectContext,
+        task_type: str,
+        episode: int,
+        *,
+        beat_num: int | None,
+        scope: str | None,
+        metadata: dict | None,
+        initial_status: str,
+        queue_kind: str | None,
+        expected_task_id: str | None,
+    ) -> tuple[str, TaskState | None]:
+        """Load or initialize one project task while holding a write lock."""
+
+        task_key = self._project_key(
+            task_type,
+            ctx.project_id,
+            episode,
+            beat_num=beat_num,
+            scope=scope,
+        )
+        row = conn.execute(
+            "SELECT * FROM task_states WHERE task_key = ? AND project_id = ?",
+            (task_key, ctx.project_id),
+        ).fetchone()
+        if row is not None and self._is_expired(row["expires_at"]):
+            conn.execute(
+                "DELETE FROM task_states WHERE task_key = ? AND project_id = ?",
+                (task_key, ctx.project_id),
+            )
+            row = None
+        if row is not None:
+            return task_key, self._row_to_state(row)
+        if expected_task_id:
+            return task_key, None
+
+        now = utc_now_iso()
+        normalized_queue_kind = _queue_kind_from_metadata(metadata, queue_kind)
+        return task_key, TaskState(
+            task_id=str(uuid.uuid4()),
+            task_type=task_type,
+            queue_kind=normalized_queue_kind,
+            project_id=ctx.project_id,
+            requester_user_id=ctx.requester_user_id,
+            owner_username=ctx.owner_username,
+            project_name=ctx.project_name,
+            username=ctx.requester_username,
+            project=ctx.project_name,
+            episode=episode,
+            beat_num=beat_num,
+            scope=scope,
+            status=initial_status,
+            result=self._merge_metadata_into_result(None, metadata),
+            metadata=metadata,
+            created_at=now,
+            updated_at=now,
+        )
+
     def update_progress(
         self,
         task_type: str,
@@ -716,9 +776,21 @@ class TaskStateManager:
         queue_kind: str | None = None,
     ):
         expected_task_id = expected_task_id or _CURRENT_PROJECT_TASK_ID.get()
-        state = self.get_task_for_project(ctx, task_type, episode, beat_num, scope)
-        if not state:
-            if expected_task_id:
+        with self._connect_context(ctx) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            task_key, state = self._project_task_for_mutation(
+                conn,
+                ctx,
+                task_type,
+                episode,
+                beat_num=beat_num,
+                scope=scope,
+                metadata=metadata,
+                initial_status="queued",
+                queue_kind=queue_kind,
+                expected_task_id=expected_task_id,
+            )
+            if state is None:
                 logger.warning(
                     "Ignore stale project task update for missing row: "
                     "%s/%s/%s expected_task_id=%s scope=%s",
@@ -729,59 +801,58 @@ class TaskStateManager:
                     scope,
                 )
                 return
-            state = self.create_task_for_project(
-                ctx,
-                task_type,
-                episode,
-                beat_num,
-                scope,
-                metadata=metadata,
-                status=status,
-                queue_kind=_queue_kind_from_metadata(metadata, queue_kind),
-            )
-        if expected_task_id and state.task_id != expected_task_id:
-            logger.warning(
-                "Ignore stale project task update: %s/%s/%s expected_task_id=%s current_task_id=%s",
-                task_type,
-                ctx.project_id,
-                episode,
-                expected_task_id,
-                state.task_id,
-            )
-            return
-        if state.status in TERMINAL_TASK_STATUSES:
-            logger.warning(
-                "Ignore progress update for terminal project task: %s/%s/%s status=%s",
-                task_type,
-                ctx.project_id,
-                episode,
-                state.status,
-            )
-            return
+            if expected_task_id and state.task_id != expected_task_id:
+                logger.warning(
+                    "Ignore stale project task update: "
+                    "%s/%s/%s expected_task_id=%s current_task_id=%s",
+                    task_type,
+                    ctx.project_id,
+                    episode,
+                    expected_task_id,
+                    state.task_id,
+                )
+                return
+            if state.status in TERMINAL_TASK_STATUSES:
+                logger.warning(
+                    "Ignore progress update for terminal project task: "
+                    "%s/%s/%s status=%s",
+                    task_type,
+                    ctx.project_id,
+                    episode,
+                    state.status,
+                )
+                return
 
-        previous_current_task = state.current_task
-        state.status = status
-        if status in {"completed", "failed", "cancelled"} and not state.completed_at:
-            state.completed_at = utc_now_iso()
-        if progress is not None:
-            state.progress = progress
-        if current_task is not None:
-            state.current_task = current_task
-        progress_logs = list(logs or [])
-        if (
-            current_task
-            and current_task != previous_current_task
-            and current_task not in progress_logs
-        ):
-            progress_logs.append(current_task)
-        if progress_logs:
-            state.logs = self._merge_logs(state.logs, progress_logs, self.MAX_LOGS)
-        if metadata is not None:
-            state.metadata = self._merge_task_metadata(state.metadata, metadata)
-            state.result = self._merge_metadata_into_result(state.result, state.metadata)
-        state.updated_at = utc_now_iso()
-        ttl = self.COMPLETED_TTL if status in TERMINAL_TASK_STATUSES else None
-        self._save_for_context(ctx, state, ttl=ttl)
+            previous_current_task = state.current_task
+            state.status = status
+            if status in TERMINAL_TASK_STATUSES and not state.completed_at:
+                state.completed_at = utc_now_iso()
+            if progress is not None:
+                state.progress = progress
+            if current_task is not None:
+                state.current_task = current_task
+            progress_logs = list(logs or [])
+            if (
+                current_task
+                and current_task != previous_current_task
+                and current_task not in progress_logs
+            ):
+                progress_logs.append(current_task)
+            if progress_logs:
+                state.logs = self._merge_logs(
+                    state.logs,
+                    progress_logs,
+                    self.MAX_LOGS,
+                )
+            if metadata is not None:
+                state.metadata = self._merge_task_metadata(state.metadata, metadata)
+                state.result = self._merge_metadata_into_result(
+                    state.result,
+                    state.metadata,
+                )
+            state.updated_at = utc_now_iso()
+            ttl = self.COMPLETED_TTL if status in TERMINAL_TASK_STATUSES else None
+            self._save_on_connection(conn, task_key, state, compute_expiry(ttl))
 
     def complete_task(
         self,
@@ -860,9 +931,21 @@ class TaskStateManager:
         queue_kind: str | None = None,
     ):
         expected_task_id = expected_task_id or _CURRENT_PROJECT_TASK_ID.get()
-        state = self.get_task_for_project(ctx, task_type, episode, beat_num, scope)
-        if not state:
-            if expected_task_id:
+        with self._connect_context(ctx) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            task_key, state = self._project_task_for_mutation(
+                conn,
+                ctx,
+                task_type,
+                episode,
+                beat_num=beat_num,
+                scope=scope,
+                metadata=metadata,
+                initial_status="queued",
+                queue_kind=queue_kind,
+                expected_task_id=expected_task_id,
+            )
+            if state is None:
                 logger.warning(
                     "Ignore stale project task complete for missing row: "
                     "%s/%s/%s expected_task_id=%s scope=%s",
@@ -873,48 +956,46 @@ class TaskStateManager:
                     scope,
                 )
                 return
-            state = self.create_task_for_project(
-                ctx,
-                task_type,
-                episode,
-                beat_num,
-                scope,
-                metadata=metadata,
-                queue_kind=_queue_kind_from_metadata(metadata, queue_kind),
+            if expected_task_id and state.task_id != expected_task_id:
+                logger.warning(
+                    "Ignore stale project task complete: "
+                    "%s/%s/%s expected_task_id=%s current_task_id=%s",
+                    task_type,
+                    ctx.project_id,
+                    episode,
+                    expected_task_id,
+                    state.task_id,
+                )
+                return
+            if state.status in TERMINAL_TASK_STATUSES:
+                logger.warning(
+                    "Ignore complete update for terminal project task: "
+                    "%s/%s/%s status=%s",
+                    task_type,
+                    ctx.project_id,
+                    episode,
+                    state.status,
+                )
+                return
+            state.status = "completed"
+            state.progress = 1.0 if progress is None else progress
+            if current_task is not None:
+                state.current_task = current_task
+            if logs:
+                state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
+            merged_metadata = self._merge_task_metadata(state.metadata, metadata)
+            state.result = self._merge_metadata_into_result(result, merged_metadata)
+            state.error = None
+            if merged_metadata is not None:
+                state.metadata = merged_metadata
+            state.completed_at = utc_now_iso()
+            state.updated_at = utc_now_iso()
+            self._save_on_connection(
+                conn,
+                task_key,
+                state,
+                compute_expiry(self.COMPLETED_TTL),
             )
-        if expected_task_id and state.task_id != expected_task_id:
-            logger.warning(
-                "Ignore stale project task complete: "
-                "%s/%s/%s expected_task_id=%s current_task_id=%s",
-                task_type,
-                ctx.project_id,
-                episode,
-                expected_task_id,
-                state.task_id,
-            )
-            return
-        if state.status == "cancelled":
-            logger.warning(
-                "Ignore complete update for cancelled project task: %s/%s/%s",
-                task_type,
-                ctx.project_id,
-                episode,
-            )
-            return
-        state.status = "completed"
-        state.progress = 1.0 if progress is None else progress
-        if current_task is not None:
-            state.current_task = current_task
-        if logs:
-            state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
-        merged_metadata = self._merge_task_metadata(state.metadata, metadata)
-        state.result = self._merge_metadata_into_result(result, merged_metadata)
-        state.error = None
-        if merged_metadata is not None:
-            state.metadata = merged_metadata
-        state.completed_at = utc_now_iso()
-        state.updated_at = utc_now_iso()
-        self._save_for_context(ctx, state, ttl=self.COMPLETED_TTL)
         logger.info("Project task completed: %s/%s/%s", task_type, ctx.project_id, episode)
 
     def fail_task(
@@ -985,9 +1066,21 @@ class TaskStateManager:
         queue_kind: str | None = None,
     ):
         expected_task_id = expected_task_id or _CURRENT_PROJECT_TASK_ID.get()
-        state = self.get_task_for_project(ctx, task_type, episode, beat_num, scope)
-        if not state:
-            if expected_task_id:
+        with self._connect_context(ctx) as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            task_key, state = self._project_task_for_mutation(
+                conn,
+                ctx,
+                task_type,
+                episode,
+                beat_num=beat_num,
+                scope=scope,
+                metadata=metadata,
+                initial_status="queued",
+                queue_kind=queue_kind,
+                expected_task_id=expected_task_id,
+            )
+            if state is None:
                 logger.warning(
                     "Ignore stale project task fail for missing row: "
                     "%s/%s/%s expected_task_id=%s scope=%s",
@@ -998,48 +1091,50 @@ class TaskStateManager:
                     scope,
                 )
                 return
-            state = self.create_task_for_project(
-                ctx,
-                task_type,
-                episode,
-                beat_num,
-                scope,
-                metadata=metadata,
-                queue_kind=_queue_kind_from_metadata(metadata, queue_kind),
+            if expected_task_id and state.task_id != expected_task_id:
+                logger.warning(
+                    "Ignore stale project task fail: "
+                    "%s/%s/%s expected_task_id=%s current_task_id=%s",
+                    task_type,
+                    ctx.project_id,
+                    episode,
+                    expected_task_id,
+                    state.task_id,
+                )
+                return
+            if state.status in TERMINAL_TASK_STATUSES:
+                logger.warning(
+                    "Ignore fail update for terminal project task: "
+                    "%s/%s/%s status=%s",
+                    task_type,
+                    ctx.project_id,
+                    episode,
+                    state.status,
+                )
+                return
+            state.status = "failed"
+            if error is not None:
+                state.error = error
+            if progress is not None:
+                state.progress = progress
+            if current_task is not None:
+                state.current_task = current_task
+            if logs:
+                state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
+            if metadata is not None:
+                state.metadata = self._merge_task_metadata(state.metadata, metadata)
+                state.result = self._merge_metadata_into_result(
+                    state.result,
+                    state.metadata,
+                )
+            state.completed_at = utc_now_iso()
+            state.updated_at = utc_now_iso()
+            self._save_on_connection(
+                conn,
+                task_key,
+                state,
+                compute_expiry(self.COMPLETED_TTL),
             )
-        if expected_task_id and state.task_id != expected_task_id:
-            logger.warning(
-                "Ignore stale project task fail: %s/%s/%s expected_task_id=%s current_task_id=%s",
-                task_type,
-                ctx.project_id,
-                episode,
-                expected_task_id,
-                state.task_id,
-            )
-            return
-        if state.status == "cancelled":
-            logger.warning(
-                "Ignore fail update for cancelled project task: %s/%s/%s",
-                task_type,
-                ctx.project_id,
-                episode,
-            )
-            return
-        state.status = "failed"
-        if error is not None:
-            state.error = error
-        if progress is not None:
-            state.progress = progress
-        if current_task is not None:
-            state.current_task = current_task
-        if logs:
-            state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
-        if metadata is not None:
-            state.metadata = self._merge_task_metadata(state.metadata, metadata)
-            state.result = self._merge_metadata_into_result(state.result, state.metadata)
-        state.completed_at = utc_now_iso()
-        state.updated_at = utc_now_iso()
-        self._save_for_context(ctx, state, ttl=self.COMPLETED_TTL)
         logger.warning(
             "Project task failed: %s/%s/%s: %s",
             task_type,

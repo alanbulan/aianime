@@ -171,7 +171,7 @@ vi.mock("@/modules/creative_canvas/presentation/canvas-shell/ui/NodeToolDialog",
   NodeToolDialog: () => null,
 }));
 
-vi.mock("@/modules/creative_canvas/public", async (importOriginal) => ({
+vi.mock("@/modules/creative_canvas/presentation/canvas-shell/internal", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   loadCanvasSkillRegistry: skillCatalogMocks.loadCanvasSkillRegistry,
   CanvasContextMenu: () => null,

@@ -13,7 +13,7 @@ import {
 
 import { CreditCostPill } from "@/components/credit-visual";
 import { UiTextArea } from "@/components/ui";
-import { Slider } from "@/components/shadcn/slider";
+import { Slider } from "@/components/ui/slider";
 import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import type { CanvasRelightKeyLightDirection } from "../domain/relight";
 import { useCanvasImageModels } from "../generationCatalogComposition";

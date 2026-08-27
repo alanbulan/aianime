@@ -31,6 +31,7 @@ import {
   X,
 } from "lucide-react";
 
+import { Slider } from "@/components/ui/slider";
 import {
   VideoComposeSpeedPopover,
   VideoComposeToolButton,
@@ -541,16 +542,15 @@ export function VideoComposeModalView({
             disabled={toolbar.pxPerSec <= toolbar.minPxPerSec}
             onClick={toolbar.onZoomOut}
           />
-          <input
-            type="range"
+          <Slider
             min={toolbar.minPxPerSec}
             max={toolbar.maxPxPerSec}
             step={1}
-            value={toolbar.pxPerSec}
-            onChange={(event) =>
-              toolbar.onZoomChange(Number(event.target.value))
-            }
-            className="h-1 w-24 cursor-pointer accent-primary"
+            value={[toolbar.pxPerSec]}
+            onValueChange={([value]) => toolbar.onZoomChange(value ?? 0)}
+            className="w-24"
+            trackClassName="h-1"
+            thumbClassName="size-3"
             aria-label={t("videoCompose.zoom")}
           />
           <VideoComposeToolButton

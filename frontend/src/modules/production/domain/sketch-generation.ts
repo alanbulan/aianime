@@ -7,6 +7,7 @@ export interface GenerateSketchesCommand {
   sketchSceneGrouping?: boolean;
   aspectRatio?: SketchAspectRatio;
   imageGenerationSelection?: string;
+  replaceExisting?: boolean;
 }
 
 export interface RenderGenerationSettings {

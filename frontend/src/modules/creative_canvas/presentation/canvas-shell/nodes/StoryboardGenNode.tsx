@@ -6,7 +6,7 @@ import { useStoryboardGenNodeController } from '@/modules/creative_canvas/canvas
 import {
   StoryboardGenNodeView,
   type StoryboardGenNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type StoryboardGenNodeProps = NodeProps & {
   id: string;

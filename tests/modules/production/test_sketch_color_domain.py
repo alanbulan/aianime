@@ -5,7 +5,6 @@ from ai_anime.modules.production.public import (
     PROP_MARKER_PALETTE,
     assign_identity_sketch_colors,
     global_prop_marker_colors,
-    marker_color_change_requires_sketch_clean,
 )
 
 
@@ -107,43 +106,3 @@ def test_prop_marker_colors_preserve_existing_when_prop_set_changes():
         assign_missing=True,
     )
     assert colors_with_old["旧道具"] == "#0D47A1 ROYAL BLUE"
-
-
-def test_incremental_color_assignment_does_not_force_full_sketch_clean():
-    assert (
-        marker_color_change_requires_sketch_clean(
-            {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"},
-            {
-                "Hero_A": "#FF00FF FLUORESCENT MAGENTA",
-                "Hero_B": "#00FFFF FLUORESCENT CYAN",
-            },
-        )
-        is False
-    )
-
-
-def test_first_prop_after_existing_identity_does_not_force_full_sketch_clean():
-    previous = {"identity:Hero_A": "#FF00FF FLUORESCENT MAGENTA"}
-    current = {
-        "identity:Hero_A": "#FF00FF FLUORESCENT MAGENTA",
-        "prop:账单": "#0D47A1 ROYAL BLUE",
-    }
-
-    assert marker_color_change_requires_sketch_clean(previous, current) is False
-
-
-def test_initial_or_changed_color_assignment_forces_full_sketch_clean():
-    assert (
-        marker_color_change_requires_sketch_clean(
-            {},
-            {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"},
-        )
-        is True
-    )
-    assert (
-        marker_color_change_requires_sketch_clean(
-            {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"},
-            {"Hero_A": "#00FFFF FLUORESCENT CYAN"},
-        )
-        is True
-    )

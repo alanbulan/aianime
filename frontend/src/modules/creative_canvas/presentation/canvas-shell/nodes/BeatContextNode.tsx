@@ -6,7 +6,7 @@ import { useBeatContextNodeController } from '@/modules/creative_canvas/canvasCo
 import {
   BeatContextNodeView,
   type BeatContextNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type BeatContextNodeProps = NodeProps & {
   id: string;

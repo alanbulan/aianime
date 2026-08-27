@@ -14,7 +14,6 @@ from ai_anime.modules.production.application.image_settings import (
 from ai_anime.modules.production.application.ports import (
     ProductionRuntimePropMenuSource,
     ProductionSettingsRepository,
-    ProductionSketchWorkspace,
 )
 from ai_anime.modules.production.application.sketch_generation import (
     SKETCH_GENERATION_TASK_TYPE,
@@ -75,14 +74,12 @@ class LocalSketchGenerationPreparer:
             [Any, ProjectContext], ProductionGenerationContextUseCases
         ],
         prop_menu_source: ProductionRuntimePropMenuSource,
-        workspace: ProductionSketchWorkspace,
         grid_planner: NanoBananaSketchGridPlanner,
     ) -> None:
         self._settings = settings
         self._image_settings = image_settings
         self._generation_context_factory = generation_context_factory
         self._prop_menu_source = prop_menu_source
-        self._workspace = workspace
         self._grid_planner = grid_planner
 
     async def prepare(
@@ -134,10 +131,6 @@ class LocalSketchGenerationPreparer:
                     "未检测到颜色分配，请先调用 assign-colors 接口"
                 )
 
-            self._workspace.clear_episode_sketches(
-                context.output_dir,
-                command.episode_num,
-            )
             episode = generation_context.episode_or_none(command.episode_num)
             prop_menu = await self._prop_menu_source.for_episode(
                 store,
@@ -160,6 +153,7 @@ class LocalSketchGenerationPreparer:
                 "model": image_route.model,
                 "sketch_scene_grouping": command.sketch_scene_grouping,
                 "aspect_ratio": command.aspect_ratio,
+                "replace_existing": command.replace_existing,
                 "sketch_colors": (
                     store.get_sketch_colors(command.episode_num) or {}
                 ),

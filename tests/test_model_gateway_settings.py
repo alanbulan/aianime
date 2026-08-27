@@ -109,6 +109,9 @@ def test_internal_capability_endpoint_accepts_only_router_state(
         "modelCapabilities": [
             {
                 "modelId": "cloud/video-standard",
+                "videoProfile": "seedance2",
+                "videoGenerationMinSeconds": 4,
+                "videoGenerationMaxSeconds": 15,
                 "referenceAudioMinSeconds": 1.8,
                 "referenceAudioMaxSeconds": 15.2,
                 "referenceAudioTotalMinSeconds": 2,
@@ -147,6 +150,9 @@ def test_internal_capability_endpoint_accepts_only_router_state(
     assert "legacy" not in status_response.text
     capability = runtime_model_capability("cloud/video-standard")
     assert capability is not None
+    assert capability.video_profile == "seedance2"
+    assert capability.video_generation_min_seconds == 4
+    assert capability.video_generation_max_seconds == 15
     assert capability.reference_audio_min_seconds == 1.8
     assert capability.reference_audio_total_max_seconds == 15.2
     assert capability.reference_video_min_seconds == 3
@@ -357,6 +363,8 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
         model_capabilities=[
             {
                 "modelId": "cloud/video-standard",
+                "videoProfile": "seedance2",
+                "videoGenerationMinSeconds": 4,
                 "referenceVideoMaxSeconds": 10,
             }
         ],
@@ -372,6 +380,8 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "print(json.dumps({'loaded': loaded, 'allowsCustomModels': is_byok_allowed(), 'mode': access.mode, 'baseUrl': access.base_url, "
             "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
             "'modelAssignments': [[item.model_id, item.role] for item in access.model_assignments], "
+            "'videoProfile': capability.video_profile if capability else None, "
+            "'videoGenerationMinSeconds': capability.video_generation_min_seconds if capability else None, "
             "'referenceVideoMaxSeconds': capability.reference_video_max_seconds if capability else None, "
             "'legacyPresent': any(os.environ.get(name) for name in legacy), "
             "'stdinMarkerPresent': 'AI_ANIME_MODEL_ACCESS_STDIN' in os.environ}))",
@@ -398,6 +408,8 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             ["cloud-text", "TEXT"],
             ["byok-text", "TEXT"],
         ],
+        "videoProfile": "seedance2",
+        "videoGenerationMinSeconds": 4.0,
         "referenceVideoMaxSeconds": 10.0,
         "legacyPresent": False,
         "stdinMarkerPresent": False,

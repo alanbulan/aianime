@@ -3,6 +3,7 @@ import type { ElementType } from "react";
 import { ChevronDown, ChevronUp, Minus, Plus, Volume2, VolumeX, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Slider } from "@/components/ui/slider";
 import {
   VIDEO_COMPOSE_MAX_SPEED,
   VIDEO_COMPOSE_MIN_SPEED,
@@ -146,23 +147,17 @@ export function VideoComposeSpeedPopover({
           {t("videoCompose.speedMultiplier")}
         </div>
         <div className="flex items-center gap-3">
-          <input
-            type="range"
+          <Slider
             min={VIDEO_COMPOSE_MIN_SPEED}
             max={VIDEO_COMPOSE_MAX_SPEED}
             step={0.01}
-            value={speed}
-            onChange={(event) => setSpeed(Number(event.target.value))}
-            list="video-compose-speed-ticks"
-            className="h-1 flex-1 cursor-pointer accent-primary"
+            value={[speed]}
+            onValueChange={([value]) => setSpeed(value ?? speed)}
+            className="flex-1"
+            trackClassName="h-1"
+            thumbClassName="size-3"
+            aria-label={t("videoCompose.speedMultiplier")}
           />
-          <datalist id="video-compose-speed-ticks">
-            <option value="0.5" />
-            <option value="1" />
-            <option value="2" />
-            <option value="3" />
-            <option value="4" />
-          </datalist>
           <VideoComposeStepper
             value={`${speed.toFixed(2)}x`}
             onStep={(direction) => setSpeed(speed + direction * 0.05)}
@@ -175,14 +170,16 @@ export function VideoComposeSpeedPopover({
           {t("videoCompose.duration")}
         </div>
         <div className="flex items-center gap-3">
-          <input
-            type="range"
+          <Slider
             min={minLengthMs}
             max={maxLengthMs}
             step={10}
-            value={lengthMs}
-            onChange={(event) => setLength(Number(event.target.value))}
-            className="h-1 flex-1 cursor-pointer accent-primary"
+            value={[lengthMs]}
+            onValueChange={([value]) => setLength(value ?? lengthMs)}
+            className="flex-1"
+            trackClassName="h-1"
+            thumbClassName="size-3"
+            aria-label={t("videoCompose.duration")}
           />
           <VideoComposeStepper
             value={`${(lengthMs / 1000).toFixed(1)}s`}
@@ -241,20 +238,22 @@ export function VideoComposeVolumePopover({
             <Volume2 className="h-4 w-4" />
           )}
         </button>
-        <input
-          type="range"
+        <Slider
           min={0}
           max={1}
           step={0.01}
-          value={effectiveVolume}
+          value={[effectiveVolume]}
           onPointerDown={onGestureStart}
           onKeyDown={(event) => {
             if (!event.repeat && event.key.startsWith("Arrow")) {
               onGestureStart();
             }
           }}
-          onChange={(event) => onChange(Number(event.target.value))}
-          className="h-1 flex-1 cursor-pointer accent-primary"
+          onValueChange={([value]) => onChange(value ?? 0)}
+          className="flex-1"
+          trackClassName="h-1"
+          thumbClassName="size-3"
+          aria-label={t("videoCompose.volume")}
         />
         <span className="min-w-[40px] text-right font-mono text-xs tabular-nums text-text-dark">
           {percent}%

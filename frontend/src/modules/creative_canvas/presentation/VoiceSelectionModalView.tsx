@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 
+import { PreciseAudioPlayer } from '@/components/media/PreciseAudioPlayer';
 import {
   VOICE_SELECTION_PAGE_SIZE,
   type VoiceSelectionPage,
@@ -423,12 +424,11 @@ function VoiceRow({
         )}
       </div>
       {previewUrl && (
-        <audio
-          controls
+        <PreciseAudioPlayer
           preload="none"
           src={previewUrl}
-          aria-label={`${title} 参考音频试听`}
-          className="h-7 w-[150px] shrink-0"
+          ariaLabel={`${title} 参考音频试听`}
+          className="h-7 w-[260px] min-w-0 shrink-0"
         />
       )}
       <button

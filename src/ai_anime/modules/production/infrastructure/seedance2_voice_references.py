@@ -7,7 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.production.domain.detected_refs import real_detected_identities
+from ai_anime.modules.production.domain.detected_refs import (
+    authoritative_detected_refs_for_beat,
+    real_detected_identities,
+)
 from ai_anime.modules.project_workspace.public import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
@@ -232,6 +235,10 @@ def _identity_display_label(identity_id: str) -> str:
 
 
 def _beat_detected_identity_ids(beat: dict) -> list[str]:
+    resolved, _props = authoritative_detected_refs_for_beat(beat)
+    if real_detected_identities(resolved):
+        return real_detected_identities(resolved)
+
     raw_identities = (beat or {}).get("detected_identities")
     if raw_identities is None:
         raw_json = (beat or {}).get("detected_identities_json")

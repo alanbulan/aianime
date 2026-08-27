@@ -126,11 +126,9 @@ describe("VideoPlayerControls", () => {
     expect(video.play).toHaveBeenCalledOnce();
     expect(onParentClick).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByRole("slider"), {
-      target: { value: "18" },
-    });
-    expect(video.element.currentTime).toBe(18);
-    expect(screen.getByText("0:18")).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "End" });
+    expect(video.element.currentTime).toBe(65);
+    expect(screen.getAllByText("1:05")).toHaveLength(2);
 
     fireEvent.click(getByUiTooltip("静音"));
     expect(video.element.muted).toBe(true);

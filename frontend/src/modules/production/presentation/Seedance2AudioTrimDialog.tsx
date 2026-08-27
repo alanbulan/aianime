@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Scissors } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import {
   Dialog,
   DialogContent,
@@ -49,9 +50,7 @@ export function Seedance2AudioTrimDialog({
           <p className="text-xs leading-5 text-muted-foreground">
             {t("episode.workbench.video.seedance2AssetAudioTrimHint")}
           </p>
-          {audioSrc && (
-            <audio src={audioSrc} controls className="h-8 w-full" />
-          )}
+          {audioSrc && <PreciseAudioPlayer src={audioSrc} className="w-full" />}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">

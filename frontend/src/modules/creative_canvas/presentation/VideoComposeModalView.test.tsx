@@ -274,9 +274,7 @@ describe("VideoComposeModalView", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "videoCompose.play" }));
     fireEvent.click(screen.getByRole("button", { name: "videoCompose.snap" }));
-    fireEvent.change(screen.getByRole("slider"), {
-      target: { value: "120" },
-    });
+    fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowRight" });
     fireEvent.click(screen.getByText("track:track_video"));
 
     expect(props.toolbar.onUndo).toHaveBeenCalledOnce();
@@ -286,7 +284,7 @@ describe("VideoComposeModalView", () => {
     expect(props.toolbar.onTrimToPlayhead).toHaveBeenNthCalledWith(2, "right");
     expect(props.toolbar.onTogglePlayback).toHaveBeenCalledOnce();
     expect(props.toolbar.onSnapEnabledChange).toHaveBeenCalledWith(false);
-    expect(props.toolbar.onZoomChange).toHaveBeenCalledWith(120);
+    expect(props.toolbar.onZoomChange).toHaveBeenCalledWith(81);
     expect(props.timelineSurface.onSetClipMuted).toHaveBeenCalledWith(
       "track_video",
       "clip-a",

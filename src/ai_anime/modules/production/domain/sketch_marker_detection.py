@@ -10,6 +10,9 @@ from ai_anime.modules.production.domain.detected_refs import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
     collect_prop_marker_ids_from_beat,
+    complete_detected_refs_from_visual_description,
+    real_detected_identities,
+    real_detected_props,
 )
 
 
@@ -115,6 +118,29 @@ def classify_sketch_marker_detections(
     characters: list[Any],
     allowed_prop_ids: set[str] | list[str] | tuple[str, ...] | None = None,
 ) -> ClassifiedSketchMarkers:
+    beats_by_number = {
+        int(
+            (beat.get("beat_number") if isinstance(beat, dict) else getattr(beat, "beat_number", 0))
+            or 0
+        ): beat
+        for beat in beats or []
+    }
+    allowed_identity_ids: set[str] = set()
+    for character in characters or []:
+        character_identities = (
+            character.get("identities", [])
+            if isinstance(character, dict)
+            else getattr(character, "identities", [])
+        ) or []
+        for identity in character_identities:
+            identity_id = str(
+                identity.get("identity_id", "")
+                if isinstance(identity, dict)
+                else getattr(identity, "identity_id", "")
+            ).strip()
+            if identity_id:
+                allowed_identity_ids.add(identity_id)
+
     identities: dict[int, list[str]] = {}
     props: dict[int, list[str]] = {}
     total_identities = 0
@@ -128,6 +154,23 @@ def classify_sketch_marker_detections(
             characters,
             allowed_prop_ids=allowed_prop_ids,
         )
+        beat = beats_by_number.get(frame.beat_number, {})
+        visual_description = str(
+            beat.get("visual_description", "")
+            if isinstance(beat, dict)
+            else getattr(beat, "visual_description", "")
+        )
+        detected_identities, detected_props = (
+            complete_detected_refs_from_visual_description(
+                visual_description=visual_description,
+                detected_identities=detected_identities,
+                detected_props=detected_props,
+                allowed_identity_ids=allowed_identity_ids,
+                allowed_prop_ids=allowed_prop_ids,
+            )
+        )
+        detected_identities = real_detected_identities(detected_identities)
+        detected_props = real_detected_props(detected_props)
         total_identities += len(detected_identities)
         total_props += len(detected_props)
         identities[frame.beat_number] = detected_identities or [NO_CHARACTER_MARKER]

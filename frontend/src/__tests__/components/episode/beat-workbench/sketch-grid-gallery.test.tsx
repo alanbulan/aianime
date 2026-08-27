@@ -240,7 +240,7 @@ describe("SketchGridGallery", () => {
     } as Beat,
   ];
 
-  it("renders planned scene-grouped sketch grids before any grid image exists", async () => {
+  it("renders one planned sketch generation unit per beat", async () => {
     gridImages = [];
     const user = userEvent.setup();
     render(
@@ -251,15 +251,20 @@ describe("SketchGridGallery", () => {
 
     expect(screen.getByText(/Sketch Grid/)).toBeInTheDocument();
     expect(screen.getByText("Grid #0")).toBeInTheDocument();
-    expect(screen.getByText(/B1-2/)).toBeInTheDocument();
-    expect(screen.getByText("无预览")).toBeInTheDocument();
+    expect(screen.getByText("Grid #1")).toBeInTheDocument();
+    expect(screen.getByText(/· B1$/)).toBeInTheDocument();
+    expect(screen.getByText(/· B2$/)).toBeInTheDocument();
+    expect(screen.getAllByText("无预览")).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: "生成/重生" }));
+    await user.click(
+      screen.getAllByRole("button", { name: "生成/重生" })[0],
+    );
 
     expect(generateSketchesMock).toHaveBeenCalledWith({
       gridIndex: 0,
       sketchSceneGrouping: true,
       aspectRatio: "2:3",
+      replaceExisting: true,
     });
     expect(taskStartMock).toHaveBeenCalledWith({ scope: "grid_0" });
   });
@@ -397,14 +402,14 @@ describe("SketchGridGallery", () => {
       </I18nextProvider>,
     );
 
-    expect(screen.queryByText("无预览")).not.toBeInTheDocument();
+    expect(screen.getAllByText("无预览")).toHaveLength(1);
     expect(screen.getByAltText("Grid #0")).toHaveAttribute(
       "src",
       "/static/generated-sketch-preview.jpg",
     );
   });
 
-  it("matches scoped sketch grid images to planned beat groups instead of trusting grid_index", () => {
+  it("does not attach a historical multi-beat grid to a new single-beat action", () => {
     gridImages = [
       {
         id: "store-7",
@@ -438,7 +443,7 @@ describe("SketchGridGallery", () => {
       },
     ];
 
-    render(
+    const { container } = render(
       <I18nextProvider i18n={i18n}>
         <SketchGridGallery
           project="demo"
@@ -453,9 +458,14 @@ describe("SketchGridGallery", () => {
       </I18nextProvider>,
     );
 
-    expect(screen.getByText("Grid #1")).toBeInTheDocument();
-    expect(screen.getByText(/B7-8/)).toBeInTheDocument();
-    expect(screen.getByAltText("Grid #1")).toHaveAttribute("src", "/static/store-grid.png");
+    expect(screen.getByText("Grid #2")).toBeInTheDocument();
+    expect(screen.getByText(/· B7$/)).toBeInTheDocument();
+    expect(
+      container.querySelector('img[src="/static/store-grid.png"]'),
+    ).not.toBeInTheDocument();
+    expect(
+      container.querySelector('img[src="/static/store-7.png"]'),
+    ).toBeInTheDocument();
   });
 
   it("wraps grid cards inside a vertical scroller instead of clipping them horizontally", () => {
@@ -495,12 +505,15 @@ describe("SketchGridGallery", () => {
       </I18nextProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "生成/重生" }));
+    await user.click(
+      screen.getAllByRole("button", { name: "生成/重生" })[0],
+    );
 
     expect(generateSketchesMock).toHaveBeenCalledWith({
       gridIndex: 0,
       sketchSceneGrouping: true,
       aspectRatio: "16:9",
+      replaceExisting: true,
       imageGenerationSelection: "openrouter_nanobanana2",
     });
   });
@@ -527,6 +540,7 @@ describe("SketchGridGallery", () => {
       gridIndex: 4,
       sketchSceneGrouping: true,
       aspectRatio: "2:3",
+      replaceExisting: true,
     });
     expect(taskStartMock).toHaveBeenCalledWith({ scope: "grid_4" });
   });
@@ -594,7 +608,7 @@ describe("SketchGridGallery", () => {
     );
   });
 
-  it("renders non-contiguous scene beat numbers as ranges, not one misleading range", () => {
+  it("keeps non-contiguous scene beats as independent generation units", () => {
     gridImages = [];
     render(
       <I18nextProvider i18n={i18n}>
@@ -611,8 +625,10 @@ describe("SketchGridGallery", () => {
       </I18nextProvider>,
     );
 
-    expect(screen.getByText(/B7-8,18-19/)).toBeInTheDocument();
-    expect(screen.queryByText(/B7-19/)).not.toBeInTheDocument();
+    expect(screen.getByText(/· B7$/)).toBeInTheDocument();
+    expect(screen.getByText(/· B8$/)).toBeInTheDocument();
+    expect(screen.getByText(/· B18$/)).toBeInTheDocument();
+    expect(screen.getByText(/· B19$/)).toBeInTheDocument();
   });
 
   it("omits manual cutting and exposes the sketch grid file commands", async () => {

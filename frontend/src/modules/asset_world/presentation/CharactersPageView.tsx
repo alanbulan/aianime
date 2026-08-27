@@ -38,6 +38,10 @@ import { SlidingTabs } from "@/components/nav/sliding-tabs";
 import { CharacterSearch } from "@/components/assets/character-search";
 import { CharacterStatsStrip } from "@/components/assets/character-stats-strip";
 import { ProjectStyleChip } from "@/modules/asset_world/presentation/ProjectStyleChip";
+import {
+  ProjectVoiceLibraryView,
+  type ProjectVoiceLibraryOption,
+} from "@/modules/asset_world/presentation/ProjectVoiceLibraryView";
 import { UsageCountBadge } from "@/components/assets/usage-count-badge";
 import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
 import { AssetBeatReferences } from "@/components/assets/asset-beat-references";
@@ -2096,62 +2100,6 @@ export function CharacterDetailView({
   );
 }
 
-function ProjectVoicesPanel({
-  isNarratedFirstPerson,
-  narratorMain,
-  narratorVoiceContent,
-  onSelectNarratorMain,
-}: {
-  isNarratedFirstPerson: boolean;
-  narratorMain: Character | null;
-  narratorVoiceContent: ReactNode;
-  onSelectNarratorMain: () => void;
-}) {
-  const { t } = useTranslation();
-  if (isNarratedFirstPerson) {
-    return (
-      <div className="min-h-0 flex-1 overflow-y-auto bg-background p-6">
-        <section className="w-full max-w-[640px] rounded-[10px] border border-border bg-card p-4">
-          <div className="flex items-center gap-3">
-            <Mic2 className="size-4 text-muted-foreground/78" />
-            <h2 className="text-sm font-semibold text-foreground">
-              {t("characters.voices.firstPersonNarratedTitle")}
-            </h2>
-          </div>
-          <p className="mt-5 text-xs leading-5 text-muted-foreground/78">
-            {narratorMain
-              ? t("characters.voices.firstPersonNarratedDesc", {
-                  name: narratorMain.name,
-                })
-              : t("characters.voices.firstPersonNarratedMissingMain")}
-          </p>
-          {narratorMain && (
-            <div className="mt-10 flex justify-center">
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                onClick={onSelectNarratorMain}
-                className="h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground"
-              >
-                {t("characters.voices.openNarratorMainVoice")}
-              </Button>
-            </div>
-          )}
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-background p-6">
-      <div className="w-full max-w-3xl">
-        {narratorVoiceContent}
-      </div>
-    </div>
-  );
-}
-
 // ─── Add character dialog ────────────────────────────────────────────────────
 
 export function AddCharacterDialogView({
@@ -2495,6 +2443,9 @@ function CharactersSplit({
 }
 
 export function CharactersPageView({
+  accountVoices,
+  accountVoicesFailed,
+  accountVoicesLoading,
   addDialogContent,
   controller,
   detailContent,
@@ -2503,6 +2454,9 @@ export function CharactersPageView({
   propsContent,
   scenesContent,
 }: {
+  accountVoices: readonly ProjectVoiceLibraryOption[];
+  accountVoicesFailed: boolean;
+  accountVoicesLoading: boolean;
   addDialogContent: ReactNode;
   controller: CharactersPageController;
   detailContent: ReactNode;
@@ -2522,9 +2476,7 @@ export function CharactersPageView({
     handleBuild,
     isDesktop,
     isLoading,
-    isNarratedFirstPerson,
     mainCopy,
-    narratorMain,
     openAddDialog,
     openRebuildDialog,
     project,
@@ -2533,7 +2485,6 @@ export function CharactersPageView({
     searchQuery,
     selectCharacter,
     selectedName,
-    selectNarratorMain,
     setRebuildDialogOpen,
     setSearchQuery,
     taskStream,
@@ -2581,11 +2532,11 @@ export function CharactersPageView({
           />
         </>
       ) : assetTab === "voices" ? (
-        <ProjectVoicesPanel
-          isNarratedFirstPerson={isNarratedFirstPerson}
-          narratorMain={narratorMain}
+        <ProjectVoiceLibraryView
+          accountVoices={accountVoices}
+          accountVoicesFailed={accountVoicesFailed}
+          accountVoicesLoading={accountVoicesLoading}
           narratorVoiceContent={narratorVoiceContent}
-          onSelectNarratorMain={selectNarratorMain}
         />
       ) : assetTab === "scenes" ? (
         <>{scenesContent}</>

@@ -7,7 +7,7 @@ import {
   ImageNodeView,
   type ExportImageNodeData,
   type ImageEditNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type ImageNodeProps = NodeProps & {
   projectId: string;
   canvasId: string;

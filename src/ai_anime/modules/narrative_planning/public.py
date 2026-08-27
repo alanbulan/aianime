@@ -135,6 +135,7 @@ from ai_anime.modules.narrative_planning.domain import (
     group_missing_manual_shot_segments,
     pick_beats_by_number,
     resolve_target_video_duration,
+    sort_beats_for_display,
     storyboard_beats_for_manual_sketches,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -550,6 +551,7 @@ __all__ = [
     "start_episode_asset_planning",
     "start_episode_identity_planning",
     "split_literal_source_text",
+    "sort_beats_for_display",
     "storyboard_beats_for_manual_sketches",
     "sync_beat_asset_refs",
     "update_episode_script_beat",

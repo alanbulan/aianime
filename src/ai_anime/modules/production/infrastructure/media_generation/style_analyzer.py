@@ -49,10 +49,17 @@ Analyze this image's visual style and generate two sets of prompts for reproduci
    Include: rendering technique, color palette, lighting setup, texture quality, camera/lens feel,
    atmosphere/mood. Write as action instructions starting with "Create...".
    Keep it under 100 words — specific enough to anchor the style, concise enough to avoid context dilution.
+   Describe only invariant rendering technique. Do NOT mention, infer, or reproduce any depicted
+   person's gender, age, ethnicity, face, facial proportions, eye shape or color, hairstyle,
+   hair length or color, body, clothing, accessories, or pose. Do NOT include identifiable scene
+   content, objects, location, composition, or camera placement. "Eye rendering" and "hair
+   rendering" may describe technique only, never character geometry or appearance.
 
 2. **avoid_instructions**: A negative prompt listing what to FORBID to protect this style.
    Use "FORBIDDEN:" prefix. List conflicting styles, unwanted artifacts, and quality issues.
    Keep it under 60 words.
+   Keep this list style- and quality-only; do not prohibit or prescribe character appearance,
+   wardrobe, props, locations, composition, or story content.
 
 3. **style_tag**: A short 2-4 word uppercase tag injected near EVERY generated panel.
    Describe ONLY the medium and the grade/finish (lens feel, color grade, rendering quality).
@@ -98,7 +105,10 @@ Return ONLY valid JSON with no markdown formatting:
         )
         self.agent = Agent(
             get_newapi_text_pydantic_model(),
-            system_prompt="You analyze reference images and return reusable visual style settings.",
+            system_prompt=(
+                "You separate invariant rendering technique from depicted subject content and "
+                "return reusable visual style settings that never encode character identity."
+            ),
             output_type=StyleAnalysisResult,
             name="Style Analyzer",
         )

@@ -11,6 +11,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ImageUp, Loader2, X } from "lucide-react";
 
+import { Slider } from "@/components/ui/slider";
 import { mediaNeedsCrossOrigin } from "@/shared/media/cross-origin";
 import {
   coverFrameSourceAt,
@@ -272,15 +273,17 @@ export function createCoverEditor({
         {/* Controls */}
         {tab === "frame" ? (
           <div className="mt-4 flex items-center gap-3">
-            <input
-              type="range"
+            <Slider
               min={0}
-              max={Math.max(0, durationMs)}
+              max={Math.max(1, durationMs)}
               step={1}
-              value={frameMs}
+              value={[Math.min(frameMs, Math.max(0, durationMs))]}
               disabled={!canPickFrame}
-              onChange={(e) => setFrameMs(Number(e.target.value))}
-              className="h-1 flex-1 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
+              onValueChange={([value]) => setFrameMs(value ?? 0)}
+              className="flex-1 disabled:opacity-40"
+              trackClassName="h-1"
+              thumbClassName="size-3"
+              aria-label={t("videoCompose.cover.framePosition")}
             />
             <span className="w-[88px] shrink-0 text-right font-mono text-xs tabular-nums text-text-muted">
               {formatTime(frameMs)} / {formatTime(durationMs)}

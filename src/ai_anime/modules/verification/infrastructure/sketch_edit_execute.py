@@ -609,6 +609,8 @@ def execute_sketch_edit_batches(
             cols=cols_n,
             ts=ts,
             prompt_text=prompt_text,
+            model=str(edit_generator_config.get("model") or model),
+            model_selector=str(model_selector or ""),
         )
         if submitted_prompt_file is None and prompt_text:
             submitted_prompt_file = episode_grids_dir / _derive_saved_prompt_relpath(mode_key, beat_numbers)

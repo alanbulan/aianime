@@ -8,6 +8,7 @@ from ai_anime.modules.model_usage.public import (
     resolve_model_route,
 )
 from ai_anime.modules.project_workspace.public import load_project_config
+from ai_anime.modules.production.domain.video_model import video_output_size
 
 
 def resolve_video_generation_model(
@@ -54,7 +55,7 @@ def resolve_episode_video_resolution(
 
     if str(aspect_ratio or "").strip() == "16:9":
         return "1920x1080" if tier == "1080" else "1280x720"
-    return "1080x1920" if tier == "1080" else "720x1280"
+    return video_output_size(aspect_ratio, f"{tier}p")
 
 
 __all__ = [

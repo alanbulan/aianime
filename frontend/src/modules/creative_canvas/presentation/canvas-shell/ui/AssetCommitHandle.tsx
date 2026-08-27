@@ -4,7 +4,7 @@ import { Replace } from 'lucide-react';
 import { Position } from '@xyflow/react';
 
 ;
-import { NODE_SIDE_ACTION_BUTTON_CLASS, NODE_SIDE_ACTION_ICON_CLASS, NodeSideActionRail, deriveNodeDropInfo, useAssetDropStore, type CanvasNode } from '@/modules/creative_canvas/public';
+import { NODE_SIDE_ACTION_BUTTON_CLASS, NODE_SIDE_ACTION_ICON_CLASS, NodeSideActionRail, deriveNodeDropInfo, useAssetDropStore, type CanvasNode } from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 /**
  * 节点左侧的「拖到素材库替换」抓手。从抓手上按住拖拽时,

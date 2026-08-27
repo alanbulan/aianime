@@ -7,7 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/shadcn/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import { UiChipButton } from "@/components/ui";
 import {
   NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,

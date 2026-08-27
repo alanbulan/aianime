@@ -451,6 +451,8 @@ async def convert_control_frame_to_sketch(
                 force_promote=True,
                 beats=[beat_payload],
                 sketch_colors=sketch_colors,
+                model=str(generator_config.get("model") or explicit_model),
+                model_selector=str(model_selector or ""),
             )
             promoted_path = paths.sketch(beat)
         return {

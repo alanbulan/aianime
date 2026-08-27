@@ -38,10 +38,11 @@ def test_character_default_ethnicity_instruction_allows_explicit_foreign_descrip
 
 
 def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
+    prompt_root = Path(
+        "src/ai_anime/modules/production/infrastructure/media_generation"
+    )
     files = [
-        Path(
-            "src/ai_anime/modules/production/infrastructure/media_generation/prompt_builder.py"
-        ),
+        *prompt_root.glob("prompt_*.py"),
         Path(
             "src/ai_anime/modules/production/infrastructure/media_generation/nanobanana_character.py"
         ),

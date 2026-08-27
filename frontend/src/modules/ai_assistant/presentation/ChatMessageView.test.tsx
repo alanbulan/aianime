@@ -6,8 +6,10 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-vi.mock("@/modules/ai_assistant/presentation/useAiAvatarUrl", () => ({
-  useAiAvatarUrl: () => "/assistant-avatar.webm",
+vi.mock("@/modules/ai_assistant/presentation/QiuQiuAvatar", () => ({
+  QiuQiuAvatar: ({ emotionId }: { emotionId: string }) => (
+    <span data-testid="qiuqiu-avatar" data-emotion={emotionId} />
+  ),
 }));
 
 vi.mock("@/modules/ai_assistant/presentation/SpecMediaGallery", () => ({
@@ -109,8 +111,8 @@ describe("SuperChat chat message view", () => {
     expect(props.onDelete).toHaveBeenCalledWith(chatMessage.id);
   });
 
-  it("renders assistant Markdown, display name, and the shared avatar", () => {
-    const { container } = render(
+  it("renders assistant Markdown, display name, and the QiuQiu avatar", () => {
+    render(
       <MessageBubble
         {...bubbleProps(
           message("assistant", "Hello **world**", { displayName: "Director" }),
@@ -120,9 +122,27 @@ describe("SuperChat chat message view", () => {
 
     expect(screen.getByText("Director")).toBeInTheDocument();
     expect(screen.getByText("world").tagName).toBe("STRONG");
-    expect(container.querySelector("video")).toHaveAttribute(
-      "src",
-      "/assistant-avatar.webm",
+    expect(screen.getByTestId("qiuqiu-avatar")).toHaveAttribute(
+      "data-emotion",
+      "02",
+    );
+  });
+
+  it("maps live tool activity to the matching QiuQiu agent state", () => {
+    render(
+      <MessageBubble
+        {...bubbleProps(
+          message("tool", "", {
+            toolName: "browser_navigate",
+            toolState: "running",
+          }),
+        )}
+      />,
+    );
+
+    expect(screen.getByTestId("qiuqiu-avatar")).toHaveAttribute(
+      "data-emotion",
+      "36",
     );
   });
 
@@ -219,5 +239,9 @@ describe("SuperChat chat message view", () => {
     expect(screen.getByRole("region", { name: "aiAssistant.toolPlan" })).toBeInTheDocument();
     expect(screen.getByText("读取项目数据")).toBeInTheDocument();
     expect(screen.getByText("提交项目操作")).toBeInTheDocument();
+    expect(screen.getByTestId("qiuqiu-avatar")).toHaveAttribute(
+      "data-emotion",
+      "31",
+    );
   });
 });

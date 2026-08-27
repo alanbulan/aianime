@@ -118,13 +118,18 @@ describe("assistant message projection", () => {
     expect(result[0]?.turnId).toBe("turn-server");
   });
 
-  it("marks tool calls without results as failed when the final reply arrives", () => {
+  it("marks running tools as failed while preserving background waits", () => {
     const current: ChatMessage[] = [
       message("user-1", "user", "生成全部肖像", 10, "turn-1"),
       {
         ...message("tool-call-1", "tool", "生成角色肖像", 20, "turn-1"),
         toolCallId: "call-1",
         toolState: "running",
+      },
+      {
+        ...message("tool-wait-1", "tool", "等待任务完成", 25, "turn-1"),
+        toolCallId: "wait-1",
+        toolState: "pending",
       },
       {
         ...message("tool-call-other", "tool", "其他回合", 5, "turn-2"),
@@ -149,6 +154,9 @@ describe("assistant message projection", () => {
       toolState: "error",
       toolError: "未执行：本轮已结束，工具未返回结果",
     });
+    const pendingWait = result.find((item) => item.toolCallId === "wait-1");
+    expect(pendingWait).toMatchObject({ toolState: "pending" });
+    expect(pendingWait).not.toHaveProperty("toolError");
     expect(result.find((item) => item.toolCallId === "call-other")).toMatchObject({
       toolState: "running",
     });

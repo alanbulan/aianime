@@ -11,6 +11,7 @@ class SketchGenerateRequest(BaseModel):
     sketch_scene_grouping: bool = True
     aspect_ratio: Literal["2:3", "16:9"] = "2:3"
     image_generation_selection: Optional[str] = None
+    replace_existing: bool = False
 
 
 __all__ = ["SketchGenerateRequest"]

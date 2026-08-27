@@ -18,6 +18,7 @@ import {
 import type { Beat } from "@/modules/narrative_planning/public";
 import { createUseRenderSectionController } from "@/modules/production/application/use-render-section-controller";
 import {
+  usePoolDelete,
   usePoolSelect,
   useRegenerateRenderBeats,
   useRenderSettings,
@@ -34,6 +35,7 @@ const useRenderSectionController = createUseRenderSectionController(
     useBeatDirectorStageManifest,
     useCropBeatBackgroundAnchor,
     useDirectorControlFrameStatus,
+    usePoolDelete,
     usePoolSelect,
     useRegenerateRenderBeats,
     useRenderSettings,

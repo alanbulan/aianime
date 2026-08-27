@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { BeatVideoPlayer } from "@/modules/production/presentation/VideoPaneParts";
 
@@ -31,9 +31,81 @@ describe("BeatVideoPlayer", () => {
     const video = container.querySelector("video") as HTMLVideoElement;
     const volume = screen.getByRole("slider", { name: "音量" });
 
-    fireEvent.change(volume, { target: { value: "0.4" } });
+    fireEvent.keyDown(volume, { key: "ArrowDown" });
 
-    expect(video.volume).toBe(0.4);
+    expect(video.volume).toBe(0.95);
     expect(video.muted).toBe(false);
+  });
+
+  it("enters and exits fullscreen through the application control", async () => {
+    const originalFullscreenElement = Object.getOwnPropertyDescriptor(
+      document,
+      "fullscreenElement",
+    );
+    const originalExitFullscreen = Object.getOwnPropertyDescriptor(
+      document,
+      "exitFullscreen",
+    );
+    let fullscreenElement: Element | null = null;
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+    const exitFullscreen = vi.fn(async () => {
+      fullscreenElement = null;
+      fireEvent(document, new Event("fullscreenchange"));
+    });
+    Object.defineProperty(document, "exitFullscreen", {
+      configurable: true,
+      value: exitFullscreen,
+    });
+
+    try {
+      render(
+        <BeatVideoPlayer src="https://example.test/beat.mp4" beatNum={3} />,
+      );
+      const player = screen.getByTestId("beat-video-player");
+      const requestFullscreen = vi.fn(async () => {
+        fullscreenElement = player;
+        fireEvent(document, new Event("fullscreenchange"));
+      });
+      Object.defineProperty(player, "requestFullscreen", {
+        configurable: true,
+        value: requestFullscreen,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "全屏" }));
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "退出全屏" }),
+        ).toBeInTheDocument(),
+      );
+      expect(requestFullscreen).toHaveBeenCalledOnce();
+
+      fireEvent.click(screen.getByRole("button", { name: "退出全屏" }));
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "全屏" })).toBeInTheDocument(),
+      );
+      expect(exitFullscreen).toHaveBeenCalledOnce();
+    } finally {
+      if (originalFullscreenElement) {
+        Object.defineProperty(
+          document,
+          "fullscreenElement",
+          originalFullscreenElement,
+        );
+      } else {
+        Reflect.deleteProperty(document, "fullscreenElement");
+      }
+      if (originalExitFullscreen) {
+        Object.defineProperty(
+          document,
+          "exitFullscreen",
+          originalExitFullscreen,
+        );
+      } else {
+        Reflect.deleteProperty(document, "exitFullscreen");
+      }
+    }
   });
 });

@@ -24,6 +24,9 @@ from ai_anime.modules.production.application.seedance2_config import (
 from ai_anime.modules.production.domain.seedance2_dialogue import (
     required_seedance2_dialogue_texts,
 )
+from ai_anime.modules.production.domain.video_model import (
+    normalize_video_generation_duration,
+)
 from ai_anime.modules.production.infrastructure.seedance2_voice import normalize_seedance2_audio_type
 from ai_anime.shared.utils.media_durations import validate_reference_media_durations
 
@@ -53,6 +56,7 @@ class Seedance2VideoPrereqError:
     media_type: str
     path: str
     reason: str
+    identity_id: str = ""
 
 
 def _unique_paths(paths: list[str]) -> list[str]:
@@ -238,6 +242,7 @@ def collect_seedance2_video_prereq_errors(
                     media_type=asset.media_type,
                     path=str(asset.path),
                     reason=reason,
+                    identity_id=asset.identity_id,
                 )
             )
     return errors
@@ -280,7 +285,10 @@ async def prepare_seedance2_generation_inputs(
         reference_audio_paths=list(config.reference_audio_paths),
     )
 
-    target_duration = int(config.duration or duration or 0)
+    target_duration = normalize_video_generation_duration(
+        config.duration,
+        duration,
+    )
     config.duration = target_duration
     config.resolution = resolution or config.resolution
     config.ratio = ratio or config.ratio

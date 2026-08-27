@@ -38,14 +38,6 @@ class _Store:
         return self.episode
 
 
-class _SketchWorkspace:
-    def __init__(self) -> None:
-        self.cleared: list[tuple[str, int]] = []
-
-    def clear_episode_sketches(self, output_dir, episode_num: int) -> None:
-        self.cleared.append((str(output_dir), episode_num))
-
-
 class _Scheduler:
     def __init__(self) -> None:
         self.task = None
@@ -70,11 +62,10 @@ class _Scheduler:
 
 
 @pytest.mark.asyncio
-async def test_requires_identity_before_clearing_sketches() -> None:
-    sketches = _SketchWorkspace()
+async def test_requires_identity_before_scheduling() -> None:
+    scheduler = _Scheduler()
     service = StartScriptGeneration(
-        task_scheduler=_Scheduler(),
-        sketch_workspace=sketches,
+        task_scheduler=scheduler,
     )
 
     with pytest.raises(IdentityPlanRequired):
@@ -85,15 +76,14 @@ async def test_requires_identity_before_clearing_sketches() -> None:
             episode_num=2,
         )
 
-    assert sketches.cleared == []
+    assert scheduler.task is None
 
 
 @pytest.mark.asyncio
-async def test_requires_scene_plan_before_clearing_sketches() -> None:
-    sketches = _SketchWorkspace()
+async def test_requires_scene_plan_before_scheduling() -> None:
+    scheduler = _Scheduler()
     service = StartScriptGeneration(
-        task_scheduler=_Scheduler(),
-        sketch_workspace=sketches,
+        task_scheduler=scheduler,
     )
 
     with pytest.raises(ScenePlanRequired):
@@ -104,15 +94,14 @@ async def test_requires_scene_plan_before_clearing_sketches() -> None:
             episode_num=2,
         )
 
-    assert sketches.cleared == []
+    assert scheduler.task is None
 
 
 @pytest.mark.asyncio
-async def test_requires_context_after_clearing_stale_sketches() -> None:
-    sketches = _SketchWorkspace()
+async def test_requires_context_without_scheduling() -> None:
+    scheduler = _Scheduler()
     service = StartScriptGeneration(
-        task_scheduler=_Scheduler(),
-        sketch_workspace=sketches,
+        task_scheduler=scheduler,
     )
 
     with pytest.raises(ProjectContextRequired):
@@ -123,7 +112,7 @@ async def test_requires_context_after_clearing_stale_sketches() -> None:
             episode_num=2,
         )
 
-    assert sketches.cleared == [("output", 2)]
+    assert scheduler.task is None
 
 
 @pytest.mark.asyncio
@@ -131,7 +120,6 @@ async def test_schedules_script_generation_with_owned_payload() -> None:
     scheduler = _Scheduler()
     service = StartScriptGeneration(
         task_scheduler=scheduler,
-        sketch_workspace=_SketchWorkspace(),
     )
 
     scheduled = await service.execute(

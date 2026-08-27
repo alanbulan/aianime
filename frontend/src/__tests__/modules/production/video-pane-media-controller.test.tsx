@@ -5,15 +5,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 
 const select = vi.hoisted(() => vi.fn());
+const remove = vi.hoisted(() => vi.fn());
 const toastError = vi.hoisted(() => vi.fn());
 const toastSuccess = vi.hoisted(() => vi.fn());
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, values?: { n?: number }) =>
+    t: (key: string, values?: { n?: number; time?: string; value?: string }) =>
       key === "episode.workbench.video.switched"
         ? `Beat #${values?.n} 已切换版本`
-        : "切换失败",
+        : key === "common.generatedAgo.hour"
+          ? `${values?.value}小时前`
+          : key === "common.generatedAgo.tooltip"
+            ? `生成于 ${values?.time}`
+          : "切换失败",
   }),
 }));
 
@@ -71,6 +76,10 @@ const useVideoPaneMediaController = createUseVideoPaneMediaController(
       isPending: false,
       mutateAsync: select,
     }),
+    useVideoPoolDelete: () => ({
+      isPending: false,
+      mutateAsync: remove,
+    }),
   },
   { useNow: () => Date.parse("2026-07-25T10:00:00Z") },
 );
@@ -91,6 +100,7 @@ describe("Production video pane media controller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     select.mockResolvedValue({ ok: true });
+    remove.mockResolvedValue({ ok: true });
   });
 
   it("projects the current preview and sorted beat candidates", () => {
@@ -109,13 +119,15 @@ describe("Production video pane media controller", () => {
         modelLabel: "配置模型",
         id: "new",
         previewSource: "/static/new.mp4#t=0.1",
-        timeLabel: "1.0h",
+        timeLabel: "1小时前",
+        timeTooltip: "生成于 1小时前",
       }),
       expect.objectContaining({
         active: false,
         modelLabel: "Seedance 2.0-fast",
         id: "old",
-        timeLabel: "2.0h",
+        timeLabel: "2小时前",
+        timeTooltip: "生成于 2小时前",
       }),
     ]);
   });
@@ -138,5 +150,13 @@ describe("Production video pane media controller", () => {
     await act(() => result.current.selectCandidate("old"));
 
     expect(toastError).toHaveBeenCalledWith("切换失败");
+  });
+
+  it("deletes an inactive candidate", async () => {
+    const { result } = renderHook(() => useVideoPaneMediaController(options));
+
+    await act(() => result.current.deleteCandidate("old"));
+
+    expect(remove).toHaveBeenCalledWith({ poolId: "old" });
   });
 });

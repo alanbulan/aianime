@@ -30,10 +30,8 @@ def _script_client(
 ):
     from ai_anime.api.routes.narrative_planning import scripts
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.shared.utils.path_resolver import PathResolver
 
     store = _ScriptEpisodeStore(identity_ids, scene_menu)
-    clean_calls = []
 
     async def fake_make_sqlite_store(username: str, project: str):
         assert username == "alice"
@@ -53,25 +51,20 @@ def _script_client(
             runtime_dir=str(tmp_path / "runtime"),
         )
 
-    def fake_clean_sketches(self):
-        clean_calls.append(self)
-        return []
-
     monkeypatch.setattr(scripts, "resolve_project_scope", fake_resolve_project_scope)
     monkeypatch.setattr(scripts, "make_sqlite_store", fake_make_sqlite_store)
-    monkeypatch.setattr(PathResolver, "clean_sketches", fake_clean_sketches)
 
     app = FastAPI()
     app.include_router(scripts.router, prefix="/api/v1")
     app.dependency_overrides[scripts.get_api_user] = lambda: {"username": "alice"}
 
-    return TestClient(app), store, clean_calls
+    return TestClient(app), store
 
 
 def test_script_generate_requires_identity_plan_before_side_effects(
     monkeypatch, tmp_path
 ):
-    client, store, clean_calls = _script_client(monkeypatch, tmp_path, [])
+    client, store = _script_client(monkeypatch, tmp_path, [])
 
     response = client.post("/api/v1/projects/demo/episodes/2/script/generate", json={})
 
@@ -81,13 +74,12 @@ def test_script_generate_requires_identity_plan_before_side_effects(
     assert body["code"] == "identity_plan_required"
     assert body["error"]
     assert store.get_episode_calls == [2]
-    assert clean_calls == []
 
 
 def test_script_generate_starts_script_writer_when_identity_plan_exists(
     monkeypatch, tmp_path
 ):
-    client, store, clean_calls = _script_client(
+    client, store = _script_client(
         monkeypatch,
         tmp_path,
         ["秦_幼年"],
@@ -101,11 +93,10 @@ def test_script_generate_starts_script_writer_when_identity_plan_exists(
     assert body["ok"] is False
     assert "project context" in body["error"]
     assert store.get_episode_calls == [2]
-    assert len(clean_calls) == 1
 
 
 def test_script_generate_requires_scene_plan_before_side_effects(monkeypatch, tmp_path):
-    client, store, clean_calls = _script_client(monkeypatch, tmp_path, ["秦_幼年"])
+    client, store = _script_client(monkeypatch, tmp_path, ["秦_幼年"])
 
     response = client.post("/api/v1/projects/demo/episodes/2/script/generate", json={})
 
@@ -115,13 +106,12 @@ def test_script_generate_requires_scene_plan_before_side_effects(monkeypatch, tm
     assert body["code"] == "scene_plan_required"
     assert body["error"]
     assert store.get_episode_calls == [2]
-    assert clean_calls == []
 
 
 def test_script_generate_forwards_real_mode_parameters(monkeypatch, tmp_path):
     from ai_anime.api.routes.narrative_planning import scripts
 
-    client, _, _ = _script_client(
+    client, _ = _script_client(
         monkeypatch,
         tmp_path,
         ["秦_幼年"],

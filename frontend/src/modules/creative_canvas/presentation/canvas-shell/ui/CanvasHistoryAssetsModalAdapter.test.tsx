@@ -8,7 +8,7 @@ import type { CanvasAssetBuckets, CanvasHistoryAssetsModalController, CanvasNode
 
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 const mocks = vi.hoisted(() => ({
   nodes: [] as CanvasNode[],
   liveBuckets: null as CanvasAssetBuckets | null,
@@ -24,7 +24,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/presentation/canvas-shell/internal', () => ({
   useCanvasStore: (selector: (state: { nodes: CanvasNode[] }) => unknown) =>
     selector({ nodes: mocks.nodes }),
   CANVAS_NODE_TYPES: { upload: 'uploadNode', imageEdit: 'imageNode', imageGen: 'imageGenNode', exportImage: 'exportImageNode', beatContext: 'beatContextNode', textAnnotation: 'textAnnotationNode', group: 'groupNode', storyboardSplit: 'storyboardNode', storyboardGen: 'storyboardGenNode', video: 'videoNode', audio: 'audioNode', videoStory: 'videoStoryNode', videoCompose: 'videoComposeNode', script: 'scriptNode', pano360Viewer: 'pano360ViewerNode', threeDWorld: 'threeDWorldNode', skill: 'skillNode' },

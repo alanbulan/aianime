@@ -120,9 +120,6 @@ def build_prompt(
 ) -> str:
     style_instructions = str(style_preset.get("style_instructions") or "").strip()
     avoid_instructions = str(style_preset.get("avoid_instructions") or "").strip()
-    has_style_reference = bool(
-        str(style_preset.get("style_reference_image_path") or "").strip()
-    )
     reference_lines = ["INPUT IMAGE ROLES:"]
     if has_master:
         reference_lines.extend(
@@ -232,27 +229,12 @@ def build_prompt(
                 "  topology and azimuth placement.",
             ]
         )
-    if has_style_reference:
-        reference_lines.extend(
-            [
-                "- The final attached image is the GLOBAL STYLE REFERENCE.",
-                "- Copy only its rendering medium, linework, palette, lighting, materials, texture, and finish.",
-                "- Do NOT copy its people, faces, objects, scene layout, composition, camera, or text.",
-            ]
-        )
     if not has_master and not has_reverse and not has_spatial_layout:
         reference_lines.extend(
-            (
-                [
-                    "- No scene identity or geometry reference is attached.",
-                    "- Build scene content from the scene description; use the final image only for visual style.",
-                ]
-                if has_style_reference
-                else [
-                    "- No image reference is attached.",
-                    "- Build the scene only from the scene description and project style preset.",
-                ]
-            )
+            [
+                "- No subject-bearing scene identity or geometry reference is attached.",
+                "- Build the scene only from the scene description and text-only project style preset.",
+            ]
         )
     reference_block = "\n".join(reference_lines)
     scene_description = clean_scene_description_for_360(scene_description)

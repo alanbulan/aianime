@@ -2,6 +2,7 @@
 import { Download, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { UnifiedVideoPlayer } from "@/components/media/UnifiedVideoPlayer";
 import {
   Dialog,
   DialogClose,
@@ -55,13 +56,12 @@ export function VideoDetailModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-w-5xl border-border/70 bg-background p-3 sm:max-w-5xl">
         <DialogTitle className="sr-only">{title || "Video preview"}</DialogTitle>
-        <video
+        <UnifiedVideoPlayer
           className="max-h-[78vh] w-full rounded-md bg-media object-contain"
+          videoClassName="max-h-[78vh] object-contain"
           src={src}
           poster={poster}
-          controls
           autoPlay
-          playsInline
         />
         {(title || description) && (
           <div className="space-y-1 px-1 pb-1">
@@ -138,12 +138,11 @@ export function SpecMediaDetailModal({
             <div className="grid h-full w-full grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
               <div className="relative mx-auto flex max-h-[82vh] max-w-full items-center justify-center overflow-hidden rounded-[28px] bg-media shadow-2xl">
                 {detail.kind === "video" ? (
-                  <video
+                  <UnifiedVideoPlayer
                     className="block max-h-[82vh] max-w-full object-contain"
+                    videoClassName="max-h-[82vh] max-w-full object-contain"
                     src={src}
                     poster={poster || undefined}
-                    controls
-                    playsInline
                   />
                 ) : (
                   <img

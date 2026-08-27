@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { formatCompactAge } from "@/lib/format-relative-time";
+import { formatGeneratedAgeLabel } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
 import type { VideoPoolResponse } from "@/modules/production/application/ports";
 import { videoModelDisplayLabel } from "@/modules/production/domain/video-config";
@@ -16,6 +16,10 @@ export interface VideoPaneMediaQueries {
   useVideoPoolSelect(project: string, episode: number): {
     isPending: boolean;
     mutateAsync(command: { beatNum: number; poolId: string }): Promise<unknown>;
+  };
+  useVideoPoolDelete(project: string, episode: number): {
+    isPending: boolean;
+    mutateAsync(command: { poolId: string }): Promise<unknown>;
   };
 }
 
@@ -38,9 +42,11 @@ export interface VideoPaneMediaControllerOptions {
 export interface VideoPaneMediaCandidate {
   active: boolean;
   modelLabel: string;
+  modelTooltip: string;
   id: string;
   previewSource: string | null;
   timeLabel: string | null;
+  timeTooltip: string | null;
 }
 
 export interface VideoPaneMediaController {
@@ -48,6 +54,7 @@ export interface VideoPaneMediaController {
   candidateCount: number;
   candidates: VideoPaneMediaCandidate[];
   downloadUrl: string | null;
+  deletePending: boolean;
   hasGeneratedVideo: boolean;
   previewSource: string | null;
   selectionPending: boolean;
@@ -55,6 +62,7 @@ export interface VideoPaneMediaController {
   useSeedance2Preview: boolean;
   videoActive: boolean;
   videoPercent: number;
+  deleteCandidate(poolId: string): Promise<void>;
   selectCandidate(poolId: string): Promise<void>;
 }
 
@@ -71,6 +79,10 @@ export function createUseVideoPaneMediaController(
       options.episode,
     );
     const poolSelect = queries.useVideoPoolSelect(
+      options.project,
+      options.episode,
+    );
+    const poolDelete = queries.useVideoPoolDelete(
       options.project,
       options.episode,
     );
@@ -104,19 +116,28 @@ export function createUseVideoPaneMediaController(
         })
         .map((entry) => {
           const source = resolveMediaUrl(entry.video_url);
+          const generatedAge = formatGeneratedAgeLabel(
+            entry.generated_at ?? null,
+            t,
+            now,
+          );
           return {
             active: entry.id === activeId,
             modelLabel: videoModelDisplayLabel(
               entry.video_model,
               modelLabels,
             ),
+            modelTooltip:
+              entry.video_model ||
+              videoModelDisplayLabel(entry.video_model, modelLabels),
             id: entry.id,
             previewSource: source ? `${source}#t=0.1` : null,
-            timeLabel: formatCompactAge(entry.generated_at ?? null, now),
+            timeLabel: generatedAge?.label ?? null,
+            timeTooltip: generatedAge?.tooltip ?? null,
           };
         });
       return { candidates: entries, activePoolId: activeId };
-    }, [modelLabels, now, options.beatNumber, poolResponse]);
+    }, [modelLabels, now, options.beatNumber, poolResponse, t]);
     const downloadUrl = options.videoUrl
       ? resolveMediaUrl(options.videoUrl)
       : null;
@@ -137,10 +158,24 @@ export function createUseVideoPaneMediaController(
       }
     };
 
+    const deleteCandidate = async (poolId: string) => {
+      try {
+        await poolDelete.mutateAsync({ poolId });
+        toast.success(t("episode.workbench.media.deleteSuccess"));
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : t("episode.workbench.media.deleteFailed"),
+        );
+      }
+    };
+
     return {
       beatNumber: options.beatNumber,
       candidateCount: candidates.length,
       candidates,
+      deletePending: poolDelete.isPending,
       downloadUrl,
       hasGeneratedVideo: Boolean(downloadUrl) || candidates.length > 0,
       previewSource,
@@ -152,6 +187,7 @@ export function createUseVideoPaneMediaController(
         0,
         Math.min(100, Math.round(options.videoProgress * 100)),
       ),
+      deleteCandidate,
       selectCandidate,
     };
   };

@@ -104,33 +104,34 @@ class LocalManualSketchRegenerationPreparer:
 
             segments: list[ManualSketchRegenerationSegment] = []
             for beat_numbers in missing_segments:
-                selected_beats = tuple(int(number) for number in beat_numbers)
-                mode_key = choose_manual_sketch_mode_key(len(selected_beats))
-                task_config = {
-                    "beats": beats,
-                    "character_map": character_map,
-                    "style": style,
-                    "model": image_route.model,
-                    "selected_beat_numbers": list(selected_beats),
-                    "composite_key": f"{mode_key}:sketch",
-                    "sketch_colors": sketch_colors,
-                }
-                if image_route.selector:
-                    task_config["model_selector"] = image_route.selector
-                task = SelectedRegenerationTask(
-                    kind=SelectedRegenerationKind.SKETCH,
-                    episode_num=command.episode_num,
-                    mode_key=mode_key,
-                    scope=selection_scope(mode_key, selected_beats),
-                    output_dir=context.output_dir,
-                    config=task_config,
-                )
-                segments.append(
-                    ManualSketchRegenerationSegment(
-                        beat_numbers=selected_beats,
-                        task=task,
+                for beat_number in beat_numbers:
+                    selected_beats = (int(beat_number),)
+                    mode_key = choose_manual_sketch_mode_key(1)
+                    task_config = {
+                        "beats": beats,
+                        "character_map": character_map,
+                        "style": style,
+                        "model": image_route.model,
+                        "selected_beat_numbers": list(selected_beats),
+                        "composite_key": f"{mode_key}:sketch",
+                        "sketch_colors": sketch_colors,
+                    }
+                    if image_route.selector:
+                        task_config["model_selector"] = image_route.selector
+                    task = SelectedRegenerationTask(
+                        kind=SelectedRegenerationKind.SKETCH,
+                        episode_num=command.episode_num,
+                        mode_key=mode_key,
+                        scope=selection_scope(mode_key, selected_beats),
+                        output_dir=context.output_dir,
+                        config=task_config,
                     )
-                )
+                    segments.append(
+                        ManualSketchRegenerationSegment(
+                            beat_numbers=selected_beats,
+                            task=task,
+                        )
+                    )
             return PreparedManualSketchRegeneration(
                 episode_num=command.episode_num,
                 segments=tuple(segments),

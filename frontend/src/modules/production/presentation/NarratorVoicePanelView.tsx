@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import {
   Dialog,
   DialogContent,
@@ -179,9 +180,8 @@ export function NarratorVoicePanelView({
       )}
 
       {audioSrc && (
-        <audio
+        <PreciseAudioPlayer
           src={audioSrc}
-          controls
           className="mt-8 h-7 w-full max-w-[608px]"
         />
       )}
@@ -506,10 +506,9 @@ export function NarratorVoicePanelView({
               {recordStatus}
             </div>
             {recordedDataUrl && (
-              <audio
+              <PreciseAudioPlayer
                 src={recordedDataUrl}
-                controls
-                className="h-9 w-full"
+                className="w-full"
               />
             )}
           </div>

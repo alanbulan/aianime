@@ -16,6 +16,7 @@ import {
 
 import type { CharacterVoiceController } from "@/modules/asset_world/application/use-character-voice-controller";
 import { resolveMediaUrl } from "@/lib/media-url";
+import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -155,10 +156,9 @@ export function CharacterVoicePanelView({
                 {option.label}
               </p>
               {previewSrc && (
-                <audio
+                <PreciseAudioPlayer
                   src={previewSrc}
-                  controls
-                  className="mt-2 h-7 w-full max-w-[320px]"
+                  className="mt-2 h-7 w-full max-w-[340px]"
                 />
               )}
             </div>
@@ -231,18 +231,14 @@ export function CharacterVoicePanelView({
                   {hasVoice ? (
                     <>
                       {audioSrc && (
-                        <audio
+                        <PreciseAudioPlayer
                           src={audioSrc}
-                          controls
-                          className="h-6 max-w-[220px] shrink-0"
-                          onLoadedMetadata={(event) => {
-                            const nextDuration = event.currentTarget.duration;
-                            if (Number.isFinite(nextDuration)) {
-                              setSlotDurations((prev) => ({
-                                ...prev,
-                                [slotId]: nextDuration,
-                              }));
-                            }
+                          className="h-7 min-w-[240px] max-w-[300px] shrink-0"
+                          onLoadedDuration={(nextDuration) => {
+                            setSlotDurations((prev) => ({
+                              ...prev,
+                              [slotId]: nextDuration,
+                            }));
                           }}
                         />
                       )}
@@ -252,7 +248,7 @@ export function CharacterVoicePanelView({
                       {Number.isFinite(duration) && (
                         <span className="shrink-0 text-[11px] text-muted-foreground/70">
                           {t("characters.voiceSamples.currentDuration", {
-                            seconds: duration.toFixed(1),
+                            seconds: duration.toFixed(duration < 1 ? 3 : 2),
                           })}
                         </span>
                       )}
@@ -367,10 +363,9 @@ export function CharacterVoicePanelView({
                       </div>
                       <div className="flex min-w-0 flex-1 items-center gap-3">
                         {audioSrc ? (
-                          <audio
+                          <PreciseAudioPlayer
                             src={audioSrc}
-                            controls
-                            className="h-6 max-w-[260px] shrink-0"
+                            className="h-7 min-w-[240px] max-w-[300px] shrink-0"
                           />
                         ) : (
                           <span className="text-[11px] text-muted-foreground">
@@ -576,12 +571,14 @@ export function CharacterVoicePanelView({
               {recordStatus}
             </div>
             {recordedDataUrl && (
-              <audio src={recordedDataUrl} controls className="h-9 w-full" />
+              <PreciseAudioPlayer src={recordedDataUrl} className="w-full" />
             )}
             {recordedDuration !== null && (
               <p className="text-xs text-muted-foreground">
                 {t("characters.voiceSamples.recordedDuration", {
-                  seconds: recordedDuration.toFixed(1),
+                  seconds: recordedDuration.toFixed(
+                    recordedDuration < 1 ? 3 : 2,
+                  ),
                 })}
               </p>
             )}
@@ -638,7 +635,10 @@ export function CharacterVoicePanelView({
               {t("characters.voiceSamples.trimHint")}
             </p>
             {trimSlot?.url && resolveMediaUrl(trimSlot.url) && (
-              <audio src={resolveMediaUrl(trimSlot.url) ?? ""} controls className="h-9 w-full" />
+              <PreciseAudioPlayer
+                src={resolveMediaUrl(trimSlot.url) ?? ""}
+                className="w-full"
+              />
             )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

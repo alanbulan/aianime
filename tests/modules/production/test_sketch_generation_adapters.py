@@ -85,14 +85,6 @@ class _PropMenus:
         return [{"prop_id": "prop-1"}]
 
 
-class _Workspace:
-    def __init__(self) -> None:
-        self.calls = []
-
-    def clear_episode_sketches(self, output_dir, episode_num: int) -> None:
-        self.calls.append((output_dir, episode_num))
-
-
 class _GridPlanner:
     def __init__(self, plan=((1, 1), (2, 2))) -> None:
         self.grid_plan = plan
@@ -147,14 +139,12 @@ def _build_preparer(
         else {"hero": {"sketch_color": "#3366ff"}}
     )
     props = _PropMenus()
-    workspace = _Workspace()
     planner = _GridPlanner(plan)
     preparer = LocalSketchGenerationPreparer(
         settings,
         image_settings,
         lambda _store, _context: generation_context,
         props,
-        workspace,
         planner,
     )
     return (
@@ -163,7 +153,6 @@ def _build_preparer(
         image_settings,
         generation_context,
         props,
-        workspace,
         planner,
     )
 
@@ -206,14 +195,13 @@ async def test_preparer_rejects_invalid_grid_and_closes_store(
 
 
 @pytest.mark.asyncio
-async def test_preparer_rejects_missing_colors_without_clearing_workspace(
+async def test_preparer_rejects_missing_colors(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
     store = _Store([{"beat_number": 1}])
     result = _build_preparer(monkeypatch, store, character_map={})
     preparer = result[0]
-    workspace = result[5]
 
     with pytest.raises(SketchGenerationRejected, match="未检测到颜色分配"):
         await preparer.prepare(
@@ -221,7 +209,6 @@ async def test_preparer_rejects_missing_colors_without_clearing_workspace(
             GenerateSketchesCommand(episode_num=3),
         )
 
-    assert workspace.calls == []
     assert store.close_calls == 1
 
 
@@ -241,7 +228,6 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
         image_settings,
         generation_context,
         props,
-        workspace,
         planner,
     ) = _build_preparer(monkeypatch, store)
     context = _context(tmp_path)
@@ -267,7 +253,6 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
             "use_detected_identities": False,
         }
     ]
-    assert workspace.calls == [(tmp_path, 3)]
     assert props.calls == [(store, "episode-3", beats)]
     assert image_settings.calls[0][1] == "openrouter_nanobanana2"
     assert prepared.grid_plan == ((1, 1), (2, 2))
@@ -279,10 +264,28 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
         "model": "newapi_nanobanana2",
         "sketch_scene_grouping": True,
         "aspect_ratio": "16:9",
+        "replace_existing": False,
         "sketch_colors": {"hero-young": "#3366ff"},
         "prop_menu": [{"prop_id": "prop-1"}],
     }
     assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_preparer_marks_explicit_replacement(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    store = _Store([{"beat_number": 1}], {"hero": "#3366ff"})
+    result = _build_preparer(monkeypatch, store, plan=((1, 1),))
+    preparer = result[0]
+
+    prepared = await preparer.prepare(
+        _context(tmp_path),
+        GenerateSketchesCommand(episode_num=3, replace_existing=True),
+    )
+
+    assert prepared.tasks[0].config["replace_existing"] is True
 
 
 def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(

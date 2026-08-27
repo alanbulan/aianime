@@ -46,6 +46,82 @@ def _project_context(tmp_path: Path) -> ProjectContext:
 
 
 @pytest.mark.asyncio
+async def test_grid_regeneration_records_resolved_image_model_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+    grid_path = context.output_dir / "generated-grid.png"
+    saved: list[dict] = []
+
+    class FakeGridGenerator:
+        provider = "fake-provider"
+        model = "resolved-model"
+
+        async def regenerate_single_grid(self, **_kwargs):
+            grid_path.parent.mkdir(parents=True, exist_ok=True)
+            Image.new("RGB", (16, 24), "blue").save(grid_path)
+            return SimpleNamespace(
+                success=True,
+                error="",
+                grid_image_path=str(grid_path),
+                grid_rows=1,
+                grid_cols=1,
+                beat_start_index=0,
+            )
+
+    def save_grid_and_split(**kwargs):
+        saved.append(kwargs)
+        frames_dir = Path(kwargs["promote_dir"])
+        frames_dir.mkdir(parents=True, exist_ok=True)
+        Image.new("RGB", (16, 24), "blue").save(frames_dir / "beat_01.png")
+
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.get_render_generation_config",
+        lambda **_kwargs: {
+            "model": "resolved-model",
+            "mode": "1x1_2-3",
+        },
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.create_grid_generator",
+        lambda **_kwargs: FakeGridGenerator(),
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.build_beat_sketch_paths",
+        lambda *_args, **_kwargs: {},
+    )
+    monkeypatch.setattr(
+        "ai_anime.modules.production.public.save_grid_and_split",
+        save_grid_and_split,
+    )
+    monkeypatch.setattr(render_runner, "get_task_manager", lambda: object())
+    monkeypatch.setattr(render_runner, "_log", lambda *_args, **_kwargs: None)
+
+    await render_runner._run_grid_regenerate_async(
+        {
+            "episode": 1,
+            "payload": {
+                "grid_index": 0,
+                "output_dir": str(context.output_dir),
+                "config": {
+                    "beats": _beats(1),
+                    "beat_numbers": [1],
+                    "grid_mode": "1x1_2-3",
+                    "model": "requested-model",
+                    "model_selector": "sku:BYOK:requested-model",
+                    "render_mode": "普通",
+                },
+            },
+        },
+        context,
+    )
+
+    assert saved[0]["model"] == "resolved-model"
+    assert saved[0]["model_selector"] == "sku:BYOK:requested-model"
+
+
+@pytest.mark.asyncio
 async def test_selected_regeneration_limits_concurrency_reports_progress_and_resumes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

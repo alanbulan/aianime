@@ -697,6 +697,8 @@ async def _run_selected_regen_async(
             "ts": ts,
             "promote_dir": str(promote_dir),
             "force_promote": bool(config.get("promote_selected_regen", True)),
+            "model": str(generator_config.get("model") or image_model),
+            "model_selector": str(config.get("model_selector") or ""),
         }
         if is_sketch:
             save_kwargs["beats"] = list(grid_beat_slice)
@@ -1061,6 +1063,8 @@ async def _run_grid_regenerate_async(
         ts=ts,
         promote_dir=str(frames_dir),
         force_promote=True,
+        model=str(grid_config.get("model") or image_model),
+        model_selector=str(config.get("model_selector") or ""),
     )
     updated_frames = [
         str(frames_dir / f"beat_{int(bn):02d}.png")

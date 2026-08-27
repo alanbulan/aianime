@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { config as configureZod } from "zod/v4/core";
 
+import { AppErrorBoundary } from "@/app/AppErrorBoundary";
 import { AppRoot } from "@/app/AppRoot";
 import { installApiRuntime } from "@/app/api-runtime";
 import { queryClient } from "@/app/query-client";
@@ -37,4 +38,15 @@ export async function bootstrapApplication() {
   const container = document.getElementById("root");
   if (!container) throw new Error("Application root element was not found");
   getOrCreateReactRoot(container).render(<AppRoot />);
+}
+
+export function renderBootstrapFailure(error: unknown) {
+  console.error("Application bootstrap failed", error);
+  const container = document.getElementById("root");
+  if (!container) return;
+  getOrCreateReactRoot(container).render(
+    <AppErrorBoundary initialError={error}>
+      <AppRoot />
+    </AppErrorBoundary>,
+  );
 }

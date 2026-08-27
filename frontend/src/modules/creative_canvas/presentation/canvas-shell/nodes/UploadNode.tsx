@@ -6,7 +6,7 @@ import { useUploadNodeController } from '@/modules/creative_canvas/canvasComposi
 import {
   UploadNodeView,
   type UploadImageNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type UploadNodeProps = NodeProps & {
   id: string;
   data: UploadImageNodeData;

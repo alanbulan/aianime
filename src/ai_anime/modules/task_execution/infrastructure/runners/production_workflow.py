@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ from ai_anime.modules.task_execution.infrastructure.runners.script_workflow impo
 )
 from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 from ai_anime.modules.task_execution.public import (
+    ProjectTaskRef,
     await_envelope_with_cancel_watch,
     effective_task_status,
     parse_task_timestamp,
@@ -43,6 +45,8 @@ from ai_anime.shared.utils.path_resolver import (
 )
 
 PRODUCTION_WORKFLOW_TASK_TYPE = "production_workflow"
+
+logger = logging.getLogger(__name__)
 
 
 class ProductionWorkflowModelPrerequisitesMissing(RuntimeError):
@@ -199,6 +203,61 @@ async def _wait_ticket(
         if now - started >= timeout_seconds:
             raise TimeoutError(f"等待{ticket.label}超时（{int(timeout_seconds)} 秒）")
         await asyncio.sleep(0.5)
+
+
+def _parent_task_id(task: Any) -> str:
+    raw_metadata = getattr(task, "metadata", None)
+    metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+    result = getattr(task, "result", None)
+    if not metadata and isinstance(result, dict):
+        nested = result.get("task_metadata")
+        metadata = nested if isinstance(nested, dict) else {}
+    return str(metadata.get("parent_task_id") or "").strip()
+
+
+async def _cancel_owned_child_tasks(
+    context: ProjectContext,
+    parent_task_id: str,
+) -> None:
+    """Cancel active descendants created by this workflow, not shared tasks."""
+
+    tasks = project_task_use_cases().list_for_project(context)
+    owned_ids = {str(parent_task_id or "").strip()}
+    descendants: list[Any] = []
+    remaining = list(tasks)
+    while owned_ids:
+        discovered: set[str] = set()
+        next_remaining: list[Any] = []
+        for task in remaining:
+            if _parent_task_id(task) not in owned_ids:
+                next_remaining.append(task)
+                continue
+            descendants.append(task)
+            discovered.add(str(task.task_id))
+        if not discovered:
+            break
+        owned_ids = discovered
+        remaining = next_remaining
+
+    use_cases = project_task_use_cases()
+    for task in reversed(descendants):
+        if effective_task_status(task) not in {"submitting", "queued", "running"}:
+            continue
+        try:
+            await use_cases.cancel(
+                context,
+                ProjectTaskRef(
+                    task_type=task.task_type,
+                    episode=task.episode,
+                    beat_num=task.beat_num,
+                    scope=task.scope,
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "Failed to cancel production child task %s",
+                task.task_id,
+            )
 
 
 async def _run_jobs(
@@ -777,6 +836,7 @@ async def _ensure_sketches(
                 sketch_scene_grouping=True,
                 aspect_ratio=aspect_ratio,
                 image_generation_selection=image_edit_model,
+                replace_existing=True,
             ),
         )
         tickets = [
@@ -919,14 +979,15 @@ async def _ensure_global_optimization(
     )
 
     beats = await _episode_beats(context, episode_num)
+    def has_mode_prompt(beat: dict[str, Any]) -> bool:
+        mode = str(beat.get("video_mode") or "first_frame").strip()
+        field = "keyframe_prompt" if mode == "keyframe" else "video_prompt"
+        return bool(mode and str(beat.get(field) or "").strip())
+
     if (
         not force
         and beats
-        and all(
-            str(beat.get("video_mode") or "").strip()
-            and str(beat.get("video_prompt") or "").strip()
-            for beat in beats
-        )
+        and all(has_mode_prompt(beat) for beat in beats)
     ):
         return beats
     reporter.update(progress, f"第 {episode_num} 集全局优化视频提示词")
@@ -944,11 +1005,7 @@ async def _ensure_global_optimization(
         timeout_seconds=timeout_seconds,
     )
     beats = await _episode_beats(context, episode_num)
-    if not beats or not all(
-        str(beat.get("video_mode") or "").strip()
-        and str(beat.get("video_prompt") or "").strip()
-        for beat in beats
-    ):
+    if not beats or not all(has_mode_prompt(beat) for beat in beats):
         raise RuntimeError("全局视频优化任务已完成但提示词未完整写入")
     return beats
 
@@ -970,18 +1027,13 @@ async def _ensure_audio_prerequisites(
         provision_voice_design_requirements,
     )
 
-    paths = PathResolver(context.output_dir, episode_num)
-    candidates = [
-        number
-        for number in _beat_numbers(beats)
-        if force or not paths.audio(number).exists()
-    ]
+    candidates = _beat_numbers(beats)
     if not candidates:
         return
     reporter.update(progress, f"第 {episode_num} 集检查配音声线前置")
     command = GenerateEpisodeAudioCommand(
         episode_num=episode_num,
-        mode="redo_selected",
+        mode="redo_all" if force else "sync_changed",
         beat_numbers=candidates,
     )
     plan = await episode_audio_use_cases().plan(context, command)
@@ -1172,6 +1224,112 @@ async def _ensure_seedance_prompts(
     return updated
 
 
+async def _ensure_seedance_voice_prerequisites(
+    context: ProjectContext,
+    episode_num: int,
+    beats: list[dict[str, Any]],
+    *,
+    requested_model: str | None,
+    reporter: _ProgressReporter,
+    progress: float,
+    force: bool = False,
+) -> None:
+    from ai_anime.modules.production.public import (
+        VoiceDesignModelUnavailable,
+        build_character_voice_requirement,
+        collect_seedance2_video_prereq_errors,
+        is_seedance2_model,
+        provision_voice_design_requirements,
+        resolve_video_generation_route,
+    )
+
+    paths = PathResolver(context.output_dir, episode_num)
+    if not force and all(
+        paths.video(number).exists() for number in _beat_numbers(beats)
+    ):
+        return
+    model_route = resolve_video_generation_route(
+        context.owner_username,
+        context.project_name,
+        requested_model,
+    )
+    if not is_seedance2_model(model_route.model):
+        return
+
+    async def load_characters() -> list[Any]:
+        store = await make_sqlite_store_for_context(context)
+        try:
+            return list(store.get_all_characters())
+        finally:
+            await store.close()
+
+    characters = await load_characters()
+    errors = collect_seedance2_video_prereq_errors(
+        project_output=context.output_dir,
+        episode=episode_num,
+        beats=beats,
+        characters=characters,
+    )
+    audio_errors = [error for error in errors if error.media_type == "audio"]
+    if not audio_errors:
+        return
+
+    beats_by_number = {
+        int(beat.get("beat_number") or 0): beat
+        for beat in beats
+        if int(beat.get("beat_number") or 0) > 0
+    }
+    requirements = {}
+    for error in audio_errors:
+        beat = beats_by_number.get(error.beat_number, {})
+        preview = str(
+            beat.get("dialogue")
+            or beat.get("narration_segment")
+            or beat.get("narration")
+            or ""
+        ).strip()
+        requirement = build_character_voice_requirement(
+            characters,
+            speaker=error.identity_id,
+            preview_text=preview,
+        )
+        if requirement is not None:
+            requirements[requirement.key] = requirement
+
+    if requirements:
+        reporter.update(
+            progress,
+            f"第 {episode_num} 集重建 {len(requirements)} 条不合规参考声线",
+        )
+        try:
+            await provision_voice_design_requirements(
+                context,
+                tuple(requirements.values()),
+            )
+        except VoiceDesignModelUnavailable as exc:
+            raise ProductionWorkflowModelPrerequisitesMissing(
+                [
+                    "文字声线设计模型缺失：当前未配置可用的 "
+                    "AUDIO_VOICE_DESIGN 云端或 BYOK 模型"
+                ]
+            ) from exc
+        characters = await load_characters()
+        errors = collect_seedance2_video_prereq_errors(
+            project_output=context.output_dir,
+            episode=episode_num,
+            beats=beats,
+            characters=characters,
+        )
+        audio_errors = [error for error in errors if error.media_type == "audio"]
+
+    if audio_errors:
+        details = [
+            f"Beat {error.beat_number} {error.label}：{error.reason}"
+            for error in audio_errors
+        ]
+        raise RuntimeError("Seedance2 参考声线前置不满足：" + "；".join(details))
+
+
 async def _ensure_audio(
     context: ProjectContext,
     episode_num: int,
@@ -1189,20 +1347,16 @@ async def _ensure_audio(
     )
 
     paths = PathResolver(context.output_dir, episode_num)
-    candidates = [
-        number
-        for number in _beat_numbers(beats)
-        if force or not paths.audio(number).exists()
-    ]
+    candidates = _beat_numbers(beats)
     if not candidates:
         return
-    reporter.update(progress, f"第 {episode_num} 集生成缺失配音")
+    reporter.update(progress, f"第 {episode_num} 集补齐或更新分镜配音")
     try:
         scheduled = await episode_audio_use_cases().generate(
             context,
             GenerateEpisodeAudioCommand(
                 episode_num=episode_num,
-                mode="redo_selected",
+                mode="redo_all" if force else "sync_changed",
                 beat_numbers=candidates,
             ),
         )
@@ -1234,6 +1388,7 @@ async def _ensure_videos(
     *,
     requested_model: str | None,
     resolution: str,
+    aspect_ratio: str,
     use_director_render: bool,
     timeout_seconds: float,
     reporter: _ProgressReporter,
@@ -1272,8 +1427,9 @@ async def _ensure_videos(
                 video_model=model_route.model,
                 model_selector=model_route.selector or None,
                 resolution=resolution,
+                ratio=aspect_ratio,
                 use_director_render=use_director_render,
-                provided_fields=frozenset({"resolution"}),
+                provided_fields=frozenset({"resolution", "ratio"}),
             ),
         )
         await _wait_ticket(
@@ -1308,8 +1464,8 @@ async def _ensure_composed(
         episode_video_use_cases,
     )
 
-    final_path = PathResolver(context.output_dir, episode_num).final_video()
     paths = PathResolver(context.output_dir, episode_num)
+    final_path = paths.final_video()
     source_paths = [paths.video(number) for number in _beat_numbers(beats)]
     source_paths.extend(
         path
@@ -1320,8 +1476,8 @@ async def _ensure_composed(
         final_path.exists()
         and bool(source_paths)
         and all(path.exists() for path in source_paths)
-        and final_path.stat().st_mtime
-        >= max(path.stat().st_mtime for path in source_paths)
+        and final_path.stat().st_mtime_ns
+        >= max(path.stat().st_mtime_ns for path in source_paths)
     )
     if not force and final_is_current:
         return final_path
@@ -1349,7 +1505,7 @@ async def _ensure_composed(
     return final_path
 
 
-async def _run_production_workflow(
+async def _run_production_workflow_steps(
     envelope: dict[str, Any],
     context: ProjectContext,
 ) -> dict[str, Any]:
@@ -1391,12 +1547,7 @@ async def _run_production_workflow(
         script_options,
         timeout_seconds=timeout_seconds,
     )
-    regenerated_script_episodes = {
-        int(str(node_id).rsplit("ep", 1)[-1])
-        for batch in script_result.get("batches", [])
-        for node_id in batch
-        if str(node_id).startswith("script:ep")
-    }
+    overwrite_existing_assets = bool(payload.get("rebuild", False))
 
     _characters, episodes = await _load_story_state(context)
     planned_episode_numbers = tuple(
@@ -1460,12 +1611,10 @@ async def _run_production_workflow(
         if not beats:
             raise RuntimeError(f"第 {episode_num} 集脚本没有 Beat")
         reporter.update(base, f"第 {episode_num} 集校准脚本身份标记")
-        markers_changed = await _reconcile_episode_identity_markers(
+        await _reconcile_episode_identity_markers(
             context,
             episode_num,
         )
-        script_regenerated = episode_num in regenerated_script_episodes
-        refresh_visuals = script_regenerated or bool(markers_changed)
         beats = await _episode_beats(context, episode_num)
         reporter.update(base, f"第 {episode_num} 集分配草图标记颜色")
         await _assign_colors(context, episode_num)
@@ -1478,7 +1627,7 @@ async def _run_production_workflow(
             timeout_seconds=timeout_seconds,
             reporter=reporter,
             progress=base + episode_span * 0.08,
-            force=refresh_visuals,
+            force=overwrite_existing_assets,
         )
         await _ensure_detection(
             context,
@@ -1488,22 +1637,6 @@ async def _run_production_workflow(
             reporter=reporter,
             progress=base + episode_span * 0.20,
         )
-        beats = await _ensure_global_optimization(
-            context,
-            episode_num,
-            timeout_seconds=timeout_seconds,
-            reporter=reporter,
-            progress=base + episode_span * 0.32,
-            force=refresh_visuals,
-        )
-        await _ensure_audio_prerequisites(
-            context,
-            episode_num,
-            beats,
-            reporter=reporter,
-            progress=base + episode_span * 0.40,
-            force=script_regenerated,
-        )
         await _ensure_first_frames(
             context,
             episode_num,
@@ -1512,8 +1645,33 @@ async def _run_production_workflow(
             aspect_ratio=aspect_ratio,
             timeout_seconds=timeout_seconds,
             reporter=reporter,
+            progress=base + episode_span * 0.32,
+            force=overwrite_existing_assets,
+        )
+        beats = await _ensure_global_optimization(
+            context,
+            episode_num,
+            timeout_seconds=timeout_seconds,
+            reporter=reporter,
+            progress=base + episode_span * 0.40,
+            force=overwrite_existing_assets,
+        )
+        await _ensure_audio_prerequisites(
+            context,
+            episode_num,
+            beats,
+            reporter=reporter,
             progress=base + episode_span * 0.45,
-            force=refresh_visuals,
+            force=overwrite_existing_assets,
+        )
+        await _ensure_seedance_voice_prerequisites(
+            context,
+            episode_num,
+            beats,
+            requested_model=payload.get("video_model"),
+            reporter=reporter,
+            progress=base + episode_span * 0.52,
+            force=overwrite_existing_assets,
         )
         beats = await _ensure_seedance_prompts(
             context,
@@ -1522,7 +1680,7 @@ async def _run_production_workflow(
             requested_model=payload.get("video_model"),
             reporter=reporter,
             progress=base + episode_span * 0.54,
-            force=refresh_visuals,
+            force=overwrite_existing_assets,
         )
         await _ensure_audio(
             context,
@@ -1531,7 +1689,7 @@ async def _run_production_workflow(
             timeout_seconds=timeout_seconds,
             reporter=reporter,
             progress=base + episode_span * 0.58,
-            force=script_regenerated,
+            force=overwrite_existing_assets,
         )
         await _ensure_videos(
             context,
@@ -1539,11 +1697,12 @@ async def _run_production_workflow(
             beats,
             requested_model=payload.get("video_model"),
             resolution=resolution,
+            aspect_ratio=aspect_ratio,
             use_director_render=use_director_render,
             timeout_seconds=timeout_seconds,
             reporter=reporter,
             progress=base + episode_span * 0.72,
-            force=refresh_visuals,
+            force=overwrite_existing_assets,
         )
         final_path = await _ensure_composed(
             context,
@@ -1555,7 +1714,7 @@ async def _run_production_workflow(
             timeout_seconds=timeout_seconds,
             reporter=reporter,
             progress=base + episode_span * 0.95,
-            force=refresh_visuals,
+            force=overwrite_existing_assets,
         )
         results.append(
             {
@@ -1571,6 +1730,21 @@ async def _run_production_workflow(
         "episodes": results,
         "completed_episodes": list(episode_numbers),
     }
+
+
+async def _run_production_workflow(
+    envelope: dict[str, Any],
+    context: ProjectContext,
+) -> dict[str, Any]:
+    try:
+        return await _run_production_workflow_steps(envelope, context)
+    except BaseException:
+        parent_task_id = str(envelope.get("__run_task_id") or "").strip()
+        if parent_task_id:
+            await asyncio.shield(
+                _cancel_owned_child_tasks(context, parent_task_id)
+            )
+        raise
 
 
 def run_production_workflow(

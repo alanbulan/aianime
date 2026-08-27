@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { EpisodeEmptyState } from "@/components/episode/episode-empty-state";
+import { UnifiedVideoPlayer } from "@/components/media/UnifiedVideoPlayer";
 import { StageProgressPanel } from "@/components/stage-progress-panel";
 import { Button } from "@/components/ui/button";
 import {
@@ -326,10 +327,10 @@ export function EpisodeComposePageView({
           {resultUrl ? (
             // Vertical (9:16) drama clips are taller than they are wide.
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-              <video
+              <UnifiedVideoPlayer
                 src={resultUrl}
-                controls
-                className="block max-h-full max-w-full rounded-lg"
+                className="max-h-full max-w-full"
+                videoClassName="max-h-full max-w-full"
               />
             </div>
           ) : beatsLoading ? (

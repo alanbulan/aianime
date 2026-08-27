@@ -66,6 +66,7 @@ async def test_generate_sketches_route_maps_request_to_application(
         sketch_scene_grouping=True,
         aspect_ratio="16:9",
         image_generation_selection="openrouter_nanobanana2",
+        replace_existing=True,
     )
 
     response = await production_sketch.generate_sketches(
@@ -115,6 +116,7 @@ async def test_generate_sketches_route_maps_request_to_application(
     assert command.sketch_scene_grouping is True
     assert command.aspect_ratio == "16:9"
     assert command.image_generation_selection == "openrouter_nanobanana2"
+    assert command.replace_existing is True
 
 
 @pytest.mark.asyncio

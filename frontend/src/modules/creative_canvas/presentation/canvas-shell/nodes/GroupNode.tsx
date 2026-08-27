@@ -8,15 +8,15 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { uploadCanvasAsset } from "@/modules/creative_canvas/canvasComposition";
 ;
-import { GroupNodeView, NodeResizeHandle, canvasNodeFrameClass, computeSnapAlign, getStoryboardCellPreview, resolveNodeDisplayName, resolveCanvasNodeSourceImageUrl, useGroupNodeController, useSnapAlignStore, type GroupNodeControllerPorts, type GroupNodeViewBindings, type StoryboardCellPreviewPorts, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
+import { GroupNodeView, NodeResizeHandle, canvasNodeFrameClass, computeSnapAlign, getStoryboardCellPreview, resolveNodeDisplayName, resolveCanvasNodeSourceImageUrl, useGroupNodeController, useSnapAlignStore, type GroupNodeControllerPorts, type GroupNodeViewBindings, type StoryboardCellPreviewPorts, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 import { CanvasHistoryAssetsModalAdapter } from '../ui/CanvasHistoryAssetsModalAdapter';
 import {
   NodeHeader,
   NODE_HEADER_FLOATING_POSITION_CLASS,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 const STORYBOARD_CELL_PREVIEW_PORTS: StoryboardCellPreviewPorts<CanvasNode> = {
   types: {
     video: [

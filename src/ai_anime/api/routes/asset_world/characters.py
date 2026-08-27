@@ -34,6 +34,7 @@ from ai_anime.api.routes.asset_world.characters_schemas import (
 )
 from ai_anime.api.routes.asset_world.voice_schemas import (
     CharacterVoiceBindRequest,
+    CharacterVoiceDesignMissingRequest,
     CharacterVoiceRecordRequest,
     CharacterVoiceTrimRequest,
 )
@@ -57,6 +58,8 @@ from ai_anime.modules.asset_world.public import (
     image_settings_use_cases,
     character_task_use_cases,
     character_voice_use_cases,
+    decode_recorded_audio_data_url,
+    is_supported_voice_sample,
 )
 from ai_anime.shared.project_media import make_project_asset_url_builder
 from ai_anime.sqlite_store import SQLiteStore
@@ -124,6 +127,49 @@ def _resolve_reusable_voice(ctx: ProjectContext, voice_id: str) -> Path:
         )
     except CreativeCanvasAudioVoiceMissing as exc:
         raise InvalidCharacterVoiceInput("所选声线不存在或无权访问") from exc
+
+
+_CHARACTER_VOICE_SLOT_LABELS = {
+    "default": "默认",
+    "child": "幼年",
+    "youth": "青年",
+    "middle": "中年",
+    "elder": "老年",
+}
+
+
+def _create_reusable_character_voice(
+    *,
+    ctx: ProjectContext,
+    character_name: str,
+    slot: str,
+    filename: str,
+    content: bytes,
+    mime_type: str,
+) -> tuple[dict, Path]:
+    from ai_anime.modules.creative_canvas.public import (
+        CreateCreativeCanvasAudioVoiceCommand,
+        InvalidCreativeCanvasAudioLibraryRequest,
+        creative_canvas_audio_library_use_cases,
+    )
+
+    slot_label = _CHARACTER_VOICE_SLOT_LABELS.get(slot, slot)
+    try:
+        created = dict(
+            creative_canvas_audio_library_use_cases().create_voice(
+                CreateCreativeCanvasAudioVoiceCommand(
+                    context=ctx,
+                    name=f"{character_name} · {slot_label}声线",
+                    filename=filename,
+                    content=content,
+                    mime_type=mime_type,
+                )
+            )
+        )
+    except InvalidCreativeCanvasAudioLibraryRequest as exc:
+        raise InvalidCharacterVoiceInput(str(exc)) from exc
+    voice_id = str(created.get("voice_id") or "")
+    return created, _resolve_reusable_voice(ctx, voice_id)
 
 
 @router.get("/projects/{project}/characters")
@@ -459,6 +505,97 @@ async def list_character_voice_samples(
     return {"ok": True, "data": data}
 
 
+@router.post("/projects/{project}/characters/voices/design-missing")
+async def design_missing_character_voices(
+    project: str,
+    body: CharacterVoiceDesignMissingRequest,
+    user: dict = Depends(get_api_user),
+):
+    """生成缺失角色声线，或按明确角色范围覆盖重做已有声线。"""
+    from ai_anime.modules.production.public import (
+        VoiceDesignModelUnavailable,
+        VoiceDesignProvisioningFailed,
+        provision_missing_character_voices,
+    )
+
+    ctx, _username, _project_name, _project_dir, _output_dir, store = (
+        await _resolve_character_project(project, user)
+    )
+    characters = list(store.get_all_characters())
+    preview_text_by_character: dict[str, str] = {}
+    project_preview_text = ""
+    for episode in store.get_all_episodes():
+        episode_num = int(getattr(episode, "number", 0) or 0)
+        if episode_num <= 0:
+            continue
+        for beat in await store.get_beats_as_dicts(episode_num):
+            preview_text = str(
+                beat.get("dialogue")
+                or beat.get("narration_segment")
+                or beat.get("narration")
+                or ""
+            ).strip()
+            if not preview_text:
+                continue
+            project_preview_text = project_preview_text or preview_text
+            speaker = str(beat.get("speaker") or "").strip()
+            if not speaker:
+                continue
+            for character in characters:
+                character_name = str(getattr(character, "name", "") or "").strip()
+                aliases = {
+                    str(alias or "").strip()
+                    for alias in (getattr(character, "aliases", None) or [])
+                }
+                if (
+                    speaker == character_name
+                    or speaker.startswith(f"{character_name}_")
+                    or speaker.split("_", 1)[0] in aliases
+                ):
+                    preview_text_by_character.setdefault(character_name, preview_text)
+                    break
+    try:
+        completed, skipped = await provision_missing_character_voices(
+            ctx,
+            characters,
+            character_names=body.character_names,
+            replace_existing=body.replace_existing,
+            preview_text_by_character=preview_text_by_character,
+            project_preview_text=project_preview_text,
+        )
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "error": str(exc)},
+        )
+    except VoiceDesignModelUnavailable as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"ok": False, "code": exc.code, "error": str(exc)},
+        )
+    except VoiceDesignProvisioningFailed as exc:
+        return JSONResponse(
+            status_code=503,
+            content={"ok": False, "code": exc.code, "error": str(exc)},
+        )
+    return {
+        "ok": True,
+        "data": {
+            "generated": list(completed),
+            "skipped_existing": list(skipped),
+        },
+        "agent_instruction": (
+            "向用户准确报告 generated 与 skipped_existing；本接口只生成并绑定声线。"
+            + (
+                "本次已按明确角色范围覆盖重做已有声线；旧音频文件会保留为时间戳备份；"
+                if body.replace_existing
+                else "本次只替换缺失、不可读或不符合 1.8-15 秒约束的样本，保留合规声线；"
+            )
+            + "不会启动完整生产流程或整集配音。"
+        ),
+    }
+
+
 @router.post("/projects/{project}/characters/{name}/voice-samples/{slot}/upload")
 async def upload_character_voice_sample(
     project: str,
@@ -472,14 +609,27 @@ async def upload_character_voice_sample(
         await _resolve_character_project(project, user)
     )
     try:
-        data = await character_voice_use_cases().upload_sample(
+        filename = file.filename or "voice.wav"
+        if not is_supported_voice_sample(filename):
+            raise InvalidCharacterVoiceInput("仅支持 mp3 / wav / m4a / aac / ogg")
+        content = await file.read()
+        created_voice, source_path = _create_reusable_character_voice(
+            ctx=ctx,
+            character_name=name,
+            slot=slot,
+            filename=filename,
+            content=content,
+            mime_type=file.content_type or "application/octet-stream",
+        )
+        data = await character_voice_use_cases().bind_sample(
             repository=store,
             project_dir=project_dir,
             character_name=name,
             slot=slot,
-            upload=file,
+            source_path=source_path,
             media_url=_character_voice_media_url(ctx, project_dir),
         )
+        data["voice_library_id"] = str(created_voice.get("voice_id") or "")
     except CharacterVoiceRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": data}
@@ -525,14 +675,24 @@ async def record_character_voice_sample(
         await _resolve_character_project(project, user)
     )
     try:
-        data = await character_voice_use_cases().record_sample(
+        content, extension = decode_recorded_audio_data_url(body.data_url)
+        created_voice, source_path = _create_reusable_character_voice(
+            ctx=ctx,
+            character_name=name,
+            slot=slot,
+            filename=f"recorded{extension}",
+            content=content,
+            mime_type=("audio/mpeg" if extension == ".mp3" else "audio/wav"),
+        )
+        data = await character_voice_use_cases().bind_sample(
             repository=store,
             project_dir=project_dir,
             character_name=name,
             slot=slot,
-            data_url=body.data_url,
+            source_path=source_path,
             media_url=_character_voice_media_url(ctx, project_dir),
         )
+        data["voice_library_id"] = str(created_voice.get("voice_id") or "")
     except CharacterVoiceRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, "data": data}

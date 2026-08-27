@@ -6,7 +6,7 @@ import { useVideoComposeNodeController } from '@/modules/creative_canvas/canvasC
 import {
   VideoComposeNodeView,
   type VideoComposeNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type VideoComposeNodeProps = NodeProps & {
   id: string;
   data: VideoComposeNodeData;

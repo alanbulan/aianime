@@ -37,6 +37,7 @@ export const AI_ANIME_TOOL_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   ai_anime_get_character_media: "读取角色素材",
   ai_anime_get_episode_media: "读取分集素材",
   ai_anime_render_first_frames: "生成视频首帧",
+  ai_anime_design_character_voices: "生成角色声线",
   ai_anime_generate_audio: "生成分集音频",
   ai_anime_optimize_video_global: "优化全局视频提示词",
   ai_anime_compose_episode: "合成整集视频",

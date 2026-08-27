@@ -115,7 +115,6 @@ from ai_anime.modules.production.infrastructure.director_control_sketch import (
 from ai_anime.modules.production.infrastructure.sketch_color import (
     AssetWorldRuntimePropMenuSource,
     DomainSketchColorAssigner,
-    LocalProductionSketchWorkspace,
 )
 from ai_anime.modules.production.infrastructure.sketch_pose import (
     ModelSketchPoseIdentitySource,
@@ -303,7 +302,6 @@ def sketch_generation_use_cases() -> SketchGenerationUseCases:
                 context.owner_username,
             ),
             AssetWorldRuntimePropMenuSource(),
-            LocalProductionSketchWorkspace(),
             NanoBananaSketchGridPlanner(),
         ),
         TaskExecutionSketchGenerationScheduler(project_task_submission_use_cases()),
@@ -412,7 +410,6 @@ def sketch_marker_use_cases() -> SketchMarkerUseCases:
             DomainSketchColorAssigner(),
             CompatibleEpisodeSource(),
             AssetWorldRuntimePropMenuSource(),
-            LocalProductionSketchWorkspace(),
         ),
         SketchMarkerDetectionUseCases(
             CompatibleEpisodeSource(),

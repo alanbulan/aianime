@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 
 
-import type { CanvasExportResultKind, CanvasNode } from '@/modules/creative_canvas/public';
-import { isExportImageNode, isImageEditNode, isImageGenNode, isPano360ViewerNode, isUploadNode, isVideoNode } from '@/modules/creative_canvas/public';
+import type { CanvasExportResultKind, CanvasNode } from '@/modules/creative_canvas/presentation/canvas-shell/internal';
+import { isExportImageNode, isImageEditNode, isImageGenNode, isPano360ViewerNode, isUploadNode, isVideoNode } from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 import {
   DEFAULT_ASPECT_RATIO,
   DEFAULT_CANVAS_NODE_WIDTH,
@@ -14,7 +14,7 @@ import {
   EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
   resolveCanvasNodeSourceImageUrl,
   type GridActionRequest,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 import { NodeActionToolbar } from './NodeActionToolbar';
 import { AssetCommitHandle } from './AssetCommitHandle';
 import { MultiAngleEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
@@ -28,8 +28,8 @@ import { OutpaintEditorOverlay } from '@/modules/creative_canvas/canvasCompositi
 import { RotateEditorOverlay } from '@/modules/creative_canvas/canvasComposition';
 import { GridActionConfirmOverlay } from '@/modules/creative_canvas/canvasComposition';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 // Image/video nodes only need the floating action toolbar once they actually
 // have a resource to act on. While the node is empty (no upload, no generated
 // output), the toolbar entries (剪辑 / 高清 / 智能去字幕 / ...) are all no-ops,

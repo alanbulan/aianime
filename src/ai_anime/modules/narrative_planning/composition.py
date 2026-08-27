@@ -47,9 +47,6 @@ from ai_anime.modules.narrative_planning.infrastructure.beat_media import (
     LocalEpisodeBeatMediaCatalog,
     ProjectContextMediaUrlBuilder,
 )
-from ai_anime.modules.narrative_planning.infrastructure.sketch_workspace import (
-    LocalSketchWorkspace,
-)
 from ai_anime.modules.narrative_planning.infrastructure.seedance_prompt_gateway import (
     SeedancePanelPromptGateway,
 )
@@ -122,7 +119,6 @@ def narrative_task_scheduler() -> TaskExecutionScheduler:
 def start_script_generation() -> StartScriptGeneration:
     return StartScriptGeneration(
         task_scheduler=narrative_task_scheduler(),
-        sketch_workspace=LocalSketchWorkspace(),
     )
 
 

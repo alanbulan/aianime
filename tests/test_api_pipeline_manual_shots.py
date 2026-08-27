@@ -84,7 +84,6 @@ async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, t
             (target_dir / f"beat_{beat_num:02d}.{suffix}").write_bytes(b"x")
     (tmp_path / "grids" / ep_tag).mkdir(parents=True)
     (tmp_path / "grids" / ep_tag / "grid.png").write_bytes(b"x")
-
     monkeypatch.setattr(pipeline, "_user_has_configured", lambda username, project: True)
     monkeypatch.setattr(pipeline, "_seedance_prompts_required", lambda *_: False)
     monkeypatch.setattr(
@@ -137,6 +136,8 @@ def test_pipeline_requires_every_beat_sketch(tmp_path):
 
 
 def test_pipeline_rejects_first_frames_older_than_current_sketches(tmp_path):
+    import os
+
     from ai_anime.api.routes.task_execution.pipeline import (
         _beat_file_series_current,
     )
@@ -149,13 +150,8 @@ def test_pipeline_rejects_first_frames_older_than_current_sketches(tmp_path):
     sketch = sketches / "beat_01.png"
     frame.write_bytes(b"old-frame")
     sketch.write_bytes(b"new-sketch")
-    frame.touch()
-    sketch.touch()
-    frame_time = frame.stat().st_mtime_ns
-    sketch_time = max(sketch.stat().st_mtime_ns, frame_time + 1_000_000)
-    import os
-
-    os.utime(sketch, ns=(sketch_time, sketch_time))
+    newer_time = frame.stat().st_mtime_ns + 1_000_000
+    os.utime(sketch, ns=(newer_time, newer_time))
 
     assert (
         _beat_file_series_current(
@@ -166,7 +162,6 @@ def test_pipeline_rejects_first_frames_older_than_current_sketches(tmp_path):
         )
         is False
     )
-
 
 def test_pipeline_requires_identity_detection_newer_than_sketches(tmp_path):
     from ai_anime.api.routes.task_execution.pipeline import (

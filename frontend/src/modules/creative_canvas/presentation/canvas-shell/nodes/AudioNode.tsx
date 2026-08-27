@@ -6,7 +6,7 @@ import { useAudioNodeController } from '@/modules/creative_canvas/canvasComposit
 import {
   AudioNodeView,
   type AudioNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type AudioNodeProps = NodeProps & {
   projectId: string;
   canvasId: string;

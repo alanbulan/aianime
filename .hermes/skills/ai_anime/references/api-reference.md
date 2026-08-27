@@ -88,11 +88,11 @@
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| `POST` | `/projects/{project}/episodes/{ep}/sketches/generate` | 局部草图 `{"style":"...","grid_index":0,"sketch_scene_grouping":true,"aspect_ratio":"2:3","image_generation_selection":"..."}` [ASYNC]。完整生产使用 `grid_index=-1` 由父任务生成全部网格；不得发送不存在的 `model` 或 `sketch_location_grouping` 字段。 |
-| `POST` | `/projects/{project}/episodes/{ep}/grids/generate` | 九宫格 [ASYNC] |
+| `POST` | `/projects/{project}/episodes/{ep}/sketches/generate` | 正式草图 `{"grid_index":-1,"sketch_scene_grouping":true,"aspect_ratio":"2:3","image_generation_selection":"...","replace_existing":false}` [ASYNC]。生产计划固定每 Beat 独立 1x1；`-1` 只补缺失，已有图跳过。不得发送不存在的 `model` 或 `sketch_location_grouping` 字段。 |
+| `POST` | `/projects/{project}/episodes/{ep}/grids/generate` | 历史/显式网格实验 [ASYNC]，不作为正式草图生产入口 |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/regenerate` | 重新生成单个网格 [ASYNC] |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/cut` | 切割入池 |
-| `GET` | `/projects/{project}/episodes/{ep}/grids` | 查看九宫格与图池（返回 `images[].stale` 布尔字段，true=旧版脚本生成） |
+| `GET` | `/projects/{project}/episodes/{ep}/grids` | 查看生成历史与图池（返回 `images[].stale` 布尔字段，true=旧版脚本生成） |
 | `POST` | `/projects/{project}/episodes/{ep}/beats/{beat}/pool-select` | 从图池选图 `{"pool_id":"...","force":false}` 旧批次需 `force:true` |
 | `POST` | `/projects/{project}/episodes/{ep}/sketches/assign-colors` | 草图配色（为身份分配唯一颜色）[SYNC] |
 | `POST` | `/projects/{project}/episodes/{ep}/sketches/detect-identities` | AI 身份检测（识别草图中出场角色）[ASYNC → ai_identity_detection] |
@@ -125,9 +125,9 @@
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| `POST` | `/projects/{project}/episodes/{ep}/sketches/regenerate` | 重做指定草图 `{"beat_indices":[...],"style":"..."}` [ASYNC: sketch_regen] |
+| `POST` | `/projects/{project}/episodes/{ep}/sketches/regenerate` | 前端与助手共用的局部重做入口：`{"beat_indices":[...],"mode_key":"1x1_2-3_sketch","style":"..."}` [ASYNC: sketch_regen]；仅成功后替换指定 Beat |
 | `POST` | `/projects/{project}/episodes/{ep}/beats/regenerate` | 重做指定首帧 `{"beat_indices":[...],"style":"..."}` [ASYNC: selected_regen] |
-| `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/regenerate` | 重做单个网格 `{"style":"...","model":"nanobanana"}` [ASYNC: grid_regenerate] |
+| `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/regenerate` | 重做单个网格 `{"style":"...","image_generation_selection":"..."}` [ASYNC: grid_regenerate] |
 
 ## 场景与锚图
 

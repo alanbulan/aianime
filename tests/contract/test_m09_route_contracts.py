@@ -39,6 +39,7 @@ _M09_OPERATIONS = {
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video"),
     ("GET", "/api/v1/projects/{project}/episodes/{episode_num}/video-pool"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-pool-select"),
+    ("DELETE", "/api/v1/projects/{project}/episodes/{episode_num}/video-pool/{pool_id}"),
     ("GET", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-status"),
     (
         "POST",
@@ -259,6 +260,18 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             prompt="pool prompt",
         ),
     )
+    video_pool_use_cases().add_generated(
+        ctx,
+        AddGeneratedVideoCommand(
+            episode_num=1,
+            beat_num=1,
+            source_video_path=(
+                project_dir / "videos" / "beats" / "ep001" / "beat_01.mp4"
+            ),
+            video_model=_VIDEO_MODEL,
+            prompt="active pool prompt",
+        ),
+    )
     resolution = ProjectResolution(
         ctx=ctx,
         username=_USER,
@@ -443,7 +456,7 @@ def _assert_task_payload(payload: dict, *, backend: str, task_type: str):
     assert "celery_id" not in payload
 
 
-def test_m09_openapi_exposes_all_22_owned_operations(m09_client_factory):
+def test_m09_openapi_exposes_all_23_owned_operations(m09_client_factory):
     client, _task_backend, _project_dir, _pool_id = m09_client_factory("inline")
     spec = client.get("/openapi.json").json()
     actual = {
@@ -453,8 +466,24 @@ def test_m09_openapi_exposes_all_22_owned_operations(m09_client_factory):
         if method.lower() in {"get", "post", "patch", "delete"}
     }
 
-    assert len(_M09_OPERATIONS) == 22
+    assert len(_M09_OPERATIONS) == 23
     assert not sorted(_M09_OPERATIONS - actual)
+
+
+def test_m09_video_pool_delete_route_removes_an_inactive_candidate(m09_client_factory):
+    client, _task_backend, _project_dir, pool_id = m09_client_factory("inline")
+
+    deleted = _assert_ok(
+        client.delete(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/video-pool/{pool_id}"
+        )
+    )["data"]
+
+    assert deleted == {"pool_id": pool_id}
+    repeated = client.delete(
+        f"/api/v1/projects/{_PROJECT}/episodes/1/video-pool/{pool_id}"
+    ).json()
+    assert repeated["ok"] is False
 
 
 def test_m09_l2_exercises_all_21_endpoint_contracts(m09_client_factory):

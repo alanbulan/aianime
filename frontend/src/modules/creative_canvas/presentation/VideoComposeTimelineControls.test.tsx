@@ -57,15 +57,15 @@ describe("VideoComposeTimelineControls", () => {
     );
 
     const sliders = screen.getAllByRole("slider");
-    fireEvent.change(sliders[0], { target: { value: "2.5" } });
-    fireEvent.change(sliders[1], { target: { value: "2000" } });
+    fireEvent.keyDown(sliders[0], { key: "End" });
+    fireEvent.keyDown(sliders[1], { key: "Home" });
     fireEvent.click(screen.getAllByRole("button", { name: "+" })[0]);
     fireEvent.click(
       screen.getByRole("button", { name: "common.close" }),
     );
 
-    expect(onChange).toHaveBeenNthCalledWith(1, 2.5);
-    expect(onChange).toHaveBeenNthCalledWith(2, 2);
+    expect(onChange).toHaveBeenNthCalledWith(1, 4);
+    expect(onChange).toHaveBeenNthCalledWith(2, 4);
     expect(onChange).toHaveBeenNthCalledWith(3, 1.05);
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -89,8 +89,6 @@ describe("VideoComposeTimelineControls", () => {
     const slider = screen.getByRole("slider");
     fireEvent.pointerDown(slider);
     fireEvent.keyDown(slider, { key: "ArrowRight", repeat: false });
-    fireEvent.keyDown(slider, { key: "ArrowRight", repeat: true });
-    fireEvent.change(slider, { target: { value: "0.7" } });
     fireEvent.click(
       screen.getByRole("button", { name: "videoCompose.mute" }),
     );
@@ -99,7 +97,7 @@ describe("VideoComposeTimelineControls", () => {
     );
 
     expect(onGestureStart).toHaveBeenCalledTimes(2);
-    expect(onChange).toHaveBeenCalledWith(0.7);
+    expect(onChange).toHaveBeenCalledWith(0.51);
     expect(onToggleMute).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();
     expect(screen.getByText("50%")).toBeInTheDocument();

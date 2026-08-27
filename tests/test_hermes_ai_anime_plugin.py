@@ -178,6 +178,105 @@ def test_generate_portrait_omits_body_to_use_global_priority(
     assert calls == [None]
 
 
+def test_design_character_voices_uses_dedicated_priority_route(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {
+            "ok": True,
+            "data": {
+                "generated": ["佐仓美咲", "神谷莲"],
+                "skipped_existing": ["藤原悠真"],
+            },
+        }
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_design_character_voices(
+        {"names": ["神谷莲", "佐仓美咲"]}
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/characters/voices/design-missing",
+            {"character_names": ["佐仓美咲", "神谷莲"]},
+        )
+    ]
+    assert any(
+        name == "ai_anime_design_character_voices"
+        for name, _schema, _handler in ai_anime_plugin.TOOLS
+    )
+    schema = next(
+        schema
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name == "ai_anime_design_character_voices"
+    )
+    assert "shorter than 1.8 seconds" in schema["description"]
+    assert "Usable existing voices are preserved" in schema["description"]
+    assert "must never call ai_anime_run_production_workflow" in schema["description"]
+    assert schema["parameters"]["properties"]["replace_existing"] == {
+        "type": "boolean",
+        "description": (
+            "Set true only when the user explicitly asks to redesign/replace the "
+            "named characters' existing voices. Requires name or names."
+        ),
+    }
+
+
+def test_design_character_voices_replacement_requires_explicit_names(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("unscoped replacement must not reach the API")
+        ),
+    )
+
+    result = ai_anime_plugin._handle_design_character_voices(
+        {"replace_existing": True}
+    )
+
+    assert "names is required" in result["tool_error"]
+
+
+def test_design_character_voices_replaces_only_explicit_names(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "data": {"generated": ["佐仓美咲"]}}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_design_character_voices(
+        {"names": ["佐仓美咲"], "replace_existing": True}
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/characters/voices/design-missing",
+            {"character_names": ["佐仓美咲"], "replace_existing": True},
+        )
+    ]
+
+
 def test_portrait_tools_expose_optional_model_override_contract(
     ai_anime_plugin,
 ) -> None:
@@ -294,6 +393,88 @@ def test_complete_generation_uses_bound_project_instead_of_model_supplied_id(
             {"episodes": [1]},
         )
     ]
+
+
+def test_first_frame_regeneration_requires_explicit_scope(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("missing scope must not submit a regeneration task")
+        ),
+    )
+
+    result = ai_anime_plugin._handle_render_first_frames({"episode": 1})
+
+    assert "beat_indices is required" in result["tool_error"]
+    assert "ai_anime_run_production_workflow" in result["tool_error"]
+
+
+def test_first_frame_regeneration_uses_explicit_beats(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "task_type": "selected_regen"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_render_first_frames(
+        {"episode": 1, "beat_indices": [5, 2, 5]}
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/episodes/1/beats/regenerate",
+            {"beat_indices": [2, 5]},
+        )
+    ]
+
+
+def test_first_frame_regeneration_requires_explicit_all_beats_opt_in(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        if method == "GET":
+            return {"data": [{"beat_number": 1}, {"beat_number": 3}]}
+        return {"ok": True, "task_type": "selected_regen"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_render_first_frames(
+        {"episode": 1, "all_beats": True}
+    )
+
+    assert result["ok"] is True
+    assert calls == [
+        ("GET", "/api/v1/projects/project-1/episodes/1/beats", None),
+        (
+            "POST",
+            "/api/v1/projects/project-1/episodes/1/beats/regenerate",
+            {"beat_indices": [1, 3]},
+        ),
+    ]
+    schema = next(
+        schema
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name == "ai_anime_render_first_frames"
+    )
+    assert schema["parameters"]["properties"]["all_beats"]["type"] == "boolean"
 
 
 def test_bound_project_rewrites_generic_paths_and_hides_project_schema_field(
@@ -478,7 +659,7 @@ def test_media_handlers_send_current_backend_contract_fields(
         (
             "POST",
             "/api/v1/projects/project-1/episodes/1/audio/generate",
-            {"model": "audio-route"},
+            {},
         ),
         (
             "POST",
@@ -491,6 +672,98 @@ def test_media_handlers_send_current_backend_contract_fields(
             {},
         ),
     ]
+
+
+def test_sketch_tool_replaces_only_when_explicitly_requested(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[dict] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append(body)
+        return {"ok": True, "message": "started"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    ai_anime_plugin._handle_generate_sketches(
+        {
+            "episode": 1,
+            "auto_assign_colors": False,
+            "grid_index": 4,
+            "replace_existing": True,
+        }
+    )
+
+    assert calls == [
+        {
+            "grid_index": 4,
+            "sketch_scene_grouping": True,
+            "aspect_ratio": "2:3",
+            "replace_existing": True,
+        }
+    ]
+
+
+def test_sketch_tool_uses_frontend_selected_regeneration_contract(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "message": "started"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    ai_anime_plugin._handle_generate_sketches(
+        {
+            "episode": 1,
+            "auto_assign_colors": False,
+            "beat_indices": [6, 2, 6],
+            "aspect_ratio": "16:9",
+            "model": "image-route",
+        }
+    )
+
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/episodes/1/sketches/regenerate",
+            {
+                "beat_indices": [2, 6],
+                "mode_key": "1x1_16-9_sketch",
+                "image_generation_selection": "image-route",
+            },
+        )
+    ]
+
+
+def test_sketch_tool_rejects_unscoped_full_overwrite(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("unscoped overwrite must not call the backend")
+        ),
+    )
+
+    result = ai_anime_plugin._handle_generate_sketches(
+        {
+            "episode": 1,
+            "auto_assign_colors": False,
+            "replace_existing": True,
+        }
+    )
+
+    assert "requires beat_indices" in result["tool_error"]
 
 
 def test_create_style_tool_saves_account_style_with_canonical_config(
@@ -946,6 +1219,105 @@ def test_wait_task_timeout_reports_non_terminal_without_resubmission(
     }
     assert "不是任务失败" in result["agent_instruction"]
     assert "同一个 task_key" in result["agent_instruction"]
+
+
+def test_wait_task_stops_after_three_missing_snapshots(
+    ai_anime_plugin,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    requests = []
+
+    def missing_request(*args, **kwargs):
+        requests.append((args, kwargs))
+        return {"ok": True, "status_code": 200, "data": None}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", missing_request)
+    monkeypatch.setattr(ai_anime_plugin.time, "sleep", lambda _seconds: None)
+
+    result = ai_anime_plugin._handle_wait_task(
+        {"task_key": "task:missing", "timeout_seconds": 240}
+    )
+
+    assert len(requests) == 3
+    assert result["ok"] is False
+    assert result["wait"]["terminal"] is True
+    assert result["wait"]["status"] == "not_found"
+    assert result["wait"]["timed_out"] is False
+
+
+def test_list_tasks_filters_locally_without_unsupported_query_parameters(
+    ai_anime_plugin,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(method, path, *, query=None, body=None):
+        calls.append((method, path, query, body))
+        return {
+            "ok": True,
+            "status_code": 200,
+            "data": [
+                {"episode": 1, "task_type": "single_video", "status": "running"},
+                {"episode": 2, "task_type": "single_video", "status": "completed"},
+                {"episode": 1, "task_type": "compose_episode", "status": "running"},
+            ],
+        }
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_list_tasks(
+        {"episode": 1, "task_type": "single_video", "status": "running"}
+    )
+
+    assert calls == [("GET", "/api/v1/projects/project-1/tasks", None, None)]
+    assert result["data"] == [
+        {"episode": 1, "task_type": "single_video", "status": "running"}
+    ]
+
+
+def test_hermes_production_tools_match_openapi_request_fields(
+    ai_anime_plugin,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_EDITION", "ce")
+    monkeypatch.delenv("AI_ANIME_DESKTOP_MODE", raising=False)
+    monkeypatch.delenv("AI_ANIME_DESKTOP_TOKEN", raising=False)
+
+    from ai_anime.api.app import create_app
+
+    openapi = create_app().openapi()
+    components = openapi["components"]["schemas"]
+
+    def request_properties(path: str) -> set[str]:
+        schema = openapi["paths"][path]["post"]["requestBody"]["content"][
+            "application/json"
+        ]["schema"]
+        reference = schema["$ref"].rsplit("/", 1)[-1]
+        return set(components[reference].get("properties", {}))
+
+    tool_schemas = {
+        name: schema["parameters"]["properties"]
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+    }
+    production_fields = request_properties(
+        "/api/v1/projects/{project}/workflow/production"
+    )
+    audio_fields = request_properties(
+        "/api/v1/projects/{project}/episodes/{episode_num}/audio/generate"
+    )
+
+    assert (
+        set(tool_schemas["ai_anime_run_production_workflow"]) - {"project_id"}
+        <= production_fields
+    )
+    assert (
+        set(tool_schemas["ai_anime_generate_audio"]) - {"project_id", "episode"}
+        <= audio_fields
+    )
+    assert "audio_model" not in tool_schemas["ai_anime_run_production_workflow"]
+    assert "model" not in tool_schemas["ai_anime_generate_audio"]
 
 
 def test_generate_audio_treats_no_required_audio_as_successful_skip(

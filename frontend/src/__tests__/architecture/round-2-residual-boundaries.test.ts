@@ -2448,6 +2448,8 @@ describe("round 2 residual architecture boundaries", () => {
       existsSync(resolve(moduleRoot, "presentation/timelineScroll.test.ts")),
     ).toBe(true);
     for (const ownedPath of [
+      "domain/qiuQiuEmotion.ts",
+      "domain/qiuQiuEmotion.test.ts",
       "domain/specMediaProjection.ts",
       "domain/specMediaProjection.test.ts",
       "application/useComposerSubmitController.ts",
@@ -2490,7 +2492,8 @@ describe("round 2 residual architecture boundaries", () => {
       "presentation/ChatPanelContextViews.test.tsx",
       "presentation/ChatComposer.tsx",
       "presentation/ChatComposer.test.tsx",
-      "presentation/useAiAvatarUrl.ts",
+      "presentation/QiuQiuAvatar.tsx",
+      "presentation/QiuQiuAvatar.test.tsx",
       "presentation/SpecMediaModals.tsx",
       "presentation/SpecMediaModals.test.tsx",
       "presentation/SpecMediaGallery.tsx",

@@ -15,7 +15,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/shadcn/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { UiChipButton, UiPanel } from '@/components/ui';
 import type { StoryboardGroupToolbarController } from '@/modules/creative_canvas/presentation/useStoryboardGroupToolbarController';
 

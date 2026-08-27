@@ -111,14 +111,6 @@ class ScriptGenerationStore(Protocol):
     def get_episode(self, episode_num: int) -> Any | None: ...
 
 
-class SketchWorkspace(Protocol):
-    def clear_episode_sketches(
-        self,
-        output_dir: str | Path,
-        episode_num: int,
-    ) -> None: ...
-
-
 class NarrativeTaskScheduler(Protocol):
     async def enqueue_episode_planning(
         self,

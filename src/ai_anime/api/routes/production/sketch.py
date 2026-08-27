@@ -63,6 +63,7 @@ async def generate_sketches(
                 sketch_scene_grouping=body.sketch_scene_grouping,
                 aspect_ratio=body.aspect_ratio,
                 image_generation_selection=body.image_generation_selection,
+                replace_existing=body.replace_existing,
             ),
         )
     except SketchGenerationRejected as exc:

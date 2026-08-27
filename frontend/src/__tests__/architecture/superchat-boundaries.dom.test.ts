@@ -629,12 +629,16 @@ describe("SuperChat boundaries", () => {
     expect(jsonView).not.toContain("useSuperChat");
   });
 
-  it("keeps the shared AI avatar source in AI Assistant presentation", () => {
+  it("keeps the shared QiuQiu avatar runtime in AI Assistant presentation", () => {
     const avatarSource = readFileSync(
       resolve(
         SRC_ROOT,
-        "modules/ai_assistant/presentation/useAiAvatarUrl.ts",
+        "modules/ai_assistant/presentation/QiuQiuAvatar.tsx",
       ),
+      "utf8",
+    );
+    const emotionSource = readFileSync(
+      resolve(SRC_ROOT, "modules/ai_assistant/domain/qiuQiuEmotion.ts"),
       "utf8",
     );
     const publicApi = readFileSync(
@@ -654,21 +658,25 @@ describe("SuperChat boundaries", () => {
     );
 
     expect(publicApi).toContain(
-      'from "@/modules/ai_assistant/presentation/useAiAvatarUrl";',
+      'from "@/modules/ai_assistant/presentation/QiuQiuAvatar";',
     );
     expect(messageView).toContain(
-      'from "@/modules/ai_assistant/presentation/useAiAvatarUrl";',
+      'from "@/modules/ai_assistant/presentation/QiuQiuAvatar";',
     );
     expect(messageView).toContain(
-      'import { useAiAvatarUrl } from "@/modules/ai_assistant/presentation/useAiAvatarUrl";',
+      'import { resolveQiuQiuEmotion } from "@/modules/ai_assistant/domain/qiuQiuEmotion";',
     );
     expect(tests).toContain(
-      'vi.mock("@/modules/ai_assistant/presentation/useAiAvatarUrl"',
+      'vi.mock("@/modules/ai_assistant/presentation/QiuQiuAvatar"',
     );
-    expect(avatarSource).toContain("export function loadAiAvatarUrl(");
-    expect(avatarSource).toContain("export function useAiAvatarUrl(");
-    expect(avatarSource).toContain("let avatarUrlPromise:");
-    expect(avatarSource).toContain("indexedDB.open(DB_NAME, 1)");
+    expect(avatarSource).toContain("export function loadQiuQiuRuntime(");
+    expect(avatarSource).toContain("export function QiuQiuAvatar(");
+    expect(avatarSource).toContain("QIUQIU_RUNTIME_SCRIPTS");
+    expect(emotionSource).toContain("export const QIUQIU_EMOTIONS");
+    expect(emotionSource).toContain("export function resolveQiuQiuEmotion(");
+    expect(
+      existsSync(resolve(SRC_ROOT, "modules/ai_assistant/presentation/useAiAvatarUrl.ts")),
+    ).toBe(false);
     expect(
       existsSync(resolve(SRC_ROOT, "features/superchat/ai-avatar.ts")),
     ).toBe(false);

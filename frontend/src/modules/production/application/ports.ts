@@ -141,6 +141,11 @@ export interface ProductionVideoGateway {
     poolId: string,
     force: boolean,
   ): Promise<ImagePoolSelectResponse>;
+  deleteImagePoolEntry(
+    project: string,
+    episode: number,
+    poolId: string,
+  ): Promise<PoolDeleteResponse>;
   uploadBeatImage(
     project: string,
     episode: number,
@@ -176,6 +181,11 @@ export interface ProductionVideoGateway {
     beatNumber: number,
     poolId: string,
   ): Promise<VideoPoolSelectResponse>;
+  deleteVideoPoolEntry(
+    project: string,
+    episode: number,
+    poolId: string,
+  ): Promise<PoolDeleteResponse>;
   getSeedance2BeatStatus(
     project: string,
     episode: number,
@@ -399,6 +409,10 @@ export interface ProductionVideoGateway {
 export type VideoPoolResponse = ProductionDataResponse<VideoPoolData | null>;
 
 export type ImagePoolResponse = ProductionDataResponse<ImagePoolData | null>;
+
+export type PoolDeleteResponse =
+  | ProductionDataResponse<{ pool_id: string }>
+  | ProductionErrorResponse;
 
 export interface ImagePoolSelectResponse {
   ok: boolean;

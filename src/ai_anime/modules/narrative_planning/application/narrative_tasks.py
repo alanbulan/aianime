@@ -5,7 +5,6 @@ from pathlib import Path
 from ai_anime.modules.narrative_planning.application.ports import (
     NarrativeTaskScheduler,
     ScriptGenerationStore,
-    SketchWorkspace,
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
@@ -75,10 +74,8 @@ class StartScriptGeneration:
         self,
         *,
         task_scheduler: NarrativeTaskScheduler,
-        sketch_workspace: SketchWorkspace,
     ) -> None:
         self._task_scheduler = task_scheduler
-        self._sketch_workspace = sketch_workspace
 
     async def execute(
         self,
@@ -97,7 +94,6 @@ class StartScriptGeneration:
         if not getattr(episode, "scene_menu", None):
             raise ScenePlanRequired(episode_num)
 
-        self._sketch_workspace.clear_episode_sketches(output_dir, episode_num)
         if task_context is None:
             raise ProjectContextRequired("剧本生成需要 project context")
 

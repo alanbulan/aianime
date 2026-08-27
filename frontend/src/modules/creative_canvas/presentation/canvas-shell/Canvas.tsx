@@ -28,7 +28,7 @@ import {
   useCanvasSelectionSurfaceController,
   type NodeSelectionMenuNodeDefinition,
   type CanvasCommandHistoryPort,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 import { useAppStore } from '@/modules/project_workspace/public';
 import { CanvasStageView } from './ui/CanvasStageView';
 import { useCanvasGraphEditingSurfaceController } from '@/modules/creative_canvas/canvasComposition';
@@ -41,7 +41,7 @@ import {
   useCanvasViewerSurfaceController,
 } from '@/modules/creative_canvas/canvasComposition';
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 interface CanvasProps {
   projectId: string;
   canvasId: string;

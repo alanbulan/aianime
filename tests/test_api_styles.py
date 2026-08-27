@@ -62,7 +62,7 @@ def test_remove_style_previews_removes_all_supported_variants(monkeypatch, tmp_p
     assert unrelated.read_text(encoding="utf-8") == "keep"
 
 
-def test_account_style_reference_is_available_from_every_project(
+def test_account_style_preview_stays_out_of_runtime_style_for_every_project(
     monkeypatch,
     tmp_path,
 ):
@@ -101,12 +101,14 @@ def test_account_style_reference_is_available_from_every_project(
     expected_reference = account_root / "styles/custom_global/reference.png"
     assert first["style_instructions"] == "统一画面语言"
     assert second["style_instructions"] == "统一画面语言"
-    assert first[STYLE_REFERENCE_IMAGE_KEY] == str(expected_reference.resolve())
-    assert second[STYLE_REFERENCE_IMAGE_KEY] == str(expected_reference.resolve())
+    assert STYLE_REFERENCE_IMAGE_KEY not in first
+    assert STYLE_REFERENCE_IMAGE_KEY not in second
     assert StyleService.resolve_style_preview_path("alice", preview_path) == expected_reference
 
 
-def test_style_reference_is_last_and_reserves_one_model_slot(tmp_path):
+def test_style_preview_is_not_submitted_and_text_contract_preserves_subject_slots(
+    tmp_path,
+):
     from ai_anime.modules.production.infrastructure.media_generation_settings import (
         apply_style_reference,
     )
@@ -121,16 +123,25 @@ def test_style_reference_is_last_and_reserves_one_model_slot(tmp_path):
     prompt, references = apply_style_reference(
         "draw the requested subject",
         subject_references,
-        {"style_reference_image_path": str(style_reference)},
+        {
+            "style_instructions": "clean cel-animation linework",
+            "avoid_instructions": "photorealistic skin texture",
+            "style_reference_image_path": str(style_reference),
+        },
     )
 
-    assert references[:9] == subject_references[:9]
-    assert references[-1] == ("style-reference.webp", b"style", "image/webp")
+    assert references == subject_references
     assert len(references) == 10
-    assert "GLOBAL STYLE REFERENCE IMAGE" in prompt
-    assert "subject identity" in prompt
-    assert "facial line weight" in prompt
-    assert "scene and prop assets" in prompt
+    assert "clean cel-animation linework" in prompt
+    assert "photorealistic skin texture" in prompt
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in prompt
+    assert "Keep different named characters visibly distinct" in prompt
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in prompt
+    assert b"style" not in [
+        reference[1]
+        for reference in references
+        if isinstance(reference, tuple) and len(reference) == 3
+    ]
 
 
 def test_style_reference_upload_returns_final_path_without_ai_analysis(monkeypatch, tmp_path):

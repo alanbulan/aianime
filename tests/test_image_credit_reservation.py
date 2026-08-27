@@ -36,13 +36,9 @@ async def test_commercial_image_adapter_forwards_platform_sku_and_saves_result(
     assert calls[0]["model"] == "newapi_gpt_image2"
     assert calls[0]["aspect_ratio"] == "720:1280"
     assert "test" in calls[0]["prompt"]
-    reference_images = calls[0]["reference_images"]
-    assert reference_images is not None
-    assert len(reference_images) == 1
-    filename, content, media_type = reference_images[0]
-    assert filename == "style-reference.png"
-    assert content.startswith(b"\x89PNG\r\n\x1a\n")
-    assert media_type == "image/png"
+    assert calls[0]["reference_images"] is None
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in calls[0]["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in calls[0]["prompt"]
 
 
 @pytest.mark.asyncio

@@ -95,3 +95,23 @@ def test_classification_adds_explicit_empty_markers_and_counts_real_values() -> 
     }
     assert result.total_identities == 1
     assert result.total_props == 1
+
+
+def test_classification_clamps_false_positive_to_explicit_beat_identity() -> None:
+    result = classify_sketch_marker_detections(
+        frames=[SketchDetectionFrame(1, Path("beat_1.png"))],
+        detections={1: ["Hero_Main", "Heroine_Main"]},
+        beats=[
+            {
+                "beat_number": 1,
+                "visual_description": "{{Hero_Main}}独自走入教室。",
+            }
+        ],
+        characters=[
+            {"identities": [{"identity_id": "Hero_Main"}]},
+            {"identities": [{"identity_id": "Heroine_Main"}]},
+        ],
+        allowed_prop_ids=set(),
+    )
+
+    assert result.identities == {1: ["Hero_Main"]}

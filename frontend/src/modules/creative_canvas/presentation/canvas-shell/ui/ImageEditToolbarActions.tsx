@@ -3,7 +3,7 @@ import { memo } from "react";
 
 ;
 import { useImageEditToolbarController } from "@/modules/creative_canvas/canvasComposition";
-import { ImageEditToolbarActionsView, NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS, NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS, NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS, type CanvasNodeData } from "@/modules/creative_canvas/public";
+import { ImageEditToolbarActionsView, NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS, NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS, NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS, type CanvasNodeData } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 
 const toolbarStyles = {
   menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,

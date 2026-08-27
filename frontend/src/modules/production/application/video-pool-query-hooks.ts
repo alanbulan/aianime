@@ -62,8 +62,29 @@ export function createVideoPoolQueryHooks(gateway: ProductionVideoGateway) {
     });
   }
 
+  function useVideoPoolDelete(project: string, episode: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: async ({ poolId }: { poolId: string }) => {
+        const response = await gateway.deleteVideoPoolEntry(
+          project,
+          episode,
+          poolId,
+        );
+        if (!response.ok) throw new Error(response.error || "删除失败");
+        return response;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.videoPool(project, episode),
+        });
+      },
+    });
+  }
+
   return {
     useVideoPool,
+    useVideoPoolDelete,
     useVideoPoolSelect,
   };
 }

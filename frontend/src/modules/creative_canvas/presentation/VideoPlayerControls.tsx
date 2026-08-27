@@ -3,7 +3,6 @@ import {
   useCallback,
   useEffect,
   useState,
-  type ChangeEvent,
 } from "react";
 import {
   Camera,
@@ -14,6 +13,8 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+import { Slider } from "@/components/ui/slider";
 
 export interface VideoPlayerControlsProps {
   videoEl: HTMLVideoElement | null;
@@ -88,19 +89,14 @@ export function VideoPlayerControls({
   }, [videoEl]);
 
   const onSeek = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (next: number) => {
       if (!videoEl) return;
-      const next = Number(event.target.value);
       if (!Number.isFinite(next)) return;
       videoEl.currentTime = next;
       setCurrentTime(next);
     },
     [videoEl],
   );
-
-  const progressPct =
-    duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
-  const sliderBg = `linear-gradient(to right, rgb(var(--accent-rgb)) 0%, rgb(var(--accent-rgb)) ${progressPct}%, rgba(255,255,255,0.18) ${progressPct}%, rgba(255,255,255,0.18) 100%)`;
 
   return (
     <div className="nodrag absolute inset-x-0 bottom-0 z-20 flex items-center gap-2.5 bg-gradient-to-t from-media/75 via-media/45 to-transparent px-3 pb-2 pt-6 text-media-foreground">
@@ -128,16 +124,21 @@ export function VideoPlayerControls({
         {formatTime(currentTime)}
       </span>
 
-      <input
-        type="range"
+      <Slider
         min={0}
-        max={duration > 0 ? duration : 0}
+        max={duration > 0 ? duration : 1}
         step={0.05}
-        value={currentTime}
-        onChange={onSeek}
-        onMouseDown={(event) => event.stopPropagation()}
-        className="video-player-scrubber h-1 min-w-0 flex-1 cursor-pointer appearance-none rounded-full"
-        style={{ background: sliderBg }}
+        value={[Math.min(currentTime, duration || 0)]}
+        disabled={duration <= 0}
+        onValueChange={([value]) => onSeek(value ?? 0)}
+        onPointerDown={(event) => event.stopPropagation()}
+        className="min-w-0 flex-1"
+        trackClassName="h-1 bg-media-foreground/20"
+        rangeClassName="bg-media-foreground/90"
+        thumbClassName="size-3 border-0 bg-media-foreground"
+        aria-label={t("node.videoNode.player.seek", {
+          defaultValue: "视频进度",
+        })}
       />
 
       <span className="shrink-0 text-[11px] tabular-nums text-media-foreground/85">

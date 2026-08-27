@@ -2,7 +2,7 @@
 import { memo } from "react";
 
 
-import { NodeActionToolbarView, nodeMainlineFlags, projectNodeActionToolbarShell, type GridActionRequest, type CanvasNode, isAudioNode, isGroupNode, isImageEditNode, isProtectedProjectionGroupNode, isStoryboardGroupNode, isVideoNode } from "@/modules/creative_canvas/public";
+import { NodeActionToolbarView, nodeMainlineFlags, projectNodeActionToolbarShell, type GridActionRequest, type CanvasNode, isAudioNode, isGroupNode, isImageEditNode, isProtectedProjectionGroupNode, isStoryboardGroupNode, isVideoNode } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 
 import { AudioNodeToolbarActions } from "./AudioNodeToolbarActions";
 import { CanvasGroupNodeToolbarActionsAdapter } from "./CanvasGroupNodeToolbarActionsAdapter";

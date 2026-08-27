@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application.chat_events import (
+    emit_chat_event,
     emit_chat_event_best_effort,
 )
 from ai_anime.modules.ai_assistant.application.ports import (
@@ -94,7 +95,7 @@ class HermesHomeReplies:
             )
             persisted = True
 
-        await emit_chat_event_best_effort(
+        await emit_chat_event(
             on_event,
             {
                 "type": "thread.started",
@@ -106,7 +107,7 @@ class HermesHomeReplies:
         try:
             async for event in thread.stream(agent_text, current_project=None):
                 if event.type == "thread_started":
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "thread.started",
@@ -123,7 +124,7 @@ class HermesHomeReplies:
                         text,
                         suppress_partial_replay=True,
                     )
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "assistant.delta",
@@ -153,7 +154,7 @@ class HermesHomeReplies:
                                 ("\n\n" if assistant_text.strip() else "")
                                 + mapped_chat_error,
                             )
-                            await emit_chat_event_best_effort(
+                            await emit_chat_event(
                                 on_event,
                                 {
                                     "type": "assistant.delta",
@@ -172,7 +173,7 @@ class HermesHomeReplies:
                     tool_input = getattr(event, "tool_input", None)
                     tool_output = getattr(event, "tool_output", None)
                     if tool_phase == "call":
-                        await emit_chat_event_best_effort(
+                        await emit_chat_event(
                             on_event,
                             {
                                 "type": "tool.call",
@@ -184,7 +185,7 @@ class HermesHomeReplies:
                             },
                         )
                         continue
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "tool.result",

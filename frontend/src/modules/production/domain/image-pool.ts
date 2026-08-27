@@ -15,6 +15,8 @@ export interface PoolImage {
   cell_path?: string | null;
   grid_path: string;
   generated_at?: string | null;
+  model?: string | null;
+  model_selector?: string | null;
   stale: boolean;
   beat_content_hash?: string | null;
 }
@@ -42,4 +44,20 @@ export interface BeatImageUploadResult {
 
 export interface ImagePoolSelectionResult extends BeatImageUploadResult {
   imageType?: BeatImageType;
+}
+
+export function imagePoolModelSource(image: PoolImage): {
+  label: string;
+  tooltip: string;
+} | null {
+  const selector = image.model_selector?.trim() ?? "";
+  const model = image.model?.trim() ?? "";
+  if (!selector && !model) return null;
+  const selectorParts = selector.split(":");
+  const selectorModel =
+    selectorParts[selectorParts.length - 1]?.trim() ?? "";
+  return {
+    label: selectorModel || model || selector,
+    tooltip: selector || model,
+  };
 }

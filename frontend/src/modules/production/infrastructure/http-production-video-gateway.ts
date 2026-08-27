@@ -8,6 +8,7 @@ import type {
   GridUploadResponse,
   ImagePoolSelectResponse,
   NarratorVoiceMutationResponse,
+  PoolDeleteResponse,
   ProductionDataResponse,
   ProductionErrorResponse,
   ProductionTaskResponse,
@@ -205,6 +206,13 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         : {}),
     } satisfies ImagePoolSelectResponse;
   },
+  async deleteImagePoolEntry(project, episode, poolId) {
+    return api
+      .delete(
+        p`api/v1/projects/${project}/episodes/${episode}/image-pool/${poolId}`,
+      )
+      .json<PoolDeleteResponse>();
+  },
   async uploadBeatImage(
     project,
     episode,
@@ -357,6 +365,13 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         { json: { pool_id: poolId } },
       )
       .json<VideoPoolSelectResponse>();
+  },
+  async deleteVideoPoolEntry(project, episode, poolId) {
+    return api
+      .delete(
+        p`api/v1/projects/${project}/episodes/${episode}/video-pool/${poolId}`,
+      )
+      .json<PoolDeleteResponse>();
   },
   async getSeedance2BeatStatus(project, episode, beatNumber, signal) {
     return api
@@ -634,6 +649,9 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
                   image_generation_selection:
                     command.imageGenerationSelection,
                 }
+              : {}),
+            ...(command.replaceExisting !== undefined
+              ? { replace_existing: command.replaceExisting }
               : {}),
           },
         },

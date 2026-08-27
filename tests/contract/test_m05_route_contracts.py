@@ -128,6 +128,7 @@ M05_EXPECTED_OPERATIONS = {
     ("GET", "/api/v1/projects/{project}/episodes/{episode_num}/grids"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/grids/rebuild-pool"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/pool-select"),
+    ("DELETE", "/api/v1/projects/{project}/episodes/{episode_num}/image-pool/{pool_id}"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/sketch/upload"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/render/upload"),
     (
@@ -535,14 +536,14 @@ def test_m05_openapi_exposes_expected_operations(m05_client_factory):
         if method.lower() in {"get", "post", "patch", "put", "delete"}
     }
 
-    assert len(M05_EXPECTED_OPERATIONS) == 61
+    assert len(M05_EXPECTED_OPERATIONS) == 62
     assert not M05_EXPECTED_OPERATIONS - actual
     assert "/api/v1/projects/{project}/scenes/{name}/director-stage/world" in spec["paths"]
     assert "/api/v1/projects/{project}/scenes/{name}/director-stage/world/clear" in spec["paths"]
 
 
 def test_m05_contract_requires_promoted_world_and_sketch_candidate_routes() -> None:
-    assert len(M05_EXPECTED_OPERATIONS) == 61
+    assert len(M05_EXPECTED_OPERATIONS) == 62
     assert (
         "POST",
         "/api/v1/projects/{project}/scenes/{name}/director-stage/world",
@@ -966,6 +967,28 @@ def test_m05_sketch_candidates_is_viewer_and_empty_pool_is_ok(m05_client_factory
         "candidates": [],
     }
     assert ("asset_world_viewer", "viewer") in store.resolved_roles
+
+
+def test_m05_image_pool_delete_route_removes_an_inactive_candidate(m05_client_factory):
+    client, _backend, _project_dir, _store = m05_client_factory("inline")
+    uploaded = _assert_ok(
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/sketch/upload",
+            files={"file": ("sketch.png", _png_bytes(), "image/png")},
+        )
+    )["data"]
+
+    deleted = _assert_ok(
+        client.delete(
+            f"/api/v1/projects/{_PROJECT}/episodes/1/image-pool/{uploaded['pool_id']}"
+        )
+    )["data"]
+
+    assert deleted == {"pool_id": uploaded["pool_id"]}
+    repeated = client.delete(
+        f"/api/v1/projects/{_PROJECT}/episodes/1/image-pool/{uploaded['pool_id']}"
+    ).json()
+    assert repeated["ok"] is False
 
 
 def test_m05_negative_render_execute_rejects_stale_fingerprint(m05_client_factory):

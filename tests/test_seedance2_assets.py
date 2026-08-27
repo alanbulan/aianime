@@ -447,6 +447,50 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
     assert "建议裁剪到 3-5 秒" in audio_asset.note
 
 
+def test_multimodal_reference_rejects_audio_below_seedance_hard_minimum(
+    tmp_path, monkeypatch
+):
+    from ai_anime.modules.project_workspace.infrastructure import project_config as pc
+    from ai_anime.modules.production.infrastructure import seedance2_assets as asset_mod
+    from ai_anime.modules.production.infrastructure.seedance2_assets import (
+        build_seedance2_project_assets,
+    )
+
+    monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(
+        asset_mod,
+        "probe_voice_sample_duration_seconds",
+        lambda _path: 1.04,
+    )
+    project_dir = tmp_path / "output" / "alice" / "project"
+    _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
+    narrator_voice = project_dir / "assets" / "narrator" / "voice.mp3"
+    narrator_voice.parent.mkdir(parents=True, exist_ok=True)
+    narrator_voice.write_bytes(b"short narrator voice")
+    pc.set_narrator_reference_audio(
+        "alice",
+        "project",
+        relative_path="assets/narrator/voice.mp3",
+        sha256="sha",
+        updated_at="2026-08-27T00:00:00+00:00",
+    )
+
+    assets = build_seedance2_project_assets(
+        project_output=project_dir,
+        episode=1,
+        beat={
+            "beat_number": 1,
+            "audio_type": "narration",
+            "narration_segment": "故事开始。",
+        },
+        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+    )
+
+    audio_asset = next(asset for asset in assets if asset.key == "voice:narrator")
+    assert audio_asset.selected is False
+    assert "至少 1.8 秒" in audio_asset.validation_error
+
+
 def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
     from ai_anime.modules.production.infrastructure.seedance2_assets import (
         apply_prompt_audio_selection,

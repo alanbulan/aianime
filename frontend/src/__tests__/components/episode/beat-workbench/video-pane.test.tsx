@@ -530,16 +530,20 @@ vi.mock("@/modules/production/composition", async () => {
             {
               active: true,
               modelLabel: "Seedance2.0 Fast",
+              modelTooltip: "Seedance2.0 Fast",
               id: "vid-2",
               previewSource: "/static/new.mp4#t=0.1",
               timeLabel: "1h",
+              timeTooltip: "Generated 1h ago",
             },
             {
               active: false,
               modelLabel: "Seedance2.0 Fast",
+              modelTooltip: "Seedance2.0 Fast",
               id: "vid-1",
               previewSource: "/static/old.mp4#t=0.1",
               timeLabel: "2h",
+              timeTooltip: "Generated 2h ago",
             },
           ]
         : [];
@@ -547,6 +551,7 @@ vi.mock("@/modules/production/composition", async () => {
       beatNumber: options.beatNumber,
       candidateCount: candidates.length,
       candidates,
+      deletePending: false,
       downloadUrl,
       hasGeneratedVideo: Boolean(downloadUrl) || candidates.length > 0,
       previewSource: downloadUrl ? `${downloadUrl}#t=0.1` : null,
@@ -555,6 +560,7 @@ vi.mock("@/modules/production/composition", async () => {
       useSeedance2Preview: options.useSeedance2Preview,
       videoActive: options.videoActive,
       videoPercent: Math.round(options.videoProgress * 100),
+      deleteCandidate: async () => undefined,
       selectCandidate: async (poolId: string) => {
         await poolSelectMock({ beatNum: options.beatNumber, poolId });
       },

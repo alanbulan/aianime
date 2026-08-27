@@ -62,7 +62,6 @@ class SketchMarkerUseCases:
                 store=store,
                 episode_num=command.episode_num,
                 beats=beats,
-                output_dir=context.output_dir,
             )
 
     async def detect(

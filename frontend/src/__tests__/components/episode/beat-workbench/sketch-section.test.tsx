@@ -20,6 +20,7 @@ const directorConvertMock = vi.fn();
 const taskStartMock = vi.fn();
 const regenerateSketchMock = vi.fn();
 const poolSelectMock = vi.fn();
+const poolDeleteMock = vi.fn();
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -79,6 +80,10 @@ vi.mock("@/modules/production/composition", () => ({
     }),
     usePoolSelect: () => ({
       mutateAsync: poolSelectMock,
+      isPending: false,
+    }),
+    usePoolDelete: () => ({
+      mutateAsync: poolDeleteMock,
       isPending: false,
     }),
     useRegenerateSketches: () => ({

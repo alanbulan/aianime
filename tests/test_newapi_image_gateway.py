@@ -924,7 +924,7 @@ def test_newapi_character_image_preserves_reference_order(
     ]
 
 
-def test_character_portrait_uses_style_text_and_style_reference_image(
+def test_character_portrait_uses_text_only_style_contract(
     monkeypatch,
     tmp_path,
 ):
@@ -971,16 +971,15 @@ def test_character_portrait_uses_style_text_and_style_reference_image(
     )
 
     assert result.success is True
-    assert captured["reference_images"] == [
-        ("style-reference.png", style_reference.read_bytes(), "image/png")
-    ]
+    assert captured["reference_images"] is None
     assert "soft anime linework" in captured["prompt"]
     assert "photorealism" in captured["prompt"]
-    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
-    assert "Do not copy any person, face" in captured["prompt"]
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
+    assert "Keep different named characters visibly distinct" in captured["prompt"]
 
 
-def test_identity_sheet_uses_character_costume_then_style_reference(
+def test_identity_sheet_keeps_character_and_costume_references_without_style_preview(
     monkeypatch,
     tmp_path,
 ):
@@ -1045,10 +1044,10 @@ def test_identity_sheet_uses_character_costume_then_style_reference(
     assert captured["reference_images"] == [
         ("character-portrait.png", b"character-face", "image/png"),
         ("costume.png", b"costume", "image/png"),
-        ("style-reference.png", b"style-face", "image/png"),
     ]
     assert "soft anime linework" in captured["prompt"]
-    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
 
 
 def test_newapi_character_portrait_reraises_insufficient_credit(monkeypatch, tmp_path):
@@ -1122,7 +1121,7 @@ def test_newapi_character_portrait_raise_on_error_preserves_provider_detail(monk
         )
 
 
-def test_newapi_scene_master_uses_global_style_reference(monkeypatch, tmp_path):
+def test_newapi_scene_master_uses_text_only_global_style(monkeypatch, tmp_path):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.modules.production.infrastructure.media_generation import (
         scene_reference_images,
@@ -1177,12 +1176,11 @@ def test_newapi_scene_master_uses_global_style_reference(monkeypatch, tmp_path):
     assert "api_key" not in captured
     assert "base_url" not in captured
     assert "model" not in captured
-    assert captured["reference_images"] == [
-        ("style-reference.png", b"style-image", "image/png")
-    ]
+    assert captured["reference_images"] is None
     assert "统一画面语言" in captured["prompt"]
     assert "避免风格漂移" in captured["prompt"]
-    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
     assert captured["image_config"] == {
         "model": "LingShan-NB-2",
         "model_selector": "",
@@ -1648,7 +1646,7 @@ def test_freezone_single_image_generation_routes_newapi(monkeypatch, tmp_path):
     }
 
 
-def test_freezone_image_generation_applies_project_style_text_and_image(
+def test_freezone_image_generation_applies_text_only_project_style(
     monkeypatch,
     tmp_path,
 ):
@@ -1699,10 +1697,9 @@ def test_freezone_image_generation_applies_project_style_text_and_image(
 
     assert "PROJECT VISUAL STYLE:\nGLOBAL STYLE TEXT" in captured["prompt"]
     assert "AVOID:\nGLOBAL STYLE AVOID" in captured["prompt"]
-    assert "GLOBAL STYLE REFERENCE IMAGE" in captured["prompt"]
-    assert captured["reference_images"] == [
-        ("style-reference.png", b"style-image", "image/png")
-    ]
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in captured["prompt"]
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
+    assert captured["reference_images"] is None
 
 
 def run_async(coro):

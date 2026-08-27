@@ -18,7 +18,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/shadcn/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { UiChipButton } from '@/components/ui';
 import type { GridActionKey } from '../domain/gridAction';
 import type { ImageGridToolbarController } from './useImageGridToolbarController';

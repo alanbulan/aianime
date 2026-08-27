@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Check,
   Maximize2,
+  Minimize2,
   Pause,
   PictureInPicture2,
   Play,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,15 @@ export function BeatVideoPlayer({
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const updateFullscreen = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener("fullscreenchange", updateFullscreen);
+    return () => document.removeEventListener("fullscreenchange", updateFullscreen);
+  }, []);
 
   useEffect(() => {
     setIsPlaying(false);
@@ -105,14 +116,16 @@ export function BeatVideoPlayer({
   const enterFullscreen = async () => {
     const container = containerRef.current;
     if (!container) return;
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      await container.requestFullscreen?.();
+    } catch {
+      setIsFullscreen(false);
     }
-    await container.requestFullscreen?.();
   };
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div
@@ -167,17 +180,17 @@ export function BeatVideoPlayer({
       ) : null}
 
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/95 via-media/72 to-transparent px-3 pb-2 pt-10 opacity-100 transition-opacity group-hover:opacity-100">
-        <input
-          type="range"
+        <Slider
           min={0}
-          max={duration || 0}
+          max={duration || 1}
           step={0.01}
-          value={Math.min(currentTime, duration || currentTime)}
-          onChange={(event) => seek(Number(event.target.value))}
-          className="mb-2 h-1 w-full cursor-pointer appearance-none rounded-full bg-media-foreground/20 accent-media-foreground [&::-moz-range-thumb]:size-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-media-foreground [&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-media-foreground"
-          style={{
-            background: `linear-gradient(to right, currentColor 0%, currentColor ${progress}%, color-mix(in srgb, currentColor 22%, transparent) ${progress}%, color-mix(in srgb, currentColor 22%, transparent) 100%)`,
-          }}
+          value={[Math.min(currentTime, duration || 0)]}
+          disabled={duration <= 0}
+          onValueChange={([value]) => seek(value ?? 0)}
+          className="mb-2 w-full"
+          trackClassName="h-1 bg-media-foreground/20"
+          rangeClassName="bg-media-foreground/90"
+          thumbClassName="size-3 border-0 bg-media-foreground"
           aria-label={t("viewer.videoSeek", "视频进度")}
         />
 
@@ -204,14 +217,16 @@ export function BeatVideoPlayer({
                 <Volume2 className="size-4" />
               )}
             </VideoControlButton>
-            <input
-              type="range"
+            <Slider
               min={0}
               max={1}
               step={0.05}
-              value={muted ? 0 : volume}
-              onChange={(event) => changeVolume(Number(event.target.value))}
-              className="h-1 w-0 cursor-pointer appearance-none rounded-full bg-media-foreground/25 accent-media-foreground opacity-0 transition-all group-hover/volume:w-16 group-hover/volume:opacity-100 focus:w-16 focus:opacity-100 [&::-webkit-slider-thumb]:size-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-media-foreground"
+              value={[muted ? 0 : volume]}
+              onValueChange={([value]) => changeVolume(value ?? 0)}
+              className="w-0 opacity-0 transition-all group-hover/volume:w-16 group-hover/volume:opacity-100 focus-within:w-16 focus-within:opacity-100"
+              trackClassName="h-1 bg-media-foreground/25"
+              rangeClassName="bg-media-foreground/90"
+              thumbClassName="size-2.5 border-0 bg-media-foreground"
               aria-label={t("viewer.volume", "音量")}
             />
           </div>
@@ -249,10 +264,18 @@ export function BeatVideoPlayer({
               <PictureInPicture2 className="size-4" />
             </VideoControlButton>
             <VideoControlButton
-              label={t("viewer.fullscreen", "全屏")}
+              label={
+                isFullscreen
+                  ? t("viewer.exitFullscreen", "退出全屏")
+                  : t("viewer.fullscreen", "全屏")
+              }
               onClick={() => void enterFullscreen()}
             >
-              <Maximize2 className="size-4" />
+              {isFullscreen ? (
+                <Minimize2 className="size-4" />
+              ) : (
+                <Maximize2 className="size-4" />
+              )}
             </VideoControlButton>
           </div>
         </div>

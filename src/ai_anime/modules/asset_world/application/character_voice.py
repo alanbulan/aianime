@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +29,16 @@ MediaUrl = Callable[[str], str]
 
 def character_voice_fields(character: Any, *, media_url: MediaUrl) -> dict[str, Any]:
     rel_path = getattr(character, "reference_audio_path", "") or ""
+    voice_samples: dict[str, dict[str, Any]] = {}
+    for slot, raw_sample in (
+        getattr(character, "voice_samples_by_age_group", {}) or {}
+    ).items():
+        if not isinstance(raw_sample, Mapping):
+            continue
+        sample = dict(raw_sample)
+        sample_path = str(sample.get("path", "") or "")
+        sample["url"] = media_url(sample_path) if sample_path else ""
+        voice_samples[str(slot)] = sample
     return {
         "reference_audio_path": rel_path,
         "reference_audio_url": media_url(rel_path) if rel_path else "",
@@ -38,10 +48,7 @@ def character_voice_fields(character: Any, *, media_url: MediaUrl) -> dict[str, 
             character, "reference_audio_updated_at", ""
         )
         or "",
-        "voice_samples_by_age_group": getattr(
-            character, "voice_samples_by_age_group", {}
-        )
-        or {},
+        "voice_samples_by_age_group": voice_samples,
     }
 
 

@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 
 from ai_anime.modules.ai_assistant.domain.chat_presentation import (
     split_ui_specs_from_text,
@@ -13,6 +14,7 @@ from ai_anime.modules.ai_assistant.public import (
     normalize_json_render_reply,
     redact_local_filesystem_paths,
 )
+from ai_anime.modules.ai_assistant.infrastructure import FileJsonRenderErrors
 
 
 def test_invalid_json_render_is_written_to_configured_error_log(
@@ -28,6 +30,21 @@ def test_invalid_json_render_is_written_to_configured_error_log(
     log_text = error_log.read_text(encoding="utf-8")
     assert "invalid ui-spec JSON" in log_text or "Expecting" in log_text
     assert "{not json}" in log_text
+
+
+def test_invalid_json_render_uses_application_logging_by_default(
+    caplog,
+    monkeypatch,
+):
+    monkeypatch.delenv("JR_ERROR_LOG", raising=False)
+    errors = FileJsonRenderErrors()
+
+    with caplog.at_level(logging.WARNING):
+        errors.record(ValueError("invalid ui-spec JSON"), "{not json}")
+
+    assert errors.path() is None
+    assert "invalid ui-spec JSON" in caplog.text
+    assert "{not json}" in caplog.text
 
 
 def test_sketch_only_prompt_filters_frame_images_without_mutating_spec():

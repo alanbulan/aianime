@@ -19,6 +19,8 @@ class GridEntry(BaseModel):
     preset: str = Field(default="scene", description="preset 分组：scene / char / loc / custom")
     grid_path: str = Field(description="整图文件相对路径")
     prompt_path: str = Field(default="", description="提示词文件相对路径")
+    model: str = Field(default="", description="实际生成模型 ID")
+    model_selector: str = Field(default="", description="生成模型来源选择器")
     generated_at: Optional[datetime] = Field(default=None, description="生成时间")
 
     @property
@@ -57,6 +59,8 @@ class PoolImage(BaseModel):
     beat_content_hash: Optional[str] = Field(
         default=None, description="生成时 beat 内容的 SHA256（用于 stale 判断）"
     )
+    model: str = Field(default="", description="实际生成模型 ID")
+    model_selector: str = Field(default="", description="生成模型来源选择器")
 
 
 class PoolIndex(BaseModel):

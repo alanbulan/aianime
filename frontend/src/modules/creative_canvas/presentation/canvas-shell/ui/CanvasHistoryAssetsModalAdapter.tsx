@@ -12,13 +12,13 @@ import {
   type HistoryNodeMeta,
   ImageViewerModal,
   VideoViewerModal,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 import { ThreeDDirectorDialog, buildStandaloneWorldManifest } from '@/features/viewer-kit/public';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { resolveMediaUrl } from '@/lib/media-url';
 
-import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/public";
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { CANVAS_NODE_TYPES } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 const GENERATIVE_HISTORY_NODE_TYPES = new Set<string>([
   CANVAS_NODE_TYPES.imageGen,
   CANVAS_NODE_TYPES.imageEdit,

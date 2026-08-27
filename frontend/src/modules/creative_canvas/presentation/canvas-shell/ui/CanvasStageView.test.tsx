@@ -56,7 +56,7 @@ vi.mock('@xyflow/react', () => ({
 vi.mock('@/components/credit-visual', () => ({
   CreditDisplayHiddenProvider: ({ children }: { children: ReactNode }) => children,
 }));
-vi.mock('@/modules/creative_canvas/public', () => ({
+vi.mock('@/modules/creative_canvas/presentation/canvas-shell/internal', () => ({
   PAN_ACTIVATION_KEY_CODE: 'Space',
   CANVAS_CONTROL_GLASS_CLASS: 'control-glass',
   CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS: 'control-button-active',

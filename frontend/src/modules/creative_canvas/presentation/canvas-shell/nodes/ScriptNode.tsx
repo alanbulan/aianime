@@ -6,7 +6,7 @@ import { useScriptNodeController } from '@/modules/creative_canvas/canvasComposi
 import {
   ScriptNodeView,
   type ScriptNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type ScriptNodeProps = NodeProps & {
   id: string;
   data: ScriptNodeData;

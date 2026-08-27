@@ -15,6 +15,7 @@ import type {
   SuperChatSettings,
 } from "@/modules/ai_assistant/domain/contracts";
 import { buildLocalUserMessage } from "@/modules/ai_assistant/domain/message";
+import { settleUnfinishedToolMessages } from "@/modules/ai_assistant/domain/toolMessage";
 import {
   scopeForProject,
   scopeSessionKey,
@@ -409,6 +410,11 @@ export function useChatSessionController({
     const turnId = activeTurnIdRef.current ?? pendingClientTurnIdRef.current;
     if (turnId) {
       cancelledTurnIdsRef.current.add(turnId);
+      setMessages((current) => settleUnfinishedToolMessages(
+        current,
+        turnId,
+        "本轮已取消，当前没有任务在执行",
+      ));
     }
     markTurnInactive(turnId);
     void cancelChatBestEffort();

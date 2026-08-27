@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from ai_anime.modules.production.domain.detected_refs import (
+    authoritative_detected_refs_for_beat,
     collect_prop_marker_ids_from_beat,
     extract_char_identities_from_markers,
     real_detected_identities,
@@ -63,8 +64,9 @@ def assign_identity_sketch_colors(
     episode_keys: set[str] = set()
     if episode_beats is not None:
         for beat in episode_beats:
+            identities, _props = authoritative_detected_refs_for_beat(beat)
             episode_keys.update(
-                real_detected_identities(beat.get("detected_identities") or [])
+                real_detected_identities(identities)
             )
             for _name, identity_id in extract_char_identities_from_markers(
                 beat.get("visual_description", ""),
@@ -265,31 +267,3 @@ def apply_prop_marker_colors(
         if prop_id in colors:
             item["marker_color"] = colors[prop_id]
     return prop_menu
-
-
-def marker_color_change_requires_sketch_clean(
-    previous: dict[str, str] | None,
-    current: dict[str, str] | None,
-) -> bool:
-    """Return whether recoloring invalidates all existing sketches."""
-    current_colors = {
-        str(key): str(value)
-        for key, value in (current or {}).items()
-        if str(key).strip() and str(value).strip()
-    }
-    if not current_colors:
-        return False
-
-    previous_colors = {
-        str(key): str(value)
-        for key, value in (previous or {}).items()
-        if str(key).strip() and str(value).strip()
-    }
-    if not previous_colors:
-        return True
-
-    for key, old_value in previous_colors.items():
-        new_value = current_colors.get(key)
-        if new_value is not None and new_value != old_value:
-            return True
-    return False

@@ -7,6 +7,8 @@ from ai_anime.modules.production.application.grid_pool import (
     BuildGridSketchPreviewCommand,
     CutGridCommand,
     CutGridResult,
+    DeleteGridPoolImageCommand,
+    DeletedGridPoolImage,
     GridPoolPromptRejected,
     GridPoolPreviewRejected,
     GridPoolUploadRejected,
@@ -60,6 +62,10 @@ class _Gateway:
             image_type="render",
             frame_url="/static/frame.png",
         )
+
+    def delete(self, context, command):
+        self.calls.append(("delete", context, command))
+        return DeletedGridPoolImage(pool_id=command.pool_id)
 
     def upload(self, context, command):
         self.calls.append(("upload", context, command))
@@ -306,6 +312,17 @@ async def test_grid_pool_use_cases_preserve_missing_pool() -> None:
     gateway = _Gateway(None)
 
     assert await GridPoolUseCases(gateway).list_pool(object(), 1) is None
+
+
+def test_grid_pool_use_cases_delete_one_entry() -> None:
+    context = object()
+    gateway = _Gateway(None)
+    command = DeleteGridPoolImageCommand(episode_num=2, pool_id="image-2")
+
+    deleted = GridPoolUseCases(gateway).delete(context, command)
+
+    assert deleted.as_dict() == {"pool_id": "image-2"}
+    assert gateway.calls == [("delete", context, command)]
 
 
 @pytest.mark.parametrize(

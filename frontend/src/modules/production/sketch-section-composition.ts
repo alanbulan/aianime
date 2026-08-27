@@ -23,6 +23,7 @@ import {
 import { createUseSketchSectionController } from "@/modules/production/application/use-sketch-section-controller";
 import {
   useDirectorControlToSketch,
+  usePoolDelete,
   usePoolSelect,
   useRegenerateSketches,
   useSketchCropDialogController,
@@ -89,6 +90,7 @@ const useSketchSectionController = createUseSketchSectionController(
     useDirectorControlFrameStatus,
     useDirectorControlToSketch,
     useEpisodeDetail,
+    usePoolDelete,
     usePoolSelect,
     useRegenerateSketches,
     useScript,

@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Square,
   SunMedium,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -25,10 +26,12 @@ import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   CROP_DIALOG_SAVE_BUTTON_CLASS,
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
+  MEDIA_THUMB_DELETE_CLASS,
   MEDIA_THUMB_ACTIVE_CLASS,
   MEDIA_THUMB_ACTIVE_MARK_CLASS,
   MEDIA_THUMB_CLASS,
   MEDIA_THUMB_IDLE_CLASS,
+  MEDIA_THUMB_MODEL_CLASS,
   MEDIA_THUMB_NEW_CLASS,
   MEDIA_THUMB_TIME_CLASS,
 } from "@/modules/production/presentation/media-styles";
@@ -99,6 +102,7 @@ export function RenderSectionView({
     candidates,
     downloadEnabled,
     freezonePending,
+    poolDeletePending,
     poolSelectPending,
     previewUrl,
     regenConfirmOpen,
@@ -114,6 +118,7 @@ export function RenderSectionView({
     uploadPending,
     onConfirmRegen,
     onDownload,
+    onDelete,
     onForceStale,
     onOpenFreezone,
     onRegenConfirmOpenChange,
@@ -123,6 +128,9 @@ export function RenderSectionView({
     onStopRegenTask,
     onUpload,
   } = controller;
+  const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(
+    null,
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -189,46 +197,74 @@ export function RenderSectionView({
             {candidates.length > 0 && (
               <div className={RENDER_CANDIDATES_CLASS}>
                 {candidates.map((candidate) => (
-                  <button
-                    key={candidate.id}
-                    type="button"
-                    onClick={() => void onSelect(candidate.id)}
-                    disabled={poolSelectPending}
-                    className={cn(
-                      MEDIA_THUMB_CLASS,
-                      candidate.isActive
-                        ? MEDIA_THUMB_ACTIVE_CLASS
-                        : MEDIA_THUMB_IDLE_CLASS,
-                    )}
-                  >
-                    <div
-                      className="h-[76px]"
-                      style={{ aspectRatio: renderAspectRatio }}
-                    >
-                      {candidate.src !== null && (
-                        <img
-                          src={candidate.src}
-                          alt=""
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
+                  <div key={candidate.id} className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => void onSelect(candidate.id)}
+                      disabled={poolSelectPending || poolDeletePending}
+                      className={cn(
+                        MEDIA_THUMB_CLASS,
+                        candidate.isActive
+                          ? MEDIA_THUMB_ACTIVE_CLASS
+                          : MEDIA_THUMB_IDLE_CLASS,
                       )}
-                    </div>
-                    {candidate.isNew && (
-                      <span className={MEDIA_THUMB_NEW_CLASS}>
-                        {t("common.new")}
+                    >
+                      <div
+                        className="h-[76px]"
+                        style={{ aspectRatio: renderAspectRatio }}
+                      >
+                        {candidate.src !== null && (
+                          <img
+                            src={candidate.src}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        )}
+                      </div>
+                      <span
+                        className={MEDIA_THUMB_MODEL_CLASS}
+                        data-ui-tooltip={candidate.modelTooltip}
+                      >
+                        {candidate.modelLabel}
                       </span>
+                      {candidate.isNew && (
+                        <span className={MEDIA_THUMB_NEW_CLASS}>
+                          {t("common.new")}
+                        </span>
+                      )}
+                      {candidate.timeLabel && (
+                        <span
+                          className={MEDIA_THUMB_TIME_CLASS}
+                          data-ui-tooltip={candidate.timeTooltip ?? undefined}
+                        >
+                          {candidate.timeLabel}
+                        </span>
+                      )}
+                      {candidate.isActive && (
+                        <span className={MEDIA_THUMB_ACTIVE_MARK_CLASS}>✓</span>
+                      )}
+                    </button>
+                    {!candidate.isActive && (
+                      <Button
+                        type="button"
+                        size="icon-xs"
+                        variant="destructive"
+                        disabled={poolDeletePending}
+                        onClick={() => setDeleteCandidateId(candidate.id)}
+                        aria-label={t(
+                          "episode.workbench.media.deleteCandidate",
+                        )}
+                        data-ui-tooltip={t(
+                          "episode.workbench.media.deleteCandidate",
+                        )}
+                        className={MEDIA_THUMB_DELETE_CLASS}
+                      >
+                        <Trash2 className="size-2.5" />
+                      </Button>
                     )}
-                    {candidate.timeLabel && (
-                      <span className={MEDIA_THUMB_TIME_CLASS}>
-                        {candidate.timeLabel}
-                      </span>
-                    )}
-                    {candidate.isActive && (
-                      <span className={MEDIA_THUMB_ACTIVE_MARK_CLASS}>✓</span>
-                    )}
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -336,6 +372,38 @@ export function RenderSectionView({
       </section>
 
       <RenderBackgroundReferencePanel {...background} />
+
+      <AlertDialog
+        open={deleteCandidateId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteCandidateId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("episode.workbench.media.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("episode.workbench.media.deleteDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={poolDeletePending}
+              onClick={() => {
+                const poolId = deleteCandidateId;
+                setDeleteCandidateId(null);
+                if (poolId) void onDelete(poolId);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={stalePromptOpen}

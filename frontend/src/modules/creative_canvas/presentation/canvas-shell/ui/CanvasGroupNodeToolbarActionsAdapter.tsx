@@ -9,9 +9,9 @@ import {
   NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,
   NODE_ACTION_TOOLBAR_TEXT_BUTTON_CLASS,
   useGroupNodeToolbarController,
-} from "@/modules/creative_canvas/public";
+} from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 const toolbarStyles = {
   menuContent: NODE_ACTION_TOOLBAR_MENU_CONTENT_CLASS,
   menuItem: NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS,

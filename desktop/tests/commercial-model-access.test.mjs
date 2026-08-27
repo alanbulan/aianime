@@ -910,7 +910,7 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
   assert.equal("signature" in result.softwareAuthorization.lease, false);
 });
 
-test("video catalog synchronization sends only projected duration capabilities", async () => {
+test("video catalog synchronization sends only projected generation capabilities", async () => {
   const handlers = new Map();
   const synchronized = [];
   const catalogDeviceIds = [];
@@ -956,6 +956,7 @@ test("video catalog synchronization sends only projected duration capabilities",
                     displayName: "Cloud Video",
                     operation: "VIDEO",
                     capabilityJson: JSON.stringify({
+                      videoProfile: "seedance2",
                       supportedModes: ["textToVideo", "firstLastFrame"],
                       referenceAudioMinSeconds: 1.8,
                       referenceAudioItemMaxDuration: 15.2,
@@ -966,6 +967,11 @@ test("video catalog synchronization sends only projected duration capabilities",
                       referenceVideoTotalMinSeconds: 5,
                       referenceVideoTotalMaxDuration: 20,
                       providerSecret: "must-not-cross-process-boundary",
+                    }),
+                    parameterSchemaJson: JSON.stringify({
+                      properties: {
+                        duration: { minimum: 4, maximum: 15 },
+                      },
                     }),
                   },
                 ],
@@ -1036,6 +1042,9 @@ test("video catalog synchronization sends only projected duration capabilities",
   assert.deepEqual(synchronized.at(-1).modelCapabilities, [
     {
       modelId: "cloud/video-standard",
+      videoProfile: "seedance2",
+      videoGenerationMinSeconds: 4,
+      videoGenerationMaxSeconds: 15,
       referenceAudioMinSeconds: 1.8,
       referenceAudioMaxSeconds: 15.2,
       referenceAudioTotalMinSeconds: 2,
@@ -1831,6 +1840,95 @@ test("BYOK authentication errors stay visible and never spend the cloud fallback
         entry.status === 401 &&
         entry.outcome === "rejected" &&
         entry.error === "invalid BYOK key",
+    ),
+  );
+});
+
+test("cloud authentication exceptions fall back before a write reaches the provider", async (t) => {
+  const providerCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    providerCalls.push(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.end(JSON.stringify({ choices: [{ message: { content: "BYOK" } }] }));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  const cloudCalls = [];
+  const audit = [];
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        cloudCalls.push(input);
+        throw new CommercialApiError("云端账户尚未登录", { status: 401 });
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+    (entry) => audit.push(entry),
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [
+      { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
+    ],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "byok-second",
+          name: "BYOK Second",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `http://127.0.0.1:${address.port}/v1`,
+          apiKey: "byok-key",
+          enabled: true,
+          priority: 20,
+          modelAssignments: [
+            { modelId: "byok-text", role: "TEXT", priority: 20, enabled: true },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "TEXT",
+    },
+    body: JSON.stringify({ model: "router-placeholder", messages: [] }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-source"), "byok");
+  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "2");
+  assert.equal(cloudCalls.length, 1);
+  assert.deepEqual(providerCalls.map((call) => call.model), ["byok-text"]);
+  assert.ok(
+    audit.some(
+      (entry) =>
+        entry.event === "route_attempt" &&
+        entry.source === "cloud" &&
+        entry.status === 401 &&
+        entry.outcome === "fallback",
     ),
   );
 });

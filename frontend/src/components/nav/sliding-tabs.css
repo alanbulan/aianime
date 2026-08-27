@@ -65,6 +65,11 @@
   transition-delay: 70ms, 0ms;
 }
 
+.sliding-tabs__trigger[data-active="true"]:hover {
+  background: transparent;
+  color: var(--background);
+}
+
 .sliding-tabs__content {
   position: relative;
   z-index: 1;

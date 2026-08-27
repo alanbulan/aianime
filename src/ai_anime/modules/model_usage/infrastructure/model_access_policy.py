@@ -55,6 +55,9 @@ class RuntimeModelAssignment:
 @dataclass(frozen=True)
 class RuntimeModelCapability:
     model_id: str
+    video_profile: str | None = None
+    video_generation_min_seconds: float | None = None
+    video_generation_max_seconds: float | None = None
     reference_audio_min_seconds: float | None = None
     reference_audio_max_seconds: float | None = None
     reference_audio_total_min_seconds: float | None = None
@@ -114,6 +117,8 @@ def _normalize_model_assignments(
 
 
 _CAPABILITY_FIELDS = {
+    "videoGenerationMinSeconds": "video_generation_min_seconds",
+    "videoGenerationMaxSeconds": "video_generation_max_seconds",
     "referenceAudioMinSeconds": "reference_audio_min_seconds",
     "referenceAudioMaxSeconds": "reference_audio_max_seconds",
     "referenceAudioTotalMinSeconds": "reference_audio_total_min_seconds",
@@ -123,6 +128,7 @@ _CAPABILITY_FIELDS = {
     "referenceVideoTotalMinSeconds": "reference_video_total_min_seconds",
     "referenceVideoTotalMaxSeconds": "reference_video_total_max_seconds",
 }
+_VIDEO_PROFILES = frozenset({"standard", "seedance2", "happyhorse", "grok"})
 
 
 def _normalize_model_capabilities(
@@ -136,6 +142,9 @@ def _normalize_model_capabilities(
             model_id = str(value.get("modelId") or value.get("model_id") or "").strip()
             if not model_id or len(model_id) > 256:
                 raise ValueError(f"model capability {index} has an invalid modelId")
+            video_profile = str(
+                value.get("videoProfile") or value.get("video_profile") or ""
+            ).strip().lower() or None
             fields: dict[str, float | None] = {}
             for external_name, field_name in _CAPABILITY_FIELDS.items():
                 raw = value.get(external_name, value.get(field_name))
@@ -152,12 +161,31 @@ def _normalize_model_capabilities(
                         f"model capability {index} has an invalid {external_name}"
                     )
                 fields[field_name] = float(raw)
-            capability = RuntimeModelCapability(model_id=model_id, **fields)
+            capability = RuntimeModelCapability(
+                model_id=model_id,
+                video_profile=video_profile,
+                **fields,
+            )
         else:
             raise ValueError(f"model capability {index} must be an object")
         model_id = capability.model_id.strip()
         if not model_id or len(model_id) > 256:
             raise ValueError(f"model capability {index} has an invalid modelId")
+        video_profile = str(capability.video_profile or "").strip().lower() or None
+        if video_profile is not None and video_profile not in _VIDEO_PROFILES:
+            raise ValueError(
+                f"model capability {index} has an invalid videoProfile"
+            )
+        generation_minimum = capability.video_generation_min_seconds
+        generation_maximum = capability.video_generation_max_seconds
+        if (
+            generation_minimum is not None
+            and generation_maximum is not None
+            and generation_minimum > generation_maximum
+        ):
+            raise ValueError(
+                f"model capability {index} has generation min greater than max"
+            )
         for media in ("audio", "video"):
             minimum = getattr(capability, f"reference_{media}_min_seconds")
             maximum = getattr(capability, f"reference_{media}_max_seconds")
@@ -183,6 +211,7 @@ def _normalize_model_capabilities(
                 )
         unique[model_id] = RuntimeModelCapability(
             model_id=model_id,
+            video_profile=video_profile,
             **{
                 field_name: getattr(capability, field_name)
                 for field_name in _CAPABILITY_FIELDS.values()
@@ -291,6 +320,11 @@ def serialize_model_access_for_subprocess() -> str:
             "modelCapabilities": [
                 {
                     "modelId": item.model_id,
+                    **(
+                        {"videoProfile": item.video_profile}
+                        if item.video_profile is not None
+                        else {}
+                    ),
                     **{
                         external_name: getattr(item, field_name)
                         for external_name, field_name in _CAPABILITY_FIELDS.items()

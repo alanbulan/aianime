@@ -99,9 +99,22 @@ class SelectedVideoPoolEntry:
         }
 
 
+@dataclass(frozen=True)
+class DeletedVideoPoolEntry:
+    pool_id: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {"pool_id": self.pool_id}
+
+
 class VideoPoolEntryUnavailable(ValueError):
     def __init__(self, pool_id: str) -> None:
         super().__init__(f"Pool entry '{pool_id}' not found or file missing")
+
+
+class VideoPoolEntryInUse(ValueError):
+    def __init__(self, pool_id: str) -> None:
+        super().__init__(f"视频版本 '{pool_id}' 正在使用，请先切换到其他版本")
 
 
 class VideoPoolUseCases:
@@ -162,3 +175,16 @@ class VideoPoolUseCases:
         command: AddGeneratedVideoCommand,
     ) -> VideoPoolEntry:
         return self._storage.add(context, command)
+
+    def delete(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        pool_id: str,
+    ) -> DeletedVideoPoolEntry:
+        outcome = self._storage.delete(context, episode_num, pool_id)
+        if outcome == "assigned":
+            raise VideoPoolEntryInUse(pool_id)
+        if outcome != "deleted":
+            raise VideoPoolEntryUnavailable(pool_id)
+        return DeletedVideoPoolEntry(pool_id=pool_id)

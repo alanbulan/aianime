@@ -323,3 +323,31 @@ async def test_project_chat_turns_retries_failed_done_delivery():
 
     assert done_attempts == 2
     assert len([event for event in attempts if event["type"] == "chat.done"]) == 2
+
+
+@pytest.mark.anyio
+async def test_project_chat_turns_propagates_live_delivery_failure():
+    turns, _replies, _messages = _build_turns(
+        [
+            {"type": "assistant_delta", "text": "部分回复"},
+            {"type": "assistant_delta", "text": "不应继续生成"},
+        ]
+    )
+    attempted = []
+
+    async def on_event(event):
+        attempted.append(event)
+        if event["type"] == "assistant.delta":
+            raise ConnectionError("disconnected")
+
+    with pytest.raises(ConnectionError, match="disconnected"):
+        await turns.stream(
+            "alice",
+            ChatScope(kind="project", id="project-a"),
+            "问题",
+            [],
+            "turn-disconnected",
+            on_event,
+        )
+
+    assert [event["type"] for event in attempted].count("assistant.delta") == 1

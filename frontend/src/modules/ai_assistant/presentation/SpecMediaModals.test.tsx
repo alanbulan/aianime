@@ -78,8 +78,11 @@ describe("SuperChat spec media modals", () => {
     const video = document.querySelector("video");
     expect(video).toHaveAttribute("src", "/video.mp4");
     expect(video).toHaveAttribute("poster", "/poster.jpg");
-    expect(video).toHaveAttribute("controls");
+    expect(video).not.toHaveAttribute("controls");
     expect(video).toHaveAttribute("autoplay");
+    expect(
+      screen.getByRole("slider", { name: "common.videoPlayer.seek" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByText("Trailer")).toHaveLength(2);
     expect(screen.getByText("Episode preview")).toBeInTheDocument();
 

@@ -170,23 +170,71 @@ def complete_detected_refs_from_visual_description(
     identity_ids = {str(item or "").strip() for item in (allowed_identity_ids or [])}
     prop_ids = {str(item or "").strip() for item in (allowed_prop_ids or [])}
 
-    completed_identities = real_detected_identities(detected_identities)
-    for identity_id in _extract_identity_marker_ids(visual_description):
-        if identity_ids and identity_id not in identity_ids:
-            continue
-        if identity_id and identity_id not in completed_identities:
-            completed_identities.append(identity_id)
+    # The screenplay markers are the production source of truth.  Color
+    # detection is only a fallback for legacy/manual beats without markers;
+    # unioning both sources lets a false-positive sketch color silently add a
+    # different character to Render, Seedance references and voice checks.
+    marker_identities = _extract_identity_marker_ids(visual_description)
+    if marker_identities:
+        completed_identities = [
+            identity_id
+            for identity_id in marker_identities
+            if identity_id and (not identity_ids or identity_id in identity_ids)
+        ]
+    else:
+        completed_identities = [
+            identity_id
+            for identity_id in real_detected_identities(detected_identities)
+            if not identity_ids or identity_id in identity_ids
+        ]
 
-    completed_props = real_detected_props(detected_props)
-    for prop_id in extract_prop_ids_from_markers(visual_description, strict=False):
-        if prop_ids and prop_id not in prop_ids:
-            continue
-        if prop_id and prop_id not in completed_props:
-            completed_props.append(prop_id)
+    marker_props = extract_prop_ids_from_markers(
+        visual_description,
+        strict=False,
+    )
+    if marker_props:
+        completed_props = [
+            prop_id
+            for prop_id in marker_props
+            if prop_id and (not prop_ids or prop_id in prop_ids)
+        ]
+    else:
+        completed_props = [
+            prop_id
+            for prop_id in real_detected_props(detected_props)
+            if not prop_ids or prop_id in prop_ids
+        ]
 
     return (
         normalize_detected_identities(completed_identities or [NO_CHARACTER_MARKER]),
         normalize_detected_props(completed_props or [NO_PROP_MARKER]),
+    )
+
+
+def authoritative_detected_refs_for_beat(
+    beat: Any,
+    *,
+    allowed_identity_ids: set[str] | list[str] | tuple[str, ...] | None = None,
+    allowed_prop_ids: set[str] | list[str] | tuple[str, ...] | None = None,
+) -> tuple[list[str], list[str]]:
+    """Resolve the references every downstream production stage must use."""
+
+    if isinstance(beat, dict):
+        visual_description = str(beat.get("visual_description", "") or "")
+        detected_identities = beat.get("detected_identities")
+        detected_props = beat.get("detected_props")
+    else:
+        visual_description = str(
+            getattr(beat, "visual_description", "") or ""
+        )
+        detected_identities = getattr(beat, "detected_identities", None)
+        detected_props = getattr(beat, "detected_props", None)
+    return complete_detected_refs_from_visual_description(
+        visual_description=visual_description,
+        detected_identities=detected_identities,
+        detected_props=detected_props,
+        allowed_identity_ids=allowed_identity_ids,
+        allowed_prop_ids=allowed_prop_ids,
     )
 
 
@@ -249,6 +297,7 @@ def collect_prop_marker_ids_from_beat(value: Any) -> list[str]:
 __all__ = [
     "NO_CHARACTER_MARKER",
     "NO_PROP_MARKER",
+    "authoritative_detected_refs_for_beat",
     "build_episode_identity_alias_map",
     "canonicalize_visual_identity_markers",
     "collect_prop_marker_ids_from_beat",

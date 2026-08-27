@@ -144,11 +144,235 @@ Electron 代理负责优先级、fallback、协议转换、超时、取消、幂
 
 React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线租约原文。
 
-## 3. 技术栈
+## 3. 从原文到最终成片的完整生产工作流
+
+完整生产只有一个编排入口：`POST /api/v1/projects/{project}/workflow/production`。前端和 Hermes 助手都只提交一个 `production_workflow` 父任务；草图、检测、配音、逐 Beat 视频和合成等子任务由后端按持久化断点调度。单步接口仍用于人工编辑和局部重做，但不能在客户端再拼装第二套“完整工作流”。
+
+### 3.1 前置条件与入口参数
+
+| 前置条件 | 必须满足的事实 | 不满足时的结果 |
+| --- | --- | --- |
+| 项目与权限 | 项目已经创建；当前本地会话能够解析到该项目，调用者至少具有 `editor` 权限 | 请求在提交任务前被拒绝 |
+| 原文或既有状态 | 项目已经有摄入、角色或分集数据；否则必须提供已经上传到项目输入目录的 `filename` | 脚本图阻塞在“摄入原文” |
+| 项目配置 | 视觉风格、叙事方式、族裔、画幅、视频分辨率、导演渲染、字幕与 BGM 使用请求值或项目持久化配置 | 非法枚举值在 Pydantic 入站校验时被拒绝 |
+| 文本与检索模型 | 摄入、角色提取、分集、身份/场景规划和剧本阶段按各自用途解析 TEXT、EMBEDDING 等模型 | 对应子任务失败并保留已完成断点 |
+| 图片模型 | 正式生产前必须同时解析到 `IMAGE_GENERATION` 和 `IMAGE_EDIT` | 父任务以 `model_prereq_required` 停止，不进入世界资产和分镜生图 |
+| 声音模型 | 需要生成配音时必须有语音合成路由；缺失或不合规声线需要 `AUDIO_VOICE_DESIGN` | 自动声线补全无法执行时返回明确的模型前置错误 |
+| 视频模型 | 请求指定 `video_model`，或项目/模型目录能解析出当前视频用途的首选路由 | 逐 Beat 视频阶段停止，不会抢跑合成 |
+| 本地运行时 | FastAPI sidecar、任务执行器、项目 SQLite/文件目录和 FFmpeg 可用；Cloud/BYOK 调用还需网络、许可和额度 | 真实失败由对应子任务上报，父任务不伪造成功 |
+
+请求参数全部使用显式 schema，未知字段会被拒绝：
+
+| 参数 | 默认值 | 作用 |
+| --- | --- | --- |
+| `episodes` | `[]` | 指定正整数分集并去重；为空时在分集规划完成后生产全部已规划分集 |
+| `filename` | `""` | 尚未摄入项目时使用的已上传原文文件名；不是任意本机绝对路径 |
+| `rebuild` | `false` | 危险覆盖开关；`false` 为断点续跑，`true` 强制重新摄入并重建分集生产资产 |
+| `spine_template` | 项目值 | `drama` 或 `narrated`，决定项目叙事骨架和默认画幅 |
+| `visual_style` | 项目值 | 摄入阶段写入的视觉风格选择 |
+| `narration_style` | 项目值 | `first_person` 或 `third_person` |
+| `ethnicity` | 项目值 | `Chinese`、`Japanese`、`Korean` 或 `Western` |
+| `target_episodes` | `10` | 分集规划目标，范围 1～200；显式选择更大集号时计划规模至少覆盖该集 |
+| `planning_mode` | `chapters` | `chapters`、`ai_events` 或兼容值 `ai` |
+| `script_mode` | `duration` | `duration` 按目标时长生成，`literal` 按原文场次/台词生成 |
+| `target_duration_total` | `120` | 传给分集剧本生成器的目标总时长，范围 30～600 秒 |
+| `target_beats` | `null` | 可选的精确 Beat 数，范围 5～80；既有脚本 Beat 数不符时视为未完成 |
+| `max_parallel` | `4` | 脚本 DAG 和世界资产批次并发上限，范围 1～6；逐 Beat 视频仍串行 |
+| `node_timeout_seconds` | `7200` | 每个子任务等待上限，范围 30～28800 秒 |
+| `video_model` | 项目路由 | 本轮视频模型选择器；最终由模型路由解析为实际模型与调用通道 |
+| `video_resolution` | 项目值 | 结合项目画幅归一化为分集视频和合成分辨率 |
+| `add_subtitles` | `true` | 合成阶段是否叠加字幕 |
+| `add_bgm` | `false` | 合成阶段是否加入 BGM |
+
+提交入口先校验权限和 schema，将 `episodes` 去重，再把完整配置计算为任务 `scope` 并写入任务中心。返回的 `task_id` 标识本次运行，`task_key` 用于查询、SSE 订阅和取消；客户端不得为同一目标重复提交一组阶段任务。
+
+### 3.2 脚本与世界资产依赖图
+
+```mermaid
+flowchart TD
+    Start[提交 production_workflow 父任务] --> Auth{项目存在且具有 editor 权限?}
+    Auth -- 否 --> Reject[拒绝请求]
+    Auth -- 是 --> Snapshot[读取 SQLite、项目文件与任务快照]
+
+    Snapshot --> Rebuild{rebuild = true?}
+    Rebuild -- 是 --> RebuildFile{提供有效 filename?}
+    RebuildFile -- 否 --> Blocked
+    RebuildFile -- 是 --> Ingest[强制重新摄入指定原文]
+    Rebuild -- 否 --> Ingested{已有摄入结果、角色或分集?}
+    Ingested -- 否 --> HasFile{提供有效 filename?}
+    HasFile -- 否 --> Blocked[阻塞：缺少原文前置]
+    HasFile -- 是 --> Ingest
+    Ingested -- 是 --> CharactersReady{已有角色数据?}
+    Ingest --> CharactersReady
+
+    CharactersReady -- 否 --> Characters[提取角色]
+    CharactersReady -- 是 --> EpisodesReady{已有分集规划?}
+    Characters --> EpisodesReady
+    EpisodesReady -- 否 --> Episodes[按目标集数规划分集]
+    EpisodesReady -- 是 --> SelectEpisodes[确定指定分集或全部分集]
+    Episodes --> SelectEpisodes
+
+    SelectEpisodes --> Identities[逐集规划角色身份]
+    SelectEpisodes --> Scenes[逐集规划场景菜单]
+    Identities --> ScriptGate{同集身份与场景均已落库?}
+    Scenes --> ScriptGate
+    ScriptGate -- 否 --> ScriptWait[等待缺失依赖]
+    ScriptGate -- 是 --> Scripts[逐集生成完整 Beat 脚本]
+    ScriptWait --> ScriptGate
+
+    Scripts --> EpisodeCheck{指定分集都存在且至少有一个 Beat?}
+    EpisodeCheck -- 否 --> Fail[父任务失败并保留已完成断点]
+    EpisodeCheck -- 是 --> ImageModels{IMAGE_GENERATION 与 IMAGE_EDIT 均可用?}
+    ImageModels -- 否 --> ModelBlock[返回 model_prereq_required]
+    ImageModels -- 是 --> Props[补规划缺失的分集道具菜单]
+
+    Props --> ActiveAssets[汇总所选分集实际引用的身份、场景和全局道具]
+    ActiveAssets --> IdentityValid{所有身份 ID 都能映射到角色身份?}
+    IdentityValid -- 否 --> Fail
+    IdentityValid -- 是 --> Portraits[补缺失角色肖像]
+    Portraits --> IdentityImages[补缺失身份图]
+    IdentityImages --> SceneMaster[补缺失场景正向参考图]
+    SceneMaster --> SceneReverse[补缺失场景反向参考图]
+    SceneReverse --> PropRefs[补缺失全局道具参考图]
+    PropRefs --> EpisodeLoop[按集进入正式生产]
+```
+
+脚本部分是真实 DAG，而不是固定延时队列：角色依赖摄入，分集依赖角色；同一集的身份规划和场景规划可以并行，剧本必须等待二者完成。持久化数据优先于历史任务标签；任务显示完成但没有可用数据时会重新提交，正在运行且任务 ID 一致的节点会继续等待。未指定 `episodes` 时，DAG 会在分集规划后动态展开全部分集节点。
+
+世界资产只覆盖所选分集真正引用的对象。角色肖像、身份图、场景正反参考图和全局道具参考图按规范路径检查并只补缺失文件；每批最多并行 `max_parallel` 个任务，任务完成后还会再次验证正式文件是否存在。
+
+### 3.3 单集生产与合成逻辑
+
+```mermaid
+flowchart TD
+    Episode[开始处理一集] --> Beats{脚本包含 Beat?}
+    Beats -- 否 --> EpisodeFail[失败：没有可生产分镜]
+    Beats -- 是 --> Markers[把旧角色名校准为规范身份标记<br/>补全可推导的身份和道具引用]
+    Markers --> Colors[为身份和全局道具分配唯一草图标记色]
+
+    Colors --> Sketches{正式草图齐全?}
+    Sketches -- 否 --> SketchPlan[按画幅为每个缺失 Beat 规划独立 1×1 草图]
+    SketchPlan --> SketchGenerate[逐 Beat 生成并写入规范草图路径]
+    SketchGenerate --> SketchVerify{所有计划草图文件存在?}
+    SketchVerify -- 否 --> EpisodeFail
+    SketchVerify -- 是 --> Detection
+    Sketches -- 是 --> Detection
+
+    Detection{检测任务晚于全部草图<br/>且每个 Beat 都有身份/道具检测结果?}
+    Detection -- 否 --> DetectRun[运行草图身份与道具检测并写回 Beat]
+    DetectRun --> DetectVerify{检测字段完整?}
+    DetectVerify -- 否 --> EpisodeFail
+    DetectVerify -- 是 --> Frames
+    Detection -- 是 --> Frames
+
+    Frames{每个 Beat 首帧存在?}
+    Frames -- 否 --> FrameGenerate[按 16:9 或 2:3 模式生成缺失首帧]
+    FrameGenerate --> FrameVerify{文件存在且本次确实更新?}
+    FrameVerify -- 否 --> EpisodeFail
+    FrameVerify -- 是 --> VideoPrompts
+    Frames -- 是 --> VideoPrompts
+
+    VideoPrompts{每个 Beat 的当前模式提示词齐全?}
+    VideoPrompts -- 否 --> Optimize[基于正式首帧生成提示词<br/>保留既定首帧或首尾帧模式]
+    Optimize --> PromptVerify{全部提示词写回?}
+    PromptVerify -- 否 --> EpisodeFail
+    PromptVerify -- 是 --> VoicePlan
+    VideoPrompts -- 是 --> VoicePlan
+
+    VoicePlan[规划旁白/对白声线与需要更新的音频] --> VoiceErrors{存在可自动补全的缺失声线?}
+    VoiceErrors -- 是 --> VoiceDesign{AUDIO_VOICE_DESIGN 可用?}
+    VoiceDesign -- 否 --> VoiceBlock[模型前置阻塞]
+    VoiceDesign -- 是 --> VoiceGenerate[生成、校验时长并绑定项目旁白或角色身份/年龄槽位]
+    VoiceGenerate --> VoiceReplan[重新规划声线前置]
+    VoiceErrors -- 否 --> VoiceReplan
+    VoiceReplan --> VoiceValid{仍有声线错误?}
+    VoiceValid -- 是 --> EpisodeFail
+    VoiceValid -- 否 --> Route
+
+    Route{当前视频路由是 Seedance2?}
+    Route -- 否 --> Audio
+    Route -- 是 --> SeedVoice{待生成视频的参考声线满足模型时长等约束?}
+    SeedVoice -- 否 --> RepairVoice[按角色自动重建不合规参考声线]
+    RepairVoice --> SeedVoiceVerify{复检通过?}
+    SeedVoiceVerify -- 否 --> EpisodeFail
+    SeedVoiceVerify -- 是 --> SeedPrompt
+    SeedVoice -- 是 --> SeedPrompt
+    SeedPrompt{每个 Beat 已有 Seedance 最终提示词?}
+    SeedPrompt -- 否 --> SeedPromptGenerate[逐 Beat 生成并持久化最终提示词]
+    SeedPromptGenerate --> Audio
+    SeedPrompt -- 是 --> Audio
+
+    Audio[按 sync_changed 补齐或更新本集音频] --> AudioVerify{本次计划生成的音频文件都存在?}
+    AudioVerify -- 否 --> EpisodeFail
+    AudioVerify -- 是 --> Videos{仍有缺失 Beat 视频?}
+    Videos -- 是 --> OneVideo[按 Beat 顺序提交一个 single_video 并等待终态]
+    OneVideo --> VideoVerify{该 Beat 正式视频文件存在?}
+    VideoVerify -- 否 --> EpisodeFail
+    VideoVerify -- 是 --> Videos
+    Videos -- 否 --> FinalFresh{最终视频存在且不早于全部视频及已有音频?}
+
+    FinalFresh -- 是 --> Final[返回正式成片相对路径]
+    FinalFresh -- 否 --> Compose[FFmpeg 合成全部 Beat 视频<br/>可选字幕与 BGM]
+    Compose --> FinalVerify{最终视频文件存在?}
+    FinalVerify -- 否 --> EpisodeFail
+    FinalVerify -- 是 --> Final
+    Final --> More{还有分集?}
+    More -- 是 --> Episode
+    More -- 否 --> Done[父任务完成并返回 completed_episodes]
+```
+
+阶段的实际完成标准如下：
+
+| 顺序 | 阶段 | 跳过条件 | 执行后的硬校验 |
+| --- | --- | --- | --- |
+| 1 | 校准身份标记 | 每次都会执行轻量校准 | 只经剧本文档用例更新发生变化的 Beat |
+| 2 | 分配草图颜色 | 每次都会同步 | 身份和具名全局道具使用稳定、唯一的标记色；只持久化颜色配置，不删除已有草图 |
+| 3 | 草图 | `rebuild=false` 且所有计划 Beat 的规范草图都存在 | 每个缺失 Beat 独立生成 1×1 草图；普通运行不会清空或覆盖已有规范草图，明确覆盖也只在新图成功后替换 |
+| 4 | AI 身份/道具检测 | 最近一次完成记录不早于全部草图，且所有 Beat 检测字段非空值 | 检测结果必须完整写回每个 Beat；新草图会使旧检测失效 |
+| 5 | 首帧 | `rebuild=false` 且每个 Beat 的正式首帧存在 | 新文件必须存在；覆盖运行时修改时间必须前进，任务回执范围不能漏 Beat |
+| 6 | 全局视频优化 | `rebuild=false` 且首帧模式 Beat 有 `video_prompt`、首尾帧模式 Beat 有 `keyframe_prompt` | 使用正式首帧而非低保真草图分析动作；保留已选 `video_mode`，首尾帧模式用下一 Beat 首帧生成过渡提示词 |
+| 7 | 配音前置 | 没有 Beat 时跳过；其余情况都按当前脚本规划 | 缺失声线先自动设计并重新规划，仍有错误才停止 |
+| 8 | Seedance2 声线 | 非 Seedance2，或 `rebuild=false` 且全部视频已存在 | 仅修复影响待生成视频的音频参考；复检仍失败则给出具体 Beat/身份原因 |
+| 9 | Seedance2 最终提示词 | 非 Seedance2，或每个 Beat 已持久化最终提示词 | 逐 Beat 生成后不得仍有空提示词 |
+| 10 | 分镜音频 | `sync_changed` 规划没有需要生成的 Beat | 所有调度范围内的音频文件必须存在 |
+| 11 | 分镜视频 | `rebuild=false` 且所有 Beat 视频存在 | 视频严格逐 Beat 提交和等待；前一 Beat 未成功不会提交下一 Beat |
+| 12 | 最终合成 | `rebuild=false`，成片存在、全部视频存在，且成片纳秒修改时间不早于所有视频及已有音频 | 合成任务完成后正式成片文件必须存在 |
+
+当前完整生产编排没有独立、无条件执行的 `Deface` 或 SeedEdit 人脸后处理节点。具体图片模型只由图片生成/编辑角色路由和对应应用用例决定，不能根据一条日志推断存在额外资产覆盖阶段。
+
+### 3.4 断点恢复、覆盖边界与局部重做
+
+| 场景 | 行为 |
+| --- | --- |
+| 首次生产 | 从缺失的最早脚本节点开始，生成世界资产，再逐集完成草图、检测、提示词、声音、视频和合成 |
+| 普通“继续/重试” | 重新提交一个 `rebuild=false` 父任务；读取 SQLite、规范文件和任务终态，只补缺失、变化或已过期的节点 |
+| 脚本子任务刚执行过 | 不再自动等同于“下游全部过期”；只要没有显式 `rebuild=true`，已有草图、首帧和视频不会因此被覆盖 |
+| `rebuild=true` | 强制重新摄入；草图、首帧、全局视频优化、配音前置、Seedance 声线/提示词、音频、视频和合成都按覆盖模式执行；旧草图在对应新图成功前仍保留 |
+| 世界参考资产 | 角色肖像、身份图、场景正反参考图和全局道具参考图始终只补规范路径中缺失的文件；`rebuild=true` 不会无条件覆盖这些全局资产 |
+| 音频同步 | 默认使用 `sync_changed`，依据脚本内容、说话人、声线和既有状态决定实际重做范围；覆盖模式使用 `redo_all` |
+| 成片过期 | 任一正式视频或已有音频晚于成片，都会重新合成；否则直接复用当前成片 |
+| 局部重做 | 只调用草图、首帧、声音、单 Beat 视频或合成的专用接口；不得把明确的局部请求升级为完整生产或隐式设置 `rebuild=true` |
+| 角色声线覆盖 | 只对用户明确选择的角色调用声线设计并传 `replace_existing=true`；不会启动完整生产工作流 |
+
+`rebuild=true` 会产生新的模型调用并覆盖分集级正式资产，已有项目必须由调用方在二次确认后才发送。默认按钮、普通“继续”和失败恢复都必须保持 `rebuild=false`。
+剧本生成和草图标记色分配均不得隐式调用“清空整集草图”；即使用户明确重建，旧文件也保留到对应新图生成成功后才按 Beat 替换。
+
+### 3.5 并发、失败、取消与最终交付
+
+- 脚本 DAG 和角色/场景/道具世界资产按依赖分批执行，每批不超过 `max_parallel`；多集正式生产按集顺序执行，单集视频按 Beat 顺序串行，避免供应商并发、额度和合成依赖失控。
+- 草图正式主线固定为每 Beat 一次 1×1 请求，不再把 3×3/5×5 联系表裁成正式草图；较大网格只保留给明确的联系表实验和历史资产查看。
+- 单个视频默认只把当前 Beat 的正式 Render 作为确定性的首帧。已明确选择 `keyframe` 的连续镜头再增加下一 Beat Render 作为尾帧；角色、场景和道具图只承担身份/环境参考，不把同场景多张任意 Render 混作空间约束。这样相邻片段可在同一尾帧/首帧处衔接，场景切换仍使用正常剪切，FFmpeg 合成不使用会产生重影的全局交叉淡化。
+- 父任务为每个子任务保存精确 `task_id`。任务中心短暂不可见时最多容忍 10 秒；子任务被新运行替换、失败、取消、超过 `node_timeout_seconds` 或终态没有正式产物时，父任务立即失败。
+- 失败或取消时只反向取消带有当前 `parent_task_id` 的活动后代，不会误停其他用户提交的共享任务或无关局部任务；已经写入 SQLite 和规范文件的成功节点保留为下次断点。
+- 任务中心先通过 HTTP 快照水合，再通过项目级 SSE 接收进度。父任务进度单调递增，只有所有指定分集都返回正式 `final_video` 后才进入完成态。
+- 父任务结果包含每集 Beat 数和相对项目目录的 `final_video`。需要展示或下载时再调用 `GET /api/v1/projects/{project}/episodes/{episode}/final`，只使用服务端返回的 `video_url`，不得猜测 `/files` 路径或为了获取链接重复合成。
+- 最终产品是按 Beat 顺序拼接的正式分集视频；每个 Beat 使用已经持久化的视频片段和可用音频，合成参数决定字幕、BGM 与输出分辨率。没有通过文件校验的任务不会被报告为成片完成。
+
+## 4. 技术栈
 
 以下版本来自当前 `uv.lock`、`frontend/pnpm-lock.yaml`、`desktop/pnpm-lock.yaml` 和对应 manifest；锁文件是可复现安装的唯一版本依据。
 
-### 3.1 前端与交互层
+### 4.1 前端与交互层
 
 | 类别 | 技术 | 当前版本 | 用途 |
 | --- | --- | --- | --- |
@@ -167,7 +391,7 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 前端按 `app -> routes -> modules -> shared` 组合。业务模块内部继续使用 `domain/application/infrastructure/presentation/composition/public`；路由只读取参数并组合页面，不直接持有 transport。SuperChat 和任务列表使用真实虚拟列表，长会话只挂载视口附近节点，不再依赖单纯的 `content-visibility`。
 
-### 3.2 Electron 与桌面发布层
+### 4.2 Electron 与桌面发布层
 
 | 技术 | 当前版本 | 用途 |
 | --- | --- | --- |
@@ -181,7 +405,7 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 开发入口直接用 Electron 的 TypeScript transform 运行 `desktop/scripts/dev-entry.mjs`；发布入口只执行 `tsc` 产出的 `desktop/dist/main.js`。Renderer 始终启用 `contextIsolation` 和 sandbox，正式版由主进程给 FastAPI 托管的页面注入严格 CSP。
 
-### 3.3 Python 业务与 AI 层
+### 4.3 Python 业务与 AI 层
 
 | 类别 | 技术 | 当前锁定版本 | 用途 |
 | --- | --- | --- | --- |
@@ -199,7 +423,7 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 主 Python 环境要求 3.11 或 3.12。Hermes 不进入主锁文件，而是由 `desktop/hermes-runtime/uv.lock` 独立固定 `hermes-agent[acp] 0.19.0`，避免 Agent 运行时依赖改变 FastAPI sidecar 的模型 SDK 组合。
 
-### 3.4 测试与质量工具
+### 4.4 测试与质量工具
 
 | 范围 | 技术 | 当前版本/策略 |
 | --- | --- | --- |
@@ -210,9 +434,9 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 | API Mock | MSW 2.15.0 | 未登记请求直接报错，防止测试静默访问真实服务 |
 | Electron | Node test runner | 主进程合同、IPC 对称性、打包路径与安全边界 |
 
-## 4. DDD 边界
+## 5. DDD 边界
 
-### 4.1 已建立标准分层的上下文
+### 5.1 已建立标准分层的上下文
 
 后端和前端的主要上下文采用 `domain/application/infrastructure/presentation/composition/public` 中适用的层：
 
@@ -246,7 +470,7 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 跨上下文调用应经过目标上下文的 `public.py` 或 `public.ts`。FastAPI route 只负责认证、schema、用例调用和 HTTP 错误映射；React route 只负责路由参数和页面装配。
 
-### 4.2 本轮 DDD 收敛结果
+### 5.2 本轮 DDD 收敛结果
 
 | 原架构债 | 当前所有权 |
 | --- | --- |
@@ -263,14 +487,14 @@ React 不接触 Gateway JWT、设备私钥、BYOK 明文持久化数据或离线
 
 架构门禁会阻止旧路径、兼容 re-export、业务上下文反向导入 shared 和 presentation 直接依赖 infrastructure 回流。较大的基础设施适配文件可以继续按行为边界演进，但不能仅为减少行数制造无业务含义的目录或 facade。
 
-### 4.3 目录规则
+### 5.3 目录规则
 
 - 只有一个文件并不自动代表目录错误。`domain/application/infrastructure/presentation`、API 版本目录、locale 和资源目录表达稳定边界，可以保留。
 - 没有独立边界、只增加一层跳转的包装目录应打平。
 - 迁移完成后不保留旧 re-export、兼容 facade、第二套请求路径或只供源码字符串测试读取的旧文件。
 - 历史数据兼容只允许存在于读取和迁移边界，不得成为新写入路径。
 
-## 5. 项目结构
+## 6. 项目结构
 
 ```text
 ai-anime-desktop/
@@ -326,7 +550,7 @@ ai-anime-desktop/
 | `desktop/runtime/` | 平台 FFmpeg |
 | `desktop/release/` | 安装包与 unpacked 应用 |
 
-## 6. 商业 Gateway 接入状态
+## 7. 商业 Gateway 接入状态
 
 固定 Gateway：
 
@@ -345,7 +569,7 @@ React module
   -> Gateway HTTPS
 ```
 
-### 6.1 已进入产品调用链
+### 7.1 已进入产品调用链
 
 | 能力 | Gateway 路径 | 产品入口 |
 | --- | --- | --- |
@@ -379,7 +603,7 @@ React module
 
 上表表示代码调用链和合同测试存在，不表示远端生产数据已经在线验收。
 
-### 6.2 当前版本明确不消费
+### 7.2 当前版本明确不消费
 
 以下接口没有伪装成“已接入”：
 
@@ -390,7 +614,7 @@ React module
 
 本地 FastAPI 原有的 `/api/v1/release-notifications` 只返回空 feed，渲染层也不消费；该虚假接口已删除。公告和版本更新只走真实商业 Gateway。
 
-### 6.3 真实联调结果与云端待处理
+### 7.3 真实联调结果与云端待处理
 
 2026-08-09 使用隔离测试租户对固定 Gateway 和桌面开发实例执行了真实联调。凭据只用于本机测试，未写入仓库：
 
@@ -412,7 +636,7 @@ React module
 
 可直接交给云端实施的字段、JSON 示例、密钥位置和发布顺序见 [云端接入与安全更新交接](docs/cloud-integration-handoff.md)。
 
-## 7. 本地认证与模型路径
+## 8. 本地认证与模型路径
 
 Electron 产品登录使用真实商业 Gateway。登录成功后，主进程只为本地 FastAPI 写入 HttpOnly `ai_anime_session` Cookie；Cookie 是本地 BFF 身份标记，不是 Gateway JWT。
 
@@ -425,7 +649,7 @@ Electron 产品登录使用真实商业 Gateway。登录成功后，主进程只
 
 对象存储统一使用平台配置，不提供用户 BYOK 对象存储入口。Hermes ACP 只负责 Agent 协议执行，模型请求仍遵守 Cloud/BYOK 边界。
 
-## 8. 本地数据
+## 9. 本地数据
 
 Electron 使用 `app.getPath("userData")`：
 
@@ -450,7 +674,7 @@ Electron 使用 `app.getPath("userData")`：
 
 重构必须保持现有 SQLite schema、用户文件布局、静态 URL 和任务 payload 兼容。敏感文件由 Electron `safeStorage` 加密，不得提交到仓库或复制进发布制品。
 
-## 9. 开发环境
+## 10. 开发环境
 
 要求：
 
@@ -498,7 +722,7 @@ Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个�
 
 前端测试不要用 `--no-isolate` 提速：实测失败集会随文件调度顺序变化；仓库统一使用配置中的 `vmThreads`、4 worker 和固定内存回收阈值。非 TSX DOM 测试统一使用 `.dom.test.ts` 后缀并由 Vitest 自动路由到 Happy DOM；Browser Mode 测试使用 `.browser.test.ts` 或 `.browser.test.tsx`。启用 MSW 的测试对未 mock 请求采用 `onUnhandledRequest: "error"`，请求缺少 handler 时应快速失败。
 
-## 10. 测试与架构门禁
+## 11. 测试与架构门禁
 
 | 门禁 | 文件 | 主要约束 |
 | --- | --- | --- |
@@ -512,7 +736,7 @@ Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个�
 
 门禁通过只证明已纳入规则的边界没有回退，不能替代真实 Gateway 联调、安装包冒烟或人工工作流验收。
 
-## 11. 打包
+## 12. 打包
 
 打包链路依次执行：
 
@@ -567,7 +791,7 @@ latest-mac.yml
 - 记录安装包文件名、字节数、目标平台和对应 `latest*.yml`。
 - 不上传 `secure/`、用户数据、日志、`.env`、JWT、API Key 或私钥。
 
-## 12. 代码来源与上游同步
+## 13. 代码来源与上游同步
 
 | Remote | 地址 | 用途 |
 | --- | --- | --- |

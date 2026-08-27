@@ -185,6 +185,37 @@ async def test_standard_video_preserves_duration_resolution_and_task_payload(
     assert store.close_calls == 1
 
 
+@pytest.mark.asyncio
+async def test_keyframe_video_uses_next_storyboard_beat_instead_of_numeric_neighbor(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    current_frame = _frame(tmp_path, 41)
+    next_frame = _frame(tmp_path, 2)
+    beats = [
+        {"beat_number": 1, "video_mode": "first_frame"},
+        {
+            "beat_number": 41,
+            "audio_type": "dialogue",
+            "video_mode": "keyframe",
+            "keyframe_prompt": "continue into the next shot",
+            "video_prompt": "fallback prompt",
+        },
+        {"beat_number": 2, "video_mode": "first_frame"},
+    ]
+    store = _Store(beats)
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(beat_num=41),
+    )
+
+    assert task.config["frame_path"] == str(current_frame)
+    assert task.config["last_frame_path"] == str(next_frame)
+    assert task.config["video_mode"] == "keyframe"
+
+
 @pytest.mark.parametrize(
     ("beat", "next_frame"),
     [
@@ -219,7 +250,11 @@ async def test_standard_video_rejects_missing_mode_prompt(
     _frame(tmp_path)
     if next_frame:
         _frame(tmp_path, 3)
-    store = _Store([beat])
+    store = _Store(
+        [beat, {"beat_number": 3, "video_mode": "first_frame"}]
+        if next_frame
+        else [beat]
+    )
     preparer, _props, _durations = _preparer(monkeypatch, store)
 
     with pytest.raises(
@@ -277,6 +312,66 @@ async def test_seedance2_uses_prepared_config_and_audio_duration(
     assert calls[0]["duration"] == 6.4
     assert task.config["prompt"] == "configured prompt"
     assert task.config["video_duration"] == 11
+    assert task.config["seedance2_config"] == beat["seedance2_config_json"]
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    frame = _frame(tmp_path)
+    beat = {
+        "beat_number": 2,
+        "audio_type": "dialogue",
+        "video_mode": "first_frame",
+        "video_prompt": "old prompt",
+        "seedance2_config_json": (
+            '{"duration": 1, "final_prompt": "configured prompt"}'
+        ),
+    }
+    store = _Store([beat])
+    preparer, _props, _durations = _preparer(monkeypatch, store, 0.768)
+    calls = []
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_profile="seedance2",
+            video_generation_min_seconds=4,
+            video_generation_max_seconds=15,
+        ),
+    )
+
+    async def prepare_inputs(**kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(
+            prompt="configured prompt",
+            seedance2_config_json=beat["seedance2_config_json"],
+            duration=1,
+            mode=Seedance2I2VMode.FIRST_FRAME,
+            image_path=str(frame),
+            last_frame_path=None,
+            references=[],
+        )
+
+    monkeypatch.setattr(
+        single_video,
+        "prepare_seedance2_generation_inputs",
+        prepare_inputs,
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(video_model="opaque-cloud-video-42"),
+    )
+
+    assert calls[0]["duration"] == pytest.approx(0.768)
+    assert task.config["video_duration"] == 4.0
+    assert task.config["model_role"] == "VIDEO_IMAGE_TO_VIDEO"
     assert task.config["seedance2_config"] == beat["seedance2_config_json"]
     assert store.close_calls == 1
 

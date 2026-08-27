@@ -345,6 +345,32 @@ def _persist_narrator_voice_content(
     return target
 
 
+def _create_reusable_voice(
+    *,
+    context: ProjectContext,
+    name: str,
+    filename: str,
+    content: bytes,
+    mime_type: str,
+) -> dict:
+    from ai_anime.modules.creative_canvas.public import (
+        CreateCreativeCanvasAudioVoiceCommand,
+        creative_canvas_audio_library_use_cases,
+    )
+
+    return dict(
+        creative_canvas_audio_library_use_cases().create_voice(
+            CreateCreativeCanvasAudioVoiceCommand(
+                context=context,
+                name=name,
+                filename=filename,
+                content=content,
+                mime_type=mime_type,
+            )
+        )
+    )
+
+
 def _trim_narrator_voice_content(
     *,
     username: str,
@@ -691,18 +717,34 @@ async def upload_narrator_voice(
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
         content = await file.read()
+        filename = file.filename or "voice.wav"
+        if not is_supported_voice_sample(filename):
+            raise ValueError(
+                f"{SUPPORTED_VOICE_SAMPLE_COPY}（收到：{filename}）"
+            )
+        if not content:
+            raise ValueError("音频内容为空")
+        created_voice = _create_reusable_voice(
+            context=ctx,
+            name=Path(filename).stem or "第三人称旁白",
+            filename=filename,
+            content=content,
+            mime_type=file.content_type or "application/octet-stream",
+        )
         _persist_narrator_voice_content(
             username=ctx.owner_username,
             project=ctx.project_name,
             project_dir=ctx.output_dir,
-            filename=file.filename or "",
+            filename=filename,
             content=content,
         )
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
+    data = _narrator_voice_payload(ctx, store)
+    data["voice_library_id"] = str(created_voice.get("voice_id") or "")
     return {
         "ok": True,
-        "data": _narrator_voice_payload(ctx, store),
+        "data": data,
     }
 
 
@@ -720,6 +762,13 @@ async def record_narrator_voice(
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
         content, extension = decode_recorded_audio_data_url(body.data_url)
+        created_voice = _create_reusable_voice(
+            context=ctx,
+            name="第三人称旁白录音",
+            filename=f"recorded{extension}",
+            content=content,
+            mime_type=("audio/mpeg" if extension == ".mp3" else "audio/wav"),
+        )
         _persist_narrator_voice_content(
             username=ctx.owner_username,
             project=ctx.project_name,
@@ -729,9 +778,11 @@ async def record_narrator_voice(
         )
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
+    data = _narrator_voice_payload(ctx, store)
+    data["voice_library_id"] = str(created_voice.get("voice_id") or "")
     return {
         "ok": True,
-        "data": _narrator_voice_payload(ctx, store),
+        "data": data,
     }
 
 
@@ -743,8 +794,6 @@ async def generate_preset_narrator_voice(
 ):
     """使用当前 AUDIO_SPEECH 预设声线生成项目解说参考音频。"""
     from ai_anime.modules.creative_canvas.public import (
-        CreateCreativeCanvasAudioVoiceCommand,
-        creative_canvas_audio_library_use_cases,
         generate_creative_canvas_audio_speech,
     )
 
@@ -768,14 +817,12 @@ async def generate_preset_narrator_voice(
             voice_ref=None,
         )
         content = await asyncio.to_thread(generated.audio_path.read_bytes)
-        creative_canvas_audio_library_use_cases().create_voice(
-            CreateCreativeCanvasAudioVoiceCommand(
-                context=ctx,
-                name=body.name or body.voice,
-                filename="generated.mp3",
-                content=content,
-                mime_type="audio/mpeg",
-            )
+        created_voice = _create_reusable_voice(
+            context=ctx,
+            name=body.name or body.voice,
+            filename="generated.mp3",
+            content=content,
+            mime_type="audio/mpeg",
         )
         _persist_narrator_voice_content(
             username=ctx.owner_username,
@@ -786,9 +833,11 @@ async def generate_preset_narrator_voice(
         )
     except (OSError, RuntimeError, ValueError) as exc:
         return {"ok": False, "error": str(exc)}
+    data = _narrator_voice_payload(ctx, store)
+    data["voice_library_id"] = str(created_voice.get("voice_id") or "")
     return {
         "ok": True,
-        "data": _narrator_voice_payload(ctx, store),
+        "data": data,
     }
 
 
@@ -799,10 +848,6 @@ async def design_narrator_voice(
     user: dict = Depends(get_api_user),
 ):
     """使用云端 AUDIO_VOICE_DESIGN 将文字描述生成可复用声线。"""
-    from ai_anime.modules.creative_canvas.public import (
-        CreateCreativeCanvasAudioVoiceCommand,
-        creative_canvas_audio_library_use_cases,
-    )
     from ai_anime.modules.model_usage.public import write_model_audio_voice_design
 
     ctx = await resolve_project_context(
@@ -829,14 +874,12 @@ async def design_narrator_voice(
                 response_format=body.response_format,
             )
             content = await asyncio.to_thread(output_path.read_bytes)
-        created_voice = creative_canvas_audio_library_use_cases().create_voice(
-            CreateCreativeCanvasAudioVoiceCommand(
-                context=ctx,
-                name=body.name or body.voice_prompt[:80],
-                filename=f"designed{suffix}",
-                content=content,
-                mime_type=mime_type,
-            )
+        created_voice = _create_reusable_voice(
+            context=ctx,
+            name=body.name or body.voice_prompt[:80],
+            filename=f"designed{suffix}",
+            content=content,
+            mime_type=mime_type,
         )
         _persist_narrator_voice_content(
             username=ctx.owner_username,

@@ -267,7 +267,7 @@ async def test_hermes_project_replies_persist_partial_reply_after_stream_failure
     async def disconnected_sink(event):
         raise ConnectionError("disconnected")
 
-    with pytest.raises(RuntimeError, match="stream failed"):
+    with pytest.raises(ConnectionError, match="disconnected"):
         await replies.stream(
             "alice",
             "project-a",

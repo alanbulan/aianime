@@ -3,7 +3,7 @@ from ai_anime.modules.asset_world.infrastructure.director_world.scene_360_builde
 )
 
 
-def test_scene_360_prompt_assigns_the_final_image_to_style_only() -> None:
+def test_scene_360_prompt_uses_text_only_project_style() -> None:
     prompt = build_prompt(
         scene_name="校园教室",
         scene_description="明亮的教室",
@@ -15,8 +15,8 @@ def test_scene_360_prompt_assigns_the_final_image_to_style_only() -> None:
         has_master=False,
     )
 
-    assert "No scene identity or geometry reference is attached" in prompt
-    assert "final attached image is the GLOBAL STYLE REFERENCE" in prompt
+    assert "No subject-bearing scene identity or geometry reference is attached" in prompt
+    assert "text-only project style preset" in prompt
     assert "清爽二维动画线条与柔和彩色光照" in prompt
     assert "写实摄影与厚重三维渲染" in prompt
-    assert "Do NOT copy its people, faces" in prompt
+    assert "GLOBAL STYLE REFERENCE" not in prompt

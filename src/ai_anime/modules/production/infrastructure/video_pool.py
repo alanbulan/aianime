@@ -131,7 +131,9 @@ class LocalVideoPoolStorage:
         pool_dir.mkdir(parents=True, exist_ok=True)
 
         generated_at = datetime.now()
-        entry_id = f"beat_{command.beat_num:02d}_{generated_at:%Y%m%d_%H%M%S}"
+        entry_id = (
+            f"beat_{command.beat_num:02d}_{generated_at:%Y%m%d_%H%M%S_%f}"
+        )
         pool_filename = f"{entry_id}.mp4"
         shutil.copy2(Path(command.source_video_path), pool_dir / pool_filename)
 
@@ -188,6 +190,43 @@ class LocalVideoPoolStorage:
             pool.beat_assignments[str(beat_num)] = pool_id
             self._save_unlocked(pool, index_path)
         return True
+
+    def delete(
+        self,
+        context: ProjectContext,
+        episode_num: int,
+        pool_id: str,
+    ) -> str:
+        episode_dir = self._episode_dir(context, episode_num)
+        index_path = self._index_path(episode_dir)
+        with index_file_lock(index_path):
+            index_path = ensure_state_index_from_legacy(
+                episode_dir,
+                _VIDEO_POOL_INDEX_FILENAME,
+            )
+            pool = self._load_unlocked(index_path)
+            if pool is None:
+                return "missing"
+            entry = pool.entry(pool_id)
+            if entry is None:
+                return "missing"
+            if pool_id in {
+                str(assignment or "").strip()
+                for assignment in pool.beat_assignments.values()
+            }:
+                return "assigned"
+
+            pool_dir = (episode_dir / "pool").resolve()
+            video_path = (pool_dir / entry.video_path).resolve()
+            if video_path == pool_dir or pool_dir not in video_path.parents:
+                return "missing"
+            if not video_path.is_file():
+                return "missing"
+
+            video_path.unlink()
+            pool.videos = [item for item in pool.videos if item.id != pool_id]
+            self._save_unlocked(pool, index_path)
+        return "deleted"
 
 
 class ProjectStaticMediaUrls:

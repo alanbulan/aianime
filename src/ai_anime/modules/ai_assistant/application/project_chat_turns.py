@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application.chat_events import (
+    emit_chat_event,
     emit_chat_event_best_effort,
 )
 from ai_anime.modules.ai_assistant.application.ports import ChatEventSink
@@ -94,7 +95,7 @@ class ProjectChatTurns:
             nonlocal assistant_sent_text, done_sent
             event_type = event.get("type")
             if event_type == "thread_started":
-                await emit_chat_event_best_effort(
+                await emit_chat_event(
                     on_event,
                     {
                         "type": "thread.started",
@@ -105,7 +106,7 @@ class ProjectChatTurns:
                 )
             elif event_type == "assistant_delta":
                 assistant_sent_text = str(event.get("text") or "")
-                await emit_chat_event_best_effort(
+                await emit_chat_event(
                     on_event,
                     {
                         "type": "assistant.delta",
@@ -130,7 +131,7 @@ class ProjectChatTurns:
                         "input": event.get("input"),
                     }
                     await persist_ui_event(payload)
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {**payload, "raw": event.get("raw")},
                     )
@@ -149,7 +150,7 @@ class ProjectChatTurns:
                     "error": event.get("error"),
                 }
                 await persist_ui_event(payload)
-                await emit_chat_event_best_effort(
+                await emit_chat_event(
                     on_event,
                     {**payload, "raw": event.get("raw")},
                 )
@@ -157,7 +158,7 @@ class ProjectChatTurns:
                 message = event.get("message")
                 if isinstance(message, dict):
                     assistant_sent_text = message_content(message)
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "assistant.message",
@@ -169,7 +170,7 @@ class ProjectChatTurns:
                 final_text = message_content(event.get("message"))
                 if should_emit_final_text(final_text, assistant_sent_text):
                     assistant_sent_text = final_text
-                    await emit_chat_event_best_effort(
+                    await emit_chat_event(
                         on_event,
                         {
                             "type": "assistant.delta",

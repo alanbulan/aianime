@@ -6,9 +6,9 @@ import { toast } from 'sonner';
 
 
 ;
-import { NODE_TOOLBAR_ALIGN, NODE_TOOLBAR_CLASS, NODE_TOOLBAR_OFFSET, NODE_TOOLBAR_POSITION, StoryboardGroupToolbarView, ZoomScaledToolbar, useStoryboardGroupToolbarController, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/public';
+import { NODE_TOOLBAR_ALIGN, NODE_TOOLBAR_CLASS, NODE_TOOLBAR_OFFSET, NODE_TOOLBAR_POSITION, StoryboardGroupToolbarView, ZoomScaledToolbar, useStoryboardGroupToolbarController, type CanvasNode, type GroupNodeData } from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 const toolbarStyles = {
   panel:
     'flex animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 items-center gap-1.5 rounded-[18px] !border-border !bg-popover/95 px-2 py-1.5 text-sm shadow-xl backdrop-blur-2xl duration-200 ease-out motion-reduce:animate-none [&_svg]:h-4 [&_svg]:w-4',

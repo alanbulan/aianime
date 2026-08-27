@@ -90,7 +90,6 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 | `video_mode` | string | `"first_frame"` / `"keyframe"` | → 影响视频生成模式 |
 | `audio_type` | string | `"narration"`（旁白）/ `"dialogue"`（角色台词） | → 重做配音 |
 | `speaker` | string | 说话人身份ID（dialogue 时必填，如 `"姜裳宁_皇后"`） | → 重做配音 |
-| `fish_speech_prompt` | string? | Fish Audio S2 情感标记台词（如 `[angry]台词内容`） | → 重做配音 |
 
 ## 风格
 

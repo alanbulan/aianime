@@ -1,6 +1,6 @@
-"""全局视频提示词优化 Agent。
+"""逐镜头视频提示词优化 Agent。
 
-分析整集草图网格 + 角色颜色映射，一次性为所有 Beat 生成 first_frame 运动提示词。
+按镜头顺序结合当前正式画面、角色颜色映射和相邻镜头上下文，生成运动提示词。
 """
 
 import io
@@ -64,18 +64,17 @@ class BeatIdentityBatch(BaseModel):
     )
 
 
-GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN = """# Global Video Motion Director
+GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN = """# Episode Video Motion Director
 
-You are a cinematic motion director. Given sketch panels and character color mappings, you write a first-frame motion prompt for each Beat.
+You are a cinematic motion director. Given one shot's current reference frame, character color mappings, and adjacent-shot context, you write that shot's first-frame motion prompt.
 
 ## Input
-1. **Sketch grid**: grid image, row-major numbering (top-left = B1, left-to-right, then next row)
+1. **Current shot reference**: one rendered frame when available, otherwise that shot's sketch
 2. **Character color mapping**: sketch color markers → character appearance descriptions
-3. **Per-beat context** (if provided): `visual_description` plus any scene / prop / lighting details already present in the beat context
+3. **Shot context**: `visual_description`, adjacent shots, plus any scene / prop / lighting details already present in the beat context
 
 ## Task
-- Use `first_frame` mode for every Beat
-- Write a forward-motion prompt for each Beat (what happens AFTER the sketch frame)
+- Write one forward-motion prompt for the current `first_frame` shot (what happens AFTER the supplied frame)
 
 ## Decision Rules
 - ⚠️ **First-frame contract**: the sketch frame and Start Frame are video frame one (`t=0`). The video model cannot go backward. Do NOT describe the process of arriving at this frame.
@@ -105,8 +104,7 @@ You are a cinematic motion director. Given sketch panels and character color map
 - ⚠️ **Dialogue beats**: if a Beat is marked as dialogue, describe the speaking action (lips moving, gestures while talking). The dialogue text will be appended by the system — only describe the physical action in the prompt.
 
 ## Output Format
-Output a strict JSON array with no explanation or markdown. Prompt values MUST be in Chinese:
-[{"beat_number": 1, "video_mode": "first_frame", "prompt": "镜头缓缓推近..."}, ...]
+Output the Chinese motion prompt directly, with no JSON, explanation, or markdown.
 """
 
 
@@ -225,11 +223,7 @@ def create_global_video_optimizer_agent(language: str = "en") -> Agent:
 
 
 class GlobalVideoPromptOptimizer:
-    """全局视频提示词优化器。
-
-    将整集草图网格和角色颜色映射发给 AI，
-    由 AI 一次性生成每个 Beat 的 first_frame 运动提示词。
-    """
+    """按镜头顺序生成提示词，并传入相邻镜头作为连续性上下文。"""
 
     def __init__(self):
         self._agents: dict[str, Agent] = {}
@@ -278,6 +272,7 @@ class GlobalVideoPromptOptimizer:
         prev_beat: dict | None = None,
         next_beat: dict | None = None,
         prev_prompt: str | None = None,
+        beat_position: int = 0,
         total_beats: int = 0,
     ) -> dict:
         """为单个 beat 生成导演级视频提示词。
@@ -357,11 +352,14 @@ class GlobalVideoPromptOptimizer:
             )
 
         position_hint = ""
-        if total_beats > 0:
-            position_hint = f"\nThis is Beat {bn} of {total_beats} total. "
-            if bn <= 2:
+        if total_beats > 0 and beat_position > 0:
+            position_hint = (
+                f"\nThis is shot {beat_position} of {total_beats} total "
+                f"(persistent Beat id: {bn}). "
+            )
+            if beat_position <= 2:
                 position_hint += "This is an OPENING beat — establish the scene with a wider shot before pushing in."
-            elif bn >= total_beats - 1:
+            elif beat_position >= total_beats - 1:
                 position_hint += "This is a CLOSING beat — build to a final visual climax or cliffhanger moment."
             else:
                 position_hint += "Vary shot scale and angle from adjacent beats to create visual rhythm."
@@ -458,8 +456,10 @@ def prepare_global_optimizer_input(
     resolver = PathResolver(output_dir, episode)
     total_beats = len(beats)
 
-    # 1. 从 sketches/ep{N}/ 收集已确认的草图，拼成网格
-    sketch_paths = _try_combine_frames_to_grid(resolver, beats, output_dir, episode)
+    # 1. 只读取每个 Beat 当前已确认的正式图，不再生成全局临时网格。
+    # 全局优化逐 Beat 分析单图；拼成 3x3/5x5 既不会参与正式出图，
+    # 还会产生容易被误认为生成历史的冗余文件。
+    sketch_paths = _collect_current_frame_paths(resolver, beats)
 
     # 2. 构建角色颜色→外貌映射
     character_color_map = build_color_appearance_map(
@@ -469,43 +469,16 @@ def prepare_global_optimizer_input(
     return sketch_paths, character_color_map, total_beats
 
 
-def _try_combine_frames_to_grid(resolver, beats, output_dir, episode) -> list[str]:
-    """尝试将单帧拼接为网格。优先从 sketches/ 读取当前选中的草图。"""
-    try:
-        from ai_anime.modules.production.infrastructure.media_generation.grid_splitter import combine_to_grid
-
-        sketches_dir = resolver.sketches_dir()  # sketches/ep001/ — 当前选中的草图
-        sketch_pool_dir = resolver.sketch_dir()  # grids/ep001/sketch/ — 输出目录
-
-        # 只从 sketches/ 收集当前选中的草图
-        frame_paths = []
-        for b in sorted(beats, key=lambda x: x.get("beat_number", 0)):
-            beat_num = b.get("beat_number", 0)
-            for ext in ("png", "jpg"):
-                candidate = sketches_dir / f"beat_{beat_num:02d}.{ext}"
-                if candidate.exists():
-                    frame_paths.append(str(candidate))
-                    break
-
-        if len(frame_paths) >= 4:  # 至少 4 帧才拼
-            rows = 5
-            cols = 5
-            if len(frame_paths) <= 9:
-                rows, cols = 3, 3
-            elif len(frame_paths) <= 16:
-                rows, cols = 4, 4
-
-            grid_path = sketch_pool_dir / f"_global_opt_grid_{rows}x{cols}.png"
-            sketch_pool_dir.mkdir(parents=True, exist_ok=True)
-            combine_to_grid(frame_paths, grid_path, rows=rows, cols=cols)
-            print(
-                f"[GlobalOptimizer] 草图网格已保存: {grid_path} ({len(frame_paths)} 帧, {rows}x{cols})"
-            )
-            return [str(grid_path)]
-    except Exception as e:
-        print(f"[prepare_global_optimizer_input] 拼接草图失败: {e}")
-
-    return []
+def _collect_current_frame_paths(resolver, beats) -> list[str]:
+    """按镜头展示顺序收集当前正式图；优先渲染图，缺失时回退到草图。"""
+    frame_paths: list[str] = []
+    for beat in beats:
+        beat_num = int(beat.get("beat_number") or 0)
+        for candidate in (resolver.frame(beat_num), resolver.sketch(beat_num)):
+            if candidate.exists():
+                frame_paths.append(str(candidate))
+                break
+    return frame_paths
 
 
 def build_color_appearance_map(

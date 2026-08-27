@@ -291,10 +291,15 @@ export const useSketchPoseEditorDialogController =
     { resolveMediaUrl },
   );
 export { useVideoModels };
-export const { useVideoPool, useVideoPoolSelect } = videoPoolQueries;
+export const {
+  useVideoPool,
+  useVideoPoolDelete,
+  useVideoPoolSelect,
+} = videoPoolQueries;
 export const {
   useGrids,
   useGridsByBeat,
+  usePoolDelete,
   usePoolSelect,
   useRebuildPoolIndex,
   useUploadBeatImage,

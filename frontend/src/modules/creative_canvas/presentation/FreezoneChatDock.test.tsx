@@ -14,6 +14,9 @@ vi.mock("@/shared/hooks/use-media-query", () => ({
 }));
 
 vi.mock("@/modules/ai_assistant/public", () => ({
+  QiuQiuAvatar: ({ emotionId }: { emotionId: string }) => (
+    <span data-testid="qiuqiu-avatar" data-emotion={emotionId} />
+  ),
   SuperChatPanel: ({ onRequestClose }: { onRequestClose?: () => void }) => (
     <button type="button" onClick={onRequestClose}>
       close chat
@@ -61,7 +64,13 @@ describe("Freezone chat dock", () => {
     );
 
     expect(screen.getByTestId("chat-sheet")).toHaveAttribute("data-open", "false");
-    fireEvent.click(screen.getByRole("button", { name: "Open assistant" }));
+    const launcher = screen.getByRole("button", { name: "Open assistant" });
+    expect(screen.getByTestId("qiuqiu-avatar")).toHaveAttribute("data-emotion", "02");
+    fireEvent.mouseEnter(launcher);
+    expect(screen.getByTestId("qiuqiu-avatar")).toHaveAttribute("data-emotion", "10");
+    fireEvent.mouseLeave(launcher);
+    expect(screen.getByTestId("qiuqiu-avatar")).toHaveAttribute("data-emotion", "02");
+    fireEvent.click(launcher);
     expect(onOpenChange).toHaveBeenCalledWith(true);
   });
 

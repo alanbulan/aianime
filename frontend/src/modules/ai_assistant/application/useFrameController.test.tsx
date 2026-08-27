@@ -269,6 +269,64 @@ describe("useSuperChatFrameController", () => {
     expect(options.markTurnInactive).toHaveBeenCalledWith("turn-1");
   });
 
+  it("clears a restored turn but preserves its background wait", () => {
+    const current: ChatMessage[] = [
+      message("local-user", "user", "继续", 10, "turn-1"),
+      {
+        ...message("tool-wait-1", "tool", "等待任务完成", 20, "turn-1"),
+        toolCallId: "wait-1",
+        toolState: "pending",
+      },
+    ];
+    const options = createOptions({
+      messagesRef: { current },
+      activeTurnIdRef: { current: "turn-1" },
+    });
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "scope.changed",
+      scope: { kind: "project", id: "project-a" },
+      history: [],
+      busy: false,
+    }));
+
+    expect(options.markTurnInactive).toHaveBeenCalledWith("turn-1");
+    const pendingWait = applyLastMessageUpdate(options, current)[1];
+    expect(pendingWait).toMatchObject({ toolState: "pending" });
+    expect(pendingWait).not.toHaveProperty("toolError");
+  });
+
+  it("keeps a just-sent turn alive until the server accepts it", () => {
+    const current: ChatMessage[] = [
+      message("local-user", "user", "继续", 10, "turn-1"),
+      {
+        ...message("tool-wait-1", "tool", "等待任务完成", 20, "turn-1"),
+        toolCallId: "wait-1",
+        toolState: "pending",
+      },
+    ];
+    const options = createOptions({
+      messagesRef: { current },
+      activeTurnIdRef: { current: "turn-1" },
+      pendingClientTurnIdRef: { current: "turn-1" },
+    });
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "scope.changed",
+      scope: { kind: "project", id: "project-a" },
+      history: [],
+      busy: false,
+    }));
+
+    expect(options.markTurnInactive).not.toHaveBeenCalled();
+    expect(options.setBusy).toHaveBeenLastCalledWith(true);
+    expect(applyLastMessageUpdate(options, current)[1]).toMatchObject({
+      toolState: "pending",
+    });
+  });
+
   it("ignores cancelled deltas and clears cancellation only on done", () => {
     const cancelled = new Set(["turn-1"]);
     const options = createOptions({

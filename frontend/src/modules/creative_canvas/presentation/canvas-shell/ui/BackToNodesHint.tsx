@@ -7,10 +7,10 @@ import {
   BackToNodesHintView,
   getTopLevelCanvasBounds,
   hasVisibleTopLevelCanvasNode,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 /** 「回到节点」时的固定缩放比例（10%）。 */
 const BACK_TO_NODES_ZOOM = 0.1;
 

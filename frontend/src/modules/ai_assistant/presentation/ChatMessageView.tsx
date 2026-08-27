@@ -13,7 +13,6 @@ import {
   PinOff,
   Timer,
   Volume2,
-  Wrench,
   X,
 } from "lucide-react";
 import { memo } from "react";
@@ -40,6 +39,7 @@ import type {
   ChatMessage,
 } from "@/modules/ai_assistant/domain/contracts";
 import { toolDisplayName } from "@/modules/ai_assistant/domain/toolDisplayName";
+import { resolveQiuQiuEmotion } from "@/modules/ai_assistant/domain/qiuQiuEmotion";
 import {
   extractStructuredBlocks,
   isUiSpec,
@@ -49,7 +49,7 @@ import {
 import { JsonNode } from "@/modules/ai_assistant/presentation/StructuredJsonView";
 import { UiSpecRenderer } from "@/modules/ai_assistant/presentation/SpecMediaGallery";
 import type { SpecMediaDetail } from "@/modules/ai_assistant/presentation/SpecMediaModals";
-import { useAiAvatarUrl } from "@/modules/ai_assistant/presentation/useAiAvatarUrl";
+import { QiuQiuAvatar } from "@/modules/ai_assistant/presentation/QiuQiuAvatar";
 import { cn } from "@/lib/utils";
 import { writeTextToClipboard } from "@/shared/platform/text-clipboard";
 
@@ -229,6 +229,13 @@ function ToolActivityCard({
 export function ToolExecutionList({ messages }: { messages: ChatMessage[] }) {
   const { t } = useTranslation();
   if (messages.length === 0) return null;
+  const avatarMessage = [...messages].reverse().find(
+    (message) => message.toolState === "running",
+  ) ?? [...messages].reverse().find(
+    (message) => message.toolState === "pending",
+  ) ?? [...messages].reverse().find(
+    (message) => message.toolState === "error",
+  ) ?? messages[messages.length - 1];
   let completed = 0;
   let failed = 0;
   for (const message of messages) {
@@ -238,49 +245,56 @@ export function ToolExecutionList({ messages }: { messages: ChatMessage[] }) {
   const running = messages.length - completed - failed;
 
   return (
-    <section
-      className="ml-14 overflow-hidden rounded-xl border border-border bg-card shadow-sm"
-      aria-label={t("aiAssistant.toolPlan", "任务执行清单")}
-    >
-      <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/45 px-3 py-2.5">
-        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
-          <ListTodo className="size-4 shrink-0 text-primary" />
-          <span>{t("aiAssistant.toolPlan", "任务执行清单")}</span>
-        </div>
-        <div className="shrink-0 text-xs text-muted-foreground">
-          {running > 0
-            ? t("aiAssistant.toolPlanProgress", {
-                defaultValue: "{{completed}}/{{total}} 已完成",
-                completed,
-                total: messages.length,
-              })
-            : failed > 0
-              ? t("aiAssistant.toolPlanFailed", {
-                  defaultValue: "{{failed}} 项失败",
-                  failed,
-                })
-              : t("aiAssistant.toolPlanDone", {
-                  defaultValue: "{{total}} 项已完成",
-                  total: messages.length,
-                })}
-        </div>
-      </header>
-      <div className="divide-y divide-border">
-        {messages.map((message, index) => (
-          <div
-            key={message.id}
-            className="flex gap-2 px-3 py-3 [contain-intrinsic-size:auto_96px] [content-visibility:auto]"
-          >
-            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
-              {index + 1}
-            </span>
-            <div className="min-w-0 flex-1">
-              <ToolActivityCard message={message} grouped />
-            </div>
+    <div className="flex items-start gap-3">
+      <QiuQiuAvatar
+        decorative
+        emotionId={resolveQiuQiuEmotion(avatarMessage)}
+        label="球球"
+      />
+      <section
+        className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+        aria-label={t("aiAssistant.toolPlan", "任务执行清单")}
+      >
+        <header className="flex items-center justify-between gap-3 border-b border-border bg-muted/45 px-3 py-2.5">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <ListTodo className="size-4 shrink-0 text-primary" />
+            <span>{t("aiAssistant.toolPlan", "任务执行清单")}</span>
           </div>
-        ))}
-      </div>
-    </section>
+          <div className="shrink-0 text-xs text-muted-foreground">
+            {running > 0
+              ? t("aiAssistant.toolPlanProgress", {
+                  defaultValue: "{{completed}}/{{total}} 已完成",
+                  completed,
+                  total: messages.length,
+                })
+              : failed > 0
+                ? t("aiAssistant.toolPlanFailed", {
+                    defaultValue: "{{failed}} 项失败",
+                    failed,
+                  })
+                : t("aiAssistant.toolPlanDone", {
+                    defaultValue: "{{total}} 项已完成",
+                    total: messages.length,
+                  })}
+          </div>
+        </header>
+        <div className="divide-y divide-border">
+          {messages.map((message, index) => (
+            <div
+              key={message.id}
+              className="flex gap-2 px-3 py-3 [contain-intrinsic-size:auto_96px] [content-visibility:auto]"
+            >
+              <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <ToolActivityCard message={message} grouped />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -351,48 +365,38 @@ export function DotsIndicator({
 }
 
 function ChatAvatarFrame({
-  role,
+  message,
   label,
-  streaming: _streaming = false,
+  streaming = false,
 }: {
-  role: ChatMessage["role"];
+  message: ChatMessage;
   label?: string;
   streaming?: boolean;
 }) {
-  const isAssistant = role === "assistant";
-  const isTool = role === "tool";
-  const initial = label?.trim().charAt(0).toUpperCase() || (isAssistant ? "AI" : isTool ? "" : "U");
-  // Shared, fetch-once avatar source - null until ready so we
-  // don't kick off a raw-path request from every avatar before the blob lands.
-  const avatarUrl = useAiAvatarUrl();
+  const isAssistant = message.role === "assistant";
+  const isTool = isToolMessage(message);
+  const isAiActor = isAssistant || isTool;
+  const initial = label?.trim().charAt(0).toUpperCase() || "U";
+  const emotionId = resolveQiuQiuEmotion(message, streaming);
 
   return (
     <div
       className={cn(
-        "relative flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full border text-xs font-medium shadow-sm",
-        isAssistant ? "size-11" : "size-10",
-        isAssistant
+        "relative flex shrink-0 select-none items-center justify-center overflow-visible rounded-full border text-xs font-medium shadow-sm",
+        isAiActor ? "size-11" : "size-10",
+        isAiActor
           ? "border-transparent bg-transparent text-muted-foreground shadow-none"
-          : isTool
-            ? "border-warning/30 bg-warning/10 text-warning"
-            : "border-primary/20 bg-primary text-primary-foreground",
+          : "border-primary/20 bg-primary text-primary-foreground",
       )}
       aria-hidden="true"
     >
-      {isAssistant ? (
-        avatarUrl && (
-          <video
-            className="size-full object-cover"
-            src={avatarUrl}
-            autoPlay
-            loop
-            muted
-            playsInline
-            aria-hidden="true"
-          />
-        )
-      ) : isTool ? (
-        <Wrench className="size-4" />
+      {isAiActor ? (
+        <QiuQiuAvatar
+          className="size-full"
+          decorative
+          emotionId={emotionId}
+          label="球球"
+        />
       ) : (
         initial
       )}
@@ -582,7 +586,7 @@ export const MessageBubble = memo(function MessageBubble({
     <div className={cn("flex items-start gap-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
         <ChatAvatarFrame
-          role={message.role}
+          message={message}
           label={message.displayName || t("aiAssistant.title")}
           streaming={streaming}
         />
@@ -681,7 +685,7 @@ export const MessageBubble = memo(function MessageBubble({
       </div>
       {isUser && (
         <ChatAvatarFrame
-          role="user"
+          message={message}
           label={message.displayName}
         />
       )}

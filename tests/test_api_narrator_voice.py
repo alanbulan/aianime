@@ -66,7 +66,15 @@ def _client(monkeypatch, tmp_path):
 
 
 def test_narrator_voice_upload_persists_project_reference(monkeypatch, tmp_path):
+    from ai_anime.api.routes.project_workspace import projects
+
     client, project_config, project_dir = _client(monkeypatch, tmp_path)
+    created: list[dict] = []
+    monkeypatch.setattr(
+        projects,
+        "_create_reusable_voice",
+        lambda **kwargs: created.append(kwargs) or {"voice_id": "fv_uploaded"},
+    )
     project_config.set_narrator_reference_audio(
         "admin",
         "demo",
@@ -82,6 +90,7 @@ def test_narrator_voice_upload_persists_project_reference(monkeypatch, tmp_path)
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
+    assert payload["data"]["voice_library_id"] == "fv_uploaded"
     assert payload["data"]["reference_path"] == "assets/narrator/voice.wav"
     assert payload["data"]["reference_url"].startswith(
         "/static/admin/demo/assets/narrator/voice.wav"
@@ -90,10 +99,20 @@ def test_narrator_voice_upload_persists_project_reference(monkeypatch, tmp_path)
     assert saved["path"] == "assets/narrator/voice.wav"
     assert saved["sha256"]
     assert (project_dir / "assets/narrator/voice.wav").read_bytes() == b"voice-bytes"
+    assert created[0]["name"] == "voice"
+    assert created[0]["content"] == b"voice-bytes"
 
 
 def test_narrator_voice_record_accepts_data_url(monkeypatch, tmp_path):
+    from ai_anime.api.routes.project_workspace import projects
+
     client, project_config, project_dir = _client(monkeypatch, tmp_path)
+    created: list[dict] = []
+    monkeypatch.setattr(
+        projects,
+        "_create_reusable_voice",
+        lambda **kwargs: created.append(kwargs) or {"voice_id": "fv_recorded"},
+    )
     encoded = base64.b64encode(b"recorded-voice").decode("ascii")
 
     response = client.post(
@@ -104,11 +123,14 @@ def test_narrator_voice_record_accepts_data_url(monkeypatch, tmp_path):
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
+    assert payload["data"]["voice_library_id"] == "fv_recorded"
     assert payload["data"]["reference_path"] == "assets/narrator/voice.wav"
     assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == (
         "assets/narrator/voice.wav"
     )
     assert (project_dir / "assets/narrator/voice.wav").read_bytes() == b"recorded-voice"
+    assert created[0]["name"] == "第三人称旁白录音"
+    assert created[0]["content"] == b"recorded-voice"
 
 
 def test_narrator_voice_generates_reference_from_model_preset(monkeypatch, tmp_path):
@@ -151,6 +173,7 @@ def test_narrator_voice_generates_reference_from_model_preset(monkeypatch, tmp_p
 
     assert response.status_code == 200
     assert response.json()["ok"] is True
+    assert response.json()["data"]["voice_library_id"] == "fv_ai"
     assert captured["mode"] == "SPEECH"
     assert captured["voice"] == "claire"
     assert captured["text"] == "你好，这是试听文本。"

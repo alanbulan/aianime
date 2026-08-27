@@ -386,6 +386,28 @@ export class CommercialModelProxy {
             }
             throw error;
           }
+          const thrownStatus =
+            error instanceof CommercialApiError && error.status > 0
+              ? error.status
+              : undefined;
+          const canFallbackBeforeRequest =
+            route.source === "cloud" &&
+            thrownStatus !== undefined &&
+            index < input.routes.length - 1 &&
+            shouldFallback(route, thrownStatus);
+          if (canFallbackBeforeRequest) {
+            // Cloud account/device authentication can fail before modelRequest
+            // returns a Response. No provider invocation happened, so even a
+            // write request can safely continue to the next configured route.
+            this.auditRouteAttempt(
+              route,
+              totalAttempts,
+              thrownStatus,
+              "fallback",
+              error,
+            );
+            break;
+          }
           if (!isRetryableRequestFailure(error)) {
             // Deterministic client-side rejection (unparseable body, forbidden
             // field, bad protocol header). The body is identical on every

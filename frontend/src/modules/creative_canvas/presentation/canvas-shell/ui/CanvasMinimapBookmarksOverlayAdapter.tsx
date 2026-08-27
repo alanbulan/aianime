@@ -6,9 +6,9 @@ import {
   CanvasMinimapBookmarksOverlay,
   captureCurrentViewport,
   jumpToBookmark,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
-import { useCanvasStore } from "@/modules/creative_canvas/public";
+import { useCanvasStore } from "@/modules/creative_canvas/presentation/canvas-shell/internal";
 export interface CanvasMinimapBookmarksOverlayAdapterProps {
   onHoverChange?: (hovered: boolean) => void;
 }

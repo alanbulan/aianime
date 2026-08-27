@@ -44,6 +44,8 @@ if TYPE_CHECKING:
     from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
         VoiceDesignModelUnavailable,
         VoiceDesignProvisioningFailed,
+        build_character_voice_requirement,
+        provision_missing_character_voices,
         provision_voice_design_requirements,
     )
     from ai_anime.modules.production.infrastructure.seedance2_assets import (
@@ -56,6 +58,8 @@ if TYPE_CHECKING:
         generate_seedance2_prompt_for_panel,
     )
     from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
+        Seedance2VideoPrereqError,
+        collect_seedance2_video_prereq_errors,
         prepare_seedance2_generation_inputs,
     )
     from ai_anime.modules.production.infrastructure.seedance2_voice import (
@@ -244,7 +248,9 @@ from ai_anime.modules.production.application.sketch_regen_queue import (
 )
 from ai_anime.modules.production.application.video_pool import (
     AddGeneratedVideoCommand,
+    DeletedVideoPoolEntry,
     SelectedVideoPoolEntry,
+    VideoPoolEntryInUse,
     VideoPoolEntryUnavailable,
     VideoPoolListing,
     VideoPoolUseCases,
@@ -268,8 +274,13 @@ from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
     CutGridCommand,
     CutGridResult,
+    DeleteGridPoolImageCommand,
+    DeletedGridPoolImage,
+    GridPoolDeleteRejected,
     GridPoolCutRejected,
     GridPoolImageStale,
+    GridPoolImageInUse,
+    GridPoolImageUnavailable,
     GridPoolListing,
     GridPoolPreviewRejected,
     GridPoolPromptRejected,
@@ -352,6 +363,7 @@ from ai_anime.modules.production.application.sketch_edit_execution import (
 from ai_anime.modules.production.domain.detected_refs import (
     NO_CHARACTER_MARKER,
     NO_PROP_MARKER,
+    authoritative_detected_refs_for_beat,
     build_episode_identity_alias_map,
     canonicalize_visual_identity_markers,
     collect_prop_marker_ids_from_beat,
@@ -374,7 +386,8 @@ from ai_anime.modules.production.domain.video_model import (
     happyhorse_resolution,
     is_grok_video_model,
     is_happyhorse_model,
-    is_seedance2_model,
+    is_seedance2_model as _is_seedance2_model,
+    normalize_video_generation_duration,
     video_api_resolution,
     video_resolution,
 )
@@ -383,7 +396,6 @@ from ai_anime.modules.production.domain.sketch_color import (
     PROP_MARKER_PALETTE,
     assign_identity_sketch_colors,
     global_prop_marker_colors,
-    marker_color_change_requires_sketch_clean,
 )
 from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 from ai_anime.modules.production.infrastructure.grid_pool_models import (
@@ -394,6 +406,18 @@ from ai_anime.modules.production.infrastructure.grid_pool_models import (
 
 _MEDIA_GENERATION = "ai_anime.modules.production.infrastructure.media_generation"
 _MEDIA_SETTINGS = "ai_anime.modules.production.infrastructure.media_generation_settings"
+
+
+def is_seedance2_model(model: str | None) -> bool:
+    """Use the desktop catalog profile before falling back to stable model SKUs."""
+
+    from ai_anime.modules.model_usage.public import runtime_model_capability
+
+    capability = runtime_model_capability(model)
+    return _is_seedance2_model(
+        model,
+        getattr(capability, "video_profile", None),
+    )
 
 _LAZY_MODULES = {
     "nanobanana_grid": f"{_MEDIA_GENERATION}.nanobanana_grid",
@@ -428,6 +452,14 @@ _LAZY_EXPORTS = {
     "build_seedance2_project_assets": (
         "ai_anime.modules.production.infrastructure.seedance2_assets",
         "build_seedance2_project_assets",
+    ),
+    "build_character_voice_requirement": (
+        "ai_anime.modules.production.infrastructure.voice_design_provisioning",
+        "build_character_voice_requirement",
+    ),
+    "collect_seedance2_video_prereq_errors": (
+        "ai_anime.modules.production.infrastructure.seedance2_pipeline",
+        "collect_seedance2_video_prereq_errors",
     ),
     "collect_indextts2_voice_prereq_errors": (
         "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
@@ -489,6 +521,10 @@ _LAZY_EXPORTS = {
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
         "provision_voice_design_requirements",
     ),
+    "provision_missing_character_voices": (
+        "ai_anime.modules.production.infrastructure.voice_design_provisioning",
+        "provision_missing_character_voices",
+    ),
     "VoiceDesignModelUnavailable": (
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
         "VoiceDesignModelUnavailable",
@@ -496,6 +532,10 @@ _LAZY_EXPORTS = {
     "VoiceDesignProvisioningFailed": (
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
         "VoiceDesignProvisioningFailed",
+    ),
+    "Seedance2VideoPrereqError": (
+        "ai_anime.modules.production.infrastructure.seedance2_pipeline",
+        "Seedance2VideoPrereqError",
     ),
     "selected_reference_paths": (
         "ai_anime.modules.production.infrastructure.seedance2_assets",
@@ -942,6 +982,9 @@ __all__ = [
     "ComposeEpisodeVideoCommand",
     "CutGridCommand",
     "CutGridResult",
+    "DeleteGridPoolImageCommand",
+    "DeletedGridPoolImage",
+    "DeletedVideoPoolEntry",
     "CropCurrentSketchCommand",
     "CropSeedance2AssetCommand",
     "DetectProjectSketchMarkersCommand",
@@ -973,10 +1016,13 @@ __all__ = [
     "GlobalVideoOptimizationSketchesMissing",
     "GlobalVideoOptimizationUseCases",
     "GridPoolCutRejected",
+    "GridPoolDeleteRejected",
     "GridEntry",
     "GridRegenerationRejected",
     "GridRegenerationUseCases",
     "GridPoolImageStale",
+    "GridPoolImageInUse",
+    "GridPoolImageUnavailable",
     "GridPoolListing",
     "GridPoolPreviewRejected",
     "GridPoolPromptRejected",
@@ -1073,20 +1119,25 @@ __all__ = [
     "UploadGridImageCommand",
     "SelectedVideoPoolEntry",
     "VideoPoolEntryUnavailable",
+    "VideoPoolEntryInUse",
     "VideoPoolListing",
     "VideoPoolUseCases",
     "VoiceDesignRequirement",
     "VoiceDesignModelUnavailable",
     "VoiceDesignProvisioningFailed",
+    "Seedance2VideoPrereqError",
     "assign_identity_sketch_colors",
     "apply_style_reference",
     "append_seedance2_user_reference_assets",
+    "authoritative_detected_refs_for_beat",
     "build_reference_audio_url",
     "build_episode_identity_alias_map",
     "build_color_appearance_map",
     "build_seedance2_project_assets",
+    "build_character_voice_requirement",
     "build_indextts2_audio_generation_plan",
     "collect_indextts2_voice_prereq_errors",
+    "collect_seedance2_video_prereq_errors",
     "collect_prop_marker_ids_from_beat",
     "canonicalize_visual_identity_markers",
     "complete_detected_refs_from_visual_description",
@@ -1114,17 +1165,18 @@ __all__ = [
     "is_grok_video_model",
     "is_happyhorse_model",
     "is_seedance2_model",
-    "marker_color_change_requires_sketch_clean",
     "manual_sketch_regeneration_use_cases",
     "narration_style_prompt",
     "normalize_detected_identities",
     "normalize_detected_props",
+    "normalize_video_generation_duration",
     "normalize_seedance2_audio_type",
     "parse_seedance2_config",
     "prepare_seedance2_generation_inputs",
     "prepare_global_optimizer_input",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
+    "provision_missing_character_voices",
     "provision_voice_design_requirements",
     "real_detected_identities",
     "real_detected_props",

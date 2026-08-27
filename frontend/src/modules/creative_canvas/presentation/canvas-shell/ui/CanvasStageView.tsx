@@ -17,7 +17,7 @@ import { isCeRuntime } from '@/lib/runtime-config';
 
 import { createCanvasNodeTypes } from '../nodes';
 import { canvasEdgeTypes } from '../../../canvasComposition';
-import { CanvasContextMenu, CANVAS_CONTROL_GLASS_CLASS, CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS, CANVAS_CONTROL_ICON_BUTTON_CLASS, CanvasFpsMeter, CanvasConnectionPreviewOverlay, CanvasMinimapButton, MultiSelectionConnectButton, CanvasQuickActionBar, CanvasSnapAlignButton, CanvasSnapAlignGuides, CanvasTransientOverlays, CanvasZoomControl, ImageViewerModal, NodeSelectionMenu, type CanvasQuickActionBarProps, type MultiSelectionConnectButtonProps, type NodeSelectionMenuProps, PAN_ACTIVATION_KEY_CODE, VideoViewerModal, type CanvasEdge, type CanvasNode, type CanvasNodeType } from '@/modules/creative_canvas/public';
+import { CanvasContextMenu, CANVAS_CONTROL_GLASS_CLASS, CANVAS_CONTROL_ICON_BUTTON_ACTIVE_CLASS, CANVAS_CONTROL_ICON_BUTTON_CLASS, CanvasFpsMeter, CanvasConnectionPreviewOverlay, CanvasMinimapButton, MultiSelectionConnectButton, CanvasQuickActionBar, CanvasSnapAlignButton, CanvasSnapAlignGuides, CanvasTransientOverlays, CanvasZoomControl, ImageViewerModal, NodeSelectionMenu, type CanvasQuickActionBarProps, type MultiSelectionConnectButtonProps, type NodeSelectionMenuProps, PAN_ACTIVATION_KEY_CODE, VideoViewerModal, type CanvasEdge, type CanvasNode, type CanvasNodeType } from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 import { BackToNodesHint } from './BackToNodesHint';
 import { CanvasMinimapBookmarksOverlayAdapter } from './CanvasMinimapBookmarksOverlayAdapter';
 import { CanvasHistoryAssetsModalAdapter } from './CanvasHistoryAssetsModalAdapter';

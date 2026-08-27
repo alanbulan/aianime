@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { PreciseAudioPlayer } from '@/components/media/PreciseAudioPlayer';
 import { withMediaVariant } from '@/lib/media-url';
 import {
   AlertDialog,
@@ -316,10 +317,9 @@ export function AssetLibraryModalView({
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted text-muted-foreground">
                       <Music className="h-9 w-9" />
-                      <audio
+                      <PreciseAudioPlayer
                         src={resolveMediaUrl(entry.url)}
-                        controls
-                        className="w-[86%]"
+                        className="w-[86%] min-w-0"
                         onClick={(event) => event.stopPropagation()}
                       />
                     </div>

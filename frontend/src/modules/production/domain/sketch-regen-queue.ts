@@ -203,7 +203,7 @@ export function createAutoSketchRegenQueueItems(
   beatNumbers: readonly number[],
   sketchAspect: SketchAspectRatio,
 ): SketchRegenQueueItem[] {
-  return createSketchRegenPlanItems(beats, beatNumbers, sketchAspect);
+  return createSingleSketchRegenQueueItems(beats, beatNumbers, sketchAspect);
 }
 
 export function createSketchRegenPlanItems(
@@ -211,21 +211,7 @@ export function createSketchRegenPlanItems(
   beatNumbers: readonly number[],
   sketchAspect: SketchAspectRatio,
 ): SketchRegenQueueItem[] {
-  const modes = sketchRegenModesForAspect(SKETCH_REGEN_MODES, sketchAspect);
-  const byNumber = new Map(beats.map((beat) => [beat.beat_number, beat]));
-  const groups = new Map<string, number[]>();
-
-  for (const beatNumber of [...new Set(beatNumbers)].sort((a, b) => a - b)) {
-    const beat = byNumber.get(beatNumber);
-    const sceneId = beat ? sketchRegenSceneId(beat) : "";
-    const groupKey = sceneId || `beat:${beatNumber}`;
-    groups.set(groupKey, [...(groups.get(groupKey) ?? []), beatNumber]);
-  }
-
-  return [...groups.values()].map((groupBeatNumbers) => {
-    const mode = bestFitMode(modes, groupBeatNumbers.length);
-    return createSketchRegenQueueItem(beats, groupBeatNumbers, mode);
-  });
+  return createSingleSketchRegenQueueItems(beats, beatNumbers, sketchAspect);
 }
 
 export function getSketchRegenQueueConflict(

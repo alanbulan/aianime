@@ -158,7 +158,7 @@ async def test_manual_sketch_preparer_returns_noop_before_loading_generation_mat
 
 
 @pytest.mark.asyncio
-async def test_manual_sketch_preparer_builds_one_task_per_missing_segment(
+async def test_manual_sketch_preparer_builds_one_task_per_missing_beat(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -218,10 +218,11 @@ async def test_manual_sketch_preparer_builds_one_task_per_missing_segment(
     )
 
     assert [segment.beat_numbers for segment in prepared.segments] == [
-        (41, 42),
+        (41,),
+        (42,),
         (43,),
     ]
-    assert mode_counts == [2, 1]
+    assert mode_counts == [1, 1, 1]
     assert settings.calls == [("alice", "demo")]
     assert image_settings.calls == [({"visual_style": "cinematic"}, None)]
     assert generation_context.calls == [
@@ -234,21 +235,22 @@ async def test_manual_sketch_preparer_builds_one_task_per_missing_segment(
     ]
 
     first_task = prepared.segments[0].task
-    assert first_task.scope == selection_scope("mode-2", (41, 42))
+    assert first_task.scope == selection_scope("mode-1", (41,))
     assert first_task.backend_payload() == {
         "episode": 2,
-        "mode_key": "mode-2",
+        "mode_key": "mode-1",
         "output_dir": str(tmp_path),
         "config": {
             "beats": beats,
             "character_map": {"hero": {"ref_path": "hero.png"}},
             "style": "cinematic",
             "model": "sketch-selection",
-            "selected_beat_numbers": [41, 42],
-            "composite_key": "mode-2:sketch",
+            "selected_beat_numbers": [41],
+            "composite_key": "mode-1:sketch",
             "sketch_colors": {"hero": "#ffffff"},
-            "mode_key": "mode-2",
+            "mode_key": "mode-1",
         },
     }
-    assert prepared.segments[1].task.scope == selection_scope("mode-1", (43,))
+    assert prepared.segments[1].task.scope == selection_scope("mode-1", (42,))
+    assert prepared.segments[2].task.scope == selection_scope("mode-1", (43,))
     assert store.close_calls == 1

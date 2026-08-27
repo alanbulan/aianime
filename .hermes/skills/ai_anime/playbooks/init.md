@@ -70,7 +70,7 @@ Step 0（SKILL.md §0）的 `/pipeline/status` 返回决定从哪一步开始：
 - `rhythm`: 情节密度 → `fast`(3s)/`medium`(4s)/`slow`(5s)（默认 medium）
 
 **用户必选**（首次或用户主动问时展示）：
-- 配音模型：使用当前 `AUDIO_SPEECH` 用途分配；用户明确指定时才在完整生产请求传 `audio_model`
+- 配音模型：始终使用当前项目的 `AUDIO_SPEECH` 用途分配；完整生产接口不接受单次模型覆盖
 - 视频模型：使用项目 `video_model`；为空时由后端按 `VIDEO_IMAGE_TO_VIDEO` 用途分配解析，不硬编码默认模型
 - 分辨率：`video_resolution` 支持 720p/1080p 或精确横竖屏尺寸；完整生产会按项目画幅统一成精确尺寸
 

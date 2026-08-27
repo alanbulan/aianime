@@ -12,6 +12,7 @@ from typing import Any
 from ai_anime.modules.narrative_planning.public import (
     resolve_target_video_duration,
 )
+from ai_anime.modules.model_usage.public import runtime_model_capability
 from ai_anime.modules.production.application.ports import (
     ProductionBeatAudioDurationSource,
     ProductionEpisodeSource,
@@ -31,6 +32,7 @@ from ai_anime.modules.production.domain.single_video import (
     standard_video_prompt,
 )
 from ai_anime.modules.production.domain.video_model import (
+    SEEDANCE2_DEFAULT_MIN_DURATION,
     grok_video_ratio,
     grok_video_resolution,
     happyhorse_ratio,
@@ -38,6 +40,7 @@ from ai_anime.modules.production.domain.video_model import (
     is_grok_video_model,
     is_happyhorse_model,
     is_seedance2_model,
+    normalize_video_generation_duration,
     video_api_resolution,
     video_resolution,
 )
@@ -333,7 +336,11 @@ class LocalSingleVideoPreparer:
         if model_error:
             raise SingleVideoRejected(model_error)
 
-        is_seedance2 = is_seedance2_model(command.video_model)
+        model_capability = runtime_model_capability(command.video_model)
+        is_seedance2 = is_seedance2_model(
+            command.video_model,
+            getattr(model_capability, "video_profile", None),
+        )
         is_happyhorse = is_happyhorse_model(command.video_model)
         is_grok_video = is_grok_video_model(command.video_model)
         output_dir = Path(context.output_dir)
@@ -346,6 +353,9 @@ class LocalSingleVideoPreparer:
             raise SingleVideoRejected(
                 f"Beat {command.beat_num} 首帧不存在，请先生成预览"
             )
+
+        beat_index = beats.index(beat)
+        next_beat = beats[beat_index + 1] if beat_index + 1 < len(beats) else None
 
         video_mode = beat.get("video_mode", "first_frame")
         model_role = (
@@ -363,13 +373,15 @@ class LocalSingleVideoPreparer:
 
         last_frame_path = None
         if video_mode == "keyframe":
-            next_frame = paths.first_frame_for_video(
-                command.beat_num + 1,
-                use_director_render=command.use_director_render,
-            )
-            if next_frame.exists():
-                last_frame_path = str(next_frame)
-            else:
+            next_beat_number = int((next_beat or {}).get("beat_number") or 0)
+            if next_beat_number > 0:
+                next_frame = paths.first_frame_for_video(
+                    next_beat_number,
+                    use_director_render=command.use_director_render,
+                )
+                if next_frame.exists():
+                    last_frame_path = str(next_frame)
+            if not last_frame_path:
                 video_mode = "first_frame"
                 prompt = standard_video_prompt(beat, video_mode)
                 model_role = "VIDEO_IMAGE_TO_VIDEO"
@@ -390,12 +402,6 @@ class LocalSingleVideoPreparer:
                     episode_num=command.episode_num,
                     beat_num=command.beat_num,
                     config_json=request_config_json,
-                )
-                beat_index = beats.index(beat)
-                next_beat = (
-                    beats[beat_index + 1]
-                    if beat_index + 1 < len(beats)
-                    else None
                 )
                 prop_menu = await self._prop_menu(
                     store,
@@ -431,6 +437,11 @@ class LocalSingleVideoPreparer:
                     )
                     last_frame_path = prepared.last_frame_path
                     seedance2_config_json = prepared.seedance2_config_json
+                    prepared_config = parse_seedance2_config(
+                        prepared.seedance2_config_json
+                    )
+                    single_video_resolution = prepared_config.resolution
+                    reference_ratio = prepared_config.ratio
                     model_role = _seedance2_video_model_role(prepared.mode)
                     video_mode = (
                         "keyframe" if prepared.last_frame_path else "first_frame"
@@ -508,6 +519,33 @@ class LocalSingleVideoPreparer:
                     command.resolution,
                 )
 
+        minimum_duration = getattr(
+            model_capability,
+            "video_generation_min_seconds",
+            None,
+        )
+        if is_seedance2:
+            minimum_duration = max(
+                float(minimum_duration or 0),
+                SEEDANCE2_DEFAULT_MIN_DURATION,
+            )
+        maximum_duration = getattr(
+            model_capability,
+            "video_generation_max_seconds",
+            None,
+        )
+        try:
+            video_duration = float(
+                normalize_video_generation_duration(
+                    video_duration,
+                    audio_duration,
+                    minimum_seconds=minimum_duration,
+                    maximum_seconds=maximum_duration,
+                )
+            )
+        except ValueError as exc:
+            raise SingleVideoRejected(str(exc)) from exc
+
         config: dict[str, Any] = {
             "beat": dict(beat),
             "frame_path": str(frame_path) if frame_path else None,
@@ -527,6 +565,8 @@ class LocalSingleVideoPreparer:
             config["seedance2_config"] = seedance2_config_json
         if single_video_resolution:
             config["resolution"] = single_video_resolution
+        if is_seedance2 and reference_ratio:
+            config["ratio"] = reference_ratio
         if is_happyhorse:
             config["ratio"] = happyhorse_ratio(reference_ratio)
             config["references"] = references

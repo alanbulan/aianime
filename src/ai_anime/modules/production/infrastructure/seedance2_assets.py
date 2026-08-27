@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.domain.detected_refs import (
+    authoritative_detected_refs_for_beat,
     collect_prop_marker_ids_from_beat,
     real_detected_identities,
     real_detected_props,
@@ -49,6 +50,8 @@ MIN_REFERENCE_DIMENSION = 300
 MAX_REFERENCE_DIMENSION = 6000
 MIN_SEEDANCE2_VOICE_REFERENCE_SECONDS = 3.0
 MAX_SEEDANCE2_VOICE_REFERENCE_SECONDS = 5.0
+MIN_SUPPORTED_VOICE_REFERENCE_SECONDS = 1.8
+MAX_SUPPORTED_VOICE_REFERENCE_SECONDS = 15.0
 
 
 @dataclass(frozen=True)
@@ -162,6 +165,11 @@ def resolve_beat_identity_ids(
     project_output: Path | None = None,
     episode: int | None = None,
 ) -> list[str]:
+    explicit, _props = authoritative_detected_refs_for_beat(beat)
+    explicit_ids = real_detected_identities(explicit)
+    if _identity_ids_from_visual_markers(beat):
+        return explicit_ids
+
     candidates: list[Any] = []
     if project_output is not None and episode is not None:
         sqlite_detected = _load_sqlite_detected_identities(
@@ -190,6 +198,11 @@ def resolve_beat_prop_ids(
     project_output: Path | None = None,
     episode: int | None = None,
 ) -> list[str]:
+    _identities, explicit = authoritative_detected_refs_for_beat(beat)
+    explicit_ids = real_detected_props(explicit)
+    if collect_prop_marker_ids_from_beat(beat):
+        return explicit_ids
+
     candidates: list[Any] = []
     if project_output is not None and episode is not None:
         sqlite_detected = _load_sqlite_detected_props(
@@ -433,6 +446,18 @@ def validate_seedance2_reference_audio(path: Path) -> tuple[str, str]:
         duration = probe_voice_sample_duration_seconds(path)
     except ValueError:
         return "", ""
+    if duration < MIN_SUPPORTED_VOICE_REFERENCE_SECONDS:
+        return (
+            f"参考声线只有 {duration:.2f} 秒，Seedance2 要求至少 "
+            f"{MIN_SUPPORTED_VOICE_REFERENCE_SECONDS:.1f} 秒。",
+            "",
+        )
+    if duration > MAX_SUPPORTED_VOICE_REFERENCE_SECONDS:
+        return (
+            f"参考声线为 {duration:.2f} 秒，Seedance2 单段最多 "
+            f"{MAX_SUPPORTED_VOICE_REFERENCE_SECONDS:.1f} 秒。",
+            "",
+        )
     if duration < MIN_SEEDANCE2_VOICE_REFERENCE_SECONDS:
         return "", f"当前 {duration:.1f} 秒，建议裁剪到 3-5 秒。"
     if duration > MAX_SEEDANCE2_VOICE_REFERENCE_SECONDS:

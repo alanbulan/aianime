@@ -6,7 +6,7 @@ import { useVideoStoryNodeController } from '@/modules/creative_canvas/canvasCom
 import {
   VideoStoryNodeView,
   type VideoStoryNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type VideoStoryNodeProps = NodeProps & {
   id: string;
   data: VideoStoryNodeData;

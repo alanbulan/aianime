@@ -35,6 +35,14 @@ export {
   isUiSpec,
   looksLikeStructuredRenderText,
 } from "@/modules/ai_assistant/domain/structuredContent";
+export {
+  QIUQIU_EMOTIONS,
+  qiuQiuEmotionName,
+  resolveQiuQiuEmotion,
+} from "@/modules/ai_assistant/domain/qiuQiuEmotion";
+export type {
+  QiuQiuEmotionId,
+} from "@/modules/ai_assistant/domain/qiuQiuEmotion";
 export type {
   StructuredBlock,
   UiSpec,
@@ -168,8 +176,8 @@ export type {
   ChatComposerProps,
 } from "@/modules/ai_assistant/presentation/ChatComposer";
 export {
-  useAiAvatarUrl,
-} from "@/modules/ai_assistant/presentation/useAiAvatarUrl";
+  QiuQiuAvatar,
+} from "@/modules/ai_assistant/presentation/QiuQiuAvatar";
 export {
   SpecMediaDetailModal,
   VideoDetailModal,

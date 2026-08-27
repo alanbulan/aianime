@@ -6,7 +6,7 @@ import { useStyleNodeController } from '@/modules/creative_canvas/canvasComposit
 import {
   StyleNodeView,
   type StyleNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type StyleNodeProps = NodeProps & {
   id: string;

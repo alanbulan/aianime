@@ -58,35 +58,96 @@ const REFERENCE_DURATION_CAPABILITY_FIELDS = [
   ],
 ] as const;
 
+function positiveNumber(...values: unknown[]): number | undefined {
+  return values.find(
+    (value): value is number =>
+      typeof value === "number" && Number.isFinite(value) && value > 0,
+  );
+}
+
+function projectedVideoProfile(
+  capabilities: Record<string, unknown>,
+  modelCode: string,
+): CommercialModelCapabilitySnapshot["videoProfile"] {
+  const declared = String(
+    capabilities.videoProfile ??
+      capabilities.uiProfile ??
+      capabilities.family ??
+      "",
+  );
+  const normalized = `${declared} ${modelCode}`
+    .replace(/[\s._/-]/g, "")
+    .toLowerCase();
+  if (normalized.includes("happyhorse")) return "happyhorse";
+  if (normalized.includes("grokvideo")) return "grok";
+  if (normalized.includes("seedance2") || normalized.includes("seeddance")) {
+    return "seedance2";
+  }
+  return undefined;
+}
+
+function parseCatalogRecord(
+  value: string | undefined,
+  modelCode: string,
+  fieldName: string,
+): Record<string, unknown> {
+  if (!value) return {};
+  try {
+    return optionalRecord(JSON.parse(value));
+  } catch {
+    throw new CommercialApiError(
+      `模型 ${modelCode} 的 ${fieldName} 不是有效 JSON`,
+    );
+  }
+}
+
 export function mergeModelCapabilities(
   catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
   target: Map<string, CommercialModelCapabilitySnapshot>,
 ): void {
   for (const item of catalog?.items ?? []) {
     target.delete(item.code);
-    if (!item.capabilityJson) continue;
-    let raw: unknown;
-    try {
-      raw = JSON.parse(item.capabilityJson);
-    } catch {
-      throw new CommercialApiError(
-        `模型 ${item.code} 的 capabilityJson 不是有效 JSON`,
-      );
-    }
-    const capabilities = optionalRecord(raw);
+    const capabilities = parseCatalogRecord(
+      item.capabilityJson,
+      item.code,
+      "capabilityJson",
+    );
+    const parameterSchema = parseCatalogRecord(
+      item.parameterSchemaJson,
+      item.code,
+      "parameterSchemaJson",
+    );
+    const properties = optionalRecord(parameterSchema.properties);
+    const durationProperty = optionalRecord(properties.duration);
+    const secondsProperty = optionalRecord(properties.seconds);
     const projected: CommercialModelCapabilitySnapshot = {
       modelId: item.code,
     };
+    const videoProfile = projectedVideoProfile(capabilities, item.code);
+    if (videoProfile) projected.videoProfile = videoProfile;
+    const generationMinimum = positiveNumber(
+      capabilities.minDuration,
+      capabilities.minSeconds,
+      durationProperty.minimum,
+      secondsProperty.minimum,
+    );
+    const generationMaximum = positiveNumber(
+      capabilities.maxDuration,
+      capabilities.maxSeconds,
+      durationProperty.maximum,
+      secondsProperty.maximum,
+    );
+    if (generationMinimum !== undefined) {
+      projected.videoGenerationMinSeconds = generationMinimum;
+    }
+    if (generationMaximum !== undefined) {
+      projected.videoGenerationMaxSeconds = generationMaximum;
+    }
     for (const [field, sourceFields] of REFERENCE_DURATION_CAPABILITY_FIELDS) {
-      const value = sourceFields
-        .map((sourceField) => capabilities[sourceField])
-        .find(
-          (candidate) =>
-            typeof candidate === "number" &&
-            Number.isFinite(candidate) &&
-            candidate > 0,
-        );
-      if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+      const value = positiveNumber(
+        ...sourceFields.map((sourceField) => capabilities[sourceField]),
+      );
+      if (value !== undefined) {
         projected[field] = value;
       }
     }

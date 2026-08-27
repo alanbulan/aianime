@@ -6,7 +6,7 @@ import { useImageGenNodeController } from '@/modules/creative_canvas/canvasCompo
 import {
   ImageGenNodeView,
   type ImageGenNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type ImageGenNodeProps = NodeProps & {
   id: string;

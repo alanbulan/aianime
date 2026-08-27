@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.application.ports import (
@@ -11,12 +10,10 @@ from ai_anime.modules.production.application.ports import (
     ProductionRuntimePropMenuSource,
     ProductionSketchColorAssigner,
     ProductionSketchColorStore,
-    ProductionSketchWorkspace,
 )
 from ai_anime.modules.production.domain.sketch_color import (
     apply_prop_marker_colors,
     global_prop_marker_colors,
-    marker_color_change_requires_sketch_clean,
 )
 
 
@@ -105,12 +102,10 @@ class SketchColorAssignmentUseCases:
         color_assigner: ProductionSketchColorAssigner,
         episodes: ProductionEpisodeSource,
         prop_menus: ProductionRuntimePropMenuSource,
-        workspace: ProductionSketchWorkspace,
     ) -> None:
         self._color_assigner = color_assigner
         self._episodes = episodes
         self._prop_menus = prop_menus
-        self._workspace = workspace
 
     async def assign(
         self,
@@ -118,7 +113,6 @@ class SketchColorAssignmentUseCases:
         store: ProductionSketchColorStore,
         episode_num: int,
         beats: list[dict[str, Any]],
-        output_dir: str | Path,
     ) -> SketchColorAssignmentResult:
         previous_colors = dict(store.get_sketch_colors(episode_num) or {})
         episode = self._episodes.episode_or_none(store, episode_num)
@@ -149,11 +143,6 @@ class SketchColorAssignmentUseCases:
             episode,
             beats,
         )
-        previous_prop_colors = global_prop_marker_colors(
-            beats,
-            prop_menu=prop_menu,
-            sketch_colors=previous_colors,
-        )
         prop_colors = global_prop_marker_colors(
             beats,
             prop_menu=prop_menu,
@@ -182,23 +171,6 @@ class SketchColorAssignmentUseCases:
             raise
         except Exception as exc:
             raise SketchColorPersistenceFailed(f"草图配色持久化失败：{exc}") from exc
-
-        previous_markers = {
-            **{
-                f"identity:{key}": value
-                for key, value in previous_colors.items()
-            },
-            **{f"prop:{key}": value for key, value in previous_prop_colors.items()},
-        }
-        current_markers = {
-            **{f"identity:{key}": value for key, value in identity_colors.items()},
-            **{f"prop:{key}": value for key, value in prop_colors.items()},
-        }
-        if marker_color_change_requires_sketch_clean(
-            previous_markers,
-            current_markers,
-        ):
-            self._workspace.clear_episode_sketches(output_dir, episode_num)
 
         return SketchColorAssignmentResult(
             identity_colors=identity_colors,

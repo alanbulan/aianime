@@ -18,13 +18,19 @@ export const MEDIA_THUMB_ACTIVE_CLASS =
 export const MEDIA_THUMB_IDLE_CLASS = "border-border hover:border-primary/55 hover:bg-accent";
 
 export const MEDIA_THUMB_NEW_CLASS =
-  "absolute left-0 top-0 rounded-br bg-warning px-1 text-[8px] font-semibold uppercase leading-4 text-warning-foreground";
+  "absolute bottom-0 right-0 rounded-tl bg-warning px-1 text-[8px] font-semibold uppercase leading-4 text-warning-foreground";
+
+export const MEDIA_THUMB_MODEL_CLASS =
+  "absolute left-0 top-0 z-10 block max-w-[calc(100%-18px)] truncate whitespace-nowrap rounded-br bg-media/75 px-1 py-0.5 text-[9px] font-medium leading-none text-media-foreground";
+
+export const MEDIA_THUMB_DELETE_CLASS =
+  "absolute right-0 top-0 z-20 size-4 rounded-none rounded-bl border-0 bg-destructive/85 p-0 text-destructive-foreground shadow-none hover:bg-destructive";
 
 export const MEDIA_THUMB_TIME_CLASS =
-  "absolute bottom-0 left-0 rounded-tr bg-media/75 px-1.5 py-0.5 text-[11px] font-medium leading-none tabular-nums text-media-foreground/90";
+  "absolute bottom-0 left-0 max-w-full whitespace-nowrap rounded-tr bg-media/80 px-1 py-0.5 text-[10px] font-medium leading-none tabular-nums text-media-foreground/90";
 
 export const MEDIA_THUMB_ACTIVE_MARK_CLASS =
-  "absolute bottom-0 right-0 rounded-tl bg-primary px-1 text-[9px] leading-4 text-primary-foreground";
+  "absolute right-0 top-0 rounded-bl bg-primary px-1 text-[9px] leading-4 text-primary-foreground";
 
 export const CROP_DIALOG_SAVE_BUTTON_CLASS =
   "gap-1 rounded-[8px] border border-primary/35 !bg-primary !text-primary-foreground shadow-none hover:!bg-primary/90 hover:!text-primary-foreground disabled:border-border disabled:!bg-muted disabled:!text-muted-foreground disabled:shadow-none [&_svg]:!text-primary-foreground disabled:[&_svg]:!text-muted-foreground";

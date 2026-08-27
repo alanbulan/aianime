@@ -15,6 +15,10 @@
 3. 父任务从持久化状态恢复，调用与前端手动操作相同的业务用例，并负责依赖、并发和子任务终态。
 4. 到目标完成后展示正式产物；父任务失败、人工素材缺失、覆盖确认或用户取消时停止并报告真实错误。
 
+父任务失败或取消后，用户说“继续/重试/接着做”表示恢复同一个完整生产目标：重新提交一次 `ai_anime_run_production_workflow`，由后端读取持久化资产并只补缺失项。`pipeline/status.next_step` 此时只用于解释断点，不得改为调用单步写工具。
+
+角色声线是独立的局部资产入口。用户只要求重新设计/覆盖角色声线时，调用 `ai_anime_design_character_voices(names=[明确角色列表], replace_existing=true)`；不得把这类局部请求解释成“继续完整生产”，也不得调用 `ai_anime_run_production_workflow`。
+
 ---
 
 ## 模式一：逐步确认模式（step-by-step）
@@ -60,10 +64,10 @@
 10. 身份图生成 `ai_anime_generate_identity_image`(逐身份) →
 11. 道具规划 `ai_anime_plan_props`(ep=N) →
 12. 场景参考图 `ai_anime_generate_scene_master` / `ai_anime_generate_scene_reverse`(按本集场景需要逐个生成) →
-13. 草图生成 `ai_anime_generate_sketches`(ep=N) →
-14. AI 检测 `ai_anime_detect_sketch_identities`(ep=N) →
-15. 全局视频优化 `ai_anime_optimize_video_global`(ep=N) →
-16. 首帧生成 `ai_anime_render_first_frames`(ep=N) →
+13. 草图生成 `ai_anime_generate_sketches`(ep=N)；正式生产每个 Beat 独立 1x1，指定局部重做时传 `beat_indices=[...]` →
+14. AI 检测 `ai_anime_detect_sketch_identities`(ep=N)，显式文本身份标记优先于检测结果 →
+15. 首帧重做 `ai_anime_render_first_frames`(episode=N, beat_indices=[用户明确指定的 Beat])；只有用户明确要求整集全重做时使用 `all_beats=true` →
+16. 全局视频优化 `ai_anime_optimize_video_global`(ep=N)，逐 Beat 使用正式渲染图并回退草图 →
 17. 音频生成 `ai_anime_generate_audio`(ep=N) →
 18. 单 beat 视频 `ai_anime_start_single_video`(逐 beat) →
 19. 合成导出 `ai_anime_compose_episode`(ep=N) →

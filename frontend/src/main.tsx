@@ -3,6 +3,9 @@ import "@fontsource-variable/inter";
 import "./i18n";
 import "./index.css";
 
-import { bootstrapApplication } from "@/app/bootstrap";
+import {
+  bootstrapApplication,
+  renderBootstrapFailure,
+} from "@/app/bootstrap";
 
-void bootstrapApplication();
+void bootstrapApplication().catch(renderBootstrapFailure);

@@ -6,7 +6,7 @@ import { useImageEditNodeController } from '@/modules/creative_canvas/canvasComp
 import {
   ImageEditNodeView,
   type ImageEditNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type ImageEditNodeProps = NodeProps & {
   projectId: string;

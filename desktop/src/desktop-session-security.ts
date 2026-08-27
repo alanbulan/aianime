@@ -81,23 +81,39 @@ export function installDesktopSessionSecurity(
     );
   };
   targetSession.setPermissionCheckHandler(
-    (webContents, permission, requestingOrigin, details) =>
-      permission === "media" &&
-      details.mediaType === "audio" &&
-      details.isMainFrame &&
-      isTrustedWindow(webContents?.id) &&
-      isSameOrigin(requestingOrigin, rendererOrigin),
+    (webContents, permission, requestingOrigin, details) => {
+      const permissionName = String(permission);
+      const trustedMainFrame =
+        details.isMainFrame &&
+        isTrustedWindow(webContents?.id) &&
+        isSameOrigin(requestingOrigin, rendererOrigin);
+      if (!trustedMainFrame) return false;
+      if (permissionName === "media") return details.mediaType === "audio";
+      return (
+        permissionName === "automatic-fullscreen" ||
+        permissionName === "fullscreen"
+      );
+    },
   );
   targetSession.setPermissionRequestHandler(
     (webContents, permission, callback, details) => {
+      const permissionName = String(permission);
       const mediaTypes = "mediaTypes" in details ? details.mediaTypes : undefined;
+      const trustedMainFrame =
+        details.isMainFrame &&
+        isTrustedWindow(webContents.id) &&
+        isSameOrigin(details.requestingUrl, rendererOrigin);
+      if (!trustedMainFrame) {
+        callback(false);
+        return;
+      }
+      if (permissionName === "media") {
+        callback(mediaTypes?.length === 1 && mediaTypes[0] === "audio");
+        return;
+      }
       callback(
-        permission === "media" &&
-          details.isMainFrame &&
-          isTrustedWindow(webContents.id) &&
-          isSameOrigin(details.requestingUrl, rendererOrigin) &&
-          mediaTypes?.length === 1 &&
-          mediaTypes[0] === "audio",
+        permissionName === "fullscreen" ||
+          permissionName === "automatic-fullscreen",
       );
     },
   );

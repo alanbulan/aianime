@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +15,80 @@ def test_production_workflow_request_rejects_removed_fields() -> None:
 
     with pytest.raises(ValidationError):
         ProductionWorkflowRequest.model_validate({"video_backend": "old-route"})
+
+
+@pytest.mark.asyncio
+async def test_production_failure_cancels_only_owned_active_descendants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow,
+    )
+
+    context = SimpleNamespace(project_id="project-1")
+
+    def task(
+        task_id: str,
+        task_type: str,
+        status: str,
+        parent_task_id: str = "",
+    ) -> SimpleNamespace:
+        metadata = {"parent_task_id": parent_task_id} if parent_task_id else {}
+        return SimpleNamespace(
+            task_id=task_id,
+            task_type=task_type,
+            episode=1,
+            beat_num=None,
+            scope=None,
+            status=status,
+            progress=0.0,
+            current_task="",
+            error=None,
+            result=None,
+            metadata=metadata,
+        )
+
+    tasks = [
+        task("child-1", "owned_child", "running", "parent-1"),
+        task("grandchild-1", "owned_grandchild", "queued", "child-1"),
+        task("completed-child", "owned_completed", "completed", "parent-1"),
+        task("shared-1", "shared_child", "running"),
+    ]
+    cancelled = []
+
+    class _Tasks:
+        def list_for_project(self, _context):
+            return tasks
+
+        async def cancel(self, _context, reference):
+            cancelled.append(reference)
+            return True
+
+    async def fail_workflow(_envelope, _context):
+        raise RuntimeError("parent failed")
+
+    use_cases = _Tasks()
+    monkeypatch.setattr(
+        production_workflow,
+        "project_task_use_cases",
+        lambda: use_cases,
+    )
+    monkeypatch.setattr(
+        production_workflow,
+        "_run_production_workflow_steps",
+        fail_workflow,
+    )
+
+    with pytest.raises(RuntimeError, match="parent failed"):
+        await production_workflow._run_production_workflow(
+            {"__run_task_id": "parent-1"},
+            context,
+        )
+
+    assert [reference.task_type for reference in cancelled] == [
+        "owned_grandchild",
+        "owned_child",
+    ]
 
 
 @pytest.mark.asyncio
@@ -158,10 +233,20 @@ async def test_ensure_sketches_resumes_from_existing_beat_assets(
     assert [path.name for path in paths] == [
         f"beat_{number:02d}.png" for number in range(1, 9)
     ]
-    assert len(selected_commands) == 1
-    assert selected_commands[0].beat_indices == (6, 7, 8)
-    assert selected_commands[0].image_generation_selection == "image-edit"
-    assert [ticket.task_type for ticket in waited_tickets] == ["sketch_regen"]
+    assert [command.beat_indices for command in selected_commands] == [
+        (6,),
+        (7,),
+        (8,),
+    ]
+    assert all(
+        command.image_generation_selection == "image-edit"
+        for command in selected_commands
+    )
+    assert [ticket.task_type for ticket in waited_tickets] == [
+        "sketch_regen",
+        "sketch_regen",
+        "sketch_regen",
+    ]
     assert progress_messages == ["第 1 集补齐 3 个缺失草图"]
     for number in range(1, 6):
         assert (sketches_dir / f"beat_{number:02d}.png").read_bytes() == (
@@ -170,9 +255,180 @@ async def test_ensure_sketches_resumes_from_existing_beat_assets(
 
 
 @pytest.mark.asyncio
+async def test_global_optimization_accepts_prompt_for_the_selected_video_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    beats = [
+        {
+            "beat_number": 1,
+            "video_mode": "keyframe",
+            "video_prompt": "",
+            "keyframe_prompt": "自然过渡到下一首帧",
+        },
+        {
+            "beat_number": 2,
+            "video_mode": "first_frame",
+            "video_prompt": "从当前首帧开始运动",
+            "keyframe_prompt": "",
+        },
+    ]
+
+    async def episode_beats(_context, _episode):
+        return beats
+
+    class UnexpectedSchedule:
+        async def schedule(self, *_args, **_kwargs):
+            raise AssertionError("已有当前模式提示词时不应重新调度")
+
+    monkeypatch.setattr(runner, "_episode_beats", episode_beats)
+    monkeypatch.setattr(
+        production_public,
+        "global_video_optimization_use_cases",
+        lambda: UnexpectedSchedule(),
+    )
+
+    result = await runner._ensure_global_optimization(
+        object(),
+        1,
+        timeout_seconds=60,
+        reporter=SimpleNamespace(update=lambda *_args: None),
+        progress=0.5,
+        force=False,
+    )
+
+    assert result == beats
+
+
+@pytest.mark.asyncio
+async def test_ensure_composed_rebuilds_final_older_than_source_media(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+    from ai_anime.shared.utils.path_resolver import PathResolver
+
+    paths = PathResolver(tmp_path, 1)
+    final_path = paths.final_video()
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    final_path.write_bytes(b"existing-final")
+    video_path = paths.video(1)
+    video_path.parent.mkdir(parents=True, exist_ok=True)
+    video_path.write_bytes(b"newer-video")
+    newer_time = final_path.stat().st_mtime_ns + 1_000_000
+    os.utime(video_path, ns=(newer_time, newer_time))
+    compose_calls = []
+
+    class VideoUseCases:
+        async def compose(self, _context, command):
+            compose_calls.append(command)
+            final_path.write_bytes(b"recomposed-final")
+            return {"task_type": "compose_episode", "task_id": "compose-1"}
+
+    from ai_anime.modules.production import public as production_public
+
+    monkeypatch.setattr(
+        production_public,
+        "episode_video_use_cases",
+        lambda: VideoUseCases(),
+    )
+
+    async def wait_ticket(*_args, **_kwargs):
+        return {}
+
+    monkeypatch.setattr(runner, "_wait_ticket", wait_ticket)
+
+    result = await runner._ensure_composed(
+        SimpleNamespace(output_dir=tmp_path),
+        1,
+        [{"beat_number": 1}],
+        resolution="1280x720",
+        add_subtitles=True,
+        add_bgm=True,
+        timeout_seconds=10,
+        reporter=SimpleNamespace(update=lambda *_args: None),
+        progress=0.9,
+        force=False,
+    )
+
+    assert result == final_path
+    assert final_path.read_bytes() == b"recomposed-final"
+    assert len(compose_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_ensure_composed_preserves_current_final_without_rebuild(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.shared.utils.path_resolver import PathResolver
+
+    paths = PathResolver(tmp_path, 1)
+    video_path = paths.video(1)
+    video_path.parent.mkdir(parents=True, exist_ok=True)
+    video_path.write_bytes(b"source-video")
+    final_path = paths.final_video()
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    final_path.write_bytes(b"current-final")
+    newer_time = video_path.stat().st_mtime_ns + 1_000_000
+    os.utime(final_path, ns=(newer_time, newer_time))
+    monkeypatch.setattr(
+        production_public,
+        "episode_video_use_cases",
+        lambda: pytest.fail("current final must not be recomposed"),
+    )
+
+    result = await runner._ensure_composed(
+        SimpleNamespace(output_dir=tmp_path),
+        1,
+        [{"beat_number": 1}],
+        resolution="1280x720",
+        add_subtitles=True,
+        add_bgm=True,
+        timeout_seconds=10,
+        reporter=SimpleNamespace(update=lambda *_args: None),
+        progress=0.9,
+        force=False,
+    )
+
+    assert result == final_path
+    assert final_path.read_bytes() == b"current-final"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "rebuild",
+        "script_regenerated",
+        "markers_changed",
+        "expected_visual_force",
+        "expected_audio_force",
+    ),
+    [
+        (False, False, False, False, False),
+        (False, True, False, False, False),
+        (False, False, True, False, False),
+        (True, False, False, True, True),
+    ],
+)
 async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    rebuild: bool,
+    script_regenerated: bool,
+    markers_changed: bool,
+    expected_visual_force: bool,
+    expected_audio_force: bool,
 ) -> None:
     from ai_anime.modules.task_execution.infrastructure.runners import (
         production_workflow as runner,
@@ -198,7 +454,7 @@ async def test_production_runner_owns_the_complete_stage_order(
             calls.append("script")
             return {
                 "completed_nodes": ["script:ep001"],
-                "batches": [["script:ep001"]],
+                "batches": [["script:ep001"]] if script_regenerated else [],
             }
 
     async def load_story_state(_context):
@@ -206,6 +462,10 @@ async def test_production_runner_owns_the_complete_stage_order(
 
     async def stage(name, *args, **kwargs):
         calls.append(name)
+
+    async def reconcile_markers(*args, **kwargs):
+        calls.append("markers")
+        return 15 if markers_changed else 0
 
     beats = [{"beat_number": 1, "video_mode": "first", "video_prompt": "move"}]
 
@@ -268,7 +528,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch.setattr(
         runner,
         "_reconcile_episode_identity_markers",
-        lambda *args, **kwargs: stage("markers"),
+        reconcile_markers,
     )
     monkeypatch.setattr(
         runner,
@@ -295,6 +555,11 @@ async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch.setattr(runner, "_ensure_seedance_prompts", ensure_prompts)
     monkeypatch.setattr(
         runner,
+        "_ensure_seedance_voice_prerequisites",
+        lambda *args, **kwargs: forced_stage("seedance_voice", *args, **kwargs),
+    )
+    monkeypatch.setattr(
+        runner,
         "_ensure_audio",
         lambda *args, **kwargs: forced_stage("audio", *args, **kwargs),
     )
@@ -317,7 +582,11 @@ async def test_production_runner_owns_the_complete_stage_order(
     )
     result = await runner._run_production_workflow(
         {
-            "payload": {"episodes": [1], "target_beats": 12},
+            "payload": {
+                "episodes": [1],
+                "target_beats": 12,
+                "rebuild": rebuild,
+            },
             "scope": "scope",
             "__run_task_id": "parent",
         },
@@ -325,6 +594,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     )
 
     assert captured_options[0].target_beats == 12
+    assert captured_options[0].rebuild is rebuild
     assert [call for call in calls if not call.startswith("progress:")] == [
         "script",
         "models",
@@ -334,23 +604,25 @@ async def test_production_runner_owns_the_complete_stage_order(
         "colors",
         "sketches",
         "detection",
+        "frames",
         "optimize",
         "audio_prereq",
-        "frames",
+        "seedance_voice",
         "prompts",
         "audio",
         "videos",
         "compose",
     ]
     assert force_flags == {
-        "sketches": True,
-        "optimize": True,
-        "audio_prereq": True,
-        "frames": True,
-        "prompts": True,
-        "audio": True,
-        "videos": True,
-        "compose": True,
+        "sketches": expected_visual_force,
+        "optimize": expected_visual_force,
+        "audio_prereq": expected_audio_force,
+        "frames": expected_visual_force,
+        "prompts": expected_visual_force,
+        "seedance_voice": expected_visual_force,
+        "audio": expected_audio_force,
+        "videos": expected_visual_force,
+        "compose": expected_visual_force,
     }
     assert result["completed_episodes"] == [1]
     assert result["episodes"] == [
@@ -455,12 +727,245 @@ async def test_production_workflow_designs_and_rechecks_missing_voices(
     assert len(plan_commands) == 2
     assert plan_commands[0][1] is plan_commands[1][1]
     assert plan_commands[0][1].beat_numbers == [6]
+    assert plan_commands[0][1].mode == "redo_all"
     assert provisioned == [(context, (requirement,))]
     assert progress_messages == [
         "第 1 集检查配音声线前置",
         "第 1 集自动设计 1 条缺失声线",
         "第 1 集重新检查配音声线前置",
     ]
+
+
+@pytest.mark.asyncio
+async def test_production_workflow_repairs_short_seedance_voice_before_video(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    identity = SimpleNamespace(
+        identity_id="白石夏音_学生时期",
+        identity_name="学生时期",
+        age_group="youth",
+        reference_audio_path="",
+    )
+    character = SimpleNamespace(
+        name="白石夏音",
+        aliases=[],
+        gender="女",
+        age_group="youth",
+        role="主角",
+        description="性格克制",
+        identities=[identity],
+    )
+    collect_calls = 0
+    provisioned = []
+    progress_messages: list[str] = []
+
+    class _Store:
+        def get_all_characters(self):
+            return [character]
+
+        async def close(self):
+            return None
+
+    async def make_store(_context):
+        return _Store()
+
+    def collect(**_kwargs):
+        nonlocal collect_calls
+        collect_calls += 1
+        if collect_calls > 1:
+            return []
+        return [
+            SimpleNamespace(
+                beat_number=6,
+                key="voice:白石夏音_学生时期",
+                label="白石夏音 · 学生时期声线",
+                media_type="audio",
+                path="voice_youth.wav",
+                reason="参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。",
+                identity_id="白石夏音_学生时期",
+            )
+        ]
+
+    async def provision(context, requirements):
+        provisioned.append((context, tuple(requirements)))
+        return ("白石夏音·学生时期",)
+
+    class _Reporter:
+        def update(self, _progress, message):
+            progress_messages.append(message)
+
+    monkeypatch.setattr(runner, "make_sqlite_store_for_context", make_store)
+    monkeypatch.setattr(
+        production_public,
+        "resolve_video_generation_route",
+        lambda *_args: SimpleNamespace(model="doubao-seedance-2.0"),
+    )
+    monkeypatch.setattr(
+        production_public,
+        "is_seedance2_model",
+        lambda _model: True,
+    )
+    monkeypatch.setattr(
+        production_public,
+        "collect_seedance2_video_prereq_errors",
+        collect,
+    )
+    monkeypatch.setattr(
+        production_public,
+        "provision_voice_design_requirements",
+        provision,
+    )
+    context = SimpleNamespace(
+        output_dir=tmp_path,
+        owner_username="alice",
+        project_name="demo",
+    )
+
+    await runner._ensure_seedance_voice_prerequisites(
+        context,
+        1,
+        [
+            {
+                "beat_number": 6,
+                "speaker": "白石夏音_学生时期",
+                "dialogue": "你怎么在这里？",
+            }
+        ],
+        requested_model=None,
+        reporter=_Reporter(),
+        progress=0.6,
+    )
+
+    assert collect_calls == 2
+    assert len(provisioned) == 1
+    requirement = provisioned[0][1][0]
+    assert requirement.key == "character:白石夏音:slot:youth"
+    assert requirement.preview_text == "你怎么在这里？"
+    assert progress_messages == ["第 1 集重建 1 条不合规参考声线"]
+
+
+@pytest.mark.asyncio
+async def test_production_workflow_syncs_changed_audio_instead_of_only_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.production.public import EpisodeAudioGenerationNotRequired
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    commands = []
+    messages: list[str] = []
+
+    class _AudioUseCases:
+        async def generate(self, _context, command):
+            commands.append(command)
+            raise EpisodeAudioGenerationNotRequired()
+
+    monkeypatch.setattr(
+        production_public,
+        "episode_audio_use_cases",
+        lambda: _AudioUseCases(),
+    )
+
+    await runner._ensure_audio(
+        SimpleNamespace(output_dir=tmp_path),
+        1,
+        [{"beat_number": 6}],
+        timeout_seconds=10,
+        reporter=SimpleNamespace(
+            update=lambda _progress, message: messages.append(message)
+        ),
+        progress=0.6,
+        force=False,
+    )
+
+    assert commands[0].mode == "sync_changed"
+    assert commands[0].beat_numbers == [6]
+    assert messages == ["第 1 集补齐或更新分镜配音"]
+
+
+@pytest.mark.asyncio
+async def test_production_workflow_generates_only_missing_beat_videos(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+    from ai_anime.shared.utils.path_resolver import PathResolver
+
+    paths = PathResolver(tmp_path, 1)
+    for beat_num in range(1, 6):
+        path = paths.video(beat_num)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(f"existing-{beat_num}".encode())
+    before = {number: paths.video(number).read_bytes() for number in range(1, 6)}
+    commands = []
+
+    class _SingleVideoUseCases:
+        async def generate(self, _context, command):
+            commands.append(command)
+            output = paths.video(command.beat_num)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(f"generated-{command.beat_num}".encode())
+            return {
+                "task_type": "single_video",
+                "task_id": f"video-{command.beat_num}",
+            }
+
+    monkeypatch.setattr(
+        production_public,
+        "single_video_use_cases",
+        lambda: _SingleVideoUseCases(),
+    )
+    monkeypatch.setattr(
+        production_public,
+        "resolve_video_generation_route",
+        lambda *_args: SimpleNamespace(
+            model="video-seeddance-4wlmqpxwma4r65j3",
+            selector="cloud:video-seeddance-4wlmqpxwma4r65j3",
+        ),
+    )
+    async def wait_ticket(*_args, **_kwargs):
+        return {}
+
+    monkeypatch.setattr(runner, "_wait_ticket", wait_ticket)
+    context = SimpleNamespace(
+        output_dir=tmp_path,
+        owner_username="alice",
+        project_name="demo",
+    )
+
+    await runner._ensure_videos(
+        context,
+        1,
+        [{"beat_number": number} for number in range(1, 8)],
+        requested_model=None,
+        resolution="720x1280",
+        aspect_ratio="2:3",
+        use_director_render=False,
+        timeout_seconds=10,
+        reporter=SimpleNamespace(update=lambda *_args: None),
+        progress=0.8,
+        force=False,
+    )
+
+    assert [command.beat_num for command in commands] == [6, 7]
+    assert all(
+        command.provided_fields == frozenset({"resolution", "ratio"})
+        and command.ratio == "2:3"
+        for command in commands
+    )
+    assert {number: paths.video(number).read_bytes() for number in range(1, 6)} == before
 
 
 @pytest.mark.asyncio
@@ -607,8 +1112,8 @@ def test_production_workflow_resolves_exact_composition_resolution() -> None:
     )
 
     assert resolve_episode_video_resolution("1080p", "16:9") == "1920x1080"
-    assert resolve_episode_video_resolution("1920x1080", "2:3") == "1080x1920"
-    assert resolve_episode_video_resolution(None, "2:3") == "720x1280"
+    assert resolve_episode_video_resolution("1920x1080", "2:3") == "1280x1920"
+    assert resolve_episode_video_resolution(None, "2:3") == "854x1280"
     with pytest.raises(ValueError, match="不支持的视频分辨率"):
         resolve_episode_video_resolution("480p", "16:9")
 

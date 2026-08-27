@@ -215,7 +215,7 @@ describe("getSketchRegenSceneIds", () => {
     ]);
   });
 
-  it("auto-combines sketch regen queue items by scene using current aspect", () => {
+  it("creates independent automatic sketch tasks using current aspect", () => {
     const items = createAutoSketchRegenQueueItems(
       [
         beat({ beat_number: 1, scene_ref: { scene_id: "store" } }),
@@ -233,14 +233,19 @@ describe("getSketchRegenSceneIds", () => {
         sceneIds: ["store"],
       },
       {
-        modeKey: "1x2_4-3_sketch",
-        beatNumbers: [2, 3],
+        modeKey: "1x1_2-3_sketch",
+        beatNumbers: [2],
+        sceneIds: ["street"],
+      },
+      {
+        modeKey: "1x1_2-3_sketch",
+        beatNumbers: [3],
         sceneIds: ["street"],
       },
     ]);
   });
 
-  it("builds sketch plan items by scene by default", () => {
+  it("builds one independent sketch plan item per beat", () => {
     const items = createSketchRegenPlanItems(
       [
         beat({ beat_number: 1, scene_ref: { scene_id: "store" } }),
@@ -259,15 +264,21 @@ describe("getSketchRegenSceneIds", () => {
         sceneIds: ["store"],
       },
       {
-        modeKey: "1x2_4-3_sketch",
-        modeLabel: "1×2_4:3 Sketch",
-        beatNumbers: [2, 3],
+        modeKey: "1x1_2-3_sketch",
+        modeLabel: "1×1_2:3 Sketch",
+        beatNumbers: [2],
+        sceneIds: ["street"],
+      },
+      {
+        modeKey: "1x1_2-3_sketch",
+        modeLabel: "1×1_2:3 Sketch",
+        beatNumbers: [3],
         sceneIds: ["street"],
       },
     ]);
   });
 
-  it("auto-combines landscape sketch groups with 16:9 cell modes", () => {
+  it("creates independent landscape sketch tasks", () => {
     const items = createAutoSketchRegenQueueItems(
       [
         beat({ beat_number: 1, scene_ref: { scene_id: "store" } }),
@@ -279,8 +290,13 @@ describe("getSketchRegenSceneIds", () => {
 
     expect(items).toMatchObject([
       {
-        modeKey: "2x2_16-9_sketch",
-        beatNumbers: [1, 2],
+        modeKey: "1x1_16-9_sketch",
+        beatNumbers: [1],
+        sceneIds: ["store"],
+      },
+      {
+        modeKey: "1x1_16-9_sketch",
+        beatNumbers: [2],
         sceneIds: ["store"],
       },
     ]);

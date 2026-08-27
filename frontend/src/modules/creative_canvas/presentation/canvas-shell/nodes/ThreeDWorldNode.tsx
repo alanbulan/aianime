@@ -6,7 +6,7 @@ import { useThreeDWorldNodeController } from '@/modules/creative_canvas/canvasCo
 import {
   ThreeDWorldNodeView,
   type ThreeDWorldNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type ThreeDWorldNodeProps = NodeProps & {
   id: string;

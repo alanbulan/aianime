@@ -5,6 +5,7 @@ import pytest
 
 from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
     GridConfig,
+    CharacterConfig,
     PromptComponents,
     PromptContext,
     PromptMode,
@@ -17,15 +18,142 @@ from ai_anime.modules.asset_world.infrastructure.director_world.control_frame_to
 from ai_anime.shared.utils.asset_resolver import ResolvedAssetRef
 
 
-def _build_sketch_prompt(beats: list[dict], rows: int = 1, cols: int = 1) -> str:
+def _build_sketch_prompt(
+    beats: list[dict],
+    rows: int = 1,
+    cols: int = 1,
+    characters: dict[str, CharacterConfig] | None = None,
+) -> str:
     ctx = PromptContext(
         grid=GridConfig(rows=rows, cols=cols, aspect_ratio="4:3"),
-        characters={},
+        characters=characters or {},
         style=StyleConfig(style_keywords="test", avoid_keywords=""),
         beats=beats,
         mode=PromptMode.SKETCH,
     )
     return SketchModeStrategy().build(ctx, PromptComponents())
+
+
+def test_sketch_prompt_explicit_identity_overrides_stale_detection():
+    from ai_anime.shared.utils.identity_resolver import compute_char_tag
+
+    characters = {
+        "男主": CharacterConfig(
+            name="男主",
+            identity_appearances={"学生期": ""},
+            identity_sketch_colors={"学生期": "#00FFFF FLUORESCENT CYAN"},
+        ),
+        "女主": CharacterConfig(
+            name="女主",
+            identity_appearances={"学生期": ""},
+            identity_sketch_colors={"学生期": "#FF00FF FLUORESCENT MAGENTA"},
+        ),
+    }
+
+    prompt = _build_sketch_prompt(
+        [
+            {
+                "beat_number": 1,
+                "visual_description": "{{男主_学生期}}从门口走入画面",
+                "detected_identities": ["女主_学生期"],
+            }
+        ],
+        characters=characters,
+    )
+
+    assert compute_char_tag("男主", identity_id="男主_学生期") in prompt
+    assert compute_char_tag("女主", identity_id="女主_学生期") not in prompt
+
+
+def test_sketch_prompt_uses_detection_only_for_marker_free_legacy_beat():
+    from ai_anime.shared.utils.identity_resolver import compute_char_tag
+
+    characters = {
+        "男主": CharacterConfig(
+            name="男主",
+            identity_appearances={"学生期": ""},
+            identity_sketch_colors={"学生期": "#00FFFF FLUORESCENT CYAN"},
+        )
+    }
+
+    prompt = _build_sketch_prompt(
+        [
+            {
+                "beat_number": 1,
+                "visual_description": "男主从门口走入画面",
+                "detected_identities": ["男主_学生期"],
+            }
+        ],
+        characters=characters,
+    )
+
+    assert compute_char_tag("男主", identity_id="男主_学生期") in prompt
+
+
+def test_planning_fingerprint_ignores_stale_detection_when_marker_is_explicit():
+    from ai_anime.modules.production.infrastructure.media_generation.grid_planning import (
+        compute_input_fingerprint,
+    )
+
+    base = {
+        "beat_number": 1,
+        "visual_description": "{{男主_学生期}}从门口走入画面",
+    }
+    kwargs = {
+        "character_map": {
+            "男主_学生期": {"ref_path": "male.png"},
+            "女主_学生期": {"ref_path": "female.png"},
+        },
+        "sketch_colors": {
+            "男主_学生期": "#00FFFF",
+            "女主_学生期": "#FF00FF",
+        },
+        "strategy": "scene",
+        "aspect_mode": "2:3",
+        "force_one_by_one": True,
+        "ref_image_hasher": lambda path: path,
+    }
+
+    clean = compute_input_fingerprint(
+        beats=[{**base, "detected_identities": ["男主_学生期"]}],
+        **kwargs,
+    )
+    stale = compute_input_fingerprint(
+        beats=[{**base, "detected_identities": ["女主_学生期"]}],
+        **kwargs,
+    )
+
+    assert stale == clean
+
+
+def test_planning_fingerprint_uses_manual_shot_order():
+    from ai_anime.modules.production.infrastructure.media_generation.grid_planning import (
+        compute_input_fingerprint,
+    )
+
+    kwargs = {
+        "character_map": {},
+        "sketch_colors": {},
+        "strategy": "scene",
+        "aspect_mode": "2:3",
+        "force_one_by_one": True,
+        "ref_image_hasher": lambda path: path,
+    }
+    beats = [
+        {"beat_number": 1, "shot_order": 10, "visual_description": "开场"},
+        {"beat_number": 41, "shot_order": 15, "visual_description": "插入镜头"},
+        {"beat_number": 2, "shot_order": 20, "visual_description": "收尾"},
+    ]
+    reordered = [
+        {**beats[0], "shot_order": 20},
+        {**beats[1], "shot_order": 10},
+        beats[2],
+    ]
+
+    original = compute_input_fingerprint(beats=beats, **kwargs)
+    changed = compute_input_fingerprint(beats=reordered, **kwargs)
+
+    assert changed != original
 
 
 def test_sketch_prompt_treats_visual_description_as_authoritative():
@@ -536,10 +664,11 @@ async def test_prepare_concurrent_request_sketch_attaches_scene_refs(tmp_path):
         cols=1,
     )
 
-    # Prompt + master scene + global style reference (always last).
+    # Prompt + master scene. The style preview is UI-only and consumes no image slot.
     # Batch/default sketch mode does not attach reverse.
-    assert len(req["contents"]) == 3
-    assert "GLOBAL STYLE REFERENCE IMAGE" in req["contents"][0]
+    assert len(req["contents"]) == 2
+    assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in req["contents"][0]
+    assert "GLOBAL STYLE REFERENCE IMAGE" not in req["contents"][0]
     assert all(hasattr(part, "inline_data") for part in req["contents"][1:])
 
 

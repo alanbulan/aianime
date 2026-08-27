@@ -85,6 +85,177 @@ async def _wait_for_status(manager, ctx, task_type: str, status: str, *, episode
     return observed
 
 
+@pytest.mark.asyncio
+async def test_inline_enqueue_offloads_sqlite_reservation(
+    monkeypatch,
+    _task_ports,
+    tmp_path,
+):
+    from ai_anime.modules.task_execution.infrastructure.inline_backend import (
+        InMemoryCancellationStore,
+        InlineTaskBackend,
+    )
+
+    gate = threading.Event()
+    entered = threading.Event()
+    original_reserve = _task_ports.reserve_task_for_project
+
+    def blocking_reserve(*args, **kwargs):
+        entered.set()
+        gate.wait(timeout=1)
+        return original_reserve(*args, **kwargs)
+
+    monkeypatch.setattr(_task_ports, "reserve_task_for_project", blocking_reserve)
+    backend = InlineTaskBackend(
+        execute_project_task=lambda *_args, **_kwargs: {"ok": True},
+        cancellation_store_provider=InMemoryCancellationStore,
+        process_killer=lambda _task_id: 0,
+    )
+    timer = threading.Timer(0.3, gate.set)
+    timer.start()
+    started = time.monotonic()
+    queued = asyncio.create_task(
+        backend.enqueue_project_task(
+            _ctx(tmp_path),
+            task_type="l014_nonblocking_reserve",
+            episode=1,
+        )
+    )
+    assert await asyncio.to_thread(entered.wait, 1) is True
+
+    await asyncio.sleep(0.05)
+    event_loop_delay = time.monotonic() - started
+    gate.set()
+    await queued
+    timer.cancel()
+
+    assert event_loop_delay < 0.2
+    await _wait_lane_idle(backend, "default")
+
+
+@pytest.mark.asyncio
+async def test_nested_inline_submission_records_parent_task_ownership(
+    _task_ports,
+    tmp_path,
+):
+    from ai_anime.modules.task_execution.infrastructure.inline_backend import (
+        InMemoryCancellationStore,
+        InlineTaskBackend,
+    )
+    from ai_anime.modules.task_execution.infrastructure.task_state import (
+        project_task_run_context,
+    )
+
+    backend = InlineTaskBackend(
+        execute_project_task=lambda *_args, **_kwargs: {"ok": True},
+        cancellation_store_provider=InMemoryCancellationStore,
+        process_killer=lambda _task_id: 0,
+    )
+    context = _ctx(tmp_path, project_id="proj_nested_owner")
+    with project_task_run_context("parent-task-1"):
+        await backend.enqueue_project_task(
+            context,
+            task_type="l014_owned_child",
+            episode=1,
+        )
+
+    stored = _task_ports.get_task_for_project(
+        context,
+        "l014_owned_child",
+        1,
+    )
+    assert stored is not None
+    assert stored.metadata is not None
+    assert stored.metadata["parent_task_id"] == "parent-task-1"
+    await _wait_lane_idle(backend, "default")
+
+
+@pytest.mark.asyncio
+async def test_cancelled_async_wrapper_keeps_lane_until_worker_thread_finishes(
+    _task_ports,
+    tmp_path,
+):
+    from ai_anime.modules.task_execution.infrastructure.inline_backend import (
+        InMemoryCancellationStore,
+        InlineTaskBackend,
+    )
+
+    first_started = threading.Event()
+    release_first = threading.Event()
+    second_started = threading.Event()
+
+    def execute(envelope, *_args, **_kwargs):
+        if envelope["task_type"] == "l014_wrapper_first":
+            first_started.set()
+            release_first.wait(timeout=3)
+        else:
+            second_started.set()
+        return {"ok": True}
+
+    backend = InlineTaskBackend(
+        execute_project_task=execute,
+        cancellation_store_provider=InMemoryCancellationStore,
+        process_killer=lambda _task_id: 0,
+    )
+    first_context = _ctx(tmp_path, project_id="proj_wrapper_first")
+    second_context = _ctx(tmp_path, project_id="proj_wrapper_second")
+    await backend.enqueue_project_task(
+        first_context,
+        task_type="l014_wrapper_first",
+        episode=1,
+        queue_kind="world",
+    )
+    assert await asyncio.to_thread(first_started.wait, 1) is True
+
+    runner_task = next(
+        task for task in backend._background_tasks if not task.done()
+    )
+    runner_task.cancel()
+    await backend.enqueue_project_task(
+        second_context,
+        task_type="l014_wrapper_second",
+        episode=1,
+        queue_kind="world",
+    )
+    await asyncio.sleep(0.05)
+
+    assert second_started.is_set() is False
+    assert backend.lane_snapshot()["world"]["active"] == 1
+    assert backend.lane_snapshot()["world"]["queued"] == 1
+
+    release_first.set()
+    assert await asyncio.to_thread(second_started.wait, 2) is True
+    await _wait_lane_idle(backend, "world")
+
+
+def test_failed_process_kill_keeps_handle_registered(monkeypatch):
+    from ai_anime.modules.task_execution.infrastructure import project_subprocesses
+
+    class _UnkillableProcess:
+        pid = 424242
+
+        def __init__(self):
+            self.finished = False
+
+        def poll(self):
+            return 0 if self.finished else None
+
+    task_id = "l014_unkillable"
+    process = _UnkillableProcess()
+    project_subprocesses._register_process(task_id, process)
+    monkeypatch.setattr(
+        project_subprocesses,
+        "_kill_process_group",
+        lambda _process: False,
+    )
+    try:
+        assert project_subprocesses.kill_task_processes(task_id) == 0
+        assert project_subprocesses.active_subprocess_count(task_id) == 1
+    finally:
+        process.finished = True
+        project_subprocesses._unregister_process(task_id, process)
+
+
 def _pid_alive(pid: int) -> bool:
     if os.name == "nt":
         # os.kill(pid, 0) is not a liveness probe on Windows (WinError 87).

@@ -6,7 +6,7 @@ import { useTextAnnotationNodeController } from '@/modules/creative_canvas/canva
 import {
   TextAnnotationNodeView,
   type TextAnnotationNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 type TextAnnotationNodeProps = NodeProps & {
   id: string;
   data: TextAnnotationNodeData;

@@ -95,6 +95,25 @@ describe("BeatCard", () => {
     expect(sketchImage.closest(".absolute")).toBeInTheDocument();
   });
 
+  it("uses bounded thumbnail variants instead of decoding full-resolution card media", () => {
+    renderBeatCard({
+      beat: {
+        ...beat,
+        sketch_url: "/static/projects/demo/sketches/ep001/beat_04.png",
+        frame_url: "/static/projects/demo/renders/ep001/beat_04.png",
+      } as Beat,
+    });
+
+    expect(screen.getByAltText("render")).toHaveAttribute(
+      "src",
+      "/static/projects/demo/renders/ep001/beat_04.png?st_thumb=thumb2x",
+    );
+    expect(screen.getByAltText("sketch")).toHaveAttribute(
+      "src",
+      "/static/projects/demo/sketches/ep001/beat_04.png?st_thumb=thumb2x",
+    );
+  });
+
   it("does not duplicate the sketch overlay when dual-image mode falls back to sketch", () => {
     renderBeatCard({
       beat: {

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import mimetypes
 import os
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -25,13 +24,13 @@ IMAGE_DEFAULT_STYLE = os.environ.get(
 )
 
 STYLE_REFERENCE_IMAGE_KEY = "style_reference_image_path"
-STYLE_REFERENCE_DIRECTIVE = """GLOBAL STYLE REFERENCE IMAGE:
-- The final attached image is the project style reference. Use it to match only the rendering medium, linework, palette, lighting, material treatment, texture, and finish.
-- For portraits and character assets, transfer only its character-rendering vocabulary: facial line weight, eye construction and highlights, hair grouping and highlights, skin and fabric shading, edge treatment, and finish.
-- For scene and prop assets, transfer only its scene-rendering vocabulary: palette, illumination, material response, texture, atmospheric depth, edge treatment, and finish.
-- Do not copy any person, face, facial features, hairstyle, body, costume, pose, scene content, object, composition, camera position, or text from the style reference.
-- Character, identity, costume, scene, prop, sketch, and composition references attached before it are the source of truth for subjects and layout.
-- If the style reference conflicts with the task description or any subject reference, keep the task content and subject identity, and transfer only the visual style."""
+# Legacy metadata key retained for compatibility. Runtime style presets never set it.
+STYLE_TEXT_CONTRACT = """GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR):
+- Apply one invariant production technique to every named character regardless of gender or age: the same line-weight system, color-separation logic, lighting and shading method, material treatment, edge finish, and overall grade.
+- "Eye rendering" and "hair rendering" mean technique only. They must never supply or alter eye geometry or color, hairstyle, hairline, bangs, hair length or color, or character-specific highlights.
+- The project style never defines subject identity. It must not supply or copy a face, facial proportions, body silhouette, skin tone, hairstyle, clothing, accessories, pose, prop, environment, composition, or camera placement.
+- Explicit task text, character and identity descriptions, costume and scene data, beat composition, and subject reference images outrank the project style.
+- Keep different named characters visibly distinct. Do not homogenize one character toward another or invent the same hairstyle, facial structure, eyes, costume, or accessories for multiple characters merely to make their rendering style consistent."""
 
 ImageReference = tuple[str, bytes, str]
 ImageReferenceInput = bytes | tuple[bytes, str] | ImageReference
@@ -54,44 +53,7 @@ def get_style_preset(
     )
     if not config:
         raise KeyError(f"Style '{style_id}' not found")
-    result = config.to_legacy_dict()
-    preview_path: Path | None = None
-    if config.is_preset:
-        candidate = StyleService.preset_preview_path(config.id)
-        if candidate.is_file():
-            preview_path = candidate.resolve()
-    elif config.preview_path:
-        resolved_username = StyleService.resolve_username(username, project_dir)
-        if resolved_username:
-            preview_path = StyleService.resolve_style_preview_path(
-                resolved_username,
-                config.preview_path,
-            )
-    if preview_path is not None:
-        result[STYLE_REFERENCE_IMAGE_KEY] = str(preview_path)
-    return result
-
-
-def get_style_reference_image(
-    style_preset: Mapping[str, object],
-) -> ImageReference | None:
-    """Load the resolved runtime style reference, if one is available."""
-    path_value = str(style_preset.get(STYLE_REFERENCE_IMAGE_KEY) or "").strip()
-    if not path_value:
-        return None
-    path = Path(path_value)
-    if not path.is_file():
-        return None
-    mime_type = {
-        ".gif": "image/gif",
-        ".jpeg": "image/jpeg",
-        ".jpg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-    }.get(path.suffix.lower()) or (mimetypes.guess_type(path.name)[0] or "image/png").lower()
-    if not mime_type.startswith("image/"):
-        return None
-    return (f"style-reference{path.suffix.lower() or '.png'}", path.read_bytes(), mime_type)
+    return config.to_legacy_dict()
 
 
 def apply_style_reference(
@@ -101,16 +63,33 @@ def apply_style_reference(
     *,
     max_images: int = 10,
 ) -> tuple[str, list[ImageReferenceInput]]:
-    """Append the style image last while preserving subject-reference priority."""
+    """Apply project style as text while leaving subject references untouched.
+
+    The legacy function name is retained for call-site compatibility. Style preview
+    files are UI/analyzer inputs only and are never loaded or submitted here.
+    """
+    del max_images
     references = list(reference_images or [])
-    style_reference = get_style_reference_image(style_preset)
-    if style_reference is None:
+    style_instructions = str(style_preset.get("style_instructions") or "").strip()
+    avoid_instructions = str(style_preset.get("avoid_instructions") or "").strip()
+    style_tag = str(style_preset.get("style_tag") or "").strip()
+    if not any((style_instructions, avoid_instructions, style_tag)):
         return prompt, references
-    if max_images < 1:
-        raise ValueError("max_images must be at least 1")
-    references = references[: max_images - 1]
-    references.append(style_reference)
-    return f"{prompt.rstrip()}\n\n{STYLE_REFERENCE_DIRECTIVE}", references
+
+    additions: list[str] = []
+    if style_instructions and style_instructions not in prompt:
+        additions.append(f"PROJECT VISUAL STYLE:\n{style_instructions}")
+    if style_tag and style_tag not in prompt:
+        additions.append(f"PROJECT STYLE TAG:\n{style_tag}")
+    if avoid_instructions and avoid_instructions not in prompt:
+        additions.append(f"PROJECT STYLE AVOID:\n{avoid_instructions}")
+    if STYLE_TEXT_CONTRACT not in prompt:
+        additions.append(STYLE_TEXT_CONTRACT)
+
+    resolved_prompt = "\n\n".join(
+        section for section in (prompt.rstrip(), *additions) if section
+    )
+    return resolved_prompt, references
 
 
 def get_project_style_preset(

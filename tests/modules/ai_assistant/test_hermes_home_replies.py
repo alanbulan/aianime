@@ -338,3 +338,37 @@ async def test_hermes_home_replies_retries_failed_done_delivery(monkeypatch):
     assert done_attempts == 2
     assert len([event for event in attempts if event["type"] == "chat.done"]) == 2
     assert len([item for item in history.appended if item[2] == "assistant"]) == 1
+
+
+@pytest.mark.anyio
+async def test_hermes_home_replies_stops_stream_and_persists_partial_on_disconnect(
+    monkeypatch,
+):
+    _stub_project_snapshots(monkeypatch, set())
+    replies, _thread, _runtime, history = _build_replies(
+        [
+            _event("assistant_delta", text="部分回复"),
+            _event("assistant_delta", text="不应继续生成"),
+        ]
+    )
+    attempted = []
+
+    async def on_event(event):
+        attempted.append(event)
+        if event["type"] == "assistant.delta":
+            raise ConnectionError("disconnected")
+
+    with pytest.raises(ConnectionError, match="disconnected"):
+        await replies.stream(
+            "alice",
+            ChatScope(kind="home"),
+            "问题",
+            [],
+            "turn-disconnected",
+            on_event,
+        )
+
+    assert [event["type"] for event in attempted].count("assistant.delta") == 1
+    assistant_messages = [item for item in history.appended if item[2] == "assistant"]
+    assert len(assistant_messages) == 1
+    assert assistant_messages[0][3] == "部分回复"

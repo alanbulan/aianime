@@ -51,7 +51,7 @@ export function BeatCardView({ controller }: BeatCardViewProps) {
     <article
       data-beat-number={beatNumber}
       className={cn(
-        "group relative flex transform-gpu flex-col overflow-hidden rounded-[8px] border bg-card text-left transition-all duration-150 ease-out hover:scale-[1.008]",
+        "group relative flex flex-col overflow-hidden rounded-[8px] border bg-card text-left transition-all duration-150 ease-out hover:scale-[1.008]",
         isSelected && "border-primary/65 bg-primary/[0.06]",
         isChecked && !isSelected && "border-primary/45 bg-primary/[0.05]",
         !isSelected &&
@@ -270,7 +270,7 @@ function ImageSlot({
   className?: string;
   aspectRatio: BeatCardAspectRatio;
 }) {
-  const resolved = src ? resolveMediaUrl(src) : null;
+  const resolved = src ? resolveMediaUrl(src, { variant: "thumb2x" }) : null;
   return (
     <div
       className={cn(

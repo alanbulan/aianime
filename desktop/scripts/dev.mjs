@@ -47,6 +47,7 @@ import {
   isAllowedExternalUrl,
   isSameOrigin,
 } from "../src/desktop-runtime-contracts.ts";
+import { createDiagnosticWriter } from "./diagnostic-output.mjs";
 
 const WINDOW_CHANNELS = {
   minimize: "desktop:window:minimize",
@@ -70,6 +71,8 @@ let backend = null;
 let commercialModelProxy = null;
 let viteProcess = null;
 let quitting = false;
+const writeStdout = createDiagnosticWriter(process.stdout);
+const writeStderr = createDiagnosticWriter(process.stderr);
 
 const configuredUserData = process.env.AI_ANIME_DEV_USER_DATA_DIR?.trim();
 const developmentUserData = configuredUserData
@@ -89,8 +92,8 @@ async function prepareHermesRuntime() {
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  child.stdout.on("data", (chunk) => process.stdout.write(`[hermes] ${chunk}`));
-  child.stderr.on("data", (chunk) => process.stderr.write(`[hermes] ${chunk}`));
+  child.stdout.on("data", (chunk) => writeStdout(`[hermes] ${chunk}`));
+  child.stderr.on("data", (chunk) => writeStderr(`[hermes] ${chunk}`));
   await new Promise((resolveRuntime, rejectRuntime) => {
     child.once("error", rejectRuntime);
     child.once("exit", (code) => {
@@ -227,8 +230,8 @@ function startVite(localBackend) {
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
-  child.stdout.on("data", (chunk) => process.stdout.write(`[vite] ${chunk}`));
-  child.stderr.on("data", (chunk) => process.stderr.write(`[vite] ${chunk}`));
+  child.stdout.on("data", (chunk) => writeStdout(`[vite] ${chunk}`));
+  child.stderr.on("data", (chunk) => writeStderr(`[vite] ${chunk}`));
   return child;
 }
 
@@ -277,28 +280,28 @@ async function createMainWindow() {
     if (details && typeof details === "object") {
       const level = details.level ?? "unknown";
       const source = details.sourceId ? ` ${details.sourceId}:${details.lineNumber ?? 0}` : "";
-      process.stderr.write(`[renderer:${level}]${source} ${String(details.message ?? "")}\n`);
+      writeStderr(`[renderer:${level}]${source} ${String(details.message ?? "")}\n`);
       return;
     }
     const [level, message, line, sourceId] = args;
-    process.stderr.write(
+    writeStderr(
       `[renderer:${String(level)}] ${String(sourceId ?? "")}:${String(line ?? 0)} ${String(message ?? "")}\n`,
     );
   });
   window.webContents.on("preload-error", (_event, preloadPath, error) => {
-    process.stderr.write(`[preload-error] ${preloadPath}: ${error.stack || error.message}\n`);
+    writeStderr(`[preload-error] ${preloadPath}: ${error.stack || error.message}\n`);
   });
   window.webContents.on(
     "did-fail-load",
     (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
       if (!isMainFrame) return;
-      process.stderr.write(
+      writeStderr(
         `[did-fail-load] ${errorCode} ${errorDescription} ${validatedURL}\n`,
       );
     },
   );
   window.webContents.on("render-process-gone", (_event, details) => {
-    process.stderr.write(
+    writeStderr(
       `[render-process-gone] ${details.reason} exitCode=${details.exitCode}\n`,
     );
   });

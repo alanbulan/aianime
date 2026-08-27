@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { Slider } from "@/components/ui/slider";
 import type {
   Seedance2SceneOptimize,
   VideoDurationBounds,
@@ -196,18 +197,20 @@ export function VideoConfigChip({
             {t("node.videoNode.duration.title")}
           </div>
           <div className="mb-4 flex items-center gap-3">
-            <input
-              type="range"
+            <Slider
               min={durationBounds.min}
               max={durationBounds.max}
               step={1}
-              value={durationSec}
-              onChange={(event) =>
+              value={[durationSec]}
+              onValueChange={([value]) =>
                 onChange({
-                  durationSec: normalizeDuration(Number(event.target.value)),
+                  durationSec: normalizeDuration(value ?? durationSec),
                 })
               }
-              className="video-duration-slider min-w-0 flex-1"
+              className="min-w-0 flex-1"
+              trackClassName="h-1"
+              thumbClassName="size-3"
+              aria-label={t("node.videoNode.duration.title")}
             />
             <div className="flex shrink-0 items-center gap-1">
               <input

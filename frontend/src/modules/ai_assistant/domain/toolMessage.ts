@@ -104,15 +104,16 @@ export function mergeToolMessageState(
   };
 }
 
-export function settleRunningToolMessages(
+function settleToolMessages(
   messages: ChatMessage[],
-  turnId: string,
-  reason = UNFINISHED_TOOL_ERROR,
+  turnId: string | null,
+  reason: string,
+  isUnfinished: (message: ChatMessage) => boolean,
 ): ChatMessage[] {
   let changed = false;
   const settled = messages.map((message) => {
-    const sameTurn = message.turnId === turnId;
-    if (message.role !== "tool" || message.toolState !== "running" || !sameTurn) {
+    const sameTurn = turnId === null || message.turnId === turnId;
+    if (message.role !== "tool" || !isUnfinished(message) || !sameTurn) {
       return message;
     }
     changed = true;
@@ -123,4 +124,30 @@ export function settleRunningToolMessages(
     };
   });
   return changed ? settled : messages;
+}
+
+export function settleRunningToolMessages(
+  messages: ChatMessage[],
+  turnId: string | null,
+  reason = UNFINISHED_TOOL_ERROR,
+): ChatMessage[] {
+  return settleToolMessages(
+    messages,
+    turnId,
+    reason,
+    (message) => message.toolState === "running",
+  );
+}
+
+export function settleUnfinishedToolMessages(
+  messages: ChatMessage[],
+  turnId: string | null,
+  reason = UNFINISHED_TOOL_ERROR,
+): ChatMessage[] {
+  return settleToolMessages(
+    messages,
+    turnId,
+    reason,
+    (message) => message.toolState === "running" || message.toolState === "pending",
+  );
 }

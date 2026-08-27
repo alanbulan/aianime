@@ -1,7 +1,19 @@
 // Copyright (c) 2026 AI anime
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Trash2 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { VideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import {
@@ -12,7 +24,9 @@ import {
   MEDIA_THUMB_ACTIVE_CLASS,
   MEDIA_THUMB_ACTIVE_MARK_CLASS,
   MEDIA_THUMB_CLASS,
+  MEDIA_THUMB_DELETE_CLASS,
   MEDIA_THUMB_IDLE_CLASS,
+  MEDIA_THUMB_MODEL_CLASS,
   MEDIA_THUMB_TIME_CLASS,
 } from "@/modules/production/presentation/media-styles";
 
@@ -29,6 +43,9 @@ export function VideoPaneMediaView({
   frameAspectCss: string;
 }) {
   const { t } = useTranslation();
+  const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(
+    null,
+  );
 
   return (
     <>
@@ -98,52 +115,108 @@ export function VideoPaneMediaView({
         {controller.candidates.length > 0 && (
           <div className={VIDEO_CANDIDATES_CLASS}>
             {controller.candidates.map((candidate) => (
-              <button
-                key={candidate.id}
-                type="button"
-                onClick={() => void controller.selectCandidate(candidate.id)}
-                disabled={controller.selectionPending}
-                className={cn(
-                  MEDIA_THUMB_CLASS,
-                  candidate.active
-                    ? MEDIA_THUMB_ACTIVE_CLASS
-                    : MEDIA_THUMB_IDLE_CLASS,
-                  controller.selectionPending && "cursor-wait",
-                )}
-                data-ui-tooltip={candidate.modelLabel}
-              >
-                <div
-                  className="h-[76px] bg-media"
-                  style={{ aspectRatio: frameAspectCss }}
-                >
-                  {candidate.previewSource && (
-                    <video
-                      src={candidate.previewSource}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      disableRemotePlayback
-                      disablePictureInPicture
-                      className="h-full w-full object-cover"
-                    />
+              <div key={candidate.id} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => void controller.selectCandidate(candidate.id)}
+                  disabled={
+                    controller.selectionPending || controller.deletePending
+                  }
+                  className={cn(
+                    MEDIA_THUMB_CLASS,
+                    candidate.active
+                      ? MEDIA_THUMB_ACTIVE_CLASS
+                      : MEDIA_THUMB_IDLE_CLASS,
+                    controller.selectionPending && "cursor-wait",
                   )}
-                </div>
-                <span className="absolute left-0 top-0 rounded-br bg-media/70 px-1 py-0.5 text-[9px] font-medium leading-none text-media-foreground">
-                  {candidate.modelLabel}
-                </span>
-                {candidate.timeLabel && (
-                  <span className={MEDIA_THUMB_TIME_CLASS}>
-                    {candidate.timeLabel}
+                >
+                  <div
+                    className="h-[76px] bg-media"
+                    style={{ aspectRatio: frameAspectCss }}
+                  >
+                    {candidate.previewSource && (
+                      <video
+                        src={candidate.previewSource}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        disableRemotePlayback
+                        disablePictureInPicture
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <span
+                    className={MEDIA_THUMB_MODEL_CLASS}
+                    data-ui-tooltip={candidate.modelTooltip}
+                  >
+                    {candidate.modelLabel}
                   </span>
+                  {candidate.timeLabel && (
+                    <span
+                      className={MEDIA_THUMB_TIME_CLASS}
+                      data-ui-tooltip={candidate.timeTooltip ?? undefined}
+                    >
+                      {candidate.timeLabel}
+                    </span>
+                  )}
+                  {candidate.active && (
+                    <span className={MEDIA_THUMB_ACTIVE_MARK_CLASS}>✓</span>
+                  )}
+                </button>
+                {!candidate.active && (
+                  <Button
+                    type="button"
+                    size="icon-xs"
+                    variant="destructive"
+                    disabled={controller.deletePending}
+                    onClick={() => setDeleteCandidateId(candidate.id)}
+                    aria-label={t("episode.workbench.media.deleteCandidate")}
+                    data-ui-tooltip={t(
+                      "episode.workbench.media.deleteCandidate",
+                    )}
+                    className={MEDIA_THUMB_DELETE_CLASS}
+                  >
+                    <Trash2 className="size-2.5" />
+                  </Button>
                 )}
-                {candidate.active && (
-                  <span className={MEDIA_THUMB_ACTIVE_MARK_CLASS}>✓</span>
-                )}
-              </button>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={deleteCandidateId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteCandidateId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("episode.workbench.media.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("episode.workbench.media.deleteDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={controller.deletePending}
+              onClick={() => {
+                const poolId = deleteCandidateId;
+                setDeleteCandidateId(null);
+                if (poolId) void controller.deleteCandidate(poolId);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

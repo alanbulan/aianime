@@ -22,6 +22,9 @@ def test_style_analysis_result_includes_runtime_style_branch() -> None:
     assert result.model_dump()["animation_subtype"] == "2d"
     assert '"style_family"' in StyleAnalyzer.ANALYSIS_PROMPT
     assert '"animation_subtype"' in StyleAnalyzer.ANALYSIS_PROMPT
+    assert "invariant rendering technique" in StyleAnalyzer.ANALYSIS_PROMPT
+    assert "hairstyle" in StyleAnalyzer.ANALYSIS_PROMPT
+    assert "never character geometry or appearance" in StyleAnalyzer.ANALYSIS_PROMPT
 
 
 @pytest.mark.parametrize(

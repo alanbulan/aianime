@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, RefreshCw } from "lucide-react";
 
 import { CreditCostInline } from "@/components/credit-cost-inline";
+import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,10 +34,9 @@ export function AudioPaneView({
       ) : (
         <div className="flex w-full max-w-[420px] flex-col items-start gap-3">
           {controller.audioSource ? (
-            <audio
+            <PreciseAudioPlayer
               src={controller.audioSource}
-              controls
-              className="h-7 w-full rounded-full opacity-85 [color-scheme:dark]"
+              className="h-7 w-full opacity-85"
             />
           ) : (
             <div className="flex h-7 w-full items-center rounded-[7px] border border-dashed border-border bg-muted px-2.5 text-xs text-muted-foreground">

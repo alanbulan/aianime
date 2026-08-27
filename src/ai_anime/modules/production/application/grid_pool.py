@@ -61,6 +61,8 @@ class GridPoolImageView:
     cell_url: str
     grid_url: str
     stale: bool
+    model: str = ""
+    model_selector: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -80,6 +82,8 @@ class GridPoolImageView:
             "cell_url": self.cell_url,
             "grid_url": self.grid_url,
             "stale": self.stale,
+            "model": self.model,
+            "model_selector": self.model_selector,
         }
 
 
@@ -114,6 +118,8 @@ class BeatSketchCandidateView:
     original_beat: int
     generated_at: str
     stale: bool
+    model: str = ""
+    model_selector: str = ""
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -130,6 +136,8 @@ class BeatSketchCandidateView:
             "original_beat": self.original_beat,
             "generated_at": self.generated_at,
             "stale": self.stale,
+            "model": self.model,
+            "model_selector": self.model_selector,
         }
 
 
@@ -177,6 +185,20 @@ class SelectedGridPoolImage:
         if self.frame_url is not None:
             data["frame_url"] = self.frame_url
         return data
+
+
+@dataclass(frozen=True)
+class DeleteGridPoolImageCommand:
+    episode_num: int
+    pool_id: str
+
+
+@dataclass(frozen=True)
+class DeletedGridPoolImage:
+    pool_id: str
+
+    def as_dict(self) -> dict[str, str]:
+        return {"pool_id": self.pool_id}
 
 
 @dataclass(frozen=True)
@@ -388,6 +410,20 @@ class GridPoolImageStale(GridPoolSelectionRejected):
         )
 
 
+class GridPoolDeleteRejected(ValueError):
+    pass
+
+
+class GridPoolImageUnavailable(GridPoolDeleteRejected):
+    def __init__(self, pool_id: str) -> None:
+        super().__init__(f"图片版本 '{pool_id}' 不存在或文件已丢失")
+
+
+class GridPoolImageInUse(GridPoolDeleteRejected):
+    def __init__(self, pool_id: str) -> None:
+        super().__init__(f"图片版本 '{pool_id}' 正在使用，请先切换到其他版本")
+
+
 class GridPoolUploadRejected(ValueError):
     pass
 
@@ -440,6 +476,13 @@ class GridPoolUseCases:
         command: SelectGridPoolImageCommand,
     ) -> SelectedGridPoolImage:
         return await self._gateway.select(context, command)
+
+    def delete(
+        self,
+        context: ProjectContext,
+        command: DeleteGridPoolImageCommand,
+    ) -> DeletedGridPoolImage:
+        return self._gateway.delete(context, command)
 
     def upload(
         self,

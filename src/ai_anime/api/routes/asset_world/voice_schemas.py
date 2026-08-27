@@ -1,6 +1,6 @@
 """Inbound schemas for character voice endpoints."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class CharacterVoiceBindRequest(BaseModel):
@@ -17,8 +17,19 @@ class CharacterVoiceTrimRequest(BaseModel):
     duration_seconds: float = 4.0
 
 
+class CharacterVoiceDesignMissingRequest(BaseModel):
+    character_names: list[str] = Field(default_factory=list, max_length=100)
+    replace_existing: bool = False
+
+    @field_validator("character_names")
+    @classmethod
+    def normalize_character_names(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(name.strip() for name in value if name.strip()))
+
+
 __all__ = [
     "CharacterVoiceBindRequest",
+    "CharacterVoiceDesignMissingRequest",
     "CharacterVoiceRecordRequest",
     "CharacterVoiceTrimRequest",
 ]

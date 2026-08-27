@@ -14,7 +14,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/shadcn/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { UiChipButton } from '@/components/ui';
 import type { ImageEditToolbarActionKey } from '../domain/imageEditToolbarModel';
 import type { ImageEditToolbarController } from './useImageEditToolbarController';

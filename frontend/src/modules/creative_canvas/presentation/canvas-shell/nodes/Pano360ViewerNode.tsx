@@ -6,7 +6,7 @@ import { usePano360ViewerNodeController } from '@/modules/creative_canvas/canvas
 import {
   Pano360ViewerNodeView,
   type Pano360ViewerNodeData,
-} from '@/modules/creative_canvas/public';
+} from '@/modules/creative_canvas/presentation/canvas-shell/internal';
 
 type Pano360ViewerNodeProps = NodeProps & {
   projectId: string;

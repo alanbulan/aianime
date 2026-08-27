@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -98,35 +97,20 @@ class _PropMenus:
         return self.menu
 
 
-class _Workspace:
-    def __init__(self) -> None:
-        self.cleared: list[tuple[str | Path, int]] = []
-
-    def clear_episode_sketches(
-        self,
-        output_dir: str | Path,
-        episode_num: int,
-    ) -> None:
-        self.cleared.append((output_dir, episode_num))
-
-
 def _use_cases(
     colors: dict[str, str],
     prop_menu: list[dict[str, Any]],
     *,
     identity_ids: list[str] | None = None,
-) -> tuple[SketchColorAssignmentUseCases, _ColorAssigner, _Workspace]:
+) -> tuple[SketchColorAssignmentUseCases, _ColorAssigner]:
     assigner = _ColorAssigner(colors)
-    workspace = _Workspace()
     return (
         SketchColorAssignmentUseCases(
             assigner,
             _Episodes(identity_ids),
             _PropMenus(prop_menu),
-            workspace,
         ),
         assigner,
-        workspace,
     )
 
 
@@ -138,14 +122,13 @@ async def test_incremental_identity_assignment_persists_without_cleaning() -> No
         "Hero_B": "#00FFFF FLUORESCENT CYAN",
     }
     store = _Store(previous)
-    use_cases, assigner, workspace = _use_cases(current, [])
+    use_cases, assigner = _use_cases(current, [])
     beats = [{"visual_description": "{{Hero_A}} and {{Hero_B}}"}]
 
     result = await use_cases.assign(
         store=store,
         episode_num=2,
         beats=beats,
-        output_dir="output/demo",
     )
 
     assert result.identity_colors == current
@@ -159,60 +142,51 @@ async def test_incremental_identity_assignment_persists_without_cleaning() -> No
     ]
     assert store.saved_colors == [(2, current)]
     assert store.episode_updates == []
-    assert workspace.cleared == []
 
 
 @pytest.mark.asyncio
-async def test_prop_assignment_updates_episode_and_invalidates_initial_sketches() -> None:
+async def test_prop_assignment_updates_episode_without_deleting_sketches() -> None:
     store = _Store({})
     prop_menu = [{"prop_id": "账单", "is_global_asset": True}]
-    use_cases, _assigner, workspace = _use_cases({}, prop_menu)
+    use_cases, _assigner = _use_cases({}, prop_menu)
 
     result = await use_cases.assign(
         store=store,
         episode_num=2,
         beats=[{"visual_description": "男人拿起[[账单]]。"}],
-        output_dir="output/demo",
     )
 
     assert set(result.prop_colors) == {"账单"}
     assert store.saved_colors == []
     assert store.episode_updates == [(2, {"prop_menu": prop_menu})]
     assert prop_menu[0]["marker_color"] == result.prop_colors["账单"]
-    assert workspace.cleared == [("output/demo", 2)]
 
 
 @pytest.mark.asyncio
 async def test_missing_markers_are_rejected() -> None:
     store = _Store({})
-    use_cases, _assigner, workspace = _use_cases({}, [])
+    use_cases, _assigner = _use_cases({}, [])
 
     with pytest.raises(SketchColorMarkersMissing):
         await use_cases.assign(
             store=store,
             episode_num=2,
             beats=[{"visual_description": "empty room"}],
-            output_dir="output/demo",
         )
-
-    assert workspace.cleared == []
 
 
 @pytest.mark.asyncio
-async def test_persistence_failure_is_reported_before_invalidating_sketches() -> None:
+async def test_persistence_failure_is_reported() -> None:
     store = _Store({}, fail_persistence=True)
     colors = {"Hero_A": "#FF00FF FLUORESCENT MAGENTA"}
-    use_cases, _assigner, workspace = _use_cases(colors, [])
+    use_cases, _assigner = _use_cases(colors, [])
 
     with pytest.raises(SketchColorPersistenceFailed, match="persistence unavailable"):
         await use_cases.assign(
             store=store,
             episode_num=2,
             beats=[{"visual_description": "{{Hero_A}} enters"}],
-            output_dir="output/demo",
         )
-
-    assert workspace.cleared == []
 
 
 @pytest.mark.asyncio
@@ -242,19 +216,16 @@ async def test_assignment_fills_all_planned_episode_identities() -> None:
     )
     store = _Store({}, characters=[character])
     assigner = _PlannedAssigner({})
-    workspace = _Workspace()
     use_cases = SketchColorAssignmentUseCases(
         assigner,
         _Episodes(["Hero_A"]),
         _PropMenus([]),
-        workspace,
     )
 
     result = await use_cases.assign(
         store=store,
         episode_num=2,
         beats=[{"visual_description": "Hero enters"}],
-        output_dir="output/demo",
     )
 
     assert result.identity_colors == {

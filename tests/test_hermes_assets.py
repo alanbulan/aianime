@@ -60,3 +60,5 @@ def test_continuous_episode_mode_reaches_delivery_without_manual_pause():
     assert "ai_anime_wait_task" in run_modes
     assert "禁止根据 `pipeline/status.next_step`" in run_modes
     assert "不要求用户再发“继续”" in run_modes
+    assert "恢复同一个完整生产目标" in run_modes
+    assert "all_beats=true" in run_modes

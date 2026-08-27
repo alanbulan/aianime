@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 export interface CharacterVoiceSample {
   path: string;
+  url?: string;
   sha256?: string;
   updated_at?: string;
 }

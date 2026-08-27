@@ -972,6 +972,43 @@ def test_recent_bounded_context_moves_do_not_regress() -> None:
         assert f'"{public_name}"' in public_source
 
 
+def test_media_generation_mega_modules_stay_split_behind_compatibility_facades() -> None:
+    media_generation = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+    )
+    prompt_facade = media_generation / "prompt_builder.py"
+    grid_facade = media_generation / "nanobanana_grid.py"
+    prompt_source = prompt_facade.read_text(encoding="utf-8")
+    grid_source = grid_facade.read_text(encoding="utf-8")
+
+    for implementation in (
+        "prompt_models.py",
+        "prompt_components.py",
+        "prompt_strategies.py",
+        "grid_planning.py",
+        "nanobanana_grid_generator.py",
+    ):
+        assert (media_generation / implementation).is_file()
+
+    assert "class PromptComponents" not in prompt_source
+    assert "class UnifiedPromptBuilder" not in prompt_source
+    assert "class NanoBananaGridGenerator" not in grid_source
+    assert "def scene_grid_split(" not in grid_source
+    assert {
+        "ai_anime.modules.production.infrastructure.media_generation.prompt_components",
+        "ai_anime.modules.production.infrastructure.media_generation.prompt_models",
+        "ai_anime.modules.production.infrastructure.media_generation.prompt_strategies",
+    }.issubset(_imports(prompt_facade))
+    assert {
+        "ai_anime.modules.production.infrastructure.media_generation.grid_planning",
+        "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid_generator",
+    }.issubset(_imports(grid_facade))
+
+
 def test_modules_do_not_import_legacy_top_level_packages() -> None:
     legacy_prefixes = (
         "ai_anime.audio",

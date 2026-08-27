@@ -15,6 +15,8 @@ from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacte
 class _CharacterStore:
     def __init__(self, characters: list[NovelCharacter]):
         self.characters = {character.name: character for character in characters}
+        self.episodes: list[SimpleNamespace] = []
+        self.beats: dict[int, list[dict]] = {}
         self.updates: list[tuple[str, dict]] = []
         self.identity_updates: list[tuple[str, str, dict]] = []
 
@@ -23,6 +25,12 @@ class _CharacterStore:
 
     def get_all_characters(self):
         return list(self.characters.values())
+
+    def get_all_episodes(self):
+        return list(self.episodes)
+
+    async def get_beats_as_dicts(self, episode_number: int):
+        return list(self.beats.get(episode_number, []))
 
     async def update_character(self, name: str, **updates):
         self.updates.append((name, updates))
@@ -107,6 +115,10 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
     )
     voice_path.parent.mkdir(parents=True)
     voice_path.write_bytes(b"default voice")
+    child_voice_path = (
+        tmp_path / "assets" / "characters" / "秦" / "voices" / "voice_child.wav"
+    )
+    child_voice_path.write_bytes(b"child voice")
     character = NovelCharacter(
         name="秦",
         fish_voice_id="legacy-fish-id",
@@ -141,6 +153,159 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
     assert asset["reference_audio_sha256"] == "default-sha"
     assert asset["reference_audio_updated_at"] == "2026-05-13T00:00:00+00:00"
     assert asset["voice_samples_by_age_group"]["child"]["sha256"] == "child-sha"
+    assert asset["voice_samples_by_age_group"]["child"]["url"] == (
+        "/static/projects/proj_demo/assets/characters/秦/voices/voice_child.wav"
+    )
+
+
+@pytest.mark.asyncio
+async def test_design_missing_character_voices_uses_configured_priority_route(
+    tmp_path,
+    monkeypatch,
+):
+    from ai_anime.api.routes.asset_world import characters
+    from ai_anime.api.routes.asset_world.voice_schemas import (
+        CharacterVoiceDesignMissingRequest,
+    )
+    from ai_anime.modules.production import public as production
+
+    character = NovelCharacter(name="佐仓美咲", age_group="youth")
+    store = _CharacterStore([character])
+    _patch_project(monkeypatch, characters, tmp_path, store)
+    captured = {}
+
+    async def provision(
+        context,
+        project_characters,
+        *,
+        character_names,
+        replace_existing,
+        preview_text_by_character,
+        project_preview_text,
+    ):
+        captured["context"] = context
+        captured["characters"] = [item.name for item in project_characters]
+        captured["names"] = list(character_names)
+        captured["replace_existing"] = replace_existing
+        captured["previews"] = preview_text_by_character
+        captured["project_preview"] = project_preview_text
+        return ("佐仓美咲",), ("藤原悠真",)
+
+    monkeypatch.setattr(production, "provision_missing_character_voices", provision)
+
+    response = await characters.design_missing_character_voices(
+        project="demo",
+        body=CharacterVoiceDesignMissingRequest(
+            character_names=[" 佐仓美咲 ", "佐仓美咲"]
+        ),
+        user={"username": "admin"},
+    )
+
+    assert response["ok"] is True
+    assert response["data"] == {
+        "generated": ["佐仓美咲"],
+        "skipped_existing": ["藤原悠真"],
+    }
+    assert captured["context"].project_id == "proj_demo"
+    assert captured["characters"] == ["佐仓美咲"]
+    assert captured["names"] == ["佐仓美咲"]
+    assert captured["replace_existing"] is False
+    assert captured["previews"] == {}
+    assert captured["project_preview"] == ""
+    assert "1.8-15 秒" in response["agent_instruction"]
+    assert "保留合规" in response["agent_instruction"]
+
+
+@pytest.mark.asyncio
+async def test_design_missing_character_voices_uses_persisted_dialogue_preview(
+    tmp_path,
+    monkeypatch,
+):
+    from ai_anime.api.routes.asset_world import characters
+    from ai_anime.api.routes.asset_world.voice_schemas import (
+        CharacterVoiceDesignMissingRequest,
+    )
+    from ai_anime.modules.production import public as production
+
+    character = NovelCharacter(name="佐仓美咲", aliases=["美咲"], age_group="youth")
+    store = _CharacterStore([character])
+    store.episodes = [SimpleNamespace(number=1)]
+    store.beats = {
+        1: [
+            {
+                "speaker": "美咲",
+                "narration_segment": "こんにちは。物語を始めましょう。",
+            }
+        ]
+    }
+    _patch_project(monkeypatch, characters, tmp_path, store)
+    captured = {}
+
+    async def provision(
+        context,
+        project_characters,
+        *,
+        character_names,
+        replace_existing,
+        preview_text_by_character,
+        project_preview_text,
+    ):
+        captured["previews"] = preview_text_by_character
+        captured["project_preview"] = project_preview_text
+        captured["replace_existing"] = replace_existing
+        return ("佐仓美咲",), ()
+
+    monkeypatch.setattr(production, "provision_missing_character_voices", provision)
+
+    response = await characters.design_missing_character_voices(
+        project="demo",
+        body=CharacterVoiceDesignMissingRequest(character_names=["佐仓美咲"]),
+        user={"username": "admin"},
+    )
+
+    assert response["ok"] is True
+    assert captured == {
+        "previews": {"佐仓美咲": "こんにちは。物語を始めましょう。"},
+        "project_preview": "こんにちは。物語を始めましょう。",
+        "replace_existing": False,
+    }
+
+
+@pytest.mark.asyncio
+async def test_design_character_voices_passes_explicit_replacement_scope(
+    tmp_path,
+    monkeypatch,
+):
+    from ai_anime.api.routes.asset_world import characters
+    from ai_anime.api.routes.asset_world.voice_schemas import (
+        CharacterVoiceDesignMissingRequest,
+    )
+    from ai_anime.modules.production import public as production
+
+    store = _CharacterStore([NovelCharacter(name="佐仓美咲", age_group="youth")])
+    _patch_project(monkeypatch, characters, tmp_path, store)
+    captured = {}
+
+    async def provision(_context, _characters, **kwargs):
+        captured.update(kwargs)
+        return ("佐仓美咲",), ()
+
+    monkeypatch.setattr(production, "provision_missing_character_voices", provision)
+
+    response = await characters.design_missing_character_voices(
+        project="demo",
+        body=CharacterVoiceDesignMissingRequest(
+            character_names=["佐仓美咲"],
+            replace_existing=True,
+        ),
+        user={"username": "admin"},
+    )
+
+    assert response["ok"] is True
+    assert captured["character_names"] == ["佐仓美咲"]
+    assert captured["replace_existing"] is True
+    assert "覆盖重做已有声线" in response["agent_instruction"]
+    assert "完整生产流程" in response["agent_instruction"]
 
 
 @pytest.mark.asyncio
@@ -252,6 +417,18 @@ async def test_upload_character_voice_sample_persists_default_slot(
     character = NovelCharacter(name="秦")
     store = _CharacterStore([character])
     _patch_project(monkeypatch, characters, tmp_path, store)
+    reusable_source = tmp_path / "account" / "uploaded.wav"
+    reusable_source.parent.mkdir(parents=True)
+    reusable_source.write_bytes(b"default voice")
+    created: list[dict] = []
+    monkeypatch.setattr(
+        characters,
+        "_create_reusable_character_voice",
+        lambda **kwargs: (
+            created.append(kwargs) or {"voice_id": "fv_uploaded"},
+            reusable_source,
+        ),
+    )
     upload = UploadFile(file=io.BytesIO(b"default voice"), filename="voice.wav")
 
     response = await characters.upload_character_voice_sample(
@@ -264,6 +441,7 @@ async def test_upload_character_voice_sample_persists_default_slot(
 
     assert response["ok"] is True
     data = response["data"]
+    assert data["voice_library_id"] == "fv_uploaded"
     assert data["slot"] == "default"
     assert data["path"].endswith("voice_default.wav")
     assert data["sha256"]
@@ -271,6 +449,9 @@ async def test_upload_character_voice_sample_persists_default_slot(
     assert store.updates[-1][1]["reference_audio_path"] == data["path"]
     assert store.updates[-1][1]["reference_audio_sha256"] == data["sha256"]
     assert store.updates[-1][1]["reference_audio_updated_at"] == data["updated_at"]
+    assert created[0]["content"] == b"default voice"
+    assert created[0]["character_name"] == "秦"
+    assert created[0]["slot"] == "default"
 
 
 @pytest.mark.asyncio
@@ -304,6 +485,18 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
     character = NovelCharacter(name="秦")
     store = _CharacterStore([character])
     _patch_project(monkeypatch, characters, tmp_path, store)
+    reusable_source = tmp_path / "account" / "recorded.wav"
+    reusable_source.parent.mkdir(parents=True)
+    reusable_source.write_bytes(b"recorded voice")
+    created: list[dict] = []
+    monkeypatch.setattr(
+        characters,
+        "_create_reusable_character_voice",
+        lambda **kwargs: (
+            created.append(kwargs) or {"voice_id": "fv_recorded"},
+            reusable_source,
+        ),
+    )
     payload = base64.b64encode(b"recorded voice").decode("ascii")
     body = SimpleNamespace(data_url=f"data:audio/wav;base64,{payload}")
 
@@ -317,6 +510,7 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
 
     assert response["ok"] is True
     data = response["data"]
+    assert data["voice_library_id"] == "fv_recorded"
     assert data["slot"] == "youth"
     assert data["path"].endswith("voice_youth.wav")
     assert data["sha256"]
@@ -329,6 +523,8 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
         store.updates[-1][1]["voice_samples_by_age_group"]["youth"]["sha256"]
         == data["sha256"]
     )
+    assert created[0]["content"] == b"recorded voice"
+    assert created[0]["slot"] == "youth"
 
 
 @pytest.mark.asyncio

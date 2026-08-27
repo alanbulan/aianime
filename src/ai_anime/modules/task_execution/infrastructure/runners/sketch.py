@@ -404,6 +404,27 @@ async def _run_sketch_generation_async(
             for i, beat in enumerate(grid_beats)
         ]
 
+    paths = PathResolver(output_dir, episode)
+    if (
+        not direct_sketch_beats
+        and not bool(config.get("replace_existing"))
+        and beat_numbers
+        and all(paths.sketch(beat_number).exists() for beat_number in beat_numbers)
+    ):
+        total_grids = len(loc_plan) if use_scene_grouping else len(grid_plan)
+        log(
+            f"草图已存在，跳过重复生成: beats {beat_numbers}",
+            progress=1.0,
+        )
+        return {
+            "sketch_path": str(paths.sketch(beat_numbers[0])),
+            "beat_numbers": beat_numbers,
+            "grid_index": grid_index,
+            "grid_size": (grid_rows, grid_cols),
+            "total_grids": total_grids,
+            "skipped": True,
+        }
+
     if use_director_refs:
         stats = await _ensure_scene_refs_for_beats(
             ctx=ctx,
@@ -438,7 +459,6 @@ async def _run_sketch_generation_async(
 
     scene_refs_override = _scene_refs_override_from_config(config, beat_numbers)
     log(f"角色: {len(character_map)} 个")
-    paths = PathResolver(output_dir, episode)
     sketch_dir = paths.sketch_dir()
     sketch_dir.mkdir(parents=True, exist_ok=True)
     episode_grids_dir = Path(output_dir) / "grids" / f"ep{episode:03d}"
@@ -563,7 +583,6 @@ async def _run_sketch_generation_async(
         f"{_format_generation_time(result.generation_time)}",
         progress=0.8,
     )
-    log("[Deface] 跳过去脸后处理（SeedEdit 模型暂不可用）")
     log("切割草图入池...", progress=0.85)
     ts = datetime.now().strftime("%Y%m%d%H%M%S")
     sketches_dir = paths.sketches_dir()
@@ -579,9 +598,15 @@ async def _run_sketch_generation_async(
         cols=grid_cols,
         ts=ts,
         promote_dir=str(sketches_dir),
-        force_promote=direct_sketch_beats and bool(config.get("promote_direct_sketch", True)),
+        force_promote=(
+            bool(config.get("replace_existing"))
+            or direct_sketch_beats
+            and bool(config.get("promote_direct_sketch", True))
+        ),
         beats=grid_beats,
         sketch_colors=config.get("sketch_colors"),
+        model=str(generator_config.get("model") or image_model),
+        model_selector=str(config.get("model_selector") or ""),
     )
     log(f"草图切割完成：{save_result['added']} 个 beat 图片已入池", progress=0.95)
 

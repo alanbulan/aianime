@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.asset_world.public import runtime_prop_menu_for_episode
 from ai_anime.modules.production.domain.sketch_color import (
     assign_identity_sketch_colors,
 )
-from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 class DomainSketchColorAssigner:
@@ -35,12 +33,3 @@ class AssetWorldRuntimePropMenuSource:
         beats: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         return await runtime_prop_menu_for_episode(store, episode, beats)
-
-
-class LocalProductionSketchWorkspace:
-    def clear_episode_sketches(
-        self,
-        output_dir: str | Path,
-        episode_num: int,
-    ) -> None:
-        PathResolver(str(output_dir), episode_num).clean_sketches()

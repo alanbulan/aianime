@@ -27,6 +27,7 @@ class GenerateSketchesCommand:
     sketch_scene_grouping: bool = True
     aspect_ratio: str = "2:3"
     image_generation_selection: str | None = None
+    replace_existing: bool = False
 
 
 @dataclass(frozen=True)
