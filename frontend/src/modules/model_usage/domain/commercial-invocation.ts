@@ -58,6 +58,7 @@ export function canCancelCommercialInvocation(status: string): boolean {
     "FAILED",
     "CANCELLED",
     "CANCELED",
+    "REJECTED_NO_COST",
   ]).has(status.trim().toUpperCase());
 }
 

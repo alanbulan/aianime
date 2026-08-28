@@ -258,6 +258,8 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         project_name=_PROJECT,
         owner_username="alice",
         owner_project_label=f"alice/{_PROJECT}",
+        requester_user_id="user_alice",
+        requester_username="alice",
         output_dir=project_dir,
         state_dir=state_dir,
         runtime_dir=runtime_dir,

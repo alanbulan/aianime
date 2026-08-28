@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -281,9 +282,10 @@ export function CommercialInvocationSection({
                   .then(() => toast.success(t("settings.invocations.cancelled")))
                   .catch((cancelError: unknown) =>
                     toast.error(
-                      errorMessage(
+                      cancelErrorMessage(
                         cancelError,
                         t("settings.invocations.cancelFailed"),
+                        t,
                       ),
                     ),
                   );
@@ -544,4 +546,24 @@ function formatDate(value: string | undefined): string | undefined {
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback;
+}
+
+function cancelErrorMessage(
+  error: unknown,
+  fallback: string,
+  t: TFunction,
+): string {
+  const status =
+    error && typeof error === "object" && "status" in error
+      ? (error as { status?: unknown }).status
+      : undefined;
+  const message = errorMessage(error, fallback);
+  if (
+    status === 409 ||
+    message.trim().toLowerCase() ===
+      "relay invocation state does not allow this operation"
+  ) {
+    return t("settings.invocations.cancelStateConflict");
+  }
+  return message;
 }

@@ -35,7 +35,10 @@ class _Store:
         return {"prop_menu": []}
 
     def get_all_characters(self) -> list[dict[str, Any]]:
-        return [{"identities": [{"identity_id": "Hero_Main"}]}]
+        return [
+            {"identities": [{"identity_id": "Hero_Main"}]},
+            {"identities": [{"identity_id": "Heroine_Main"}]},
+        ]
 
     async def set_beat_detected_identities(
         self,
@@ -103,15 +106,21 @@ class _Files:
 
 
 class _Detector:
-    def __init__(self, *, error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        error: Exception | None = None,
+        detections: dict[int, list[str]] | None = None,
+    ) -> None:
         self.error = error
+        self.detections = detections if detections is not None else {1: ["Hero_Main"]}
         self.calls: list[dict[str, Any]] = []
 
     async def detect(self, **kwargs: Any) -> dict[int, list[str]]:
         self.calls.append(kwargs)
         if self.error:
             raise self.error
-        return {1: ["Hero_Main"]}
+        return self.detections
 
 
 class _UsageMeter:
@@ -153,6 +162,8 @@ def _use_cases(
     frame_count: int,
     *,
     detector_error: Exception | None = None,
+    detector_detections: dict[int, list[str]] | None = None,
+    visual_description: str = "hero stands in the rain",
 ) -> tuple[
     SketchMarkerDetectionUseCases,
     _Store,
@@ -161,7 +172,7 @@ def _use_cases(
     _UsageMeter,
 ]:
     beats = [
-        {"beat_number": number, "visual_description": "{{Hero_Main}}"}
+        {"beat_number": number, "visual_description": visual_description}
         for number in range(1, frame_count + 1)
     ]
     store = _Store(beats)
@@ -171,7 +182,10 @@ def _use_cases(
             for number in range(1, frame_count + 1)
         ]
     )
-    detector = _Detector(error=detector_error)
+    detector = _Detector(
+        error=detector_error,
+        detections=detector_detections,
+    )
     usage_meter = _UsageMeter()
     return (
         SketchMarkerDetectionUseCases(
@@ -221,6 +235,35 @@ async def test_detection_batches_in_numeric_order_and_confirms_usage() -> None:
     assert usage_meter.confirm_calls[0][0] == "reservation-1"
     assert usage_meter.refund_calls == []
     assert usage_meter.clear_count == 1
+
+
+@pytest.mark.asyncio
+async def test_screenplay_markers_override_conflicting_color_detection() -> None:
+    use_cases, store, _files, _detector, _usage_meter = _use_cases(
+        2,
+        detector_detections={
+            1: ["Heroine_Main"],
+            2: ["Heroine_Main"],
+        },
+        visual_description="{{Hero_Main}}",
+    )
+
+    result = await use_cases.detect(
+        store,
+        DetectSketchMarkersCommand(
+            episode_num=2,
+            project_dir=Path("project"),
+            requester_user_id="user-1",
+        ),
+    )
+
+    # Both panels are misdetected as Heroine_Main, but the screenplay marker is
+    # authoritative and must replace, rather than merge with, color detection.
+    assert result.identity_detections == {
+        1: ["Hero_Main"],
+        2: ["Hero_Main"],
+    }
+    assert result.total_identities == 2
 
 
 @pytest.mark.asyncio

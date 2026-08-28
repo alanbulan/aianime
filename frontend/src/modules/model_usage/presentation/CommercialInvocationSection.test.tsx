@@ -1,9 +1,17 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CommercialInvocationSection } from "@/modules/model_usage/presentation/CommercialInvocationSection";
 
+const mocks = vi.hoisted(() => ({
+  cancelInvocation: vi.fn(),
+  invocationStatus: "RESERVED",
+  toastError: vi.fn(),
+  toastSuccess: vi.fn(),
+}));
+
 const translations: Record<string, string> = {
+  "common.cancel": "返回",
   "common.close": "关闭",
   "settings.invocations.all": "全部",
   "settings.invocations.details": "查看详情",
@@ -18,6 +26,12 @@ const translations: Record<string, string> = {
   "settings.invocations.balanceChangeValue": "960 → 952",
   "settings.invocations.quotaUnitsValue": "8 单位",
   "settings.invocations.chargedSummary": "实扣 8",
+  "settings.invocations.cancel": "取消调用",
+  "settings.invocations.cancelDescription": "将请求取消当前调用。",
+  "settings.invocations.cancelReason": "用户主动取消调用",
+  "settings.invocations.cancelStateConflict": "当前调用状态不允许取消",
+  "settings.invocations.cancelTitle": "取消这次调用？",
+  "settings.invocations.confirmCancel": "确认取消",
   "settings.invocations.operation": "操作类型",
   "settings.invocations.page": "第 1 / 1 页",
   "settings.invocations.quotaStatus": "额度状态",
@@ -28,6 +42,7 @@ const translations: Record<string, string> = {
   "settings.values.quota.COMMITTED": "已提交",
   "settings.values.quota.HELD": "已预占",
   "settings.values.status.DISPATCHING": "调度中",
+  "settings.values.status.REJECTED_NO_COST": "已拒绝（未扣费）",
   "settings.values.status.RESERVED": "已预占",
   "settings.values.status.SUCCEEDED": "已成功",
 };
@@ -39,15 +54,22 @@ vi.mock("react-i18next", () => ({
   }),
 }));
 
+vi.mock("sonner", () => ({
+  toast: {
+    error: mocks.toastError,
+    success: mocks.toastSuccess,
+  },
+}));
+
 vi.mock("@/modules/model_usage/composition", () => ({
   useCancelCommercialInvocation: () => ({
     isPending: false,
-    mutateAsync: vi.fn(),
+    mutateAsync: mocks.cancelInvocation,
   }),
   useCommercialInvocationDetails: () => ({
     data: {
       id: "invocation-1",
-      status: "RESERVED",
+      status: mocks.invocationStatus,
       operation: "IMAGE",
       modelSkuCode: "GPT_IMAGE_2",
       quotaStatus: "COMMITTED",
@@ -66,7 +88,7 @@ vi.mock("@/modules/model_usage/composition", () => ({
       items: [
         {
           id: "invocation-1",
-          status: "RESERVED",
+          status: mocks.invocationStatus,
           operation: "IMAGE",
           modelSkuCode: "GPT_IMAGE_2",
           quotaStatus: "COMMITTED",
@@ -103,6 +125,14 @@ vi.mock("@/modules/model_usage/composition", () => ({
 }));
 
 describe("CommercialInvocationSection", () => {
+  beforeEach(() => {
+    mocks.invocationStatus = "RESERVED";
+    mocks.cancelInvocation.mockReset();
+    mocks.cancelInvocation.mockResolvedValue({});
+    mocks.toastError.mockReset();
+    mocks.toastSuccess.mockReset();
+  });
+
   it("在当前视口弹出调用详情并本地化预占状态", () => {
     render(<CommercialInvocationSection active bridgeAvailable />);
 
@@ -121,5 +151,34 @@ describe("CommercialInvocationSection", () => {
     expect(dialog).toHaveTextContent("reservation-1");
     expect(dialog).toHaveTextContent("最终实扣");
     expect(dialog).toHaveTextContent("960 → 952");
+  });
+
+  it("本地化未扣费拒绝终态且不提供取消操作", () => {
+    mocks.invocationStatus = "REJECTED_NO_COST";
+
+    render(<CommercialInvocationSection active bridgeAvailable />);
+
+    expect(screen.getByText("已拒绝（未扣费）")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "取消调用" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("将 relay 调用状态冲突转换为本地化提示", async () => {
+    mocks.cancelInvocation.mockRejectedValueOnce(
+      Object.assign(
+        new Error("relay invocation state does not allow this operation"),
+        { status: 409 },
+      ),
+    );
+
+    render(<CommercialInvocationSection active bridgeAvailable />);
+
+    fireEvent.click(screen.getByRole("button", { name: "取消调用" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认取消" }));
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith("当前调用状态不允许取消"),
+    );
   });
 });

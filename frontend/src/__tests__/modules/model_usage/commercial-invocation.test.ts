@@ -76,6 +76,7 @@ describe("commercial invocations", () => {
     expect(canCancelCommercialInvocation("SUCCEEDED")).toBe(false);
     expect(canCancelCommercialInvocation("FAILED")).toBe(false);
     expect(canCancelCommercialInvocation("CANCELLED")).toBe(false);
+    expect(canCancelCommercialInvocation("REJECTED_NO_COST")).toBe(false);
   });
 
   it("only offers result saving for successful states", () => {
