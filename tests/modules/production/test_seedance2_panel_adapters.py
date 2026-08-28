@@ -180,6 +180,8 @@ async def test_status_projects_panel_state_and_closes_store(
         "total": 1,
         "selected": 1,
         "missing": 0,
+        "invalid": 0,
+        "unused": 0,
         "images": 1,
         "audios": 0,
         "fallbacks": 0,
@@ -190,8 +192,11 @@ async def test_status_projects_panel_state_and_closes_store(
                 "media_type": "image",
                 "selected": True,
                 "exists": True,
+                "required": True,
+                "state": "sent",
                 "reference_label": "图片1",
                 "note": "",
+                "status_detail": "",
                 "identity_id": "",
                 "prop_id": "",
                 "prop_scope": "",
@@ -213,6 +218,153 @@ async def test_status_projects_panel_state_and_closes_store(
         "/static/projects/proj-1/references/image.png?v="
     )
     assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_status_distinguishes_invalid_voice_from_missing_asset(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import seedance2_panel
+
+    context = _context(tmp_path)
+    beat = {
+        "beat_number": 3,
+        "audio_type": "dialogue",
+        "speaker": "白石夏音_学生时期",
+        "seedance2_config_json": "{}",
+    }
+    store = _Store([beat])
+    gateway, _episode_source, _prop_menu_source = _gateway(monkeypatch, store)
+    voice_path = (
+        Path(context.output_dir)
+        / "assets"
+        / "characters"
+        / "白石夏音"
+        / "voices"
+        / "voice_youth.wav"
+    )
+    voice_path.parent.mkdir(parents=True, exist_ok=True)
+    voice_path.write_bytes(b"voice")
+    validation_error = "参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。"
+    voice_asset = SimpleNamespace(
+        key="voice:白石夏音_学生时期",
+        label="白石夏音 · 学生时期声线",
+        media_type="audio",
+        selected=False,
+        exists=True,
+        required=True,
+        reference_label="未发送",
+        note="Seedance2 对白参考声线",
+        validation_error=validation_error,
+        fallback_text="",
+        identity_id="",
+        prop_id="",
+        prop_scope="",
+        path=voice_path,
+        crop_source_path=None,
+    )
+    state = SimpleNamespace(
+        assets=[voice_asset],
+        final_prompt="@音频1 保持角色声线",
+        prompt_source="generated",
+        prompt_status="ready",
+        prompt_guidance="",
+        text_overlay={},
+        prompt_inputs_hash="same",
+        current_prompt_inputs_hash="same",
+    )
+    monkeypatch.setattr(
+        seedance2_panel.seedance2_panel_service,
+        "build_seedance2_video_panel_state",
+        lambda **_kwargs: state,
+    )
+    monkeypatch.setattr(
+        seedance2_panel,
+        "dialogue_voice_reference_rows",
+        lambda *_args, **_kwargs: [
+            SimpleNamespace(
+                display_name="白石夏音",
+                speaker="白石夏音_学生时期",
+                status=SimpleNamespace(active_reference_path=voice_path),
+            )
+        ],
+    )
+
+    response = await gateway.status(
+        context,
+        Seedance2PanelQuery(project="demo", episode_num=2, beat_num=3),
+    )
+
+    data = response["data"]
+    assert data["voice"] == {
+        "required": True,
+        "ready": False,
+        "label": "声线不合规",
+        "detail": f"白石夏音 · 学生时期声线：{validation_error}",
+        "speaker": "白石夏音_学生时期",
+    }
+    assert data["assets"]["missing"] == 0
+    assert data["assets"]["invalid"] == 1
+    assert data["assets"]["unused"] == 0
+    item = data["assets"]["items"][0]
+    assert item["state"] == "invalid"
+    assert item["status_detail"] == validation_error
+    assert item["exists"] is True
+    assert item["reference_label"] == "未发送"
+    assert store.close_calls == 1
+
+
+@pytest.mark.parametrize(
+    ("asset_key", "asset_label"),
+    [
+        ("voice:narrator", "项目解说声线"),
+        ("voice:陆辰_青年时期", "陆辰 · 青年时期声线"),
+    ],
+    ids=["third-person", "first-person"],
+)
+def test_voice_status_reports_invalid_narration_reference(
+    monkeypatch,
+    tmp_path: Path,
+    asset_key: str,
+    asset_label: str,
+) -> None:
+    from ai_anime.modules.production.infrastructure import seedance2_panel
+
+    monkeypatch.setattr(
+        seedance2_panel,
+        "resolve_narrator_reference_status",
+        lambda **_kwargs: SimpleNamespace(
+            active_reference_path=tmp_path / "voice.mp3",
+            detail="",
+            error="",
+        ),
+    )
+    validation_error = "参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。"
+
+    result = seedance2_panel._voice_status_payload(
+        beat={"audio_type": "narration"},
+        characters=[],
+        username="alice",
+        project="demo",
+        store=object(),
+        output_dir=tmp_path,
+        assets=[
+            SimpleNamespace(
+                key=asset_key,
+                label=asset_label,
+                validation_error=validation_error,
+            )
+        ],
+    )
+
+    assert result == {
+        "required": True,
+        "ready": False,
+        "label": "声线不合规",
+        "detail": f"{asset_label}：{validation_error}",
+        "speaker": "NARRATOR",
+    }
 
 
 @pytest.mark.asyncio

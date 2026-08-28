@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sqlite3
 import struct
@@ -37,6 +38,7 @@ from ai_anime.modules.production.domain.seedance2_dialogue import (
 from ai_anime.modules.production.infrastructure.seedance2_voice import (
     DEFAULT_NARRATION_STYLE,
     find_identity_reference_audio,
+    NARRATOR_ASSET_KEY,
     NARRATOR_SPEAKER,
     resolve_character_voice,
 )
@@ -52,6 +54,8 @@ MIN_SEEDANCE2_VOICE_REFERENCE_SECONDS = 3.0
 MAX_SEEDANCE2_VOICE_REFERENCE_SECONDS = 5.0
 MIN_SUPPORTED_VOICE_REFERENCE_SECONDS = 1.8
 MAX_SUPPORTED_VOICE_REFERENCE_SECONDS = 15.0
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -849,6 +853,13 @@ def _narration_voice_asset(
     try:
         descriptor = load_narrator_reference_audio(username, project)
     except Exception:
+        logger.warning(
+            "Failed to load the narrator reference descriptor for %s/%s; "
+            "using the default path",
+            username,
+            project,
+            exc_info=True,
+        )
         descriptor = {}
     stored_path = _text(descriptor.get("path")) if isinstance(descriptor, dict) else ""
     path = (
@@ -857,7 +868,7 @@ def _narration_voice_asset(
         else (project_output / "assets" / "narrator" / "voice.mp3")
     )
     return {
-        "key": "voice:narrator",
+        "key": NARRATOR_ASSET_KEY,
         "label": "项目解说声线",
         "path": path,
         "identity_id": NARRATOR_SPEAKER,

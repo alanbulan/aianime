@@ -1,7 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { useRef, type DragEvent, type ReactNode } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import {
+  AlertTriangle,
   ChevronDown,
   Image as ImageIcon,
   Library,
@@ -30,6 +32,80 @@ const REFERENCE_TILE_CLASS =
   "group/reference-tile relative w-[6.75rem] overflow-hidden rounded-[7px] border border-border bg-muted transition-[border-color,background-color,box-shadow] duration-200 hover:border-foreground/25 hover:bg-accent";
 const TILE_ACTION_CLASS =
   "size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground";
+
+interface Seedance2ReferenceStats {
+  fallbacks: number;
+  invalid: number;
+  missing: number;
+  selected: number;
+  unused: number;
+}
+
+type ReferenceAssetState = NonNullable<Seedance2AssetItem["state"]>;
+
+const REFERENCE_STATE_LABEL_KEYS: Record<ReferenceAssetState, string> = {
+  sent: "seedance2ReferenceSent",
+  invalid: "seedance2ReferenceInvalid",
+  missing: "seedance2ReferenceMissing",
+  fallback: "seedance2ReferenceFallback",
+  unused: "seedance2ReferenceUnused",
+};
+
+export function seedance2ReferenceStatsText(
+  t: TFunction,
+  stats: Seedance2ReferenceStats,
+): string {
+  const parts = [
+    t("episode.workbench.video.seedance2ReferenceStatSent", {
+      count: stats.selected,
+    }),
+  ];
+  if (stats.invalid > 0) {
+    parts.push(
+      t("episode.workbench.video.seedance2ReferenceStatInvalid", {
+        count: stats.invalid,
+      }),
+    );
+  }
+  if (stats.missing > 0) {
+    parts.push(
+      t("episode.workbench.video.seedance2ReferenceStatMissing", {
+        count: stats.missing,
+      }),
+    );
+  }
+  if (stats.unused > 0) {
+    parts.push(
+      t("episode.workbench.video.seedance2ReferenceStatUnused", {
+        count: stats.unused,
+      }),
+    );
+  }
+  if (stats.fallbacks > 0) {
+    parts.push(
+      t("episode.workbench.video.seedance2ReferenceStatFallback", {
+        count: stats.fallbacks,
+      }),
+    );
+  }
+  return parts.join(" · ");
+}
+
+function referenceAssetState(
+  asset: Seedance2AssetItem,
+): ReferenceAssetState {
+  // The API state is authoritative; keep this fallback aligned with backend
+  // _asset_delivery_state for older payloads.
+  if (asset.state) return asset.state;
+  if (asset.selected) return "sent";
+  if (asset.validation_error) return "invalid";
+  if (asset.exists === false) {
+    if (asset.fallback_text && asset.required === false) return "fallback";
+    return asset.required === false ? "unused" : "missing";
+  }
+  if (asset.fallback_text) return "fallback";
+  return "unused";
+}
 
 function ReferencePanelHeader({
   badge,
@@ -184,32 +260,45 @@ export function Seedance2ReferenceAssetsView({
   assets,
   controller,
   imageOnly,
+  invalidCount,
+  fallbackCount,
   missingCount,
   mode,
   open,
   selectedCount,
+  unusedCount,
   onOpenChange,
   onReferenceDragStart,
 }: {
   assets: Seedance2AssetItem[];
   controller: Seedance2AssetOperationsController;
   imageOnly: boolean;
+  invalidCount: number;
+  fallbackCount: number;
   missingCount: number;
   mode: Seedance2ConfigDraft["mode"];
   open: boolean;
   selectedCount: number;
+  unusedCount: number;
   onOpenChange(open: boolean): void;
   onReferenceDragStart(event: DragEvent<HTMLElement>, label: string): void;
 }) {
   const { t } = useTranslation();
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const problemAssets = assets.filter((asset) => {
+    const state = referenceAssetState(asset);
+    return state === "invalid" || state === "missing";
+  });
 
   return (
     <div className="rounded-[10px] border border-border bg-card">
       <ReferencePanelHeader
-        badge={t("episode.workbench.video.seedance2ReferenceStats", {
-          selected: selectedCount,
+        badge={seedance2ReferenceStatsText(t, {
+          fallbacks: fallbackCount,
+          invalid: invalidCount,
           missing: missingCount,
+          selected: selectedCount,
+          unused: unusedCount,
         })}
         open={open}
         onOpenChange={onOpenChange}
@@ -246,6 +335,7 @@ export function Seedance2ReferenceAssetsView({
           {assets.length > 0 ? (
             <div className={REFERENCE_GRID_CLASS}>
               {assets.map((asset) => {
+                const state = referenceAssetState(asset);
                 const referenceLabel =
                   asset.reference_label && asset.reference_label !== "未发送"
                     ? asset.reference_label
@@ -265,11 +355,7 @@ export function Seedance2ReferenceAssetsView({
                   (asset.url || asset.path)
                     ? resolveMediaUrl(asset.url || asset.path)
                     : null;
-                const hasFallback =
-                  !asset.selected &&
-                  asset.media_type === "image" &&
-                  asset.exists === false &&
-                  asset.note.trim().length > 0;
+                const hasFallback = state === "fallback";
                 const showTileText =
                   Boolean(assetImageSrc) ||
                   asset.media_type === "audio" ||
@@ -279,13 +365,11 @@ export function Seedance2ReferenceAssetsView({
                   (asset.can_crop && asset.media_type === "image") ||
                   (asset.can_trim && asset.media_type === "audio") ||
                   asset.can_delete;
-                const stateLabel = asset.selected
-                  ? t("episode.workbench.video.seedance2ReferenceSent")
-                  : hasFallback
-                    ? t("episode.workbench.video.seedance2ReferenceFallback")
-                    : asset.exists === false
-                      ? t("episode.workbench.video.seedance2ReferenceMissing")
-                      : t("episode.workbench.video.seedance2ReferenceUnused");
+                const stateLabel = t(
+                  `episode.workbench.video.${REFERENCE_STATE_LABEL_KEYS[state]}`,
+                );
+                const tileDetail =
+                  asset.validation_error || asset.status_detail || asset.note;
                 return (
                   <div
                     key={asset.key}
@@ -302,7 +386,7 @@ export function Seedance2ReferenceAssetsView({
                       canInsertReference &&
                         "cursor-grab active:cursor-grabbing hover:shadow-xl",
                     )}
-                    data-ui-tooltip={asset.note || asset.label}
+                    data-ui-tooltip={tileDetail || asset.label}
                   >
                     {assetImageSrc ? (
                       <img
@@ -337,8 +421,10 @@ export function Seedance2ReferenceAssetsView({
                       <span
                         className={cn(
                           "shrink-0 rounded-[4px] border px-1 py-0.5 text-[10px] leading-none shadow-sm backdrop-blur-sm",
-                          asset.selected
+                          state === "sent"
                             ? "border-primary/35 bg-primary/18 text-primary"
+                            : state === "invalid" || state === "missing"
+                              ? "border-destructive/35 bg-destructive/15 text-destructive"
                             : "border-media-foreground/10 bg-media/50 text-media-foreground/60",
                         )}
                       >
@@ -350,9 +436,9 @@ export function Seedance2ReferenceAssetsView({
                         <div className="truncate text-[10px] font-medium leading-3 text-media-foreground/90">
                           {asset.label}
                         </div>
-                        {asset.note && (
+                        {tileDetail && (
                           <div className="truncate text-[9px] leading-3 text-media-foreground/50">
-                            {asset.note}
+                            {tileDetail}
                           </div>
                         )}
                       </div>
@@ -418,6 +504,30 @@ export function Seedance2ReferenceAssetsView({
             </div>
           ) : (
             <EmptyReferences />
+          )}
+          {problemAssets.length > 0 && (
+            <div
+              role="alert"
+              className="mt-3 flex gap-2 rounded-[8px] border border-destructive/30 bg-destructive/[0.06] p-2.5 text-xs text-destructive"
+            >
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+              <div className="min-w-0 space-y-1">
+                <div className="font-medium">
+                  {t("episode.workbench.video.seedance2ReferenceProblemTitle")}
+                </div>
+                {problemAssets.map((asset) => (
+                  <div key={asset.key} className="break-words text-[11px]">
+                    {t("episode.workbench.video.seedance2ReferenceProblemItem", {
+                      label: asset.label,
+                      detail:
+                        asset.validation_error ||
+                        asset.status_detail ||
+                        t("episode.workbench.video.seedance2ReferenceMissing"),
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

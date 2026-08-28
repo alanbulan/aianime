@@ -56,6 +56,55 @@ describe("Production video model query", () => {
     ]);
   });
 
+  it("recognizes the cloud Seedance2 catalog entry from its display name", () => {
+    const useVideoModels = createUseVideoModels(() => ({
+      data: {
+        catalogVersion: "catalog-v1",
+        items: [
+          {
+            id: "cloud-seedance-2",
+            code: "video-seeddance-4wlmqpxwma4r65j3",
+            displayName: "doubao-seedance-2.0",
+            operation: "VIDEO",
+            capabilities: {
+              routeSelector: "cloud:video-seeddance-4wlmqpxwma4r65j3",
+              modes: [
+                "TEXT_TO_VIDEO",
+                "IMAGE_TO_VIDEO",
+                "MULTIMODAL_REFERENCE",
+              ],
+              ratioOptions: ["16:9", "9:16", "1:1"],
+              resolutionOptions: ["480p", "720p", "1080p"],
+              minDuration: 4,
+              maxDuration: 15,
+              referenceImageMax: 9,
+              referenceVideoMax: 3,
+            },
+            parameterSchema: {},
+          },
+        ],
+      },
+      error: null,
+      isLoading: false,
+    }));
+
+    const { result } = renderHook(() => useVideoModels());
+
+    expect(result.current.data).toEqual([
+      expect.objectContaining({
+        value: "cloud:video-seeddance-4wlmqpxwma4r65j3",
+        apiModel: "video-seeddance-4wlmqpxwma4r65j3",
+        label: "doubao-seedance-2.0",
+        profile: "seedance2",
+        supportsAdvancedConfig: true,
+        minDuration: 4,
+        maxDuration: 15,
+        resolutionOptions: ["480p", "720p", "1080p"],
+        ratioOptions: ["16:9", "9:16", "1:1"],
+      }),
+    ]);
+  });
+
   it("does not let a stale persisted model bypass the current catalog", () => {
     const options = [{ value: "video-a" }, { value: "video-b" }];
 

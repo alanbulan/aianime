@@ -16,6 +16,7 @@ from ai_anime.modules.project_workspace.public import (
 )
 from ai_anime.modules.production.infrastructure.seedance2_assets import (
     Seedance2ResolvedAsset,
+    append_seedance2_user_reference_assets,
     apply_prompt_audio_selection,
     build_seedance2_project_assets,
     selected_reference_paths,
@@ -36,7 +37,10 @@ from ai_anime.modules.production.infrastructure.seedance2_prompt import (
     compute_seedance2_prompt_inputs_hash,
     generate_seedance2_prompt,
 )
-from ai_anime.modules.production.infrastructure.seedance2_voice import normalize_seedance2_audio_type
+from ai_anime.modules.production.infrastructure.seedance2_voice import (
+    NARRATOR_ASSET_KEY,
+    normalize_seedance2_audio_type,
+)
 from ai_anime.shared.utils.media_io import crop_image_to_path, get_audio_duration
 from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -187,7 +191,11 @@ async def generate_seedance2_prompt_for_panel(
         next_beat=next_beat,
         prop_menu=prop_menu,
     )
-    _append_seedance2_user_reference_assets(assets, config)
+    append_seedance2_user_reference_assets(
+        assets,
+        reference_image_paths=list(config.reference_image_paths),
+        reference_audio_paths=list(config.reference_audio_paths),
+    )
     initial_prompt = _seedance2_initial_prompt(beat)
     reference_prompt = str(
         manual_prompt_reference
@@ -383,7 +391,7 @@ async def trim_seedance2_audio_to_reference(
         duration_seconds=duration_seconds,
     )
 
-    if str(asset_key or "").strip() == "voice:narrator":
+    if str(asset_key or "").strip() == NARRATOR_ASSET_KEY:
         target = Path(project_dir) / "assets" / "narrator" / "voice.mp3"
         target.parent.mkdir(parents=True, exist_ok=True)
         _archive_narrator_voice_siblings(target)
@@ -473,7 +481,11 @@ def build_seedance2_video_panel_state(
         characters=characters,
         prop_menu=prop_menu,
     )
-    _append_seedance2_user_reference_assets(assets, config)
+    append_seedance2_user_reference_assets(
+        assets,
+        reference_image_paths=list(config.reference_image_paths),
+        reference_audio_paths=list(config.reference_audio_paths),
+    )
     prompt_source = config.prompt_source or "saved"
     final_prompt = config.final_prompt
     initial_prompt = _seedance2_initial_prompt(beat)
@@ -590,87 +602,22 @@ def _sync_seedance2_asset_paths(
         next_beat=next_beat,
         prop_menu=prop_menu,
     )
-    _append_seedance2_user_reference_assets(assets, config)
+    append_seedance2_user_reference_assets(
+        assets,
+        reference_image_paths=list(config.reference_image_paths),
+        reference_audio_paths=list(config.reference_audio_paths),
+    )
     assets = apply_prompt_audio_selection(assets, str(config.final_prompt or ""))
     auto_images = selected_reference_paths(assets, "reference_images")
     auto_audios = selected_reference_paths(assets, "reference_audios")
-    extra_images = [path for path in config.reference_image_paths if path not in auto_images]
-    extra_audios: list[str] = []
+    extra_images = [
+        path for path in config.reference_image_paths if path not in auto_images
+    ]
+    extra_audios = [
+        path for path in config.reference_audio_paths if path not in auto_audios
+    ]
     config.reference_image_paths = _unique_paths(auto_images + extra_images)
     config.reference_audio_paths = _unique_paths(auto_audios + extra_audios)
-
-
-def _seedance2_user_reference_paths(
-    config_paths: list[str],
-    auto_paths: set[str],
-) -> list[str]:
-    return [
-        str(path)
-        for path in config_paths
-        if str(path or "").strip() and str(path) not in auto_paths
-    ]
-
-
-def _append_seedance2_user_reference_assets(
-    assets: list[Seedance2ResolvedAsset],
-    config: Any,
-) -> None:
-    auto_image_paths = {
-        str(asset.path)
-        for asset in assets
-        if asset.selected and asset.request_field == "reference_images"
-    }
-    auto_audio_paths = {
-        str(asset.path)
-        for asset in assets
-        if asset.selected and asset.request_field == "reference_audios"
-    }
-    image_count = sum(
-        1 for asset in assets if asset.selected and asset.request_field == "reference_images"
-    )
-    audio_count = sum(
-        1 for asset in assets if asset.selected and asset.request_field == "reference_audios"
-    )
-    for path in _seedance2_user_reference_paths(
-        list(config.reference_image_paths),
-        auto_image_paths,
-    ):
-        image_count += 1
-        item_path = Path(path)
-        validation_error = (
-            validate_seedance2_reference_image(item_path) if item_path.exists() else ""
-        )
-        assets.append(
-            Seedance2ResolvedAsset(
-                key=f"user_image:{path}",
-                label=item_path.name,
-                media_type="image",
-                path=item_path,
-                exists=item_path.exists(),
-                selected=item_path.exists() and not validation_error,
-                request_field="reference_images",
-                reference_label=f"图片{image_count}",
-                validation_error=validation_error,
-            )
-        )
-    for path in _seedance2_user_reference_paths(
-        list(config.reference_audio_paths),
-        auto_audio_paths,
-    ):
-        audio_count += 1
-        item_path = Path(path)
-        assets.append(
-            Seedance2ResolvedAsset(
-                key=f"user_audio:{path}",
-                label=item_path.name,
-                media_type="audio",
-                path=item_path,
-                exists=item_path.exists(),
-                selected=item_path.exists(),
-                request_field="reference_audios",
-                reference_label=f"音频{audio_count}",
-            )
-        )
 
 
 def _seedance2_default_prompt(

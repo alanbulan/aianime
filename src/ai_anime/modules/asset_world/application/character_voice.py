@@ -69,6 +69,12 @@ class CharacterVoiceUseCases:
     def __init__(self, files: CharacterVoiceFiles) -> None:
         self._files = files
 
+    def decode_recording(self, data_url: str) -> tuple[bytes, str]:
+        try:
+            return self._files.decode_recording(data_url)
+        except ValueError as exc:
+            raise InvalidCharacterVoiceInput(str(exc)) from exc
+
     def list_samples(
         self,
         *,

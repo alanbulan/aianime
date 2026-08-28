@@ -335,16 +335,23 @@ export function Seedance2MediaPreview({
 
 export function Seedance2SummaryPill({
   active,
+  attention = false,
+  detail,
   label,
 }: {
   active: boolean;
+  attention?: boolean;
+  detail?: string;
   label: string;
 }) {
   return (
     <span
+      data-ui-tooltip={detail || undefined}
       className={cn(
         "inline-flex h-5 max-w-full items-center rounded-full border px-2 text-[11px] leading-none",
-        active
+        attention
+          ? "border-destructive/35 bg-destructive/[0.07] text-destructive"
+          : active
           ? "border-primary/35 bg-primary/[0.07] text-primary"
           : "border-border bg-muted text-muted-foreground",
       )}
@@ -352,7 +359,11 @@ export function Seedance2SummaryPill({
       <span
         className={cn(
           "mr-1.5 size-1.5 shrink-0 rounded-full",
-          active ? "bg-primary" : "bg-muted-foreground/35",
+          attention
+            ? "bg-destructive"
+            : active
+              ? "bg-primary"
+              : "bg-muted-foreground/35",
         )}
       />
       <span className="truncate">{label}</span>

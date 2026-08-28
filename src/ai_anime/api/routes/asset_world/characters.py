@@ -58,7 +58,6 @@ from ai_anime.modules.asset_world.public import (
     image_settings_use_cases,
     character_task_use_cases,
     character_voice_use_cases,
-    decode_recorded_audio_data_url,
     is_supported_voice_sample,
 )
 from ai_anime.shared.project_media import make_project_asset_url_builder
@@ -675,7 +674,8 @@ async def record_character_voice_sample(
         await _resolve_character_project(project, user)
     )
     try:
-        content, extension = decode_recorded_audio_data_url(body.data_url)
+        voice_use_cases = character_voice_use_cases()
+        content, extension = voice_use_cases.decode_recording(body.data_url)
         created_voice, source_path = _create_reusable_character_voice(
             ctx=ctx,
             character_name=name,
@@ -684,7 +684,7 @@ async def record_character_voice_sample(
             content=content,
             mime_type=("audio/mpeg" if extension == ".mp3" else "audio/wav"),
         )
-        data = await character_voice_use_cases().bind_sample(
+        data = await voice_use_cases.bind_sample(
             repository=store,
             project_dir=project_dir,
             character_name=name,

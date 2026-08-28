@@ -59,14 +59,22 @@ beforeAll(async () => {
                 videoReady: "视频",
                 seedance2References: "参考素材",
                 seedance2Voice: "声线",
-                seedance2ReferenceStats: "{{selected}} 已发送 / {{missing}} 缺失",
+                seedance2ReferenceStatSent: "{{count}} 已发送",
+                seedance2ReferenceStatInvalid: "{{count}} 不合规",
+                seedance2ReferenceStatMissing: "{{count}} 文件缺失",
+                seedance2ReferenceStatUnused: "{{count}} 未引用",
+                seedance2ReferenceStatFallback: "{{count}} 文本替代",
                 seedance2TextOverlay: "画面文字",
                 seedance2AtReferences: "@ 引用",
                 seedance2MentionCandidates: "引用候选",
                 seedance2ReferenceDetails: "参考素材详情",
                 seedance2ReferenceSent: "已发送",
+                seedance2ReferenceInvalid: "不合规",
                 seedance2ReferenceMissing: "缺失",
                 seedance2ReferenceFallback: "缺参考图",
+                seedance2ReferenceUnused: "未引用",
+                seedance2ReferenceProblemTitle: "以下素材未发送，请先处理：",
+                seedance2ReferenceProblemItem: "{{label}}：{{detail}}",
                 seedance2ReferenceImage: "参考图",
                 seedance2ReferenceEmpty: "暂无参考素材",
                 seedance2AssetUpload: "上传素材",
@@ -175,6 +183,7 @@ const trimSeedance2AssetMock: Mock = vi.fn();
 const videoQueryMockState = vi.hoisted(() => ({
   hideReturnedLastFrame: false,
   includeAudioAsset: false,
+  invalidVoiceAsset: false,
   seedance2AssetsOverride: null as Seedance2AssetItem[] | null,
 }));
 
@@ -275,9 +284,13 @@ const videoQueryMocks = vi.hoisted(() => ({
         },
         voice: {
           required: true,
-          ready: true,
-          label: "声线就绪",
-          detail: "陆辰_青年时期",
+          ready: !videoQueryMockState.invalidVoiceAsset,
+          label: videoQueryMockState.invalidVoiceAsset
+            ? "声线不合规"
+            : "声线就绪",
+          detail: videoQueryMockState.invalidVoiceAsset
+            ? "白石夏音 · 学生时期声线：参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。"
+            : "陆辰_青年时期",
           speaker: "陆辰_青年时期",
         },
         prompt: {
@@ -297,12 +310,14 @@ const videoQueryMocks = vi.hoisted(() => ({
           inputs_stale: false,
         },
         assets: {
-          total: 5,
-          selected: 4,
-          missing: 1,
+          total: videoQueryMockState.invalidVoiceAsset ? 1 : 6,
+          selected: videoQueryMockState.invalidVoiceAsset ? 0 : 4,
+          missing: 0,
+          invalid: videoQueryMockState.invalidVoiceAsset ? 1 : 0,
+          unused: videoQueryMockState.invalidVoiceAsset ? 0 : 1,
           images: 3,
           audios: 1,
-          fallbacks: 1,
+          fallbacks: videoQueryMockState.invalidVoiceAsset ? 0 : 1,
           items: (
             videoQueryMockState.seedance2AssetsOverride ?? [
             {
@@ -435,8 +450,11 @@ const videoQueryMocks = vi.hoisted(() => ({
               media_type: "image",
               selected: false,
               exists: false,
+              required: false,
+              state: "fallback" as const,
               reference_label: "未发送",
               note: "有图时作为角色身份图保持一致",
+              fallback_text: "使用角色文本身份描述",
             },
           ]).filter(
             (asset) =>
@@ -816,6 +834,7 @@ function renderPane(
 beforeEach(() => {
   videoQueryMockState.hideReturnedLastFrame = false;
   videoQueryMockState.includeAudioAsset = false;
+  videoQueryMockState.invalidVoiceAsset = false;
   videoQueryMockState.seedance2AssetsOverride = null;
   useAspectRatioStore.getState().reset();
   updateBeatMock.mockReset();
@@ -1134,7 +1153,9 @@ describe("VideoPane Seedance2 inspector", () => {
     expect(screen.queryByRole("button", { name: "插入引用" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "裁剪" }).length).toBeGreaterThan(0);
     expect(screen.getByText("声线就绪")).toBeInTheDocument();
-    expect(screen.getAllByText("4 已发送 / 1 缺失").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("4 已发送 · 1 未引用 · 1 文本替代").length,
+    ).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "画面文字" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("group", { name: "Seedance2 预览模式" }),
@@ -1142,6 +1163,64 @@ describe("VideoPane Seedance2 inspector", () => {
     expect(screen.queryByRole("button", { name: "音频" })).not.toBeInTheDocument();
     expect(screen.getAllByText("Render").length).toBeGreaterThan(0);
     expect(screen.getAllByText("已配置").length).toBeGreaterThan(0);
+  });
+
+  it("shows an existing but too-short voice as invalid instead of missing or unused", () => {
+    const validationError =
+      "参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。";
+    videoQueryMockState.invalidVoiceAsset = true;
+    videoQueryMockState.seedance2AssetsOverride = [
+      {
+        key: "voice:白石夏音_学生时期",
+        label: "白石夏音 · 学生时期声线",
+        media_type: "audio",
+        selected: false,
+        exists: true,
+        required: true,
+        state: "invalid",
+        reference_label: "未发送",
+        note: "Seedance2 对白参考声线",
+        status_detail: validationError,
+        validation_error: validationError,
+        path: "assets/characters/白石夏音/voices/voice_youth.wav",
+        can_crop: false,
+        can_trim: true,
+        can_delete: false,
+      },
+    ];
+
+    renderPane();
+
+    expect(screen.getByText("声线不合规")).toBeInTheDocument();
+    expect(screen.getAllByText("0 已发送 · 1 不合规").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText("以下素材未发送，请先处理："),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(validationError).length).toBeGreaterThan(0);
+    expect(screen.getByText("不合规")).toBeInTheDocument();
+    expect(screen.queryByText("0 已发送 · 1 文件缺失")).not.toBeInTheDocument();
+    expect(screen.queryByText("未引用")).not.toBeInTheDocument();
+  });
+
+  it("keeps a required legacy asset missing even when fallback text is present", () => {
+    videoQueryMockState.seedance2AssetsOverride = [
+      {
+        key: "identity:陆辰_青年时期",
+        label: "陆辰 · 青年时期",
+        media_type: "image",
+        selected: false,
+        exists: false,
+        required: true,
+        reference_label: "未发送",
+        note: "角色身份图缺失",
+        fallback_text: "使用角色文本身份描述",
+      },
+    ];
+
+    renderPane();
+
+    expect(screen.getByText("缺失")).toBeInTheDocument();
+    expect(screen.queryByText("缺参考图")).not.toBeInTheDocument();
   });
 
   it("renders a single Seedance2 video generation action", () => {

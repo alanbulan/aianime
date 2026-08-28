@@ -30,6 +30,7 @@ from ai_anime.modules.production.domain.seedance2_dialogue import (
 AudioUrlBuilder = Callable[[Path], str]
 IDENTITY_VOICE_EXTENSIONS = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm")
 NARRATOR_SPEAKER = "__narrator__"
+NARRATOR_ASSET_KEY = "voice:narrator"
 
 DEFAULT_NARRATION_STYLE = "third_person"
 NARRATION_STYLES: dict[str, dict[str, str]] = {

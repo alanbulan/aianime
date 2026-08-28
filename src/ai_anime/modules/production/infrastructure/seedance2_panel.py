@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,6 +36,8 @@ from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
 from ai_anime.shared.utils.path_resolver import PathResolver
 
+logger = logging.getLogger(__name__)
+
 _PanelRequest = (
     Seedance2PanelQuery
     | UploadSeedance2AssetCommand
@@ -42,6 +45,20 @@ _PanelRequest = (
     | CropSeedance2AssetCommand
     | TrimSeedance2AudioAssetCommand
 )
+
+
+def _asset_delivery_state(asset: Any) -> str:
+    if bool(asset.selected):
+        return "sent"
+    if bool(asset.validation_error):
+        return "invalid"
+    if not bool(asset.exists):
+        if str(asset.fallback_text or "").strip() and not bool(asset.required):
+            return "fallback"
+        return "missing" if bool(asset.required) else "unused"
+    if str(asset.fallback_text or "").strip():
+        return "fallback"
+    return "unused"
 
 
 @dataclass(frozen=True)
@@ -63,6 +80,7 @@ def _asset_status_payload(
     project_context: ProjectContext,
     output_dir: Path,
 ) -> dict[str, Any]:
+    delivery_state = _asset_delivery_state(asset)
     try:
         relative_path = str(Path(asset.path).relative_to(output_dir))
     except ValueError:
@@ -104,8 +122,11 @@ def _asset_status_payload(
         "media_type": str(asset.media_type),
         "selected": bool(asset.selected),
         "exists": bool(asset.exists),
+        "required": bool(asset.required),
+        "state": delivery_state,
         "reference_label": str(asset.reference_label),
         "note": str(asset.note or asset.validation_error or ""),
+        "status_detail": str(asset.validation_error or ""),
         "identity_id": str(getattr(asset, "identity_id", "") or ""),
         "prop_id": str(getattr(asset, "prop_id", "") or ""),
         "prop_scope": str(getattr(asset, "prop_scope", "") or ""),
@@ -161,8 +182,11 @@ def _returned_last_frame_status_payload(
         "media_type": "image",
         "selected": False,
         "exists": True,
+        "required": False,
+        "state": "unused",
         "reference_label": "尾帧",
         "note": "Seedance2 返回尾帧",
+        "status_detail": "",
         "identity_id": "",
         "prop_id": "",
         "prop_scope": "",
@@ -188,6 +212,7 @@ def _voice_status_payload(
     project: str,
     store: Any,
     output_dir: Path,
+    assets: list[Any],
 ) -> dict[str, Any]:
     audio_type = normalize_seedance2_audio_type(beat)
     if audio_type == "silence":
@@ -207,6 +232,22 @@ def _voice_status_payload(
         ready_rows = [row for row in rows if row.status.active_reference_path]
         names = [row.display_name or row.speaker for row in rows]
         ready = bool(rows) and len(ready_rows) == len(rows)
+        invalid_assets = [
+            asset
+            for asset in assets
+            if str(asset.key).startswith("voice:") and bool(asset.validation_error)
+        ]
+        if invalid_assets:
+            return {
+                "required": True,
+                "ready": False,
+                "label": "声线不合规",
+                "detail": "；".join(
+                    f"{asset.label}：{asset.validation_error}"
+                    for asset in invalid_assets
+                ),
+                "speaker": str(beat.get("speaker") or ""),
+            }
         return {
             "required": True,
             "ready": ready,
@@ -220,6 +261,21 @@ def _voice_status_payload(
         username=username,
         project=project,
     )
+    invalid_assets = [
+        asset
+        for asset in assets
+        if str(asset.key).startswith("voice:") and bool(asset.validation_error)
+    ]
+    if invalid_assets:
+        return {
+            "required": True,
+            "ready": False,
+            "label": "声线不合规",
+            "detail": "；".join(
+                f"{asset.label}：{asset.validation_error}" for asset in invalid_assets
+            ),
+            "speaker": "NARRATOR",
+        }
     return {
         "required": True,
         "ready": bool(status.active_reference_path),
@@ -300,16 +356,7 @@ class LocalSeedance2PanelGateway:
         )
         assets = state.assets
         selected_assets = [asset for asset in assets if asset.selected]
-        missing_assets = [
-            asset
-            for asset in assets
-            if asset.required and (not asset.exists or bool(asset.validation_error))
-        ]
-        fallback_assets = [
-            asset
-            for asset in assets
-            if str(asset.fallback_text or "").strip() and not asset.selected
-        ]
+        asset_states = [_asset_delivery_state(asset) for asset in assets]
         paths = PathResolver(session.output_dir, request.episode_num)
         asset_items = [
             _asset_status_payload(
@@ -331,6 +378,14 @@ class LocalSeedance2PanelGateway:
                 enabled=bool(config.return_last_frame),
             )
         except Exception:
+            logger.warning(
+                "Failed to build Seedance2 returned-last-frame status for "
+                "project=%s episode=%s beat=%s",
+                request.project,
+                request.episode_num,
+                request.beat_num,
+                exc_info=True,
+            )
             returned_last_frame = None
         if returned_last_frame is not None:
             asset_items.append(returned_last_frame)
@@ -355,6 +410,7 @@ class LocalSeedance2PanelGateway:
                     project=request.project,
                     store=session.store,
                     output_dir=session.output_dir,
+                    assets=assets,
                 ),
                 "prompt": {
                     "ready": bool(str(state.final_prompt or "").strip()),
@@ -374,7 +430,9 @@ class LocalSeedance2PanelGateway:
                 "assets": {
                     "total": len(assets),
                     "selected": len(selected_assets),
-                    "missing": len(missing_assets),
+                    "missing": asset_states.count("missing"),
+                    "invalid": asset_states.count("invalid"),
+                    "unused": asset_states.count("unused"),
                     "images": len(
                         [
                             asset
@@ -389,7 +447,7 @@ class LocalSeedance2PanelGateway:
                             if asset.media_type == "audio"
                         ]
                     ),
-                    "fallbacks": len(fallback_assets),
+                    "fallbacks": asset_states.count("fallback"),
                     "items": asset_items,
                 },
             },

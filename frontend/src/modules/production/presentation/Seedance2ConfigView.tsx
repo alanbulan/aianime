@@ -53,7 +53,10 @@ import {
   normalizeSeedance2Resolution,
 } from "@/modules/production/domain/video-config";
 import { BeatVideoGenerationAction } from "@/modules/production/presentation/BeatVideoGenerationView";
-import { Seedance2ReferenceAssetsView } from "@/modules/production/presentation/Seedance2ReferenceAssetsView";
+import {
+  Seedance2ReferenceAssetsView,
+  seedance2ReferenceStatsText,
+} from "@/modules/production/presentation/Seedance2ReferenceAssetsView";
 import {
   Seedance2Checkbox,
   Seedance2Field,
@@ -332,6 +335,8 @@ export function Seedance2ConfigView({
         {showSeedance2Config && (
           <Seedance2SummaryPill
             active={status?.voice.ready ?? false}
+            attention={Boolean(status?.voice.required && !status.voice.ready)}
+            detail={status?.voice.detail}
             label={
               status?.voice.label ??
               t("episode.workbench.video.narratorVoiceMissing")
@@ -339,9 +344,12 @@ export function Seedance2ConfigView({
           />
         )}
         <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-          {t("episode.workbench.video.seedance2ReferenceStats", {
-            selected: status?.assets.selected ?? 0,
+          {seedance2ReferenceStatsText(t, {
+            fallbacks: status?.assets.fallbacks ?? 0,
+            invalid: status?.assets.invalid ?? 0,
             missing: status?.assets.missing ?? 0,
+            selected: status?.assets.selected ?? 0,
+            unused: status?.assets.unused ?? 0,
           })}
         </span>
         <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
@@ -355,10 +363,13 @@ export function Seedance2ConfigView({
         assets={assets}
         controller={assetOperations}
         imageOnly={showHappyHorseConfig || showGrokVideoConfig}
+        invalidCount={status?.assets.invalid ?? 0}
+        fallbackCount={status?.assets.fallbacks ?? 0}
         missingCount={status?.assets.missing ?? 0}
         mode={draft.mode}
         open={referencesOpen}
         selectedCount={status?.assets.selected ?? 0}
+        unusedCount={status?.assets.unused ?? 0}
         onOpenChange={onReferencesOpenChange}
         onReferenceDragStart={handleReferenceDragStart}
       />

@@ -6,8 +6,11 @@ export interface Seedance2AssetItem {
   media_type: string;
   selected: boolean;
   exists: boolean;
+  required?: boolean;
+  state?: "sent" | "missing" | "invalid" | "unused" | "fallback";
   reference_label: string;
   note: string;
+  status_detail?: string;
   identity_id?: string;
   path?: string;
   url?: string;
@@ -51,6 +54,8 @@ export interface Seedance2BeatStatus {
     total: number;
     selected: number;
     missing: number;
+    invalid?: number;
+    unused?: number;
     images: number;
     audios: number;
     fallbacks: number;

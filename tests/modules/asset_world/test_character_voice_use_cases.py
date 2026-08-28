@@ -67,10 +67,13 @@ class _Files:
         self.clear_calls: list[dict[str, Any]] = []
         self.persist_identity_calls: list[dict[str, Any]] = []
         self.clear_identity_calls: list[dict[str, Any]] = []
+        self.decode_error: ValueError | None = None
         self.persist_error: ValueError | None = None
         self.trim_error: ValueError | None = None
 
     def decode_recording(self, data_url: str) -> tuple[bytes, str]:
+        if self.decode_error:
+            raise self.decode_error
         return data_url.encode(), ".wav"
 
     def read_source(self, source_path: str | Path) -> tuple[bytes, str]:
@@ -116,6 +119,20 @@ def _character(**overrides: Any) -> SimpleNamespace:
 
 def _media_url(path: str) -> str:
     return f"/media/{path}"
+
+
+def test_decode_recording_delegates_to_file_adapter() -> None:
+    result = CharacterVoiceUseCases(_Files()).decode_recording("recorded-voice")
+
+    assert result == (b"recorded-voice", ".wav")
+
+
+def test_decode_recording_maps_file_validation_error() -> None:
+    files = _Files()
+    files.decode_error = ValueError("录音数据无效")
+
+    with pytest.raises(InvalidCharacterVoiceInput, match="录音数据无效"):
+        CharacterVoiceUseCases(files).decode_recording("invalid-recording")
 
 
 def test_list_samples_preserves_slot_order_and_default_inheritance() -> None:

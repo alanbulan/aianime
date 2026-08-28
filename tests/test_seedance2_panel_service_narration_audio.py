@@ -94,3 +94,28 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
     ]
     assert [asset.path for asset in selected_audio] == [uploaded_audio]
     assert selected_audio[0].key.startswith("user_audio:")
+
+
+def test_sync_asset_paths_preserves_unreferenced_uploaded_audio(tmp_path, monkeypatch):
+    from ai_anime.modules.production.application.seedance2_config import (
+        Seedance2VideoConfig,
+    )
+    from ai_anime.modules.production.infrastructure import seedance2_panel_service
+
+    uploaded_audio = tmp_path / "custom.wav"
+    uploaded_audio.write_bytes(b"user uploaded audio")
+    config = Seedance2VideoConfig(reference_audio_paths=[str(uploaded_audio)])
+    monkeypatch.setattr(
+        seedance2_panel_service,
+        "build_seedance2_project_assets",
+        lambda **_kwargs: [],
+    )
+
+    seedance2_panel_service._sync_seedance2_asset_paths(
+        config=config,
+        project_dir=tmp_path,
+        episode=1,
+        beat={"beat_number": 1, "audio_type": "narration"},
+    )
+
+    assert config.reference_audio_paths == [str(uploaded_audio)]

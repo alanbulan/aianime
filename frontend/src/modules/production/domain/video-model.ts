@@ -64,7 +64,7 @@ export function videoModelOptionFromCatalog(
   const capabilities = item.capabilities;
   const routeSelector = stringValue(capabilities.routeSelector);
   const properties = schemaProperties(item.parameterSchema);
-  const profile = videoProfile(capabilities, item.code);
+  const profile = videoProfile(capabilities, item.code, item.displayName);
   const resolutionOptions = stringArray(
     firstDefined(
       capabilities.resolutionOptions,
@@ -153,6 +153,7 @@ export function videoModelOptionFromCatalog(
 function videoProfile(
   capabilities: Record<string, unknown>,
   code: string,
+  displayName: string,
 ): VideoModelOption["profile"] {
   const declared = String(
     firstDefined(
@@ -163,7 +164,9 @@ function videoProfile(
   )
     .trim()
     .toLowerCase();
-  const normalized = `${declared} ${code}`.replace(/[\s._-]/g, "").toLowerCase();
+  const normalized = `${declared} ${code} ${displayName}`
+    .replace(/[\s._-]/g, "")
+    .toLowerCase();
   if (normalized.includes("happyhorse")) return "happyhorse";
   if (normalized.includes("grokvideo")) return "grok";
   if (normalized.includes("seedance2")) return "seedance2";
