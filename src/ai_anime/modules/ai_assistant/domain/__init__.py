@@ -51,7 +51,12 @@ from ai_anime.modules.ai_assistant.domain.scope import (
     ChatScope,
     InteractiveChatScopeKind,
 )
-from ai_anime.modules.ai_assistant.domain.prompt_context import compose_agent_prompt
+from ai_anime.modules.ai_assistant.domain.prompt_context import (
+    compose_agent_prompt,
+    compose_managed_context,
+    is_slash_command,
+    prepend_managed_context,
+)
 from ai_anime.modules.ai_assistant.domain.turn_guidance import (
     reingest_confirmation_reply,
     script_creation_guidance_prompt,
@@ -64,6 +69,7 @@ __all__ = [
     "canonical_media_path",
     "completion_text_or_existing",
     "compose_agent_prompt",
+    "compose_managed_context",
     "character_identity_requests",
     "content_media_urls",
     "content_relative_media_paths",
@@ -76,6 +82,7 @@ __all__ = [
     "filter_tool_ui_specs_for_prompt",
     "infer_display_tool_call_from_text",
     "is_hidden_chat_tool_event",
+    "is_slash_command",
     "is_display_tool_name",
     "is_markdown_image_ref",
     "markdown_image_refs",
@@ -90,6 +97,7 @@ __all__ = [
     "project_episode_media_specs",
     "project_scene_image_specs",
     "project_sketch_candidate_specs",
+    "prepend_managed_context",
     "reingest_confirmation_reply",
     "redact_local_filesystem_paths",
     "script_creation_guidance_prompt",

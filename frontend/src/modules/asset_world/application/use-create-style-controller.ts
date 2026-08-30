@@ -1,9 +1,13 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { StyleQueryHooks } from "@/modules/asset_world/application/style-query-hooks";
+import {
+  TASK_TYPES,
+  useTaskController,
+} from "@/modules/task_execution/public";
 import {
   buildStyleSavePayload,
   extractEditableStyleConfig,
@@ -48,6 +52,40 @@ export function createUseCreateStyleController(
     const previewPathRef = useRef<string | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const previewObjectUrlRef = useRef<string | null>(null);
+    const applyAnalyzedConfig = useCallback(
+      (result: unknown) => {
+        if (!result || typeof result !== "object") {
+          toast.error(t("common.error"));
+          return;
+        }
+        const analyzedConfig = result as Record<string, unknown>;
+        const label =
+          typeof analyzedConfig.label === "string"
+            ? analyzedConfig.label
+            : typeof analyzedConfig.suggested_label === "string"
+              ? analyzedConfig.suggested_label
+              : "";
+        setAnalyzed(
+          extractEditableStyleConfig({
+            id: "",
+            name: "",
+            config: { ...analyzedConfig, label },
+          } as Style),
+        );
+        toast.success(t("styles.paramsExtracted"));
+      },
+      [t],
+    );
+    const analysisTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.STYLE_ANALYSIS,
+        project,
+        episode: 0,
+      },
+      showCompleteToast: false,
+      onComplete: applyAnalyzedConfig,
+      onError: (error) => toast.error(error),
+    });
 
     useEffect(() => {
       if (previewObjectUrlRef.current) {
@@ -102,21 +140,8 @@ export function createUseCreateStyleController(
           toast.error(analyzeResponse.error);
           return;
         }
-        const analyzedConfig = analyzeResponse.data;
-        const label =
-          typeof analyzedConfig.label === "string"
-            ? analyzedConfig.label
-            : typeof analyzedConfig.suggested_label === "string"
-              ? analyzedConfig.suggested_label
-              : "";
-        setAnalyzed(
-          extractEditableStyleConfig({
-            id: "",
-            name: "",
-            config: { ...analyzedConfig, label },
-          } as Style),
-        );
-        toast.success(t("styles.paramsExtracted"));
+        analysisTask.start({ scope: analyzeResponse.scope });
+        toast.success(analyzeResponse.message);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : t("common.error"));
       }
@@ -153,11 +178,15 @@ export function createUseCreateStyleController(
       // handleAnalyze uploads first and only then analyzes, so gating on the
       // analyze mutation alone left the trigger live through the whole upload
       // phase — a second click there starts a concurrent upload+analyze pair.
-      analyzePending: uploadStylePreview.isPending || analyzeStyle.isPending,
+      analyzePending:
+        uploadStylePreview.isPending ||
+        analyzeStyle.isPending ||
+        analysisTask.started,
       createDisabled:
         createStyle.isPending ||
         uploadStylePreview.isPending ||
         analyzeStyle.isPending ||
+        analysisTask.started ||
         !id.trim() ||
         !name.trim(),
       createPending: createStyle.isPending,

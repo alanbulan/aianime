@@ -9,6 +9,7 @@ from ai_anime.modules.asset_world.application.dto import (
     BuildCharactersTask,
     BuildScenesTask,
     CharacterImageGenerationTask,
+    CharacterVoiceDesignTask,
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
@@ -57,6 +58,13 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
                 output_dir="output",
                 identity_id="young",
                 identity_name="少年",
+            ),
+        ),
+        await scheduler.enqueue_character_voice_design(
+            context,
+            CharacterVoiceDesignTask(
+                character_names=("秦", "楚"),
+                replace_existing=True,
             ),
         ),
         await scheduler.enqueue_build_scenes(
@@ -117,6 +125,7 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
     assert [request.task_type for request in requests] == [
         "build_characters",
         "character_identity_image",
+        "character_voice_design",
         "build_scenes",
         "scene_reference_asset",
         "stage_asset",
@@ -129,15 +138,17 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "default",
         "default",
         "default",
+        "default",
         "world",
         "default",
         "default",
         "default",
     ]
-    assert [request.episode for request in requests] == [0] * 8
+    assert [request.episode for request in requests] == [0] * 9
     assert [request.scope for request in requests] == [
         None,
         "character-scope",
+        "character_voice_design",
         None,
         "scene-scope",
         "stage-scope",
@@ -158,7 +169,12 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "scope": "character-scope",
         "output_dir": "output",
     }
-    assert requests[4].payload == {
+    assert requests[2].payload == {
+        "character_names": ["秦", "楚"],
+        "replace_existing": True,
+        "display_name": "批量设计角色声线",
+    }
+    assert requests[5].payload == {
         "scene_name": "大殿",
         "step": "pano_sharp",
         "params": {"source": "pano"},
@@ -173,10 +189,11 @@ async def test_scheduler_maps_all_asset_tasks_to_task_execution() -> None:
         "task-6",
         "task-7",
         "task-8",
+        "task-9",
     ]
-    assert receipts[4].task_key == "task-key-5"
-    assert receipts[6].queue == "inline"
-    assert requests[7].payload == {
+    assert receipts[5].task_key == "task-key-6"
+    assert receipts[7].queue == "inline"
+    assert requests[8].payload == {
         "style_id": "custom_style",
         "prompt": "日系二次元校园",
     }

@@ -1,6 +1,8 @@
 """风格管理 HTTP 适配器。"""
 
+import hashlib
 import logging
+from pathlib import Path
 
 import ai_anime.modules.asset_world.public as asset_world
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -191,27 +193,32 @@ async def analyze_style(
 ):
     """上传参考图片，AI 分析并提取风格参数。"""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    scope = _resolved_style_scope(resolved, request_project=project)
     content = await file.read()
     if not content:
         return {"ok": False, "error": "No file uploaded"}
-    billing = (
-        asset_world.StyleAnalysisBilling.from_project_context(resolved.ctx)
-        if resolved.ctx is not None
-        else None
-    )
-    command = asset_world.AnalyzeStyleCommand(
-        content=content,
-        mime_type=file.content_type or "image/jpeg",
-        filename=file.filename,
-        style_id=style_id,
-        billing=billing,
-    )
+    digest = hashlib.sha256(content).hexdigest()
+    suffix = Path(file.filename or "style.jpg").suffix.lower() or ".jpg"
+    staged_dir = resolved.project_dir / ".task_inputs" / "style_analysis"
+    staged_dir.mkdir(parents=True, exist_ok=True)
+    staged_path = staged_dir / f"{digest}{suffix}"
+    staged_path.write_bytes(content)
+    task_scope = f"style_analysis__{digest[:12]}"
     try:
-        data = await asset_world.analyze_style().execute(command, scope)
+        scheduled = await asset_world.style_preview_task_use_cases().schedule_analysis(
+            task_context=resolved.ctx,
+            source_path=staged_path,
+            mime_type=file.content_type or "image/jpeg",
+            filename=file.filename or staged_path.name,
+            style_id=style_id,
+            scope=task_scope,
+        )
     except asset_world.StyleRejected as exc:
+        staged_path.unlink(missing_ok=True)
         return _error(exc)
-    return {"ok": True, "data": data}
+    except Exception:
+        staged_path.unlink(missing_ok=True)
+        raise
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.put("/styles/{style_id}/preview")

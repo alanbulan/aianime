@@ -15,9 +15,8 @@ from ai_anime.api.deps import resolve_project_scope
 from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasMainlineBeatMissing,
     CreativeCanvasMainlineMediaMissing,
-    CreativeCanvasStagingPropRejected,
     CreativeCanvasSkillRunRejected,
-    GenerateCreativeCanvasStagingPropCommand,
+    StartCreativeCanvasStagingPropCommand,
     GenerateCreativeCanvasFrameFromContextCommand,
     GenerateCreativeCanvasScene360Command,
     GenerateCreativeCanvasSketchFromContextCommand,
@@ -31,7 +30,7 @@ from ai_anime.modules.creative_canvas.public import (
     creative_canvas_mainline_generation_use_cases,
     creative_canvas_skill_catalog_queries,
     creative_canvas_skill_run_use_cases,
-    creative_canvas_staging_prop_use_cases,
+    creative_canvas_long_operation_use_cases,
 )
 
 router = APIRouter()
@@ -85,19 +84,23 @@ async def freezone_ai_staging_prop(
     request: dict[str, object] = Body(default_factory=dict),
     user: dict = Depends(get_api_user),
 ):
-    await resolve_project_scope(
+    scope = await resolve_project_scope(
         project,
         user,
         required_role="editor",
         operation="access freezone project files",
     )
     try:
-        result = await creative_canvas_staging_prop_use_cases().generate(
-            GenerateCreativeCanvasStagingPropCommand(request=request)
+        receipt = await creative_canvas_long_operation_use_cases().start_staging_prop(
+            StartCreativeCanvasStagingPropCommand(
+                context=scope.ctx,
+                project_dir=scope.project_dir,
+                request=request,
+            )
         )
-    except CreativeCanvasStagingPropRejected as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return {"ok": True, "data": result}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"ok": True, "data": receipt.to_dict()}
 
 
 @router.post(

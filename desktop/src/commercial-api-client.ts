@@ -170,6 +170,14 @@ export class CommercialApiClient extends CommercialApiTransport {
     };
   }
 
+  async revealRememberedPassword(): Promise<string> {
+    const remembered = await this.loadRememberedLogin();
+    if (!remembered) {
+      throw new CommercialApiError("没有可用的已保存登录信息", { status: 401 });
+    }
+    return remembered.password;
+  }
+
   async loginRemembered(
     input: CommercialRememberedLoginInput = {},
   ): Promise<CommercialSessionSummary> {
@@ -177,25 +185,18 @@ export class CommercialApiClient extends CommercialApiTransport {
     if (!remembered) {
       throw new CommercialApiError("没有可用的已保存登录信息", { status: 401 });
     }
-    try {
-      return await this.login({
-        tenantCode: remembered.tenantCode,
-        username: remembered.username,
-        password: remembered.password,
-        rememberMe: input.rememberMe !== false,
-        ...(input.captchaKey === undefined
-          ? {}
-          : { captchaKey: input.captchaKey }),
-        ...(input.captchaCode === undefined
-          ? {}
-          : { captchaCode: input.captchaCode }),
-      });
-    } catch (error) {
-      if (isPermanentLoginFailure(error)) {
-        await this.clearRememberedLogin();
-      }
-      throw error;
-    }
+    return this.login({
+      tenantCode: remembered.tenantCode,
+      username: remembered.username,
+      password: remembered.password,
+      rememberMe: input.rememberMe !== false,
+      ...(input.captchaKey === undefined
+        ? {}
+        : { captchaKey: input.captchaKey }),
+      ...(input.captchaCode === undefined
+        ? {}
+        : { captchaCode: input.captchaCode }),
+    });
   }
 
   async register(input: CommercialRegistrationInput): Promise<void> {
@@ -223,9 +224,6 @@ export class CommercialApiClient extends CommercialApiTransport {
     } catch (error) {
       if (isAuthenticationFailure(error) || isPermanentLoginFailure(error)) {
         await this.clearSession();
-        if (isPermanentLoginFailure(error)) {
-          await this.clearRememberedLogin();
-        }
         return null;
       }
       return toSessionSummary(session);
@@ -403,6 +401,7 @@ export class CommercialApiClient extends CommercialApiTransport {
       query: compactObject({
         devicePublicKeyHash: optionalText(query.devicePublicKeyHash),
         modelOperation: optionalText(query.modelOperation),
+        catalogVersion: optionalText(query.catalogVersion),
         currentVersion: optionalText(query.currentVersion),
         target: optionalText(query.target),
         arch: optionalText(query.arch),

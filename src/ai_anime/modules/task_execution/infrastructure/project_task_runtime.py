@@ -20,7 +20,21 @@ _LONG_RUNNING_TASK_TYPES = frozenset(
         "production_workflow",
     }
 )
-_LONG_MEDIA_TASK_TYPES = frozenset({"selected_regen", "sketch_regen"})
+_LONG_MEDIA_TASK_TYPES = frozenset(
+    {
+        "selected_regen",
+        "sketch_regen",
+        "seedance2_prompt",
+        "episode_rewrite",
+        "style_analysis",
+        "character_voice_design",
+        "freezone_voice_design",
+        "freezone_voice_preset",
+        "freezone_mark_detect",
+        "freezone_ai_staging_prop",
+        "verification_model",
+    }
+)
 
 
 def project_task_timeout_seconds(task_type: str | None = None) -> int:
@@ -51,6 +65,7 @@ def ensure_builtin_runners_registered() -> None:
     from ai_anime.modules.task_execution.infrastructure.runners import (  # noqa: F401
         audio,
         character_image,
+        character_voice,
         episode_assets,
         freezone,
         graph_build,
@@ -67,6 +82,7 @@ def ensure_builtin_runners_registered() -> None:
         stage_asset,
         style_preview,
         video,
+        verification,
     )
 
 

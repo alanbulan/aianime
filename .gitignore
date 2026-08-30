@@ -33,6 +33,7 @@ node_modules/
 
 # 本地测试、构建缓存和样例产物
 /.codex-tmp/
+/.playwright-mcp/
 /prompts/
 /.sharp-*/
 /.tmp-7z-case-test/

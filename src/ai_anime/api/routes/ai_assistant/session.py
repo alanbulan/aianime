@@ -13,6 +13,8 @@ from ai_anime.api.routes.ai_assistant.schemas import (
     ChatScopePayload,
     ConversationDeleteIn,
     InboundFrameInvalid,
+    SessionModelGetIn,
+    SessionModelSetIn,
     ScopeSetIn,
     parse_inbound_frame,
     to_chat_scope,
@@ -22,6 +24,7 @@ from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     get_chat_worker_lifecycle,
     get_hermes_runtime_prewarmer,
+    get_hermes_session_models,
     get_scoped_chat_messages,
     should_prewarm_scope,
 )
@@ -29,6 +32,7 @@ from ai_anime.modules.ai_assistant.public import (
 hermes_runtime_prewarmer = get_hermes_runtime_prewarmer()
 chat_worker_lifecycle = get_chat_worker_lifecycle()
 scoped_chat_messages = get_scoped_chat_messages()
+hermes_session_models = get_hermes_session_models()
 
 
 async def _reject_frame(
@@ -57,6 +61,77 @@ async def _resolve_scope(
     except ValueError as exc:
         await _reject_frame(websocket, event_type, str(exc))
         return None
+
+
+async def _handle_session_model_frame(
+    websocket: WebSocket,
+    *,
+    username: str,
+    current_scope: ChatScope,
+    event_type: str,
+    raw: dict,
+) -> None:
+    model_type = SessionModelSetIn if event_type == "session.model.set" else SessionModelGetIn
+    try:
+        message = parse_inbound_frame(model_type, raw)
+    except InboundFrameInvalid as exc:
+        await _reject_frame(websocket, event_type, exc.reason)
+        return
+    requested_scope = await _resolve_scope(websocket, message.scope, event_type)
+    if requested_scope is None:
+        return
+    if requested_scope != current_scope:
+        await send_json_best_effort(
+            websocket,
+            {
+                "type": "session.model.state",
+                "scope": current_scope.to_dict(),
+                "selector": None,
+                "error": "模型选择未应用：目标对话与当前对话不一致。",
+            },
+        )
+        return
+    if chat_worker_lifecycle.is_busy(username):
+        await send_json_best_effort(
+            websocket,
+            {
+                "type": "session.model.state",
+                "scope": current_scope.to_dict(),
+                "selector": None,
+                "error": "当前对话正在执行任务，请在本轮结束后切换模型。",
+            },
+        )
+        return
+    try:
+        selector, reasoning_effort = (
+            await hermes_session_models.select(
+                username,
+                current_scope,
+                message.selector,
+                message.reasoning_effort,
+            )
+            if isinstance(message, SessionModelSetIn)
+            else await hermes_session_models.current(username, current_scope)
+        )
+        await send_json_best_effort(
+            websocket,
+            {
+                "type": "session.model.state",
+                "scope": current_scope.to_dict(),
+                "selector": selector,
+                "reasoning_effort": reasoning_effort,
+            },
+        )
+    except Exception:
+        await send_json_best_effort(
+            websocket,
+            {
+                "type": "session.model.state",
+                "scope": current_scope.to_dict(),
+                "selector": None,
+                "error": "读取或切换当前对话模型失败，请重试。",
+            },
+        )
 
 
 async def run_chat_session(websocket: WebSocket) -> None:
@@ -111,6 +186,15 @@ async def run_chat_session(websocket: WebSocket) -> None:
                 continue
 
             event_type = str(raw.get("type") or "")
+            if event_type in {"session.model.get", "session.model.set"}:
+                await _handle_session_model_frame(
+                    websocket,
+                    username=username,
+                    current_scope=current_scope,
+                    event_type=event_type,
+                    raw=raw,
+                )
+                continue
             if event_type == "conversation.delete":
                 try:
                     delete_message = parse_inbound_frame(ConversationDeleteIn, raw)

@@ -116,8 +116,20 @@ export interface CommercialInvocationListSnapshot {
 export interface CommercialModelCapabilitySnapshot {
   modelId: string;
   videoProfile?: "standard" | "seedance2" | "happyhorse" | "grok";
+  videoRatioOptions?: string[];
+  videoResolutionOptions?: string[];
+  videoSizeOptions?: string[];
+  videoSupportsGenerateAudio?: boolean;
+  videoSupportsHumanReview?: boolean;
+  videoExtraParameterNames?: string[];
+  videoSceneOptimizeOptions?: string[];
   videoGenerationMinSeconds?: number;
   videoGenerationMaxSeconds?: number;
+  videoDurationOptions?: number[];
+  maxReferenceImages?: number;
+  maxReferenceVideos?: number;
+  maxReferenceAudios?: number;
+  maxReferenceTotal?: number;
   referenceAudioMinSeconds?: number;
   referenceAudioMaxSeconds?: number;
   referenceAudioTotalMinSeconds?: number;

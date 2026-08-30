@@ -77,3 +77,22 @@ test("runtime dependency channels stay aligned across main and preload boundarie
     expected,
   );
 });
+
+test("production and development pass explicit cloud routes to the model proxy", () => {
+  const sources = [
+    readFileSync(`${desktopRoot}/src/main.ts`, "utf8"),
+    readFileSync(`${desktopRoot}/scripts/dev.mjs`, "utf8"),
+  ];
+
+  for (const source of sources) {
+    const callback = source.match(
+      /onModelAccessChanged:\s*(?:async\s*)?\(([\s\S]*?)\)\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onLoggedOut:/,
+    );
+    assert.ok(callback, "onModelAccessChanged callback is missing");
+    assert.match(callback[1], /\bexplicitCloudModelAssignments\b/);
+
+    const routing = callback[2].match(/const routing\s*=\s*\{([\s\S]*?)\};/);
+    assert.ok(routing, "model proxy routing configuration is missing");
+    assert.match(routing[1], /\bexplicitCloudModelAssignments\b/);
+  }
+});

@@ -19,6 +19,7 @@ from ai_anime.modules.model_usage.public import (
     configure_model_access,
     get_effective_cognee_embedding_config,
     get_effective_newapi_config,
+    resolve_model_assignment_for_role,
     resolve_model_for_role,
     runtime_model_access,
     runtime_model_capability,
@@ -110,8 +111,20 @@ def test_internal_capability_endpoint_accepts_only_router_state(
             {
                 "modelId": "cloud/video-standard",
                 "videoProfile": "seedance2",
+                "videoRatioOptions": ["16:9", "9:16"],
+                "videoResolutionOptions": ["512p", "720p"],
+                "videoSizeOptions": ["1344x768", "768x1344", "1024x1024"],
+                "videoSupportsGenerateAudio": False,
+                "videoSupportsHumanReview": True,
+                "videoExtraParameterNames": ["steps", "seed", "turbo"],
+                "videoSceneOptimizeOptions": ["cinematic", "realistic"],
+                "videoDurationOptions": [3, 5, 8],
                 "videoGenerationMinSeconds": 4,
                 "videoGenerationMaxSeconds": 15,
+                "maxReferenceImages": 5,
+                "maxReferenceVideos": 1,
+                "maxReferenceAudios": 0,
+                "maxReferenceTotal": 6,
                 "referenceAudioMinSeconds": 1.8,
                 "referenceAudioMaxSeconds": 15.2,
                 "referenceAudioTotalMinSeconds": 2,
@@ -142,6 +155,23 @@ def test_internal_capability_endpoint_accepts_only_router_state(
         "configured": True,
     }
     assert payload["byok"] == {"allowed": True, "configured": True}
+    capability = runtime_model_capability("cloud/video-standard")
+    assert capability is not None
+    assert capability.video_resolution_options == (
+        "512p",
+        "720p",
+    )
+    assert capability.video_ratio_options == ("16:9", "9:16")
+    assert capability.video_size_options == (
+        "1344x768",
+        "768x1344",
+        "1024x1024",
+    )
+    assert capability.video_supports_generate_audio is False
+    assert capability.video_supports_human_review is True
+    assert capability.video_extra_parameter_names == ("steps", "seed", "turbo")
+    assert capability.video_scene_optimize_options == ("cinematic", "realistic")
+    assert capability.video_duration_options == (3.0, 5.0, 8.0)
     assert payload["roleDefaults"] == {
         "TEXT": "cloud-text",
         "EMBEDDING": "cloud-embedding",
@@ -153,6 +183,10 @@ def test_internal_capability_endpoint_accepts_only_router_state(
     assert capability.video_profile == "seedance2"
     assert capability.video_generation_min_seconds == 4
     assert capability.video_generation_max_seconds == 15
+    assert capability.max_reference_images == 5
+    assert capability.max_reference_videos == 1
+    assert capability.max_reference_audios == 0
+    assert capability.max_reference_total == 6
     assert capability.reference_audio_min_seconds == 1.8
     assert capability.reference_audio_total_max_seconds == 15.2
     assert capability.reference_video_min_seconds == 3
@@ -233,6 +267,31 @@ def test_each_role_resolves_only_from_the_router_snapshot() -> None:
     assert resolve_model_for_role("EMBEDDING") == "cloud-embedding"
     with pytest.raises(PermissionError, match="no model is assigned"):
         resolve_model_for_role("IMAGE_GENERATION")
+
+
+def test_model_runtime_limits_are_available_to_the_local_backend() -> None:
+    configure_model_access(
+        allows_custom_models=True,
+        mode=MODE_MIXED,
+        model_assignments=[
+            {
+                "modelId": "Qwen3.8-27B",
+                "role": "TEXT",
+                "priority": 1,
+                "contextWindow": 65536,
+                "maxOutputTokens": 8192,
+                "reasoningEfforts": ["medium", "xhigh"],
+                "defaultReasoningEffort": "xhigh",
+            }
+        ],
+    )
+
+    assignment = resolve_model_assignment_for_role("TEXT")
+
+    assert assignment.context_window == 65536
+    assert assignment.max_output_tokens == 8192
+    assert assignment.reasoning_efforts == ("medium", "xhigh")
+    assert assignment.default_reasoning_effort == "xhigh"
 
 
 def test_text_model_factory_uses_role_default_and_router_endpoint(
@@ -364,7 +423,16 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             {
                 "modelId": "cloud/video-standard",
                 "videoProfile": "seedance2",
+                "videoRatioOptions": ["16:9", "9:16"],
+                "videoResolutionOptions": ["720p", "1080p"],
+                "videoSizeOptions": ["1344x768", "768x1344"],
+                "videoSupportsGenerateAudio": False,
+                "videoSupportsHumanReview": True,
+                "videoExtraParameterNames": ["steps", "seed", "turbo"],
+                "videoSceneOptimizeOptions": ["cinematic", "realistic"],
+                "videoDurationOptions": [3, 5, 8],
                 "videoGenerationMinSeconds": 4,
+                "maxReferenceImages": 5,
                 "referenceVideoMaxSeconds": 10,
             }
         ],
@@ -381,7 +449,16 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
             "'modelAssignments': [[item.model_id, item.role] for item in access.model_assignments], "
             "'videoProfile': capability.video_profile if capability else None, "
+            "'videoRatioOptions': list(capability.video_ratio_options) if capability else None, "
+            "'videoResolutionOptions': list(capability.video_resolution_options) if capability else None, "
+            "'videoSizeOptions': list(capability.video_size_options) if capability else None, "
+            "'videoSupportsGenerateAudio': capability.video_supports_generate_audio if capability else None, "
+            "'videoSupportsHumanReview': capability.video_supports_human_review if capability else None, "
+            "'videoExtraParameterNames': list(capability.video_extra_parameter_names) if capability else None, "
+            "'videoSceneOptimizeOptions': list(capability.video_scene_optimize_options) if capability else None, "
+            "'videoDurationOptions': list(capability.video_duration_options) if capability else None, "
             "'videoGenerationMinSeconds': capability.video_generation_min_seconds if capability else None, "
+            "'maxReferenceImages': capability.max_reference_images if capability else None, "
             "'referenceVideoMaxSeconds': capability.reference_video_max_seconds if capability else None, "
             "'legacyPresent': any(os.environ.get(name) for name in legacy), "
             "'stdinMarkerPresent': 'AI_ANIME_MODEL_ACCESS_STDIN' in os.environ}))",
@@ -409,7 +486,16 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             ["byok-text", "TEXT"],
         ],
         "videoProfile": "seedance2",
+        "videoRatioOptions": ["16:9", "9:16"],
+        "videoResolutionOptions": ["720p", "1080p"],
+        "videoSizeOptions": ["1344x768", "768x1344"],
+        "videoSupportsGenerateAudio": False,
+        "videoSupportsHumanReview": True,
+        "videoExtraParameterNames": ["steps", "seed", "turbo"],
+        "videoSceneOptimizeOptions": ["cinematic", "realistic"],
+        "videoDurationOptions": [3.0, 5.0, 8.0],
         "videoGenerationMinSeconds": 4.0,
+        "maxReferenceImages": 5,
         "referenceVideoMaxSeconds": 10.0,
         "legacyPresent": False,
         "stdinMarkerPresent": False,

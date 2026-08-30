@@ -31,6 +31,8 @@ _BLOCKED_KEYS = {
 
 def normalize_canvas_model_parameters(
     values: Mapping[str, object] | None,
+    *,
+    allowed_keys: set[str] | frozenset[str] | None = None,
 ) -> dict[str, object]:
     if not values:
         return {}
@@ -41,6 +43,8 @@ def normalize_canvas_model_parameters(
         key = str(raw_key or "").strip()
         if not _PARAMETER_KEY.fullmatch(key) or key.lower() in _BLOCKED_KEYS:
             raise ValueError(f"unsafe model parameter: {key or '<empty>'}")
+        if allowed_keys is not None and key not in allowed_keys:
+            raise ValueError(f"model parameter is not declared: {key}")
         normalized[key] = _normalize_parameter_value(raw_value, key)
     return normalized
 

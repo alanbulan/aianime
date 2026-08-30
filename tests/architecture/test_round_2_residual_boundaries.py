@@ -562,6 +562,7 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
         "__init__.py",
         "audio.py",
         "character_image.py",
+        "character_voice.py",
         "episode_assets.py",
         "freezone.py",
         "graph_build.py",
@@ -577,6 +578,7 @@ def test_task_execution_core_contracts_have_one_owner() -> None:
         "sketch_edit_execute.py",
         "stage_asset.py",
         "style_preview.py",
+        "verification.py",
         "video.py",
     }
 
@@ -801,8 +803,8 @@ def test_narrative_planning_submits_tasks_only_through_task_execution() -> None:
         PACKAGE_ROOT / "api" / "routes" / "narrative_planning" / "episodes.py"
     ).read_text(encoding="utf-8")
 
-    assert scheduler_source.count("ProjectTaskSubmission(") == 5
-    assert scheduler_source.count("self._submissions.submit(") == 5
+    assert scheduler_source.count("ProjectTaskSubmission(") == 7
+    assert scheduler_source.count("self._submissions.submit(") == 7
     assert "project_task_submission_use_cases()" in composition_source
     for legacy_source in (scheduler_source, composition_source):
         assert "get_task_backend" not in legacy_source
@@ -844,7 +846,7 @@ def test_creative_canvas_submits_tasks_only_through_task_execution() -> None:
 
     assert scheduler_source.count("ProjectTaskSubmission(") == 1
     assert scheduler_source.count("self._submissions.submit(") == 1
-    assert composition_source.count("project_task_submission_use_cases()") == 10
+    assert composition_source.count("project_task_submission_use_cases()") == 11
     for legacy_source in (scheduler_source, composition_source):
         assert "get_task_backend" not in legacy_source
         assert "task_backend_provider" not in legacy_source
@@ -972,13 +974,11 @@ def test_recent_bounded_context_moves_do_not_regress() -> None:
         assert f'"{public_name}"' in public_source
 
 
-def test_media_generation_mega_modules_stay_split_behind_compatibility_facades() -> None:
+def test_media_generation_mega_modules_stay_split_behind_compatibility_facades() -> (
+    None
+):
     media_generation = (
-        PACKAGE_ROOT
-        / "modules"
-        / "production"
-        / "infrastructure"
-        / "media_generation"
+        PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "media_generation"
     )
     prompt_facade = media_generation / "prompt_builder.py"
     grid_facade = media_generation / "nanobanana_grid.py"

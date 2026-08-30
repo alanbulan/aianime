@@ -99,9 +99,24 @@ describe("SuperChat chat message view", () => {
     expect(screen.queryByText("scene.mp4")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "aiAssistant.copy" }));
-    fireEvent.click(screen.getByRole("button", { name: "Details" }));
-    fireEvent.click(screen.getByRole("button", { name: "Pin" }));
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "aiAssistant.details" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "aiAssistant.pinContext" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "aiAssistant.excludeContext" }),
+    );
+    expect(props.onDelete).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("aiAssistant.excludeContextConfirmDescription"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "aiAssistant.excludeContextConfirmAction",
+      }),
+    );
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(chatMessage.text);
@@ -109,6 +124,21 @@ describe("SuperChat chat message view", () => {
     expect(props.onOpenDetail).toHaveBeenCalledWith(chatMessage);
     expect(props.onTogglePin).toHaveBeenCalledWith(chatMessage.id);
     expect(props.onDelete).toHaveBeenCalledWith(chatMessage.id);
+  });
+
+  it("restores an excluded message without showing the exclusion dialog", () => {
+    const props = bubbleProps(message("assistant", "Excluded content"));
+    render(<MessageBubble {...props} excluded />);
+
+    expect(screen.getByText("aiAssistant.contextExcluded")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "aiAssistant.restoreContext" }),
+    );
+
+    expect(props.onDelete).toHaveBeenCalledWith("message-1");
+    expect(
+      screen.queryByText("aiAssistant.excludeContextConfirmDescription"),
+    ).toBeNull();
   });
 
   it("renders assistant Markdown, display name, and the QiuQiu avatar", () => {

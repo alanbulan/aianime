@@ -771,13 +771,13 @@ describe("SuperChat boundaries", () => {
     for (const ownedOperation of [
       "export type ChatControlBarModel =",
       "export function ControlBar(",
-      "export function HeaderControlPortal(",
     ]) {
       expect(controls).toContain(ownedOperation);
       expect(header).not.toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);
     }
-    expect(controls).toContain('import { createPortal } from "react-dom";');
+    expect(controls).not.toContain("HeaderControlPortal");
+    expect(controls).not.toContain("createPortal");
     expect(controls).not.toContain("useSuperChat");
     expect(controls).not.toContain("ReturnType<");
   });
@@ -812,7 +812,6 @@ describe("SuperChat boundaries", () => {
     expect(tests).toContain('from "./ChatPanelHeader";');
     expect(header).toContain("export function ChatPanelHeader(");
     for (const ownedPresentation of [
-      "<HeaderControlPortal",
       "<ControlBar",
       't("freezone.chat.title")',
       't("freezone.chat.close")',
@@ -822,6 +821,7 @@ describe("SuperChat boundaries", () => {
       expect(header).toContain(ownedPresentation);
       expect(panel).not.toContain(ownedPresentation);
     }
+    expect(header).not.toContain("<HeaderControlPortal");
     expect(header).not.toContain("useSuperChat");
     expect(header).not.toContain("ReturnType<");
   });

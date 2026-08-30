@@ -14,15 +14,23 @@ import re
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ai_anime.modules.asset_world.domain.character_voice import (
     ALL_SLOTS,
     DEFAULT_SLOT,
 )
-
-VOICE_SAMPLE_EXTENSIONS = (".mp3", ".wav", ".m4a", ".aac", ".ogg")
+from ai_anime.shared.utils.media_io import get_audio_duration
+from ai_anime.shared.utils.time_format import utc_now_iso
+from ai_anime.shared.utils.voice_samples import (
+    REFERENCE_VOICE_MAX_SECONDS,
+    SUPPORTED_VOICE_SAMPLE_MESSAGE,
+    VOICE_SAMPLE_EXTENSIONS,
+    archive_voice_siblings,
+    is_supported_voice_sample,
+    replace_voice_sample_content,
+    voice_sample_extension,
+)
 
 RECORDED_AUDIO_EXTENSION_BY_MIME = {
     "audio/webm": ".webm",
@@ -86,7 +94,10 @@ def _transcode_to_mp3(content: bytes) -> bytes:
             input=content,
             capture_output=True,
             check=True,
+            timeout=60,
         )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("ffmpeg 转码超时（60 秒）") from exc
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or b"").decode("utf-8", "ignore").strip()
         raise ValueError(f"ffmpeg 转码失败：{stderr or exc}") from exc
@@ -97,32 +108,10 @@ def _transcode_to_mp3(content: bytes) -> bytes:
 
 def probe_voice_sample_duration_seconds(path: str | Path) -> float:
     """Return audio duration in seconds using ffprobe."""
-
-    if not shutil.which("ffprobe"):
-        raise ValueError("系统未安装 ffprobe，无法读取音频时长")
-    result = subprocess.run(
-        [
-            "ffprobe",
-            "-v",
-            "error",
-            "-show_entries",
-            "format=duration",
-            "-of",
-            "default=noprint_wrappers=1:nokey=1",
-            str(path),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
     try:
-        duration = float((result.stdout or "").strip())
-    except (TypeError, ValueError) as exc:
-        stderr = (result.stderr or "").strip()
-        raise ValueError(f"无法读取音频时长：{stderr or path}") from exc
-    if duration <= 0:
-        raise ValueError("音频时长无效")
-    return duration
+        return get_audio_duration(str(path))
+    except ValueError as exc:
+        raise ValueError(f"无法读取音频时长：{exc}") from exc
 
 
 def trim_voice_sample_content(
@@ -137,7 +126,7 @@ def trim_voice_sample_content(
     if not content:
         raise ValueError("音频内容为空")
     if not is_supported_voice_sample(filename):
-        raise ValueError("仅支持 mp3 / wav / m4a / aac / ogg")
+        raise ValueError(SUPPORTED_VOICE_SAMPLE_MESSAGE)
     if not shutil.which("ffmpeg"):
         raise ValueError("系统未安装 ffmpeg，无法裁剪声线")
     try:
@@ -147,8 +136,11 @@ def trim_voice_sample_content(
         raise ValueError("裁剪时间参数无效") from exc
     if duration <= 0:
         raise ValueError("裁剪时长必须大于 0 秒")
-    if duration > 15:
-        raise ValueError("Seedance2 参考声线单段最长 15 秒")
+    if duration > REFERENCE_VOICE_MAX_SECONDS:
+        raise ValueError(
+            "Seedance2 参考声线单段最长 "
+            f"{REFERENCE_VOICE_MAX_SECONDS:g} 秒"
+        )
 
     suffix = voice_sample_extension(filename)
     with tempfile.TemporaryDirectory() as tmp:
@@ -182,7 +174,10 @@ def trim_voice_sample_content(
                 ],
                 capture_output=True,
                 check=True,
+                timeout=60,
             )
+        except subprocess.TimeoutExpired as exc:
+            raise ValueError("ffmpeg 裁剪超时（60 秒）") from exc
         except subprocess.CalledProcessError as exc:
             stderr = (exc.stderr or b"").decode("utf-8", "ignore").strip()
             raise ValueError(f"ffmpeg 裁剪失败：{stderr or exc}") from exc
@@ -194,15 +189,6 @@ def trim_voice_sample_content(
 
 def _safe_asset_name(value: str) -> str:
     return re.sub(r'[/\\:*?"<>|]', "_", str(value or "").strip())
-
-
-def voice_sample_extension(filename: str) -> str:
-    ext = Path(str(filename or "")).suffix.lower()
-    return ext if ext in VOICE_SAMPLE_EXTENSIONS else ".wav"
-
-
-def is_supported_voice_sample(filename: str) -> bool:
-    return Path(str(filename or "")).suffix.lower() in VOICE_SAMPLE_EXTENSIONS
 
 
 def read_character_voice_source(source_path: str | Path) -> tuple[bytes, str]:
@@ -217,7 +203,7 @@ def read_character_voice_source(source_path: str | Path) -> tuple[bytes, str]:
         return content, source.name
     if source.suffix.lower() == ".webm":
         return _transcode_to_mp3(content), f"{source.stem}.mp3"
-    raise ValueError("仅支持 mp3 / wav / m4a / aac / ogg")
+    raise ValueError(SUPPORTED_VOICE_SAMPLE_MESSAGE)
 
 
 def character_voice_path(
@@ -246,10 +232,6 @@ def voice_content_sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
 def project_relative_path(project_dir: str | Path, path: str | Path) -> str:
     return Path(path).resolve().relative_to(Path(project_dir).resolve()).as_posix()
 
@@ -269,7 +251,7 @@ def persist_character_voice_file(
     the freshly written file.
     """
     if not is_supported_voice_sample(filename):
-        raise ValueError("仅支持 mp3 / wav / m4a / aac / ogg")
+        raise ValueError(SUPPORTED_VOICE_SAMPLE_MESSAGE)
     if not content:
         raise ValueError("音频文件为空")
 
@@ -280,13 +262,7 @@ def persist_character_voice_file(
         filename=filename,
     )
     target.parent.mkdir(parents=True, exist_ok=True)
-    ts = int(datetime.now(timezone.utc).timestamp())
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        sibling = target.with_suffix(ext)
-        if sibling.exists():
-            backup_name = f"{sibling.stem}_{ts}{sibling.suffix}"
-            sibling.replace(sibling.with_name(backup_name))
-    target.write_bytes(content)
+    replace_voice_sample_content(target, content)
 
     rel_path = project_relative_path(project_dir, target)
     return rel_path, voice_content_sha256(content), utc_now_iso()
@@ -338,16 +314,7 @@ def clear_character_voice_file(
     if not voices_dir.exists():
         return False
     stem = "voice_default" if slot == DEFAULT_SLOT else f"voice_{slot}"
-    ts = int(datetime.now(timezone.utc).timestamp())
-    removed = False
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        candidate = voices_dir / f"{stem}{ext}"
-        if candidate.exists():
-            candidate.replace(
-                candidate.with_name(f"{candidate.stem}_{ts}{candidate.suffix}")
-            )
-            removed = True
-    return removed
+    return bool(archive_voice_siblings(voices_dir / f"{stem}.wav"))
 
 
 def identity_voice_path(
@@ -382,7 +349,7 @@ def persist_identity_voice_file(
     content: bytes,
 ) -> tuple[str, str, str]:
     if not is_supported_voice_sample(filename):
-        raise ValueError("仅支持 mp3 / wav / m4a / aac / ogg")
+        raise ValueError(SUPPORTED_VOICE_SAMPLE_MESSAGE)
     if not content:
         raise ValueError("音频文件为空")
     target = identity_voice_path(
@@ -392,12 +359,7 @@ def persist_identity_voice_file(
         filename=filename,
     )
     target.parent.mkdir(parents=True, exist_ok=True)
-    ts = int(datetime.now(timezone.utc).timestamp())
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        sibling = target.with_suffix(ext)
-        if sibling.exists():
-            sibling.replace(sibling.with_name(f"{sibling.stem}_{ts}{sibling.suffix}"))
-    target.write_bytes(content)
+    replace_voice_sample_content(target, content)
     return (
         project_relative_path(project_dir, target),
         voice_content_sha256(content),
@@ -425,16 +387,7 @@ def clear_identity_voice_file(
     )
     if not voice_dir.exists():
         return False
-    ts = int(datetime.now(timezone.utc).timestamp())
-    removed = False
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        candidate = voice_dir / f"voice_reference{ext}"
-        if candidate.exists():
-            candidate.replace(
-                candidate.with_name(f"{candidate.stem}_{ts}{candidate.suffix}")
-            )
-            removed = True
-    return removed
+    return bool(archive_voice_siblings(voice_dir / "voice_reference.wav"))
 
 
 class LocalCharacterVoiceFiles:

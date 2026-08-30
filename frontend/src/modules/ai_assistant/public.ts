@@ -106,7 +106,16 @@ export {
 export {
   appendChatNotification,
   cancelChatBestEffort,
+  resolveChatDecision,
+  runChatSlashCommand,
+  setChatMessageContextState,
 } from "@/modules/ai_assistant/infrastructure/chatCommands";
+export {
+  DEFAULT_CHAT_SLASH_COMMANDS,
+  filterSlashCommands,
+  normalizeSlashCommands,
+  slashCommandQuery,
+} from "@/modules/ai_assistant/domain/slashCommand";
 export {
   createSuperChatSocketSession,
 } from "@/modules/ai_assistant/infrastructure/socketSession";
@@ -148,6 +157,9 @@ export type {
 export {
   ApprovalCard,
 } from "@/modules/ai_assistant/presentation/ApprovalCard";
+export {
+  DecisionCard,
+} from "@/modules/ai_assistant/presentation/DecisionCard";
 export {
   SearchBar,
 } from "@/modules/ai_assistant/presentation/SearchBar";
@@ -227,6 +239,10 @@ export type {
   ChatRole,
   ChatScope,
   ClientFrame,
+  DecisionAnswer,
+  DecisionOption,
+  DecisionQuestion,
+  DecisionRequest,
   ModelEntry,
   RelayInstanceInfo,
   ServerFrame,

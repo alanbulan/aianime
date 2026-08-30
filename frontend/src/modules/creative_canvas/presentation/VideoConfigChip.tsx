@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { UiCheckbox, UiInput, UiSelect } from "@/components/ui";
 import { Slider } from "@/components/ui/slider";
 import type {
-  Seedance2SceneOptimize,
+  VideoSceneOptimize,
   VideoDurationBounds,
-  VideoGenQuality,
+  VideoExtraParamDefinition,
 } from "../domain/videoGenerationModel";
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
@@ -28,51 +29,63 @@ const VIDEO_PARAM_ROW_CLASS = "mb-4 gap-2";
 export interface VideoConfigPatch {
   readonly [key: string]: unknown;
   readonly aspectRatio?: string;
-  readonly quality?: VideoGenQuality;
+  readonly generationResolution?: string;
+  readonly extraParams?: Record<string, unknown>;
   readonly durationSec?: number;
-  readonly sceneOptimize?: Seedance2SceneOptimize;
+  readonly sceneOptimize?: VideoSceneOptimize;
   readonly generateAudio?: boolean;
 }
 
 export interface VideoConfigChipProps {
-  aspectRatio: string;
+  aspectRatio: string | null;
   aspectRatioOptions: ReadonlyArray<string>;
-  quality: VideoGenQuality;
-  qualityOptions: ReadonlyArray<VideoGenQuality>;
-  durationSec: number;
-  durationBounds: VideoDurationBounds;
+  outputValue: string | null;
+  outputOptions: ReadonlyArray<string>;
+  extraParamDefinitions: ReadonlyArray<VideoExtraParamDefinition>;
+  extraParams: Record<string, unknown>;
+  durationSec: number | null;
+  durationBounds: VideoDurationBounds | null;
+  durationOptions: ReadonlyArray<number>;
   normalizeDuration: (value: number) => number;
-  sceneOptimize?: Seedance2SceneOptimize;
-  sceneOptimizeOptions: ReadonlyArray<Seedance2SceneOptimize>;
+  sceneOptimize?: VideoSceneOptimize;
+  sceneOptimizeOptions: ReadonlyArray<VideoSceneOptimize>;
   generateAudio: boolean;
+  supportsGenerateAudio: boolean;
   onChange: (patch: VideoConfigPatch) => void;
 }
 
 export function VideoConfigChip({
   aspectRatio,
   aspectRatioOptions,
-  quality,
-  qualityOptions,
+  outputValue,
+  outputOptions,
+  extraParamDefinitions,
+  extraParams,
   durationSec,
   durationBounds,
+  durationOptions,
   normalizeDuration,
   sceneOptimize,
   sceneOptimizeOptions,
   generateAudio,
+  supportsGenerateAudio,
   onChange,
 }: VideoConfigChipProps) {
   const { t } = useTranslation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [durationDraft, setDurationDraft] = useState(String(durationSec));
+  const [durationDraft, setDurationDraft] = useState(
+    durationSec === null ? "" : String(durationSec),
+  );
 
   useEffect(() => {
-    setDurationDraft(String(durationSec));
+    setDurationDraft(durationSec === null ? "" : String(durationSec));
   }, [durationSec]);
 
   const handleDurationInput = (raw: string) => {
     setDurationDraft(raw);
+    if (!durationBounds || durationSec === null) return;
     const parsed = Number(raw);
     if (
       raw.trim() !== "" &&
@@ -86,6 +99,7 @@ export function VideoConfigChip({
   };
 
   const commitDuration = () => {
+    if (!durationBounds || durationSec === null) return;
     const parsed = Number(durationDraft);
     if (durationDraft.trim() === "" || !Number.isFinite(parsed)) {
       setDurationDraft(String(durationSec));
@@ -122,20 +136,33 @@ export function VideoConfigChip({
         }}
         className={NODE_TEXT_CONTROL_TRIGGER_CLASS}
       >
-        <span>
-          {aspectRatio === "auto"
-            ? t("node.videoNode.aspect.auto")
-            : aspectRatio}
-        </span>
-        <span className="text-text-muted/80">·</span>
-        <span>{quality}</span>
-        <span className="text-text-muted/80">·</span>
-        <span>{durationSec}s</span>
-        {generateAudio ? (
-          <Volume2 className="ml-0.5 h-3.5 w-3.5 text-text-muted/90" />
-        ) : (
-          <VolumeX className="ml-0.5 h-3.5 w-3.5 text-text-muted/90" />
+        {aspectRatio && (
+          <span>
+            {aspectRatio === "auto"
+              ? t("node.videoNode.aspect.auto")
+              : aspectRatio}
+          </span>
         )}
+        {outputValue && (
+          <>
+            {aspectRatio && <span className="text-text-muted/80">·</span>}
+            <span>{outputValue}</span>
+          </>
+        )}
+        {durationSec !== null && (
+          <>
+            {(aspectRatio || outputValue) && (
+              <span className="text-text-muted/80">·</span>
+            )}
+            <span>{durationSec}s</span>
+          </>
+        )}
+        {supportsGenerateAudio &&
+          (generateAudio ? (
+            <Volume2 className="ml-0.5 h-3.5 w-3.5 text-text-muted/90" />
+          ) : (
+            <VolumeX className="ml-0.5 h-3.5 w-3.5 text-text-muted/90" />
+          ))}
         <ChevronDown className="h-3 w-3 text-text-muted/90" />
       </button>
       {isOpen && (
@@ -145,11 +172,13 @@ export function VideoConfigChip({
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className={VIDEO_PARAM_LABEL_CLASS}>
-            {t("node.videoNode.aspect.title")}
-          </div>
-          <div className={`grid grid-cols-5 ${VIDEO_PARAM_ROW_CLASS}`}>
-            {aspectRatioOptions.map((ratio) => {
+          {aspectRatio && aspectRatioOptions.length > 0 && (
+            <>
+              <div className={VIDEO_PARAM_LABEL_CLASS}>
+                {t("node.videoNode.aspect.title")}
+              </div>
+              <div className={`grid grid-cols-5 ${VIDEO_PARAM_ROW_CLASS}`}>
+                {aspectRatioOptions.map((ratio) => {
               const isActive = aspectRatio === ratio;
               return (
                 <button
@@ -167,20 +196,24 @@ export function VideoConfigChip({
                     : ratio}
                 </button>
               );
-            })}
-          </div>
+                })}
+              </div>
+            </>
+          )}
 
-          <div className={VIDEO_PARAM_LABEL_CLASS}>
-            {t("node.videoNode.quality.title")}
-          </div>
-          <div className={`grid grid-cols-3 ${VIDEO_PARAM_ROW_CLASS}`}>
-            {qualityOptions.map((option) => {
-              const isActive = quality === option;
+          {outputValue && outputOptions.length > 0 && (
+            <>
+              <div className={VIDEO_PARAM_LABEL_CLASS}>
+                {t("node.videoNode.quality.title")}
+              </div>
+              <div className={`grid grid-cols-3 ${VIDEO_PARAM_ROW_CLASS}`}>
+                {outputOptions.map((option) => {
+              const isActive = outputValue === option;
               return (
                 <button
                   key={option}
                   type="button"
-                  onClick={() => onChange({ quality: option })}
+                  onClick={() => onChange({ generationResolution: option })}
                   className={`${VIDEO_PARAM_BUTTON_BASE_CLASS} ${
                     isActive
                       ? NODE_OPTION_ACTIVE_BUTTON_CLASS
@@ -190,13 +223,35 @@ export function VideoConfigChip({
                   {option}
                 </button>
               );
-            })}
-          </div>
+                })}
+              </div>
+            </>
+          )}
 
-          <div className={VIDEO_PARAM_LABEL_CLASS}>
-            {t("node.videoNode.duration.title")}
-          </div>
-          <div className="mb-4 flex items-center gap-3">
+          {durationBounds && durationSec !== null && (
+            <>
+              <div className={VIDEO_PARAM_LABEL_CLASS}>
+                {t("node.videoNode.duration.title")}
+              </div>
+              {durationOptions.length > 0 ? (
+                <div className={`grid grid-cols-3 ${VIDEO_PARAM_ROW_CLASS}`}>
+                  {durationOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => onChange({ durationSec: option })}
+                      className={`${VIDEO_PARAM_BUTTON_BASE_CLASS} ${
+                        durationSec === option
+                          ? NODE_OPTION_ACTIVE_BUTTON_CLASS
+                          : VIDEO_PARAM_IDLE_BUTTON_CLASS
+                      }`}
+                    >
+                      {option}s
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mb-4 flex items-center gap-3">
             <Slider
               min={durationBounds.min}
               max={durationBounds.max}
@@ -234,7 +289,10 @@ export function VideoConfigChip({
               />
               <span className="text-[11px] text-text-muted/80">s</span>
             </div>
-          </div>
+                </div>
+              )}
+            </>
+          )}
 
           {sceneOptimizeOptions.length > 0 && (
             <>
@@ -255,7 +313,9 @@ export function VideoConfigChip({
                           : VIDEO_PARAM_IDLE_BUTTON_CLASS
                       }`}
                     >
-                      {t(`node.videoNode.sceneOptimize.options.${option}`)}
+                      {t(`node.videoNode.sceneOptimize.options.${option}`, {
+                        defaultValue: option,
+                      })}
                     </button>
                   );
                 })}
@@ -263,34 +323,116 @@ export function VideoConfigChip({
             </>
           )}
 
-          <div className={VIDEO_PARAM_LABEL_CLASS}>
-            {t("node.videoNode.audio.title")}
-          </div>
-          <div className="flex items-center justify-between rounded-md border border-border bg-muted px-2.5 py-1.5">
-            <span className="text-xs font-medium text-text-dark/88">
-              {generateAudio
-                ? t("node.videoNode.audio.on")
-                : t("node.videoNode.audio.off")}
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={generateAudio}
-              aria-label={t("node.videoNode.audio.title")}
-              onClick={() => onChange({ generateAudio: !generateAudio })}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
-                generateAudio
-                  ? "border-primary/45 bg-primary"
-                  : "border-border bg-input"
-              }`}
-            >
-              <span
-                className={`h-4 w-4 rounded-full bg-text-dark shadow-sm transition-transform ${
-                  generateAudio ? "translate-x-[18px]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
-          </div>
+          {extraParamDefinitions.length > 0 && (
+            <div className={VIDEO_PARAM_ROW_CLASS}>
+              <div className={VIDEO_PARAM_LABEL_CLASS}>模型参数</div>
+              <div className="space-y-2">
+                {extraParamDefinitions.map((definition) => {
+                  const value = extraParams[definition.key] ??
+                    definition.defaultValue;
+                  const updateValue = (next: boolean | number | string) =>
+                    onChange({
+                      extraParams: { ...extraParams, [definition.key]: next },
+                    });
+                  return (
+                    <div
+                      key={definition.key}
+                      className="space-y-1 rounded-md border border-border bg-muted px-2.5 py-2"
+                    >
+                      <div className="text-xs font-medium text-text-dark/88">
+                        {definition.label}
+                      </div>
+                      {definition.description && (
+                        <div className="text-[11px] leading-4 text-text-muted">
+                          {definition.description}
+                        </div>
+                      )}
+                      {definition.type === "enum" && (
+                        <UiSelect
+                          aria-label={definition.label}
+                          value={typeof value === "string" ? value : ""}
+                          onChange={(event) => updateValue(event.target.value)}
+                          className="h-8 text-xs"
+                        >
+                          {(definition.options ?? []).map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </UiSelect>
+                      )}
+                      {definition.type === "boolean" && (
+                        <label className="flex items-center gap-2 text-xs text-text-dark/88">
+                          <UiCheckbox
+                            aria-label={definition.label}
+                            checked={Boolean(value)}
+                            onCheckedChange={(checked) => updateValue(checked)}
+                          />
+                          <span>{Boolean(value) ? "开启" : "关闭"}</span>
+                        </label>
+                      )}
+                      {definition.type === "number" && (
+                        <UiInput
+                          aria-label={definition.label}
+                          type="number"
+                          min={definition.min}
+                          max={definition.max}
+                          step={definition.step}
+                          value={typeof value === "number" ? String(value) : ""}
+                          onChange={(event) => {
+                            const next = Number(event.target.value);
+                            if (Number.isFinite(next)) updateValue(next);
+                          }}
+                          className="h-8 text-xs"
+                        />
+                      )}
+                      {definition.type === "string" && (
+                        <UiInput
+                          aria-label={definition.label}
+                          value={typeof value === "string" ? value : ""}
+                          onChange={(event) => updateValue(event.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {supportsGenerateAudio && (
+            <>
+              <div className={VIDEO_PARAM_LABEL_CLASS}>
+                {t("node.videoNode.audio.title")}
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted px-2.5 py-1.5">
+                <span className="text-xs font-medium text-text-dark/88">
+                  {generateAudio
+                    ? t("node.videoNode.audio.on")
+                    : t("node.videoNode.audio.off")}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={generateAudio}
+                  aria-label={t("node.videoNode.audio.title")}
+                  onClick={() => onChange({ generateAudio: !generateAudio })}
+                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
+                    generateAudio
+                      ? "border-primary/45 bg-primary"
+                      : "border-border bg-input"
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-text-dark shadow-sm transition-transform ${
+                      generateAudio ? "translate-x-[18px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

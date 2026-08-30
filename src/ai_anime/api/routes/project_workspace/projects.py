@@ -3,10 +3,8 @@
 import asyncio
 import logging
 import time
-import uuid
 from io import BytesIO
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from threading import Lock
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
@@ -18,7 +16,7 @@ from ai_anime.api.deps import (
     make_static_url_for_context,
 )
 from ai_anime.api.routes.project_workspace.schemas import (
-    NarratorVoiceCopyRequest,
+    NarratorVoiceBindRequest,
     NarratorVoiceDesignRequest,
     NarratorVoicePresetGenerateRequest,
     NarratorVoiceRecordRequest,
@@ -33,13 +31,14 @@ from ai_anime.modules.project_workspace.public import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
     load_project_config_from_state_dir,
+    persist_narrator_voice_content,
     save_project_config_in_state_dir,
-    set_narrator_reference_audio,
 )
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
     ProjectLifecycleAction,
     change_project_status,
+    clear_narrator_voice_content,
     create_project_workspace,
     get_project_details,
     list_project_summaries as query_project_summaries,
@@ -49,27 +48,29 @@ from ai_anime.modules.project_workspace.public import (
     resolve_project_context,
 )
 from ai_anime.modules.asset_world.public import (
-    VOICE_SAMPLE_EXTENSIONS,
     decode_recorded_audio_data_url,
     is_supported_voice_sample,
     trim_voice_sample_content,
-    voice_content_sha256,
-    voice_sample_extension,
 )
 from ai_anime.modules.production.public import (
     DEFAULT_NARRATION_STYLE,
     NARRATION_STYLES,
     resolve_narrator_source,
 )
+from ai_anime.modules.creative_canvas.public import (
+    StartCreativeCanvasPresetVoiceCommand,
+    StartCreativeCanvasVoiceDesignCommand,
+    creative_canvas_audio_generation_use_cases,
+)
+from ai_anime.shared.utils.async_ops import call_blocking
+from ai_anime.shared.utils.voice_samples import SUPPORTED_VOICE_SAMPLE_MESSAGE
 
 logger = logging.getLogger("ai_anime.api.projects")
 
 router = APIRouter()
-VOICE_SOURCE_ROOTS = ("audio", "seedance2_uploads", "assets", "uploads")
 NARRATOR_VOICE_MODE_EXPLANATION = (
     "第一人称解说使用解说主角声线；第三人称解说使用项目解说声线。"
 )
-SUPPORTED_VOICE_SAMPLE_COPY = "仅支持 mp3 / wav / m4a / aac / ogg"
 PROJECT_COVER_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 PROJECT_COVER_MAX_BYTES = 12 * 1024 * 1024
 PROJECT_COVER_CACHE_TTL_SECONDS = 15.0
@@ -215,11 +216,6 @@ def _project_cover_candidates(
     }
 
 
-def _narrator_voice_sample_path(project_dir: str | Path, filename: str) -> Path:
-    ext = voice_sample_extension(filename)
-    return Path(project_dir) / "assets" / "narrator" / f"voice{ext}"
-
-
 def _narrator_identity_detail(resolution) -> str:
     if not resolution.character_name:
         return "未配置解说主角"
@@ -310,41 +306,6 @@ def _ensure_third_person_narrator(username: str, project: str) -> None:
         raise ValueError(NARRATOR_VOICE_MODE_EXPLANATION)
 
 
-def _persist_narrator_voice_content(
-    *,
-    username: str,
-    project: str,
-    project_dir: Path,
-    filename: str,
-    content: bytes,
-) -> Path:
-    if not is_supported_voice_sample(filename):
-        raise ValueError(
-            f"{SUPPORTED_VOICE_SAMPLE_COPY}（收到：{filename or '未知文件'}）"
-        )
-    if not content:
-        raise ValueError("音频内容为空")
-
-    target = _narrator_voice_sample_path(project_dir, filename)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        existing = target.with_suffix(ext)
-        if existing.exists():
-            existing.replace(
-                existing.with_name(
-                    f"{existing.stem}_{int(time.time())}{existing.suffix}"
-                )
-            )
-    target.write_bytes(content)
-    set_narrator_reference_audio(
-        username,
-        project,
-        relative_path=_project_relative_path(project_dir, target),
-        sha256=voice_content_sha256(content),
-    )
-    return target
-
-
 def _create_reusable_voice(
     *,
     context: ProjectContext,
@@ -393,7 +354,7 @@ def _trim_narrator_voice_content(
     if (
         not source.exists()
         or not source.is_file()
-        or source.suffix.lower() not in VOICE_SAMPLE_EXTENSIONS
+        or not is_supported_voice_sample(source.name)
     ):
         raise ValueError("请选择项目内有效的音频文件")
 
@@ -403,56 +364,13 @@ def _trim_narrator_voice_content(
         start_seconds=start_seconds,
         duration_seconds=duration_seconds,
     )
-    target = project_dir / "assets" / "narrator" / "voice.mp3"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        sibling = target.with_suffix(ext)
-        if sibling.exists():
-            sibling.replace(
-                sibling.with_name(f"{sibling.stem}_{int(time.time())}{sibling.suffix}")
-            )
-    target.write_bytes(content)
-    set_narrator_reference_audio(
-        username,
-        project,
-        relative_path=_project_relative_path(project_dir, target),
-        sha256=voice_content_sha256(content),
+    return persist_narrator_voice_content(
+        username=username,
+        project=project,
+        project_dir=project_dir,
+        filename="voice.mp3",
+        content=content,
     )
-    return target
-
-
-def _project_voice_source_label(rel_path: str) -> str:
-    filename = Path(rel_path).name
-    if rel_path.startswith("audio/"):
-        return f"已生成音频 · {filename}"
-    if rel_path.startswith("assets/"):
-        return f"资产音频 · {filename}"
-    return f"{filename} · {rel_path}"
-
-
-def _project_voice_source_options(project_dir: str | Path) -> list[dict[str, str]]:
-    project_path = Path(project_dir)
-    options: list[dict[str, str]] = []
-    seen: set[str] = set()
-    for root_name in VOICE_SOURCE_ROOTS:
-        root = project_path / root_name
-        if not root.exists():
-            continue
-        for path in root.rglob("*"):
-            if not path.is_file() or path.suffix.lower() not in VOICE_SAMPLE_EXTENSIONS:
-                continue
-            rel_path = _project_relative_path(project_path, path)
-            if rel_path in seen:
-                continue
-            seen.add(rel_path)
-            options.append(
-                {
-                    "label": _project_voice_source_label(rel_path),
-                    "path": str(path),
-                    "rel_path": rel_path,
-                }
-            )
-    return sorted(options, key=lambda item: item["rel_path"])
 
 
 @router.get("/projects")
@@ -690,19 +608,6 @@ async def get_narrator_voice(
     }
 
 
-@router.get("/projects/{project}/narrator-voice/sources")
-async def list_narrator_voice_sources(project: str, user: dict = Depends(get_api_user)):
-    """列出项目内可复制为解说声线的音频。"""
-    ctx = await resolve_project_context(
-        user=user, project_id=project, required_role="viewer"
-    )
-    require_project_home_node(ctx, operation="list project voice files")
-    return {
-        "ok": True,
-        "data": {"options": _project_voice_source_options(ctx.output_dir)},
-    }
-
-
 @router.post("/projects/{project}/narrator-voice/upload")
 async def upload_narrator_voice(
     project: str,
@@ -720,18 +625,20 @@ async def upload_narrator_voice(
         filename = file.filename or "voice.wav"
         if not is_supported_voice_sample(filename):
             raise ValueError(
-                f"{SUPPORTED_VOICE_SAMPLE_COPY}（收到：{filename}）"
+                f"{SUPPORTED_VOICE_SAMPLE_MESSAGE}（收到：{filename}）"
             )
         if not content:
             raise ValueError("音频内容为空")
-        created_voice = _create_reusable_voice(
+        created_voice = await call_blocking(
+            _create_reusable_voice,
             context=ctx,
             name=Path(filename).stem or "第三人称旁白",
             filename=filename,
             content=content,
             mime_type=file.content_type or "application/octet-stream",
         )
-        _persist_narrator_voice_content(
+        await call_blocking(
+            persist_narrator_voice_content,
             username=ctx.owner_username,
             project=ctx.project_name,
             project_dir=ctx.output_dir,
@@ -761,15 +668,20 @@ async def record_narrator_voice(
     store = await make_sqlite_store_for_context(ctx)
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
-        content, extension = decode_recorded_audio_data_url(body.data_url)
-        created_voice = _create_reusable_voice(
+        content, extension = await call_blocking(
+            decode_recorded_audio_data_url,
+            body.data_url,
+        )
+        created_voice = await call_blocking(
+            _create_reusable_voice,
             context=ctx,
             name="第三人称旁白录音",
             filename=f"recorded{extension}",
             content=content,
             mime_type=("audio/mpeg" if extension == ".mp3" else "audio/wav"),
         )
-        _persist_narrator_voice_content(
+        await call_blocking(
+            persist_narrator_voice_content,
             username=ctx.owner_username,
             project=ctx.project_name,
             project_dir=ctx.output_dir,
@@ -792,52 +704,32 @@ async def generate_preset_narrator_voice(
     body: NarratorVoicePresetGenerateRequest,
     user: dict = Depends(get_api_user),
 ):
-    """使用当前 AUDIO_SPEECH 预设声线生成项目解说参考音频。"""
-    from ai_anime.modules.creative_canvas.public import (
-        generate_creative_canvas_audio_speech,
-    )
-
+    """提交 AUDIO_SPEECH 预设声线生成与项目解说绑定任务。"""
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="editor"
     )
-    store = await make_sqlite_store_for_context(ctx)
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
-        generated = await generate_creative_canvas_audio_speech(
-            store=store,
-            username=ctx.owner_username,
-            project=ctx.project_name,
-            account_voice_username=None,
-            project_dir=Path(ctx.output_dir),
-            job_id=f"narrator_voice_{uuid.uuid4().hex}",
-            text=body.text,
-            emotion_prompt="",
-            mode="SPEECH",
-            voice=body.voice,
-            voice_ref=None,
-        )
-        content = await asyncio.to_thread(generated.audio_path.read_bytes)
-        created_voice = _create_reusable_voice(
-            context=ctx,
-            name=body.name or body.voice,
-            filename="generated.mp3",
-            content=content,
-            mime_type="audio/mpeg",
-        )
-        _persist_narrator_voice_content(
-            username=ctx.owner_username,
-            project=ctx.project_name,
-            project_dir=ctx.output_dir,
-            filename="generated.mp3",
-            content=content,
+        receipt = await creative_canvas_audio_generation_use_cases().start_preset_voice(
+            StartCreativeCanvasPresetVoiceCommand(
+                context=ctx,
+                project_dir=Path(ctx.output_dir),
+                name=body.name or body.voice or "AI 解说声线",
+                model_selector=body.model_selector,
+                voice=body.voice,
+                text=body.text,
+                binding={"kind": "project_narrator"},
+            )
         )
     except (OSError, RuntimeError, ValueError) as exc:
         return {"ok": False, "error": str(exc)}
-    data = _narrator_voice_payload(ctx, store)
-    data["voice_library_id"] = str(created_voice.get("voice_id") or "")
     return {
         "ok": True,
-        "data": data,
+        "task_type": receipt.task_type,
+        "task_id": receipt.task_id,
+        "task_key": receipt.task_key,
+        "scope": receipt.task_scope,
+        "message": "项目解说预设声线生成已进入队列",
     }
 
 
@@ -847,89 +739,79 @@ async def design_narrator_voice(
     body: NarratorVoiceDesignRequest,
     user: dict = Depends(get_api_user),
 ):
-    """使用云端 AUDIO_VOICE_DESIGN 将文字描述生成可复用声线。"""
-    from ai_anime.modules.model_usage.public import write_model_audio_voice_design
-
+    """提交 AUDIO_VOICE_DESIGN 声线生成与项目解说绑定任务。"""
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="editor"
     )
-    store = await make_sqlite_store_for_context(ctx)
-    suffix = f".{body.response_format}"
-    mime_type = "audio/wav" if body.response_format == "wav" else "audio/mpeg"
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
-        with TemporaryDirectory(
-            prefix=".voice-design-",
-            dir=Path(ctx.output_dir),
-        ) as temp_dir:
-            output_path = Path(temp_dir) / f"preview{suffix}"
-            result = await write_model_audio_voice_design(
-                output_path=output_path,
+        receipt = await creative_canvas_audio_generation_use_cases().start_voice_design(
+            StartCreativeCanvasVoiceDesignCommand(
+                context=ctx,
+                project_dir=Path(ctx.output_dir),
+                name=body.name or body.voice_prompt[:80],
                 model_selector=body.model_selector,
                 voice_prompt=body.voice_prompt,
                 preview_text=body.preview_text,
-                preferred_name=body.preferred_name or None,
+                preferred_name=body.preferred_name or "custom_voice",
                 language=body.language,
                 sample_rate=body.sample_rate,
                 response_format=body.response_format,
+                binding={"kind": "project_narrator"},
             )
-            content = await asyncio.to_thread(output_path.read_bytes)
-        created_voice = _create_reusable_voice(
-            context=ctx,
-            name=body.name or body.voice_prompt[:80],
-            filename=f"designed{suffix}",
-            content=content,
-            mime_type=mime_type,
-        )
-        _persist_narrator_voice_content(
-            username=ctx.owner_username,
-            project=ctx.project_name,
-            project_dir=ctx.output_dir,
-            filename=f"designed{suffix}",
-            content=content,
         )
     except (OSError, RuntimeError, ValueError) as exc:
         return {"ok": False, "error": str(exc)}
-    data = _narrator_voice_payload(ctx, store)
-    data["voice_library_id"] = str(created_voice.get("voice_id") or "")
-    data["provider_voice_id"] = result.voice_id
-    return {"ok": True, "data": data}
+    return {
+        "ok": True,
+        "task_type": receipt.task_type,
+        "task_id": receipt.task_id,
+        "task_key": receipt.task_key,
+        "scope": receipt.task_scope,
+        "message": "项目解说文字声线设计已进入队列",
+    }
 
 
-@router.post("/projects/{project}/narrator-voice/copy")
-async def copy_project_audio_as_narrator_voice(
+@router.post("/projects/{project}/narrator-voice/bind")
+async def bind_account_voice_as_narrator_voice(
     project: str,
-    body: NarratorVoiceCopyRequest,
+    body: NarratorVoiceBindRequest,
     user: dict = Depends(get_api_user),
 ):
-    """从项目内已有音频复制为第三人称项目解说声线。"""
+    """将账号声线库中的声线绑定为第三人称项目解说声线。"""
+    from ai_anime.modules.creative_canvas.public import (
+        CreativeCanvasAudioVoiceMissing,
+        GetCreativeCanvasAudioVoiceQuery,
+        creative_canvas_audio_library_use_cases,
+    )
+
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="editor"
     )
     store = await make_sqlite_store_for_context(ctx)
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
-        raw_path = Path(body.source_path)
-        source_path = raw_path if raw_path.is_absolute() else ctx.output_dir / raw_path
-        source_path = source_path.resolve()
-        source_path.relative_to(ctx.output_dir.resolve())
-        if (
-            not source_path.exists()
-            or source_path.suffix.lower() not in VOICE_SAMPLE_EXTENSIONS
-        ):
-            return {"ok": False, "error": "请选择项目内有效的音频文件"}
-        _persist_narrator_voice_content(
+        source_path = creative_canvas_audio_library_use_cases().get_voice(
+            GetCreativeCanvasAudioVoiceQuery(
+                context=ctx,
+                voice_id=body.voice_id,
+            )
+        )
+        await call_blocking(
+            persist_narrator_voice_content,
             username=ctx.owner_username,
             project=ctx.project_name,
             project_dir=ctx.output_dir,
             filename=source_path.name,
-            content=source_path.read_bytes(),
+            content=await call_blocking(source_path.read_bytes),
         )
-    except (ValueError, OSError) as exc:
+    except (CreativeCanvasAudioVoiceMissing, ValueError, OSError) as exc:
         return {"ok": False, "error": str(exc)}
+    data = _narrator_voice_payload(ctx, store)
+    data["voice_library_id"] = body.voice_id
     return {
         "ok": True,
-        "data": _narrator_voice_payload(ctx, store),
+        "data": data,
     }
 
 
@@ -946,7 +828,8 @@ async def trim_narrator_voice(
     store = await make_sqlite_store_for_context(ctx)
     try:
         _ensure_third_person_narrator(ctx.owner_username, ctx.project_name)
-        _trim_narrator_voice_content(
+        await call_blocking(
+            _trim_narrator_voice_content,
             username=ctx.owner_username,
             project=ctx.project_name,
             project_dir=ctx.output_dir,
@@ -972,16 +855,12 @@ async def delete_narrator_voice(
     )
     store = await make_sqlite_store_for_context(ctx)
     stored = load_narrator_reference_audio(ctx.owner_username, ctx.project_name)
-    target = Path(stored.get("path", ""))
-    if str(target):
-        if not target.is_absolute():
-            target = ctx.output_dir / target
-        if target.exists():
-            target.replace(
-                target.with_name(f"{target.stem}_{int(time.time())}{target.suffix}")
-            )
-    set_narrator_reference_audio(
-        ctx.owner_username, ctx.project_name, relative_path="", sha256=""
+    await call_blocking(
+        clear_narrator_voice_content,
+        username=ctx.owner_username,
+        project=ctx.project_name,
+        project_dir=ctx.output_dir,
+        stored_path=stored.get("path", ""),
     )
     return {
         "ok": True,

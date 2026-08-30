@@ -45,7 +45,8 @@ describe("videoGenerationComposition", () => {
         prompt: "cinematic rain",
         cameraTemplateId: null,
         aspectRatio: "16:9",
-        quality: "720P",
+        output: { parameter: "size", value: "1344x768" },
+        extraParams: { steps: 20, seed: 42, turbo: false },
         durationSeconds: 5,
         generateAudio: false,
         model: "video-model-1",
@@ -60,7 +61,8 @@ describe("videoGenerationComposition", () => {
       "project-1",
       expect.objectContaining({
         kind: "text",
-        resolution: "720p",
+        output: { parameter: "size", value: "1344x768" },
+        extraParams: { steps: 20, seed: 42, turbo: false },
         model: "video-model-1",
       }),
     );

@@ -498,6 +498,8 @@ flowchart TD
 
 ```text
 ai-anime-desktop/
+├─ AGENTS.md / CLAUDE.md              AI 编码工具的字节一致入口
+├─ .aigo/                            按任务渐进加载的工程规则与路由
 ├─ desktop/                         Electron 主进程与跨平台打包
 │  ├─ src/main.ts                  窗口、sidecar 和商业链路组合根
 │  ├─ src/backend.ts               FastAPI sidecar 生命周期
@@ -727,6 +729,7 @@ Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个�
 | 门禁 | 文件 | 主要约束 |
 | --- | --- | --- |
 | 后端依赖方向 | `tests/architecture/test_layer_boundaries.py` | 非 API 不反向依赖 API、route 不互相导入、上下文边界 |
+| AI 工程指令 | `tests/architecture/test_agent_guidance.py` | 双入口字节一致、路由规则与分栈指南完整性 |
 | OpenAPI 合同 | `tests/architecture/openapi-contract.json` | 浏览器 292、桌面 294 个规范化操作 |
 | 前端模块边界 | `frontend/src/__tests__/architecture/module-boundaries.test.ts` | route、domain、application、infrastructure、presentation、public |
 | SuperChat 边界 | `frontend/src/__tests__/architecture/superchat-boundaries.dom.test.ts` | Agent、消息、存储、WebSocket 和视图所有权 |

@@ -77,7 +77,10 @@ describe("canonical production workflow query", () => {
     result.current.mutate();
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(body).toEqual({ episodes: [3] });
+    expect(body).toEqual({
+      episodes: [3],
+      video_routing_policy: "project_selection",
+    });
     expect(result.current.data).toMatchObject({
       ok: true,
       task_type: "production_workflow",
@@ -86,7 +89,7 @@ describe("canonical production workflow query", () => {
 });
 
 describe("Seedance2 prompt generation query", () => {
-  it("posts current prompt reference and guidance to the per-beat endpoint", async () => {
+  it("posts prompt inputs and leaves completion data to task reconciliation", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
     });
@@ -104,16 +107,10 @@ describe("Seedance2 prompt generation query", () => {
           body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
-            data: {
-              final_prompt: "optimized seedance2 prompt",
-              seedance2_config_json:
-                '{"final_prompt":"optimized seedance2 prompt"}',
-              beat: {
-                beat_number: 2,
-                seedance2_config_json:
-                  '{"final_prompt":"optimized seedance2 prompt"}',
-              },
-            },
+            task_type: "seedance2_prompt",
+            task_id: "task-seedance2-prompt",
+            task_key: "task:seedance2_prompt:1:2",
+            message: "第 1 集 Beat 2 视频提示词优化已入队",
           });
         },
       ),
@@ -136,12 +133,16 @@ describe("Seedance2 prompt generation query", () => {
       manual_prompt_reference: "current prompt",
       prompt_guidance: "more camera motion",
     });
-    expect(result.current.data?.ok).toBe(true);
+    expect(result.current.data).toMatchObject({
+      ok: true,
+      task_type: "seedance2_prompt",
+      task_id: "task-seedance2-prompt",
+    });
     expect(
       queryClient.getQueryData<{ ok: true; data: Beat[] }>(
         queryKeys.beats("demo", 1),
       )?.data[0]?.seedance2_config_json,
-    ).toBe('{"final_prompt":"optimized seedance2 prompt"}');
+    ).toBe("old-config");
   });
 
   it("parses feature billing errors from the Seedance2 prompt endpoint", async () => {
@@ -356,6 +357,7 @@ describe("video generation commands", () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(body).toEqual({
       model: "seedance-2.0-fast",
+      video_routing_policy: "project_selection",
       use_director_render: true,
       resolution: "720p",
       duration: 5,

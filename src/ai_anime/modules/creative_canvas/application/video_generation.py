@@ -53,11 +53,21 @@ class CreativeCanvasVideoCharacterMissing(FileNotFoundError):
 class CreativeCanvasVideoGenerationModelPolicy(Protocol):
     def resolve_model(self, model: str | None) -> str: ...
 
-    def normalize_aspect_ratio(self, value: str | None) -> str: ...
+    def normalize_aspect_ratio(self, model: str | None, value: str | None) -> str: ...
 
     def normalize_resolution(self, model: str | None, value: str | None) -> str: ...
 
     def normalize_duration(self, model: str | None, value: int | None) -> int: ...
+
+    def normalize_generate_audio(self, model: str | None, value: bool) -> bool: ...
+
+    def normalize_human_review(self, model: str | None, value: bool) -> bool: ...
+
+    def normalize_extra_params(
+        self,
+        model: str | None,
+        value: Mapping[str, object] | None,
+    ) -> dict[str, object]: ...
 
     def normalize_scene_optimize(
         self,
@@ -70,6 +80,11 @@ class CreativeCanvasVideoGenerationModelPolicy(Protocol):
         model: str | None,
         media_type: CreativeCanvasVideoReferenceType,
     ) -> tuple[float | None, float | None, float | None, float | None]: ...
+
+    def reference_count_limits(
+        self,
+        model: str | None,
+    ) -> tuple[int | None, int | None, int | None, int | None]: ...
 
 
 class CreativeCanvasReferenceDurationProbe(Protocol):
@@ -92,6 +107,7 @@ class CreativeCanvasVideoGenerationOptions:
     human_review: bool
     scene_optimize: str | None
     model: str | None
+    extra_params: Mapping[str, object] | None = None
     model_selector: str | None = None
     canvas_id: str | None = None
     node_id: str | None = None
@@ -230,9 +246,10 @@ class CreativeCanvasVideoGenerationUseCases:
         model = self._resolve_model(options.model)
         if not command.image_urls:
             raise InvalidCreativeCanvasVideoGenerationRequest("image_urls is required")
-        if len(command.image_urls) > 9:
+        max_images = self._models.reference_count_limits(model)[0]
+        if max_images is not None and len(command.image_urls) > max_images:
             raise InvalidCreativeCanvasVideoGenerationRequest(
-                "image_urls count must be <= 9"
+                f"image_urls count must be <= {max_images}"
             )
 
         source_paths = self._resolve_urls(command.project_dir, command.image_urls)
@@ -373,7 +390,16 @@ class CreativeCanvasVideoGenerationUseCases:
             for reference in command.references
         ]
         try:
-            validate_omni_reference_limits(raw_references)
+            max_images, max_videos, max_audios, max_total = (
+                self._models.reference_count_limits(model)
+            )
+            validate_omni_reference_limits(
+                raw_references,
+                max_images=max_images,
+                max_videos=max_videos,
+                max_audios=max_audios,
+                max_total=max_total,
+            )
         except ValueError as exc:
             raise InvalidCreativeCanvasVideoGenerationRequest(str(exc)) from exc
         reference_items: list[dict[str, object]] = []
@@ -525,6 +551,37 @@ class CreativeCanvasVideoGenerationUseCases:
         meta: dict[str, int] | None = None,
     ) -> CreativeCanvasVideoGenerationResult:
         mode_contract = resolve_video_generation_mode(options.gen_mode or "textToVideo")
+        try:
+            extra_params = self._models.normalize_extra_params(
+                model,
+                options.extra_params,
+            )
+            aspect_ratio = self._models.normalize_aspect_ratio(
+                model,
+                options.aspect_ratio,
+            )
+            resolution = self._models.normalize_resolution(
+                model,
+                options.resolution,
+            )
+            duration_seconds = self._models.normalize_duration(
+                model,
+                options.duration_seconds,
+            )
+            generate_audio = self._models.normalize_generate_audio(
+                model,
+                options.generate_audio,
+            )
+            human_review = self._models.normalize_human_review(
+                model,
+                options.human_review,
+            )
+            scene_optimize = self._models.normalize_scene_optimize(
+                model,
+                options.scene_optimize,
+            )
+        except ValueError as exc:
+            raise InvalidCreativeCanvasVideoGenerationRequest(str(exc)) from exc
         job_id = self._job_ids.new_id()
         receipt = await self._scheduler.enqueue(
             context,
@@ -541,23 +598,13 @@ class CreativeCanvasVideoGenerationUseCases:
                     "requested_gen_mode": options.gen_mode or "",
                     "prompt": prompt,
                     "reference_items": reference_items,
-                    "aspect_ratio": self._models.normalize_aspect_ratio(
-                        options.aspect_ratio
-                    ),
-                    "resolution": self._models.normalize_resolution(
-                        model,
-                        options.resolution,
-                    ),
-                    "duration_seconds": self._models.normalize_duration(
-                        model,
-                        options.duration_seconds,
-                    ),
-                    "generate_audio": options.generate_audio,
-                    "human_review": options.human_review,
-                    "scene_optimize": self._models.normalize_scene_optimize(
-                        model,
-                        options.scene_optimize,
-                    ),
+                    "aspect_ratio": aspect_ratio,
+                    "resolution": resolution,
+                    "duration_seconds": duration_seconds,
+                    "generate_audio": generate_audio,
+                    "human_review": human_review,
+                    "scene_optimize": scene_optimize,
+                    "extra_params": extra_params,
                     "video_model": model,
                     "model_role": mode_contract.model_role,
                     "last_frame_path": last_frame_path,

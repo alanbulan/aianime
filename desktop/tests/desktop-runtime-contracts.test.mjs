@@ -9,6 +9,7 @@ import {
   commercialPlatform,
   desktopSessionCookie,
   isAllowedExternalUrl,
+  isExpectedMainFrameSender,
   isSameOrigin,
 } from "../src/desktop-runtime-contracts.ts";
 
@@ -41,4 +42,14 @@ test("desktop session cookie attributes stay identical in both main processes", 
     expirationDate: 1 + 7 * 24 * 60 * 60,
   });
   assert.equal(desktopSessionCookie("http://127.0.0.1:5173", "demo", 0).secure, false);
+});
+
+test("desktop IPC accepts only the active web contents main frame", () => {
+  const mainFrame = {};
+  const subframe = {};
+
+  assert.equal(isExpectedMainFrameSender(7, mainFrame, 7, mainFrame, mainFrame), true);
+  assert.equal(isExpectedMainFrameSender(7, mainFrame, 8, mainFrame, mainFrame), false);
+  assert.equal(isExpectedMainFrameSender(7, mainFrame, 7, subframe, mainFrame), false);
+  assert.equal(isExpectedMainFrameSender(7, mainFrame, 7, mainFrame, subframe), false);
 });

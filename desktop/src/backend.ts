@@ -24,6 +24,8 @@ const START_TIMEOUT_MS = 120_000;
 const HEALTH_CHECK_INTERVAL_MS = 10_000;
 const HEALTH_CHECK_TIMEOUT_MS = 2_000;
 const HEALTH_CHECK_FAILURE_THRESHOLD = 3;
+export const MAX_BACKEND_RESTART_ATTEMPTS = 5;
+const RESTART_STABILITY_WINDOW_MS = 60_000;
 
 interface SocketBoundEvent {
   event: "socket_bound";
@@ -56,6 +58,7 @@ interface LocalBackendOptions {
   runtimeDependencyPaths?: InstalledWorldRuntimePaths;
   restartOnUnexpectedExit?: boolean;
   fetchImpl?: typeof fetch;
+  onRestartExhausted?: (error: Error) => void;
 }
 
 interface ModelAccessInput {
@@ -66,12 +69,28 @@ interface ModelAccessInput {
     role: string;
     priority: number;
     enabled: boolean;
+    contextWindow?: number;
+    maxOutputTokens?: number;
+    reasoningEfforts?: string[];
+    defaultReasoningEffort?: string;
   }>;
   modelCapabilities?: Array<{
     modelId: string;
     videoProfile?: "standard" | "seedance2" | "happyhorse" | "grok";
+    videoRatioOptions?: string[];
+    videoResolutionOptions?: string[];
+    videoSizeOptions?: string[];
+    videoSupportsGenerateAudio?: boolean;
+    videoSupportsHumanReview?: boolean;
+    videoExtraParameterNames?: string[];
+    videoSceneOptimizeOptions?: string[];
     videoGenerationMinSeconds?: number;
     videoGenerationMaxSeconds?: number;
+    videoDurationOptions?: number[];
+    maxReferenceImages?: number;
+    maxReferenceVideos?: number;
+    maxReferenceAudios?: number;
+    maxReferenceTotal?: number;
     referenceAudioMinSeconds?: number;
     referenceAudioMaxSeconds?: number;
     referenceAudioTotalMinSeconds?: number;
@@ -93,6 +112,7 @@ export class LocalBackend {
   private readonly runtimeDependencyPaths: InstalledWorldRuntimePaths | undefined;
   private readonly restartOnUnexpectedExit: boolean;
   private readonly fetchImpl: typeof fetch;
+  private readonly onRestartExhausted: ((error: Error) => void) | undefined;
   private child: ChildProcessWithoutNullStreams | null = null;
   private readyChild: ChildProcessWithoutNullStreams | null = null;
   private logStream: WriteStream | null = null;
@@ -101,7 +121,10 @@ export class LocalBackend {
   private boundPort: number | null = null;
   private startPromise: Promise<void> | null = null;
   private restartTimer: ReturnType<typeof setTimeout> | null = null;
+  private restartStabilityTimer: ReturnType<typeof setTimeout> | null = null;
+  private restartStabilityChild: ChildProcessWithoutNullStreams | null = null;
   private restartAttempts = 0;
+  private restartExhausted = false;
   private hasStarted = false;
   private modelAccess: ModelAccessInput | null = null;
   private healthCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -116,6 +139,7 @@ export class LocalBackend {
     this.runtimeDependencyPaths = options.runtimeDependencyPaths;
     this.restartOnUnexpectedExit = options.restartOnUnexpectedExit ?? false;
     this.fetchImpl = options.fetchImpl ?? fetch;
+    this.onRestartExhausted = options.onRestartExhausted;
   }
 
   get baseUrl(): string {
@@ -202,6 +226,7 @@ export class LocalBackend {
         PYTHONUNBUFFERED: "1",
       },
       windowsHide: true,
+      detached: process.platform !== "win32",
       stdio: ["pipe", "pipe", "pipe"],
     });
     child.stdin.end();
@@ -216,13 +241,19 @@ export class LocalBackend {
       // process by making stop() a no-op.
       const exitedAfterReady = this.readyChild === child;
       this.stopHealthWatchdog(child);
+      this.clearRestartStabilityTimer(child);
       if (this.child === child) {
         this.child = null;
         this.readyChild = null;
         this.endLogStream();
       }
       if (exitedAfterReady && !this.stopping && this.restartOnUnexpectedExit) {
-        this.scheduleRestart();
+        this.terminateChildTree(child);
+        this.scheduleRestart(
+          new Error(
+            `backend exited unexpectedly code=${String(code)} signal=${String(signal)}`,
+          ),
+        );
       }
     });
 
@@ -236,8 +267,12 @@ export class LocalBackend {
       this.startHealthWatchdog(child);
       const restarted = this.hasStarted;
       this.hasStarted = true;
-      this.restartAttempts = 0;
-      if (restarted) this.writeLog("backend restart completed\n");
+      if (restarted) {
+        this.scheduleRestartBudgetReset(child);
+        this.writeLog("backend restart completed\n");
+      } else {
+        this.resetRestartBudget();
+      }
     } catch (error) {
       this.terminateChildTree(child);
       if (this.child === child) {
@@ -254,6 +289,7 @@ export class LocalBackend {
     if (this.stopping) return;
     this.stopping = true;
     this.stopHealthWatchdog();
+    this.clearRestartStabilityTimer();
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
       this.restartTimer = null;
@@ -289,10 +325,47 @@ export class LocalBackend {
     const snapshot: ModelAccessInput = {
       ...input,
       ...(input.modelAssignments
-        ? { modelAssignments: input.modelAssignments.map((item) => ({ ...item })) }
+        ? {
+            modelAssignments: input.modelAssignments.map((item) => ({
+              ...item,
+              ...(item.reasoningEfforts
+                ? { reasoningEfforts: [...item.reasoningEfforts] }
+                : {}),
+            })),
+          }
         : {}),
       ...(input.modelCapabilities
-        ? { modelCapabilities: input.modelCapabilities.map((item) => ({ ...item })) }
+        ? {
+            modelCapabilities: input.modelCapabilities.map((item) => ({
+              ...item,
+              ...(item.videoRatioOptions
+                ? { videoRatioOptions: [...item.videoRatioOptions] }
+                : {}),
+              ...(item.videoResolutionOptions
+                ? { videoResolutionOptions: [...item.videoResolutionOptions] }
+                : {}),
+              ...(item.videoSizeOptions
+                ? { videoSizeOptions: [...item.videoSizeOptions] }
+                : {}),
+              ...(item.videoExtraParameterNames
+                ? {
+                    videoExtraParameterNames: [
+                      ...item.videoExtraParameterNames,
+                    ],
+                  }
+                : {}),
+              ...(item.videoSceneOptimizeOptions
+                ? {
+                    videoSceneOptimizeOptions: [
+                      ...item.videoSceneOptimizeOptions,
+                    ],
+                  }
+                : {}),
+              ...(item.videoDurationOptions
+                ? { videoDurationOptions: [...item.videoDurationOptions] }
+                : {}),
+            })),
+          }
         : {}),
     };
     this.modelAccess = snapshot;
@@ -529,8 +602,12 @@ export class LocalBackend {
     terminateBackendProcessTree(child);
   }
 
-  private scheduleRestart(): void {
+  private scheduleRestart(lastError?: unknown): void {
     if (this.stopping || this.restartTimer || !this.restartOnUnexpectedExit) return;
+    if (this.restartAttempts >= MAX_BACKEND_RESTART_ATTEMPTS) {
+      this.exhaustRestartBudget(lastError);
+      return;
+    }
     const attempt = this.restartAttempts + 1;
     this.restartAttempts = attempt;
     const delayMs = backendRestartDelayMs(attempt);
@@ -542,9 +619,49 @@ export class LocalBackend {
           `[backend] restart attempt ${attempt} failed:`,
           error instanceof Error ? error.message : String(error),
         );
-        this.scheduleRestart();
+        this.scheduleRestart(error);
       });
     }, delayMs);
+  }
+
+  private scheduleRestartBudgetReset(child: ChildProcessWithoutNullStreams): void {
+    this.clearRestartStabilityTimer();
+    this.restartStabilityChild = child;
+    this.restartStabilityTimer = setTimeout(() => {
+      this.restartStabilityTimer = null;
+      this.restartStabilityChild = null;
+      if (this.stopping || this.readyChild !== child || this.child !== child) return;
+      this.resetRestartBudget();
+      this.writeLog("backend restart stability window completed\n");
+    }, RESTART_STABILITY_WINDOW_MS);
+  }
+
+  private clearRestartStabilityTimer(
+    child?: ChildProcessWithoutNullStreams,
+  ): void {
+    if (child && this.restartStabilityChild !== child) return;
+    if (this.restartStabilityTimer) clearTimeout(this.restartStabilityTimer);
+    this.restartStabilityTimer = null;
+    this.restartStabilityChild = null;
+  }
+
+  private resetRestartBudget(): void {
+    this.restartAttempts = 0;
+    this.restartExhausted = false;
+  }
+
+  private exhaustRestartBudget(lastError?: unknown): void {
+    if (this.restartExhausted) return;
+    this.restartExhausted = true;
+    const detail = lastError instanceof Error
+      ? lastError.message
+      : String(lastError || "unknown restart failure");
+    const error = new Error(
+      `local backend stopped after ${MAX_BACKEND_RESTART_ATTEMPTS} restart attempts: ${detail}`,
+    );
+    this.writeLog(`${error.message}\n`);
+    console.error(`[backend] ${error.message}`);
+    this.onRestartExhausted?.(error);
   }
 }
 
@@ -560,9 +677,22 @@ export function terminateBackendProcessTree(
   child: ChildProcessWithoutNullStreams,
   platform: NodeJS.Platform = process.platform,
   spawnImpl: typeof spawn = spawn,
+  killImpl: typeof process.kill = process.kill,
 ): void {
+  if (platform !== "win32") {
+    if (!child.pid) {
+      if (child.exitCode === null) child.kill();
+      return;
+    }
+    try {
+      killImpl(-child.pid, "SIGTERM");
+    } catch {
+      if (child.exitCode === null) child.kill();
+    }
+    return;
+  }
   if (child.exitCode !== null) return;
-  if (platform !== "win32" || !child.pid) {
+  if (!child.pid) {
     child.kill();
     return;
   }

@@ -1,27 +1,37 @@
 // Copyright (c) 2026 AI anime
 import type { VideoGenMode } from "./videoGenerationMode";
 
-export type VideoGenQuality = "480P" | "720P" | "1080P";
-export type Seedance2SceneOptimize = "anime" | "realistic";
+export type VideoGenQuality = "480P" | "720P" | "768P" | "1080P";
+export type VideoSceneOptimize = string;
+export type VideoOutputParameter = "resolution" | "size";
 
-const DEFAULT_QUALITIES: ReadonlyArray<VideoGenQuality> = [
-  "480P",
-  "720P",
-  "1080P",
-];
-export const DEFAULT_VIDEO_DURATION_SEC = 5;
-const DEFAULT_DURATION_MIN = DEFAULT_VIDEO_DURATION_SEC;
-const DEFAULT_DURATION_MAX = 15;
-const DEFAULT_SUPPORTED_MODES: ReadonlyArray<VideoGenMode> = [
-  "textToVideo",
-  "allReference",
-  "firstFrame",
-  "imageToVideo",
-  "firstLastFrame",
-  "imageReference",
-];
+export interface VideoOutputDefinition {
+  readonly parameter: VideoOutputParameter;
+  readonly options: ReadonlyArray<string>;
+  readonly defaultValue: string;
+}
+
+export interface VideoExtraParamDefinition {
+  readonly key: string;
+  readonly label: string;
+  readonly type: "boolean" | "enum" | "number" | "string";
+  readonly description?: string;
+  readonly defaultValue?: boolean | number | string;
+  readonly options?: Array<{ value: string; label: string }>;
+  readonly min?: number;
+  readonly max?: number;
+  readonly step?: number;
+}
 
 export interface VideoModelCapabilityDescriptor {
+  readonly parameterSchema?: Record<string, unknown>;
+  readonly resolutionOptions?: ReadonlyArray<string>;
+  readonly sizeOptions?: ReadonlyArray<string>;
+  readonly supportsGenerateAudio?: boolean;
+  readonly minDuration?: number | null;
+  readonly maxDuration?: number | null;
+  readonly defaultDuration?: number | null;
+  readonly durationOptions?: ReadonlyArray<number>;
   readonly supportedModes?: ReadonlyArray<VideoGenMode>;
   readonly supportsHumanReview?: boolean;
   readonly supportsReferenceImages?: boolean;
@@ -39,13 +49,18 @@ export interface VideoModelCapabilityDescriptor {
   readonly referenceVideoMaxSeconds?: number | null;
   readonly referenceVideoTotalMinSeconds?: number | null;
   readonly referenceVideoTotalMaxSeconds?: number | null;
-  readonly sceneOptimizeOptions?: Array<"anime" | "realistic">;
-  readonly defaultSceneOptimize?: "anime" | "realistic" | null;
+  readonly sceneOptimizeOptions?: ReadonlyArray<string>;
+  readonly defaultSceneOptimize?: string | null;
 }
 
 export interface VideoDurationBounds {
   min: number;
   max: number;
+}
+
+export interface VideoDurationDefinition extends VideoDurationBounds {
+  readonly defaultValue: number;
+  readonly options: ReadonlyArray<number>;
 }
 
 export interface VideoReferenceDurationLimitsMs {
@@ -76,54 +91,334 @@ export function videoReferenceDurationLimitsForModel(
   };
 }
 
-export function qualityToResolution(
-  quality: VideoGenQuality,
-): Lowercase<VideoGenQuality> {
-  return quality.toLowerCase() as Lowercase<VideoGenQuality>;
+const NON_EXTRA_VIDEO_PARAMETER_KEYS = new Set([
+  "model",
+  "prompt",
+  "mode",
+  "generation_mode",
+  "generationMode",
+  "seconds",
+  "duration",
+  "duration_seconds",
+  "size",
+  "resolution",
+  "ratio",
+  "aspect_ratio",
+  "aspectRatio",
+  "generate_audio",
+  "generateAudio",
+  "human_review",
+  "humanReview",
+  "scene_optimize",
+  "sceneOptimize",
+  "image",
+  "images",
+  "input_reference",
+  "first_frame_image",
+  "last_frame_image",
+  "end_image",
+  "reference_image",
+  "reference_images",
+  "reference_video",
+  "reference_videos",
+  "reference_audio",
+  "reference_audios",
+  "references",
+  "n",
+]);
+
+export function videoOutputDefinitionForModel(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): VideoOutputDefinition | null {
+  const properties = schemaProperties(model?.parameterSchema);
+  const sizeOptions = uniqueStrings([
+    ...(model?.sizeOptions ?? []),
+    ...stringArray(properties.size?.enum),
+  ]).filter(isExactVideoSize);
+  if (sizeOptions.length > 0) {
+    return {
+      parameter: "size",
+      options: sizeOptions,
+      defaultValue: optionOrFallback(properties.size?.default, sizeOptions),
+    };
+  }
+
+  const resolutionOptions = uniqueStrings([
+    ...(model?.resolutionOptions ?? []),
+    ...stringArray(properties.resolution?.enum),
+  ]).filter((value) => !isExactVideoSize(value));
+  if (resolutionOptions.length === 0) return null;
+  return {
+    parameter: "resolution",
+    options: resolutionOptions,
+    defaultValue: optionOrFallback(
+      properties.resolution?.default,
+      resolutionOptions,
+    ),
+  };
 }
 
-function resolutionToQuality(resolution: string): VideoGenQuality | null {
-  const normalized = resolution.trim().toLowerCase();
-  if (normalized === "480p") return "480P";
-  if (normalized === "720p") return "720P";
-  if (normalized === "1080p") return "1080P";
-  return null;
+export function normalizeVideoOutput(
+  value: unknown,
+  definition: VideoOutputDefinition | null,
+): string | null {
+  if (!definition) return null;
+  return optionOrFallback(value, definition.options, definition.defaultValue);
 }
 
-export function videoQualityOptionsForModel(
-  model: { resolutionOptions?: string[] } | null | undefined,
-): ReadonlyArray<VideoGenQuality> {
-  const options = (model?.resolutionOptions ?? [])
-    .map(resolutionToQuality)
-    .filter((item): item is VideoGenQuality => item != null);
-  return options.length > 0 ? options : DEFAULT_QUALITIES;
+export function videoOutputForAspectRatio(
+  definition: VideoOutputDefinition | null,
+  aspectRatio: string,
+  currentValue: string,
+): string {
+  if (!definition || definition.parameter !== "size") return currentValue;
+  const target = parseRatio(aspectRatio);
+  if (target === null) return currentValue;
+  return nearestVideoSize(definition.options, target) ?? currentValue;
 }
 
-export function normalizeVideoQuality(
-  value: VideoGenQuality | undefined,
-  options: ReadonlyArray<VideoGenQuality>,
-): VideoGenQuality {
-  const fallback = options.includes("720P")
-    ? "720P"
-    : options[0] ?? "720P";
-  return value && options.includes(value) ? value : fallback;
+export function videoAspectRatioForOutput(
+  outputValue: string,
+  aspectRatioOptions: ReadonlyArray<string>,
+  fallback: string,
+): string {
+  const sizeRatio = parseSizeRatio(outputValue);
+  if (sizeRatio === null) return fallback;
+  const candidates = aspectRatioOptions.flatMap((value) => {
+    const ratio = parseRatio(value);
+    return ratio === null ? [] : [{ value, ratio }];
+  });
+  if (candidates.length === 0) return fallback;
+  return candidates.reduce((best, candidate) =>
+    ratioDistance(candidate.ratio, sizeRatio) <
+    ratioDistance(best.ratio, sizeRatio)
+      ? candidate
+      : best,
+  ).value;
 }
 
-export function videoDurationBoundsForModel(
-  model:
-    | { minDuration?: number | null; maxDuration?: number | null }
-    | null
-    | undefined,
-): VideoDurationBounds {
-  const min = Number(model?.minDuration);
-  const max = Number(model?.maxDuration);
-  const resolvedMin =
-    Number.isFinite(min) && min > 0 ? min : DEFAULT_DURATION_MIN;
-  const resolvedMax =
-    Number.isFinite(max) && max >= resolvedMin
-      ? max
-      : DEFAULT_DURATION_MAX;
-  return { min: resolvedMin, max: resolvedMax };
+export function videoExtraParamDefinitionsForModel(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): VideoExtraParamDefinition[] {
+  const definitions: VideoExtraParamDefinition[] = [];
+  for (const [key, property] of Object.entries(
+    schemaProperties(model?.parameterSchema),
+  )) {
+    if (NON_EXTRA_VIDEO_PARAMETER_KEYS.has(key)) continue;
+    const enumValues = stringArray(property.enum);
+    const type = typeof property.type === "string" ? property.type : "";
+    const defaultValue = primitive(property.default);
+    const description = typeof property.description === "string"
+      ? property.description
+      : undefined;
+    const base = {
+      key,
+      label: typeof property.title === "string" && property.title.trim()
+        ? property.title.trim()
+        : key,
+      ...(description ? { description } : {}),
+      ...(defaultValue !== undefined ? { defaultValue } : {}),
+    };
+    if (enumValues.length > 0) {
+      definitions.push({
+        ...base,
+        type: "enum",
+        options: enumValues.map((option) => ({ value: option, label: option })),
+      });
+    } else if (type === "boolean") {
+      definitions.push({ ...base, type: "boolean" });
+    } else if (type === "number" || type === "integer") {
+      const minimum = finiteNumber(property.minimum);
+      const maximum = finiteNumber(property.maximum);
+      const multipleOf = finiteNumber(property.multipleOf);
+      definitions.push({
+        ...base,
+        type: "number",
+        ...(minimum !== null ? { min: minimum } : {}),
+        ...(maximum !== null ? { max: maximum } : {}),
+        ...(multipleOf !== null
+          ? { step: multipleOf }
+          : type === "integer"
+            ? { step: 1 }
+            : {}),
+      });
+    } else if (type === "string") {
+      definitions.push({ ...base, type: "string" });
+    }
+  }
+  return definitions;
+}
+
+export function videoExtraParamsForModel(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+  values: Record<string, unknown> | null | undefined,
+): Record<string, boolean | number | string> {
+  return Object.fromEntries(
+    videoExtraParamDefinitionsForModel(model).flatMap((definition) => {
+      const value = primitive(values?.[definition.key]);
+      const resolved = value ?? definition.defaultValue;
+      return resolved === undefined ? [] : [[definition.key, resolved]];
+    }),
+  );
+}
+
+export function videoSupportsGenerateAudio(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): boolean {
+  return model?.supportsGenerateAudio === true;
+}
+
+export function videoDurationDefinitionForModel(
+  model: VideoModelCapabilityDescriptor | null | undefined,
+): VideoDurationDefinition | null {
+  const min = finiteNumber(model?.minDuration);
+  const max = finiteNumber(model?.maxDuration);
+  const declaredDefault = finiteNumber(model?.defaultDuration);
+  const options = Array.from(
+    new Set(
+      (model?.durationOptions ?? []).filter(
+        (value) => Number.isFinite(value) && value > 0,
+      ),
+    ),
+  ).sort((left, right) => left - right);
+  const resolvedMin = min ?? options[0] ?? null;
+  const resolvedMax = max ?? options[options.length - 1] ?? null;
+  if (
+    resolvedMin === null ||
+    resolvedMax === null ||
+    declaredDefault === null ||
+    resolvedMin <= 0 ||
+    resolvedMax < resolvedMin
+  ) {
+    return null;
+  }
+  const defaultValue = Math.min(
+    Math.max(Math.round(declaredDefault), resolvedMin),
+    resolvedMax,
+  );
+  return { min: resolvedMin, max: resolvedMax, defaultValue, options };
+}
+
+export function normalizeVideoDuration(
+  value: number,
+  definition: VideoDurationDefinition,
+): number {
+  const rounded = Math.round(value);
+  if (definition.options.length === 0) {
+    return clampVideoDuration(rounded, definition);
+  }
+  return definition.options.reduce((closest, option) =>
+    Math.abs(option - rounded) < Math.abs(closest - rounded)
+      ? option
+      : closest,
+  );
+}
+
+function schemaProperties(
+  schema: Record<string, unknown> | null | undefined,
+): Record<string, Record<string, unknown>> {
+  const properties = schema?.properties;
+  if (!properties || typeof properties !== "object" || Array.isArray(properties)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(properties).filter(
+      (entry): entry is [string, Record<string, unknown>] =>
+        Boolean(entry[1]) &&
+        typeof entry[1] === "object" &&
+        !Array.isArray(entry[1]),
+    ),
+  );
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string =>
+        typeof item === "string" && Boolean(item.trim()),
+      )
+    : [];
+}
+
+function uniqueStrings(values: ReadonlyArray<string>): string[] {
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean)),
+  );
+}
+
+function isExactVideoSize(value: string): boolean {
+  return /^\d{2,5}x\d{2,5}$/i.test(value.trim());
+}
+
+function optionOrFallback(
+  value: unknown,
+  options: ReadonlyArray<string>,
+  preferredFallback?: string,
+): string {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  const match = options.find((option) => option.toLowerCase() === normalized);
+  if (match) return match;
+  const preferred = preferredFallback
+    ? options.find(
+        (option) => option.toLowerCase() === preferredFallback.toLowerCase(),
+      )
+    : undefined;
+  return preferred ?? options[0] ?? preferredFallback ?? "";
+}
+
+function parseRatio(value: string): number | null {
+  const parts = value.split(":", 2).map(Number);
+  if (
+    parts.length !== 2 ||
+    !Number.isFinite(parts[0]) ||
+    !Number.isFinite(parts[1]) ||
+    (parts[0] ?? 0) <= 0 ||
+    (parts[1] ?? 0) <= 0
+  ) {
+    return null;
+  }
+  return (parts[0] as number) / (parts[1] as number);
+}
+
+function parseSizeRatio(value: string): number | null {
+  const match = /^(\d{2,5})x(\d{2,5})$/i.exec(value.trim());
+  if (!match) return null;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  return width > 0 && height > 0 ? width / height : null;
+}
+
+function nearestVideoSize(
+  options: ReadonlyArray<string>,
+  targetRatio: number,
+): string | null {
+  const candidates = options.flatMap((value) => {
+    const ratio = parseSizeRatio(value);
+    return ratio === null ? [] : [{ value, ratio }];
+  });
+  return candidates.length === 0
+    ? null
+    : candidates.reduce((best, candidate) =>
+        ratioDistance(candidate.ratio, targetRatio) <
+        ratioDistance(best.ratio, targetRatio)
+          ? candidate
+          : best,
+      ).value;
+}
+
+function ratioDistance(left: number, right: number): number {
+  return Math.abs(Math.log(left / right));
+}
+
+function primitive(value: unknown): boolean | number | string | undefined {
+  return typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value)) ||
+    typeof value === "string"
+    ? value
+    : undefined;
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 export function clampVideoDuration(
@@ -137,15 +432,13 @@ export function isVideoModeSupportedByModel(
   mode: VideoGenMode,
   model: VideoModelCapabilityDescriptor | null | undefined,
 ): boolean {
-  return (model?.supportedModes ?? DEFAULT_SUPPORTED_MODES).includes(mode);
+  return (model?.supportedModes ?? []).includes(mode);
 }
 
 export function supportedVideoModesForModel(
   model: VideoModelCapabilityDescriptor | null | undefined,
 ): ReadonlyArray<VideoGenMode> {
-  return model?.supportedModes?.length
-    ? model.supportedModes
-    : DEFAULT_SUPPORTED_MODES;
+  return model?.supportedModes ?? [];
 }
 
 export function videoModelUsesTypedReferenceModes(
@@ -209,31 +502,27 @@ function exceedsLimit(value: number, limit: number | null | undefined): boolean 
 
 export function sceneOptimizeOptionsForModel(
   model: VideoModelCapabilityDescriptor | null | undefined,
-): ReadonlyArray<Seedance2SceneOptimize> {
-  if (model?.sceneOptimizeOptions?.length) {
-    return model.sceneOptimizeOptions;
-  }
-  return [];
+): ReadonlyArray<VideoSceneOptimize> {
+  return uniqueStrings(model?.sceneOptimizeOptions ?? []);
 }
 
 export function defaultSceneOptimizeForModel(
   model: VideoModelCapabilityDescriptor | null | undefined,
-): Seedance2SceneOptimize {
-  if (
-    model?.defaultSceneOptimize === "anime" ||
-    model?.defaultSceneOptimize === "realistic"
-  ) {
-    return model.defaultSceneOptimize;
-  }
-  return model?.sceneOptimizeOptions?.[0] ?? "anime";
+): VideoSceneOptimize | undefined {
+  const options = sceneOptimizeOptionsForModel(model);
+  const declaredDefault = String(model?.defaultSceneOptimize ?? "").trim();
+  return declaredDefault && options.includes(declaredDefault)
+    ? declaredDefault
+    : options[0];
 }
 
 export function normalizeSceneOptimize(
-  value: Seedance2SceneOptimize | undefined,
-  options: ReadonlyArray<Seedance2SceneOptimize>,
-  fallback: Seedance2SceneOptimize,
-): Seedance2SceneOptimize | undefined {
+  value: VideoSceneOptimize | undefined,
+  options: ReadonlyArray<VideoSceneOptimize>,
+  fallback: VideoSceneOptimize | undefined,
+): VideoSceneOptimize | undefined {
   if (options.length === 0) return undefined;
-  return value && options.includes(value) ? value : fallback;
+  if (value && options.includes(value)) return value;
+  return fallback && options.includes(fallback) ? fallback : options[0];
 }
 export type VideoGenCount = 1 | 2 | 4;

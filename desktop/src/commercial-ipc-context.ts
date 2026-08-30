@@ -21,6 +21,7 @@ import {
 import {
   authorizationAllowsByok,
   mergeModelCapabilities,
+  updateExplicitCloudModelAssignments,
   updateCloudModelAssignments,
   verifyAuthorizationLease,
 } from "./commercial-ipc-support.js";
@@ -38,13 +39,18 @@ export interface RegisterCommercialIpcOptions {
   platform: string;
   arch: string;
   clientVersion: string;
-  isAllowedSender: (senderId: number) => boolean;
+  isAllowedSender: (
+    senderId: number,
+    senderFrame?: unknown,
+    senderMainFrame?: unknown,
+  ) => boolean;
   onAuthenticated: (session: CommercialSessionSummary) => void | Promise<void>;
   onModelAccessChanged: (
     access: StoredCommercialModelAccess,
     allowsCustomModels: boolean,
     cloudModelAssignments: readonly ByokModelAssignment[],
     modelCapabilities: readonly CommercialModelCapabilitySnapshot[],
+    explicitCloudModelAssignments: readonly ByokModelAssignment[],
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
   releaseUpdater?: {
@@ -68,6 +74,7 @@ export class CommercialIpcContext {
   readonly client: CommercialApiClient;
   currentAuthorization: CommercialAuthorizationSnapshot | null = null;
   cloudModelAssignments: ByokModelAssignment[] = [];
+  explicitCloudModelAssignments: ByokModelAssignment[] = [];
 
   private readonly modelCapabilities = new Map<
     string,
@@ -91,7 +98,11 @@ export class CommercialIpcContext {
     this.options.ipcMain.removeHandler?.(channel);
     this.options.ipcMain.handle(channel, async (event, input) => {
       try {
-        if (!this.options.isAllowedSender(event.sender.id)) {
+        if (!this.options.isAllowedSender(
+          event.sender.id,
+          event.senderFrame,
+          event.sender.mainFrame,
+        )) {
           throw new CommercialApiError(
             "拒绝非主窗口的 Commercial Gateway 调用",
             { status: 403, code: "IPC_SENDER_FORBIDDEN" },
@@ -117,6 +128,7 @@ export class CommercialIpcContext {
   resetModelState(): void {
     this.currentAuthorization = null;
     this.cloudModelAssignments = [];
+    this.explicitCloudModelAssignments = [];
     this.modelCapabilities.clear();
     this.modelCapabilityCatalogVersion = "";
     this.modelAccessHydrated = false;
@@ -170,13 +182,20 @@ export class CommercialIpcContext {
 
   updateModelCapabilities(
     catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
+    requestedOperation?: string,
   ): void {
     if (!catalog) return;
     if (catalog.catalogVersion !== this.modelCapabilityCatalogVersion) {
       this.modelCapabilities.clear();
+      this.explicitCloudModelAssignments = [];
       this.modelCapabilityCatalogVersion = catalog.catalogVersion;
     }
     mergeModelCapabilities(catalog, this.modelCapabilities);
+    this.explicitCloudModelAssignments = updateExplicitCloudModelAssignments(
+      this.explicitCloudModelAssignments,
+      catalog,
+      requestedOperation,
+    );
   }
 
   async loadCurrentLicense(): Promise<unknown> {
@@ -255,6 +274,7 @@ export class CommercialIpcContext {
       authorizationAllowsByok(this.currentAuthorization),
       this.cloudModelAssignments,
       [...this.modelCapabilities.values()],
+      this.explicitCloudModelAssignments,
     );
   }
 }

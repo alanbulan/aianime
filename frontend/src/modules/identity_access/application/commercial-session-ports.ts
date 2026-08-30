@@ -20,6 +20,7 @@ export interface CommercialIdentityGateway {
   register(input: CommercialRegistrationInput): Promise<void>;
   restoreSession(): Promise<CommercialSession | null>;
   rememberedLogin(): Promise<CommercialRememberedLogin | null>;
+  revealRememberedPassword(): Promise<string>;
   login(input: CommercialLoginInput): Promise<CommercialSession>;
   loginRemembered(input: {
     rememberMe: boolean;

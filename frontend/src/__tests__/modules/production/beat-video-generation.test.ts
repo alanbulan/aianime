@@ -37,6 +37,41 @@ describe("beat video generation domain", () => {
     expect(result.command).toEqual({
       beatNum: 3,
       model: "seedance-2.0-fast",
+      duration: sourceConfig.duration,
+      mode: sourceConfig.mode,
+      ratio: sourceConfig.ratio,
+      resolution: "720p",
+    });
+  });
+
+  it("submits the exact H3 size and the visible duration", () => {
+    const sourceConfig = makeDraft({
+      duration: 4,
+      ratio: "9:16",
+      resolution: "768p",
+    });
+    const result = prepareBeatVideoGeneration({
+      model: "MINIMAX_H3",
+      modelSelector: "cloud:MINIMAX_H3",
+      beatNumber: 1,
+      kind: "seedance2",
+      dirty: false,
+      draft: sourceConfig,
+      isValueStyle: false,
+      modeOptions: ["first_frame", "multimodal_reference"],
+      ratioOptions: ["16:9", "9:16", "1:1"],
+      resolutionOptions: ["768p"],
+      sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+      sourceConfig,
+    });
+
+    expect(result.command).toMatchObject({
+      beatNum: 1,
+      model: "MINIMAX_H3",
+      modelSelector: "cloud:MINIMAX_H3",
+      duration: 4,
+      ratio: "9:16",
+      resolution: "768x1344",
     });
   });
 
@@ -70,7 +105,7 @@ describe("beat video generation domain", () => {
       kind: "happyhorse",
       draft: sourceConfig,
       ratioOptions: ["16:9", "9:16"],
-      resolutionOptions: ["720p", "1080p"],
+      resolutionOptions: ["768p", "1080p"],
       sourceConfig,
     });
 
@@ -80,13 +115,13 @@ describe("beat video generation domain", () => {
       duration: 8,
       mode: "multimodal_reference",
       ratio: "9:16",
-      resolution: "1080p",
+      resolution: "768p",
     });
     expect(JSON.parse(result.command.seedance2ConfigJson ?? "{}")).toMatchObject({
       generate_audio: false,
       mode: "multimodal_reference",
       ratio: "9:16",
-      resolution: "1080p",
+      resolution: "768p",
     });
     expect(result.saveDraftBeforeGeneration).toBe(false);
   });

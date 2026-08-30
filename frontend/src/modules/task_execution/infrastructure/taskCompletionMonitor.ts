@@ -10,6 +10,7 @@ import type {
   TaskState,
   TaskStatus,
 } from "@/modules/task_execution/domain/contracts";
+import type { TaskCompletionSourceRegistrar } from "@/modules/task_execution/application/taskStreamPorts";
 import { apiCall } from "@/shared/api/client";
 
 export type TaskCompletionFailureStatus = Extract<
@@ -63,7 +64,7 @@ function openTaskStream(handler: TaskStreamHandler): SseHandle {
   let es: EventSource | null = null;
   let closed = false;
   let attempt = 0;
-  let reconnectTimer: number | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   const connect = () => {
     if (closed) return;
@@ -91,7 +92,7 @@ function openTaskStream(handler: TaskStreamHandler): SseHandle {
       if (closed) return;
       attempt += 1;
       const delay = Math.min(30_000, 1_000 * 2 ** Math.max(0, attempt - 1));
-      reconnectTimer = window.setTimeout(connect, delay);
+      reconnectTimer = setTimeout(connect, delay);
     };
   };
 
@@ -100,7 +101,7 @@ function openTaskStream(handler: TaskStreamHandler): SseHandle {
   return {
     close() {
       closed = true;
-      if (reconnectTimer != null) window.clearTimeout(reconnectTimer);
+      if (reconnectTimer != null) clearTimeout(reconnectTimer);
       es?.close();
       es = null;
     },
@@ -119,8 +120,9 @@ interface PendingResolver {
 }
 
 interface ProjectPoller {
-  timer: number | null;
+  timer: ReturnType<typeof setTimeout> | null;
   inFlight: boolean;
+  failureLogged: boolean;
 }
 
 const DEFAULT_POLL_INTERVAL_MS = 4000;
@@ -128,6 +130,7 @@ const DEFAULT_MAX_POLL_MS = 20 * 60 * 1000;
 const pendingByTaskKey = new Map<string, PendingResolver>();
 const sharedStreamsByProject = new Map<string, SseHandle>();
 const pollersByProject = new Map<string, ProjectPoller>();
+const taskCompletionSourceCountsByProject = new Map<string, number>();
 
 function closeAllTaskMonitoring(err?: Error): void {
   for (const [, stream] of sharedStreamsByProject) {
@@ -137,10 +140,11 @@ function closeAllTaskMonitoring(err?: Error): void {
 
   for (const [, poller] of pollersByProject) {
     if (poller.timer != null) {
-      window.clearTimeout(poller.timer);
+      clearTimeout(poller.timer);
     }
   }
   pollersByProject.clear();
+  taskCompletionSourceCountsByProject.clear();
 
   if (err) {
     for (const [, pending] of pendingByTaskKey) {
@@ -164,7 +168,7 @@ function maybeStopProjectMonitoring(projectId: string): void {
   const poller = pollersByProject.get(projectId);
   if (poller) {
     if (poller.timer != null) {
-      window.clearTimeout(poller.timer);
+      clearTimeout(poller.timer);
     }
     pollersByProject.delete(projectId);
   }
@@ -204,6 +208,7 @@ function rejectProjectPending(projectId: string, err: Error): void {
 
 function ensureSharedStream(projectId: string) {
   const resolved = resolveTaskProjectId(projectId);
+  if ((taskCompletionSourceCountsByProject.get(resolved) ?? 0) > 0) return;
   if (sharedStreamsByProject.has(resolved)) return;
   const stream = openTaskStream({
     projectId: resolved,
@@ -217,6 +222,50 @@ function ensureSharedStream(projectId: string) {
   sharedStreamsByProject.set(resolved, stream);
 }
 
+export const registerTaskCompletionSource: TaskCompletionSourceRegistrar = (
+  projectId,
+) => {
+  const resolved = resolveTaskProjectId(projectId);
+  taskCompletionSourceCountsByProject.set(
+    resolved,
+    (taskCompletionSourceCountsByProject.get(resolved) ?? 0) + 1,
+  );
+
+  const fallbackStream = sharedStreamsByProject.get(resolved);
+  if (fallbackStream) {
+    fallbackStream.close();
+    sharedStreamsByProject.delete(resolved);
+  }
+
+  let closed = false;
+  return {
+    onTask(task) {
+      const pending = pendingByTaskKey.get(task.task_key);
+      if (pending?.projectId === resolved) {
+        settleTask(task);
+      }
+    },
+    onAuthRevoked() {
+      rejectProjectPending(resolved, new Error("auth revoked"));
+    },
+    close() {
+      if (closed) return;
+      closed = true;
+      const remaining =
+        (taskCompletionSourceCountsByProject.get(resolved) ?? 1) - 1;
+      if (remaining > 0) {
+        taskCompletionSourceCountsByProject.set(resolved, remaining);
+        return;
+      }
+      taskCompletionSourceCountsByProject.delete(resolved);
+      if (pendingCountForProject(resolved) > 0) {
+        ensureSharedStream(resolved);
+        ensureProjectPoller(resolved);
+      }
+    },
+  };
+};
+
 /**
  * Shared HTTP polling fallback for {@link awaitTaskCompletion}. SSE is the
  * primary channel, but the stream can drop events during reconnect windows,
@@ -226,12 +275,16 @@ function ensureSharedStream(projectId: string) {
 function ensureProjectPoller(projectId: string): void {
   if (pollersByProject.has(projectId)) return;
 
-  const poller: ProjectPoller = { timer: null, inFlight: false };
+  const poller: ProjectPoller = {
+    timer: null,
+    inFlight: false,
+    failureLogged: false,
+  };
   pollersByProject.set(projectId, poller);
 
   const schedule = () => {
     if (!pollersByProject.has(projectId)) return;
-    poller.timer = window.setTimeout(run, DEFAULT_POLL_INTERVAL_MS);
+    poller.timer = setTimeout(run, DEFAULT_POLL_INTERVAL_MS);
   };
 
   const run = async () => {
@@ -248,26 +301,33 @@ function ensureProjectPoller(projectId: string): void {
     poller.inFlight = true;
     try {
       const tasks = await listTasks(projectId);
+      poller.failureLogged = false;
       const tasksByKey = new Map(tasks.map((task) => [task.task_key, task]));
-      const now = Date.now();
       for (const [taskKey, pending] of pendingByTaskKey) {
         if (pending.projectId !== projectId) continue;
         const found = tasksByKey.get(taskKey);
         if (found) {
           settleTask(found);
         }
-        // settleTask only settles terminal statuses. If the entry is still
-        // pending past its deadline — whether the task went missing OR stays
-        // visible but never terminal — time it out so the promise can't hang.
-        if (pendingByTaskKey.has(taskKey) && now > pending.expiresAt) {
-          pending.reject(new Error("task polling timed out"));
-          pendingByTaskKey.delete(taskKey);
-        }
       }
-    } catch {
-      // transient list failure — try again next tick
+    } catch (error) {
+      if (!poller.failureLogged) {
+        console.warn("[task-monitor] task polling failed; retrying", error);
+        poller.failureLogged = true;
+      }
     } finally {
       poller.inFlight = false;
+    }
+
+    const now = Date.now();
+    for (const [taskKey, pending] of pendingByTaskKey) {
+      if (pending.projectId !== projectId) continue;
+      // Timeout independently of the list request result. A persistent network
+      // failure must not leave the caller's promise pending forever.
+      if (now >= pending.expiresAt) {
+        pending.reject(new Error("task polling timed out"));
+        pendingByTaskKey.delete(taskKey);
+      }
     }
 
     if (pendingCountForProject(projectId) === 0) {

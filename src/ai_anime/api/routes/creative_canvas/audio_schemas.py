@@ -55,6 +55,28 @@ class FreezoneAudioVoiceRef(BaseModel):
     )
 
 
+class FreezoneAudioVoiceBindingTarget(BaseModel):
+    """生成完成后由任务执行器持久绑定的角色声线目标。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["character_slot", "identity"]
+    character_name: str = Field(min_length=1, max_length=120)
+    slot: str = Field(default="", max_length=32)
+    identity_id: str = Field(default="", max_length=160)
+
+    @model_validator(mode="after")
+    def validate_target(self):
+        self.character_name = self.character_name.strip()
+        self.slot = self.slot.strip()
+        self.identity_id = self.identity_id.strip()
+        if self.kind == "character_slot" and not self.slot:
+            raise ValueError("slot is required for character_slot binding")
+        if self.kind == "identity" and not self.identity_id:
+            raise ValueError("identity_id is required for identity binding")
+        return self
+
+
 class FreezoneAudioVoiceDesignRequest(BaseModel):
     """通过云端文字设计模型创建账号级可复用声线。"""
 
@@ -73,6 +95,7 @@ class FreezoneAudioVoiceDesignRequest(BaseModel):
     language: Literal["zh", "en", "de", "it", "pt", "es", "ja", "ko", "fr", "ru"] = "zh"
     sample_rate: Literal[8000, 16000, 24000, 48000] = 24000
     response_format: Literal["wav", "mp3"] = "wav"
+    binding: Optional[FreezoneAudioVoiceBindingTarget] = None
 
     @model_validator(mode="after")
     def normalize_required_text(self):
@@ -89,11 +112,36 @@ class FreezoneAudioVoiceDesignRequest(BaseModel):
         return self
 
 
+class FreezoneAudioVoicePresetRequest(BaseModel):
+    """通过预设声音模型创建账号级可复用声线。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(default="", max_length=80)
+    model_selector: str = Field(min_length=1, max_length=768)
+    voice: str = Field(default="", max_length=120)
+    text: str = Field(min_length=1, max_length=500)
+    binding: Optional[FreezoneAudioVoiceBindingTarget] = None
+
+    @model_validator(mode="after")
+    def normalize_text(self):
+        self.name = self.name.strip()
+        self.model_selector = self.model_selector.strip()
+        self.voice = self.voice.strip()
+        self.text = self.text.strip()
+        if not self.model_selector:
+            raise ValueError("model_selector is required")
+        if not self.text:
+            raise ValueError("text is required")
+        return self
+
+
 class FreezoneAudioSpeechRequest(BaseModel):
     """Freezone 音频节点：文本生成语音请求。"""
 
     model_config = ConfigDict(extra="forbid")
 
+    model_selector: str = Field(default="", max_length=768)
     text: str = Field(
         description=("要合成的台词/旁白文本。"),
         examples=["她低声说：终于等到这一天了。"],
@@ -138,8 +186,9 @@ class FreezoneAudioSpeechRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_voice_mode(self):
+        self.model_selector = self.model_selector.strip()
         if self.mode == "SPEECH":
-            if not self.voice.strip():
+            if not self.voice.strip() and not self.model_selector.startswith("byok:"):
                 raise ValueError("voice is required when mode is SPEECH")
             if self.voice_ref is not None:
                 raise ValueError("voice_ref is not allowed when mode is SPEECH")
@@ -185,5 +234,6 @@ __all__ = [
     "FreezoneAudioMusicRequest",
     "FreezoneAudioSpeechRequest",
     "FreezoneAudioVoiceDesignRequest",
+    "FreezoneAudioVoicePresetRequest",
     "FreezoneAudioVoiceRef",
 ]

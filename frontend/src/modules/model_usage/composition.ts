@@ -23,6 +23,7 @@ export const { useGenerationCreditCost, useGenerationCreditCosts } =
 export const { useModelGatewayConfig } = modelGatewayQueries;
 export const {
   clearCommercialModelCatalogCache,
+  loadCommercialModelAccessStatus,
   loadCommercialModelCatalog,
   useClearByok,
   useDiscoverByokProviderModels,

@@ -35,6 +35,29 @@ def test_api_middleware_keeps_small_limit_for_non_upload_json() -> None:
     assert response.status_code == 413
 
 
+def test_api_middleware_limits_chunked_body_without_content_length() -> None:
+    from ai_anime.api.app import create_app
+
+    def body_chunks():
+        yield b"x" * (3 * 1024 * 1024)
+        yield b"y" * (3 * 1024 * 1024)
+
+    client = TestClient(create_app())
+    response = client.put(
+        "/api/v1/projects/demo/freezone/canvases/canvas_1",
+        content=body_chunks(),
+        headers={"content-type": "application/json"},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == {
+        "code": "canvas_payload_too_large",
+        "field": "body",
+        "limit": 5 * 1024 * 1024,
+        "got": 6 * 1024 * 1024,
+    }
+
+
 def test_freezone_audio_voice_oversize_returns_business_error() -> None:
     from ai_anime.api.app import create_app
 

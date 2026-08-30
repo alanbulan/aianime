@@ -65,6 +65,12 @@ from ai_anime.modules.project_workspace.infrastructure.project_directories impor
     ensure_project_dirs,
     ensure_project_dirs_at_paths,
 )
+from ai_anime.modules.project_workspace.infrastructure.narrator_voice import (
+    clear_narrator_voice_content,
+    narrator_voice_path,
+    persist_narrator_voice_content,
+    persist_narrator_voice_source,
+)
 
 
 async def resolve_project_context(
@@ -218,6 +224,7 @@ __all__ = [
     "ProjectSummaryData",
     "build_local_project_adapters",
     "change_project_status",
+    "clear_narrator_voice_content",
     "count_project_task_eligible_users",
     "create_project_workspace",
     "default_aspect_ratio_for_spine_template",
@@ -241,7 +248,10 @@ __all__ = [
     "load_project_config_from_state_dir",
     "list_project_summaries",
     "list_project_workspaces",
+    "narrator_voice_path",
     "purge_project_workspace",
+    "persist_narrator_voice_content",
+    "persist_narrator_voice_source",
     "require_project_home_node",
     "resolve_project_context",
     "save_project_config",

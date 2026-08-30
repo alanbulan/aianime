@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -141,10 +142,16 @@ async def test_status_projects_panel_state_and_closes_store(
         prompt_inputs_hash="old",
         current_prompt_inputs_hash="new",
     )
+    event_loop_thread = threading.get_ident()
+
+    def build_panel_state(**_kwargs):
+        assert threading.get_ident() != event_loop_thread
+        return state
+
     monkeypatch.setattr(
         seedance2_panel.seedance2_panel_service,
         "build_seedance2_video_panel_state",
-        lambda **_kwargs: state,
+        build_panel_state,
     )
 
     response = await gateway.status(
@@ -485,11 +492,10 @@ async def test_asset_operations_preserve_arguments_and_return_status(
         service_method,
         operation,
     )
-    monkeypatch.setattr(
-        gateway,
-        "_status_response",
-        lambda _session: status_response,
-    )
+    async def status(_session):
+        return status_response
+
+    monkeypatch.setattr(gateway, "_status_response", status)
 
     result = await getattr(gateway, gateway_method)(context, command)
 

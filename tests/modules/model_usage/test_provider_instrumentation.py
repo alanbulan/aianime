@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+
 import pytest
 
 import ai_anime.modules.model_usage.infrastructure.provider_instrumentation as provider
@@ -91,3 +94,38 @@ async def test_provider_meter_calls_use_registered_usage_resolver(monkeypatch) -
         ("reserve", {"model": "gpt-test", "billing_kind": "text"}),
         ("refund", "reservation-1"),
     ]
+
+
+@pytest.mark.asyncio
+async def test_background_usage_callback_is_retained_until_completion() -> None:
+    release = asyncio.Event()
+
+    async def callback() -> None:
+        await release.wait()
+
+    provider._run_background_usage_callback(callback())
+
+    tasks = tuple(provider._background_usage_tasks)
+    assert len(tasks) == 1
+    assert not tasks[0].done()
+
+    release.set()
+    await asyncio.gather(*tasks)
+    await asyncio.sleep(0)
+
+    assert provider._background_usage_tasks == set()
+
+
+@pytest.mark.asyncio
+async def test_background_usage_callback_logs_failure(caplog) -> None:
+    caplog.set_level(logging.ERROR, logger=provider.logger.name)
+
+    async def callback() -> None:
+        raise RuntimeError("usage write failed")
+
+    provider._run_background_usage_callback(callback())
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    assert provider._background_usage_tasks == set()
+    assert "litellm background usage callback failed" in caplog.text

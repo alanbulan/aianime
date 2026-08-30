@@ -5,8 +5,15 @@ from __future__ import annotations
 import sqlite3
 
 from .versions.v1_initial_chat_history import VERSION, apply
+from .versions.v2_message_context_state import (
+    VERSION as MESSAGE_CONTEXT_VERSION,
+    apply as apply_message_context,
+)
 
-MIGRATIONS = ((VERSION, apply),)
+MIGRATIONS = (
+    (VERSION, apply),
+    (MESSAGE_CONTEXT_VERSION, apply_message_context),
+)
 MIGRATION_VERSION = len(MIGRATIONS)
 
 

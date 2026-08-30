@@ -49,6 +49,7 @@ from ai_anime.modules.task_execution.domain.task_restart_recovery import (
 )
 from ai_anime.modules.task_execution.domain.task_time import parse_task_timestamp
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
+from ai_anime.shared.utils.time_format import utc_iso, utc_now_iso
 
 logger = logging.getLogger(__name__)
 
@@ -97,13 +98,7 @@ def compute_expiry(ttl_seconds: int | None) -> str | None:
     """按 TTL 计算过期时间。"""
     if ttl_seconds is None:
         return None
-    return (
-        datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
-    ).isoformat().replace("+00:00", "Z")
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return utc_iso(datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds))
 
 
 def get_project_task_db_path(username: str, project: str) -> Path:

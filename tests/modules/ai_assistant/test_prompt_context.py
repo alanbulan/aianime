@@ -2,7 +2,10 @@ import pytest
 
 from ai_anime.modules.ai_assistant.application import AgentPromptContext
 from ai_anime.modules.ai_assistant.composition import get_agent_prompt_context
-from ai_anime.modules.ai_assistant.domain import compose_agent_prompt
+from ai_anime.modules.ai_assistant.domain import (
+    compose_agent_prompt,
+    is_slash_command,
+)
 from ai_anime.modules.ai_assistant.infrastructure import FileUserPreferences
 from ai_anime.modules.ai_assistant.public import build_agent_prompt_context
 
@@ -78,6 +81,67 @@ def test_agent_prompt_context_loads_preferences_for_user():
 
     assert preferences.loaded_usernames == ["admin"]
     assert "[USER_PREFERENCES]\nPrefer cinematic lighting." in prompt
+
+
+def test_prompt_keeps_pinned_content_and_omits_excluded_context():
+    prompt = compose_agent_prompt(
+        username="admin",
+        project="project-a",
+        prompt="继续",
+        preferences="",
+        rebuild_context=True,
+        current_turn_id="turn-current",
+        context_messages=[
+            {
+                "id": 1,
+                "role": "user",
+                "content": "普通历史",
+                "context_state": "normal",
+                "turn_id": "turn-old",
+            },
+            {
+                "id": 2,
+                "role": "assistant",
+                "content": "固定原文：不要压缩这句话。",
+                "context_state": "pinned",
+                "turn_id": "turn-pinned",
+            },
+            {
+                "id": 3,
+                "role": "user",
+                "content": "绝不能进入模型的内容",
+                "context_state": "excluded",
+                "turn_id": "turn-excluded",
+            },
+            {
+                "id": 4,
+                "role": "user",
+                "content": "当前消息不应重复注入",
+                "context_state": "normal",
+                "turn_id": "turn-current",
+            },
+        ],
+    )
+
+    assert "[AI_ANIME_PINNED_CONTEXT]" in prompt
+    assert "固定原文：不要压缩这句话。" in prompt
+    assert "[AI_ANIME_REBUILT_CONTEXT]" in prompt
+    assert "普通历史" in prompt
+    assert "绝不能进入模型的内容" not in prompt
+    assert "当前消息不应重复注入" not in prompt
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("/help", True),
+        (" /model provider/model ", True),
+        ("请执行 /help", False),
+        ("/", False),
+    ],
+)
+def test_is_slash_command(text, expected):
+    assert is_slash_command(text) is expected
 
 
 def test_prompt_injects_json_render_contract(monkeypatch, tmp_path):

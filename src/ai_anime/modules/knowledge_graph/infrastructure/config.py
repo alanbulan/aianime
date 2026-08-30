@@ -20,8 +20,6 @@ from pathlib import Path
 from threading import RLock
 from typing import Callable, Iterator
 
-from dotenv import load_dotenv
-
 from ai_anime.modules.model_usage.public import (
     resolve_model_for_role,
     runtime_model_access,
@@ -35,15 +33,15 @@ from ai_anime.modules.model_usage.public import (
     set_model_call_reservation_active,
 )
 from ai_anime.shared.env_guard import preserve_st_env
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
 # 抑制 cognee/litellm 内部的 Pydantic 序列化警告
 # （豆包等非 OpenAI provider 的 Message 字段数与 cognee 期望不同，不影响功能）
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
 
-# 确保加载 .env 文件（优先使用仓库根目录）
-project_root = Path(__file__).resolve().parents[3]
-load_dotenv(project_root / ".env", override=False)
-load_dotenv(override=False)
+# Cognee reads configuration during import, so bootstrap the canonical project
+# dotenv before importing it later in this module.
+load_project_dotenv()
 
 COGNEE_EMBEDDING_TIMEOUT_SECONDS = float(os.getenv("COGNEE_EMBEDDING_TIMEOUT", "600"))
 _embedding_gateway_patch_installed = False

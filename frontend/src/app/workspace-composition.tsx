@@ -7,6 +7,8 @@ import {
   type AssetWorldVoiceCatalog,
 } from "@/modules/asset_world/public";
 import {
+  createPresetCanvasAudioVoice,
+  deleteCanvasAudioVoice,
   designCanvasAudioVoice,
   loadCanvasAudioReferences,
   openPresetProjectionInMyCanvas,
@@ -64,6 +66,8 @@ const assetWorldVoiceCatalog: AssetWorldVoiceCatalog = {
       ];
     });
   },
+  deleteVoice: deleteCanvasAudioVoice,
+  createPresetVoice: createPresetCanvasAudioVoice,
   designVoice: designCanvasAudioVoice,
 };
 
@@ -75,6 +79,7 @@ export function CharactersPageContent({ project }: { project: string }) {
       createElement(NarratorVoicePanel, {
         allowFirstPersonProjectVoice: true,
         project: voiceProject,
+        voiceCatalog: assetWorldVoiceCatalog,
       }),
     voiceCatalog: assetWorldVoiceCatalog,
   });

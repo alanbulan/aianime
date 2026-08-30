@@ -11,6 +11,7 @@ import {
   type TaskState,
 } from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
+import { downloadBlobAsFile } from "@/lib/browserDownload";
 
 export function TaskActions({ task }: { task: TaskState }) {
   const { t } = useTranslation();
@@ -48,12 +49,7 @@ export function TaskActions({ task }: { task: TaskState }) {
 
   const onDownloadLogs = () => {
     const blob = new Blob([task.logs.join("\n")], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${task.task_key}.log`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlobAsFile(blob, `${task.task_key}.log`);
   };
 
   return (

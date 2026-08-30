@@ -103,6 +103,10 @@ export function normalizeMessage(message: unknown, fallbackRole: ChatRole = "ass
     || value.toolState === "error"
     ? value.toolState
     : undefined;
+  const rawContextState = value.context_state ?? value.contextState;
+  const contextState = rawContextState === "pinned" || rawContextState === "excluded"
+    ? rawContextState
+    : "normal";
   return {
     id,
     role,
@@ -116,6 +120,7 @@ export function normalizeMessage(message: unknown, fallbackRole: ChatRole = "ass
     toolInput: value.toolInput,
     toolOutput: value.toolOutput,
     toolError: value.toolError,
+    contextState,
     timestamp,
     raw: message,
   };

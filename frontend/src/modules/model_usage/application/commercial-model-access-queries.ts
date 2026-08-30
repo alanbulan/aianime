@@ -67,10 +67,18 @@ export function createCommercialModelAccessQueries(
     const active = catalogRequests.get(key);
     if (active) return active;
     const request = gateway
-      .fetchCatalog(normalizedOperation || undefined, source)
+      .fetchCatalog(
+        normalizedOperation || undefined,
+        source,
+        cached?.catalog.catalogVersion,
+      )
       .then((catalog) => {
-        cacheCatalog(normalizedOperation, source, catalog);
-        return catalog;
+        const resolved = cached
+          && catalog.catalogVersion === cached.catalog.catalogVersion
+          ? cached.catalog
+          : catalog;
+        cacheCatalog(normalizedOperation, source, resolved);
+        return resolved;
       });
     catalogRequests.set(key, request);
     try {
@@ -78,6 +86,10 @@ export function createCommercialModelAccessQueries(
     } finally {
       catalogRequests.delete(key);
     }
+  }
+
+  async function loadCommercialModelAccessStatus() {
+    return gateway.fetchAccessStatus();
   }
 
   function seedCommercialBootstrap(queryClient: QueryClient, value: unknown) {
@@ -222,6 +234,7 @@ export function createCommercialModelAccessQueries(
   return {
     clearCommercialModelCatalogCache,
     loadCommercialModelCatalog,
+    loadCommercialModelAccessStatus,
     seedCommercialBootstrap,
     useClearByok,
     useDiscoverByokProviderModels,

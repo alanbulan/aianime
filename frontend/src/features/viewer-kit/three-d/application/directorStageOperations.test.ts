@@ -11,7 +11,14 @@ import {
 
 function createGateway(): BeatDirectorStageGateway {
   return {
-    generateAiStagingProp: vi.fn().mockResolvedValue({ prop: { id: "prop-1" } }),
+    generateAiStagingProp: vi.fn().mockResolvedValue({
+      task_type: "freezone_ai_staging_prop",
+      job_id: "ai-staging-1",
+      task_key: "task:freezone_ai_staging_prop:ai_staging",
+      task_episode: 0,
+      task_scope: "ai_staging",
+      task_id: "task-1",
+    }),
     getOverlay: vi.fn().mockResolvedValue({ status: "missing" }),
     saveControlFrame: vi.fn().mockResolvedValue({ rel_paths: {}, paths: {}, dir: "" }),
     saveOverlay: vi.fn().mockResolvedValue({ status: "saved" }),

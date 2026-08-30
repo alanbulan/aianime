@@ -30,6 +30,16 @@ function createHarness(cachedMessages: ChatMessage[] = []) {
       return { close, connect, disconnect, send };
     }),
     loadCachedMessages: vi.fn(() => cachedMessages),
+    loadChatModels: vi.fn(async () => ([
+      { id: "auto", label: "自动（遵循模型优先级）", source: "auto" as const },
+      {
+        id: "cloud:text-model",
+        label: "Qwen3.8-27B",
+        source: "cloud" as const,
+        reasoningEfforts: ["low", "medium", "xhigh"],
+        defaultReasoningEffort: "low",
+      },
+    ])),
     loadPendingActiveTurn: vi.fn(() => null),
     loadScopedMessageIds: vi.fn(() => ({
       pinnedIds: new Set(["pinned-1"]),
@@ -40,10 +50,16 @@ function createHarness(cachedMessages: ChatMessage[] = []) {
       showToolEvents: false,
     })),
     pruneOldMessageCaches: vi.fn(),
+    resolveChatDecision: vi.fn(async () => undefined),
+    runChatSlashCommand: vi.fn(async (_scope, command) => ({
+      command,
+      text: "命令执行完成",
+    })),
     saveActiveTurn: vi.fn(),
     saveCachedMessages: vi.fn(),
     saveScopedMessageIds: vi.fn(),
     saveSuperChatSettings: vi.fn(),
+    setChatMessageContextState: vi.fn(async () => undefined),
   };
   return {
     close,
@@ -179,6 +195,32 @@ describe("useChatSessionController", () => {
     });
   });
 
+  it("runs a structured command out of band without creating chat messages", async () => {
+    const harness = createHarness();
+    const { result } = renderHook(() =>
+      useChatSessionController({
+        project: "project-a",
+        displayName: "Alice",
+        ports: harness.ports,
+      }),
+    );
+    act(() => vi.advanceTimersByTime(50));
+
+    await expect(result.current.runSlashCommand("context")).resolves.toEqual({
+      command: "context",
+      text: "命令执行完成",
+    });
+
+    expect(harness.ports.runChatSlashCommand).toHaveBeenCalledWith(
+      { kind: "project", id: "project-a", conversationId: "main" },
+      "context",
+    );
+    expect(result.current.messages).toEqual([]);
+    expect(harness.send).not.toHaveBeenCalledWith(expect.objectContaining({
+      type: "chat.message",
+    }));
+  });
+
   it("requests a history snapshot when an active turn has not finalized", () => {
     const harness = createHarness();
     const { result } = renderHook(() =>
@@ -229,6 +271,123 @@ describe("useChatSessionController", () => {
       },
       conversationId: "chat_2",
     });
+  });
+
+  it("loads models and sends a conversation-only model selection frame", async () => {
+    const harness = createHarness();
+    const { result } = renderHook(() =>
+      useChatSessionController({
+        project: "project-a",
+        conversationId: "chat_2",
+        displayName: "Alice",
+        ports: harness.ports,
+      }),
+    );
+
+    act(() => vi.advanceTimersByTime(50));
+    await act(async () => Promise.resolve());
+    expect(harness.ports.loadChatModels).toHaveBeenCalledTimes(1);
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "session.model.get",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+    });
+
+    harness.send.mockClear();
+    let accepted = false;
+    act(() => {
+      accepted = result.current.switchModel("cloud:text-model");
+    });
+
+    expect(accepted).toBe(true);
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "session.model.set",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: "cloud:text-model",
+      reasoning_effort: "low",
+    });
+
+    act(() => harness.getSocketOptions()?.onFrame({
+      type: "session.model.state",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: "cloud:text-model",
+      reasoning_effort: "low",
+    }));
+    harness.send.mockClear();
+    act(() => {
+      accepted = result.current.switchReasoningEffort("xhigh");
+    });
+    expect(accepted).toBe(true);
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "session.model.set",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: "cloud:text-model",
+      reasoning_effort: "xhigh",
+    });
+  });
+
+  it("submits a live decision and removes it only after the HTTP answer succeeds", async () => {
+    const harness = createHarness();
+    const { result } = renderHook(() =>
+      useChatSessionController({
+        project: "project-a",
+        displayName: "Alice",
+        ports: harness.ports,
+      }),
+    );
+    act(() => vi.advanceTimersByTime(50));
+
+    act(() => harness.getSocketOptions()?.onFrame({
+      type: "decision_required",
+      scope: { kind: "project", id: "project-a" },
+      decision: {
+        id: "decision-1",
+        title: "生成前确认",
+        source: "question",
+        status: "pending",
+        questions: [
+          {
+            id: "resolution",
+            header: "分辨率",
+            question: "请选择分辨率",
+            options: [
+              { id: "1080p", label: "1080p", description: "高清" },
+              { id: "720p", label: "720p", description: "均衡" },
+            ],
+          },
+        ],
+      },
+    }));
+
+    expect(result.current.decisions).toHaveLength(1);
+    await act(async () => {
+      await result.current.resolveDecision(
+        result.current.decisions[0]!,
+        [{ question_id: "resolution", option_id: "1080p" }],
+      );
+    });
+
+    expect(harness.ports.resolveChatDecision).toHaveBeenCalledWith(
+      "decision-1",
+      [{ question_id: "resolution", option_id: "1080p" }],
+    );
+    expect(result.current.decisions).toEqual([]);
+    expect(result.current.submittingDecisionIds.size).toBe(0);
   });
 
   it("persists the new scope's messages after a switch without leaking the old scope", () => {

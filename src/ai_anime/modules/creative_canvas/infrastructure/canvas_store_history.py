@@ -16,9 +16,9 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
     load_canvas_json,
     parse_canvas_iso,
     timestamp_utc_iso,
-    utc_iso,
 )
 from ai_anime.modules.creative_canvas.infrastructure.paths import canvas_path
+from ai_anime.shared.utils.time_format import utc_iso
 
 CANVAS_HISTORY_TS_FORMAT = "%Y%m%d_%H%M%S_%f"
 HISTORY_RETENTION_LIMIT = 100

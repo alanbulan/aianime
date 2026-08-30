@@ -171,7 +171,7 @@ async def test_standard_video_preserves_duration_resolution_and_task_payload(
         context,
         _command(
             duration=5,
-            resolution="1080p",
+            resolution="720p",
             provided_fields=frozenset({"duration", "resolution"}),
         ),
     )
@@ -182,6 +182,52 @@ async def test_standard_video_preserves_duration_resolution_and_task_payload(
     assert task.config["resolution"] == "720p"
     assert task.config["cognee_store_project"] == "alice/demo"
     assert durations.calls == [(context, 3, 2)]
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_standard_catalog_video_preserves_declared_size_and_ratio(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    frame = _frame(tmp_path)
+    beat = {
+        "beat_number": 2,
+        "audio_type": "dialogue",
+        "video_mode": "first_frame",
+        "video_prompt": "video prompt",
+    }
+    store = _Store([beat])
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_profile=None,
+            video_resolution_options=(),
+            video_size_options=("1344x768", "768x1344", "1024x1024"),
+            video_generation_min_seconds=1,
+            video_generation_max_seconds=15,
+        ),
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_model="MINIMAX_H3",
+            duration=4,
+            resolution="768x1344",
+            ratio="9:16",
+            provided_fields=frozenset({"duration", "resolution", "ratio"}),
+        ),
+    )
+
+    assert task.config["frame_path"] == str(frame)
+    assert task.config["video_duration"] == 4.0
+    assert task.config["resolution"] == "768x1344"
+    assert task.config["ratio"] == "9:16"
     assert store.close_calls == 1
 
 
@@ -341,6 +387,7 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
         "runtime_model_capability",
         lambda _model: SimpleNamespace(
             video_profile="seedance2",
+            video_resolution_options=("480p", "720p", "1080p"),
             video_generation_min_seconds=4,
             video_generation_max_seconds=15,
         ),
@@ -366,10 +413,15 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
 
     task = await preparer.prepare(
         _context(tmp_path),
-        _command(video_model="opaque-cloud-video-42"),
+        _command(
+            video_model="opaque-cloud-video-42",
+            resolution="1080p",
+            provided_fields=frozenset({"resolution"}),
+        ),
     )
 
     assert calls[0]["duration"] == pytest.approx(0.768)
+    assert calls[0]["resolution"] == "1080p"
     assert task.config["video_duration"] == 4.0
     assert task.config["model_role"] == "VIDEO_IMAGE_TO_VIDEO"
     assert task.config["seedance2_config"] == beat["seedance2_config_json"]
@@ -506,10 +558,18 @@ async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
 
 
 @pytest.mark.parametrize(
-    ("model", "reference_limit", "expected_resolution", "audio_setting"),
+    (
+        "model",
+        "reference_limit",
+        "expected_resolution",
+        "audio_setting",
+        "duration",
+        "catalog_limit",
+    ),
     [
-        ("happyhorse-1.0", 9, "1080p", "origin"),
-        ("grok-video-channel", 7, "720p", None),
+        ("happyhorse-1.0", 9, "1080p", "origin", 6, None),
+        ("grok-video-channel", 7, "720p", None, 7, None),
+        ("happyhorse-1.0", 2, "1080p", "origin", 6, 2),
     ],
 )
 @pytest.mark.asyncio
@@ -520,6 +580,8 @@ async def test_reference_video_models_prepare_bounded_references(
     reference_limit: int,
     expected_resolution: str,
     audio_setting: str | None,
+    duration: int,
+    catalog_limit: int | None,
 ) -> None:
     from ai_anime.modules.production.infrastructure import single_video
 
@@ -532,6 +594,12 @@ async def test_reference_video_models_prepare_bounded_references(
     }
     store = _Store([beat])
     preparer, props, _durations = _preparer(monkeypatch, store)
+    if catalog_limit is not None:
+        monkeypatch.setattr(
+            single_video,
+            "runtime_model_capability",
+            lambda _model: SimpleNamespace(max_reference_images=catalog_limit),
+        )
     image_paths = [f"reference-{index}.png" for index in range(1, 11)]
     monkeypatch.setattr(
         single_video,
@@ -561,7 +629,7 @@ async def test_reference_video_models_prepare_bounded_references(
         _command(
             video_model=model,
             mode="multimodal_reference",
-            duration=7,
+            duration=duration,
             resolution="1080p",
             ratio="1:1",
             final_prompt="reference prompt",
@@ -572,7 +640,7 @@ async def test_reference_video_models_prepare_bounded_references(
 
     assert task.config["frame_path"] is None
     assert task.config["prompt"] == "reference prompt"
-    assert task.config["video_duration"] == 7.0
+    assert task.config["video_duration"] == float(duration)
     assert task.config["resolution"] == expected_resolution
     assert task.config["ratio"] == "1:1"
     assert len(task.config["references"]) == reference_limit

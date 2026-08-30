@@ -10,8 +10,10 @@ import ai_anime.api.routes.ai_assistant.access as chat_access
 from ai_anime.api.routes.ai_assistant.websocket import send_json_best_effort
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
+    get_chat_decisions,
     get_chat_worker_lifecycle,
     get_scoped_chat_messages,
+    list_chat_slash_commands,
 )
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
@@ -19,6 +21,7 @@ from ai_anime.modules.project_workspace.public import (
 )
 
 chat_worker_lifecycle = get_chat_worker_lifecycle()
+chat_decisions = get_chat_decisions()
 scoped_chat_messages = get_scoped_chat_messages()
 
 
@@ -70,7 +73,12 @@ async def send_scope_changed(
                     project_ctx.state_dir if project_ctx is not None else None
                 ),
             ),
+            "decisions": chat_decisions.pending_for_scope(username, scope),
             "busy": chat_worker_lifecycle.is_busy(username),
+            "commands": list_chat_slash_commands(
+                username,
+                include_project_tools=scope.kind == "project",
+            ),
         },
     ):
         return None

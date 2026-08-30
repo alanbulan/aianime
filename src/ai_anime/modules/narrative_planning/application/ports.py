@@ -7,10 +7,12 @@ from typing import Any, Protocol
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeRewriteTask,
     EpisodeAssetPlanningTask,
     EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScriptGenerationTask,
+    SeedancePromptTask,
     TaskQueueReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -128,6 +130,18 @@ class NarrativeTaskScheduler(Protocol):
         self,
         task_context: ProjectContext,
         task: BeatVideoPromptTask,
+    ) -> TaskQueueReceipt: ...
+
+    async def enqueue_seedance_prompt(
+        self,
+        task_context: ProjectContext,
+        task: SeedancePromptTask,
+    ) -> TaskQueueReceipt: ...
+
+    async def enqueue_episode_rewrite(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeRewriteTask,
     ) -> TaskQueueReceipt: ...
 
     async def enqueue_episode_asset_planning(

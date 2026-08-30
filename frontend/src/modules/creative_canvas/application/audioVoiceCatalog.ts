@@ -1,6 +1,25 @@
 // Copyright (c) 2026 AI anime
 import type { AudioVoiceRef } from "../domain/audioVoice";
 
+export type GeneratedVoiceBindingTarget =
+  | {
+      readonly kind: "character_slot";
+      readonly characterName: string;
+      readonly slot: string;
+    }
+  | {
+      readonly kind: "identity";
+      readonly characterName: string;
+      readonly identityId: string;
+    };
+
+export interface GeneratedVoiceTaskReceipt {
+  readonly taskType: "freezone_voice_design" | "freezone_voice_preset";
+  readonly taskId: string | null;
+  readonly taskKey: string;
+  readonly scope: string;
+}
+
 export interface CanvasAudioReference {
   readonly ref: AudioVoiceRef;
   readonly label: string | null;
@@ -10,21 +29,23 @@ export interface CanvasAudioReference {
 }
 
 export interface DesignCanvasAudioVoiceInput {
-  readonly name: string;
-  readonly modelSelector: string;
-  readonly voicePrompt: string;
-  readonly previewText: string;
-  readonly preferredName: string;
+  readonly binding?: GeneratedVoiceBindingTarget;
   readonly language: string;
-  readonly sampleRate: number;
+  readonly modelSelector: string;
+  readonly name: string;
+  readonly preferredName: string;
+  readonly previewText: string;
   readonly responseFormat: "wav" | "mp3";
+  readonly sampleRate: number;
+  readonly voicePrompt: string;
 }
 
-export interface DesignedCanvasAudioVoice {
-  readonly voiceId: string;
-  readonly label: string;
-  readonly previewUrl: string | null;
-  readonly providerVoiceId: string | null;
+export interface PresetCanvasAudioVoiceInput {
+  readonly binding?: GeneratedVoiceBindingTarget;
+  readonly modelSelector: string;
+  readonly name: string;
+  readonly text: string;
+  readonly voice: string;
 }
 
 export interface CanvasAudioVoiceCatalogGateway {
@@ -34,10 +55,15 @@ export interface CanvasAudioVoiceCatalogGateway {
     file: File | Blob,
     name?: string,
   ): Promise<void>;
+  deleteVoice(projectId: string, voiceId: string): Promise<void>;
+  createPresetVoice(
+    projectId: string,
+    input: PresetCanvasAudioVoiceInput,
+  ): Promise<GeneratedVoiceTaskReceipt>;
   designVoice(
     projectId: string,
     input: DesignCanvasAudioVoiceInput,
-  ): Promise<DesignedCanvasAudioVoice>;
+  ): Promise<GeneratedVoiceTaskReceipt>;
 }
 
 export function audioVoiceRefKey(ref: AudioVoiceRef): string {
@@ -47,6 +73,7 @@ export function audioVoiceRefKey(ref: AudioVoiceRef): string {
     ref.identityId ?? "",
     ref.slot ?? "",
     ref.modelId ?? "",
+    ref.modelSelector ?? "",
     ref.voiceId ?? "",
   ].join("|");
 }

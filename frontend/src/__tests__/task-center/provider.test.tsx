@@ -163,6 +163,11 @@ describe("TaskCenterProvider", () => {
         <I18nextProvider i18n={i18n}>
           <TaskCenterProviderView
             projectId="demo"
+            completionSourceRegistrar={() => ({
+              onTask: vi.fn(),
+              onAuthRevoked: vi.fn(),
+              close: vi.fn(),
+            })}
             gateway={gateway}
             streamClientFactory={(options) => {
               streamOptions = options;

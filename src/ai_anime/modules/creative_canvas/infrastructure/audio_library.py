@@ -8,6 +8,7 @@ from typing import Any
 
 from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
     create_user_audio_voice,
+    delete_user_audio_voice,
     list_user_audio_voices,
     resolve_user_audio_voice,
 )
@@ -31,6 +32,7 @@ NarratorReferenceLoader = Callable[[str, str], Mapping[str, str]]
 NarrationStyleLoader = Callable[[str, str], str]
 UserVoiceLister = Callable[[str], list[dict]]
 UserVoiceCreator = Callable[..., Mapping[str, Any]]
+UserVoiceDeleter = Callable[[str, str], None]
 UserVoiceResolver = Callable[[str, str], Any]
 CharacterVoiceResolver = Callable[..., Any]
 StaticUrlBuilder = Callable[[ProjectContext, str, str | Path | None], str]
@@ -49,6 +51,7 @@ class LocalCreativeCanvasAudioLibraryGateway:
         ),
         user_voice_lister: UserVoiceLister = list_user_audio_voices,
         user_voice_creator: UserVoiceCreator = create_user_audio_voice,
+        user_voice_deleter: UserVoiceDeleter = delete_user_audio_voice,
         user_voice_resolver: UserVoiceResolver = resolve_user_audio_voice,
         character_voice_resolver: CharacterVoiceResolver = resolve_character_voice,
         static_url_builder: StaticUrlBuilder = make_static_url_for_context,
@@ -58,6 +61,7 @@ class LocalCreativeCanvasAudioLibraryGateway:
         self._narration_style_loader = narration_style_loader
         self._user_voice_lister = user_voice_lister
         self._user_voice_creator = user_voice_creator
+        self._user_voice_deleter = user_voice_deleter
         self._user_voice_resolver = user_voice_resolver
         self._character_voice_resolver = character_voice_resolver
         self._static_url_builder = static_url_builder
@@ -155,6 +159,14 @@ class LocalCreativeCanvasAudioLibraryGateway:
     ) -> Path:
         resolved = self._user_voice_resolver(account_username, voice_id)
         return Path(resolved.audio_path)
+
+    def delete_voice(
+        self,
+        *,
+        account_username: str,
+        voice_id: str,
+    ) -> None:
+        self._user_voice_deleter(account_username, voice_id)
 
     def _reference_payload(
         self,

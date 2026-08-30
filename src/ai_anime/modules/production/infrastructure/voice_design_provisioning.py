@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import shutil
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
@@ -27,9 +25,14 @@ from ai_anime.modules.production.domain.voice_design import (
 )
 from ai_anime.modules.project_workspace.public import (
     ProjectContext,
-    set_narrator_reference_audio,
+    persist_narrator_voice_content,
 )
 from ai_anime.shared.infrastructure import project_stores
+from ai_anime.shared.utils.async_ops import call_blocking
+from ai_anime.shared.utils.voice_samples import (
+    REFERENCE_VOICE_MAX_SECONDS,
+    REFERENCE_VOICE_MIN_SECONDS,
+)
 
 
 class VoiceDesignModelUnavailable(PermissionError):
@@ -44,8 +47,8 @@ class VoiceDesignProvisioningFailed(RuntimeError):
     code = "voice_design_failed"
 
 
-MIN_USABLE_VOICE_REFERENCE_SECONDS = 1.8
-MAX_USABLE_VOICE_REFERENCE_SECONDS = 15.0
+MIN_USABLE_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MIN_SECONDS
+MAX_USABLE_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MAX_SECONDS
 RECOMMENDED_VOICE_REFERENCE_SECONDS = 3.0
 
 
@@ -375,25 +378,16 @@ async def provision_missing_character_voices(
     return completed, skipped
 
 
-def _file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _persist_project_narrator(
     context: ProjectContext,
     source_path: Path,
 ) -> None:
-    relative_path = Path("assets") / "narrator" / "voice.wav"
-    target_path = Path(context.output_dir) / relative_path
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    staged_path = target_path.with_name(".voice.auto-design.tmp")
-    shutil.copyfile(source_path, staged_path)
-    staged_path.replace(target_path)
-    set_narrator_reference_audio(
-        context.owner_username,
-        context.project_name,
-        relative_path=relative_path.as_posix(),
-        sha256=_file_sha256(target_path),
+    persist_narrator_voice_content(
+        username=context.owner_username,
+        project=context.project_name,
+        project_dir=context.output_dir,
+        filename=source_path.name,
+        content=source_path.read_bytes(),
     )
 
 
@@ -466,7 +460,12 @@ async def _generate_usable_voice_design(
             timeout_seconds=timeout_seconds,
         )
         try:
-            duration = probe_voice_sample_duration_seconds(output_path)
+            duration = float(
+                await call_blocking(
+                    probe_voice_sample_duration_seconds,
+                    output_path,
+                )
+            )
         except ValueError as exc:
             failures.append(str(exc))
             continue
@@ -530,7 +529,11 @@ async def provision_voice_design_requirements(
                         output_path,
                     )
                     if requirement.target == "project_narrator":
-                        _persist_project_narrator(context, output_path)
+                        await call_blocking(
+                            _persist_project_narrator,
+                            context,
+                            output_path,
+                        )
                     elif requirement.target == "identity":
                         await voice_use_cases.bind_identity_sample(
                             repository=store,

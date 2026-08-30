@@ -98,6 +98,7 @@ export interface CommercialRegistrationInput {
 
 export interface CommercialBootstrapQuery {
   modelOperation?: string;
+  catalogVersion?: string;
   currentVersion?: string;
   target?: string;
   arch?: string;

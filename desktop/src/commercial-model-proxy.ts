@@ -10,6 +10,7 @@ import { setTimeout as wait } from "node:timers/promises";
 import type { CommercialDeviceSigner } from "./commercial-device.js";
 import {
   BYOK_MODEL_ROLES,
+  effectiveModelRuntimeSettings,
   type ByokModelAssignment,
   type ByokModelRole,
   type StoredCommercialModelAccess,
@@ -20,6 +21,7 @@ import {
   CommercialApiError,
   isModelWriteMethod,
 } from "./commercial-api-client.js";
+import type { CommercialModelCapabilitySnapshot } from "./commercial-contracts.js";
 import {
   forwardedHeaders,
   requestByok,
@@ -28,6 +30,7 @@ import {
   assertLocalAuthorization,
   assertLoopbackRequest,
   assertModelResponseContract,
+  assistantModelSelectionFromBody,
   inferModelRole,
   isRetryableRequestFailure,
   isTimeoutAbort,
@@ -50,6 +53,8 @@ export interface CommercialModelRoutingConfiguration {
   access: StoredCommercialModelAccess;
   allowsCustomModels: boolean;
   cloudModelAssignments: readonly ByokModelAssignment[];
+  explicitCloudModelAssignments?: readonly ByokModelAssignment[];
+  modelCapabilities?: readonly CommercialModelCapabilitySnapshot[];
 }
 
 export interface ModelRouteAuditEntry {
@@ -96,6 +101,18 @@ interface StickyVideoRoute {
 const VIDEO_TASK_ROUTE_TTL_MS = 6 * 60 * 60_000;
 const VIDEO_TASK_ROUTE_CAPACITY = 500;
 
+function allowedVideoParameters(
+  capability: CommercialModelCapabilitySnapshot | undefined,
+): string[] {
+  return [
+    ...(capability?.videoExtraParameterNames ?? []),
+    ...(capability?.videoSceneOptimizeOptions?.length
+      ? ["scene_optimize"]
+      : []),
+    ...(capability?.videoSupportsHumanReview === true ? ["human_review"] : []),
+  ];
+}
+
 const EMPTY_MODEL_ACCESS: StoredCommercialModelAccess = {
   schemaVersion: 5,
   cloudModelAssignments: [],
@@ -110,6 +127,8 @@ export class CommercialModelProxy {
     access: EMPTY_MODEL_ACCESS,
     allowsCustomModels: false,
     cloudModelAssignments: [],
+    explicitCloudModelAssignments: [],
+    modelCapabilities: [],
   };
   private readonly videoTaskRoutes = new Map<string, StickyVideoRoute>();
   private readonly requestTimeoutMs: number;
@@ -138,11 +157,26 @@ export class CommercialModelProxy {
       cloudModelAssignments: configuration.cloudModelAssignments.map((item) => ({
         ...item,
       })),
+      explicitCloudModelAssignments: (
+        configuration.explicitCloudModelAssignments ?? []
+      ).map((item) => ({ ...item })),
+      modelCapabilities: (configuration.modelCapabilities ?? []).map((item) => ({
+        ...item,
+        ...(item.videoExtraParameterNames
+          ? { videoExtraParameterNames: [...item.videoExtraParameterNames] }
+          : {}),
+      })),
     };
     const activeRoutes = BYOK_MODEL_ROLES.flatMap((role) =>
       configuredRoutes(this.routing, role),
     );
-    this.dropUnavailableVideoTaskRoutes(activeRoutes);
+    const explicitCloudRoutes = BYOK_MODEL_ROLES.flatMap((role) =>
+      configuredExplicitCloudRoutes(this.routing, role),
+    );
+    this.dropUnavailableVideoTaskRoutes([
+      ...activeRoutes,
+      ...explicitCloudRoutes,
+    ]);
     this.audit({
       timestamp: new Date().toISOString(),
       event: "routing_configured",
@@ -222,8 +256,14 @@ export class CommercialModelProxy {
       const explicitSelector = normalizeModelSelectorHeader(
         request.headers["x-ai-anime-model-selector"],
       );
+      const assistantSelection = assistantModelSelectionFromBody(
+        rawBody,
+        contentType,
+        request.headers["x-ai-anime-request-surface"],
+      );
+      const assistantSelector = explicitSelector ?? assistantSelection?.selector ?? null;
       const role = explicitRole ?? inferModelRole(path);
-      const routes = this.routesForRequest(path, role, explicitSelector);
+      const routes = this.routesForRequest(path, role, assistantSelector);
       const abortController = new AbortController();
       const abortUpstream = () => abortController.abort();
       request.once("aborted", abortUpstream);
@@ -240,6 +280,7 @@ export class CommercialModelProxy {
         ...(rawBody === undefined ? {} : { rawBody }),
         routes,
         requestHeaders,
+        reasoningEffort: assistantSelection?.reasoningEffort ?? null,
         signal: requestSignal,
       });
       assertModelResponseContract(path, upstream.response);
@@ -293,9 +334,16 @@ export class CommercialModelProxy {
       });
     }
     const configured = configuredRoutes(this.routing, role);
+    const selectable =
+      selector?.startsWith("cloud:")
+        ? uniqueRoutes([
+            ...configured,
+            ...configuredExplicitCloudRoutes(this.routing, role),
+          ])
+        : configured;
     const routes = selector
-      ? configured.filter((route) => route.selector === selector)
-      : configured;
+      ? selectable.filter((route) => route.selector === selector)
+      : selectable;
     if (routes.length === 0) {
       const detail = selector ? `（选择器 ${selector}）` : "";
       throw new CommercialApiError(`模型用途 ${role} 没有可用路由${detail}`, {
@@ -312,6 +360,7 @@ export class CommercialModelProxy {
     rawBody?: Buffer;
     routes: readonly ModelRoute[];
     requestHeaders: IncomingMessage["headers"];
+    reasoningEffort: string | null;
     signal: AbortSignal;
   }): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
     let lastError: unknown;
@@ -330,6 +379,13 @@ export class CommercialModelProxy {
             input.contentType,
             route.modelId,
             route.source === "cloud" && isVideoCreatePath(input.path),
+            input.reasoningEffort,
+            route.maxOutputTokens,
+            allowedVideoParameters(
+              this.routing.modelCapabilities?.find(
+                (item) => item.modelId === route.modelId,
+              ),
+            ),
           );
           const upstream =
             route.source === "cloud"
@@ -648,6 +704,7 @@ function configuredRoutes(
       modelId: assignment.modelId,
       priority: assignment.priority,
       providerPriority: 0,
+      ...effectiveModelRuntimeSettings(assignment),
     }));
   if (configuration.allowsCustomModels) {
     for (const provider of configuration.access.byokProviders) {
@@ -656,6 +713,30 @@ function configuredRoutes(
     }
   }
   return routes.sort(compareModelRoutes);
+}
+
+function configuredExplicitCloudRoutes(
+  configuration: CommercialModelRoutingConfiguration,
+  role: ByokModelRole,
+): ModelRoute[] {
+  return (configuration.explicitCloudModelAssignments ?? [])
+    .filter((assignment) => assignment.enabled && assignment.role === role)
+    .map((assignment) => ({
+      key: `cloud:${assignment.role}:${assignment.modelId}`,
+      selector: `cloud:${assignment.modelId}`,
+      source: "cloud" as const,
+      label: "云端",
+      role,
+      modelId: assignment.modelId,
+      priority: assignment.priority,
+      providerPriority: 0,
+      ...effectiveModelRuntimeSettings(assignment),
+    }))
+    .sort(compareModelRoutes);
+}
+
+function uniqueRoutes(routes: readonly ModelRoute[]): ModelRoute[] {
+  return Array.from(new Map(routes.map((route) => [route.key, route])).values());
 }
 
 function compareModelRoutes(left: ModelRoute, right: ModelRoute): number {
@@ -683,6 +764,18 @@ export function modelRoutingSnapshot(
         role,
         priority: routeRank,
         enabled: true,
+        ...(route.contextWindow === undefined
+          ? {}
+          : { contextWindow: route.contextWindow }),
+        ...(route.maxOutputTokens === undefined
+          ? {}
+          : { maxOutputTokens: route.maxOutputTokens }),
+        ...(route.reasoningEfforts?.length
+          ? { reasoningEfforts: [...route.reasoningEfforts] }
+          : {}),
+        ...(route.defaultReasoningEffort
+          ? { defaultReasoningEffort: route.defaultReasoningEffort }
+          : {}),
       });
       routeRank += 1;
     }
@@ -708,5 +801,6 @@ function providerRoutes(
       baseUrl: provider.baseUrl,
       apiKey: provider.apiKey,
       protocol: provider.protocol,
+      ...effectiveModelRuntimeSettings(assignment),
     }));
 }

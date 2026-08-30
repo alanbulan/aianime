@@ -18,10 +18,13 @@ from pathlib import Path
 
 import yaml
 
+from ai_anime.modules.ai_assistant.infrastructure.local_state import (
+    local_state_root,
+)
+from ai_anime.shared.runtime_dotenv import project_root
+
 _log = logging.getLogger(__name__)
 
-AI_ANIME_ROOT = Path(__file__).resolve().parents[3]
-STATE_ROOT = AI_ANIME_ROOT / "state"
 DEFAULT_HERMES_SKILLS = {"ai_anime"}
 DEFAULT_HERMES_PLUGINS = {"ai_anime"}
 BLOCKED_HERMES_TOOLSETS = {
@@ -74,11 +77,14 @@ custom_providers:
     base_url: {base_url}
     key_env: NEWAPI_API_KEY
     api_mode: {api_mode}
+    extra_headers:
+      X-AI-Anime-Request-Surface: ai-assistant
 
 model:
   default: {model}
   provider: custom:custom
   context_length: {context_length}   # skip the slow cold-start context-length probe
+{max_tokens_line}
 
 # Hermes performs in-place context compaction before the model window is full.
 # The original transcript remains archived in state.db; only the live model
@@ -144,28 +150,29 @@ _DEFAULT_ENV_TEMPLATE = """# AI anime-managed Hermes workspace.
 
 def _state_root() -> Path:
     configured = os.environ.get("AI_ANIME_STATE_DIR", "").strip()
+    root = local_state_root()
     if configured:
-        return Path(configured).expanduser()
+        return root
     global _warned_repo_state_fallback
     if not _warned_repo_state_fallback:
         _warned_repo_state_fallback = True
         _log.warning(
             "AI_ANIME_STATE_DIR is not set; Hermes workspace falls back to %s",
-            AI_ANIME_ROOT / "state",
+            root,
         )
-    return AI_ANIME_ROOT / "state"
+    return root
 
 
 def _hermes_assets_root() -> Path:
     configured = os.environ.get("AI_ANIME_HERMES_ASSETS_DIR", "").strip()
     if configured:
         return Path(configured).expanduser()
-    return AI_ANIME_ROOT / ".hermes"
+    return project_root() / ".hermes"
 
 
 def _root_value(*names: str) -> str:
     """Read the first non-empty value among ``names`` from root .env then env."""
-    env_path = AI_ANIME_ROOT / ".env"
+    env_path = project_root() / ".env"
     try:
         root_values = _parse_env_assignments(env_path.read_text(encoding="utf-8"))
     except OSError:
@@ -214,7 +221,12 @@ def _hermes_model_api_mode() -> str:
 def _hermes_model_context_length() -> str:
     raw = _root_value("HERMES_MODEL_CONTEXT_LENGTH")
     if not raw:
-        return _DEFAULT_HERMES_MODEL_CONTEXT_LENGTH
+        from ai_anime.modules.model_usage.public import (
+            resolve_model_assignment_for_role,
+        )
+
+        assignment = resolve_model_assignment_for_role("TEXT")
+        return str(assignment.context_window or _DEFAULT_HERMES_MODEL_CONTEXT_LENGTH)
     try:
         value = int(raw)
     except ValueError:
@@ -223,12 +235,31 @@ def _hermes_model_context_length() -> str:
     return str(value) if value > 0 else _DEFAULT_HERMES_MODEL_CONTEXT_LENGTH
 
 
+def _hermes_model_max_tokens() -> int | None:
+    raw = _root_value("HERMES_MODEL_MAX_TOKENS")
+    if raw:
+        try:
+            value = int(raw)
+        except ValueError:
+            _log.warning("invalid HERMES_MODEL_MAX_TOKENS=%r, ignoring", raw)
+        else:
+            if value > 0:
+                return value
+    from ai_anime.modules.model_usage.public import resolve_model_assignment_for_role
+
+    return resolve_model_assignment_for_role("TEXT").max_output_tokens
+
+
 def _default_config_yaml() -> str:
+    max_tokens = _hermes_model_max_tokens()
     return _CONFIG_YAML_TEMPLATE.format(
         model=_hermes_model_default(),
         base_url=_newapi_base_url(),
         api_mode=_hermes_model_api_mode(),
         context_length=_hermes_model_context_length(),
+        max_tokens_line=(
+            f"  max_tokens: {max_tokens}" if max_tokens is not None else ""
+        ),
     )
 
 _DEFAULT_SOUL_MD = (
@@ -282,7 +313,8 @@ _LEGACY_ACP_MEMORY_LINE = (
 _NEW_MEMORY_LINE = (
     "AI anime 助手只可调用 AI anime 漫剧业务工具与会话记忆；终端、任意文件搜索/读写、"
     "网页浏览、代码执行和任务委派均不可用。项目检索、生成和任务操作必须使用对应的 "
-    "AI anime 业务工具，不要尝试通用电脑操作。"
+    "AI anime 业务工具，不要尝试通用电脑操作。需要用户补充参数、确认风险或选择恢复方向时，"
+    "必须调用内置 question 工具，不能只用自然语言提问。"
 )
 
 _OLD_SOUL_IDENTITY_TEXT = (
@@ -619,10 +651,16 @@ def _ensure_model_gateway_config(config_yaml: Path) -> None:
         "provider": _AI_ANIME_HERMES_PROVIDER,
         "context_length": int(_hermes_model_context_length()),
     }
+    max_tokens = _hermes_model_max_tokens()
+    if max_tokens is not None:
+        desired_model["max_tokens"] = max_tokens
     for key, value in desired_model.items():
         if model.get(key) != value:
             model[key] = value
             changed = True
+    if max_tokens is None and "max_tokens" in model:
+        model.pop("max_tokens", None)
+        changed = True
     for secret_or_legacy_key in ("api_key", "api", "base_url"):
         if secret_or_legacy_key in model:
             model.pop(secret_or_legacy_key, None)
@@ -652,6 +690,7 @@ def _ensure_model_gateway_config(config_yaml: Path) -> None:
         "name": _AI_ANIME_HERMES_PROVIDER_NAME,
         "base_url": base_url,
         "api_mode": _hermes_model_api_mode(),
+        "extra_headers": {"X-AI-Anime-Request-Surface": "ai-assistant"},
     }
     if api_key:
         desired_provider["key_env"] = _AI_ANIME_HERMES_KEY_ENV
@@ -736,6 +775,9 @@ def _ensure_model_config_from_env(config_yaml: Path) -> None:
     context_length = _root_value("HERMES_MODEL_CONTEXT_LENGTH")
     if context_length:
         overrides["context_length"] = int(_hermes_model_context_length())
+    max_tokens = _hermes_model_max_tokens()
+    if max_tokens is not None:
+        overrides["max_tokens"] = max_tokens
     if not overrides:
         return
     try:
@@ -758,6 +800,9 @@ def _ensure_model_config_from_env(config_yaml: Path) -> None:
         if config_model.get(key) != value:
             config_model[key] = value
             changed = True
+    if max_tokens is None and "max_tokens" in config_model:
+        config_model.pop("max_tokens", None)
+        changed = True
     if not changed:
         return
     try:

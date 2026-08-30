@@ -10,6 +10,7 @@ from ai_anime.api.routes.identity_access.dependencies import (
     get_api_user,
     require_project_scope,
 )
+from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.routes.narrative_planning.content_schemas import (
     ContentUpdateRequest,
     RewriteGenerateRequest,
@@ -18,9 +19,8 @@ from ai_anime.api.deps import get_sqlite_store
 from ai_anime.modules.narrative_planning.public import (
     EpisodeContentWriteFailed,
     GenerateEpisodeRewriteCommand,
-    RawEpisodeContentMissing,
     clear_adapted_episode_content,
-    generate_episode_rewrite,
+    enqueue_episode_rewrite_generation,
     load_adapted_episode_content,
     load_raw_episode_content,
     save_adapted_episode_content,
@@ -114,27 +114,16 @@ async def generate_rewrite(
     project: str,
     episode_num: int,
     body: RewriteGenerateRequest,
-    user: dict = Depends(require_project_scope("projects:write")),
-    store: SQLiteStore = Depends(get_sqlite_store),
+    user: dict = Depends(get_api_user),
 ):
-    """同步执行“原文 → 逐行解说工作稿”，并保存到 adapted_content。
-
-    这里故意不搬旧任务实现；2.0 后续可以把这个 adapter 包进
-    新任务系统，但 adapter 与存储契约先稳定下来。
-    """
-    try:
-        rewritten = await generate_episode_rewrite(
-            store,
-            GenerateEpisodeRewriteCommand(
-                episode_num=episode_num,
-                target_beats=body.target_beats,
-                beat_chars_min=body.beat_chars_min,
-                beat_chars_max=body.beat_chars_max,
-                narration_style=body.narration_style,
-            ),
-        )
-    except RawEpisodeContentMissing as exc:
-        return {"ok": False, "error": str(exc)}
-    except EpisodeContentWriteFailed as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"ok": True, "data": rewritten.as_dict()}
+    """提交“原文 → 逐行解说工作稿”生成任务。"""
+    resolved = await resolve_project_scope(project, user, required_role="editor")
+    command = GenerateEpisodeRewriteCommand(
+        episode_num=episode_num,
+        target_beats=body.target_beats,
+        beat_chars_min=body.beat_chars_min,
+        beat_chars_max=body.beat_chars_max,
+        narration_style=body.narration_style,
+    )
+    scheduled = await enqueue_episode_rewrite_generation(resolved.ctx, command)
+    return {"ok": True, **scheduled.as_dict()}

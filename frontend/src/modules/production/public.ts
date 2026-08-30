@@ -9,7 +9,7 @@ export {
   useBatchBarController,
   useBeatStates,
   useComposeEpisode,
-  useCopyProjectNarratorVoice,
+  useBindNarratorVoice,
   useCropSeedance2Asset,
   useCutGrid,
   useDeleteNarratorVoice,
@@ -29,7 +29,6 @@ export {
   useGlobalOptimize,
   useLegacyVideoPromptController,
   useFinalVideo,
-  useNarratorVoiceSources,
   useNarratorVoiceStatus,
   useNarratorVoicePanelController,
   useRecordNarratorVoice,
@@ -240,7 +239,6 @@ export type {
   SketchPoseEditorData,
   SketchPoseEditorState,
 } from "@/modules/production/domain/sketch-pose-editor";
-export type { NarratorVoiceSourceOption } from "@/modules/production/domain/narrator-voice";
 export {
   buildSeedance2LabelIdentityMaps,
   findSeedance2TrailingMention,
@@ -283,6 +281,7 @@ export {
   grokVideoRatioOptionsForModel,
   grokVideoResolutionOptionsForModel,
   happyHorseRatioOptionsForModel,
+  happyHorseResolutionOptionsForDuration,
   happyHorseResolutionOptionsForModel,
   isSeedance15ProModel,
   isSeedance2ValueModel,
@@ -295,9 +294,12 @@ export {
   normalizeSeedance2Mode,
   normalizeSeedance2Ratio,
   normalizeSeedance2Resolution,
+  normalizeVideoResolution,
   parseSeedance2Config,
   sameSeedance2Config,
   seedance2DefaultRatioForProjectAspect,
+  seedance2ModeOptionsForModel,
+  seedance2RatioOptionsForModel,
   seedance2ResolutionOptionsForModel,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
@@ -313,6 +315,7 @@ export type {
   Seedance2Mode,
   Seedance2Ratio,
   Seedance2Resolution,
+  VideoResolution,
   VideoModelConfigCapabilities,
 } from "@/modules/production/domain/video-config";
 export { RenderSection } from "@/modules/production/render-section-composition";

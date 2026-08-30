@@ -10,12 +10,16 @@ from ai_anime.modules.creative_canvas.application.audio_generation import (
     CreativeCanvasAudioGenerationUseCases,
     InvalidCreativeCanvasAudioGenerationRequest,
     StartCreativeCanvasMusicGenerationCommand,
+    StartCreativeCanvasPresetVoiceCommand,
     StartCreativeCanvasSpeechGenerationCommand,
+    StartCreativeCanvasVoiceDesignCommand,
 )
 from ai_anime.modules.creative_canvas.application.audio_library import (
     CreateCreativeCanvasAudioVoiceCommand,
+    CreateCreativeCanvasPresetVoiceCommand,
     CreativeCanvasAudioLibraryUseCases,
     CreativeCanvasAudioVoiceMissing,
+    DeleteCreativeCanvasAudioVoiceCommand,
     GetCreativeCanvasAudioVoiceQuery,
     InvalidCreativeCanvasAudioLibraryRequest,
     ListCreativeCanvasAudioReferencesQuery,
@@ -135,6 +139,11 @@ from ai_anime.modules.creative_canvas.application.mainline_generation import (
     StartCreativeCanvasDirectorSketchCommand,
     StartCreativeCanvasFrameFromContextCommand,
     StartCreativeCanvasScene360Command,
+)
+from ai_anime.modules.creative_canvas.application.long_operations import (
+    CreativeCanvasLongOperationUseCases,
+    StartCreativeCanvasMarkDetectionCommand,
+    StartCreativeCanvasStagingPropCommand,
 )
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     SKILL_SCHEMA_VERSION,
@@ -625,6 +634,14 @@ def creative_canvas_audio_generation_use_cases() -> (
     return build()
 
 
+def creative_canvas_long_operation_use_cases() -> CreativeCanvasLongOperationUseCases:
+    from ai_anime.modules.creative_canvas.composition import (
+        creative_canvas_long_operation_use_cases as build,
+    )
+
+    return build()
+
+
 async def generate_creative_canvas_audio_speech(
     *,
     store: Any,
@@ -638,6 +655,7 @@ async def generate_creative_canvas_audio_speech(
     mode: str,
     voice: str,
     voice_ref: dict[str, object] | None,
+    model_selector: str | None = None,
 ) -> CreativeCanvasGeneratedAudio:
     from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
         generate_freezone_audio_speech,
@@ -655,6 +673,7 @@ async def generate_creative_canvas_audio_speech(
         mode=mode,
         voice=voice,
         voice_ref=voice_ref,
+        model_selector=model_selector,
     )
 
 
@@ -854,6 +873,8 @@ __all__ = [
     "CommitCreativeCanvasSlotCommand",
     "CopyCreativeCanvasSlotCommand",
     "CreateCreativeCanvasAudioVoiceCommand",
+    "CreateCreativeCanvasPresetVoiceCommand",
+    "DeleteCreativeCanvasAudioVoiceCommand",
     "CreateCreativeCanvasPresetCommand",
     "CreativeCanvasAssetUseCases",
     "CreativeCanvasAudioGenerationUseCases",
@@ -903,6 +924,7 @@ __all__ = [
     "CreativeCanvasMainlineBeatMissing",
     "CreativeCanvasMainlineGenerationUseCases",
     "CreativeCanvasMainlineMediaMissing",
+    "CreativeCanvasLongOperationUseCases",
     "CreativeCanvasMediaUseCases",
     "CreativeCanvasMarkDetectionFailed",
     "CreativeCanvasMarkDetectionResult",
@@ -1001,6 +1023,10 @@ __all__ = [
     "StartCreativeCanvasFrameFromContextCommand",
     "StartCreativeCanvasScene360Command",
     "StartCreativeCanvasSpeechGenerationCommand",
+    "StartCreativeCanvasMarkDetectionCommand",
+    "StartCreativeCanvasStagingPropCommand",
+    "StartCreativeCanvasPresetVoiceCommand",
+    "StartCreativeCanvasVoiceDesignCommand",
     "StartCreativeCanvasAudioSeparationCommand",
     "StartCreativeCanvasReversePromptCommand",
     "StartCreativeCanvasImageToThreeGsCommand",
@@ -1068,6 +1094,7 @@ __all__ = [
     "creative_canvas_generation_history_use_cases",
     "creative_canvas_job_result_queries",
     "creative_canvas_job_workspace",
+    "creative_canvas_long_operation_use_cases",
     "creative_canvas_job_execution_use_cases",
     "creative_canvas_mainline_generation_use_cases",
     "creative_canvas_text_processing_use_cases",

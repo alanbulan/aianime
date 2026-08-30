@@ -46,6 +46,7 @@ import {
   commercialPlatform,
   desktopSessionCookie,
   isAllowedExternalUrl,
+  isExpectedMainFrameSender,
   isSameOrigin,
 } from "./desktop-runtime-contracts.js";
 
@@ -63,6 +64,22 @@ const WINDOW_CHANNELS = {
 const CLIPBOARD_CHANNELS = {
   writeText: "desktop:clipboard:write-text",
 } as const;
+
+function isAllowedDesktopIpcSender(
+  senderId: number,
+  senderFrame?: unknown,
+  senderMainFrame?: unknown,
+): boolean {
+  if (!mainWindow || mainWindow.isDestroyed()) return false;
+  return isExpectedMainFrameSender(
+    mainWindow.webContents.id,
+    mainWindow.webContents.mainFrame,
+    senderId,
+    senderFrame,
+    senderMainFrame,
+  );
+}
+
 async function createMainWindow(localBackend: LocalBackend): Promise<void> {
   const window = new BrowserWindow({
     title: "AI anime",
@@ -104,28 +121,36 @@ async function createMainWindow(localBackend: LocalBackend): Promise<void> {
 }
 
 function registerWindowIpc(): void {
-  const activeWindow = (senderId: number): BrowserWindow | null => {
-    if (!mainWindow || mainWindow.isDestroyed()) return null;
-    return mainWindow.webContents.id === senderId ? mainWindow : null;
+  const activeWindow = (event: {
+    sender: { id: number; mainFrame: unknown };
+    senderFrame: unknown;
+  }): BrowserWindow | null => {
+    return isAllowedDesktopIpcSender(
+      event.sender.id,
+      event.senderFrame,
+      event.sender.mainFrame,
+    )
+      ? mainWindow
+      : null;
   };
 
   ipcMain.on(WINDOW_CHANNELS.minimize, (event) => {
-    activeWindow(event.sender.id)?.minimize();
+    activeWindow(event)?.minimize();
   });
   ipcMain.on(WINDOW_CHANNELS.toggleMaximize, (event) => {
-    const window = activeWindow(event.sender.id);
+    const window = activeWindow(event);
     if (!window) return;
     if (window.isMaximized()) window.unmaximize();
     else window.maximize();
   });
   ipcMain.on(WINDOW_CHANNELS.close, (event) => {
-    activeWindow(event.sender.id)?.close();
+    activeWindow(event)?.close();
   });
   ipcMain.handle(WINDOW_CHANNELS.isMaximized, (event) => {
-    return activeWindow(event.sender.id)?.isMaximized() ?? false;
+    return activeWindow(event)?.isMaximized() ?? false;
   });
   ipcMain.handle(CLIPBOARD_CHANNELS.writeText, (event, value: unknown) => {
-    if (!activeWindow(event.sender.id)) {
+    if (!activeWindow(event)) {
       throw new Error("clipboard sender is not the active desktop window");
     }
     if (typeof value !== "string") {
@@ -172,12 +197,7 @@ async function registerCommercialGatewayIpc(
     platform: commercialPlatform(),
     arch: commercialArchitecture(),
     clientVersion: app.getVersion(),
-    isAllowedSender: (senderId) =>
-      Boolean(
-        mainWindow &&
-          !mainWindow.isDestroyed() &&
-          mainWindow.webContents.id === senderId,
-      ),
+    isAllowedSender: isAllowedDesktopIpcSender,
     onAuthenticated: (cloudSession) =>
       setDesktopSessionCookie(localBackend.baseUrl, cloudSession),
     onModelAccessChanged: async (
@@ -185,11 +205,14 @@ async function registerCommercialGatewayIpc(
       allowsCustomModels,
       cloudModelAssignments,
       modelCapabilities,
+      explicitCloudModelAssignments,
     ) => {
       const routing = {
         access,
         allowsCustomModels,
         cloudModelAssignments,
+        modelCapabilities,
+        explicitCloudModelAssignments,
       };
       commercialModelProxy?.configureRouting(routing);
       await localBackend.configureModelAccess({
@@ -255,6 +278,9 @@ async function startApplication(): Promise<void> {
     desktopApp: app,
     runtimeDependencyPaths: runtimeDependencies.paths,
     restartOnUnexpectedExit: true,
+    onRestartExhausted: (error) => {
+      dialog.showErrorBox("AI anime backend stopped", error.message);
+    },
     environment: {
       AI_ANIME_CLOUD_PROXY_BASE_URL: commercialModelProxy.baseUrl,
       AI_ANIME_CLOUD_PROXY_TOKEN: commercialModelProxy.token,
@@ -273,12 +299,7 @@ async function startApplication(): Promise<void> {
     registerRuntimeDependencyIpc(
       ipcMain,
       runtimeDependencies,
-      (senderId) =>
-        Boolean(
-          mainWindow &&
-            !mainWindow.isDestroyed() &&
-            mainWindow.webContents.id === senderId,
-        ),
+      isAllowedDesktopIpcSender,
     );
     await registerCommercialGatewayIpc(
       backend,

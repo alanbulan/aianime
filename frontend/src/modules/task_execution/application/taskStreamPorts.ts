@@ -13,6 +13,7 @@ export interface TaskStreamClientOptions {
   onPollingStart?: () => void;
   onPollingStop?: () => void;
   onUnrecoverable?: () => void;
+  onAuthRevoked?: () => void;
   backoffMs?: number[];
   watchdogMs?: number;
   pollingRetryMs?: number;
@@ -24,6 +25,16 @@ export interface TaskStreamClient {
   start(): void;
   close(): void;
 }
+
+export interface TaskCompletionSource {
+  onTask(task: TaskState): void;
+  onAuthRevoked(): void;
+  close(): void;
+}
+
+export type TaskCompletionSourceRegistrar = (
+  projectId: string,
+) => TaskCompletionSource;
 
 export type TaskStreamClientFactory = (
   options: TaskStreamClientOptions,

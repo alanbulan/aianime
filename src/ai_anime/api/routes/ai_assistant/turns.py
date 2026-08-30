@@ -23,14 +23,18 @@ from ai_anime.api.routes.ai_assistant.websocket import (
 )
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
+    get_chat_decisions,
     get_hermes_home_replies,
     get_conversation_titles,
     get_project_chat_turns,
+    get_scoped_chat_messages,
 )
 
 hermes_home_replies = get_hermes_home_replies()
 project_chat_turns = get_project_chat_turns()
 conversation_titles = get_conversation_titles()
+chat_decisions = get_chat_decisions()
+scoped_chat_messages = get_scoped_chat_messages()
 
 
 async def _stream_project_turn(
@@ -47,16 +51,33 @@ async def _stream_project_turn(
     serialized_attachments = attachment_payloads(attachments)
 
     async def event_stream(on_event: ChatEventSink) -> None:
-        await project_chat_turns.stream(
+        async def persist_decision_event(event: dict[str, Any]) -> None:
+            scoped_chat_messages.append_ui_event(
+                username,
+                scope,
+                turn_id,
+                event,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+
+        async with chat_decisions.activate(
             username,
             scope,
-            text,
-            serialized_attachments,
             turn_id,
             on_event,
-            project_dir=project_dir,
-            project_state_dir=project_state_dir,
-        )
+            persist_decision_event,
+        ):
+            await project_chat_turns.stream(
+                username,
+                scope,
+                text,
+                serialized_attachments,
+                turn_id,
+                on_event,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
 
     await stream_chat_turn(
         websocket,
@@ -78,14 +99,29 @@ async def _stream_home_turn(
     serialized_attachments = attachment_payloads(attachments)
 
     async def event_stream(on_event: ChatEventSink) -> None:
-        await hermes_home_replies.stream(
+        async def persist_decision_event(event: dict[str, Any]) -> None:
+            scoped_chat_messages.append_ui_event(
+                username,
+                scope,
+                turn_id,
+                event,
+            )
+
+        async with chat_decisions.activate(
             username,
             scope,
-            text,
-            serialized_attachments,
             turn_id,
             on_event,
-        )
+            persist_decision_event,
+        ):
+            await hermes_home_replies.stream(
+                username,
+                scope,
+                text,
+                serialized_attachments,
+                turn_id,
+                on_event,
+            )
 
     await stream_chat_turn(
         websocket,

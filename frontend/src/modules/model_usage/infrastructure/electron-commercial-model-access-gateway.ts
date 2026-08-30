@@ -4,6 +4,7 @@ import {
   parseCommercialModelCatalogItem,
   parseCommercialModelAccessStatus,
   parseCommercialQuota,
+  parseByokDiscoveredModelMetadata,
 } from "@/modules/model_usage/domain/commercial-model-access";
 import {
   invokeCommercial,
@@ -16,11 +17,12 @@ export const electronCommercialModelAccessGateway: CommercialModelAccessGateway 
       await invokeCommercial(() => requireCommercialBridge().quotaBalance()),
     );
   },
-  async fetchCatalog(operation, source = "active") {
+  async fetchCatalog(operation, source = "active", catalogVersion) {
     return parseCommercialModelCatalog(
       await invokeCommercial(() =>
         requireCommercialBridge().modelCatalog({
           ...(operation ? { operation } : {}),
+          ...(catalogVersion ? { catalogVersion } : {}),
           source,
         }),
       ),
@@ -74,6 +76,11 @@ export const electronCommercialModelAccessGateway: CommercialModelAccessGateway 
       providerId: String(record.providerId ?? "").trim(),
       catalogVersion: String(record.catalogVersion ?? "").trim(),
       models: record.models.map((item) => String(item).trim()).filter(Boolean),
+      modelMetadata: Array.isArray(record.modelMetadata)
+        ? record.modelMetadata.map((item, index) => (
+            parseByokDiscoveredModelMetadata(item, `modelMetadata[${index}]`)
+          ))
+        : [],
     };
   },
 };

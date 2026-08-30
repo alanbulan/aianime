@@ -6,7 +6,6 @@ import asyncio
 import os
 import sqlite3
 from dataclasses import replace
-from datetime import datetime, timezone
 from pathlib import Path
 
 import aiosqlite
@@ -26,10 +25,7 @@ from ai_anime.shared.infrastructure.sqlite_pragmas import (
 )
 from ai_anime.shared.project_dirs import default_project_dirs
 from ai_anime.shared.runtime_paths import STATE_DIR
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 
 def _local_username() -> str:
@@ -159,7 +155,7 @@ class SQLiteProjectRegistry:
         default_output, default_state, default_runtime = default_project_dirs(
             owner_username, name
         )
-        now = _now_iso()
+        now = utc_now_iso()
         project_id = str(ULID())
         db = await self._connect()
         try:
@@ -235,7 +231,7 @@ class SQLiteProjectRegistry:
                 SET status = ?, updated_at = ?
                 WHERE id = ? AND purged_at IS NULL
                 """,
-                (status, _now_iso(), project_id),
+                (status, utc_now_iso(), project_id),
             )
             await db.commit()
             row = await _fetchone(
@@ -248,7 +244,7 @@ class SQLiteProjectRegistry:
     async def mark_project_purged(self, project_id: str) -> ProjectRecord | None:
         if not project_id:
             return None
-        now = _now_iso()
+        now = utc_now_iso()
         db = await self._connect()
         try:
             row = await _fetchone(

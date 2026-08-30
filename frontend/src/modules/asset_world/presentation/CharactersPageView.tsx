@@ -2446,6 +2446,7 @@ export function CharactersPageView({
   accountVoices,
   accountVoicesFailed,
   accountVoicesLoading,
+  onDeleteAccountVoice,
   addDialogContent,
   controller,
   detailContent,
@@ -2457,6 +2458,7 @@ export function CharactersPageView({
   accountVoices: readonly ProjectVoiceLibraryOption[];
   accountVoicesFailed: boolean;
   accountVoicesLoading: boolean;
+  onDeleteAccountVoice(voiceId: string): Promise<void>;
   addDialogContent: ReactNode;
   controller: CharactersPageController;
   detailContent: ReactNode;
@@ -2537,6 +2539,7 @@ export function CharactersPageView({
           accountVoicesFailed={accountVoicesFailed}
           accountVoicesLoading={accountVoicesLoading}
           narratorVoiceContent={narratorVoiceContent}
+          onDeleteAccountVoice={onDeleteAccountVoice}
         />
       ) : assetTab === "scenes" ? (
         <>{scenesContent}</>

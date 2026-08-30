@@ -2,6 +2,7 @@
 
 from ai_anime.modules.ai_assistant.application import (
     AgentPromptContext,
+    ChatDecisions,
     ChatPresentation,
     ChatWorkerLifecycle,
     ConversationTitles,
@@ -10,6 +11,8 @@ from ai_anime.modules.ai_assistant.application import (
     HermesHomeReplies,
     HermesProjectReplies,
     HermesRuntimePrewarmer,
+    HermesSessionCommands,
+    HermesSessionModels,
     PageAgentSessions,
     ProjectAssistantReplies,
     ProjectChatTurns,
@@ -31,6 +34,7 @@ from ai_anime.modules.ai_assistant.infrastructure import (
 )
 
 _agent_prompt_context = AgentPromptContext(FileUserPreferences())
+_chat_decisions = ChatDecisions()
 _chat_history = SQLiteChatHistory()
 _conversation_titles = ConversationTitles(
     _chat_history,
@@ -41,6 +45,8 @@ _chat_run_locks = FileChatRunLocks()
 _hermes_runtime = LocalHermesRuntime()
 _chat_worker_lifecycle = ChatWorkerLifecycle(_hermes_runtime, _chat_run_locks)
 _hermes_runtime_prewarmer = HermesRuntimePrewarmer(_hermes_runtime)
+_hermes_session_commands = HermesSessionCommands(_hermes_runtime)
+_hermes_session_models = HermesSessionModels(_hermes_runtime)
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
@@ -73,6 +79,14 @@ def get_hermes_runtime_prewarmer() -> HermesRuntimePrewarmer:
     return _hermes_runtime_prewarmer
 
 
+def get_hermes_session_models() -> HermesSessionModels:
+    return _hermes_session_models
+
+
+def get_hermes_session_commands() -> HermesSessionCommands:
+    return _hermes_session_commands
+
+
 def get_agent_prompt_context() -> AgentPromptContext:
     return _agent_prompt_context
 
@@ -83,6 +97,10 @@ def get_chat_presentation() -> ChatPresentation:
 
 def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
     return _chat_worker_lifecycle
+
+
+def get_chat_decisions() -> ChatDecisions:
+    return _chat_decisions
 
 
 def get_conversation_titles() -> ConversationTitles:

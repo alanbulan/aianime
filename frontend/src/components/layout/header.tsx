@@ -68,7 +68,7 @@ export function Header() {
   const accountOpenFrameRef = useRef<number | null>(null);
   const accountAnchorRef = useRef<HTMLDivElement | null>(null);
   const settingsAnchorRef = useRef<HTMLDivElement | null>(null);
-  const { username } = useAuthStore();
+  const username = useAuthStore((state) => state.username);
   const commercialSession = useCommercialAuthStore((state) => state.session);
   const commercialProfile = useCommercialAuthStore((state) => state.profile);
   const commercialAvatarDataUrl = useCommercialAuthStore(
@@ -288,10 +288,6 @@ export function Header() {
         </div>
       ) : null}
       <CreditBalanceBadge />
-      <div
-        id="superchat-header-controls"
-        className="flex min-w-0 shrink items-center gap-2 empty:hidden"
-      />
       <div
         ref={accountAnchorRef}
         className="relative ml-1 flex items-center"

@@ -19,6 +19,7 @@ export interface VideoModelOption {
   minDuration?: number;
   maxDuration?: number;
   resolutionOptions?: string[];
+  sizeOptions?: string[];
   ratioOptions?: string[];
   supportedModes?: string[];
   referenceImageMax?: number;
@@ -65,23 +66,38 @@ export function videoModelOptionFromCatalog(
   const routeSelector = stringValue(capabilities.routeSelector);
   const properties = schemaProperties(item.parameterSchema);
   const profile = videoProfile(capabilities, item.code, item.displayName);
-  const resolutionOptions = stringArray(
+  const declaredResolutionOptions = stringArray(
     firstDefined(
       capabilities.resolutionOptions,
       capabilities.resolutions,
       properties.resolution?.enum,
     ),
   );
-  const sizeOptions = stringArray(properties.size?.enum)
-    .map(resolutionFromSize)
-    .filter((value): value is string => Boolean(value));
-  const ratioOptions = stringArray(
+  const sizeOptions = unique(
+    [...declaredResolutionOptions, ...stringArray(properties.size?.enum)]
+      .map(normalizeVideoSizeValue)
+      .filter((value): value is string => value !== null),
+  );
+  const declaredResolutionTiers = unique(
+    declaredResolutionOptions
+      .map(normalizeVideoResolutionTier)
+      .filter((value): value is string => value !== null),
+  );
+  const resolutionOptions = declaredResolutionTiers.length
+    ? declaredResolutionTiers
+    : resolutionTiersFromSizes(sizeOptions);
+  const declaredRatioOptions = stringArray(
     firstDefined(
       capabilities.ratioOptions,
       capabilities.aspectRatios,
       properties.ratio?.enum,
       properties.aspect_ratio?.enum,
     ),
+  );
+  const ratioOptions = unique(
+    declaredRatioOptions.length
+      ? declaredRatioOptions
+      : ratioOptionsFromSizes(sizeOptions),
   );
   const supportedModes = stringArray(
     firstDefined(capabilities.supportedModes, capabilities.modes),
@@ -131,8 +147,9 @@ export function videoModelOptionFromCatalog(
     ...optional("maxDuration", maxDuration),
     ...optionalArray(
       "resolutionOptions",
-      resolutionOptions.length ? resolutionOptions : unique(sizeOptions),
+      resolutionOptions,
     ),
+    ...optionalArray("sizeOptions", sizeOptions),
     ...optionalArray("ratioOptions", ratioOptions),
     ...optionalArray("supportedModes", supportedModes),
     ...optional(
@@ -212,14 +229,60 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
-function resolutionFromSize(value: string): string | null {
-  const match = /^(\d+)x(\d+)$/.exec(value.trim().toLowerCase());
-  if (!match) return null;
-  const shortEdge = Math.min(Number(match[1]), Number(match[2]));
-  if (shortEdge >= 1000) return "1080p";
-  if (shortEdge >= 700) return "720p";
-  if (shortEdge >= 450) return "480p";
+function normalizeVideoResolutionTier(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  if (["480p", "720p", "768p", "1080p"].includes(normalized)) {
+    return normalized;
+  }
   return null;
+}
+
+function normalizeVideoSizeValue(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  const match = /^(\d{2,5})x(\d{2,5})$/.exec(normalized);
+  if (!match) return null;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  return width >= 64 && width <= 8192 && height >= 64 && height <= 8192
+    ? `${width}x${height}`
+    : null;
+}
+
+function resolutionTiersFromSizes(sizeOptions: readonly string[]): string[] {
+  const tiers = new Map<number, string>([
+    [480, "480p"],
+    [720, "720p"],
+    [768, "768p"],
+    [1080, "1080p"],
+  ]);
+  return unique(
+    sizeOptions
+      .map((size) => {
+        const [width, height] = size.split("x").map(Number);
+        return tiers.get(Math.min(width, height)) ?? null;
+      })
+      .filter((value): value is string => value !== null),
+  );
+}
+
+function ratioOptionsFromSizes(sizeOptions: readonly string[]): string[] {
+  const candidates = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
+  return unique(
+    sizeOptions.map((size) => {
+      const [width, height] = size.split("x").map(Number);
+      const frameRatio = width / height;
+      return candidates.reduce((closest, candidate) => {
+        const [candidateWidth, candidateHeight] = candidate.split(":").map(Number);
+        const candidateRatio = candidateWidth / candidateHeight;
+        const closestParts = closest.split(":").map(Number);
+        const closestRatio = closestParts[0] / closestParts[1];
+        return Math.abs(Math.log(frameRatio / candidateRatio)) <
+          Math.abs(Math.log(frameRatio / closestRatio))
+          ? candidate
+          : closest;
+      });
+    }),
+  );
 }
 
 function unique(values: string[]): string[] {

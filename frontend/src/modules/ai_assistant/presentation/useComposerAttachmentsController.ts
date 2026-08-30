@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DragEvent as ReactDragEvent } from "react";
 
 import {
@@ -35,13 +35,30 @@ export function useComposerAttachmentsController(enabled: boolean) {
   const [dragFileState, setDragFileState] = useState<DragFileState>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
+  const activeReadersRef = useRef(new Set<FileReader>());
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      for (const reader of activeReadersRef.current) {
+        reader.abort();
+      }
+      activeReadersRef.current.clear();
+    };
+  }, []);
 
   const addFiles = useCallback((files: FileList | readonly File[] | null) => {
     if (!files) return;
     Array.from(files).forEach((file) => {
       if (!isAllowedChatUpload(file)) return;
       const reader = new FileReader();
+      activeReadersRef.current.add(reader);
+      const releaseReader = () => activeReadersRef.current.delete(reader);
       reader.addEventListener("load", () => {
+        releaseReader();
+        if (!mountedRef.current) return;
         const dataUrl = String(reader.result || "");
         setAttachments((current) => [
           ...current,
@@ -55,6 +72,8 @@ export function useComposerAttachmentsController(enabled: boolean) {
           },
         ]);
       });
+      reader.addEventListener("abort", releaseReader, { once: true });
+      reader.addEventListener("error", releaseReader, { once: true });
       reader.readAsDataURL(file);
     });
     if (fileInputRef.current) fileInputRef.current.value = "";

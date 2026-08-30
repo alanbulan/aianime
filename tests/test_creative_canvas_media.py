@@ -156,9 +156,10 @@ def test_local_media_storage_preserves_upload_and_screenshot_paths(
         payload=media_rules.PNG_SIGNATURE,
     )
 
-    assert upload.filename.endswith("_reference_image.png")
+    assert upload.filename.endswith("_reference image.png")
     assert (project_dir / upload.relative_path).read_bytes() == b"upload"
     assert upload.url.startswith("/static/projects/project-1/freezone/_uploads/")
+    assert "%20" in upload.url
     assert screenshot.relative_path == "freezone/_outputs/three_d_viewer/job-1.png"
     assert (
         project_dir / screenshot.relative_path

@@ -10,10 +10,12 @@ from ai_anime.modules.asset_world.application.dto import (
     BuildCharactersTask,
     BuildScenesTask,
     CharacterImageGenerationTask,
+    CharacterVoiceDesignTask,
     PropReferenceGenerationTask,
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
     StylePreviewGenerationTask,
+    StyleAnalysisTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import (
@@ -41,6 +43,18 @@ class TaskExecutionAssetTaskScheduler:
         self,
         task_context: ProjectContext,
         task: CharacterImageGenerationTask,
+    ) -> AssetTaskQueueReceipt:
+        return await self._enqueue(
+            task_context,
+            task_type=task.task_type,
+            payload=task.backend_payload(),
+            scope=task.scope,
+        )
+
+    async def enqueue_character_voice_design(
+        self,
+        task_context: ProjectContext,
+        task: CharacterVoiceDesignTask,
     ) -> AssetTaskQueueReceipt:
         return await self._enqueue(
             task_context,
@@ -112,6 +126,18 @@ class TaskExecutionAssetTaskScheduler:
         self,
         task_context: ProjectContext,
         task: StylePreviewGenerationTask,
+    ) -> AssetTaskQueueReceipt:
+        return await self._enqueue(
+            task_context,
+            task_type=task.task_type,
+            payload=task.backend_payload(),
+            scope=task.scope,
+        )
+
+    async def enqueue_style_analysis(
+        self,
+        task_context: ProjectContext,
+        task: StyleAnalysisTask,
     ) -> AssetTaskQueueReceipt:
         return await self._enqueue(
             task_context,

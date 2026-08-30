@@ -5,8 +5,12 @@ import type {
 } from "../directorManifest";
 
 export interface AiStagingPropResult {
-  prop?: Record<string, unknown>;
-  model?: string;
+  task_type: "freezone_ai_staging_prop";
+  job_id: string;
+  task_key: string;
+  task_episode: number;
+  task_scope: string;
+  task_id?: string;
 }
 
 export interface DirectorControlFrameSaveResult extends Pick<

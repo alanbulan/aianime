@@ -26,6 +26,7 @@ def _generator(
     api_key: str = "loopback-token",
     model: str = "cloud-video-standard",
     model_role: str = "VIDEO_TEXT_TO_VIDEO",
+    resolution: str | None = None,
     model_capabilities: list[dict] | None = None,
 ) -> CommercialVideoGenerator:
     from ai_anime.modules.model_usage import public as model_usage
@@ -45,7 +46,10 @@ def _generator(
             api_key=api_key,
         ),
     )
-    return CommercialVideoGenerator(model_role=model_role)
+    return CommercialVideoGenerator(
+        model_role=model_role,
+        resolution=resolution,
+    )
 
 
 def test_video_headers_use_only_the_authenticated_desktop_router(
@@ -86,11 +90,47 @@ def test_text_video_builds_standard_json_payload(
         "prompt": "角色缓慢转身，镜头向前推进",
         "seconds": "5",
         "size": "1280x720",
+        "ratio": "16:9",
         "scene_optimize": "anime",
         "return_last_frame": True,
     }
     assert media == []
     assert return_last_frame is True
+
+
+def test_h3_request_preserves_exact_size_and_explicit_semantic_ratio(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    generator = _generator(
+        monkeypatch,
+        model="MINIMAX_H3",
+        model_role="VIDEO_IMAGE_TO_VIDEO",
+        resolution="768x1344",
+        model_capabilities=[
+            {
+                "modelId": "MINIMAX_H3",
+                "videoSizeOptions": [
+                    "1344x768",
+                    "768x1344",
+                    "1024x1024",
+                ],
+            }
+        ],
+    )
+
+    payload, _media, _return_last_frame = generator._build_request(
+        image_path=None,
+        last_frame_path=None,
+        references=[],
+        prompt="角色缓慢转身",
+        aspect_ratio="9:16",
+        duration=4,
+        kwargs={},
+    )
+
+    assert payload["seconds"] == "4"
+    assert payload["size"] == "768x1344"
+    assert payload["ratio"] == "9:16"
 
 
 def test_seedance_request_clamps_short_duration_before_gateway_submission(

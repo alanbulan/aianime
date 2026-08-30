@@ -7,9 +7,14 @@ import { useAssetFocus } from "./application/useAssetFocus";
 import { useNavigateToAsset } from "./application/useAssetsDeepLink";
 import { downloadBlobAsFile } from "@/lib/browserDownload";
 import {
-  audioVoiceDesignConfig,
+  AUDIO_SPEECH_CATALOG_OPERATION,
+  audioSpeechModelOptions,
+  audioVoiceDesignModelOptions,
   commercialModelRoles,
+  resolveAudioModelSelector,
+  resolveCommercialModelRoleRoute,
   useCommercialModelCatalog,
+  useCommercialModelAccessStatus,
   useGenerationCreditCost,
 } from "@/modules/model_usage/public";
 import { isCeRuntime } from "@/lib/runtime-config";
@@ -532,10 +537,14 @@ export function StylesPageContent({ project }: { project: string }) {
     open: controller.createOpen,
     project,
   });
-  return createElement(StylesPageView, {
-    controller,
-    createDialog,
-    detailContent,
+  return createElement(TaskControllerProvider, {
+    children: createElement(StylesPageView, {
+      controller,
+      createDialog,
+      detailContent,
+    }),
+    episode: 0,
+    project,
   });
 }
 
@@ -715,32 +724,52 @@ export function CharacterVoicePanelContent({
   const voiceDesignCatalog = useCommercialModelCatalog(
     "AUDIO_VOICE_DESIGN",
     commercialBridgeAvailable,
-    "cloud",
   );
-  const voiceDesign = useMemo(() => {
+  const speechCatalog = useCommercialModelCatalog(
+    AUDIO_SPEECH_CATALOG_OPERATION,
+    commercialBridgeAvailable,
+  );
+  const modelAccess = useCommercialModelAccessStatus(commercialBridgeAvailable);
+  const voiceDesignRoute = resolveCommercialModelRoleRoute(
+    modelAccess.data,
+    "AUDIO_VOICE_DESIGN",
+  );
+  const voiceDesignOptions = useMemo(() => {
     const candidates = (voiceDesignCatalog.data?.items ?? []).filter((item) =>
       commercialModelRoles(item).includes("AUDIO_VOICE_DESIGN"),
     );
-    const defaults = candidates.filter((item) => item.isDefault === true);
-    const model =
-      defaults.length === 1
-        ? defaults[0]
-        : defaults.length === 0 && candidates.length === 1
-          ? candidates[0]
-          : null;
-    const config = model ? audioVoiceDesignConfig(model) : null;
-    if (!model || !config) return null;
-    return {
-      config,
-      modelLabel: model.displayName,
-      modelSelector: `cloud:${model.code}`,
-    };
+    return audioVoiceDesignModelOptions(candidates);
   }, [voiceDesignCatalog.data]);
+  const voiceDesignDefaultSelector = useMemo(() => {
+    return resolveAudioModelSelector(
+      voiceDesignOptions,
+      voiceDesignRoute?.selector,
+    );
+  }, [voiceDesignOptions, voiceDesignRoute?.selector]);
+  const speechRoute = resolveCommercialModelRoleRoute(
+    modelAccess.data,
+    "AUDIO_SPEECH",
+  );
+  const presetVoiceModels = useMemo(() => {
+    const candidates = (speechCatalog.data?.items ?? []).filter((item) =>
+      commercialModelRoles(item).includes("AUDIO_SPEECH"),
+    );
+    return audioSpeechModelOptions(candidates);
+  }, [speechCatalog.data?.items]);
+  const presetVoiceDefaultSelector = useMemo(() => {
+    return resolveAudioModelSelector(
+      presetVoiceModels,
+      speechRoute?.selector,
+    );
+  }, [presetVoiceModels, speechRoute?.selector]);
   const controller = useCharacterVoiceController({
     character,
     ...voiceCatalog,
+    presetVoiceDefaultSelector,
+    presetVoiceModels,
     project,
-    voiceDesign,
+    voiceDesignDefaultSelector,
+    voiceDesignOptions,
   });
   return createElement(CharacterVoicePanelView, { controller });
 }
@@ -796,6 +825,10 @@ function CharactersPageBody({
     accountVoices: accountVoices.data ?? [],
     accountVoicesFailed: accountVoices.isError,
     accountVoicesLoading: accountVoices.isLoading,
+    onDeleteAccountVoice: async (voiceId: string) => {
+      await voiceCatalog.deleteVoice(project, voiceId);
+      await accountVoices.refetch();
+    },
     addDialogContent: createElement(AddCharacterDialogContent, {
       onOpenChange: controller.setAddDialogOpen,
       open: controller.addDialogOpen,
@@ -832,10 +865,13 @@ export interface CharactersPageContentProps {
   voiceCatalog: AssetWorldVoiceCatalog;
 }
 
-export type AssetWorldVoiceCatalog = Pick<
-  CharacterVoiceControllerOptions,
-  "designVoice" | "loadVoiceOptions"
->;
+export interface AssetWorldVoiceCatalog
+  extends Pick<
+    CharacterVoiceControllerOptions,
+    "createPresetVoice" | "designVoice" | "loadVoiceOptions"
+  > {
+  deleteVoice(project: string, voiceId: string): Promise<void>;
+}
 
 export function CharactersPageContent({
   canvasNavigation,

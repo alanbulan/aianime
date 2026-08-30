@@ -23,12 +23,36 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncIterator, Literal
 
+from ai_anime.modules.ai_assistant.domain import is_slash_command
+from ai_anime.modules.ai_assistant.infrastructure.hermes.command_responses import (
+    help_response,
+    localize_runtime_response,
+    model_response,
+    should_localize_runtime_command,
+    slash_command_parts,
+)
+from ai_anime.modules.ai_assistant.infrastructure.hermes.model_route import (
+    decode_model_selection,
+    encode_automatic_model,
+    encode_model_route,
+)
+from ai_anime.modules.ai_assistant.infrastructure.hermes.skill_catalog import (
+    expand_skill_invocation,
+    merge_runtime_slash_commands,
+)
 from ai_anime.modules.ai_assistant.infrastructure.sandbox_wrap import SandboxSpec, wrap_command
 
 
 @dataclass(slots=True)
 class ChatBackendEvent:
-    type: Literal["thread_started", "assistant_delta", "tool_update", "complete"]
+    type: Literal[
+        "thread_started",
+        "assistant_delta",
+        "tool_update",
+        "available_commands",
+        "context_usage",
+        "complete",
+    ]
     thread_id: str | None = None
     turn_id: str | None = None
     text: str | None = None
@@ -386,6 +410,8 @@ class HermesSdkThread:
         self._closed = False
         self._initialized = False
         self._tool_names_by_call_id: dict[str, str] = {}
+        self._model_route_selector: str | None = None
+        self._model_reasoning_effort: str | None = None
         # Serializes the spawn→initialize→session prologue so a background
         # warm() and the first real stream() can't interleave on the shared
         # JSON-RPC stdio. Whichever runs first pays the cold start; the other
@@ -531,6 +557,7 @@ class HermesSdkThread:
             )
             resp, _ = await self._read_until_id(req_id, SESSION_NEW_TIMEOUT)
             if resp and "error" not in resp and resp.get("result") is not None:
+                self._capture_model_route(resp.get("result"))
                 return
             _log.warning("session/load failed, falling back to session/new: %s",
                          (resp.get("error") or "empty result") if resp else "timeout")
@@ -547,7 +574,61 @@ class HermesSdkThread:
             raise RuntimeError(f"hermes session/new error: {resp['error']}")
         result = resp.get("result", {})
         self.id = result.get("sessionId") or f"hermes-{uuid.uuid4().hex}"
+        self._capture_model_route(result)
         self._is_new = False
+
+    def _capture_model_route(self, result: object) -> None:
+        payload = result if isinstance(result, dict) else {}
+        models = payload.get("models")
+        model_state = models if isinstance(models, dict) else {}
+        current_model = (
+            model_state.get("currentModelId")
+            or model_state.get("current_model_id")
+        )
+        selection = decode_model_selection(current_model)
+        self._model_route_selector = selection.selector if selection else None
+        self._model_reasoning_effort = (
+            selection.reasoning_effort if selection else None
+        )
+
+    async def get_model_route(self) -> tuple[str | None, str | None]:
+        """Return the effective per-conversation route override, if any."""
+        async with self._turn_lock:
+            if self._closed:
+                raise RuntimeError("HermesSdkThread is closed")
+            await self._prepare()
+            return self._model_route_selector, self._model_reasoning_effort
+
+    async def set_model_route(
+        self,
+        selector: str | None,
+        reasoning_effort: str | None = None,
+    ) -> tuple[str | None, str | None]:
+        """Persist an exact route override on this ACP conversation only."""
+        normalized = str(selector or "").strip() or None
+        model_id = (
+            encode_model_route(normalized, reasoning_effort)
+            if normalized is not None
+            else encode_automatic_model(reasoning_effort)
+        )
+        async with self._turn_lock:
+            if self._closed:
+                raise RuntimeError("HermesSdkThread is closed")
+            await self._prepare()
+            req_id = await self._send(
+                "session/set_model",
+                {"sessionId": self.id, "modelId": model_id},
+            )
+            response, _ = await self._read_until_id(req_id, SESSION_NEW_TIMEOUT)
+            if response is None:
+                raise RuntimeError("切换当前对话模型超时")
+            if "error" in response:
+                error = response.get("error")
+                detail = error.get("message") if isinstance(error, dict) else error
+                raise RuntimeError(f"切换当前对话模型失败：{detail}")
+            self._model_route_selector = normalized
+            self._model_reasoning_effort = str(reasoning_effort or "").strip() or None
+            return self._model_route_selector, self._model_reasoning_effort
 
     async def _prepare(self) -> None:
         """Spawn + initialize + create/resume session (the cold-start prologue).
@@ -592,11 +673,48 @@ class HermesSdkThread:
         if self._closed:
             raise RuntimeError("HermesSdkThread is closed")
 
-        text = prompt
-        if current_project:
+        command_parts = slash_command_parts(prompt)
+        if command_parts is not None and command_parts[0] in {"help", "model"}:
+            command, arguments = command_parts
+            turn_id = uuid.uuid4().hex
+            if command == "help":
+                response_text = help_response()
+            else:
+                selector = await self.get_model_route()
+                response_text = model_response(
+                    selector,
+                    has_arguments=bool(arguments),
+                )
+            yield ChatBackendEvent(
+                type="thread_started",
+                thread_id=self.id or None,
+                turn_id=turn_id,
+            )
+            yield ChatBackendEvent(
+                type="assistant_delta",
+                thread_id=self.id or None,
+                turn_id=turn_id,
+                text=response_text,
+            )
+            yield ChatBackendEvent(
+                type="complete",
+                thread_id=self.id or None,
+                turn_id=turn_id,
+                text="",
+            )
+            return
+
+        expanded_skill_prompt = expand_skill_invocation(self._cwd, prompt)
+        text = expanded_skill_prompt or prompt
+        if (
+            expanded_skill_prompt is None
+            and current_project
+            and not is_slash_command(prompt)
+        ):
             text = f"[CONTEXT: current_project={current_project}]\n\n{prompt}"
         turn_id = uuid.uuid4().hex
         recovered_context_session = False
+        localized_command = should_localize_runtime_command(prompt)
 
         await self._turn_lock.acquire()
         try:
@@ -634,6 +752,7 @@ class HermesSdkThread:
                 tool_call_count = 0
                 emitted_response = False
                 retry_fresh_session = False
+                command_response_parts: list[str] = []
                 while True:
                     try:
                         line = await asyncio.wait_for(
@@ -691,15 +810,43 @@ class HermesSdkThread:
                             retry_fresh_session = True
                             break
                         if err:
+                            if localized_command:
+                                detail = err.get("message", err) if isinstance(err, dict) else err
+                                localized = localize_runtime_response(
+                                    localized_command,
+                                    str(detail or ""),
+                                )
+                                yield ChatBackendEvent(
+                                    type="assistant_delta",
+                                    thread_id=self.id,
+                                    turn_id=turn_id,
+                                    text=localized,
+                                )
                             yield ChatBackendEvent(
                                 type="complete", thread_id=self.id, turn_id=turn_id,
                                 text=(
                                     CONTENT_FILTER_MESSAGE
                                     if _has_content_filter_signal(err)
-                                    else f"error: {err.get('message', err)}"
+                                    else (
+                                        ""
+                                        if localized_command
+                                        else f"error: {err.get('message', err)}"
+                                    )
                                 ),
                             )
                         else:
+                            if localized_command:
+                                localized = localize_runtime_response(
+                                    localized_command,
+                                    "".join(command_response_parts),
+                                )
+                                if localized:
+                                    yield ChatBackendEvent(
+                                        type="assistant_delta",
+                                        thread_id=self.id,
+                                        turn_id=turn_id,
+                                        text=localized,
+                                    )
                             yield ChatBackendEvent(
                                 type="complete", thread_id=self.id, turn_id=turn_id,
                                 text="",
@@ -710,6 +857,9 @@ class HermesSdkThread:
                     if ev is not None:
                         if ev.type == "assistant_delta" and str(ev.text or "").strip():
                             emitted_response = True
+                            if localized_command:
+                                command_response_parts.append(str(ev.text or ""))
+                                continue
                         if ev.type == "tool_update":
                             emitted_response = True
                             if (ev.raw or {}).get("sessionUpdate") == "tool_call":
@@ -840,11 +990,42 @@ class HermesSdkThread:
                 raw=update,
             )
         if kind == "usage_update":
-            _log.debug("Hermes context usage update: %s", update)
-            return None
+            used = update.get("used")
+            size = update.get("size")
+            if (
+                not isinstance(used, int)
+                or isinstance(used, bool)
+                or used < 0
+                or not isinstance(size, int)
+                or isinstance(size, bool)
+                or size <= 0
+            ):
+                _log.warning("Ignoring invalid Hermes context usage update: %s", update)
+                return None
+            return ChatBackendEvent(
+                type="context_usage",
+                thread_id=self.id,
+                turn_id=turn_id,
+                raw={"used": used, "size": size},
+            )
         if kind == "session_info_update":
             _log.info("Hermes session context updated: %s", update)
             return None
+        if kind == "available_commands_update":
+            commands = update.get("availableCommands")
+            if not isinstance(commands, list):
+                commands = update.get("available_commands")
+            commands = merge_runtime_slash_commands(
+                self._cwd,
+                commands if isinstance(commands, list) else [],
+                include_project_tools=bool(self._env.get("AI_ANIME_PROJECT_ID")),
+            )
+            return ChatBackendEvent(
+                type="available_commands",
+                thread_id=self.id,
+                turn_id=turn_id,
+                raw=commands,
+            )
         return None
 
     async def _terminate_subprocess(self) -> None:

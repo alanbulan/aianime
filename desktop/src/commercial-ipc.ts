@@ -10,7 +10,8 @@ import { registerCommercialModelHandlers } from "./commercial-ipc-model-handlers
 import { registerCommercialUpdateHandlers } from "./commercial-ipc-update-handlers.js";
 
 export interface IpcInvokeEventLike {
-  sender: { id: number };
+  sender: { id: number; mainFrame?: unknown };
+  senderFrame?: unknown;
 }
 
 export interface IpcMainLike {
@@ -29,6 +30,7 @@ export const COMMERCIAL_CHANNELS = {
   register: "desktop:commercial:register",
   session: "desktop:commercial:session",
   rememberedLogin: "desktop:commercial:remembered-login",
+  revealRememberedPassword: "desktop:commercial:reveal-remembered-password",
   login: "desktop:commercial:login",
   loginRemembered: "desktop:commercial:login-remembered",
   logout: "desktop:commercial:logout",

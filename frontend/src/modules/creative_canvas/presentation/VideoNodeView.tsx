@@ -120,14 +120,18 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
     getModelDisabledReason,
     aspectRatio,
     aspectRatioOptions,
-    qualityOptions,
-    quality,
+    outputDefinition,
+    outputValue,
+    extraParamDefinitions,
+    extraParams,
     durationBounds,
     durationSec,
     normalizeDuration,
     sceneOptimizeOptions,
     sceneOptimize,
     generateAudio,
+    supportsGenerateAudio,
+    handleVideoConfigChange,
     supportsHumanReview,
     humanReview,
     count,
@@ -536,15 +540,19 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
               <VideoConfigChip
                 aspectRatio={aspectRatio}
                 aspectRatioOptions={aspectRatioOptions}
-                quality={quality}
-                qualityOptions={qualityOptions}
+                outputValue={outputValue}
+                outputOptions={outputDefinition?.options ?? []}
+                extraParamDefinitions={extraParamDefinitions}
+                extraParams={extraParams}
                 durationSec={durationSec}
                 durationBounds={durationBounds}
+                durationOptions={durationBounds?.options ?? []}
                 normalizeDuration={normalizeDuration}
                 sceneOptimize={sceneOptimize}
                 sceneOptimizeOptions={sceneOptimizeOptions}
                 generateAudio={generateAudio}
-                onChange={(patch) => updateNodeData(id, patch)}
+                supportsGenerateAudio={supportsGenerateAudio}
+                onChange={handleVideoConfigChange}
               />
               {supportsHumanReview && (
                 <VideoHumanReviewSwitch

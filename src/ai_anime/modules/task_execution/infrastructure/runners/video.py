@@ -957,6 +957,11 @@ async def _run_freezone_video_gen_async(
                 generate_audio=bool(payload.get("generate_audio")),
                 human_review=bool(payload.get("human_review")),
                 scene_optimize=str(payload.get("scene_optimize") or ""),
+                extra_params=(
+                    payload.get("extra_params")
+                    if isinstance(payload.get("extra_params"), dict)
+                    else None
+                ),
                 last_frame_path=payload.get("last_frame_path"),
                 audio_setting=payload.get("audio_setting") or None,
             )

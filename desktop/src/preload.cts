@@ -25,6 +25,7 @@ const COMMERCIAL_CHANNELS = {
   register: "desktop:commercial:register",
   session: "desktop:commercial:session",
   rememberedLogin: "desktop:commercial:remembered-login",
+  revealRememberedPassword: "desktop:commercial:reveal-remembered-password",
   login: "desktop:commercial:login",
   loginRemembered: "desktop:commercial:login-remembered",
   logout: "desktop:commercial:logout",
@@ -107,6 +108,8 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     session: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.session),
     rememberedLogin: () =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.rememberedLogin),
+    revealRememberedPassword: () =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.revealRememberedPassword),
     login: (input: unknown) => ipcRenderer.invoke(COMMERCIAL_CHANNELS.login, input),
     loginRemembered: (input: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.loginRemembered, input),

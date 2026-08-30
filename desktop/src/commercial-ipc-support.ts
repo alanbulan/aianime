@@ -58,10 +58,164 @@ const REFERENCE_DURATION_CAPABILITY_FIELDS = [
   ],
 ] as const;
 
+const VIDEO_CORE_PARAMETER_NAMES = new Set([
+  "model",
+  "prompt",
+  "mode",
+  "generation_mode",
+  "generationMode",
+  "seconds",
+  "duration",
+  "duration_seconds",
+  "size",
+  "resolution",
+  "ratio",
+  "aspect_ratio",
+  "aspectRatio",
+  "generate_audio",
+  "generateAudio",
+  "human_review",
+  "humanReview",
+  "scene_optimize",
+  "sceneOptimize",
+  "image",
+  "images",
+  "input_reference",
+  "first_frame_image",
+  "last_frame_image",
+  "end_image",
+  "reference_image",
+  "reference_images",
+  "reference_video",
+  "reference_videos",
+  "reference_audio",
+  "reference_audios",
+  "references",
+  "n",
+]);
+
 function positiveNumber(...values: unknown[]): number | undefined {
   return values.find(
     (value): value is number =>
       typeof value === "number" && Number.isFinite(value) && value > 0,
+  );
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
+function declaredBoolean(...values: unknown[]): boolean | undefined {
+  return values.find((value): value is boolean => typeof value === "boolean");
+}
+
+function positiveNumberArray(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is number =>
+          typeof item === "number" && Number.isFinite(item) && item > 0,
+      )
+    : [];
+}
+
+function projectedVideoExtraParameterNames(
+  properties: Record<string, unknown>,
+): string[] {
+  return Object.keys(properties).filter(
+    (key) =>
+      /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key) &&
+      !VIDEO_CORE_PARAMETER_NAMES.has(key),
+  );
+}
+
+function videoResolutionFromValue(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  return /^\d{2,5}p$/.test(normalized) ? normalized : null;
+}
+
+function videoRatioFromValue(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "auto" || /^\d{1,4}:\d{1,4}$/.test(normalized)
+    ? normalized
+    : null;
+}
+
+function videoSizeFromValue(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  const match = /^(\d{2,5})x(\d{2,5})$/.exec(normalized);
+  if (!match) return null;
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (width < 64 || width > 8192 || height < 64 || height > 8192) {
+    return null;
+  }
+  return `${width}x${height}`;
+}
+
+function projectedVideoResolutionOptions(
+  capabilities: Record<string, unknown>,
+  properties: Record<string, unknown>,
+): string[] {
+  const resolutionProperty = optionalRecord(properties.resolution);
+  const candidates = [
+    capabilities.resolutionOptions,
+    capabilities.resolutions,
+    resolutionProperty.enum,
+  ].flatMap(stringArray);
+  return Array.from(
+    new Set(
+      candidates
+        .map(videoResolutionFromValue)
+        .filter((value): value is string => value !== null),
+    ),
+  );
+}
+
+function projectedVideoRatioOptions(
+  capabilities: Record<string, unknown>,
+  properties: Record<string, unknown>,
+): string[] {
+  const aspectRatioProperty = optionalRecord(properties.aspect_ratio);
+  const aspectRatioCamelProperty = optionalRecord(properties.aspectRatio);
+  const candidates = [
+    capabilities.aspectRatioOptions,
+    capabilities.ratioOptions,
+    capabilities.aspectRatios,
+    aspectRatioProperty.enum,
+    aspectRatioCamelProperty.enum,
+  ].flatMap(stringArray);
+  return Array.from(
+    new Set(
+      candidates
+        .map(videoRatioFromValue)
+        .filter((value): value is string => value !== null),
+    ),
+  );
+}
+
+function projectedVideoSizeOptions(
+  capabilities: Record<string, unknown>,
+  properties: Record<string, unknown>,
+): string[] {
+  const resolutionProperty = optionalRecord(properties.resolution);
+  const sizeProperty = optionalRecord(properties.size);
+  const candidates = [
+    capabilities.resolutionOptions,
+    capabilities.resolutions,
+    resolutionProperty.enum,
+    sizeProperty.enum,
+  ].flatMap(stringArray);
+  return Array.from(
+    new Set(
+      candidates
+        .map(videoSizeFromValue)
+        .filter((value): value is string => value !== null),
+    ),
   );
 }
 
@@ -101,12 +255,110 @@ function parseCatalogRecord(
   }
 }
 
+function catalogModelRuntimeMetadata(
+  item: ReturnType<typeof projectCommercialModelCatalog>["items"][number],
+): Pick<
+  ByokModelAssignment,
+  "contextWindow" | "maxOutputTokens" | "reasoningEfforts" | "defaultReasoningEffort"
+> {
+  const capabilities = parseCatalogRecord(
+    item.capabilityJson,
+    item.code,
+    "capabilityJson",
+  );
+  const parameterSchema = parseCatalogRecord(
+    item.parameterSchemaJson,
+    item.code,
+    "parameterSchemaJson",
+  );
+  const properties = optionalRecord(parameterSchema.properties);
+  const reasoning = optionalRecord(
+    properties.reasoning_effort ?? properties.reasoningEffort,
+  );
+  const reasoningEfforts = Array.isArray(reasoning.enum)
+    ? Array.from(new Set(
+        reasoning.enum
+          .filter((value): value is string => typeof value === "string")
+          .map((value) => value.trim())
+          .filter(Boolean),
+      ))
+    : [];
+  const requestedDefault = typeof reasoning.default === "string"
+    ? reasoning.default.trim()
+    : "";
+  const contextWindow = firstPositiveInteger(
+    capabilities.contextWindowTokens,
+    capabilities.context_window_tokens,
+    capabilities.contextWindow,
+    capabilities.context_window,
+    capabilities.contextLength,
+    capabilities.context_length,
+    parameterSchema.contextWindowTokens,
+    parameterSchema.context_window_tokens,
+  );
+  const maxOutputTokens = firstPositiveInteger(
+    capabilities.maxOutputTokens,
+    capabilities.max_output_tokens,
+    capabilities.outputTokenLimit,
+    capabilities.output_token_limit,
+    capabilities.maxCompletionTokens,
+    capabilities.max_completion_tokens,
+    capabilities.maxTokens,
+    capabilities.max_tokens,
+    parameterSchema.maxOutputTokens,
+    parameterSchema.max_output_tokens,
+    parameterSchema.maxCompletionTokens,
+    parameterSchema.max_completion_tokens,
+    parameterSchema.maxTokens,
+    parameterSchema.max_tokens,
+    optionalRecord(parameterSchema.maxOutputTokens).maximum,
+    optionalRecord(parameterSchema.max_output_tokens).maximum,
+    optionalRecord(parameterSchema.maxCompletionTokens).maximum,
+    optionalRecord(parameterSchema.max_completion_tokens).maximum,
+    optionalRecord(parameterSchema.maxTokens).maximum,
+    optionalRecord(parameterSchema.max_tokens).maximum,
+    optionalRecord(properties.maxOutputTokens).maximum,
+    optionalRecord(properties.max_output_tokens).maximum,
+    optionalRecord(properties.maxCompletionTokens).maximum,
+    optionalRecord(properties.max_completion_tokens).maximum,
+    optionalRecord(properties.maxTokens).maximum,
+    optionalRecord(properties.max_tokens).maximum,
+  );
+  return {
+    ...(contextWindow === undefined ? {} : { contextWindow }),
+    ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
+    ...(reasoningEfforts.length ? { reasoningEfforts } : {}),
+    ...(requestedDefault && reasoningEfforts.includes(requestedDefault)
+      ? { defaultReasoningEffort: requestedDefault }
+      : {}),
+  };
+}
+
+function firstPositiveInteger(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isSafeInteger(value) && value > 0) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function firstNonNegativeInteger(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 export function mergeModelCapabilities(
   catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
   target: Map<string, CommercialModelCapabilitySnapshot>,
 ): void {
   for (const item of catalog?.items ?? []) {
     target.delete(item.code);
+    if (item.operation !== "VIDEO") continue;
     const capabilities = parseCatalogRecord(
       item.capabilityJson,
       item.code,
@@ -120,11 +372,72 @@ export function mergeModelCapabilities(
     const properties = optionalRecord(parameterSchema.properties);
     const durationProperty = optionalRecord(properties.duration);
     const secondsProperty = optionalRecord(properties.seconds);
+    const referenceLimits = optionalRecord(capabilities.referenceLimits);
+    const referenceImagesProperty = optionalRecord(properties.reference_images);
+    const referenceVideosProperty = optionalRecord(properties.reference_videos);
+    const referenceAudiosProperty = optionalRecord(properties.reference_audios);
+    const referencesProperty = optionalRecord(properties.references);
     const projected: CommercialModelCapabilitySnapshot = {
       modelId: item.code,
     };
     const videoProfile = projectedVideoProfile(capabilities, item.code);
     if (videoProfile) projected.videoProfile = videoProfile;
+    const videoRatioOptions = projectedVideoRatioOptions(
+      capabilities,
+      properties,
+    );
+    if (videoRatioOptions.length) {
+      projected.videoRatioOptions = videoRatioOptions;
+    }
+    const videoResolutionOptions = projectedVideoResolutionOptions(
+      capabilities,
+      properties,
+    );
+    if (videoResolutionOptions.length) {
+      projected.videoResolutionOptions = videoResolutionOptions;
+    }
+    const videoSizeOptions = projectedVideoSizeOptions(capabilities, properties);
+    if (videoSizeOptions.length) {
+      projected.videoSizeOptions = videoSizeOptions;
+    }
+    const supportsGenerateAudio = declaredBoolean(
+      capabilities.supportsGenerateAudio,
+      capabilities.generateAudio,
+      capabilities.nativeAudio,
+      properties.generate_audio || properties.generateAudio
+        ? true
+        : undefined,
+    );
+    if (supportsGenerateAudio !== undefined) {
+      projected.videoSupportsGenerateAudio = supportsGenerateAudio;
+    }
+    const supportsHumanReview = declaredBoolean(
+      capabilities.supportsHumanReview,
+      capabilities.humanReview,
+      properties.human_review || properties.humanReview ? true : undefined,
+    );
+    if (supportsHumanReview !== undefined) {
+      projected.videoSupportsHumanReview = supportsHumanReview;
+    }
+    const extraParameterNames = projectedVideoExtraParameterNames(properties);
+    if (extraParameterNames.length) {
+      projected.videoExtraParameterNames = extraParameterNames;
+    }
+    const sceneOptimizeProperty = optionalRecord(properties.scene_optimize);
+    const sceneOptimizeCamelProperty = optionalRecord(properties.sceneOptimize);
+    const sceneOptimizeOptions = Array.from(
+      new Set(
+        [
+          capabilities.sceneOptimizeOptions,
+          capabilities.sceneOptimizations,
+          sceneOptimizeProperty.enum,
+          sceneOptimizeCamelProperty.enum,
+        ].flatMap(stringArray),
+      ),
+    );
+    if (sceneOptimizeOptions.length) {
+      projected.videoSceneOptimizeOptions = sceneOptimizeOptions;
+    }
     const generationMinimum = positiveNumber(
       capabilities.minDuration,
       capabilities.minSeconds,
@@ -142,6 +455,54 @@ export function mergeModelCapabilities(
     }
     if (generationMaximum !== undefined) {
       projected.videoGenerationMaxSeconds = generationMaximum;
+    }
+    const durationOptions = Array.from(
+      new Set(
+        [
+          capabilities.durationOptions,
+          capabilities.secondsOptions,
+          durationProperty.enum,
+          secondsProperty.enum,
+        ].flatMap(positiveNumberArray),
+      ),
+    );
+    if (durationOptions.length) {
+      projected.videoDurationOptions = durationOptions;
+    }
+    const maxReferenceImages = firstNonNegativeInteger(
+      capabilities.maxReferenceImages,
+      capabilities.referenceImageMax,
+      referenceLimits.images,
+      referenceImagesProperty.maxItems,
+    );
+    const maxReferenceVideos = firstNonNegativeInteger(
+      capabilities.maxReferenceVideos,
+      capabilities.referenceVideoMax,
+      referenceLimits.videos,
+      referenceVideosProperty.maxItems,
+    );
+    const maxReferenceAudios = firstNonNegativeInteger(
+      capabilities.maxReferenceAudios,
+      capabilities.referenceAudioMax,
+      referenceLimits.audios,
+      referenceAudiosProperty.maxItems,
+    );
+    const maxReferenceTotal = firstNonNegativeInteger(
+      capabilities.maxReferenceTotal,
+      referenceLimits.total,
+      referencesProperty.maxItems,
+    );
+    if (maxReferenceImages !== undefined) {
+      projected.maxReferenceImages = maxReferenceImages;
+    }
+    if (maxReferenceVideos !== undefined) {
+      projected.maxReferenceVideos = maxReferenceVideos;
+    }
+    if (maxReferenceAudios !== undefined) {
+      projected.maxReferenceAudios = maxReferenceAudios;
+    }
+    if (maxReferenceTotal !== undefined) {
+      projected.maxReferenceTotal = maxReferenceTotal;
     }
     for (const [field, sourceFields] of REFERENCE_DURATION_CAPABILITY_FIELDS) {
       const value = positiveNumber(
@@ -243,12 +604,60 @@ export function updateCloudModelAssignments(
         role,
         priority: currentSelection?.priority ?? 100,
         enabled: currentSelection?.enabled ?? true,
+        ...catalogModelRuntimeMetadata(selected),
+        ...(currentSelection?.runtimeOverrides
+          ? { runtimeOverrides: currentSelection.runtimeOverrides }
+          : {}),
       });
     }
   }
   return next.sort(
     (left, right) =>
       BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role),
+  );
+}
+
+export function updateExplicitCloudModelAssignments(
+  current: readonly ByokModelAssignment[],
+  catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
+  requestedOperation?: string,
+): ByokModelAssignment[] {
+  const operations = new Set(
+    (catalog?.items ?? []).map((item) => item.operation.trim().toUpperCase()),
+  );
+  const normalizedRequestedOperation = requestedOperation?.trim().toUpperCase();
+  if (normalizedRequestedOperation) operations.add(normalizedRequestedOperation);
+  if (operations.size === 0) return [...current];
+
+  const replacedRoles = new Set<ByokModelRole>();
+  for (const operation of operations) {
+    for (const role of CLOUD_ROLES_BY_OPERATION[operation] ?? []) {
+      replacedRoles.add(role);
+    }
+  }
+  const next = current.filter((item) => !replacedRoles.has(item.role));
+  if (!catalog) return next;
+
+  const seen = new Set(next.map((item) => `${item.role}\u0000${item.modelId}`));
+  for (const role of replacedRoles) {
+    for (const item of catalog.items) {
+      if (!catalogItemSupportsRole(item, role)) continue;
+      const key = `${role}\u0000${item.code}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      next.push({
+        modelId: item.code,
+        role,
+        priority: 100,
+        enabled: true,
+        ...catalogModelRuntimeMetadata(item),
+      });
+    }
+  }
+  return next.sort(
+    (left, right) =>
+      BYOK_MODEL_ROLES.indexOf(left.role) - BYOK_MODEL_ROLES.indexOf(right.role) ||
+      left.modelId.localeCompare(right.modelId),
   );
 }
 
@@ -475,11 +884,13 @@ export function requiredBytes(value: unknown, name: string): Uint8Array {
 export function parseBootstrapQuery(value: unknown): CommercialBootstrapQuery {
   const input = optionalRecord(value);
   const modelOperation = optionalText(input.modelOperation);
+  const catalogVersion = optionalText(input.catalogVersion);
   const currentVersion = optionalText(input.currentVersion);
   const target = optionalText(input.target);
   const arch = optionalText(input.arch);
   return {
     ...(modelOperation ? { modelOperation } : {}),
+    ...(catalogVersion ? { catalogVersion } : {}),
     ...(currentVersion ? { currentVersion } : {}),
     ...(target ? { target } : {}),
     ...(arch ? { arch } : {}),

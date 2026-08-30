@@ -32,6 +32,7 @@ describe("freezoneAudioGenerationGateway", () => {
           emotion_prompt: "calm",
           mode: "VOICE_CLONE",
           voice: "",
+          model_selector: "",
           voice_ref: {
             scope: "identity",
             character_name: "",

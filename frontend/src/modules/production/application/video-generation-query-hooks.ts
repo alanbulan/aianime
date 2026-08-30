@@ -37,20 +37,9 @@ export function createVideoGenerationQueryHooks(
   }
 
   function useGenerateSeedance2Prompt(project: string, episode: number) {
-    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (command: GenerateSeedance2PromptCommand) =>
         gateway.generateSeedance2Prompt(project, episode, command),
-      onSuccess: (response, { beatNum }) => {
-        if (!response.ok) return;
-        patchBeatQueryCache(
-          queryClient,
-          project,
-          episode,
-          beatNum,
-          response.data.beat,
-        );
-      },
     });
   }
 

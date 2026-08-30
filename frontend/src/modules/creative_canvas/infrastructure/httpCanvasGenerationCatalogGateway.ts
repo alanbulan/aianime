@@ -79,10 +79,22 @@ export function commercialVideoModels(
     const capabilities = item.capabilities;
     const routeSelector = pickString(capabilities, "routeSelector");
     const referenceLimits = optionalRecord(capabilities.referenceLimits);
-    const resolutionOptions = stringArray(
+    const declaredResolutionOptions = stringArray(
       capabilities.resolutionOptions ??
         capabilities.resolutions ??
         properties.resolution?.enum,
+    );
+    const sizeOptions = uniqueStrings([
+      ...stringArray(
+        capabilities.sizeOptions ??
+          capabilities.videoSizeOptions ??
+          capabilities.sizes,
+      ),
+      ...declaredResolutionOptions.filter(isExactVideoSize),
+      ...stringArray(properties.size?.enum),
+    ]);
+    const resolutionOptions = uniqueStrings(
+      declaredResolutionOptions.filter((value) => !isExactVideoSize(value)),
     );
     const aspectRatioOptions = stringArray(
       capabilities.aspectRatioOptions ??
@@ -107,11 +119,18 @@ export function commercialVideoModels(
         properties.scene_optimize?.default ??
         properties.sceneOptimize?.default,
     );
+    const durationOptions = numberArray(
+      capabilities.durationOptions ??
+        capabilities.secondsOptions ??
+        properties.seconds?.enum ??
+        properties.duration?.enum,
+    );
     return {
       id: routeSelector ?? item.code,
       apiModel: item.code,
       ...(routeSelector ? { routeSelector } : {}),
       label: item.displayName,
+      capabilities,
       parameterSchema: item.parameterSchema,
       ...(supportedModes.length > 0 ? { supportedModes } : {}),
       ...optionalBooleanField(
@@ -193,6 +212,7 @@ export function commercialVideoModels(
         capabilities.referenceVideoTotalMaxSeconds,
       ),
       ...(resolutionOptions.length > 0 ? { resolutionOptions } : {}),
+      ...(sizeOptions.length > 0 ? { sizeOptions } : {}),
       ...(aspectRatioOptions.length > 0 ? { aspectRatioOptions } : {}),
       minDuration: finiteNumber(
         capabilities.minDuration ??
@@ -205,6 +225,22 @@ export function commercialVideoModels(
           capabilities.maxSeconds ??
           properties.duration?.maximum ??
           properties.seconds?.maximum,
+      ),
+      defaultDuration: finiteNumber(
+        capabilities.defaultDuration ??
+          capabilities.defaultSeconds ??
+          properties.duration?.default ??
+          properties.seconds?.default,
+      ),
+      ...(durationOptions.length > 0 ? { durationOptions } : {}),
+      ...optionalBooleanField(
+        "supportsGenerateAudio",
+        capabilities.supportsGenerateAudio ??
+          capabilities.generateAudio ??
+          capabilities.nativeAudio,
+        properties.generate_audio || properties.generateAudio
+          ? true
+          : undefined,
       ),
       ...(sceneOptimizeOptions.length > 0 ? { sceneOptimizeOptions } : {}),
       ...(defaultSceneOptimize ? { defaultSceneOptimize } : {}),
@@ -224,6 +260,7 @@ const VIDEO_MODE_BY_TOKEN: Record<string, VideoGenMode> = {
   keyframes: "firstLastFrame",
   imagereference: "imageReference",
   videoedit: "videoEdit",
+  multimodalreference: "allReference",
 };
 
 const IMAGE_MODE_BY_TOKEN: Record<string, CanvasImageMode> = {
@@ -252,20 +289,13 @@ function videoModes(value: unknown): VideoGenMode[] {
 
 function sceneOptimizeValues(
   value: unknown,
-): Array<"anime" | "realistic"> {
-  return stringArray(value).flatMap((item) => {
-    const normalized = item.trim().toLowerCase();
-    return normalized === "anime" || normalized === "realistic"
-      ? [normalized]
-      : [];
-  });
+): string[] {
+  return uniqueStrings(stringArray(value));
 }
 
-function sceneOptimizeValue(value: unknown): "anime" | "realistic" | null {
-  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return normalized === "anime" || normalized === "realistic"
-    ? normalized
-    : null;
+function sceneOptimizeValue(value: unknown): string | null {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return normalized || null;
 }
 
 function optionalRecord(value: unknown): Record<string, unknown> | null {
@@ -316,8 +346,31 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
+function uniqueStrings(values: readonly string[]): string[] {
+  return Array.from(
+    new Set(values.map((value) => value.trim()).filter(Boolean)),
+  );
+}
+
+function isExactVideoSize(value: string): boolean {
+  return /^\d{2,5}x\d{2,5}$/i.test(value.trim());
+}
+
 function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function numberArray(value: unknown): number[] {
+  return Array.isArray(value)
+    ? Array.from(
+        new Set(
+          value.filter(
+            (item): item is number =>
+              typeof item === "number" && Number.isFinite(item) && item > 0,
+          ),
+        ),
+      )
+    : [];
 }
 
 function coerceCameraTemplates(payload: unknown): CameraMovementPreset[] {

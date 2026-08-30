@@ -23,7 +23,6 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts impo
 from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
     canvas_request_hash,
     relative_project_path,
-    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
@@ -45,6 +44,7 @@ from ai_anime.modules.creative_canvas.application.canvas_writes import (
 from ai_anime.modules.creative_canvas.domain import (
     prepare_creative_canvas_payload_for_write,
 )
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 
 SaveCanvas = Callable[..., CanvasSaveResult]

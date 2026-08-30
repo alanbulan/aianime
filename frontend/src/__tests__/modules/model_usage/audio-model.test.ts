@@ -5,7 +5,10 @@ import {
   audioEmotionPromptSupported,
   audioModelOptionsForMode,
   audioPresetVoiceOptions,
+  audioSpeechModelOptions,
   audioVoiceDesignConfig,
+  audioVoiceDesignModelOptions,
+  resolveAudioModelSelector,
   type AudioCatalogItem,
 } from '@/modules/model_usage/public';
 
@@ -19,6 +22,29 @@ function item(code: string, supportedModes?: unknown): AudioCatalogItem {
 }
 
 describe('audioModelCatalog', () => {
+  it('leaves ambiguous model defaults unselected', () => {
+    const options = [
+      { value: 'model-a', isDefault: true },
+      { value: 'model-b', isDefault: true },
+    ];
+
+    expect(resolveAudioModelSelector(options, 'model-b')).toBe('model-b');
+    expect(resolveAudioModelSelector(options, 'missing')).toBe('');
+    expect(resolveAudioModelSelector(options, '')).toBe('');
+    expect(
+      resolveAudioModelSelector(
+        [
+          { value: 'model-a', isDefault: false },
+          { value: 'model-b', isDefault: true },
+        ],
+        '',
+      ),
+    ).toBe('model-b');
+    expect(
+      resolveAudioModelSelector([{ value: 'only-model' }], undefined),
+    ).toBe('only-model');
+  });
+
   it('selects models only from declared AUDIO modes', () => {
     const items = [
       item('speech-a', ['TEXT_TO_SPEECH']),
@@ -61,6 +87,70 @@ describe('audioModelCatalog', () => {
       { value: 'anna', label: 'Anna', isDefault: false },
     ]);
     expect(audioPresetVoiceOptions({ parameterSchema: {} })).toEqual([]);
+  });
+
+  it('derives enum, custom, optional, and voice-free speech contracts from each provider schema', () => {
+    const makeSpeechItem = (
+      code: string,
+      parameterSchema: Record<string, unknown>,
+    ): AudioCatalogItem => ({
+      ...item(code, ['SPEECH']),
+      capabilities: {
+        supportedModes: ['SPEECH'],
+        routeSelector: `byok:provider:${code}`,
+      },
+      parameterSchema,
+    });
+    expect(
+      audioSpeechModelOptions([
+        makeSpeechItem('enum', {
+          required: ['voice'],
+          properties: { voice: { enum: ['alloy'], default: 'alloy' } },
+        }),
+        makeSpeechItem('custom-required', {
+          required: ['voice'],
+          properties: { voice: { type: 'string' } },
+        }),
+        makeSpeechItem('custom-optional', {
+          properties: { voice: { type: 'string' } },
+        }),
+        makeSpeechItem('voice-free', {
+          properties: { response_format: { enum: ['mp3'] } },
+        }),
+      ]).map(
+        ({ value, acceptsVoice, allowsCustomVoice, requiresVoice }) => ({
+          value,
+          acceptsVoice,
+          allowsCustomVoice,
+          requiresVoice,
+        }),
+      ),
+    ).toEqual([
+      {
+        value: 'byok:provider:enum',
+        acceptsVoice: true,
+        allowsCustomVoice: false,
+        requiresVoice: true,
+      },
+      {
+        value: 'byok:provider:custom-required',
+        acceptsVoice: true,
+        allowsCustomVoice: true,
+        requiresVoice: true,
+      },
+      {
+        value: 'byok:provider:custom-optional',
+        acceptsVoice: true,
+        allowsCustomVoice: true,
+        requiresVoice: false,
+      },
+      {
+        value: 'byok:provider:voice-free',
+        acceptsVoice: false,
+        allowsCustomVoice: false,
+        requiresVoice: false,
+      },
+    ]);
   });
 
   it('enables emotion input only from an explicit catalog capability', () => {
@@ -114,7 +204,9 @@ describe('audioModelCatalog', () => {
         },
       }),
     ).toEqual({
+      promptMinLength: 1,
       promptMaxLength: 2048,
+      previewTextMinLength: 1,
       previewTextMaxLength: 1024,
       preferredName: 'custom_voice',
       languages: ['zh', 'en', 'ja'],
@@ -136,5 +228,49 @@ describe('audioModelCatalog', () => {
         },
       }),
     ).toBeNull();
+  });
+
+  it('preserves cloud and BYOK route selectors in voice-design options', () => {
+    const parameterSchema = {
+      properties: {
+        voice_prompt: { maxLength: 2048 },
+        preview_text: { maxLength: 1024 },
+        language: { enum: ['zh'], default: 'zh' },
+        sample_rate: { enum: [24000], default: 24000 },
+        response_format: { enum: ['wav'], default: 'wav' },
+      },
+    };
+    expect(
+      audioVoiceDesignModelOptions([
+        {
+          ...item('cloud-model', ['VOICE_DESIGN']),
+          capabilities: {
+            supportedModes: ['VOICE_DESIGN'],
+            routeSelector: 'cloud:cloud-model',
+          },
+          parameterSchema,
+          isDefault: true,
+        },
+        {
+          ...item('byok-model', ['VOICE_DESIGN']),
+          capabilities: {
+            supportedModes: ['VOICE_DESIGN'],
+            routeSelector: 'byok:provider-a:byok-model',
+          },
+          parameterSchema,
+        },
+      ]).map(({ value, label, isDefault }) => ({ value, label, isDefault })),
+    ).toEqual([
+      {
+        value: 'cloud:cloud-model',
+        label: 'Model cloud-model',
+        isDefault: true,
+      },
+      {
+        value: 'byok:provider-a:byok-model',
+        label: 'Model byok-model',
+        isDefault: false,
+      },
+    ]);
   });
 });

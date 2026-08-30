@@ -66,6 +66,7 @@ def _options(
     prompt: str = "镜头缓慢推进",
     gen_mode: str | None = None,
     scene_optimize: str | None = None,
+    extra_params: Mapping[str, object] | None = None,
 ) -> CreativeCanvasVideoGenerationOptions:
     return CreativeCanvasVideoGenerationOptions(
         prompt=prompt,
@@ -78,6 +79,7 @@ def _options(
         human_review=False,
         scene_optimize=scene_optimize,
         model=model,
+        extra_params=extra_params,
         canvas_id="canvas-1",
         node_id="node-1",
         gen_mode=gen_mode,
@@ -108,6 +110,11 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
         model_capabilities=[
             {
                 "modelId": "cloud/video-standard",
+                "videoSceneOptimizeOptions": ["cinematic", "realistic"],
+                "maxReferenceImages": 5,
+                "maxReferenceVideos": 1,
+                "maxReferenceAudios": 0,
+                "maxReferenceTotal": 6,
                 "referenceAudioMinSeconds": 2,
                 "referenceAudioTotalMaxSeconds": 14,
                 "referenceVideoMinSeconds": 3,
@@ -130,7 +137,78 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
         assert policy.reference_duration_limits(
             "seedance-2.0-fast",
             "audio",
-        ) == (1.8, 15.2, None, 15.2)
+        ) == (None, None, None, None)
+        assert policy.reference_count_limits("cloud/video-standard") == (
+            5,
+            1,
+            0,
+            6,
+        )
+        assert policy.reference_count_limits("seedance-2.0-fast") == (
+            9,
+            3,
+            3,
+            12,
+        )
+        assert (
+            policy.normalize_scene_optimize(
+                "cloud/video-standard",
+                "cinematic",
+            )
+            == "cinematic"
+        )
+    finally:
+        configure_model_access(allows_custom_models=False, mode="mixed")
+
+
+def test_configured_video_policy_uses_declared_h3_size_and_duration() -> None:
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_capabilities=[
+            {
+                "modelId": "MINIMAX_H3",
+                "videoRatioOptions": ["16:9", "9:16", "1:1"],
+                "videoSizeOptions": ["1344x768", "768x1344", "1024x1024"],
+                "videoSupportsGenerateAudio": False,
+                "videoSupportsHumanReview": False,
+                "videoExtraParameterNames": ["steps", "seed", "turbo"],
+                "videoGenerationMinSeconds": 1,
+                "videoGenerationMaxSeconds": 15,
+            },
+            {
+                "modelId": "ENUM_VIDEO",
+                "videoRatioOptions": ["16:9"],
+                "videoResolutionOptions": ["720p"],
+                "videoDurationOptions": [3, 5, 8],
+            },
+        ],
+    )
+    try:
+        policy = ConfiguredCreativeCanvasVideoModelPolicy()
+        assert policy.normalize_aspect_ratio("MINIMAX_H3", "16:9") == "16:9"
+        assert policy.normalize_resolution("MINIMAX_H3", "1344x768") == "1344x768"
+        assert policy.normalize_duration("MINIMAX_H3", 3) == 3
+        assert policy.normalize_generate_audio("MINIMAX_H3", False) is False
+        assert policy.normalize_extra_params(
+            "MINIMAX_H3",
+            {"steps": 20, "seed": 42, "turbo": False},
+        ) == {"steps": 20, "seed": 42, "turbo": False}
+        with pytest.raises(ValueError, match="不支持分辨率 720p"):
+            policy.normalize_resolution("MINIMAX_H3", "720p")
+        with pytest.raises(ValueError, match="不支持画面比例 4:3"):
+            policy.normalize_aspect_ratio("MINIMAX_H3", "4:3")
+        with pytest.raises(ValueError, match="不支持生成音频"):
+            policy.normalize_generate_audio("MINIMAX_H3", True)
+        with pytest.raises(ValueError, match="不支持真人素材审核"):
+            policy.normalize_human_review("MINIMAX_H3", True)
+        with pytest.raises(ValueError, match="is not declared: quality"):
+            policy.normalize_extra_params("MINIMAX_H3", {"quality": "720p"})
+        with pytest.raises(ValueError, match="are not declared"):
+            policy.normalize_scene_optimize("MINIMAX_H3", "anime")
+        assert policy.normalize_duration("ENUM_VIDEO", 5) == 5
+        with pytest.raises(ValueError, match="must be one of: 3, 5, 8"):
+            policy.normalize_duration("ENUM_VIDEO", 4)
     finally:
         configure_model_access(allows_custom_models=False, mode="mixed")
 
@@ -149,7 +227,8 @@ class _ModelPolicy:
             raise ValueError("unknown video model: invalid")
         return str(model or "seedance-2.0-fast")
 
-    def normalize_aspect_ratio(self, value: str | None) -> str:
+    def normalize_aspect_ratio(self, model: str | None, value: str | None) -> str:
+        del model
         return "16:9" if value == "auto" else str(value)
 
     def normalize_resolution(self, model: str | None, value: str | None) -> str:
@@ -159,6 +238,22 @@ class _ModelPolicy:
     def normalize_duration(self, model: str | None, value: int | None) -> int:
         del model
         return int(value or 5)
+
+    def normalize_generate_audio(self, model: str | None, value: bool) -> bool:
+        del model
+        return value
+
+    def normalize_human_review(self, model: str | None, value: bool) -> bool:
+        del model
+        return value
+
+    def normalize_extra_params(
+        self,
+        model: str | None,
+        value: Mapping[str, object] | None,
+    ) -> dict[str, object]:
+        del model
+        return dict(value or {})
 
     def normalize_scene_optimize(self, model: str | None, value: str | None) -> str:
         return str(value or "") if "value" in str(model or "") else ""
@@ -173,6 +268,14 @@ class _ModelPolicy:
         if media_type == "video" and model == "video-limited":
             return 2.0, 10.0, 4.0, 12.0
         return None, None, None, None
+
+    def reference_count_limits(
+        self,
+        model: str | None,
+    ) -> tuple[int | None, int | None, int | None, int | None]:
+        if model == "count-limited":
+            return 2, 1, 0, 6
+        return 9, 3, 3, 12
 
 
 class _ReferenceDurations:
@@ -253,7 +356,8 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
             project_dir=project_dir,
             options=_options(
                 model="seedance-2.0-fast-value",
-                scene_optimize="realistic",
+                scene_optimize="cinematic",
+                extra_params={"steps": 24, "seed": 42, "turbo": False},
             ),
             character_ids=("character-1",),
         )
@@ -362,7 +466,12 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
             "field": "reference_images",
         }
     ]
-    assert text_payload["scene_optimize"] == "realistic"
+    assert text_payload["scene_optimize"] == "cinematic"
+    assert text_payload["extra_params"] == {
+        "steps": 24,
+        "seed": 42,
+        "turbo": False,
+    }
     assert text_payload["canvas_id"] == "canvas-1"
     assert text_payload["node_id"] == "node-1"
 
@@ -469,6 +578,27 @@ async def test_video_generation_preserves_validation_contracts(tmp_path: Path) -
             )
         )
 
+    catalog_limited_images = tuple(
+        CreativeCanvasOmniVideoReference(
+            media_type="image",
+            url=f"freezone/_uploads/{index}.png",
+        )
+        for index in range(3)
+    )
+    with pytest.raises(
+        InvalidCreativeCanvasVideoGenerationRequest,
+        match="image references count must be <= 2",
+    ):
+        await use_cases.start_omni_video(
+            StartCreativeCanvasOmniVideoCommand(
+                context=context,
+                project_dir=context.output_dir,
+                options=_options(model="count-limited"),
+                theme="",
+                references=catalog_limited_images,
+            )
+        )
+
     with pytest.raises(
         InvalidCreativeCanvasVideoGenerationRequest,
         match="video_url is required",
@@ -512,11 +642,22 @@ async def test_first_frame_keeps_requested_mode_and_uses_first_frame_protocol(
 
 def test_reference_video_requests_require_an_explicit_business_mode() -> None:
     with pytest.raises(ValidationError, match="gen_mode"):
-        FreezoneImageToVideoRequest(image_urls=["one.png"], model="video-model")
+        FreezoneImageToVideoRequest(
+            image_urls=["one.png"],
+            model="video-model",
+            resolution="720p",
+            aspect_ratio="16:9",
+            duration_seconds=5,
+            generate_audio=False,
+        )
     with pytest.raises(ValidationError, match="gen_mode"):
         FreezoneKeyframeVideoRequest(
             first_frame_url="first.png",
             model="video-model",
+            resolution="720p",
+            aspect_ratio="16:9",
+            duration_seconds=5,
+            generate_audio=False,
         )
 
 
@@ -633,6 +774,12 @@ async def test_video_generation_route_maps_command_and_response(
         body=FreezoneVideoGenRequest(
             prompt="雨夜街头",
             model="cloud-video-standard",
+            size="1344x768",
+            aspect_ratio="16:9",
+            duration_seconds=3,
+            generate_audio=False,
+            extra_params={"steps": 20, "seed": 42, "turbo": False},
+            scene_optimize="cinematic",
             character_ids=["character-1"],
             canvas_id="canvas-1",
             node_id="node-1",
@@ -647,6 +794,13 @@ async def test_video_generation_route_maps_command_and_response(
     assert command.options.prompt == "雨夜街头"
     assert command.options.canvas_id == "canvas-1"
     assert command.options.node_id == "node-1"
+    assert command.options.resolution == "1344x768"
+    assert command.options.extra_params == {
+        "steps": 20,
+        "seed": 42,
+        "turbo": False,
+    }
+    assert command.options.scene_optimize == "cinematic"
     assert response == {
         "ok": True,
         "data": {

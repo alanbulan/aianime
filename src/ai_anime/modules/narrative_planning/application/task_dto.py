@@ -47,6 +47,50 @@ class BeatVideoPromptTask:
 
 
 @dataclass(frozen=True)
+class SeedancePromptTask:
+    episode: int
+    beat_num: int
+    project_dir: str | Path
+    requester_user_id: str
+    project_id: str
+    manual_prompt_reference: str | None = None
+    prompt_guidance: str | None = None
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "episode": self.episode,
+            "beat_num": self.beat_num,
+            "project_dir": str(self.project_dir),
+            "requester_user_id": self.requester_user_id,
+            "project_id": self.project_id,
+            "manual_prompt_reference": self.manual_prompt_reference,
+            "prompt_guidance": self.prompt_guidance,
+            "display_name": (
+                f"优化视频提示词 · EP{self.episode} / Beat {self.beat_num}"
+            ),
+        }
+
+
+@dataclass(frozen=True)
+class EpisodeRewriteTask:
+    episode: int
+    target_beats: int
+    beat_chars_min: int
+    beat_chars_max: int
+    narration_style: str | None = None
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "episode": self.episode,
+            "target_beats": self.target_beats,
+            "beat_chars_min": self.beat_chars_min,
+            "beat_chars_max": self.beat_chars_max,
+            "narration_style": self.narration_style,
+            "display_name": f"生成改写稿 · EP{self.episode}",
+        }
+
+
+@dataclass(frozen=True)
 class EpisodePlanningTask:
     target_episodes: int
     planning_mode: str

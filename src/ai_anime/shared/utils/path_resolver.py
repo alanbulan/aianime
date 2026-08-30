@@ -10,13 +10,12 @@ from pathlib import Path
 from typing import Optional
 
 from ai_anime.modules.task_execution.public import selection_scope
+from ai_anime.shared.utils.path_safety import sanitize_path_component
 from ai_anime.shared.utils.state_index_files import resolve_state_index_path
 
 
 def safe_path_name(value: str, *, fallback: str = "scene") -> str:
-    safe = re.sub(r"[/\\:*?\"<>|]+", "_", str(value or "").strip())
-    safe = safe.strip().strip(".")
-    return safe or fallback
+    return sanitize_path_component(value, fallback=fallback)
 
 
 def _scene_dir(project_dir: Path, scene_name: str) -> Path:

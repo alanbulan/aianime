@@ -96,14 +96,29 @@ describe("freezoneAudioVoiceCatalogGateway", () => {
     ).rejects.toThrow("voice rejected");
   });
 
+  it("deletes one account voice through the dedicated endpoint", async () => {
+    vi.mocked(apiCall).mockResolvedValue({
+      voice_id: "voice/1",
+      deleted: true,
+    });
+
+    await expect(
+      freezoneAudioVoiceCatalogGateway.deleteVoice("project/2", "voice/1"),
+    ).resolves.toBeUndefined();
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F2/freezone/audio/voices/voice%2F1",
+      { method: "DELETE" },
+    );
+  });
+
   it("designs a reusable voice with the explicit cloud selector", async () => {
     requestJson.mockResolvedValue({
       ok: true,
       data: {
-        voice_id: "fv_designed",
-        name: "夏栀青年声线",
-        preview_url: "/voice/fv_designed.wav",
-        provider_voice_id: "qwen_voice_123",
+        task_type: "freezone_voice_design",
+        task_id: "task-design-1",
+        task_key: "freezone_voice_design:project/3:character_voice",
+        task_scope: "character_voice",
       },
     });
 
@@ -117,12 +132,17 @@ describe("freezoneAudioVoiceCatalogGateway", () => {
         language: "zh",
         sampleRate: 24000,
         responseFormat: "wav",
+        binding: {
+          kind: "character_slot",
+          characterName: "夏栀",
+          slot: "youth",
+        },
       }),
     ).resolves.toEqual({
-      voiceId: "fv_designed",
-      label: "夏栀青年声线",
-      previewUrl: "/voice/fv_designed.wav",
-      providerVoiceId: "qwen_voice_123",
+      taskType: "freezone_voice_design",
+      taskId: "task-design-1",
+      taskKey: "freezone_voice_design:project/3:character_voice",
+      scope: "character_voice",
     });
     expect(apiRequest).toHaveBeenCalledWith(
       "projects/project%2F3/freezone/audio/voices/design",
@@ -137,8 +157,51 @@ describe("freezoneAudioVoiceCatalogGateway", () => {
           language: "zh",
           sample_rate: 24000,
           response_format: "wav",
+          binding: {
+            kind: "character_slot",
+            character_name: "夏栀",
+            slot: "youth",
+          },
         },
-        timeout: false,
+      },
+    );
+  });
+
+  it("creates a reusable account voice from an explicit preset model", async () => {
+    requestJson.mockResolvedValue({
+      ok: true,
+      data: {
+        task_type: "freezone_voice_preset",
+        task_id: "task-preset-1",
+        task_key: "freezone_voice_preset:project/4:voice-1",
+        task_scope: "voice-1",
+      },
+    });
+
+    await expect(
+      freezoneAudioVoiceCatalogGateway.createPresetVoice("project/4", {
+        name: "Claire",
+        modelSelector: "byok:fish:s2.1-pro-free",
+        text: "你好，这是试听文本。",
+        voice: "claire",
+      }),
+    ).resolves.toEqual({
+      taskType: "freezone_voice_preset",
+      taskId: "task-preset-1",
+      taskKey: "freezone_voice_preset:project/4:voice-1",
+      scope: "voice-1",
+    });
+    expect(apiRequest).toHaveBeenCalledWith(
+      "projects/project%2F4/freezone/audio/voices/preset",
+      {
+        method: "POST",
+        json: {
+          name: "Claire",
+          model_selector: "byok:fish:s2.1-pro-free",
+          text: "你好，这是试听文本。",
+          voice: "claire",
+          binding: undefined,
+        },
       },
     );
   });

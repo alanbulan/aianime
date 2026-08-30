@@ -34,6 +34,7 @@ from ai_anime.modules.production.infrastructure.seedance2_voice_references impor
 )
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
+from ai_anime.shared.utils.async_ops import call_blocking
 from ai_anime.shared.utils.path_resolver import PathResolver
 
 logger = logging.getLogger(__name__)
@@ -344,9 +345,10 @@ class LocalSeedance2PanelGateway:
         finally:
             await store.close()
 
-    def _status_response(self, session: _PanelSession) -> dict[str, Any]:
+    async def _status_response(self, session: _PanelSession) -> dict[str, Any]:
         request = session.request
-        state = seedance2_panel_service.build_seedance2_video_panel_state(
+        state = await call_blocking(
+            seedance2_panel_service.build_seedance2_video_panel_state,
             project_dir=session.output_dir,
             episode=request.episode_num,
             beat=session.beat,
@@ -459,7 +461,7 @@ class LocalSeedance2PanelGateway:
         query: Seedance2PanelQuery,
     ) -> dict[str, Any]:
         async with self._session(context, query) as session:
-            return self._status_response(session)
+            return await self._status_response(session)
 
     async def upload(
         self,
@@ -476,7 +478,7 @@ class LocalSeedance2PanelGateway:
                 content=command.content,
                 content_type=command.content_type,
             )
-            return self._status_response(session) if target is not None else None
+            return await self._status_response(session) if target is not None else None
 
     async def remove(
         self,
@@ -491,7 +493,7 @@ class LocalSeedance2PanelGateway:
                 media_kind=command.media_kind,
                 path=command.path,
             )
-            return self._status_response(session) if removed else None
+            return await self._status_response(session) if removed else None
 
     async def crop(
         self,
@@ -508,7 +510,7 @@ class LocalSeedance2PanelGateway:
                 source_path=command.source_path,
                 crop_data=command.crop_data,
             )
-            return self._status_response(session) if target is not None else None
+            return await self._status_response(session) if target is not None else None
 
     async def trim_audio(
         self,
@@ -526,4 +528,4 @@ class LocalSeedance2PanelGateway:
                 start_seconds=command.start_seconds,
                 duration_seconds=command.duration_seconds,
             )
-            return self._status_response(session) if target is not None else None
+            return await self._status_response(session) if target is not None else None

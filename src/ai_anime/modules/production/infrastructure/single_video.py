@@ -124,7 +124,7 @@ def _prepare_reference_video_beat(
     *,
     model_label: str,
     max_reference_images: int,
-    resolution_resolver: Callable[[str | None], str],
+    resolution_resolver: Callable[[str | None, float], str],
     ratio_resolver: Callable[[str | None], str],
     output_dir: Path,
     episode_num: int,
@@ -153,7 +153,10 @@ def _prepare_reference_video_beat(
 
     target_duration = int(config.duration or duration or 0)
     config.duration = target_duration
-    config.resolution = resolution_resolver(resolution or config.resolution)
+    config.resolution = resolution_resolver(
+        resolution or config.resolution,
+        float(target_duration),
+    )
     config.ratio = ratio_resolver(ratio or config.ratio)
     config.final_prompt = final_prompt
 
@@ -261,6 +264,7 @@ class LocalSingleVideoPreparer:
         video_mode: str,
         duration: float,
         prop_menu: list[Any],
+        resolution_options: tuple[str, ...],
     ) -> Any:
         current_config = parse_seedance2_config(
             beat.get("seedance2_config_json")
@@ -281,6 +285,7 @@ class LocalSingleVideoPreparer:
             resolution=video_resolution(
                 command.video_model,
                 requested_resolution,
+                resolution_options,
             ),
             ratio=command.ratio if command.was_provided("ratio") else None,
             prop_menu=prop_menu,
@@ -337,6 +342,16 @@ class LocalSingleVideoPreparer:
             raise SingleVideoRejected(model_error)
 
         model_capability = runtime_model_capability(command.video_model)
+        resolution_options = getattr(
+            model_capability,
+            "video_resolution_options",
+            (),
+        )
+        size_options = getattr(
+            model_capability,
+            "video_size_options",
+            (),
+        )
         is_seedance2 = is_seedance2_model(
             command.video_model,
             getattr(model_capability, "video_profile", None),
@@ -427,6 +442,7 @@ class LocalSingleVideoPreparer:
                         video_mode=video_mode,
                         duration=video_duration,
                         prop_menu=prop_menu,
+                        resolution_options=resolution_options,
                     )
                     prompt = prepared.prompt
                     video_duration = prepared.duration
@@ -447,15 +463,24 @@ class LocalSingleVideoPreparer:
                         "keyframe" if prepared.last_frame_path else "first_frame"
                     )
                 else:
+                    declared_reference_limit = getattr(
+                        model_capability,
+                        "max_reference_images",
+                        None,
+                    )
                     prepared_reference = _prepare_reference_video_beat(
                         model_label=(
                             "HappyHorse 1.0" if is_happyhorse else "Grok Video"
                         ),
-                        max_reference_images=9 if is_happyhorse else 7,
+                        max_reference_images=(
+                            declared_reference_limit
+                            if declared_reference_limit is not None
+                            else (9 if is_happyhorse else 7)
+                        ),
                         resolution_resolver=(
                             happyhorse_resolution
                             if is_happyhorse
-                            else grok_video_resolution
+                            else lambda value, _duration: grok_video_resolution(value)
                         ),
                         ratio_resolver=(
                             happyhorse_ratio if is_happyhorse else grok_video_ratio
@@ -514,10 +539,15 @@ class LocalSingleVideoPreparer:
                     float(math.ceil(float(audio_duration))),
                 )
             if command.was_provided("resolution"):
-                single_video_resolution = video_resolution(
-                    command.video_model,
-                    command.resolution,
-                )
+                try:
+                    single_video_resolution = video_resolution(
+                        command.video_model,
+                        command.resolution,
+                        resolution_options,
+                        size_options,
+                    )
+                except ValueError as exc:
+                    raise SingleVideoRejected(str(exc)) from exc
 
         minimum_duration = getattr(
             model_capability,
@@ -565,6 +595,8 @@ class LocalSingleVideoPreparer:
             config["seedance2_config"] = seedance2_config_json
         if single_video_resolution:
             config["resolution"] = single_video_resolution
+        if command.was_provided("ratio") and str(command.ratio or "").strip():
+            config["ratio"] = str(command.ratio).strip()
         if is_seedance2 and reference_ratio:
             config["ratio"] = reference_ratio
         if is_happyhorse:

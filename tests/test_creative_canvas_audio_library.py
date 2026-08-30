@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -7,16 +8,25 @@ import pytest
 from fastapi import HTTPException
 
 from ai_anime.api.routes.creative_canvas import audio as audio_routes
+from ai_anime.api.routes.creative_canvas.audio_schemas import (
+    FreezoneAudioVoicePresetRequest,
+)
 from ai_anime.modules.creative_canvas.application.audio_library import (
     CreateCreativeCanvasAudioVoiceCommand,
+    CreateCreativeCanvasPresetVoiceCommand,
     CreativeCanvasAudioLibraryUseCases,
     CreativeCanvasAudioVoiceMissing,
+    DeleteCreativeCanvasAudioVoiceCommand,
     GetCreativeCanvasAudioVoiceQuery,
+    GeneratedCreativeCanvasPresetVoice,
     InvalidCreativeCanvasAudioLibraryRequest,
     ListCreativeCanvasAudioReferencesQuery,
 )
 from ai_anime.modules.creative_canvas.infrastructure.audio_library import (
     LocalCreativeCanvasAudioLibraryGateway,
+)
+from ai_anime.modules.creative_canvas.application.task_submission import (
+    CreativeCanvasTaskReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -196,6 +206,52 @@ class _CapturingAudioLibraryGateway:
         self.calls.append(("resolve", kwargs))
         return self.media_path
 
+    def delete_voice(self, **kwargs):
+        self.calls.append(("delete", kwargs))
+
+
+class _UnusedPresetVoiceGenerator:
+    async def generate(self, _command):
+        raise AssertionError("preset voice generation was not expected")
+
+
+@pytest.mark.asyncio
+async def test_audio_library_use_case_persists_generated_preset_voice(
+    tmp_path: Path,
+) -> None:
+    context = _project_context(tmp_path)
+    gateway = _CapturingAudioLibraryGateway(tmp_path / "voice.mp3")
+    generated_commands: list[object] = []
+
+    class Generator:
+        async def generate(self, command):
+            generated_commands.append(command)
+            return GeneratedCreativeCanvasPresetVoice(
+                filename="preset.mp3",
+                content=b"preset-voice",
+                mime_type="audio/mpeg",
+                model="speech-model",
+            )
+
+    use_cases = CreativeCanvasAudioLibraryUseCases(gateway, Generator())
+    created = await use_cases.create_preset_voice(
+        CreateCreativeCanvasPresetVoiceCommand(
+            context=context,
+            project_dir=context.output_dir,
+            name="Claire",
+            model_selector="cloud:speech-model",
+            voice="claire",
+            text="你好，这是试听文本。",
+        )
+    )
+
+    assert created == {"voice_id": "fv_created", "name": "Claire"}
+    assert generated_commands[0].model_selector == "cloud:speech-model"
+    create_call = gateway.calls[0][1]
+    assert create_call["account_username"] == "viewer"
+    assert create_call["filename"] == "preset.mp3"
+    assert create_call["content"] == b"preset-voice"
+
 
 @pytest.mark.asyncio
 async def test_audio_library_use_cases_apply_account_and_name_rules(
@@ -203,7 +259,10 @@ async def test_audio_library_use_cases_apply_account_and_name_rules(
 ) -> None:
     context = _project_context(tmp_path)
     gateway = _CapturingAudioLibraryGateway(tmp_path / "voice.mp3")
-    use_cases = CreativeCanvasAudioLibraryUseCases(gateway)
+    use_cases = CreativeCanvasAudioLibraryUseCases(
+        gateway,
+        _UnusedPresetVoiceGenerator(),
+    )
 
     await use_cases.list_references(
         ListCreativeCanvasAudioReferencesQuery(
@@ -226,10 +285,17 @@ async def test_audio_library_use_cases_apply_account_and_name_rules(
             voice_id="fv_created",
         )
     )
+    use_cases.delete_voice(
+        DeleteCreativeCanvasAudioVoiceCommand(
+            context=context,
+            voice_id="fv_created",
+        )
+    )
 
     assert created["name"] == "sample.voice"
     assert resolved == tmp_path / "voice.mp3"
     assert [call[1]["account_username"] for call in gateway.calls] == [
+        "viewer",
         "viewer",
         "viewer",
         "viewer",
@@ -255,7 +321,13 @@ def test_audio_library_use_cases_translate_gateway_errors(tmp_path: Path) -> Non
         def resolve_voice(self, **kwargs):
             raise RuntimeError("用户音色不存在: fv_missing")
 
-    use_cases = CreativeCanvasAudioLibraryUseCases(Gateway(tmp_path / "missing.mp3"))
+        def delete_voice(self, **kwargs):
+            raise RuntimeError("用户音色不存在: fv_missing")
+
+    use_cases = CreativeCanvasAudioLibraryUseCases(
+        Gateway(tmp_path / "missing.mp3"),
+        _UnusedPresetVoiceGenerator(),
+    )
 
     with pytest.raises(
         InvalidCreativeCanvasAudioLibraryRequest,
@@ -279,6 +351,16 @@ def test_audio_library_use_cases_translate_gateway_errors(tmp_path: Path) -> Non
                 voice_id="fv_missing",
             )
         )
+    with pytest.raises(
+        CreativeCanvasAudioVoiceMissing,
+        match="用户音色不存在: fv_missing",
+    ):
+        use_cases.delete_voice(
+            DeleteCreativeCanvasAudioVoiceCommand(
+                context=context,
+                voice_id="fv_missing",
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -286,6 +368,7 @@ async def test_audio_library_routes_preserve_permissions_and_responses(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    event_loop_thread = threading.get_ident()
     context = _project_context(tmp_path)
     media_path = tmp_path / "voice.mp3"
     media_path.write_bytes(b"voice")
@@ -310,12 +393,16 @@ async def test_audio_library_routes_preserve_permissions_and_responses(
             return {"available": []}
 
         def create_voice(self, command):
+            assert threading.get_ident() != event_loop_thread
             commands.append(command)
             return {"voice_id": "fv_created", "url": "/voice"}
 
         def get_voice(self, query):
             commands.append(query)
             return media_path
+
+        def delete_voice(self, command):
+            commands.append(command)
 
     class Upload:
         filename = "voice.mp3"
@@ -346,6 +433,11 @@ async def test_audio_library_routes_preserve_permissions_and_responses(
         "fv_created",
         user={"username": "viewer"},
     )
+    deleted = await audio_routes.delete_freezone_audio_voice(
+        "proj_demo",
+        "fv_created",
+        user={"username": "viewer"},
+    )
 
     assert references == {"ok": True, "data": {"available": []}}
     assert created == {
@@ -353,13 +445,83 @@ async def test_audio_library_routes_preserve_permissions_and_responses(
         "data": {"voice_id": "fv_created", "url": "/voice"},
     }
     assert Path(media.path) == media_path
+    assert deleted == {
+        "ok": True,
+        "data": {"voice_id": "fv_created", "deleted": True},
+    }
     assert resolutions == [
         ("viewer", "access freezone project files"),
         ("editor", "access freezone project files"),
         ("viewer", "access freezone project files"),
+        ("editor", "access freezone project files"),
     ]
     assert commands[1].filename == "voice.mp3"
     assert commands[1].content == b"voice"
+    assert commands[3].voice_id == "fv_created"
+
+
+@pytest.mark.asyncio
+async def test_preset_voice_route_submits_account_voice_task(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    context = _project_context(tmp_path)
+    commands: list[object] = []
+
+    async def resolve_project_scope(*_args, **_kwargs):
+        return SimpleNamespace(ctx=context, project_dir=context.output_dir)
+
+    class UseCases:
+        async def start_preset_voice(self, command):
+            commands.append(command)
+            return CreativeCanvasTaskReceipt(
+                task_type="freezone_voice_preset",
+                job_id="voice-preset-1",
+                task_key="task:freezone_voice_preset:voice-preset-1",
+                task_episode=0,
+                task_scope="voice-preset-1",
+                backend="celery",
+                queue="default",
+                task_id="task-voice-preset-1",
+            )
+
+    monkeypatch.setattr(audio_routes, "resolve_project_scope", resolve_project_scope)
+    monkeypatch.setattr(
+        audio_routes,
+        "creative_canvas_audio_generation_use_cases",
+        lambda: UseCases(),
+    )
+
+    response = await audio_routes.create_freezone_audio_preset_voice(
+        "proj_demo",
+        FreezoneAudioVoicePresetRequest(
+            name="Claire",
+            model_selector="byok:fish:s2.1-pro-free",
+            voice="claire",
+            text="你好，这是试听文本。",
+        ),
+        user={"username": "viewer"},
+    )
+
+    assert response == {
+        "ok": True,
+        "data": {
+            "task_type": "freezone_voice_preset",
+            "job_id": "voice-preset-1",
+            "task_key": "task:freezone_voice_preset:voice-preset-1",
+            "task_episode": 0,
+            "task_scope": "voice-preset-1",
+            "backend": "celery",
+            "queue": "default",
+            "task_id": "task-voice-preset-1",
+        },
+    }
+    assert commands[0].name == "Claire"
+    assert commands[0].context is context
+    assert commands[0].project_dir == context.output_dir
+    assert commands[0].model_selector == "byok:fish:s2.1-pro-free"
+    assert commands[0].voice == "claire"
+    assert commands[0].text == "你好，这是试听文本。"
 
 
 @pytest.mark.asyncio
@@ -377,6 +539,9 @@ async def test_audio_library_routes_map_application_errors(
             raise InvalidCreativeCanvasAudioLibraryRequest("voice audio file is empty")
 
         def get_voice(self, _query):
+            raise CreativeCanvasAudioVoiceMissing("用户音色不存在: fv_missing")
+
+        def delete_voice(self, _command):
             raise CreativeCanvasAudioVoiceMissing("用户音色不存在: fv_missing")
 
     class Upload:
@@ -410,3 +575,12 @@ async def test_audio_library_routes_map_application_errors(
         )
     assert missing.value.status_code == 404
     assert missing.value.detail == "用户音色不存在: fv_missing"
+
+    with pytest.raises(HTTPException) as delete_missing:
+        await audio_routes.delete_freezone_audio_voice(
+            "proj_demo",
+            "fv_missing",
+            user={"username": "viewer"},
+        )
+    assert delete_missing.value.status_code == 404
+    assert delete_missing.value.detail == "用户音色不存在: fv_missing"

@@ -17,6 +17,10 @@ export interface ModelRoute {
   baseUrl?: string;
   apiKey?: string;
   protocol?: ByokProviderProtocol;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
 }
 
 export interface PreparedBody {

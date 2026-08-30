@@ -22,12 +22,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -36,6 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { VoiceSourceTypeTabs } from "@/components/assets/voice-source-type-tabs";
+import { isVoiceSourceType } from "@/shared/voice-source/voice-source";
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";
 
 function VoiceActionButton({
@@ -89,7 +86,11 @@ export function CharacterVoicePanelView({
     designPrompt,
     designVoiceConfig,
     designVoiceModelLabel,
+    designVoiceModelSelector,
+    designVoiceOptions,
     designing,
+    createPresetAndBindVoice,
+    creatingPresetVoice,
     fileInputRef,
     isLoading,
     identityRows,
@@ -102,6 +103,15 @@ export function CharacterVoicePanelView({
     openSlotVoiceLibrary,
     openTrim,
     pending,
+    presetSampleText,
+    presetVoice,
+    presetVoiceAcceptsVoice,
+    presetVoiceAllowsCustom,
+    presetVoiceModelLabel,
+    presetVoiceModelSelector,
+    presetVoiceModels,
+    presetVoiceOptions,
+    presetVoiceRequiresVoice,
     recordPending,
     recordSlot,
     recordedDataUrl,
@@ -115,6 +125,10 @@ export function CharacterVoicePanelView({
     setDesignName,
     setDesignPreviewText,
     setDesignPrompt,
+    setDesignVoiceModelSelector,
+    setPresetSampleText,
+    setPresetVoice,
+    setPresetVoiceModelSelector,
     setTrimDuration,
     setTrimSlot,
     setTrimStart,
@@ -126,6 +140,8 @@ export function CharacterVoicePanelView({
     trimStart,
     upload,
     voiceBindingTarget,
+    voiceSourceType,
+    setVoiceSourceType,
     onVoiceLibraryOpenChange,
   } = controller;
   const [slotDurations, setSlotDurations] = useState<Record<string, number>>({});
@@ -422,7 +438,7 @@ export function CharacterVoicePanelView({
         open={Boolean(voiceBindingTarget)}
         onOpenChange={onVoiceLibraryOpenChange}
       >
-        <DialogContent className="gap-4 rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-xl">
+        <DialogContent className="max-h-[calc(100vh-2rem)] gap-4 overflow-y-auto rounded-2xl border border-border bg-popover/95 p-5 shadow-2xl backdrop-blur-2xl sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-medium tracking-tight text-foreground">
               {t("characters.voiceSamples.voiceLibraryTitle", {
@@ -433,24 +449,41 @@ export function CharacterVoicePanelView({
           <p className="text-sm leading-5 text-muted-foreground/80">
             {t("characters.voiceSamples.voiceLibraryHint")}
           </p>
-          {designVoiceConfig ? (
-            <Tabs defaultValue="design" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="design">
-                  {t("characters.voiceSamples.voiceDesignTab")}
-                </TabsTrigger>
-                <TabsTrigger value="library">
-                  {t("characters.voiceSamples.voiceLibraryTab")}
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="design" className="mt-0 space-y-3">
+          <Tabs
+            value={voiceSourceType}
+            onValueChange={(value) => {
+              if (isVoiceSourceType(value)) setVoiceSourceType(value);
+            }}
+            className="space-y-4"
+          >
+            <VoiceSourceTypeTabs />
+            <TabsContent value="voice_design" className="mt-0 space-y-3">
+              {designVoiceConfig ? (
+                <>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">
                     {t("characters.voiceSamples.voiceDesignModel")}
                   </Label>
-                  <p className="rounded-[8px] border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
-                    {designVoiceModelLabel}
-                  </p>
+                  <Select
+                    value={designVoiceModelSelector}
+                    onValueChange={(value) => {
+                      if (value) setDesignVoiceModelSelector(value);
+                    }}
+                  >
+                    <SelectTrigger
+                      aria-label={t("characters.voiceSamples.voiceDesignModel")}
+                      className="h-10 w-full rounded-[8px] border-border bg-muted text-sm"
+                    >
+                      <SelectValue>{designVoiceModelLabel}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {designVoiceOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label
@@ -477,6 +510,7 @@ export function CharacterVoicePanelView({
                   <Textarea
                     id="character-voice-design-prompt"
                     value={designPrompt}
+                    minLength={designVoiceConfig.promptMinLength}
                     maxLength={designVoiceConfig.promptMaxLength}
                     placeholder={t(
                       "characters.voiceSamples.voiceDesignPromptPlaceholder",
@@ -495,6 +529,7 @@ export function CharacterVoicePanelView({
                   <Textarea
                     id="character-voice-design-preview"
                     value={designPreviewText}
+                    minLength={designVoiceConfig.previewTextMinLength}
                     maxLength={designVoiceConfig.previewTextMaxLength}
                     onChange={(event) =>
                       setDesignPreviewText(event.target.value)
@@ -543,14 +578,125 @@ export function CharacterVoicePanelView({
                   )}
                   {t("characters.voiceSamples.voiceDesignAndBind")}
                 </Button>
-              </TabsContent>
-              <TabsContent value="library" className="mt-0">
-                {voiceLibraryContent}
-              </TabsContent>
-            </Tabs>
-          ) : (
-            voiceLibraryContent
-          )}
+                </>
+              ) : (
+                <div className="rounded-[10px] border border-border bg-muted p-3 text-sm text-muted-foreground">
+                  {t("characters.voiceSamples.voiceDesignUnavailable")}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="preset_voice" className="mt-0 space-y-3">
+              {presetVoiceModels.length > 0 ? (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">
+                      {t("characters.voiceSamples.presetModel")}
+                    </Label>
+                    <Select
+                      value={presetVoiceModelSelector}
+                      onValueChange={(value) => {
+                        if (value) setPresetVoiceModelSelector(value);
+                      }}
+                    >
+                      <SelectTrigger
+                        aria-label={t("characters.voiceSamples.presetModel")}
+                        className="h-10 w-full rounded-[8px] border-border bg-muted text-sm"
+                      >
+                        <SelectValue>{presetVoiceModelLabel}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {presetVoiceModels.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {presetVoiceAcceptsVoice && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">
+                        {t(
+                          presetVoiceAllowsCustom
+                            ? "characters.voiceSamples.customPresetVoice"
+                            : "characters.voiceSamples.presetVoice",
+                        )}
+                      </Label>
+                      {presetVoiceAllowsCustom ? (
+                        <Input
+                          value={presetVoice}
+                          maxLength={120}
+                          placeholder={t(
+                            "characters.voiceSamples.customPresetVoicePlaceholder",
+                          )}
+                          onChange={(event) => setPresetVoice(event.target.value)}
+                          className="h-10 rounded-[8px] border-border bg-muted text-sm shadow-none focus:border-primary/45"
+                        />
+                      ) : (
+                        <Select
+                          value={presetVoice}
+                          onValueChange={(value) => {
+                            if (value) setPresetVoice(value);
+                          }}
+                        >
+                          <SelectTrigger className="h-10 w-full rounded-[8px] border-border bg-muted text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {presetVoiceOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="character-preset-voice-sample"
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t("characters.voiceSamples.presetSampleText")}
+                    </Label>
+                    <Textarea
+                      id="character-preset-voice-sample"
+                      value={presetSampleText}
+                      maxLength={500}
+                      onChange={(event) => setPresetSampleText(event.target.value)}
+                      className="min-h-24 resize-none rounded-[8px] border-border bg-muted text-sm shadow-none focus-visible:border-primary/45"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => void createPresetAndBindVoice()}
+                    disabled={
+                      creatingPresetVoice ||
+                      !presetVoiceModelSelector ||
+                      (presetVoiceRequiresVoice && !presetVoice.trim()) ||
+                      !presetSampleText.trim()
+                    }
+                    className="h-9 w-full rounded-md"
+                  >
+                    {creatingPresetVoice ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    {t("characters.voiceSamples.presetCreateAndBind")}
+                  </Button>
+                </>
+              ) : (
+                <div className="rounded-[10px] border border-border bg-muted p-3 text-sm text-muted-foreground">
+                  {t("characters.voiceSamples.presetUnavailable")}
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="account_voice" className="mt-0">
+              {voiceLibraryContent}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

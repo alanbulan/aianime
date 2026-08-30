@@ -8,11 +8,13 @@ from ai_anime.modules.narrative_planning.application.ports import (
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeRewriteTask,
     EpisodeAssetPlanningTask,
     EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScheduledNarrativeTask,
     ScriptGenerationTask,
+    SeedancePromptTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.story_intake.public import require_imported_story
@@ -136,6 +138,48 @@ class ScheduleBeatVideoPrompt:
             receipt,
             task_type="beat_video_prompt",
             message=(f"第 {task.episode} 集 Beat {task.beat_num} 提示词生成已入队"),
+        )
+
+
+class ScheduleSeedancePrompt:
+    def __init__(self, task_scheduler: NarrativeTaskScheduler) -> None:
+        self._task_scheduler = task_scheduler
+
+    async def execute(
+        self,
+        task_context: ProjectContext,
+        task: SeedancePromptTask,
+    ) -> ScheduledNarrativeTask:
+        receipt = await self._task_scheduler.enqueue_seedance_prompt(
+            task_context,
+            task,
+        )
+        return ScheduledNarrativeTask.from_receipt(
+            receipt,
+            task_type="seedance2_prompt",
+            message=(
+                f"第 {task.episode} 集 Beat {task.beat_num} 视频提示词优化已入队"
+            ),
+        )
+
+
+class ScheduleEpisodeRewrite:
+    def __init__(self, task_scheduler: NarrativeTaskScheduler) -> None:
+        self._task_scheduler = task_scheduler
+
+    async def execute(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeRewriteTask,
+    ) -> ScheduledNarrativeTask:
+        receipt = await self._task_scheduler.enqueue_episode_rewrite(
+            task_context,
+            task,
+        )
+        return ScheduledNarrativeTask.from_receipt(
+            receipt,
+            task_type="episode_rewrite",
+            message=f"第 {task.episode} 集改写稿生成已入队",
         )
 
 

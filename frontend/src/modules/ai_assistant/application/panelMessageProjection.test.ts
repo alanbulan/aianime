@@ -33,7 +33,7 @@ function project(overrides: Record<string, unknown> = {}) {
 }
 
 describe("AI Assistant panel message projection", () => {
-  it("filters deleted and tool messages before history, pin, and search projection", () => {
+  it("keeps excluded messages visible but removes them from context projections", () => {
     const messages = [
       message("user", "user", " First prompt "),
       message("tool", "tool", "tool output"),
@@ -52,12 +52,13 @@ describe("AI Assistant panel message projection", () => {
     expect(result.activeMessages.map((item) => item.id)).toEqual([
       "user",
       "assistant",
+      "deleted",
     ]);
     expect(result.userMessageHistory).toEqual([" First prompt "]);
     expect(result.pinnedMessages.map((item) => item.id)).toEqual(["assistant"]);
     expect(result.visibleMessages.map((item) => item.id)).toEqual(["assistant"]);
-    expect(result.activeMessageCount).toBe(2);
-    expect(result.lastActiveMessageId).toBe("assistant");
+    expect(result.activeMessageCount).toBe(3);
+    expect(result.lastActiveMessageId).toBe("deleted");
     expect(messages).toHaveLength(5);
   });
 

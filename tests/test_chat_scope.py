@@ -34,6 +34,11 @@ async def test_send_scope_changed_returns_none_when_client_disconnected(monkeypa
     monkeypatch.setattr(
         chat_scope.chat_worker_lifecycle, "is_busy", lambda _user: False
     )
+    monkeypatch.setattr(
+        chat_scope,
+        "list_chat_slash_commands",
+        lambda _user, **_kwargs: [],
+    )
 
     result = await chat_scope.send_scope_changed(
         DisconnectedWebSocket(),
@@ -71,6 +76,11 @@ async def test_missing_project_reports_error_and_falls_back_home(monkeypatch):
     monkeypatch.setattr(
         chat_scope.chat_worker_lifecycle, "is_busy", lambda _user: False
     )
+    monkeypatch.setattr(
+        chat_scope,
+        "list_chat_slash_commands",
+        lambda _user, **_kwargs: [],
+    )
 
     result = await chat_scope.send_scope_changed(
         websocket,
@@ -91,7 +101,9 @@ async def test_missing_project_reports_error_and_falls_back_home(monkeypatch):
             },
             "history": [{"role": "assistant", "content": "home"}],
             "conversations": [],
+            "decisions": [],
             "busy": False,
+            "commands": [],
         },
     ]
 
@@ -134,7 +146,22 @@ async def test_scope_changed_projects_authorized_history_and_busy_state(
         lambda *_args, **_kwargs: [],
     )
     monkeypatch.setattr(chat_scope.chat_worker_lifecycle, "is_busy", lambda _user: True)
+    def list_commands(_user, *, include_project_tools):
+        seen["include_project_tools"] = include_project_tools
+        return [
+            {"name": "ai-anime", "description": "workflow", "kind": "skill"}
+        ]
+
+    monkeypatch.setattr(chat_scope, "list_chat_slash_commands", list_commands)
     scope = ChatScope(kind="project", id="project-a")
+    decision = {"id": "decision-1", "status": "pending", "questions": []}
+    monkeypatch.setattr(
+        chat_scope.chat_decisions,
+        "pending_for_scope",
+        lambda username, current_scope: [decision]
+        if username == "admin" and current_scope == scope
+        else [],
+    )
 
     result = await chat_scope.send_scope_changed(
         websocket,
@@ -149,6 +176,7 @@ async def test_scope_changed_projects_authorized_history_and_busy_state(
         "scope": scope,
         "project_dir": tmp_path / "output",
         "project_state_dir": tmp_path / "state",
+        "include_project_tools": True,
     }
     assert websocket.events == [
         {
@@ -158,8 +186,16 @@ async def test_scope_changed_projects_authorized_history_and_busy_state(
                 "id": "project-a",
                 "conversationId": "main",
             },
-            "history": [{"role": "assistant", "content": "project"}],
-            "conversations": [],
-            "busy": True,
+                "history": [{"role": "assistant", "content": "project"}],
+                "conversations": [],
+                "decisions": [decision],
+                "busy": True,
+                "commands": [
+                    {
+                        "name": "ai-anime",
+                        "description": "workflow",
+                        "kind": "skill",
+                    }
+                ],
         }
     ]

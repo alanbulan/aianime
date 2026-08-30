@@ -8,7 +8,10 @@ from ai_anime.modules.creative_canvas.domain.canvas_identity import (
     is_valid_creative_canvas_id,
     require_creative_canvas_id,
 )
-from ai_anime.modules.creative_canvas.infrastructure.paths import canvas_path
+from ai_anime.modules.creative_canvas.infrastructure.paths import (
+    canvas_path,
+    safe_upload_filename,
+)
 from ai_anime.shared.project_media import resolve_project_media_path
 
 
@@ -20,6 +23,10 @@ def test_canvas_id_contract_accepts_only_stable_file_names(tmp_path: Path) -> No
 
     with pytest.raises(ValueError, match="invalid canvas_id"):
         require_creative_canvas_id("../outside")
+
+
+def test_safe_upload_filename_preserves_unicode_and_sanitizes_hostile_chars() -> None:
+    assert safe_upload_filename("../中文:草图.png").endswith("_中文_草图.png")
 
 
 def test_resolve_project_static_url_decodes_quoted_relpath(tmp_path: Path) -> None:

@@ -23,8 +23,10 @@ import type {
 } from '../application/translateCanvasText';
 
 import {
+  AUDIO_SPEECH_CATALOG_OPERATION,
   audioEmotionPromptSupported,
   audioPresetVoiceOptions,
+  catalogRouteValue,
   commercialModelRoles,
   resolveCommercialModelRoleRoute,
   useCommercialModelAccessStatus,
@@ -118,7 +120,7 @@ export function createUseAudioOperationsPanelController({
       commercialBridgeAvailable,
     );
     const audioCatalog = useCommercialModelCatalog(
-      'AUDIO_VOICE_CLONE',
+      AUDIO_SPEECH_CATALOG_OPERATION,
       commercialBridgeAvailable && !isMusic,
     );
     const speechRoute = useMemo(
@@ -128,10 +130,10 @@ export function createUseAudioOperationsPanelController({
     );
     const speechCatalogModel = useMemo(
       () =>
-        speechRoute?.source === 'cloud'
+        speechRoute
           ? audioCatalog.data?.items.find(
               (item) =>
-                item.code === speechRoute.modelId &&
+                catalogRouteValue(item) === speechRoute.selector &&
                 commercialModelRoles(item).includes('AUDIO_SPEECH'),
             ) ?? null
           : null,
@@ -144,6 +146,7 @@ export function createUseAudioOperationsPanelController({
               ref: {
                 scope: 'model_preset',
                 modelId: speechRoute.modelId,
+                modelSelector: speechRoute.selector,
                 voiceId: voice.value,
               },
               label: voice.isDefault
@@ -171,10 +174,10 @@ export function createUseAudioOperationsPanelController({
     const routedModel = audioRoute?.modelId ?? '';
     const routedCatalogModel = useMemo(
       () =>
-        audioRoute?.source === 'cloud'
+        audioRoute
           ? audioCatalog.data?.items.find(
               (item) =>
-                item.code === audioRoute.modelId &&
+                catalogRouteValue(item) === audioRoute.selector &&
                 commercialModelRoles(item).includes(voiceRole),
             ) ?? null
           : null,
@@ -187,8 +190,13 @@ export function createUseAudioOperationsPanelController({
     const presetRouteMismatch =
       !isMusic &&
       voiceSettings.currentRef.scope === 'model_preset' &&
-      Boolean(voiceSettings.currentRef.modelId) &&
-      voiceSettings.currentRef.modelId !== routedModel;
+      Boolean(
+        voiceSettings.currentRef.modelSelector ||
+          voiceSettings.currentRef.modelId,
+      ) &&
+      (voiceSettings.currentRef.modelSelector
+        ? voiceSettings.currentRef.modelSelector !== audioRoute?.selector
+        : voiceSettings.currentRef.modelId !== routedModel);
     const musicSettings = useMemo(
       () => resolveAudioMusicSettings(data),
       [
@@ -429,8 +437,6 @@ export function createUseAudioOperationsPanelController({
         audioCatalog.error instanceof Error ? audioCatalog.error.message : null,
       presetVoiceEmptyText: !speechRoute
         ? '未配置可用的语音合成模型（AUDIO_SPEECH）'
-        : speechRoute.source !== 'cloud'
-          ? '当前语音合成路由为 BYOK，模型目录未提供可枚举的预设音色'
         : speechCatalogModel
           ? '当前语音合成模型未公布可选预设音色'
           : '当前语音合成模型未出现在音频模型目录中',

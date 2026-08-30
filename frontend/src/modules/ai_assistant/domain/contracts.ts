@@ -8,6 +8,13 @@ export type ClientFrame =
       attachments?: ChatAttachment[];
     }
   | { type: "scope.set"; scope: ChatScope }
+  | { type: "session.model.get"; scope: ChatScope }
+  | {
+      type: "session.model.set";
+      scope: ChatScope;
+      selector: string | null;
+      reasoning_effort?: string | null;
+    }
   | {
       type: "conversation.delete";
       scope: ChatScope;
@@ -38,8 +45,51 @@ export type RelayInstanceInfo = {
 export type ModelEntry = {
   id: string;
   label: string;
+  description?: string;
+  modelId?: string;
+  providerLabel?: string;
+  source?: "auto" | "cloud" | "byok";
   reasoning?: boolean;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+  reasoningEffortDescription?: string;
 };
+
+export type ChatToolEntry = {
+  name: string;
+  label: string;
+  description: string;
+  category: string;
+  source: string;
+};
+
+export type ChatSlashCommand = {
+  name: string;
+  description: string;
+  inputHint?: string;
+  kind?: "command" | "skill";
+  source?: "managed" | "user";
+  tools?: ChatToolEntry[];
+};
+
+export type StructuredSlashCommandName =
+  | "compact"
+  | "context"
+  | "reset"
+  | "version";
+
+export type ChatSlashCommandResult = {
+  command: StructuredSlashCommandName;
+  text: string;
+  usage?: {
+    used: number;
+    size: number;
+  };
+};
+
+export type MessageContextState = "normal" | "pinned" | "excluded";
 
 export type SessionControlCommand =
   | "agents"
@@ -53,13 +103,72 @@ export type SessionControlCommand =
   | "usage"
   | "verbose";
 
+export type DecisionOption = {
+  id: string;
+  label: string;
+  description: string;
+};
+
+export type DecisionQuestion = {
+  id: string;
+  header: string;
+  question: string;
+  options: DecisionOption[];
+  recommended_option_id?: string | null;
+  allow_custom?: boolean;
+};
+
+export type DecisionRequest = {
+  id: string;
+  title: string;
+  source: string;
+  status: "pending";
+  turn_id?: string;
+  scope?: ChatScope;
+  questions: DecisionQuestion[];
+  created_at?: string;
+};
+
+export type DecisionAnswer = {
+  question_id: string;
+  option_id?: string | null;
+  custom_text?: string | null;
+};
+
 export type ServerFrame =
   | {
       type: "scope.changed";
       scope: ChatScope;
       history: unknown[];
       conversations?: ChatConversation[];
+      decisions?: unknown[];
       busy?: boolean;
+      commands?: unknown;
+    }
+  | {
+      type: "commands.available";
+      commands?: unknown;
+    }
+  | {
+      type: "session.model.state";
+      scope?: ChatScope;
+      selector?: string | null;
+      reasoning_effort?: string | null;
+      error?: string;
+    }
+  | {
+      type: "decision_required";
+      turn_id?: string;
+      scope?: ChatScope;
+      decision?: unknown;
+    }
+  | {
+      type: "decision_resolved";
+      turn_id?: string;
+      scope?: ChatScope;
+      decision_id?: string;
+      status?: "resolved" | "cancelled";
+      answers?: unknown[];
     }
   | {
       type: "chat.busy";
@@ -145,6 +254,7 @@ export type ChatMessage = {
   toolInput?: unknown;
   toolOutput?: unknown;
   toolError?: unknown;
+  contextState?: MessageContextState;
   timestamp: number;
   raw?: unknown;
 };

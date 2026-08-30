@@ -64,7 +64,8 @@ class CommercialCreativeCanvasVideoGenerationJobRuntime:
         }
         if command.audio_setting:
             extra_options["audio_setting"] = command.audio_setting
-        video_options: dict[str, object] = {"resolution": command.resolution}
+        video_options: dict[str, object] = dict(command.extra_params or {})
+        video_options["resolution"] = command.resolution
         if command.scene_optimize:
             video_options["scene_optimize"] = command.scene_optimize
 

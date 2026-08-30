@@ -55,6 +55,20 @@ const PROCESSING_SOURCE_NODE_TYPES = new Set<string>([
   CANVAS_CONNECTION_NODE_TYPES.imageEdit,
 ]);
 const NO_ROUTING_NODES: readonly CanvasEdgeRenderNode[] = [];
+const NODE_INDEX_CACHE = new WeakMap<
+  readonly CanvasEdgeRenderNode[],
+  ReadonlyMap<string, CanvasEdgeRenderNode>
+>();
+
+function indexNodes(
+  nodes: readonly CanvasEdgeRenderNode[],
+): ReadonlyMap<string, CanvasEdgeRenderNode> {
+  const cached = NODE_INDEX_CACHE.get(nodes);
+  if (cached) return cached;
+  const index = new Map(nodes.map((node) => [node.id, node] as const));
+  NODE_INDEX_CACHE.set(nodes, index);
+  return index;
+}
 
 function portDotOffset(position: Position | undefined): { dx: number; dy: number } {
   switch (position) {
@@ -183,8 +197,9 @@ export function createDisconnectableEdge({
     ]);
 
     const isProcessingEdge = useStore((state) => {
-      const sourceNode = state.nodes.find((node) => node.id === source);
-      const targetNode = state.nodes.find((node) => node.id === target);
+      const nodesById = indexNodes(state.nodes);
+      const sourceNode = nodesById.get(source);
+      const targetNode = nodesById.get(target);
       return Boolean(
         sourceNode &&
           targetNode?.type === EXPORT_IMAGE_NODE_TYPE &&

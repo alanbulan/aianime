@@ -3,6 +3,7 @@
 2.0 主线以 SQLite/Cognee 为唯一脚本状态源；不再读写 scripts/epXXX_script.json。
 """
 
+import inspect
 import logging
 from typing import Any
 
@@ -36,8 +37,7 @@ from ai_anime.modules.narrative_planning.public import (
     ScriptNotFound,
     ScriptStoreSyncFailed,
     enqueue_beat_video_prompt_generation,
-    generate_and_save_beat_video_prompt,
-    generate_seedance2_beat_prompt,
+    enqueue_seedance2_prompt_generation,
     load_episode_script,
     resolve_beat_video_prompt_target,
     save_episode_script,
@@ -195,43 +195,24 @@ async def generate_beat_video_prompt(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
+    finally:
+        close = getattr(store, "close", None)
+        if close is not None:
+            closed = close()
+            if inspect.isawaitable(closed):
+                await closed
 
-    if resolved.ctx is not None:
-        scheduled = await enqueue_beat_video_prompt_generation(
-            resolved.ctx,
-            episode_num=episode_num,
-            beat_num=beat_num,
-            field=selection.field,
-            language=body.language,
-            output_dir=resolved.output_dir,
-        )
-        return {"ok": True, **scheduled.as_dict()}
-
-    try:
-        generated = await generate_and_save_beat_video_prompt(
-            store,
-            output_dir=resolved.output_dir,
-            project_name=resolved.project_name,
-            episode_num=episode_num,
-            beat_num=beat_num,
-            language=body.language,
-        )
-    except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        return {"ok": False, "error": str(exc)}
-    except Exception as exc:
-        logger.exception(
-            "Beat 视频提示词生成失败: episode=%s beat=%s", episode_num, beat_num
-        )
-        raise HTTPException(
-            status_code=500, detail=f"Beat video prompt generation failed: {exc}"
-        ) from exc
-
-    return {
-        "ok": True,
-        "data": generated.as_dict(),
-    }
+    if resolved.ctx is None:
+        return {"ok": False, "error": "视频提示词生成需要 project context"}
+    scheduled = await enqueue_beat_video_prompt_generation(
+        resolved.ctx,
+        episode_num=episode_num,
+        beat_num=beat_num,
+        field=selection.field,
+        language=body.language,
+        output_dir=resolved.output_dir,
+    )
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.post(
@@ -246,22 +227,17 @@ async def generate_seedance2_prompt(
 ):
     """AI 生成单个 Beat 的 Seedance2 final_prompt 并保存回配置 JSON。"""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    project_dir = resolved.project_dir
     body = body or Seedance2PromptGenerateRequest()
-
-    store = (
-        await make_sqlite_store_for_context(resolved.ctx)
-        if resolved.ctx
-        else await make_sqlite_store(resolved.username, resolved.project_name)
-    )
     ctx = getattr(resolved, "ctx", None)
+    if ctx is None:
+        return {"ok": False, "error": "Seedance2 提示词生成需要 project context"}
     try:
-        generated = await generate_seedance2_beat_prompt(
-            store,
+        scheduled = await enqueue_seedance2_prompt_generation(
+            ctx,
             GenerateSeedancePromptCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
-                project_dir=project_dir,
+                project_dir=resolved.project_dir,
                 requester_user_id=_requester_user_id_for_billing(
                     resolved,
                     user,
@@ -275,7 +251,7 @@ async def generate_seedance2_prompt(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except SeedancePromptRejected as exc:
         return {"ok": False, "error": str(exc)}
-    return {"ok": True, "data": generated.as_dict()}
+    return {"ok": True, **scheduled.as_dict()}
 
 
 @router.put("/projects/{project}/episodes/{episode_num}/script")

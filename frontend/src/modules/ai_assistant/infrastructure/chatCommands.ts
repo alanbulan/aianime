@@ -1,9 +1,14 @@
 // Copyright (c) 2026 AI anime
 import type {
+  DecisionAnswer,
   ChatMessage,
+  ChatSlashCommandResult,
   ChatScope,
+  MessageContextState,
+  StructuredSlashCommandName,
 } from "@/modules/ai_assistant/domain/contracts";
 import { normalizeMessage } from "@/modules/ai_assistant/domain/message";
+import { apiCall } from "@/shared/api/client";
 import { api } from "@/shared/api/transport";
 
 type ChatNotificationResponse = {
@@ -61,4 +66,40 @@ export async function cancelChatBestEffort(): Promise<void> {
   } catch {
     // The local turn is already inactive; cancellation is best effort.
   }
+}
+
+export async function runChatSlashCommand(
+  scope: ChatScope,
+  command: StructuredSlashCommandName,
+): Promise<ChatSlashCommandResult> {
+  return apiCall<ChatSlashCommandResult>("/chat/commands", {
+    method: "post",
+    json: { scope, command },
+    timeout: 90_000,
+  });
+}
+
+export async function resolveChatDecision(
+  decisionId: string,
+  answers: DecisionAnswer[],
+): Promise<void> {
+  const normalizedId = decisionId.trim();
+  if (!normalizedId) throw new Error("decision id is required");
+  await api.post(
+    `api/v1/chat/decisions/${encodeURIComponent(normalizedId)}/resolve`,
+    { json: { answers } },
+  );
+}
+
+export async function setChatMessageContextState(
+  scope: ChatScope,
+  messageId: string,
+  state: MessageContextState,
+): Promise<void> {
+  const normalizedId = messageId.trim();
+  if (!normalizedId) throw new Error("message id is required");
+  await api.patch(
+    `api/v1/chat/messages/${encodeURIComponent(normalizedId)}/context`,
+    { json: { scope, state } },
+  );
 }

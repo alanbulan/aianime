@@ -16,7 +16,6 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
     canvas_request_hash,
     read_canvas,
     relative_project_path,
-    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.application.canvas_projections import (
     CreativeCanvasProjectionBuild,
@@ -43,6 +42,7 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
     translate_canvas_store_error,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 
 SaveCanvas = Callable[..., CanvasSaveResult]

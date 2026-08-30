@@ -1,5 +1,6 @@
 import type {
   ByokModelAssignment,
+  ByokDiscoveredModelMetadata,
   ByokProviderModelDiscoveryInput,
   ByokProviderProtocol,
   CommercialModelCatalog,
@@ -14,6 +15,7 @@ export interface CommercialModelAccessGateway {
   fetchCatalog(
     operation?: string,
     source?: CommercialModelCatalogSource,
+    catalogVersion?: string,
   ): Promise<CommercialModelCatalog>;
   fetchModelDetails(sku: string): Promise<CommercialModelCatalogItem>;
   fetchAccessStatus(): Promise<CommercialModelAccessStatus>;
@@ -34,6 +36,7 @@ export interface CommercialModelAccessGateway {
   fetchByokProviderModels(input: ByokProviderModelDiscoveryInput): Promise<{
     providerId: string;
     models: string[];
+    modelMetadata: ByokDiscoveredModelMetadata[];
     catalogVersion: string;
   }>;
 }

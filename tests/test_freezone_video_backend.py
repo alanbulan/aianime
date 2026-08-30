@@ -184,8 +184,10 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
             project_dir=tmp_path,
             job_id="job_video",
             prompt="雨夜街头，镜头缓慢推进",
-            model="cloud-video-standard",
+            model="MINIMAX_H3",
             model_role="VIDEO_ALL_REFERENCE",
+            resolution="1344x768",
+            extra_params={"steps": 24, "seed": 42, "turbo": True},
             reference_items=(
                 {
                     "type": "image",
@@ -205,10 +207,10 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
 
     assert out.exists()
     assert captured["create"] == {
-        "model": "cloud-video-standard",
+        "model": "MINIMAX_H3",
         "model_selector": None,
         "model_role": "VIDEO_ALL_REFERENCE",
-        "resolution": "720p",
+        "resolution": "1344x768",
         "generate_audio": False,
     }
     assert captured["generate"]["image_path"] == (
@@ -218,6 +220,12 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
         "input_reference",
         "reference_videos",
     ]
+    assert captured["generate"]["seedance2_config"] == {
+        "steps": 24,
+        "seed": 42,
+        "turbo": True,
+        "resolution": "1344x768",
+    }
 
 
 def test_validate_omni_reference_limits_and_summary() -> None:
@@ -230,12 +238,22 @@ def test_validate_omni_reference_limits_and_summary() -> None:
         "audio_count": 0,
         "total_count": 12,
     }
-    validate_omni_reference_limits(items)
+    validate_omni_reference_limits(
+        items,
+        max_images=9,
+        max_videos=3,
+        max_audios=3,
+        max_total=12,
+    )
 
     with pytest.raises(ValueError, match="<= 9"):
         validate_omni_reference_limits(
             [
                 {"type": "image", "url": f"/static/{i}.png"}
                 for i in range(10)
-            ]
+            ],
+            max_images=9,
+            max_videos=3,
+            max_audios=3,
+            max_total=12,
         )

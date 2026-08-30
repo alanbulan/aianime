@@ -33,6 +33,8 @@ def _client(monkeypatch, tmp_path):
         project_name="demo",
         owner_username="admin",
         owner_project_label="admin/demo",
+        requester_user_id="user_admin",
+        requester_username="admin",
         output_dir=project_dir,
         state_dir=state_root / "admin" / "demo",
         is_home_node=True,
@@ -133,32 +135,26 @@ def test_narrator_voice_record_accepts_data_url(monkeypatch, tmp_path):
     assert created[0]["content"] == b"recorded-voice"
 
 
-def test_narrator_voice_generates_reference_from_model_preset(monkeypatch, tmp_path):
-    from ai_anime.modules.creative_canvas import public as creative_canvas_public
+def test_narrator_voice_queues_model_preset_generation(monkeypatch, tmp_path):
+    from ai_anime.api.routes.project_workspace import projects
 
     client, project_config, project_dir = _client(monkeypatch, tmp_path)
-    generated_path = project_dir / "freezone/_outputs/audio/generated.mp3"
-    generated_path.parent.mkdir(parents=True)
-    generated_path.write_bytes(b"preset-voice")
-    captured: dict[str, object] = {}
-    created: list[object] = []
+    captured: list[object] = []
 
-    async def fake_generate(**kwargs):
-        captured.update(kwargs)
-        return SimpleNamespace(audio_path=generated_path)
+    async def start_preset_voice(command):
+        captured.append(command)
+        return SimpleNamespace(
+            task_type="freezone_voice_preset",
+            task_id="task-preset-1",
+            task_key="task:freezone_voice_preset:project_narrator",
+            task_scope="project_narrator",
+        )
 
     monkeypatch.setattr(
-        creative_canvas_public,
-        "generate_creative_canvas_audio_speech",
-        fake_generate,
-    )
-    monkeypatch.setattr(
-        creative_canvas_public,
-        "creative_canvas_audio_library_use_cases",
+        projects,
+        "creative_canvas_audio_generation_use_cases",
         lambda: SimpleNamespace(
-            create_voice=lambda command: (
-                created.append(command) or {"voice_id": "fv_ai"}
-            )
+            start_preset_voice=start_preset_voice,
         ),
     )
 
@@ -166,57 +162,51 @@ def test_narrator_voice_generates_reference_from_model_preset(monkeypatch, tmp_p
         "/projects/demo/narrator-voice/generate-preset",
         json={
             "name": "Claire",
+            "model_selector": "cloud:audio-speech-1",
             "voice": "claire",
             "text": "你好，这是试听文本。",
         },
     )
 
     assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert response.json()["data"]["voice_library_id"] == "fv_ai"
-    assert captured["mode"] == "SPEECH"
-    assert captured["voice"] == "claire"
-    assert captured["text"] == "你好，这是试听文本。"
-    assert len(created) == 1
-    assert created[0].name == "Claire"
-    assert created[0].filename == "generated.mp3"
-    assert created[0].content == b"preset-voice"
-    assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == (
-        "assets/narrator/voice.mp3"
-    )
-    assert (project_dir / "assets/narrator/voice.mp3").read_bytes() == b"preset-voice"
+    payload = response.json()
+    assert payload == {
+        "ok": True,
+        "task_type": "freezone_voice_preset",
+        "task_id": "task-preset-1",
+        "task_key": "task:freezone_voice_preset:project_narrator",
+        "scope": "project_narrator",
+        "message": "项目解说预设声线生成已进入队列",
+    }
+    command = captured[0]
+    assert command.model_selector == "cloud:audio-speech-1"
+    assert command.voice == "claire"
+    assert command.text == "你好，这是试听文本。"
+    assert command.binding == {"kind": "project_narrator"}
+    assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == ""
+    assert not (project_dir / "assets/narrator/voice.mp3").exists()
 
 
-def test_narrator_voice_designs_and_persists_cloud_voice(monkeypatch, tmp_path):
-    from ai_anime.modules.creative_canvas import public as creative_canvas_public
-    from ai_anime.modules.model_usage import public as model_usage_public
+def test_narrator_voice_queues_cloud_voice_design(monkeypatch, tmp_path):
+    from ai_anime.api.routes.project_workspace import projects
 
     client, project_config, project_dir = _client(monkeypatch, tmp_path)
-    captured: dict[str, object] = {}
-    created: list[object] = []
+    captured: list[object] = []
 
-    async def fake_design(**kwargs):
-        captured.update(kwargs)
-        output_path = kwargs["output_path"]
-        output_path.write_bytes(b"designed-voice")
+    async def start_voice_design(command):
+        captured.append(command)
         return SimpleNamespace(
-            request_id="req_voice_design_1",
-            response_id="",
-            voice_id="qwen_voice_123",
+            task_type="freezone_voice_design",
+            task_id="task-design-1",
+            task_key="task:freezone_voice_design:project_narrator",
+            task_scope="project_narrator",
         )
 
     monkeypatch.setattr(
-        model_usage_public,
-        "write_model_audio_voice_design",
-        fake_design,
-    )
-    monkeypatch.setattr(
-        creative_canvas_public,
-        "creative_canvas_audio_library_use_cases",
+        projects,
+        "creative_canvas_audio_generation_use_cases",
         lambda: SimpleNamespace(
-            create_voice=lambda command: (
-                created.append(command) or {"voice_id": "fv_designed"}
-            )
+            start_voice_design=start_voice_design,
         ),
     )
 
@@ -236,48 +226,57 @@ def test_narrator_voice_designs_and_persists_cloud_voice(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["ok"] is True
-    assert payload["data"]["voice_library_id"] == "fv_designed"
-    assert payload["data"]["provider_voice_id"] == "qwen_voice_123"
-    assert captured["model_selector"] == "cloud:QWEN3_TTS_VD_2026_01_26"
-    assert captured["voice_prompt"] == "温暖、清晰、克制的女性解说声线"
-    assert captured["preview_text"] == "欢迎来到今天的故事。"
-    assert len(created) == 1
-    assert created[0].name == "温暖解说声线"
-    assert created[0].content == b"designed-voice"
-    assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == (
-        "assets/narrator/voice.wav"
-    )
-    assert (project_dir / "assets/narrator/voice.wav").read_bytes() == b"designed-voice"
+    assert payload == {
+        "ok": True,
+        "task_type": "freezone_voice_design",
+        "task_id": "task-design-1",
+        "task_key": "task:freezone_voice_design:project_narrator",
+        "scope": "project_narrator",
+        "message": "项目解说文字声线设计已进入队列",
+    }
+    command = captured[0]
+    assert command.model_selector == "cloud:QWEN3_TTS_VD_2026_01_26"
+    assert command.voice_prompt == "温暖、清晰、克制的女性解说声线"
+    assert command.preview_text == "欢迎来到今天的故事。"
+    assert command.binding == {"kind": "project_narrator"}
+    assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == ""
+    assert not (project_dir / "assets/narrator/voice.wav").exists()
 
 
-def test_narrator_voice_sources_and_copy(monkeypatch, tmp_path):
+def test_narrator_voice_binds_account_library_voice(monkeypatch, tmp_path):
+    from ai_anime.modules.creative_canvas import public as creative_canvas_public
+
     client, project_config, project_dir = _client(monkeypatch, tmp_path)
-    source = project_dir / "audio/ep001/beat_01.mp3"
+    source = tmp_path / "account-voices/fv_alex.mp3"
     source.parent.mkdir(parents=True)
     source.write_bytes(b"source-voice")
-
-    sources = client.get("/projects/demo/narrator-voice/sources")
-    assert sources.status_code == 200
-    assert sources.json()["data"]["options"] == [
-        {
-            "label": "已生成音频 · beat_01.mp3",
-            "path": str(source),
-            "rel_path": "audio/ep001/beat_01.mp3",
-        }
-    ]
+    captured: list[object] = []
+    monkeypatch.setattr(
+        creative_canvas_public,
+        "creative_canvas_audio_library_use_cases",
+        lambda: SimpleNamespace(
+            get_voice=lambda query: captured.append(query) or source,
+        ),
+    )
 
     response = client.post(
-        "/projects/demo/narrator-voice/copy",
-        json={"source_path": str(source)},
+        "/projects/demo/narrator-voice/bind",
+        json={"voice_id": "fv_alex"},
     )
 
     assert response.status_code == 200
     assert response.json()["ok"] is True
+    assert response.json()["data"]["voice_library_id"] == "fv_alex"
+    assert captured[0].voice_id == "fv_alex"
     assert project_config.load_narrator_reference_audio("admin", "demo")["path"] == (
         "assets/narrator/voice.mp3"
     )
     assert (project_dir / "assets/narrator/voice.mp3").read_bytes() == b"source-voice"
+    assert client.get("/projects/demo/narrator-voice/sources").status_code == 404
+    assert client.post(
+        "/projects/demo/narrator-voice/copy",
+        json={"source_path": str(source)},
+    ).status_code == 404
 
 
 def test_narrator_voice_delete_renames_file_and_clears_metadata(monkeypatch, tmp_path):

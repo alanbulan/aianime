@@ -77,7 +77,10 @@ describe('useAudioOperationsPanelController', () => {
             code: 'audio-speech-1',
             displayName: 'MOSS-TTSD v0.5',
             operation: 'AUDIO_VOICE_CLONE',
-            capabilities: { supportedModes: ['SPEECH', 'VOICE_CLONE'] },
+            capabilities: {
+              supportedModes: ['SPEECH', 'VOICE_CLONE'],
+              routeSelector: 'cloud:audio-speech-1',
+            },
             parameterSchema: {
               properties: {
                 voice: { enum: ['alex', 'anna'], default: 'alex' },
@@ -89,7 +92,10 @@ describe('useAudioOperationsPanelController', () => {
             code: 'audio-voice-clone-1',
             displayName: 'Expressive Clone',
             operation: 'AUDIO_VOICE_CLONE',
-            capabilities: { supportedModes: ['VOICE_CLONE'] },
+            capabilities: {
+              supportedModes: ['VOICE_CLONE'],
+              routeSelector: 'cloud:audio-voice-clone-1',
+            },
             parameterSchema: {
               properties: { emotion_prompt: { type: 'string' } },
             },
@@ -278,6 +284,7 @@ describe('useAudioOperationsPanelController', () => {
         ref: {
           scope: 'model_preset',
           modelId: 'audio-speech-1',
+          modelSelector: 'cloud:audio-speech-1',
           voiceId: 'alex',
         },
         label: 'alex（默认）',
@@ -289,6 +296,7 @@ describe('useAudioOperationsPanelController', () => {
         ref: {
           scope: 'model_preset',
           modelId: 'audio-speech-1',
+          modelSelector: 'cloud:audio-speech-1',
           voiceId: 'anna',
         },
         label: 'anna',

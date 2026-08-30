@@ -179,11 +179,14 @@ async function registerCommercialGatewayIpc(
       allowsCustomModels,
       cloudModelAssignments,
       modelCapabilities,
+      explicitCloudModelAssignments,
     ) => {
       const routing = {
         access,
         allowsCustomModels,
         cloudModelAssignments,
+        modelCapabilities,
+        explicitCloudModelAssignments,
       };
       commercialModelProxy?.configureRouting(routing);
       return localBackend.configureModelAccess({

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 
 from ai_anime.shared.runtime_paths import OUTPUT_DIR
 from ai_anime.modules.production.public import file_sha256
+from ai_anime.shared.utils.media_io import get_audio_duration
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 USER_VOICE_EXTENSIONS = frozenset(
     {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"}
@@ -32,10 +32,6 @@ def user_audio_voices_dir(username: str) -> Path:
 
 def user_audio_voices_index_path(username: str) -> Path:
     return user_audio_voices_dir(username) / "voices.json"
-
-
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _safe_voice_name(value: str) -> str:
@@ -127,13 +123,24 @@ def create_user_audio_voice(
     absolute_path.parent.mkdir(parents=True, exist_ok=True)
     absolute_path.write_bytes(content)
 
-    now = _utc_now()
+    try:
+        sha256 = file_sha256(absolute_path)
+        duration_ms = audio_duration_ms(absolute_path)
+    except Exception:
+        absolute_path.unlink(missing_ok=True)
+        try:
+            absolute_path.parent.rmdir()
+        except OSError:
+            pass
+        raise
+
+    now = utc_now_iso()
     record = {
         "voice_id": voice_id,
         "name": _safe_voice_name(name),
         "path": relative_path,
-        "sha256": file_sha256(absolute_path),
-        "duration_ms": audio_duration_ms(absolute_path),
+        "sha256": sha256,
+        "duration_ms": duration_ms,
         "mime_type": mime_type or "application/octet-stream",
         "source_filename": Path(str(filename or "reference")).name,
         "created_at": now,
@@ -163,23 +170,44 @@ def resolve_user_audio_voice(
     raise RuntimeError(f"用户音色不存在: {target}")
 
 
-def audio_duration_ms(audio_path: Path) -> int:
+def delete_user_audio_voice(username: str, voice_id: str) -> None:
+    target = str(voice_id or "").strip()
+    if not target:
+        raise RuntimeError("user_custom voice_id is required")
+
+    records = _load_user_voice_records(username)
+    record = next(
+        (
+            item
+            for item in records
+            if str(item.get("voice_id") or "") == target
+        ),
+        None,
+    )
+    if record is None:
+        raise RuntimeError(f"用户音色不存在: {target}")
+
+    voices_dir = user_audio_voices_dir(username).resolve()
+    voice_dir = (voices_dir / target).resolve()
+    audio_path = _user_voice_abs_path(username, record).resolve()
+    if voice_dir.parent != voices_dir or audio_path.parent != voice_dir:
+        raise RuntimeError(f"用户音色存储路径无效: {target}")
+    if audio_path.exists():
+        audio_path.unlink()
     try:
-        result = subprocess.run(
-            [
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                str(audio_path),
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        return int(float(result.stdout.strip()) * 1000)
-    except Exception:
-        return 0
+        voice_dir.rmdir()
+    except OSError:
+        pass
+
+    _write_user_voice_records(
+        username,
+        [
+            item
+            for item in records
+            if str(item.get("voice_id") or "") != target
+        ],
+    )
+
+
+def audio_duration_ms(audio_path: Path) -> int:
+    return int(get_audio_duration(str(audio_path)) * 1000)

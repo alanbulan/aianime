@@ -26,4 +26,16 @@ describe("electron commercial identity gateway", () => {
       }),
     ).rejects.toThrow("租户不存在或服务已到期");
   });
+
+  it("preserves the exact saved password when it is explicitly revealed", async () => {
+    window.aiAnimeDesktop = {
+      commercial: {
+        revealRememberedPassword: vi.fn(async () => " Secret 123 "),
+      },
+    } as unknown as AIAnimeDesktopBridge;
+
+    await expect(
+      electronCommercialIdentityGateway.revealRememberedPassword(),
+    ).resolves.toBe(" Secret 123 ");
+  });
 });

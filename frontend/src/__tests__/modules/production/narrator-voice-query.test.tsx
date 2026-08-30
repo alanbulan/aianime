@@ -14,9 +14,8 @@ vi.mock("@/shared/api/transport", () => {
 import { server } from "@/__tests__/setup-msw";
 import { queryKeys } from "@/lib/query-keys";
 import {
-  useCopyProjectNarratorVoice,
+  useBindNarratorVoice,
   useDeleteNarratorVoice,
-  useNarratorVoiceSources,
   useNarratorVoiceStatus,
   useRecordNarratorVoice,
   useTrimNarratorVoice,
@@ -66,36 +65,6 @@ describe("Production narrator voice queries", () => {
     expect(result.current.data?.data.reference_path).toBe("assets/narrator/voice.wav");
   });
 
-  it("loads reusable project audio sources", async () => {
-    server.use(
-      http.get(
-        "http://localhost:3000/api/v1/projects/demo/narrator-voice/sources",
-        () =>
-          HttpResponse.json({
-            ok: true,
-            data: {
-              options: [
-                {
-                  label: "已生成音频 · beat_01.mp3",
-                  path: "/project/audio/ep001/beat_01.mp3",
-                  rel_path: "audio/ep001/beat_01.mp3",
-                },
-              ],
-            },
-          }),
-      ),
-    );
-
-    const { result } = renderHook(() => useNarratorVoiceSources("demo"), {
-      wrapper,
-    });
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(result.current.data?.data.options[0]?.rel_path).toBe(
-      "audio/ep001/beat_01.mp3",
-    );
-  });
-
   it("uploads narrator voice audio as multipart form data", async () => {
     let contentType = "";
     let byteLength = 0;
@@ -141,11 +110,11 @@ describe("Production narrator voice queries", () => {
     expect(body).toEqual({ data_url: "data:audio/webm;base64,dm9pY2U=" });
   });
 
-  it("copies an existing project audio file as narrator voice", async () => {
+  it("binds an account voice as narrator voice", async () => {
     let body: unknown = null;
     server.use(
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/narrator-voice/copy",
+        "http://localhost:3000/api/v1/projects/demo/narrator-voice/bind",
         async ({ request }) => {
           body = await request.clone().json();
           return HttpResponse.json({ ok: true, data: { reference_path: "assets/narrator/voice.mp3" } });
@@ -153,13 +122,13 @@ describe("Production narrator voice queries", () => {
       ),
     );
 
-    const { result } = renderHook(() => useCopyProjectNarratorVoice("demo"), {
+    const { result } = renderHook(() => useBindNarratorVoice("demo"), {
       wrapper,
     });
-    result.current.mutate("/project/audio/ep001/beat_01.mp3");
+    result.current.mutate("fv_alex");
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(body).toEqual({ source_path: "/project/audio/ep001/beat_01.mp3" });
+    expect(body).toEqual({ voice_id: "fv_alex" });
   });
 
   it("trims the configured narrator voice with second-based bounds", async () => {

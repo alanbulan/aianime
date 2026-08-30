@@ -8,9 +8,14 @@ pytestmark = pytest.mark.m07
 @pytest.fixture(autouse=True)
 def _configured_model_access(monkeypatch):
     from ai_anime.modules.model_usage.public import configure_model_access
+    import ai_anime.modules.production.infrastructure.media_generation.indextts2 as indextts2
+
+    async def fake_audio_duration(_audio_path: str) -> float:
+        return 1.25
 
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "newapi-test-key")
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://newapi.test/v1")
+    monkeypatch.setattr(indextts2, "get_audio_duration_async", fake_audio_duration)
     configure_model_access(
         allows_custom_models=False,
         mode="mixed",
@@ -20,6 +25,35 @@ def _configured_model_access(monkeypatch):
     )
     yield
     configure_model_access(allows_custom_models=False, mode="mixed")
+
+
+@pytest.mark.asyncio
+async def test_indextts2_billing_failures_are_logged(monkeypatch, caplog):
+    import logging
+    import ai_anime.modules.production.infrastructure.media_generation.indextts2 as indextts2
+
+    class FailingUsageMeter:
+        async def refund_model_call_credit_reservation(self, *args, **kwargs):
+            raise RuntimeError("refund unavailable")
+
+        async def bump_model_call(self, **kwargs):
+            raise RuntimeError("confirm unavailable")
+
+    monkeypatch.setattr(indextts2, "get_usage_meter", lambda: FailingUsageMeter())
+
+    with caplog.at_level(logging.ERROR, logger=indextts2.__name__):
+        await indextts2._refund_tts_model_call(
+            "reservation-1",
+            source="test",
+            error="provider failure",
+        )
+        await indextts2._confirm_tts_model_call(
+            model="index-tts-2",
+            reservation_id="reservation-2",
+        )
+
+    assert "failed to refund IndexTTS2 model call" in caplog.text
+    assert "failed to confirm IndexTTS2 model call" in caplog.text
 
 
 class _FakeResponse:

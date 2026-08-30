@@ -82,6 +82,42 @@ const viewerMock = vi.hoisted(() => ({
   }),
 }));
 
+const aiStagingTaskMock = vi.hoisted(() => {
+  let onComplete: ((result: unknown) => void) | undefined;
+  const start = vi.fn();
+  return {
+    complete(result: unknown) {
+      onComplete?.(result);
+    },
+    start,
+    useTaskController: vi.fn(
+      (options: { onComplete?: (result: unknown) => void }) => {
+        onComplete = options.onComplete;
+        return {
+          started: false,
+          stream: {
+            status: "idle",
+            progress: 0,
+            currentTask: "",
+            result: null,
+            error: null,
+            logs: [],
+          },
+          logs: [],
+          start,
+          stop: vi.fn(async () => undefined),
+          stopping: false,
+        };
+      },
+    ),
+  };
+});
+
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
+  useTaskController: aiStagingTaskMock.useTaskController,
+}));
+
 vi.mock("@/features/viewer-kit/three-d/ThreeDStageCanvas", () => ({
   ThreeDStageCanvas: ({
     splatUrl,
@@ -213,14 +249,12 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/features/viewer-kit/three-d/composition", () => ({
   generateAiStagingProp: vi.fn(async () => ({
-    prop: {
-      prop_id: "horse_mount",
-      name: "可骑的马",
-      marker_color: "#7c3aed",
-      shape_hint: "quadruped_mount",
-      scale: [1.4, 1.25, 2.2],
-      position: [1, 0, 2],
-    },
+    task_type: "freezone_ai_staging_prop",
+    job_id: "ai-staging-1",
+    task_key: "task:freezone_ai_staging_prop:ai_staging",
+    task_episode: 0,
+    task_scope: "ai_staging",
+    task_id: "task-1",
   })),
   getBeatDirectorStageOverlay: vi.fn(async () => ({
     status: "missing",
@@ -1487,12 +1521,35 @@ describe("ThreeDDirectorDialog", () => {
         }),
       );
     });
-    expect(viewerMock.placeMarker).toHaveBeenCalledWith("staging", {
-      color: "#B71C1C",
-      label: "可骑的马",
-      scale: [1.4, 1.25, 2.2],
-      position: [1, 0, 2],
-      shapeHint: "quadruped_mount",
+    expect(aiStagingTaskMock.start).toHaveBeenCalledWith({
+      scope: "ai_staging",
+    });
+    expect(viewerMock.placeMarker).not.toHaveBeenCalledWith(
+      "staging",
+      expect.anything(),
+    );
+
+    act(() => {
+      aiStagingTaskMock.complete({
+        prop: {
+          prop_id: "horse_mount",
+          name: "可骑的马",
+          marker_color: "#7c3aed",
+          shape_hint: "quadruped_mount",
+          scale: [1.4, 1.25, 2.2],
+          position: [1, 0, 2],
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(viewerMock.placeMarker).toHaveBeenCalledWith("staging", {
+        color: "#B71C1C",
+        label: "可骑的马",
+        scale: [1.4, 1.25, 2.2],
+        position: [1, 0, 2],
+        shapeHint: "quadruped_mount",
+      });
     });
   });
 

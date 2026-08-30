@@ -23,10 +23,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
+from ai_anime.shared.runtime_dotenv import project_root
+
 _log = logging.getLogger(__name__)
 
-# AI anime repo root: src/ai_anime/security/sandbox_wrap.py → parents[3]
-AI_ANIME_ROOT = Path(__file__).resolve().parents[3]
+AI_ANIME_ROOT = project_root()
 SANDBOX_PROFILES_DIR = AI_ANIME_ROOT / "deploy" / "sandbox"
 SEATBELT_BASE_POLICY = SANDBOX_PROFILES_DIR / "seatbelt_base_policy.sbpl"
 SEATBELT_NETWORK_POLICY = SANDBOX_PROFILES_DIR / "seatbelt_network_policy.sbpl"

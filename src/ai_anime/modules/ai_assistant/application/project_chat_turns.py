@@ -104,6 +104,14 @@ class ProjectChatTurns:
                         "turn_id": event.get("turn_id") or turn_id,
                     },
                 )
+            elif event_type == "available_commands":
+                await emit_chat_event(
+                    on_event,
+                    {
+                        "type": "commands.available",
+                        "commands": event.get("commands"),
+                    },
+                )
             elif event_type == "assistant_delta":
                 assistant_sent_text = str(event.get("text") or "")
                 await emit_chat_event(

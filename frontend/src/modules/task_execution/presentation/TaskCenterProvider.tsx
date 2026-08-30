@@ -10,6 +10,7 @@ import { useAppStore } from "@/modules/project_workspace/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { TaskQueryGateway } from "@/modules/task_execution/application/taskQueryPorts";
 import type {
+  TaskCompletionSourceRegistrar,
   TaskStreamClient,
   TaskStreamClientFactory,
 } from "@/modules/task_execution/application/taskStreamPorts";
@@ -185,6 +186,7 @@ export interface TaskCenterProviderProps {
 }
 
 export interface TaskCenterProviderViewProps extends TaskCenterProviderProps {
+  completionSourceRegistrar: TaskCompletionSourceRegistrar;
   gateway: TaskQueryGateway;
   streamClientFactory: TaskStreamClientFactory;
 }
@@ -192,6 +194,7 @@ export interface TaskCenterProviderViewProps extends TaskCenterProviderProps {
 export function TaskCenterProviderView({
   children,
   projectId,
+  completionSourceRegistrar,
   gateway,
   streamClientFactory,
 }: TaskCenterProviderViewProps) {
@@ -246,6 +249,7 @@ export function TaskCenterProviderView({
     }
     activeSessionRef.current = { username, projectId };
     useTaskCenterStore.getState().setProject(projectId);
+    const completionSource = completionSourceRegistrar(projectId);
 
     let cancelled = false;
     let client: TaskStreamClient | null = null;
@@ -263,6 +267,9 @@ export function TaskCenterProviderView({
           }),
         });
         if (!cancelled) {
+          for (const task of res.data) {
+            completionSource.onTask(task);
+          }
           useTaskCenterStore.getState().hydrate(res.data);
         }
         return true;
@@ -336,7 +343,9 @@ export function TaskCenterProviderView({
           // hammering the SSE endpoint every 15s.
           void hydrate();
         },
+        onAuthRevoked: () => completionSource.onAuthRevoked(),
         onEvent: (task, source) => {
+          completionSource.onTask(task);
           const prev = useTaskCenterStore.getState().upsert(task);
 
           // Push-through cache update (not invalidate) to keep legacy `useTasks()` consumers
@@ -430,10 +439,19 @@ export function TaskCenterProviderView({
     return () => {
       cancelled = true;
       client?.close();
+      completionSource.close();
       stopPolling();
       useTaskCenterStore.getState().reset();
     };
-  }, [username, projectId, queryClient, bus, gateway, streamClientFactory]);
+  }, [
+    username,
+    projectId,
+    queryClient,
+    bus,
+    completionSourceRegistrar,
+    gateway,
+    streamClientFactory,
+  ]);
 
   return (
     <TaskEventBusContext.Provider value={bus}>

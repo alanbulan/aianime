@@ -428,9 +428,14 @@ def test_seedance2_prompt_does_not_create_media_side_effects(m03_completion_clie
         json={"prompt_guidance": "固定提示"},
     )
     assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert response.json()["data"]["final_prompt"] == "fixed seedance final prompt"
-    assert "seedance2_config_json" in response.json()["data"]
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["task_type"] == "seedance2_prompt"
+    assert payload["task_key"]
+    task = _wait_for_task(ctx, "seedance2_prompt", 1, beat_num=1)
+    assert task.status == "completed"
+    assert task.result["final_prompt"] == "fixed seedance final prompt"
+    assert "seedance2_config_json" in task.result
 
     after_media = {
         path.relative_to(ctx.output_dir)

@@ -49,6 +49,7 @@ async def test_single_video_route_maps_request_to_application(
     monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
     request = SingleVideoRequest(
         model="seedance-2.0-fast",
+        model_selector="cloud:seedance-2.0-fast",
         resolution="1080p",
         duration=9,
         ratio="16:9",
@@ -79,6 +80,7 @@ async def test_single_video_route_maps_request_to_application(
     assert command.episode_num == 3
     assert command.beat_num == 2
     assert command.video_model == "seedance-2.0-fast"
+    assert command.model_selector == "cloud:seedance-2.0-fast"
     assert command.resolution == "1080p"
     assert command.duration == 9
     assert command.ratio == "16:9"
@@ -86,6 +88,76 @@ async def test_single_video_route_maps_request_to_application(
     assert command.return_last_frame is True
     assert command.final_prompt == "fresh prompt"
     assert command.provided_fields == request.model_fields_set
+
+
+@pytest.mark.asyncio
+async def test_agent_single_video_uses_role_priority_without_selector(
+    monkeypatch,
+) -> None:
+    from ai_anime.api.routes.production import video as production_video
+    from ai_anime.api.routes.production.video_schemas import SingleVideoRequest
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    configure_model_access(
+        allows_custom_models=True,
+        mode="mixed",
+        model_assignments=[
+            {
+                "modelId": "lower-priority-video",
+                "role": "VIDEO_IMAGE_TO_VIDEO",
+                "priority": 20,
+            },
+            {
+                "modelId": "highest-priority-video",
+                "role": "VIDEO_IMAGE_TO_VIDEO",
+                "priority": 1,
+            },
+        ],
+    )
+    context = object()
+    commands = []
+
+    async def resolve(*_args, **_kwargs):
+        return type(
+            "Resolution",
+            (),
+            {
+                "ctx": context,
+                "username": "alice",
+                "project_name": "demo",
+            },
+        )()
+
+    class UseCases:
+        async def generate(self, _context, command):
+            commands.append(command)
+            return ScheduledSingleVideo(
+                task_id="task-priority",
+                task_key="task:single_video:project:proj-1:3:2",
+                backend="celery",
+                queue="node.local.video",
+                episode_num=3,
+                beat_num=2,
+            )
+
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve)
+    monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
+
+    response = await production_video.generate_single_video(
+        project="demo",
+        episode_num=3,
+        beat_num=2,
+        body=SingleVideoRequest(
+            model="stale-video",
+            model_selector="cloud:stale-video",
+            video_routing_policy="role_priority",
+        ),
+        user={"username": "alice"},
+    )
+
+    assert response["ok"] is True
+    assert commands[0].video_model == "highest-priority-video"
+    assert commands[0].model_selector is None
 
 
 @pytest.mark.asyncio

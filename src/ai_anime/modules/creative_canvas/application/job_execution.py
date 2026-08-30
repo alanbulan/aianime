@@ -113,6 +113,7 @@ class GenerateCreativeCanvasVideoJobCommand:
     generate_audio: bool = False
     human_review: bool = False
     scene_optimize: str | None = None
+    extra_params: Mapping[str, object] | None = None
     last_frame_path: str | None = None
     audio_setting: str | None = None
 

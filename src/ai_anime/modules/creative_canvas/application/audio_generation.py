@@ -15,6 +15,17 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 
 CREATIVE_CANVAS_SPEECH_GENERATION_TASK_TYPE = "freezone_audio_speech"
 CREATIVE_CANVAS_MUSIC_GENERATION_TASK_TYPE = "freezone_audio_eleven_music"
+CREATIVE_CANVAS_VOICE_DESIGN_TASK_TYPE = "freezone_voice_design"
+CREATIVE_CANVAS_VOICE_PRESET_TASK_TYPE = "freezone_voice_preset"
+
+
+def _voice_binding_scope(binding: dict[str, str] | None) -> str | None:
+    kind = str((binding or {}).get("kind") or "").strip()
+    if kind == "project_narrator":
+        return "project_narrator"
+    if kind in {"character_slot", "identity"}:
+        return "character_voice"
+    return None
 
 
 class InvalidCreativeCanvasAudioGenerationRequest(ValueError):
@@ -40,6 +51,7 @@ class StartCreativeCanvasSpeechGenerationCommand:
     voice_ref: dict[str, object] | None
     mode: str = "VOICE_CLONE"
     voice: str = ""
+    model_selector: str | None = None
     target_episode: int | None = None
     target_beat: int | None = None
 
@@ -54,6 +66,32 @@ class StartCreativeCanvasMusicGenerationCommand:
     force_instrumental: bool
     respect_sections_durations: bool
     output_format: str
+
+
+@dataclass(frozen=True)
+class StartCreativeCanvasVoiceDesignCommand:
+    context: ProjectContext
+    project_dir: Path
+    name: str
+    model_selector: str
+    voice_prompt: str
+    preview_text: str
+    preferred_name: str
+    language: str
+    sample_rate: int
+    response_format: str
+    binding: dict[str, str] | None = None
+
+
+@dataclass(frozen=True)
+class StartCreativeCanvasPresetVoiceCommand:
+    context: ProjectContext
+    project_dir: Path
+    name: str
+    model_selector: str
+    voice: str
+    text: str
+    binding: dict[str, str] | None = None
 
 
 class CreativeCanvasAudioGenerationUseCases:
@@ -81,7 +119,8 @@ class CreativeCanvasAudioGenerationUseCases:
             raise InvalidCreativeCanvasAudioGenerationRequest(
                 "mode must be SPEECH or VOICE_CLONE"
             )
-        if mode == "SPEECH" and not voice:
+        model_selector = str(command.model_selector or "").strip()
+        if mode == "SPEECH" and not voice and not model_selector.startswith("byok:"):
             raise InvalidCreativeCanvasAudioGenerationRequest(
                 "voice is required when mode is SPEECH"
             )
@@ -106,6 +145,7 @@ class CreativeCanvasAudioGenerationUseCases:
                     "emotion_prompt": command.emotion_prompt,
                     "mode": mode,
                     "voice": voice,
+                    "model_selector": model_selector,
                     "voice_ref": command.voice_ref,
                     "account_voice_username": (
                         command.context.requester_username
@@ -143,6 +183,78 @@ class CreativeCanvasAudioGenerationUseCases:
                     "force_instrumental": command.force_instrumental,
                     "respect_sections_durations": command.respect_sections_durations,
                     "output_format": command.output_format,
+                },
+            ),
+        )
+
+    async def start_voice_design(
+        self,
+        command: StartCreativeCanvasVoiceDesignCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        if not command.model_selector.strip():
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "model_selector is required"
+            )
+        if not command.voice_prompt.strip() or not command.preview_text.strip():
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "voice_prompt and preview_text are required"
+            )
+        job_id = self._job_ids.new_id()
+        return await self._scheduler.enqueue(
+            command.context,
+            CreativeCanvasTaskSubmission(
+                task_type=CREATIVE_CANVAS_VOICE_DESIGN_TASK_TYPE,
+                queue_kind="default",
+                job_id=job_id,
+                project_dir=command.project_dir,
+                scope=_voice_binding_scope(command.binding),
+                payload={
+                    "name": command.name,
+                    "model_selector": command.model_selector,
+                    "voice_prompt": command.voice_prompt,
+                    "preview_text": command.preview_text,
+                    "preferred_name": command.preferred_name,
+                    "language": command.language,
+                    "sample_rate": command.sample_rate,
+                    "response_format": command.response_format,
+                    "binding": command.binding,
+                    "display_name": (
+                        "设计并绑定项目解说声线"
+                        if _voice_binding_scope(command.binding) == "project_narrator"
+                        else "设计并绑定角色声线"
+                    ),
+                },
+            ),
+        )
+
+    async def start_preset_voice(
+        self,
+        command: StartCreativeCanvasPresetVoiceCommand,
+    ) -> CreativeCanvasTaskReceipt:
+        if not command.model_selector.strip() or not command.text.strip():
+            raise InvalidCreativeCanvasAudioGenerationRequest(
+                "model_selector and text are required"
+            )
+        job_id = self._job_ids.new_id()
+        return await self._scheduler.enqueue(
+            command.context,
+            CreativeCanvasTaskSubmission(
+                task_type=CREATIVE_CANVAS_VOICE_PRESET_TASK_TYPE,
+                queue_kind="default",
+                job_id=job_id,
+                project_dir=command.project_dir,
+                scope=_voice_binding_scope(command.binding),
+                payload={
+                    "name": command.name,
+                    "model_selector": command.model_selector,
+                    "voice": command.voice,
+                    "text": command.text,
+                    "binding": command.binding,
+                    "display_name": (
+                        "生成并绑定项目解说预设声线"
+                        if _voice_binding_scope(command.binding) == "project_narrator"
+                        else "生成并绑定预设声线"
+                    ),
                 },
             ),
         )

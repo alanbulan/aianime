@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -1195,6 +1196,7 @@ async def _run_freezone_audio_speech_async(
             emotion_prompt=str(payload.get("emotion_prompt") or ""),
             mode=str(payload.get("mode") or "VOICE_CLONE"),
             voice=str(payload.get("voice") or ""),
+            model_selector=str(payload.get("model_selector") or "") or None,
             voice_ref=payload.get("voice_ref"),
         )
     finally:
@@ -1230,6 +1232,267 @@ def run_freezone_audio_speech(
     envelope: dict[str, Any], ctx: ProjectContext
 ) -> dict[str, Any]:
     return _run_cancellable(envelope, _run_freezone_audio_speech_async(envelope, ctx))
+
+
+async def _bind_generated_voice(
+    *,
+    ctx: ProjectContext,
+    voice_id: str,
+    binding: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not binding:
+        return None
+    from ai_anime.modules.asset_world.public import (
+        character_voice_use_cases,
+        probe_voice_sample_duration_seconds,
+    )
+    from ai_anime.modules.creative_canvas.public import (
+        GetCreativeCanvasAudioVoiceQuery,
+        creative_canvas_audio_library_use_cases,
+    )
+    from ai_anime.modules.project_workspace.public import (
+        persist_narrator_voice_source,
+    )
+    from ai_anime.shared.infrastructure.project_stores import (
+        make_sqlite_store_for_context,
+    )
+    from ai_anime.shared.utils.async_ops import call_blocking
+    from ai_anime.shared.utils.voice_samples import (
+        validate_reference_voice_duration_seconds,
+    )
+
+    source_path = creative_canvas_audio_library_use_cases().get_voice(
+        GetCreativeCanvasAudioVoiceQuery(context=ctx, voice_id=voice_id)
+    )
+    duration = await call_blocking(probe_voice_sample_duration_seconds, source_path)
+    validate_reference_voice_duration_seconds(duration)
+
+    kind = str(binding.get("kind") or "").strip()
+    if kind == "project_narrator":
+        return await call_blocking(persist_narrator_voice_source, ctx, source_path)
+
+    character_name = str(binding.get("character_name") or "").strip()
+    store = await make_sqlite_store_for_context(ctx)
+    try:
+        if kind == "identity":
+            return await character_voice_use_cases().bind_identity_sample(
+                repository=store,
+                project_dir=ctx.output_dir,
+                character_name=character_name,
+                identity_id=str(binding.get("identity_id") or "").strip(),
+                source_path=source_path,
+                media_url=lambda _path: "",
+            )
+        if kind == "character_slot":
+            return await character_voice_use_cases().bind_sample(
+                repository=store,
+                project_dir=ctx.output_dir,
+                character_name=character_name,
+                slot=str(binding.get("slot") or "").strip(),
+                source_path=source_path,
+                media_url=lambda _path: "",
+            )
+        raise ValueError("不支持的角色声线绑定目标")
+    finally:
+        await store.close()
+
+
+async def _run_freezone_voice_design_async(
+    envelope: dict[str, Any],
+    ctx: ProjectContext,
+) -> dict[str, Any]:
+    from ai_anime.modules.creative_canvas.public import (
+        CreateCreativeCanvasAudioVoiceCommand,
+        creative_canvas_audio_library_use_cases,
+    )
+    from ai_anime.modules.model_usage.public import write_model_audio_voice_design
+
+    payload = envelope.get("payload") or {}
+    job_id = str(payload.get("job_id") or envelope.get("scope") or "")
+    scope = str(envelope.get("scope") or job_id)
+    response_format = str(payload.get("response_format") or "wav")
+    _update(ctx, "freezone_voice_design", scope, 0.10, "开始设计声线...")
+    with TemporaryDirectory(prefix="ai-anime-voice-design-") as temp_dir:
+        output_path = Path(temp_dir) / f"voice.{response_format}"
+        result = await write_model_audio_voice_design(
+            output_path=output_path,
+            voice_prompt=str(payload.get("voice_prompt") or ""),
+            preview_text=str(payload.get("preview_text") or ""),
+            model_selector=str(payload.get("model_selector") or ""),
+            preferred_name=str(payload.get("preferred_name") or "custom_voice"),
+            language=str(payload.get("language") or "zh"),
+            sample_rate=int(payload.get("sample_rate") or 24000),
+            response_format=response_format,
+        )
+        _update(ctx, "freezone_voice_design", scope, 0.75, "保存账号声线...")
+        voice = dict(
+            creative_canvas_audio_library_use_cases().create_voice(
+                CreateCreativeCanvasAudioVoiceCommand(
+                    context=ctx,
+                    name=str(payload.get("name") or payload.get("voice_prompt") or "")[:80],
+                    filename=output_path.name,
+                    content=output_path.read_bytes(),
+                    mime_type=(
+                        "audio/wav" if response_format == "wav" else "audio/mpeg"
+                    ),
+                )
+            )
+        )
+    voice_id = str(voice.get("voice_id") or "")
+    bound = await _bind_generated_voice(
+        ctx=ctx,
+        voice_id=voice_id,
+        binding=payload.get("binding") if isinstance(payload.get("binding"), dict) else None,
+    )
+    _update(ctx, "freezone_voice_design", scope, 0.95, "声线已生成并绑定")
+    return {
+        **voice,
+        "provider_voice_id": result.voice_id,
+        "binding": bound,
+    }
+
+
+def run_freezone_voice_design(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    return _run_cancellable(
+        envelope,
+        _run_freezone_voice_design_async(envelope, ctx),
+        task_type="freezone_voice_design",
+    )
+
+
+async def _run_freezone_voice_preset_async(
+    envelope: dict[str, Any],
+    ctx: ProjectContext,
+) -> dict[str, Any]:
+    from ai_anime.modules.creative_canvas.public import (
+        CreateCreativeCanvasPresetVoiceCommand,
+        creative_canvas_audio_library_use_cases,
+    )
+
+    payload = envelope.get("payload") or {}
+    job_id = str(payload.get("job_id") or envelope.get("scope") or "")
+    scope = str(envelope.get("scope") or job_id)
+    _update(ctx, "freezone_voice_preset", scope, 0.10, "开始生成预设声线...")
+    voice = dict(
+        await creative_canvas_audio_library_use_cases().create_preset_voice(
+            CreateCreativeCanvasPresetVoiceCommand(
+                context=ctx,
+                project_dir=Path(str(payload.get("project_dir") or ctx.output_dir)),
+                name=str(payload.get("name") or ""),
+                model_selector=str(payload.get("model_selector") or ""),
+                voice=str(payload.get("voice") or ""),
+                text=str(payload.get("text") or ""),
+            )
+        )
+    )
+    _update(ctx, "freezone_voice_preset", scope, 0.80, "保存并绑定预设声线...")
+    bound = await _bind_generated_voice(
+        ctx=ctx,
+        voice_id=str(voice.get("voice_id") or ""),
+        binding=payload.get("binding") if isinstance(payload.get("binding"), dict) else None,
+    )
+    _update(ctx, "freezone_voice_preset", scope, 0.95, "预设声线已生成并绑定")
+    return {**voice, "binding": bound}
+
+
+def run_freezone_voice_preset(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    return _run_cancellable(
+        envelope,
+        _run_freezone_voice_preset_async(envelope, ctx),
+        task_type="freezone_voice_preset",
+    )
+
+
+async def _run_freezone_mark_detect_async(
+    envelope: dict[str, Any],
+    ctx: ProjectContext,
+) -> dict[str, Any]:
+    from ai_anime.modules.creative_canvas.public import (
+        CreativeCanvasMarkSelection,
+        DetectCreativeCanvasMarkCommand,
+        creative_canvas_mark_detection_use_cases,
+    )
+
+    payload = envelope.get("payload") or {}
+    scope = str(envelope.get("scope") or payload.get("job_id") or "")
+    selection_data = payload.get("selection") or {}
+    _update(ctx, "freezone_mark_detect", scope, 0.10, "读取图片与选区...")
+    result = await creative_canvas_mark_detection_use_cases().detect(
+        DetectCreativeCanvasMarkCommand(
+            project_dir=Path(str(payload.get("project_dir") or ctx.output_dir)),
+            source_url=str(payload.get("source_url") or ""),
+            selection=CreativeCanvasMarkSelection(
+                point_x=selection_data.get("point_x"),
+                point_y=selection_data.get("point_y"),
+                box_x=selection_data.get("box_x"),
+                box_y=selection_data.get("box_y"),
+                box_width=selection_data.get("box_width"),
+                box_height=selection_data.get("box_height"),
+            ),
+        )
+    )
+    _update(ctx, "freezone_mark_detect", scope, 0.95, "局部标记识别完成")
+    selection = result.selection
+    return {
+        "mark": {
+            "label": result.label,
+            "source_url": result.source_url,
+            "point_x": selection.point_x,
+            "point_y": selection.point_y,
+            "box_x": selection.box_x,
+            "box_y": selection.box_y,
+            "box_width": selection.box_width,
+            "box_height": selection.box_height,
+            "note": result.note,
+        },
+        "model": result.model,
+    }
+
+
+def run_freezone_mark_detect(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    return _run_cancellable(
+        envelope,
+        _run_freezone_mark_detect_async(envelope, ctx),
+        task_type="freezone_mark_detect",
+    )
+
+
+async def _run_freezone_ai_staging_prop_async(
+    envelope: dict[str, Any],
+    ctx: ProjectContext,
+) -> dict[str, Any]:
+    from ai_anime.modules.creative_canvas.public import (
+        GenerateCreativeCanvasStagingPropCommand,
+        creative_canvas_staging_prop_use_cases,
+    )
+
+    payload = envelope.get("payload") or {}
+    scope = str(envelope.get("scope") or payload.get("job_id") or "")
+    request = payload.get("request")
+    if not isinstance(request, dict):
+        raise ValueError("AI 布景道具任务缺少请求参数")
+    _update(ctx, "freezone_ai_staging_prop", scope, 0.10, "分析布景道具需求...")
+    result = await creative_canvas_staging_prop_use_cases().generate(
+        GenerateCreativeCanvasStagingPropCommand(request=request)
+    )
+    _update(ctx, "freezone_ai_staging_prop", scope, 0.95, "AI 布景道具生成完成")
+    return dict(result)
+
+
+def run_freezone_ai_staging_prop(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    return _run_cancellable(
+        envelope,
+        _run_freezone_ai_staging_prop_async(envelope, ctx),
+        task_type="freezone_ai_staging_prop",
+    )
 
 
 async def _run_freezone_audio_eleven_music_async(
@@ -1308,6 +1571,12 @@ register_project_task_runner(
     run_freezone_image_reverse_prompt,
 )
 register_project_task_runner("freezone_audio_speech", run_freezone_audio_speech)
+register_project_task_runner("freezone_voice_design", run_freezone_voice_design)
+register_project_task_runner("freezone_voice_preset", run_freezone_voice_preset)
+register_project_task_runner("freezone_mark_detect", run_freezone_mark_detect)
+register_project_task_runner(
+    "freezone_ai_staging_prop", run_freezone_ai_staging_prop
+)
 register_project_task_runner(
     "freezone_audio_eleven_music", run_freezone_audio_eleven_music
 )

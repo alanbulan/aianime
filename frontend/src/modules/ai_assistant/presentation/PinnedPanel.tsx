@@ -22,7 +22,7 @@ export function PinnedPanel({
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs font-medium">
           <Pin className="size-3.5" />
-          {t("aiAssistant.pinned")}
+          {t("aiAssistant.pinnedContext", "固定上下文 · 压缩时保留原文")}
         </div>
         <Button variant="ghost" size="xs" onClick={onClear}>
           {t("aiAssistant.clearPinned")}
@@ -34,6 +34,7 @@ export function PinnedPanel({
             key={message.id}
             type="button"
             onClick={() => onTogglePin(message.id)}
+            data-ui-tooltip={t("aiAssistant.unpinContext", "取消固定完整内容")}
             className="min-w-44 max-w-56 rounded-md border border-border bg-card px-2 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <div className="line-clamp-2">{message.text}</div>

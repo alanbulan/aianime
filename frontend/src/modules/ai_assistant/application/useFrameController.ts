@@ -8,14 +8,21 @@ import {
 import { currentTurnIsLive } from "@/modules/ai_assistant/domain/activeTurn";
 import type {
   ChatConversation,
+  DecisionRequest,
   ChatMessage,
   ChatScope,
+  ChatSlashCommand,
   ServerFrame,
 } from "@/modules/ai_assistant/domain/contracts";
+import { normalizeSlashCommands } from "@/modules/ai_assistant/domain/slashCommand";
 import {
   isChatScope,
   scopeMatches,
 } from "@/modules/ai_assistant/domain/scope";
+import {
+  normalizeDecision,
+  normalizeDecisions,
+} from "@/modules/ai_assistant/domain/decision";
 import {
   appendToolMessage,
   shouldPreserveToolMessage,
@@ -48,7 +55,14 @@ type FrameControllerOptions = {
   setError: Dispatch<SetStateAction<string | null>>;
   setHistoryReady: Dispatch<SetStateAction<boolean>>;
   setConversations: Dispatch<SetStateAction<ChatConversation[]>>;
+  setDecisions: Dispatch<SetStateAction<DecisionRequest[]>>;
+  setDeletedIds: Dispatch<SetStateAction<Set<string>>>;
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
+  setActiveModel: Dispatch<SetStateAction<string | null>>;
+  setActiveReasoningEffort: Dispatch<SetStateAction<string | null>>;
+  setModelsLoading: Dispatch<SetStateAction<boolean>>;
+  setPinnedIds: Dispatch<SetStateAction<Set<string>>>;
+  setSlashCommands: Dispatch<SetStateAction<ChatSlashCommand[]>>;
   setBusy: Dispatch<SetStateAction<boolean>>;
   setStreamText: Dispatch<SetStateAction<string>>;
   markTurnActive: (turnId: string | null) => void;
@@ -70,7 +84,14 @@ export function useSuperChatFrameController({
   setError,
   setHistoryReady,
   setConversations,
+  setDecisions,
+  setDeletedIds,
   setMessages,
+  setActiveModel,
+  setActiveReasoningEffort,
+  setModelsLoading,
+  setPinnedIds,
+  setSlashCommands,
   setBusy,
   setStreamText,
   markTurnActive,
@@ -91,6 +112,7 @@ export function useSuperChatFrameController({
         setError(null);
         const frameScope = isChatScope(frame.scope) ? frame.scope : undefined;
         if (!scopeMatches(frameScope, desiredScope)) break;
+        setSlashCommands(normalizeSlashCommands(frame.commands));
         setHistoryReady(true);
         setConversations(
           Array.isArray(frame.conversations)
@@ -103,7 +125,18 @@ export function useSuperChatFrameController({
               ))
             : [],
         );
+        setDecisions(normalizeDecisions(frame.decisions));
         const history = normalizeHistory(Array.isArray(frame.history) ? frame.history : []);
+        setPinnedIds(new Set(
+          history
+            .filter((message) => message.contextState === "pinned")
+            .map((message) => message.id),
+        ));
+        setDeletedIds(new Set(
+          history
+            .filter((message) => message.contextState === "excluded")
+            .map((message) => message.id),
+        ));
         const remoteBusy = frame.busy === true;
         const remoteIdle = frame.busy === false;
         const activeTurnId = activeTurnIdRef.current;
@@ -151,6 +184,51 @@ export function useSuperChatFrameController({
           setStreamText("");
           setBusy(false);
         }
+        break;
+      }
+      case "commands.available":
+        setSlashCommands(normalizeSlashCommands(frame.commands));
+        break;
+      case "session.model.state": {
+        const frameScope = isChatScope(frame.scope) ? frame.scope : undefined;
+        if (frameScope && !scopeMatches(frameScope, desiredScope)) break;
+        setModelsLoading(false);
+        if (typeof frame.error === "string" && frame.error.trim()) {
+          setError(frame.error.trim());
+          break;
+        }
+        setError(null);
+        setActiveModel(
+          typeof frame.selector === "string" && frame.selector.trim()
+            ? frame.selector.trim()
+            : "auto",
+        );
+        setActiveReasoningEffort(
+          typeof frame.reasoning_effort === "string" && frame.reasoning_effort.trim()
+            ? frame.reasoning_effort.trim()
+            : null,
+        );
+        break;
+      }
+      case "decision_required": {
+        const frameScope = isChatScope(frame.scope) ? frame.scope : undefined;
+        if (frameScope && !scopeMatches(frameScope, desiredScope)) break;
+        const decision = normalizeDecision(frame.decision);
+        if (!decision) break;
+        setDecisions((current) => [
+          ...current.filter((item) => item.id !== decision.id),
+          decision,
+        ]);
+        break;
+      }
+      case "decision_resolved": {
+        const frameScope = isChatScope(frame.scope) ? frame.scope : undefined;
+        if (frameScope && !scopeMatches(frameScope, desiredScope)) break;
+        const decisionId = typeof frame.decision_id === "string"
+          ? frame.decision_id.trim()
+          : "";
+        if (!decisionId) break;
+        setDecisions((current) => current.filter((item) => item.id !== decisionId));
         break;
       }
       case "conversation.deleted": {
@@ -363,7 +441,7 @@ export function useSuperChatFrameController({
         setMessages((current) => appendToolMessage(current, frame.type, frame));
         break;
       case "error":
-        setError(typeof frame.message === "string" ? frame.message : "Unknown chat error");
+        setError(typeof frame.message === "string" ? frame.message : "聊天发生未知错误");
         if (
           typeof frame.message === "string"
           && frame.message.includes("当前用户已有 AI 对话正在处理中")
@@ -403,7 +481,13 @@ export function useSuperChatFrameController({
     setError,
     setHistoryReady,
     setConversations,
+    setDecisions,
+    setDeletedIds,
     setMessages,
+    setActiveModel,
+    setModelsLoading,
+    setPinnedIds,
+    setSlashCommands,
     setStreamText,
     streamTextRef,
   ]);

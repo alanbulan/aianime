@@ -130,6 +130,7 @@ async def test_runtime_dispatches_all_character_image_modes_and_closes_store(
             "style": "period-drama",
             "model": "image-model",
             "output_dir": str(tmp_path),
+            **({"ethnicity": "Japanese"} if mode == "portrait" else {}),
         },
     }
 
@@ -147,7 +148,9 @@ async def test_runtime_dispatches_all_character_image_modes_and_closes_store(
     }
     assert len(calls) == 1
     assert calls[0]["character"] is _Store.character
-    assert calls[0]["ethnicity"] == "Chinese"
+    assert calls[0]["ethnicity"] == (
+        "Japanese" if mode == "portrait" else "Chinese"
+    )
     assert calls[0]["task_type"] == task_type
     assert calls[0]["scope"] == "character:秦:test"
     assert _Store.instances[0].initialized is True

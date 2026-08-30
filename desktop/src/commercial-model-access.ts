@@ -1,5 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
+import { resolveProviderStrategy } from "./commercial-model-providers/factory.js";
+import type { ProviderDiscoveredModel } from "./commercial-model-providers/types.js";
 import {
   readEncryptedJsonFile,
   writeEncryptedJsonFile,
@@ -34,11 +36,54 @@ export const BYOK_MODEL_ROLES = [
 
 export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
 
+export interface ModelRuntimeOverrides {
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+}
+
 export interface ByokModelAssignment {
   modelId: string;
   role: ByokModelRole;
   priority: number;
   enabled: boolean;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+  runtimeOverrides?: ModelRuntimeOverrides;
+}
+
+export interface EffectiveModelRuntimeSettings {
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+}
+
+export function effectiveModelRuntimeSettings(
+  assignment: ByokModelAssignment,
+): EffectiveModelRuntimeSettings {
+  const overrides = assignment.runtimeOverrides;
+  const reasoningEfforts = overrides?.reasoningEfforts
+    ?? assignment.reasoningEfforts;
+  const requestedDefault = overrides?.defaultReasoningEffort
+    ?? assignment.defaultReasoningEffort;
+  const defaultReasoningEffort = requestedDefault
+    && reasoningEfforts?.includes(requestedDefault)
+    ? requestedDefault
+    : undefined;
+  return {
+    ...(overrides?.contextWindow ?? assignment.contextWindow
+      ? { contextWindow: overrides?.contextWindow ?? assignment.contextWindow }
+      : {}),
+    ...(overrides?.maxOutputTokens ?? assignment.maxOutputTokens
+      ? { maxOutputTokens: overrides?.maxOutputTokens ?? assignment.maxOutputTokens }
+      : {}),
+    ...(reasoningEfforts?.length ? { reasoningEfforts: [...reasoningEfforts] } : {}),
+    ...(defaultReasoningEffort ? { defaultReasoningEffort } : {}),
+  };
 }
 
 export interface StoredByokProvider {
@@ -85,7 +130,6 @@ export interface ByokProviderModelDiscoveryInput {
   apiKey?: string;
 }
 
-const MAX_BYOK_CATALOG_BYTES = 4 * 1024 * 1024;
 const MAX_MODEL_ASSIGNMENTS = 256;
 const MAX_BYOK_PROVIDERS = 16;
 const BYOK_MODEL_ROLE_SET = new Set<string>(BYOK_MODEL_ROLES);
@@ -123,11 +167,44 @@ const BYOK_ROLE_CAPABILITY: Record<
   EMBEDDING: { operation: "EMBEDDING" },
 };
 
+const BYOK_VOICE_DESIGN_PARAMETER_SCHEMA = JSON.stringify({
+  type: "object",
+  properties: {
+    voice_prompt: { type: "string", maxLength: 2048 },
+    preview_text: { type: "string", maxLength: 1024 },
+    preferred_name: {
+      type: "string",
+      default: "custom_voice",
+      maxLength: 16,
+    },
+    language: {
+      type: "string",
+      enum: ["zh", "en", "de", "it", "pt", "es", "ja", "ko", "fr", "ru"],
+      default: "zh",
+    },
+    sample_rate: {
+      type: "integer",
+      enum: [8000, 16000, 24000, 48000],
+      default: 24000,
+    },
+    response_format: {
+      type: "string",
+      enum: ["wav", "mp3"],
+      default: "wav",
+    },
+  },
+});
+
 export async function fetchByokProviderModelIds(
   access: StoredCommercialModelAccess,
   providerOrInput: string | ByokProviderModelDiscoveryInput,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ providerId: string; models: string[]; catalogVersion: string }> {
+): Promise<{
+  providerId: string;
+  models: string[];
+  modelMetadata: ProviderDiscoveredModel[];
+  catalogVersion: string;
+}> {
   const input =
     typeof providerOrInput === "string"
       ? { providerId: providerOrInput }
@@ -159,11 +236,22 @@ export async function fetchByokProviderModelIds(
     priority: existing?.priority ?? 100,
     modelAssignments: [],
   };
-  const models = await requestProviderModelIds(provider, fetchImpl);
+  const strategy = resolveProviderStrategy(provider.protocol, provider.baseUrl);
+  const discoveryInput = {
+    apiKey: provider.apiKey,
+    baseUrl: provider.baseUrl,
+    fetchImpl,
+    providerName: provider.name,
+  };
+  const modelMetadata = strategy.discoverModels
+    ? await strategy.discoverModels(discoveryInput)
+    : (await strategy.discoverModelIds(discoveryInput)).map((id) => ({ id }));
+  const models = modelMetadata.map((model) => model.id);
   return {
     providerId,
     models,
-    catalogVersion: catalogVersion(providerId, models),
+    modelMetadata,
+    catalogVersion: catalogVersion(providerId, modelMetadata),
   };
 }
 
@@ -192,6 +280,7 @@ export async function fetchByokModelCatalog(
       code: string;
       displayName: string;
       operation: string;
+      parameterSchemaJson: string;
       supportedModes: Set<string>;
     }
   >();
@@ -205,6 +294,17 @@ export async function fetchByokModelCatalog(
         code: assignment.modelId,
         displayName: `${assignment.modelId} · ${provider.name}`,
         operation: capability.operation,
+        parameterSchemaJson:
+          resolveProviderStrategy(
+            provider.protocol,
+            provider.baseUrl,
+          ).parameterSchema(
+            assignment.role,
+            assignment.modelId,
+          ) ??
+          (capability.operation === "AUDIO_VOICE_DESIGN"
+            ? BYOK_VOICE_DESIGN_PARAMETER_SCHEMA
+            : "{}"),
         supportedModes: new Set<string>(),
       };
       for (const mode of capability.modes ?? []) group.supportedModes.add(mode);
@@ -212,24 +312,52 @@ export async function fetchByokModelCatalog(
     }
   }
   const items = Array.from(grouped.entries())
-    .map(([key, item]) => ({
+    .map(([key, item]) => {
+      const separator = key.lastIndexOf(":" + item.operation);
+      const providerAndModel = key.slice(0, separator);
+      const providerId = providerAndModel.slice(0, providerAndModel.indexOf(":"));
+      const modelId = providerAndModel.slice(providerId.length + 1);
+      const assignment = access.byokProviders
+        .find((provider) => provider.id === providerId)
+        ?.modelAssignments.find((candidate) => (
+          candidate.modelId === modelId
+          && BYOK_ROLE_CAPABILITY[candidate.role].operation === item.operation
+        ));
+      const capabilities = {
+        ...(item.supportedModes.size > 0
+          ? { supportedModes: Array.from(item.supportedModes).sort() }
+          : {}),
+        routeSelector: `byok:${providerAndModel}`,
+        ...(assignment
+          && effectiveModelRuntimeSettings(assignment).contextWindow
+          ? {
+              contextWindowTokens:
+                effectiveModelRuntimeSettings(assignment).contextWindow,
+            }
+          : {}),
+        ...(assignment
+          && effectiveModelRuntimeSettings(assignment).maxOutputTokens
+          ? {
+              maxOutputTokens:
+                effectiveModelRuntimeSettings(assignment).maxOutputTokens,
+            }
+          : {}),
+      };
+      const parameterSchemaJson = mergeReasoningParameterSchema(
+        item.parameterSchemaJson,
+        assignment ? effectiveModelRuntimeSettings(assignment) : undefined,
+      );
+      return {
       id: key,
       code: item.code,
       displayName: item.displayName,
       operation: item.operation,
-      capabilityJson:
-        item.supportedModes.size > 0
-          ? JSON.stringify({
-              supportedModes: Array.from(item.supportedModes).sort(),
-              routeSelector: `byok:${key.slice(0, key.lastIndexOf(":" + item.operation))}`,
-            })
-          : JSON.stringify({
-              routeSelector: `byok:${key.slice(0, key.lastIndexOf(":" + item.operation))}`,
-            }),
-      parameterSchemaJson: "{}",
+      capabilityJson: JSON.stringify(capabilities),
+      parameterSchemaJson,
       clientVisible: true as const,
       status: "ACTIVE" as const,
-    }))
+      };
+    })
     .sort(
       (left, right) =>
         left.operation.localeCompare(right.operation) ||
@@ -239,7 +367,9 @@ export async function fetchByokModelCatalog(
     items,
     catalogVersion: catalogVersion(
       "all",
-      items.map((item) => `${item.id}:${item.capabilityJson}`),
+      items.map((item) => (
+        `${item.id}:${item.capabilityJson}:${item.parameterSchemaJson}`
+      )),
     ),
   };
 }
@@ -282,11 +412,21 @@ export class EncryptedFileCommercialModelAccessStore {
       input.protocol ?? existing?.protocol ?? "OPENAI_COMPATIBLE",
     );
     const baseUrl = normalizeByokBaseUrl(input.baseUrl, protocol);
-    const modelAssignments =
+    const requestedAssignments =
       input.modelAssignments === undefined
         ? existing?.modelAssignments ?? []
         : normalizeModelAssignments(input.modelAssignments);
-    assertProtocolAssignments(protocol, modelAssignments);
+    if (input.modelAssignments !== undefined) {
+      resolveProviderStrategy(protocol, baseUrl).validateInputAssignments?.(
+        requestedAssignments,
+      );
+    }
+    const modelAssignments = migrateStoredProviderAssignments(
+      protocol,
+      baseUrl,
+      requestedAssignments,
+    );
+    assertProviderAssignments(protocol, baseUrl, modelAssignments);
     const nextProvider: StoredByokProvider = {
       id: providerId,
       name: normalizeProviderName(input.name, existing?.name, baseUrl),
@@ -462,10 +602,12 @@ function parseProvider(
     record.protocol ?? defaultProtocol,
   );
   const baseUrl = normalizeByokBaseUrl(String(record.baseUrl ?? ""), protocol);
-  const modelAssignments = normalizeStoredModelAssignments(
-    record.modelAssignments,
+  const modelAssignments = migrateStoredProviderAssignments(
+    protocol,
+    baseUrl,
+    normalizeStoredModelAssignments(record.modelAssignments),
   );
-  assertProtocolAssignments(protocol, modelAssignments);
+  assertProviderAssignments(protocol, baseUrl, modelAssignments);
   return {
     id: normalizeProviderId(String(record.id ?? "")),
     name: normalizeProviderName(String(record.name ?? ""), "", baseUrl),
@@ -516,70 +658,129 @@ function normalizeModelAssignments(
       role: role as ByokModelRole,
       priority: normalizePriority(record.priority, defaultPriority + index),
       enabled: record.enabled !== false,
+      ...normalizedModelMetadata(record),
     };
     unique.set(`${assignment.role}\u0000${assignment.modelId}`, assignment);
   });
   return Array.from(unique.values()).sort(compareAssignments);
 }
 
-async function requestProviderModelIds(
-  provider: StoredByokProvider,
-  fetchImpl: typeof fetch,
-): Promise<string[]> {
-  const url = new URL("models", `${provider.baseUrl}/`);
-  if (provider.protocol === "GEMINI") url.searchParams.set("pageSize", "1000");
-  const headers = providerHeaders(provider);
-  const response = await fetchImpl(url, {
-    method: "GET",
-    headers,
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!response.ok) {
-    throw new Error(`${provider.name} 模型目录请求失败 (${response.status})`);
-  }
-  const declaredLength = Number(response.headers.get("content-length") ?? "0");
-  if (declaredLength > MAX_BYOK_CATALOG_BYTES) {
-    throw new Error(`${provider.name} 模型目录响应过大`);
-  }
-  const text = await response.text();
-  if (Buffer.byteLength(text, "utf8") > MAX_BYOK_CATALOG_BYTES) {
-    throw new Error(`${provider.name} 模型目录响应过大`);
-  }
-  let payload: unknown;
-  try {
-    payload = JSON.parse(text) as unknown;
-  } catch {
-    throw new Error(`${provider.name} 模型目录不是有效 JSON`);
-  }
-  const root = requiredRecord(payload, `${provider.name} model catalog`);
-  const data = Array.isArray(root.data) ? root.data : Array.isArray(root.models) ? root.models : null;
-  if (!data) throw new Error(`${provider.name} 模型目录缺少 data 数组`);
-  const models = new Set<string>();
-  data.forEach((item, index) => {
-    const model =
-      typeof item === "string"
-        ? item
-        : provider.protocol === "GEMINI"
-          ? requiredRecord(item, `model[${index}]`).name
-          : requiredRecord(item, `model[${index}]`).id;
-    const modelId = String(model ?? "").trim().replace(/^models\//, "");
-    if (!modelId || modelId.length > 256) {
-      throw new Error(`${provider.name} model[${index}].id 无效`);
-    }
-    models.add(modelId);
-  });
-  return Array.from(models).sort((left, right) => left.localeCompare(right));
-}
-
 function emptyByokCatalog() {
   return { items: [], catalogVersion: catalogVersion("empty", []) };
 }
 
-function catalogVersion(providerId: string, values: readonly string[]): string {
+function catalogVersion(providerId: string, values: readonly unknown[]): string {
   return `byok-${createHash("sha256")
     .update(JSON.stringify([providerId, ...values]), "utf8")
     .digest("hex")
     .slice(0, 16)}`;
+}
+
+function normalizedModelMetadata(
+  record: Record<string, unknown>,
+): Pick<
+  ByokModelAssignment,
+  | "contextWindow"
+  | "maxOutputTokens"
+  | "reasoningEfforts"
+  | "defaultReasoningEffort"
+  | "runtimeOverrides"
+> {
+  const contextWindow = Number(record.contextWindow);
+  const maxOutputTokens = Number(record.maxOutputTokens);
+  const reasoningEfforts = normalizeReasoningEfforts(record.reasoningEfforts);
+  const defaultReasoningEffort = typeof record.defaultReasoningEffort === "string"
+    ? record.defaultReasoningEffort.trim()
+    : "";
+  const runtimeOverrides = normalizeRuntimeOverrides(record.runtimeOverrides);
+  return {
+    ...(Number.isSafeInteger(contextWindow) && contextWindow > 0
+      ? { contextWindow }
+      : {}),
+    ...(Number.isSafeInteger(maxOutputTokens) && maxOutputTokens > 0
+      ? { maxOutputTokens }
+      : {}),
+    ...(reasoningEfforts.length > 0 ? { reasoningEfforts } : {}),
+    ...(defaultReasoningEffort
+      && reasoningEfforts.includes(defaultReasoningEffort)
+      ? { defaultReasoningEffort }
+      : {}),
+    ...(runtimeOverrides ? { runtimeOverrides } : {}),
+  };
+}
+
+function normalizeRuntimeOverrides(value: unknown): ModelRuntimeOverrides | undefined {
+  if (value === undefined || value === null) return undefined;
+  const record = requiredRecord(value, "model runtime overrides");
+  const contextWindow = Number(record.contextWindow);
+  const maxOutputTokens = Number(record.maxOutputTokens);
+  const reasoningEfforts = normalizeReasoningEfforts(record.reasoningEfforts);
+  const requestedDefault = typeof record.defaultReasoningEffort === "string"
+    ? record.defaultReasoningEffort.trim()
+    : "";
+  const overrides: ModelRuntimeOverrides = {
+    ...(Number.isSafeInteger(contextWindow) && contextWindow > 0
+      ? { contextWindow }
+      : {}),
+    ...(Number.isSafeInteger(maxOutputTokens) && maxOutputTokens > 0
+      ? { maxOutputTokens }
+      : {}),
+    ...(reasoningEfforts.length ? { reasoningEfforts } : {}),
+    ...(requestedDefault && reasoningEfforts.includes(requestedDefault)
+      ? { defaultReasoningEffort: requestedDefault }
+      : {}),
+  };
+  return Object.keys(overrides).length ? overrides : undefined;
+}
+
+function normalizeReasoningEfforts(value: unknown): string[] {
+  return Array.isArray(value)
+    ? Array.from(new Set(
+        value
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter((item) => (
+            Boolean(item)
+            && item.length <= 64
+            && !/[\u0000-\u001f\u007f]/u.test(item)
+          )),
+      ))
+    : [];
+}
+
+function mergeReasoningParameterSchema(
+  rawSchema: string,
+  assignment: EffectiveModelRuntimeSettings | undefined,
+): string {
+  if (!assignment?.reasoningEfforts?.length) return rawSchema;
+  let schema: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(rawSchema) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      schema = parsed as Record<string, unknown>;
+    }
+  } catch {
+    schema = {};
+  }
+  const properties = schema.properties
+    && typeof schema.properties === "object"
+    && !Array.isArray(schema.properties)
+    ? schema.properties as Record<string, unknown>
+    : {};
+  return JSON.stringify({
+    ...schema,
+    type: typeof schema.type === "string" ? schema.type : "object",
+    properties: {
+      ...properties,
+      reasoning_effort: {
+        type: "string",
+        enum: assignment.reasoningEfforts,
+        ...(assignment.defaultReasoningEffort
+          ? { default: assignment.defaultReasoningEffort }
+          : {}),
+      },
+    },
+  });
 }
 
 function normalizeByokBaseUrl(
@@ -603,10 +804,7 @@ function normalizeByokBaseUrl(
     throw new Error("BYOK Base URL 仅支持不含凭据、查询参数和片段的 HTTP(S) 地址");
   }
   const baseUrl = url.toString().replace(/\/+$/, "");
-  if (protocol === "GEMINI") {
-    return /\/v\d+(?:beta\d*)?$/.test(baseUrl) ? baseUrl : `${baseUrl}/v1beta`;
-  }
-  return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
+  return resolveProviderStrategy(protocol, baseUrl).normalizeBaseUrl(url);
 }
 
 function normalizeProviderProtocol(value: unknown): ByokProviderProtocol {
@@ -617,29 +815,20 @@ function normalizeProviderProtocol(value: unknown): ByokProviderProtocol {
   return protocol as ByokProviderProtocol;
 }
 
-function assertProtocolAssignments(
+function migrateStoredProviderAssignments(
   protocol: ByokProviderProtocol,
+  baseUrl: string,
   assignments: readonly ByokModelAssignment[],
-): void {
-  if (protocol === "OPENAI_COMPATIBLE") return;
-  const unsupported = assignments.find((assignment) => assignment.role !== "TEXT");
-  if (unsupported) {
-    throw new Error(`${protocol} 原生协议当前仅支持文本模型用途`);
-  }
+): ByokModelAssignment[] {
+  return resolveProviderStrategy(protocol, baseUrl).migrateAssignments(assignments);
 }
 
-function providerHeaders(provider: StoredByokProvider): Headers {
-  const headers = new Headers({ Accept: "application/json" });
-  if (!provider.apiKey) return headers;
-  if (provider.protocol === "ANTHROPIC") {
-    headers.set("X-Api-Key", provider.apiKey);
-    headers.set("Anthropic-Version", "2023-06-01");
-  } else if (provider.protocol === "GEMINI") {
-    headers.set("X-Goog-Api-Key", provider.apiKey);
-  } else {
-    headers.set("Authorization", `Bearer ${provider.apiKey}`);
-  }
-  return headers;
+function assertProviderAssignments(
+  protocol: ByokProviderProtocol,
+  baseUrl: string,
+  assignments: readonly ByokModelAssignment[],
+): void {
+  resolveProviderStrategy(protocol, baseUrl).validateAssignments(assignments);
 }
 
 function normalizeProviderId(value: string): string {
@@ -680,7 +869,26 @@ function compareProviders(left: StoredByokProvider, right: StoredByokProvider): 
 }
 
 function copyAssignment(value: ByokModelAssignment): ByokModelAssignment {
-  return { ...value };
+  return {
+    ...value,
+    ...(value.reasoningEfforts
+      ? { reasoningEfforts: [...value.reasoningEfforts] }
+      : {}),
+    ...(value.runtimeOverrides
+      ? {
+          runtimeOverrides: {
+            ...value.runtimeOverrides,
+            ...(value.runtimeOverrides.reasoningEfforts
+              ? {
+                  reasoningEfforts: [
+                    ...value.runtimeOverrides.reasoningEfforts,
+                  ],
+                }
+              : {}),
+          },
+        }
+      : {}),
+  };
 }
 
 function maskSecret(value: string): string {

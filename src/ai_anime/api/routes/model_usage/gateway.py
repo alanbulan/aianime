@@ -23,6 +23,26 @@ class CommercialModelAssignmentBody(BaseModel):
     role: str = Field(min_length=1, max_length=64)
     priority: int = Field(default=100, ge=1, le=9999)
     enabled: bool = True
+    context_window: int | None = Field(
+        default=None,
+        alias="contextWindow",
+        gt=0,
+    )
+    max_output_tokens: int | None = Field(
+        default=None,
+        alias="maxOutputTokens",
+        gt=0,
+    )
+    reasoning_efforts: list[str] = Field(
+        default_factory=list,
+        alias="reasoningEfforts",
+        max_length=16,
+    )
+    default_reasoning_effort: str | None = Field(
+        default=None,
+        alias="defaultReasoningEffort",
+        max_length=64,
+    )
 
 
 class CommercialModelCapabilityBody(BaseModel):
@@ -31,6 +51,39 @@ class CommercialModelCapabilityBody(BaseModel):
         default=None,
         alias="videoProfile",
         pattern="^(standard|seedance2|happyhorse|grok)$",
+    )
+    video_ratio_options: list[str] = Field(
+        default_factory=list,
+        alias="videoRatioOptions",
+        max_length=32,
+    )
+    video_resolution_options: list[str] = Field(
+        default_factory=list,
+        alias="videoResolutionOptions",
+        max_length=32,
+    )
+    video_size_options: list[str] = Field(
+        default_factory=list,
+        alias="videoSizeOptions",
+        max_length=32,
+    )
+    video_supports_generate_audio: bool | None = Field(
+        default=None,
+        alias="videoSupportsGenerateAudio",
+    )
+    video_supports_human_review: bool | None = Field(
+        default=None,
+        alias="videoSupportsHumanReview",
+    )
+    video_extra_parameter_names: list[str] = Field(
+        default_factory=list,
+        alias="videoExtraParameterNames",
+        max_length=32,
+    )
+    video_scene_optimize_options: list[str] = Field(
+        default_factory=list,
+        alias="videoSceneOptimizeOptions",
+        max_length=32,
     )
     video_generation_min_seconds: float | None = Field(
         default=None,
@@ -41,6 +94,31 @@ class CommercialModelCapabilityBody(BaseModel):
         default=None,
         alias="videoGenerationMaxSeconds",
         gt=0,
+    )
+    video_duration_options: list[float] = Field(
+        default_factory=list,
+        alias="videoDurationOptions",
+        max_length=32,
+    )
+    max_reference_images: int | None = Field(
+        default=None,
+        alias="maxReferenceImages",
+        ge=0,
+    )
+    max_reference_videos: int | None = Field(
+        default=None,
+        alias="maxReferenceVideos",
+        ge=0,
+    )
+    max_reference_audios: int | None = Field(
+        default=None,
+        alias="maxReferenceAudios",
+        ge=0,
+    )
+    max_reference_total: int | None = Field(
+        default=None,
+        alias="maxReferenceTotal",
+        ge=0,
     )
     reference_audio_min_seconds: float | None = Field(
         default=None,
@@ -120,6 +198,26 @@ async def set_commercial_model_access(
                     "role": item.role,
                     "priority": item.priority,
                     "enabled": item.enabled,
+                    **(
+                        {"contextWindow": item.context_window}
+                        if item.context_window is not None
+                        else {}
+                    ),
+                    **(
+                        {"maxOutputTokens": item.max_output_tokens}
+                        if item.max_output_tokens is not None
+                        else {}
+                    ),
+                    **(
+                        {"reasoningEfforts": item.reasoning_efforts}
+                        if item.reasoning_efforts
+                        else {}
+                    ),
+                    **(
+                        {"defaultReasoningEffort": item.default_reasoning_effort}
+                        if item.default_reasoning_effort
+                        else {}
+                    ),
                 }
                 for item in body.model_assignments
             ],

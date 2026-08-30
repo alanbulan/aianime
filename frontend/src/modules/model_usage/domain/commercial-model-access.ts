@@ -56,11 +56,54 @@ export const BYOK_MODEL_ROLES = [
 
 export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
 
+export interface ModelRuntimeOverrides {
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+}
+
 export interface ByokModelAssignment {
   modelId: string;
   role: ByokModelRole;
   priority: number;
   enabled: boolean;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+  runtimeOverrides?: ModelRuntimeOverrides;
+}
+
+export interface ByokDiscoveredModelMetadata {
+  id: string;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+}
+
+export function effectiveModelRuntimeSettings(
+  assignment: ByokModelAssignment | undefined,
+): Omit<ByokDiscoveredModelMetadata, "id"> {
+  if (!assignment) return {};
+  const overrides = assignment.runtimeOverrides;
+  const reasoningEfforts = overrides?.reasoningEfforts
+    ?? assignment.reasoningEfforts;
+  const requestedDefault = overrides?.defaultReasoningEffort
+    ?? assignment.defaultReasoningEffort;
+  return {
+    ...(overrides?.contextWindow ?? assignment.contextWindow
+      ? { contextWindow: overrides?.contextWindow ?? assignment.contextWindow }
+      : {}),
+    ...(overrides?.maxOutputTokens ?? assignment.maxOutputTokens
+      ? { maxOutputTokens: overrides?.maxOutputTokens ?? assignment.maxOutputTokens }
+      : {}),
+    ...(reasoningEfforts?.length ? { reasoningEfforts: [...reasoningEfforts] } : {}),
+    ...(requestedDefault && reasoningEfforts?.includes(requestedDefault)
+      ? { defaultReasoningEffort: requestedDefault }
+      : {}),
+  };
 }
 
 export interface ByokProviderStatus {
@@ -97,13 +140,18 @@ export interface CommercialModelRoleRoute {
   role: ByokModelRole;
   source: "cloud" | "byok";
   providerName: string;
+  selector: string;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
 }
 
-export function resolveCommercialModelRoleRoute(
+export function commercialModelRoleRoutes(
   status: CommercialModelAccessStatus | null | undefined,
   role: ByokModelRole,
-): CommercialModelRoleRoute | null {
-  if (!status) return null;
+): CommercialModelRoleRoute[] {
+  if (!status) return [];
   const routes: Array<
     CommercialModelRoleRoute & {
       assignmentPriority: number;
@@ -111,14 +159,19 @@ export function resolveCommercialModelRoleRoute(
     }
   > = status.cloudModelAssignments
     .filter((assignment) => assignment.enabled && assignment.role === role)
-    .map((assignment) => ({
-      modelId: assignment.modelId,
-      role,
-      source: "cloud" as const,
-      providerName: "云端",
-      assignmentPriority: assignment.priority,
-      providerPriority: 0,
-    }));
+    .map((assignment) => {
+      const runtime = effectiveModelRuntimeSettings(assignment);
+      return {
+        modelId: assignment.modelId,
+        role,
+        source: "cloud" as const,
+        providerName: "云端",
+        selector: `cloud:${assignment.modelId}`,
+        assignmentPriority: assignment.priority,
+        providerPriority: 0,
+        ...runtime,
+      };
+    });
   if (status.allowsCustomModels) {
     for (const provider of status.byokProviders) {
       if (!provider.configured || !provider.enabled) continue;
@@ -129,8 +182,10 @@ export function resolveCommercialModelRoleRoute(
           role,
           source: "byok",
           providerName: provider.name,
+          selector: `byok:${provider.id}:${assignment.modelId}`,
           assignmentPriority: assignment.priority,
           providerPriority: provider.priority,
+          ...effectiveModelRuntimeSettings(assignment),
         });
       }
     }
@@ -143,15 +198,32 @@ export function resolveCommercialModelRoleRoute(
       left.providerName.localeCompare(right.providerName) ||
       left.modelId.localeCompare(right.modelId),
   );
-  const selected = routes[0];
-  return selected
-    ? {
-        modelId: selected.modelId,
-        role: selected.role,
-        source: selected.source,
-        providerName: selected.providerName,
-      }
-    : null;
+  return routes.map((route) => ({
+    modelId: route.modelId,
+    role: route.role,
+    source: route.source,
+    providerName: route.providerName,
+    selector: route.selector,
+    ...(route.contextWindow === undefined
+      ? {}
+      : { contextWindow: route.contextWindow }),
+    ...(route.maxOutputTokens === undefined
+      ? {}
+      : { maxOutputTokens: route.maxOutputTokens }),
+    ...(route.reasoningEfforts?.length
+      ? { reasoningEfforts: [...route.reasoningEfforts] }
+      : {}),
+    ...(route.defaultReasoningEffort
+      ? { defaultReasoningEffort: route.defaultReasoningEffort }
+      : {}),
+  }));
+}
+
+export function resolveCommercialModelRoleRoute(
+  status: CommercialModelAccessStatus | null | undefined,
+  role: ByokModelRole,
+): CommercialModelRoleRoute | null {
+  return commercialModelRoleRoutes(status, role)[0] ?? null;
 }
 
 export function parseCommercialModelAccessStatus(
@@ -229,8 +301,97 @@ function parseModelAssignments(
       role: role as ByokModelRole,
       priority: positiveInteger(assignment.priority, 100 + index),
       enabled: assignment.enabled !== false,
+      ...parseModelRuntimeMetadata(assignment),
     };
   });
+}
+
+export function parseByokDiscoveredModelMetadata(
+  value: unknown,
+  name = "modelMetadata",
+): ByokDiscoveredModelMetadata {
+  const item = record(value, name);
+  return {
+    id: text(item.id, `${name}.id`),
+    ...parseModelRuntimeMetadata(item),
+  };
+}
+
+function parseModelRuntimeMetadata(
+  value: Record<string, unknown>,
+): Omit<ByokDiscoveredModelMetadata, "id"> & Pick<
+  ByokModelAssignment,
+  "runtimeOverrides"
+> {
+  const contextWindow = value.contextWindow;
+  const maxOutputTokens = value.maxOutputTokens;
+  const reasoningEfforts = Array.isArray(value.reasoningEfforts)
+    ? Array.from(new Set(
+        value.reasoningEfforts
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ))
+    : [];
+  const defaultReasoningEffort = typeof value.defaultReasoningEffort === "string"
+    ? value.defaultReasoningEffort.trim()
+    : "";
+  return {
+    ...(typeof contextWindow === "number"
+      && Number.isSafeInteger(contextWindow)
+      && contextWindow > 0
+      ? { contextWindow }
+      : {}),
+    ...(typeof maxOutputTokens === "number"
+      && Number.isSafeInteger(maxOutputTokens)
+      && maxOutputTokens > 0
+      ? { maxOutputTokens }
+      : {}),
+    ...(reasoningEfforts.length > 0 ? { reasoningEfforts } : {}),
+    ...(defaultReasoningEffort
+      && reasoningEfforts.includes(defaultReasoningEffort)
+      ? { defaultReasoningEffort }
+      : {}),
+    ...parseRuntimeOverrides(value.runtimeOverrides),
+  };
+}
+
+function parseRuntimeOverrides(value: unknown): Pick<
+  ByokModelAssignment,
+  "runtimeOverrides"
+> {
+  if (value === undefined || value === null) return {};
+  const raw = record(value, "runtimeOverrides");
+  const contextWindow = optionalPositiveInteger(raw.contextWindow);
+  const maxOutputTokens = optionalPositiveInteger(raw.maxOutputTokens);
+  const reasoningEfforts = Array.isArray(raw.reasoningEfforts)
+    ? Array.from(new Set(
+        raw.reasoningEfforts
+          .filter((item): item is string => typeof item === "string")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      ))
+    : [];
+  const requestedDefault = typeof raw.defaultReasoningEffort === "string"
+    ? raw.defaultReasoningEffort.trim()
+    : "";
+  const runtimeOverrides: ModelRuntimeOverrides = {
+    ...(contextWindow === undefined ? {} : { contextWindow }),
+    ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
+    ...(reasoningEfforts.length ? { reasoningEfforts } : {}),
+    ...(requestedDefault && reasoningEfforts.includes(requestedDefault)
+      ? { defaultReasoningEffort: requestedDefault }
+      : {}),
+  };
+  return Object.keys(runtimeOverrides).length ? { runtimeOverrides } : {};
+}
+
+function optionalPositiveInteger(value: unknown): number | undefined {
+  return typeof value === "number"
+    && Number.isSafeInteger(value)
+    && value > 0
+    ? value
+    : undefined;
 }
 
 function positiveInteger(value: unknown, fallback: number): number {

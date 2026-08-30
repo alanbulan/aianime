@@ -75,6 +75,23 @@ describe("stream-client", () => {
     client.close();
   });
 
+  it("forwards auth_revoked events", () => {
+    const onAuthRevoked = vi.fn();
+    const client = createStreamClient({
+      streamPath: PROJECT_STREAM_PATH,
+      onEvent: vi.fn(),
+      onDelete: vi.fn(),
+      onHealth: vi.fn(),
+      onAuthRevoked,
+    });
+    client.start();
+
+    MockEventSource.instances[0].dispatch("auth_revoked", {});
+
+    expect(onAuthRevoked).toHaveBeenCalledOnce();
+    client.close();
+  });
+
   it("reports health transitions (connecting → connected via heartbeat)", () => {
     const onHealth = vi.fn();
     const client = createStreamClient({streamPath: PROJECT_STREAM_PATH, onEvent: vi.fn(), onDelete: vi.fn(), onHealth });

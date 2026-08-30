@@ -236,15 +236,18 @@ export function SuperChatPanel({
       }}
       contextViews={{
         approvals: chat.approvals,
+        decisions: chat.decisions,
         error: chat.error,
         pinnedMessages,
         searchOpen,
         searchQuery: search,
         onClearPinned: chat.clearPinned,
         onResolveApproval: chat.resolveApproval,
+        onResolveDecision: chat.resolveDecision,
         onSearchChange: setSearch,
         onSearchClose: () => setSearchOpen(false),
         onTogglePin: chat.togglePin,
+        submittingDecisionIds: chat.submittingDecisionIds,
       }}
       messageArea={{
         busy: chat.busy,
@@ -254,6 +257,7 @@ export function SuperChatPanel({
         deferStructuredRender,
         historyReady: chat.historyReady,
         messageListRef,
+        excludedIds: chat.deletedIds,
         pinnedIds: chat.pinnedIds,
         scrollRef,
         showScrollToBottom,
@@ -271,6 +275,8 @@ export function SuperChatPanel({
         onTogglePin: chat.togglePin,
       }}
       composer={{
+        activeModel: chat.activeModel,
+        activeReasoningEffort: chat.activeReasoningEffort,
         attachments,
         assistantActions: (
           <ChatPanelActions
@@ -292,6 +298,9 @@ export function SuperChatPanel({
         fileInputRef,
         fileUploadEnabled: ENABLE_SUPERCHAT_FILE_UPLOAD,
         queuedMessages,
+        models: chat.models,
+        modelsLoading: chat.modelsLoading,
+        slashCommands: chat.slashCommands,
         recording,
         transcribing,
         selectedHistoryMessageIndex,
@@ -307,13 +316,19 @@ export function SuperChatPanel({
         onDraftChange: setDraft,
         onDraftFocusChange: setComposerInputFocused,
         onDropFiles: handleComposerDrop,
+        onRunSlashCommand: chat.runSlashCommand,
         onHistorySelect: selectHistoryMessage,
         onOpenFilePicker: openFilePicker,
         onQueueOffset: selectQueuedMessageByOffset,
         onQueueRemove: removeQueuedMessage,
         onQueueSelect: selectQueuedMessage,
+        onRefreshModels: () => {
+          void chat.refreshModels();
+        },
         onResetHistorySelection: resetHistorySelection,
         onSubmit: submit,
+        onSwitchModel: chat.switchModel,
+        onSwitchReasoningEffort: chat.switchReasoningEffort,
         onToggleSpeech: toggleSpeech,
       }}
       detailOverlays={{

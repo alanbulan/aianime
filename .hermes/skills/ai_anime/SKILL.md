@@ -33,6 +33,11 @@ requires:
   - ✅ 正确模式（静默执行后一次性输出）：
     - （执行过程中不输出任何内容）
     - 完成后："第 2 集第 7 个 beat 的对白已更新为'这份方案不是你能碰的。'，说话人已切为陆星然。下一步可以重做这个 beat 的音频。"
+- **结构化决策协议（硬规则）**：凡是缺少用户输入、存在会实质影响结果的歧义、需要覆盖/付费确认，或失败后存在多个合法恢复方向，必须调用 `question` 工具，禁止只在自然语言里提问后结束。
+  - `question` 的问题数量不设业务上限：一次列出当前已经明确需要确认的全部相互独立问题；只有后续问题依赖前一轮答案时才分轮询问。每题给 2～3 个互斥选项，推荐项放在第一位并设置 `recommended_option_id`，每个选项用一句话说明影响或取舍。确实需要任意值时设置 `allow_custom=true`。
+  - 工具会暂停当前执行，用户答复后从原工具调用处继续；没有拿到完整答复前不得继续写操作。
+  - 用户已经明确给出某项值时不重复询问。用户明确说“按你的推荐/自动选择/你决定”时，视为把未指定项委托给推荐方案：调用完整生产工具时设置 `use_recommended_defaults=true`，并继续显式传入能从原稿可靠判断的内容型参数。
+  - 连续自动工作流启动前一次性梳理决策清单，至少覆盖适用的剧集范围、已有素材处理、输出画质、字幕和 BGM；带新摄入文件时还要覆盖无法从原稿可靠判断的叙事结构、视觉风格和角色族群。优先合并为最少批次，后续只有遇到新的真实阻塞才中途提问。
 - 确认内容必须基于实际 API 调用结果（grounding 规则）：
   - 只确认实际发送并成功返回的字段和操作，不声称做了实际没做的事。
   - 如果 POST /characters 只传了 name/role/gender/age，不要说"已写入人设和外观提示词"。
@@ -59,22 +64,23 @@ requires:
 - **首帧重做边界**：`ai_anime_render_first_frames` 是显式覆盖工具，不是普通续跑入口。局部重做必须传用户明确指定的 `beat_indices`；只有用户明确要求重做整集所有首帧时才传 `all_beats=true`。省略范围不得自动推断为全选。
 - **异步任务等待规则**：自动模式必须用 `ai_anime_wait_task` 等待已启动或已在运行的目标任务，不通过密集重复 GET 轮询。一次等待超时不等于任务失败；重新读取状态后，任务仍在运行则继续等待，不重复提交写请求。
 - **视频请求规则**：完整生产父任务内部按身份/脚本/场景/草图/检测/优化/声线前置检查/首帧/Seedance 最终提示词/音频/逐 beat 视频/合成的固定依赖执行；局部单步请求仍必须满足对应前置，全部 beat 完成后才允许 compose。
-- **错误即停**：任一写工具返回 `ok:false`、HTTP 4xx/5xx、`identity_plan_required`、`Task not found`、`当前项目 ... 队列任务已满`、404 或网络错误时，本轮必须立即停止所有后续工具调用，把后端 `error/detail/message` 原文转成简短自然语言告诉用户，并说明应该等待、补哪个前置或重新选择正确入口。禁止在同一轮反复重试同一工具、改猜其它路径或继续往下执行。
+- **Seedance 模式边界**：按 Beat 自适应。Beat 的 `video_mode=keyframe` 且下一 Beat 帧可用时走严格首尾帧，只传两个端点；其余 Beat 按已配置模式，默认走多参考。Seedance 2.0 多参考模式把当前 render 作为语义首帧，下一 Beat render 可用时作为语义尾帧，再附加适用的角色/身份、场景、道具和音频，端点通过提示词表达而不是混入严格 `last_frame` 槽。具体供应商未声明多模态能力时不得构造这种组合。`return_last_frame` 只保存模型返回尾帧，不代表自动把它作为下一 Beat 输入。
+- **错误即停**：任一写工具返回 `ok:false`、HTTP 4xx/5xx、`identity_plan_required`、`Task not found`、`当前项目 ... 队列任务已满`、404 或网络错误时，不得继续后续写操作或猜路径。只有后端状态明确给出两个以上安全、可恢复的合法方向时，调用 `question` 让用户选择后按所选方向恢复；否则立即把 `error/detail/message` 转成简短自然语言并说明唯一前置或等待条件。禁止在同一轮反复重试同一工具。
 - `ai_anime_generate_audio` 会先按已配置的云端/BYOK 优先级调用 `AUDIO_VOICE_DESIGN`，自动创建并绑定缺失的项目解说人或角色声线，再启动配音。若仍返回 `voice_prereq_required`、`voice_design_model_unavailable` 或 `voice_design_failed`，必须转述后端的真实模型/声线前置错误；不要声称上传或录制是唯一办法，也不要在前置未修复时继续启动视频、合成或其它写任务。
 - 用户只要求为资产库角色配置、补齐、生成或重新设计声线时，只能调用 `ai_anime_design_character_voices`，严禁调用 `ai_anime_run_production_workflow`。补缺时省略 `replace_existing`，合规声线必须保留；用户明确要求覆盖/替换已有声线时，必须把用户指定的每个角色名传入 `names` 并设置 `replace_existing=true`，不得省略角色范围。该工具按当前云端/BYOK 优先级调用 `AUDIO_VOICE_DESIGN`，且不启动整集配音、草图、视频或合成；不得回答“没有独立入口”或要求用户改用前端手工生成。
 - 父任务返回 `model_prereq_required` 时，必须明确告诉用户生产任务没有进入模型调用，并逐项转告缺少的模型角色；不要把模型配置缺失误报成素材或提示词缺失。
 - **范围边界**：用户没明确要求“自动驾驶/一口气跑完整集”时，不得从一个局部请求自动扩展为整条流水线；用户明确要求整集自动执行时，整条合法流水线就是本轮授权范围。
 - 业务结果路径、只读行为、更新行为和异步策略的细则都在对应 reference 中，不要在主 skill 里临时重写一套。
 - 当用户问“我上传了哪些文件 / 当前上传文件 / 刚才传了什么 / 已上传剧本列表”时，优先调用 `ai_anime_list_ingest_uploads` 查询当前项目本地摄入上传目录，并直接按返回的 `files` 列表回答；不要凭对话记忆猜测。若当前消息包含前端注入的 `[AI_ANIME_UPLOADED_FILES]`，可以用它作为刚上传文件的即时上下文，但本地目录工具仍是权威来源。
-- 当前消息包含待摄入文件及其限长正文预览时，先按原稿内容判定并显式提交项目配置：场景/对白剧本用 `spine_template=drama`，旁白解说稿用 `spine_template=narrated`；视觉风格按题材提交 `visual_style`（日式/二次元为 `anime`）；默认角色族群按姓名和地域提交 `ethnicity`（日本背景为 `Japanese`）。只要调用中带 `filename`，不得省略 `spine_template`、`visual_style`、`ethnicity` 后依赖项目默认值；线索不足时先向用户确认。
+- 当前消息包含待摄入文件及其限长正文预览时，先按原稿内容判定并显式提交项目配置：场景/对白剧本用 `spine_template=drama`，旁白解说稿用 `spine_template=narrated`；视觉风格按题材提交 `visual_style`（日式/二次元为 `anime`）；默认角色族群按姓名和地域提交 `ethnicity`（日本背景为 `Japanese`）。只要调用中带 `filename`，不得省略 `spine_template`、`visual_style`、`ethnicity` 后依赖项目默认值；线索不足时调用 `question` 确认。
 - 在已有项目中，用户说“继续生成视频 / 做完这一集 / 做成片”时，默认从当前项目断点继续，不重新上传剧本、不重新摄入或覆盖项目；是否连续执行由用户选择的运行模式决定。
 - 只有当前消息实际带了剧本文档附件，或前端明确注入 `[AI_ANIME_REINGEST_CONFIRMATION]` / `[AI_ANIME_INGEST_AUTOMATION]`，才进入上传摄入或覆盖确认流程。没有附件时，不得因为历史上传目录里有文件就自动启动摄入或覆盖确认。
 - 当用户明确问“用刚才上传的文件/已上传文件生成视频/短剧/成片”但当前消息没有附件时，只能先说明当前消息没有新附件，并建议用户在输入框添加文档附件后再触发摄入；若用户只是想继续当前项目，则按当前项目流水线继续。若前端已注入 `[AI_ANIME_INGEST_AUTOMATION]`，说明上传和摄入启动已由前端完成，不要重复启动。
 - **重新摄入/覆盖项目的强制二次确认规则**：
   - 若当前项目已摄入过剧本（以 `ai_anime_pipeline_status` 返回的 `global.ingested=true` 或等价状态为准），且当前消息实际带了剧本文档附件、前端注入了重新摄入确认上下文，或用户明确要求“重新摄入/覆盖/替换剧本”时，禁止立即调用 `/ingest/start`。
-  - 第一次必须只询问用户：当前项目已有摄入内容，继续会覆盖现有项目。是否要覆盖当前项目？不要建议新建项目，也不要在当前项目流程中创建或引导创建其它项目。
+  - 第一次必须只调用一次 `question`：当前项目已有摄入内容，继续会覆盖现有项目。选项为“取消覆盖（推荐）/覆盖当前项目”；不要建议新建项目，也不要在当前项目流程中创建或引导创建其它项目。
   - 只有用户明确回答“覆盖”时，才能进入第二次确认。
-  - 第二次必须明确告知：覆盖会清空/重建当前项目已有角色、分集、脚本、草图、音频、视频等流水线结果。是否继续？
+  - 第二次必须再次单独调用 `question`，明确告知覆盖会清空/重建当前项目已有角色、分集、脚本、草图、音频、视频等流水线结果；选项为“取消覆盖（推荐）/确认清空并重建”。两次确认不得合并。
   - 只有用户明确回答“确定”或“继续”时，才允许调用 `ai_anime_start_ingest(filename="...", rebuild=true)`；该业务工具会从当前云端/BYOK 配置补齐文本与向量模型并调用严格的摄入接口。
   - 用户回答其它内容、含糊回答、转移话题或取消时，停止本次覆盖，不调用任何写接口；同时继续理解并回复用户这条消息里的其它意图，不要只输出固定的“已取消/已停止”。
   - 该规则是硬性安全规则，优先级高于用户的一步式指令，例如“直接覆盖”“不用确认”“马上重做”也必须二次确认。
@@ -89,7 +95,7 @@ requires:
 - **工具约束**：
   - AI anime 管理的AI anime 助手会话禁用了 `bash`、`shell`、`terminal`、`subprocess`，因此不要尝试通过终端运行 `curl`、Python requests 或其它 shell 命令。
   - 调用后端时必须使用已启用的 `hermes-acp` 工具入口中的 AI anime 插件工具。文档中的 `GET/POST/PATCH/DELETE ...` 是要通过插件 HTTP 工具执行的 API 语义，不是要求用 curl。
-  - 优先使用业务工具：`ai_anime_run_production_workflow`、`ai_anime_pipeline_status`、`ai_anime_list_tasks`、`ai_anime_get_task`、`ai_anime_get_episode_script`、`ai_anime_list_ingest_uploads`、`ai_anime_run_script_workflow`、`ai_anime_start_ingest`、`ai_anime_create_style`、`ai_anime_generate_style_preview`、`ai_anime_upload_style_preview`、`ai_anime_update_character_face_prompt`、`ai_anime_plan_scenes`、`ai_anime_plan_props`、`ai_anime_generate_scene_master`、`ai_anime_generate_scene_reverse`、`ai_anime_detect_sketch_identities`、`ai_anime_design_character_voices`、`ai_anime_generate_audio`、`ai_anime_start_single_video`、`ai_anime_get_final_video`。
+  - 需要用户决策时必须使用 `question`。业务操作优先使用：`ai_anime_run_production_workflow`、`ai_anime_pipeline_status`、`ai_anime_list_tasks`、`ai_anime_get_task`、`ai_anime_get_episode_script`、`ai_anime_list_ingest_uploads`、`ai_anime_run_script_workflow`、`ai_anime_start_ingest`、`ai_anime_create_style`、`ai_anime_generate_style_preview`、`ai_anime_upload_style_preview`、`ai_anime_update_character_face_prompt`、`ai_anime_plan_scenes`、`ai_anime_plan_props`、`ai_anime_generate_scene_master`、`ai_anime_generate_scene_reverse`、`ai_anime_detect_sketch_identities`、`ai_anime_design_character_voices`、`ai_anime_generate_audio`、`ai_anime_start_single_video`、`ai_anime_get_final_video`。
   - 业务工具不覆盖的端点，使用受限通用工具：`ai_anime_get`、`ai_anime_post`、`ai_anime_patch`、`ai_anime_delete`。这些工具只接受 `/api/v1/...` 或 `/projects/...` 相对路径；不要传完整 URL。`/projects/{project}/ingest/start` 已由 `ai_anime_start_ingest` 覆盖，禁止通过 `ai_anime_post` 调用。
   - 摄入路由只有两个：`/projects/{project}/ingest/upload` 和 `/projects/{project}/ingest/start`。启动摄入必须使用 `ai_anime_start_ingest`，由工具按当前模型配置提交完整合同。`ingest_fast` 是任务类型，不是 HTTP endpoint。禁止推断或尝试 `/ingest/init`、`/ingest/setup`、`/ingest_script`、`/ingest_fast`、`/projects/{project}/ingest`、`/projects/{project}/ingest/init`、`/projects/{project}/ingest/setup`、`/projects/{project}/ingest_script`、`/projects/{project}/ingest_fast` 等路径；这类 404 不代表摄入模块未启用，只代表路径是错的。
   - 如果插件工具不可用，直接向用户说明“AI anime API 工具不可用”，停止本轮；不要退回终端命令。
@@ -238,8 +244,8 @@ GET ${AI_ANIME_API_URL}/api/v1/projects/${AI_ANIME_PROJECT_ID}/pipeline/status
 ## 5. 全局默认规则
 
 - 视频模型选择：
-  - 未明确指定时不传模型，由后端按项目配置和统一用途分配解析；这与前端手动执行完全一致。
-  - 用户明确指定时，完整生产传 `video_model`，单 beat 重做传 `model`。
+  - 智能体完整生产默认不传单次模型覆盖，由后端按视频用途和设置页中的云端/BYOK 全局角色优先级解析；不得自动继承工作台项目 `video_model`。只有用户明确点名本次使用某个模型时，才把当前模型目录中的对应选择器作为 `video_model` 传入，覆盖仅作用于本次任务。
+  - 单 beat 人工重做可传用户明确指定的 `model`；未指定时由后端解析项目配置和用途分配。
   - 逐 beat 子任务与并发由 `production_workflow` 父任务负责；助手不自行批量提交。
 - 不要同时加载 `playbooks/init.md` 和 `playbooks/episode.md`
 - 不要重复加载已经在当前上下文里的同一 reference

@@ -16,10 +16,12 @@ from ai_anime.modules.ai_assistant.application.ports import (
 from ai_anime.modules.ai_assistant.domain import (
     ChatScope,
     completion_text_or_existing,
+    is_slash_command,
     merge_stream_text,
     message_content,
     should_emit_final_text,
     strip_replayed_chat_response,
+    prepend_managed_context,
     text_with_attachment_context,
     tool_chat_error,
     tool_display_payload,
@@ -45,15 +47,35 @@ class HermesHomeReplies:
             project.name
             for project in await list_project_workspaces({"username": username})
         }
+        context_policy = self._history.load_context_policy(username, scope)
         previous_assistant = next(
             (
                 str(message.get("content") or "")
-                for message in reversed(self._history.list_messages(username, scope))
+                for message in reversed(list(context_policy.get("messages") or []))
                 if message.get("role") == "assistant"
             ),
             "",
         )
-        agent_text = text_with_attachment_context(text, attachments)
+        slash_command = not attachments and is_slash_command(text)
+        rebuild_context = bool(context_policy.get("rebuild_required"))
+        context_revision = int(context_policy.get("revision") or 0)
+        if rebuild_context:
+            await self._runtime.forget_conversation(
+                username,
+                scope_kind="home",
+                project_id=None,
+                conversation_id=scope.conversation_id,
+            )
+        base_agent_text = text_with_attachment_context(text, attachments)
+        agent_text = (
+            base_agent_text
+            if slash_command
+            else prepend_managed_context(
+                base_agent_text,
+                list(context_policy.get("messages") or []),
+                rebuild_context=rebuild_context,
+            )
+        )
         self._history.append_message(
             username,
             scope,
@@ -75,6 +97,7 @@ class HermesHomeReplies:
         persisted = False
         done_sent = False
         seen_tool_chat_errors: set[str] = set()
+        context_rebuild_marked = False
 
         def persist_partial_reply() -> None:
             nonlocal persisted
@@ -107,6 +130,13 @@ class HermesHomeReplies:
         try:
             async for event in thread.stream(agent_text, current_project=None):
                 if event.type == "thread_started":
+                    if rebuild_context and not slash_command and not context_rebuild_marked:
+                        self._history.mark_context_rebuilt(
+                            username,
+                            scope,
+                            context_revision,
+                        )
+                        context_rebuild_marked = True
                     await emit_chat_event(
                         on_event,
                         {
@@ -114,6 +144,14 @@ class HermesHomeReplies:
                             "scope": scope.to_dict(),
                             "thread_id": str(event.thread_id or "").strip() or None,
                             "turn_id": str(event.turn_id or "").strip() or turn_id,
+                        },
+                    )
+                elif event.type == "available_commands":
+                    await emit_chat_event(
+                        on_event,
+                        {
+                            "type": "commands.available",
+                            "commands": event.raw,
                         },
                     )
                 elif event.type == "assistant_delta":

@@ -15,7 +15,7 @@ import type {
 } from './imageGenNodeModel';
 import type { ImageSize } from './imageNodeSizing';
 import type {
-  Seedance2SceneOptimize,
+  VideoSceneOptimize,
   VideoGenCount,
   VideoGenQuality,
 } from './videoGenerationModel';
@@ -103,6 +103,10 @@ export interface VideoNodeData extends NodeDisplayData {
   genMode?: VideoGenMode;
   model?: string;
   quality?: VideoGenQuality;
+  /** 当前视频模型目录声明的输出档位或精确尺寸。 */
+  generationResolution?: string | null;
+  /** 模型 parameterSchema 中除通用字段外的动态参数。 */
+  extraParams?: Record<string, unknown>;
   durationSec?: number;
   generateAudio?: boolean;
   /**
@@ -111,7 +115,7 @@ export interface VideoNodeData extends NodeDisplayData {
    * 默认 false / 不展示时不发送。
    */
   humanReview?: boolean;
-  sceneOptimize?: Seedance2SceneOptimize;
+  sceneOptimize?: VideoSceneOptimize;
   count?: VideoGenCount;
   /** id of a [[cameraMovementPresets]] entry — libtv-style 运镜 preset. */
   cameraMovement?: string | null;

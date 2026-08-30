@@ -213,6 +213,61 @@ async def test_run_chat_session_reports_unsupported_event_before_runtime_disconn
 
 
 @pytest.mark.anyio
+async def test_run_chat_session_applies_model_selector_to_current_conversation(
+    monkeypatch,
+):
+    websocket = RecordingWebSocket(
+        [
+            {
+                "type": "session.model.set",
+                "scope": {"kind": "home", "conversationId": "main"},
+                "selector": "cloud:text-model",
+                "reasoning_effort": "xhigh",
+            }
+        ]
+    )
+    selections = []
+
+    async def authenticate(_websocket):
+        return {"username": "alice"}
+
+    async def send_scope(_websocket, _user, _username, scope):
+        return scope
+
+    class IdleLifecycle:
+        def is_busy(self, _username):
+            return False
+
+    class RecordingModels:
+        async def select(self, username, scope, selector, reasoning_effort):
+            selections.append((username, scope, selector, reasoning_effort))
+            return selector, reasoning_effort
+
+    monkeypatch.setattr(chat_session, "get_websocket_user", authenticate)
+    monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
+    monkeypatch.setattr(chat_session, "chat_worker_lifecycle", IdleLifecycle())
+    monkeypatch.setattr(chat_session, "hermes_session_models", RecordingModels())
+    monkeypatch.setattr(
+        chat_session,
+        "hermes_runtime_prewarmer",
+        RecordingPrewarmer(),
+    )
+
+    await chat_session.run_chat_session(websocket)
+
+    scope = ChatScope(kind="home")
+    assert selections == [("alice", scope, "cloud:text-model", "xhigh")]
+    assert websocket.events == [
+        {
+            "type": "session.model.state",
+            "scope": scope.to_dict(),
+            "selector": "cloud:text-model",
+            "reasoning_effort": "xhigh",
+        }
+    ]
+
+
+@pytest.mark.anyio
 async def test_run_chat_session_deletes_requested_conversation(monkeypatch):
     websocket = RecordingWebSocket(
         [

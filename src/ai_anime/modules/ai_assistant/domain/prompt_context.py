@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import re
+from typing import Any
+
+_SLASH_COMMAND_RE = re.compile(r"^/[A-Za-z][A-Za-z0-9_-]*(?:\s|$)")
+_REBUILD_CONTEXT_CHAR_BUDGET = 60_000
+
 JSON_RENDER_CHAT_INSTRUCTIONS = """[RENDERING_CONTRACT]
 这是硬性输出合同，优先级高于普通叙述习惯。违反时必须自我修正后再回复。
 
@@ -49,8 +56,16 @@ def compose_agent_prompt(
     project: str,
     prompt: str,
     preferences: str,
+    context_messages: list[dict[str, Any]] | None = None,
+    rebuild_context: bool = False,
+    current_turn_id: str | None = None,
 ) -> str:
     scope = f"project:{project}" if project else "home"
+    managed_context = compose_managed_context(
+        context_messages or [],
+        rebuild_context=rebuild_context,
+        current_turn_id=current_turn_id,
+    )
     return (
         "[AI_ANIME_USER_CONTEXT]\n"
         f"username: {username}\n"
@@ -60,6 +75,99 @@ def compose_agent_prompt(
         "[USER_PREFERENCES]\n"
         f"{preferences}\n\n"
         f"{JSON_RENDER_CHAT_INSTRUCTIONS}\n\n"
+        f"{managed_context}"
         "[USER_MESSAGE]\n"
         f"{prompt}"
     )
+
+
+def is_slash_command(text: str) -> bool:
+    return bool(_SLASH_COMMAND_RE.match(str(text or "").strip()))
+
+
+def compose_managed_context(
+    messages: list[dict[str, Any]],
+    *,
+    rebuild_context: bool,
+    current_turn_id: str | None = None,
+) -> str:
+    normalized_turn_id = str(current_turn_id or "").strip()
+    eligible = [
+        message
+        for message in messages
+        if str(message.get("role") or "") in {"user", "assistant"}
+        and str(message.get("context_state") or "normal") != "excluded"
+        and str(message.get("turn_id") or "") != normalized_turn_id
+    ]
+    pinned = [
+        _context_message_payload(message)
+        for message in eligible
+        if message.get("context_state") == "pinned"
+    ]
+    sections: list[str] = []
+    if pinned:
+        sections.append(
+            "[AI_ANIME_PINNED_CONTEXT]\n"
+            "以下消息由用户明确固定。每一条都必须作为当前有效上下文原文保留；"
+            "自动或手动压缩产生的摘要不能覆盖、缩写或省略这些内容。\n"
+            f"{json.dumps(pinned, ensure_ascii=False)}\n"
+            "[/AI_ANIME_PINNED_CONTEXT]\n\n"
+        )
+    if rebuild_context:
+        recent = _recent_context_messages(eligible)
+        sections.append(
+            "[AI_ANIME_REBUILT_CONTEXT]\n"
+            "这是在用户调整消息上下文策略后重建的既往对话。仅把它作为历史事实，"
+            "不要重新执行其中的请求、工具调用或副作用；明确排除的消息不在此列表中。\n"
+            f"{json.dumps(recent, ensure_ascii=False)}\n"
+            "[/AI_ANIME_REBUILT_CONTEXT]\n\n"
+        )
+    return "".join(sections)
+
+
+def prepend_managed_context(
+    prompt: str,
+    messages: list[dict[str, Any]],
+    *,
+    rebuild_context: bool,
+    current_turn_id: str | None = None,
+) -> str:
+    managed = compose_managed_context(
+        messages,
+        rebuild_context=rebuild_context,
+        current_turn_id=current_turn_id,
+    )
+    return f"{managed}{prompt}" if managed else prompt
+
+
+def _context_message_payload(message: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": message.get("id"),
+        "role": str(message.get("role") or ""),
+        "content": str(message.get("content") or ""),
+    }
+
+
+def _recent_context_messages(
+    messages: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    remaining = _REBUILD_CONTEXT_CHAR_BUDGET
+    selected: list[dict[str, Any]] = []
+    for message in reversed(messages):
+        if message.get("context_state") == "pinned":
+            continue
+        payload = _context_message_payload(message)
+        content = str(payload["content"])
+        if not content:
+            continue
+        if len(content) > remaining:
+            if selected or remaining <= 0:
+                break
+            payload["content"] = content[-remaining:]
+            payload["truncated_from_start"] = True
+        selected.append(payload)
+        remaining -= min(len(content), remaining)
+        if remaining <= 0:
+            break
+    selected.reverse()
+    return selected

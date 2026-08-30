@@ -66,6 +66,17 @@ async def startup_application(application: FastAPI) -> None:
 
 
 async def shutdown_application(application: FastAPI) -> None:
+    warmup_task = getattr(
+        application.state,
+        "knowledge_graph_runtime_warmup",
+        None,
+    )
+    if isinstance(warmup_task, asyncio.Task):
+        if not warmup_task.done():
+            warmup_task.cancel()
+        await asyncio.gather(warmup_task, return_exceptions=True)
+        application.state.knowledge_graph_runtime_warmup = None
+
     container = getattr(application.state, "container", None)
     if container is None:
         return

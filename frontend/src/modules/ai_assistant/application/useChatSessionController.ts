@@ -7,13 +7,20 @@ import type {
   ChatConversation,
   ChatMessage,
   ChatScope,
+  ChatSlashCommandResult,
+  ChatSlashCommand,
   ClientFrame,
+  DecisionAnswer,
+  DecisionRequest,
   ModelEntry,
+  MessageContextState,
   RelayInstanceInfo,
   ServerFrame,
   SessionControlCommand,
   SuperChatSettings,
+  StructuredSlashCommandName,
 } from "@/modules/ai_assistant/domain/contracts";
+import { DEFAULT_CHAT_SLASH_COMMANDS } from "@/modules/ai_assistant/domain/slashCommand";
 import { buildLocalUserMessage } from "@/modules/ai_assistant/domain/message";
 import { settleUnfinishedToolMessages } from "@/modules/ai_assistant/domain/toolMessage";
 import {
@@ -50,11 +57,25 @@ export type ChatSessionPorts = {
     text: string,
   ) => Promise<{ delivered: boolean; message: ChatMessage | null }>;
   cancelChatBestEffort: () => Promise<void>;
+  resolveChatDecision: (
+    decisionId: string,
+    answers: DecisionAnswer[],
+  ) => Promise<void>;
+  runChatSlashCommand: (
+    scope: ChatScope,
+    command: StructuredSlashCommandName,
+  ) => Promise<ChatSlashCommandResult>;
+  setChatMessageContextState: (
+    scope: ChatScope,
+    messageId: string,
+    state: MessageContextState,
+  ) => Promise<void>;
   clearActiveTurn: (scopeKey: string, turnId?: string | null) => void;
   createSuperChatSocketSession: (
     options: ChatSessionSocketOptions,
   ) => ChatSessionSocket;
   loadCachedMessages: (scopeKey: string) => ChatMessage[];
+  loadChatModels: () => Promise<ModelEntry[]>;
   loadPendingActiveTurn: (
     scopeKey: string,
     messages: ChatMessage[],
@@ -93,14 +114,18 @@ export function useChatSessionController({
     clearActiveTurn,
     createSuperChatSocketSession,
     loadCachedMessages,
+    loadChatModels,
     loadPendingActiveTurn,
     loadScopedMessageIds,
     loadSuperChatSettings,
     pruneOldMessageCaches,
+    resolveChatDecision: resolveChatDecisionThroughPort,
+    runChatSlashCommand: runChatSlashCommandThroughPort,
     saveActiveTurn,
     saveCachedMessages,
     saveScopedMessageIds,
     saveSuperChatSettings,
+    setChatMessageContextState,
   } = ports;
   const desiredScope = useMemo(
     () => scopeForProject(project, conversationId),
@@ -131,11 +156,19 @@ export function useChatSessionController({
   const [historyReady, setHistoryReady] = useState(false);
   const [streamText, setStreamText] = useState("");
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
+  const [decisions, setDecisions] = useState<DecisionRequest[]>([]);
+  const [submittingDecisionIds, setSubmittingDecisionIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [relayInstances, setRelayInstances] = useState<RelayInstanceInfo[]>([]);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("");
   const [models, setModels] = useState<ModelEntry[]>([]);
   const [activeModel, setActiveModel] = useState<string | null>(null);
+  const [activeReasoningEffort, setActiveReasoningEffort] = useState<string | null>(null);
   const [modelsLoading, setModelsLoading] = useState(false);
+  const [slashCommands, setSlashCommands] = useState<ChatSlashCommand[]>(
+    DEFAULT_CHAT_SLASH_COMMANDS,
+  );
   const [pinnedIds, setPinnedIds] = useState<Set<string>>(() => new Set());
   const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
   const [settings, setSettingsState] = useState<SuperChatSettings>(
@@ -237,7 +270,14 @@ export function useChatSessionController({
     setError,
     setHistoryReady,
     setConversations,
+    setDecisions,
+    setDeletedIds,
     setMessages,
+    setActiveModel,
+    setActiveReasoningEffort,
+    setModelsLoading,
+    setPinnedIds,
+    setSlashCommands,
     setBusy,
     setStreamText,
     markTurnActive,
@@ -250,8 +290,12 @@ export function useChatSessionController({
     setSelectedInstanceId("");
     setModels([]);
     setActiveModel(null);
+    setActiveReasoningEffort(null);
     setModelsLoading(false);
+    setSlashCommands(DEFAULT_CHAT_SLASH_COMMANDS);
     setConversations([]);
+    setDecisions([]);
+    setSubmittingDecisionIds(new Set());
     setHistoryReady(false);
     streamTextRef.current = "";
     pendingClientTurnIdRef.current = null;
@@ -406,6 +450,16 @@ export function useChatSessionController({
     return result.delivered;
   }, [appendChatNotification, desiredScope]);
 
+  const runSlashCommand = useCallback((command: StructuredSlashCommandName) => {
+    if (!connected) {
+      return Promise.reject(new Error("助手尚未连接，请稍后重试。"));
+    }
+    if (busy) {
+      return Promise.reject(new Error("当前对话正在执行任务，请在本轮结束后再运行命令。"));
+    }
+    return runChatSlashCommandThroughPort(desiredScope, command);
+  }, [busy, connected, desiredScope, runChatSlashCommandThroughPort]);
+
   const abort = useCallback(() => {
     const turnId = activeTurnIdRef.current ?? pendingClientTurnIdRef.current;
     if (turnId) {
@@ -417,9 +471,43 @@ export function useChatSessionController({
       ));
     }
     markTurnInactive(turnId);
+    setDecisions([]);
+    setSubmittingDecisionIds(new Set());
     void cancelChatBestEffort();
     socketSessionRef.current?.close(4000, "client abort");
   }, [cancelChatBestEffort, markTurnInactive]);
+
+  const resolveDecision = useCallback(async (
+    decision: DecisionRequest,
+    answers: DecisionAnswer[],
+  ): Promise<boolean> => {
+    const originScopeKey = scopeKeyRef.current;
+    if (submittingDecisionIds.has(decision.id)) return false;
+    setSubmittingDecisionIds((current) => new Set(current).add(decision.id));
+    setError(null);
+    try {
+      await resolveChatDecisionThroughPort(decision.id, answers);
+      if (scopeKeyRef.current === originScopeKey) {
+        setDecisions((current) => current.filter((item) => item.id !== decision.id));
+      }
+      return true;
+    } catch (decisionError) {
+      if (scopeKeyRef.current === originScopeKey) {
+        setError(
+          decisionError instanceof Error
+            ? decisionError.message
+            : "提交确认失败，请重试",
+        );
+      }
+      return false;
+    } finally {
+      setSubmittingDecisionIds((current) => {
+        const next = new Set(current);
+        next.delete(decision.id);
+        return next;
+      });
+    }
+  }, [resolveChatDecisionThroughPort, submittingDecisionIds]);
 
   const resolveApproval = useCallback((
     _approval: ApprovalRequest,
@@ -436,15 +524,62 @@ export function useChatSessionController({
     setSelectedInstanceId("");
   }, []);
 
-  const refreshModels = useCallback(() => {
-    setModels([]);
-    setActiveModel(null);
-    setModelsLoading(false);
-  }, []);
+  const refreshModels = useCallback(async () => {
+    const originScopeKey = scopeKeyRef.current;
+    setModelsLoading(true);
+    try {
+      const entries = await loadChatModels();
+      if (scopeKeyRef.current === originScopeKey) {
+        setModels(entries);
+      }
+    } catch {
+      if (scopeKeyRef.current === originScopeKey) {
+        setModels([]);
+        setError("加载模型列表失败，请检查右上角模型设置后重试。");
+      }
+    } finally {
+      if (scopeKeyRef.current === originScopeKey) {
+        setModelsLoading(false);
+      }
+    }
+  }, [loadChatModels]);
 
-  const switchModel = useCallback((_modelId: string) => {
-    setModelsLoading(false);
-  }, []);
+  const switchModel = useCallback((modelId: string) => {
+    if (!connected || busy || modelsLoading) return false;
+    const selected = models.find((model) => model.id === modelId);
+    const reasoningEffort = selected?.defaultReasoningEffort ?? null;
+    setError(null);
+    setModelsLoading(true);
+    sendFrame({
+      type: "session.model.set",
+      scope: desiredScope,
+      selector: modelId === "auto" ? null : modelId,
+      reasoning_effort: reasoningEffort,
+    });
+    return true;
+  }, [busy, connected, desiredScope, models, modelsLoading, sendFrame]);
+
+  const switchReasoningEffort = useCallback((reasoningEffort: string) => {
+    if (!connected || busy || modelsLoading) return false;
+    const modelId = activeModel ?? "auto";
+    const selected = models.find((model) => model.id === modelId);
+    if (!selected?.reasoningEfforts?.includes(reasoningEffort)) return false;
+    setError(null);
+    setModelsLoading(true);
+    sendFrame({
+      type: "session.model.set",
+      scope: desiredScope,
+      selector: modelId === "auto" ? null : modelId,
+      reasoning_effort: reasoningEffort,
+    });
+    return true;
+  }, [activeModel, busy, connected, desiredScope, models, modelsLoading, sendFrame]);
+
+  useEffect(() => {
+    if (!connected) return;
+    void refreshModels();
+    sendFrame({ type: "session.model.get", scope: desiredScope });
+  }, [connected, desiredScope, refreshModels, sendFrame]);
 
   const sessionControl = useCallback((
     _command: SessionControlCommand,
@@ -453,37 +588,59 @@ export function useChatSessionController({
     // The native chat endpoint does not expose external session-control commands.
   }, []);
 
-  const togglePin = useCallback((id: string) => {
+  const applyMessageContextState = useCallback((
+    id: string,
+    state: MessageContextState,
+  ) => {
+    setMessages((current) => current.map((message) => (
+      message.id === id ? { ...message, contextState: state } : message
+    )));
     setPinnedIds((current) => {
       const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (state === "pinned") next.add(id);
+      else next.delete(id);
       saveScopedMessageIds(scopeKey, "pinned", next);
       return next;
     });
-  }, [saveScopedMessageIds, scopeKey]);
-
-  const deleteMessage = useCallback((id: string) => {
     setDeletedIds((current) => {
       const next = new Set(current);
-      next.add(id);
+      if (state === "excluded") next.add(id);
+      else next.delete(id);
       saveScopedMessageIds(scopeKey, "deleted", next);
       return next;
     });
-    setPinnedIds((current) => {
-      if (!current.has(id)) return current;
-      const next = new Set(current);
-      next.delete(id);
-      saveScopedMessageIds(scopeKey, "pinned", next);
-      return next;
-    });
   }, [saveScopedMessageIds, scopeKey]);
 
+  const persistMessageContextState = useCallback(async (
+    id: string,
+    state: MessageContextState,
+  ) => {
+    const previous = messagesRef.current.find((message) => message.id === id)
+      ?.contextState ?? "normal";
+    applyMessageContextState(id, state);
+    try {
+      await setChatMessageContextState(desiredScope, id, state);
+    } catch {
+      applyMessageContextState(id, previous);
+      setError("消息上下文状态保存失败，请重试。");
+    }
+  }, [applyMessageContextState, desiredScope, setChatMessageContextState]);
+
+  const togglePin = useCallback((id: string) => {
+    const state = pinnedIds.has(id) ? "normal" : "pinned";
+    void persistMessageContextState(id, state);
+  }, [persistMessageContextState, pinnedIds]);
+
+  const deleteMessage = useCallback((id: string) => {
+    const state = deletedIds.has(id) ? "normal" : "excluded";
+    void persistMessageContextState(id, state);
+  }, [deletedIds, persistMessageContextState]);
+
   const clearPinned = useCallback(() => {
-    const next = new Set<string>();
-    setPinnedIds(next);
-    saveScopedMessageIds(scopeKey, "pinned", next);
-  }, [saveScopedMessageIds, scopeKey]);
+    for (const id of pinnedIds) {
+      void persistMessageContextState(id, "normal");
+    }
+  }, [persistMessageContextState, pinnedIds]);
 
   return {
     abort,
@@ -493,8 +650,10 @@ export function useChatSessionController({
     connected,
     connecting,
     conversations,
+    decisions,
     error,
     activeModel,
+    activeReasoningEffort,
     appendNotification,
     clearPinned,
     deleteConversation,
@@ -508,16 +667,21 @@ export function useChatSessionController({
     refreshModels,
     refreshRelayInstances,
     relayInstances,
+    resolveDecision,
     resolveApproval,
     selectRelayInstance,
+    runSlashCommand,
     send,
     selectedInstanceId,
     sessionControl,
     setSettings,
     settings,
+    slashCommands,
     pinnedIds,
     streamText,
+    submittingDecisionIds,
     switchModel,
+    switchReasoningEffort,
     togglePin,
   };
 }

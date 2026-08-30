@@ -29,15 +29,17 @@ export function projectPanelMessages({
 }: PanelMessageProjectionOptions) {
   const activeMessages = messages.filter(
     (message) =>
-      !deletedIds.has(message.id)
-      && (showToolEvents || !isToolMessage(message)),
+      showToolEvents || !isToolMessage(message),
   );
-  const userMessageHistory = activeMessages
+  const contextMessages = activeMessages.filter(
+    (message) => !deletedIds.has(message.id),
+  );
+  const userMessageHistory = contextMessages
     .filter(
       (message) => message.role === "user" && message.text.trim().length > 0,
     )
     .map((message) => message.text);
-  const pinnedMessages = activeMessages.filter((message) =>
+  const pinnedMessages = contextMessages.filter((message) =>
     pinnedIds.has(message.id),
   );
   const searchQuery = search.trim().toLowerCase();
@@ -54,19 +56,19 @@ export function projectPanelMessages({
       (message) =>
         message.role === "assistant" && message.text === streamText,
     );
-  const lastConversationalMessage = [...activeMessages]
+  const lastConversationalMessage = [...contextMessages]
     .reverse()
     .find(
       (message) => message.role === "user" || message.role === "assistant",
     );
-  const lastUserMessage = [...activeMessages]
+  const lastUserMessage = [...contextMessages]
     .reverse()
     .find(
       (message) =>
         message.role === "user" && message.text.trim().length > 0,
     );
   const activeTurnUserMessage = activeTurnId
-    ? activeMessages.find(
+    ? contextMessages.find(
         (message) =>
           message.role === "user"
           && message.turnId === activeTurnId
@@ -75,7 +77,7 @@ export function projectPanelMessages({
     : null;
   const activeTurnHasAssistantReply = Boolean(
     activeTurnId
-    && activeMessages.some(
+    && contextMessages.some(
       (message) =>
         message.role === "assistant"
         && message.turnId === activeTurnId
@@ -84,7 +86,7 @@ export function projectPanelMessages({
   );
   const lastUserHasAssistantReply = Boolean(
     lastUserMessage?.turnId
-    && activeMessages.some(
+    && contextMessages.some(
       (message) =>
         message.role === "assistant"
         && message.turnId === lastUserMessage.turnId

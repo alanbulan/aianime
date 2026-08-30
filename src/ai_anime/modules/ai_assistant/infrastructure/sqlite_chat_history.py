@@ -433,13 +433,24 @@ class SQLiteChatHistory:
         try:
             rows = conn.execute(
                 """
-                SELECT id, role, content, media_json, turn_id, metadata_json, created_at
+                SELECT id, role, content, media_json, turn_id, metadata_json,
+                       context_state, created_at
                   FROM chat_messages
-                 WHERE role <> 'trace' AND conversation_id = ?
-                 ORDER BY id DESC
-                 LIMIT ?
+                 WHERE role <> 'trace'
+                   AND conversation_id = ?
+                   AND (
+                     context_state = 'pinned'
+                     OR id IN (
+                       SELECT id
+                         FROM chat_messages
+                        WHERE role <> 'trace' AND conversation_id = ?
+                        ORDER BY id DESC
+                        LIMIT ?
+                     )
+                   )
+                 ORDER BY id ASC
                 """,
-                (scope.conversation_id, limit),
+                (scope.conversation_id, scope.conversation_id, limit),
             ).fetchall()
             turn_ids = {
                 str(row["turn_id"])
@@ -455,7 +466,7 @@ class SQLiteChatHistory:
             conn.close()
         messages: list[dict[str, Any]] = []
         previous_assistants: list[str] = []
-        for row in reversed(rows):
+        for row in rows:
             try:
                 media = json.loads(row["media_json"] or "[]")
             except json.JSONDecodeError:
@@ -482,6 +493,7 @@ class SQLiteChatHistory:
                     "content": content,
                     "media": media if isinstance(media, list) else [],
                     "attachments": media if isinstance(media, list) else [],
+                    "context_state": str(row["context_state"] or "normal"),
                     **({"turn_id": str(row["turn_id"])} if row["turn_id"] else {}),
                     **metadata,
                     "created_at": str(row["created_at"]),
@@ -512,17 +524,28 @@ class SQLiteChatHistory:
         try:
             rows = conn.execute(
                 """
-                SELECT id, role, content, media_json, turn_id, created_at
-                  FROM (
-                        SELECT id, role, content, media_json, turn_id, created_at
-                          FROM chat_messages
-                         WHERE role <> 'trace' AND conversation_id = ?
-                         ORDER BY id DESC
-                         LIMIT ?
-                       )
+                SELECT id, role, content, media_json, turn_id,
+                       context_state, created_at
+                  FROM chat_messages
+                 WHERE role <> 'trace'
+                   AND conversation_id = ?
+                   AND (
+                     context_state = 'pinned'
+                     OR id IN (
+                       SELECT id
+                         FROM chat_messages
+                        WHERE role <> 'trace' AND conversation_id = ?
+                        ORDER BY id DESC
+                        LIMIT ?
+                     )
+                   )
                  ORDER BY id ASC
                 """,
-                (conversation_id, max(1, int(limit))),
+                (
+                    conversation_id,
+                    conversation_id,
+                    max(1, int(limit)),
+                ),
             ).fetchall()
             turn_ids = {
                 str(row["turn_id"])
@@ -542,6 +565,7 @@ class SQLiteChatHistory:
                 "role": str(row["role"]),
                 "content": str(row["content"]),
                 "media": json.loads(row["media_json"] or "[]"),
+                "context_state": str(row["context_state"] or "normal"),
                 **({"turn_id": str(row["turn_id"])} if row["turn_id"] else {}),
                 "created_at": str(row["created_at"]),
             }
@@ -549,6 +573,209 @@ class SQLiteChatHistory:
         ]
         self._attach_ui_events_to_messages(messages, events_by_turn)
         return messages
+
+    def set_message_context_state(
+        self,
+        username: str,
+        scope: ChatScope,
+        message_id: str,
+        state: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> dict[str, Any] | None:
+        normalized_state = str(state or "").strip().lower()
+        if normalized_state not in {"normal", "pinned", "excluded"}:
+            raise ValueError("invalid message context state")
+        normalized_id = str(message_id or "").strip()
+        if not normalized_id:
+            raise ValueError("message id is required")
+
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            if normalized_id.isdigit():
+                row = conn.execute(
+                    """
+                    SELECT id, context_state
+                      FROM chat_messages
+                     WHERE id = ? AND conversation_id = ?
+                    """,
+                    (int(normalized_id), scope.conversation_id),
+                ).fetchone()
+            else:
+                role = None
+                turn_id = ""
+                for prefix, candidate_role in (
+                    ("user-", "user"),
+                    ("assistant-", "assistant"),
+                ):
+                    if normalized_id.startswith(prefix):
+                        role = candidate_role
+                        turn_id = normalized_id[len(prefix) :].strip()
+                        break
+                row = (
+                    conn.execute(
+                        """
+                        SELECT id, context_state
+                          FROM chat_messages
+                         WHERE conversation_id = ?
+                           AND role = ?
+                           AND turn_id = ?
+                         ORDER BY id DESC
+                         LIMIT 1
+                        """,
+                        (scope.conversation_id, role, turn_id),
+                    ).fetchone()
+                    if role and turn_id
+                    else None
+                )
+            if row is None:
+                conn.rollback()
+                return None
+
+            previous_state = str(row["context_state"] or "normal")
+            message_db_id = int(row["id"])
+            self._touch_conversation(conn, scope.conversation_id)
+            if previous_state != normalized_state:
+                conn.execute(
+                    "UPDATE chat_messages SET context_state = ? WHERE id = ?",
+                    (normalized_state, message_db_id),
+                )
+                rebuild_required = (
+                    previous_state == "excluded"
+                    or normalized_state == "excluded"
+                )
+                conn.execute(
+                    """
+                    UPDATE chat_conversations
+                       SET context_revision = context_revision + 1,
+                           context_rebuild_required = CASE
+                             WHEN ? THEN 1
+                             ELSE context_rebuild_required
+                           END
+                     WHERE id = ?
+                    """,
+                    (1 if rebuild_required else 0, scope.conversation_id),
+                )
+            context_row = conn.execute(
+                """
+                SELECT context_revision, context_rebuild_required
+                  FROM chat_conversations
+                 WHERE id = ?
+                """,
+                (scope.conversation_id,),
+            ).fetchone()
+            conn.commit()
+            return {
+                "id": message_db_id,
+                "context_state": normalized_state,
+                "context_revision": int(context_row["context_revision"] or 0),
+                "context_rebuild_required": bool(
+                    context_row["context_rebuild_required"]
+                ),
+            }
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    def load_context_policy(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> dict[str, Any]:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            context_row = conn.execute(
+                """
+                SELECT context_revision, context_rebuild_required
+                  FROM chat_conversations
+                 WHERE id = ?
+                """,
+                (scope.conversation_id,),
+            ).fetchone()
+            rows = conn.execute(
+                """
+                SELECT id, role, content, turn_id, context_state, created_at
+                  FROM chat_messages
+                 WHERE conversation_id = ?
+                   AND role IN ('user', 'assistant')
+                   AND context_state <> 'excluded'
+                 ORDER BY id ASC
+                """,
+                (scope.conversation_id,),
+            ).fetchall()
+        finally:
+            conn.close()
+        return {
+            "revision": int(context_row["context_revision"] or 0)
+            if context_row is not None
+            else 0,
+            "rebuild_required": bool(context_row["context_rebuild_required"])
+            if context_row is not None
+            else False,
+            "messages": [
+                {
+                    "id": int(row["id"]),
+                    "role": str(row["role"]),
+                    "content": str(row["content"]),
+                    "turn_id": str(row["turn_id"] or ""),
+                    "context_state": str(row["context_state"] or "normal"),
+                    "created_at": str(row["created_at"]),
+                }
+                for row in rows
+            ],
+        }
+
+    def mark_context_rebuilt(
+        self,
+        username: str,
+        scope: ChatScope,
+        revision: int,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            cursor = conn.execute(
+                """
+                UPDATE chat_conversations
+                   SET context_rebuild_required = 0
+                 WHERE id = ? AND context_revision = ?
+                """,
+                (scope.conversation_id, int(revision)),
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
 
     def list_project_trace_contents(
         self,

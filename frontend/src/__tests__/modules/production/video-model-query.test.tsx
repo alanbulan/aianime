@@ -105,6 +105,51 @@ describe("Production video model query", () => {
     ]);
   });
 
+  it("projects H3 exact frame sizes into one semantic resolution tier", () => {
+    const useVideoModels = createUseVideoModels(() => ({
+      data: {
+        catalogVersion: "catalog-h3",
+        items: [
+          {
+            id: "h3",
+            code: "MINIMAX_H3",
+            displayName: "MiniMax H3 (Self-hosted)",
+            operation: "VIDEO",
+            capabilities: {
+              routeSelector: "cloud:MINIMAX_H3",
+              supportedModes: ["IMAGE_TO_VIDEO", "MULTIMODAL_REFERENCE"],
+              ratioOptions: ["16:9", "9:16", "1:1"],
+              resolutionOptions: ["1344x768", "768x1344", "1024x1024"],
+              minDuration: 1,
+              maxDuration: 15,
+            },
+            parameterSchema: {
+              properties: {
+                size: {
+                  enum: ["1344x768", "768x1344", "1024x1024"],
+                },
+              },
+            },
+          },
+        ],
+      },
+      error: null,
+      isLoading: false,
+    }));
+
+    const { result } = renderHook(() => useVideoModels());
+
+    expect(result.current.data).toEqual([
+      expect.objectContaining({
+        value: "cloud:MINIMAX_H3",
+        apiModel: "MINIMAX_H3",
+        resolutionOptions: ["768p"],
+        sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+        ratioOptions: ["16:9", "9:16", "1:1"],
+      }),
+    ]);
+  });
+
   it("does not let a stale persisted model bypass the current catalog", () => {
     const options = [{ value: "video-a" }, { value: "video-b" }];
 

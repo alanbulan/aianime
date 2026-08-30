@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Coroutine
 from typing import Any
 
 from ai_anime.modules.model_usage.infrastructure.registered_usage import (
@@ -36,6 +38,29 @@ _pydantic_ai_openai_trace_patched = False
 _agent_run_patched = False
 _litellm_hook_installed = False
 _litellm_acompletion_patched = False
+_background_usage_tasks: set[asyncio.Task[None]] = set()
+
+
+def _finish_background_usage_task(task: asyncio.Task[None]) -> None:
+    _background_usage_tasks.discard(task)
+    if task.cancelled():
+        return
+    try:
+        task.result()
+    except Exception:
+        logger.exception("litellm background usage callback failed")
+
+
+def _run_background_usage_callback(coro: Coroutine[Any, Any, None]) -> None:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio.run(coro)
+        return
+
+    task = loop.create_task(coro)
+    _background_usage_tasks.add(task)
+    task.add_done_callback(_finish_background_usage_task)
 
 
 def _extract_model_name(agent: object) -> str:
@@ -542,18 +567,8 @@ def _install_litellm_hook() -> None:
             await _meter_refund(reservation_id)
 
         def log_failure_event(self, kwargs, response_obj, start_time, end_time):
-            import asyncio
-
             reservation_id = pop_credit_reservation()
-            coro = _meter_refund(reservation_id)
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = None
-            if loop is not None:
-                loop.create_task(coro)
-            else:
-                asyncio.run(coro)
+            _run_background_usage_callback(_meter_refund(reservation_id))
 
         async def async_log_success_event(
             self, kwargs, response_obj, start_time, end_time
@@ -561,17 +576,7 @@ def _install_litellm_hook() -> None:
             await self._forward_success(kwargs, response_obj)
 
         def log_success_event(self, kwargs, response_obj, start_time, end_time):
-            import asyncio
-
-            coro = self._forward_success(kwargs, response_obj)
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = None
-            if loop is not None:
-                loop.create_task(coro)
-            else:
-                asyncio.run(coro)
+            _run_background_usage_callback(self._forward_success(kwargs, response_obj))
 
     hook = _AiAnimeUsageLogger()
     try:

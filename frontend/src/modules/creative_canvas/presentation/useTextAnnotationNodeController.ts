@@ -16,7 +16,6 @@ import type {
 import { resolveImageDisplayUrl } from '../domain/imageData';
 import {
   DEFAULT_SHARED_MODEL_ID,
-  DEFAULT_VIDEO_MODEL_ID,
 } from '../domain/modelDefaults';
 import { isSystemManagedNodeData } from '../domain/mainlineNodeFlags';
 import { resolveNodeDisplayName } from '../domain/nodeDisplay';
@@ -32,10 +31,17 @@ import {
   resolveTextAnnotationUpstreamImageUrl,
   type TextNodeMode,
 } from '../domain/textAnnotationNodeModel';
-import type {
-  VideoGenCount,
-  VideoGenQuality,
+import {
+  normalizeVideoDuration,
+  normalizeVideoOutput,
+  videoDurationDefinitionForModel,
+  videoExtraParamsForModel,
+  videoOutputDefinitionForModel,
+  videoOutputForAspectRatio,
+  videoSupportsGenerateAudio,
+  type VideoGenCount,
 } from '../domain/videoGenerationModel';
+import type { CanvasVideoModel } from '../application/generationCatalog';
 import { resolveGenerationOutputUrl } from '../application/generationOutputUrl';
 import { generationTaskDescriptor } from '../application/resumeGeneration';
 import type {
@@ -108,7 +114,7 @@ export type TextAnnotationSubmitVideoGeneration = (
 
 export type TextAnnotationCanvasVideoModelsHook = (
   projectId: string,
-) => { models: Array<{ id: string }> };
+) => { models: CanvasVideoModel[] };
 
 export type TextAnnotationAwaitCompletion = (
   taskKey: string,
@@ -416,17 +422,46 @@ export function createUseTextAnnotationNodeController({
         return;
       }
       const videoData = targetNode.data as VideoNodeData;
-      const aspectRatio = (videoData.aspectRatio ??
-        '16:9') as VideoGenerationAspectRatio;
-      const quality: VideoGenQuality = videoData.quality ?? '720P';
-      const durationSec =
-        typeof videoData.durationSec === 'number' ? videoData.durationSec : 5;
-      const generateAudio = Boolean(videoData.generateAudio);
       const count = (videoData.count ?? 1) as VideoGenCount;
-      const videoModel =
-        typeof videoData.model === 'string' && videoData.model.length > 0
-          ? videoData.model
-          : (videoModels[0]?.id ?? DEFAULT_VIDEO_MODEL_ID);
+      const selectedVideoModel =
+        (typeof videoData.model === 'string' && videoData.model.length > 0
+          ? videoModels.find((model) => model.id === videoData.model)
+          : undefined) ?? videoModels[0];
+      const outputDefinition = videoOutputDefinitionForModel(selectedVideoModel);
+      const aspectRatioOptions = selectedVideoModel?.aspectRatioOptions ?? [];
+      const aspectRatio = aspectRatioOptions.includes(videoData.aspectRatio)
+        ? videoData.aspectRatio
+        : aspectRatioOptions[0];
+      const durationDefinition = videoDurationDefinitionForModel(
+        selectedVideoModel,
+      );
+      if (!selectedVideoModel || !outputDefinition || !aspectRatio || !durationDefinition) {
+        console.error('[text-node] video model catalog parameters are incomplete');
+        return;
+      }
+      const outputValue = normalizeVideoOutput(
+        videoData.generationResolution ??
+          videoOutputForAspectRatio(
+            outputDefinition,
+            aspectRatio,
+            outputDefinition.defaultValue,
+          ),
+        outputDefinition,
+      );
+      if (!outputValue) return;
+      const durationSec = normalizeVideoDuration(
+        typeof videoData.durationSec === 'number'
+          ? videoData.durationSec
+          : durationDefinition.defaultValue,
+        durationDefinition,
+      );
+      const generateAudio =
+        videoSupportsGenerateAudio(selectedVideoModel) &&
+        Boolean(videoData.generateAudio);
+      const extraParams = videoExtraParamsForModel(
+        selectedVideoModel,
+        videoData.extraParams,
+      );
       const total = Math.min(Math.max(count, 1), 4);
 
       updateNodeData(targetNode.id, {
@@ -458,11 +493,16 @@ export function createUseTextAnnotationNodeController({
             projectId,
             prompt: promptText,
             cameraTemplateId: null,
-            aspectRatio,
-            quality,
+            aspectRatio: aspectRatio as VideoGenerationAspectRatio,
+            output: {
+              parameter: outputDefinition.parameter,
+              value: outputValue,
+            },
+            extraParams,
             durationSeconds: durationSec,
             generateAudio,
-            model: videoModel,
+            model: selectedVideoModel.apiModel,
+            modelSelector: selectedVideoModel.routeSelector,
             genMode: 'textToVideo',
             humanReview: false,
             sceneOptimize: null,

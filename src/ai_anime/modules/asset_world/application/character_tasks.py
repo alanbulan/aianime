@@ -10,9 +10,12 @@ from ai_anime.modules.asset_world.application.character_lookup import (
 from ai_anime.modules.asset_world.application.dto import (
     BuildCharactersTask,
     CharacterImageGenerationTask,
+    CharacterVoiceDesignTask,
     ScheduledAssetTask,
 )
-from ai_anime.modules.asset_world.application.errors import CharacterProjectContextRequired
+from ai_anime.modules.asset_world.application.errors import (
+    CharacterProjectContextRequired,
+)
 from ai_anime.modules.asset_world.application.ports import (
     CharacterTaskRepository,
     CharacterTaskScheduler,
@@ -55,6 +58,7 @@ class CharacterTaskUseCases:
         style: str,
         model: str,
         model_selector: str = "",
+        ethnicity: str = "",
     ) -> ScheduledAssetTask:
         context = self._require_context(
             task_context,
@@ -70,10 +74,39 @@ class CharacterTaskUseCases:
                 style=style,
                 model=model,
                 model_selector=model_selector,
+                ethnicity=ethnicity,
                 scope=scope,
                 output_dir=project_dir,
             ),
             message=f"肖像生成任务已进入队列: {character_name}",
+        )
+
+    async def schedule_voice_design(
+        self,
+        *,
+        task_context: ProjectContext | None,
+        character_names: list[str],
+        replace_existing: bool,
+    ) -> ScheduledAssetTask:
+        context = self._require_context(
+            task_context,
+            "角色声线设计需要 project context",
+        )
+        names = tuple(
+            dict.fromkeys(name.strip() for name in character_names if name.strip())
+        )
+        if replace_existing and not names:
+            raise ValueError("覆盖已有角色声线时必须明确指定角色")
+        task = CharacterVoiceDesignTask(
+            character_names=names,
+            replace_existing=replace_existing,
+        )
+        receipt = await self._scheduler.enqueue_character_voice_design(context, task)
+        return ScheduledAssetTask.from_receipt(
+            receipt,
+            task_type=task.task_type,
+            scope=task.scope,
+            message="角色声线设计任务已进入队列",
         )
 
     async def schedule_identity_portrait(
@@ -112,9 +145,7 @@ class CharacterTaskUseCases:
                 scope=scope,
                 output_dir=project_dir,
             ),
-            message=(
-                f"身份 Portrait 生成任务已进入队列: {identity.identity_name}"
-            ),
+            message=(f"身份 Portrait 生成任务已进入队列: {identity.identity_name}"),
         )
 
     async def schedule_identity_image(

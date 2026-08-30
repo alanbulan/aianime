@@ -55,7 +55,6 @@ beforeAll(async () => {
                 narratorVoiceMissingDetail: "第三人称项目解说声线未配置",
                 narratorVoiceUpload: "上传",
                 narratorVoiceRecord: "录音",
-                narratorVoiceProjectAudio: "项目音频",
                 narratorVoiceDelete: "删除",
               },
             },

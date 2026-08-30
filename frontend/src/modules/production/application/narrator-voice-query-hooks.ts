@@ -21,9 +21,6 @@ function invalidateNarratorVoiceQueries(
     queryKey: queryKeys.narratorVoice(project),
   });
   queryClient.invalidateQueries({
-    queryKey: queryKeys.narratorVoiceSources(project),
-  });
-  queryClient.invalidateQueries({
     queryKey: queryKeys.seedance2BeatStatusProject(project),
   });
   queryClient.invalidateQueries({
@@ -46,15 +43,6 @@ export function createNarratorVoiceQueryHooks(
     });
   }
 
-  function useNarratorVoiceSources(project: string, enabled = true) {
-    return useQuery({
-      queryKey: queryKeys.narratorVoiceSources(project),
-      queryFn: ({ signal }) =>
-        gateway.listNarratorVoiceSources(project, signal),
-      enabled: !!project && enabled,
-    });
-  }
-
   function useUploadNarratorVoice(project: string) {
     const queryClient = useQueryClient();
     return useMutation({
@@ -73,28 +61,24 @@ export function createNarratorVoiceQueryHooks(
   }
 
   function useGenerateNarratorVoicePreset(project: string) {
-    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (command: GenerateNarratorVoicePresetCommand) =>
         gateway.generateNarratorVoicePreset(project, command),
-      onSuccess: () => invalidateNarratorVoiceQueries(queryClient, project),
     });
   }
 
   function useDesignNarratorVoice(project: string) {
-    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (command: GenerateNarratorVoiceDesignCommand) =>
         gateway.designNarratorVoice(project, command),
-      onSuccess: () => invalidateNarratorVoiceQueries(queryClient, project),
     });
   }
 
-  function useCopyProjectNarratorVoice(project: string) {
+  function useBindNarratorVoice(project: string) {
     const queryClient = useQueryClient();
     return useMutation({
-      mutationFn: (sourcePath: string) =>
-        gateway.copyProjectNarratorVoice(project, sourcePath),
+      mutationFn: (voiceId: string) =>
+        gateway.bindNarratorVoice(project, voiceId),
       onSuccess: () => invalidateNarratorVoiceQueries(queryClient, project),
     });
   }
@@ -124,12 +108,11 @@ export function createNarratorVoiceQueryHooks(
 
   return {
     useNarratorVoiceStatus,
-    useNarratorVoiceSources,
     useUploadNarratorVoice,
     useRecordNarratorVoice,
     useGenerateNarratorVoicePreset,
     useDesignNarratorVoice,
-    useCopyProjectNarratorVoice,
+    useBindNarratorVoice,
     useTrimNarratorVoice,
     useDeleteNarratorVoice,
   };

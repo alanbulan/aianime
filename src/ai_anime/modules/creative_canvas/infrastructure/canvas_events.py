@@ -15,9 +15,7 @@ from ai_anime.modules.creative_canvas.domain.canvas_identity import (
     is_valid_creative_canvas_id,
 )
 from ai_anime.modules.creative_canvas.infrastructure.paths import freezone_root
-from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
-    utc_now_iso,
-)
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 
 CANVAS_EVENT_SCHEMA_VERSION = "canvas_event.v1"

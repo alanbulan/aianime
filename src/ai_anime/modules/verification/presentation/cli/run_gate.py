@@ -20,10 +20,9 @@ from pathlib import Path
 import aiosqlite
 
 try:
-    from dotenv import load_dotenv as _load_dotenv
+    from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
-    _REPO_ROOT = Path(__file__).resolve().parents[4]
-    _load_dotenv(_REPO_ROOT / ".env", override=False)
+    load_project_dotenv()
 except Exception:  # noqa: BLE001
     pass
 

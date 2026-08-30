@@ -100,8 +100,6 @@ export const queryKeys = {
   renderSettings: (p: string) => ["projects", p, "render-settings"] as const,
   sketchSettings: (p: string) => ["projects", p, "sketch-settings"] as const,
   narratorVoice: (p: string) => ["projects", p, "narrator-voice"] as const,
-  narratorVoiceSources: (p: string) =>
-    ["projects", p, "narrator-voice", "sources"] as const,
   audioBillingQuotes: (p: string) => ["audio-billing-quote", p] as const,
   finalVideo: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "final-video"] as const,

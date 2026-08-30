@@ -4,7 +4,7 @@ import { apiCall, apiRequest } from "@/shared/api/client";
 import type {
   CanvasAudioReference,
   CanvasAudioVoiceCatalogGateway,
-  DesignedCanvasAudioVoice,
+  GeneratedVoiceTaskReceipt,
 } from "../application/audioVoiceCatalog";
 
 interface AudioReferenceTransport extends Record<string, unknown> {
@@ -20,11 +20,24 @@ interface AudioReferenceTransport extends Record<string, unknown> {
   readonly url?: string | null;
 }
 
-interface DesignedVoiceTransport extends Record<string, unknown> {
-  readonly voice_id?: string | null;
-  readonly name?: string | null;
-  readonly preview_url?: string | null;
-  readonly provider_voice_id?: string | null;
+interface VoiceTaskTransport extends Record<string, unknown> {
+  readonly task_id?: string | null;
+  readonly task_key?: string | null;
+  readonly task_scope?: string | null;
+  readonly task_type?: string | null;
+}
+
+function bindingTransport(
+  binding: Parameters<CanvasAudioVoiceCatalogGateway["designVoice"]>[1]["binding"],
+) {
+  if (!binding) return undefined;
+  return {
+    kind: binding.kind,
+    character_name: binding.characterName,
+    ...(binding.kind === "character_slot"
+      ? { slot: binding.slot }
+      : { identity_id: binding.identityId }),
+  };
 }
 
 function referenceItems(payload: unknown): AudioReferenceTransport[] {
@@ -91,6 +104,32 @@ export const freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway = 
       throw new Error(response.error ?? "voice upload failed");
     }
   },
+  async deleteVoice(projectId, voiceId) {
+    await apiCall<unknown>(
+      `projects/${encodeURIComponent(projectId)}/freezone/audio/voices/${encodeURIComponent(voiceId)}`,
+      { method: "DELETE" },
+    );
+  },
+  async createPresetVoice(projectId, input) {
+    const response = await apiRequest(
+      `projects/${encodeURIComponent(projectId)}/freezone/audio/voices/preset`,
+      {
+        method: "POST",
+        json: {
+          name: input.name,
+          model_selector: input.modelSelector,
+          text: input.text,
+          voice: input.voice,
+          binding: bindingTransport(input.binding),
+        },
+      },
+    ).json<{
+      ok: boolean;
+      data?: VoiceTaskTransport;
+      error?: string;
+    }>();
+    return voiceTaskResponse(response, "freezone_voice_preset", "preset voice failed");
+  },
   async designVoice(projectId, input) {
     const response = await apiRequest(
       `projects/${encodeURIComponent(projectId)}/freezone/audio/voices/design`,
@@ -105,31 +144,47 @@ export const freezoneAudioVoiceCatalogGateway: CanvasAudioVoiceCatalogGateway = 
           language: input.language,
           sample_rate: input.sampleRate,
           response_format: input.responseFormat,
+          binding: bindingTransport(input.binding),
         },
-        timeout: false,
       },
     ).json<{
       ok: boolean;
-      data?: DesignedVoiceTransport;
+      data?: VoiceTaskTransport;
       error?: string;
     }>();
-    const data = response.data;
-    const voiceId = String(data?.voice_id ?? "").trim();
-    if (!response.ok || !data || !voiceId) {
-      throw new Error(response.error ?? "voice design failed");
-    }
-    return {
-      voiceId,
-      label: String(data.name ?? input.name ?? voiceId).trim() || voiceId,
-      previewUrl:
-        typeof data.preview_url === "string" && data.preview_url.trim()
-          ? data.preview_url
-          : null,
-      providerVoiceId:
-        typeof data.provider_voice_id === "string" &&
-        data.provider_voice_id.trim()
-          ? data.provider_voice_id
-          : null,
-    } satisfies DesignedCanvasAudioVoice;
+    return voiceTaskResponse(response, "freezone_voice_design", "voice design failed");
   },
 };
+
+function voiceTaskResponse(
+  response: {
+    ok: boolean;
+    data?: VoiceTaskTransport;
+    error?: string;
+  },
+  expectedTaskType: GeneratedVoiceTaskReceipt["taskType"],
+  fallbackError: string,
+): GeneratedVoiceTaskReceipt {
+  const data = response.data;
+  const taskType = String(data?.task_type ?? "").trim();
+  const taskKey = String(data?.task_key ?? "").trim();
+  const scope = String(data?.task_scope ?? "").trim();
+  if (
+    !response.ok ||
+    !data ||
+    taskType !== expectedTaskType ||
+    !taskKey ||
+    !scope
+  ) {
+    throw new Error(response.error ?? fallbackError);
+  }
+  return {
+    taskType: expectedTaskType,
+    taskId:
+      typeof data.task_id === "string" && data.task_id.trim()
+        ? data.task_id
+        : null,
+    taskKey,
+    scope,
+  };
+}

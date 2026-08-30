@@ -185,6 +185,7 @@ async def test_audio_generation_enqueues_exact_payloads(tmp_path: Path) -> None:
                 "emotion_prompt": "紧张、压低声音",
                 "mode": "VOICE_CLONE",
                 "voice": "",
+                "model_selector": "",
                 "voice_ref": voice_ref,
                 "account_voice_username": "viewer",
                 "target_episode": 2,
@@ -362,47 +363,35 @@ async def test_audio_routes_preserve_success_contract(
 
 
 @pytest.mark.asyncio
-async def test_voice_design_route_creates_reusable_account_voice(
+async def test_voice_design_route_submits_reusable_voice_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.model_usage import public as model_usage_public
-
     context = _project_context(tmp_path)
-    captured: dict[str, object] = {}
-    created: list[object] = []
+    captured: list[object] = []
 
     async def resolve(*args, **kwargs):
         return await _fake_resolve_project_scope(*args, **kwargs, context=context)
 
-    async def write_voice(**kwargs):
-        captured.update(kwargs)
-        Path(kwargs["output_path"]).write_bytes(b"designed-wav")
-        return SimpleNamespace(
-            request_id="req_voice_design_1",
-            response_id="",
-            voice_id="qwen_voice_123",
-        )
-
-    class VoiceLibrary:
-        def create_voice(self, command):
-            created.append(command)
-            return {
-                "voice_id": "fv_designed",
-                "name": command.name,
-                "preview_url": "/api/v1/projects/project-1/freezone/audio/voices/fv_designed/media",
-            }
+    class AudioGeneration:
+        async def start_voice_design(self, command):
+            captured.append(command)
+            return CreativeCanvasTaskReceipt(
+                task_type="freezone_voice_design",
+                job_id="voice-design-1",
+                task_key="task:freezone_voice_design:voice-design-1",
+                task_episode=0,
+                task_scope="voice-design-1",
+                backend="celery",
+                queue="default",
+                task_id="task-voice-design-1",
+            )
 
     monkeypatch.setattr(audio_routes, "resolve_project_scope", resolve)
     monkeypatch.setattr(
         audio_routes,
-        "creative_canvas_audio_library_use_cases",
-        lambda: VoiceLibrary(),
-    )
-    monkeypatch.setattr(
-        model_usage_public,
-        "write_model_audio_voice_design",
-        write_voice,
+        "creative_canvas_audio_generation_use_cases",
+        lambda: AudioGeneration(),
     )
 
     response = await audio_routes.design_freezone_audio_voice(
@@ -419,24 +408,21 @@ async def test_voice_design_route_creates_reusable_account_voice(
         user={"username": "viewer"},
     )
 
-    assert captured == {
-        "output_path": captured["output_path"],
-        "voice_prompt": "清澈温暖的青年女声",
-        "preview_text": "你好，这是声线试听。",
-        "model_selector": "cloud:QWEN3_TTS_VD_2026_01_26",
-        "preferred_name": "custom_voice",
-        "language": "zh",
-        "sample_rate": 24000,
-        "response_format": "wav",
-    }
-    assert len(created) == 1
-    assert created[0].name == "夏栀青年声线"
-    assert created[0].content == b"designed-wav"
+    command = captured[0]
+    assert command.name == "夏栀青年声线"
+    assert command.voice_prompt == "清澈温暖的青年女声"
+    assert command.preview_text == "你好，这是声线试听。"
+    assert command.model_selector == "cloud:QWEN3_TTS_VD_2026_01_26"
+    assert command.binding is None
     assert response["data"] == {
-        "voice_id": "fv_designed",
-        "name": "夏栀青年声线",
-        "preview_url": "/api/v1/projects/project-1/freezone/audio/voices/fv_designed/media",
-        "provider_voice_id": "qwen_voice_123",
+        "task_type": "freezone_voice_design",
+        "job_id": "voice-design-1",
+        "task_key": "task:freezone_voice_design:voice-design-1",
+        "task_episode": 0,
+        "task_scope": "voice-design-1",
+        "backend": "celery",
+        "queue": "default",
+        "task_id": "task-voice-design-1",
     }
 
 

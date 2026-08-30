@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
+    EpisodeRewriteTask,
     EpisodeAssetPlanningTask,
     EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScriptGenerationTask,
+    SeedancePromptTask,
     TaskQueueReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -69,6 +71,47 @@ class TaskExecutionScheduler:
                 task_type="beat_video_prompt",
                 episode=task.episode,
                 beat_num=task.beat_num,
+                payload=task.backend_payload(),
+            ),
+        )
+        return TaskQueueReceipt(
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
+        )
+
+    async def enqueue_seedance_prompt(
+        self,
+        task_context: ProjectContext,
+        task: SeedancePromptTask,
+    ) -> TaskQueueReceipt:
+        receipt = await self._submissions.submit(
+            task_context,
+            ProjectTaskSubmission(
+                task_type="seedance2_prompt",
+                episode=task.episode,
+                beat_num=task.beat_num,
+                payload=task.backend_payload(),
+            ),
+        )
+        return TaskQueueReceipt(
+            task_id=receipt.task_id,
+            task_key=receipt.task_key,
+            backend=receipt.backend,
+            queue=receipt.queue,
+        )
+
+    async def enqueue_episode_rewrite(
+        self,
+        task_context: ProjectContext,
+        task: EpisodeRewriteTask,
+    ) -> TaskQueueReceipt:
+        receipt = await self._submissions.submit(
+            task_context,
+            ProjectTaskSubmission(
+                task_type="episode_rewrite",
+                episode=task.episode,
                 payload=task.backend_payload(),
             ),
         )

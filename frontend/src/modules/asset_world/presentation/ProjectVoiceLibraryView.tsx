@@ -1,9 +1,20 @@
 // Copyright (c) 2026 AI anime
-import type { ReactNode } from "react";
-import { AlertTriangle, Library, Loader2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AlertTriangle, Library, Loader2, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { resolveMediaUrl } from "@/lib/media-url";
 
 export interface ProjectVoiceLibraryOption {
@@ -17,6 +28,7 @@ export interface ProjectVoiceLibraryViewProps {
   accountVoicesFailed: boolean;
   accountVoicesLoading: boolean;
   narratorVoiceContent: ReactNode;
+  onDeleteAccountVoice(voiceId: string): Promise<void>;
 }
 
 function SourceBadge({ children }: { children: ReactNode }) {
@@ -32,8 +44,27 @@ export function ProjectVoiceLibraryView({
   accountVoicesFailed,
   accountVoicesLoading,
   narratorVoiceContent,
+  onDeleteAccountVoice,
 }: ProjectVoiceLibraryViewProps) {
   const { t } = useTranslation();
+  const [deleteTarget, setDeleteTarget] =
+    useState<ProjectVoiceLibraryOption | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteFailed(false);
+    try {
+      await onDeleteAccountVoice(deleteTarget.voiceId);
+      setDeleteTarget(null);
+    } catch {
+      setDeleteFailed(true);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-background p-6">
@@ -91,6 +122,21 @@ export function ProjectVoiceLibraryView({
                       <SourceBadge>
                         {t("characters.voices.accountSource")}
                       </SourceBadge>
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="destructive"
+                        aria-label={t("characters.voices.deleteFor", {
+                          name: voice.label,
+                        })}
+                        data-ui-tooltip={t("characters.voices.delete")}
+                        onClick={() => {
+                          setDeleteFailed(false);
+                          setDeleteTarget(voice);
+                        }}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
                     </div>
                     {audioSrc ? (
                       <PreciseAudioPlayer
@@ -113,6 +159,47 @@ export function ProjectVoiceLibraryView({
           )}
         </section>
       </div>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) {
+            setDeleteFailed(false);
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("characters.voices.deleteTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("characters.voices.deleteDescription", {
+                name: deleteTarget?.label ?? "",
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteFailed && (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              {t("characters.voices.deleteFailed")}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleting}
+              onClick={() => void confirmDelete()}
+            >
+              {deleting && <Loader2 className="size-3.5 animate-spin" />}
+              {t("characters.voices.deleteConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -27,6 +27,10 @@ vi.mock("react-i18next", () => ({
         "settings.modelAccess.fetchModels": "获取模型列表",
         "settings.modelAccess.modelPriority": "模型优先级",
         "settings.modelAccess.modelRole": "模型用途",
+        "settings.modelAccess.contextWindow": "上下文",
+        "settings.modelAccess.maxOutputShort": "输出",
+        "settings.modelAccess.reasoningShort": "思考",
+        "settings.modelAccess.roles.text": "文本生成",
         "settings.modelAccess.roles.videoFirstLastFrame": "视频:首尾帧",
       } as Record<string, string>)[key] ?? key,
   }),
@@ -60,13 +64,67 @@ vi.mock("@/modules/identity_access/public", () => {
 vi.mock("@/modules/model_usage/public", () => {
   const mutation = { mutateAsync: vi.fn(), isPending: false };
   return {
-    BYOK_MODEL_ROLES: ["VIDEO_FIRST_LAST_FRAME"],
+    BYOK_MODEL_ROLES: ["TEXT", "VIDEO_FIRST_LAST_FRAME"],
     BYOK_PROVIDER_PROTOCOLS: ["OPENAI_COMPATIBLE", "ANTHROPIC", "GEMINI"],
     CommercialInvocationSection: () => null,
+    catalogRouteSelector: (item: { capabilities?: { routeSelector?: string } }) => (
+      item.capabilities?.routeSelector
+    ),
+    commercialModelRuntimeMetadata: (item: {
+      capabilities?: { contextWindowTokens?: number };
+      parameterSchema?: { properties?: { reasoning_effort?: Record<string, unknown> } };
+    }) => ({
+      ...(item.capabilities?.contextWindowTokens
+        ? { contextWindow: item.capabilities.contextWindowTokens }
+        : {}),
+      ...(item.parameterSchema?.properties?.reasoning_effort
+        ? {
+            reasoningEffort: {
+              options: item.parameterSchema.properties.reasoning_effort.enum ?? [],
+              defaultValue: item.parameterSchema.properties.reasoning_effort.default,
+            },
+          }
+        : {}),
+    }),
+    effectiveModelRuntimeSettings: (assignment?: {
+      contextWindow?: number;
+      maxOutputTokens?: number;
+      reasoningEfforts?: string[];
+      defaultReasoningEffort?: string;
+      runtimeOverrides?: {
+        contextWindow?: number;
+        maxOutputTokens?: number;
+        reasoningEfforts?: string[];
+        defaultReasoningEffort?: string;
+      };
+    }) => {
+      if (!assignment) return {};
+      const overrides = assignment.runtimeOverrides;
+      const options = overrides?.reasoningEfforts ?? assignment.reasoningEfforts;
+      const requestedDefault = overrides?.defaultReasoningEffort
+        ?? assignment.defaultReasoningEffort;
+      return {
+        contextWindow: overrides?.contextWindow ?? assignment.contextWindow,
+        maxOutputTokens: overrides?.maxOutputTokens ?? assignment.maxOutputTokens,
+        ...(options?.length ? { reasoningEfforts: options } : {}),
+        ...(requestedDefault && options?.includes(requestedDefault)
+          ? { defaultReasoningEffort: requestedDefault }
+          : {}),
+      };
+    },
     commercialModelRoles: (item: { roles?: string[] }) => item.roles ?? [],
+    formatModelContextWindow: (value?: number) => value ? `${value} tokens` : "未声明",
+    formatReasoningEffort: (value?: { options?: string[] }) => (
+      value?.options?.join(" / ") ?? "未声明"
+    ),
     useClearByok: () => mutation,
     useDiscoverByokProviderModels: () => ({
-      data: { providerId: "provider-a", models: [], catalogVersion: "test" },
+      data: {
+        providerId: "provider-a",
+        models: [],
+        modelMetadata: [],
+        catalogVersion: "test",
+      },
       isPending: false,
       error: null,
       mutateAsync: modelUsageMockState.discoverModels,
@@ -129,6 +187,7 @@ describe("SettingsDialog", () => {
     modelUsageMockState.discoverModels.mockResolvedValue({
       providerId: "draft",
       models: ["model-a"],
+      modelMetadata: [],
       catalogVersion: "test",
     });
   });
@@ -244,17 +303,26 @@ describe("SettingsDialog", () => {
   it("显示并保留云端模型的真实路由优先级", async () => {
     modelUsageMockState.catalogItems = [
       {
-        id: "video-model-id",
-        code: "video-model",
-        displayName: "Video Model",
-        operation: "VIDEO",
-        roles: ["VIDEO_FIRST_LAST_FRAME"],
+        id: "text-model-id",
+        code: "QWEN3_8_27B",
+        displayName: "Qwen3.8-27B",
+        operation: "TEXT",
+        roles: ["TEXT"],
+        capabilities: { contextWindowTokens: 32768 },
+        parameterSchema: {
+          properties: {
+            reasoning_effort: {
+              enum: ["low", "medium", "xhigh"],
+              default: "low",
+            },
+          },
+        },
       },
     ];
     modelUsageMockState.cloudModelAssignments = [
       {
-        modelId: "video-model",
-        role: "VIDEO_FIRST_LAST_FRAME",
+        modelId: "QWEN3_8_27B",
+        role: "TEXT",
         priority: 37,
         enabled: true,
       },
@@ -267,10 +335,15 @@ describe("SettingsDialog", () => {
     render(<SettingsDialog open onOpenChange={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "模型" }));
 
-    expect(
-      await screen.findByRole("spinbutton", {
-        name: "视频:首尾帧 模型优先级",
-      }),
-    ).toHaveValue(37);
+    const priority = await screen.findByRole("spinbutton", {
+      name: "文本生成 模型优先级",
+    });
+    expect(priority).toHaveValue(37);
+    expect(screen.getByText(
+      "上下文 32768 tokens · 输出 未声明 · 思考 low / medium / xhigh",
+    ))
+      .toBeInTheDocument();
+    expect(priority.closest("[data-cloud-model-assignment]"))
+      .toHaveClass("items-start");
   });
 });

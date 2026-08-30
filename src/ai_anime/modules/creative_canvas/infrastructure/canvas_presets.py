@@ -25,7 +25,6 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
     canvas_request_hash,
     read_canvas,
     relative_project_path,
-    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.application.canvas_presets import (
     CreateCreativeCanvasPresetCommand,
@@ -54,6 +53,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import (
     make_sqlite_store_for_context,
 )
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 
 StoreFactory = Callable[[ProjectContext], Awaitable[Any]]

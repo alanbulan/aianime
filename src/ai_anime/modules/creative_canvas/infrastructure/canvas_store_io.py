@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import os
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +13,8 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_contracts impo
     CanvasCorruptError,
 )
 from ai_anime.modules.creative_canvas.infrastructure.paths import canvas_path
+from ai_anime.shared.utils.atomic_files import replace_text_atomically
+from ai_anime.shared.utils.time_format import utc_iso
 
 CANVAS_PAYLOAD_SIZE_LIMIT_BYTES = int(
     os.environ.get("FREEZONE_CANVAS_PAYLOAD_LIMIT_BYTES") or 5 * 1024 * 1024
@@ -21,17 +22,6 @@ CANVAS_PAYLOAD_SIZE_LIMIT_BYTES = int(
 CANVAS_PAYLOAD_DIAGNOSTIC_LIMIT = 8
 
 logger = logging.getLogger(__name__)
-
-
-def utc_iso(dt: datetime) -> str:
-    """Return an absolute ISO timestamp for API and persisted metadata."""
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def utc_now_iso() -> str:
-    return utc_iso(datetime.now(timezone.utc))
 
 
 def timestamp_utc_iso(timestamp: float) -> str:
@@ -60,29 +50,13 @@ def read_canvas(project_dir: Path, canvas_id: str) -> dict | None:
 
 
 def atomic_write_json(path: Path, payload: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(
-        f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp"
-    )
     data = json.dumps(payload, ensure_ascii=False, indent=2)
-    try:
-        with temporary.open("w", encoding="utf-8") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        temporary.replace(path)
-        try:
-            directory_fd = os.open(str(path.parent), os.O_RDONLY)
-        except OSError:
-            directory_fd = None
-        if directory_fd is not None:
-            try:
-                os.fsync(directory_fd)
-            finally:
-                os.close(directory_fd)
-    finally:
-        if temporary.exists():
-            temporary.unlink(missing_ok=True)
+    replace_text_atomically(
+        path,
+        data,
+        sync_file=True,
+        sync_directory=True,
+    )
 
 
 def serialized_canvas_size_bytes(payload: dict) -> int:

@@ -45,12 +45,13 @@ import type {
 } from "@/modules/production/domain/seedance2-panel";
 import {
   clampDuration,
+  happyHorseResolutionOptionsForDuration,
   normalizeGrokVideoRatio,
   normalizeHappyHorseMode,
   normalizeHappyHorseRatio,
   normalizeSeedance2Mode,
   normalizeSeedance2Ratio,
-  normalizeSeedance2Resolution,
+  normalizeVideoResolution,
 } from "@/modules/production/domain/video-config";
 import { BeatVideoGenerationAction } from "@/modules/production/presentation/BeatVideoGenerationView";
 import {
@@ -114,6 +115,7 @@ export interface Seedance2ConfigViewProps {
   hasGeneratedVideo: boolean;
   mediaCandidateCount: number;
   mention: Seedance2MentionController;
+  modelLabel: string;
   projectAspect: "2:3" | "16:9";
   referencesOpen: boolean;
   savePending: boolean;
@@ -135,6 +137,7 @@ export function Seedance2ConfigView({
   hasGeneratedVideo,
   mediaCandidateCount,
   mention,
+  modelLabel,
   projectAspect,
   referencesOpen,
   savePending,
@@ -148,6 +151,15 @@ export function Seedance2ConfigView({
   const { t } = useTranslation();
   const seedance2Id = useId();
   const draft = config.draft;
+  const happyHorseResolutionOptions = happyHorseResolutionOptionsForDuration(
+    config.happyHorseResolutionOptions,
+    draft.duration,
+  );
+  const resolutionOptions = showHappyHorseConfig
+    ? happyHorseResolutionOptions
+    : showGrokVideoConfig
+      ? config.grokResolutionOptions
+      : config.seedance2ResolutionOptions;
   const returnedLastFrameAsset =
     assets.find((asset) => {
       if (asset.media_type !== "image" || !(asset.url || asset.path)) {
@@ -319,7 +331,9 @@ export function Seedance2ConfigView({
             ? "Grok Video 检视器"
             : showHappyHorseConfig
               ? "HappyHorse 检视器"
-              : t("episode.workbench.video.seedance2Inspector")}
+              : modelLabel
+                ? `${modelLabel} 检视器`
+                : t("episode.workbench.video.seedance2Inspector")}
         </Label>
         <Seedance2SummaryPill
           active={status?.media.render_ready ?? fallbackFrameReady}
@@ -407,23 +421,16 @@ export function Seedance2ConfigView({
               </span>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
-              <SelectItem value="first_frame">
-                {t(
-                  "episode.workbench.video.seedance2ModeLabels.first_frame",
-                )}
-              </SelectItem>
-              {!showHappyHorseConfig && !showGrokVideoConfig && (
-                <SelectItem value="first_last_frame">
+              {(showHappyHorseConfig || showGrokVideoConfig
+                ? (["first_frame", "multimodal_reference"] as const)
+                : config.seedance2ModeOptions
+              ).map((mode) => (
+                <SelectItem key={mode} value={mode}>
                   {t(
-                    "episode.workbench.video.seedance2ModeLabels.first_last_frame",
+                    `episode.workbench.video.seedance2ModeLabels.${mode}`,
                   )}
                 </SelectItem>
-              )}
-              <SelectItem value="multimodal_reference">
-                {t(
-                  "episode.workbench.video.seedance2ModeLabels.multimodal_reference",
-                )}
-              </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </Seedance2Field>
@@ -438,58 +445,56 @@ export function Seedance2ConfigView({
             min={config.seedance2DurationBounds.min}
             max={config.seedance2DurationBounds.max}
             value={draft.duration}
-            onChange={(event) =>
-              config.updateDraft(
-                "duration",
-                clampDuration(
-                  event.target.value,
-                  config.seedance2DurationBounds,
-                ),
-              )
-            }
+            onChange={(event) => {
+              const duration = clampDuration(
+                event.target.value,
+                config.seedance2DurationBounds,
+              );
+              config.changeDraft((current) => ({
+                ...current,
+                duration,
+                ...(showHappyHorseConfig
+                  && duration > 6
+                  && current.resolution === "1080p"
+                  ? { resolution: "768p" as const }
+                  : {}),
+              }));
+            }}
             className={cn("!h-9", CONTROL_CLASS)}
           />
         </Seedance2Field>
-        <Seedance2Field
-          label={t("episode.workbench.video.resolution")}
-          htmlFor={`${seedance2Id}-resolution`}
-        >
-          <Select
-            value={draft.resolution}
-            onValueChange={(value) =>
-              config.updateDraft(
-                "resolution",
-                normalizeSeedance2Resolution(
-                  value,
-                  showGrokVideoConfig
-                    ? config.grokResolutionOptions[0]
-                    : showHappyHorseConfig
-                      ? config.happyHorseResolutionOptions[0]
-                      : config.seedance2ResolutionOptions[0],
-                ),
-              )
-            }
+        {resolutionOptions.length ? (
+          <Seedance2Field
+            label={t("episode.workbench.video.resolution")}
+            htmlFor={`${seedance2Id}-resolution`}
           >
-            <SelectTrigger
-              id={`${seedance2Id}-resolution`}
-              className={cn("!h-9", CONTROL_CLASS)}
+            <Select
+              value={draft.resolution}
+              onValueChange={(value) =>
+                config.updateDraft(
+                  "resolution",
+                  normalizeVideoResolution(value, resolutionOptions[0]),
+                )
+              }
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {(showHappyHorseConfig
-                ? config.happyHorseResolutionOptions
-                : showGrokVideoConfig
-                  ? config.grokResolutionOptions
-                  : config.seedance2ResolutionOptions
-              ).map((resolution) => (
-                <SelectItem key={resolution} value={resolution}>
-                  {resolution}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Seedance2Field>
+              <SelectTrigger
+                id={`${seedance2Id}-resolution`}
+                className={cn("!h-9", CONTROL_CLASS)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {resolutionOptions.map((resolution) => (
+                  <SelectItem key={resolution} value={resolution}>
+                    {resolution.includes("x")
+                      ? resolution.replace("x", " × ")
+                      : resolution}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Seedance2Field>
+        ) : null}
         <Seedance2Field
           label={t("episode.workbench.video.ratio")}
           htmlFor={`${seedance2Id}-ratio`}
@@ -518,7 +523,7 @@ export function Seedance2ConfigView({
                 ? config.happyHorseRatioOptions
                 : showGrokVideoConfig
                   ? config.grokRatioOptions
-                  : (["9:16", "16:9", "1:1", "4:3", "3:4", "21:9"] as const)
+                  : config.seedance2RatioOptions
               ).map((ratio) => (
                 <SelectItem key={ratio} value={ratio}>
                   {ratio}
@@ -528,6 +533,19 @@ export function Seedance2ConfigView({
           </Select>
         </Seedance2Field>
       </div>
+
+      <p
+        data-testid="video-generation-mode-description"
+        className="px-1 text-[11px] leading-5 text-muted-foreground"
+      >
+        {t(
+          `episode.workbench.video.seedance2ModeDescriptions.${
+            showHappyHorseConfig || showGrokVideoConfig
+              ? normalizeHappyHorseMode(draft.mode)
+              : draft.mode
+          }`,
+        )}
+      </p>
 
       <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-muted-foreground">
         {showSeedance2Config && (

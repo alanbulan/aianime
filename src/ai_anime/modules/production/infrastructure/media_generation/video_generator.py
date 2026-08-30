@@ -398,6 +398,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
             "prompt": str(config.get("final_prompt") or prompt or "").strip(),
             "seconds": str(duration_seconds),
             "size": self._size(ratio, resolution),
+            "ratio": ratio,
         }
         if not payload["prompt"]:
             raise ValueError("视频提示词不能为空")

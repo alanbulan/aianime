@@ -31,7 +31,28 @@ const mocks = vi.hoisted(() => ({
   boxSelecting: false,
   systemManaged: false,
   isGenerating: false,
-  videoModels: [{ id: 'video-model-a' }],
+  videoModels: [{
+    id: 'route-h3',
+    apiModel: 'MINIMAX_H3',
+    routeSelector: 'route-h3',
+    label: 'MiniMax H3',
+    supportedModes: ['textToVideo'],
+    aspectRatioOptions: ['16:9', '9:16', '1:1'],
+    sizeOptions: ['1344x768', '768x1344', '1024x1024'],
+    minDuration: 1,
+    maxDuration: 15,
+    defaultDuration: 3,
+    supportsGenerateAudio: false,
+    parameterSchema: {
+      type: 'object',
+      properties: {
+        size: { type: 'string', enum: ['1344x768', '768x1344', '1024x1024'], default: '1344x768' },
+        steps: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+        seed: { type: 'integer', minimum: 0, maximum: 2147483647, default: 42 },
+        turbo: { type: 'boolean', default: false },
+      },
+    },
+  }] as import('../application/generationCatalog').CanvasVideoModel[],
   generateCanvasReversePrompt: vi.fn(),
   submitVideoGeneration: vi.fn(),
   awaitCanvasGenerationTaskCompletion: vi.fn(),
@@ -200,7 +221,28 @@ describe('useTextAnnotationNodeController', () => {
     mocks.boxSelecting = false;
     mocks.systemManaged = false;
     mocks.isGenerating = false;
-    mocks.videoModels = [{ id: 'video-model-a' }];
+    mocks.videoModels = [{
+      id: 'route-h3',
+      apiModel: 'MINIMAX_H3',
+      routeSelector: 'route-h3',
+      label: 'MiniMax H3',
+      supportedModes: ['textToVideo'],
+      aspectRatioOptions: ['16:9', '9:16', '1:1'],
+      sizeOptions: ['1344x768', '768x1344', '1024x1024'],
+      minDuration: 1,
+      maxDuration: 15,
+      defaultDuration: 3,
+      supportsGenerateAudio: false,
+      parameterSchema: {
+        type: 'object',
+        properties: {
+          size: { type: 'string', enum: ['1344x768', '768x1344', '1024x1024'], default: '1344x768' },
+          steps: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+          seed: { type: 'integer', minimum: 0, maximum: 2147483647, default: 42 },
+          turbo: { type: 'boolean', default: false },
+        },
+      },
+    }];
     mocks.generateCanvasReversePrompt.mockReset();
     mocks.submitVideoGeneration.mockReset();
     mocks.awaitCanvasGenerationTaskCompletion.mockReset();
@@ -412,7 +454,7 @@ describe('useTextAnnotationNodeController', () => {
         nodeData: {
           count: 2,
           aspectRatio: '9:16',
-          quality: '1080P',
+          generationResolution: '768x1344',
           durationSec: 8,
           generateAudio: true,
         },
@@ -453,12 +495,14 @@ describe('useTextAnnotationNodeController', () => {
       expect.objectContaining({
         nodeId: 'video-a',
         prompt: '视频提示词',
-        model: 'video-model-a',
+        model: 'MINIMAX_H3',
+        modelSelector: 'route-h3',
         genMode: 'textToVideo',
         aspectRatio: '9:16',
-        quality: '1080P',
+        output: { parameter: 'size', value: '768x1344' },
+        extraParams: { steps: 20, seed: 42, turbo: false },
         durationSeconds: 8,
-        generateAudio: true,
+        generateAudio: false,
       }),
     );
     expect(mocks.submitVideoGeneration).toHaveBeenCalledWith(

@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
 
 import aiosqlite
+
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 from .versions.v1_initial_registry import VERSION, apply, apply_sync
 
 MIGRATIONS = ((VERSION, apply),)
 SYNC_MIGRATIONS = ((VERSION, apply_sync),)
 MIGRATION_VERSION = max(version for version, _migration in SYNC_MIGRATIONS)
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 async def run_project_registry_migrations(db: aiosqlite.Connection) -> None:
@@ -39,7 +36,7 @@ async def run_project_registry_migrations(db: aiosqlite.Connection) -> None:
             await db.execute(
                 "INSERT INTO schema_migrations(version, applied_at) "
                 "VALUES (?, ?)",
-                (version, _now_iso()),
+                (version, utc_now_iso()),
             )
             await db.commit()
         except BaseException:
@@ -70,7 +67,7 @@ def run_project_registry_migrations_sync(conn: sqlite3.Connection) -> None:
             conn.execute(
                 "INSERT INTO schema_migrations(version, applied_at) "
                 "VALUES (?, ?)",
-                (version, _now_iso()),
+                (version, utc_now_iso()),
             )
             conn.commit()
         except BaseException:

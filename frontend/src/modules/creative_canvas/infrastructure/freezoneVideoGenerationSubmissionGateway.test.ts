@@ -17,7 +17,8 @@ const common = {
   prompt: "prompt",
   cameraTemplateId: "camera-1",
   aspectRatio: "16:9" as const,
-  resolution: "1080p" as const,
+  output: { parameter: "resolution" as const, value: "1080p" },
+  extraParams: {},
   durationSeconds: 8,
   generateAudio: true,
   model: "model-1",
@@ -207,6 +208,34 @@ describe("freezoneVideoGenerationSubmissionGateway", () => {
           scene_optimize: null,
         },
       },
+    );
+  });
+
+  it("projects H3 size and schema parameters without a resolution fallback", async () => {
+    await freezoneVideoGenerationSubmissionGateway.submit("project/1", {
+      ...common,
+      output: { parameter: "size", value: "1344x768" },
+      extraParams: { steps: 20, seed: 42, turbo: false },
+      generateAudio: false,
+      kind: "text",
+      genMode: "textToVideo",
+      humanReview: false,
+      sceneOptimize: null,
+    });
+
+    expect(apiCall).toHaveBeenCalledWith(
+      "projects/project%2F1/freezone/video/gen",
+      {
+        method: "POST",
+        json: expect.objectContaining({
+          size: "1344x768",
+          extra_params: { steps: 20, seed: 42, turbo: false },
+          generate_audio: false,
+        }),
+      },
+    );
+    expect(vi.mocked(apiCall).mock.calls[0]?.[1]?.json).not.toHaveProperty(
+      "resolution",
     );
   });
 

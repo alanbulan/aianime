@@ -106,6 +106,9 @@ class ProjectChatMessages:
                         merged_media,
                     ),
                     "attachments": _history_attachments(message.get("media")),
+                    "context_state": str(
+                        message.get("context_state") or "normal"
+                    ),
                     **(
                         {"ui_events": message["ui_events"]}
                         if isinstance(message.get("ui_events"), list)
@@ -115,6 +118,48 @@ class ProjectChatMessages:
                 }
             )
         return messages
+
+    def load_context_policy(
+        self,
+        username: str,
+        project: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
+    ) -> dict[str, Any]:
+        return self._history.load_context_policy(
+            username,
+            ChatScope(
+                kind="project",
+                id=project,
+                conversation_id=conversation_id,
+            ),
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+        )
+
+    def mark_context_rebuilt(
+        self,
+        username: str,
+        project: str,
+        revision: int,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+        conversation_id: str = "main",
+    ) -> bool:
+        return self._history.mark_context_rebuilt(
+            username,
+            ChatScope(
+                kind="project",
+                id=project,
+                conversation_id=conversation_id,
+            ),
+            revision,
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+        )
 
     def assistant_contents(
         self,

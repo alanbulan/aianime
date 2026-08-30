@@ -1150,6 +1150,7 @@ async def _ensure_seedance_prompts(
     beats: list[dict[str, Any]],
     *,
     requested_model: str | None,
+    video_routing_policy: str = "project_selection",
     reporter: _ProgressReporter,
     progress: float,
     force: bool = False,
@@ -1168,6 +1169,7 @@ async def _ensure_seedance_prompts(
         context.owner_username,
         context.project_name,
         requested_model,
+        routing_policy=video_routing_policy,
     )
     if not is_seedance2_model(model_route.model):
         return beats
@@ -1230,6 +1232,7 @@ async def _ensure_seedance_voice_prerequisites(
     beats: list[dict[str, Any]],
     *,
     requested_model: str | None,
+    video_routing_policy: str = "project_selection",
     reporter: _ProgressReporter,
     progress: float,
     force: bool = False,
@@ -1252,6 +1255,7 @@ async def _ensure_seedance_voice_prerequisites(
         context.owner_username,
         context.project_name,
         requested_model,
+        routing_policy=video_routing_policy,
     )
     if not is_seedance2_model(model_route.model):
         return
@@ -1387,6 +1391,7 @@ async def _ensure_videos(
     beats: list[dict[str, Any]],
     *,
     requested_model: str | None,
+    video_routing_policy: str = "project_selection",
     resolution: str,
     aspect_ratio: str,
     use_director_render: bool,
@@ -1413,6 +1418,7 @@ async def _ensure_videos(
         context.owner_username,
         context.project_name,
         requested_model,
+        routing_policy=video_routing_policy,
     )
     for index, beat_num in enumerate(missing, start=1):
         reporter.update(
@@ -1602,6 +1608,9 @@ async def _run_production_workflow_steps(
     use_director_render = bool(config.get("use_director_render", False))
     add_subtitles = bool(payload.get("add_subtitles", True))
     add_bgm = bool(payload.get("add_bgm", False))
+    video_routing_policy = str(
+        payload.get("video_routing_policy") or "project_selection"
+    )
     results: list[dict[str, Any]] = []
 
     episode_span = 0.55 / len(episode_numbers)
@@ -1669,6 +1678,7 @@ async def _run_production_workflow_steps(
             episode_num,
             beats,
             requested_model=payload.get("video_model"),
+            video_routing_policy=video_routing_policy,
             reporter=reporter,
             progress=base + episode_span * 0.52,
             force=overwrite_existing_assets,
@@ -1678,6 +1688,7 @@ async def _run_production_workflow_steps(
             episode_num,
             beats,
             requested_model=payload.get("video_model"),
+            video_routing_policy=video_routing_policy,
             reporter=reporter,
             progress=base + episode_span * 0.54,
             force=overwrite_existing_assets,
@@ -1696,6 +1707,7 @@ async def _run_production_workflow_steps(
             episode_num,
             beats,
             requested_model=payload.get("video_model"),
+            video_routing_policy=video_routing_policy,
             resolution=resolution,
             aspect_ratio=aspect_ratio,
             use_director_render=use_director_render,

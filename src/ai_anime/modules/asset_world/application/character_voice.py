@@ -23,6 +23,7 @@ from ai_anime.modules.asset_world.domain.character_voice import (
     voice_slot_metadata,
     voice_slot_update_fields,
 )
+from ai_anime.shared.utils.async_ops import call_blocking
 
 MediaUrl = Callable[[str], str]
 
@@ -112,7 +113,10 @@ class CharacterVoiceUseCases:
         character = self._character(repository, character_name)
         self._ensure_slot(slot)
         try:
-            content, filename = self._files.read_source(source_path)
+            content, filename = await call_blocking(
+                self._files.read_source,
+                source_path,
+            )
             metadata = self._files.persist(
                 project_dir=project_dir,
                 character_name=character_name,
@@ -143,7 +147,10 @@ class CharacterVoiceUseCases:
         character = self._character(repository, character_name)
         identity = self._identity(character, identity_id)
         try:
-            content, filename = self._files.read_source(source_path)
+            content, filename = await call_blocking(
+                self._files.read_source,
+                source_path,
+            )
             metadata = self._files.persist_identity(
                 project_dir=project_dir,
                 character_name=character_name,
@@ -229,7 +236,10 @@ class CharacterVoiceUseCases:
         character = self._character(repository, character_name)
         self._ensure_slot(slot)
         try:
-            content, extension = self._files.decode_recording(data_url)
+            content, extension = await call_blocking(
+                self._files.decode_recording,
+                data_url,
+            )
             metadata = self._files.persist(
                 project_dir=project_dir,
                 character_name=character_name,
@@ -262,7 +272,8 @@ class CharacterVoiceUseCases:
         character = self._character(repository, character_name)
         self._ensure_slot(slot)
         try:
-            metadata = self._files.trim(
+            metadata = await call_blocking(
+                self._files.trim,
                 project_dir=project_dir,
                 character_name=character_name,
                 slot=slot,

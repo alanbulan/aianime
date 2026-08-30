@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   ControlBar,
-  HeaderControlPortal,
   type ChatControlBarModel,
 } from "@/modules/ai_assistant/presentation/ChatControlBar";
 import { cn } from "@/lib/utils";
@@ -23,11 +22,7 @@ export function ChatPanelHeader({
 }: ChatPanelHeaderProps) {
   const { t } = useTranslation();
 
-  if (!isFreezoneLayout) {
-    return (
-      <HeaderControlPortal chat={chat} />
-    );
-  }
+  if (!isFreezoneLayout) return null;
 
   return (
     <div className="flex min-h-9 shrink-0 items-center gap-2 border-b border-border bg-card px-3 py-1">

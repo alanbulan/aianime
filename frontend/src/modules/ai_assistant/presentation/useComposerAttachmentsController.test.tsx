@@ -6,8 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useComposerAttachmentsController } from "@/modules/ai_assistant/public";
 
 class FileReaderMock {
+  static instances: FileReaderMock[] = [];
+  static deferLoad = false;
+
   result: string | null = null;
+  aborted = false;
   private onLoad: (() => void) | null = null;
+
+  constructor() {
+    FileReaderMock.instances.push(this);
+  }
 
   addEventListener(type: string, listener: () => void): void {
     if (type === "load") this.onLoad = listener;
@@ -15,7 +23,11 @@ class FileReaderMock {
 
   readAsDataURL(file: File): void {
     this.result = `data:${file.name}`;
-    this.onLoad?.();
+    if (!FileReaderMock.deferLoad) this.onLoad?.();
+  }
+
+  abort(): void {
+    this.aborted = true;
   }
 }
 
@@ -51,6 +63,8 @@ function dragEvent({
 describe("SuperChat Composer attachments controller", () => {
   beforeEach(() => {
     vi.stubGlobal("FileReader", FileReaderMock);
+    FileReaderMock.instances = [];
+    FileReaderMock.deferLoad = false;
     vi.spyOn(Date, "now").mockReturnValue(1_000);
     vi.spyOn(Math, "random").mockReturnValue(0.5);
   });
@@ -109,6 +123,21 @@ describe("SuperChat Composer attachments controller", () => {
     expect(event.preventDefault).not.toHaveBeenCalled();
     expect(event.stopPropagation).not.toHaveBeenCalled();
     expect(result.current.dragFileState).toBeNull();
+  });
+
+  it("aborts pending file reads when the controller unmounts", () => {
+    FileReaderMock.deferLoad = true;
+    const { result, unmount } = renderHook(() =>
+      useComposerAttachmentsController(true),
+    );
+    const file = new File(["story"], "story.txt", { type: "text/plain" });
+
+    act(() => result.current.addFiles(fileList([file])));
+    expect(FileReaderMock.instances).toHaveLength(1);
+
+    unmount();
+
+    expect(FileReaderMock.instances[0].aborted).toBe(true);
   });
 
   it("tracks nested drag depth, validity, drop effect, and accepted drops", () => {

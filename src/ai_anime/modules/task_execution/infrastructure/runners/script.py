@@ -7,8 +7,12 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.narrative_planning.public import (
+    GenerateEpisodeRewriteCommand,
+    GenerateSeedancePromptCommand,
     create_script_writing_workflow,
     generate_and_save_beat_video_prompt,
+    generate_episode_rewrite,
+    generate_seedance2_beat_prompt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import (
@@ -39,6 +43,30 @@ def run_beat_video_prompt(
             _run_beat_video_prompt(envelope, ctx),
             envelope,
             task_type="beat_video_prompt",
+        )
+    )
+
+
+def run_seedance2_prompt(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    return asyncio.run(
+        await_envelope_with_cancel_watch(
+            _run_seedance2_prompt(envelope, ctx),
+            envelope,
+            task_type="seedance2_prompt",
+        )
+    )
+
+
+def run_episode_rewrite(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    return asyncio.run(
+        await_envelope_with_cancel_watch(
+            _run_episode_rewrite(envelope, ctx),
+            envelope,
+            task_type="episode_rewrite",
         )
     )
 
@@ -82,6 +110,86 @@ async def _run_beat_video_prompt(
             "field": generated.field,
             "prompt": generated.prompt,
         }
+    finally:
+        await store.close()
+
+
+async def _run_seedance2_prompt(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    payload = envelope.get("payload") or {}
+    episode = int(envelope.get("episode") or payload.get("episode") or 0)
+    beat_num = int(envelope.get("beat_num") or payload.get("beat_num") or 0)
+    manager = get_task_manager()
+
+    def update_progress(progress: float, task: str) -> None:
+        manager.update_progress_for_project(
+            ctx,
+            "seedance2_prompt",
+            episode,
+            beat_num=beat_num,
+            progress=progress,
+            current_task=task,
+            logs=[task],
+        )
+
+    update_progress(0.05, f"开始优化 Beat {beat_num} 视频提示词")
+    store = await make_sqlite_store_for_context(ctx)
+    try:
+        generated = await generate_seedance2_beat_prompt(
+            store,
+            GenerateSeedancePromptCommand(
+                episode_num=episode,
+                beat_num=beat_num,
+                project_dir=str(payload.get("project_dir") or ctx.output_dir),
+                requester_user_id=str(
+                    payload.get("requester_user_id")
+                    or ctx.requester_user_id
+                    or ctx.requester_username
+                ),
+                project_id=str(payload.get("project_id") or ctx.project_id),
+                manual_prompt_reference=payload.get("manual_prompt_reference"),
+                prompt_guidance=payload.get("prompt_guidance"),
+            ),
+        )
+        update_progress(0.95, f"已保存 Beat {beat_num} 视频提示词")
+        return generated.as_dict()
+    finally:
+        await store.close()
+
+
+async def _run_episode_rewrite(
+    envelope: dict[str, Any], ctx: ProjectContext
+) -> dict[str, Any]:
+    payload = envelope.get("payload") or {}
+    episode = int(envelope.get("episode") or payload.get("episode") or 0)
+    manager = get_task_manager()
+
+    def update_progress(progress: float, task: str) -> None:
+        manager.update_progress_for_project(
+            ctx,
+            "episode_rewrite",
+            episode,
+            progress=progress,
+            current_task=task,
+            logs=[task],
+        )
+
+    update_progress(0.05, f"开始生成第 {episode} 集改写稿")
+    store = await make_sqlite_store_for_context(ctx)
+    try:
+        rewritten = await generate_episode_rewrite(
+            store,
+            GenerateEpisodeRewriteCommand(
+                episode_num=episode,
+                target_beats=int(payload.get("target_beats") or 18),
+                beat_chars_min=int(payload.get("beat_chars_min") or 14),
+                beat_chars_max=int(payload.get("beat_chars_max") or 20),
+                narration_style=payload.get("narration_style"),
+            ),
+        )
+        update_progress(0.95, f"已保存第 {episode} 集改写稿")
+        return rewritten.as_dict()
     finally:
         await store.close()
 
@@ -172,3 +280,5 @@ async def _run_script_writer(
 
 register_project_task_runner("script_writer", run_script_writer)
 register_project_task_runner("beat_video_prompt", run_beat_video_prompt)
+register_project_task_runner("seedance2_prompt", run_seedance2_prompt)
+register_project_task_runner("episode_rewrite", run_episode_rewrite)

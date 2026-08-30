@@ -12,7 +12,7 @@ from typing import Any
 from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 from ai_anime.modules.project_workspace.public import (
     load_project_config_file,
-    set_narrator_reference_audio,
+    persist_narrator_voice_content,
 )
 from ai_anime.modules.production.infrastructure.seedance2_assets import (
     Seedance2ResolvedAsset,
@@ -25,8 +25,8 @@ from ai_anime.modules.production.infrastructure.seedance2_assets import (
 from ai_anime.modules.asset_world.public import (
     VOICE_SAMPLE_EXTENSIONS,
     trim_voice_sample_content,
-    voice_content_sha256,
 )
+from ai_anime.shared.utils.async_ops import call_blocking
 from ai_anime.modules.production.application.seedance2_config import (
     Seedance2I2VMode,
     dump_seedance2_config,
@@ -350,14 +350,6 @@ def _project_relative_path(project_dir: Path, path: Path) -> str:
         return str(path)
 
 
-def _archive_narrator_voice_siblings(target: Path) -> None:
-    stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    for ext in VOICE_SAMPLE_EXTENSIONS:
-        sibling = target.with_suffix(ext)
-        if sibling.exists():
-            sibling.replace(sibling.with_name(f"{sibling.stem}_{stamp}{sibling.suffix}"))
-
-
 def _resolve_project_audio_source(project_dir: Path, source_path: str | Path) -> Path:
     root = Path(project_dir).resolve()
     raw_path = Path(source_path)
@@ -384,26 +376,25 @@ async def trim_seedance2_audio_to_reference(
     duration_seconds: float = 4.0,
 ) -> Path | None:
     source = _resolve_project_audio_source(Path(project_dir), source_path)
-    content, _filename = trim_voice_sample_content(
-        source.read_bytes(),
+    source_content = await call_blocking(source.read_bytes)
+    content, _filename = await call_blocking(
+        trim_voice_sample_content,
+        source_content,
         filename=source.name,
         start_seconds=start_seconds,
         duration_seconds=duration_seconds,
     )
 
     if str(asset_key or "").strip() == NARRATOR_ASSET_KEY:
-        target = Path(project_dir) / "assets" / "narrator" / "voice.mp3"
-        target.parent.mkdir(parents=True, exist_ok=True)
-        _archive_narrator_voice_siblings(target)
-        target.write_bytes(content)
         username, project = _project_owner_from_output(Path(project_dir))
-        set_narrator_reference_audio(
-            username,
-            project,
-            relative_path=_project_relative_path(Path(project_dir), target),
-            sha256=voice_content_sha256(content),
+        return await call_blocking(
+            persist_narrator_voice_content,
+            username=username,
+            project=project,
+            project_dir=project_dir,
+            filename="voice.mp3",
+            content=content,
         )
-        return target
 
     beat_num = int(beat.get("beat_number") or 0)
     output_path = (

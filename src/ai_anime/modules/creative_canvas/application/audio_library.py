@@ -34,7 +34,31 @@ class CreateCreativeCanvasAudioVoiceCommand:
 
 
 @dataclass(frozen=True)
+class CreateCreativeCanvasPresetVoiceCommand:
+    context: ProjectContext
+    project_dir: Path
+    name: str
+    model_selector: str
+    voice: str
+    text: str
+
+
+@dataclass(frozen=True)
+class GeneratedCreativeCanvasPresetVoice:
+    filename: str
+    content: bytes
+    mime_type: str
+    model: str
+
+
+@dataclass(frozen=True)
 class GetCreativeCanvasAudioVoiceQuery:
+    context: ProjectContext
+    voice_id: str
+
+
+@dataclass(frozen=True)
+class DeleteCreativeCanvasAudioVoiceCommand:
     context: ProjectContext
     voice_id: str
 
@@ -66,10 +90,29 @@ class CreativeCanvasAudioLibraryGateway(Protocol):
         voice_id: str,
     ) -> Path: ...
 
+    def delete_voice(
+        self,
+        *,
+        account_username: str,
+        voice_id: str,
+    ) -> None: ...
+
+
+class CreativeCanvasPresetVoiceGenerator(Protocol):
+    async def generate(
+        self,
+        command: CreateCreativeCanvasPresetVoiceCommand,
+    ) -> GeneratedCreativeCanvasPresetVoice: ...
+
 
 class CreativeCanvasAudioLibraryUseCases:
-    def __init__(self, gateway: CreativeCanvasAudioLibraryGateway) -> None:
+    def __init__(
+        self,
+        gateway: CreativeCanvasAudioLibraryGateway,
+        preset_voice_generator: CreativeCanvasPresetVoiceGenerator,
+    ) -> None:
         self._gateway = gateway
+        self._preset_voice_generator = preset_voice_generator
 
     async def list_references(
         self,
@@ -97,6 +140,21 @@ class CreativeCanvasAudioLibraryUseCases:
         except ValueError as exc:
             raise InvalidCreativeCanvasAudioLibraryRequest(str(exc)) from exc
 
+    async def create_preset_voice(
+        self,
+        command: CreateCreativeCanvasPresetVoiceCommand,
+    ) -> Mapping[str, Any]:
+        generated = await self._preset_voice_generator.generate(command)
+        return self.create_voice(
+            CreateCreativeCanvasAudioVoiceCommand(
+                context=command.context,
+                name=command.name or command.voice or generated.model,
+                filename=generated.filename,
+                content=generated.content,
+                mime_type=generated.mime_type,
+            )
+        )
+
     def get_voice(
         self,
         query: GetCreativeCanvasAudioVoiceQuery,
@@ -109,6 +167,18 @@ class CreativeCanvasAudioLibraryUseCases:
         except RuntimeError as exc:
             raise CreativeCanvasAudioVoiceMissing(str(exc)) from exc
 
+    def delete_voice(
+        self,
+        command: DeleteCreativeCanvasAudioVoiceCommand,
+    ) -> None:
+        try:
+            self._gateway.delete_voice(
+                account_username=_account_username(command.context),
+                voice_id=command.voice_id,
+            )
+        except RuntimeError as exc:
+            raise CreativeCanvasAudioVoiceMissing(str(exc)) from exc
+
 
 def _account_username(context: ProjectContext) -> str:
     return context.requester_username or context.owner_username
@@ -116,10 +186,14 @@ def _account_username(context: ProjectContext) -> str:
 
 __all__ = [
     "CreateCreativeCanvasAudioVoiceCommand",
+    "CreateCreativeCanvasPresetVoiceCommand",
+    "DeleteCreativeCanvasAudioVoiceCommand",
     "CreativeCanvasAudioLibraryGateway",
     "CreativeCanvasAudioLibraryUseCases",
+    "CreativeCanvasPresetVoiceGenerator",
     "CreativeCanvasAudioVoiceMissing",
     "GetCreativeCanvasAudioVoiceQuery",
+    "GeneratedCreativeCanvasPresetVoice",
     "InvalidCreativeCanvasAudioLibraryRequest",
     "ListCreativeCanvasAudioReferencesQuery",
 ]

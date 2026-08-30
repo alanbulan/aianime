@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import type {
   DataResponse,
-  GeneratedRewrite,
   NarrativeErrorResult,
   NarrativePlanningGateway,
   NarrativeTaskStartResult,
@@ -113,11 +112,12 @@ export const httpNarrativePlanningGateway: NarrativePlanningGateway = {
   },
 
   async generateRewrite(project, episode, params) {
-    return api
-      .post(p`api/v1/projects/${project}/episodes/${episode}/rewrite/generate`, {
+    return jsonWithBackendError<NarrativeTaskStartResult>(
+      api.post(p`api/v1/projects/${project}/episodes/${episode}/rewrite/generate`, {
         json: params ?? {},
-      })
-      .json<DataResponse<GeneratedRewrite> | NarrativeErrorResult>();
+        throwHttpErrors: false,
+      }),
+    );
   },
 
   async updateBeat(project, episode, beat, data) {

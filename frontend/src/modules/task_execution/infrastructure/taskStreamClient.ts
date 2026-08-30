@@ -124,6 +124,9 @@ export function createStreamClient(
       pendingSnapshotWindow = false;
       handleStreamHealthy();
     });
+    es.addEventListener("auth_revoked", () => {
+      opts.onAuthRevoked?.();
+    });
     es.onerror = () => {
       handleFailure("eventsource error");
     };

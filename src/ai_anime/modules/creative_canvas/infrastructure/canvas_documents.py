@@ -32,7 +32,6 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_history import
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
     read_canvas,
-    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.application.canvas_documents import (
     CreativeCanvasDocumentBusy,
@@ -47,6 +46,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import (
     make_sqlite_store_for_context,
 )
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 
 logger = logging.getLogger(__name__)

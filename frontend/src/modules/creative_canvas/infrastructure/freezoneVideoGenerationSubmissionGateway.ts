@@ -39,7 +39,10 @@ function commonRequestBody(submission: VideoGenerationSubmission) {
     camera_template_id: submission.cameraTemplateId ?? null,
     marks: [],
     aspect_ratio: submission.aspectRatio ?? "16:9",
-    resolution: submission.resolution,
+    [submission.output.parameter]: submission.output.value,
+    ...(Object.keys(submission.extraParams).length > 0
+      ? { extra_params: submission.extraParams }
+      : {}),
     duration_seconds: Math.max(submission.durationSeconds ?? 5, 1),
     generate_audio: submission.generateAudio ?? false,
     ...(submission.model ? { model: submission.model } : {}),

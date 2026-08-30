@@ -23,8 +23,12 @@ def test_strip_relative_traversal() -> None:
 
 def test_strip_windows_path() -> None:
     result = sanitize_upload_filename(r"C:\Users\evil\payload.html")
-    assert "/" not in result
-    assert "\\" not in result
+    assert result == "payload.html"
+
+
+def test_preserves_unicode_and_replaces_cross_platform_invalid_characters() -> None:
+    assert sanitize_upload_filename("章节：终章.txt") == "章节：终章.txt"
+    assert sanitize_upload_filename('chapter:final?.txt') == "chapter_final_.txt"
 
 
 def test_invalid_names_fallback() -> None:

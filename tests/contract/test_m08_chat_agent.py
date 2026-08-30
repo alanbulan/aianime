@@ -66,6 +66,7 @@ def test_ce_chat_http_routes_are_mounted_and_use_local_auth(monkeypatch) -> None
 def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     from ai_anime.api.app import create_app
     from ai_anime.api.routes.ai_assistant import session as chat_session
+    from ai_anime.modules.model_usage.public import configure_model_access
     from ai_anime.shared.ports import registry
 
     class NoOpPrewarmer:
@@ -78,6 +79,11 @@ def test_ce_chat_ws_accepts_missing_cookie_via_local_auth(monkeypatch) -> None:
     monkeypatch.setattr(registry, "_PORTS", {})
     monkeypatch.setattr(registry, "_BOOTSTRAPPED", False)
     monkeypatch.setattr(chat_session, "hermes_runtime_prewarmer", NoOpPrewarmer())
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[{"modelId": "cloud-text-default", "role": "TEXT"}],
+    )
 
     app = create_app()
     with TestClient(app) as client:

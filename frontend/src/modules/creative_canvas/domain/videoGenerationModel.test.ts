@@ -2,42 +2,84 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DEFAULT_VIDEO_DURATION_SEC,
   clampVideoDuration,
   defaultSceneOptimizeForModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
-  normalizeVideoQuality,
-  qualityToResolution,
+  normalizeVideoDuration,
+  normalizeVideoOutput,
   sceneOptimizeOptionsForModel,
   supportedVideoModesForModel,
-  videoDurationBoundsForModel,
+  videoAspectRatioForOutput,
+  videoDurationDefinitionForModel,
+  videoExtraParamDefinitionsForModel,
+  videoExtraParamsForModel,
   videoModelReferenceDisabledReason,
+  videoOutputDefinitionForModel,
+  videoOutputForAspectRatio,
   videoReferenceDurationLimitsForModel,
   videoModelUsesTypedReferenceModes,
-  videoQualityOptionsForModel,
+  videoSupportsGenerateAudio,
 } from "./videoGenerationModel";
 
 describe("videoGenerationModel", () => {
-  it("normalizes model quality options and request resolution", () => {
-    expect(qualityToResolution("1080P")).toBe("1080p");
+  it("projects H3 output and extra parameters from the catalog schema", () => {
+    const model = {
+      sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+      minDuration: 1,
+      maxDuration: 15,
+      defaultDuration: 3,
+      supportsGenerateAudio: false,
+      parameterSchema: {
+        type: "object",
+        properties: {
+          size: {
+            type: "string",
+            enum: ["1344x768", "768x1344", "1024x1024"],
+            default: "1344x768",
+          },
+          steps: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+          seed: { type: "integer", minimum: 0, maximum: 2147483647, default: 42 },
+          turbo: { type: "boolean", default: false },
+        },
+      },
+    };
+
+    const output = videoOutputDefinitionForModel(model);
+    expect(output).toEqual({
+      parameter: "size",
+      options: ["1344x768", "768x1344", "1024x1024"],
+      defaultValue: "1344x768",
+    });
+    expect(normalizeVideoOutput("720p", output)).toBe("1344x768");
+    expect(videoOutputForAspectRatio(output, "9:16", "1344x768")).toBe(
+      "768x1344",
+    );
     expect(
-      videoQualityOptionsForModel({
-        resolutionOptions: ["1080p", "unknown", " 480P "],
-      }),
-    ).toEqual(["1080P", "480P"]);
-    expect(videoQualityOptionsForModel(null)).toEqual([
-      "480P",
-      "720P",
-      "1080P",
+      videoAspectRatioForOutput(
+        "1024x1024",
+        ["16:9", "9:16", "1:1"],
+        "16:9",
+      ),
+    ).toBe("1:1");
+    expect(videoExtraParamDefinitionsForModel(model).map(({ key }) => key)).toEqual([
+      "steps",
+      "seed",
+      "turbo",
     ]);
-    expect(normalizeVideoQuality("1080P", ["720P", "1080P"])).toBe(
-      "1080P",
-    );
-    expect(normalizeVideoQuality("480P", ["720P", "1080P"])).toBe(
-      "720P",
-    );
-    expect(normalizeVideoQuality(undefined, ["1080P"])).toBe("1080P");
+    expect(videoExtraParamsForModel(model, { steps: 24 })).toEqual({
+      steps: 24,
+      seed: 42,
+      turbo: false,
+    });
+    expect(videoDurationDefinitionForModel(model)).toEqual({
+      min: 1,
+      max: 15,
+      defaultValue: 3,
+      options: [],
+    });
+    expect(videoSupportsGenerateAudio(model)).toBe(false);
+    expect(videoOutputDefinitionForModel({})).toBeNull();
   });
 
   it("normalizes independent audio and video duration capabilities", () => {
@@ -67,14 +109,27 @@ describe("videoGenerationModel", () => {
   });
 
   it("resolves duration bounds and clamps rounded values", () => {
-    expect(DEFAULT_VIDEO_DURATION_SEC).toBe(5);
-    expect(videoDurationBoundsForModel(null)).toEqual({ min: 5, max: 15 });
+    expect(videoDurationDefinitionForModel(null)).toBeNull();
     expect(
-      videoDurationBoundsForModel({ minDuration: 3, maxDuration: 12 }),
-    ).toEqual({ min: 3, max: 12 });
-    expect(
-      videoDurationBoundsForModel({ minDuration: -1, maxDuration: 10 }),
-    ).toEqual({ min: 5, max: 10 });
+      videoDurationDefinitionForModel({
+        minDuration: 3,
+        maxDuration: 12,
+        defaultDuration: 6,
+      }),
+    ).toEqual({ min: 3, max: 12, defaultValue: 6, options: [] });
+    const enumerated = videoDurationDefinitionForModel({
+      minDuration: 6,
+      maxDuration: 10,
+      defaultDuration: 6,
+      durationOptions: [6, 10],
+    });
+    expect(enumerated).toEqual({
+      min: 6,
+      max: 10,
+      defaultValue: 6,
+      options: [6, 10],
+    });
+    expect(enumerated && normalizeVideoDuration(8, enumerated)).toBe(6);
     expect(clampVideoDuration(4.6, { min: 5, max: 12 })).toBe(5);
     expect(clampVideoDuration(9.6, { min: 5, max: 12 })).toBe(10);
     expect(clampVideoDuration(20, { min: 5, max: 12 })).toBe(12);
@@ -93,7 +148,7 @@ describe("videoGenerationModel", () => {
     expect(isVideoModeSupportedByModel("firstLastFrame", typedModel)).toBe(false);
     expect(videoModelUsesTypedReferenceModes(typedModel)).toBe(true);
     expect(isVideoModeSupportedByModel("videoEdit", undefined)).toBe(false);
-    expect(supportedVideoModesForModel(undefined)).toContain("allReference");
+    expect(supportedVideoModesForModel(undefined)).toEqual([]);
   });
 
   it("reports capability-declared reference restrictions", () => {
@@ -159,27 +214,28 @@ describe("videoGenerationModel", () => {
   it("resolves and normalizes scene optimization", () => {
     expect(
       sceneOptimizeOptionsForModel({
-        sceneOptimizeOptions: ["realistic"],
+        sceneOptimizeOptions: ["cinematic"],
       }),
-    ).toEqual(["realistic"]);
+    ).toEqual(["cinematic"]);
     expect(
       sceneOptimizeOptionsForModel({
-        sceneOptimizeOptions: ["anime", "realistic"],
+        sceneOptimizeOptions: ["cinematic", "realistic"],
       }),
-    ).toEqual(["anime", "realistic"]);
+    ).toEqual(["cinematic", "realistic"]);
     expect(sceneOptimizeOptionsForModel({})).toEqual([]);
     expect(
-      defaultSceneOptimizeForModel({ defaultSceneOptimize: "anime" }),
-    ).toBe("anime");
+      defaultSceneOptimizeForModel({
+        sceneOptimizeOptions: ["cinematic", "realistic"],
+        defaultSceneOptimize: "cinematic",
+      }),
+    ).toBe("cinematic");
     expect(defaultSceneOptimizeForModel({ sceneOptimizeOptions: ["realistic"] })).toBe(
       "realistic",
     );
-    expect(defaultSceneOptimizeForModel({})).toBe(
-      "anime",
-    );
-    expect(normalizeSceneOptimize("anime", ["realistic"], "realistic")).toBe(
+    expect(defaultSceneOptimizeForModel({})).toBeUndefined();
+    expect(normalizeSceneOptimize("cinematic", ["realistic"], "realistic")).toBe(
       "realistic",
     );
-    expect(normalizeSceneOptimize("anime", [], "realistic")).toBeUndefined();
+    expect(normalizeSceneOptimize("cinematic", [], "realistic")).toBeUndefined();
   });
 });

@@ -1,7 +1,9 @@
 // Copyright (c) 2026 AI anime
 import type {
   AssetDataResponse,
+  AssetErrorResponse,
   AssetResponse,
+  AssetTaskResponse,
   AssetWorldGateway,
 } from "@/modules/asset_world/application/ports";
 import type { Style } from "@/modules/asset_world/domain/style";
@@ -47,7 +49,7 @@ export const httpAssetWorldGateway: AssetWorldGateway = {
         body: formData,
         throwHttpErrors: false,
       })
-      .json<AssetResponse<Record<string, unknown>>>();
+      .json<AssetTaskResponse | AssetErrorResponse>();
   },
 
   async uploadStylePreview({ file, styleId }) {

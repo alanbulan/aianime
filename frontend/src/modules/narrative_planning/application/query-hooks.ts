@@ -267,18 +267,9 @@ export function createNarrativePlanningQueryHooks(
   }
 
   function useGenerateRewrite(project: string, episode: number) {
-    const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (params?: GenerateRewriteParams) =>
         gateway.generateRewrite(project, episode, params),
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.episodeDetail(project, episode),
-        });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.script(project, episode),
-        });
-      },
     });
   }
 

@@ -169,6 +169,7 @@ function props(overrides: Partial<MessageAreaProps> = {}): MessageAreaProps {
     historyReady: true,
     isFreezoneLayout: false,
     messageListRef: createRef<HTMLDivElement>(),
+    excludedIds: new Set(),
     pinnedIds: new Set(),
     scrollRef: createRef<HTMLDivElement>(),
     showScrollToBottom: false,

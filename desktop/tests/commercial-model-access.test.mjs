@@ -6,12 +6,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
+import { resolveProviderStrategy } from "../src/commercial-model-providers/factory.ts";
 import {
   BYOK_MODEL_ROLES,
   EncryptedFileCommercialModelAccessStore,
+  effectiveModelRuntimeSettings,
   fetchByokModelCatalog,
   fetchByokProviderModelIds,
 } from "../src/commercial-model-access.ts";
+import { prepareBodyForRoute } from "../src/commercial-model-proxy-http.ts";
 import {
   CommercialModelProxy,
   modelRoutingSnapshot,
@@ -45,13 +48,85 @@ test("model roles omit operations without an application call chain", () => {
   assert.equal(BYOK_MODEL_ROLES.includes("MODERATION"), false);
 });
 
+test("provider strategy factory covers native protocols, audio providers, and every generic model role", () => {
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.fish.audio/v1").id,
+    "fish-audio",
+  );
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.minimax.io/v1").id,
+    "minimax-audio",
+  );
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.elevenlabs.io/v1").id,
+    "elevenlabs",
+  );
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.deepgram.com/v1").id,
+    "deepgram",
+  );
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.cartesia.ai/v1").id,
+    "cartesia",
+  );
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.openai.com/v1").id,
+    "openai-native",
+  );
+  assert.equal(
+    resolveProviderStrategy(
+      "OPENAI_COMPATIBLE",
+      "https://workspace.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+    ).id,
+    "aliyun-model-studio",
+  );
+  const tokenPlan = resolveProviderStrategy(
+    "OPENAI_COMPATIBLE",
+    "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+  );
+  assert.equal(tokenPlan.id, "aliyun-token-plan");
+  assert.throws(
+    () => tokenPlan.validateInputAssignments?.([
+      { modelId: "qwen-audio-3.0-tts-plus", role: "AUDIO_VOICE_DESIGN" },
+    ]),
+    /Token Plan.*不能配置为音频、图像或视频用途/,
+  );
+  assert.deepEqual(tokenPlan.migrateAssignments([
+    { modelId: "qwen3.7-plus", role: "TEXT" },
+    { modelId: "qwen-audio-3.0-tts-plus", role: "AUDIO_VOICE_DESIGN" },
+  ]), [
+    { modelId: "qwen3.7-plus", role: "TEXT" },
+  ]);
+  assert.equal(
+    resolveProviderStrategy("OPENAI_COMPATIBLE", "https://models.example.test/v1").id,
+    "openai-compatible",
+  );
+  assert.equal(
+    resolveProviderStrategy("ANTHROPIC", "https://api.anthropic.com/v1").id,
+    "anthropic",
+  );
+  assert.equal(
+    resolveProviderStrategy("GEMINI", "https://generativelanguage.googleapis.com/v1beta").id,
+    "gemini",
+  );
+  const generic = resolveProviderStrategy(
+    "OPENAI_COMPATIBLE",
+    "https://models.example.test/v1",
+  );
+  assert.doesNotThrow(() =>
+    generic.validateAssignments(
+      BYOK_MODEL_ROLES.map((role) => ({ modelId: `model-${role}`, role })),
+    ),
+  );
+});
+
 const passthroughSecureStorage = {
   isEncryptionAvailable: () => true,
   encryptString: (value) => Buffer.from(value, "utf8"),
   decryptString: (value) => value.toString("utf8"),
 };
 
-function configureCloudProxy(proxy, assignments) {
+function configureCloudProxy(proxy, assignments, modelCapabilities = []) {
   proxy.configureRouting({
     allowsCustomModels: false,
     cloudModelAssignments: assignments.map(({ modelId, role }) => ({
@@ -65,6 +140,7 @@ function configureCloudProxy(proxy, assignments) {
       cloudModelAssignments: [],
       byokProviders: [],
     },
+    modelCapabilities,
   });
 }
 
@@ -943,6 +1019,23 @@ test("video catalog synchronization sends only projected generation capabilities
                     code: "cloud/text-standard",
                     displayName: "Cloud Text",
                     operation: "TEXT",
+                    capabilityJson: JSON.stringify({
+                      contextWindowTokens: 204800,
+                    }),
+                    parameterSchemaJson: JSON.stringify({
+                      properties: {
+                        max_completion_tokens: {
+                          type: "integer",
+                          minimum: 1,
+                          maximum: 65536,
+                        },
+                        reasoning_effort: {
+                          type: "string",
+                          enum: ["low", "medium", "xhigh"],
+                          default: "medium",
+                        },
+                      },
+                    }),
                   },
                 ],
               }
@@ -955,9 +1048,24 @@ test("video catalog synchronization sends only projected generation capabilities
                     code: "cloud/video-standard",
                     displayName: "Cloud Video",
                     operation: "VIDEO",
+                    isDefault: true,
                     capabilityJson: JSON.stringify({
                       videoProfile: "seedance2",
-                      supportedModes: ["textToVideo", "firstLastFrame"],
+                      ratioOptions: ["16:9", "9:16"],
+                      resolutionOptions: ["480p", "720p", "768P", "1080p"],
+                      sceneOptimizeOptions: ["ANIME", "realistic"],
+                      supportsHumanReview: true,
+                      supportedModes: [
+                        "textToVideo",
+                        "firstFrame",
+                        "firstLastFrame",
+                      ],
+                      maxReferenceImages: 5,
+                      referenceLimits: {
+                        videos: 1,
+                        audios: 0,
+                        total: 6,
+                      },
                       referenceAudioMinSeconds: 1.8,
                       referenceAudioItemMaxDuration: 15.2,
                       referenceAudioTotalMinSeconds: 2,
@@ -970,7 +1078,38 @@ test("video catalog synchronization sends only projected generation capabilities
                     }),
                     parameterSchemaJson: JSON.stringify({
                       properties: {
-                        duration: { minimum: 4, maximum: 15 },
+                        duration: {
+                          minimum: 4,
+                          maximum: 15,
+                          enum: [4, 8, 12],
+                        },
+                      },
+                    }),
+                  },
+                  {
+                    id: "video-2",
+                    code: "MINIMAX_H3",
+                    displayName: "MiniMax H3",
+                    operation: "VIDEO",
+                    capabilityJson: JSON.stringify({
+                      supportedModes: ["firstFrame"],
+                      ratioOptions: ["16:9", "9:16", "1:1"],
+                      generateAudio: false,
+                      resolutionOptions: [
+                        "1344x768",
+                        "768x1344",
+                        "1024x1024",
+                      ],
+                    }),
+                    parameterSchemaJson: JSON.stringify({
+                      properties: {
+                        size: {
+                          enum: ["1344x768", "768x1344", "1024x1024"],
+                        },
+                        seconds: { minimum: 1, maximum: 15 },
+                        steps: { type: "integer", minimum: 1, maximum: 50 },
+                        seed: { type: "integer", minimum: 0 },
+                        turbo: { type: "boolean", default: false },
                       },
                     }),
                   },
@@ -1010,7 +1149,12 @@ test("video catalog synchronization sends only projected generation capabilities
       _allowsCustomModels,
       cloudModelAssignments,
       modelCapabilities,
-    ) => synchronized.push({ cloudModelAssignments, modelCapabilities }),
+      explicitCloudModelAssignments,
+    ) => synchronized.push({
+      cloudModelAssignments,
+      modelCapabilities,
+      explicitCloudModelAssignments,
+    }),
     onLoggedOut: async () => undefined,
   });
 
@@ -1025,10 +1169,20 @@ test("video catalog synchronization sends only projected generation capabilities
       role: "TEXT",
       priority: 100,
       enabled: true,
+      contextWindow: 204800,
+      maxOutputTokens: 65536,
+      reasoningEfforts: ["low", "medium", "xhigh"],
+      defaultReasoningEffort: "medium",
     },
     {
       modelId: "cloud/video-standard",
       role: "VIDEO_TEXT_TO_VIDEO",
+      priority: 100,
+      enabled: true,
+    },
+    {
+      modelId: "cloud/video-standard",
+      role: "VIDEO_IMAGE_TO_VIDEO",
       priority: 100,
       enabled: true,
     },
@@ -1043,8 +1197,17 @@ test("video catalog synchronization sends only projected generation capabilities
     {
       modelId: "cloud/video-standard",
       videoProfile: "seedance2",
+      videoRatioOptions: ["16:9", "9:16"],
+      videoResolutionOptions: ["480p", "720p", "768p", "1080p"],
+      videoSceneOptimizeOptions: ["ANIME", "realistic"],
+      videoSupportsHumanReview: true,
       videoGenerationMinSeconds: 4,
       videoGenerationMaxSeconds: 15,
+      videoDurationOptions: [4, 8, 12],
+      maxReferenceImages: 5,
+      maxReferenceVideos: 1,
+      maxReferenceAudios: 0,
+      maxReferenceTotal: 6,
       referenceAudioMinSeconds: 1.8,
       referenceAudioMaxSeconds: 15.2,
       referenceAudioTotalMinSeconds: 2,
@@ -1054,7 +1217,45 @@ test("video catalog synchronization sends only projected generation capabilities
       referenceVideoTotalMinSeconds: 5,
       referenceVideoTotalMaxSeconds: 20,
     },
+    {
+      modelId: "MINIMAX_H3",
+      videoRatioOptions: ["16:9", "9:16", "1:1"],
+      videoSizeOptions: ["1344x768", "768x1344", "1024x1024"],
+      videoSupportsGenerateAudio: false,
+      videoExtraParameterNames: ["steps", "seed", "turbo"],
+      videoGenerationMinSeconds: 1,
+      videoGenerationMaxSeconds: 15,
+    },
   ]);
+  assert.deepEqual(
+    new Set(
+      synchronized.at(-1).explicitCloudModelAssignments.map(
+        (assignment) => `${assignment.role}:${assignment.modelId}`,
+      ),
+    ),
+    new Set([
+      "TEXT:cloud/text-standard",
+      "VIDEO_TEXT_TO_VIDEO:cloud/video-standard",
+      "VIDEO_IMAGE_TO_VIDEO:cloud/video-standard",
+      "VIDEO_IMAGE_TO_VIDEO:MINIMAX_H3",
+      "VIDEO_FIRST_LAST_FRAME:cloud/video-standard",
+    ]),
+  );
+  assert.deepEqual(
+    synchronized.at(-1).explicitCloudModelAssignments.find(
+      (assignment) => assignment.role === "TEXT",
+    ),
+    {
+      modelId: "cloud/text-standard",
+      role: "TEXT",
+      priority: 100,
+      enabled: true,
+      contextWindow: 204800,
+      maxOutputTokens: 65536,
+      reasoningEfforts: ["low", "medium", "xhigh"],
+      defaultReasoningEffort: "medium",
+    },
+  );
   assert.equal(JSON.stringify(synchronized).includes("providerSecret"), false);
 });
 
@@ -1168,6 +1369,16 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
         role: "IMAGE_GENERATION",
         priority: 30,
         enabled: true,
+        contextWindow: 32768,
+        maxOutputTokens: 2048,
+        reasoningEfforts: ["low", "medium", "xhigh"],
+        defaultReasoningEffort: "low",
+        runtimeOverrides: {
+          contextWindow: 65536,
+          maxOutputTokens: 8192,
+          reasoningEfforts: ["medium", "xhigh"],
+          defaultReasoningEffort: "xhigh",
+        },
       },
     ],
   });
@@ -1186,8 +1397,27 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
       role: "IMAGE_GENERATION",
       priority: 30,
       enabled: true,
+      contextWindow: 32768,
+      maxOutputTokens: 2048,
+      reasoningEfforts: ["low", "medium", "xhigh"],
+      defaultReasoningEffort: "low",
+      runtimeOverrides: {
+        contextWindow: 65536,
+        maxOutputTokens: 8192,
+        reasoningEfforts: ["medium", "xhigh"],
+        defaultReasoningEffort: "xhigh",
+      },
     },
   ]);
+  assert.deepEqual(
+    effectiveModelRuntimeSettings(restored.byokProviders[0].modelAssignments[0]),
+    {
+      contextWindow: 65536,
+      maxOutputTokens: 8192,
+      reasoningEfforts: ["medium", "xhigh"],
+      defaultReasoningEffort: "xhigh",
+    },
+  );
   assert.deepEqual(second.status(restored), {
     mode: "mixed",
     byokConfigured: true,
@@ -1208,10 +1438,42 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
             role: "IMAGE_GENERATION",
             priority: 30,
             enabled: true,
+            contextWindow: 32768,
+            maxOutputTokens: 2048,
+            reasoningEfforts: ["low", "medium", "xhigh"],
+            defaultReasoningEffort: "low",
+            runtimeOverrides: {
+              contextWindow: 65536,
+              maxOutputTokens: 8192,
+              reasoningEfforts: ["medium", "xhigh"],
+              defaultReasoningEffort: "xhigh",
+            },
           },
         ],
       },
     ],
+  });
+});
+
+test("model runtime overrides preserve xhigh and replace the request output limit", async () => {
+  const prepared = await prepareBodyForRoute(
+    Buffer.from(JSON.stringify({
+      model: "stale-model",
+      messages: [],
+      max_completion_tokens: 128,
+    })),
+    "application/json",
+    "Qwen3.8-27B",
+    false,
+    "xhigh",
+    8192,
+  );
+
+  assert.deepEqual(JSON.parse(prepared.body), {
+    model: "Qwen3.8-27B",
+    messages: [],
+    max_completion_tokens: 8192,
+    reasoning_effort: "xhigh",
   });
 });
 
@@ -1379,7 +1641,19 @@ test("BYOK provider model list calls only the selected endpoint with its key", a
         object: "list",
         data: [
           { id: "image-model-b", object: "model" },
-          { id: "image-model-a", object: "model" },
+          {
+            id: "image-model-a",
+            object: "model",
+            max_model_len: 32768,
+            parameter_schema: {
+              properties: {
+                reasoning_effort: {
+                  enum: ["low", "medium", "xhigh"],
+                  default: "low",
+                },
+              },
+            },
+          },
         ],
       });
     },
@@ -1395,8 +1669,92 @@ test("BYOK provider model list calls only the selected endpoint with its key", a
     result.models,
     ["image-model-a", "image-model-b"],
   );
+  assert.deepEqual(result.modelMetadata[0], {
+    id: "image-model-a",
+    contextWindow: 32768,
+    reasoningEfforts: ["low", "medium", "xhigh"],
+    defaultReasoningEffort: "low",
+  });
   assert.match(result.catalogVersion, /^byok-[0-9a-f]{16}$/);
   assert.equal(JSON.stringify(result).includes("user-secret-key"), false);
+});
+
+test("native audio strategies expose provider-specific model discovery", async () => {
+  const access = {
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [],
+  };
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ url: String(url), headers: new Headers(init.headers) });
+    if (String(url).includes("elevenlabs")) {
+      return Response.json([
+        { model_id: "eleven_multilingual_v2" },
+        { model_id: "eleven_ttv_v3" },
+      ]);
+    }
+    if (String(url).includes("deepgram")) {
+      return Response.json({
+        tts: [
+          { canonical_name: "aura-2-thalia-en" },
+          { canonical_name: "aura-2-fujimi-ja" },
+        ],
+      });
+    }
+    throw new Error(`unexpected discovery request ${url}`);
+  };
+
+  const [fish, minimax, cartesia, elevenlabs, deepgram] = await Promise.all([
+    fetchByokProviderModelIds(access, {
+      name: "Fish Audio",
+      baseUrl: "https://api.fish.audio/v1/tts/v1",
+      apiKey: "fish-key",
+    }, fetchImpl),
+    fetchByokProviderModelIds(access, {
+      name: "MiniMax",
+      baseUrl: "https://api.minimax.io/v1",
+      apiKey: "minimax-key",
+    }, fetchImpl),
+    fetchByokProviderModelIds(access, {
+      name: "Cartesia",
+      baseUrl: "https://api.cartesia.ai",
+      apiKey: "cartesia-key",
+    }, fetchImpl),
+    fetchByokProviderModelIds(access, {
+      name: "ElevenLabs",
+      baseUrl: "https://api.elevenlabs.io/v1",
+      apiKey: "eleven-key",
+    }, fetchImpl),
+    fetchByokProviderModelIds(access, {
+      name: "Deepgram",
+      baseUrl: "https://api.deepgram.com/v1",
+      apiKey: "deepgram-key",
+    }, fetchImpl),
+  ]);
+
+  assert.deepEqual(fish.models, [
+    "s1",
+    "s2-pro",
+    "s2.1-pro",
+    "s2.1-pro-free",
+    "voice-design-1",
+  ]);
+  assert.ok(minimax.models.includes("speech-2.8-hd"));
+  assert.ok(minimax.models.includes("voice-design"));
+  assert.ok(cartesia.models.includes("sonic-3.6"));
+  assert.deepEqual(elevenlabs.models, [
+    "eleven_multilingual_v2",
+    "eleven_ttv_v3",
+  ]);
+  assert.deepEqual(deepgram.models, [
+    "aura-2-fujimi-ja",
+    "aura-2-thalia-en",
+  ]);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, "https://api.elevenlabs.io/v1/models");
+  assert.equal(calls[0].headers.get("xi-api-key"), "eleven-key");
+  assert.equal(calls[1].url, "https://api.deepgram.com/v1/models");
 });
 
 test("BYOK model discovery accepts an unsaved provider form without persisting it", async () => {
@@ -1491,8 +1849,20 @@ test("BYOK model discovery uses native Anthropic and Gemini protocols", async ()
   const fetchImpl = async (url, init) => {
     calls.push({ url: String(url), headers: new Headers(init.headers) });
     return String(url).includes("anthropic")
-      ? Response.json({ data: [{ id: "claude-sonnet" }] })
-      : Response.json({ models: [{ name: "models/gemini-2.5-pro" }] });
+      ? Response.json({
+          data: [{
+            id: "models/claude-sonnet",
+            context_window: 200000,
+            supported_reasoning_efforts: ["low", "high"],
+            default_reasoning_effort: "low",
+          }],
+        })
+      : Response.json({
+          models: [{
+            name: "models/gemini-2.5-pro",
+            inputTokenLimit: 1048576,
+          }],
+        });
   };
 
   const anthropic = await fetchByokProviderModelIds(
@@ -1504,6 +1874,16 @@ test("BYOK model discovery uses native Anthropic and Gemini protocols", async ()
 
   assert.deepEqual(anthropic.models, ["claude-sonnet"]);
   assert.deepEqual(gemini.models, ["gemini-2.5-pro"]);
+  assert.deepEqual(anthropic.modelMetadata, [{
+    id: "claude-sonnet",
+    contextWindow: 200000,
+    reasoningEfforts: ["low", "high"],
+    defaultReasoningEffort: "low",
+  }]);
+  assert.deepEqual(gemini.modelMetadata, [{
+    id: "gemini-2.5-pro",
+    contextWindow: 1048576,
+  }]);
   assert.equal(calls[0].url, "https://api.anthropic.test/v1/models");
   assert.equal(calls[0].headers.get("X-Api-Key"), "anthropic-key");
   assert.equal(calls[0].headers.get("Anthropic-Version"), "2023-06-01");
@@ -1514,7 +1894,7 @@ test("BYOK model discovery uses native Anthropic and Gemini protocols", async ()
   assert.equal(calls[1].headers.get("X-Goog-Api-Key"), "gemini-key");
 });
 
-test("native BYOK protocols reject non-text role assignments", async (t) => {
+test("native provider strategies validate their real model-role capabilities", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const store = new EncryptedFileCommercialModelAccessStore(
@@ -1538,6 +1918,95 @@ test("native BYOK protocols reject non-text role assignments", async (t) => {
       ],
     }),
     /仅支持文本模型用途/,
+  );
+
+  const fish = await store.configureByok({
+    providerId: "fish",
+    name: "Fish Audio",
+    protocol: "OPENAI_COMPATIBLE",
+    baseUrl: "https://api.fish.audio/v1/tts/v1",
+    apiKey: "secret",
+    modelAssignments: [
+      {
+        modelId: "s2.1-pro-free",
+        role: "AUDIO_VOICE_DESIGN",
+        priority: 10,
+        enabled: true,
+      },
+    ],
+  });
+  assert.deepEqual(
+    fish.byokProviders.find((provider) => provider.id === "fish")
+      ?.modelAssignments,
+    [
+      {
+        modelId: "voice-design-1",
+        role: "AUDIO_VOICE_DESIGN",
+        priority: 10,
+        enabled: true,
+      },
+    ],
+  );
+
+  const configured = await store.configureByok({
+    providerId: "gemini",
+    protocol: "GEMINI",
+    baseUrl: "https://generativelanguage.googleapis.com",
+    apiKey: "secret",
+    modelAssignments: [
+      {
+        modelId: "gemini-image",
+        role: "IMAGE_GENERATION",
+        priority: 10,
+        enabled: true,
+      },
+      {
+        modelId: "gemini-embedding-001",
+        role: "EMBEDDING",
+        priority: 20,
+        enabled: true,
+      },
+    ],
+  });
+  assert.equal(
+    configured.byokProviders
+      .find((provider) => provider.id === "gemini")
+      ?.baseUrl.endsWith("/v1beta"),
+    true,
+  );
+  await assert.rejects(
+    store.configureByok({
+      providerId: "gemini",
+      protocol: "GEMINI",
+      baseUrl: "https://generativelanguage.googleapis.com",
+      modelAssignments: [
+        {
+          modelId: "veo-preview",
+          role: "VIDEO_TEXT_TO_VIDEO",
+          priority: 10,
+          enabled: true,
+        },
+      ],
+    }),
+    /不支持 VIDEO_TEXT_TO_VIDEO/,
+  );
+  await assert.rejects(
+    store.configureByok({
+      providerId: "token-plan",
+      protocol: "OPENAI_COMPATIBLE",
+      baseUrl:
+        "https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+      apiKey: "secret",
+      modelAssignments: [
+        {
+          modelId: "qwen-audio-3.0-tts-plus",
+          role: "AUDIO_VOICE_DESIGN",
+          priority: 10,
+          enabled: true,
+        },
+      ],
+    }),
+    /Token Plan.*不能配置为音频、图像或视频用途/,
   );
 });
 
@@ -1581,6 +2050,44 @@ test("BYOK video roles expose requested modes without conflating first frame and
   });
 });
 
+test("BYOK text catalog projects discovered context and reasoning metadata", async () => {
+  const catalog = await fetchByokModelCatalog({
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [{
+      id: "provider-one",
+      name: "Provider One",
+      protocol: "OPENAI_COMPATIBLE",
+      baseUrl: "https://models.example.test/v1",
+      apiKey: "key",
+      enabled: true,
+      priority: 10,
+      modelAssignments: [{
+        modelId: "Qwen3.8-27B",
+        role: "TEXT",
+        priority: 10,
+        enabled: true,
+        contextWindow: 32768,
+        reasoningEfforts: ["low", "medium", "xhigh"],
+        defaultReasoningEffort: "low",
+      }],
+    }],
+  }, "TEXT");
+
+  assert.equal(
+    JSON.parse(catalog.items[0].capabilityJson).contextWindowTokens,
+    32768,
+  );
+  assert.deepEqual(
+    JSON.parse(catalog.items[0].parameterSchemaJson).properties.reasoning_effort,
+    {
+      type: "string",
+      enum: ["low", "medium", "xhigh"],
+      default: "low",
+    },
+  );
+});
+
 test("BYOK catalog uses the same canonical image and audio operations as cloud", async () => {
   const catalog = await fetchByokModelCatalog({
     schemaVersion: 5,
@@ -1598,6 +2105,7 @@ test("BYOK catalog uses the same canonical image and audio operations as cloud",
           { modelId: "image-edit", role: "IMAGE_EDIT", priority: 10, enabled: true },
           { modelId: "speech", role: "AUDIO_SPEECH", priority: 10, enabled: true },
           { modelId: "clone", role: "AUDIO_VOICE_CLONE", priority: 10, enabled: true },
+          { modelId: "designer", role: "AUDIO_VOICE_DESIGN", priority: 10, enabled: true },
           { modelId: "music", role: "AUDIO_MUSIC", priority: 10, enabled: true },
         ],
       },
@@ -1627,12 +2135,46 @@ test("BYOK catalog uses the same canonical image and audio operations as cloud",
         modes: ["SPEECH"],
       },
       {
+        code: "designer",
+        operation: "AUDIO_VOICE_DESIGN",
+        modes: ["VOICE_DESIGN"],
+      },
+      {
         code: "image-edit",
         operation: "IMAGE",
         modes: ["IMAGE_TO_IMAGE"],
       },
     ],
   );
+  const voiceDesign = catalog.items.find((item) => item.code === "designer");
+  assert.ok(voiceDesign);
+  assert.deepEqual(JSON.parse(voiceDesign.parameterSchemaJson), {
+    type: "object",
+    properties: {
+      voice_prompt: { type: "string", maxLength: 2048 },
+      preview_text: { type: "string", maxLength: 1024 },
+      preferred_name: {
+        type: "string",
+        default: "custom_voice",
+        maxLength: 16,
+      },
+      language: {
+        type: "string",
+        enum: ["zh", "en", "de", "it", "pt", "es", "ja", "ko", "fr", "ru"],
+        default: "zh",
+      },
+      sample_rate: {
+        type: "integer",
+        enum: [8000, 16000, 24000, 48000],
+        default: 24000,
+      },
+      response_format: {
+        type: "string",
+        enum: ["wav", "mp3"],
+        default: "wav",
+      },
+    },
+  });
 });
 
 test("BYOK catalog operation filters assignments instead of relabeling models", async () => {
@@ -1756,6 +2298,185 @@ test("global model priority outranks the model id carried by a task", async (t) 
     [
       { modelId: "byok-text", role: "TEXT", priority: 1, enabled: true },
       { modelId: "cloud-text", role: "TEXT", priority: 2, enabled: true },
+    ],
+  );
+});
+
+test("assistant conversation override selects one exact route without changing global priority", async (t) => {
+  const cloudCalls = [];
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        cloudCalls.push(input);
+        return Response.json({ choices: [{ message: { content: "cloud" } }] });
+      },
+    },
+    {
+      async summary() {
+        return {
+          schemaVersion: 1,
+          publicKey: "public-key",
+          publicKeyHash: "device-public-key-hash",
+        };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [
+      { modelId: "cloud-text", role: "TEXT", priority: 100, enabled: true },
+    ],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "byok-first",
+          name: "BYOK First",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "http://127.0.0.1:1/v1",
+          apiKey: "byok-key",
+          enabled: true,
+          priority: 1,
+          modelAssignments: [
+            { modelId: "byok-text", role: "TEXT", priority: 1, enabled: true },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const selector = "cloud:cloud-text";
+  const encodedSelector = Buffer.from(selector, "utf8").toString("base64url");
+  const encodedEffort = Buffer.from("xhigh", "utf8").toString("base64url");
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Request-Surface": "ai-assistant",
+    },
+    body: JSON.stringify({
+      model: `ai-anime-route:${encodedSelector}:reasoning-effort:${encodedEffort}`,
+      messages: [],
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-source"), "cloud");
+  assert.equal(response.headers.get("x-ai-anime-route-model"), "cloud-text");
+  assert.equal(cloudCalls.length, 1);
+  assert.equal(JSON.parse(cloudCalls[0].body).reasoning_effort, "xhigh");
+});
+
+test("explicit cloud catalog video selection does not change global role priority", async (t) => {
+  const cloudCalls = [];
+  const routing = {
+    allowsCustomModels: false,
+    cloudModelAssignments: [
+      {
+        modelId: "video-seed-default",
+        role: "VIDEO_IMAGE_TO_VIDEO",
+        priority: 100,
+        enabled: true,
+      },
+    ],
+    explicitCloudModelAssignments: [
+      {
+        modelId: "video-seed-default",
+        role: "VIDEO_IMAGE_TO_VIDEO",
+        priority: 100,
+        enabled: true,
+      },
+      {
+        modelId: "MINIMAX_H3",
+        role: "VIDEO_IMAGE_TO_VIDEO",
+        priority: 100,
+        enabled: true,
+      },
+    ],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [],
+    },
+  };
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest(input) {
+        const body = input.body ? JSON.parse(String(input.body)) : null;
+        cloudCalls.push({ path: input.path, body });
+        if (input.path === "/v1/videos") {
+          return Response.json({ id: `task-${body.model}` });
+        }
+        return Response.json({ id: "task-MINIMAX_H3", status: "processing" });
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  proxy.configureRouting(routing);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const automatic = await fetch(`${proxy.baseUrl}/videos`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "VIDEO_IMAGE_TO_VIDEO",
+    },
+    body: JSON.stringify({
+      model: "router-placeholder",
+      prompt: "automatic route",
+      seconds: 5,
+      size: "1280x720",
+    }),
+  });
+  assert.equal(automatic.status, 200);
+  assert.equal(
+    automatic.headers.get("x-ai-anime-route-model"),
+    "video-seed-default",
+  );
+
+  const explicit = await fetch(`${proxy.baseUrl}/videos`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "VIDEO_IMAGE_TO_VIDEO",
+      "X-AI-Anime-Model-Selector": "cloud:MINIMAX_H3",
+    },
+    body: JSON.stringify({
+      model: "MINIMAX_H3",
+      prompt: "manual route",
+      seconds: 5,
+      size: "1280x720",
+    }),
+  });
+  assert.equal(explicit.status, 200);
+  assert.equal(explicit.headers.get("x-ai-anime-route-model"), "MINIMAX_H3");
+
+  proxy.configureRouting(routing);
+  const poll = await fetch(`${proxy.baseUrl}/videos/task-MINIMAX_H3`, {
+    headers: { Authorization: `Bearer ${proxy.token}` },
+  });
+  assert.equal(poll.status, 200);
+  assert.equal(poll.headers.get("x-ai-anime-route-model"), "MINIMAX_H3");
+  assert.deepEqual(
+    cloudCalls.map((call) => ({
+      path: call.path,
+      model: call.body?.model ?? null,
+    })),
+    [
+      { path: "/v1/videos", model: "video-seed-default" },
+      { path: "/v1/videos", model: "MINIMAX_H3" },
+      { path: "/v1/videos/task-MINIMAX_H3", model: null },
     ],
   );
 });
@@ -2329,6 +3050,136 @@ test("Gemini BYOK is called directly and translated to OpenAI chat format", asyn
   ]);
 });
 
+test("Gemini provider strategy translates embedding and image roles", async (t) => {
+  const calls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    calls.push({
+      path: request.url,
+      apiKey: request.headers["x-goog-api-key"],
+      payload,
+    });
+    response.setHeader("Content-Type", "application/json");
+    if (request.url.includes(":embedContent")) {
+      response.end(JSON.stringify({ embedding: { values: [0.1, 0.2] } }));
+      return;
+    }
+    response.end(
+      JSON.stringify({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: "image/png",
+                    data: Buffer.from("gemini-image").toString("base64"),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+  const proxy = new CommercialModelProxy(
+    { async modelRequest() { throw new Error("cloud must not be called"); } },
+    {
+      async summary() {
+        return { schemaVersion: 1, publicKey: "key", publicKeyHash: "hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "gemini",
+          name: "Gemini",
+          protocol: "GEMINI",
+          baseUrl: `http://127.0.0.1:${address.port}/v1beta`,
+          apiKey: "gemini-secret",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "gemini-embedding-001",
+              role: "EMBEDDING",
+              priority: 10,
+              enabled: true,
+            },
+            {
+              modelId: "gemini-image",
+              role: "IMAGE_GENERATION",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const embeddingResponse = await fetch(`${proxy.baseUrl}/embeddings`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Selector":
+        "byok:gemini:gemini-embedding-001",
+    },
+    body: JSON.stringify({ model: "ignored", input: "一段文本" }),
+  });
+  assert.equal(embeddingResponse.status, 200);
+  assert.deepEqual((await embeddingResponse.json()).data, [
+    { object: "embedding", index: 0, embedding: [0.1, 0.2] },
+  ]);
+
+  const imageResponse = await fetch(`${proxy.baseUrl}/images/generations`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Selector": "byok:gemini:gemini-image",
+    },
+    body: JSON.stringify({ model: "ignored", prompt: "雨夜城市", size: "1280x720" }),
+  });
+  assert.equal(imageResponse.status, 200);
+  assert.equal(
+    (await imageResponse.json()).data[0].b64_json,
+    Buffer.from("gemini-image").toString("base64"),
+  );
+  assert.equal(calls[0].apiKey, "gemini-secret");
+  assert.equal(
+    calls[0].path,
+    "/v1beta/models/gemini-embedding-001:embedContent",
+  );
+  assert.equal(calls[1].path, "/v1beta/models/gemini-image:generateContent");
+  assert.equal(
+    calls[1].payload.generationConfig.responseFormat.image.aspectRatio,
+    "16:9",
+  );
+});
+
 test("local model proxy authenticates callers and strips credential authority", async (t) => {
   const calls = [];
   const client = {
@@ -2559,6 +3410,18 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   );
   configureCloudProxy(proxy, [
     { modelId: "cloud-video-standard", role: "VIDEO_ALL_REFERENCE" },
+  ], [
+    {
+      modelId: "cloud-video-standard",
+      videoExtraParameterNames: [
+        "steps",
+        "seed",
+        "turbo",
+        "guidance_scale",
+      ],
+      videoSceneOptimizeOptions: ["anime", "realistic"],
+      videoSupportsHumanReview: true,
+    },
   ]);
   await proxy.start();
   t.after(() => proxy.stop());
@@ -2573,8 +3436,13 @@ test("cloud video requests are normalized to the server contract", async (t) => 
     body: JSON.stringify({
       model: "local-placeholder",
       prompt: "animate this scene",
+      mode: "TEXT_TO_VIDEO",
       seconds: "5",
       size: "1280x720",
+      steps: 30,
+      seed: 42,
+      turbo: true,
+      guidance_scale: 6.5,
       generate_audio: true,
       human_review: true,
       scene_optimize: "anime",
@@ -2585,15 +3453,28 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   assert.deepEqual(JSON.parse(calls[0].body), {
     model: "cloud-video-standard",
     prompt: "animate this scene",
+    mode: "TEXT_TO_VIDEO",
     seconds: "5",
     size: "1280x720",
+    steps: 30,
+    seed: 42,
+    turbo: true,
+    guidance_scale: 6.5,
+    generate_audio: true,
+    human_review: true,
+    scene_optimize: "anime",
   });
 
   const form = new FormData();
   form.append("model", "local-placeholder");
   form.append("prompt", "keep the character consistent");
+  form.append("mode", "MULTIMODAL_REFERENCE");
   form.append("seconds", "8");
   form.append("size", "1080x1920");
+  form.append("steps", "24");
+  form.append("seed", "7");
+  form.append("turbo", "false");
+  form.append("generate_audio", "true");
   form.append("human_review", "true");
   form.append("scene_optimize", "anime");
   form.append(
@@ -2615,8 +3496,13 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   assert.equal(calls[1].body instanceof FormData, true);
   assert.equal(calls[1].body.get("model"), "cloud-video-standard");
   assert.equal(calls[1].body.get("prompt"), "keep the character consistent");
-  assert.equal(calls[1].body.get("human_review"), null);
-  assert.equal(calls[1].body.get("scene_optimize"), null);
+  assert.equal(calls[1].body.get("mode"), "MULTIMODAL_REFERENCE");
+  assert.equal(calls[1].body.get("steps"), "24");
+  assert.equal(calls[1].body.get("seed"), "7");
+  assert.equal(calls[1].body.get("turbo"), "false");
+  assert.equal(calls[1].body.get("generate_audio"), "true");
+  assert.equal(calls[1].body.get("human_review"), "true");
+  assert.equal(calls[1].body.get("scene_optimize"), "anime");
   assert.equal(calls[1].body.get("reference_images"), null);
   assert.equal(calls[1].body.get("reference_videos"), null);
   assert.equal(calls[1].body.get("reference_image") instanceof Blob, true);
@@ -2717,6 +3603,654 @@ test("cloud voice design keeps its explicit role and routes the raw model code",
   assert.equal(calls.length, 1);
   assert.equal(calls[0].path, "/v1/audio/speech");
   assert.equal(JSON.parse(calls[0].body).model, modelId);
+});
+
+test("BYOK voice design keeps the selected provider route and raw model code", async (t) => {
+  const upstreamCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    upstreamCalls.push({
+      path: request.url,
+      authorization: request.headers.authorization,
+      body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+    });
+    response.statusCode = 200;
+    response.setHeader("Content-Type", "audio/wav");
+    response.setHeader("X-Voice-Id", "byok_voice_123");
+    response.end(Buffer.from("designed-byok-voice"));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest() {
+        throw new Error("cloud route must not be used");
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "voice-provider",
+          name: "Voice Provider",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `http://127.0.0.1:${address.port}/v1`,
+          apiKey: "voice-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "voice-design-model",
+              role: "AUDIO_VOICE_DESIGN",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/audio/speech`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "AUDIO_VOICE_DESIGN",
+      "X-AI-Anime-Model-Selector": "byok:voice-provider:voice-design-model",
+    },
+    body: JSON.stringify({
+      model: "byok:voice-provider:voice-design-model",
+      mode: "VOICE_DESIGN",
+      voice_prompt: "清澈温暖的青年女声",
+      preview_text: "你好，这是声线试听。",
+      language: "zh",
+      sample_rate: 24000,
+      response_format: "wav",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-source"), "byok");
+  assert.equal(response.headers.get("x-voice-id"), "byok_voice_123");
+  assert.deepEqual(upstreamCalls, [
+    {
+      path: "/v1/audio/speech",
+      authorization: "Bearer voice-key",
+      body: {
+        model: "voice-design-model",
+        mode: "VOICE_DESIGN",
+        voice_prompt: "清澈温暖的青年女声",
+        preview_text: "你好，这是声线试听。",
+        language: "zh",
+        sample_rate: 24000,
+        response_format: "wav",
+      },
+    },
+  ]);
+});
+
+test("Alibaba Model Studio maps Qwen-Audio voice design to the customization API", async (t) => {
+  const upstreamCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    upstreamCalls.push({
+      path: request.url,
+      authorization: request.headers.authorization,
+      body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+    });
+    response.statusCode = 200;
+    response.setHeader("Content-Type", "application/json");
+    response.end(JSON.stringify({
+      output: {
+        preview_audio: {
+          data: Buffer.from("qwen-designed-audio").toString("base64"),
+          sample_rate: 24000,
+          response_format: "wav",
+        },
+        target_model: "qwen-audio-3.0-tts-plus",
+        voice_id: "qwen-audio-designed-voice",
+      },
+      usage: { count: 1 },
+      request_id: "qwen-request-1",
+    }));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest() {
+        throw new Error("cloud route must not be used");
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "qwen",
+          name: "阿里云百炼",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `http://127.0.0.1:${address.port}/compatible-mode/v1`,
+          apiKey: "qwen-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "qwen-audio-3.0-tts-plus",
+              role: "AUDIO_VOICE_DESIGN",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/audio/speech`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "AUDIO_VOICE_DESIGN",
+      "X-AI-Anime-Model-Selector":
+        "byok:qwen:qwen-audio-3.0-tts-plus",
+    },
+    body: JSON.stringify({
+      model: "qwen-audio-3.0-tts-plus",
+      mode: "VOICE_DESIGN",
+      voice_prompt: "年轻清晰的中文女性声音，语气自然亲切",
+      preview_text: "大家好，今天我们一起走进这段温暖而充满希望的校园故事。",
+      preferred_name: "custom_voice",
+      language: "zh",
+      sample_rate: 24000,
+      response_format: "wav",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-source"), "byok");
+  assert.equal(response.headers.get("x-request-id"), "qwen-request-1");
+  assert.equal(response.headers.get("x-voice-id"), "qwen-audio-designed-voice");
+  assert.deepEqual(
+    Buffer.from(await response.arrayBuffer()),
+    Buffer.from("qwen-designed-audio"),
+  );
+  assert.deepEqual(upstreamCalls, [
+    {
+      path: "/api/v1/services/audio/tts/customization",
+      authorization: "Bearer qwen-key",
+      body: {
+        model: "voice-enrollment",
+        input: {
+          action: "create_voice",
+          target_model: "qwen-audio-3.0-tts-plus",
+          voice_prompt: "年轻清晰的中文女性声音，语气自然亲切",
+          preview_text: "大家好，今天我们一起走进这段温暖而充满希望的校园故事。",
+          prefix: "customvoic",
+          language_hints: ["zh"],
+        },
+        parameters: {
+          sample_rate: 24000,
+          response_format: "wav",
+        },
+      },
+    },
+  ]);
+});
+
+test("Fish Audio BYOK maps speech and voice design to the native contracts", async (t) => {
+  const upstreamCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    upstreamCalls.push({
+      path: request.url,
+      model: request.headers.model,
+      authorization: request.headers.authorization,
+      body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+    });
+    response.statusCode = 200;
+    if (request.url === "/v1/voice-design") {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({
+        candidates: [{
+          id: "fish-designed-voice",
+          audio_base64: Buffer.from("fish-designed-audio").toString("base64"),
+          sample_rate: 24000,
+        }],
+      }));
+      return;
+    }
+    response.setHeader("Content-Type", "audio/mpeg");
+    response.end(Buffer.from("fish-speech"));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest() {
+        throw new Error("cloud route must not be used");
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "fish",
+          name: "Fish Audio",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `http://127.0.0.1:${address.port}/v1/tts/v1`,
+          apiKey: "fish-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            {
+              modelId: "s2.1-pro-free",
+              role: "AUDIO_SPEECH",
+              priority: 10,
+              enabled: true,
+            },
+            {
+              modelId: "voice-design-1",
+              role: "AUDIO_VOICE_DESIGN",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const selector = "byok:fish:s2.1-pro-free";
+  const speechResponse = await fetch(`${proxy.baseUrl}/audio/speech`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "AUDIO_SPEECH",
+      "X-AI-Anime-Model-Selector": selector,
+    },
+    body: JSON.stringify({
+      model: selector,
+      mode: "SPEECH",
+      input: "你好，这是 Fish Audio 试听。",
+      voice: "fish-voice-reference",
+      speed: 1.1,
+      response_format: "mp3",
+    }),
+  });
+  assert.equal(speechResponse.status, 200);
+  assert.equal(speechResponse.headers.get("x-ai-anime-route-source"), "byok");
+  assert.deepEqual(upstreamCalls, [
+    {
+      path: "/v1/tts",
+      model: "s2.1-pro-free",
+      authorization: "Bearer fish-key",
+      body: {
+        text: "你好，这是 Fish Audio 试听。",
+        format: "mp3",
+        reference_id: "fish-voice-reference",
+        prosody: { speed: 1.1 },
+      },
+    },
+  ]);
+
+  const designSelector = "byok:fish:voice-design-1";
+  const designResponse = await fetch(`${proxy.baseUrl}/audio/speech`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Model-Role": "AUDIO_VOICE_DESIGN",
+      "X-AI-Anime-Model-Selector": designSelector,
+    },
+    body: JSON.stringify({
+      model: designSelector,
+      mode: "VOICE_DESIGN",
+      voice_prompt: "沉稳男声",
+      preview_text: "你好。",
+      language: "zh",
+      sample_rate: 24000,
+      response_format: "wav",
+    }),
+  });
+  assert.equal(designResponse.status, 200);
+  assert.equal(designResponse.headers.get("x-voice-id"), "fish-designed-voice");
+  assert.deepEqual(Buffer.from(await designResponse.arrayBuffer()), Buffer.from("fish-designed-audio"));
+  assert.deepEqual(upstreamCalls[1], {
+    path: "/v1/voice-design",
+    model: "voice-design-1",
+    authorization: "Bearer fish-key",
+    body: {
+      instruction: "沉稳男声",
+      reference_text: "你好。",
+      language: "zh",
+      n: 1,
+    },
+  });
+});
+
+test("audio strategy factory maps MiniMax, ElevenLabs, Deepgram, Cartesia, and OpenAI contracts", async (t) => {
+  const upstreamCalls = [];
+  const providerServer = createServer(async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(Buffer.from(chunk));
+    const bodyText = Buffer.concat(chunks).toString("utf8");
+    upstreamCalls.push({
+      path: request.url,
+      authorization: request.headers.authorization,
+      elevenKey: request.headers["xi-api-key"],
+      cartesiaVersion: request.headers["cartesia-version"],
+      body: bodyText ? JSON.parse(bodyText) : null,
+    });
+    response.statusCode = 200;
+    if (request.url === "/v1/t2a_v2") {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({
+        data: { audio: Buffer.from("minimax-speech").toString("hex"), status: 2 },
+        base_resp: { status_code: 0, status_msg: "success" },
+      }));
+      return;
+    }
+    if (request.url === "/v1/voice_design") {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({
+        trial_audio: Buffer.from("minimax-design").toString("hex"),
+        voice_id: "minimax-designed-voice",
+        base_resp: { status_code: 0, status_msg: "success" },
+      }));
+      return;
+    }
+    if (request.url.startsWith("/v1/text-to-voice/design")) {
+      response.setHeader("Content-Type", "application/json");
+      response.end(JSON.stringify({
+        previews: [{
+          audio_base_64: Buffer.from("eleven-design").toString("base64"),
+          generated_voice_id: "eleven-designed-voice",
+          media_type: "audio/mpeg",
+        }],
+      }));
+      return;
+    }
+    response.setHeader("Content-Type", "audio/mpeg");
+    response.end(Buffer.from(`audio:${request.url}`));
+  });
+  await new Promise((resolve, reject) => {
+    providerServer.once("error", reject);
+    providerServer.listen(0, "127.0.0.1", () => {
+      providerServer.off("error", reject);
+      resolve();
+    });
+  });
+  t.after(() => new Promise((resolve) => providerServer.close(resolve)));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+  const origin = `http://127.0.0.1:${address.port}`;
+
+  const proxy = new CommercialModelProxy(
+    {
+      async modelRequest() {
+        throw new Error("cloud route must not be used");
+      },
+    },
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+  );
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "minimax",
+          name: "MiniMax",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `${origin}/v1/t2a_v2`,
+          apiKey: "minimax-key",
+          enabled: true,
+          priority: 10,
+          modelAssignments: [
+            { modelId: "speech-2.8-hd", role: "AUDIO_SPEECH", priority: 10, enabled: true },
+            { modelId: "voice-design", role: "AUDIO_VOICE_DESIGN", priority: 10, enabled: true },
+          ],
+        },
+        {
+          id: "eleven",
+          name: "ElevenLabs",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `${origin}/v1/text-to-speech`,
+          apiKey: "eleven-key",
+          enabled: true,
+          priority: 20,
+          modelAssignments: [
+            { modelId: "eleven_multilingual_v2", role: "AUDIO_SPEECH", priority: 20, enabled: true },
+            { modelId: "eleven_ttv_v3", role: "AUDIO_VOICE_DESIGN", priority: 20, enabled: true },
+          ],
+        },
+        {
+          id: "deepgram",
+          name: "Deepgram",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `${origin}/v1/speak`,
+          apiKey: "deepgram-key",
+          enabled: true,
+          priority: 30,
+          modelAssignments: [
+            { modelId: "aura-2-thalia-en", role: "AUDIO_SPEECH", priority: 30, enabled: true },
+          ],
+        },
+        {
+          id: "cartesia",
+          name: "Cartesia",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `${origin}/tts/bytes`,
+          apiKey: "cartesia-key",
+          enabled: true,
+          priority: 40,
+          modelAssignments: [
+            { modelId: "sonic-3.6", role: "AUDIO_SPEECH", priority: 40, enabled: true },
+          ],
+        },
+        {
+          id: "openai",
+          name: "OpenAI",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: `${origin}/v1/audio/speech`,
+          apiKey: "openai-key",
+          enabled: true,
+          priority: 50,
+          modelAssignments: [
+            { modelId: "gpt-4o-mini-tts", role: "AUDIO_SPEECH", priority: 50, enabled: true },
+          ],
+        },
+      ],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const invoke = async (providerId, modelId, role, body) => {
+    const response = await fetch(`${proxy.baseUrl}/audio/speech`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${proxy.token}`,
+        "Content-Type": "application/json",
+        "X-AI-Anime-Model-Role": role,
+        "X-AI-Anime-Model-Selector": `byok:${providerId}:${modelId}`,
+      },
+      body: JSON.stringify({ model: modelId, ...body }),
+    });
+    assert.equal(response.status, 200);
+    await response.arrayBuffer();
+    return response;
+  };
+
+  await invoke("minimax", "speech-2.8-hd", "AUDIO_SPEECH", {
+    mode: "SPEECH",
+    input: "MiniMax speech",
+    voice: "Chinese (Mandarin)_News_Anchor",
+    speed: 1.1,
+    response_format: "mp3",
+  });
+  const minimaxDesign = await invoke(
+    "minimax",
+    "voice-design",
+    "AUDIO_VOICE_DESIGN",
+    {
+      mode: "VOICE_DESIGN",
+      voice_prompt: "沉稳、清晰的中文男声",
+      preview_text: "这是一段 MiniMax 声线试听。",
+      response_format: "mp3",
+    },
+  );
+  assert.equal(minimaxDesign.headers.get("x-voice-id"), "minimax-designed-voice");
+  await invoke("eleven", "eleven_multilingual_v2", "AUDIO_SPEECH", {
+    mode: "SPEECH",
+    input: "ElevenLabs speech",
+    voice: "eleven-voice-id",
+    speed: 1,
+    response_format: "mp3",
+  });
+  const elevenDesign = await invoke(
+    "eleven",
+    "eleven_ttv_v3",
+    "AUDIO_VOICE_DESIGN",
+    {
+      mode: "VOICE_DESIGN",
+      voice_prompt: "A warm and expressive narrator voice for an animated drama.",
+      preview_text: "This is a deliberately long preview sentence for the ElevenLabs voice design contract. It contains more than one hundred characters so the upstream API accepts it.",
+      response_format: "mp3",
+    },
+  );
+  assert.equal(elevenDesign.headers.get("x-voice-id"), "eleven-designed-voice");
+  await invoke("deepgram", "aura-2-thalia-en", "AUDIO_SPEECH", {
+    mode: "SPEECH",
+    input: "Deepgram speech",
+    speed: 0.9,
+    response_format: "wav",
+  });
+  await invoke("cartesia", "sonic-3.6", "AUDIO_SPEECH", {
+    mode: "SPEECH",
+    input: "Cartesia speech",
+    voice: "cartesia-voice-id",
+    speed: 1.2,
+    response_format: "wav",
+  });
+  await invoke("openai", "gpt-4o-mini-tts", "AUDIO_SPEECH", {
+    mode: "SPEECH",
+    input: "OpenAI speech",
+    voice: "alloy",
+    speed: 1,
+    response_format: "mp3",
+  });
+
+  assert.deepEqual(upstreamCalls[0].body, {
+    model: "speech-2.8-hd",
+    text: "MiniMax speech",
+    stream: false,
+    output_format: "hex",
+    language_boost: "auto",
+    voice_setting: {
+      voice_id: "Chinese (Mandarin)_News_Anchor",
+      speed: 1.1,
+      vol: 1,
+      pitch: 0,
+    },
+    audio_setting: {
+      sample_rate: 32000,
+      bitrate: 128000,
+      format: "mp3",
+      channel: 1,
+    },
+  });
+  assert.deepEqual(upstreamCalls[1].body, {
+    prompt: "沉稳、清晰的中文男声",
+    preview_text: "这是一段 MiniMax 声线试听。",
+  });
+  assert.equal(upstreamCalls[2].elevenKey, "eleven-key");
+  assert.match(upstreamCalls[2].path, /^\/v1\/text-to-speech\/eleven-voice-id\?/);
+  assert.equal(upstreamCalls[4].authorization, "Token deepgram-key");
+  assert.match(upstreamCalls[4].path, /^\/v1\/speak\?model=aura-2-thalia-en/);
+  assert.equal(upstreamCalls[5].cartesiaVersion, "2026-08-14");
+  assert.deepEqual(upstreamCalls[6].body, {
+    model: "gpt-4o-mini-tts",
+    input: "OpenAI speech",
+    voice: "alloy",
+    response_format: "mp3",
+    speed: 1,
+  });
 });
 
 test("local model proxy rejects HTML returned by the video content endpoint", async (t) => {
@@ -3032,7 +4566,7 @@ test("DELETE cloud model mutations keep one idempotency key and are not replayed
   );
 });
 
-test("cloud model reads still retry transient gateway failures", async () => {
+test("cloud model catalog reads send the activated device and retry transient failures", async () => {
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
@@ -3043,13 +4577,18 @@ test("cloud model reads still retry transient gateway failures", async () => {
     tenant,
   };
   let modelAttempts = 0;
+  const modelHeaders = [];
   const client = new CommercialApiClient({
     baseUrl: "https://aianime.122-193-11-199.sslip.io",
     sessionStore: store,
-    fetchImpl: async (url) => {
+    fetchImpl: async (url, init) => {
       const target = String(url);
+      if (target.includes("/api/v1/client/licenses/current")) {
+        return Response.json({ device: { id: "device-42" } });
+      }
       if (target.endsWith("/v1/models")) {
         modelAttempts += 1;
+        modelHeaders.push(new Headers(init.headers));
         return modelAttempts < 3
           ? new Response("gateway timeout", { status: 504 })
           : Response.json({ data: [] });
@@ -3067,6 +4606,10 @@ test("cloud model reads still retry transient gateway failures", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(modelAttempts, 3);
+  assert.equal(
+    modelHeaders.every((headers) => headers.get("X-Device-Id") === "device-42"),
+    true,
+  );
 });
 
 test("model proxy owns cloud read retries without multiplying client retries", async (t) => {
@@ -3085,6 +4628,9 @@ test("model proxy owns cloud read retries without multiplying client retries", a
     sessionStore: store,
     fetchImpl: async (url) => {
       const target = String(url);
+      if (target.includes("/api/v1/client/licenses/current")) {
+        return Response.json({ device: { id: "device-42" } });
+      }
       if (target.endsWith("/v1/models")) {
         modelAttempts += 1;
         return new Response("gateway timeout", { status: 504 });

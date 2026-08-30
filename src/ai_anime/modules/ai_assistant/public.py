@@ -4,10 +4,17 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.ai_assistant.application import (
+    ChatDecisionCancelled,
+    ChatDecisionInvalid,
+    ChatDecisionNotFound,
+    ChatDecisionUnavailable,
+    ChatDecisions,
     ChatWorkerLifecycle,
     ConversationTitles,
     HermesHomeReplies,
     HermesRuntimePrewarmer,
+    HermesSessionCommands,
+    HermesSessionModels,
     ProjectChatTurns,
     ScopedChatMessages,
     SpeechTranscript,
@@ -111,10 +118,32 @@ def get_hermes_runtime_prewarmer() -> HermesRuntimePrewarmer:
     return resolve()
 
 
+def get_hermes_session_models() -> HermesSessionModels:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_hermes_session_models as resolve,
+    )
+
+    return resolve()
+
+
+def get_hermes_session_commands() -> HermesSessionCommands:
+    from ai_anime.modules.ai_assistant.composition import (
+        get_hermes_session_commands as resolve,
+    )
+
+    return resolve()
+
+
 def get_chat_worker_lifecycle() -> ChatWorkerLifecycle:
     from ai_anime.modules.ai_assistant.composition import (
         get_chat_worker_lifecycle as resolve,
     )
+
+    return resolve()
+
+
+def get_chat_decisions() -> ChatDecisions:
+    from ai_anime.modules.ai_assistant.composition import get_chat_decisions as resolve
 
     return resolve()
 
@@ -151,6 +180,21 @@ def get_scoped_chat_messages() -> ScopedChatMessages:
     return resolve()
 
 
+def list_chat_slash_commands(
+    username: str,
+    *,
+    include_project_tools: bool = True,
+) -> list[dict[str, Any]]:
+    from ai_anime.modules.ai_assistant.infrastructure.hermes.skill_catalog import (
+        list_slash_commands_for_user,
+    )
+
+    return list_slash_commands_for_user(
+        username,
+        include_project_tools=include_project_tools,
+    )
+
+
 def get_speech_transcription() -> SpeechTranscription:
     from ai_anime.modules.ai_assistant.composition import (
         get_speech_transcription as resolve,
@@ -161,9 +205,15 @@ def get_speech_transcription() -> SpeechTranscription:
 
 __all__ = [
     "ChatWorkerLifecycle",
+    "ChatDecisionCancelled",
+    "ChatDecisionInvalid",
+    "ChatDecisionNotFound",
+    "ChatDecisionUnavailable",
+    "ChatDecisions",
     "ConversationTitles",
     "HermesHomeReplies",
     "HermesRuntimePrewarmer",
+    "HermesSessionModels",
     "ProjectChatTurns",
     "ScopedChatMessages",
     "SpeechTranscript",
@@ -183,7 +233,10 @@ __all__ = [
     "fallback_display_tool_ui_specs",
     "filter_tool_ui_specs_for_prompt",
     "get_hermes_runtime_prewarmer",
+    "get_hermes_session_commands",
+    "get_hermes_session_models",
     "get_chat_worker_lifecycle",
+    "get_chat_decisions",
     "get_conversation_titles",
     "get_hermes_home_replies",
     "get_project_chat_turns",
@@ -191,6 +244,7 @@ __all__ = [
     "get_speech_transcription",
     "infer_display_tool_call_from_text",
     "is_display_tool_name",
+    "list_chat_slash_commands",
     "normalize_json_render_reply",
     "redact_local_filesystem_paths",
     "should_prewarm_scope",

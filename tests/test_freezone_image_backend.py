@@ -52,7 +52,6 @@ from ai_anime.modules.creative_canvas.public import (
     CanvasGraphPatch,
     CreativeCanvasMainlineGenerationUseCases,
     CreativeCanvasJobResultQueries,
-    CreativeCanvasStagingPropUseCases,
     CreativeCanvasTaskStartFailed,
     SkillRunOutput,
     SkillRunRequest,
@@ -561,6 +560,10 @@ async def test_freezone_omni_video_limit_exception_bubbles_to_global_handler(
             body=FreezoneVideoOmniGenRequest(
                 prompt="雨夜街头，人物缓慢回头。",
                 model="cloud-video-standard",
+                resolution="720p",
+                aspect_ratio="16:9",
+                duration_seconds=5,
+                generate_audio=False,
             ),
             user={"username": "admin"},
         )
@@ -696,6 +699,10 @@ async def test_freezone_video_omni_gen_forwards_explicit_catalog_model(
         body=FreezoneVideoOmniGenRequest(
             prompt="雨夜街头，人物缓慢回头。",
             model="cloud-video-standard",
+            resolution="720p",
+            aspect_ratio="16:9",
+            duration_seconds=5,
+            generate_audio=False,
         ),
         user={"username": "admin"},
     )
@@ -728,6 +735,10 @@ async def test_freezone_video_start_runtime_error_is_logged(
             body=FreezoneVideoOmniGenRequest(
                 prompt="雨夜街头，人物缓慢回头。",
                 model="cloud-video-standard",
+                resolution="720p",
+                aspect_ratio="16:9",
+                duration_seconds=5,
+                generate_audio=False,
             ),
             user={"username": "admin"},
         )
@@ -753,32 +764,31 @@ def test_build_scene_360_prompt_contains_scene_and_projection_rules() -> None:
     assert "Left and right edges must connect seamlessly" in prompt
 
 
-def test_freezone_ai_staging_prop_endpoint_returns_ai_prop(
+def test_freezone_ai_staging_prop_endpoint_submits_task(
     monkeypatch, tmp_path: Path
 ) -> None:
     _project_dir, _output_dir = _patch_freezone_project(monkeypatch, tmp_path)
-    captured: dict[str, object] = {}
+    captured: list[object] = []
 
-    class FakeGenerator:
-        async def generate(self, request: dict) -> dict:
-            captured.update(request)
-            return {
-                "ok": True,
-                "prop": {
-                    "prop_id": "horse_mount",
-                    "name": "可骑的马",
-                    "marker_color": "#7c3aed",
-                    "shape_hint": "quadruped_mount",
-                    "scale": [1.4, 1.25, 2.2],
-                    "position": [1, 0, 2],
-                },
-            }
+    class FakeLongOperationUseCases:
+        async def start_staging_prop(self, command):
+            captured.append(command)
+            return SimpleNamespace(
+                to_dict=lambda: {
+                    "task_type": "freezone_ai_staging_prop",
+                    "job_id": "job-staging-1",
+                    "task_key": "task:freezone_ai_staging_prop:ai_staging",
+                    "task_episode": 0,
+                    "task_scope": "ai_staging",
+                    "backend": "local",
+                    "queue": None,
+                }
+            )
 
-    use_cases = CreativeCanvasStagingPropUseCases(FakeGenerator())
     monkeypatch.setattr(
         freezone_skill_routes,
-        "creative_canvas_staging_prop_use_cases",
-        lambda: use_cases,
+        "creative_canvas_long_operation_use_cases",
+        lambda: FakeLongOperationUseCases(),
     )
     app = FastAPI()
     app.include_router(freezone_skill_routes.router, prefix="/api/v1")
@@ -799,10 +809,9 @@ def test_freezone_ai_staging_prop_endpoint_returns_ai_prop(
     )
 
     assert response.status_code == 200
-    assert response.json()["data"]["prop"]["shape_hint"] == "quadruped_mount"
-    assert captured["user_hint"] == "让男青年骑一匹马"
-    assert "api_key" not in captured
-    assert "base_url" not in captured
+    assert response.json()["data"]["task_type"] == "freezone_ai_staging_prop"
+    assert response.json()["data"]["task_scope"] == "ai_staging"
+    assert captured[0].request["user_hint"] == "让男青年骑一匹马"
 
 
 def test_episode_preset_key_uses_episode_scope() -> None:

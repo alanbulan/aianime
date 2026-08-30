@@ -29,7 +29,6 @@ import { useRegionStore } from "@/shared/stores/region-store";
 
 type AuthView = "login" | "register" | "authorize" | "forgot";
 type PasswordResetStep = "request" | "verify" | "reset";
-const REMEMBERED_PASSWORD_MASK = "••••••••••••";
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -68,6 +67,9 @@ export function LoginPage() {
   const commercialLogin = useCommercialAuthStore((state) => state.login);
   const commercialLoginRemembered = useCommercialAuthStore(
     (state) => state.loginRemembered,
+  );
+  const revealCommercialRememberedPassword = useCommercialAuthStore(
+    (state) => state.revealRememberedPassword,
   );
   const commercialRegister = useCommercialAuthStore((state) => state.register);
   const sendPasswordResetCode = useCommercialAuthStore(
@@ -114,7 +116,13 @@ export function LoginPage() {
   }, [initializeCommercial, t]);
 
   useEffect(() => {
-    if (!commercialConfigured || !rememberedCommercialLogin || view !== "login") {
+    if (!commercialConfigured || view !== "login") return;
+    if (!rememberedCommercialLogin) {
+      if (!usingRememberedPassword) return;
+      appliedRememberedLoginRef.current = "";
+      setPassword("");
+      setShowPassword(false);
+      setUsingRememberedPassword(false);
       return;
     }
     const key = `${rememberedCommercialLogin.tenantCode}\n${rememberedCommercialLogin.username}`;
@@ -122,13 +130,15 @@ export function LoginPage() {
     appliedRememberedLoginRef.current = key;
     setTenantCode(rememberedCommercialLogin.tenantCode);
     setUsername(rememberedCommercialLogin.username);
-    setPassword(REMEMBERED_PASSWORD_MASK);
+    setPassword("");
+    setShowPassword(false);
     setRememberMe(true);
     setUsingRememberedPassword(true);
   }, [
     commercialConfigured,
     rememberedCommercialLogin,
     setTenantCode,
+    usingRememberedPassword,
     view,
   ]);
 
@@ -551,14 +561,37 @@ export function LoginPage() {
                         setPassword(event.target.value);
                         setUsingRememberedPassword(false);
                       }}
-                      placeholder={t("auth.passwordPlaceholder")}
+                      placeholder={t(
+                        usingRememberedPassword
+                          ? "auth.savedPasswordPlaceholder"
+                          : "auth.passwordPlaceholder",
+                      )}
                       className="pr-10"
-                      required
+                      required={!usingRememberedPassword}
                     />
                     <button
                       type="button"
                       className="absolute right-0 top-0 flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
-                      onClick={() => setShowPassword((value) => !value)}
+                      onClick={() => {
+                        if (!usingRememberedPassword) {
+                          setShowPassword((value) => !value);
+                          return;
+                        }
+                        setError(null);
+                        void revealCommercialRememberedPassword()
+                          .then((rememberedPassword) => {
+                            setPassword(rememberedPassword);
+                            setUsingRememberedPassword(false);
+                            setShowPassword(true);
+                          })
+                          .catch((reason: unknown) => {
+                            setError(
+                              reason instanceof Error
+                                ? reason.message
+                                : t("auth.loginFailed"),
+                            );
+                          });
+                      }}
                       aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
                     >
                       {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

@@ -105,6 +105,25 @@ class ScopedChatMessages:
             project_state_dir=project_state_dir,
         )
 
+    def set_context_state(
+        self,
+        username: str,
+        scope: ChatScope,
+        message_id: str,
+        state: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> dict[str, Any] | None:
+        return self._history.set_message_context_state(
+            username,
+            scope,
+            message_id,
+            state,
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+        )
+
     def delete_conversation(
         self,
         username: str,

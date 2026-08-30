@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -21,6 +22,8 @@ class DummySqliteStore:
     updates: list[dict] = field(default_factory=list)
     characters: list[dict] = field(default_factory=list)
     sketch_colors: dict[str, str] = field(default_factory=dict)
+    scheduled_beat_prompts: list[object] = field(default_factory=list)
+    scheduled_seedance_prompts: list[object] = field(default_factory=list)
 
     async def get_script_as_dict(self, episode: int):
         return {"episode": episode, "beats": [dict(beat) for beat in self.beats]}
@@ -107,6 +110,7 @@ def _client(
     from ai_anime.modules.narrative_planning import composition
 
     sqlite_store = DummySqliteStore(beats)
+    resolved_ctx = ctx or _project_ctx(tmp_path)
 
     async def _make_sqlite_store(username: str, project: str):
         return sqlite_store
@@ -116,7 +120,7 @@ def _client(
 
     async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
         return ProjectResolution(
-            ctx=ctx,
+            ctx=resolved_ctx,
             username="admin",
             project_name="demo",
             project_dir=tmp_path,
@@ -133,6 +137,59 @@ def _client(
         lambda _ctx: _make_sqlite_store("admin", "demo"),
     )
     monkeypatch.setattr(scripts, "make_cognee_store", _make_cognee_store)
+
+    async def fake_enqueue_beat_video_prompt_generation(
+        _ctx,
+        *,
+        episode_num,
+        beat_num,
+        field,
+        language,
+        output_dir,
+    ):
+        sqlite_store.scheduled_beat_prompts.append(
+            SimpleNamespace(
+                episode=episode_num,
+                beat_num=beat_num,
+                field=field,
+                language=language,
+                output_dir=output_dir,
+            )
+        )
+        return SimpleNamespace(
+            as_dict=lambda: {
+                "task_type": "beat_video_prompt",
+                "task_id": "task-beat-prompt-1",
+                "task_key": "task:beat_video_prompt:demo:1:1",
+                "backend": "local",
+                "queue": None,
+                "message": "第 1 集 Beat 1 提示词生成已入队",
+            }
+        )
+
+    async def fake_enqueue_seedance2_prompt_generation(_ctx, command):
+        sqlite_store.scheduled_seedance_prompts.append(command)
+        return SimpleNamespace(
+            as_dict=lambda: {
+                "task_type": "seedance2_prompt",
+                "task_id": "task-seedance-prompt-1",
+                "task_key": "task:seedance2_prompt:demo:1:1",
+                "backend": "local",
+                "queue": None,
+                "message": "第 1 集 Beat 1 视频提示词优化已入队",
+            }
+        )
+
+    monkeypatch.setattr(
+        scripts,
+        "enqueue_beat_video_prompt_generation",
+        fake_enqueue_beat_video_prompt_generation,
+    )
+    monkeypatch.setattr(
+        scripts,
+        "enqueue_seedance2_prompt_generation",
+        fake_enqueue_seedance2_prompt_generation,
+    )
     if usage_meter is not None:
         monkeypatch.setattr(composition, "get_usage_meter", lambda: usage_meter)
 
@@ -161,7 +218,9 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
     )
 
 
-def test_generate_seedance2_prompt_updates_config_json(monkeypatch, tmp_path):
+def test_generate_seedance2_prompt_submits_task_without_updating_config(
+    monkeypatch, tmp_path
+):
 
     saved_json = json.dumps(
         {
@@ -222,22 +281,17 @@ def test_generate_seedance2_prompt_updates_config_json(monkeypatch, tmp_path):
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["data"]["final_prompt"] == "optimized seedance2 prompt"
-    assert payload["data"]["seedance2_config_json"] == saved_json
-    assert payload["data"]["beat"]["seedance2_config_json"] == saved_json
-    assert seen["manual_prompt_reference"] == "current seedance2 prompt"
-    assert seen["prompt_guidance"] == "more camera motion"
-    assert seen["next_beat"]["beat_number"] == 2
-    assert store.updates == [
-        {
-            "episode": 1,
-            "beat": 1,
-            "updates": {"seedance2_config_json": saved_json},
-        }
-    ]
+    assert payload["task_type"] == "seedance2_prompt"
+    assert payload["task_id"] == "task-seedance-prompt-1"
+    assert seen == {}
+    assert store.updates == []
+    command = store.scheduled_seedance_prompts[0]
+    assert command.project_dir == tmp_path
+    assert command.manual_prompt_reference == "current seedance2 prompt"
+    assert command.prompt_guidance == "more camera motion"
 
 
-def test_generate_seedance2_prompt_reserves_feature_credit_and_confirms(
+def test_generate_seedance2_prompt_does_not_bill_before_worker_runs(
     monkeypatch,
     tmp_path,
 ):
@@ -296,33 +350,22 @@ def test_generate_seedance2_prompt_reserves_feature_credit_and_confirms(
 
     assert response.status_code == 200
     assert response.json()["ok"] is True
-    assert usage_meter.reserve_calls[0]["feature_key"] == "seedance2_prompt"
-    assert usage_meter.reserve_calls[0]["resource_kind"] == "script"
-    assert usage_meter.reserve_calls[0]["require_price_rule"] is True
-    assert usage_meter.reserve_calls[0]["require_positive_cost"] is True
-    assert usage_meter.contexts[0]["billing_metadata"][
-        "model_call_credit_policy"
-    ] == "feature_included"
-    assert usage_meter.contexts[0]["billing_metadata"][
-        "feature_credit_reservation_id"
-    ] == "seedance2-prompt-reservation"
-    assert usage_meter.confirm_calls[0][0] == "seedance2-prompt-reservation"
+    assert response.json()["task_type"] == "seedance2_prompt"
+    assert usage_meter.reserve_calls == []
+    assert usage_meter.confirm_calls == []
     assert usage_meter.refund_calls == []
-    assert usage_meter.clear_count == 1
+    assert usage_meter.contexts == []
+    assert usage_meter.clear_count == 0
 
 
-def test_generate_seedance2_prompt_refunds_feature_credit_on_failure(
+def test_generate_seedance2_prompt_projects_queue_rejection(
     monkeypatch,
     tmp_path,
 ):
 
-    async def _generate_seedance2_prompt_for_panel(**kwargs):
-        raise ValueError("seedance2 prompt invalid")
+    from ai_anime.api.routes.narrative_planning import scripts
+    from ai_anime.modules.narrative_planning.public import SeedancePromptRejected
 
-    monkeypatch.setattr(
-        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
-        _generate_seedance2_prompt_for_panel,
-    )
     usage_meter = DummyUsageMeter()
     client, _store = _client(
         monkeypatch,
@@ -344,6 +387,15 @@ def test_generate_seedance2_prompt_refunds_feature_credit_on_failure(
         usage_meter=usage_meter,
     )
 
+    async def reject_queue(*_args, **_kwargs):
+        raise SeedancePromptRejected("seedance2 prompt invalid")
+
+    monkeypatch.setattr(
+        scripts,
+        "enqueue_seedance2_prompt_generation",
+        reject_queue,
+    )
+
     response = client.post(
         "/projects/demo/episodes/1/beats/1/seedance2-prompt/generate",
         json={"prompt_guidance": "more camera motion"},
@@ -351,12 +403,13 @@ def test_generate_seedance2_prompt_refunds_feature_credit_on_failure(
 
     assert response.status_code == 200
     assert response.json() == {"ok": False, "error": "seedance2 prompt invalid"}
+    assert usage_meter.reserve_calls == []
     assert usage_meter.confirm_calls == []
-    assert usage_meter.refund_calls[0][0] == "seedance2-prompt-reservation"
-    assert usage_meter.clear_count == 1
+    assert usage_meter.refund_calls == []
+    assert usage_meter.clear_count == 0
 
 
-def test_generate_seedance2_prompt_requires_next_beat_for_first_last_mode(
+def test_generate_seedance2_prompt_defers_mode_validation_to_worker(
     monkeypatch, tmp_path
 ):
     client, store = _client(
@@ -381,14 +434,11 @@ def test_generate_seedance2_prompt_requires_next_beat_for_first_last_mode(
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "ok": False,
-        "error": "这是最后一个 Beat，无法使用首尾帧模式",
-    }
+    assert response.json()["task_type"] == "seedance2_prompt"
     assert store.updates == []
 
 
-def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
+def test_generate_beat_video_prompt_queues_first_frame_prompt(
     monkeypatch, tmp_path
 ):
     from ai_anime.modules.narrative_planning.infrastructure import (
@@ -427,18 +477,11 @@ def test_generate_beat_video_prompt_updates_first_frame_video_prompt(
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["data"]["field"] == "video_prompt"
-    assert payload["data"]["prompt"] == "generated first frame motion prompt"
-    assert payload["data"]["beat"]["video_prompt"] == "generated first frame motion prompt"
-    assert seen["beat"]["beat_number"] == 1
-    assert seen["language"] == "en"
-    assert store.updates == [
-        {
-            "episode": 1,
-            "beat": 1,
-            "updates": {"video_prompt": "generated first frame motion prompt"},
-        }
-    ]
+    assert payload["task_type"] == "beat_video_prompt"
+    assert seen == {}
+    assert store.scheduled_beat_prompts[0].field == "video_prompt"
+    assert store.scheduled_beat_prompts[0].language == "en"
+    assert store.updates == []
 
 
 def test_generate_beat_video_prompt_enqueues_project_task_in_celery_mode(
@@ -675,7 +718,7 @@ async def test_generate_beat_video_prompt_uses_superpower_single_beat_optimizer(
     ]
 
 
-def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_path):
+def test_generate_beat_video_prompt_queues_keyframe_prompt(monkeypatch, tmp_path):
     from ai_anime.modules.narrative_planning.infrastructure import (
         beat_prompt_generators,
     )
@@ -712,17 +755,10 @@ def test_generate_beat_video_prompt_updates_keyframe_prompt(monkeypatch, tmp_pat
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["data"]["field"] == "keyframe_prompt"
-    assert payload["data"]["prompt"] == "generated first last frame prompt"
-    assert payload["data"]["beat"]["keyframe_prompt"] == "generated first last frame prompt"
-    assert seen["next_beat"]["beat_number"] == 2
-    assert store.updates == [
-        {
-            "episode": 1,
-            "beat": 1,
-            "updates": {"keyframe_prompt": "generated first last frame prompt"},
-        }
-    ]
+    assert payload["task_type"] == "beat_video_prompt"
+    assert seen == {}
+    assert store.scheduled_beat_prompts[0].field == "keyframe_prompt"
+    assert store.updates == []
 
 
 def test_generate_beat_video_prompt_requires_next_beat_for_keyframe(

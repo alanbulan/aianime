@@ -31,9 +31,7 @@ class _Character:
 
 class _Repository:
     def __init__(self, characters: list[_Character] | None = None) -> None:
-        self.characters = {
-            character.name: character for character in characters or []
-        }
+        self.characters = {character.name: character for character in characters or []}
 
     def get_character(self, name: str) -> _Character | None:
         return self.characters.get(name)
@@ -43,6 +41,7 @@ class _Scheduler:
     def __init__(self) -> None:
         self.build_task = None
         self.image_task = None
+        self.voice_task = None
         self.contexts: list[object] = []
 
     async def enqueue_build_characters(self, task_context, task):
@@ -60,6 +59,16 @@ class _Scheduler:
         self.image_task = task
         return AssetTaskQueueReceipt(
             task_id="task-image",
+            task_key=f"task:{task.task_type}:0:{task.scope}",
+            backend="inline",
+            queue="inline",
+        )
+
+    async def enqueue_character_voice_design(self, task_context, task):
+        self.contexts.append(task_context)
+        self.voice_task = task
+        return AssetTaskQueueReceipt(
+            task_id="task-voice",
             task_key=f"task:{task.task_type}:0:{task.scope}",
             backend="inline",
             queue="inline",
@@ -116,12 +125,14 @@ async def test_schedules_character_portrait_with_scope_and_backend_payload(
         character_name="秦",
         style="period-drama",
         model="image-model",
+        ethnicity="Japanese",
     )
 
     assert scheduler.image_task.backend_payload() == {
         "mode": "portrait",
         "task_type": "character_portrait",
         "character_name": "秦",
+        "ethnicity": "Japanese",
         "style": "period-drama",
         "model": "image-model",
         "model_selector": "",
@@ -137,6 +148,45 @@ async def test_schedules_character_portrait_with_scope_and_backend_payload(
         "queue": "inline",
         "message": "肖像生成任务已进入队列: 秦",
     }
+
+
+@pytest.mark.asyncio
+async def test_schedules_character_voice_design_with_stable_scope() -> None:
+    scheduler = _Scheduler()
+    use_cases = CharacterTaskUseCases(scheduler)
+
+    scheduled = await use_cases.schedule_voice_design(
+        task_context=_context(),
+        character_names=[" 秦 ", "秦", "楚"],
+        replace_existing=True,
+    )
+
+    assert scheduler.voice_task.backend_payload() == {
+        "character_names": ["秦", "楚"],
+        "replace_existing": True,
+        "display_name": "批量设计角色声线",
+    }
+    assert scheduled.as_dict() == {
+        "task_type": "character_voice_design",
+        "scope": "character_voice_design",
+        "task_id": "task-voice",
+        "task_key": "task:character_voice_design:0:character_voice_design",
+        "backend": "inline",
+        "queue": "inline",
+        "message": "角色声线设计任务已进入队列",
+    }
+
+
+@pytest.mark.asyncio
+async def test_voice_replacement_requires_explicit_character_names() -> None:
+    use_cases = CharacterTaskUseCases(_Scheduler())
+
+    with pytest.raises(ValueError, match="必须明确指定角色"):
+        await use_cases.schedule_voice_design(
+            task_context=_context(),
+            character_names=[],
+            replace_existing=True,
+        )
 
 
 @pytest.mark.asyncio
@@ -218,7 +268,9 @@ async def test_identity_tasks_reject_missing_character_and_identity(
             style="",
             model="",
         )
-    with pytest.raises(CharacterIdentityNotFound, match="Identity '秦_不存在' not found"):
+    with pytest.raises(
+        CharacterIdentityNotFound, match="Identity '秦_不存在' not found"
+    ):
         await use_cases.schedule_identity_portrait(
             repository=_Repository([_Character(name="秦")]),
             task_context=_context(),
@@ -236,6 +288,7 @@ async def test_identity_tasks_reject_missing_character_and_identity(
     [
         ("build", "角色补充需要 project context"),
         ("portrait", "肖像生成需要 project context"),
+        ("voice", "角色声线设计需要 project context"),
         ("identity_portrait", "身份 Portrait 生成需要 project context"),
         ("identity_image", "身份图生成需要 project context"),
     ],
@@ -260,6 +313,12 @@ async def test_character_tasks_require_project_context(
                 character_name="秦",
                 style="",
                 model="",
+            )
+        elif operation == "voice":
+            await use_cases.schedule_voice_design(
+                task_context=None,
+                character_names=[],
+                replace_existing=False,
             )
         elif operation == "identity_portrait":
             await use_cases.schedule_identity_portrait(

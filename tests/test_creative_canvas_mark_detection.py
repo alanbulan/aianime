@@ -4,7 +4,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
 from PIL import Image
 
 from ai_anime.api.routes.creative_canvas.image_schemas import FreezoneMarkDetectRequest
@@ -280,19 +279,13 @@ async def test_pydantic_ai_mark_detector_uses_creative_canvas_vision_model(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("failure", "status_code"),
-    [
-        (InvalidCreativeCanvasMarkRequest("invalid source"), 400),
-        (CreativeCanvasMarkDetectionFailed("mark detect failed: unavailable"), 500),
-    ],
-)
-async def test_mark_detection_route_preserves_error_contract(
+async def test_mark_detection_route_submits_a_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
-    failure: Exception,
-    status_code: int,
 ) -> None:
+    context = object()
+    captured: dict[str, object] = {}
+
     async def fake_resolve_project_scope(
         project: str,
         user: dict,
@@ -304,14 +297,26 @@ async def test_mark_detection_route_preserves_error_contract(
         assert user == {"username": "alice"}
         assert required_role == "editor"
         assert operation == "access freezone project files"
-        return SimpleNamespace(project_dir=tmp_path)
+        return SimpleNamespace(ctx=context, project_dir=tmp_path)
 
-    class FailingUseCases:
-        async def detect(self, command):
+    class QueuedUseCases:
+        async def start_mark_detection(self, command):
+            captured["command"] = command
+            assert command.context is context
             assert command.project_dir == tmp_path
             assert command.source_url == "source.png"
             assert command.selection.has_point is True
-            raise failure
+            return SimpleNamespace(
+                to_dict=lambda: {
+                    "task_type": "freezone_mark_detect",
+                    "job_id": "job-mark-1",
+                    "task_key": "task:freezone_mark_detect:job-mark-1",
+                    "task_episode": 0,
+                    "task_scope": "job-mark-1",
+                    "backend": "local",
+                    "queue": None,
+                }
+            )
 
     monkeypatch.setattr(
         mark_detection_routes,
@@ -320,20 +325,20 @@ async def test_mark_detection_route_preserves_error_contract(
     )
     monkeypatch.setattr(
         mark_detection_routes,
-        "creative_canvas_mark_detection_use_cases",
-        lambda: FailingUseCases(),
+        "creative_canvas_long_operation_use_cases",
+        lambda: QueuedUseCases(),
     )
 
-    with pytest.raises(HTTPException) as exc:
-        await mark_detection_routes.freezone_mark_detect(
-            project="project-1",
-            body=FreezoneMarkDetectRequest(
-                source_url="source.png",
-                point_x=0.2,
-                point_y=0.3,
-            ),
-            user={"username": "alice"},
-        )
+    result = await mark_detection_routes.freezone_mark_detect(
+        project="project-1",
+        body=FreezoneMarkDetectRequest(
+            source_url="source.png",
+            point_x=0.2,
+            point_y=0.3,
+        ),
+        user={"username": "alice"},
+    )
 
-    assert exc.value.status_code == status_code
-    assert exc.value.detail == str(failure)
+    assert captured["command"] is not None
+    assert result["ok"] is True
+    assert result["data"]["task_type"] == "freezone_mark_detect"

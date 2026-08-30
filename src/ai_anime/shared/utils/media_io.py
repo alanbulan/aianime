@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import io
+import math
+import shutil
+import subprocess
 from pathlib import Path
 
 from ai_anime.shared.utils.async_ops import call_blocking
@@ -22,7 +25,8 @@ def decode_uploaded_rgb_image(content: bytes):
 
 def get_audio_duration(audio_path: str) -> float:
     """Return audio duration in seconds using ffprobe."""
-    import subprocess
+    if not shutil.which("ffprobe"):
+        raise ValueError("ffprobe is not installed")
 
     cmd = [
         "ffprobe",
@@ -34,11 +38,31 @@ def get_audio_duration(audio_path: str) -> float:
         "default=noprint_wrappers=1:nokey=1",
         audio_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
     try:
-        return float(result.stdout.strip())
-    except Exception:
-        return 5.0
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ValueError("ffprobe timed out after 30 seconds") from exc
+    stderr = (result.stderr or "").strip()
+    if result.returncode != 0:
+        raise ValueError(
+            f"ffprobe failed with exit code {result.returncode}: "
+            f"{stderr or audio_path}"
+        )
+    try:
+        duration = float((result.stdout or "").strip())
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"ffprobe returned an invalid duration: {stderr or audio_path}") from exc
+    if not math.isfinite(duration) or duration <= 0:
+        raise ValueError(f"ffprobe returned a non-positive duration: {duration}")
+    return duration
 
 
 async def get_audio_duration_async(audio_path: str) -> float:

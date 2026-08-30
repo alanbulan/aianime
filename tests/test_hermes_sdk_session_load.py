@@ -258,6 +258,227 @@ async def test_context_chunk_error_does_not_retry_after_tool_call(
     assert "Separator is found" in str(events[-1].text)
 
 
+def test_available_commands_notification_is_exposed_to_chat_clients(
+    tmp_path: Path,
+) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    commands = [{"name": "compact", "description": "Compact context"}]
+
+    event = thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "available_commands_update",
+                    "availableCommands": commands,
+                }
+            },
+        },
+        "turn-1",
+    )
+
+    assert event is not None
+    assert event.type == "available_commands"
+    assert [item["name"] for item in event.raw] == ["help", "model", "tools"]
+    assert all(item["kind"] == "command" for item in event.raw)
+    assert all(item["name"] != "compact" for item in event.raw)
+
+
+def test_usage_update_is_exposed_as_structured_context_usage(tmp_path: Path) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+
+    event = thread._translate_notification(
+        {
+            "method": "session/update",
+            "params": {
+                "update": {
+                    "sessionUpdate": "usage_update",
+                    "used": 18149,
+                    "size": 131072,
+                }
+            },
+        },
+        "turn-1",
+    )
+
+    assert event is not None
+    assert event.type == "context_usage"
+    assert event.raw == {"used": 18149, "size": 131072}
+
+
+def test_slash_command_is_not_prefixed_with_project_context(tmp_path: Path) -> None:
+    async def run_scenario() -> list[tuple[str, dict]]:
+        thread = HermesSdkThread(
+            cli_path=tmp_path / "hermes-acp.exe",
+            cwd=tmp_path,
+            env={},
+            model=None,
+            username="alice",
+            session_id="session-1",
+        )
+        calls: list[tuple[str, dict]] = []
+
+        class _Stdout:
+            def __init__(self) -> None:
+                self.frames = [
+                    json.dumps({"jsonrpc": "2.0", "id": 1, "result": {}})
+                    .encode("utf-8")
+                    + b"\n"
+                ]
+
+            async def readline(self) -> bytes:
+                return self.frames.pop(0) if self.frames else b""
+
+        async def fake_prepare() -> None:
+            thread.id = "session-1"
+            thread._proc = SimpleNamespace(stdout=_Stdout())
+
+        async def fake_send(method: str, params: dict) -> int:
+            calls.append((method, params))
+            return 1
+
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(thread, "_prepare", fake_prepare)
+        monkeypatch.setattr(thread, "_send", fake_send)
+        try:
+            _events = [
+                event
+                async for event in thread.stream(
+                    "/compact",
+                    current_project="project-a",
+                )
+            ]
+        finally:
+            monkeypatch.undo()
+        return calls
+
+    calls = asyncio.run(run_scenario())
+
+    assert calls[0][0] == "session/prompt"
+    assert calls[0][1]["prompt"] == [{"type": "text", "text": "/compact"}]
+
+
+@pytest.mark.asyncio
+async def test_session_model_route_is_encoded_and_applied_through_acp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    calls: list[tuple[str, dict]] = []
+
+    async def fake_prepare() -> None:
+        thread.id = "session-1"
+
+    async def fake_send(method: str, params: dict) -> int:
+        calls.append((method, params))
+        return 1
+
+    async def fake_read_until_id(_target_id: int, _timeout: float):
+        return ({"jsonrpc": "2.0", "id": 1, "result": {}}, [])
+
+    monkeypatch.setattr(thread, "_prepare", fake_prepare)
+    monkeypatch.setattr(thread, "_send", fake_send)
+    monkeypatch.setattr(thread, "_read_until_id", fake_read_until_id)
+
+    selected = await thread.set_model_route("cloud:text-model", "xhigh")
+
+    assert selected == ("cloud:text-model", "xhigh")
+    assert calls[0][0] == "session/set_model"
+    assert calls[0][1]["sessionId"] == "session-1"
+    assert calls[0][1]["modelId"].startswith("ai-anime-route:")
+    assert ":reasoning-effort:" in calls[0][1]["modelId"]
+
+    await thread.set_model_route(None)
+    assert calls[1][1]["modelId"] == "ai-anime-assistant-auto"
+
+
+def test_discovered_skill_command_is_expanded_before_acp_prompt(tmp_path: Path) -> None:
+    skill_dir = tmp_path / "skills" / "ai_anime"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\n"
+        "name: ai_anime\n"
+        'description: "AI anime workflow"\n'
+        "---\n\n"
+        "# Workflow\nUse the production workflow tool.\n",
+        encoding="utf-8",
+    )
+
+    async def run_scenario() -> list[tuple[str, dict]]:
+        thread = HermesSdkThread(
+            cli_path=tmp_path / "hermes-acp.exe",
+            cwd=tmp_path,
+            env={},
+            model=None,
+            username="alice",
+            session_id="session-1",
+        )
+        calls: list[tuple[str, dict]] = []
+
+        class _Stdout:
+            def __init__(self) -> None:
+                self.frames = [
+                    json.dumps({"jsonrpc": "2.0", "id": 1, "result": {}})
+                    .encode("utf-8")
+                    + b"\n"
+                ]
+
+            async def readline(self) -> bytes:
+                return self.frames.pop(0) if self.frames else b""
+
+        async def fake_prepare() -> None:
+            thread.id = "session-1"
+            thread._proc = SimpleNamespace(stdout=_Stdout())
+
+        async def fake_send(method: str, params: dict) -> int:
+            calls.append((method, params))
+            return 1
+
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(thread, "_prepare", fake_prepare)
+        monkeypatch.setattr(thread, "_send", fake_send)
+        try:
+            _events = [
+                event
+                async for event in thread.stream(
+                    "/ai-anime 继续完成第一集",
+                    current_project="project-a",
+                )
+            ]
+        finally:
+            monkeypatch.undo()
+        return calls
+
+    calls = asyncio.run(run_scenario())
+
+    prompt = calls[0][1]["prompt"][0]["text"]
+    assert 'invoked the "ai_anime" skill' in prompt
+    assert "Use the production workflow tool." in prompt
+    assert prompt.endswith("skill invocation: 继续完成第一集")
+    assert "current_project=project-a" not in prompt
+
+
 def test_skill_view_title_keeps_canonical_name_for_result_event(tmp_path: Path) -> None:
     thread = HermesSdkThread(
         cli_path=tmp_path / "hermes-acp.exe",

@@ -150,6 +150,7 @@ async def test_production_workflow_route_submits_one_parent_task(
     assert submissions[0].payload["spine_template"] == "drama"
     assert submissions[0].payload["visual_style"] == "anime"
     assert submissions[0].payload["ethnicity"] == "Japanese"
+    assert submissions[0].payload["video_routing_policy"] == "project_selection"
     assert submissions[0].scope.startswith("production_workflow__")
 
 
@@ -804,7 +805,7 @@ async def test_production_workflow_repairs_short_seedance_voice_before_video(
     monkeypatch.setattr(
         production_public,
         "resolve_video_generation_route",
-        lambda *_args: SimpleNamespace(model="doubao-seedance-2.0"),
+        lambda *_args, **_kwargs: SimpleNamespace(model="doubao-seedance-2.0"),
     )
     monkeypatch.setattr(
         production_public,
@@ -927,14 +928,20 @@ async def test_production_workflow_generates_only_missing_beat_videos(
         "single_video_use_cases",
         lambda: _SingleVideoUseCases(),
     )
+
+    def resolve_video_route(*_args, **kwargs):
+        assert kwargs == {"routing_policy": "role_priority"}
+        return SimpleNamespace(
+            model="video-seeddance-4wlmqpxwma4r65j3",
+            selector="",
+        )
+
     monkeypatch.setattr(
         production_public,
         "resolve_video_generation_route",
-        lambda *_args: SimpleNamespace(
-            model="video-seeddance-4wlmqpxwma4r65j3",
-            selector="cloud:video-seeddance-4wlmqpxwma4r65j3",
-        ),
+        resolve_video_route,
     )
+
     async def wait_ticket(*_args, **_kwargs):
         return {}
 
@@ -949,7 +956,8 @@ async def test_production_workflow_generates_only_missing_beat_videos(
         context,
         1,
         [{"beat_number": number} for number in range(1, 8)],
-        requested_model=None,
+        requested_model="cloud:stale-project-selection",
+        video_routing_policy="role_priority",
         resolution="720x1280",
         aspect_ratio="2:3",
         use_director_render=False,
@@ -963,6 +971,8 @@ async def test_production_workflow_generates_only_missing_beat_videos(
     assert all(
         command.provided_fields == frozenset({"resolution", "ratio"})
         and command.ratio == "2:3"
+        and command.video_model == "video-seeddance-4wlmqpxwma4r65j3"
+        and command.model_selector is None
         for command in commands
     )
     assert {number: paths.video(number).read_bytes() for number in range(1, 6)} == before
@@ -1176,7 +1186,7 @@ async def test_production_workflow_generates_missing_seedance_prompts(
     monkeypatch.setattr(
         production_public,
         "resolve_video_generation_route",
-        lambda *_args: SimpleNamespace(model="seedance-2.0"),
+        lambda *_args, **_kwargs: SimpleNamespace(model="seedance-2.0"),
     )
     monkeypatch.setattr(production_public, "is_seedance2_model", lambda _model: True)
 

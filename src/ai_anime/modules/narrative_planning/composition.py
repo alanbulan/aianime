@@ -27,9 +27,11 @@ from ai_anime.modules.narrative_planning.application.manual_beats import (
 )
 from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ScheduleBeatVideoPrompt,
+    ScheduleEpisodeRewrite,
     ScheduleEpisodeAssetPlanning,
     ScheduleEpisodeIdentityPlanning,
     ScheduleEpisodePlanning,
+    ScheduleSeedancePrompt,
     StartScriptGeneration,
 )
 from ai_anime.modules.narrative_planning.application.script_documents import (
@@ -124,6 +126,14 @@ def start_script_generation() -> StartScriptGeneration:
 
 def schedule_beat_video_prompt() -> ScheduleBeatVideoPrompt:
     return ScheduleBeatVideoPrompt(narrative_task_scheduler())
+
+
+def schedule_seedance_prompt() -> ScheduleSeedancePrompt:
+    return ScheduleSeedancePrompt(narrative_task_scheduler())
+
+
+def schedule_episode_rewrite() -> ScheduleEpisodeRewrite:
+    return ScheduleEpisodeRewrite(narrative_task_scheduler())
 
 
 def schedule_episode_planning() -> ScheduleEpisodePlanning:

@@ -12,11 +12,6 @@ vi.mock("@/modules/ai_assistant/presentation/ChatControlBar", () => ({
       control bar
     </button>
   ),
-  HeaderControlPortal: () => (
-    <button type="button" data-testid="header-portal">
-      header portal
-    </button>
-  ),
 }));
 
 import { ChatPanelHeader } from "./ChatPanelHeader";
@@ -47,16 +42,15 @@ function chatModel(
 }
 
 describe("SuperChat panel header", () => {
-  it("mounts desktop controls through the header portal", () => {
-    render(
+  it("does not mount chat controls into the desktop header", () => {
+    const { container } = render(
       <ChatPanelHeader
         chat={chatModel()}
         isFreezoneLayout={false}
       />,
     );
 
-    expect(screen.getByTestId("header-portal")).toBeInTheDocument();
-    expect(screen.queryByText("freezone.chat.title")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renders freezone status, controls, and the optional close action", () => {
@@ -72,7 +66,6 @@ describe("SuperChat panel header", () => {
     expect(screen.getByText("freezone.chat.title")).toBeInTheDocument();
     expect(screen.getByText("aiAssistant.connected")).toBeInTheDocument();
     expect(screen.getByTestId("control-bar")).toBeInTheDocument();
-    expect(screen.queryByTestId("header-portal")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "freezone.chat.close" }));
     expect(onRequestClose).toHaveBeenCalledTimes(1);

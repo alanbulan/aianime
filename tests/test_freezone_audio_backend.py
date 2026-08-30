@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -16,6 +17,7 @@ from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
     CreativeCanvasVoiceResolution,
     USER_VOICE_SCOPE,
     create_user_audio_voice,
+    delete_user_audio_voice,
     list_user_audio_voices,
     resolve_user_audio_voice,
     user_audio_voices_index_path,
@@ -137,6 +139,12 @@ def test_user_audio_voice_is_account_scoped_and_resolvable(
     assert resolved.audio_path.read_bytes() == b"fake-audio-bytes"
     assert len(resolved.sha256) == 64
 
+    delete_user_audio_voice("admin", created["voice_id"])
+    assert not resolved.audio_path.exists()
+    assert list_user_audio_voices("admin") == []
+    with pytest.raises(RuntimeError, match="用户音色不存在"):
+        delete_user_audio_voice("admin", created["voice_id"])
+
 
 def test_create_user_audio_voice_rejects_unsupported_extension(
     tmp_path: Path,
@@ -151,6 +159,36 @@ def test_create_user_audio_voice_rejects_unsupported_extension(
             filename="sample.txt",
             content=b"fake-audio-bytes",
         )
+
+
+def test_delete_user_audio_voice_rejects_path_outside_voice_directory(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(audio_voice_store, "OUTPUT_DIR", str(tmp_path))
+    outside_path = tmp_path / "outside.mp3"
+    outside_path.write_bytes(b"must-not-delete")
+    index_path = user_audio_voices_index_path("admin")
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(
+        json.dumps(
+            {
+                "voices": [
+                    {
+                        "voice_id": "fv_escape",
+                        "name": "invalid",
+                        "path": "../outside.mp3",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="用户音色存储路径无效"):
+        delete_user_audio_voice("admin", "fv_escape")
+
+    assert outside_path.read_bytes() == b"must-not-delete"
 
 
 @pytest.mark.asyncio
@@ -303,6 +341,7 @@ async def test_freezone_audio_model_preset_uses_speech_without_reference_audio(
                 "model_role": "AUDIO_SPEECH",
                 "input_text": "这是一段试听文本。",
                 "voice": "alex",
+                "model_selector": None,
                 "response_format": "mp3",
                 "timeout_seconds": 600.0,
             },

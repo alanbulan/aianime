@@ -10,12 +10,13 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import re
 import time
 import uuid
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import quote, unquote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from tools.registry import tool_error, tool_result
@@ -28,6 +29,13 @@ try:
     DEFAULT_TIMEOUT_SECONDS = max(30, int(os.environ.get("AI_ANIME_API_TIMEOUT_SECONDS", "120")))
 except ValueError:
     DEFAULT_TIMEOUT_SECONDS = 120
+try:
+    DECISION_TIMEOUT_SECONDS = max(
+        DEFAULT_TIMEOUT_SECONDS,
+        int(os.environ.get("AI_ANIME_DECISION_TIMEOUT_SECONDS", "86400")),
+    )
+except ValueError:
+    DECISION_TIMEOUT_SECONDS = 86400
 SCRIPT_UPLOAD_EXTENSIONS = {".txt", ".md", ".doc", ".docx"}
 CHAT_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 STYLE_CONFIG_FIELDS = {
@@ -53,6 +61,10 @@ SCRIPT_WORKFLOW_TOOL_ERROR = (
     "Production workflow routes are only available through "
     "ai_anime_run_production_workflow, ai_anime_run_script_workflow, or their dedicated tools; "
     "do not bypass the task graph with ai_anime_post."
+)
+SINGLE_VIDEO_TOOL_ERROR = (
+    "Single-video generation is only available through ai_anime_start_single_video; "
+    "do not bypass role-priority model routing with ai_anime_post."
 )
 TEXT_CONTENT_FILTER_CHAT_ERROR = (
     "模型内容安全过滤拦截了本次文本生成，请调整原文或改写稿中的敏感描述后重试。"
@@ -295,6 +307,10 @@ def _normalize_api_path(path: str) -> str:
     raw = str(path or "").strip()
     if not raw:
         raise ValueError("path is required")
+    try:
+        raw = unquote(raw, errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError("path contains invalid UTF-8 percent encoding") from exc
     if raw.startswith("http://") or raw.startswith("https://") or raw.startswith("//"):
         raise ValueError("absolute URLs are not allowed; pass a AI anime API path")
     if not raw.startswith("/"):
@@ -311,7 +327,7 @@ def _normalize_api_path(path: str) -> str:
     if any(part == ".." for part in raw.split("/")):
         raise ValueError("path traversal is not allowed")
     _validate_ingest_api_path(raw)
-    return quote(raw, safe="/%:@-._~")
+    return quote(raw, safe="/:@-._~")
 
 
 def _episode_collection_read(path: str) -> tuple[str, int, str] | None:
@@ -363,7 +379,14 @@ def _query_string(params: Any) -> str:
     return f"?{urlencode(cleaned, doseq=True)}" if cleaned else ""
 
 
-def _request(method: str, path: str, *, query: Any = None, body: Any = None) -> dict[str, Any]:
+def _request(
+    method: str,
+    path: str,
+    *,
+    query: Any = None,
+    body: Any = None,
+    timeout_seconds: float | None = None,
+) -> dict[str, Any]:
     api_path = _normalize_api_path(path)
     url = f"{_base_url()}{api_path}{_query_string(query)}"
     payload = None
@@ -389,7 +412,10 @@ def _request(method: str, path: str, *, query: Any = None, body: Any = None) -> 
 
     req = Request(url, data=payload, headers=headers, method=method.upper())
     try:
-        with urlopen(req, timeout=DEFAULT_TIMEOUT_SECONDS) as resp:
+        with urlopen(
+            req,
+            timeout=timeout_seconds or DEFAULT_TIMEOUT_SECONDS,
+        ) as resp:
             media_type = str(resp.headers.get_content_type() or "").lower()
             if media_type and media_type != "application/json" and not media_type.endswith("+json"):
                 raw_length = resp.headers.get("Content-Length")
@@ -417,6 +443,127 @@ def _request(method: str, path: str, *, query: Any = None, body: Any = None) -> 
         })
     except URLError as exc:
         return {"ok": False, "error": f"network_error: {exc.reason}"}
+    except TimeoutError:
+        return {"ok": False, "error": "request_timeout"}
+
+
+_DECISION_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$")
+
+
+def _decision_id(value: Any, fallback: str) -> str:
+    candidate = str(value or "").strip() or fallback
+    if _DECISION_ID_PATTERN.fullmatch(candidate) is None:
+        raise ValueError(
+            "question and option ids must use letters, numbers, '.', '_', ':', or '-'"
+        )
+    return candidate
+
+
+def _normalize_decision_questions(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        raise ValueError("questions must contain at least 1 item")
+
+    normalized: list[dict[str, Any]] = []
+    question_ids: set[str] = set()
+    for question_index, raw_question in enumerate(value, start=1):
+        if not isinstance(raw_question, dict):
+            raise ValueError("each question must be an object")
+        question_id = _decision_id(raw_question.get("id"), f"q{question_index}")
+        if question_id in question_ids:
+            raise ValueError("question ids must be unique")
+        question_ids.add(question_id)
+
+        header = str(raw_question.get("header") or "").strip()
+        prompt = str(raw_question.get("question") or "").strip()
+        if not 1 <= len(header) <= 12:
+            raise ValueError("question header must contain 1 to 12 characters")
+        if not 1 <= len(prompt) <= 500:
+            raise ValueError("question text must contain 1 to 500 characters")
+
+        raw_options = raw_question.get("options")
+        if not isinstance(raw_options, list) or not 2 <= len(raw_options) <= 3:
+            raise ValueError("each question must contain 2 to 3 options")
+        options: list[dict[str, str]] = []
+        option_ids: set[str] = set()
+        for option_index, raw_option in enumerate(raw_options, start=1):
+            if not isinstance(raw_option, dict):
+                raise ValueError("each decision option must be an object")
+            option_id = _decision_id(
+                raw_option.get("id"),
+                f"option{option_index}",
+            )
+            if option_id in option_ids:
+                raise ValueError(f"option ids for question {question_id} must be unique")
+            option_ids.add(option_id)
+            label = str(raw_option.get("label") or "").strip()
+            description = str(raw_option.get("description") or "").strip()
+            if not 1 <= len(label) <= 80:
+                raise ValueError("option label must contain 1 to 80 characters")
+            if len(description) > 300:
+                raise ValueError("option description cannot exceed 300 characters")
+            options.append(
+                {
+                    "id": option_id,
+                    "label": label,
+                    "description": description,
+                }
+            )
+
+        recommended_option_id = _decision_id(
+            raw_question.get("recommended_option_id"),
+            options[0]["id"],
+        )
+        if recommended_option_id not in option_ids:
+            raise ValueError(
+                f"recommended option for question {question_id} must name an option"
+            )
+        if recommended_option_id != options[0]["id"]:
+            recommended = next(
+                option for option in options if option["id"] == recommended_option_id
+            )
+            options = [recommended, *[
+                option for option in options if option["id"] != recommended_option_id
+            ]]
+        normalized.append(
+            {
+                "id": question_id,
+                "header": header,
+                "question": prompt,
+                "options": options,
+                "recommended_option_id": recommended_option_id,
+                "allow_custom": bool(raw_question.get("allow_custom", False)),
+            }
+        )
+    return normalized
+
+
+def _handle_question(args: dict[str, Any], **_: Any) -> str:
+    """Pause the active chat turn until the user answers a structured choice."""
+
+    try:
+        title = str(args.get("title") or "需要你的确认").strip()
+        if not 1 <= len(title) <= 120:
+            raise ValueError("title must contain 1 to 120 characters")
+        body: dict[str, Any] = {
+            "title": title,
+            "source": str(args.get("source") or "question").strip() or "question",
+            "questions": _normalize_decision_questions(args.get("questions")),
+        }
+        project_id = str(
+            args.get("project_id") or _default_project_id() or ""
+        ).strip()
+        if project_id:
+            body["project_id"] = project_id
+        return tool_result(
+            _request(
+                "POST",
+                "/api/v1/chat/decisions",
+                body=body,
+                timeout_seconds=DECISION_TIMEOUT_SECONDS,
+            )
+        )
+    except Exception as exc:
+        return tool_error(str(exc))
 
 
 def _request_multipart_file(
@@ -777,6 +924,8 @@ def _handle_post(args: dict[str, Any], **_: Any) -> str:
     try:
         path = str(args.get("path") or "")
         normalized_path = _normalize_api_path(path)
+        if _is_single_video_start_path(normalized_path):
+            return tool_error(SINGLE_VIDEO_TOOL_ERROR)
         if _is_script_workflow_write_path(normalized_path):
             if _is_ingest_start_path(normalized_path):
                 return tool_error(INGEST_START_TOOL_ERROR)
@@ -1329,6 +1478,17 @@ def _is_ingest_start_path(path: str) -> bool:
     )
 
 
+def _is_single_video_start_path(path: str) -> bool:
+    parts = [part for part in path.strip("/").split("/") if part]
+    return (
+        len(parts) == 9
+        and parts[:3] == ["api", "v1", "projects"]
+        and parts[4] == "episodes"
+        and parts[6] == "beats"
+        and parts[8] == "video"
+    )
+
+
 def _is_script_workflow_write_path(path: str) -> bool:
     parts = [part for part in path.strip("/").split("/") if part]
     if len(parts) < 5 or parts[:3] != ["api", "v1", "projects"]:
@@ -1386,9 +1546,563 @@ def _start_script_workflow(
     )
 
 
+def _production_preflight_questions(args: dict[str, Any]) -> list[dict[str, Any]]:
+    questions: list[dict[str, Any]] = []
+    if args.get("episodes") is None:
+        questions.append(
+            {
+                "id": "episodes",
+                "header": "剧集范围",
+                "question": "本次完整生产要处理哪些剧集？",
+                "options": [
+                    {
+                        "id": "all_planned",
+                        "label": "全部已规划剧集",
+                        "description": "按当前项目规划处理所有剧集，适合完整自动生产。",
+                    },
+                    {
+                        "id": "episode_1",
+                        "label": "仅第 1 集",
+                        "description": "先完成第 1 集，减少首次运行范围。",
+                    },
+                ],
+                "recommended_option_id": "all_planned",
+                "allow_custom": True,
+            }
+        )
+    if args.get("rebuild") is None:
+        questions.append(
+            {
+                "id": "rebuild",
+                "header": "素材策略",
+                "question": "遇到已经生成的脚本和素材时如何处理？",
+                "options": [
+                    {
+                        "id": "preserve",
+                        "label": "保留并续跑",
+                        "description": "复用已有成果，只补齐缺失环节，风险和成本最低。",
+                    },
+                    {
+                        "id": "rebuild",
+                        "label": "全部重建",
+                        "description": "覆盖已有下游素材，耗时和生成成本更高。",
+                    },
+                ],
+                "recommended_option_id": "preserve",
+                "allow_custom": False,
+            }
+        )
+    if args.get("video_resolution") is None:
+        questions.append(
+            {
+                "id": "video_resolution",
+                "header": "成片画质",
+                "question": "视频分辨率采用哪种策略？",
+                "options": [
+                    {
+                        "id": "provider_default",
+                        "label": "按模型能力自动选择",
+                        "description": "沿用当前模型路由的兼容默认值，避免分辨率与模型冲突。",
+                    },
+                    {
+                        "id": "1080p",
+                        "label": "1080p",
+                        "description": "在当前模型支持时优先高清成片，耗时和成本通常更高。",
+                    },
+                    {
+                        "id": "720p",
+                        "label": "720p",
+                        "description": "兼顾生成速度、成本与观看清晰度。",
+                    },
+                ],
+                "recommended_option_id": "provider_default",
+                "allow_custom": True,
+            }
+        )
+    if args.get("add_subtitles") is None:
+        questions.append(
+            {
+                "id": "add_subtitles",
+                "header": "字幕",
+                "question": "最终合成是否自动添加字幕？",
+                "options": [
+                    {
+                        "id": "yes",
+                        "label": "添加字幕",
+                        "description": "提升对白可读性，适合数漫剧成片。",
+                    },
+                    {
+                        "id": "no",
+                        "label": "不添加字幕",
+                        "description": "保留纯画面与音频，后续可单独制作字幕。",
+                    },
+                ],
+                "recommended_option_id": "yes",
+                "allow_custom": False,
+            }
+        )
+    if args.get("add_bgm") is None:
+        questions.append(
+            {
+                "id": "add_bgm",
+                "header": "背景音乐",
+                "question": "最终合成是否自动添加背景音乐？",
+                "options": [
+                    {
+                        "id": "yes",
+                        "label": "添加 BGM",
+                        "description": "增强节奏和情绪，由工作流自动混音。",
+                    },
+                    {
+                        "id": "no",
+                        "label": "暂不添加",
+                        "description": "先保留对白与音效，避免自动配乐风格不匹配。",
+                    },
+                ],
+                "recommended_option_id": "yes",
+                "allow_custom": False,
+            }
+        )
+    if str(args.get("filename") or "").strip():
+        if args.get("spine_template") is None:
+            questions.append(
+                {
+                    "id": "spine_template",
+                    "header": "叙事结构",
+                    "question": "原稿按哪种结构进入剧本生产？",
+                    "options": [
+                        {
+                            "id": "drama",
+                            "label": "场景对白剧",
+                            "description": "按场景、人物动作和对白组织镜头。",
+                        },
+                        {
+                            "id": "narrated",
+                            "label": "旁白解说剧",
+                            "description": "以旁白推进为主，画面配合讲述内容。",
+                        },
+                    ],
+                    "recommended_option_id": "drama",
+                    "allow_custom": False,
+                }
+            )
+        if args.get("visual_style") is None:
+            questions.append(
+                {
+                    "id": "visual_style",
+                    "header": "视觉风格",
+                    "question": "新项目采用哪种统一视觉风格？",
+                    "options": [
+                        {
+                            "id": "anime",
+                            "label": "日系二维动画",
+                            "description": "适合数漫剧与角色一致性生产。",
+                        },
+                        {
+                            "id": "realistic",
+                            "label": "写实影视",
+                            "description": "强调真实材质、光影和镜头质感。",
+                        },
+                        {
+                            "id": "chinese_period_drama",
+                            "label": "中国古装",
+                            "description": "适合古代、武侠和仙侠题材。",
+                        },
+                    ],
+                    "recommended_option_id": "anime",
+                    "allow_custom": True,
+                }
+            )
+        if args.get("ethnicity") is None:
+            questions.append(
+                {
+                    "id": "ethnicity",
+                    "header": "角色族群",
+                    "question": "角色外观默认采用哪个族群设定？",
+                    "options": [
+                        {
+                            "id": "Chinese",
+                            "label": "中国",
+                            "description": "适合中文姓名与中国背景原稿。",
+                        },
+                        {
+                            "id": "Japanese",
+                            "label": "日本",
+                            "description": "适合日本姓名、校园或日本地域背景。",
+                        },
+                        {
+                            "id": "Korean",
+                            "label": "韩国",
+                            "description": "适合韩国姓名与地域背景。",
+                        },
+                    ],
+                    "recommended_option_id": "Chinese",
+                    "allow_custom": True,
+                }
+            )
+        if args.get("target_episodes") is None:
+            questions.append(
+                {
+                    "id": "target_episodes",
+                    "header": "分集数量",
+                    "question": "原稿计划拆分成多少集？",
+                    "options": [
+                        {
+                            "id": "auto",
+                            "label": "按原稿自动规划",
+                            "description": "由规划器根据章节和情节密度决定。",
+                        },
+                        {
+                            "id": "1",
+                            "label": "1 集",
+                            "description": "先制作一个完整样片。",
+                        },
+                    ],
+                    "recommended_option_id": "auto",
+                    "allow_custom": True,
+                }
+            )
+        if args.get("planning_mode") is None:
+            questions.append(
+                {
+                    "id": "planning_mode",
+                    "header": "分集规划",
+                    "question": "分集边界按什么方式确定？",
+                    "options": [
+                        {
+                            "id": "ai_events",
+                            "label": "按剧情事件",
+                            "description": "优先在完整事件和悬念节点处分集。",
+                        },
+                        {
+                            "id": "chapters",
+                            "label": "按原文章节",
+                            "description": "尽量保持原稿已有章节边界。",
+                        },
+                        {
+                            "id": "ai",
+                            "label": "AI 自由规划",
+                            "description": "由模型综合长度与节奏重新划分。",
+                        },
+                    ],
+                    "recommended_option_id": "ai_events",
+                    "allow_custom": False,
+                }
+            )
+        if args.get("script_mode") is None:
+            questions.append(
+                {
+                    "id": "script_mode",
+                    "header": "脚本长度",
+                    "question": "单集脚本按时长还是按镜头数控制？",
+                    "options": [
+                        {
+                            "id": "duration",
+                            "label": "按目标时长",
+                            "description": "围绕成片时长自动安排 Beat 数量。",
+                        },
+                        {
+                            "id": "literal",
+                            "label": "按目标 Beat 数",
+                            "description": "直接控制每集镜头节拍数量。",
+                        },
+                    ],
+                    "recommended_option_id": "duration",
+                    "allow_custom": False,
+                }
+            )
+    return questions
+
+
+def _decision_answers(response: dict[str, Any]) -> dict[str, str]:
+    if not response.get("ok"):
+        raise ValueError(
+            str(response.get("error") or response.get("message") or "用户确认失败")
+        )
+    data = response.get("data")
+    raw_answers = data.get("answers") if isinstance(data, dict) else None
+    if not isinstance(raw_answers, list):
+        raise ValueError("用户确认返回缺少 answers")
+    answers: dict[str, str] = {}
+    for raw_answer in raw_answers:
+        if not isinstance(raw_answer, dict):
+            continue
+        question_id = str(raw_answer.get("question_id") or "").strip()
+        value = str(raw_answer.get("value") or "").strip()
+        if question_id and value:
+            answers[question_id] = value
+    return answers
+
+
+def _parse_episode_choice(value: str) -> list[int] | None:
+    if value == "all_planned":
+        return None
+    if value == "episode_1":
+        return [1]
+    parts = [part for part in re.split(r"[\s,，、;；]+", value) if part]
+    try:
+        episodes = sorted({int(part) for part in parts})
+    except ValueError as exc:
+        raise ValueError("自定义剧集范围必须填写数字，例如：1,2,3") from exc
+    if not episodes or any(episode < 1 or episode > 200 for episode in episodes):
+        raise ValueError("自定义剧集编号必须在 1 到 200 之间")
+    return episodes
+
+
+def _positive_int_choice(
+    value: str,
+    *,
+    label: str,
+    minimum: int,
+    maximum: int,
+) -> int | None:
+    if value == "auto":
+        return None
+    try:
+        result = int(value)
+    except ValueError as exc:
+        raise ValueError(f"{label}必须填写 {minimum} 到 {maximum} 之间的整数") from exc
+    if result < minimum or result > maximum:
+        raise ValueError(f"{label}必须填写 {minimum} 到 {maximum} 之间的整数")
+    return result
+
+
+def _request_decision_batch(
+    project: str,
+    questions: list[dict[str, Any]],
+    *,
+    title: str = "完整生产启动前确认",
+) -> dict[str, str]:
+    response = _request(
+        "POST",
+        "/api/v1/chat/decisions",
+        body={
+            "title": title,
+            "project_id": project,
+            "source": "workflow_preflight",
+            "questions": questions,
+        },
+        timeout_seconds=DECISION_TIMEOUT_SECONDS,
+    )
+    answers = _decision_answers(response)
+    expected_ids = {str(question["id"]) for question in questions}
+    if set(answers) != expected_ids:
+        raise ValueError("用户确认没有覆盖本批次的全部问题")
+    return answers
+
+
+def _apply_production_preflight(
+    args: dict[str, Any],
+    project: str,
+) -> dict[str, Any]:
+    resolved = dict(args)
+    use_recommended_defaults = resolved.pop("use_recommended_defaults", False) is True
+    if use_recommended_defaults:
+        if resolved.get("rebuild") is None:
+            resolved["rebuild"] = False
+        if resolved.get("add_subtitles") is None:
+            resolved["add_subtitles"] = True
+        if resolved.get("add_bgm") is None:
+            resolved["add_bgm"] = True
+        if str(resolved.get("filename") or "").strip():
+            if resolved.get("spine_template") is None:
+                resolved["spine_template"] = "drama"
+            if resolved.get("visual_style") is None:
+                resolved["visual_style"] = "anime"
+            if resolved.get("ethnicity") is None:
+                resolved["ethnicity"] = "Chinese"
+            if resolved.get("planning_mode") is None:
+                resolved["planning_mode"] = "ai_events"
+            if resolved.get("script_mode") is None:
+                resolved["script_mode"] = "duration"
+            if (
+                resolved.get("spine_template") == "narrated"
+                and resolved.get("narration_style") is None
+            ):
+                resolved["narration_style"] = "first_person"
+        return resolved
+
+    questions = _production_preflight_questions(resolved)
+    if questions:
+        answers = _request_decision_batch(project, questions)
+        if "episodes" in answers:
+            episodes = _parse_episode_choice(answers["episodes"])
+            if episodes is not None:
+                resolved["episodes"] = episodes
+        if "rebuild" in answers:
+            resolved["rebuild"] = answers["rebuild"] == "rebuild"
+        if "video_resolution" in answers:
+            resolution = answers["video_resolution"]
+            if resolution != "provider_default":
+                if re.fullmatch(r"\d{3,4}p", resolution) is None:
+                    raise ValueError("自定义分辨率必须使用 720p 这类格式")
+                resolved["video_resolution"] = resolution
+        if "add_subtitles" in answers:
+            resolved["add_subtitles"] = answers["add_subtitles"] == "yes"
+        if "add_bgm" in answers:
+            resolved["add_bgm"] = answers["add_bgm"] == "yes"
+        if "spine_template" in answers:
+            resolved["spine_template"] = answers["spine_template"]
+        if "visual_style" in answers:
+            visual_style = {
+                "末日": "post_apocalyptic",
+                "末日废土": "post_apocalyptic",
+            }.get(answers["visual_style"], answers["visual_style"])
+            if visual_style not in {
+                "chinese_period_drama",
+                "anime",
+                "realistic",
+                "post_apocalyptic",
+            }:
+                raise ValueError("视觉风格必须从支持的项目预设中选择")
+            resolved["visual_style"] = visual_style
+        if "ethnicity" in answers:
+            ethnicity = {
+                "中国": "Chinese",
+                "日本": "Japanese",
+                "韩国": "Korean",
+                "西方": "Western",
+                "欧美": "Western",
+            }.get(answers["ethnicity"], answers["ethnicity"])
+            if ethnicity not in {"Chinese", "Japanese", "Korean", "Western"}:
+                raise ValueError("角色族群必须选择中国、日本、韩国或西方")
+            resolved["ethnicity"] = ethnicity
+        if "target_episodes" in answers:
+            target_episodes = _positive_int_choice(
+                answers["target_episodes"],
+                label="分集数量",
+                minimum=1,
+                maximum=200,
+            )
+            if target_episodes is not None:
+                resolved["target_episodes"] = target_episodes
+        if "planning_mode" in answers:
+            resolved["planning_mode"] = answers["planning_mode"]
+        if "script_mode" in answers:
+            resolved["script_mode"] = answers["script_mode"]
+
+    conditional_questions: list[dict[str, Any]] = []
+    if (
+        str(resolved.get("filename") or "").strip()
+        and resolved.get("spine_template") == "narrated"
+        and resolved.get("narration_style") is None
+    ):
+        conditional_questions.append(
+            {
+                "id": "narration_style",
+                "header": "旁白视角",
+                "question": "旁白解说采用哪种叙事视角？",
+                "options": [
+                    {
+                        "id": "first_person",
+                        "label": "第一人称",
+                        "description": "由主角或讲述者以“我”的视角推进。",
+                    },
+                    {
+                        "id": "third_person",
+                        "label": "第三人称",
+                        "description": "由旁观叙述者讲述人物与事件。",
+                    },
+                ],
+                "recommended_option_id": "first_person",
+                "allow_custom": False,
+            }
+        )
+
+    script_mode = str(resolved.get("script_mode") or "").strip()
+    if str(resolved.get("filename") or "").strip() and script_mode == "duration":
+        if resolved.get("target_duration_total") is None:
+            conditional_questions.append(
+                {
+                    "id": "target_duration_total",
+                    "header": "单集时长",
+                    "question": "单集目标成片时长是多少秒？",
+                    "options": [
+                        {
+                            "id": "auto",
+                            "label": "按项目默认",
+                            "description": "沿用项目时长设置，由规划器自动分配。",
+                        },
+                        {
+                            "id": "60",
+                            "label": "60 秒",
+                            "description": "适合短篇平台快速观看。",
+                        },
+                        {
+                            "id": "120",
+                            "label": "120 秒",
+                            "description": "容纳更完整的剧情推进。",
+                        },
+                    ],
+                    "recommended_option_id": "auto",
+                    "allow_custom": True,
+                }
+            )
+    elif str(resolved.get("filename") or "").strip() and script_mode == "literal":
+        if resolved.get("target_beats") is None:
+            conditional_questions.append(
+                {
+                    "id": "target_beats",
+                    "header": "Beat 数量",
+                    "question": "每集目标 Beat 数量是多少？",
+                    "options": [
+                        {
+                            "id": "auto",
+                            "label": "按项目默认",
+                            "description": "沿用项目设置自动决定镜头节拍数量。",
+                        },
+                        {
+                            "id": "12",
+                            "label": "12 个 Beat",
+                            "description": "适合节奏紧凑的短篇。",
+                        },
+                        {
+                            "id": "20",
+                            "label": "20 个 Beat",
+                            "description": "提供更细的镜头拆分。",
+                        },
+                    ],
+                    "recommended_option_id": "auto",
+                    "allow_custom": True,
+                }
+            )
+
+    if conditional_questions:
+        answers = _request_decision_batch(project, conditional_questions)
+        if "narration_style" in answers:
+            resolved["narration_style"] = answers["narration_style"]
+        if "target_duration_total" in answers:
+            duration = _positive_int_choice(
+                answers["target_duration_total"],
+                label="单集时长",
+                minimum=30,
+                maximum=600,
+            )
+            if duration is not None:
+                resolved["target_duration_total"] = duration
+        if "target_beats" in answers:
+            target_beats = _positive_int_choice(
+                answers["target_beats"],
+                label="Beat 数量",
+                minimum=5,
+                maximum=80,
+            )
+            if target_beats is not None:
+                resolved["target_beats"] = target_beats
+    return resolved
+
+
 def _start_production_workflow(args: dict[str, Any]) -> dict[str, Any]:
     project = _project_from_args(args)
-    body: dict[str, Any] = {}
+    args = _apply_production_preflight(args, project)
+    explicit_video_model = str(args.get("video_model") or "").strip()
+    body: dict[str, Any] = {
+        "video_routing_policy": (
+            "project_selection" if explicit_video_model else "role_priority"
+        )
+    }
+    if explicit_video_model:
+        body["video_model"] = explicit_video_model
     for key in (
         "episodes",
         "filename",
@@ -1404,7 +2118,6 @@ def _start_production_workflow(args: dict[str, Any]) -> dict[str, Any]:
         "target_beats",
         "max_parallel",
         "node_timeout_seconds",
-        "video_model",
         "video_resolution",
         "add_subtitles",
         "add_bgm",
@@ -2515,7 +3228,8 @@ def _handle_start_single_video(args: dict[str, Any], **_: Any) -> str:
     you do NOT pass a prompt. Requires the beat's first frame to exist already
     (otherwise the API returns "首帧不存在") and the beat to have a non-empty
     video_prompt (otherwise the backend returns "prompt is required"). Only
-    model / duration / resolution / mode are accepted request fields.
+    duration / resolution / mode are accepted request fields. Model routing always
+    follows the configured role priority for agent-triggered generation.
     """
     try:
         project = _project_from_args(args)
@@ -2523,8 +3237,8 @@ def _handle_start_single_video(args: dict[str, Any], **_: Any) -> str:
         beat = int(args.get("beat") or args.get("beat_number") or 0)
         if beat <= 0:
             raise ValueError("beat must be a positive integer")
-        body: dict[str, Any] = {}
-        for key in ("model", "duration", "resolution", "mode"):
+        body: dict[str, Any] = {"video_routing_policy": "role_priority"}
+        for key in ("duration", "resolution", "mode"):
             if args.get(key) is not None:
                 body[key] = args[key]
         return tool_result(_request("POST", f"/api/v1/projects/{project}/episodes/{episode}/beats/{beat}/video", body=body))
@@ -2566,6 +3280,86 @@ def _schema(name: str, description: str, properties: dict[str, Any], required: l
 
 
 TOOLS = (
+    (
+        "question",
+        _schema(
+            "question",
+            "Pause the current AI anime chat turn and ask the user one or more structured "
+            "multiple-choice questions. Include every currently known independent decision in "
+            "one call; use a later call only for choices that depend on earlier answers. You MUST "
+            "call this tool before continuing whenever "
+            "a required input is missing, a material choice is uncertain, an overwrite or "
+            "paid action needs confirmation, or a recoverable failure has multiple valid "
+            "next actions. Put the recommended option first and identify it with "
+            "recommended_option_id. Do not ask in prose and do not continue until this tool "
+            "returns. Skip only choices the user already supplied explicitly or explicitly "
+            "delegated to your recommendation.",
+            {
+                "project_id": {
+                    "type": "string",
+                    "description": "Current project id; defaults to AI_ANIME_PROJECT_ID.",
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Short title for the combined decision card.",
+                },
+                "source": {
+                    "type": "string",
+                    "description": "Stable source label, such as workflow_preflight or recovery.",
+                },
+                "questions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "required": ["header", "question", "options"],
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "description": "Stable question id; q1, q2, ... when omitted.",
+                            },
+                            "header": {
+                                "type": "string",
+                                "maxLength": 12,
+                                "description": "Compact UI header, no more than 12 characters.",
+                            },
+                            "question": {"type": "string"},
+                            "options": {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 3,
+                                "items": {
+                                    "type": "object",
+                                    "required": ["label", "description"],
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "description": "Stable option id; option1, option2, ... when omitted.",
+                                        },
+                                        "label": {"type": "string"},
+                                        "description": {
+                                            "type": "string",
+                                            "description": "One short sentence explaining impact or tradeoff.",
+                                        },
+                                    },
+                                },
+                            },
+                            "recommended_option_id": {
+                                "type": "string",
+                                "description": "Option id to mark recommended; defaults to the first option.",
+                            },
+                            "allow_custom": {
+                                "type": "boolean",
+                                "description": "Allow a free-form answer in addition to the listed choices.",
+                            },
+                        },
+                    },
+                },
+            },
+            ["questions"],
+        ),
+        _handle_question,
+    ),
     (
         "ai_anime_get",
         _schema("ai_anime_get", "Call a AI anime GET API path without using curl.", _PATH_PROPS, ["path"]),
@@ -2820,9 +3614,23 @@ TOOLS = (
             "resumes every missing prerequisite including voice checks and Seedance final prompts, "
             "processes all requested episodes, and returns one "
             "parent task_key. Call it exactly once and wait only for that task_key; do not chain "
-            "individual stage tools. Omit episodes to process all planned episodes.",
+            "individual stage tools. Video generation follows the configured cloud/BYOK role priority "
+            "by default. Set video_model only when the user explicitly names a model for this run; "
+            "never infer it from the workbench dropdown. Before submission, omitted user-owned choices "
+            "are collected through blocking structured decision cards. When the user explicitly delegates "
+            "to your recommendation, set use_recommended_defaults=true and still pass any content-derived "
+            "values you can infer reliably to avoid duplicate questions. "
+            "Omit episodes only when the user selected all planned episodes.",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
+                "use_recommended_defaults": {
+                    "type": "boolean",
+                    "description": (
+                        "Set true only when the user explicitly delegated all omitted choices to the "
+                        "assistant's recommendations. Uses all planned episodes, preserves existing "
+                        "assets, follows provider-compatible video resolution, and enables subtitles/BGM."
+                    ),
+                },
                 "episodes": {
                     "type": "array",
                     "items": {"type": "integer"},
@@ -2864,7 +3672,13 @@ TOOLS = (
                 "target_beats": {"type": "integer", "minimum": 5, "maximum": 80},
                 "max_parallel": {"type": "integer", "minimum": 1, "maximum": 6},
                 "node_timeout_seconds": {"type": "integer", "minimum": 30, "maximum": 28800},
-                "video_model": {"type": "string"},
+                "video_model": {
+                    "type": "string",
+                    "description": (
+                        "Optional explicit catalog model selector for this run. Set only when the user "
+                        "explicitly requests that model; otherwise omit it so cloud/BYOK role priority applies."
+                    ),
+                },
                 "video_resolution": {"type": "string"},
                 "add_subtitles": {"type": "boolean"},
                 "add_bgm": {"type": "boolean"},
@@ -3494,7 +4308,8 @@ TOOLS = (
             "replace_existing=true; this safely replaces only those voice assets and keeps timestamped "
             "backups. Character-voice requests must use this tool and must never call "
             "ai_anime_run_production_workflow. This does not generate episode audio. Omit names only "
-            "when filling missing voices for every character.",
+            "when filling missing voices for every character. This operation enters the project task "
+            "queue; wait for completion with ai_anime_wait_task(task_key=<returned task_key>).",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "names": {
@@ -3592,13 +4407,13 @@ TOOLS = (
             "{beat}/video. You do NOT pass a prompt — the beat's stored video_prompt is used. "
             "Prerequisites: the beat's first frame must exist AND the beat must have a non-empty "
             "video_prompt; if the API returns '首帧不存在' or 'prompt is required', that prerequisite "
-            "is missing — report it, do NOT invent fixes. Compose only works after all beat videos exist.",
+            "is missing — report it, do NOT invent fixes. Model routing always follows the configured "
+            "role priority. Compose only works after all beat videos exist.",
             {
                 "project_id": {"type": "string"},
                 "episode": {"type": "integer"},
                 "beat": {"type": "integer", "description": "Beat number (required)."},
                 "beat_number": {"type": "integer"},
-                "model": {"type": "string", "description": "Optional video model override."},
                 "duration": {"type": "number", "description": "Optional seconds."},
                 "resolution": {"type": "string", "description": "Optional output resolution."},
                 "mode": {"type": "string", "description": "Optional generation mode."},

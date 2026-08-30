@@ -32,6 +32,20 @@ export function isAllowedExternalUrl(url: string): boolean {
   }
 }
 
+export function isExpectedMainFrameSender(
+  expectedSenderId: number,
+  expectedMainFrame: unknown,
+  senderId: number,
+  senderFrame: unknown,
+  senderMainFrame: unknown,
+): boolean {
+  return (
+    senderId === expectedSenderId &&
+    senderFrame === expectedMainFrame &&
+    senderMainFrame === expectedMainFrame
+  );
+}
+
 export function desktopSessionCookie(
   origin: string,
   username: string,

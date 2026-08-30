@@ -2,6 +2,7 @@
 import { createElement } from "react";
 
 import { httpTaskQueryGateway } from "@/modules/task_execution/infrastructure/httpTaskQueryGateway";
+import { registerTaskCompletionSource } from "@/modules/task_execution/infrastructure/taskCompletionMonitor";
 import { createStreamClient } from "@/modules/task_execution/infrastructure/taskStreamClient";
 import {
   TaskCenterProviderView,
@@ -21,6 +22,7 @@ export const {
 export function TaskCenterProvider(props: TaskCenterProviderProps) {
   return createElement(TaskCenterProviderView, {
     ...props,
+    completionSourceRegistrar: registerTaskCompletionSource,
     gateway: httpTaskQueryGateway,
     streamClientFactory: createStreamClient,
   });

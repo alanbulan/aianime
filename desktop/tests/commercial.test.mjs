@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   CommercialApiClient,
   CommercialApiError,
+  EncryptedFileCommercialRememberedLoginStore,
   EncryptedFileCommercialSessionStore,
 } from "../src/commercial.ts";
 import { EncryptedFileCommercialDeviceIdentity } from "../src/commercial-device.ts";
@@ -95,7 +96,7 @@ test("login persists the secret but returns only a renderer-safe summary", async
   assert.equal(new Headers(calls[0].init.headers).has("Authorization"), false);
 });
 
-test("remembered credentials stay encrypted outside the renderer session", async () => {
+test("remembered credentials stay hidden until the renderer explicitly reveals them", async () => {
   const sessionStore = new MemorySessionStore();
   const rememberedLoginStore = new MemoryRememberedLoginStore();
   const client = new CommercialApiClient({
@@ -118,6 +119,7 @@ test("remembered credentials stay encrypted outside the renderer session", async
     username: "client_user",
     hasPassword: true,
   });
+  assert.equal(await client.revealRememberedPassword(), "secret");
   assert.equal(rememberedLoginStore.value.password, "secret");
 });
 
@@ -337,6 +339,46 @@ test("remembered login recovers an unexpired token invalidated by a server resta
   );
 });
 
+test("gateway restart authentication failures keep the remembered password", async () => {
+  const sessionStore = new MemorySessionStore();
+  const rememberedLoginStore = new MemoryRememberedLoginStore();
+  sessionStore.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "invalidated-jwt",
+    expiresAtEpochMs: 3_601_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+    rememberMe: true,
+  };
+  rememberedLoginStore.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore,
+    rememberedLoginStore,
+    now: () => 1_000,
+    fetchImpl: async () =>
+      Response.json({ message: "用户名或密码错误" }, { status: 401 }),
+  });
+
+  await assert.rejects(() => client.currentProfile(), /用户名或密码错误/);
+
+  assert.equal(sessionStore.value, null);
+  assert.deepEqual(await client.rememberedLogin(), {
+    tenantCode: "customer-a",
+    username: "client_user",
+    hasPassword: true,
+  });
+  assert.equal(await client.revealRememberedPassword(), "secret");
+  assert.equal(rememberedLoginStore.value.password, "secret");
+});
+
 test("transient refresh failures preserve the encrypted remembered session", async () => {
   const store = new MemorySessionStore();
   store.value = {
@@ -427,6 +469,47 @@ test("explicit logout clears the token but preserves remembered credentials", as
   });
 });
 
+test("remembered credentials survive explicit logout and client re-instantiation", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-remembered-login-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const sessionPath = join(directory, "commercial-session.bin");
+  const rememberedLoginPath = join(directory, "commercial-remembered-login.bin");
+  const createClient = () =>
+    new CommercialApiClient({
+      baseUrl: "https://gateway.test",
+      sessionStore: new EncryptedFileCommercialSessionStore(
+        sessionPath,
+        passthroughSecureStorage,
+      ),
+      rememberedLoginStore: new EncryptedFileCommercialRememberedLoginStore(
+        rememberedLoginPath,
+        passthroughSecureStorage,
+      ),
+      fetchImpl: async (url) =>
+        String(url).endsWith("/api/v1/client/auth/login")
+          ? Response.json(loginResponse)
+          : new Response(null, { status: 204 }),
+    });
+
+  const client = createClient();
+  await client.login({
+    tenantCode: "customer-a",
+    username: "client_user",
+    password: "secret",
+    rememberMe: true,
+  });
+  await client.logout();
+
+  const restartedClient = createClient();
+  assert.equal(await restartedClient.restoreSession(), null);
+  assert.deepEqual(await restartedClient.rememberedLogin(), {
+    tenantCode: "customer-a",
+    username: "client_user",
+    hasPassword: true,
+  });
+  assert.equal(await restartedClient.revealRememberedPassword(), "secret");
+});
+
 function authenticatedClient(fetchImpl, options = {}) {
   const store = new MemorySessionStore();
   store.value = {
@@ -454,11 +537,15 @@ test("commercial model catalog and details send the activated device id", async 
   });
   const deviceId = "2217d912-c377-42de-b2eb-759cf172bae2";
 
-  await client.modelCatalog({ operation: "TEXT" }, deviceId);
+  await client.modelCatalog(
+    { operation: "TEXT", catalogVersion: "catalog-v0" },
+    deviceId,
+  );
   await client.modelDetails("DEMO_TEXT", deviceId);
   await client.bootstrap(
     {
       devicePublicKeyHash: "public-key-hash",
+      catalogVersion: "catalog-v0",
       currentVersion: "1.1.5",
       target: "windows",
       arch: "x86_64",
@@ -468,7 +555,7 @@ test("commercial model catalog and details send the activated device id", async 
 
   assert.equal(
     calls[0].url,
-    "https://gateway.test/api/v1/client/models?operation=TEXT",
+    "https://gateway.test/api/v1/client/models?operation=TEXT&catalogVersion=catalog-v0",
   );
   assert.equal(
     calls[1].url,
@@ -476,9 +563,13 @@ test("commercial model catalog and details send the activated device id", async 
   );
   assert.equal(
     calls[2].url,
-    "https://gateway.test/api/v1/client/bootstrap?devicePublicKeyHash=public-key-hash&currentVersion=1.1.5&target=windows&arch=x86_64",
+    "https://gateway.test/api/v1/client/bootstrap?devicePublicKeyHash=public-key-hash&catalogVersion=catalog-v0&currentVersion=1.1.5&target=windows&arch=x86_64",
   );
   for (const call of calls) {
+    assert.equal(
+      new Headers(call.init.headers).get("Authorization"),
+      "Bearer client-jwt",
+    );
     assert.equal(
       new Headers(call.init.headers).get("X-Device-Id"),
       deviceId,

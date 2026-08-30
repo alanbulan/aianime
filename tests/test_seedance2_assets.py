@@ -65,6 +65,88 @@ def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatc
     assert scene_asset.selected is True
 
 
+def test_multimodal_assets_use_semantic_frame_anchors_with_other_references(tmp_path):
+    from ai_anime.modules.production.infrastructure.seedance2_assets import (
+        build_seedance2_project_assets,
+        selected_reference_paths,
+    )
+
+    project_dir = tmp_path / "project"
+    first = project_dir / "frames" / "ep001" / "beat_01.png"
+    last = project_dir / "frames" / "ep001" / "beat_02.png"
+    identity = project_dir / "assets" / "characters" / "秦" / "identities" / "青年.png"
+    scene = project_dir / "assets" / "scenes" / "教室" / "master.png"
+    for image_path in (first, last, identity, scene):
+        _write_png(image_path)
+
+    assets = build_seedance2_project_assets(
+        project_output=project_dir,
+        episode=1,
+        beat={
+            "beat_number": 1,
+            "detected_identities": ["秦_青年"],
+            "scene_ref": {"scene_id": "教室"},
+        },
+        next_beat={"beat_number": 2},
+        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+    )
+
+    assert selected_reference_paths(assets, "reference_images") == [
+        str(first),
+        str(last),
+        str(identity),
+        str(scene),
+    ]
+    by_key = {asset.key: asset for asset in assets}
+    assert by_key["first_frame"].reference_label == "图片1"
+    assert by_key["last_frame"].reference_label == "图片2"
+    assert by_key["last_frame"].request_field == "reference_images"
+    assert selected_reference_paths(assets, "last_frame_image") == []
+
+
+def test_multimodal_assets_limit_reference_images_to_official_maximum(tmp_path):
+    from ai_anime.modules.production.infrastructure.seedance2_assets import (
+        build_seedance2_project_assets,
+        selected_reference_paths,
+    )
+
+    project_dir = tmp_path / "project"
+    first = project_dir / "frames" / "ep001" / "beat_01.png"
+    last = project_dir / "frames" / "ep001" / "beat_02.png"
+    _write_png(first)
+    _write_png(last)
+    identities = [f"角色{index}_默认" for index in range(10)]
+    for identity_id in identities:
+        character, identity = identity_id.split("_", 1)
+        _write_png(
+            project_dir
+            / "assets"
+            / "characters"
+            / character
+            / "identities"
+            / f"{identity}.png"
+        )
+
+    assets = build_seedance2_project_assets(
+        project_output=project_dir,
+        episode=1,
+        beat={"beat_number": 1, "detected_identities": identities},
+        next_beat={"beat_number": 2},
+        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+    )
+
+    selected = selected_reference_paths(assets, "reference_images")
+    assert len(selected) == 9
+    assert [
+        asset.reference_label
+        for asset in assets
+        if asset.selected and asset.request_field == "reference_images"
+    ] == [f"图片{index}" for index in range(1, 10)]
+    overflow = [asset for asset in assets if "超过单次最多 9 张" in asset.note]
+    assert len(overflow) == 3
+    assert all(asset.selected is False for asset in overflow)
+
+
 def test_multimodal_assets_resolve_scene_variant_to_derived_scene_master(tmp_path):
     from ai_anime.modules.production.infrastructure.seedance2_assets import (
         build_seedance2_project_assets,
@@ -231,6 +313,63 @@ async def test_prepare_seedance2_generation_inputs_preserves_config_duration(tmp
 
     assert prepared.duration == 8
     assert '"duration":8' in prepared.seedance2_config_json
+
+
+async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
+    from ai_anime.modules.production.application.seedance2_config import (
+        dump_seedance2_config,
+        parse_seedance2_config,
+    )
+    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
+        prepare_seedance2_generation_inputs,
+    )
+
+    project_dir = tmp_path / "project"
+    first = project_dir / "frames" / "ep001" / "beat_01.png"
+    last = project_dir / "frames" / "ep001" / "beat_02.png"
+    identity = project_dir / "assets" / "characters" / "秦" / "identities" / "青年.png"
+    scene = project_dir / "assets" / "scenes" / "教室" / "master.png"
+    for image_path in (first, last, identity, scene):
+        _write_png(image_path)
+
+    prepared = await prepare_seedance2_generation_inputs(
+        project_output=project_dir,
+        episode=1,
+        beat={
+            "beat_number": 1,
+            "detected_identities": ["秦_青年"],
+            "scene_ref": {"scene_id": "教室"},
+            "seedance2_config_json": dump_seedance2_config(
+                {
+                    "mode": Seedance2I2VMode.MULTIMODAL_REFERENCE.value,
+                    "final_prompt": "人物从教室门口走向窗边。",
+                }
+            ),
+        },
+        next_beat={"beat_number": 2},
+        video_mode="first_frame",
+        prompt="unused",
+        duration=6,
+        resolution="720p",
+        ratio="9:16",
+    )
+
+    assert prepared.image_path is None
+    assert prepared.last_frame_path is None
+    assert [reference.path for reference in prepared.references] == [
+        str(first),
+        str(last),
+        str(identity),
+        str(scene),
+    ]
+    assert prepared.prompt.startswith(
+        "图片1作为视频起始画面，图片2作为视频结束画面"
+    )
+    assert "其余图片与音频仅作为身份、环境、道具和声线参考" in prepared.prompt
+    assert (
+        parse_seedance2_config(prepared.seedance2_config_json).final_prompt
+        == "人物从教室门口走向窗边。"
+    )
 
 
 def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_path):

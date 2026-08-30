@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from ai_anime.modules.asset_world.infrastructure import character_voice_storage
 from ai_anime.modules.asset_world.domain.character_voice import (
     AGE_GROUP_SLOTS,
     DEFAULT_SLOT,
@@ -89,6 +90,23 @@ def test_persist_character_voice_archives_prior_file(tmp_path):
     assert archived, "prior voice should be archived under a timestamped name"
 
 
+def test_persist_character_voice_keeps_distinct_rapid_archives(tmp_path):
+    for content in (b"v1", b"v2", b"v3"):
+        persist_character_voice_file(
+            project_dir=tmp_path,
+            character_name="男主",
+            slot="elder",
+            filename="voice.mp3",
+            content=content,
+        )
+
+    voices_dir = Path(tmp_path) / "assets" / "characters" / "男主" / "voices"
+    archives = sorted(voices_dir.glob("voice_elder_*.mp3"))
+    assert len(archives) == 2
+    assert {path.read_bytes() for path in archives} == {b"v1", b"v2"}
+    assert (voices_dir / "voice_elder.mp3").read_bytes() == b"v3"
+
+
 def test_clear_character_voice_archives_existing(tmp_path):
     persist_character_voice_file(
         project_dir=tmp_path,
@@ -122,6 +140,45 @@ def test_is_supported_voice_sample():
 
 def test_age_group_slots_cover_known_values():
     assert set(AGE_GROUP_SLOTS) == {"child", "youth", "middle", "elder"}
+
+
+def test_probe_voice_sample_duration_uses_shared_probe(monkeypatch, tmp_path):
+    captured: list[str] = []
+    monkeypatch.setattr(
+        character_voice_storage,
+        "get_audio_duration",
+        lambda path: captured.append(path) or 1.25,
+    )
+
+    duration = character_voice_storage.probe_voice_sample_duration_seconds(
+        tmp_path / "voice.mp3"
+    )
+
+    assert duration == 1.25
+    assert captured == [str(tmp_path / "voice.mp3")]
+
+
+def test_recording_transcode_has_a_bounded_timeout(monkeypatch):
+    monkeypatch.setattr(character_voice_storage.shutil, "which", lambda _name: "ffmpeg")
+
+    def timeout(cmd, **_kwargs):
+        raise character_voice_storage.subprocess.TimeoutExpired(cmd, 60)
+
+    monkeypatch.setattr(character_voice_storage.subprocess, "run", timeout)
+
+    with pytest.raises(ValueError, match="转码超时"):
+        character_voice_storage._transcode_to_mp3(b"webm")
+
+
+def test_trim_voice_sample_uses_shared_reference_duration_limit(monkeypatch):
+    monkeypatch.setattr(character_voice_storage.shutil, "which", lambda _name: "ffmpeg")
+
+    with pytest.raises(ValueError, match=r"最长 15\.2 秒"):
+        character_voice_storage.trim_voice_sample_content(
+            b"audio",
+            filename="voice.wav",
+            duration_seconds=15.201,
+        )
 
 
 def test_trim_voice_sample_content_outputs_seedance2_ready_clip(tmp_path):

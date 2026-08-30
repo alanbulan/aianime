@@ -74,6 +74,7 @@ function createGateway(
     register: vi.fn(async () => undefined),
     restoreSession: vi.fn(async () => null),
     rememberedLogin: vi.fn(async () => null),
+    revealRememberedPassword: vi.fn(async () => "secret"),
     login: vi.fn(async () => session),
     loginRemembered: vi.fn(async () => session),
     logout: vi.fn(async () => ({ remoteRevoked: true })),
@@ -218,6 +219,29 @@ describe("commercial auth store", () => {
     expect(gateway.loginRemembered).toHaveBeenCalledWith({ rememberMe: true });
     expect(result).toEqual(session);
     expect(store.getState().session).toEqual(session);
+  });
+
+  it("reveals the saved password only through the explicit action", async () => {
+    const rememberedLogin = {
+      tenantCode: "customer-a",
+      username: "client_user",
+      hasPassword: true as const,
+    };
+    const revealRememberedPassword = vi.fn(async () => " Secret 123 ");
+    const gateway = createGateway({
+      rememberedLogin: vi.fn(async () => rememberedLogin),
+      revealRememberedPassword,
+    });
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
+    await store.getState().initialize();
+
+    await expect(store.getState().revealRememberedPassword()).resolves.toBe(
+      " Secret 123 ",
+    );
+
+    expect(revealRememberedPassword).toHaveBeenCalledOnce();
+    expect(store.getState().rememberedLogin).toEqual(rememberedLogin);
+    expect(store.getState()).not.toHaveProperty("password");
   });
 
   it("hydrates a protected avatar through Electron instead of using its relative path", async () => {

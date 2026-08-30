@@ -29,6 +29,8 @@ _TASK_TYPE_LABELS = {
     "script_workflow": "脚本生产图",
     "production_workflow": "完整生产工作流",
     "beat_video_prompt": "生成提示词",
+    "seedance2_prompt": "优化视频提示词",
+    "episode_rewrite": "生成改写稿",
     "literal_script_writer": "生成解说稿",
     "director_notes": "导演说明",
     "episode_scene_planner": "规划场景",
@@ -38,6 +40,8 @@ _TASK_TYPE_LABELS = {
     "scene_reference_asset": "场景参考图",
     "prop_reference_asset": "道具参考图",
     "style_preview": "风格参考图",
+    "style_analysis": "分析视觉风格",
+    "character_voice_design": "批量设计角色声线",
     "sketch_generation": "生成草图",
     "sketch_regen": "重生成草图",
     "mainline_sketch_from_context": "生成草图",
@@ -68,9 +72,14 @@ _TASK_TYPE_LABELS = {
     "freezone_script_to_video_plan": "脚本转视频计划",
     "freezone_audio_speech": "生成语音",
     "freezone_audio_eleven_music": "生成音乐",
+    "freezone_voice_design": "设计声线",
+    "freezone_voice_preset": "生成预设声线",
+    "freezone_mark_detect": "识别图片标记",
+    "freezone_ai_staging_prop": "生成 AI 布景道具",
     "freezone_image_to_3gs": "图片转世界",
     "freezone_image_reverse_prompt": "图片反推提示词",
     "batch_prop_ref": "批量道具参考图",
+    "verification_model": "模型验证",
 }
 _STAGE_ASSET_STEP_LABELS = {
     "pano_from_master": "Master 生成全景",
@@ -93,9 +102,7 @@ def _serialize_timestamp(value: str) -> str:
 
 def _is_result_path_key(key: str) -> bool:
     lowered = str(key or "").lower()
-    return lowered in {"path", "paths"} or lowered.endswith(
-        ("_path", "_paths")
-    )
+    return lowered in {"path", "paths"} or lowered.endswith(("_path", "_paths"))
 
 
 def _url_key_for_path_key(key: str) -> str:
@@ -112,9 +119,7 @@ def _url_key_for_path_key(key: str) -> str:
 
 def _is_public_url_value(value: str) -> bool:
     lowered = value.strip().lower()
-    return lowered.startswith(
-        ("/static/", "http://", "https://", "blob:", "data:")
-    )
+    return lowered.startswith(("/static/", "http://", "https://", "blob:", "data:"))
 
 
 def _project_static_url_for_abs_path(

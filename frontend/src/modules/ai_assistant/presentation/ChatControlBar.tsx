@@ -1,7 +1,5 @@
 // Copyright (c) 2026 AI anime
 import { Braces, History, ListTree, Search } from "lucide-react";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -45,7 +43,6 @@ export function ControlBar({
 }) {
   const { t } = useTranslation();
   const hasInstances = chat.relayInstances.length > 0;
-  const hasModels = chat.models.length > 0;
   const transportStatus =
     chat.connected
       ? "connected"
@@ -90,31 +87,6 @@ export function ControlBar({
             {chat.relayInstances.map((instance) => (
               <SelectItem key={instance.instanceId} value={instance.instanceId}>
                 {instance.instanceName || instance.instanceId}{instance.busy ? " *" : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-      {hasModels && (
-        <Select
-          value={chat.activeModel ?? ""}
-          onValueChange={(value) => {
-            if (value) chat.switchModel(value);
-          }}
-          disabled={chat.modelsLoading}
-        >
-          <SelectTrigger
-            size="sm"
-            className={cn("min-w-0 bg-background text-xs", compact ? "w-28" : "flex-1")}
-            data-ui-tooltip={t("aiAssistant.model")}
-            aria-label={t("aiAssistant.model")}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start">
-            {chat.models.map((model) => (
-              <SelectItem key={model.id} value={model.id}>
-                {model.label || model.id}{model.reasoning ? " +" : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -210,23 +182,5 @@ export function ChatPanelActions({
         <ListTree className="size-4" />
       </Button>
     </div>
-  );
-}
-
-export function HeaderControlPortal({
-  chat,
-}: {
-  chat: ChatControlBarModel;
-}) {
-  const [target, setTarget] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setTarget(document.getElementById("superchat-header-controls"));
-  }, []);
-
-  if (!target) return null;
-  return createPortal(
-    <ControlBar chat={chat} compact />,
-    target,
   );
 }

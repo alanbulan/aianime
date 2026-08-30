@@ -11,16 +11,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ai_anime.modules.ai_assistant.infrastructure.local_state import local_state_root
+from ai_anime.shared.utils.atomic_files import replace_text_atomically
+from ai_anime.shared.utils.time_format import utc_now_iso
 
 _CHAT_RUN_LOCK_KEY = "active_chat_run"
 _CHAT_RUN_LOCK_TTL_SECONDS = 10 * 60
 _CHAT_RUN_LOCK_MAX_SECONDS = 60 * 60
 _CHAT_RUN_LOCK_HEARTBEAT_SECONDS = 30.0
 _CHAT_RUN_LOCK_BIRTH_GRACE_SECONDS = 5.0
-
-
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def _parse_iso_datetime(value: str | None) -> datetime | None:
@@ -145,16 +143,16 @@ class FileChatRunLocks:
 
     @staticmethod
     def _atomic_write_lock_file(path: Path, payload: str) -> None:
-        tmp_path = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
-        try:
-            tmp_path.write_text(payload, encoding="utf-8")
-            tmp_path.replace(path)
-        finally:
-            tmp_path.unlink(missing_ok=True)
+        replace_text_atomically(
+            path,
+            payload,
+            sync_file=False,
+            sync_directory=False,
+        )
 
     @staticmethod
     def _lock_payload(lock_id: str, *, started_at: str | None = None) -> str:
-        now = _now_iso()
+        now = utc_now_iso()
         return json.dumps(
             {
                 "lock_id": lock_id,

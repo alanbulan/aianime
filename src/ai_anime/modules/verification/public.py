@@ -14,6 +14,18 @@ from ai_anime.modules.verification.application.schemas import (
     SketchSelectRequest,
     VerifyRequest,
 )
+from ai_anime.modules.verification.application.model_tasks import (
+    ScheduleVerificationModelTask,
+    ScheduledVerificationTask,
+)
+
+
+def verification_model_task_scheduler() -> ScheduleVerificationModelTask:
+    from ai_anime.modules.task_execution.public import (
+        project_task_submission_use_cases,
+    )
+
+    return ScheduleVerificationModelTask(project_task_submission_use_cases())
 
 if TYPE_CHECKING:
     from ai_anime.modules.verification.infrastructure.consistency_verifier import (
@@ -63,6 +75,9 @@ if TYPE_CHECKING:
         find_frame_for_beat,
         find_sketch_for_beat,
         load_all_beats,
+    )
+    from ai_anime.modules.verification.infrastructure.task_services import (
+        run_verification_model_operation,
     )
 
 _INFRASTRUCTURE = "ai_anime.modules.verification.infrastructure"
@@ -116,6 +131,10 @@ _LAZY_EXPORTS = {
         "resolve_verification_scene_context",
     ),
     "run_sketch_select": (f"{_INFRASTRUCTURE}.sketch_selector", "run_sketch_select"),
+    "run_verification_model_operation": (
+        f"{_INFRASTRUCTURE}.task_services",
+        "run_verification_model_operation",
+    ),
     "save_verify_report": (f"{_INFRASTRUCTURE}.report_formatter", "save_verify_report"),
     "validate_labels_jsonl": (
         f"{_INFRASTRUCTURE}.sketch_edit_label_validation",
@@ -150,6 +169,8 @@ __all__ = [
     "ImageVerifier",
     "LabelsValidationError",
     "ScoreBatchRequest",
+    "ScheduleVerificationModelTask",
+    "ScheduledVerificationTask",
     "SketchComparer",
     "SketchEditExecuteRequest",
     "SketchScoreRequest",
@@ -169,7 +190,9 @@ __all__ = [
     "resolve_labels_jsonl",
     "resolve_verification_scene_context",
     "run_sketch_select",
+    "run_verification_model_operation",
     "save_verify_report",
     "validate_labels_jsonl",
     "verify_episode_sketch_colors",
+    "verification_model_task_scheduler",
 ]

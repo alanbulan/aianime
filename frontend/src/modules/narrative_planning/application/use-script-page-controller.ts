@@ -161,6 +161,20 @@ export function createUseScriptPageController(
       onComplete: (result) =>
         notifyScriptFeedback(getScriptReviewFeedback(result)),
     });
+    const rewriteTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.EPISODE_REWRITE,
+        project,
+        episode: episodeNumber,
+      },
+      invalidateKeys: [
+        queryKeys.episodeDetail(project, episodeNumber),
+        queryKeys.script(project, episodeNumber),
+      ],
+      showCompleteToast: false,
+      onComplete: () => toast.success(t("episode.script.rewriteComplete")),
+      onError: (error) => toast.error(error),
+    });
 
     const episodeData = episodeResponse?.data;
     const characters = charactersResponse?.data ?? [];
@@ -401,10 +415,8 @@ export function createUseScriptPageController(
           toast.error(response.error || t("common.error"));
           return;
         }
-        await queryClient.invalidateQueries({
-          queryKey: queryKeys.episodeDetail(project, episodeNumber),
-        });
-        toast.success(t("episode.script.rewriteComplete"));
+        rewriteTask.start({ scope: response.scope });
+        toast.success(response.message);
       } catch {
         toast.error(t("common.error"));
       }
@@ -503,7 +515,9 @@ export function createUseScriptPageController(
       Math.max(0, rawProgressPercent),
     );
     const generateButtonBusy =
-      generateScript.isPending || generateRewrite.isPending;
+      generateScript.isPending ||
+      generateRewrite.isPending ||
+      rewriteTask.started;
 
     const handleGenerateButtonClick = () => {
       if (scriptTask.started) {
@@ -601,7 +615,7 @@ export function createUseScriptPageController(
       rewriteBeatCharsMax,
       rewriteBeatCharsMin,
       rewriteLimits: SCRIPT_REWRITE_LIMITS,
-      rewritePending: generateRewrite.isPending,
+      rewritePending: generateRewrite.isPending || rewriteTask.started,
       rewriteTargetBeats,
       sceneMenu,
       scenePlanning: planScenes.isPending || sceneTask.started,

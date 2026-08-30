@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from pathlib import Path
 
 from ai_anime.modules.creative_canvas.domain.canvas_identity import (
     require_creative_canvas_id,
 )
+from ai_anime.shared.utils.path_safety import sanitize_filename
 
 
 def freezone_root(project_dir: Path) -> Path:
@@ -38,8 +38,7 @@ def canvas_path(project_dir: Path, canvas_id: str) -> Path:
 
 def safe_upload_filename(original: str | None) -> str:
     """Sanitize a user-provided filename and prefix it with a timestamp."""
-    base = (original or "upload").split("/")[-1].split("\\")[-1]
-    base = re.sub(r"[^a-zA-Z0-9_\-.]", "_", base) or "upload"
+    base = sanitize_filename(original, fallback="upload")
     if "." not in base:
         base = f"{base}.png"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")

@@ -1,8 +1,6 @@
 """Creative Canvas audio-generation endpoints."""
 
 import logging
-from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -13,6 +11,7 @@ from ai_anime.api.routes.creative_canvas.audio_schemas import (
     FreezoneAudioMusicRequest,
     FreezoneAudioSpeechRequest,
     FreezoneAudioVoiceDesignRequest,
+    FreezoneAudioVoicePresetRequest,
 )
 from ai_anime.api.routes.creative_canvas.job_schemas import (
     FreezoneJobAcceptedResponse,
@@ -22,12 +21,15 @@ from ai_anime.modules.creative_canvas.public import (
     CreateCreativeCanvasAudioVoiceCommand,
     CreativeCanvasAudioVoiceMissing,
     CreativeCanvasTaskReceipt,
+    DeleteCreativeCanvasAudioVoiceCommand,
     GetCreativeCanvasAudioVoiceQuery,
     InvalidCreativeCanvasAudioGenerationRequest,
     InvalidCreativeCanvasAudioLibraryRequest,
     ListCreativeCanvasAudioReferencesQuery,
     StartCreativeCanvasMusicGenerationCommand,
+    StartCreativeCanvasPresetVoiceCommand,
     StartCreativeCanvasSpeechGenerationCommand,
+    StartCreativeCanvasVoiceDesignCommand,
     creative_canvas_audio_generation_use_cases,
     creative_canvas_audio_library_use_cases,
 )
@@ -35,6 +37,7 @@ from ai_anime.modules.task_execution.public import (
     ProjectTaskLimitExceeded,
     ProjectUserTaskLimitExceeded,
 )
+from ai_anime.shared.utils.async_ops import call_blocking
 
 logger = logging.getLogger("ai_anime.api.freezone")
 router = APIRouter()
@@ -75,14 +78,15 @@ async def create_freezone_audio_voice(
     """创建账号级“我的音色”。"""
     resolved = await _resolve_editor_project(project, user)
     try:
-        voice = creative_canvas_audio_library_use_cases().create_voice(
+        voice = await call_blocking(
+            creative_canvas_audio_library_use_cases().create_voice,
             CreateCreativeCanvasAudioVoiceCommand(
                 context=resolved.ctx,
                 name=name,
                 filename=file.filename,
                 content=await file.read(),
                 mime_type=file.content_type or "",
-            )
+            ),
         )
     except InvalidCreativeCanvasAudioLibraryRequest as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -98,47 +102,59 @@ async def design_freezone_audio_voice(
     body: FreezoneAudioVoiceDesignRequest,
     user: dict = Depends(get_api_user),
 ):
-    """通过云端文字设计模型创建账号级“我的声线”。"""
-    from ai_anime.modules.model_usage.public import write_model_audio_voice_design
-
+    """提交文字声线设计与可选角色绑定任务。"""
     resolved = await _resolve_editor_project(project, user)
     try:
-        with TemporaryDirectory(prefix="ai-anime-voice-design-") as temp_dir:
-            output_path = Path(temp_dir) / f"voice.{body.response_format}"
-            result = await write_model_audio_voice_design(
-                output_path=output_path,
+        result = await creative_canvas_audio_generation_use_cases().start_voice_design(
+            StartCreativeCanvasVoiceDesignCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                name=body.name,
+                model_selector=body.model_selector,
                 voice_prompt=body.voice_prompt,
                 preview_text=body.preview_text,
-                model_selector=body.model_selector,
                 preferred_name=body.preferred_name,
                 language=body.language,
                 sample_rate=body.sample_rate,
                 response_format=body.response_format,
+                binding=body.binding.model_dump() if body.binding else None,
             )
-            content = output_path.read_bytes()
-            voice = creative_canvas_audio_library_use_cases().create_voice(
-                CreateCreativeCanvasAudioVoiceCommand(
-                    context=resolved.ctx,
-                    name=body.name or body.voice_prompt[:80],
-                    filename=output_path.name,
-                    content=content,
-                    mime_type=(
-                        "audio/wav" if body.response_format == "wav" else "audio/mpeg"
-                    ),
-                )
-            )
-    except (InvalidCreativeCanvasAudioLibraryRequest, OSError, ValueError) as exc:
+        )
+    except InvalidCreativeCanvasAudioGenerationRequest as exc:
         raise HTTPException(400, str(exc)) from exc
-    except RuntimeError as exc:
-        logger.warning("voice design request failed: %s", exc, exc_info=True)
-        raise HTTPException(503, str(exc)) from exc
-    return {
-        "ok": True,
-        "data": {
-            **voice,
-            "provider_voice_id": result.voice_id,
-        },
-    }
+    except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
+        raise
+    return _audio_generation_response(result)
+
+
+@router.post(
+    "/projects/{project}/freezone/audio/voices/preset",
+    tags=["freezone-audio"],
+)
+async def create_freezone_audio_preset_voice(
+    project: str,
+    body: FreezoneAudioVoicePresetRequest,
+    user: dict = Depends(get_api_user),
+):
+    """提交预设声线生成与可选角色绑定任务。"""
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        result = await creative_canvas_audio_generation_use_cases().start_preset_voice(
+            StartCreativeCanvasPresetVoiceCommand(
+                context=resolved.ctx,
+                project_dir=resolved.project_dir,
+                name=body.name,
+                model_selector=body.model_selector,
+                voice=body.voice,
+                text=body.text,
+                binding=body.binding.model_dump() if body.binding else None,
+            )
+        )
+    except InvalidCreativeCanvasAudioGenerationRequest as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except (ProjectTaskLimitExceeded, ProjectUserTaskLimitExceeded):
+        raise
+    return _audio_generation_response(result)
 
 
 @router.get(
@@ -163,6 +179,29 @@ async def get_freezone_audio_voice_media(
     return FileResponse(path=str(media_path))
 
 
+@router.delete(
+    "/projects/{project}/freezone/audio/voices/{voice_id}",
+    tags=["freezone-audio"],
+)
+async def delete_freezone_audio_voice(
+    project: str,
+    voice_id: str,
+    user: dict = Depends(get_api_user),
+):
+    """删除当前账号的一条可复用声线及其音频文件。"""
+    resolved = await _resolve_editor_project(project, user)
+    try:
+        creative_canvas_audio_library_use_cases().delete_voice(
+            DeleteCreativeCanvasAudioVoiceCommand(
+                context=resolved.ctx,
+                voice_id=voice_id,
+            )
+        )
+    except CreativeCanvasAudioVoiceMissing as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"ok": True, "data": {"voice_id": voice_id, "deleted": True}}
+
+
 @router.post(
     "/projects/{project}/freezone/audio/speech",
     response_model=FreezoneJobAcceptedResponse,
@@ -185,6 +224,7 @@ async def freezone_audio_speech(
                     emotion_prompt=body.emotion_prompt,
                     mode=body.mode,
                     voice=body.voice,
+                    model_selector=body.model_selector or None,
                     voice_ref=body.voice_ref.model_dump() if body.voice_ref else None,
                     target_episode=body.target_episode,
                     target_beat=body.target_beat,

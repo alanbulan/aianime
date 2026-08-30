@@ -3,19 +3,15 @@
 from __future__ import annotations
 
 import json
-import os
 import shutil
-import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Iterator
 
-from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
+import portalocker
 
-try:
-    import fcntl
-except ImportError:  # pragma: no cover
-    fcntl = None
+from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
+from ai_anime.shared.utils.atomic_files import replace_text_atomically
 
 
 def _same_path(left: Path, right: Path) -> bool:
@@ -89,31 +85,17 @@ def index_file_lock(index_path: Path) -> Iterator[None]:
     lock_path = index_path.with_suffix(f"{index_path.suffix}.lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with open(lock_path, "a+", encoding="utf-8") as lock_file:
-        if fcntl is not None:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        portalocker.lock(lock_file, portalocker.LOCK_EX)
         try:
             yield
         finally:
-            if fcntl is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            portalocker.unlock(lock_file)
 
 
 def write_json_atomic(index_path: Path, payload: dict[str, Any]) -> None:
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temp_path = tempfile.mkstemp(
-        prefix=f"{index_path.name}.",
-        suffix=".tmp",
-        dir=index_path.parent,
+    replace_text_atomically(
+        index_path,
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        sync_file=True,
+        sync_directory=False,
     )
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(temp_path, index_path)
-    except Exception:
-        try:
-            os.unlink(temp_path)
-        except FileNotFoundError:
-            pass
-        raise

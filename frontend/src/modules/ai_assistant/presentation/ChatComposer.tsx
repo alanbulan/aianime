@@ -15,13 +15,32 @@ import type {
   RefObject,
   ReactNode,
 } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { Command } from "@/components/ui/command";
 import { Textarea } from "@/components/ui/textarea";
-import type { ChatAttachment } from "@/modules/ai_assistant/domain/contracts";
+import type {
+  ChatAttachment,
+  ChatSlashCommandResult,
+  ChatSlashCommand,
+  ModelEntry,
+  StructuredSlashCommandName,
+} from "@/modules/ai_assistant/domain/contracts";
+import {
+  filterSlashCommands,
+  slashCommandAction,
+  slashCommandQuery,
+} from "@/modules/ai_assistant/domain/slashCommand";
 import { ComposerWaitingStatus } from "@/modules/ai_assistant/presentation/ComposerWaitingStatus";
+import { ComposerContextMenu } from "@/modules/ai_assistant/presentation/ComposerContextMenu";
+import { ComposerModelMenu } from "@/modules/ai_assistant/presentation/ComposerModelMenu";
 import { QueuedMessagesPanel } from "@/modules/ai_assistant/presentation/QueuedMessagesPanel";
+import {
+  SlashCommandMenu,
+  type SlashMenuMode,
+} from "@/modules/ai_assistant/presentation/SlashCommandMenu";
 import { cn } from "@/lib/utils";
 
 type QueuedMessageItem = {
@@ -30,7 +49,13 @@ type QueuedMessageItem = {
   attachments: ChatAttachment[];
 };
 
+type ModelPickerOrigin = "composer" | "slash" | null;
+type SlashRoute = "help" | "tools" | "skill" | null;
+type SlashRouteParent = "commands" | "help";
+
 export type ChatComposerProps = {
+  activeModel: string | null;
+  activeReasoningEffort: string | null;
   attachments: ChatAttachment[];
   assistantActions?: ReactNode;
   busy: boolean;
@@ -43,6 +68,9 @@ export type ChatComposerProps = {
   fileUploadEnabled: boolean;
   isFreezoneLayout: boolean;
   queuedMessages: QueuedMessageItem[];
+  models: ModelEntry[];
+  modelsLoading: boolean;
+  slashCommands: ChatSlashCommand[];
   recording: boolean;
   transcribing: boolean;
   selectedHistoryMessageIndex: number | null;
@@ -58,18 +86,26 @@ export type ChatComposerProps = {
   onDraftChange: (draft: string) => void;
   onDraftFocusChange: (focused: boolean) => void;
   onDropFiles: (event: ReactDragEvent<HTMLDivElement>) => boolean;
+  onRunSlashCommand: (
+    command: StructuredSlashCommandName,
+  ) => Promise<ChatSlashCommandResult>;
   onHistorySelect: (direction: "older" | "newer") => boolean;
   onOpenFilePicker: () => void;
   onQueueOffset: (offset: number) => void;
   onQueueRemove: (messageId: string) => void;
   onQueueSelect: (messageId: string) => void;
+  onRefreshModels: () => void;
   onResetHistorySelection: () => void;
   onSubmit: () => void;
+  onSwitchModel: (modelId: string) => boolean;
+  onSwitchReasoningEffort: (reasoningEffort: string) => boolean;
   onToggleSpeech: () => void;
 };
 
 export function ChatComposer({
   attachments,
+  activeModel,
+  activeReasoningEffort,
   assistantActions,
   busy,
   canSend,
@@ -81,6 +117,9 @@ export function ChatComposer({
   fileUploadEnabled,
   isFreezoneLayout,
   queuedMessages,
+  models,
+  modelsLoading,
+  slashCommands,
   recording,
   transcribing,
   selectedHistoryMessageIndex,
@@ -96,16 +135,75 @@ export function ChatComposer({
   onDraftChange,
   onDraftFocusChange,
   onDropFiles,
+  onRunSlashCommand,
   onHistorySelect,
   onOpenFilePicker,
   onQueueOffset,
   onQueueRemove,
   onQueueSelect,
+  onRefreshModels,
   onResetHistorySelection,
   onSubmit,
+  onSwitchModel,
+  onSwitchReasoningEffort,
   onToggleSpeech,
 }: ChatComposerProps) {
   const { t } = useTranslation();
+  const slashListboxId = useId();
+  const [selectedSlashValue, setSelectedSlashValue] = useState("");
+  const [modelPickerOrigin, setModelPickerOrigin] = useState<ModelPickerOrigin>(null);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [slashRoute, setSlashRoute] = useState<SlashRoute>(null);
+  const [slashRouteParent, setSlashRouteParent] = useState<SlashRouteParent>("commands");
+  const [selectedCommand, setSelectedCommand] = useState<ChatSlashCommand | null>(null);
+  const [dismissedSlashDraft, setDismissedSlashDraft] = useState<string | null>(null);
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const slashModelPickerOpen = modelPickerOrigin === "slash";
+  const composerModelMenuOpen = modelPickerOrigin === "composer";
+  const slashQuery = slashCommandQuery(draft);
+  const filteredSlashCommands = useMemo(
+    () => slashQuery === null
+      ? []
+      : filterSlashCommands(slashCommands, slashQuery),
+    [slashCommands, slashQuery],
+  );
+  const slashMenuOpen = slashQuery !== null && dismissedSlashDraft !== draft;
+  const tools = useMemo(
+    () => slashCommands.find((command) => (
+      command.kind !== "skill" && command.name === "tools"
+    ))?.tools ?? [],
+    [slashCommands],
+  );
+  const routeOpen = slashRoute !== null;
+  const paletteOpen = slashMenuOpen || slashModelPickerOpen || routeOpen;
+  const paletteMode: SlashMenuMode = slashModelPickerOpen
+    ? "models"
+    : slashRoute ?? "commands";
+  const firstSlashValue = filteredSlashCommands[0]
+    ? `${filteredSlashCommands[0].kind ?? "command"}:${filteredSlashCommands[0].name}`
+    : "";
+  useEffect(() => {
+    setPaletteQuery("");
+    if (paletteMode === "tools") {
+      const firstVisibleTool = tools.find((tool) => tool.category === "确认与决策")
+        ?? tools[0];
+      setSelectedSlashValue(firstVisibleTool ? `tool:${firstVisibleTool.name}` : "");
+      return;
+    }
+    if (paletteMode === "models") {
+      const selectedModel = models.find((model) => (
+        model.id === (activeModel ?? "auto")
+      ));
+      setSelectedSlashValue(`model:${selectedModel?.id ?? models[0]?.id ?? "auto"}`);
+      return;
+    }
+    if (paletteMode === "help") {
+      const first = slashCommands[0];
+      setSelectedSlashValue(first ? `${first.kind ?? "command"}:${first.name}` : "");
+      return;
+    }
+    setSelectedSlashValue(paletteMode === "commands" ? firstSlashValue : "");
+  }, [activeModel, firstSlashValue, models, paletteMode, slashCommands, tools]);
 
   const restoreDraftFocus = () => {
     window.requestAnimationFrame(() => {
@@ -116,6 +214,7 @@ export function ChatComposer({
   const handleComposerKeyDown = (event: ReactKeyboardEvent) => {
     if (event.key !== "Enter" || event.shiftKey) return;
     if (event.defaultPrevented) return;
+    if (paletteOpen) return;
     const target = event.target as HTMLElement | null;
     if (
       target
@@ -143,11 +242,108 @@ export function ChatComposer({
     onAddFiles(images);
   };
 
+  const resetSlashRoute = () => {
+    setSlashRoute(null);
+    setSelectedCommand(null);
+  };
+
+  const selectSlashCommand = (command: ChatSlashCommand) => {
+    const action = slashCommandAction(command);
+    const parent = slashRoute === "help" ? "help" : "commands";
+    setSlashRouteParent(parent);
+    setDismissedSlashDraft(null);
+    setModelPickerOrigin(null);
+    setContextMenuOpen(false);
+    setSelectedCommand(null);
+    onResetHistorySelection();
+    onDraftChange("");
+    if (action === "help-picker") {
+      setSlashRoute("help");
+      return;
+    }
+    if (action === "model-picker") {
+      setModelPickerOrigin("slash");
+      setSlashRoute(null);
+      onRefreshModels();
+      return;
+    }
+    if (action === "tool-picker") {
+      setSlashRoute("tools");
+      return;
+    }
+    setSelectedCommand(command);
+    setSlashRoute("skill");
+  };
+
+  const selectModel = (modelId: string) => {
+    if (busy || modelsLoading || !onSwitchModel(modelId)) return;
+    setModelPickerOrigin(null);
+    resetSlashRoute();
+    setSelectedSlashValue("");
+    restoreDraftFocus();
+  };
+
+  const setComposerModelMenuOpen = (open: boolean) => {
+    setContextMenuOpen(false);
+    setModelPickerOrigin(open ? "composer" : null);
+    resetSlashRoute();
+    if (!open) return;
+    setDismissedSlashDraft(draft);
+    onResetHistorySelection();
+    onRefreshModels();
+  };
+
+  const setComposerContextMenuOpen = (open: boolean) => {
+    setModelPickerOrigin(null);
+    resetSlashRoute();
+    setContextMenuOpen(open);
+    if (open) {
+      setDismissedSlashDraft(draft);
+      onResetHistorySelection();
+    }
+  };
+
+  const closeSlashPicker = () => {
+    if (paletteMode !== "help" && slashRouteParent === "help") {
+      setModelPickerOrigin(null);
+      setSlashRoute("help");
+      setSelectedCommand(null);
+      return;
+    }
+    setModelPickerOrigin(null);
+    resetSlashRoute();
+    onDraftChange("/");
+    restoreDraftFocus();
+  };
+
+  const useSelectedSkill = () => {
+    if (!selectedCommand) return;
+    const nextDraft = `/${selectedCommand.name} `;
+    setModelPickerOrigin(null);
+    resetSlashRoute();
+    onDraftChange(nextDraft);
+    restoreDraftFocus();
+  };
+
   return (
     <div className={cn(
       "sticky bottom-0 z-40 shrink-0 bg-transparent p-3",
       isFreezoneLayout && "px-4 pb-4 pt-1",
     )}>
+      <Command
+        className="contents"
+        label={paletteMode === "models"
+          ? "搜索模型"
+          : paletteMode === "tools"
+            ? "搜索可用工具"
+            : paletteMode === "help"
+              ? "搜索命令或 Skill"
+              : t("aiAssistant.slashCommands", "Slash 命令与 Skills")}
+        loop
+        shouldFilter={paletteMode === "models" || paletteMode === "tools" || paletteMode === "help"}
+        value={selectedSlashValue}
+        onValueChange={setSelectedSlashValue}
+      >
       <div className={cn(
         "relative mx-auto mb-2.5 h-7 w-full max-w-[760px]",
         isFreezoneLayout && "max-w-none",
@@ -156,6 +352,33 @@ export function ChatComposer({
           label={t("aiAssistant.waitingResponse")}
           visible={showWaitingIndicator}
         />
+      </div>
+      <div
+        className={cn(
+          "mx-auto w-full max-w-[760px]",
+          isFreezoneLayout && "max-w-none",
+        )}
+      >
+        {paletteOpen && (
+          <SlashCommandMenu
+            activeModel={activeModel}
+            commands={paletteMode === "commands" ? filteredSlashCommands : slashCommands}
+            disabled={busy}
+            isFreezoneLayout={isFreezoneLayout}
+            listboxId={slashListboxId}
+            mode={paletteMode}
+            models={models}
+            modelsLoading={modelsLoading}
+            query={paletteQuery}
+            selectedCommand={selectedCommand}
+            tools={tools}
+            onBack={closeSlashPicker}
+            onQueryChange={setPaletteQuery}
+            onSelectCommand={selectSlashCommand}
+            onSelectModel={selectModel}
+            onUseSkill={useSelectedSkill}
+          />
+        )}
       </div>
       <div
         ref={shellRef}
@@ -234,13 +457,47 @@ export function ChatComposer({
           ref={draftInputRef}
           value={draft}
           onChange={(event) => {
+            setModelPickerOrigin(null);
+            setContextMenuOpen(false);
+            resetSlashRoute();
+            setDismissedSlashDraft(null);
             onResetHistorySelection();
             onDraftChange(event.target.value);
           }}
-          onFocus={() => onDraftFocusChange(true)}
+          onFocus={() => {
+            setDismissedSlashDraft(null);
+            onDraftFocusChange(true);
+          }}
           onBlur={() => onDraftFocusChange(false)}
           onPaste={handlePaste}
           onKeyDown={(event) => {
+            if (slashMenuOpen) {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                setDismissedSlashDraft(draft);
+                return;
+              }
+              if (
+                filteredSlashCommands.length > 0
+                && event.key === "Tab"
+              ) {
+                event.preventDefault();
+                event.stopPropagation();
+                const command = filteredSlashCommands.find((item) => (
+                  `${item.kind ?? "command"}:${item.name}` === selectedSlashValue
+                )) ?? filteredSlashCommands[0];
+                if (command) selectSlashCommand(command);
+                return;
+              }
+              if (
+                event.key === "Enter"
+                || event.key === "ArrowDown"
+                || event.key === "ArrowUp"
+                || event.key === "Home"
+                || event.key === "End"
+              ) return;
+            }
             if (
               queuedMessages.length > 0
               && draft.trim().length === 0
@@ -280,6 +537,9 @@ export function ChatComposer({
             isFreezoneLayout && "min-h-11 px-3.5 py-3 text-sm",
           )}
           rows={1}
+          aria-autocomplete="list"
+          aria-expanded={paletteOpen}
+          aria-controls={paletteOpen ? slashListboxId : undefined}
         />
         <div className="flex items-center justify-between px-3 py-2">
           <div className="flex items-center gap-1">
@@ -298,7 +558,7 @@ export function ChatComposer({
             )}
             {assistantActions}
           </div>
-          <div className="flex shrink-0 items-end gap-1.5">
+          <div className="flex min-w-0 items-end gap-1.5">
             {(recording || transcribing) && (
               <div className="mr-1 flex items-center gap-1.5 text-sm text-primary">
                 <span className="size-2 animate-pulse rounded-full bg-primary" />
@@ -309,6 +569,30 @@ export function ChatComposer({
                  </span>
               </div>
             )}
+            <ComposerContextMenu
+              busy={busy}
+              connected={connected}
+              open={contextMenuOpen}
+              onOpenChange={setComposerContextMenuOpen}
+              onRunCommand={onRunSlashCommand}
+            />
+            <ComposerModelMenu
+              activeModel={activeModel}
+              activeReasoningEffort={activeReasoningEffort}
+              busy={busy}
+              connected={connected}
+              models={models}
+              modelsLoading={modelsLoading}
+              open={composerModelMenuOpen}
+              onOpenChange={setComposerModelMenuOpen}
+              onSelectModel={selectModel}
+              onSelectReasoningEffort={(effort) => {
+                if (onSwitchReasoningEffort(effort)) {
+                  setModelPickerOrigin(null);
+                  restoreDraftFocus();
+                }
+              }}
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -357,6 +641,7 @@ export function ChatComposer({
           {t("aiAssistant.disclaimer")}
         </p>
       )}
+      </Command>
     </div>
   );
 }

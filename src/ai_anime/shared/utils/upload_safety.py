@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import re
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import BinaryIO
+
+from ai_anime.shared.utils.path_safety import sanitize_filename
 
 # Novels are plain text; 50 MiB is generous and bounds any single upload.
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
@@ -21,11 +22,7 @@ def sanitize_upload_filename(raw_name: str | None, *, fallback: str = "upload.tx
     - Replaces remaining path separators with `_`.
     - Falls back to *fallback* for empty / `.` / `..`.
     """
-    name = PurePosixPath(raw_name or fallback).name
-    name = re.sub(r"[/\\]", "_", name)
-    if not name or name in {".", ".."}:
-        name = fallback
-    return name
+    return sanitize_filename(raw_name, fallback=fallback)
 
 
 def is_safe_upload_target(upload_dir: Path, safe_name: str) -> bool:

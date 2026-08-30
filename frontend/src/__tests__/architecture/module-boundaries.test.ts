@@ -29612,7 +29612,7 @@ describe("frontend architecture boundaries", () => {
     );
     expect(videoNode).toContain("normalizeDuration={normalizeDuration}");
     expect(videoNodeController).toContain(
-      "clampVideoDuration(value, durationBounds)",
+      "normalizeVideoDuration(value, durationBounds)",
     );
     expect(videoNode).not.toContain("function clampVideoDuration(");
     expect(videoNode).not.toContain("interface VideoConfigChipProps");
@@ -29706,9 +29706,9 @@ describe("frontend architecture boundaries", () => {
       "utf8",
     );
     const declarations = [
-      ["export function", "qualityToResolution("].join(" "),
-      ["export function", "videoQualityOptionsForModel("].join(" "),
-      ["export function", "videoDurationBoundsForModel("].join(" "),
+      ["export function", "videoOutputDefinitionForModel("].join(" "),
+      ["export function", "videoExtraParamDefinitionsForModel("].join(" "),
+      ["export function", "videoDurationDefinitionForModel("].join(" "),
       ["export function", "clampVideoDuration("].join(" "),
       ["export function", "isVideoModeSupportedByModel("].join(" "),
       ["export function", "supportedVideoModesForModel("].join(" "),
@@ -31532,7 +31532,8 @@ describe("frontend architecture boundaries", () => {
     expect(applicationSource).not.toContain("react");
     expect(applicationSource).not.toContain("@/api/");
     expect(applicationSource).not.toContain("@/shared/stores/");
-    expect(applicationSource).toContain("qualityToResolution(params.quality)");
+    expect(applicationSource).toContain("output: params.output");
+    expect(applicationSource).not.toContain("params.quality");
     expect(implementationOwners).toEqual([
       "modules/creative_canvas/application/submitVideoGeneration.ts",
     ]);

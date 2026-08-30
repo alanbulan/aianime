@@ -37,23 +37,31 @@ export type {
   VideoGenerationModeOption,
 } from "@/modules/creative_canvas/domain/videoGenerationModeOptions";
 export {
-  DEFAULT_VIDEO_DURATION_SEC,
   clampVideoDuration,
   defaultSceneOptimizeForModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
-  normalizeVideoQuality,
-  qualityToResolution,
+  normalizeVideoDuration,
+  normalizeVideoOutput,
   sceneOptimizeOptionsForModel,
   supportedVideoModesForModel,
-  videoDurationBoundsForModel,
+  videoAspectRatioForOutput,
+  videoDurationDefinitionForModel,
+  videoExtraParamDefinitionsForModel,
+  videoExtraParamsForModel,
   videoModelReferenceDisabledReason,
   videoModelUsesTypedReferenceModes,
-  videoQualityOptionsForModel,
+  videoOutputDefinitionForModel,
+  videoOutputForAspectRatio,
+  videoSupportsGenerateAudio,
 } from "@/modules/creative_canvas/domain/videoGenerationModel";
 export type {
-  Seedance2SceneOptimize,
+  VideoSceneOptimize,
   VideoDurationBounds,
+  VideoDurationDefinition,
+  VideoExtraParamDefinition,
+  VideoOutputDefinition,
+  VideoOutputParameter,
   VideoGenCount,
   VideoGenQuality,
   VideoModelCapabilityDescriptor,
@@ -2725,8 +2733,8 @@ export {
 export type {
   CanvasAudioReference,
   CanvasAudioVoiceCatalogGateway,
-  DesignedCanvasAudioVoice,
   DesignCanvasAudioVoiceInput,
+  PresetCanvasAudioVoiceInput,
 } from "@/modules/creative_canvas/application/audioVoiceCatalog";
 export {
   projectAudioNodeToolbar,
@@ -2925,8 +2933,8 @@ export type {
   SubmitVideoGenerationDependencies,
   SubmitVideoGenerationParams,
   VideoGenerationAspectRatio,
+  VideoGenerationOutput,
   VideoGenerationReference,
-  VideoGenerationResolution,
   VideoGenerationSubmission,
   VideoGenerationSubmissionGateway,
   VideoGenerationTaskRef,
@@ -3190,6 +3198,8 @@ export type {
 } from "@/modules/creative_canvas/application/generateCanvasVideoUpscale";
 export {
   createCanvasAudioVoice,
+  createPresetCanvasAudioVoice,
+  deleteCanvasAudioVoice,
   designCanvasAudioVoice,
   loadCanvasAudioReferences,
 } from "@/modules/creative_canvas/audioVoiceCatalogComposition";

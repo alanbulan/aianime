@@ -55,61 +55,72 @@ async def test_save_adapted_content_requires_existing_episode(tmp_path) -> None:
         await store.close()
 
 
-class _RewriteRouteStore:
-    def __init__(self):
-        self.adapted_content = ""
-        self.episode_updates: list[tuple[int, dict]] = []
-        self.episode = NovelEpisode(number=1, title="第一集", raw_content="原文")
-
-    async def load_episode_content(self, ep_num: int):
-        return self.episode.raw_content if ep_num == self.episode.number else ""
-
-    async def load_graph_state(self):
-        return None
-
-    def get_episode(self, ep_num: int):
-        return self.episode if ep_num == self.episode.number else None
-
-    def get_all_characters(self):
-        return []
-
-    async def save_adapted_content(self, ep_num: int, content: str) -> None:
-        assert ep_num == self.episode.number
-        self.adapted_content = content
-
-    async def update_episode(self, episode_number: int, **updates) -> None:
-        self.episode_updates.append((episode_number, updates))
-        for key, value in updates.items():
-            setattr(self.episode, key, value)
-
-
 @pytest.mark.asyncio
-async def test_generate_rewrite_applies_output_to_beat_source_text(monkeypatch) -> None:
+async def test_generate_rewrite_submits_episode_task(monkeypatch) -> None:
     from ai_anime.api.routes.narrative_planning.content_schemas import RewriteGenerateRequest
     from ai_anime.api.routes.narrative_planning import content
-
-    async def fake_rewrite_episode_content(*args, **kwargs):
-        return "改写第一行\n改写第二行"
-
-    monkeypatch.setattr(
-        "ai_anime.modules.narrative_planning.infrastructure.content_rewriter_agent.rewrite_episode_content",
-        fake_rewrite_episode_content,
+    from ai_anime.modules.narrative_planning.public import (
+        GenerateEpisodeRewriteCommand,
+        ScheduledNarrativeTask,
     )
 
-    store = _RewriteRouteStore()
+    context = object()
+    captured: list[tuple[object, GenerateEpisodeRewriteCommand]] = []
+
+    async def resolve_project_scope(project, user, *, required_role):
+        assert (project, user, required_role) == (
+            "demo",
+            {"username": "admin"},
+            "editor",
+        )
+        return type("Resolved", (), {"ctx": context})()
+
+    async def enqueue(task_context, command):
+        captured.append((task_context, command))
+        return ScheduledNarrativeTask(
+            task_type="episode_rewrite",
+            task_id="task-rewrite",
+            task_key="task:episode_rewrite:1",
+            backend="inline",
+            queue="inline",
+            message="第 1 集改写稿生成已入队",
+        )
+
+    monkeypatch.setattr(content, "resolve_project_scope", resolve_project_scope)
+    monkeypatch.setattr(content, "enqueue_episode_rewrite_generation", enqueue)
+
     response = await content.generate_rewrite(
         project="demo",
         episode_num=1,
-        body=RewriteGenerateRequest(),
+        body=RewriteGenerateRequest(
+            target_beats=16,
+            beat_chars_min=12,
+            beat_chars_max=18,
+            narration_style="紧凑",
+        ),
         user={"username": "admin"},
-        store=store,
     )
 
-    assert response["ok"] is True
-    assert store.adapted_content == "改写第一行\n改写第二行"
-    assert store.episode.beat_source_text == "改写第一行\n改写第二行"
-    assert store.episode_updates == [
-        (1, {"beat_source_text": "改写第一行\n改写第二行"})
+    assert response == {
+        "ok": True,
+        "task_type": "episode_rewrite",
+        "task_id": "task-rewrite",
+        "task_key": "task:episode_rewrite:1",
+        "backend": "inline",
+        "queue": "inline",
+        "message": "第 1 集改写稿生成已入队",
+    }
+    assert captured == [
+        (
+            context,
+            GenerateEpisodeRewriteCommand(
+                episode_num=1,
+                target_beats=16,
+                beat_chars_min=12,
+                beat_chars_max=18,
+                narration_style="紧凑",
+            ),
+        )
     ]
 
 

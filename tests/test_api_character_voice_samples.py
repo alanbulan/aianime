@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -61,13 +62,17 @@ def _patch_project(
     project_dir: Path,
     store: _CharacterStore,
 ) -> None:
+    context = SimpleNamespace(
+        project_id="proj_demo",
+        output_dir=project_dir,
+        is_home_node=True,
+    )
+
     async def fake_resolve_project(
         project: str, user: dict, *, required_role: str = "editor"
     ):
         return (
-            SimpleNamespace(
-                project_id="proj_demo", output_dir=project_dir, is_home_node=True
-            ),
+            context,
             "admin",
             "demo",
             project_dir,
@@ -75,7 +80,22 @@ def _patch_project(
             store,
         )
 
+    async def fake_resolve_scope(
+        project: str,
+        user: dict,
+        *,
+        required_role: str = "editor",
+    ):
+        return SimpleNamespace(
+            ctx=context,
+            username="admin",
+            project_name="demo",
+            project_dir=project_dir,
+            output_dir=str(project_dir),
+        )
+
     monkeypatch.setattr(module, "_resolve_character_project", fake_resolve_project)
+    monkeypatch.setattr(module, "resolve_project_scope", fake_resolve_scope)
     monkeypatch.setattr(
         module,
         "make_static_url_for_context",
@@ -159,7 +179,7 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
 
 
 @pytest.mark.asyncio
-async def test_design_missing_character_voices_uses_configured_priority_route(
+async def test_design_missing_character_voices_enters_project_task_queue(
     tmp_path,
     monkeypatch,
 ):
@@ -167,31 +187,30 @@ async def test_design_missing_character_voices_uses_configured_priority_route(
     from ai_anime.api.routes.asset_world.voice_schemas import (
         CharacterVoiceDesignMissingRequest,
     )
-    from ai_anime.modules.production import public as production
 
     character = NovelCharacter(name="佐仓美咲", age_group="youth")
     store = _CharacterStore([character])
     _patch_project(monkeypatch, characters, tmp_path, store)
     captured = {}
 
-    async def provision(
-        context,
-        project_characters,
-        *,
-        character_names,
-        replace_existing,
-        preview_text_by_character,
-        project_preview_text,
-    ):
-        captured["context"] = context
-        captured["characters"] = [item.name for item in project_characters]
-        captured["names"] = list(character_names)
-        captured["replace_existing"] = replace_existing
-        captured["previews"] = preview_text_by_character
-        captured["project_preview"] = project_preview_text
-        return ("佐仓美咲",), ("藤原悠真",)
+    class UseCases:
+        async def schedule_voice_design(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                as_dict=lambda: {
+                    "task_type": "character_voice_design",
+                    "task_id": "task-voice-1",
+                    "task_key": (
+                        "task:character_voice_design:0:character_voice_design"
+                    ),
+                    "backend": "inline",
+                    "queue": "inline",
+                    "scope": "character_voice_design",
+                    "message": "角色声线设计任务已进入队列",
+                }
+            )
 
-    monkeypatch.setattr(production, "provision_missing_character_voices", provision)
+    monkeypatch.setattr(characters, "character_task_use_cases", lambda: UseCases())
 
     response = await characters.design_missing_character_voices(
         project="demo",
@@ -202,22 +221,19 @@ async def test_design_missing_character_voices_uses_configured_priority_route(
     )
 
     assert response["ok"] is True
-    assert response["data"] == {
-        "generated": ["佐仓美咲"],
-        "skipped_existing": ["藤原悠真"],
-    }
-    assert captured["context"].project_id == "proj_demo"
-    assert captured["characters"] == ["佐仓美咲"]
-    assert captured["names"] == ["佐仓美咲"]
+    assert response["task_type"] == "character_voice_design"
+    assert response["task_key"] == (
+        "task:character_voice_design:0:character_voice_design"
+    )
+    assert response["scope"] == "character_voice_design"
+    assert captured["task_context"].project_id == "proj_demo"
+    assert captured["character_names"] == ["佐仓美咲"]
     assert captured["replace_existing"] is False
-    assert captured["previews"] == {}
-    assert captured["project_preview"] == ""
-    assert "1.8-15 秒" in response["agent_instruction"]
-    assert "保留合规" in response["agent_instruction"]
+    assert "已进入任务队列" in response["agent_instruction"]
 
 
 @pytest.mark.asyncio
-async def test_design_missing_character_voices_uses_persisted_dialogue_preview(
+async def test_design_missing_character_voices_does_not_call_model_in_request(
     tmp_path,
     monkeypatch,
 ):
@@ -239,23 +255,29 @@ async def test_design_missing_character_voices_uses_persisted_dialogue_preview(
         ]
     }
     _patch_project(monkeypatch, characters, tmp_path, store)
-    captured = {}
+    monkeypatch.setattr(
+        production,
+        "provision_missing_character_voices",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("model provisioning must run in the task worker")
+        ),
+    )
 
-    async def provision(
-        context,
-        project_characters,
-        *,
-        character_names,
-        replace_existing,
-        preview_text_by_character,
-        project_preview_text,
-    ):
-        captured["previews"] = preview_text_by_character
-        captured["project_preview"] = project_preview_text
-        captured["replace_existing"] = replace_existing
-        return ("佐仓美咲",), ()
+    class UseCases:
+        async def schedule_voice_design(self, **_kwargs):
+            return SimpleNamespace(
+                as_dict=lambda: {
+                    "task_type": "character_voice_design",
+                    "task_id": "task-voice-1",
+                    "task_key": "task:character_voice_design:0",
+                    "backend": "inline",
+                    "queue": "inline",
+                    "scope": "character_voice_design",
+                    "message": "角色声线设计任务已进入队列",
+                }
+            )
 
-    monkeypatch.setattr(production, "provision_missing_character_voices", provision)
+    monkeypatch.setattr(characters, "character_task_use_cases", lambda: UseCases())
 
     response = await characters.design_missing_character_voices(
         project="demo",
@@ -264,11 +286,7 @@ async def test_design_missing_character_voices_uses_persisted_dialogue_preview(
     )
 
     assert response["ok"] is True
-    assert captured == {
-        "previews": {"佐仓美咲": "こんにちは。物語を始めましょう。"},
-        "project_preview": "こんにちは。物語を始めましょう。",
-        "replace_existing": False,
-    }
+    assert response["task_id"] == "task-voice-1"
 
 
 @pytest.mark.asyncio
@@ -280,17 +298,27 @@ async def test_design_character_voices_passes_explicit_replacement_scope(
     from ai_anime.api.routes.asset_world.voice_schemas import (
         CharacterVoiceDesignMissingRequest,
     )
-    from ai_anime.modules.production import public as production
 
     store = _CharacterStore([NovelCharacter(name="佐仓美咲", age_group="youth")])
     _patch_project(monkeypatch, characters, tmp_path, store)
     captured = {}
 
-    async def provision(_context, _characters, **kwargs):
-        captured.update(kwargs)
-        return ("佐仓美咲",), ()
+    class UseCases:
+        async def schedule_voice_design(self, **kwargs):
+            captured.update(kwargs)
+            return SimpleNamespace(
+                as_dict=lambda: {
+                    "task_type": "character_voice_design",
+                    "task_id": "task-voice-1",
+                    "task_key": "task:character_voice_design:0",
+                    "backend": "inline",
+                    "queue": "inline",
+                    "scope": "character_voice_design",
+                    "message": "角色声线设计任务已进入队列",
+                }
+            )
 
-    monkeypatch.setattr(production, "provision_missing_character_voices", provision)
+    monkeypatch.setattr(characters, "character_task_use_cases", lambda: UseCases())
 
     response = await characters.design_missing_character_voices(
         project="demo",
@@ -304,7 +332,6 @@ async def test_design_character_voices_passes_explicit_replacement_scope(
     assert response["ok"] is True
     assert captured["character_names"] == ["佐仓美咲"]
     assert captured["replace_existing"] is True
-    assert "覆盖重做已有声线" in response["agent_instruction"]
     assert "完整生产流程" in response["agent_instruction"]
 
 
@@ -421,13 +448,17 @@ async def test_upload_character_voice_sample_persists_default_slot(
     reusable_source.parent.mkdir(parents=True)
     reusable_source.write_bytes(b"default voice")
     created: list[dict] = []
+    event_loop_thread = threading.get_ident()
+
+    def create_reusable_voice(**kwargs):
+        assert threading.get_ident() != event_loop_thread
+        created.append(kwargs)
+        return {"voice_id": "fv_uploaded"}, reusable_source
+
     monkeypatch.setattr(
         characters,
         "_create_reusable_character_voice",
-        lambda **kwargs: (
-            created.append(kwargs) or {"voice_id": "fv_uploaded"},
-            reusable_source,
-        ),
+        create_reusable_voice,
     )
     upload = UploadFile(file=io.BytesIO(b"default voice"), filename="voice.wav")
 
@@ -489,13 +520,17 @@ async def test_record_character_voice_sample_persists_age_slot(tmp_path, monkeyp
     reusable_source.parent.mkdir(parents=True)
     reusable_source.write_bytes(b"recorded voice")
     created: list[dict] = []
+    event_loop_thread = threading.get_ident()
+
+    def create_reusable_voice(**kwargs):
+        assert threading.get_ident() != event_loop_thread
+        created.append(kwargs)
+        return {"voice_id": "fv_recorded"}, reusable_source
+
     monkeypatch.setattr(
         characters,
         "_create_reusable_character_voice",
-        lambda **kwargs: (
-            created.append(kwargs) or {"voice_id": "fv_recorded"},
-            reusable_source,
-        ),
+        create_reusable_voice,
     )
     payload = base64.b64encode(b"recorded voice").decode("ascii")
     body = SimpleNamespace(data_url=f"data:audio/wav;base64,{payload}")

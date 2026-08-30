@@ -22,7 +22,21 @@ const FORBIDDEN_MODEL_FIELDS = new Set([
   "xapikey",
   "xgoogapikey",
 ]);
-const CLOUD_VIDEO_TEXT_FIELDS = new Set(["model", "prompt", "seconds", "size"]);
+const CLOUD_VIDEO_CORE_TEXT_FIELDS = new Set([
+  "model",
+  "prompt",
+  "mode",
+  "generation_mode",
+  "seconds",
+  "duration",
+  "size",
+  "resolution",
+  "ratio",
+  "aspect_ratio",
+  "generate_audio",
+  "reference_video_duration",
+  "reference_audio_duration",
+]);
 const CLOUD_VIDEO_MEDIA_FIELD_ALIASES = new Map([
   ["reference_images", "reference_image"],
   ["reference_images[]", "reference_image"],
@@ -31,12 +45,23 @@ const CLOUD_VIDEO_MEDIA_FIELD_ALIASES = new Map([
   ["reference_audios", "reference_audio"],
   ["reference_audios[]", "reference_audio"],
 ]);
+const ASSISTANT_ROUTE_MODEL_PREFIX = "ai-anime-route:";
+const ASSISTANT_AUTOMATIC_MODEL_ID = "ai-anime-assistant-auto";
+const ASSISTANT_REASONING_EFFORT_MARKER = ":reasoning-effort:";
+
+export interface AssistantModelSelection {
+  selector: string | null;
+  reasoningEffort: string | null;
+}
 
 export async function prepareBodyForRoute(
   rawBody: Buffer | undefined,
   contentType: string,
   modelId: string,
   cloudVideo: boolean,
+  reasoningEffort?: string | null,
+  maxOutputTokens?: number,
+  allowedVideoExtraParameters: readonly string[] = [],
 ): Promise<PreparedBody> {
   if (rawBody === undefined) return {};
   const normalized = contentType.trim().toLowerCase();
@@ -45,13 +70,27 @@ export async function prepareBodyForRoute(
     if (payload && typeof payload === "object" && !Array.isArray(payload)) {
       const routedPayload = cloudVideo
         ? Object.fromEntries(
-            Object.entries(payload).filter(([key]) =>
-              CLOUD_VIDEO_TEXT_FIELDS.has(key.toLowerCase()),
-            ),
+            Object.entries(payload).filter(([key]) => {
+              const normalizedKey = key.toLowerCase();
+              return (
+                CLOUD_VIDEO_CORE_TEXT_FIELDS.has(normalizedKey) ||
+                allowedVideoExtraParameters.includes(key)
+              );
+            }),
           )
         : payload;
+      const outputTokenField = Object.hasOwn(routedPayload, "max_completion_tokens")
+        ? "max_completion_tokens"
+        : "max_tokens";
       return {
-        body: JSON.stringify({ ...routedPayload, model: modelId }),
+        body: JSON.stringify({
+          ...routedPayload,
+          model: modelId,
+          ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+          ...(maxOutputTokens
+            ? { [outputTokenField]: maxOutputTokens }
+            : {}),
+        }),
         contentType: contentType || "application/json",
       };
     }
@@ -63,7 +102,13 @@ export async function prepareBodyForRoute(
       const normalizedKey = key.toLowerCase();
       if (normalizedKey === "model") return;
       if (typeof value === "string") {
-        if (cloudVideo && !CLOUD_VIDEO_TEXT_FIELDS.has(normalizedKey)) return;
+        if (
+          cloudVideo &&
+          !CLOUD_VIDEO_CORE_TEXT_FIELDS.has(normalizedKey) &&
+          !allowedVideoExtraParameters.includes(key)
+        ) {
+          return;
+        }
         target.append(key, value);
         return;
       }
@@ -184,6 +229,86 @@ export function normalizeModelSelectorHeader(
     throw new CommercialApiError("模型路由选择器无效", { status: 422 });
   }
   return normalized;
+}
+
+export function assistantModelSelectorFromBody(
+  rawBody: Buffer | undefined,
+  contentType: string,
+  requestSurface: string | string[] | undefined,
+): string | null {
+  return assistantModelSelectionFromBody(
+    rawBody,
+    contentType,
+    requestSurface,
+  )?.selector ?? null;
+}
+
+export function assistantModelSelectionFromBody(
+  rawBody: Buffer | undefined,
+  contentType: string,
+  requestSurface: string | string[] | undefined,
+): AssistantModelSelection | null {
+  const surface = Array.isArray(requestSurface) ? requestSurface[0] : requestSurface;
+  if (String(surface ?? "").trim().toLowerCase() !== "ai-assistant") return null;
+  if (!rawBody || !contentType.trim().toLowerCase().startsWith("application/json")) {
+    return null;
+  }
+  const payload = parseJsonBody(rawBody);
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const model = typeof payload.model === "string" ? payload.model.trim() : "";
+  const marker = model.indexOf(ASSISTANT_ROUTE_MODEL_PREFIX);
+  let selector: string | null = null;
+  let encodedEffort = "";
+  if (marker >= 0) {
+    const encodedAndSuffix = model.slice(
+      marker + ASSISTANT_ROUTE_MODEL_PREFIX.length,
+    );
+    const effortMarker = encodedAndSuffix.indexOf(
+      ASSISTANT_REASONING_EFFORT_MARKER,
+    );
+    const encodedSelector = effortMarker < 0
+      ? encodedAndSuffix
+      : encodedAndSuffix.slice(0, effortMarker);
+    encodedEffort = effortMarker < 0
+      ? ""
+      : encodedAndSuffix.slice(
+          effortMarker + ASSISTANT_REASONING_EFFORT_MARKER.length,
+        );
+    selector = normalizeModelSelectorHeader(
+      decodeAssistantModelToken(encodedSelector, "当前对话模型路由无效"),
+    );
+  } else {
+    const automaticMarker = model.indexOf(ASSISTANT_AUTOMATIC_MODEL_ID);
+    if (automaticMarker < 0) return null;
+    const suffix = model.slice(automaticMarker + ASSISTANT_AUTOMATIC_MODEL_ID.length);
+    if (suffix && !suffix.startsWith(ASSISTANT_REASONING_EFFORT_MARKER)) {
+      throw new CommercialApiError("当前对话模型路由无效", { status: 422 });
+    }
+    encodedEffort = suffix
+      ? suffix.slice(ASSISTANT_REASONING_EFFORT_MARKER.length)
+      : "";
+  }
+  const reasoningEffort = encodedEffort
+    ? decodeAssistantModelToken(encodedEffort, "当前对话思考力度无效")
+    : null;
+  if (
+    reasoningEffort
+    && (reasoningEffort.length > 64 || /[\u0000-\u001f\u007f]/u.test(reasoningEffort))
+  ) {
+    throw new CommercialApiError("当前对话思考力度无效", { status: 422 });
+  }
+  return { selector, reasoningEffort };
+}
+
+function decodeAssistantModelToken(encoded: string, message: string): string {
+  if (!/^[A-Za-z0-9_-]+$/u.test(encoded)) {
+    throw new CommercialApiError(message, { status: 422 });
+  }
+  try {
+    return Buffer.from(encoded, "base64url").toString("utf8");
+  } catch {
+    throw new CommercialApiError(message, { status: 422 });
+  }
 }
 
 export function inferModelRole(path: string): ByokModelRole | null {

@@ -37,6 +37,7 @@ export interface CommercialAuthState {
     rememberMe: boolean,
     captchaCode?: string,
   ) => Promise<CommercialSession>;
+  revealRememberedPassword: () => Promise<string>;
   logout: () => Promise<void>;
   loadProfile: () => Promise<CommercialUserProfile>;
   updateProfile: (
@@ -241,6 +242,18 @@ export function createCommercialAuthStore(
         if (publicConfig.login.captchaEnabled) {
           await get().refreshCaptcha().catch(() => undefined);
         }
+        const available = await gateway.rememberedLogin().catch(() => null);
+        set({ rememberedLogin: available });
+        throw error;
+      }
+    },
+    revealRememberedPassword: async () => {
+      if (!get().rememberedLogin) {
+        throw new Error("没有可用的已保存登录信息");
+      }
+      try {
+        return await gateway.revealRememberedPassword();
+      } catch (error) {
         const available = await gateway.rememberedLogin().catch(() => null);
         set({ rememberedLogin: available });
         throw error;

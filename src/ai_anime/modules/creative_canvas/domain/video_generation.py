@@ -5,10 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-MIN_OMNI_REFERENCE_AUDIO_SECONDS = 1.8
-MAX_OMNI_REFERENCE_AUDIO_SECONDS = 15.2
-MAX_OMNI_REFERENCE_AUDIO_TOTAL_SECONDS = 15.2
-
 CreativeCanvasVideoRequestedMode = Literal[
     "textToVideo",
     "firstFrame",
@@ -333,13 +329,22 @@ def summarize_omni_reference_counts(items: list[dict[str, Any]]) -> dict[str, in
     }
 
 
-def validate_omni_reference_limits(items: list[dict[str, Any]]) -> None:
+def validate_omni_reference_limits(
+    items: list[dict[str, Any]],
+    *,
+    max_images: int | None,
+    max_videos: int | None,
+    max_audios: int | None,
+    max_total: int | None,
+) -> None:
     counts = summarize_omni_reference_counts(items)
-    if counts["total_count"] > 12:
-        raise ValueError("references total count must be <= 12")
-    if counts["image_count"] > 9:
-        raise ValueError("image references count must be <= 9")
-    if counts["video_count"] > 3:
-        raise ValueError("video references count must be <= 3")
-    if counts["audio_count"] > 3:
-        raise ValueError("audio references count must be <= 3")
+    limits = (
+        ("total", "total_count", max_total),
+        ("image", "image_count", max_images),
+        ("video", "video_count", max_videos),
+        ("audio", "audio_count", max_audios),
+    )
+    for label, count_key, maximum in limits:
+        if maximum is not None and counts[count_key] > maximum:
+            subject = "references total" if label == "total" else f"{label} references"
+            raise ValueError(f"{subject} count must be <= {maximum}")

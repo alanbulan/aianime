@@ -1,5 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,6 +9,7 @@ import {
   type NarratorVoicePanelQueries,
 } from "@/modules/production/application/use-narrator-voice-panel-controller";
 import type { NarratorVoiceStatusData } from "@/modules/production/domain/narrator-voice";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
 import type {
   VoiceRecorder,
   VoiceRecorderCallbacks,
@@ -26,11 +29,23 @@ vi.mock("sonner", () => ({
   toast: { error: toastError, success: toastSuccess },
 }));
 
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
+  useTaskStream: () => ({
+    status: "idle" as const,
+    progress: 0,
+    currentTask: "",
+    result: null,
+    error: null,
+    logs: [],
+  }),
+}));
+
 const uploadVoice = vi.fn();
 const recordVoice = vi.fn();
 const generatePresetVoice = vi.fn();
 const designNarratorVoice = vi.fn();
-const copyProjectVoice = vi.fn();
+const bindNarratorVoice = vi.fn();
+const loadVoiceOptions = vi.fn();
 const trimVoice = vi.fn();
 const deleteVoice = vi.fn();
 const recorderStart = vi.fn();
@@ -39,7 +54,6 @@ const recorderRelease = vi.fn();
 const recorderDispose = vi.fn();
 const recorderAvailability = vi.fn();
 let recorderCallbacks: VoiceRecorderCallbacks | null = null;
-let sourcesEnabled = false;
 
 const recorder: VoiceRecorder = {
   availability: recorderAvailability,
@@ -62,11 +76,11 @@ const baseStatus: NarratorVoiceStatusData = {
   is_first_person: false,
 };
 let status = { ...baseStatus };
-let sourceOptions = [
+let accountVoiceOptions = [
   {
-    label: "Beat 1 narration",
-    path: "audio/beat_1.wav",
-    rel_path: "audio/beat_1.wav",
+    voiceId: "fv_alex",
+    label: "Alex",
+    previewUrl: "/voices/fv_alex.wav",
   },
 ];
 
@@ -75,13 +89,6 @@ const queries: NarratorVoicePanelQueries = {
     data: { ok: true, data: status },
     isLoading: false,
   }),
-  useNarratorVoiceSources: (_project, enabled) => {
-    sourcesEnabled = enabled;
-    return {
-      data: { ok: true, data: { options: sourceOptions } },
-      isLoading: false,
-    };
-  },
   useUploadNarratorVoice: () => ({
     isPending: false,
     mutateAsync: uploadVoice,
@@ -98,9 +105,9 @@ const queries: NarratorVoicePanelQueries = {
     isPending: false,
     mutateAsync: designNarratorVoice,
   }),
-  useCopyProjectNarratorVoice: () => ({
+  useBindNarratorVoice: () => ({
     isPending: false,
-    mutateAsync: copyProjectVoice,
+    mutateAsync: bindNarratorVoice,
   }),
   useTrimNarratorVoice: () => ({
     isPending: false,
@@ -116,18 +123,39 @@ const useController = createUseNarratorVoicePanelController(queries, {
   createVoiceRecorder,
 });
 
+function wrapper({ children }: { children: ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={client}>
+      <TaskControllerProvider project="demo" episode={0}>
+        {children}
+      </TaskControllerProvider>
+    </QueryClientProvider>
+  );
+}
+
+function controllerOptions<T extends object>(overrides?: T) {
+  return {
+    project: "demo",
+    loadVoiceOptions,
+    ...overrides,
+  };
+}
+
 describe("Production narrator voice panel controller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     status = { ...baseStatus };
-    sourceOptions = [
+    accountVoiceOptions = [
       {
-        label: "Beat 1 narration",
-        path: "audio/beat_1.wav",
-        rel_path: "audio/beat_1.wav",
+        voiceId: "fv_alex",
+        label: "Alex",
+        previewUrl: "/voices/fv_alex.wav",
       },
     ];
-    sourcesEnabled = false;
+    loadVoiceOptions.mockImplementation(async () => accountVoiceOptions);
     recorderCallbacks = null;
     recorderAvailability.mockReturnValue("available");
     recorderStart.mockImplementation(
@@ -140,7 +168,7 @@ describe("Production narrator voice panel controller", () => {
       recordVoice,
       generatePresetVoice,
       designNarratorVoice,
-      copyProjectVoice,
+      bindNarratorVoice,
       trimVoice,
       deleteVoice,
     ]) {
@@ -148,15 +176,14 @@ describe("Production narrator voice panel controller", () => {
     }
   });
 
-  it("projects status, edit permission, and the default project audio source", async () => {
+  it("projects status and edit permission without exposing project audio", async () => {
     status = { ...baseStatus, is_first_person: true };
     const { result, rerender } = renderHook(
       ({ allowFirstPersonProjectVoice }) =>
-        useController({
-          project: "demo",
+        useController(controllerOptions({
           allowFirstPersonProjectVoice,
-        }),
-      { initialProps: { allowFirstPersonProjectVoice: false } },
+        })),
+      { initialProps: { allowFirstPersonProjectVoice: false }, wrapper },
     );
 
     expect(result.current.canEdit).toBe(false);
@@ -168,16 +195,13 @@ describe("Production narrator voice panel controller", () => {
     rerender({ allowFirstPersonProjectVoice: true });
     expect(result.current.canEdit).toBe(true);
 
-    act(() => result.current.onOpenProjectAudio());
-    await waitFor(() => {
-      expect(result.current.selectedSourcePath).toBe("audio/beat_1.wav");
-    });
-    expect(sourcesEnabled).toBe(true);
+    expect("onOpenProjectAudio" in result.current).toBe(false);
   });
 
   it("validates trim values and closes the dialog after a successful trim", async () => {
-    const { result } = renderHook(() =>
-      useController({ project: "demo" }),
+    const { result } = renderHook(
+      () => useController(controllerOptions()),
+      { wrapper },
     );
 
     act(() => {
@@ -207,37 +231,55 @@ describe("Production narrator voice panel controller", () => {
     );
   });
 
-  it("copies the selected project audio and exposes upload and delete commands", async () => {
-    const { result } = renderHook(() =>
-      useController({ project: "demo" }),
+  it("binds an account voice and exposes upload and delete commands", async () => {
+    const { result } = renderHook(
+      () => useController(controllerOptions()),
+      { wrapper },
     );
     const file = new File(["voice"], "voice.wav", { type: "audio/wav" });
 
-    act(() => result.current.onOpenProjectAudio());
-    await waitFor(() => {
-      expect(result.current.selectedSourcePath).toBe("audio/beat_1.wav");
-    });
-    await act(async () => result.current.onUseProjectAudio());
+    act(() => result.current.onOpenAiVoice());
+    await waitFor(() =>
+      expect(result.current.accountVoiceOptions).toHaveLength(1),
+    );
+    await act(async () => result.current.onBindAccountVoice("fv_alex"));
     await act(async () => result.current.onUpload(file));
     await act(async () => result.current.onDelete());
 
-    expect(copyProjectVoice).toHaveBeenCalledWith("audio/beat_1.wav");
-    expect(result.current.projectAudioOpen).toBe(false);
+    expect(bindNarratorVoice).toHaveBeenCalledWith("fv_alex");
+    expect(result.current.aiVoiceOpen).toBe(false);
     expect(uploadVoice).toHaveBeenCalledWith(file);
     expect(deleteVoice).toHaveBeenCalledOnce();
   });
 
   it("generates and saves a narrator reference from a catalog preset", async () => {
-    const { result } = renderHook(() =>
-      useController({
-        project: "demo",
+    generatePresetVoice.mockResolvedValue({
+      ok: true,
+      task_type: "freezone_voice_preset",
+      task_id: "task-narrator-preset",
+      task_key: "freezone_voice_preset:demo:0:project_narrator",
+      scope: "project_narrator",
+      message: "旁白预设声线任务已进入队列",
+    });
+    const { result } = renderHook(
+      () => useController(controllerOptions({
         presetVoiceAvailability: "ready",
-        presetVoiceModelLabel: "MOSS-TTSD v0.5",
-        presetVoiceOptions: [
-          { value: "claire", label: "Claire", isDefault: true },
-          { value: "anna", label: "Anna" },
+        presetVoiceDefaultSelector: "cloud:MOSS-TTSD-v0.5",
+        presetVoiceModels: [
+          {
+            value: "cloud:MOSS-TTSD-v0.5",
+            label: "MOSS-TTSD v0.5",
+            acceptsVoice: true,
+            voices: [
+              { value: "claire", label: "Claire", isDefault: true },
+              { value: "anna", label: "Anna" },
+            ],
+            allowsCustomVoice: false,
+            requiresVoice: true,
+          },
         ],
-      }),
+      })),
+      { wrapper },
     );
 
     act(() => result.current.onOpenAiVoice());
@@ -252,41 +294,70 @@ describe("Production narrator voice panel controller", () => {
 
     expect(generatePresetVoice).toHaveBeenCalledWith({
       name: "Anna",
+      model_selector: "cloud:MOSS-TTSD-v0.5",
       voice: "anna",
       text: "这是一段试听文本。",
     });
-    expect(result.current.aiVoiceOpen).toBe(false);
+    expect(result.current.aiVoiceOpen).toBe(true);
+    expect(result.current.pending).toBe(true);
     expect(toastSuccess).toHaveBeenCalledWith(
-      "episode.workbench.video.narratorVoicePresetGenerated",
+      "旁白预设声线任务已进入队列",
     );
   });
 
-  it("designs a reusable voice from text with the selected cloud route", async () => {
-    const { result } = renderHook(() =>
-      useController({
-        project: "demo",
+  it("designs a reusable voice from text with the manually selected BYOK route", async () => {
+    designNarratorVoice.mockResolvedValue({
+      ok: true,
+      task_type: "freezone_voice_design",
+      task_id: "task-narrator-design",
+      task_key: "freezone_voice_design:demo:0:project_narrator",
+      scope: "project_narrator",
+      message: "旁白声线设计任务已进入队列",
+    });
+    const config = {
+      promptMinLength: 1,
+      promptMaxLength: 2048,
+      previewTextMinLength: 1,
+      previewTextMaxLength: 1024,
+      preferredName: "custom_voice",
+      languages: ["zh", "en"],
+      defaultLanguage: "zh",
+      sampleRates: [24000],
+      defaultSampleRate: 24000,
+      responseFormats: ["wav", "mp3"],
+      defaultResponseFormat: "wav",
+    };
+    const { result } = renderHook(
+      () => useController(controllerOptions({
         designVoiceAvailability: "ready",
-        designVoiceModelLabel: "Qwen voice design",
-        designVoiceModelSelector: "cloud:voice-design-model",
-        designVoiceConfig: {
-          promptMaxLength: 2048,
-          previewTextMaxLength: 1024,
-          preferredName: "custom_voice",
-          languages: ["zh", "en"],
-          defaultLanguage: "zh",
-          sampleRates: [24000],
-          defaultSampleRate: 24000,
-          responseFormats: ["wav", "mp3"],
-          defaultResponseFormat: "wav",
-        },
-      }),
+        designVoiceDefaultSelector: "cloud:voice-design-model",
+        designVoiceOptions: [
+          {
+            value: "cloud:voice-design-model",
+            label: "Qwen voice design",
+            config,
+          },
+          {
+            value: "byok:fish:voice-design-model",
+            label: "BYOK voice design",
+            config,
+          },
+        ],
+      })),
+      { wrapper },
     );
 
     act(() => result.current.onOpenAiVoice());
-    expect(result.current.generationMode).toBe("design");
+    expect(result.current.voiceSourceType).toBe("voice_design");
     expect(result.current.designLanguage).toBe("zh");
+    expect(result.current.designVoiceModelSelector).toBe(
+      "cloud:voice-design-model",
+    );
 
     act(() => {
+      result.current.onDesignVoiceModelChange(
+        "byok:fish:voice-design-model",
+      );
       result.current.onDesignNameChange("纪录片旁白");
       result.current.onDesignPromptChange("沉稳清晰、富有磁性的中年男声");
       result.current.onDesignPreviewTextChange("欢迎收听今天的节目。");
@@ -295,7 +366,7 @@ describe("Production narrator voice panel controller", () => {
 
     expect(designNarratorVoice).toHaveBeenCalledWith({
       name: "纪录片旁白",
-      model_selector: "cloud:voice-design-model",
+      model_selector: "byok:fish:voice-design-model",
       voice_prompt: "沉稳清晰、富有磁性的中年男声",
       preview_text: "欢迎收听今天的节目。",
       preferred_name: "custom_voice",
@@ -303,12 +374,17 @@ describe("Production narrator voice panel controller", () => {
       sample_rate: 24000,
       response_format: "wav",
     });
-    expect(result.current.aiVoiceOpen).toBe(false);
+    expect(result.current.aiVoiceOpen).toBe(true);
+    expect(result.current.pending).toBe(true);
+    expect(toastSuccess).toHaveBeenCalledWith(
+      "旁白声线设计任务已进入队列",
+    );
   });
 
   it("records through the shared recorder and saves the completed data URL", async () => {
-    const { result, unmount } = renderHook(() =>
-      useController({ project: "demo" }),
+    const { result, unmount } = renderHook(
+      () => useController(controllerOptions()),
+      { wrapper },
     );
 
     act(() => result.current.onOpenRecord());
@@ -350,8 +426,9 @@ describe("Production narrator voice panel controller", () => {
 
   it("reports an unavailable or failed recorder", async () => {
     recorderAvailability.mockReturnValue("unavailable");
-    const { result } = renderHook(() =>
-      useController({ project: "demo" }),
+    const { result } = renderHook(
+      () => useController(controllerOptions()),
+      { wrapper },
     );
 
     await act(async () => result.current.onStartRecording());

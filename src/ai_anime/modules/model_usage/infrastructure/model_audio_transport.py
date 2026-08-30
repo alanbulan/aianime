@@ -88,6 +88,7 @@ async def write_model_audio_speech(
     output_path: str | Path,
     model_role: AudioSpeechModelRole,
     input_text: str,
+    model_selector: str | None = None,
     response_format: str = "mp3",
     voice: str | None = None,
     speed: float | None = None,
@@ -97,6 +98,7 @@ async def write_model_audio_speech(
     timeout_seconds: float = 600.0,
 ) -> ModelAudioWriteResult:
     """Write one Gateway ``/audio/speech`` response to disk."""
+    from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
     from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
         resolve_model_for_role,
     )
@@ -122,7 +124,8 @@ async def write_model_audio_speech(
         raise ValueError(
             "voice clone metadata is not supported by the Gateway contract"
         )
-    effective_model = resolve_model_for_role(clean_model_role)
+    route = resolve_model_route(model_selector)
+    effective_model = route.model or resolve_model_for_role(clean_model_role)
     _reject_transport_fields(metadata or {})
     for key in metadata or {}:
         if _normalized_transport_key(key) in _JSON_AUDIO_REFERENCE_KEYS:
@@ -130,7 +133,10 @@ async def write_model_audio_speech(
                 f"metadata cannot contain JSON reference audio field {key}"
             )
 
-    base_url, headers = get_model_access_json_transport(clean_model_role)
+    base_url, headers = get_model_access_json_transport(
+        clean_model_role,
+        route.selector or None,
+    )
     headers = dict(headers)
     if is_voice_clone:
         headers = {

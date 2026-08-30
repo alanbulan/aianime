@@ -4,14 +4,63 @@ import { describe, expect, it } from "vitest";
 import {
   BYOK_MODEL_ROLES,
   commercialModelRoles,
+  effectiveModelRuntimeSettings,
   parseCommercialModelAccessStatus,
   parseCommercialModelCatalogItem,
   resolveRequiredCatalogModelCode,
   resolveCommercialModelRoleRoute,
   type CommercialModelCatalog,
 } from "@/modules/model_usage/domain/commercial-model-access";
+import {
+  commercialModelRuntimeMetadata,
+  formatReasoningEffort,
+} from "@/modules/model_usage/domain/model-runtime-metadata";
 
 describe("commercial model details", () => {
+  it("reads runtime limits from capabilities and JSON Schema properties", () => {
+    const metadata = commercialModelRuntimeMetadata({
+      capabilities: { contextWindowTokens: 32768 },
+      parameterSchema: {
+        type: "object",
+        properties: {
+          max_completion_tokens: {
+            type: "integer",
+            minimum: 1,
+            maximum: 8192,
+          },
+          reasoning_effort: {
+            type: "string",
+            enum: ["low", "medium", "xhigh"],
+            default: "low",
+          },
+        },
+      },
+    });
+
+    expect(metadata).toEqual({
+      contextWindow: 32768,
+      maxOutputTokens: 8192,
+      reasoningEffort: {
+        options: ["low", "medium", "xhigh"],
+        defaultValue: "low",
+      },
+    });
+    expect(formatReasoningEffort(metadata.reasoningEffort)).toBe(
+      "low / medium / xhigh（默认 low）",
+    );
+  });
+
+  it("does not invent unsupported reasoning levels or context limits", () => {
+    expect(commercialModelRuntimeMetadata({
+      capabilities: {},
+      parameterSchema: {
+        properties: {
+          reasoning_effort: { type: "string", default: "high" },
+        },
+      },
+    })).toEqual({});
+  });
+
   it("projects renderer-safe capability and parameter JSON", () => {
     expect(
       parseCommercialModelCatalogItem({
@@ -154,6 +203,39 @@ describe("commercial model access status", () => {
     ]);
   });
 
+  it("keeps declared metadata separate while local runtime overrides win", () => {
+    const [assignment] = parseCommercialModelAccessStatus({
+      ...baseStatus,
+      cloudModelAssignments: [{
+        modelId: "cloud-text",
+        role: "TEXT",
+        contextWindow: 32768,
+        maxOutputTokens: 2048,
+        reasoningEfforts: ["low", "medium", "xhigh"],
+        defaultReasoningEffort: "low",
+        runtimeOverrides: {
+          contextWindow: 65536,
+          maxOutputTokens: 8192,
+          reasoningEfforts: ["medium", "xhigh"],
+          defaultReasoningEffort: "xhigh",
+        },
+      }],
+    }).cloudModelAssignments;
+
+    expect(assignment).toMatchObject({
+      contextWindow: 32768,
+      maxOutputTokens: 2048,
+      reasoningEfforts: ["low", "medium", "xhigh"],
+      defaultReasoningEffort: "low",
+    });
+    expect(effectiveModelRuntimeSettings(assignment)).toEqual({
+      contextWindow: 65536,
+      maxOutputTokens: 8192,
+      reasoningEfforts: ["medium", "xhigh"],
+      defaultReasoningEffort: "xhigh",
+    });
+  });
+
   it("treats a migrated status without assignments as an empty catalog", () => {
     expect(
       parseCommercialModelAccessStatus(baseStatus).byokProviders,
@@ -205,6 +287,7 @@ describe("commercial model access status", () => {
       role: "AUDIO_VOICE_CLONE",
       source: "byok",
       providerName: "Provider A",
+      selector: "byok:provider-a:byok-clone",
     });
   });
 

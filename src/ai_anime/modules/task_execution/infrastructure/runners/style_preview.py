@@ -27,6 +27,19 @@ def run_style_preview(
     )
 
 
+def run_style_analysis(
+    envelope: dict[str, Any],
+    context: ProjectContext,
+) -> dict[str, Any] | None:
+    return asyncio.run(
+        await_envelope_with_cancel_watch(
+            _run_style_analysis(envelope, context),
+            envelope,
+            task_type="style_analysis",
+        )
+    )
+
+
 async def _run_style_preview(
     envelope: dict[str, Any],
     context: ProjectContext,
@@ -80,4 +93,68 @@ async def _run_style_preview(
     }
 
 
+async def _run_style_analysis(
+    envelope: dict[str, Any],
+    context: ProjectContext,
+) -> dict[str, Any]:
+    from ai_anime.modules.asset_world.public import (
+        AnalyzeStyleCommand,
+        StyleAnalysisBilling,
+        StyleScope,
+        analyze_style,
+    )
+
+    payload = envelope.get("payload") or {}
+    source_path = Path(str(payload.get("source_path") or ""))
+    scope_key = envelope.get("scope")
+    manager = get_task_manager()
+
+    def update(progress: float, current_task: str) -> None:
+        manager.update_progress_for_project(
+            context,
+            "style_analysis",
+            0,
+            scope=scope_key,
+            progress=progress,
+            current_task=current_task,
+            logs=[current_task],
+        )
+
+    staged_root = (
+        Path(context.output_dir) / ".task_inputs" / "style_analysis"
+    ).resolve()
+    try:
+        source_path = source_path.resolve(strict=True)
+        source_path.relative_to(staged_root)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        raise FileNotFoundError("风格分析输入图片不存在或不属于当前项目") from exc
+    if not source_path.is_file():
+        raise FileNotFoundError("风格分析输入图片不存在")
+    style_scope = StyleScope(
+        username=context.owner_username,
+        project_name=context.project_name,
+        project_dir=Path(context.output_dir),
+        request_project=context.project_id,
+    )
+    update(0.10, "读取风格参考图...")
+    try:
+        content = source_path.read_bytes()
+        update(0.25, "调用视觉模型分析风格...")
+        data = await analyze_style().execute(
+            AnalyzeStyleCommand(
+                content=content,
+                mime_type=str(payload.get("mime_type") or "image/jpeg"),
+                filename=str(payload.get("filename") or source_path.name),
+                style_id=str(payload.get("style_id") or ""),
+                billing=StyleAnalysisBilling.from_project_context(context),
+            ),
+            style_scope,
+        )
+        update(0.95, "视觉风格分析完成")
+        return dict(data)
+    finally:
+        source_path.unlink(missing_ok=True)
+
+
 register_project_task_runner("style_preview", run_style_preview)
+register_project_task_runner("style_analysis", run_style_analysis)

@@ -51,7 +51,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
             referenceLimits: {
               total: 6,
             },
-            sceneOptimizeOptions: ["ANIME", "realistic"],
+            sceneOptimizeOptions: ["cinematic", "realistic"],
             defaultSceneOptimize: "realistic",
           },
           parameterSchema: {},
@@ -85,7 +85,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
           referenceLimits: {
             total: 6,
           },
-          sceneOptimizeOptions: ["ANIME", "realistic"],
+          sceneOptimizeOptions: ["cinematic", "realistic"],
           defaultSceneOptimize: "realistic",
         },
         parameterSchema: {},
@@ -96,6 +96,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
         id: "cloud-generation-standard",
         apiModel: "cloud-generation-standard",
         label: "Cloud Generation Standard",
+        capabilities: catalog.items[0].capabilities,
         supportedModes: ["textToVideo", "firstFrame", "videoEdit"],
         supportsHumanReview: true,
         supportsReferenceVideos: true,
@@ -114,7 +115,8 @@ describe("httpCanvasGenerationCatalogGateway", () => {
         resolutionOptions: ["720p", "1080p"],
         minDuration: 4,
         maxDuration: 15,
-        sceneOptimizeOptions: ["anime", "realistic"],
+        defaultDuration: null,
+        sceneOptimizeOptions: ["cinematic", "realistic"],
         defaultSceneOptimize: "realistic",
         parameterSchema: {},
       },
@@ -202,15 +204,66 @@ describe("httpCanvasGenerationCatalogGateway", () => {
         id: "video-standard",
         apiModel: "video-standard",
         label: "Video Standard",
+        capabilities: { resolutions: ["720p", "1080p"] },
         resolutionOptions: ["720p", "1080p"],
         minDuration: null,
         maxDuration: null,
+        defaultDuration: null,
         parameterSchema: {},
       },
     ]);
     expect(loadCommercialModelCatalog).toHaveBeenNthCalledWith(1, "IMAGE");
     expect(loadCommercialModelCatalog).toHaveBeenNthCalledWith(2, "VIDEO");
     expect(apiCall).not.toHaveBeenCalled();
+  });
+
+  it("keeps H3 exact sizes and schema parameters separate from resolution tiers", () => {
+    const capabilities = {
+      supportedModes: ["TEXT_TO_VIDEO", "IMAGE_TO_VIDEO", "MULTIMODAL_REFERENCE"],
+      resolutionOptions: ["1344x768", "768x1344", "1024x1024"],
+      ratioOptions: ["16:9", "9:16", "1:1"],
+      minDuration: 1,
+      maxDuration: 15,
+      generateAudio: false,
+    };
+    const parameterSchema = {
+      type: "object",
+      properties: {
+        seconds: { type: "integer", minimum: 1, maximum: 15, default: 3 },
+        size: {
+          type: "string",
+          enum: ["1344x768", "768x1344", "1024x1024"],
+          default: "1344x768",
+        },
+        steps: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        seed: { type: "integer", minimum: 0, maximum: 2147483647, default: 42 },
+        turbo: { type: "boolean", default: false },
+      },
+    };
+
+    expect(commercialVideoModels({
+      catalogVersion: "h3-v1",
+      items: [{
+        id: "h3",
+        code: "MINIMAX_H3",
+        displayName: "MiniMax H3",
+        operation: "VIDEO",
+        capabilities,
+        parameterSchema,
+      }],
+    })).toEqual([
+      expect.objectContaining({
+        apiModel: "MINIMAX_H3",
+        supportedModes: ["textToVideo", "imageToVideo", "allReference"],
+        sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+        aspectRatioOptions: ["16:9", "9:16", "1:1"],
+        minDuration: 1,
+        maxDuration: 15,
+        defaultDuration: 3,
+        supportsGenerateAudio: false,
+        parameterSchema,
+      }),
+    ]);
   });
 
   it("maps camera and style transport fields to application DTOs", async () => {

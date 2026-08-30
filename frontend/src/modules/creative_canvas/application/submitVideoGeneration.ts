@@ -1,27 +1,16 @@
 // Copyright (c) 2026 AI anime
 import type { CanvasGenerationTaskRef } from "./completeCanvasMediaGenerationTask";
-import {
-  qualityToResolution,
-  type Seedance2SceneOptimize,
-  type VideoGenQuality,
-} from "../domain/videoGenerationModel";
+import type { VideoSceneOptimize } from "../domain/videoGenerationModel";
 import type {
   VideoGenMode,
 } from "../domain/videoGenerationMode";
 
-export type VideoGenerationAspectRatio =
-  | "auto"
-  | "16:9"
-  | "4:3"
-  | "1:1"
-  | "3:4"
-  | "9:16"
-  | "21:9"
-  | "9:21"
-  | "5:4"
-  | "4:5";
+export type VideoGenerationAspectRatio = string;
 
-export type VideoGenerationResolution = "480p" | "720p" | "1080p";
+export interface VideoGenerationOutput {
+  readonly parameter: "resolution" | "size";
+  readonly value: string;
+}
 
 export interface VideoGenerationTaskRef extends CanvasGenerationTaskRef {
   readonly task_type: "freezone_video_gen";
@@ -39,7 +28,8 @@ interface VideoGenerationParamsBase {
   readonly prompt: string;
   readonly cameraTemplateId: string | null;
   readonly aspectRatio: VideoGenerationAspectRatio;
-  readonly quality: VideoGenQuality;
+  readonly output: VideoGenerationOutput;
+  readonly extraParams?: Record<string, unknown>;
   readonly durationSeconds: number;
   readonly generateAudio: boolean;
   readonly model: string;
@@ -50,7 +40,7 @@ interface VideoGenerationParamsBase {
 
 interface ReviewedVideoGenerationParams {
   readonly humanReview: boolean;
-  readonly sceneOptimize: Seedance2SceneOptimize | null;
+  readonly sceneOptimize: VideoSceneOptimize | null;
 }
 
 export type SubmitVideoGenerationParams = VideoGenerationParamsBase &
@@ -87,7 +77,8 @@ interface VideoGenerationSubmissionBase {
   readonly prompt: string;
   readonly cameraTemplateId: string | null;
   readonly aspectRatio: VideoGenerationAspectRatio;
-  readonly resolution: VideoGenerationResolution;
+  readonly output: VideoGenerationOutput;
+  readonly extraParams: Record<string, unknown>;
   readonly durationSeconds: number;
   readonly generateAudio: boolean;
   readonly model: string;
@@ -138,7 +129,8 @@ function commonSubmission(
     prompt: params.prompt,
     cameraTemplateId: params.cameraTemplateId,
     aspectRatio: params.aspectRatio,
-    resolution: qualityToResolution(params.quality),
+    output: params.output,
+    extraParams: params.extraParams ?? {},
     durationSeconds: params.durationSeconds,
     generateAudio: params.generateAudio,
     model: params.model,

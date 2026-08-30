@@ -7,7 +7,9 @@ human-review media uploads.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -35,6 +37,12 @@ class FakeBucket:
     def put_object_from_file(self, key: str, filename: str) -> None:
         self.upload_calls.append((key, filename))
         self.existing_keys.add(key)
+
+    def head_object(self, _key: str):
+        return SimpleNamespace(
+            content_length=1,
+            last_modified=time.time() + 10,
+        )
 
 
 @pytest.fixture
@@ -140,3 +148,33 @@ def test_public_endpoint_overrides_internal_for_signing(monkeypatch: pytest.Monk
     endpoint, *_ = oss_client._read_creds()
 
     assert endpoint == "oss-cn-chengdu.aliyuncs.com"
+
+
+def test_presign_cache_evicts_entries_at_capacity(
+    fake_bucket: FakeBucket,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(oss_client, "_CACHE_MAX_ENTRIES", 2)
+
+    for index in range(3):
+        assert oss_client.presign_get_cached(f"key-{index}", index, 900)
+
+    assert len(oss_client._presign_cache) == 2
+    assert ("key-0", 0) not in oss_client._presign_cache
+
+
+def test_static_ready_cache_evicts_entries_at_capacity(
+    output_root: Path,
+    fake_bucket: FakeBucket,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(oss_client, "_CACHE_MAX_ENTRIES", 2)
+    monkeypatch.setattr(oss_settings, "OSS_STATIC_REQUIRE_READY", True)
+    monkeypatch.setattr(oss_settings, "OSS_STATIC_READY_PROBE_ATTEMPTS", 1)
+
+    for index in range(3):
+        local = output_root / f"asset-{index}.png"
+        local.write_bytes(b"x")
+        assert oss_client._static_object_ready(local, f"key-{index}", index)
+
+    assert len(oss_client._static_ready_cache) == 2

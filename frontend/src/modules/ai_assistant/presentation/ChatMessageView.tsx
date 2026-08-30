@@ -12,10 +12,11 @@ import {
   Pin,
   PinOff,
   Timer,
+  Undo2,
   Volume2,
   X,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
@@ -25,6 +26,16 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   assistantCompletionTextEnd,
   errorTextRanges,
@@ -462,6 +473,7 @@ export const MessageBubble = memo(function MessageBubble({
   onOpenDetail,
   onOpenMedia,
   pinned,
+  excluded = false,
   onDelete,
   onTogglePin,
   deferStructuredRender = false,
@@ -472,6 +484,7 @@ export const MessageBubble = memo(function MessageBubble({
   onOpenDetail: (message: ChatMessage) => void;
   onOpenMedia: (detail: SpecMediaDetail) => void;
   pinned: boolean;
+  excluded?: boolean;
   onDelete: (id: string) => void;
   onTogglePin: (id: string) => void;
   deferStructuredRender?: boolean;
@@ -484,6 +497,7 @@ export const MessageBubble = memo(function MessageBubble({
   const isErrorReply = isAssistantErrorReply(message);
   const isCompletionNotice = isAssistantCompletionNotice(message);
   const { t } = useTranslation();
+  const [excludeConfirmOpen, setExcludeConfirmOpen] = useState(false);
   const shouldWaitForStructuredRender =
     deferStructuredRender && !isUser && !isTool && looksLikeStructuredRenderText(message.text);
   const { displayText, blocks } = extractStructuredBlocks(message);
@@ -503,6 +517,48 @@ export const MessageBubble = memo(function MessageBubble({
   const userActionButtonClass =
     "size-7 rounded-md text-foreground/70 opacity-100 hover:bg-muted hover:text-foreground";
   const userActionIconClass = "size-3.5 stroke-[2.25]";
+  const pinLabel = pinned
+    ? t("aiAssistant.unpinContext", "取消固定完整内容")
+    : t("aiAssistant.pinContext", "固定完整内容，压缩时保留原文");
+  const excludeLabel = excluded
+    ? t("aiAssistant.restoreContext", "恢复到 AI 上下文")
+    : t("aiAssistant.excludeContext", "从 AI 上下文排除（不删除记录）");
+  const handleContextExclusion = () => {
+    if (excluded) {
+      onDelete(message.id);
+      return;
+    }
+    setExcludeConfirmOpen(true);
+  };
+  const excludeDialog = (
+    <AlertDialog open={excludeConfirmOpen} onOpenChange={setExcludeConfirmOpen}>
+      <AlertDialogContent size="sm">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {t("aiAssistant.excludeContextConfirmTitle", "从 AI 上下文排除此消息？")}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {t(
+              "aiAssistant.excludeContextConfirmDescription",
+              "聊天记录和底层数据库不会删除，但 AI 后续回答将不再使用这条消息。你可以随时恢复。",
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t("common.cancel", "取消")}</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            onClick={() => {
+              setExcludeConfirmOpen(false);
+              onDelete(message.id);
+            }}
+          >
+            {t("aiAssistant.excludeContextConfirmAction", "排除")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
   const actions = (
     <div
       className={cn(
@@ -517,6 +573,7 @@ export const MessageBubble = memo(function MessageBubble({
         className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={copyText}
         aria-label={t("aiAssistant.copy")}
+        data-ui-tooltip={t("aiAssistant.copy")}
       >
         <Copy className={cn("size-3.5", isUser && userActionIconClass)} />
       </Button>
@@ -525,7 +582,8 @@ export const MessageBubble = memo(function MessageBubble({
         size="icon-xs"
         className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={speak}
-        aria-label="Speak"
+        aria-label={t("aiAssistant.speak", "朗读")}
+        data-ui-tooltip={t("aiAssistant.speak", "朗读")}
       >
         <Volume2 className={cn("size-3.5", isUser && userActionIconClass)} />
       </Button>
@@ -534,7 +592,8 @@ export const MessageBubble = memo(function MessageBubble({
         size="icon-xs"
         className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={() => onOpenDetail(message)}
-        aria-label="Details"
+        aria-label={t("aiAssistant.details", "查看完整内容")}
+        data-ui-tooltip={t("aiAssistant.details", "查看完整内容")}
       >
         <Maximize2 className={cn("size-3.5", isUser && userActionIconClass)} />
       </Button>
@@ -543,7 +602,9 @@ export const MessageBubble = memo(function MessageBubble({
         size="icon-xs"
         className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
         onClick={() => onTogglePin(message.id)}
-        aria-label={pinned ? "Unpin" : "Pin"}
+        aria-label={pinLabel}
+        aria-pressed={pinned}
+        data-ui-tooltip={pinLabel}
       >
         {pinned ? <PinOff className={cn("size-3.5", isUser && userActionIconClass)} /> : <Pin className={cn("size-3.5", isUser && userActionIconClass)} />}
       </Button>
@@ -551,18 +612,30 @@ export const MessageBubble = memo(function MessageBubble({
         variant="ghost"
         size="icon-xs"
         className={cn("opacity-70 hover:bg-muted hover:text-foreground hover:opacity-100", isUser && userActionButtonClass)}
-        onClick={() => onDelete(message.id)}
-        aria-label="Delete"
+        onClick={handleContextExclusion}
+        aria-label={excludeLabel}
+        aria-pressed={excluded}
+        data-ui-tooltip={excludeLabel}
       >
-        <X className={cn("size-3.5", isUser && userActionIconClass)} />
+        {excluded
+          ? <Undo2 className={cn("size-3.5", isUser && userActionIconClass)} />
+          : <X className={cn("size-3.5", isUser && userActionIconClass)} />}
       </Button>
+      {excludeDialog}
     </div>
   );
 
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <article className={cn("max-w-[72%]", isFreezoneLayout && "max-w-[82%]")}>
+        <article
+          data-context-state={excluded ? "excluded" : pinned ? "pinned" : "normal"}
+          className={cn(
+            "max-w-[72%]",
+            isFreezoneLayout && "max-w-[82%]",
+            excluded && "opacity-65",
+          )}
+        >
           <div className="group/message-actions">
             <div
               className={cn(
@@ -570,6 +643,11 @@ export const MessageBubble = memo(function MessageBubble({
               )}
             >
               {actions}
+              {excluded && (
+                <Badge variant="outline" className="mb-2 h-5 border-dashed text-[10px] text-muted-foreground">
+                  {t("aiAssistant.contextExcluded", "已从 AI 上下文排除")}
+                </Badge>
+              )}
               <AttachmentList attachments={message.attachments} align="end" />
               {displayText && (
                 <div className="whitespace-pre-wrap break-words">{displayText}</div>
@@ -593,6 +671,7 @@ export const MessageBubble = memo(function MessageBubble({
       )}
       <div className={cn("flex min-w-0 flex-1", isUser ? "justify-end" : "justify-start")}>
         <article
+          data-context-state={excluded ? "excluded" : pinned ? "pinned" : "normal"}
           className={cn(
             "group relative text-sm leading-6 shadow-none",
             blocks.length > 0 && !isUser && !isTool
@@ -603,6 +682,7 @@ export const MessageBubble = memo(function MessageBubble({
               : isUser
                 ? "max-w-[86%] rounded-[14px] bg-muted px-4 pb-3 pt-2 text-foreground"
                 : "max-w-full rounded-[14px] border border-border bg-card px-4 pb-3 pt-2 text-foreground",
+            excluded && "border-dashed opacity-65",
           )}
         >
         <div className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex translate-y-0.5 items-center gap-0.5 rounded-full border border-border/70 bg-background/85 px-1 py-0.5 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
@@ -612,6 +692,7 @@ export const MessageBubble = memo(function MessageBubble({
             className="opacity-70 hover:opacity-100"
             onClick={copyText}
             aria-label={t("aiAssistant.copy")}
+            data-ui-tooltip={t("aiAssistant.copy")}
           >
             <Copy className="size-3" />
           </Button>
@@ -620,7 +701,8 @@ export const MessageBubble = memo(function MessageBubble({
             size="icon-xs"
             className="opacity-70 hover:opacity-100"
             onClick={speak}
-            aria-label="Speak"
+            aria-label={t("aiAssistant.speak", "朗读")}
+            data-ui-tooltip={t("aiAssistant.speak", "朗读")}
           >
             <Volume2 className="size-3" />
           </Button>
@@ -629,7 +711,8 @@ export const MessageBubble = memo(function MessageBubble({
             size="icon-xs"
             className="opacity-70 hover:opacity-100"
             onClick={() => onOpenDetail(message)}
-            aria-label="Details"
+            aria-label={t("aiAssistant.details", "查看完整内容")}
+            data-ui-tooltip={t("aiAssistant.details", "查看完整内容")}
           >
             <Maximize2 className="size-3" />
           </Button>
@@ -638,7 +721,9 @@ export const MessageBubble = memo(function MessageBubble({
             size="icon-xs"
             className="opacity-70 hover:opacity-100"
             onClick={() => onTogglePin(message.id)}
-            aria-label={pinned ? "Unpin" : "Pin"}
+            aria-label={pinLabel}
+            aria-pressed={pinned}
+            data-ui-tooltip={pinLabel}
           >
             {pinned ? <PinOff className="size-3" /> : <Pin className="size-3" />}
           </Button>
@@ -646,11 +731,14 @@ export const MessageBubble = memo(function MessageBubble({
             variant="ghost"
             size="icon-xs"
             className="opacity-70 hover:opacity-100"
-            onClick={() => onDelete(message.id)}
-            aria-label="Delete"
+            onClick={handleContextExclusion}
+            aria-label={excludeLabel}
+            aria-pressed={excluded}
+            data-ui-tooltip={excludeLabel}
           >
-            <X className="size-3" />
+            {excluded ? <Undo2 className="size-3" /> : <X className="size-3" />}
           </Button>
+          {excludeDialog}
         </div>
         {!isTool && message.displayName && !isUser && (
           <div className="mb-1 flex items-center gap-2 pr-28">
@@ -660,6 +748,11 @@ export const MessageBubble = memo(function MessageBubble({
               </div>
             ) : null}
           </div>
+        )}
+        {excluded && (
+          <Badge variant="outline" className="mb-2 h-5 border-dashed text-[10px] text-muted-foreground">
+            {t("aiAssistant.contextExcluded", "已从 AI 上下文排除")}
+          </Badge>
         )}
         <AttachmentList attachments={message.attachments} />
         {isTool ? (

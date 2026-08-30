@@ -76,7 +76,10 @@ export function registerCommercialModelHandlers(
       bootstrap.models,
       query.modelOperation ?? "TEXT",
     );
-    context.updateModelCapabilities(bootstrap.models);
+    context.updateModelCapabilities(
+      bootstrap.models,
+      query.modelOperation ?? "TEXT",
+    );
     if (authorizationAllowsByok(context.currentAuthorization)) {
       bootstrap.models = mergeModelCatalogs(
         bootstrap.models,
@@ -98,7 +101,7 @@ export function registerCommercialModelHandlers(
         authorizationDeviceId(authorization),
       ),
     );
-    context.updateModelCapabilities(cloudCatalog);
+    context.updateModelCapabilities(cloudCatalog, query.operation);
     context.cloudModelAssignments = updateCloudModelAssignments(
       context.cloudModelAssignments,
       cloudCatalog,

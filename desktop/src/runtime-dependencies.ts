@@ -14,7 +14,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
-import type { IpcMain } from "electron";
+import type { IpcMain, IpcMainInvokeEvent } from "electron";
 import {
   executableName,
   installedWorldRuntimePaths,
@@ -603,19 +603,27 @@ export class RuntimeDependencyManager {
 export function registerRuntimeDependencyIpc(
   ipcMain: Pick<IpcMain, "handle">,
   manager: Pick<RuntimeDependencyManager, "status" | "install">,
-  isAllowedSender: (senderId: number) => boolean,
+  isAllowedSender: (
+    senderId: number,
+    senderFrame?: unknown,
+    senderMainFrame?: unknown,
+  ) => boolean,
 ): void {
-  const requireAllowedSender = (senderId: number): void => {
-    if (!isAllowedSender(senderId)) {
+  const requireAllowedSender = (event: IpcMainInvokeEvent): void => {
+    if (!isAllowedSender(
+      event.sender.id,
+      event.senderFrame,
+      event.sender.mainFrame,
+    )) {
       throw new Error("runtime dependency sender is not the active desktop window");
     }
   };
   ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.status, async (event) => {
-    requireAllowedSender(event.sender.id);
+    requireAllowedSender(event);
     return await manager.status();
   });
   ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.install, async (event) => {
-    requireAllowedSender(event.sender.id);
+    requireAllowedSender(event);
     const sender = event.sender;
     return await manager.install((progress) => {
       if (!sender.isDestroyed()) {

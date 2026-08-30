@@ -7,9 +7,11 @@ import { useNow } from "@/shared/hooks/use-now";
 import { useTaskController } from "@/modules/task_execution/public";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
-  audioPresetVoiceOptions,
-  audioVoiceDesignConfig,
+  AUDIO_SPEECH_CATALOG_OPERATION,
+  audioSpeechModelOptions,
+  audioVoiceDesignModelOptions,
   commercialModelRoles,
+  resolveAudioModelSelector,
   useCommercialModelCatalog,
   useCommercialModelAccessStatus,
   loadCommercialModelCatalog,
@@ -29,6 +31,7 @@ import {
 } from "@/modules/project_workspace/public";
 import { useAppStore } from "@/modules/project_workspace/public";
 import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
+import type { AccountVoiceCatalog } from "@/shared/voice-source/voice-source";
 import { createAudioGenerationQueryHooks } from "@/modules/production/application/audio-generation-query-hooks";
 import { createAuthorizedProductionImageGateway } from "@/modules/production/application/authorized-image-generation-gateway";
 import { createEpisodeComposeQueryHooks } from "@/modules/production/application/episode-compose-query-hooks";
@@ -326,11 +329,10 @@ export const {
 } = videoGenerationQueries;
 export const {
   useNarratorVoiceStatus,
-  useNarratorVoiceSources,
   useUploadNarratorVoice,
   useRecordNarratorVoice,
   useGenerateNarratorVoicePreset,
-  useCopyProjectNarratorVoice,
+  useBindNarratorVoice,
   useTrimNarratorVoice,
   useDeleteNarratorVoice,
 } = narratorVoiceQueries;
@@ -403,11 +405,13 @@ export function BatchBar({
 export interface NarratorVoicePanelProps {
   allowFirstPersonProjectVoice?: boolean;
   project: string;
+  voiceCatalog: Pick<AccountVoiceCatalog, "loadVoiceOptions">;
 }
 
 export function NarratorVoicePanel({
   allowFirstPersonProjectVoice = false,
   project,
+  voiceCatalog,
 }: NarratorVoicePanelProps) {
   const commercialBridgeAvailable =
     typeof window !== "undefined" &&
@@ -416,57 +420,45 @@ export function NarratorVoicePanel({
     commercialBridgeAvailable,
   );
   const audioCatalog = useCommercialModelCatalog(
-    "AUDIO_VOICE_CLONE",
+    AUDIO_SPEECH_CATALOG_OPERATION,
     commercialBridgeAvailable,
   );
   const voiceDesignCatalog = useCommercialModelCatalog(
     "AUDIO_VOICE_DESIGN",
     commercialBridgeAvailable,
-    "cloud",
   );
   const speechRoute = resolveCommercialModelRoleRoute(
     modelAccess.data,
     "AUDIO_SPEECH",
   );
-  const speechCatalogModel =
-    speechRoute?.source === "cloud"
-      ? audioCatalog.data?.items.find(
-          (item) =>
-            item.code === speechRoute.modelId &&
-            commercialModelRoles(item).includes("AUDIO_SPEECH"),
-        ) ?? null
-      : null;
-  const presetVoiceOptions = useMemo(
-    () =>
-      speechCatalogModel ? audioPresetVoiceOptions(speechCatalogModel) : [],
-    [speechCatalogModel],
-  );
+  const presetVoiceModels = useMemo(() => {
+    const candidates = (audioCatalog.data?.items ?? []).filter((item) =>
+      commercialModelRoles(item).includes("AUDIO_SPEECH"),
+    );
+    return audioSpeechModelOptions(candidates);
+  }, [audioCatalog.data?.items]);
+  const presetVoiceDefaultSelector = useMemo(() => {
+    return resolveAudioModelSelector(
+      presetVoiceModels,
+      speechRoute?.selector,
+    );
+  }, [presetVoiceModels, speechRoute?.selector]);
   const designRoute = resolveCommercialModelRoleRoute(
     modelAccess.data,
     "AUDIO_VOICE_DESIGN",
   );
-  const designCatalogModel = useMemo(() => {
+  const designVoiceOptions = useMemo(() => {
     const candidates = (voiceDesignCatalog.data?.items ?? []).filter((item) =>
       commercialModelRoles(item).includes("AUDIO_VOICE_DESIGN"),
     );
-    const routed =
-      designRoute?.source === "cloud"
-        ? candidates.find((item) => item.code === designRoute.modelId) ?? null
-        : null;
-    if (routed) return routed;
-    const defaults = candidates.filter((item) => item.isDefault === true);
-    if (defaults.length === 1) return defaults[0];
-    return defaults.length === 0 && candidates.length === 1
-      ? candidates[0]
-      : null;
-  }, [designRoute, voiceDesignCatalog.data]);
-  const designVoiceConfig = useMemo(
-    () =>
-      designCatalogModel
-        ? audioVoiceDesignConfig(designCatalogModel)
-        : null,
-    [designCatalogModel],
-  );
+    return audioVoiceDesignModelOptions(candidates);
+  }, [voiceDesignCatalog.data]);
+  const designVoiceDefaultSelector = useMemo(() => {
+    return resolveAudioModelSelector(
+      designVoiceOptions,
+      designRoute?.selector,
+    );
+  }, [designRoute?.selector, designVoiceOptions]);
   let presetVoiceAvailability: NarratorVoicePresetAvailability = "ready";
   if (!commercialBridgeAvailable) {
     presetVoiceAvailability = "desktopRequired";
@@ -474,14 +466,8 @@ export function NarratorVoicePanel({
     presetVoiceAvailability = "loading";
   } else if (modelAccess.error || audioCatalog.error) {
     presetVoiceAvailability = "error";
-  } else if (!speechRoute) {
-    presetVoiceAvailability = "routeMissing";
-  } else if (speechRoute.source !== "cloud") {
-    presetVoiceAvailability = "cloudCatalogRequired";
-  } else if (!speechCatalogModel) {
-    presetVoiceAvailability = "catalogMissing";
-  } else if (presetVoiceOptions.length === 0) {
-    presetVoiceAvailability = "voicesMissing";
+  } else if (presetVoiceModels.length === 0) {
+    presetVoiceAvailability = speechRoute ? "catalogMissing" : "routeMissing";
   }
   let designVoiceAvailability: NarratorVoicePresetAvailability = "ready";
   if (!commercialBridgeAvailable) {
@@ -490,25 +476,18 @@ export function NarratorVoicePanel({
     designVoiceAvailability = "loading";
   } else if (voiceDesignCatalog.error) {
     designVoiceAvailability = "error";
-  } else if (!designCatalogModel) {
+  } else if (designVoiceOptions.length === 0) {
     designVoiceAvailability = "catalogMissing";
-  } else if (!designVoiceConfig) {
-    designVoiceAvailability = "voicesMissing";
   }
   const controller = useNarratorVoicePanelController({
     allowFirstPersonProjectVoice,
     designVoiceAvailability,
-    designVoiceConfig,
-    designVoiceModelLabel:
-      designCatalogModel?.displayName ?? designRoute?.modelId ?? "",
-    designVoiceModelSelector:
-      designCatalogModel
-        ? `cloud:${designCatalogModel.code}`
-        : "",
+    designVoiceDefaultSelector,
+    designVoiceOptions,
+    loadVoiceOptions: voiceCatalog.loadVoiceOptions,
     presetVoiceAvailability,
-    presetVoiceModelLabel:
-      speechCatalogModel?.displayName ?? speechRoute?.modelId ?? "",
-    presetVoiceOptions,
+    presetVoiceDefaultSelector,
+    presetVoiceModels,
     project,
   });
 

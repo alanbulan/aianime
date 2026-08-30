@@ -63,6 +63,7 @@ export function VideoPaneView({
     legacyPrompt,
     media,
     mention,
+    modelLabel,
     modelReferenceAssets,
     projectAspect,
     referenceCropAssets,
@@ -258,7 +259,9 @@ export function VideoPaneView({
                     config.setSeedance15Resolution(
                       normalizeSeedance2Resolution(
                         value,
-                        config.seedance2ResolutionOptions[0],
+                        normalizeSeedance2Resolution(
+                          config.seedance2ResolutionOptions[0],
+                        ),
                       ),
                     )
                   }
@@ -312,6 +315,7 @@ export function VideoPaneView({
           hasGeneratedVideo={media.hasGeneratedVideo}
           mediaCandidateCount={media.candidateCount}
           mention={mention}
+          modelLabel={modelLabel}
           projectAspect={projectAspect}
           referencesOpen={referencesOpen}
           savePending={savePending}

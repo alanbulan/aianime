@@ -41,6 +41,7 @@ class StubHermesRuntime:
     def __init__(self, thread):
         self.thread = thread
         self.calls = []
+        self.forgotten = []
 
     async def get_for_user(
         self, username, *, scope_kind, project_id, conversation_id
@@ -48,14 +49,36 @@ class StubHermesRuntime:
         self.calls.append((username, scope_kind, project_id, conversation_id))
         return self.thread
 
+    async def forget_conversation(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.forgotten.append(
+            (username, scope_kind, project_id, conversation_id)
+        )
+
 
 class StubHistory:
-    def __init__(self, messages=None):
+    def __init__(self, messages=None, context_policy=None):
         self.messages = list(messages or [])
+        self.context_policy = context_policy
         self.appended = []
+        self.rebuilt_revisions = []
 
     def list_messages(self, username, scope, *, limit=50):
         return list(self.messages)
+
+    def load_context_policy(self, username, scope):
+        if self.context_policy is not None:
+            return self.context_policy
+        return {
+            "revision": 0,
+            "rebuild_required": False,
+            "messages": list(self.messages),
+        }
+
+    def mark_context_rebuilt(self, username, scope, revision):
+        self.rebuilt_revisions.append(revision)
+        return True
 
     def append_message(
         self,
@@ -79,10 +102,10 @@ class StubHistory:
         return message
 
 
-def _build_replies(events, *, error=None, messages=None):
+def _build_replies(events, *, error=None, messages=None, context_policy=None):
     thread = StubThread(events, error=error)
     runtime = StubHermesRuntime(thread)
-    history = StubHistory(messages)
+    history = StubHistory(messages, context_policy=context_policy)
     return HermesHomeReplies(runtime, history), thread, runtime, history
 
 

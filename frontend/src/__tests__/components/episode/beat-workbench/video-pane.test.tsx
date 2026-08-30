@@ -160,7 +160,6 @@ beforeAll(async () => {
                 narratorVoiceMissing: "声线缺失",
                 narratorVoiceUpload: "上传",
                 narratorVoiceRecord: "录音",
-                narratorVoiceProjectAudio: "项目音频",
                 narratorVoiceDelete: "删除",
               },
             },
@@ -226,22 +225,6 @@ const videoQueryMocks = vi.hoisted(() => ({
     isLoading: false,
     isError: false,
   }),
-  useNarratorVoiceSources: () => ({
-    data: {
-      ok: true,
-      data: {
-        options: [
-          {
-            label: "已生成音频 · beat_01.mp3",
-            path: "/project/audio/ep001/beat_01.mp3",
-            rel_path: "audio/ep001/beat_01.mp3",
-          },
-        ],
-      },
-    },
-    isLoading: false,
-    isError: false,
-  }),
   useUploadNarratorVoice: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
@@ -250,7 +233,7 @@ const videoQueryMocks = vi.hoisted(() => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
-  useCopyProjectNarratorVoice: () => ({
+  useBindNarratorVoice: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
@@ -852,28 +835,10 @@ beforeEach(() => {
   generateSeedance2PromptMock.mockReset();
   generateSeedance2PromptMock.mockResolvedValue({
     ok: true,
-    data: {
-      final_prompt: "optimized seedance2 prompt",
-      seedance2_config_json: JSON.stringify({
-        mode: "first_frame",
-        duration: 5,
-        resolution: "720p",
-        ratio: "9:16",
-        generate_audio: false,
-        return_last_frame: false,
-        human_review: false,
-        prompt_guidance: "more camera motion",
-        prompt_source: "generated",
-        final_prompt: "optimized seedance2 prompt",
-      }),
-      beat: makeBeat({
-        seedance2_config_json: JSON.stringify({
-          prompt_guidance: "more camera motion",
-          prompt_source: "generated",
-          final_prompt: "optimized seedance2 prompt",
-        }),
-      }),
-    },
+    task_type: "seedance2_prompt",
+    task_id: "task-seedance2-prompt",
+    task_key: "task:seedance2_prompt:1:1",
+    message: "第 1 集 Beat 1 视频提示词优化已入队",
   });
   generateBeatVideoPromptMock.mockReset();
   generateBeatVideoPromptMock.mockResolvedValue({
@@ -1021,7 +986,7 @@ describe("VideoPane Seedance2 inspector", () => {
   it("does not show legacy 1.x prompt controls for Seedance2 backends", () => {
     renderPane(makeBeat());
 
-    expect(screen.getByText("Seedance2 Inspector")).toBeInTheDocument();
+    expect(screen.getByText("Seedance 2.0 Fast 检视器")).toBeInTheDocument();
     expect(screen.queryByLabelText("视频提示词")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("单个 Beat 视频提示词")).not.toBeInTheDocument();
   });
@@ -1132,7 +1097,7 @@ describe("VideoPane Seedance2 inspector", () => {
   it("renders Seedance2 media, config, and version status", () => {
     renderPane();
 
-    expect(screen.getByText("Seedance2 Inspector")).toBeInTheDocument();
+    expect(screen.getByText("Seedance 2.0 Fast 检视器")).toBeInTheDocument();
     expect(screen.queryByText("媒体状态")).not.toBeInTheDocument();
     expect(screen.queryByText("Prompt 状态")).not.toBeInTheDocument();
     expect(screen.queryByText("配置状态")).not.toBeInTheDocument();
@@ -1445,7 +1410,7 @@ describe("VideoPane Seedance2 inspector", () => {
       beatNum: 1,
       assetKey: "first_frame",
       sourcePath: "frames/ep001/beat_01.png",
-      target: "reference_image",
+      target: "first_frame",
       crop: { x: 49, y: 0, width: 472, height: 839 },
     });
   });
@@ -2101,7 +2066,7 @@ describe("VideoPane Seedance2 inspector", () => {
     });
   });
 
-  it("generates Seedance2 final prompt from the current draft and guidance", async () => {
+  it("queues Seedance2 prompt optimization from the current draft", async () => {
     const user = userEvent.setup();
     renderPane();
 
@@ -2121,12 +2086,16 @@ describe("VideoPane Seedance2 inspector", () => {
       manualPromptReference: "manual reference prompt",
       promptGuidance: "more camera motion",
     });
+    expect(taskStartMock).toHaveBeenCalledWith({ scope: undefined });
+    expect(toast.success).toHaveBeenCalledWith(
+      "第 1 集 Beat 1 视频提示词优化已入队",
+    );
     expect(screen.getByLabelText("Seedance2.0主体提示词")).toHaveValue(
-      "optimized seedance2 prompt",
+      "manual reference prompt",
     );
   });
 
-  it("does not write an AI-optimized prompt onto the beat switched to mid-flight", async () => {
+  it("does not mutate the beat switched to while task submission is pending", async () => {
     const user = userEvent.setup();
     // Hold the optimize request open so we can switch beats before it resolves.
     let resolveOptimize: (value: unknown) => void = () => {};
@@ -2173,23 +2142,17 @@ describe("VideoPane Seedance2 inspector", () => {
     // The optimize result for Beat A returns *after* the switch.
     resolveOptimize({
       ok: true,
-      data: {
-        final_prompt: "optimized seedance2 prompt",
-        seedance2_config_json: JSON.stringify({
-          mode: "multimodal_reference",
-          duration: 5,
-          resolution: "720p",
-          ratio: "9:16",
-          prompt_source: "generated",
-          final_prompt: "optimized seedance2 prompt",
-        }),
-        beat: makeBeat({ beat_number: 1 }),
-      },
+      task_type: "seedance2_prompt",
+      task_id: "task-seedance2-prompt",
+      task_key: "task:seedance2_prompt:1:1",
+      message: "第 1 集 Beat 1 视频提示词优化已入队",
     });
 
-    // Result is attributed back to Beat A, not the now-mounted Beat B.
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("主体提示词已优化，已写回镜头 #1"),
+      expect(taskStartMock).toHaveBeenCalledWith({ scope: undefined }),
+    );
+    expect(toast.success).toHaveBeenCalledWith(
+      "第 1 集 Beat 1 视频提示词优化已入队",
     );
     expect(screen.getByLabelText("Seedance2.0主体提示词")).toHaveValue(
       "beat two prompt",

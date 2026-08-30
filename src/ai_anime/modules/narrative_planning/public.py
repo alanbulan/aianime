@@ -106,7 +106,9 @@ from ai_anime.modules.narrative_planning.application.seedance_prompts import (
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
     EpisodeAssetPlanningTask,
+    EpisodeRewriteTask,
     ScheduledNarrativeTask,
+    SeedancePromptTask,
 )
 from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
@@ -119,9 +121,11 @@ from ai_anime.modules.narrative_planning.composition import (
     manual_sketch_catalog,
     manual_sketch_mode_key,
     schedule_beat_video_prompt,
+    schedule_episode_rewrite,
     schedule_episode_asset_planning,
     schedule_episode_identity_planning,
     schedule_episode_planning,
+    schedule_seedance_prompt,
     script_document_service,
     start_script_generation,
 )
@@ -425,6 +429,40 @@ async def enqueue_beat_video_prompt_generation(
     )
 
 
+async def enqueue_seedance2_prompt_generation(
+    task_context: ProjectContext,
+    command: GenerateSeedancePromptCommand,
+) -> ScheduledNarrativeTask:
+    return await schedule_seedance_prompt().execute(
+        task_context,
+        SeedancePromptTask(
+            episode=command.episode_num,
+            beat_num=command.beat_num,
+            project_dir=command.project_dir,
+            requester_user_id=command.requester_user_id,
+            project_id=command.project_id,
+            manual_prompt_reference=command.manual_prompt_reference,
+            prompt_guidance=command.prompt_guidance,
+        ),
+    )
+
+
+async def enqueue_episode_rewrite_generation(
+    task_context: ProjectContext,
+    command: GenerateEpisodeRewriteCommand,
+) -> ScheduledNarrativeTask:
+    return await schedule_episode_rewrite().execute(
+        task_context,
+        EpisodeRewriteTask(
+            episode=command.episode_num,
+            target_beats=command.target_beats,
+            beat_chars_min=command.beat_chars_min,
+            beat_chars_max=command.beat_chars_max,
+            narration_style=command.narration_style,
+        ),
+    )
+
+
 async def generate_seedance2_beat_prompt(
     store: SeedancePromptStore,
     command: GenerateSeedancePromptCommand,
@@ -525,6 +563,8 @@ __all__ = [
     "clear_adapted_episode_content",
     "create_script_writing_workflow",
     "enqueue_beat_video_prompt_generation",
+    "enqueue_episode_rewrite_generation",
+    "enqueue_seedance2_prompt_generation",
     "episode_details_data",
     "format_beat_narration",
     "delete_manual_shot",

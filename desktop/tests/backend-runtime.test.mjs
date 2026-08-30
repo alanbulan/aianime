@@ -8,6 +8,7 @@ import test from "node:test";
 
 import {
   LocalBackend,
+  MAX_BACKEND_RESTART_ATTEMPTS,
   backendRestartDelayMs,
   terminateBackendProcessTree,
 } from "../src/backend.ts";
@@ -57,6 +58,54 @@ test("backend Windows cleanup force-terminates the complete process tree", () =>
   assert.equal(fallbackKills, 0);
   killer.emit("exit", 0);
   assert.equal(fallbackKills, 1);
+});
+
+test("backend POSIX cleanup terminates the detached process group", () => {
+  const signals = [];
+  let directKills = 0;
+  const child = {
+    exitCode: 1,
+    pid: 4321,
+    kill: () => {
+      directKills += 1;
+    },
+  };
+
+  terminateBackendProcessTree(
+    child,
+    "darwin",
+    undefined,
+    (pid, signal) => {
+      signals.push({ pid, signal });
+      return true;
+    },
+  );
+
+  assert.deepEqual(signals, [{ pid: -4321, signal: "SIGTERM" }]);
+  assert.equal(directKills, 0);
+});
+
+test("backend stops retrying and reports an exhausted restart budget", () => {
+  const reported = [];
+  const originalConsoleError = console.error;
+  console.error = () => undefined;
+  try {
+    const backend = new LocalBackend({
+      desktopApp: testDesktopApp,
+      restartOnUnexpectedExit: true,
+      onRestartExhausted: (error) => reported.push(error),
+    });
+    backend.restartAttempts = MAX_BACKEND_RESTART_ATTEMPTS;
+
+    backend.scheduleRestart(new Error("startup failed"));
+
+    assert.equal(backend.restartTimer, null);
+    assert.equal(reported.length, 1);
+    assert.match(reported[0].message, /5 restart attempts/);
+    assert.match(reported[0].message, /startup failed/);
+  } finally {
+    console.error = originalConsoleError;
+  }
 });
 
 test("backend health watchdog terminates only after three consecutive failures", async () => {

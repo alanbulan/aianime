@@ -53,15 +53,16 @@ class NarratorVoicePresetGenerateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(default="", max_length=80)
-    voice: str = Field(min_length=1, max_length=120)
+    model_selector: str = Field(min_length=1, max_length=768)
+    voice: str = Field(default="", max_length=120)
     text: str = Field(min_length=1, max_length=500)
 
-    @field_validator("name")
+    @field_validator("name", "voice")
     @classmethod
     def normalize_optional_name(cls, value: str) -> str:
         return value.strip()
 
-    @field_validator("voice", "text")
+    @field_validator("model_selector", "text")
     @classmethod
     def normalize_required_text(cls, value: str) -> str:
         normalized = value.strip()
@@ -96,8 +97,18 @@ class NarratorVoiceDesignRequest(BaseModel):
         return normalized
 
 
-class NarratorVoiceCopyRequest(BaseModel):
-    source_path: str
+class NarratorVoiceBindRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    voice_id: str = Field(min_length=1, max_length=128)
+
+    @field_validator("voice_id")
+    @classmethod
+    def normalize_voice_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("voice_id is required")
+        return normalized
 
 
 class NarratorVoiceTrimRequest(BaseModel):
@@ -106,7 +117,7 @@ class NarratorVoiceTrimRequest(BaseModel):
 
 
 __all__ = [
-    "NarratorVoiceCopyRequest",
+    "NarratorVoiceBindRequest",
     "NarratorVoiceDesignRequest",
     "NarratorVoicePresetGenerateRequest",
     "NarratorVoiceRecordRequest",

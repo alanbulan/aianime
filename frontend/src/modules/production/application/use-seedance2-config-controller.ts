@@ -9,11 +9,16 @@ import {
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { Seedance2PromptResponse } from "@/modules/production/application/ports";
 import type { BeatVideoGenerationInput } from "@/modules/production/domain/beat-video-generation";
 import type { VideoModelOption } from "@/modules/production/domain/video-model";
 import type { GenerateSeedance2PromptCommand } from "@/modules/production/domain/video-generation";
+import {
+  TASK_TYPES,
+  useTaskController,
+} from "@/modules/task_execution/public";
 import {
   clampDuration,
   getSeedance2ConfigSaveKey,
@@ -30,6 +35,8 @@ import {
   parseSeedance2Config,
   sameSeedance2Config,
   seedance2DefaultRatioForProjectAspect,
+  seedance2ModeOptionsForModel,
+  seedance2RatioOptionsForModel,
   seedance2ResolutionOptionsForModel,
   videoDurationBoundsForModel,
   serializeGrokVideoConfig,
@@ -39,7 +46,10 @@ import {
   type HappyHorseRatio,
   type Seedance2ConfigDraft,
   type Seedance2DurationBounds,
+  type Seedance2Mode,
+  type Seedance2Ratio,
   type Seedance2Resolution,
+  type VideoResolution,
 } from "@/modules/production/domain/video-config";
 import {
   backendErrorToastMessage,
@@ -113,7 +123,9 @@ export interface Seedance2ConfigController {
   promptPending: boolean;
   ready: boolean;
   seedance2DurationBounds: Seedance2DurationBounds;
-  seedance2ResolutionOptions: readonly Seedance2Resolution[];
+  seedance2ModeOptions: readonly Seedance2Mode[];
+  seedance2RatioOptions: readonly Seedance2Ratio[];
+  seedance2ResolutionOptions: readonly VideoResolution[];
   seedance15Duration: number;
   seedance15DurationBounds: Seedance2DurationBounds;
   seedance15Resolution: Seedance2Resolution;
@@ -149,9 +161,18 @@ export function createUseSeedance2ConfigController(
       options.showGrokVideoConfig;
     const isValueStyle =
       options.showSeedance2Config && isSeedance2ValueModel(options.model);
-    const seedance2ResolutionOptions = useMemo(
-      () => seedance2ResolutionOptionsForModel(options.model),
-      [options.model],
+    const modelResolutionOptions = useMemo(
+      () =>
+        seedance2ResolutionOptionsForModel(options.model, options.selectedModel),
+      [options.model, options.selectedModel],
+    );
+    const seedance2ModeOptions = useMemo(
+      () => seedance2ModeOptionsForModel(options.selectedModel),
+      [options.selectedModel],
+    );
+    const seedance2RatioOptions = useMemo(
+      () => seedance2RatioOptionsForModel(options.selectedModel),
+      [options.selectedModel],
     );
     const seedance2DurationBounds = useMemo(
       () => videoDurationBoundsForModel(options.selectedModel),
@@ -203,6 +224,7 @@ export function createUseSeedance2ConfigController(
       [options.beat.seedance2_config_json, options.projectAspect],
     );
     const [draft, setDraft] = useState(config);
+    const seedance2ResolutionOptions = modelResolutionOptions;
     const [seedance15Resolution, setSeedance15Resolution] =
       useState<Seedance2Resolution>("720p");
     const [seedance15Duration, setSeedance15Duration] = useState(
@@ -211,8 +233,6 @@ export function createUseSeedance2ConfigController(
     const draftRef = useRef(config);
     const normalizedLegacyConfigRef = useRef("");
     const lastSavedConfigKeyRef = useRef("");
-    const currentBeatNumberRef = useRef(options.beat.beat_number);
-    currentBeatNumberRef.current = options.beat.beat_number;
     const generate = queries.useGenerateSeedance2Prompt(
       options.project,
       options.episode,
@@ -226,6 +246,31 @@ export function createUseSeedance2ConfigController(
       (promptCost.error instanceof BillingRuleNotConfiguredError
         ? t("common.billingRuleNotConfiguredShort")
         : null);
+    const generationTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.SEEDANCE2_PROMPT,
+        project: options.project,
+        episode: options.episode,
+        beatNum: options.beat.beat_number,
+      },
+      invalidateKeys: [
+        queryKeys.beats(options.project, options.episode),
+        queryKeys.seedance2BeatStatus(
+          options.project,
+          options.episode,
+          options.beat.beat_number,
+        ),
+      ],
+      onComplete: () => {
+        void options.refetchStatus?.();
+        toast.success(
+          options.showHappyHorseConfig || options.showGrokVideoConfig
+            ? "主体提示词已优化"
+            : t("episode.workbench.video.seedance2PromptGenerated"),
+        );
+      },
+      onError: (error) => toast.error(error),
+    });
 
     const applyDraft = useCallback((next: Seedance2ConfigDraft) => {
       draftRef.current = next;
@@ -340,6 +385,8 @@ export function createUseSeedance2ConfigController(
               seedance2ResolutionOptions,
               options.model,
               isValueStyle,
+              seedance2ModeOptions,
+              seedance2RatioOptions,
             );
       if (!sameSeedance2Config(current, next)) applyDraft(next);
     }, [
@@ -352,6 +399,8 @@ export function createUseSeedance2ConfigController(
       options.model,
       options.showGrokVideoConfig,
       options.showHappyHorseConfig,
+      seedance2ModeOptions,
+      seedance2RatioOptions,
       seedance2ResolutionOptions,
       showPromptConfig,
     ]);
@@ -426,10 +475,9 @@ export function createUseSeedance2ConfigController(
     ]);
 
     const generatePrompt = useCallback(async () => {
-      const triggeredBeatNumber = options.beat.beat_number;
       try {
         const response = await generate.mutateAsync({
-          beatNum: triggeredBeatNumber,
+          beatNum: options.beat.beat_number,
           manualPromptReference: draftRef.current.final_prompt,
           promptGuidance: draftRef.current.prompt_guidance,
         });
@@ -440,53 +488,15 @@ export function createUseSeedance2ConfigController(
           );
           return;
         }
-        if (currentBeatNumberRef.current !== triggeredBeatNumber) {
-          toast.success(
-            t("episode.workbench.video.seedance2PromptGeneratedOtherBeat", {
-              n: triggeredBeatNumber,
-            }),
-          );
-          return;
-        }
-        const parsedDraft = parseSeedance2Config(
-          response.data.seedance2_config_json,
-          seedance2DefaultRatioForProjectAspect(options.projectAspect),
-        );
-        const nextDraft = options.showGrokVideoConfig
-          ? normalizeGrokVideoDraftForModel(
-              parsedDraft,
-              grokResolutionOptions,
-              grokRatioOptions,
-            )
-          : options.showHappyHorseConfig
-            ? normalizeHappyHorseDraftForModel(
-                parsedDraft,
-                happyHorseResolutionOptions,
-                happyHorseRatioOptions,
-              )
-            : parsedDraft;
-        applyDraft(nextDraft);
-        void options.refetchStatus?.();
-        toast.success(
-          options.showHappyHorseConfig || options.showGrokVideoConfig
-            ? "主体提示词已优化"
-            : t("episode.workbench.video.seedance2PromptGenerated"),
-        );
+        generationTask.start({ scope: response.scope });
+        toast.success(response.message);
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }
     }, [
-      applyDraft,
       generate,
-      grokRatioOptions,
-      grokResolutionOptions,
-      happyHorseRatioOptions,
-      happyHorseResolutionOptions,
+      generationTask,
       options.beat.beat_number,
-      options.projectAspect,
-      options.refetchStatus,
-      options.showGrokVideoConfig,
-      options.showHappyHorseConfig,
       t,
     ]);
 
@@ -519,7 +529,10 @@ export function createUseSeedance2ConfigController(
           dirty,
           draft,
           isValueStyle,
+          modeOptions: seedance2ModeOptions,
+          ratioOptions: seedance2RatioOptions,
           resolutionOptions: seedance2ResolutionOptions,
+          sizeOptions: options.selectedModel?.sizeOptions,
           sourceConfig: config,
         }
       : options.showHappyHorseConfig
@@ -577,9 +590,11 @@ export function createUseSeedance2ConfigController(
       isSeedance15ProConfig,
       isValueStyle,
       promptCostDisplay,
-      promptPending: generate.isPending,
+      promptPending: generate.isPending || generationTask.started,
       ready: draft.final_prompt.trim().length > 0,
       seedance2DurationBounds,
+      seedance2ModeOptions,
+      seedance2RatioOptions,
       seedance2ResolutionOptions,
       seedance15Duration,
       seedance15DurationBounds,

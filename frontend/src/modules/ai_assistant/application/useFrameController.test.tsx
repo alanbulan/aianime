@@ -33,7 +33,14 @@ function createOptions(overrides: Partial<ControllerOptions> = {}): ControllerOp
     setError: vi.fn(),
     setHistoryReady: vi.fn(),
     setConversations: vi.fn(),
+    setDecisions: vi.fn(),
+    setDeletedIds: vi.fn(),
     setMessages: vi.fn(),
+    setActiveModel: vi.fn(),
+    setActiveReasoningEffort: vi.fn(),
+    setModelsLoading: vi.fn(),
+    setPinnedIds: vi.fn(),
+    setSlashCommands: vi.fn(),
     setBusy: vi.fn(),
     setStreamText: vi.fn(),
     markTurnActive: vi.fn(),
@@ -68,6 +75,23 @@ describe("useSuperChatFrameController", () => {
     vi.restoreAllMocks();
   });
 
+  it("applies a server-confirmed conversation model route", () => {
+    const options = createOptions();
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "session.model.state",
+      scope: { kind: "project", id: "project-a" },
+      selector: "cloud:text-model",
+      reasoning_effort: "xhigh",
+    }));
+
+    expect(options.setModelsLoading).toHaveBeenCalledWith(false);
+    expect(options.setActiveModel).toHaveBeenCalledWith("cloud:text-model");
+    expect(options.setActiveReasoningEffort).toHaveBeenCalledWith("xhigh");
+    expect(options.setError).toHaveBeenCalledWith(null);
+  });
+
   it("accepts a matching scope snapshot and projects normalized history", () => {
     const options = createOptions();
     const { result } = renderHook(() => useSuperChatFrameController(options));
@@ -76,8 +100,20 @@ describe("useSuperChatFrameController", () => {
       type: "scope.changed",
       scope: { kind: "project", id: "project-a" },
       history: [
-        { id: "user-1", role: "user", content: "开始", timestamp: 10 },
-        { id: "assistant-1", role: "assistant", content: "完成", timestamp: 20 },
+        {
+          id: "user-1",
+          role: "user",
+          content: "开始",
+          context_state: "pinned",
+          timestamp: 10,
+        },
+        {
+          id: "assistant-1",
+          role: "assistant",
+          content: "完成",
+          context_state: "excluded",
+          timestamp: 20,
+        },
       ],
       busy: false,
     }));
@@ -91,6 +127,125 @@ describe("useSuperChatFrameController", () => {
       { id: "assistant-1", role: "assistant", text: "完成" },
     ]);
     expect(options.setBusy).toHaveBeenLastCalledWith(false);
+    expect(options.setPinnedIds).toHaveBeenCalledWith(new Set(["user-1"]));
+    expect(options.setDeletedIds).toHaveBeenCalledWith(
+      new Set(["assistant-1"]),
+    );
+  });
+
+  it("keeps the composer catalog focused on navigable commands", () => {
+    const options = createOptions();
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+    const commands = [
+      { name: "compact", description: "Compact context" },
+    ];
+
+    act(() => result.current({ type: "commands.available", commands }));
+
+    expect(options.setSlashCommands).toHaveBeenCalledWith([
+      {
+        name: "help",
+        description: "查看可用命令和 Skills 的使用方式",
+        kind: "command",
+      },
+      {
+        name: "model",
+        description: "选择仅对当前对话生效的模型路由",
+        kind: "command",
+      },
+      {
+        name: "tools",
+        description: "查看当前助手实际可调用的工具",
+        kind: "command",
+      },
+    ]);
+  });
+
+  it("loads commands and Skills from the initial scope snapshot", () => {
+    const options = createOptions();
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+
+    act(() => result.current({
+      type: "scope.changed",
+      scope: { kind: "project", id: "project-a" },
+      history: [],
+      commands: [
+        {
+          name: "ai-anime",
+          description: "AI 漫剧完整工作流",
+          kind: "skill",
+          source: "managed",
+        },
+      ],
+      busy: false,
+    }));
+
+    expect(options.setSlashCommands).toHaveBeenCalledWith([
+      {
+        name: "ai-anime",
+        description: "AI 漫剧完整工作流",
+        kind: "skill",
+        source: "managed",
+      },
+    ]);
+  });
+
+  it("restores, adds, and resolves structured decisions", () => {
+    const options = createOptions();
+    const { result } = renderHook(() => useSuperChatFrameController(options));
+    const decision = {
+      id: "decision-1",
+      title: "生成前确认",
+      source: "question",
+      status: "pending" as const,
+      questions: [
+        {
+          id: "resolution",
+          header: "分辨率",
+          question: "请选择分辨率",
+          options: [
+            { id: "1080p", label: "1080p", description: "高清" },
+            { id: "720p", label: "720p", description: "均衡" },
+          ],
+          recommended_option_id: "1080p",
+        },
+      ],
+    };
+
+    act(() => result.current({
+      type: "scope.changed",
+      scope: { kind: "project", id: "project-a" },
+      history: [],
+      decisions: [decision],
+      busy: true,
+    }));
+    const snapshotCalls = callsOf(options.setDecisions);
+    expect(snapshotCalls[snapshotCalls.length - 1]?.[0]).toMatchObject([decision]);
+
+    act(() => result.current({
+      type: "decision_required",
+      scope: { kind: "project", id: "project-a" },
+      decision: { ...decision, title: "更新后的确认" },
+    }));
+    const decisionCalls = callsOf(options.setDecisions);
+    const addAction = decisionCalls[decisionCalls.length - 1]?.[0] as (
+      current: typeof decision[],
+    ) => typeof decision[];
+    expect(addAction([decision])).toMatchObject([
+      { id: "decision-1", title: "更新后的确认" },
+    ]);
+
+    act(() => result.current({
+      type: "decision_resolved",
+      scope: { kind: "project", id: "project-a" },
+      decision_id: "decision-1",
+      status: "resolved",
+    }));
+    const resolvedCalls = callsOf(options.setDecisions);
+    const removeAction = resolvedCalls[resolvedCalls.length - 1]?.[0] as (
+      current: typeof decision[],
+    ) => typeof decision[];
+    expect(removeAction([decision])).toEqual([]);
   });
 
   it("updates connection state but ignores a snapshot for another scope", () => {

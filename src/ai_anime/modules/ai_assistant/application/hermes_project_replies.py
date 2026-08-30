@@ -34,6 +34,7 @@ from ai_anime.modules.ai_assistant.domain import (
     extract_display_tool_call,
     filter_tool_ui_specs_for_prompt,
     infer_display_tool_call_from_text,
+    is_slash_command,
     is_hidden_chat_tool_event,
     merge_stream_text,
     redact_local_filesystem_paths,
@@ -81,24 +82,46 @@ class HermesProjectReplies:
         project_state_dir: str | Path | None = None,
         conversation_id: str = "main",
     ) -> dict[str, Any]:
-        agent_prompt = self._prompt_context.build(username, project, prompt)
+        context_policy = self._project_messages.load_context_policy(
+            username,
+            project,
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
+            conversation_id=conversation_id,
+        )
+        slash_command = is_slash_command(prompt)
+        rebuild_context = bool(context_policy.get("rebuild_required"))
+        context_revision = int(context_policy.get("revision") or 0)
+        if rebuild_context:
+            await self._runtime.forget_conversation(
+                username,
+                scope_kind="project" if project else "home",
+                project_id=project or None,
+                conversation_id=conversation_id,
+            )
+        agent_prompt = (
+            prompt
+            if slash_command
+            else self._prompt_context.build(
+                username,
+                project,
+                prompt,
+                context_messages=list(context_policy.get("messages") or []),
+                rebuild_context=rebuild_context,
+                current_turn_id=turn_id,
+            )
+        )
         thread = await self._runtime.get_for_user(
             username,
             scope_kind="project" if project else "home",
             project_id=project or None,
             conversation_id=conversation_id,
         )
-        previous_assistant = (
-            self._project_messages.assistant_contents(
-                username,
-                project,
-                project_dir=project_dir,
-                project_state_dir=project_state_dir,
-                conversation_id=conversation_id,
-            )
-            if project
-            else []
-        )
+        previous_assistant = [
+            str(message.get("content") or "")
+            for message in list(context_policy.get("messages") or [])
+            if message.get("role") == "assistant"
+        ]
         previous_trace = (
             self._project_messages.trace_contents(
                 username,
@@ -120,6 +143,7 @@ class HermesProjectReplies:
         persisted_message: dict[str, Any] | None = None
         seen_display_calls: set[str] = set()
         seen_tool_chat_errors: set[str] = set()
+        context_rebuild_marked = False
 
         def persist_partial_reply() -> dict[str, Any] | None:
             nonlocal persisted_message
@@ -181,12 +205,31 @@ class HermesProjectReplies:
                 current_project=project or None,
             ):
                 if event.type == "thread_started":
+                    if rebuild_context and not slash_command and not context_rebuild_marked:
+                        self._project_messages.mark_context_rebuilt(
+                            username,
+                            project,
+                            context_revision,
+                            project_dir=project_dir,
+                            project_state_dir=project_state_dir,
+                            conversation_id=conversation_id,
+                        )
+                        context_rebuild_marked = True
                     await emit_chat_event(
                         on_event,
                         {
                             "type": "thread_started",
                             "thread_id": str(event.thread_id or "").strip() or None,
                             "turn_id": str(event.turn_id or "").strip() or None,
+                        },
+                    )
+                    continue
+                if event.type == "available_commands":
+                    await emit_chat_event(
+                        on_event,
+                        {
+                            "type": "available_commands",
+                            "commands": event.raw,
                         },
                     )
                     continue

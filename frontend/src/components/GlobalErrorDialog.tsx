@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { AlertCircle, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface GlobalErrorDialogProps {
   isOpen: boolean;
@@ -32,6 +32,8 @@ export function GlobalErrorDialog({
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const copiedResetTimerRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   const rawErrorText = [message, details, copyText].filter(Boolean).join('\n\n');
   const isOpenRouterConfigError = /OPENROUTER_API_KEY|API key not set/i.test(rawErrorText);
   const displayTitle = isOpenRouterConfigError
@@ -53,12 +55,27 @@ export function GlobalErrorDialog({
   // 纯提示类弹窗（如音频时长校验）没有可复制内容，隐藏该按钮避免多余。
   const canCopy = Boolean(copyText?.trim() || technicalDetails);
 
+  const clearCopiedResetTimer = useCallback(() => {
+    if (copiedResetTimerRef.current === null) return;
+    window.clearTimeout(copiedResetTimerRef.current);
+    copiedResetTimerRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      clearCopiedResetTimer();
+    };
+  }, [clearCopiedResetTimer]);
+
   useEffect(() => {
     if (isOpen) {
+      clearCopiedResetTimer();
       setCopied(false);
       setShowDetails(false);
     }
-  }, [isOpen]);
+  }, [clearCopiedResetTimer, isOpen]);
 
   const handleCopy = useCallback(async () => {
     const payload = copyText || [message, details].filter(Boolean).join('\n\n');
@@ -67,12 +84,17 @@ export function GlobalErrorDialog({
     }
     try {
       await navigator.clipboard.writeText(payload);
+      if (!mountedRef.current) return;
+      clearCopiedResetTimer();
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
+      copiedResetTimerRef.current = window.setTimeout(() => {
+        copiedResetTimerRef.current = null;
+        setCopied(false);
+      }, 1200);
     } catch (error) {
       console.error('Failed to copy global error text', error);
     }
-  }, [copyText, details, message]);
+  }, [clearCopiedResetTimer, copyText, details, message]);
 
   return (
     <Dialog

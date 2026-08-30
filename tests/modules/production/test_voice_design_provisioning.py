@@ -366,8 +366,8 @@ async def test_provision_voice_design_uses_priority_route_and_binds_targets(
         calls["resolve"].append(role)
         return "QWEN3_TTS_VD_2026_01_26"
 
-    def set_narrator(username, project, **kwargs):
-        calls["narrator"].append((username, project, kwargs))
+    def persist_narrator(**kwargs):
+        calls["narrator"].append(kwargs)
 
     def persist_reusable(context, requirement, source_path):
         assert context is project_context
@@ -398,8 +398,8 @@ async def test_provision_voice_design_uses_priority_route_and_binds_targets(
     )
     monkeypatch.setattr(
         voice_design_provisioning,
-        "set_narrator_reference_audio",
-        set_narrator,
+        "persist_narrator_voice_content",
+        persist_narrator,
     )
     monkeypatch.setattr(
         voice_design_provisioning,
@@ -466,10 +466,15 @@ async def test_provision_voice_design_uses_priority_route_and_binds_targets(
         ("白石夏音·学生时期", b"designed-voice"),
         ("藤原悠真·教师时期", b"designed-voice"),
     ]
-    narrator_path = tmp_path / "project" / "assets" / "narrator" / "voice.wav"
-    assert narrator_path.read_bytes() == b"designed-voice"
-    assert calls["narrator"][0][0:2] == ("alice", "demo")
-    assert calls["narrator"][0][2]["relative_path"] == "assets/narrator/voice.wav"
+    assert calls["narrator"] == [
+        {
+            "username": "alice",
+            "project": "demo",
+            "project_dir": tmp_path / "project",
+            "filename": "voice-1-1.wav",
+            "content": b"designed-voice",
+        }
+    ]
     assert store.closed is True
     assert completed == (
         "项目解说人",

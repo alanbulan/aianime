@@ -117,6 +117,7 @@ export type ChatMessageAreaProps = {
   historyReady: boolean;
   isFreezoneLayout: boolean;
   messageListRef: RefObject<HTMLDivElement | null>;
+  excludedIds: ReadonlySet<string>;
   pinnedIds: ReadonlySet<string>;
   scrollRef: RefObject<HTMLDivElement | null>;
   showScrollToBottom: boolean;
@@ -143,6 +144,7 @@ export function ChatMessageArea({
   historyReady,
   isFreezoneLayout,
   messageListRef,
+  excludedIds,
   pinnedIds,
   scrollRef,
   showScrollToBottom,
@@ -354,6 +356,10 @@ export function ChatMessageArea({
                       pinned={
                         row.kind === "message"
                         && pinnedIds.has(row.message.id)
+                      }
+                      excluded={
+                        row.kind === "message"
+                        && excludedIds.has(row.message.id)
                       }
                       onDelete={
                         row.kind === "streaming"

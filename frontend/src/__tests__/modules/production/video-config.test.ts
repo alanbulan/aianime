@@ -7,6 +7,7 @@ import {
   grokVideoRatioOptionsForModel,
   grokVideoResolutionOptionsForModel,
   happyHorseRatioOptionsForModel,
+  happyHorseResolutionOptionsForDuration,
   happyHorseResolutionOptionsForModel,
   isSeedance15ProModel,
   isSeedance2ValueModel,
@@ -16,6 +17,8 @@ import {
   parseSeedance2Config,
   sameSeedance2Config,
   seedance2DefaultRatioForProjectAspect,
+  seedance2ModeOptionsForModel,
+  seedance2RatioOptionsForModel,
   seedance2ResolutionOptionsForModel,
   serializeGrokVideoConfig,
   serializeHappyHorseConfig,
@@ -71,7 +74,27 @@ describe("Production video config domain", () => {
       "720p",
       "1080p",
     ]);
-    expect(seedance2ResolutionOptionsForModel("unknown")).toEqual(["480p", "720p"]);
+    expect(
+      seedance2ResolutionOptionsForModel("catalog-route", {
+        resolutionOptions: ["1080P", "768P", "720p", "1080p", "unsupported"],
+      }),
+    ).toEqual(["1080p", "768p", "720p"]);
+    expect(seedance2ResolutionOptionsForModel("unknown")).toEqual([]);
+    expect(
+      seedance2ResolutionOptionsForModel("MINIMAX_H3", {
+        resolutionOptions: ["768p"],
+      }),
+    ).toEqual(["768p"]);
+    expect(
+      seedance2ModeOptionsForModel({
+        supportedModes: ["textToVideo", "firstLastFrame", "IMAGE_REFERENCE"],
+      }),
+    ).toEqual(["first_last_frame", "multimodal_reference"]);
+    expect(
+      seedance2RatioOptionsForModel({
+        ratioOptions: ["adaptive", "2:3", "16:9", "2:3"],
+      }),
+    ).toEqual(["2:3", "16:9"]);
     expect(seedance2DefaultRatioForProjectAspect("2:3")).toBe("9:16");
     expect(seedance2DefaultRatioForProjectAspect("16:9")).toBe("16:9");
     expect(
@@ -90,15 +113,21 @@ describe("Production video config domain", () => {
 
   it("filters catalog-provided HappyHorse and Grok options", () => {
     const model = {
-      resolutionOptions: ["bad", "480p", "1080p", "720p"],
+      resolutionOptions: ["bad", "480p", "1080p", "768p", "720p"],
       ratioOptions: ["bad", "2:3", "4:3", "16:9"],
     };
 
-    expect(happyHorseResolutionOptionsForModel(model)).toEqual(["1080p", "720p"]);
+    expect(happyHorseResolutionOptionsForModel(model)).toEqual([
+      "1080p",
+      "768p",
+    ]);
     expect(happyHorseRatioOptionsForModel(model)).toEqual(["4:3", "16:9"]);
     expect(grokVideoResolutionOptionsForModel(model)).toEqual(["480p", "720p"]);
     expect(grokVideoRatioOptionsForModel(model)).toEqual(["2:3", "16:9"]);
-    expect(happyHorseResolutionOptionsForModel(null)).toEqual(["720p", "1080p"]);
+    expect(happyHorseResolutionOptionsForModel(null)).toEqual(["768p", "1080p"]);
+    expect(
+      happyHorseResolutionOptionsForDuration(["768p", "1080p"], 10),
+    ).toEqual(["768p"]);
     expect(grokVideoRatioOptionsForModel(null)).toEqual([
       "16:9",
       "9:16",
@@ -130,9 +159,16 @@ describe("Production video config domain", () => {
       ["480p", "720p"],
       "seedance-2.0-fast-value",
       true,
+      ["first_frame"],
+      ["16:9"],
     );
 
-    expect(normalized).toMatchObject({ resolution: "720p", scene_optimize: "realistic" });
+    expect(normalized).toMatchObject({
+      mode: "first_frame",
+      ratio: "16:9",
+      resolution: "720p",
+      scene_optimize: "realistic",
+    });
     const stable = { ...normalized, scene_optimize: "" as const };
     expect(
       normalizeSeedance2DraftForModel(stable, ["480p", "720p"], "seedance", false),
@@ -156,11 +192,11 @@ describe("Production video config domain", () => {
     };
 
     expect(
-      normalizeHappyHorseDraftForModel(draft, ["720p", "1080p"], ["16:9", "9:16"]),
+      normalizeHappyHorseDraftForModel(draft, ["768p", "1080p"], ["16:9", "9:16"]),
     ).toMatchObject({
       mode: "multimodal_reference",
       mode_user_set: true,
-      resolution: "1080p",
+      resolution: "768p",
       ratio: "16:9",
       generate_audio: false,
       return_last_frame: false,
@@ -222,6 +258,12 @@ describe("Production video config domain", () => {
       generate_audio: false,
       human_review: false,
     });
+    expect(
+      serializeHappyHorseConfig(
+        { ...draft, duration: 10, resolution: "1080p" },
+        previous,
+      ),
+    ).toMatchObject({ resolution: "768p" });
     expect(serializeGrokVideoConfig(draft, previous)).toMatchObject({
       resolution: "720p",
       ratio: "16:9",

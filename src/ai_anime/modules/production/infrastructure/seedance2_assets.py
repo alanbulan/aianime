@@ -21,6 +21,7 @@ from ai_anime.modules.production.domain.detected_refs import (
 from ai_anime.modules.project_workspace.public import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
+    narrator_voice_path,
 )
 from ai_anime.modules.asset_world.public import (
     NovelCharacter,
@@ -45,6 +46,10 @@ from ai_anime.modules.production.infrastructure.seedance2_voice import (
 from ai_anime.shared.utils.path_resolver import PathResolver
 from ai_anime.shared.utils.path_resolver import canonical_scene_master_path
 from ai_anime.shared.utils.path_resolver import canonical_prop_reference_path
+from ai_anime.shared.utils.voice_samples import (
+    REFERENCE_VOICE_MAX_SECONDS,
+    REFERENCE_VOICE_MIN_SECONDS,
+)
 
 MIN_REFERENCE_ASPECT_RATIO = 0.4
 MAX_REFERENCE_ASPECT_RATIO = 2.5
@@ -52,8 +57,9 @@ MIN_REFERENCE_DIMENSION = 300
 MAX_REFERENCE_DIMENSION = 6000
 MIN_SEEDANCE2_VOICE_REFERENCE_SECONDS = 3.0
 MAX_SEEDANCE2_VOICE_REFERENCE_SECONDS = 5.0
-MIN_SUPPORTED_VOICE_REFERENCE_SECONDS = 1.8
-MAX_SUPPORTED_VOICE_REFERENCE_SECONDS = 15.0
+MIN_SUPPORTED_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MIN_SECONDS
+MAX_SUPPORTED_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MAX_SECONDS
+MAX_SEEDANCE2_REFERENCE_IMAGES = 9
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +84,45 @@ class Seedance2ResolvedAsset:
     required: bool = True
     fallback_text: str = ""
     crop_source_path: Path | None = None
+
+
+def _limit_seedance2_reference_images(
+    assets: list[Seedance2ResolvedAsset],
+) -> list[Seedance2ResolvedAsset]:
+    """Keep the ordered multimodal image request within Seedance 2.0's limit."""
+
+    selected_count = 0
+    result: list[Seedance2ResolvedAsset] = []
+    for asset in assets:
+        if not (
+            asset.media_type == "image"
+            and asset.selected
+            and asset.request_field == "reference_images"
+        ):
+            result.append(asset)
+            continue
+        selected_count += 1
+        if selected_count <= MAX_SEEDANCE2_REFERENCE_IMAGES:
+            result.append(
+                replace(
+                    asset,
+                    image_number=selected_count,
+                    reference_label=f"图片{selected_count}",
+                )
+            )
+            continue
+        overflow_note = f"超过单次最多 {MAX_SEEDANCE2_REFERENCE_IMAGES} 张参考图，未发送。"
+        result.append(
+            replace(
+                asset,
+                selected=False,
+                request_field="",
+                reference_label="未发送",
+                image_number=None,
+                note=f"{asset.note}；{overflow_note}" if asset.note else overflow_note,
+            )
+        )
+    return result
 
 
 def _text(value: Any) -> str:
@@ -865,7 +910,7 @@ def _narration_voice_asset(
     path = (
         _project_path(project_output, stored_path)
         if stored_path
-        else (project_output / "assets" / "narrator" / "voice.mp3")
+        else narrator_voice_path(project_output, "voice.mp3")
     )
     return {
         "key": NARRATOR_ASSET_KEY,
@@ -1039,8 +1084,30 @@ def build_seedance2_project_assets(
         path=first_frame_path,
         selected=True,
         request_field="reference_images",
-        note="多参考模式下作为参考图发送，不作为严格首帧。",
+        note="多参考模式下作为语义首帧发送，不占用严格首帧接口。",
+        crop_source_path=first_frame_source,
     )
+
+    if next_beat_num:
+        last_frame_source = paths.frame(next_beat_num)
+        last_frame_path = (
+            paths.valid_video_input_frame(
+                beat_num,
+                slot="last_frame",
+                source_path=last_frame_source,
+            )
+            or last_frame_source
+        )
+        add_image(
+            key="last_frame",
+            label=f"语义尾帧 render · Beat {next_beat_num}",
+            path=last_frame_path,
+            selected=True,
+            request_field="reference_images",
+            note="多参考模式下作为语义尾帧发送；角色、场景、道具和音频仍可同时参考。",
+            required=False,
+            crop_source_path=last_frame_source,
+        )
 
     resolved_characters = (
         list(characters) if characters is not None else _load_sqlite_characters(project_output)
@@ -1154,7 +1221,7 @@ def build_seedance2_project_assets(
             note="Seedance 2.0 解说只发送参考声线，不预生成解说音频。",
         )
 
-    return assets
+    return _limit_seedance2_reference_images(assets)
 
 
 def selected_reference_paths(assets: list[Seedance2ResolvedAsset], request_field: str) -> list[str]:
@@ -1196,10 +1263,23 @@ def append_seedance2_user_reference_assets(
         1 for asset in assets if asset.selected and asset.request_field == "reference_audios"
     )
     for path in _user_reference_paths(list(reference_image_paths), auto_image_paths):
-        image_count += 1
         item_path = Path(path)
         validation_error = (
             validate_seedance2_reference_image(item_path) if item_path.exists() else ""
+        )
+        selected = (
+            item_path.exists()
+            and not validation_error
+            and image_count < MAX_SEEDANCE2_REFERENCE_IMAGES
+        )
+        if selected:
+            image_count += 1
+        overflow_note = (
+            f"超过单次最多 {MAX_SEEDANCE2_REFERENCE_IMAGES} 张参考图，未发送。"
+            if item_path.exists()
+            and not validation_error
+            and not selected
+            else ""
         )
         assets.append(
             Seedance2ResolvedAsset(
@@ -1208,9 +1288,10 @@ def append_seedance2_user_reference_assets(
                 media_type="image",
                 path=item_path,
                 exists=item_path.exists(),
-                selected=item_path.exists() and not validation_error,
-                request_field="reference_images",
-                reference_label=f"图片{image_count}",
+                selected=selected,
+                request_field="reference_images" if selected else "",
+                reference_label=f"图片{image_count}" if selected else "未发送",
+                note=overflow_note,
                 validation_error=validation_error,
             )
         )

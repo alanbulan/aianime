@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
-import { findByUiTooltip, getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { getByUiTooltip } from "@/__tests__/helpers/ui-tooltip-query";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -15,7 +15,6 @@ vi.mock("react-i18next", () => ({
 import {
   ChatPanelActions,
   ControlBar,
-  HeaderControlPortal,
 } from "./ChatControlBar";
 
 function chatModel(overrides: Record<string, unknown> = {}) {
@@ -48,25 +47,21 @@ function chatModel(overrides: Record<string, unknown> = {}) {
 
 describe("SuperChat control bar", () => {
   afterEach(() => {
-    document.getElementById("superchat-header-controls")?.remove();
     toastSuccess.mockReset();
   });
 
-  it("renders transport state and forwards instance and model selection", async () => {
+  it("renders transport state and forwards instance selection", async () => {
     const user = userEvent.setup();
     const chat = chatModel();
     render(<ControlBar chat={chat} />);
 
     expect(screen.getByText("aiAssistant.connected")).toBeInTheDocument();
     expect(screen.getByText("aiAssistant.backendTransport")).toBeInTheDocument();
+    expect(screen.getByText("Runner A")).toBeInTheDocument();
     await user.click(getByUiTooltip("aiAssistant.instance"));
     const runnerOption = screen.getByRole("option", { name: "Runner B *" });
     expect(runnerOption).toBeInTheDocument();
     await user.click(runnerOption);
-    await user.click(getByUiTooltip("aiAssistant.model"));
-    const modelOption = screen.getByRole("option", { name: "Reasoning +" });
-    expect(modelOption).toBeInTheDocument();
-    await user.click(modelOption);
     fireEvent.click(
       screen.getByRole("button", {
         name: "aiAssistant.showStructuredSourceWhileStreaming",
@@ -74,7 +69,6 @@ describe("SuperChat control bar", () => {
     );
 
     expect(chat.selectRelayInstance).toHaveBeenCalledWith("runner-b");
-    expect(chat.switchModel).toHaveBeenCalledWith("model-b");
     expect(chat.setSettings).toHaveBeenCalledWith({
       showStructuredSourceWhileStreaming: true,
     });
@@ -139,19 +133,6 @@ describe("SuperChat control bar", () => {
     expect(
       screen.queryByRole("button", { name: "aiAssistant.showToolEvents" }),
     ).toBeNull();
-  });
-
-  it("mounts compact controls into the desktop header portal", async () => {
-    const target = document.createElement("div");
-    target.id = "superchat-header-controls";
-    document.body.appendChild(target);
-
-    render(
-      <HeaderControlPortal chat={chatModel()} />,
-    );
-
-    expect(await findByUiTooltip("aiAssistant.model", target)).toBeInTheDocument();
-    expect(within(target).queryByRole("button", { name: "aiAssistant.search" })).toBeNull();
-    expect(within(target).queryByText("aiAssistant.connected")).toBeNull();
+    expect(screen.queryByLabelText("aiAssistant.model")).toBeNull();
   });
 });

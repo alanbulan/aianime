@@ -28,6 +28,7 @@ _static_ready_cache: set[tuple[str, int]] = set()
 _static_ready_cache_lock = threading.Lock()
 
 _SAFETY_WINDOW_S = 60.0
+_CACHE_MAX_ENTRIES = 4096
 
 
 def _monotonic() -> float:
@@ -116,6 +117,10 @@ def presign_get_cached(key: str, mtime_ns: int, expires: int) -> Optional[str]:
     if url is None:
         return None
     with _presign_cache_lock:
+        if cache_key not in _presign_cache and len(_presign_cache) >= max(
+            1, int(_CACHE_MAX_ENTRIES)
+        ):
+            _presign_cache.pop(next(iter(_presign_cache)))
         _presign_cache[cache_key] = (url, now)
     return url
 
@@ -245,6 +250,10 @@ def _static_object_ready(local_path: str | Path, key: str, version_key: int) -> 
             mtime_ready = remote_mtime is None or remote_mtime + 2.0 >= float(local_stat.st_mtime)
             if size_ready and mtime_ready:
                 with _static_ready_cache_lock:
+                    if cache_key not in _static_ready_cache and len(
+                        _static_ready_cache
+                    ) >= max(1, int(_CACHE_MAX_ENTRIES)):
+                        _static_ready_cache.pop()
                     _static_ready_cache.add(cache_key)
                 return True
 

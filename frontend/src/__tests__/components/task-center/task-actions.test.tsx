@@ -14,7 +14,12 @@ import i18n from "i18next";
 
 import { TaskActions } from "@/components/task-center/task-actions";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
+import { downloadBlobAsFile } from "@/lib/browserDownload";
 import type { TaskState } from "@/modules/task_execution/public";
+
+vi.mock("@/lib/browserDownload", () => ({
+  downloadBlobAsFile: vi.fn(),
+}));
 
 // Minimal inline i18n instance — avoids HTTP backend loading in the DOM test runtime.
 // Resources mirror public/locales/en/translation.json for the keys under test.
@@ -77,6 +82,7 @@ function renderActions(task: TaskState) {
 
 describe("TaskActions", () => {
   beforeEach(() => {
+    vi.mocked(downloadBlobAsFile).mockReset();
     Object.assign(navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
@@ -127,5 +133,21 @@ describe("TaskActions", () => {
     const label = await screen.findByText(/download logs|下载日志/i);
     const btn = label.closest("button");
     expect(btn).toBeDisabled();
+  });
+
+  it("downloads logs through the shared blob helper", async () => {
+    renderActions(
+      sampleTask({ task_key: "task-1", logs: ["line one", "line two"] }),
+    );
+
+    fireEvent.click(await screen.findByText(/download logs|下载日志/i));
+
+    expect(downloadBlobAsFile).toHaveBeenCalledWith(
+      expect.any(Blob),
+      "task-1.log",
+    );
+    const [blob] = vi.mocked(downloadBlobAsFile).mock.calls[0] ?? [];
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob?.size).toBe("line one\nline two".length);
   });
 });

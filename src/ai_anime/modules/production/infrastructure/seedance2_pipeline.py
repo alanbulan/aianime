@@ -29,11 +29,15 @@ from ai_anime.modules.production.domain.video_model import (
 )
 from ai_anime.modules.production.infrastructure.seedance2_voice import normalize_seedance2_audio_type
 from ai_anime.shared.utils.media_durations import validate_reference_media_durations
+from ai_anime.shared.utils.voice_samples import (
+    REFERENCE_VOICE_MAX_SECONDS,
+    REFERENCE_VOICE_MIN_SECONDS,
+)
 
 MAX_SEEDANCE2_REFERENCE_AUDIOS = 3
-MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS = 1.8
-MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS = 15.2
-MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS = 15.0
+MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS = REFERENCE_VOICE_MIN_SECONDS
+MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS = REFERENCE_VOICE_MAX_SECONDS
+MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS = REFERENCE_VOICE_MAX_SECONDS
 
 
 @dataclass(frozen=True)
@@ -95,6 +99,28 @@ def _references_from_paths(
             )
         )
     return references
+
+
+def _with_multimodal_frame_guidance(
+    final_prompt: str,
+    assets: list[Seedance2ResolvedAsset],
+) -> str:
+    anchors = {
+        asset.key: asset.reference_label
+        for asset in assets
+        if asset.selected
+        and asset.request_field == "reference_images"
+        and asset.key in {"first_frame", "last_frame"}
+    }
+    first_label = anchors.get("first_frame")
+    last_label = anchors.get("last_frame")
+    if not first_label or not last_label:
+        return final_prompt
+    guidance = (
+        f"{first_label}作为视频起始画面，{last_label}作为视频结束画面，"
+        "在两者之间保持主体、场景和镜头运动连续；其余图片与音频仅作为身份、环境、道具和声线参考。"
+    )
+    return f"{guidance}\n{final_prompt}"
 
 
 def _asset_missing_reason(asset: Seedance2ResolvedAsset) -> str:
@@ -332,6 +358,7 @@ async def prepare_seedance2_generation_inputs(
             image_paths=config.reference_image_paths,
             audio_paths=config.reference_audio_paths,
         )
+        final_prompt = _with_multimodal_frame_guidance(final_prompt, assets)
 
     return Seedance2PreparedGeneration(
         prompt=final_prompt,

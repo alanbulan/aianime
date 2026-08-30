@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 from fastapi import FastAPI
@@ -170,3 +171,45 @@ async def test_app_lifespan_orders_startup_and_shutdown(
         events.append("serving")
 
     assert events == ["startup", "serving", "shutdown"]
+
+
+@pytest.mark.asyncio
+async def test_shutdown_cancels_desktop_knowledge_graph_warmup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.api import lifespan as lifespan_module
+    from ai_anime.migrations import model_usage as model_usage_migrations
+    from ai_anime.shared.infrastructure import project_stores, sqlite_pragmas
+
+    started = asyncio.Event()
+    shutdown_calls: list[bool] = []
+
+    async def prewarm() -> None:
+        started.set()
+        await asyncio.Event().wait()
+
+    class Lifecycle:
+        async def on_startup(self, *, register_as_worker: bool = True) -> None:
+            assert register_as_worker is True
+
+        async def on_shutdown(self) -> None:
+            shutdown_calls.append(True)
+
+    application = FastAPI()
+    application.state.container = SimpleNamespace(lifecycle=Lifecycle())
+    monkeypatch.setenv("AI_ANIME_DESKTOP_MODE", "1")
+    monkeypatch.setattr(
+        model_usage_migrations, "migrate_legacy_gateway_secrets", lambda: None
+    )
+    monkeypatch.setattr(project_stores, "prewarm_knowledge_graph_runtime", prewarm)
+    monkeypatch.setattr(sqlite_pragmas, "litestream_enabled", lambda: False)
+
+    await lifespan_module.startup_application(application)
+    await asyncio.wait_for(started.wait(), timeout=1)
+    warmup_task = application.state.knowledge_graph_runtime_warmup
+
+    await lifespan_module.shutdown_application(application)
+
+    assert warmup_task.cancelled()
+    assert application.state.knowledge_graph_runtime_warmup is None
+    assert shutdown_calls == [True]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import subprocess
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,10 @@ from ai_anime.modules.model_usage.public import (
     resolve_model_for_role,
 )
 from ai_anime.shared.utils.document_parsers import count_billable_text_chars
+from ai_anime.shared.utils.media_io import get_audio_duration_async
+
+
+logger = logging.getLogger(__name__)
 
 
 async def _reserve_tts_model_call(
@@ -57,7 +61,11 @@ async def _refund_tts_model_call(
             metadata=metadata,
         )
     except Exception:
-        pass
+        logger.exception(
+            "failed to refund IndexTTS2 model call reservation_id=%s source=%s",
+            reservation_id,
+            source,
+        )
 
 
 async def _confirm_tts_model_call(
@@ -76,28 +84,11 @@ async def _confirm_tts_model_call(
             metadata={"response_id": response_id} if response_id else None,
         )
     except Exception:
-        pass
-
-
-async def _audio_duration_seconds(audio_path: Path) -> float:
-    try:
-        result = subprocess.run(
-            [
-                "ffprobe",
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                str(audio_path),
-            ],
-            capture_output=True,
-            text=True,
+        logger.exception(
+            "failed to confirm IndexTTS2 model call reservation_id=%s model=%s",
+            reservation_id,
+            model,
         )
-        return float(result.stdout.strip())
-    except Exception:
-        return 0.0
 
 
 class IndexTTS2Client:
@@ -201,7 +192,7 @@ class IndexTTS2Client:
             return TTSResult(
                 success=True,
                 audio_path=str(output_path),
-                duration_seconds=await _audio_duration_seconds(output_path),
+                duration_seconds=await get_audio_duration_async(str(output_path)),
             )
         except Exception as exc:
             if isinstance(exc, ModelAudioTransportError):

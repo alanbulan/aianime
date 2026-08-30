@@ -6,6 +6,7 @@ Importing this package registers every built-in project task runner.
 from ai_anime.modules.task_execution.infrastructure.runners import (  # noqa: F401
     audio,
     character_image,
+    character_voice,
     episode_assets,
     freezone,
     graph_build,
@@ -22,4 +23,5 @@ from ai_anime.modules.task_execution.infrastructure.runners import (  # noqa: F4
     stage_asset,
     style_preview,
     video,
+    verification,
 )

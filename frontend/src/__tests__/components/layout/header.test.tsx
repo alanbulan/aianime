@@ -84,7 +84,8 @@ vi.mock("@/modules/identity_access/public", () => ({
   CommercialProfileSection: () => null,
   CommercialSecuritySection: () => null,
   logoutAllSessions: () => authState.logout(),
-  useAuthStore: () => authState,
+  useAuthStore: (selector: (state: typeof authState) => unknown) =>
+    selector(authState),
   useCommercialAuthStore: (
     selector: (state: typeof commercialState) => unknown,
   ) => selector(commercialState),
@@ -169,6 +170,7 @@ describe("Header runtime gating", () => {
 
     expect(screen.queryByText("AI anime")).not.toBeInTheDocument();
     expect(container.querySelector("header")).not.toBeInTheDocument();
+    expect(container.querySelector("#superchat-header-controls")).toBeNull();
     expect(screen.queryByLabelText("Toggle theme")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Open account")).toBeInTheDocument();
     actionsHost.remove();

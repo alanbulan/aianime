@@ -56,6 +56,9 @@ from ai_anime.modules.creative_canvas.application.generation_history import (
 from ai_anime.modules.creative_canvas.application.mainline_generation import (
     CreativeCanvasMainlineGenerationUseCases,
 )
+from ai_anime.modules.creative_canvas.application.long_operations import (
+    CreativeCanvasLongOperationUseCases,
+)
 from ai_anime.modules.creative_canvas.application.skill_catalog import (
     CreativeCanvasSkillCatalogQueries,
 )
@@ -129,6 +132,9 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_writes import (
 )
 from ai_anime.modules.creative_canvas.infrastructure.audio_library import (
     LocalCreativeCanvasAudioLibraryGateway,
+)
+from ai_anime.modules.creative_canvas.infrastructure.preset_voice_generator import (
+    ModelCreativeCanvasPresetVoiceGenerator,
 )
 from ai_anime.modules.creative_canvas.infrastructure.generation_catalog import (
     ConfiguredGenerationCatalogSource,
@@ -558,9 +564,21 @@ def creative_canvas_audio_generation_use_cases() -> (
 
 
 @lru_cache(maxsize=1)
+def creative_canvas_long_operation_use_cases() -> CreativeCanvasLongOperationUseCases:
+    return CreativeCanvasLongOperationUseCases(
+        FreezoneJobIdGenerator(),
+        TaskExecutionCreativeCanvasTaskScheduler(
+            project_task_submission_use_cases(),
+            translate_runtime_errors=False,
+        ),
+    )
+
+
+@lru_cache(maxsize=1)
 def creative_canvas_audio_library_use_cases() -> CreativeCanvasAudioLibraryUseCases:
     return CreativeCanvasAudioLibraryUseCases(
         LocalCreativeCanvasAudioLibraryGateway(),
+        ModelCreativeCanvasPresetVoiceGenerator(),
     )
 
 

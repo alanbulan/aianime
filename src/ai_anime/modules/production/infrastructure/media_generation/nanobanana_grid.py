@@ -781,7 +781,11 @@ async def _call_newapi_image_api(
                 metadata=metadata,
             )
         except Exception:
-            pass
+            logger.exception(
+                "failed to refund image model call reservation_id=%s source=%s",
+                reservation_id,
+                source,
+            )
 
     async def _confirm(
         reservation_id: str,
@@ -798,7 +802,11 @@ async def _call_newapi_image_api(
                 metadata={"response_id": response_id} if response_id else None,
             )
         except Exception:
-            pass
+            logger.exception(
+                "failed to confirm image model call reservation_id=%s model=%s",
+                reservation_id,
+                clean_model,
+            )
 
     def _record_trace(
         *,

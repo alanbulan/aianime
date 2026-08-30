@@ -15,6 +15,7 @@ from ai_anime.modules.asset_world.application.dto import (
     CharacterAssetTarget,
     CharacterGenerationOptions,
     CharacterImageGenerationTask,
+    CharacterVoiceDesignTask,
     CreateCharacterCommand,
     CreateIdentityCommand,
     CreatePropCommand,
@@ -27,6 +28,7 @@ from ai_anime.modules.asset_world.application.dto import (
     SceneReferenceGenerationTask,
     SceneStageGenerationTask,
     StylePreviewGenerationTask,
+    StyleAnalysisTask,
     SceneViewerAssetState,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -171,6 +173,12 @@ class CharacterTaskScheduler(Protocol):
         self,
         task_context: ProjectContext,
         task: CharacterImageGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
+
+    async def enqueue_character_voice_design(
+        self,
+        task_context: ProjectContext,
+        task: CharacterVoiceDesignTask,
     ) -> AssetTaskQueueReceipt: ...
 
 
@@ -948,6 +956,12 @@ class StyleTaskScheduler(Protocol):
         self,
         task_context: ProjectContext,
         task: StylePreviewGenerationTask,
+    ) -> AssetTaskQueueReceipt: ...
+
+    async def enqueue_style_analysis(
+        self,
+        task_context: ProjectContext,
+        task: StyleAnalysisTask,
     ) -> AssetTaskQueueReceipt: ...
 
 

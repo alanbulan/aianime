@@ -235,6 +235,7 @@ class CharacterImageGenerationTask:
     identity_id: str = ""
     identity_name: str = ""
     model_selector: str = ""
+    ethnicity: str = ""
 
     def backend_payload(self) -> dict[str, Any]:
         payload = {
@@ -247,6 +248,8 @@ class CharacterImageGenerationTask:
                 identity_id=self.identity_id,
                 identity_name=self.identity_name,
             )
+        if self.ethnicity:
+            payload["ethnicity"] = self.ethnicity
         payload.update(
             style=self.style,
             model=self.model,
@@ -255,6 +258,22 @@ class CharacterImageGenerationTask:
             output_dir=str(self.output_dir),
         )
         return payload
+
+
+@dataclass(frozen=True)
+class CharacterVoiceDesignTask:
+    task_type: ClassVar[str] = "character_voice_design"
+    scope: ClassVar[str] = "character_voice_design"
+
+    character_names: Sequence[str]
+    replace_existing: bool = False
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "character_names": list(self.character_names),
+            "replace_existing": self.replace_existing,
+            "display_name": "批量设计角色声线",
+        }
 
 
 @dataclass(frozen=True)
@@ -350,6 +369,26 @@ class StylePreviewGenerationTask:
         return {
             "style_id": self.style_id,
             "prompt": self.prompt,
+        }
+
+
+@dataclass(frozen=True)
+class StyleAnalysisTask:
+    task_type: ClassVar[str] = "style_analysis"
+
+    source_path: str | Path
+    mime_type: str
+    filename: str
+    style_id: str
+    scope: str
+
+    def backend_payload(self) -> dict[str, Any]:
+        return {
+            "source_path": str(self.source_path),
+            "mime_type": self.mime_type,
+            "filename": self.filename,
+            "style_id": self.style_id,
+            "display_name": "分析视觉风格",
         }
 
 
@@ -465,9 +504,7 @@ class StyleAnalysisBilling:
 
     @classmethod
     def from_project_context(cls, context: Any) -> "StyleAnalysisBilling":
-        requester_user_id = str(
-            getattr(context, "requester_user_id", "") or ""
-        ).strip()
+        requester_user_id = str(getattr(context, "requester_user_id", "") or "").strip()
         project_owner_id = str(getattr(context, "owner_id", "") or "").strip()
         return cls(
             billing_user_id=requester_user_id or project_owner_id,

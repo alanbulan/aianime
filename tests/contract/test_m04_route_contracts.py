@@ -32,6 +32,19 @@ def _png_bytes() -> bytes:
     return buf.getvalue()
 
 
+def _wav_bytes() -> bytes:
+    import io
+    import wave
+
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(8_000)
+        wav_file.writeframes(b"\0\0" * 800)
+    return buf.getvalue()
+
+
 class _M04Store:
     def __init__(self):
         self.project_dir = ""
@@ -545,8 +558,9 @@ def test_portrait_generation_reports_missing_priority_route_as_prerequisite(
 def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     client, _backend, project_dir = m04_client_factory("inline")
     png = _png_bytes()
+    wav = _wav_bytes()
     voice_data_url = (
-        f"data:audio/wav;base64,{base64.b64encode(b'voice').decode('ascii')}"
+        f"data:audio/wav;base64,{base64.b64encode(wav).decode('ascii')}"
     )
 
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/characters"))
@@ -605,7 +619,7 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/voice-samples/default/upload",
-            files={"file": ("voice.wav", b"voice", "audio/wav")},
+            files={"file": ("voice.wav", wav, "audio/wav")},
         )
     )
     _assert_ok(
@@ -792,13 +806,16 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
 
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/narrator-voice"))
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/narrator-voice/sources"))
-    _assert_ok(
-        client.post(
-            f"/api/v1/projects/{_PROJECT}/narrator-voice/upload",
-            files={"file": ("voice.wav", b"voice", "audio/wav")},
-        )
+    assert (
+        client.get(f"/api/v1/projects/{_PROJECT}/narrator-voice/sources").status_code
+        == 404
     )
+    narrator_upload = client.post(
+        f"/api/v1/projects/{_PROJECT}/narrator-voice/upload",
+        files={"file": ("voice.wav", wav, "audio/wav")},
+    )
+    _assert_ok(narrator_upload)
+    account_voice_id = narrator_upload.json()["data"]["voice_library_id"]
     _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/narrator-voice/record",
@@ -807,9 +824,16 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/narrator-voice/copy",
-            json={"source_path": str(project_dir / "audio" / "ep001" / "beat_01.mp3")},
+            f"/api/v1/projects/{_PROJECT}/narrator-voice/bind",
+            json={"voice_id": account_voice_id},
         )
+    )
+    assert (
+        client.post(
+            f"/api/v1/projects/{_PROJECT}/narrator-voice/copy",
+            json={"source_path": "audio/ep001/beat_01.mp3"},
+        ).status_code
+        == 404
     )
     _assert_ok(
         client.post(
@@ -861,7 +885,7 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
             "character_portrait",
             client.post(
                 f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async",
-                json={"model": "image-platform-sku"},
+                json={"model": "image-platform-sku", "ethnicity": "Japanese"},
             ),
         ),
         (
@@ -914,6 +938,10 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
         "audio_generation_indextts2",
         "audio_generation_indextts2",
     ]
+    portrait_call = next(
+        call for call in task_backend.calls if call["task_type"] == "character_portrait"
+    )
+    assert portrait_call["payload"]["ethnicity"] == "Japanese"
 
 
 def test_m04_removed_tts_routes_are_not_registered(m04_client_factory):

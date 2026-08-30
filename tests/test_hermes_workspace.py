@@ -41,11 +41,11 @@ def _assert_managed_asset(path: Path, expected_file: str) -> None:
 
 @pytest.fixture
 def isolated_workspace(tmp_path, monkeypatch):
-    """Redirect AI_ANIME_ROOT/state and repo-pinned skills to a tmp tree."""
+    """Redirect state and repo-pinned skills to a tmp tree."""
     repo_root = tmp_path / "repo"
     state_root = repo_root / "state"
     state_root.mkdir(parents=True)
-    monkeypatch.setattr(hw, "AI_ANIME_ROOT", repo_root)
+    monkeypatch.setattr(hw, "project_root", lambda: repo_root)
     monkeypatch.setenv("AI_ANIME_EDITION", "ce")
     monkeypatch.delenv("AI_ANIME_CONTROL_PLANE_DSN", raising=False)
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(state_root))
@@ -310,10 +310,11 @@ def test_state_root_prefers_env(monkeypatch, tmp_path):
 
 
 def test_state_root_falls_back_to_repo(monkeypatch, tmp_path):
-    monkeypatch.setattr(hw, "AI_ANIME_ROOT", tmp_path / "repo")
+    state_root = tmp_path / "repo" / "state"
+    monkeypatch.setattr(hw, "local_state_root", lambda: state_root)
     monkeypatch.delenv("AI_ANIME_STATE_DIR", raising=False)
 
-    assert hw._state_root() == tmp_path / "repo" / "state"
+    assert hw._state_root() == state_root
 
 
 def test_hermes_assets_root_prefers_bundled_directory(monkeypatch, tmp_path):
@@ -321,6 +322,14 @@ def test_hermes_assets_root_prefers_bundled_directory(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_ANIME_HERMES_ASSETS_DIR", str(assets))
 
     assert hw._hermes_assets_root() == assets
+
+
+def test_hermes_assets_root_defaults_to_project_root(monkeypatch, tmp_path):
+    repo_root = tmp_path / "repo"
+    monkeypatch.delenv("AI_ANIME_HERMES_ASSETS_DIR", raising=False)
+    monkeypatch.setattr(hw, "project_root", lambda: repo_root)
+
+    assert hw._hermes_assets_root() == repo_root / ".hermes"
 
 
 def test_fresh_config_uses_router_catalog_and_keeps_proxy_transport(
@@ -356,6 +365,7 @@ def test_fresh_config_uses_router_catalog_and_keeps_proxy_transport(
         "base_url": "http://127.0.0.1:45678/v1",
         "key_env": "NEWAPI_API_KEY",
         "api_mode": "responses",
+        "extra_headers": {"X-AI-Anime-Request-Surface": "ai-assistant"},
     }
 
 

@@ -1,4 +1,8 @@
 // Copyright (c) 2026 AI anime
+import { catalogRouteValue } from './catalog-route';
+
+export const AUDIO_SPEECH_CATALOG_OPERATION = 'AUDIO_VOICE_CLONE';
+
 export type AudioModelMode =
   | 'speech'
   | 'voiceClone'
@@ -10,6 +14,7 @@ export interface AudioCatalogItem {
   displayName: string;
   capabilities: Record<string, unknown>;
   parameterSchema?: Record<string, unknown>;
+  isDefault?: boolean;
 }
 
 export interface AudioModelOption {
@@ -24,8 +29,20 @@ export interface AudioPresetVoiceOption {
   isDefault: boolean;
 }
 
+export interface AudioSpeechModelOption {
+  value: string;
+  label: string;
+  voices: AudioPresetVoiceOption[];
+  acceptsVoice: boolean;
+  allowsCustomVoice: boolean;
+  requiresVoice: boolean;
+  isDefault: boolean;
+}
+
 export interface AudioVoiceDesignConfig {
+  promptMinLength: number;
   promptMaxLength: number;
+  previewTextMinLength: number;
   previewTextMaxLength: number;
   preferredName: string;
   languages: string[];
@@ -34,6 +51,24 @@ export interface AudioVoiceDesignConfig {
   defaultSampleRate: number | null;
   responseFormats: string[];
   defaultResponseFormat: string;
+}
+
+export interface AudioVoiceDesignModelOption {
+  value: string;
+  label: string;
+  config: AudioVoiceDesignConfig;
+  isDefault: boolean;
+}
+
+export function resolveAudioModelSelector(
+  options: readonly { value: string; isDefault?: boolean }[],
+  preferred: string | null | undefined,
+): string {
+  const normalized = String(preferred ?? '').trim();
+  if (options.some((option) => option.value === normalized)) return normalized;
+  const defaults = options.filter((option) => option.isDefault === true);
+  if (defaults.length === 1) return defaults[0]?.value ?? '';
+  return options.length === 1 ? options[0]?.value ?? '' : '';
 }
 
 export function audioModelOptionsForMode(
@@ -99,6 +134,32 @@ export function audioPresetVoiceOptions(
   });
 }
 
+export function audioSpeechModelOptions(
+  items: readonly AudioCatalogItem[],
+): AudioSpeechModelOption[] {
+  return items.map((item) => {
+    const voices = audioPresetVoiceOptions(item);
+    const schema = objectRecord(item.parameterSchema);
+    const properties = objectRecord(schema?.properties);
+    const schemaIsExplicit = Boolean(
+      schema && Object.keys(schema).length > 0,
+    );
+    const acceptsVoice =
+      voices.length > 0 || Boolean(properties?.voice) || !schemaIsExplicit;
+    const required = Array.isArray(schema?.required) ? schema.required : [];
+    return {
+      value: catalogRouteValue(item),
+      label: item.displayName,
+      voices,
+      acceptsVoice,
+      allowsCustomVoice: acceptsVoice && voices.length === 0,
+      requiresVoice:
+        voices.length > 0 || required.some((value) => value === 'voice'),
+      isDefault: item.isDefault === true,
+    };
+  });
+}
+
 export function audioVoiceDesignConfig(
   item: Pick<AudioCatalogItem, 'parameterSchema'>,
 ): AudioVoiceDesignConfig | null {
@@ -138,7 +199,9 @@ export function audioVoiceDesignConfig(
     return null;
   }
   return {
+    promptMinLength: positiveInteger(voicePrompt?.minLength) ?? 1,
     promptMaxLength,
+    previewTextMinLength: positiveInteger(previewText?.minLength) ?? 1,
     previewTextMaxLength,
     preferredName: String(preferredNameSchema?.default ?? '').trim(),
     languages,
@@ -148,6 +211,23 @@ export function audioVoiceDesignConfig(
     responseFormats,
     defaultResponseFormat,
   };
+}
+
+export function audioVoiceDesignModelOptions(
+  items: readonly AudioCatalogItem[],
+): AudioVoiceDesignModelOption[] {
+  return items.flatMap((item) => {
+    const config = audioVoiceDesignConfig(item);
+    if (!config) return [];
+    return [
+      {
+        value: catalogRouteValue(item),
+        label: item.displayName,
+        config,
+        isDefault: item.isDefault === true,
+      },
+    ];
+  });
 }
 
 export function audioEmotionPromptSupported(

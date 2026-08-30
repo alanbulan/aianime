@@ -3,6 +3,13 @@
 from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
+from ai_anime.modules.ai_assistant.application.chat_decisions import (
+    ChatDecisionCancelled,
+    ChatDecisionInvalid,
+    ChatDecisionNotFound,
+    ChatDecisionUnavailable,
+    ChatDecisions,
+)
 from ai_anime.modules.ai_assistant.application.chat_worker_lifecycle import (
     ChatWorkerLifecycle,
 )
@@ -24,6 +31,13 @@ from ai_anime.modules.ai_assistant.application.hermes_project_replies import (
 )
 from ai_anime.modules.ai_assistant.application.hermes_runtime_prewarm import (
     HermesRuntimePrewarmer,
+)
+from ai_anime.modules.ai_assistant.application.hermes_session_models import (
+    HermesSessionModels,
+)
+from ai_anime.modules.ai_assistant.application.hermes_session_commands import (
+    HermesSessionCommands,
+    UnsupportedSessionCommand,
 )
 from ai_anime.modules.ai_assistant.application.ports import (
     ChatHistory,
@@ -64,6 +78,11 @@ from ai_anime.modules.ai_assistant.application.speech_transcription import (
 __all__ = [
     "AgentPromptContext",
     "ChatHistory",
+    "ChatDecisionCancelled",
+    "ChatDecisionInvalid",
+    "ChatDecisionNotFound",
+    "ChatDecisionUnavailable",
+    "ChatDecisions",
     "ChatTitleGenerator",
     "emit_chat_event_best_effort",
     "ChatPresentation",
@@ -76,6 +95,8 @@ __all__ = [
     "HermesHomeReplies",
     "HermesRuntime",
     "HermesRuntimePrewarmer",
+    "HermesSessionCommands",
+    "HermesSessionModels",
     "HermesThread",
     "HermesProjectReplies",
     "JsonRenderErrors",
@@ -92,4 +113,5 @@ __all__ = [
     "SpeechTranscriptionFailed",
     "SpeechTranscriptionUnavailable",
     "UserPreferences",
+    "UnsupportedSessionCommand",
 ]

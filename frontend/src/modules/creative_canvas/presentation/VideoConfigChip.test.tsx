@@ -17,14 +17,18 @@ function configProps(
   return {
     aspectRatio: "16:9",
     aspectRatioOptions: ["auto", "16:9", "9:16"],
-    quality: "720P",
-    qualityOptions: ["720P", "1080P"],
+    outputValue: "720p",
+    outputOptions: ["720p", "1080p"],
+    extraParamDefinitions: [],
+    extraParams: {},
     durationSec: 8,
     durationBounds: { min: 5, max: 15 },
+    durationOptions: [],
     normalizeDuration: (value) => Math.min(Math.max(Math.round(value), 5), 15),
     sceneOptimize: "anime",
     sceneOptimizeOptions: ["anime", "realistic"],
     generateAudio: false,
+    supportsGenerateAudio: true,
     onChange: vi.fn(),
     ...overrides,
   };
@@ -43,7 +47,7 @@ describe("VideoConfigChip", () => {
     fireEvent.click(screen.getByText("16:9").closest("button")!);
     expect(onParentClick).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "9:16" }));
-    fireEvent.click(screen.getByRole("button", { name: "1080P" }));
+    fireEvent.click(screen.getByRole("button", { name: "1080p" }));
     fireEvent.click(
       screen.getByRole("button", {
         name: "node.videoNode.sceneOptimize.options.realistic",
@@ -55,10 +59,53 @@ describe("VideoConfigChip", () => {
 
     expect(onChange.mock.calls.map(([patch]) => patch)).toEqual([
       { aspectRatio: "9:16" },
-      { quality: "1080P" },
+      { generationResolution: "1080p" },
       { sceneOptimize: "realistic" },
       { generateAudio: true },
     ]);
+  });
+
+  it("renders H3 output and schema parameters while hiding unsupported audio", () => {
+    const onChange = vi.fn();
+    render(
+      <VideoConfigChip
+        {...configProps({
+          onChange,
+          outputValue: "1344x768",
+          outputOptions: ["1344x768", "768x1344", "1024x1024"],
+          durationSec: 3,
+          durationBounds: { min: 1, max: 15 },
+          sceneOptimize: undefined,
+          sceneOptimizeOptions: [],
+          generateAudio: false,
+          supportsGenerateAudio: false,
+          extraParamDefinitions: [
+            { key: "steps", label: "steps", type: "number", min: 1, max: 50, step: 1, defaultValue: 20 },
+            { key: "seed", label: "seed", type: "number", min: 0, max: 2147483647, step: 1, defaultValue: 42 },
+            { key: "turbo", label: "turbo", type: "boolean", defaultValue: false },
+          ],
+          extraParams: { steps: 20, seed: 42, turbo: false },
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("1344x768").closest("button")!);
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "768x1344" }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "steps" }), {
+      target: { value: "24" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "turbo" }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      generationResolution: "768x1344",
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      extraParams: { steps: 24, seed: 42, turbo: false },
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      extraParams: { steps: 20, seed: 42, turbo: true },
+    });
   });
 
   it("keeps partial duration input local and normalizes committed values", () => {

@@ -14,6 +14,9 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
       {
         method: "POST",
         json: {
+          model_selector: usesModelPreset
+            ? command.voiceRef.modelSelector ?? ""
+            : "",
           text: command.text,
           emotion_prompt: usesModelPreset ? "" : command.emotionPrompt ?? "",
           mode: usesModelPreset ? "SPEECH" : "VOICE_CLONE",

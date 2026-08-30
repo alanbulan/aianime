@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import tempfile
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable
 
+import portalocker
+
 from ai_anime.shared.runtime_paths import STATE_DIR
+from ai_anime.shared.utils.atomic_files import replace_text_atomically
 
 _log = logging.getLogger(__name__)
 
@@ -28,12 +29,6 @@ DEFAULT_ASPECT_RATIO = "2:3"
 def default_aspect_ratio_for_spine_template(spine_template: str | None) -> str:
     """Return the project aspect ratio implied by the screenplay spine."""
     return "16:9" if spine_template == "narrated" else DEFAULT_ASPECT_RATIO
-
-try:
-    import fcntl
-except ImportError:  # pragma: no cover
-    fcntl = None
-
 
 def get_project_config_path(username: str, project: str) -> Path:
     from ai_anime.shared.utils.project_paths import ProjectPaths
@@ -127,34 +122,20 @@ def _project_config_lock(config_path: Path):
     lock_path = config_path.with_suffix(f"{config_path.suffix}.lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with open(lock_path, "a+", encoding="utf-8") as lock_file:
-        if fcntl is not None:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        portalocker.lock(lock_file, portalocker.LOCK_EX)
         try:
             yield
         finally:
-            if fcntl is not None:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            portalocker.unlock(lock_file)
 
 
 def _write_project_config_atomic(config_path: Path, config: dict) -> None:
-    config_path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temp_path = tempfile.mkstemp(
-        prefix=f"{config_path.name}.",
-        suffix=".tmp",
-        dir=config_path.parent,
+    replace_text_atomically(
+        config_path,
+        json.dumps(config, indent=2, ensure_ascii=False),
+        sync_file=True,
+        sync_directory=False,
     )
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(temp_path, config_path)
-    except Exception:
-        try:
-            os.unlink(temp_path)
-        except FileNotFoundError:
-            pass
-        raise
 
 
 def update_project_config_file(

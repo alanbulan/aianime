@@ -17,6 +17,8 @@ def test_importing_runners_registers_builtin_project_task_runners():
         "sketch_generation",
         "audio_generation_indextts2",
         "build_scenes",
+        "character_voice_design",
+        "verification_model",
     }:
         assert task_type in names
         assert get_project_task_runner(task_type) is not None
@@ -27,9 +29,7 @@ def test_importing_runners_registers_builtin_project_task_runners():
 
 
 def test_removed_render_plan_runner_does_not_import_deleted_scope_helper():
-    source = (
-        "src/ai_anime/modules/task_execution/infrastructure/runners/render.py"
-    )
+    source = "src/ai_anime/modules/task_execution/infrastructure/runners/render.py"
     text = Path(source).read_text(encoding="utf-8")
 
     assert "render_plan_scope" not in text

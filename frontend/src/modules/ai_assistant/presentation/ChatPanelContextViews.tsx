@@ -2,8 +2,11 @@
 import type {
   ApprovalRequest,
   ChatMessage,
+  DecisionAnswer,
+  DecisionRequest,
 } from "@/modules/ai_assistant/domain/contracts";
 import { ApprovalCard } from "@/modules/ai_assistant/presentation/ApprovalCard";
+import { DecisionCard } from "@/modules/ai_assistant/presentation/DecisionCard";
 import { PinnedPanel } from "@/modules/ai_assistant/presentation/PinnedPanel";
 import { SearchBar } from "@/modules/ai_assistant/presentation/SearchBar";
 
@@ -11,6 +14,8 @@ type ApprovalDecision = "allow-once" | "allow-always" | "deny";
 
 export type ChatPanelContextViewsProps = {
   approvals: ApprovalRequest[];
+  decisions: DecisionRequest[];
+  submittingDecisionIds: Set<string>;
   error: string | null;
   pinnedMessages: ChatMessage[];
   searchOpen: boolean;
@@ -20,6 +25,10 @@ export type ChatPanelContextViewsProps = {
     approval: ApprovalRequest,
     decision: ApprovalDecision,
   ) => void;
+  onResolveDecision: (
+    decision: DecisionRequest,
+    answers: DecisionAnswer[],
+  ) => void | Promise<boolean>;
   onSearchChange: (query: string) => void;
   onSearchClose: () => void;
   onTogglePin: (messageId: string) => void;
@@ -27,12 +36,15 @@ export type ChatPanelContextViewsProps = {
 
 export function ChatPanelContextViews({
   approvals,
+  decisions,
+  submittingDecisionIds,
   error,
   pinnedMessages,
   searchOpen,
   searchQuery,
   onClearPinned,
   onResolveApproval,
+  onResolveDecision,
   onSearchChange,
   onSearchClose,
   onTogglePin,
@@ -44,6 +56,15 @@ export function ChatPanelContextViews({
           {error}
         </div>
       )}
+
+      {decisions.map((decision) => (
+        <DecisionCard
+          key={decision.id}
+          decision={decision}
+          submitting={submittingDecisionIds.has(decision.id)}
+          onSubmit={(answers) => onResolveDecision(decision, answers)}
+        />
+      ))}
 
       {approvals.map((approval) => (
         <ApprovalCard

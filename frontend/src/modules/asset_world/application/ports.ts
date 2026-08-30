@@ -310,7 +310,7 @@ export interface AssetWorldGateway {
   analyzeStyle(
     project: string,
     file: File,
-  ): Promise<AssetResponse<Record<string, unknown>>>;
+  ): Promise<AssetTaskResponse | AssetErrorResponse>;
   uploadStylePreview(
     input: { file: File; styleId: string },
   ): Promise<AssetResponse<{ preview_path: string }>>;

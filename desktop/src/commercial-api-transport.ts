@@ -76,11 +76,13 @@ export class CommercialApiTransport {
     const method = requiredText(input.method, "method").toUpperCase();
     const path = normalizeModelPath(input.path);
     let session = await this.requireFreshSession();
-    if (isModelWriteMethod(method) && this.activeDeviceId === null) {
+    const requiresActivatedDevice = isModelWriteMethod(method)
+      || isModelCatalogRead(method, path);
+    if (requiresActivatedDevice && this.activeDeviceId === null) {
       await this.loadCurrentLicense(input.devicePublicKeyHash);
     }
     const deviceId = this.activeDeviceId;
-    if (isModelWriteMethod(method) && deviceId === null) {
+    if (requiresActivatedDevice && deviceId === null) {
       throw new CommercialApiError("当前设备尚未激活", { status: 403 });
     }
     const idempotencyKey = isModelWriteMethod(method)
@@ -290,7 +292,6 @@ export class CommercialApiTransport {
         } catch (reauthenticationError) {
           if (isPermanentLoginFailure(reauthenticationError)) {
             await this.clearSession();
-            await this.clearRememberedLogin();
           }
           throw reauthenticationError;
         }
@@ -518,6 +519,15 @@ function normalizeModelPath(value: string): string {
 
 export function isModelWriteMethod(method: string): boolean {
   return method !== "GET" && method !== "HEAD";
+}
+
+function isModelCatalogRead(method: string, path: string): boolean {
+  if (method !== "GET" && method !== "HEAD") return false;
+  const pathname = new URL(path, "http://model-proxy.local").pathname;
+  return pathname === "/v1/models"
+    || pathname.startsWith("/v1/models/")
+    || pathname === "/v1beta/models"
+    || pathname.startsWith("/v1beta/models/");
 }
 
 function validateModelProtocolHeaders(

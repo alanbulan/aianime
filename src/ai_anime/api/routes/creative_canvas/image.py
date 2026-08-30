@@ -15,7 +15,6 @@ from ai_anime.api.routes.creative_canvas.image_schemas import (
     FreezoneImageStyleConfig,
     FreezoneImageTo3GSRequest,
     FreezoneMarkDetectRequest,
-    FreezoneMarkDetectResponse,
     FreezoneOutpaintRequest,
     FreezoneRedrawRequest,
     FreezoneRelightRequest,
@@ -33,17 +32,14 @@ from ai_anime.modules.creative_canvas.public import (
     CreativeCanvasImageToThreeGsSourceMissing,
     CreativeCanvasImageEditingSourceMissing,
     CreativeCanvasImageGenerationReferenceMissing,
-    CreativeCanvasMarkDetectionFailed,
     CreativeCanvasMarkSelection,
     CreativeCanvasReversePromptSourceMissing,
     CreativeCanvasTaskStartFailed,
-    DetectCreativeCanvasMarkCommand,
     InvalidCreativeCanvasReversePromptRequest,
     InvalidCreativeCanvasImageToThreeGsRequest,
     InvalidCreativeCanvasImageEditingRequest,
     InvalidCreativeCanvasImageGenerationRequest,
     InvalidCreativeCanvasImageTemplateMode,
-    InvalidCreativeCanvasMarkRequest,
     StartCreativeCanvasReversePromptCommand,
     StartCreativeCanvasImageToThreeGsCommand,
     StartCreativeCanvasImageEditingCommand,
@@ -55,7 +51,8 @@ from ai_anime.modules.creative_canvas.public import (
     creative_canvas_image_to_three_gs_use_cases,
     creative_canvas_image_editing_use_cases,
     creative_canvas_image_generation_use_cases,
-    creative_canvas_mark_detection_use_cases,
+    StartCreativeCanvasMarkDetectionCommand,
+    creative_canvas_long_operation_use_cases,
     creative_canvas_reference_image_editing_use_cases,
     creative_canvas_reverse_prompt_use_cases,
     generation_catalog_queries,
@@ -303,7 +300,7 @@ async def freezone_edit(
 
 @router.post(
     "/projects/{project}/freezone/marks/detect",
-    response_model=FreezoneMarkDetectResponse,
+    response_model=FreezoneJobAcceptedResponse,
     tags=["freezone-image"],
 )
 async def freezone_mark_detect(
@@ -311,7 +308,7 @@ async def freezone_mark_detect(
     body: FreezoneMarkDetectRequest,
     user: dict = Depends(get_api_user),
 ):
-    """图片处理：识别单张图片中点击点或框选区域的局部元素标记。"""
+    """提交图片局部元素标记识别任务。"""
     resolved = await resolve_project_scope(
         project,
         user,
@@ -319,8 +316,9 @@ async def freezone_mark_detect(
         operation="access freezone project files",
     )
     try:
-        result = await creative_canvas_mark_detection_use_cases().detect(
-            DetectCreativeCanvasMarkCommand(
+        receipt = await creative_canvas_long_operation_use_cases().start_mark_detection(
+            StartCreativeCanvasMarkDetectionCommand(
+                context=resolved.ctx,
                 project_dir=resolved.project_dir,
                 source_url=body.source_url,
                 selection=CreativeCanvasMarkSelection(
@@ -333,29 +331,10 @@ async def freezone_mark_detect(
                 ),
             )
         )
-    except InvalidCreativeCanvasMarkRequest as exc:
+    except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    except CreativeCanvasMarkDetectionFailed as exc:
-        raise HTTPException(500, str(exc)) from exc
 
-    selection = result.selection
-    return {
-        "ok": True,
-        "data": {
-            "mark": {
-                "label": result.label,
-                "source_url": result.source_url,
-                "point_x": selection.point_x,
-                "point_y": selection.point_y,
-                "box_x": selection.box_x,
-                "box_y": selection.box_y,
-                "box_width": selection.box_width,
-                "box_height": selection.box_height,
-                "note": result.note,
-            },
-            "model": result.model,
-        },
-    }
+    return {"ok": True, "data": receipt.to_dict()}
 
 
 @router.post(

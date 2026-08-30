@@ -72,6 +72,16 @@ interface AIAnimeByokModelAssignment {
   role: string;
   priority: number;
   enabled: boolean;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+  runtimeOverrides?: {
+    contextWindow?: number;
+    maxOutputTokens?: number;
+    reasoningEfforts?: string[];
+    defaultReasoningEffort?: string;
+  };
 }
 
 type AIAnimeByokProviderProtocol =
@@ -143,6 +153,7 @@ interface AIAnimeCommercialBridge {
   register: (input: AIAnimeCommercialRegistrationInput) => Promise<void>;
   session: () => Promise<AIAnimeCommercialSession | null>;
   rememberedLogin: () => Promise<AIAnimeCommercialRememberedLogin | null>;
+  revealRememberedPassword: () => Promise<string>;
   login: (input: AIAnimeCommercialLoginInput) => Promise<AIAnimeCommercialSession>;
   loginRemembered: (input: {
     rememberMe?: boolean;
@@ -188,6 +199,7 @@ interface AIAnimeCommercialBridge {
   }) => Promise<void>;
   bootstrap: (query: {
     modelOperation?: string;
+    catalogVersion?: string;
     currentVersion?: string;
     target?: string;
     arch?: string;

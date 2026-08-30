@@ -56,6 +56,15 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
     );
     return login ? parseCommercialRememberedLogin(login) : null;
   },
+  async revealRememberedPassword() {
+    const password = await invokeCommercial(() =>
+      requireCommercialBridge().revealRememberedPassword(),
+    );
+    if (typeof password !== "string" || password.length === 0) {
+      throw new Error("Remembered commercial password is unavailable");
+    }
+    return password;
+  },
   async login(input) {
     return parseCommercialSession(
       await invokeCommercial(() => requireCommercialBridge().login(input)),

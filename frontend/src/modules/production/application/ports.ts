@@ -35,7 +35,6 @@ import type {
 import type {
   GenerateNarratorVoiceDesignCommand,
   GenerateNarratorVoicePresetCommand,
-  NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
 import type {
@@ -248,10 +247,6 @@ export interface ProductionVideoGateway {
     project: string,
     signal?: AbortSignal,
   ): Promise<ProductionDataResponse<NarratorVoiceStatusData>>;
-  listNarratorVoiceSources(
-    project: string,
-    signal?: AbortSignal,
-  ): Promise<ProductionDataResponse<NarratorVoiceSourcesData>>;
   uploadNarratorVoice(
     project: string,
     file: File,
@@ -263,14 +258,14 @@ export interface ProductionVideoGateway {
   generateNarratorVoicePreset(
     project: string,
     command: GenerateNarratorVoicePresetCommand,
-  ): Promise<NarratorVoiceMutationResponse>;
+  ): Promise<NarratorVoiceGenerationResponse>;
   designNarratorVoice(
     project: string,
     command: GenerateNarratorVoiceDesignCommand,
-  ): Promise<NarratorVoiceMutationResponse>;
-  copyProjectNarratorVoice(
+  ): Promise<NarratorVoiceGenerationResponse>;
+  bindNarratorVoice(
     project: string,
-    sourcePath: string,
+    voiceId: string,
   ): Promise<NarratorVoiceMutationResponse>;
   trimNarratorVoice(
     project: string,
@@ -446,7 +441,7 @@ export type Seedance2BeatStatusResponse =
   | ProductionErrorResponse;
 
 export type Seedance2PromptResponse =
-  | ProductionDataResponse<Seedance2PromptResult>
+  | ProductionTaskResponse
   | ProductionErrorResponse;
 
 export type BeatVideoPromptResponse =
@@ -456,6 +451,10 @@ export type BeatVideoPromptResponse =
 
 export type NarratorVoiceMutationResponse =
   | ProductionDataResponse<NarratorVoiceStatusData>
+  | ProductionErrorResponse;
+
+export type NarratorVoiceGenerationResponse =
+  | ProductionTaskResponse
   | ProductionErrorResponse;
 
 export interface VideoPoolSelectResponse {

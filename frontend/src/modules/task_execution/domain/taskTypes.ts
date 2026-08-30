@@ -14,18 +14,22 @@ import type { TaskStatus } from "@/modules/task_execution/domain/contracts";
 export const TASK_TYPES = {
   // Project-level
   BUILD_CHARACTERS: "build_characters",
+  CHARACTER_VOICE_DESIGN: "character_voice_design",
   INGEST_FAST: "ingest_fast",
   BUILD_EPISODES: "build_episodes",
   CHARACTER_PORTRAIT: "character_portrait",
   IDENTITY_IMAGE: "identity_image",
   IDENTITY_PORTRAIT: "identity_portrait",
   STYLE_PREVIEW: "style_preview",
+  STYLE_ANALYSIS: "style_analysis",
   // Script
   SCRIPT_WORKFLOW: "script_workflow",
   PRODUCTION_WORKFLOW: "production_workflow",
   SCRIPT_WRITER: "script_writer",
   LITERAL_SCRIPT_WRITER: "literal_script_writer",
   BEAT_VIDEO_PROMPT: "beat_video_prompt",
+  SEEDANCE2_PROMPT: "seedance2_prompt",
+  EPISODE_REWRITE: "episode_rewrite",
   // Backend emits `director_notes`; keep the FE key aligned with that exact
   // task_type so the task stream and cancel endpoint target the same task.
   DIRECTOR_NOTES: "director_notes",
@@ -41,6 +45,11 @@ export const TASK_TYPES = {
   // Audio
   AUDIO_GENERATION: "audio_generation",
   AUDIO_GENERATION_INDEXTTS2: "audio_generation_indextts2",
+  FREEZONE_VOICE_DESIGN: "freezone_voice_design",
+  FREEZONE_VOICE_PRESET: "freezone_voice_preset",
+  FREEZONE_MARK_DETECT: "freezone_mark_detect",
+  FREEZONE_AI_STAGING_PROP: "freezone_ai_staging_prop",
+  VERIFICATION_MODEL: "verification_model",
   // Video
   SINGLE_VIDEO: "single_video",
   GLOBAL_OPTIMIZE_VIDEO: "global_optimize_video",
@@ -61,6 +70,7 @@ export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 export const SCOPED_TASK_TYPES = new Set<TaskType>([
   TASK_TYPES.SINGLE_VIDEO,
   TASK_TYPES.BEAT_VIDEO_PROMPT,
+  TASK_TYPES.SEEDANCE2_PROMPT,
   TASK_TYPES.GRID_REGENERATE,
   TASK_TYPES.SKETCH_REGEN,
   TASK_TYPES.SELECTED_REGEN,

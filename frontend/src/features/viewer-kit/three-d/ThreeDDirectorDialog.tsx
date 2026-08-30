@@ -68,6 +68,10 @@ import type {
   ViewerApp,
 } from "./engine/viewerApp";
 import { dataUrlToBlob as decodeDataUrl } from "@/shared/media/data-url";
+import {
+  TASK_TYPES,
+  useTaskController,
+} from "@/modules/task_execution/public";
 
 type FrameAspect = "16:9" | "2:3" | "9:16" | "1:1" | "4:3";
 type ToolMode = "actor" | "prop" | "staging";
@@ -887,6 +891,20 @@ function ThreeDDirectorSurface({
   const overlayAppliedAfterSplatReadyRef = useRef(0);
   const frameGuideRef = useRef<HTMLDivElement | null>(null);
   const [aiStagingBusy, setAiStagingBusy] = useState(false);
+  const aiStagingHintRef = useRef("");
+  const aiStagingResultHandlerRef = useRef<(result: unknown) => void>(() => {});
+  const aiStagingTask = useTaskController({
+    key: {
+      taskType: TASK_TYPES.FREEZONE_AI_STAGING_PROP,
+      project: manifest.project,
+      episode: 0,
+      scope: "ai_staging",
+    },
+    showCompleteToast: false,
+    onComplete: (result) => aiStagingResultHandlerRef.current(result),
+    onError: (taskError) => setError(taskError),
+  });
+  const aiStagingPending = aiStagingBusy || aiStagingTask.started;
   const [commandLog, setCommandLog] = useState<Array<Record<string, unknown>>>([]);
   const [anonymousSequence, setAnonymousSequence] = useState({ actor: 0, prop: 0 });
   const [selectedOverlayBeat, setSelectedOverlayBeat] = useState(
@@ -1542,79 +1560,87 @@ function ThreeDDirectorSurface({
     recordCommand("place_staging");
   }, [propLikeColor, recordCommand, trimmedStagingName]);
 
+  const applyAiStagingResult = useCallback((result: unknown) => {
+    const viewerApp = viewerRef.current;
+    if (!viewerApp || !result || typeof result !== "object") return;
+    const hint = aiStagingHintRef.current;
+    if (!hint) return;
+    const taskResult = result as Record<string, unknown>;
+    const payload = taskResult.prop && typeof taskResult.prop === "object"
+      ? taskResult.prop as Record<string, unknown>
+      : null;
+    const name = String(payload?.name ?? payload?.prop_id ?? hint);
+    const color = propLikeColor;
+    const shapeHint = typeof payload?.shape_hint === "string"
+      ? payload.shape_hint
+      : typeof payload?.shapeHint === "string"
+        ? payload.shapeHint
+        : undefined;
+    const normalizedShapeHint = shapeHint && (SHAPE_HINT_NAMES as string[]).includes(shapeHint)
+      ? shapeHint as ShapeHintName
+      : undefined;
+    const scaleValue = payload?.scale;
+    const scale = Array.isArray(scaleValue)
+      ? numberTuple3(scaleValue, [1, 0.6, 1])
+      : typeof scaleValue === "number" && Number.isFinite(scaleValue)
+        ? scaleValue
+        : 1;
+    const position = Array.isArray(payload?.position)
+      ? numberTuple3(payload.position, [0, 0, 0])
+      : undefined;
+    const placed = viewerApp.placeMarker("staging", {
+      color,
+      label: name,
+      scale,
+      ...(normalizedShapeHint ? { shapeHint: normalizedShapeHint } : {}),
+      ...(position ? { position } : {}),
+    });
+    if (placed) {
+      setAnonymousSequence((prev) => ({ ...prev, prop: prev.prop + 1 }));
+      setToolMode("staging");
+      setStagingName(name);
+      recordCommand("ai_staging", {
+        hint: hint.trim(),
+        name,
+        source: "buildergpt_ai_staging",
+      });
+    }
+  }, [propLikeColor, recordCommand]);
+  aiStagingResultHandlerRef.current = applyAiStagingResult;
+
   const createAiStaging = useCallback(async () => {
     const viewerApp = viewerRef.current;
-    if (!viewerApp || aiStagingBusy) return;
+    if (!viewerApp || aiStagingPending) return;
     const hint = trimmedStagingName;
     if (!hint) return;
     setAiStagingBusy(true);
     setError(null);
+    aiStagingHintRef.current = hint;
     try {
-      let payload: Record<string, unknown> | null = null;
-      try {
-        const generated = await generateAiStagingProp(manifest.project, {
-          scene_id: manifest.scene_id,
-          display_name: manifest.display_name,
-          user_hint: hint,
-          beat_context: manifest.beat_context ?? null,
-          crosshair_target: viewerApp.getCrosshairTarget(),
-          state: sceneSnapshotForPersistence(viewerApp.exportSceneSnapshot(), activeSceneSourceId),
-          renderer_backend: "playcanvas_3gs",
-        });
-        payload = (generated.prop ?? null) as Record<string, unknown> | null;
-      } catch (aiError) {
-        setError(aiError instanceof Error ? aiError.message : String(aiError));
-        return;
-      }
-      const name = String(payload?.name ?? payload?.prop_id ?? hint);
-      const color = propLikeColor;
-      const shapeHint = typeof payload?.shape_hint === "string"
-        ? payload.shape_hint
-        : typeof payload?.shapeHint === "string"
-          ? payload.shapeHint
-          : undefined;
-      const normalizedShapeHint = shapeHint && (SHAPE_HINT_NAMES as string[]).includes(shapeHint)
-        ? shapeHint as ShapeHintName
-        : undefined;
-      const scaleValue = payload?.scale;
-      const scale = Array.isArray(scaleValue)
-        ? numberTuple3(scaleValue, [1, 0.6, 1])
-        : typeof scaleValue === "number" && Number.isFinite(scaleValue)
-          ? scaleValue
-          : 1;
-      const position = Array.isArray(payload?.position)
-        ? numberTuple3(payload.position, [0, 0, 0])
-        : undefined;
-      const placed = viewerApp.placeMarker("staging", {
-        color,
-        label: name,
-        scale,
-        ...(normalizedShapeHint ? { shapeHint: normalizedShapeHint } : {}),
-        ...(position ? { position } : {}),
+      const receipt = await generateAiStagingProp(manifest.project, {
+        scene_id: manifest.scene_id,
+        display_name: manifest.display_name,
+        user_hint: hint,
+        beat_context: manifest.beat_context ?? null,
+        crosshair_target: viewerApp.getCrosshairTarget(),
+        state: sceneSnapshotForPersistence(viewerApp.exportSceneSnapshot(), activeSceneSourceId),
+        renderer_backend: "playcanvas_3gs",
       });
-      if (placed) {
-        setAnonymousSequence((prev) => ({ ...prev, prop: prev.prop + 1 }));
-        setToolMode("staging");
-        setStagingName(name);
-        recordCommand("ai_staging", {
-          hint: hint.trim(),
-          name,
-          source: payload ? "buildergpt_ai_staging" : "local_fallback",
-        });
-      }
+      aiStagingTask.start({ scope: receipt.task_scope });
+    } catch (aiError) {
+      setError(aiError instanceof Error ? aiError.message : String(aiError));
     } finally {
       setAiStagingBusy(false);
     }
   }, [
-    aiStagingBusy,
+    aiStagingPending,
+    aiStagingTask,
     activeSceneSourceId,
     manifest.beat_context,
     manifest.display_name,
+    manifest.project,
     manifest.scene_id,
-    propLikeColor,
     trimmedStagingName,
-    recordCommand,
-    t,
   ]);
 
   const placeCurrentTool = useCallback(() => {
@@ -2441,9 +2467,9 @@ function ThreeDDirectorSurface({
                   size="sm"
                   variant="outline"
                   onClick={createAiStaging}
-                  disabled={!viewer || aiStagingBusy || !trimmedStagingName}
+                  disabled={!viewer || aiStagingPending || !trimmedStagingName}
                 >
-                  {aiStagingBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Move3D className="size-3.5" />}
+                  {aiStagingPending ? <Loader2 className="size-3.5 animate-spin" /> : <Move3D className="size-3.5" />}
                   {t("viewer.threeD.aiPlaceholder")}
                 </Button>
                 <Button

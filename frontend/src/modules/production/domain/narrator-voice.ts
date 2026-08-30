@@ -16,24 +16,26 @@ export interface NarratorVoiceStatusData {
   is_first_person: boolean;
 }
 
-export interface NarratorVoiceSourceOption {
-  label: string;
-  path: string;
-  rel_path: string;
-}
-
-export interface NarratorVoiceSourcesData {
-  options: NarratorVoiceSourceOption[];
-}
-
 export interface NarratorVoicePresetOption {
   label: string;
   value: string;
   isDefault?: boolean;
 }
 
+export interface NarratorVoicePresetModelOption {
+  value: string;
+  label: string;
+  voices: NarratorVoicePresetOption[];
+  acceptsVoice: boolean;
+  allowsCustomVoice: boolean;
+  requiresVoice: boolean;
+  isDefault?: boolean;
+}
+
 export interface NarratorVoiceDesignConfig {
+  promptMinLength: number;
   promptMaxLength: number;
+  previewTextMinLength: number;
   previewTextMaxLength: number;
   preferredName: string;
   languages: string[];
@@ -46,6 +48,7 @@ export interface NarratorVoiceDesignConfig {
 
 export interface GenerateNarratorVoicePresetCommand {
   name: string;
+  model_selector: string;
   text: string;
   voice: string;
 }

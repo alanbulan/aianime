@@ -266,11 +266,12 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     from ai_anime.api.routes.creative_canvas import text as freezone_text
     from ai_anime.api.routes.creative_canvas import video as freezone_video
     from ai_anime.modules.creative_canvas.infrastructure.paths import uploads_dir
-    from ai_anime.modules.creative_canvas.public import (
-        CreativeCanvasMarkDetectionResult,
-    )
+    from ai_anime.modules.model_usage.public import configure_model_access
     from ai_anime.modules.creative_canvas.application.audio_generation import (
         CreativeCanvasAudioGenerationUseCases,
+    )
+    from ai_anime.modules.creative_canvas.application.long_operations import (
+        CreativeCanvasLongOperationUseCases,
     )
     from ai_anime.modules.creative_canvas.application.canvas_commits import (
         CreativeCanvasSlotCommitUseCases,
@@ -442,16 +443,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         assert project == _PROJECT
         return resolution
 
-    class FakeMarkDetectionUseCases:
-        async def detect(self, command):
-            return CreativeCanvasMarkDetectionResult(
-                source_url=command.source_url,
-                selection=command.selection,
-                label="旧伞",
-                note="框选区域中的物体",
-                model="vision-model",
-            )
-
     async def make_store_for_context(_ctx):
         return store
 
@@ -500,11 +491,6 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         freezone_jobs,
         "resolve_project_scope",
         resolve_project_scope,
-    )
-    monkeypatch.setattr(
-        freezone_image,
-        "creative_canvas_mark_detection_use_cases",
-        lambda: FakeMarkDetectionUseCases(),
     )
     monkeypatch.setattr(
         freezone_media,
@@ -610,6 +596,19 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     )
 
     def build(backend: str = "inline"):
+        configure_model_access(
+            allows_custom_models=False,
+            mode="mixed",
+            model_capabilities=[
+                {
+                    "modelId": "cloud-video-standard",
+                    "videoRatioOptions": ["16:9"],
+                    "videoResolutionOptions": ["720p"],
+                    "videoGenerationMinSeconds": 1,
+                    "videoGenerationMaxSeconds": 15,
+                }
+            ],
+        )
         task_backend = _FakeTaskBackend(backend)
         task_manager = _FakeTaskManager()
         job_result_queries = CreativeCanvasJobResultQueries(
@@ -622,6 +621,10 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             ProjectTaskSubmissionUseCases(lambda: task_backend)
         )
         audio_generation_use_cases = CreativeCanvasAudioGenerationUseCases(
+            FreezoneJobIdGenerator(),
+            task_scheduler,
+        )
+        long_operation_use_cases = CreativeCanvasLongOperationUseCases(
             FreezoneJobIdGenerator(),
             task_scheduler,
         )
@@ -717,6 +720,16 @@ def m06_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             freezone_audio,
             "creative_canvas_audio_generation_use_cases",
             lambda use_cases=audio_generation_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_image,
+            "creative_canvas_long_operation_use_cases",
+            lambda use_cases=long_operation_use_cases: use_cases,
+        )
+        monkeypatch.setattr(
+            freezone_skills,
+            "creative_canvas_long_operation_use_cases",
+            lambda use_cases=long_operation_use_cases: use_cases,
         )
         monkeypatch.setattr(
             freezone_image,
@@ -931,11 +944,12 @@ def test_m06_freezone_media_upload_and_screenshot(m06_client_factory):
         )
     )["data"]
     upload_path = project_dir / "freezone" / "_uploads" / upload["filename"]
-    assert upload["filename"].endswith("_reference_image.png")
+    assert upload["filename"].endswith("_reference image.png")
     assert upload["size"] == len(upload_content)
     assert upload["url"].startswith(
         f"/static/projects/{_PROJECT_ID}/freezone/_uploads/"
     )
+    assert "%20" in upload["url"]
     assert upload_path.read_bytes() == upload_content
 
     png = _png_bytes()
@@ -1017,11 +1031,11 @@ def test_m06_video_asset_library_contract(m06_client_factory):
 
 
 def test_m06_freezone_mark_detection_contract(m06_client_factory):
-    client, _backend, _task_manager, _project_dir, assets, _store = m06_client_factory(
-        "inline"
+    client, task_backend, _task_manager, _project_dir, assets, _store = (
+        m06_client_factory("inline")
     )
 
-    data = _assert_ok(
+    payload = _assert_ok(
         client.post(
             f"/api/v1/projects/{_PROJECT}/freezone/marks/detect",
             json={
@@ -1030,21 +1044,22 @@ def test_m06_freezone_mark_detection_contract(m06_client_factory):
                 "point_y": 0.75,
             },
         )
-    )["data"]
+    )
 
-    assert data == {
-        "mark": {
-            "label": "旧伞",
-            "source_url": assets.image_url,
+    _assert_freezone_http_task_shape(payload, task_type="freezone_mark_detect")
+    assert task_backend.calls[-1]["payload"] == {
+        "job_id": payload["data"]["job_id"],
+        "project_dir": str(_project_dir),
+        "source_url": assets.image_url,
+        "selection": {
             "point_x": 0.25,
             "point_y": 0.75,
             "box_x": None,
             "box_y": None,
             "box_width": None,
             "box_height": None,
-            "note": "框选区域中的物体",
         },
-        "model": "vision-model",
+        "display_name": "识别图片局部标记",
     }
 
 
@@ -1249,6 +1264,10 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                 json={
                     "prompt": "rain alley video",
                     "model": "cloud-video-standard",
+                    "resolution": "720p",
+                    "aspect_ratio": "16:9",
+                    "duration_seconds": 5,
+                    "generate_audio": False,
                 },
             ),
         ),
@@ -1261,6 +1280,10 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                     "prompt": "move",
                     "model": "cloud-video-standard",
                     "gen_mode": "imageToVideo",
+                    "resolution": "720p",
+                    "aspect_ratio": "16:9",
+                    "duration_seconds": 5,
+                    "generate_audio": False,
                 },
             ),
         ),
@@ -1273,6 +1296,10 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                     "prompt": "move",
                     "model": "cloud-video-standard",
                     "gen_mode": "firstFrame",
+                    "resolution": "720p",
+                    "aspect_ratio": "16:9",
+                    "duration_seconds": 5,
+                    "generate_audio": False,
                 },
             ),
         ),
@@ -1283,6 +1310,10 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                 json={
                     "prompt": "omni",
                     "model": "cloud-video-standard",
+                    "resolution": "720p",
+                    "aspect_ratio": "16:9",
+                    "duration_seconds": 5,
+                    "generate_audio": False,
                     "references": [
                         {"type": "image", "url": image, "role": "reference"}
                     ],
@@ -1297,6 +1328,10 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
                     "video_url": video,
                     "prompt": "restyle",
                     "model": "cloud-video-standard",
+                    "resolution": "720p",
+                    "aspect_ratio": "16:9",
+                    "duration_seconds": 5,
+                    "generate_audio": False,
                 },
             ),
         ),

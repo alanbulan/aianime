@@ -8,6 +8,7 @@ import type {
   GridUploadResponse,
   ImagePoolSelectResponse,
   NarratorVoiceMutationResponse,
+  NarratorVoiceGenerationResponse,
   PoolDeleteResponse,
   ProductionDataResponse,
   ProductionErrorResponse,
@@ -21,7 +22,6 @@ import type {
 import type {
   GenerateNarratorVoiceDesignCommand,
   GenerateNarratorVoicePresetCommand,
-  NarratorVoiceSourcesData,
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
 import type {
@@ -144,7 +144,10 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       ProductionTaskResponse | ProductionErrorResponse
     >(
       api.post(p`api/v1/projects/${project}/workflow/production`, {
-        json: { episodes: [episode] },
+        json: {
+          episodes: [episode],
+          video_routing_policy: "project_selection",
+        },
         throwHttpErrors: false,
       }),
     );
@@ -495,6 +498,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         {
           json: {
             model: command.model,
+            video_routing_policy: "project_selection",
             ...(command.modelSelector
               ? { model_selector: command.modelSelector }
               : {}),
@@ -524,11 +528,6 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       .get(p`api/v1/projects/${project}/narrator-voice`, { signal })
       .json<ProductionDataResponse<NarratorVoiceStatusData>>();
   },
-  async listNarratorVoiceSources(project, signal) {
-    return api
-      .get(p`api/v1/projects/${project}/narrator-voice/sources`, { signal })
-      .json<ProductionDataResponse<NarratorVoiceSourcesData>>();
-  },
   async uploadNarratorVoice(project, file) {
     const formData = new FormData();
     formData.append("file", file, file.name);
@@ -553,7 +552,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       .post(p`api/v1/projects/${project}/narrator-voice/generate-preset`, {
         json: command,
       })
-      .json<NarratorVoiceMutationResponse>();
+      .json<NarratorVoiceGenerationResponse>();
   },
   async designNarratorVoice(
     project,
@@ -563,12 +562,12 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       .post(p`api/v1/projects/${project}/narrator-voice/design`, {
         json: command,
       })
-      .json<NarratorVoiceMutationResponse>();
+      .json<NarratorVoiceGenerationResponse>();
   },
-  async copyProjectNarratorVoice(project, sourcePath) {
+  async bindNarratorVoice(project, voiceId) {
     return api
-      .post(p`api/v1/projects/${project}/narrator-voice/copy`, {
-        json: { source_path: sourcePath },
+      .post(p`api/v1/projects/${project}/narrator-voice/bind`, {
+        json: { voice_id: voiceId },
       })
       .json<NarratorVoiceMutationResponse>();
   },

@@ -2,9 +2,55 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ai_anime.api.routes.creative_canvas.mark_schemas import FreezoneVideoMark
+
+
+class _FreezoneVideoGenerationRequest(BaseModel):
+    """目录驱动的视频输出与模型扩展参数。"""
+
+    aspect_ratio: str = Field(
+        min_length=3,
+        max_length=16,
+        pattern=r"^(?:auto|\d{1,4}:\d{1,4})$",
+        description="目录 capability 声明的视频比例",
+    )
+    resolution: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=32,
+        pattern=r"^[A-Za-z0-9._-]+$",
+        description="目录 parameterSchema 声明的输出清晰度",
+    )
+    size: Optional[str] = Field(
+        default=None,
+        pattern=r"^\d{2,5}x\d{2,5}$",
+        description="目录 parameterSchema 声明的精确输出尺寸",
+    )
+    extra_params: dict[str, object] = Field(
+        default_factory=dict,
+        description="目录 parameterSchema 声明的其余模型参数",
+    )
+    duration_seconds: int = Field(
+        ge=1,
+        description="目录 parameterSchema 声明的视频时长",
+    )
+    generate_audio: bool = Field(
+        description="目录 capability 声明的原生音频开关",
+    )
+    scene_optimize: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description="目录 parameterSchema 声明的场景优化参数",
+    )
+
+    @model_validator(mode="after")
+    def validate_output_parameter(self):
+        if bool(self.resolution) == bool(self.size):
+            raise ValueError("exactly one of resolution or size is required")
+        return self
 
 
 class FreezoneExtractFramesRequest(BaseModel):
@@ -78,7 +124,7 @@ class FreezoneVideoCharacterLibraryItemRequest(BaseModel):
     )
 
 
-class FreezoneVideoGenRequest(BaseModel):
+class FreezoneVideoGenRequest(_FreezoneVideoGenerationRequest):
     """文生视频请求。
 
     运镜通过模板库和补充提示词控制；角色库通过 `character_ids` 引用已上传的人物参考图。
@@ -97,27 +143,9 @@ class FreezoneVideoGenRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
-        default="16:9",
-        description="视频比例；auto 当前回退为 16:9",
-    )
-    resolution: Literal["480p", "720p", "1080p"] = Field(
-        default="720p",
-        description="输出清晰度档位",
-    )
-    duration_seconds: int = Field(
-        default=5,
-        ge=1,
-        description="视频时长，至少 1 秒；不同模型支持的时长范围可能不同",
-    )
-    generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
         description="是否请求真人素材审核；仅在所选模型声明支持时使用",
-    )
-    scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
-        default=None,
-        description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
@@ -134,7 +162,7 @@ class FreezoneVideoGenRequest(BaseModel):
     )
 
 
-class FreezoneImageToVideoRequest(BaseModel):
+class FreezoneImageToVideoRequest(_FreezoneVideoGenerationRequest):
     """图片参考视频请求。
 
     统一承接图生视频和图片参考视频：
@@ -155,27 +183,9 @@ class FreezoneImageToVideoRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
-        default="16:9",
-        description="视频比例；auto 当前回退为 16:9",
-    )
-    resolution: Literal["480p", "720p", "1080p"] = Field(
-        default="720p",
-        description="输出清晰度档位",
-    )
-    duration_seconds: int = Field(
-        default=5,
-        ge=1,
-        description="视频时长，至少 1 秒；不同模型支持的时长范围可能不同",
-    )
-    generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
         description="是否请求真人素材审核；仅在所选模型声明支持时使用",
-    )
-    scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
-        default=None,
-        description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
@@ -195,7 +205,7 @@ class FreezoneImageToVideoRequest(BaseModel):
     )
 
 
-class FreezoneKeyframeVideoRequest(BaseModel):
+class FreezoneKeyframeVideoRequest(_FreezoneVideoGenerationRequest):
     """首尾帧视频请求。
 
     接受首帧 / 尾帧两个输入，至少需要提供一个。
@@ -218,27 +228,9 @@ class FreezoneKeyframeVideoRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
-        default="16:9",
-        description="视频比例；auto 当前回退为 16:9",
-    )
-    resolution: Literal["480p", "720p", "1080p"] = Field(
-        default="720p",
-        description="输出清晰度档位",
-    )
-    duration_seconds: int = Field(
-        default=5,
-        ge=1,
-        description="视频时长，至少 1 秒；不同模型支持的时长范围可能不同",
-    )
-    generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
         description="是否请求真人素材审核；仅在所选模型声明支持时使用",
-    )
-    scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
-        default=None,
-        description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",
@@ -255,7 +247,7 @@ class FreezoneKeyframeVideoRequest(BaseModel):
     )
 
 
-class FreezoneVideoEditRequest(BaseModel):
+class FreezoneVideoEditRequest(_FreezoneVideoGenerationRequest):
     """视频编辑请求（HappyHorse 视频编辑功能）。
 
     输入 1 个源视频 + 0-5 张参考图，对视频进行编辑改写。
@@ -275,24 +267,10 @@ class FreezoneVideoEditRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
-        default="16:9",
-        description="视频比例；视频编辑画幅由源视频决定，此字段仅占位",
-    )
-    resolution: Literal["480p", "720p", "1080p"] = Field(
-        default="720p",
-        description="输出清晰度档位",
-    )
-    duration_seconds: int = Field(
-        default=5,
-        ge=1,
-        description="视频时长，至少 1 秒；不同模型支持的时长范围可能不同",
-    )
     audio_setting: Literal["auto", "origin"] = Field(
         default="auto",
         description="视频编辑音频策略：auto 自动 / origin 保留原声",
     )
-    generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
         description="是否开启真人素材审核/加白流程",
@@ -323,7 +301,7 @@ class FreezoneVideoReferenceItem(BaseModel):
     label: str = Field(default="", description="前端展示标签，可为空")
 
 
-class FreezoneVideoOmniGenRequest(BaseModel):
+class FreezoneVideoOmniGenRequest(_FreezoneVideoGenerationRequest):
     """全能参考视频请求。
 
     支持文本、图像、视频、音频混合输入。
@@ -345,27 +323,9 @@ class FreezoneVideoOmniGenRequest(BaseModel):
         default_factory=list,
         description="局部元素标记列表。来自前端点击图片选中的主体/物体局部区域，不是普通 tags",
     )
-    aspect_ratio: Literal["auto", "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "9:21", "5:4", "4:5"] = Field(
-        default="16:9",
-        description="视频比例；auto 当前回退为 16:9",
-    )
-    resolution: Literal["480p", "720p", "1080p"] = Field(
-        default="720p",
-        description="输出清晰度档位",
-    )
-    duration_seconds: int = Field(
-        default=5,
-        ge=1,
-        description="视频时长，至少 1 秒；不同模型支持的时长范围可能不同",
-    )
-    generate_audio: bool = Field(default=False, description="是否生成原生音频")
     human_review: bool = Field(
         default=False,
         description="是否请求真人素材审核；仅在所选模型声明支持时使用",
-    )
-    scene_optimize: Optional[Literal["anime", "realistic"]] = Field(
-        default=None,
-        description="Seedance 2.0 Value 系列的场景风格优化参数",
     )
     model: str = Field(
         description="登录后 VIDEO 模型目录返回的平台 SKU",

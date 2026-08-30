@@ -29,11 +29,15 @@ export interface CanvasCatalogModelOption {
   readonly referenceVideoTotalMinSeconds?: number | null;
   readonly referenceVideoTotalMaxSeconds?: number | null;
   readonly resolutionOptions?: string[];
+  readonly sizeOptions?: string[];
   readonly aspectRatioOptions?: string[];
   readonly minDuration?: number | null;
   readonly maxDuration?: number | null;
-  readonly sceneOptimizeOptions?: Array<"anime" | "realistic">;
-  readonly defaultSceneOptimize?: "anime" | "realistic" | null;
+  readonly defaultDuration?: number | null;
+  readonly durationOptions?: number[];
+  readonly supportsGenerateAudio?: boolean;
+  readonly sceneOptimizeOptions?: string[];
+  readonly defaultSceneOptimize?: string | null;
 }
 
 export interface CanvasImageModel extends CanvasCatalogModelOption {

@@ -106,6 +106,7 @@ export interface VideoPaneController {
   legacyPrompt: LegacyVideoPromptController;
   media: VideoPaneMediaController;
   mention: Seedance2MentionController;
+  modelLabel: string;
   modelReferenceAssets: Seedance2AssetItem[];
   projectAspect: "2:3" | "16:9";
   referenceCropAssets: Seedance2AssetItem[];
@@ -241,6 +242,7 @@ export function createUseVideoPaneController(
       legacyPrompt,
       media,
       mention,
+      modelLabel: selectedModel?.label ?? defaultModel,
       modelReferenceAssets,
       projectAspect: spec.renderAspect,
       referenceCropAssets,

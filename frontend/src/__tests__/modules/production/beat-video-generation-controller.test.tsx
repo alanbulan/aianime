@@ -158,6 +158,10 @@ describe("beat video generation controller", () => {
     expect(regenerate).toHaveBeenCalledWith({
       beatNum: 1,
       model: "seedance-2.0-fast",
+      duration: 5,
+      mode: "multimodal_reference",
+      ratio: "9:16",
+      resolution: "720p",
     });
     expect(taskStart).toHaveBeenCalledTimes(1);
     expect(toastSuccess).toHaveBeenCalledWith(

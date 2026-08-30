@@ -46,6 +46,10 @@ export function seedance2CropTargetForAsset(
   if (mode === "first_last_frame") {
     return asset.key === "last_frame" ? "last_frame" : "first_frame";
   }
+  if (mode === "multimodal_reference") {
+    if (asset.key === "first_frame") return "first_frame";
+    if (asset.key === "last_frame") return "last_frame";
+  }
   return "reference_image";
 }
 

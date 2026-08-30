@@ -17,6 +17,7 @@ from ai_anime.modules.asset_world.application.dto import (
     ScheduledAssetTask,
     StyleFile,
     StylePreviewGenerationTask,
+    StyleAnalysisTask,
     StyleScope,
     UpdateCustomStyleCommand,
 )
@@ -472,6 +473,33 @@ class StylePreviewTaskUseCases:
             task_type=task.task_type,
             scope=task_scope,
             message=f"风格「{getattr(style, 'label', None) or getattr(style, 'name', None) or style_id}」参考图生成任务已进入队列",
+        )
+
+    async def schedule_analysis(
+        self,
+        *,
+        task_context: ProjectContext | None,
+        source_path: str | Path,
+        mime_type: str,
+        filename: str,
+        style_id: str,
+        scope: str,
+    ) -> ScheduledAssetTask:
+        if task_context is None:
+            raise StyleRejected("风格分析需要 project context")
+        task = StyleAnalysisTask(
+            source_path=source_path,
+            mime_type=mime_type,
+            filename=filename,
+            style_id=style_id,
+            scope=scope,
+        )
+        receipt = await self._scheduler.enqueue_style_analysis(task_context, task)
+        return ScheduledAssetTask.from_receipt(
+            receipt,
+            task_type=task.task_type,
+            scope=scope,
+            message="视觉风格分析任务已进入队列",
         )
 
 

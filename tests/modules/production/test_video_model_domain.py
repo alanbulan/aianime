@@ -37,17 +37,46 @@ def test_video_duration_respects_audio_config_and_model_bounds() -> None:
 def test_video_resolution_respects_each_model_capability() -> None:
     assert video_api_resolution("1080x1920") == "1080p"
     assert video_api_resolution("1280x1920") == "1080p"
+    assert video_api_resolution("1366x768") == "768p"
     assert video_api_resolution("854x1280") == "720p"
     assert video_resolution("seedance-2.0", "1080p") == "1080p"
-    assert video_resolution("seedance-2.0-fast", "1080p") == "720p"
-    assert video_resolution("seedance-2.0-value", "480p") == "720p"
+    assert video_resolution(
+        "catalog-route",
+        "1080p",
+        ("480p", "720p", "1080p"),
+    ) == "1080p"
+    assert video_resolution("catalog-route", "512p", ("512p", "768p")) == "512p"
+    with pytest.raises(ValueError, match="不支持分辨率 1080p"):
+        video_resolution("seedance-2.0-fast", "1080p")
+    with pytest.raises(ValueError, match="不支持分辨率 480p"):
+        video_resolution("seedance-2.0-value", "480p")
     assert video_output_size("2:3", "1080p") == "1280x1920"
+    assert video_output_size("16:9", "768p") == "1366x768"
     assert video_output_size("2:3", "720p") == "854x1280"
+    assert video_output_size("16:9", "1344x768") == "1344x768"
+    assert video_output_size("16:9", "512p") == "910x512"
+    assert video_resolution(
+        "MINIMAX_H3",
+        "768x1344",
+        (),
+        ("1344x768", "768x1344", "1024x1024"),
+    ) == "768x1344"
+    with pytest.raises(ValueError, match="不支持分辨率 1280x720"):
+        video_resolution(
+            "MINIMAX_H3",
+            "1280x720",
+            (),
+            ("1344x768", "768x1344", "1024x1024"),
+        )
 
 
 def test_happyhorse_and_grok_request_values_use_supported_fallbacks() -> None:
-    assert happyhorse_resolution("720x1280") == "720p"
-    assert happyhorse_resolution(None) == "1080p"
+    assert happyhorse_resolution("720x1280") == "768p"
+    assert happyhorse_resolution("768p") == "768p"
+    assert happyhorse_resolution(None) == "768p"
+    assert happyhorse_resolution("1080p", 6) == "1080p"
+    with pytest.raises(ValueError, match="1080p 仅支持 6 秒"):
+        happyhorse_resolution("1080p", 10)
     assert happyhorse_ratio("3:4") == "3:4"
     assert happyhorse_ratio("2:3") == "16:9"
     assert grok_video_resolution("480p") == "480p"

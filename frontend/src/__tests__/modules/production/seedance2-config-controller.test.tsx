@@ -1,10 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { act, renderHook } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Beat } from "@/modules/narrative_planning/public";
 import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
 import type { VideoModelOption } from "@/modules/production/domain/video-model";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
 
 const generatePrompt = vi.hoisted(() => vi.fn());
 const toastError = vi.hoisted(() => vi.fn());
@@ -16,6 +19,17 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("sonner", () => ({
   toast: { error: toastError, success: toastSuccess },
+}));
+
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
+  useTaskStream: () => ({
+    status: "idle" as const,
+    progress: 0,
+    currentTask: "",
+    result: null,
+    error: null,
+    logs: [],
+  }),
 }));
 
 const useController = createUseSeedance2ConfigController(
@@ -82,6 +96,16 @@ function renderController(
   updateBeat = vi.fn().mockResolvedValue(undefined),
 ) {
   const selectedModel = overrides.selectedModel ?? makeModel();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <TaskControllerProvider project="demo" episode={1}>
+        {children}
+      </TaskControllerProvider>
+    </QueryClientProvider>
+  );
   return {
     updateBeat,
     ...renderHook(() =>
@@ -98,6 +122,7 @@ function renderController(
         refetchStatus: vi.fn(),
         updateBeat,
       }),
+      { wrapper },
     ),
   };
 }
@@ -152,6 +177,66 @@ describe("Seedance2 config controller", () => {
     expect(result.current.draft.scene_optimize).toBe("anime");
   });
 
+  it("prefers catalog-declared Seedance resolution options over the route name", () => {
+    const { result } = renderController({
+      model: "catalog-route-without-model-family-name",
+      selectedModel: makeModel({
+        value: "catalog-route-without-model-family-name",
+        apiModel: "provider/seedance-2.0",
+        resolutionOptions: ["480p", "720p", "1080p"],
+      }),
+    });
+
+    expect(result.current.seedance2ResolutionOptions).toEqual([
+      "480p",
+      "720p",
+      "1080p",
+    ]);
+  });
+
+  it("keeps H3 quality and ratio as independent visible controls", () => {
+    const h3 = makeModel({
+      value: "cloud:MINIMAX_H3",
+      apiModel: "MINIMAX_H3",
+      routeSelector: "cloud:MINIMAX_H3",
+      profile: "standard",
+      minDuration: 1,
+      ratioOptions: ["16:9", "9:16", "1:1"],
+      resolutionOptions: ["768p"],
+      sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+      supportedModes: ["IMAGE_TO_VIDEO", "MULTIMODAL_REFERENCE"],
+    });
+    const { result } = renderController({
+      model: h3.value,
+      selectedModel: h3,
+      beat: makeBeat({
+        seedance2_config_json: JSON.stringify({
+          mode: "multimodal_reference",
+          mode_user_set: true,
+          duration: 4,
+          resolution: "720p",
+          ratio: "9:16",
+          final_prompt: "主体提示词",
+        }),
+      }),
+    });
+
+    expect(result.current.seedance2ResolutionOptions).toEqual(["768p"]);
+    expect(result.current.draft.resolution).toBe("768p");
+    expect(result.current.generationInput).toMatchObject({
+      kind: "seedance2",
+      model: "MINIMAX_H3",
+      modelSelector: "cloud:MINIMAX_H3",
+      resolutionOptions: ["768p"],
+      sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+    });
+
+    act(() => result.current.updateDraft("ratio", "16:9"));
+
+    expect(result.current.seedance2ResolutionOptions).toEqual(["768p"]);
+    expect(result.current.draft.resolution).toBe("768p");
+  });
+
   it("uses the rounded audio duration as the Seedance 1.5 floor", () => {
     const model = makeModel({
       value: "seedance-1.5-pro",
@@ -181,21 +266,14 @@ describe("Seedance2 config controller", () => {
     });
   });
 
-  it("applies a generated prompt response to the current beat", async () => {
+  it("submits prompt generation to the task controller", async () => {
     generatePrompt.mockResolvedValue({
       ok: true,
-      data: {
-        beat: makeBeat(),
-        final_prompt: "优化后的提示词",
-        seedance2_config_json: JSON.stringify({
-          mode: "multimodal_reference",
-          mode_user_set: true,
-          duration: 5,
-          resolution: "720p",
-          ratio: "9:16",
-          final_prompt: "优化后的提示词",
-        }),
-      },
+      task_type: "seedance2_prompt",
+      task_id: "task-seedance2-1",
+      task_key: "seedance2_prompt:demo:1:1",
+      message: "任务已提交",
+      scope: "seedance2_prompt:1",
     });
     const { result } = renderController();
 
@@ -208,10 +286,9 @@ describe("Seedance2 config controller", () => {
       manualPromptReference: "主体提示词",
       promptGuidance: "",
     });
-    expect(result.current.draft.final_prompt).toBe("优化后的提示词");
+    expect(result.current.draft.final_prompt).toBe("主体提示词");
+    expect(result.current.promptPending).toBe(true);
     expect(result.current.promptCostDisplay).toBe("6");
-    expect(toastSuccess).toHaveBeenCalledWith(
-      "episode.workbench.video.seedance2PromptGenerated",
-    );
+    expect(toastSuccess).toHaveBeenCalledWith("任务已提交");
   });
 });

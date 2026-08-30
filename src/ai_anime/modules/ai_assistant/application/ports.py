@@ -19,6 +19,14 @@ class HermesThread(Protocol):
         current_project: str | None = None,
     ) -> AsyncIterator[Any]: ...
 
+    async def get_model_route(self) -> tuple[str | None, str | None]: ...
+
+    async def set_model_route(
+        self,
+        selector: str | None,
+        reasoning_effort: str | None = None,
+    ) -> tuple[str | None, str | None]: ...
+
 
 class HermesRuntime(Protocol):
     async def get_for_user(
@@ -127,6 +135,36 @@ class ChatHistory(Protocol):
         limit: int = 50,
         conversation_id: str = "main",
     ) -> list[dict[str, Any]]: ...
+
+    def set_message_context_state(
+        self,
+        username: str,
+        scope: ChatScope,
+        message_id: str,
+        state: str,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> dict[str, Any] | None: ...
+
+    def load_context_policy(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> dict[str, Any]: ...
+
+    def mark_context_rebuilt(
+        self,
+        username: str,
+        scope: ChatScope,
+        revision: int,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> bool: ...
 
     def list_project_trace_contents(
         self,

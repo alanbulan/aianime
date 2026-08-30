@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type { Style } from "@/modules/asset_world/public";
 
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -32,6 +33,11 @@ const styleMutationMocks = vi.hoisted(() => ({
   remove: vi.fn(),
   analyze: vi.fn(),
   upload: vi.fn(),
+}));
+const styleAnalysisTaskState = vi.hoisted(() => ({
+  enabled: false,
+  onComplete: null as ((result: unknown) => void) | null,
+  result: {} as Record<string, unknown>,
 }));
 const styleQueryState = vi.hoisted(() => ({
   list: [
@@ -90,6 +96,30 @@ vi.mock("@/modules/model_usage/public", () => ({
 vi.mock("@/modules/project_workspace/public", () => ({
   useProject: () => ({ data: { visual_style: "ink" } }),
   useUpdateProject: mutation,
+}));
+
+vi.mock("@/modules/task_execution/public", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
+  useCancelTask: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useTasks: () => ({ data: { ok: true, data: [] } }),
+}));
+
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
+  useTaskStream: (options: {
+    enabled?: boolean;
+    onComplete?: (result: unknown) => void;
+  }) => {
+    styleAnalysisTaskState.enabled = options.enabled === true;
+    styleAnalysisTaskState.onComplete = options.onComplete ?? null;
+    return {
+      status: "idle" as const,
+      progress: 0,
+      currentTask: "",
+      result: null,
+      error: null,
+      logs: [],
+    };
+  },
 }));
 
 import { Route } from "@/routes/_app/projects.$project/styles";
@@ -172,12 +202,21 @@ describe("styles page CE generation credit gating", () => {
     runtimeState.isCeRuntime = true;
     toastErrorMock.mockClear();
     toastSuccessMock.mockClear();
+    styleAnalysisTaskState.enabled = false;
+    styleAnalysisTaskState.onComplete = null;
+    styleAnalysisTaskState.result = {};
     for (const mock of Object.values(styleMutationMocks)) mock.mockReset();
     styleMutationMocks.upload.mockResolvedValue({
       ok: true,
       data: { preview_path: "assets/styles/custom/reference.png" },
     });
-    styleMutationMocks.analyze.mockResolvedValue({ ok: true, data: {} });
+    styleMutationMocks.analyze.mockResolvedValue({
+      ok: true,
+      task_type: "style_analysis",
+      task_id: "task-style-analysis",
+      task_key: "task:style_analysis:0",
+      message: "Style analysis queued",
+    });
     styleMutationMocks.create.mockResolvedValue({ ok: true, data: { id: "custom" } });
     styleQueryState.list = [
       { id: "ink", name: "Ink", label: "Ink style", type: "preset" },
@@ -303,18 +342,15 @@ describe("styles page CE generation credit gating", () => {
   });
 
   it("creates an account style with the uploaded preview and complete analyzed config", async () => {
-    styleMutationMocks.analyze.mockResolvedValue({
-      ok: true,
-      data: {
-        style_instructions: "Create clean cel animation with pastel light.",
-        avoid_instructions: "FORBIDDEN: photorealism.",
-        style_tag: "PASTEL CEL ANIME",
-        style_family: "animation",
-        animation_subtype: "2d",
-        suggested_name: "Pastel School Anime",
-        suggested_label: "青春校园日系动画",
-      },
-    });
+    styleAnalysisTaskState.result = {
+      style_instructions: "Create clean cel animation with pastel light.",
+      avoid_instructions: "FORBIDDEN: photorealism.",
+      style_tag: "PASTEL CEL ANIME",
+      style_family: "animation",
+      animation_subtype: "2d",
+      suggested_name: "Pastel School Anime",
+      suggested_label: "青春校园日系动画",
+    };
     const user = userEvent.setup();
     const Component = Route.options.component as ComponentType;
     const queryClient = new QueryClient({
@@ -336,6 +372,11 @@ describe("styles page CE generation credit gating", () => {
     );
     const file = new File(["image"], "reference.png", { type: "image/png" });
     fireEvent.change(fileInput!, { target: { files: [file] } });
+
+    await waitFor(() => expect(styleAnalysisTaskState.enabled).toBe(true));
+    act(() => {
+      styleAnalysisTaskState.onComplete?.(styleAnalysisTaskState.result);
+    });
 
     expect(
       await screen.findByText("Create clean cel animation with pastel light."),

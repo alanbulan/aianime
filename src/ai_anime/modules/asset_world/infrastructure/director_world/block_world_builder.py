@@ -502,6 +502,8 @@ def execute_build_code_with_node(code: str, *, timeout_seconds: int = 8) -> list
             [node_path, "-e", NODE_BUILD_EXECUTOR],
             input=code,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             capture_output=True,
             check=False,
             timeout=timeout_seconds,

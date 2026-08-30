@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from fastapi import HTTPException, Request
@@ -124,7 +125,8 @@ async def serve_project_file(
 ) -> Response:
     resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
-        delivery = project_file_queries().resolve(
+        delivery = await asyncio.to_thread(
+            project_file_queries().resolve,
             project_dir=resolved.project_dir,
             file_path=file_path,
             as_download=as_download,

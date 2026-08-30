@@ -18,6 +18,8 @@ export interface AudioVoiceRef {
   slot?: string;
   /** scope=model_preset 时记录预设音色所属的当前模型路由。 */
   modelId?: string;
+  /** scope=model_preset 时保留云端/BYOK 精确路由，避免同名模型跨服务商串线。 */
+  modelSelector?: string;
   /** scope=user_custom 时是账号级音色 ID；scope=model_preset 时是服务商预设音色值。 */
   voiceId?: string;
 }

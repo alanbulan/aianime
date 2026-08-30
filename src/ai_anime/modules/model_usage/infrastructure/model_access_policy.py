@@ -6,6 +6,7 @@ import hmac
 import json
 import math
 import os
+import re
 import sys
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
@@ -13,7 +14,7 @@ from threading import RLock
 from typing import TextIO
 
 MODEL_ACCESS_STDIN_ENV = "AI_ANIME_MODEL_ACCESS_STDIN"
-_MODEL_ACCESS_SNAPSHOT_SCHEMA = "ai_anime.model_access.v4"
+_MODEL_ACCESS_SNAPSHOT_SCHEMA = "ai_anime.model_access.v5"
 _MAX_MODEL_ACCESS_SNAPSHOT_BYTES = 64 * 1024
 
 _lock = RLock()
@@ -50,14 +51,30 @@ class RuntimeModelAssignment:
     role: str
     priority: int = 100
     enabled: bool = True
+    context_window: int | None = None
+    max_output_tokens: int | None = None
+    reasoning_efforts: tuple[str, ...] = ()
+    default_reasoning_effort: str | None = None
 
 
 @dataclass(frozen=True)
 class RuntimeModelCapability:
     model_id: str
     video_profile: str | None = None
+    video_ratio_options: tuple[str, ...] = ()
+    video_resolution_options: tuple[str, ...] = ()
+    video_size_options: tuple[str, ...] = ()
+    video_supports_generate_audio: bool | None = None
+    video_supports_human_review: bool | None = None
+    video_extra_parameter_names: tuple[str, ...] = ()
+    video_scene_optimize_options: tuple[str, ...] = ()
     video_generation_min_seconds: float | None = None
     video_generation_max_seconds: float | None = None
+    video_duration_options: tuple[float, ...] = ()
+    max_reference_images: int | None = None
+    max_reference_videos: int | None = None
+    max_reference_audios: int | None = None
+    max_reference_total: int | None = None
     reference_audio_min_seconds: float | None = None
     reference_audio_max_seconds: float | None = None
     reference_audio_total_min_seconds: float | None = None
@@ -86,6 +103,10 @@ def _normalize_model_assignments(
             role = value.role.strip().upper()
             priority = value.priority
             enabled = value.enabled
+            context_window = value.context_window
+            max_output_tokens = value.max_output_tokens
+            reasoning_efforts = value.reasoning_efforts
+            default_reasoning_effort = value.default_reasoning_effort
         elif isinstance(value, Mapping):
             model_id = str(value.get("modelId") or value.get("model_id") or "").strip()
             role = str(value.get("role") or "").strip().upper()
@@ -94,6 +115,23 @@ def _normalize_model_assignments(
                 raise ValueError(f"model assignment {index} has an invalid priority")
             priority = int(raw_priority)
             enabled = value.get("enabled") is not False
+            context_window = _optional_positive_integer(
+                value.get("contextWindow", value.get("context_window")),
+                f"model assignment {index} contextWindow",
+            )
+            max_output_tokens = _optional_positive_integer(
+                value.get("maxOutputTokens", value.get("max_output_tokens")),
+                f"model assignment {index} maxOutputTokens",
+            )
+            reasoning_efforts = _normalize_reasoning_efforts(
+                value.get("reasoningEfforts", value.get("reasoning_efforts")),
+                index=index,
+            )
+            raw_default = value.get(
+                "defaultReasoningEffort",
+                value.get("default_reasoning_effort"),
+            )
+            default_reasoning_effort = str(raw_default or "").strip() or None
         else:
             raise ValueError(f"model assignment {index} must be an object")
         if not model_id or len(model_id) > 256:
@@ -102,11 +140,22 @@ def _normalize_model_assignments(
             raise ValueError(f"model assignment {index} has an invalid role")
         if priority < 1 or priority > 9999:
             raise ValueError(f"model assignment {index} has an invalid priority")
+        if (
+            default_reasoning_effort is not None
+            and default_reasoning_effort not in reasoning_efforts
+        ):
+            raise ValueError(
+                f"model assignment {index} has an invalid defaultReasoningEffort"
+            )
         unique[(model_id, role)] = RuntimeModelAssignment(
             model_id=model_id,
             role=role,
             priority=priority,
             enabled=enabled,
+            context_window=context_window,
+            max_output_tokens=max_output_tokens,
+            reasoning_efforts=reasoning_efforts,
+            default_reasoning_effort=default_reasoning_effort,
         )
     return tuple(
         sorted(
@@ -114,6 +163,36 @@ def _normalize_model_assignments(
             key=lambda item: (item.priority, item.role, item.model_id),
         )
     )
+
+
+def _optional_positive_integer(value: object, label: str) -> int | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        raise ValueError(f"{label} is invalid")
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f"{label} is invalid")
+    return parsed
+
+
+def _normalize_reasoning_efforts(value: object, *, index: int) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(f"model assignment {index} has invalid reasoningEfforts")
+    options: list[str] = []
+    for item in value:
+        option = str(item or "").strip()
+        if not option or len(option) > 64 or any(ord(char) < 32 for char in option):
+            raise ValueError(
+                f"model assignment {index} has invalid reasoningEfforts"
+            )
+        if option not in options:
+            options.append(option)
+    if len(options) > 16:
+        raise ValueError(f"model assignment {index} has invalid reasoningEfforts")
+    return tuple(options)
 
 
 _CAPABILITY_FIELDS = {
@@ -128,7 +207,163 @@ _CAPABILITY_FIELDS = {
     "referenceVideoTotalMinSeconds": "reference_video_total_min_seconds",
     "referenceVideoTotalMaxSeconds": "reference_video_total_max_seconds",
 }
+_COUNT_CAPABILITY_FIELDS = {
+    "maxReferenceImages": "max_reference_images",
+    "maxReferenceVideos": "max_reference_videos",
+    "maxReferenceAudios": "max_reference_audios",
+    "maxReferenceTotal": "max_reference_total",
+}
 _VIDEO_PROFILES = frozenset({"standard", "seedance2", "happyhorse", "grok"})
+
+
+def _normalize_video_resolution_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(
+            f"model capability {index} has invalid videoResolutionOptions"
+        )
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip().lower()
+        if re.fullmatch(r"\d{2,5}p", option) is None:
+            raise ValueError(
+                f"model capability {index} has invalid videoResolutionOptions"
+            )
+        if option not in options:
+            options.append(option)
+    return tuple(options)
+
+
+def _normalize_video_ratio_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(f"model capability {index} has invalid videoRatioOptions")
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip().lower()
+        if option != "auto" and re.fullmatch(r"\d{1,4}:\d{1,4}", option) is None:
+            raise ValueError(
+                f"model capability {index} has invalid videoRatioOptions"
+            )
+        if option not in options:
+            options.append(option)
+    return tuple(options)
+
+
+def _normalize_video_size_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(f"model capability {index} has invalid videoSizeOptions")
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip().lower()
+        match = re.fullmatch(r"(\d{2,5})x(\d{2,5})", option)
+        if match is None:
+            raise ValueError(
+                f"model capability {index} has invalid videoSizeOptions"
+            )
+        width, height = (int(match.group(1)), int(match.group(2)))
+        if not (64 <= width <= 8192 and 64 <= height <= 8192):
+            raise ValueError(
+                f"model capability {index} has invalid videoSizeOptions"
+            )
+        normalized = f"{width}x{height}"
+        if normalized not in options:
+            options.append(normalized)
+    return tuple(options)
+
+
+def _normalize_video_extra_parameter_names(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(
+            f"model capability {index} has invalid videoExtraParameterNames"
+        )
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip()
+        if re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", option) is None:
+            raise ValueError(
+                f"model capability {index} has invalid videoExtraParameterNames"
+            )
+        if option not in options:
+            options.append(option)
+    return tuple(options)
+
+
+def _normalize_video_scene_optimize_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(
+            f"model capability {index} has invalid videoSceneOptimizeOptions"
+        )
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip()
+        if (
+            not option
+            or len(option) > 128
+            or any(ord(char) < 32 for char in option)
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid videoSceneOptimizeOptions"
+            )
+        if option not in options:
+            options.append(option)
+    return tuple(options)
+
+
+def _normalize_video_duration_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[float, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(
+            f"model capability {index} has invalid videoDurationOptions"
+        )
+    options: list[float] = []
+    for raw in value:
+        if (
+            isinstance(raw, bool)
+            or not isinstance(raw, (int, float))
+            or not math.isfinite(raw)
+            or raw <= 0
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid videoDurationOptions"
+            )
+        option = float(raw)
+        if option not in options:
+            options.append(option)
+    return tuple(options)
 
 
 def _normalize_model_capabilities(
@@ -145,6 +380,70 @@ def _normalize_model_capabilities(
             video_profile = str(
                 value.get("videoProfile") or value.get("video_profile") or ""
             ).strip().lower() or None
+            video_ratio_options = _normalize_video_ratio_options(
+                value.get(
+                    "videoRatioOptions",
+                    value.get("video_ratio_options"),
+                ),
+                index=index,
+            )
+            video_resolution_options = _normalize_video_resolution_options(
+                value.get(
+                    "videoResolutionOptions",
+                    value.get("video_resolution_options"),
+                ),
+                index=index,
+            )
+            video_size_options = _normalize_video_size_options(
+                value.get(
+                    "videoSizeOptions",
+                    value.get("video_size_options"),
+                ),
+                index=index,
+            )
+            video_supports_generate_audio = value.get(
+                "videoSupportsGenerateAudio",
+                value.get("video_supports_generate_audio"),
+            )
+            if video_supports_generate_audio is not None and not isinstance(
+                video_supports_generate_audio,
+                bool,
+            ):
+                raise ValueError(
+                    f"model capability {index} has invalid videoSupportsGenerateAudio"
+                )
+            video_supports_human_review = value.get(
+                "videoSupportsHumanReview",
+                value.get("video_supports_human_review"),
+            )
+            if video_supports_human_review is not None and not isinstance(
+                video_supports_human_review,
+                bool,
+            ):
+                raise ValueError(
+                    f"model capability {index} has invalid videoSupportsHumanReview"
+                )
+            video_extra_parameter_names = _normalize_video_extra_parameter_names(
+                value.get(
+                    "videoExtraParameterNames",
+                    value.get("video_extra_parameter_names"),
+                ),
+                index=index,
+            )
+            video_scene_optimize_options = _normalize_video_scene_optimize_options(
+                value.get(
+                    "videoSceneOptimizeOptions",
+                    value.get("video_scene_optimize_options"),
+                ),
+                index=index,
+            )
+            video_duration_options = _normalize_video_duration_options(
+                value.get(
+                    "videoDurationOptions",
+                    value.get("video_duration_options"),
+                ),
+                index=index,
+            )
             fields: dict[str, float | None] = {}
             for external_name, field_name in _CAPABILITY_FIELDS.items():
                 raw = value.get(external_name, value.get(field_name))
@@ -161,10 +460,30 @@ def _normalize_model_capabilities(
                         f"model capability {index} has an invalid {external_name}"
                     )
                 fields[field_name] = float(raw)
+            count_fields: dict[str, int | None] = {}
+            for external_name, field_name in _COUNT_CAPABILITY_FIELDS.items():
+                raw = value.get(external_name, value.get(field_name))
+                if raw is None:
+                    count_fields[field_name] = None
+                    continue
+                if isinstance(raw, bool) or not isinstance(raw, int) or raw < 0:
+                    raise ValueError(
+                        f"model capability {index} has an invalid {external_name}"
+                    )
+                count_fields[field_name] = raw
             capability = RuntimeModelCapability(
                 model_id=model_id,
                 video_profile=video_profile,
+                video_ratio_options=video_ratio_options,
+                video_resolution_options=video_resolution_options,
+                video_size_options=video_size_options,
+                video_supports_generate_audio=video_supports_generate_audio,
+                video_supports_human_review=video_supports_human_review,
+                video_extra_parameter_names=video_extra_parameter_names,
+                video_scene_optimize_options=video_scene_optimize_options,
+                video_duration_options=video_duration_options,
                 **fields,
+                **count_fields,
             )
         else:
             raise ValueError(f"model capability {index} must be an object")
@@ -172,10 +491,58 @@ def _normalize_model_capabilities(
         if not model_id or len(model_id) > 256:
             raise ValueError(f"model capability {index} has an invalid modelId")
         video_profile = str(capability.video_profile or "").strip().lower() or None
+        video_ratio_options = _normalize_video_ratio_options(
+            capability.video_ratio_options,
+            index=index,
+        )
+        video_resolution_options = _normalize_video_resolution_options(
+            capability.video_resolution_options,
+            index=index,
+        )
+        video_size_options = _normalize_video_size_options(
+            capability.video_size_options,
+            index=index,
+        )
+        video_supports_generate_audio = capability.video_supports_generate_audio
+        if video_supports_generate_audio is not None and not isinstance(
+            video_supports_generate_audio,
+            bool,
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid videoSupportsGenerateAudio"
+            )
+        video_supports_human_review = capability.video_supports_human_review
+        if video_supports_human_review is not None and not isinstance(
+            video_supports_human_review,
+            bool,
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid videoSupportsHumanReview"
+            )
+        video_extra_parameter_names = _normalize_video_extra_parameter_names(
+            capability.video_extra_parameter_names,
+            index=index,
+        )
+        video_scene_optimize_options = _normalize_video_scene_optimize_options(
+            capability.video_scene_optimize_options,
+            index=index,
+        )
+        video_duration_options = _normalize_video_duration_options(
+            capability.video_duration_options,
+            index=index,
+        )
         if video_profile is not None and video_profile not in _VIDEO_PROFILES:
             raise ValueError(
                 f"model capability {index} has an invalid videoProfile"
             )
+        for external_name, field_name in _COUNT_CAPABILITY_FIELDS.items():
+            count = getattr(capability, field_name)
+            if isinstance(count, bool) or (
+                count is not None and (not isinstance(count, int) or count < 0)
+            ):
+                raise ValueError(
+                    f"model capability {index} has an invalid {external_name}"
+                )
         generation_minimum = capability.video_generation_min_seconds
         generation_maximum = capability.video_generation_max_seconds
         if (
@@ -212,9 +579,21 @@ def _normalize_model_capabilities(
         unique[model_id] = RuntimeModelCapability(
             model_id=model_id,
             video_profile=video_profile,
+            video_ratio_options=video_ratio_options,
+            video_resolution_options=video_resolution_options,
+            video_size_options=video_size_options,
+            video_supports_generate_audio=video_supports_generate_audio,
+            video_supports_human_review=video_supports_human_review,
+            video_extra_parameter_names=video_extra_parameter_names,
+            video_scene_optimize_options=video_scene_optimize_options,
+            video_duration_options=video_duration_options,
             **{
                 field_name: getattr(capability, field_name)
                 for field_name in _CAPABILITY_FIELDS.values()
+            },
+            **{
+                field_name: getattr(capability, field_name)
+                for field_name in _COUNT_CAPABILITY_FIELDS.values()
             },
         )
     return tuple(sorted(unique.values(), key=lambda item: item.model_id))
@@ -284,6 +663,11 @@ def runtime_model_capability(model_id: str | None) -> RuntimeModelCapability | N
 
 def resolve_model_for_role(role: str) -> str:
     """Return the current highest-priority model route for one role."""
+    return resolve_model_assignment_for_role(role).model_id
+
+
+def resolve_model_assignment_for_role(role: str) -> RuntimeModelAssignment:
+    """Return the highest-priority assignment including effective runtime limits."""
     clean_role = str(role or "").strip().upper()
     if clean_role not in MODEL_ROLES:
         raise ValueError("model role is invalid")
@@ -293,7 +677,7 @@ def resolve_model_for_role(role: str) -> str:
         item for item in access.model_assignments if item.role == clean_role
     )
     if role_assignments:
-        return role_assignments[0].model_id
+        return role_assignments[0]
     raise PermissionError(f"no model is assigned to role {clean_role}")
 
 
@@ -314,6 +698,26 @@ def serialize_model_access_for_subprocess() -> str:
                     "role": item.role,
                     "priority": item.priority,
                     "enabled": item.enabled,
+                    **(
+                        {"contextWindow": item.context_window}
+                        if item.context_window is not None
+                        else {}
+                    ),
+                    **(
+                        {"maxOutputTokens": item.max_output_tokens}
+                        if item.max_output_tokens is not None
+                        else {}
+                    ),
+                    **(
+                        {"reasoningEfforts": list(item.reasoning_efforts)}
+                        if item.reasoning_efforts
+                        else {}
+                    ),
+                    **(
+                        {"defaultReasoningEffort": item.default_reasoning_effort}
+                        if item.default_reasoning_effort is not None
+                        else {}
+                    ),
                 }
                 for item in access.model_assignments
             ],
@@ -325,9 +729,74 @@ def serialize_model_access_for_subprocess() -> str:
                         if item.video_profile is not None
                         else {}
                     ),
+                    **(
+                        {"videoRatioOptions": list(item.video_ratio_options)}
+                        if item.video_ratio_options
+                        else {}
+                    ),
+                    **(
+                        {
+                            "videoResolutionOptions": list(
+                                item.video_resolution_options
+                            )
+                        }
+                        if item.video_resolution_options
+                        else {}
+                    ),
+                    **(
+                        {
+                            "videoSupportsHumanReview": (
+                                item.video_supports_human_review
+                            )
+                        }
+                        if item.video_supports_human_review is not None
+                        else {}
+                    ),
+                    **(
+                        {"videoDurationOptions": list(item.video_duration_options)}
+                        if item.video_duration_options
+                        else {}
+                    ),
+                    **(
+                        {
+                            "videoSceneOptimizeOptions": list(
+                                item.video_scene_optimize_options
+                            )
+                        }
+                        if item.video_scene_optimize_options
+                        else {}
+                    ),
+                    **(
+                        {"videoSizeOptions": list(item.video_size_options)}
+                        if item.video_size_options
+                        else {}
+                    ),
+                    **(
+                        {
+                            "videoSupportsGenerateAudio": (
+                                item.video_supports_generate_audio
+                            )
+                        }
+                        if item.video_supports_generate_audio is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            "videoExtraParameterNames": list(
+                                item.video_extra_parameter_names
+                            )
+                        }
+                        if item.video_extra_parameter_names
+                        else {}
+                    ),
                     **{
                         external_name: getattr(item, field_name)
                         for external_name, field_name in _CAPABILITY_FIELDS.items()
+                        if getattr(item, field_name) is not None
+                    },
+                    **{
+                        external_name: getattr(item, field_name)
+                        for external_name, field_name in _COUNT_CAPABILITY_FIELDS.items()
                         if getattr(item, field_name) is not None
                     },
                 }

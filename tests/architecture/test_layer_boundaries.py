@@ -117,9 +117,12 @@ def test_verification_http_adapter_lives_in_api_layer() -> None:
         "ai_anime.api.routes.identity_access.dependencies" in _imports(route)
         for route in routes
     )
-    assert all("ai_anime.api.deps" in _imports(route) for route in routes)
     assert all(
         "ai_anime.modules.verification.public" in _imports(route) for route in routes
+    )
+    assert all(
+        "verification_model_task_scheduler" in route.read_text(encoding="utf-8")
+        for route in routes
     )
     assert "verification.create_router()" in api_router.read_text(encoding="utf-8")
 
@@ -347,7 +350,7 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/project_workspace/schemas.py",
             "routes/project_workspace/projects.py",
             (
-                "NarratorVoiceCopyRequest",
+                "NarratorVoiceBindRequest",
                 "NarratorVoiceRecordRequest",
                 "NarratorVoiceTrimRequest",
             ),
@@ -450,7 +453,7 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
         adapter_source = adapter_schemas.read_text(encoding="utf-8")
         for model_name in model_names:
             assert f"class {model_name}(" not in root_source
-            assert f"class {model_name}(BaseModel):" in adapter_source
+            assert f"class {model_name}(" in adapter_source
         module_name = schema_path.removesuffix(".py").replace("/", ".")
         assert f"ai_anime.api.{module_name}" in _imports(route)
         assert "ai_anime.api.schemas" not in _imports(route)
@@ -522,13 +525,17 @@ def test_new_backend_modules_follow_layer_dependencies() -> None:
     for path in _python_files(modules_root):
         relative = path.relative_to(modules_root).as_posix()
         parts = relative.split("/")
-        if len(parts) < 3 or parts[1] not in {
+        if len(parts) >= 3 and parts[1] in {
             "domain",
             "application",
             "infrastructure",
+            "presentation",
         }:
+            context, layer = parts[0], parts[1]
+        elif len(parts) == 2 and parts[1] == "composition.py":
+            context, layer = parts[0], "composition"
+        else:
             continue
-        context, layer = parts[0], parts[1]
 
         for imported in _imports(path):
             if imported == "ai_anime.api" or imported.startswith("ai_anime.api."):
@@ -1022,7 +1029,7 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
         assert removed_route_dependency not in route_source
         assert removed_route_dependency not in http_source
     assert "chat_access.project_context_for_scope(" not in route_source
-    assert http_source.count("chat_access.project_context_for_scope(") == 2
+    assert http_source.count("chat_access.project_context_for_scope(") == 4
     assert scope_source.count("chat_access.project_context_for_scope(") == 1
     assert "chat_access.project_context_for_scope(" not in turn_source
     assert "chat_access.require_ai_assistant_access(" not in route_source
@@ -1116,17 +1123,17 @@ def test_chat_inbound_schemas_stay_in_api_adapter() -> None:
     assert "def _scope_from_model(" not in route_source
     assert "def _attachment_payloads(" not in route_source
     assert "to_chat_scope(" not in route_source
-    # The session adapter funnels both scope-bearing inbound events
-    # (conversation.delete / scope.set) through one guarded mapper so a bad
-    # client scope answers with an error event instead of dropping the socket.
+    # The session adapter funnels scope-bearing inbound events
+    # (conversation.delete / scope.set / session.model.*) through one guarded
+    # mapper so a bad client scope answers with an error instead of disconnecting.
     assert session_source.count("to_chat_scope(") == 1
     assert "async def _resolve_scope(" in session_source
-    assert session_source.count("await _resolve_scope(") == 2
+    assert session_source.count("await _resolve_scope(") == 3
     # Inbound frame validation stays in the schema module, so the transport
     # adapter never imports pydantic model machinery.
     assert "def parse_inbound_frame(" in schemas_source
-    assert session_source.count("parse_inbound_frame(") == 3
-    assert http_source.count("to_chat_scope(") == 2
+    assert session_source.count("parse_inbound_frame(") == 4
+    assert http_source.count("to_chat_scope(") == 4
     assert turn_source.count("to_chat_scope(") == 1
     assert "attachment_payloads(" not in route_source
     assert turn_source.count("attachment_payloads(") == 2
@@ -1803,7 +1810,7 @@ def test_ai_assistant_owns_chat_worker_lifecycle() -> None:
     assert "chat_worker_lifecycle.sync_scope(" not in route_source
     assert session_source.count("chat_worker_lifecycle.sync_scope(") == 1
     assert "chat_worker_lifecycle.is_busy(" not in route_source
-    assert session_source.count("chat_worker_lifecycle.is_busy(") == 2
+    assert session_source.count("chat_worker_lifecycle.is_busy(") == 3
     assert scope_source.count("chat_worker_lifecycle.is_busy(") == 1
     assert "def _sync_running_agent_scope(" not in route_source
     assert "def _sync_running_agent_scope(" not in session_source
@@ -1855,7 +1862,7 @@ def test_ai_assistant_owns_hermes_home_reply_orchestration() -> None:
         assert migrated_dependency in application_source
     for owned_operation in (
         "self._runtime.get_for_user(",
-        "self._history.list_messages(",
+        "self._history.load_context_policy(",
         "self._history.append_message(",
         "text_with_attachment_context(",
         "emit_chat_event_best_effort(",
@@ -1898,7 +1905,7 @@ def test_ai_assistant_owns_hermes_project_reply_orchestration() -> None:
     for owned_operation in (
         "self._runtime.get_for_user(",
         "self._prompt_context.build(",
-        "self._project_messages.assistant_contents(",
+        "self._project_messages.load_context_policy(",
         "self._project_messages.trace_contents(",
         "self._presentation.extract_tool_ui_specs(",
         "self._page_sessions.create_token(",
@@ -2507,6 +2514,14 @@ def test_freezone_staging_prop_route_delegates_to_application() -> None:
     )
     composition = PACKAGE_ROOT / "modules" / "creative_canvas" / "composition.py"
     public = PACKAGE_ROOT / "modules" / "creative_canvas" / "public.py"
+    long_application = (
+        PACKAGE_ROOT
+        / "modules"
+        / "creative_canvas"
+        / "application"
+        / "long_operations.py"
+    )
+    runner = TASK_RUNNERS_ROOT / "freezone.py"
 
     route_source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
@@ -2514,8 +2529,19 @@ def test_freezone_staging_prop_route_delegates_to_application() -> None:
     adapter_source = adapter.read_text(encoding="utf-8")
     composition_source = composition.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
+    long_application_source = long_application.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
 
-    assert route_source.count("creative_canvas_staging_prop_use_cases().generate(") == 1
+    assert (
+        route_source.count(
+            "creative_canvas_long_operation_use_cases().start_staging_prop("
+        )
+        == 1
+    )
+    assert (
+        runner_source.count("creative_canvas_staging_prop_use_cases().generate(") == 1
+    )
+    assert "class CreativeCanvasLongOperationUseCases" in long_application_source
     assert "class CreativeCanvasStagingPropUseCases" in application_source
     assert "class DirectorWorldCreativeCanvasStagingPropGenerator" in adapter_source
     assert "DirectorWorldCreativeCanvasStagingPropGenerator()" in composition_source
@@ -3117,15 +3143,23 @@ def test_freezone_mark_detection_route_delegates_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "creative_canvas" / "image.py"
     legacy_route = PACKAGE_ROOT / "api" / "routes" / "freezone.py"
     api_router = PACKAGE_ROOT / "api" / "v1" / "router.py"
+    runner = TASK_RUNNERS_ROOT / "freezone.py"
     source = route.read_text(encoding="utf-8")
     legacy_source = _removed_freezone_route_source(legacy_route)
     api_router_source = api_router.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
 
     endpoint_path = '"/projects/{project}/freezone/marks/detect"'
     assert source.count(endpoint_path) == 1
     assert endpoint_path not in legacy_source
-    assert source.count("creative_canvas_mark_detection_use_cases().detect(") == 1
-    assert "DetectCreativeCanvasMarkCommand" in source
+    assert (
+        source.count("creative_canvas_long_operation_use_cases().start_mark_detection(")
+        == 1
+    )
+    assert (
+        runner_source.count("creative_canvas_mark_detection_use_cases().detect(") == 1
+    )
+    assert "StartCreativeCanvasMarkDetectionCommand" in source
     assert "CreativeCanvasMarkSelection" in source
     assert "creative_canvas.create_router()" in api_router_source
     assert "async def freezone_mark_detect(" not in legacy_source
@@ -3204,14 +3238,18 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
     endpoint_paths = (
         '"/projects/{project}/freezone/audio/speech"',
         '"/projects/{project}/freezone/audio/eleven-music"',
+        '"/projects/{project}/freezone/audio/voices/design"',
+        '"/projects/{project}/freezone/audio/voices/preset"',
     )
     for endpoint_path in endpoint_paths:
         assert source.count(endpoint_path) == 1
         assert endpoint_path not in legacy_source
 
-    assert source.count("creative_canvas_audio_generation_use_cases().") == 2
+    assert source.count("creative_canvas_audio_generation_use_cases().") == 4
     assert "StartCreativeCanvasSpeechGenerationCommand" in source
     assert "StartCreativeCanvasMusicGenerationCommand" in source
+    assert "StartCreativeCanvasVoiceDesignCommand" in source
+    assert "StartCreativeCanvasPresetVoiceCommand" in source
     assert "creative_canvas.create_router()" in api_router_source
     for legacy_implementation in (
         "async def freezone_audio_speech(",
@@ -3243,6 +3281,14 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
         "freezone_audio_eleven_music",
         "run_freezone_audio_eleven_music",
     ) in runner_registrations
+    assert (
+        "freezone_voice_design",
+        "run_freezone_voice_design",
+    ) in runner_registrations
+    assert (
+        "freezone_voice_preset",
+        "run_freezone_voice_preset",
+    ) in runner_registrations
 
 
 def test_freezone_audio_library_routes_delegate_to_application() -> None:
@@ -3273,7 +3319,9 @@ def test_freezone_audio_library_routes_delegate_to_application() -> None:
         '"/projects/{project}/freezone/audio/references"',
         '"/projects/{project}/freezone/audio/voices"',
         '"/projects/{project}/freezone/audio/voices/design"',
+        '"/projects/{project}/freezone/audio/voices/preset"',
         '"/projects/{project}/freezone/audio/voices/{voice_id}/media"',
+        '"/projects/{project}/freezone/audio/voices/{voice_id}"',
     ):
         assert source.count(endpoint_path) == 1
         assert endpoint_path not in legacy_source
@@ -3282,6 +3330,7 @@ def test_freezone_audio_library_routes_delegate_to_application() -> None:
     for application_contract in (
         "ListCreativeCanvasAudioReferencesQuery",
         "CreateCreativeCanvasAudioVoiceCommand",
+        "DeleteCreativeCanvasAudioVoiceCommand",
         "GetCreativeCanvasAudioVoiceQuery",
     ):
         assert application_contract in source
@@ -5874,9 +5923,14 @@ def test_asset_world_style_route_remains_an_http_adapter() -> None:
 
 def test_asset_world_character_voice_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
+    runner = TASK_RUNNERS_ROOT / "character_voice.py"
     source = route.read_text(encoding="utf-8")
+    runner_source = runner.read_text(encoding="utf-8")
 
     assert "character_voice_use_cases" in source
+    assert source.count("schedule_voice_design(") == 1
+    assert "provision_missing_character_voices" not in source
+    assert "provision_missing_character_voices" in runner_source
     for legacy_implementation in (
         "def _voice_slot_metadata",
         "def _voice_slot_update_fields",
@@ -6423,7 +6477,7 @@ def test_asset_world_image_settings_routes_delegate_to_application() -> None:
     ).read_text(encoding="utf-8")
 
     assert "image_settings_use_cases" in source
-    assert source.count("character_generation_options(") == 6
+    assert source.count("character_generation_options(") == 3
     assert props_source.count(".project_style(") == 2
     assert scenes_source.count(".project_style(") == 2
     for adapter_source in (source, props_source, scenes_source):
@@ -6468,7 +6522,10 @@ def test_asset_world_character_generation_routes_delegate_to_application() -> No
     route = PACKAGE_ROOT / "api" / "routes" / "asset_world" / "characters.py"
     source = route.read_text(encoding="utf-8")
 
-    assert "character_generation_use_cases" in source
+    assert "character_generation_use_cases" not in source
+    assert source.count("schedule_character_portrait(") == 1
+    assert source.count("schedule_identity_portrait(") == 1
+    assert source.count("schedule_identity_image(") == 1
     for legacy_implementation in (
         "generate_character_reference_unified",
         "generate_identity_image_unified",

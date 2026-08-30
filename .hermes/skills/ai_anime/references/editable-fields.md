@@ -15,10 +15,10 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 | `ethnicity` | string | `Chinese`, `Japanese`, `Korean`, `Western` | `Chinese` |
 | `rhythm` | string | `fast`, `medium`, `slow` | `medium` |
 | `grid_mode` | string | `3x3` 等 | `3x3` |
-| `video_model` | string | 当前模型目录返回的视频模型 ID | 空时由后端按用途分配解析 |
-| `video_resolution` | string | `720p`, `1080p`, `720x1280`, `1080x1920`, `1280x720`, `1920x1080` | `720p` |
+| `video_model` | string | 当前模型目录返回的视频模型选择器；前端人工生成持久化为项目选择，AI 仅在用户明确点名本次模型时作为单次覆盖 | 空时由后端按用途分配解析 |
+| `video_resolution` | string | 项目画布/合成尺寸：`720p`, `1080p`, `720x1280`, `1080x1920`, `1280x720`, `1920x1080` | `720p` |
 
-视频选择规则：完整生产可传 `video_model`，单 beat 局部生成传 `model`；都未指定时由后端解析项目配置和用途分配。逐步确认模式一次只启动一个 eligible beat；连续完整生产只提交一个 `production_workflow` 父任务，由后端逐 beat 调度，助手不得自行批量提交。
+视频选择规则：智能体完整生产默认省略 `video_model`，由后端按实际视频用途和设置页中的云端/BYOK 全局角色优先级选择，不自动继承工作台下拉框；用户明确点名本次模型时可传当前目录中的 `video_model` 作为单次覆盖。单 beat 局部人工生成可传 `model`，未指定时由后端解析项目配置和用途分配。项目 `video_resolution` 是画布/合成尺寸，不等于供应商生成清晰度枚举；单次生成分辨率必须使用所选模型能力（例如 Seedance 2.0 标准版为 480p/720p/1080p，Fast 为 480p/720p）。逐步确认模式一次只启动一个 eligible beat；连续完整生产只提交一个 `production_workflow` 父任务，由后端逐 beat 调度，助手不得自行批量提交。
 
 ## 角色
 
@@ -156,7 +156,7 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 2. 向用户展示图池时，交付边界见 delivery-boundaries.md；默认读取摘要策略见 read-behavior.md
 3. 用户选定图片后，先检查该图的 stale 字段：
    - stale=false → 正常选图：POST pool-select {"pool_id": "..."}
-   - stale=true → 警告旧批次颜色不兼容，用户确认后传 {"pool_id": "...", "force": true}
+   - stale=true → 通过 `question` 警告旧批次颜色不兼容，用户确认后传 {"pool_id": "...", "force": true}
    - 禁止 try→fail→force 模式（先不带 force → 被拒 → 再加 force 重试）
 ```
 

@@ -20,7 +20,24 @@ import type {
   CharacterVoiceSlot,
   CharacterVoiceSlotId,
 } from "@/modules/asset_world/domain/character";
-import type { AudioVoiceDesignConfig } from "@/modules/model_usage/public";
+import {
+  resolveAudioModelSelector,
+  type AudioSpeechModelOption,
+  type AudioVoiceDesignModelOption,
+} from "@/modules/model_usage/public";
+import {
+  resolvePresetVoiceModelSelection,
+  resolveVoiceDesignModelSelection,
+  type AccountVoiceOption,
+  type CreatePresetVoiceInput,
+  type CreateVoiceDesignInput,
+  type GeneratedVoiceTaskReceipt,
+  type VoiceSourceType,
+} from "@/shared/voice-source/voice-source";
+import {
+  TASK_TYPES,
+  useTaskController,
+} from "@/modules/task_execution/public";
 
 const AGE_SLOT_ORDER: CharacterVoiceSlotId[] = [
   "child",
@@ -37,22 +54,7 @@ export interface CharacterVoiceRow {
   label: string;
 }
 
-export interface CharacterVoiceLibraryOption {
-  voiceId: string;
-  label: string;
-  previewUrl: string | null;
-}
-
-interface CharacterVoiceDesignInput {
-  readonly language: string;
-  readonly modelSelector: string;
-  readonly name: string;
-  readonly preferredName: string;
-  readonly previewText: string;
-  readonly responseFormat: "wav" | "mp3";
-  readonly sampleRate: number;
-  readonly voicePrompt: string;
-}
+export type CharacterVoiceLibraryOption = AccountVoiceOption;
 
 export type CharacterVoiceBindingTarget =
   | { kind: "slot"; slot: string; label: string }
@@ -64,17 +66,20 @@ export interface CharacterVoiceControllerDependencies {
 
 export interface CharacterVoiceControllerOptions {
   character: Character;
+  createPresetVoice?(
+    project: string,
+    input: CreatePresetVoiceInput,
+  ): Promise<GeneratedVoiceTaskReceipt>;
   designVoice?(
     project: string,
-    input: CharacterVoiceDesignInput,
-  ): Promise<{ readonly voiceId: string }>;
+    input: CreateVoiceDesignInput,
+  ): Promise<GeneratedVoiceTaskReceipt>;
   loadVoiceOptions(project: string): Promise<CharacterVoiceLibraryOption[]>;
+  presetVoiceDefaultSelector?: string;
+  presetVoiceModels?: readonly AudioSpeechModelOption[];
   project: string;
-  voiceDesign?: {
-    config: AudioVoiceDesignConfig;
-    modelLabel: string;
-    modelSelector: string;
-  } | null;
+  voiceDesignDefaultSelector?: string;
+  voiceDesignOptions?: readonly AudioVoiceDesignModelOption[];
 }
 
 function emptySlot(
@@ -99,6 +104,7 @@ const RECORD_FAILURE_MESSAGE: Record<string, string> = {
   device_busy: "characters.voiceSamples.recordDeviceBusy",
   unknown: "characters.voiceSamples.recordFailed",
 };
+const DEFAULT_PRESET_SAMPLE_TEXT = "你好，我会用这条声线讲述这个角色的故事。";
 
 export function createUseCharacterVoiceController(
   queries: CharacterQueryHooks,
@@ -145,6 +151,7 @@ export function createUseCharacterVoiceController(
     const recorder = recorderRef.current;
     const fileInputRef = useRef<HTMLInputElement>(null);
     const uploadSlotRef = useRef<string>("default");
+    const awaitingInitialVoiceSourceRef = useRef(false);
     const [recordSlot, setRecordSlot] =
       useState<CharacterVoiceSlot | null>(null);
     const [recording, setRecording] = useState(false);
@@ -158,11 +165,42 @@ export function createUseCharacterVoiceController(
     const [trimDuration, setTrimDuration] = useState("4");
     const [voiceBindingTarget, setVoiceBindingTarget] =
       useState<CharacterVoiceBindingTarget | null>(null);
+    const [voiceSourceType, setVoiceSourceType] =
+      useState<VoiceSourceType>("voice_design");
     const [designName, setDesignName] = useState("");
     const [designPrompt, setDesignPrompt] = useState("");
     const [designPreviewText, setDesignPreviewText] = useState("");
     const [designLanguage, setDesignLanguage] = useState("");
+    const [designVoiceModelSelector, setDesignVoiceModelSelector] = useState("");
     const [designing, setDesigning] = useState(false);
+    const [presetVoiceModelSelector, setPresetVoiceModelSelector] = useState("");
+    const [presetVoice, setPresetVoice] = useState("");
+    const [presetSampleText, setPresetSampleText] = useState(
+      DEFAULT_PRESET_SAMPLE_TEXT,
+    );
+    const [creatingPresetVoice, setCreatingPresetVoice] = useState(false);
+    const voiceDesignOptions = options.voiceDesignOptions ?? [];
+    const defaultVoiceDesignSelector = resolveAudioModelSelector(
+      voiceDesignOptions,
+      options.voiceDesignDefaultSelector,
+    );
+    const voiceDesign =
+      voiceDesignOptions.find(
+        (option) => option.value === designVoiceModelSelector,
+      ) ?? null;
+    const presetVoiceModels = options.presetVoiceModels ?? [];
+    const defaultPresetVoiceSelector = resolveAudioModelSelector(
+      presetVoiceModels,
+      options.presetVoiceDefaultSelector,
+    );
+    const presetVoiceModel =
+      presetVoiceModels.find(
+        (option) => option.value === presetVoiceModelSelector,
+      ) ?? null;
+    const presetVoiceOptions = presetVoiceModel?.voices ?? [];
+    const presetVoiceAcceptsVoice = presetVoiceModel?.acceptsVoice !== false;
+    const presetVoiceAllowsCustom = presetVoiceModel?.allowsCustomVoice === true;
+    const presetVoiceRequiresVoice = presetVoiceModel?.requiresVoice === true;
 
     const voiceLibrary = useQuery({
       queryKey: queryKeys.characterVoiceLibrary(project),
@@ -170,10 +208,50 @@ export function createUseCharacterVoiceController(
       enabled: Boolean(project && voiceBindingTarget),
       staleTime: 30_000,
     });
+    const voiceDesignTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.FREEZONE_VOICE_DESIGN,
+        project,
+        episode: 0,
+        scope: "character_voice",
+      },
+      invalidateKeys: [
+        queryKeys.characterVoiceSamples(project, character.name),
+        queryKeys.characterVoiceLibrary(project),
+      ],
+      showCompleteToast: false,
+      onComplete: () => {
+        void samples.refetch();
+        void voiceLibrary.refetch();
+        setVoiceBindingTarget(null);
+        toast.success(t("characters.voiceSamples.voiceDesignedAndBound"));
+      },
+      onError: (error) => toast.error(error),
+    });
+    const presetVoiceTask = useTaskController({
+      key: {
+        taskType: TASK_TYPES.FREEZONE_VOICE_PRESET,
+        project,
+        episode: 0,
+        scope: "character_voice",
+      },
+      invalidateKeys: [
+        queryKeys.characterVoiceSamples(project, character.name),
+        queryKeys.characterVoiceLibrary(project),
+      ],
+      showCompleteToast: false,
+      onComplete: () => {
+        void samples.refetch();
+        void voiceLibrary.refetch();
+        setVoiceBindingTarget(null);
+        toast.success(t("characters.voiceSamples.presetCreatedAndBound"));
+      },
+      onError: (error) => toast.error(error),
+    });
 
     useEffect(() => () => recorder.dispose(), [recorder]);
     useEffect(() => {
-      const config = options.voiceDesign?.config;
+      const config = voiceDesign?.config;
       if (!config) {
         setDesignLanguage("");
         return;
@@ -183,7 +261,53 @@ export function createUseCharacterVoiceController(
           ? current
           : config.defaultLanguage,
       );
-    }, [options.voiceDesign]);
+    }, [voiceDesign]);
+    useEffect(() => {
+      if (!voiceBindingTarget) {
+        awaitingInitialVoiceSourceRef.current = false;
+        return;
+      }
+      if (
+        defaultVoiceDesignSelector &&
+        !voiceDesignOptions.some(
+          (option) => option.value === designVoiceModelSelector,
+        )
+      ) {
+        setDesignVoiceModelSelector(defaultVoiceDesignSelector);
+      }
+      if (
+        defaultPresetVoiceSelector &&
+        !presetVoiceModels.some(
+          (option) => option.value === presetVoiceModelSelector,
+        )
+      ) {
+        const selected = presetVoiceModels.find(
+          (option) => option.value === defaultPresetVoiceSelector,
+        );
+        const defaultVoice =
+          selected?.voices.find((option) => option.isDefault) ??
+          selected?.voices[0];
+        setPresetVoiceModelSelector(defaultPresetVoiceSelector);
+        setPresetVoice(defaultVoice?.value ?? "");
+      }
+      if (
+        awaitingInitialVoiceSourceRef.current &&
+        (voiceDesignOptions.length > 0 || presetVoiceModels.length > 0)
+      ) {
+        awaitingInitialVoiceSourceRef.current = false;
+        setVoiceSourceType(
+          voiceDesignOptions.length > 0 ? "voice_design" : "preset_voice",
+        );
+      }
+    }, [
+      defaultPresetVoiceSelector,
+      defaultVoiceDesignSelector,
+      designVoiceModelSelector,
+      presetVoiceModelSelector,
+      presetVoiceModels,
+      voiceBindingTarget,
+      voiceDesignOptions,
+    ]);
 
     const voiceSamples = isOkDataResponse(samples.data)
       ? samples.data.data
@@ -256,7 +380,10 @@ export function createUseCharacterVoiceController(
       bindVoice.isPending ||
       bindIdentityVoice.isPending ||
       deleteIdentityVoice.isPending ||
-      designing;
+      designing ||
+      creatingPresetVoice ||
+      voiceDesignTask.started ||
+      presetVoiceTask.started;
 
     const finishMutation = <T,>(
       response: unknown,
@@ -424,9 +551,49 @@ export function createUseCharacterVoiceController(
       setDesignName(`${character.name}-${target.label}`.slice(0, 80));
       setDesignPrompt("");
       setDesignPreviewText("");
-      setDesignLanguage(
-        options.voiceDesign?.config.defaultLanguage ?? "",
+      setDesignVoiceModelSelector(defaultVoiceDesignSelector);
+      const selected = voiceDesignOptions.find(
+        (option) => option.value === defaultVoiceDesignSelector,
       );
+      setDesignLanguage(selected?.config.defaultLanguage ?? "");
+      const defaultPresetModel = presetVoiceModels.find(
+        (option) => option.value === defaultPresetVoiceSelector,
+      );
+      const defaultPresetVoice =
+        defaultPresetModel?.voices.find((option) => option.isDefault) ??
+        defaultPresetModel?.voices[0];
+      setPresetVoiceModelSelector(defaultPresetVoiceSelector);
+      setPresetVoice(defaultPresetVoice?.value ?? "");
+      setPresetSampleText(DEFAULT_PRESET_SAMPLE_TEXT);
+      awaitingInitialVoiceSourceRef.current =
+        voiceDesignOptions.length === 0 && presetVoiceModels.length === 0;
+      setVoiceSourceType(
+        voiceDesignOptions.length > 0
+          ? "voice_design"
+          : presetVoiceModels.length > 0
+            ? "preset_voice"
+            : "account_voice",
+      );
+    };
+
+    const changeDesignVoiceModel = (selector: string) => {
+      const selection = resolveVoiceDesignModelSelection(
+        voiceDesignOptions,
+        selector,
+      );
+      if (!selection) return;
+      setDesignVoiceModelSelector(selection.selector);
+      setDesignLanguage(selection.language);
+    };
+
+    const changePresetVoiceModel = (selector: string) => {
+      const selection = resolvePresetVoiceModelSelection(
+        presetVoiceModels,
+        selector,
+      );
+      if (!selection) return;
+      setPresetVoiceModelSelector(selection.selector);
+      setPresetVoice(selection.voice);
     };
 
     const openSlotVoiceLibrary = (slot: CharacterVoiceSlot, label: string) => {
@@ -475,7 +642,7 @@ export function createUseCharacterVoiceController(
 
     const designAndBindVoice = async () => {
       const target = voiceBindingTarget;
-      const design = options.voiceDesign;
+      const design = voiceDesign;
       const designVoice = options.designVoice;
       if (!target || !design || !designVoice) return;
       const voicePrompt = designPrompt.trim();
@@ -489,7 +656,9 @@ export function createUseCharacterVoiceController(
         return;
       }
       if (
+        voicePrompt.length < design.config.promptMinLength ||
         voicePrompt.length > design.config.promptMaxLength ||
+        previewText.length < design.config.previewTextMinLength ||
         previewText.length > design.config.previewTextMaxLength ||
         !design.config.languages.includes(designLanguage)
       ) {
@@ -508,8 +677,20 @@ export function createUseCharacterVoiceController(
       setDesigning(true);
       try {
         const created = await designVoice(project, {
+          binding:
+            target.kind === "slot"
+              ? {
+                  kind: "character_slot",
+                  characterName: character.name,
+                  slot: target.slot,
+                }
+              : {
+                  kind: "identity",
+                  characterName: character.name,
+                  identityId: target.identityId,
+                },
           name: designName.trim(),
-          modelSelector: design.modelSelector,
+          modelSelector: design.value,
           voicePrompt,
           previewText,
           preferredName: design.config.preferredName,
@@ -517,29 +698,60 @@ export function createUseCharacterVoiceController(
           sampleRate,
           responseFormat,
         });
-        const response =
-          target.kind === "slot"
-            ? await bindVoice.mutateAsync({
-                slot: target.slot,
-                voiceId: created.voiceId,
-              })
-            : await bindIdentityVoice.mutateAsync({
-                identityId: target.identityId,
-                voiceId: created.voiceId,
-              });
-        if (
-          finishMutation(
-            response,
-            t("characters.voiceSamples.voiceDesignedAndBound"),
-          )
-        ) {
-          void voiceLibrary.refetch();
-          setVoiceBindingTarget(null);
-        }
+        voiceDesignTask.start({ scope: created.scope });
       } catch {
         toast.error(t("characters.voiceSamples.voiceDesignFailed"));
       } finally {
         setDesigning(false);
+      }
+    };
+
+    const createPresetAndBindVoice = async () => {
+      const target = voiceBindingTarget;
+      const createPresetVoice = options.createPresetVoice;
+      if (!target || !presetVoiceModel || !createPresetVoice) return;
+      const sampleText = presetSampleText.trim();
+      const selectedVoice = presetVoice.trim();
+      if (
+        !presetVoiceModelSelector.trim() ||
+        !sampleText ||
+        (presetVoiceRequiresVoice && !selectedVoice)
+      ) {
+        toast.error(t("characters.voiceSamples.presetInputRequired"));
+        return;
+      }
+      setCreatingPresetVoice(true);
+      try {
+        const selectedOption = presetVoiceOptions.find(
+          (option) => option.value === selectedVoice,
+        );
+        const created = await createPresetVoice(project, {
+          binding:
+            target.kind === "slot"
+              ? {
+                  kind: "character_slot",
+                  characterName: character.name,
+                  slot: target.slot,
+                }
+              : {
+                  kind: "identity",
+                  characterName: character.name,
+                  identityId: target.identityId,
+                },
+          name:
+            designName.trim() ||
+            selectedOption?.label ||
+            selectedVoice ||
+            presetVoiceModel.label,
+          modelSelector: presetVoiceModelSelector.trim(),
+          text: sampleText,
+          voice: selectedVoice,
+        });
+        presetVoiceTask.start({ scope: created.scope });
+      } catch {
+        toast.error(t("characters.voiceSamples.presetCreateFailed"));
+      } finally {
+        setCreatingPresetVoice(false);
       }
     };
 
@@ -573,9 +785,14 @@ export function createUseCharacterVoiceController(
       designName,
       designPreviewText,
       designPrompt,
-      designVoiceConfig: options.voiceDesign?.config ?? null,
-      designVoiceModelLabel: options.voiceDesign?.modelLabel ?? "",
-      designing,
+      designVoiceConfig: voiceDesign?.config ?? null,
+      designVoiceModelLabel: voiceDesign?.label ?? "",
+      designVoiceModelSelector,
+      designVoiceOptions: voiceDesignOptions,
+      designing: designing || voiceDesignTask.started,
+      createPresetAndBindVoice,
+      creatingPresetVoice:
+        creatingPresetVoice || presetVoiceTask.started,
       libraryFailed: voiceLibrary.isError,
       libraryLoading: voiceLibrary.isLoading,
       libraryOptions: voiceLibrary.data ?? [],
@@ -585,6 +802,15 @@ export function createUseCharacterVoiceController(
       openSlotVoiceLibrary,
       openTrim,
       pending,
+      presetSampleText,
+      presetVoice,
+      presetVoiceAcceptsVoice,
+      presetVoiceAllowsCustom,
+      presetVoiceModelLabel: presetVoiceModel?.label ?? "",
+      presetVoiceModelSelector,
+      presetVoiceModels,
+      presetVoiceOptions,
+      presetVoiceRequiresVoice,
       recordPending: recordVoice.isPending,
       recordSlot,
       recordedDataUrl,
@@ -598,6 +824,10 @@ export function createUseCharacterVoiceController(
       setDesignName,
       setDesignPreviewText,
       setDesignPrompt,
+      setDesignVoiceModelSelector: changeDesignVoiceModel,
+      setPresetSampleText,
+      setPresetVoice,
+      setPresetVoiceModelSelector: changePresetVoiceModel,
       setTrimDuration,
       setTrimSlot,
       setTrimStart,
@@ -609,6 +839,11 @@ export function createUseCharacterVoiceController(
       trimStart,
       upload,
       voiceBindingTarget,
+      voiceSourceType,
+      setVoiceSourceType: (value: VoiceSourceType) => {
+        awaitingInitialVoiceSourceRef.current = false;
+        setVoiceSourceType(value);
+      },
       onVoiceLibraryOpenChange: (open: boolean) => {
         if (!open) setVoiceBindingTarget(null);
       },

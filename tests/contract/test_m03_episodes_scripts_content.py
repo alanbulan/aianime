@@ -224,8 +224,9 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         queued.queue = "inline"
         return queued
 
-    for module in (episodes, scripts):
+    for module in (content, episodes, scripts):
         monkeypatch.setattr(module, "resolve_project_scope", resolve_project_scope)
+    for module in (episodes, scripts):
         monkeypatch.setattr(module, "make_sqlite_store_for_context", make_store_for_context)
         monkeypatch.setattr(module, "make_sqlite_store", make_store)
     monkeypatch.setattr(scripts, "make_cognee_store_for_context", make_store_for_context)
@@ -343,12 +344,12 @@ def test_m03_l2_covers_episodes_scripts_and_content_endpoints(m03_client):
     store.episode.raw_content = ""
     rewrite_empty = client.post("/api/v1/projects/demo/episodes/1/rewrite/generate", json={})
     assert rewrite_empty.status_code == 200
-    assert rewrite_empty.json()["ok"] is False
+    assert rewrite_empty.json()["task_type"] == "episode_rewrite"
     store.episode.raw_content = "原文一"
     rewrite = client.post("/api/v1/projects/demo/episodes/1/rewrite/generate", json={})
     assert rewrite.status_code == 200
-    assert rewrite.json()["data"]["adapted_content"] == "改写第一行\n改写第二行"
-    assert store.episode.beat_source_text == "改写第一行\n改写第二行"
+    assert rewrite.json()["task_type"] == "episode_rewrite"
+    assert store.episode.beat_source_text == ""
 
     missing_script = client.get("/api/v1/projects/demo/episodes/1/script")
     assert missing_script.status_code == 200
@@ -422,8 +423,8 @@ def test_m03_l2_covers_episodes_scripts_and_content_endpoints(m03_client):
         json={"prompt_guidance": "更紧张"},
     )
     assert seedance.status_code == 200
-    assert seedance.json()["data"]["final_prompt"] == "seedance final prompt"
-    assert "seedance2_config_json" in seedance.json()["data"]
+    assert seedance.json()["task_type"] == "seedance2_prompt"
+    assert seedance.json()["backend"] == "inline"
 
     manual = client.post(
         "/api/v1/projects/demo/episodes/1/beats/insert-manual",

@@ -48,6 +48,9 @@ export function registerCommercialAccountHandlers(
     return session;
   });
   context.handle(channels.rememberedLogin, () => client.rememberedLogin());
+  context.handle(channels.revealRememberedPassword, () =>
+    client.revealRememberedPassword(),
+  );
   context.handle(channels.login, (input) =>
     context.authenticate(() => client.login(parseLoginInput(input))),
   );

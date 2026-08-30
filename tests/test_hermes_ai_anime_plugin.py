@@ -49,6 +49,174 @@ def complete_style_config(**overrides):
     return config
 
 
+def test_question_tool_blocks_on_canonical_decision_endpoint(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(
+        method: str,
+        path: str,
+        *,
+        query=None,
+        body=None,
+        timeout_seconds=None,
+    ):
+        calls.append((method, path, body, timeout_seconds))
+        return {
+            "ok": True,
+            "data": {
+                "decision_id": "decision-1",
+                "status": "resolved",
+                "answers": [
+                    {
+                        "question_id": "resolution",
+                        "option_id": "1080p",
+                        "value": "1080p",
+                    }
+                ],
+            },
+        }
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_question(
+        {
+            "title": "生成前确认",
+            "source": "workflow_preflight",
+            "questions": [
+                {
+                    "id": "resolution",
+                    "header": "分辨率",
+                    "question": "本次视频使用哪种分辨率？",
+                    "options": [
+                        {
+                            "id": "1080p",
+                            "label": "1080p",
+                            "description": "画质优先，耗时和成本更高。",
+                        },
+                        {
+                            "id": "720p",
+                            "label": "720p",
+                            "description": "速度与画质更均衡。",
+                        },
+                    ],
+                    "recommended_option_id": "1080p",
+                }
+            ],
+        }
+    )
+
+    assert result["data"]["answers"][0]["value"] == "1080p"
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/chat/decisions",
+            {
+                "title": "生成前确认",
+                "source": "workflow_preflight",
+                "questions": [
+                    {
+                        "id": "resolution",
+                        "header": "分辨率",
+                        "question": "本次视频使用哪种分辨率？",
+                        "options": [
+                            {
+                                "id": "1080p",
+                                "label": "1080p",
+                                "description": "画质优先，耗时和成本更高。",
+                            },
+                            {
+                                "id": "720p",
+                                "label": "720p",
+                                "description": "速度与画质更均衡。",
+                            },
+                        ],
+                        "recommended_option_id": "1080p",
+                        "allow_custom": False,
+                    }
+                ],
+                "project_id": "project-1",
+            },
+            ai_anime_plugin.DECISION_TIMEOUT_SECONDS,
+        )
+    ]
+
+
+def test_question_tool_rejects_ambiguous_or_unstructured_input(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *_args, **_kwargs: pytest.fail("invalid question must not reach API"),
+    )
+
+    missing_options = ai_anime_plugin._handle_question(
+        {
+            "questions": [
+                {
+                    "header": "模式",
+                    "question": "请选择生成模式",
+                    "options": [{"label": "多参", "description": "使用参考素材。"}],
+                }
+            ]
+        }
+    )
+    long_header = ai_anime_plugin._handle_question(
+        {
+            "questions": [
+                {
+                    "header": "这是一个超过十二个字符的标题",
+                    "question": "请选择生成模式",
+                    "options": [
+                        {"label": "多参", "description": "使用参考素材。"},
+                        {"label": "首尾帧", "description": "约束运动起止。"},
+                    ],
+                }
+            ]
+        }
+    )
+
+    assert "2 to 3 options" in missing_options["tool_error"]
+    assert "1 to 12 characters" in long_header["tool_error"]
+
+
+def test_question_tool_is_registered_in_hermes_acp(ai_anime_plugin) -> None:
+    schemas = {
+        name: schema
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name == "question"
+    }
+
+    assert ai_anime_plugin.REGISTER_TOOLSETS == ("hermes-acp",)
+    assert schemas["question"]["parameters"]["required"] == ["questions"]
+    assert (
+        "maxItems"
+        not in schemas["question"]["parameters"]["properties"]["questions"]
+    )
+
+
+def test_question_tool_accepts_more_than_three_questions(ai_anime_plugin) -> None:
+    questions = [
+        {
+            "id": f"choice_{index}",
+            "header": f"参数{index}",
+            "question": f"请选择参数 {index}",
+            "options": [
+                {"id": "recommended", "label": "推荐值", "description": "采用推荐值。"},
+                {"id": "alternative", "label": "备选值", "description": "采用备选值。"},
+            ],
+        }
+        for index in range(1, 6)
+    ]
+
+    assert len(ai_anime_plugin._normalize_decision_questions(questions)) == 5
+
+
 def test_start_ingest_uses_canonical_workflow_endpoint(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
@@ -350,6 +518,9 @@ def test_complete_generation_uses_one_canonical_production_endpoint(
             "rebuild": True,
             "target_beats": 12,
             "max_parallel": 4,
+            "video_resolution": "720p",
+            "add_subtitles": True,
+            "add_bgm": False,
         }
     )
 
@@ -359,10 +530,56 @@ def test_complete_generation_uses_one_canonical_production_endpoint(
             "POST",
             "/api/v1/projects/project-1/workflow/production",
             {
+                "video_routing_policy": "role_priority",
                 "episodes": [1, 2],
                 "rebuild": True,
                 "target_beats": 12,
                 "max_parallel": 4,
+                "video_resolution": "720p",
+                "add_subtitles": True,
+                "add_bgm": False,
+            },
+        )
+    ]
+
+
+def test_complete_generation_allows_an_explicit_user_model_override(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[tuple[str, str, object]] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append((method, path, body))
+        return {"ok": True, "task_type": "production_workflow"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_run_production_workflow(
+        {
+            "episodes": [1],
+            "rebuild": False,
+            "video_model": "byok:provider-a:seedance-2.0",
+            "video_resolution": "720p",
+            "add_subtitles": True,
+            "add_bgm": False,
+        }
+    )
+
+    assert result["task_type"] == "production_workflow"
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/workflow/production",
+            {
+                "video_routing_policy": "project_selection",
+                "video_model": "byok:provider-a:seedance-2.0",
+                "episodes": [1],
+                "rebuild": False,
+                "video_resolution": "720p",
+                "add_subtitles": True,
+                "add_bgm": False,
             },
         )
     ]
@@ -382,7 +599,14 @@ def test_complete_generation_uses_bound_project_instead_of_model_supplied_id(
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
     result = ai_anime_plugin._handle_run_production_workflow(
-        {"project_id": "project-typo", "episodes": [1]}
+        {
+            "project_id": "project-typo",
+            "episodes": [1],
+            "rebuild": False,
+            "video_resolution": "720p",
+            "add_subtitles": True,
+            "add_bgm": False,
+        }
     )
 
     assert result["task_type"] == "production_workflow"
@@ -390,8 +614,210 @@ def test_complete_generation_uses_bound_project_instead_of_model_supplied_id(
         (
             "POST",
             "/api/v1/projects/project-bound/workflow/production",
-            {"episodes": [1]},
+            {
+                "video_routing_policy": "role_priority",
+                "episodes": [1],
+                "rebuild": False,
+                "video_resolution": "720p",
+                "add_subtitles": True,
+                "add_bgm": False,
+            },
         )
+    ]
+
+
+def test_complete_generation_preflight_resolves_every_missing_user_choice(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(
+        method: str,
+        path: str,
+        *,
+        query=None,
+        body=None,
+        timeout_seconds=None,
+    ):
+        calls.append((method, path, body, timeout_seconds))
+        if path == "/api/v1/chat/decisions":
+            answers = {
+                "episodes": "all_planned",
+                "rebuild": "preserve",
+                "video_resolution": "provider_default",
+                "add_subtitles": "yes",
+                "add_bgm": "yes",
+            }
+            return {
+                "ok": True,
+                "data": {
+                    "answers": [
+                        {
+                            "question_id": question["id"],
+                            "value": answers[question["id"]],
+                        }
+                        for question in body["questions"]
+                    ]
+                },
+            }
+        return {"ok": True, "task_type": "production_workflow"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_run_production_workflow({})
+
+    assert result["task_type"] == "production_workflow"
+    decision_calls = [call for call in calls if call[1] == "/api/v1/chat/decisions"]
+    assert [
+        [question["id"] for question in call[2]["questions"]]
+        for call in decision_calls
+    ] == [
+        ["episodes", "rebuild", "video_resolution", "add_subtitles", "add_bgm"],
+    ]
+    assert all(
+        call[3] == ai_anime_plugin.DECISION_TIMEOUT_SECONDS
+        for call in decision_calls
+    )
+    assert calls[-1] == (
+        "POST",
+        "/api/v1/projects/project-1/workflow/production",
+        {
+            "video_routing_policy": "role_priority",
+            "rebuild": False,
+            "add_subtitles": True,
+            "add_bgm": True,
+        },
+        None,
+    )
+
+
+def test_complete_generation_uses_recommended_defaults_without_duplicate_questions(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(
+        method: str,
+        path: str,
+        *,
+        query=None,
+        body=None,
+        timeout_seconds=None,
+    ):
+        calls.append((method, path, body, timeout_seconds))
+        assert path != "/api/v1/chat/decisions"
+        return {"ok": True, "task_type": "production_workflow"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_run_production_workflow(
+        {"use_recommended_defaults": True}
+    )
+
+    assert result["task_type"] == "production_workflow"
+    assert calls == [
+        (
+            "POST",
+            "/api/v1/projects/project-1/workflow/production",
+            {
+                "video_routing_policy": "role_priority",
+                "rebuild": False,
+                "add_subtitles": True,
+                "add_bgm": True,
+            },
+            None,
+        )
+    ]
+
+
+def test_new_story_production_preflight_collects_creative_parameters(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    decision_batches = []
+    production_bodies = []
+    selected = {
+        "spine_template": "narrated",
+        "visual_style": "realistic",
+        "ethnicity": "Japanese",
+        "target_episodes": "2",
+        "planning_mode": "ai_events",
+        "script_mode": "duration",
+        "narration_style": "third_person",
+        "target_duration_total": "90",
+    }
+
+    def fake_request(
+        method: str,
+        path: str,
+        *,
+        query=None,
+        body=None,
+        timeout_seconds=None,
+    ):
+        if path == "/api/v1/chat/decisions":
+            ids = [question["id"] for question in body["questions"]]
+            decision_batches.append(ids)
+            return {
+                "ok": True,
+                "data": {
+                    "answers": [
+                        {"question_id": question_id, "value": selected[question_id]}
+                        for question_id in ids
+                    ]
+                },
+            }
+        production_bodies.append(body)
+        return {"ok": True, "task_type": "production_workflow"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_run_production_workflow(
+        {
+            "filename": "story.txt",
+            "episodes": [1],
+            "rebuild": False,
+            "video_resolution": "720p",
+            "add_subtitles": True,
+            "add_bgm": False,
+        }
+    )
+
+    assert result["task_type"] == "production_workflow"
+    assert decision_batches == [
+        [
+            "spine_template",
+            "visual_style",
+            "ethnicity",
+            "target_episodes",
+            "planning_mode",
+            "script_mode",
+        ],
+        ["narration_style", "target_duration_total"],
+    ]
+    assert production_bodies == [
+        {
+            "video_routing_policy": "role_priority",
+            "episodes": [1],
+            "filename": "story.txt",
+            "rebuild": False,
+            "spine_template": "narrated",
+            "visual_style": "realistic",
+            "narration_style": "third_person",
+            "ethnicity": "Japanese",
+            "target_episodes": 2,
+            "planning_mode": "ai_events",
+            "script_mode": "duration",
+            "target_duration_total": 90,
+            "video_resolution": "720p",
+            "add_subtitles": True,
+            "add_bgm": False,
+        }
     ]
 
 
@@ -616,6 +1042,56 @@ def test_generic_post_cannot_bypass_production_workflow_tool(
     assert "ai_anime_run_production_workflow" in result["tool_error"]
 
 
+def test_generic_post_cannot_bypass_role_priority_single_video_tool(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("generic POST must not start single-video generation")
+        ),
+    )
+
+    result = ai_anime_plugin._handle_post(
+        {
+            "path": "/projects/project-1/episodes/1/beats/2/video",
+            "body": {"model": "cloud:stale-video"},
+        }
+    )
+
+    assert "ai_anime_start_single_video" in result["tool_error"]
+    assert "role-priority" in result["tool_error"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/projects/project-1/episodes/1/beats/2/vide%6f",
+        "/projects/project-1/episodes/1/beats/2/%76ideo",
+        "/projects/project-1/inges%74/start",
+        "/projects/project-1/episodes/1/beats/2/%2e%2e/video",
+    ],
+)
+def test_generic_post_cannot_bypass_path_guards_with_percent_encoding(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *args, **kwargs: pytest.fail(
+            "percent-encoded protected path must not reach the API"
+        ),
+    )
+
+    result = ai_anime_plugin._handle_post({"path": path, "body": {}})
+
+    assert result["tool_error"]
+
+
 def test_media_handlers_send_current_backend_contract_fields(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
@@ -664,7 +1140,7 @@ def test_media_handlers_send_current_backend_contract_fields(
         (
             "POST",
             "/api/v1/projects/project-1/episodes/1/beats/2/video",
-            {"model": "video-route"},
+            {"video_routing_policy": "role_priority"},
         ),
         (
             "POST",
@@ -1309,7 +1785,8 @@ def test_hermes_production_tools_match_openapi_request_fields(
     )
 
     assert (
-        set(tool_schemas["ai_anime_run_production_workflow"]) - {"project_id"}
+        set(tool_schemas["ai_anime_run_production_workflow"])
+        - {"project_id", "use_recommended_defaults"}
         <= production_fields
     )
     assert (
@@ -1317,7 +1794,9 @@ def test_hermes_production_tools_match_openapi_request_fields(
         <= audio_fields
     )
     assert "audio_model" not in tool_schemas["ai_anime_run_production_workflow"]
+    assert "video_model" in tool_schemas["ai_anime_run_production_workflow"]
     assert "model" not in tool_schemas["ai_anime_generate_audio"]
+    assert "model" not in tool_schemas["ai_anime_start_single_video"]
 
 
 def test_generate_audio_treats_no_required_audio_as_successful_skip(

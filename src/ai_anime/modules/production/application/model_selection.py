@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from ai_anime.modules.model_usage.public import (
     ModelRoute,
     resolve_model_for_role,
@@ -27,7 +29,16 @@ def resolve_video_generation_route(
     username: str,
     project: str,
     requested_model: str | None = None,
+    *,
+    routing_policy: Literal["project_selection", "role_priority"] = (
+        "project_selection"
+    ),
 ) -> ModelRoute:
+    if routing_policy == "role_priority":
+        return ModelRoute(model=resolve_model_for_role("VIDEO_IMAGE_TO_VIDEO"))
+    if routing_policy != "project_selection":
+        raise ValueError("video routing policy is invalid")
+
     requested = str(requested_model or "").strip()
     if requested:
         return resolve_model_route(requested)

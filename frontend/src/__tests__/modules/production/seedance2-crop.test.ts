@@ -44,6 +44,18 @@ describe("Production Seedance2 crop rules", () => {
         asset("manual:image:1"),
       ),
     ).toBe("reference_image");
+    expect(
+      seedance2CropTargetForAsset(
+        "multimodal_reference",
+        asset("first_frame"),
+      ),
+    ).toBe("first_frame");
+    expect(
+      seedance2CropTargetForAsset(
+        "multimodal_reference",
+        asset("last_frame"),
+      ),
+    ).toBe("last_frame");
   });
 
   it("recognizes Seedance reference crop models", () => {

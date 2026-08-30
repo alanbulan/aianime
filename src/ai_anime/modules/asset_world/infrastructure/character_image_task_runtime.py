@@ -108,7 +108,11 @@ async def execute_character_image_task(
         if character is None:
             raise RuntimeError(f"找不到角色: {character_name}")
         project_config = load_project_config_file(ctx.owner_username, ctx.project_name)
-        ethnicity = project_config.get("ethnicity", "Chinese")
+        ethnicity = str(
+            payload.get("ethnicity")
+            or project_config.get("ethnicity", "Chinese")
+            or "Chinese"
+        )
 
         update(0.25, "准备生成参数...")
         if mode == "portrait":

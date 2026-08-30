@@ -30,7 +30,6 @@ import {
   planVideoFrameSources,
   projectVideoReferenceMedia,
   resolveVideoFrameSeekSeconds,
-  resolveVideoNodeAspectRatio,
   resolveVideoNodeDimensions,
   resolveVideoNodeDisplayedRect,
   resolveVideoNodeModel,
@@ -40,7 +39,6 @@ import {
   videoNodeAlbumUrls,
   VIDEO_NODE_DEFAULT_HEIGHT,
   VIDEO_NODE_DEFAULT_WIDTH,
-  VIDEO_NODE_ASPECT_RATIOS,
   VIDEO_NODE_OPERATIONS_PANEL_HEIGHT,
   VIDEO_NODE_OPERATIONS_PANEL_OVERHANG,
 } from '../application/videoNodeModel';
@@ -71,20 +69,23 @@ import {
   findCameraMovementPreset,
 } from '../domain/cameraMovementPresets';
 import {
-  DEFAULT_VIDEO_DURATION_SEC,
-  clampVideoDuration,
   defaultSceneOptimizeForModel,
   isVideoModeSupportedByModel,
   normalizeSceneOptimize,
-  normalizeVideoQuality,
-  qualityToResolution,
+  normalizeVideoDuration,
+  normalizeVideoOutput,
   sceneOptimizeOptionsForModel,
   supportedVideoModesForModel,
-  videoDurationBoundsForModel,
+  videoAspectRatioForOutput,
+  videoDurationDefinitionForModel,
+  videoExtraParamDefinitionsForModel,
+  videoExtraParamsForModel,
   videoModelReferenceDisabledReason,
+  videoOutputDefinitionForModel,
+  videoOutputForAspectRatio,
   videoReferenceDurationLimitsForModel,
   videoModelUsesTypedReferenceModes,
-  videoQualityOptionsForModel,
+  videoSupportsGenerateAudio,
 } from '../domain/videoGenerationModel';
 import { VIDEO_FILE_ACCEPT, isVideoFile } from '../domain/videoFileTypes';
 import { buildVideoMetadataPatch } from '../domain/videoMetadataPatch';
@@ -129,6 +130,7 @@ import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useExternalFileHandoff } from './useExternalFileHandoff';
+import type { VideoConfigPatch } from './VideoConfigChip';
 
 function formatDurationSeconds(durationMs: number): string {
   return (Math.round(durationMs) / 1000).toFixed(3).replace(/\.?0+$/, "");
@@ -422,38 +424,56 @@ export function createUseVideoNodeController({
   const supportedVideoModes = supportedVideoModesForModel(selectedVideoModel);
   const usesTypedReferenceModes =
     videoModelUsesTypedReferenceModes(selectedVideoModel);
-  // aspectRatio 只认合法的比例预设（含 "auto"）；历史上曾被写成像素串(如
-  // "1248:704")的旧节点在这里吸附到最接近的合法视频比例，保证 chip 显示干净。
+  // 画布只展示目录声明的合法比例；目录未声明时不补造静态选项。
   const aspectRatioOptions = useMemo(() => {
     const configured = (selectedVideoModel?.aspectRatioOptions ?? []).filter(
-      (value): value is (typeof VIDEO_NODE_ASPECT_RATIOS)[number] =>
-        (VIDEO_NODE_ASPECT_RATIOS as readonly string[]).includes(value),
+      (value) => value === "auto" || /^\d{1,4}:\d{1,4}$/.test(value),
     );
-    return configured.length > 0 ? configured : VIDEO_NODE_ASPECT_RATIOS;
+    return configured;
   }, [selectedVideoModel]);
-  const resolvedAspectRatio = resolveVideoNodeAspectRatio(data.aspectRatio);
-  const aspectRatio = aspectRatioOptions.includes(resolvedAspectRatio)
-    ? resolvedAspectRatio
-    : (aspectRatioOptions[0] ?? '16:9');
-  const submitAspectRatio = resolveVideoNodeSubmitAspectRatio(
-    data,
-    aspectRatio,
-  );
-  const qualityOptions = useMemo(
-    () => videoQualityOptionsForModel(selectedVideoModel),
+  const aspectRatio = aspectRatioOptions.includes(data.aspectRatio)
+    ? data.aspectRatio
+    : (aspectRatioOptions[0] ?? null);
+  const submitAspectRatio = aspectRatio
+    ? resolveVideoNodeSubmitAspectRatio(data, aspectRatio)
+    : null;
+  const clipQuality = data.quality ?? "720P";
+  const outputDefinition = useMemo(
+    () => videoOutputDefinitionForModel(selectedVideoModel),
     [selectedVideoModel],
   );
-  const quality = normalizeVideoQuality(data.quality, qualityOptions);
-  const durationBounds = useMemo(
-    () => videoDurationBoundsForModel(selectedVideoModel),
+  const outputValue = normalizeVideoOutput(
+    data.generationResolution ??
+      (outputDefinition?.parameter === "size" && aspectRatio
+        ? videoOutputForAspectRatio(
+            outputDefinition,
+            aspectRatio,
+            outputDefinition.defaultValue,
+          )
+        : undefined),
+    outputDefinition,
+  );
+  const extraParamDefinitions = useMemo(
+    () => videoExtraParamDefinitionsForModel(selectedVideoModel),
     [selectedVideoModel],
   );
-  const durationSec = clampVideoDuration(
-    typeof data.durationSec === "number"
-      ? data.durationSec
-      : DEFAULT_VIDEO_DURATION_SEC,
-    durationBounds,
+  const extraParams = useMemo(
+    () => videoExtraParamsForModel(selectedVideoModel, data.extraParams),
+    [data.extraParams, selectedVideoModel],
   );
+  const durationDefinition = useMemo(
+    () => videoDurationDefinitionForModel(selectedVideoModel),
+    [selectedVideoModel],
+  );
+  const durationBounds = durationDefinition;
+  const durationSec = durationDefinition
+    ? normalizeVideoDuration(
+        typeof data.durationSec === "number"
+          ? data.durationSec
+          : durationDefinition.defaultValue,
+        durationDefinition,
+      )
+    : null;
   const sceneOptimizeOptions = useMemo(
     () => sceneOptimizeOptionsForModel(selectedVideoModel),
     [selectedVideoModel],
@@ -463,7 +483,8 @@ export function createUseVideoNodeController({
     sceneOptimizeOptions,
     defaultSceneOptimizeForModel(selectedVideoModel),
   );
-  const generateAudio = Boolean(data.generateAudio);
+  const supportsGenerateAudio = videoSupportsGenerateAudio(selectedVideoModel);
+  const generateAudio = supportsGenerateAudio && Boolean(data.generateAudio);
   const supportsHumanReview = selectedVideoModel?.supportsHumanReview === true;
   const audioReferenceDurationLimits = useMemo(
     () => videoReferenceDurationLimitsForModel(selectedVideoModel, "audio"),
@@ -482,14 +503,17 @@ export function createUseVideoNodeController({
   const count: VideoGenCount = (data.count ?? 1) as VideoGenCount;
   useEffect(() => {
     const patch: Partial<VideoNodeData> = {};
-    if (data.quality !== quality) {
-      patch.quality = quality;
+    if (outputValue !== null && data.generationResolution !== outputValue) {
+      patch.generationResolution = outputValue;
     }
-    if (data.durationSec !== durationSec) {
+    if (durationSec !== null && data.durationSec !== durationSec) {
       patch.durationSec = durationSec;
     }
-    if (data.aspectRatio !== aspectRatio) {
+    if (aspectRatio !== null && data.aspectRatio !== aspectRatio) {
       patch.aspectRatio = aspectRatio;
+    }
+    if (!supportsGenerateAudio && data.generateAudio) {
+      patch.generateAudio = false;
     }
     if (Object.keys(patch).length > 0) {
       updateNodeData(id, patch);
@@ -497,11 +521,13 @@ export function createUseVideoNodeController({
   }, [
     data.durationSec,
     data.aspectRatio,
-    data.quality,
+    data.generationResolution,
+    data.generateAudio,
     durationSec,
     aspectRatio,
     id,
-    quality,
+    outputValue,
+    supportsGenerateAudio,
     updateNodeData,
   ]);
   const videoModelForCost =
@@ -509,12 +535,16 @@ export function createUseVideoNodeController({
       ? null
       : (selectedVideoModel?.apiModel ?? null);
   // Debounce the cost-estimate inputs: dragging the duration slider (and,
-  // to a lesser degree, flipping count/quality/model) churns the query key
+  // to a lesser degree, flipping count/output/model) churns the query key
   // and TanStack Query aborts each in-flight request, spraying "Canceled"
   // rows across the Network tab. Coalesce to one request once the params
   // settle (~350ms). Primitives only — see useDebouncedValue's contract.
   const debouncedModel = useDebouncedValue(videoModelForCost, 350);
-  const debouncedQuality = useDebouncedValue(quality, 350);
+  const debouncedOutputParameter = useDebouncedValue(
+    outputDefinition?.parameter ?? null,
+    350,
+  );
+  const debouncedOutputValue = useDebouncedValue(outputValue, 350);
   const debouncedCount = useDebouncedValue(count, 350);
   const debouncedDurationSec = useDebouncedValue(durationSec, 350);
   const videoCreditCost = useGenerationCreditCost(
@@ -522,8 +552,13 @@ export function createUseVideoNodeController({
     debouncedModel,
     {
       surface: "canvas",
-      params: { resolution: qualityToResolution(debouncedQuality) },
-      quantity: Math.min(Math.max(debouncedCount, 1), 4) * debouncedDurationSec,
+      params:
+        debouncedOutputParameter && debouncedOutputValue
+          ? { [debouncedOutputParameter]: debouncedOutputValue }
+          : {},
+      quantity:
+        Math.min(Math.max(debouncedCount, 1), 4) *
+        (debouncedDurationSec ?? 0),
     },
   );
   const totalCreditCostDisplay = useMemo(() => {
@@ -1325,7 +1360,7 @@ export function createUseVideoNodeController({
           sourceUrl,
           startMs,
           endMs,
-          quality,
+          quality: clipQuality,
         });
         if (result.url) {
           const position = findNodePosition(
@@ -1362,7 +1397,7 @@ export function createUseVideoNodeController({
       id,
       isComposingClip,
       projectId,
-      quality,
+      clipQuality,
       updateNodeData,
     ],
   );
@@ -1411,11 +1446,25 @@ export function createUseVideoNodeController({
     isGenerating ||
     videoModelsLoading ||
     !selectedVideoModel ||
+    !outputDefinition ||
+    !outputValue ||
+    !durationBounds ||
+    durationSec === null ||
+    !submitAspectRatio ||
     Boolean(videoModelReferenceDisabledReason(selectedVideoModel, upstreamCounts)) ||
     (prompt.trim().length === 0 && upstreamTextJoined.length === 0);
 
   const handleSubmit = useCallback(async () => {
     if (submitDisabled) return;
+    if (
+      !outputDefinition ||
+      !outputValue ||
+      !durationBounds ||
+      durationSec === null ||
+      !submitAspectRatio
+    ) {
+      return;
+    }
     // 在途守卫（与 ImageGenNode 一致）：第 1 条完成就会清 isGenerating，
     // submitDisabled 拦不住「旧批次 N-1 个任务还在跑时重新提交」——旧闭包
     // 会用过期的 completedUrls 覆写新批次的 generationBatch。
@@ -1465,7 +1514,7 @@ export function createUseVideoNodeController({
         return urls;
       };
 
-      const durationClamped = clampVideoDuration(durationSec, durationBounds);
+      const durationClamped = normalizeVideoDuration(durationSec, durationBounds);
       const cameraTemplateId = cameraMovementId;
       // 后端按 canvas_id + node_id 记录每个节点的生成历史。多条生成时每个
       // 兄弟节点用各自的 targetId 作 node_id，历史才能分别落到对应节点。
@@ -1499,7 +1548,11 @@ export function createUseVideoNodeController({
             prompt: composedPrompt,
             cameraTemplateId,
             aspectRatio: submitAspectRatio,
-            quality,
+            output: {
+              parameter: outputDefinition.parameter,
+              value: outputValue,
+            },
+            extraParams,
             durationSeconds: durationClamped,
             generateAudio,
             model: apiModel,
@@ -1529,7 +1582,11 @@ export function createUseVideoNodeController({
             prompt: composedPrompt,
             cameraTemplateId,
             aspectRatio: submitAspectRatio,
-            quality,
+            output: {
+              parameter: outputDefinition.parameter,
+              value: outputValue,
+            },
+            extraParams,
             durationSeconds: durationClamped,
             generateAudio,
             model: apiModel,
@@ -1571,7 +1628,11 @@ export function createUseVideoNodeController({
             prompt: composedPrompt,
             cameraTemplateId,
             aspectRatio: submitAspectRatio,
-            quality,
+            output: {
+              parameter: outputDefinition.parameter,
+              value: outputValue,
+            },
+            extraParams,
             durationSeconds: durationClamped,
             generateAudio,
             model: apiModel,
@@ -1745,7 +1806,11 @@ export function createUseVideoNodeController({
             cameraTemplateId,
             references,
             aspectRatio: submitAspectRatio,
-            quality,
+            output: {
+              parameter: outputDefinition.parameter,
+              value: outputValue,
+            },
+            extraParams,
             durationSeconds: durationClamped,
             generateAudio,
             model: apiModel,
@@ -1765,7 +1830,11 @@ export function createUseVideoNodeController({
             prompt: composedPrompt,
             cameraTemplateId,
             aspectRatio: submitAspectRatio,
-            quality,
+            output: {
+              parameter: outputDefinition.parameter,
+              value: outputValue,
+            },
+            extraParams,
             durationSeconds: durationClamped,
             generateAudio,
             model: apiModel,
@@ -1955,7 +2024,9 @@ export function createUseVideoNodeController({
     modelSelector,
     prompt,
     projectId,
-    quality,
+    outputDefinition,
+    outputValue,
+    extraParams,
     refreshHistory,
     sceneOptimize,
     submitDisabled,
@@ -2070,6 +2141,11 @@ export function createUseVideoNodeController({
         !isVideoModeSupportedByModel(data.genMode, nextModel);
       updateNodeData(id, {
         model: nextModelId,
+        generationResolution: null,
+        extraParams: {},
+        ...(!videoSupportsGenerateAudio(nextModel)
+          ? { generateAudio: false }
+          : {}),
         ...(resetGenMode
           ? { genMode: 'textToVideo' as VideoGenMode }
           : {}),
@@ -2079,8 +2155,42 @@ export function createUseVideoNodeController({
     [availableVideoModels, data.genMode, id, updateNodeData],
   );
 
+  const handleVideoConfigChange = useCallback(
+    (patch: VideoConfigPatch) => {
+      const next: Partial<VideoNodeData> = { ...patch };
+      if (typeof patch.generationResolution === "string") {
+        const nextAspectRatio = videoAspectRatioForOutput(
+          patch.generationResolution,
+          aspectRatioOptions,
+          aspectRatio ?? "",
+        );
+        if (nextAspectRatio) next.aspectRatio = nextAspectRatio;
+      } else if (
+        typeof patch.aspectRatio === "string" &&
+        outputDefinition &&
+        outputValue
+      ) {
+        next.generationResolution = videoOutputForAspectRatio(
+          outputDefinition,
+          patch.aspectRatio,
+          outputValue,
+        );
+      }
+      updateNodeData(id, next);
+    },
+    [
+      aspectRatio,
+      aspectRatioOptions,
+      id,
+      outputDefinition,
+      outputValue,
+      updateNodeData,
+    ],
+  );
+
   const normalizeDuration = useCallback(
-    (value: number) => clampVideoDuration(value, durationBounds),
+    (value: number) =>
+      durationBounds ? normalizeVideoDuration(value, durationBounds) : value,
     [durationBounds],
   );
 
@@ -2150,14 +2260,18 @@ export function createUseVideoNodeController({
     getModelDisabledReason,
     aspectRatio,
     aspectRatioOptions,
-    qualityOptions,
-    quality,
+    outputDefinition,
+    outputValue,
+    extraParamDefinitions,
+    extraParams,
     durationBounds,
     durationSec,
     normalizeDuration,
     sceneOptimizeOptions,
     sceneOptimize,
     generateAudio,
+    supportsGenerateAudio,
+    handleVideoConfigChange,
     supportsHumanReview,
     humanReview,
     count,

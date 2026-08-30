@@ -219,7 +219,15 @@ async def generate_single_video(
     resolved = await resolve_project_scope(project, user, required_role="editor")
     video_model = str(body.model or "").strip()
     model_selector = str(body.model_selector or "").strip()
-    if not video_model:
+    if body.video_routing_policy == "role_priority":
+        model_route = resolve_video_generation_route(
+            resolved.username,
+            resolved.project_name,
+            routing_policy="role_priority",
+        )
+        video_model = model_route.model
+        model_selector = ""
+    elif not video_model:
         model_route = resolve_video_generation_route(
             resolved.username,
             resolved.project_name,

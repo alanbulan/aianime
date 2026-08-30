@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { I18nextProvider, initReactI18next } from "react-i18next";
 import i18next from "i18next";
 import { http, HttpResponse } from "msw";
@@ -19,9 +20,23 @@ import type {
   Character,
 } from "@/modules/asset_world/public";
 import {
+  createPresetCanvasAudioVoice,
   designCanvasAudioVoice,
   loadCanvasAudioReferences,
 } from "@/modules/creative_canvas/public";
+import { clearCommercialModelCatalogCache } from "@/modules/model_usage/public";
+import { TaskControllerProvider } from "@/modules/task_execution/public";
+
+vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
+  useTaskStream: () => ({
+    status: "idle" as const,
+    progress: 0,
+    currentTask: "",
+    result: null,
+    error: null,
+    logs: [],
+  }),
+}));
 
 const server = setupServer();
 const i18n = i18next.createInstance();
@@ -33,6 +48,11 @@ beforeAll(async () => {
     resources: {
       zh: {
         translation: {
+          voiceSourceTypes: {
+            voice_design: "文字设计声线",
+            preset_voice: "预设声线",
+            account_voice: "账号声线库",
+          },
           characters: {
             voiceSamples: {
               title: "声线管理 (IndexTTS2)",
@@ -56,8 +76,6 @@ beforeAll(async () => {
               libraryLoading: "正在读取声线库",
               libraryFailed: "声线库读取失败",
               libraryEmpty: "声线库为空",
-              voiceDesignTab: "文字设计声线",
-              voiceLibraryTab: "已有声线",
               voiceDesignModel: "声线设计模型",
               voiceDesignName: "声线名称",
               voiceDesignPrompt: "音色描述",
@@ -69,6 +87,17 @@ beforeAll(async () => {
               voiceDesignPreviewRequired: "请填写试听文本",
               voiceDesignFailed: "文字设计声线失败",
               voiceDesignedAndBound: "新声线已生成并绑定",
+              voiceDesignUnavailable: "没有可用的文字设计模型",
+              presetModel: "语音模型",
+              presetVoice: "预设声线",
+              customPresetVoice: "声音模型 ID",
+              customPresetVoicePlaceholder: "输入声音 ID",
+              presetSampleText: "预设试听文本",
+              presetCreateAndBind: "生成预设并绑定",
+              presetInputRequired: "请选择模型并填写试听文本",
+              presetCreateFailed: "预设声线生成失败",
+              presetCreatedAndBound: "预设声线已入库并绑定",
+              presetUnavailable: "没有可用的预设语音模型",
               bind: "绑定",
               bound: "声线已绑定",
               identityTitle: "身份专属声线",
@@ -106,6 +135,7 @@ beforeAll(async () => {
 });
 afterEach(() => {
   server.resetHandlers();
+  clearCommercialModelCatalogCache();
   vi.unstubAllGlobals();
 });
 afterAll(() => server.close());
@@ -114,7 +144,11 @@ function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
     <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      <QueryClientProvider client={qc}>
+        <TaskControllerProvider project="demo" episode={0}>
+          {children}
+        </TaskControllerProvider>
+      </QueryClientProvider>
     </I18nextProvider>
   );
 }
@@ -134,6 +168,8 @@ const voiceCatalog: AssetWorldVoiceCatalog = {
       ];
     });
   },
+  async deleteVoice() {},
+  createPresetVoice: createPresetCanvasAudioVoice,
   designVoice: designCanvasAudioVoice,
 };
 
@@ -371,7 +407,150 @@ describe("CharacterVoicePanel", () => {
     );
   });
 
-  it("requests the cloud voice-design catalog and generates a voice for an identity", async () => {
+  it("creates a preset voice in the account library before binding it", async () => {
+    const modelCatalog = vi.fn(async ({ operation }: { operation: string }) => ({
+      catalogVersion: "speech-v1",
+      items:
+        operation === "AUDIO_VOICE_CLONE"
+          ? [
+              {
+                id: "speech-1",
+                code: "speech-1",
+                displayName: "Speech One",
+                operation: "AUDIO_VOICE_CLONE",
+                capabilityJson: JSON.stringify({
+                  supportedModes: ["SPEECH"],
+                  routeSelector: "cloud:speech-1",
+                }),
+                parameterSchemaJson: JSON.stringify({
+                  type: "object",
+                  properties: {
+                    voice: {
+                      type: "string",
+                      enum: ["claire"],
+                      enumLabels: ["Claire"],
+                      default: "claire",
+                    },
+                  },
+                  required: ["voice"],
+                }),
+                isDefault: true,
+              },
+            ]
+          : [],
+    }));
+    vi.stubGlobal("aiAnimeDesktop", {
+      commercial: {
+        modelCatalog,
+        modelAccessStatus: vi.fn(async () => ({
+          mode: "cloud",
+          allowsCustomModels: false,
+          gatewayOrigin: "http://127.0.0.1:1234/v1",
+          cloudModelAssignments: [
+            {
+              modelId: "speech-1",
+              role: "AUDIO_SPEECH",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+          byokConfigured: false,
+          byokProviders: [],
+        })),
+      },
+    });
+    let presetBody: unknown;
+    let bindBody: unknown;
+    server.use(
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/voice-samples",
+        () =>
+          HttpResponse.json({
+            ok: true,
+            data: {
+              character: "秦",
+              slots: [],
+              identities: [
+                {
+                  identity_id: "秦_少年",
+                  identity_name: "少年时期",
+                  age_group: "child",
+                  path: "",
+                  url: "",
+                  sha256: "",
+                  updated_at: "",
+                  resolved_path: "",
+                  resolved_url: "",
+                  resolved_from: "",
+                },
+              ],
+            },
+          }),
+      ),
+      http.get(
+        "http://localhost:3000/api/v1/projects/demo/freezone/audio/references",
+        () => HttpResponse.json({ ok: true, data: { available: [] } }),
+      ),
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/freezone/audio/voices/preset",
+        async ({ request }) => {
+          presetBody = await request.json();
+          return HttpResponse.json({
+            ok: true,
+            data: {
+              task_type: "freezone_voice_preset",
+              task_id: "task-preset-1",
+              task_key: "freezone_voice_preset:demo:character_voice",
+              task_scope: "character_voice",
+            },
+          });
+        },
+      ),
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/characters/%E7%A7%A6/identities/%E7%A7%A6_%E5%B0%91%E5%B9%B4/voice/bind",
+        async ({ request }) => {
+          bindBody = await request.json();
+          return HttpResponse.json({ ok: true, data: {} });
+        },
+      ),
+    );
+
+    renderPanel({ name: "秦" });
+    const chooseButtons = await screen.findAllByRole("button", {
+      name: "选择声线",
+    });
+    fireEvent.click(chooseButtons[chooseButtons.length - 1]);
+    fireEvent.click(
+      await screen.findByRole("tab", { name: "预设声线" }),
+    );
+    expect(await screen.findByText("Speech One")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("预设试听文本"), {
+      target: { value: "你好，这是预设声线试听。" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "生成预设并绑定" }));
+
+    await waitFor(() =>
+      expect(presetBody).toEqual({
+        name: "秦-少年时期",
+        model_selector: "cloud:speech-1",
+        text: "你好，这是预设声线试听。",
+        voice: "claire",
+        binding: {
+          kind: "identity",
+          character_name: "秦",
+          identity_id: "秦_少年",
+        },
+      }),
+    );
+    expect(bindBody).toBeUndefined();
+    expect(modelCatalog).toHaveBeenCalledWith({
+      operation: "AUDIO_VOICE_CLONE",
+      source: "active",
+    });
+  });
+
+  it("loads the active voice-design catalog and uses the manually selected BYOK model", async () => {
+    const user = userEvent.setup();
     const modelCatalog = vi.fn(async () => ({
       catalogVersion: "voice-design-v1",
       items: [
@@ -382,6 +561,7 @@ describe("CharacterVoicePanel", () => {
           operation: "AUDIO_VOICE_DESIGN",
           capabilityJson: JSON.stringify({
             supportedModes: ["VOICE_DESIGN"],
+            routeSelector: "cloud:QWEN3_TTS_VD_2026_01_26",
           }),
           parameterSchemaJson: JSON.stringify({
             type: "object",
@@ -411,10 +591,82 @@ describe("CharacterVoicePanel", () => {
           }),
           isDefault: true,
         },
+        {
+          id: "byok:fish:s2.1-pro-free:AUDIO_VOICE_DESIGN",
+          code: "s2.1-pro-free",
+          displayName: "s2.1-pro-free · fish",
+          operation: "AUDIO_VOICE_DESIGN",
+          capabilityJson: JSON.stringify({
+            supportedModes: ["VOICE_DESIGN"],
+            routeSelector: "byok:fish:s2.1-pro-free",
+          }),
+          parameterSchemaJson: JSON.stringify({
+            type: "object",
+            properties: {
+              voice_prompt: { type: "string", maxLength: 2048 },
+              preview_text: { type: "string", maxLength: 1024 },
+              preferred_name: {
+                type: "string",
+                default: "custom_voice",
+              },
+              language: {
+                type: "string",
+                enum: ["zh"],
+                default: "zh",
+              },
+              sample_rate: {
+                type: "integer",
+                enum: [24000],
+                default: 24000,
+              },
+              response_format: {
+                type: "string",
+                enum: ["wav"],
+                default: "wav",
+              },
+            },
+          }),
+        },
       ],
     }));
     vi.stubGlobal("aiAnimeDesktop", {
-      commercial: { modelCatalog },
+      commercial: {
+        modelCatalog,
+        modelAccessStatus: vi.fn(async () => ({
+          mode: "mixed",
+          allowsCustomModels: true,
+          gatewayOrigin: "http://127.0.0.1:1234/v1",
+          cloudModelAssignments: [
+            {
+              modelId: "QWEN3_TTS_VD_2026_01_26",
+              role: "AUDIO_VOICE_DESIGN",
+              priority: 10,
+              enabled: true,
+            },
+          ],
+          byokConfigured: true,
+          byokProviders: [
+            {
+              id: "fish",
+              name: "fish",
+              protocol: "OPENAI_COMPATIBLE",
+              baseUrl: "https://api.fish.audio/v1/tts/v1",
+              apiKeyPreview: "sk-…",
+              configured: true,
+              enabled: true,
+              priority: 100,
+              modelAssignments: [
+                {
+                  modelId: "s2.1-pro-free",
+                  role: "AUDIO_VOICE_DESIGN",
+                  priority: 100,
+                  enabled: true,
+                },
+              ],
+            },
+          ],
+        })),
+      },
     });
     let designBody: unknown;
     let bindBody: unknown;
@@ -455,10 +707,10 @@ describe("CharacterVoicePanel", () => {
           return HttpResponse.json({
             ok: true,
             data: {
-              voice_id: "fv_designed",
-              name: "秦-少年时期",
-              preview_url: "/voice/fv_designed.wav",
-              provider_voice_id: "qwen_voice_123",
+              task_type: "freezone_voice_design",
+              task_id: "task-design-1",
+              task_key: "freezone_voice_design:demo:character_voice",
+              task_scope: "character_voice",
             },
           });
         },
@@ -492,8 +744,21 @@ describe("CharacterVoicePanel", () => {
       name: "选择声线",
     });
     fireEvent.click(chooseButtons[chooseButtons.length - 1]);
-    expect(await screen.findByText("文字设计声线")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("tab", { name: "文字设计声线" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "预设声线" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "账号声线库" })).toBeInTheDocument();
     expect(screen.getByText("Qwen3 TTS Voice Design")).toBeInTheDocument();
+    await user.click(screen.getByRole("combobox", { name: "声线设计模型" }));
+    await user.click(
+      await screen.findByRole("option", { name: "s2.1-pro-free · fish" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: "声线设计模型" }),
+      ).toHaveTextContent("s2.1-pro-free · fish"),
+    );
     fireEvent.change(screen.getByLabelText("音色描述"), {
       target: { value: "清澈温暖的青年女声" },
     });
@@ -505,19 +770,24 @@ describe("CharacterVoicePanel", () => {
     await waitFor(() =>
       expect(designBody).toEqual({
         name: "秦-少年时期",
-        model_selector: "cloud:QWEN3_TTS_VD_2026_01_26",
+        model_selector: "byok:fish:s2.1-pro-free",
         voice_prompt: "清澈温暖的青年女声",
         preview_text: "你好，这是声线试听。",
         preferred_name: "custom_voice",
         language: "zh",
         sample_rate: 24000,
         response_format: "wav",
+        binding: {
+          kind: "identity",
+          character_name: "秦",
+          identity_id: "秦_少年",
+        },
       }),
     );
-    expect(bindBody).toEqual({ voice_id: "fv_designed" });
+    expect(bindBody).toBeUndefined();
     expect(modelCatalog).toHaveBeenCalledWith({
       operation: "AUDIO_VOICE_DESIGN",
-      source: "cloud",
+      source: "active",
     });
   });
 });

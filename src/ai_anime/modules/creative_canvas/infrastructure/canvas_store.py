@@ -36,13 +36,12 @@ from ai_anime.modules.creative_canvas.infrastructure.canvas_store_io import (
     load_canvas_json,
     relative_project_path,
     timestamp_utc_iso,
-    utc_iso,
-    utc_now_iso,
 )
 from ai_anime.modules.creative_canvas.infrastructure.paths import (
     canvas_path,
     canvases_dir,
 )
+from ai_anime.shared.utils.time_format import utc_iso, utc_now_iso
 
 
 def default_canvas_payload(

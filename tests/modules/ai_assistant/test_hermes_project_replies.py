@@ -39,6 +39,7 @@ class StubHermesRuntime:
     def __init__(self, thread):
         self.thread = thread
         self.calls = []
+        self.forgotten = []
 
     async def get_for_user(
         self, username, *, scope_kind, project_id, conversation_id
@@ -46,18 +47,65 @@ class StubHermesRuntime:
         self.calls.append((username, scope_kind, project_id, conversation_id))
         return self.thread
 
+    async def forget_conversation(
+        self, username, *, scope_kind, project_id, conversation_id
+    ):
+        self.forgotten.append(
+            (username, scope_kind, project_id, conversation_id)
+        )
+
 
 class StubPromptContext:
-    def build(self, username, project, prompt):
+    def build(self, username, project, prompt, **_kwargs):
         return f"context:{username}:{project}:{prompt}"
 
 
 class StubProjectMessages:
-    def __init__(self, assistants=None, traces=None):
+    def __init__(self, assistants=None, traces=None, context_policy=None):
         self.previous_assistants = assistants or []
         self.previous_traces = traces or []
+        self.context_policy = context_policy
         self.appended_traces = []
         self.appended_assistants = []
+        self.rebuilt_revisions = []
+
+    def load_context_policy(
+        self,
+        username,
+        project,
+        *,
+        project_dir=None,
+        project_state_dir=None,
+        conversation_id="main",
+    ):
+        if self.context_policy is not None:
+            return self.context_policy
+        return {
+            "revision": 0,
+            "rebuild_required": False,
+            "messages": [
+                {
+                    "id": index,
+                    "role": "assistant",
+                    "content": content,
+                    "context_state": "normal",
+                }
+                for index, content in enumerate(self.previous_assistants, start=1)
+            ],
+        }
+
+    def mark_context_rebuilt(
+        self,
+        username,
+        project,
+        revision,
+        *,
+        project_dir=None,
+        project_state_dir=None,
+        conversation_id="main",
+    ):
+        self.rebuilt_revisions.append(revision)
+        return True
 
     def assistant_contents(
         self,
@@ -167,10 +215,21 @@ class StubDisplayFallbacks:
         return [{"type": "fallback", "tool": tool_name}]
 
 
-def _build_replies(events, *, error=None, assistants=None, traces=None):
+def _build_replies(
+    events,
+    *,
+    error=None,
+    assistants=None,
+    traces=None,
+    context_policy=None,
+):
     thread = StubThread(events, error=error)
     runtime = StubHermesRuntime(thread)
-    messages = StubProjectMessages(assistants=assistants, traces=traces)
+    messages = StubProjectMessages(
+        assistants=assistants,
+        traces=traces,
+        context_policy=context_policy,
+    )
     media = StubProjectMedia()
     sessions = StubPageSessions()
     fallbacks = StubDisplayFallbacks()
@@ -426,3 +485,74 @@ async def test_hermes_project_replies_hides_recovered_skill_lookup_failure(monke
 
     assert result["content"] == "normalized:你好！有什么我可以帮你处理的吗？"
     assert not any(event["type"] == "assistant_delta" for event in emitted)
+
+
+@pytest.mark.anyio
+async def test_hermes_project_replies_rebuilds_runtime_after_context_exclusion(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        replies_module, "infer_display_tool_call_from_text", lambda *_: None
+    )
+    replies, thread, runtime, messages, *_rest = _build_replies(
+        [
+            _event("thread_started", thread_id="fresh", turn_id="worker-turn"),
+            _event("complete", text="已按新上下文继续"),
+        ],
+        context_policy={
+            "revision": 4,
+            "rebuild_required": True,
+            "messages": [
+                {
+                    "id": 2,
+                    "role": "assistant",
+                    "content": "仍然有效的历史",
+                    "context_state": "normal",
+                }
+            ],
+        },
+    )
+    emitted = []
+
+    async def on_event(event):
+        emitted.append(event)
+
+    await replies.stream(
+        "alice",
+        "project-a",
+        "继续",
+        on_event,
+        turn_id="turn-2",
+    )
+
+    assert runtime.forgotten == [("alice", "project", "project-a", "main")]
+    assert messages.rebuilt_revisions == [4]
+    assert thread.calls[0][0] == "context:alice:project-a:继续"
+    assert emitted[0]["type"] == "thread_started"
+
+
+@pytest.mark.anyio
+async def test_hermes_project_replies_forwards_raw_slash_commands(monkeypatch):
+    monkeypatch.setattr(
+        replies_module, "infer_display_tool_call_from_text", lambda *_: None
+    )
+    commands = [{"name": "help", "description": "List commands"}]
+    replies, thread, _runtime, messages, *_rest = _build_replies(
+        [
+            _event("available_commands", raw=commands),
+            _event("complete", text="命令列表"),
+        ]
+    )
+    emitted = []
+
+    async def on_event(event):
+        emitted.append(event)
+
+    await replies.stream("alice", "project-a", "/help", on_event)
+
+    assert thread.calls[0] == ("/help", "project-a")
+    assert messages.rebuilt_revisions == []
+    assert {
+        "type": "available_commands",
+        "commands": commands,
+    } in emitted

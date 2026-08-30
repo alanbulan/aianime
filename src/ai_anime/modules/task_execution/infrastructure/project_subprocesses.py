@@ -340,6 +340,8 @@ def run_project_subprocess(
         stderr=stderr,
         stdin=stdin,
         text=text,
+        encoding="utf-8" if text else None,
+        errors="replace" if text else None,
         start_new_session=True,
     )
     _register_process(task_id, proc)

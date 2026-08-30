@@ -174,7 +174,7 @@ export interface NarrativePlanningGateway {
     project: string,
     episode: number,
     params?: GenerateRewriteParams,
-  ): Promise<DataResponse<GeneratedRewrite> | NarrativeErrorResult>;
+  ): Promise<NarrativeTaskStartResult>;
   updateBeat(
     project: string,
     episode: number,

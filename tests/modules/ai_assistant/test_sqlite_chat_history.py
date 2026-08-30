@@ -509,3 +509,71 @@ def test_project_history_defaults_to_last_50_messages(monkeypatch, tmp_path):
         message["content"]
         for message in history.list_project_messages("admin", "show-1", limit=0)
     ] == ["message-59"]
+
+
+def test_message_context_policy_persists_without_deleting_history(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
+    history = SQLiteChatHistory()
+    scope = ChatScope(kind="home")
+    first = history.append_message(
+        "alice",
+        scope,
+        "user",
+        "必须完整保留",
+        turn_id="turn-pinned",
+    )
+    history.append_message("alice", scope, "assistant", "中间回复")
+    latest = history.append_message("alice", scope, "user", "最新消息")
+
+    pinned = history.set_message_context_state(
+        "alice",
+        scope,
+        str(first["id"]),
+        "pinned",
+    )
+
+    assert pinned is not None
+    assert pinned["context_state"] == "pinned"
+    assert [
+        message["id"] for message in history.list_messages("alice", scope, limit=1)
+    ] == [first["id"], latest["id"]]
+
+    excluded = history.set_message_context_state(
+        "alice",
+        scope,
+        "user-turn-pinned",
+        "excluded",
+    )
+
+    assert excluded is not None
+    assert excluded["context_state"] == "excluded"
+    assert excluded["context_rebuild_required"] is True
+    policy = history.load_context_policy("alice", scope)
+    assert policy["revision"] == excluded["context_revision"]
+    assert policy["rebuild_required"] is True
+    assert "必须完整保留" not in {
+        message["content"] for message in policy["messages"]
+    }
+
+    database = history.db_for("alice", scope)
+    with sqlite3.connect(database) as conn:
+        stored = conn.execute(
+            "SELECT content, context_state FROM chat_messages WHERE id = ?",
+            (first["id"],),
+        ).fetchone()
+    assert stored == ("必须完整保留", "excluded")
+
+    assert history.mark_context_rebuilt(
+        "alice",
+        scope,
+        excluded["context_revision"] + 1,
+    ) is False
+    assert history.mark_context_rebuilt(
+        "alice",
+        scope,
+        excluded["context_revision"],
+    ) is True
+    assert history.load_context_policy("alice", scope)["rebuild_required"] is False
