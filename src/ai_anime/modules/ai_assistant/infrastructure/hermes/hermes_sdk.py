@@ -433,6 +433,7 @@ class HermesSdkThread:
         self._tool_names_by_call_id: dict[str, str] = {}
         self._model_route_selector: str | None = None
         self._model_reasoning_effort: str | None = None
+        self._model_route_is_managed = False
         # Serializes the spawn→initialize→session prologue so a background
         # warm() and the first real stream() can't interleave on the shared
         # JSON-RPC stdio. Whichever runs first pays the cold start; the other
@@ -623,6 +624,7 @@ class HermesSdkThread:
             or model_state.get("current_model_id")
         )
         selection = decode_model_selection(current_model)
+        self._model_route_is_managed = selection is not None
         self._model_route_selector = selection.selector if selection else None
         self._model_reasoning_effort = (
             selection.reasoning_effort if selection else None
@@ -654,12 +656,14 @@ class HermesSdkThread:
                 raise RuntimeError("HermesSdkThread is closed")
             await self._prepare()
             if (
-                normalized == self._model_route_selector
+                self._model_route_is_managed
+                and normalized == self._model_route_selector
                 and normalized_effort == self._model_reasoning_effort
             ):
                 return self._model_route_selector, self._model_reasoning_effort
             reasoning_only = (
-                normalized == self._model_route_selector
+                self._model_route_is_managed
+                and normalized == self._model_route_selector
                 and normalized_effort is not None
             )
             if reasoning_only:
@@ -683,6 +687,7 @@ class HermesSdkThread:
                 error = response.get("error")
                 detail = error.get("message") if isinstance(error, dict) else error
                 raise RuntimeError(f"切换当前对话模型失败：{detail}")
+            self._model_route_is_managed = True
             self._model_route_selector = normalized
             self._model_reasoning_effort = normalized_effort
             return self._model_route_selector, self._model_reasoning_effort
@@ -1116,6 +1121,9 @@ class HermesSdkThread:
         self._session_ready = False
         self._req_counter = 0
         self._tool_names_by_call_id.clear()
+        self._model_route_is_managed = False
+        self._model_route_selector = None
+        self._model_reasoning_effort = None
         _log.warning(
             "resetting Hermes context session for user=%s old_session=%s reason=%s",
             self._username,

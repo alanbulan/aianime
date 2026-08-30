@@ -38,6 +38,6 @@ def test_seedance2_reference_audio_error_states_total_limit_and_recommendation(
 
     with pytest.raises(
         ValueError,
-        match=r"每段需在 1\.8-15\.2 秒内，合计不超过 15\.2 秒.*建议.*3-5 秒",
+        match=r"每段需至少 1\.8 秒，合计不超过 15\.2 秒.*建议.*3-5 秒",
     ):
         seedance2_pipeline._validate_reference_audio_request(list(durations))

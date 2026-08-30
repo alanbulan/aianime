@@ -2,6 +2,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createCommercialModelAccessQueries } from "@/modules/model_usage/application/commercial-model-access-queries";
+import type { CommercialModelCatalog } from "@/modules/model_usage/domain/commercial-model-access";
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
 
 describe("commercial model catalog cache", () => {
   afterEach(() => {
@@ -71,5 +80,63 @@ describe("commercial model catalog cache", () => {
 
     expect(fetchCatalog).toHaveBeenLastCalledWith("TEXT", "active", "text-v1");
     expect(refreshed).toBe(initial);
+  });
+
+  it("clears an old schema without allowing an in-flight response to restore it", async () => {
+    const stale = deferred<CommercialModelCatalog>();
+    const fresh = deferred<CommercialModelCatalog>();
+    const fetchCatalog = vi.fn()
+      .mockImplementationOnce(() => stale.promise)
+      .mockImplementationOnce(() => fresh.promise);
+    const queries = createCommercialModelAccessQueries({
+      fetchCatalog,
+      fetchQuota: vi.fn(),
+      fetchModelDetails: vi.fn(),
+      fetchAccessStatus: vi.fn(),
+      configureByok: vi.fn(),
+      selectCloud: vi.fn(),
+      clearByok: vi.fn(),
+      fetchByokProviderModels: vi.fn(),
+    });
+    const staleCatalog: CommercialModelCatalog = {
+      catalogVersion: "text-v1",
+      items: [],
+    };
+    const freshCatalog: CommercialModelCatalog = {
+      catalogVersion: "text-v2",
+      items: [{
+        id: "text-1",
+        code: "QWEN3_8_27B",
+        displayName: "Qwen3.8-27B",
+        operation: "TEXT",
+        capabilities: {},
+        parameterSchema: {
+          type: "object",
+          properties: {
+            reasoning_effort: {
+              type: "string",
+              enum: ["none", "low", "medium", "high"],
+              default: "low",
+            },
+          },
+        },
+      }],
+    };
+
+    const staleLoad = queries.loadCommercialModelCatalog("TEXT");
+    queries.clearCommercialModelCatalogCache();
+    const freshLoad = queries.loadCommercialModelCatalog("TEXT");
+    stale.resolve(staleCatalog);
+    await staleLoad;
+    const deduplicatedFreshLoad = queries.loadCommercialModelCatalog("TEXT");
+
+    expect(fetchCatalog).toHaveBeenCalledTimes(2);
+    expect(fetchCatalog).toHaveBeenNthCalledWith(2, "TEXT", "active", undefined);
+
+    fresh.resolve(freshCatalog);
+    await expect(freshLoad).resolves.toBe(freshCatalog);
+    await expect(deduplicatedFreshLoad).resolves.toBe(freshCatalog);
+    await expect(queries.loadCommercialModelCatalog("TEXT")).resolves.toBe(freshCatalog);
+    expect(fetchCatalog).toHaveBeenCalledTimes(2);
   });
 });

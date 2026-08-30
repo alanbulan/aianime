@@ -29,6 +29,7 @@ import {
   registerCommercialIpc,
 } from "../src/commercial.ts";
 import { COMMERCIAL_IPC_ERROR_PREFIX } from "../src/commercial-ipc.ts";
+import { mergeModelCatalogs } from "../src/commercial-ipc-support.ts";
 
 class MemorySessionStore {
   value = null;
@@ -83,6 +84,27 @@ test("desktop route parser follows the shared cross-runtime model contract", asy
 test("model roles omit operations without an application call chain", () => {
   assert.equal(BYOK_MODEL_ROLES.includes("RERANK"), false);
   assert.equal(BYOK_MODEL_ROLES.includes("MODERATION"), false);
+});
+
+test("active cloud catalogs always expose exact route selectors", () => {
+  const active = mergeModelCatalogs({
+    catalogVersion: "cloud-v1",
+    items: [
+      {
+        id: "model-1",
+        code: "gpt-5",
+        displayName: "GPT-5",
+        operation: "TEXT",
+        capabilityJson: "{}",
+        parameterSchemaJson: "{}",
+      },
+    ],
+  });
+
+  assert.equal(active.catalogVersion, "cloud-v1");
+  assert.deepEqual(JSON.parse(active.items[0].capabilityJson), {
+    routeSelector: "cloud:gpt-5",
+  });
 });
 
 test("provider strategy factory covers native protocols, audio providers, and every generic model role", () => {
@@ -162,6 +184,32 @@ const passthroughSecureStorage = {
   encryptString: (value) => Buffer.from(value, "utf8"),
   decryptString: (value) => value.toString("utf8"),
 };
+
+test("desktop rejects runtime parameter overrides beyond the shared depth limit", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-depth-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const store = new EncryptedFileCommercialModelAccessStore(
+    join(directory, "model-access.bin"),
+    passthroughSecureStorage,
+  );
+  let parameterOverrides = { value: true };
+  for (let depth = 0; depth < 9; depth += 1) {
+    parameterOverrides = { nested: parameterOverrides };
+  }
+
+  await assert.rejects(
+    store.selectCloud([
+      {
+        modelId: "cloud-text",
+        role: "TEXT",
+        priority: 100,
+        enabled: true,
+        runtimeOverrides: { parameterOverrides },
+      },
+    ]),
+    /嵌套过深/,
+  );
+});
 
 function configureCloudProxy(proxy, assignments, modelCapabilities = []) {
   proxy.configureRouting({
@@ -1068,8 +1116,8 @@ test("video catalog synchronization sends only projected generation capabilities
                         },
                         reasoning_effort: {
                           type: "string",
-                          enum: ["low", "medium", "xhigh"],
-                          default: "medium",
+                          enum: ["none", "low", "medium", "high"],
+                          default: "low",
                         },
                       },
                     }),
@@ -1208,8 +1256,8 @@ test("video catalog synchronization sends only projected generation capabilities
       enabled: true,
       contextWindow: 204800,
       maxOutputTokens: 65536,
-      reasoningEfforts: ["low", "medium", "xhigh"],
-      defaultReasoningEffort: "medium",
+      reasoningEfforts: ["none", "low", "medium", "high"],
+      defaultReasoningEffort: "low",
     },
     {
       modelId: "cloud/video-standard",
@@ -1289,8 +1337,8 @@ test("video catalog synchronization sends only projected generation capabilities
       enabled: true,
       contextWindow: 204800,
       maxOutputTokens: 65536,
-      reasoningEfforts: ["low", "medium", "xhigh"],
-      defaultReasoningEffort: "medium",
+      reasoningEfforts: ["none", "low", "medium", "high"],
+      defaultReasoningEffort: "low",
     },
   );
   assert.equal(JSON.stringify(synchronized).includes("providerSecret"), false);
@@ -1561,6 +1609,24 @@ test("model runtime overrides preserve xhigh and replace the request output limi
     max_completion_tokens: 8192,
     reasoning_effort: "xhigh",
   });
+});
+
+test("unselected reasoning leaves the upstream request parameters unset", async () => {
+  const prepared = await prepareBodyForRoute(
+    Buffer.from(JSON.stringify({
+      model: "stale-model",
+      messages: [],
+    })),
+    "application/json",
+    "QWEN3_8_27B",
+    false,
+  );
+  const body = JSON.parse(prepared.body);
+
+  assert.equal(body.model, "QWEN3_8_27B");
+  assert.equal(Object.hasOwn(body, "reasoning_effort"), false);
+  assert.equal(Object.hasOwn(body, "chat_template_kwargs"), false);
+  assert.equal(Object.hasOwn(body, "include_reasoning"), false);
 });
 
 test("schema-driven parameter overrides deep-merge into non-text JSON requests", async () => {
@@ -2638,7 +2704,7 @@ test("assistant conversation override selects one exact route without changing g
         role: "TEXT",
         priority: 100,
         enabled: true,
-        reasoningEfforts: ["xhigh"],
+        reasoningEfforts: ["high"],
       },
     ],
     access: {
@@ -2666,7 +2732,7 @@ test("assistant conversation override selects one exact route without changing g
 
   const selector = "cloud:cloud-text";
   const encodedSelector = Buffer.from(selector, "utf8").toString("base64url");
-  const encodedEffort = Buffer.from("xhigh", "utf8").toString("base64url");
+  const encodedEffort = Buffer.from("high", "utf8").toString("base64url");
   const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -2684,7 +2750,7 @@ test("assistant conversation override selects one exact route without changing g
   assert.equal(response.headers.get("x-ai-anime-route-source"), "cloud");
   assert.equal(response.headers.get("x-ai-anime-route-model"), "cloud-text");
   assert.equal(cloudCalls.length, 1);
-  assert.equal(JSON.parse(cloudCalls[0].body).reasoning_effort, "xhigh");
+  assert.equal(JSON.parse(cloudCalls[0].body).reasoning_effort, "high");
 
   const encodedDisabledEffort = Buffer.from("none", "utf8").toString("base64url");
   const disabledRequest = {
@@ -2715,7 +2781,7 @@ test("assistant conversation override selects one exact route without changing g
     ...routing,
     cloudModelAssignments: routing.cloudModelAssignments.map((assignment) => ({
       ...assignment,
-      reasoningEfforts: ["xhigh", "none"],
+      reasoningEfforts: ["high", "none"],
     })),
   });
   const disabledResponse = await fetch(
@@ -2725,7 +2791,10 @@ test("assistant conversation override selects one exact route without changing g
 
   assert.equal(disabledResponse.status, 200);
   assert.equal(cloudCalls.length, 2);
-  assert.equal(JSON.parse(cloudCalls[1].body).reasoning_effort, "none");
+  const disabledBody = JSON.parse(cloudCalls[1].body);
+  assert.equal(disabledBody.reasoning_effort, "none");
+  assert.equal(Object.hasOwn(disabledBody, "chat_template_kwargs"), false);
+  assert.equal(Object.hasOwn(disabledBody, "include_reasoning"), false);
 });
 
 test("explicit cloud catalog video selection does not change global role priority", async (t) => {

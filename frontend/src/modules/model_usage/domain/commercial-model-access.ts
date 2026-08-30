@@ -56,6 +56,8 @@ export const BYOK_MODEL_ROLES = [
 
 export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
 
+const MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH = 8;
+
 export interface ModelRuntimeOverrides {
   contextWindow?: number;
   maxOutputTokens?: number;
@@ -435,7 +437,9 @@ function cloneJsonObject(
   name: string,
   depth: number,
 ): Record<string, unknown> {
-  if (depth > 12) throw new Error(`${name} is too deeply nested`);
+  if (depth > MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH) {
+    throw new Error(`${name} is too deeply nested`);
+  }
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
@@ -454,7 +458,9 @@ function cloneJsonValue(value: unknown, name: string, depth: number): unknown {
     return value;
   }
   if (Array.isArray(value)) {
-    if (depth > 12) throw new Error(`${name} is too deeply nested`);
+    if (depth > MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH) {
+      throw new Error(`${name} is too deeply nested`);
+    }
     return value.map((item, index) => cloneJsonValue(item, `${name}[${index}]`, depth + 1));
   }
   if (value && typeof value === "object") {

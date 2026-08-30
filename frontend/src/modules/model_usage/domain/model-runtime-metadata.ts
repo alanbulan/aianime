@@ -219,10 +219,14 @@ export function formatReasoningEffort(
   value: ModelReasoningEffortMetadata | undefined,
 ): string {
   if (!value) return "未声明";
-  const options = value.options.join(" / ");
+  const options = value.options.map(formatReasoningEffortOption).join(" / ");
   return value.defaultValue
-    ? `${options}（默认 ${value.defaultValue}）`
+    ? `${options}（默认 ${formatReasoningEffortOption(value.defaultValue)}）`
     : options;
+}
+
+export function formatReasoningEffortOption(value: string): string {
+  return value === "none" ? "关闭思考" : value;
 }
 
 function reasoningEffortMetadata(

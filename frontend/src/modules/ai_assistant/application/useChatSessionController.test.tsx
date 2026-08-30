@@ -36,7 +36,7 @@ function createHarness(cachedMessages: ChatMessage[] = []) {
         id: "cloud:text-model",
         label: "Qwen3.8-27B",
         source: "cloud" as const,
-        reasoningEfforts: ["low", "medium", "xhigh"],
+        reasoningEfforts: ["none", "low", "medium", "high"],
         defaultReasoningEffort: "low",
       },
     ])),
@@ -311,7 +311,6 @@ describe("useChatSessionController", () => {
         conversationId: "chat_2",
       },
       selector: "cloud:text-model",
-      reasoning_effort: "low",
     });
 
     act(() => harness.getSocketOptions()?.onFrame({
@@ -322,11 +321,11 @@ describe("useChatSessionController", () => {
         conversationId: "chat_2",
       },
       selector: "cloud:text-model",
-      reasoning_effort: "low",
+      reasoning_effort: null,
     }));
     harness.send.mockClear();
     act(() => {
-      accepted = result.current.switchReasoningEffort("xhigh");
+      accepted = result.current.switchReasoningEffort("high");
     });
     expect(accepted).toBe(true);
     expect(harness.send).toHaveBeenCalledWith({
@@ -337,7 +336,7 @@ describe("useChatSessionController", () => {
         conversationId: "chat_2",
       },
       selector: "cloud:text-model",
-      reasoning_effort: "xhigh",
+      reasoning_effort: "high",
     });
 
     act(() => harness.getSocketOptions()?.onFrame({
@@ -348,14 +347,23 @@ describe("useChatSessionController", () => {
         conversationId: "chat_2",
       },
       selector: "cloud:text-model",
-      reasoning_effort: "xhigh",
+      reasoning_effort: "high",
     }));
     harness.send.mockClear();
     act(() => {
       accepted = result.current.switchReasoningEffort("none");
     });
-    expect(accepted).toBe(false);
-    expect(harness.send).not.toHaveBeenCalled();
+    expect(accepted).toBe(true);
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "session.model.set",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: "cloud:text-model",
+      reasoning_effort: "none",
+    });
   });
 
   it("submits a live decision and removes it only after the HTTP answer succeeds", async () => {

@@ -17,7 +17,10 @@ import type {
   ChatSlashCommand, ChatToolEntry, ModelEntry,
 } from "@/modules/ai_assistant/domain/contracts";
 import { slashCommandAction } from "@/modules/ai_assistant/domain/slashCommand";
-import { formatModelContextWindow } from "@/modules/model_usage/public";
+import {
+  formatModelContextWindow,
+  formatReasoningEffortOption,
+} from "@/modules/model_usage/public";
 import { cn } from "@/lib/utils";
 
 export type SlashMenuMode =
@@ -134,7 +137,7 @@ function ModelOption({ activeModel, model, onSelect }: {
             ? ` · 输出 ${formatModelContextWindow(model.maxOutputTokens)}`
             : ""}
           {model.reasoningEfforts?.length
-            ? ` · 思考 ${model.reasoningEfforts.join(" / ")}`
+            ? ` · 思考 ${model.reasoningEfforts.map(formatReasoningEffortOption).join(" / ")}`
             : " · 思考未声明"}
         </span>
       </span>

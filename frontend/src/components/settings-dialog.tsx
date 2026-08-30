@@ -79,6 +79,7 @@ import {
   CommercialInvocationSection,
   formatModelContextWindow,
   formatReasoningEffort,
+  formatReasoningEffortOption,
   modelParameterOverrideDraft,
   parseModelCapabilityOverridesJsonDraft,
   parseModelParameterOverrideDrafts,
@@ -1369,12 +1370,14 @@ function modelParameterFacts(
   }
   if (Array.isArray(schema.enum) && schema.enum.length > 0) {
     facts.push(t("settings.modelAccess.parameterOptions", {
-      value: schema.enum.map(formatSchemaValue).join(" / "),
+      value: schema.enum
+        .map((value) => formatModelParameterSchemaValue(declaration, value))
+        .join(" / "),
     }));
   }
   if (Object.prototype.hasOwnProperty.call(schema, "default")) {
     facts.push(t("settings.modelAccess.parameterDefault", {
-      value: formatSchemaValue(schema.default),
+      value: formatModelParameterSchemaValue(declaration, schema.default),
     }));
   }
   const minimum = finiteNumber(schema.minimum);
@@ -1394,6 +1397,15 @@ function finiteNumber(value: unknown): number | undefined {
 function formatSchemaValue(value: unknown): string {
   if (typeof value === "string") return value;
   return JSON.stringify(value) ?? String(value);
+}
+
+function formatModelParameterSchemaValue(
+  declaration: ModelParameterDeclaration,
+  value: unknown,
+): string {
+  return declaration.path === "reasoning_effort" && typeof value === "string"
+    ? formatReasoningEffortOption(value)
+    : formatSchemaValue(value);
 }
 
 function ModelRuntimeOverridesButton({
@@ -1820,7 +1832,10 @@ function ModelParameterOverrideControl({
   const schema = declaration.schema;
   const enumOptions = Array.isArray(schema.enum)
     ? schema.enum
-        .map((value) => ({ value: JSON.stringify(value), label: formatSchemaValue(value) }))
+        .map((value) => ({
+          value: JSON.stringify(value),
+          label: formatModelParameterSchemaValue(declaration, value),
+        }))
         .filter((item): item is { value: string; label: string } => typeof item.value === "string")
     : [];
   if (enumOptions.length) {

@@ -179,9 +179,8 @@ vi.mock("@/modules/model_usage/public", async () => {
     },
     commercialModelRoles: (item: { roles?: string[] }) => item.roles ?? [],
     formatModelContextWindow: (value?: number) => value ? `${value} tokens` : "未声明",
-    formatReasoningEffort: (value?: { options?: string[] }) => (
-      value?.options?.join(" / ") ?? "未声明"
-    ),
+    formatReasoningEffort: metadata.formatReasoningEffort,
+    formatReasoningEffortOption: metadata.formatReasoningEffortOption,
     useClearByok: () => ({
       mutateAsync: modelUsageMockState.clearByok,
       isPending: false,
@@ -404,7 +403,7 @@ describe("SettingsDialog", () => {
         parameterSchema: {
           properties: {
             reasoning_effort: {
-              enum: ["low", "medium", "xhigh"],
+              enum: ["none", "low", "medium", "high"],
               default: "low",
             },
           },
@@ -432,11 +431,16 @@ describe("SettingsDialog", () => {
     });
     expect(priority).toHaveValue(37);
     expect(screen.getByText(
-      "上下文 32768 tokens · 思考 low / medium / xhigh · 参数 1 项",
+      "上下文 32768 tokens · 思考 关闭思考 / low / medium / high（默认 low） · 参数 1 项",
     ))
       .toBeInTheDocument();
     expect(priority.closest("[data-cloud-model-assignment]"))
       .toHaveClass("items-start");
+
+    fireEvent.click(screen.getByRole("button", { name: "模型参数" }));
+    fireEvent.click(await screen.findByRole("combobox", { name: "reasoning_effort" }));
+    expect(await screen.findByRole("option", { name: "关闭思考" }))
+      .toBeInTheDocument();
   });
 
   it("按图片和视频契约显示参数、模式、规格与时长，而不是文本字段未声明", async () => {

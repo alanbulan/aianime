@@ -160,12 +160,16 @@ async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
         return None
 
     constants_module.parse_reasoning_effort = parse_reasoning_effort
-    constants_module.resolve_reasoning_config = lambda _config, _model: None
+    constants_module.resolve_reasoning_config = lambda *_args: pytest.fail(
+        "managed routes must not inherit a Hermes reasoning default"
+    )
 
     hermes_cli_module = ModuleType("hermes_cli")
     hermes_cli_module.__path__ = []
     config_module = ModuleType("hermes_cli.config")
-    config_module.load_config = lambda: {}
+    config_module.load_config = lambda: pytest.fail(
+        "managed routes must not read a Hermes reasoning default"
+    )
 
     for name, module in {
         "acp": acp_module,
@@ -213,6 +217,9 @@ async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
     acp_agent.rebuild_count = 0
     acp_agent.original_config_count = 0
 
+    await acp_agent.set_session_model("ai-anime-assistant-auto", "session-1")
+    assert state.agent.reasoning_config is None
+
     high_model = runtime._model_with_reasoning_effort(
         runtime._parse_assistant_route_model("ai-anime-assistant-auto"),
         "high",
@@ -236,7 +243,7 @@ async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
     assert state.agent.reasoning_config == {"enabled": False}
     assert state.agent._primary_runtime["reasoning_config"] == {"enabled": False}
     assert state.agent.context_compressor.model == state.model
-    assert acp_agent.session_manager.save_count == 2
+    assert acp_agent.session_manager.save_count == 3
     assert acp_agent.rebuild_count == 0
 
     await acp_agent.set_session_model("ordinary-model", "session-1")

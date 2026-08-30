@@ -11,6 +11,9 @@ from ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_sdk import (
     HermesSdkThread,
     _hermes_acp_command,
 )
+from ai_anime.modules.ai_assistant.infrastructure.hermes.model_route import (
+    decode_model_selection,
+)
 
 
 def test_source_entrypoint_uses_its_isolated_runtime_python(tmp_path: Path) -> None:
@@ -491,6 +494,50 @@ async def test_session_model_route_is_encoded_and_applied_through_acp(
 
     await thread.set_model_route(None, "none")
     assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reasoning_effort", [None, "high"])
+async def test_native_session_must_enter_managed_auto_route_before_reasoning_updates(
+    reasoning_effort: str | None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    thread._capture_model_route(
+        {"models": {"currentModelId": "native-provider-model"}}
+    )
+    calls: list[tuple[str, dict]] = []
+
+    async def fake_prepare() -> None:
+        thread.id = "session-1"
+
+    async def fake_send(method: str, params: dict) -> int:
+        calls.append((method, params))
+        return 1
+
+    async def fake_read_until_id(_target_id: int, _timeout: float):
+        return ({"jsonrpc": "2.0", "id": 1, "result": {}}, [])
+
+    monkeypatch.setattr(thread, "_prepare", fake_prepare)
+    monkeypatch.setattr(thread, "_send", fake_send)
+    monkeypatch.setattr(thread, "_read_until_id", fake_read_until_id)
+
+    selected = await thread.set_model_route(None, reasoning_effort)
+
+    assert selected == (None, reasoning_effort)
+    assert calls[0][0] == "session/set_model"
+    encoded = decode_model_selection(calls[0][1]["modelId"])
+    assert encoded is not None
+    assert encoded.selector is None
+    assert encoded.reasoning_effort == reasoning_effort
 
 
 def test_discovered_skill_command_is_expanded_before_acp_prompt(tmp_path: Path) -> None:

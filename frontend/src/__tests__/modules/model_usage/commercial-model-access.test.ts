@@ -65,7 +65,7 @@ describe("commercial model details", () => {
           },
           reasoning_effort: {
             type: "string",
-            enum: ["low", "medium", "xhigh"],
+            enum: ["none", "low", "medium", "high"],
             default: "low",
           },
         },
@@ -76,12 +76,12 @@ describe("commercial model details", () => {
       contextWindow: 32768,
       maxOutputTokens: 8192,
       reasoningEffort: {
-        options: ["low", "medium", "xhigh"],
+        options: ["none", "low", "medium", "high"],
         defaultValue: "low",
       },
     });
     expect(formatReasoningEffort(metadata.reasoningEffort)).toBe(
-      "low / medium / xhigh（默认 low）",
+      "关闭思考 / low / medium / high（默认 low）",
     );
   });
 
@@ -106,7 +106,7 @@ describe("commercial model details", () => {
         temperature: { type: "number", minimum: 0, maximum: 2, default: 1 },
         reasoning_effort: {
           type: "string",
-          enum: ["low", "medium", "high"],
+          enum: ["none", "low", "medium", "high"],
           default: "low",
         },
         include_reasoning: { type: "boolean", default: true },
@@ -492,6 +492,29 @@ describe("commercial model access status", () => {
     expect(BYOK_MODEL_ROLES).toEqual(expect.not.arrayContaining(["RERANK", "MODERATION"]));
     expect(BYOK_MODEL_ROLES).toContain("AUDIO_VOICE_CLONE");
     expect(BYOK_MODEL_ROLES).toContain("AUDIO_VOICE_DESIGN");
+  });
+
+  it("rejects runtime parameter overrides deeper than the desktop persistence contract", () => {
+    let parameterOverrides: Record<string, unknown> = { value: true };
+    for (let depth = 0; depth < 9; depth += 1) {
+      parameterOverrides = { nested: parameterOverrides };
+    }
+
+    expect(() => parseCommercialModelAccessStatus({
+      mode: "mixed",
+      allowsCustomModels: true,
+      gatewayOrigin: "http://127.0.0.1:5174",
+      cloudModelAssignments: [
+        {
+          modelId: "cloud-text",
+          role: "TEXT",
+          enabled: true,
+          runtimeOverrides: { parameterOverrides },
+        },
+      ],
+      byokConfigured: false,
+      byokProviders: [],
+    })).toThrow(/too deeply nested/);
   });
 });
 

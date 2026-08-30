@@ -29,11 +29,13 @@ export function createCommercialModelAccessQueries(
     { catalog: CommercialModelCatalog; updatedAt: number }
   >();
   const catalogRequests = new Map<string, Promise<CommercialModelCatalog>>();
+  let catalogCacheGeneration = 0;
 
   const normalizeOperation = (operation?: string) =>
     operation?.trim().toUpperCase() ?? "";
 
   function clearCommercialModelCatalogCache() {
+    catalogCacheGeneration += 1;
     catalogCache.clear();
     catalogRequests.clear();
   }
@@ -66,6 +68,7 @@ export function createCommercialModelAccessQueries(
     }
     const active = catalogRequests.get(key);
     if (active) return active;
+    const requestGeneration = catalogCacheGeneration;
     const request = gateway
       .fetchCatalog(
         normalizedOperation || undefined,
@@ -77,14 +80,18 @@ export function createCommercialModelAccessQueries(
           && catalog.catalogVersion === cached.catalog.catalogVersion
           ? cached.catalog
           : catalog;
-        cacheCatalog(normalizedOperation, source, resolved);
+        if (requestGeneration === catalogCacheGeneration) {
+          cacheCatalog(normalizedOperation, source, resolved);
+        }
         return resolved;
       });
     catalogRequests.set(key, request);
     try {
       return await request;
     } finally {
-      catalogRequests.delete(key);
+      if (catalogRequests.get(key) === request) {
+        catalogRequests.delete(key);
+      }
     }
   }
 

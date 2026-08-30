@@ -33,6 +33,13 @@ def _python_frozenset(path: Path, name: str) -> frozenset[str]:
     raise AssertionError(f"missing Python frozenset {name} in {path}")
 
 
+def _typescript_integer_constant(path: Path, name: str) -> int:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(rf"\bconst\s+{re.escape(name)}\s*=\s*(\d+)\s*;", source)
+    assert match is not None, f"missing TypeScript integer {name} in {path}"
+    return int(match.group(1))
+
+
 def test_model_roles_and_protocols_stay_aligned_across_runtimes() -> None:
     frontend = REPO_ROOT / "frontend" / "src" / "modules" / "model_usage" / "domain"
     frontend_contract = frontend / "commercial-model-access.ts"
@@ -64,6 +71,11 @@ def test_model_roles_and_protocols_stay_aligned_across_runtimes() -> None:
         frontend_contract,
         "BYOK_PROVIDER_PROTOCOLS",
     ) == _typescript_string_collection(desktop_contract, "BYOK_PROVIDER_PROTOCOLS")
+
+    depth_name = "MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH"
+    frontend_depth = _typescript_integer_constant(frontend_contract, depth_name)
+    desktop_depth = _typescript_integer_constant(desktop_contract, depth_name)
+    assert frontend_depth == desktop_depth == 8
 
 
 def test_video_core_parameter_names_stay_aligned_across_runtimes() -> None:

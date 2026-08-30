@@ -45,6 +45,24 @@ def test_model_protocol_error_message_has_one_shared_shape(
     assert model_protocol_error_message(payload) == expected
 
 
+@pytest.mark.parametrize(
+    ("payload", "fallback", "expected"),
+    [
+        ({"message": "provider rejected"}, "HTTP 400", "provider rejected"),
+        ({"detail": "invalid request"}, "HTTP 422", "invalid request"),
+        ({"fail_reason": "generation failed"}, "视频生成失败", "generation failed"),
+        ({}, "HTTP 500", "HTTP 500"),
+        (None, "transport failed", "transport failed"),
+    ],
+)
+def test_model_protocol_error_message_supports_error_context_fallbacks(
+    payload: object,
+    fallback: str,
+    expected: str,
+) -> None:
+    assert model_protocol_error_message(payload, fallback) == expected
+
+
 @pytest.mark.asyncio
 async def test_text_transport_uses_one_new_idempotency_key_per_operation() -> None:
     with respx.mock(assert_all_called=True) as router:

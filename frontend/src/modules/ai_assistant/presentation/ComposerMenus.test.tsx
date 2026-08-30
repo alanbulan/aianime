@@ -84,9 +84,10 @@ describe("ComposerModelMenu", () => {
       />,
     );
 
-    await user.click(screen.getByRole("menuitem", { name: "关闭" }));
+    await user.click(screen.getByRole("menuitem", { name: "关闭思考" }));
 
     expect(onSelectReasoningEffort).toHaveBeenCalledWith("none");
+    expect(screen.getByText(/思考 关闭思考 \/ low \/ high/u)).toBeInTheDocument();
   });
 });
 

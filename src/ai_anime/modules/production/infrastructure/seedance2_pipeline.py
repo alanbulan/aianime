@@ -36,7 +36,6 @@ from ai_anime.shared.utils.voice_samples import (
 
 MAX_SEEDANCE2_REFERENCE_AUDIOS = 3
 MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS = REFERENCE_VOICE_MIN_SECONDS
-MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS = REFERENCE_VOICE_MAX_SECONDS
 MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS = REFERENCE_VOICE_MAX_SECONDS
 
 
@@ -160,7 +159,7 @@ def _validate_reference_audio_request(audio_paths: list[str]) -> None:
         validate_reference_media_durations(
             measured,
             min_seconds=MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS,
-            max_seconds=MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS,
+            max_seconds=None,
             total_min_seconds=None,
             total_max_seconds=MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS,
             media_label="audio",
@@ -168,8 +167,7 @@ def _validate_reference_audio_request(audio_paths: list[str]) -> None:
     except ValueError as exc:
         raise ValueError(
             f"Seedance2 参考音频时长不合规（{exc}）。"
-            f"每段需在 {MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS:g}-"
-            f"{MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS:g} 秒内，"
+            f"每段需至少 {MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS:g} 秒，"
             f"合计不超过 {MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS:g} 秒；"
             "为获得稳定效果，建议每段保留清晰单人声 3-5 秒"
         ) from exc

@@ -60,18 +60,26 @@ import {
 import {
   commercialModelRoleRoutes,
   catalogRouteSelector,
-  commercialModelRuntimeMetadata,
+  clearCommercialModelCatalogCache,
   loadCommercialModelAccessStatus,
   loadCommercialModelCatalog,
-  type ModelReasoningEffortMetadata,
+  type CommercialModelAccessStatus,
+  type CommercialModelCatalog,
 } from "@/modules/model_usage/public";
 import type { ModelEntry } from "@/modules/ai_assistant/domain/contracts";
 
-async function loadChatModels(): Promise<ModelEntry[]> {
-  const [status, catalog] = await Promise.all([
-    loadCommercialModelAccessStatus(),
-    loadCommercialModelCatalog("TEXT", "active").catch(() => null),
-  ]);
+export async function loadChatModels(): Promise<ModelEntry[]> {
+  clearCommercialModelCatalogCache();
+  const catalog = await loadCommercialModelCatalog("TEXT", "active")
+    .catch(() => null);
+  const status = await loadCommercialModelAccessStatus();
+  return buildChatModelEntries(status, catalog);
+}
+
+export function buildChatModelEntries(
+  status: CommercialModelAccessStatus,
+  catalog: CommercialModelCatalog | null,
+): ModelEntry[] {
   const catalogItems = catalog?.items ?? [];
   const catalogByRoute = new Map(
     catalogItems.flatMap((item) => {
@@ -79,26 +87,10 @@ async function loadChatModels(): Promise<ModelEntry[]> {
       return selector ? [[selector, item] as const] : [];
     }),
   );
-  const catalogByCode = new Map(catalogItems.flatMap((item) => [
-    [item.code, item] as const,
-    [String(item.id), item] as const,
-  ]));
   const routes = commercialModelRoleRoutes(status, "TEXT");
   const automaticRoute = routes[0];
   const entryForRoute = (route: (typeof routes)[number]): ModelEntry => {
-    const item = catalogByRoute.get(route.selector)
-      ?? catalogByCode.get(route.modelId);
-    const metadata = item ? commercialModelRuntimeMetadata(item) : {};
-    const contextWindow = route.contextWindow ?? metadata.contextWindow;
-    const maxOutputTokens = route.maxOutputTokens ?? metadata.maxOutputTokens;
-    const reasoningEffort: ModelReasoningEffortMetadata | undefined = route.reasoningEfforts?.length
-      ? {
-          options: route.reasoningEfforts,
-          ...(route.defaultReasoningEffort
-            ? { defaultValue: route.defaultReasoningEffort }
-            : {}),
-        }
-      : metadata.reasoningEffort;
+    const item = catalogByRoute.get(route.selector);
     return {
       id: route.selector,
       label: item?.displayName ?? route.modelId,
@@ -106,18 +98,17 @@ async function loadChatModels(): Promise<ModelEntry[]> {
       modelId: route.modelId,
       providerLabel: route.providerName,
       source: route.source,
-      ...(contextWindow === undefined
+      ...(route.contextWindow === undefined
         ? {}
-        : { contextWindow }),
-      ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
-      ...(reasoningEffort
+        : { contextWindow: route.contextWindow }),
+      ...(route.maxOutputTokens === undefined
+        ? {}
+        : { maxOutputTokens: route.maxOutputTokens }),
+      ...(route.reasoningEfforts?.length
         ? {
-            reasoningEfforts: reasoningEffort.options,
-            ...(reasoningEffort.defaultValue
-              ? { defaultReasoningEffort: reasoningEffort.defaultValue }
-              : {}),
-            ...(reasoningEffort.description
-              ? { reasoningEffortDescription: reasoningEffort.description }
+            reasoningEfforts: route.reasoningEfforts,
+            ...(route.defaultReasoningEffort
+              ? { defaultReasoningEffort: route.defaultReasoningEffort }
               : {}),
           }
         : {}),

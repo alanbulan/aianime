@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlencode, urlparse
 
 from ai_anime.shared.utils.path_resolver import PathResolver
+from ai_anime.shared.utils.project_paths import ProjectPaths
 
 from .paths import (
     actor_state_registry_path,
@@ -38,9 +39,7 @@ def _director_viewer_url(path: str) -> str:
 
 
 def _db_path_for(user: str, project: str) -> Path:
-    from ai_anime.shared.runtime_paths import STATE_DIR
-
-    return Path(STATE_DIR).resolve() / user / project / "data.db"
+    return ProjectPaths(user, project).data_db.resolve()
 
 
 def _scene_beat_numbers(user: str, project: str, episode: int, scene_id: str) -> list[int]:

@@ -106,14 +106,12 @@ def _model_with_reasoning_effort(route: _AssistantRouteModel, effort: str) -> st
 
 
 def _reasoning_config_for_model(route: _AssistantRouteModel) -> dict[str, Any] | None:
-    from hermes_constants import parse_reasoning_effort, resolve_reasoning_config
+    if route.reasoning_effort is None:
+        return None
 
-    if route.reasoning_effort is not None:
-        return parse_reasoning_effort(route.reasoning_effort)
+    from hermes_constants import parse_reasoning_effort
 
-    from hermes_cli.config import load_config
-
-    return resolve_reasoning_config(load_config() or {}, route.base_model_id)
+    return parse_reasoning_effort(route.reasoning_effort)
 
 
 def _canonical_reasoning_effort(

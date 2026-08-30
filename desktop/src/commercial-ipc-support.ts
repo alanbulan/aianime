@@ -663,9 +663,11 @@ export function updateExplicitCloudModelAssignments(
 
 export function mergeModelCatalogs(
   cloud: ReturnType<typeof projectCommercialModelCatalog> | null,
-  byok: Awaited<ReturnType<typeof fetchByokModelCatalog>>,
+  byok?: Awaited<ReturnType<typeof fetchByokModelCatalog>>,
 ): ReturnType<typeof projectCommercialModelCatalog> {
-  if (!cloud) return byok;
+  if (!cloud) {
+    return byok ?? { catalogVersion: "active-empty", items: [] };
+  }
   const items = cloud.items.map((item) => ({
     ...item,
     capabilityJson: withRouteSelector(
@@ -674,11 +676,13 @@ export function mergeModelCatalogs(
     ),
   }));
   const seen = new Set(items.map((item) => String(item.id)));
-  for (const item of byok.items) {
+  for (const item of byok?.items ?? []) {
     if (!seen.has(String(item.id))) items.push(item);
   }
   return {
-    catalogVersion: `${cloud.catalogVersion}+${byok.catalogVersion}`,
+    catalogVersion: byok
+      ? `${cloud.catalogVersion}+${byok.catalogVersion}`
+      : cloud.catalogVersion,
     items,
   };
 }

@@ -80,10 +80,12 @@ export function registerCommercialModelHandlers(
       bootstrap.models,
       query.modelOperation ?? "TEXT",
     );
-    if (authorizationAllowsByok(context.currentAuthorization)) {
+    if (bootstrap.models) {
       bootstrap.models = mergeModelCatalogs(
         bootstrap.models,
-        await fetchByokModelCatalog(access, query.modelOperation),
+        authorizationAllowsByok(context.currentAuthorization)
+          ? await fetchByokModelCatalog(access, query.modelOperation)
+          : undefined,
       );
     }
     await context.synchronizeModelAccess();
@@ -108,13 +110,18 @@ export function registerCommercialModelHandlers(
       query.operation,
     );
     await context.synchronizeModelAccess();
-    if (source === "cloud" || !authorizationAllowsByok(authorization)) {
+    if (source === "cloud") {
       return cloudCatalog;
     }
-    const access = await context.loadModelAccessForRouting();
+    const byokCatalog = authorizationAllowsByok(authorization)
+      ? await fetchByokModelCatalog(
+          await context.loadModelAccessForRouting(),
+          query.operation,
+        )
+      : undefined;
     return mergeModelCatalogs(
       cloudCatalog,
-      await fetchByokModelCatalog(access, query.operation),
+      byokCatalog,
     );
   });
   context.handle(channels.modelDetails, async (input) => {

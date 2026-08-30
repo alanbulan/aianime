@@ -24,7 +24,10 @@ import aiohttp
 
 from ai_anime.modules.model_usage.public import (
     is_insufficient_credits_error,
+    model_protocol_error_message,
+    record_video_request,
     runtime_model_capability,
+    update_video_request_status,
 )
 from ai_anime.modules.production.domain.video_model import (
     SEEDANCE2_DEFAULT_MIN_DURATION,
@@ -34,10 +37,6 @@ from ai_anime.modules.production.domain.video_model import (
 )
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
 from ai_anime.modules.task_execution.public import run_project_subprocess
-from ai_anime.modules.model_usage.public import (
-    record_video_request,
-    update_video_request_status,
-)
 
 COMMERCIAL_VIDEO_HTTP_TIMEOUT_SECONDS = 1800.0
 COMMERCIAL_VIDEO_DOWNLOAD_ATTEMPTS = 3
@@ -271,22 +270,6 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         return ""
 
     @staticmethod
-    def _error_message(payload: object, fallback: str) -> str:
-        if isinstance(payload, dict):
-            error = payload.get("error")
-            if isinstance(error, dict):
-                message = error.get("message")
-                if message:
-                    return str(message)
-            elif error:
-                return str(error)
-            for key in ("message", "detail", "fail_reason"):
-                value = payload.get(key)
-                if value:
-                    return str(value)
-        return fallback
-
-    @staticmethod
     def _size(aspect_ratio: str, resolution: str) -> str:
         return video_output_size(aspect_ratio, resolution)
 
@@ -489,7 +472,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                         data = {}
                     request_id = self._request_id(response.headers, data)
                     if not 200 <= response.status < 300:
-                        message = self._error_message(
+                        message = model_protocol_error_message(
                             data,
                             text[:500] or f"HTTP {response.status}",
                         )
@@ -505,7 +488,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                             request_id=request_id,
                         )
                     protocol_error = (
-                        self._error_message(data, "") if data.get("error") else ""
+                        model_protocol_error_message(data) if data.get("error") else ""
                     )
                     if protocol_error:
                         raise CommercialVideoError(
@@ -583,7 +566,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                             except json.JSONDecodeError:
                                 payload = {}
                             raise CommercialVideoError(
-                                self._error_message(
+                                model_protocol_error_message(
                                     payload,
                                     text[:500] or f"HTTP {response.status}",
                                 ),
@@ -926,7 +909,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                     )
 
                 if status in _VIDEO_FAILURE_STATUSES:
-                    message = self._error_message(task, "视频生成失败")
+                    message = model_protocol_error_message(task, "视频生成失败")
                     if project_output_dir:
                         update_video_request_status(
                             project_output_dir=project_output_dir,

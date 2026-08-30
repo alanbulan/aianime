@@ -1325,6 +1325,14 @@ def test_sqlite_sync_migrations_and_protocol_errors_have_one_owner() -> None:
     ).read_text(encoding="utf-8")
     assert "run_sqlite_migrations" in verification_runner
     assert "def _run_sync_migrations(" not in verification_runner
+    legacy_gateway_migration = (
+        PACKAGE_ROOT
+        / "migrations"
+        / "model_usage"
+        / "legacy_gateway_secrets.py"
+    ).read_text(encoding="utf-8")
+    assert "run_sqlite_migrations" in legacy_gateway_migration
+    assert "CREATE TABLE IF NOT EXISTS schema_migrations" not in legacy_gateway_migration
 
     sources = {
         path: path.read_text(encoding="utf-8")
@@ -1347,3 +1355,45 @@ def test_sqlite_sync_migrations_and_protocol_errors_have_one_owner() -> None:
         "def _newapi_protocol_error_message(" not in source
         for source in sources.values()
     )
+    video_generator = (
+        PACKAGE_ROOT
+        / "modules"
+        / "production"
+        / "infrastructure"
+        / "media_generation"
+        / "video_generator.py"
+    ).read_text(encoding="utf-8")
+    assert "model_protocol_error_message" in video_generator
+    assert "def _error_message(payload: object, fallback: str)" not in video_generator
+
+
+def test_project_database_paths_use_the_shared_project_paths_owner() -> None:
+    task_state = (
+        PACKAGE_ROOT
+        / "modules"
+        / "task_execution"
+        / "infrastructure"
+        / "task_state.py"
+    ).read_text(encoding="utf-8")
+    director_world = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "director_world"
+        / "service.py"
+    ).read_text(encoding="utf-8")
+    sketch_edit_tasks = (
+        PACKAGE_ROOT
+        / "modules"
+        / "verification"
+        / "infrastructure"
+        / "sketch_edit_tasks.py"
+    ).read_text(encoding="utf-8")
+
+    assert "paths.data_db.resolve()" in task_state
+    assert 'Path(STATE_DIR) / username / project / "data.db"' not in task_state
+    assert "ProjectPaths(user, project).data_db.resolve()" in director_world
+    assert 'Path(STATE_DIR).resolve() / user / project / "data.db"' not in director_world
+    assert "resolve_project_data_db_path(project_dir)" in sketch_edit_tasks
+    assert 'repo_root / "state" / user / project / "data.db"' not in sketch_edit_tasks

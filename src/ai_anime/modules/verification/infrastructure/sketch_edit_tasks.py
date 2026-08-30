@@ -9,6 +9,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from ai_anime.shared.utils.project_paths import resolve_project_data_db_path
+
 ProgressCallback = Callable[[float, str], None]
 LogCallback = Callable[[str], None]
 SELECT_RESULT_JSONL_NAME = "select_result.jsonl"
@@ -49,24 +51,7 @@ def load_script_payload(project_dir: Path, episode_num: int) -> dict[str, Any]:
 
 
 def _project_sqlite_path(project_dir: Path) -> Path:
-    from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
-
-    resolved_project_dir = Path(project_dir).resolve()
-    path_parts = resolved_project_dir.parts
-    if "output" in path_parts:
-        output_index = path_parts.index("output")
-        if len(path_parts) >= output_index + 3:
-            repo_root = Path(*path_parts[:output_index])
-            user = path_parts[output_index + 1]
-            project = path_parts[output_index + 2]
-            return repo_root / "state" / user / project / "data.db"
-    try:
-        relative_project = resolved_project_dir.relative_to(Path(OUTPUT_DIR).resolve())
-    except ValueError:
-        raise FileNotFoundError(f"Project dir is not under OUTPUT_DIR: {resolved_project_dir}")
-    if len(relative_project.parts) < 2:
-        raise FileNotFoundError(f"Cannot resolve project state db from: {resolved_project_dir}")
-    return Path(STATE_DIR).resolve().joinpath(*relative_project.parts) / "data.db"
+    return resolve_project_data_db_path(project_dir)
 
 
 def _load_sqlite_script_payload(project_dir: Path, episode_num: int) -> dict[str, Any] | None:

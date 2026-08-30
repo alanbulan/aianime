@@ -20,12 +20,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { ModelEntry } from "@/modules/ai_assistant/domain/contracts";
-import { formatModelContextWindow } from "@/modules/model_usage/public";
+import {
+  formatModelContextWindow,
+  formatReasoningEffortOption,
+} from "@/modules/model_usage/public";
 import { cn } from "@/lib/utils";
-
-function reasoningEffortLabel(effort: string): string {
-  return effort === "none" ? "关闭" : effort;
-}
 
 export function ComposerModelMenu({
   activeModel,
@@ -66,11 +65,7 @@ export function ComposerModelMenu({
       : "自动"
     : selectedModel?.label || activeModelId;
   const compactSelectionLabel = selectedReasoningEffort
-    ? `${compactModelLabel} · ${
-        selectedReasoningEffort === "none"
-          ? "关闭思考"
-          : selectedReasoningEffort
-      }`
+    ? `${compactModelLabel} · ${formatReasoningEffortOption(selectedReasoningEffort)}`
     : compactModelLabel;
   const modelRouteTooltip = automaticRouting
     ? preferredAutomaticModel
@@ -151,7 +146,7 @@ export function ComposerModelMenu({
                       ? ` · 输出 ${formatModelContextWindow(model.maxOutputTokens)}`
                       : ""}
                     {model.reasoningEfforts?.length
-                      ? ` · 思考 ${model.reasoningEfforts.join(" / ")}`
+                      ? ` · 思考 ${model.reasoningEfforts.map(formatReasoningEffortOption).join(" / ")}`
                       : " · 思考未声明"}
                   </span>
                 </span>
@@ -179,7 +174,7 @@ export function ComposerModelMenu({
                 <span>思考力度</span>
                 {selectedModel?.defaultReasoningEffort ? (
                   <span className="ml-auto font-normal text-muted-foreground">
-                    默认 {selectedModel.defaultReasoningEffort}
+                    默认 {formatReasoningEffortOption(selectedModel.defaultReasoningEffort)}
                   </span>
                 ) : null}
               </DropdownMenuLabel>
@@ -190,7 +185,7 @@ export function ComposerModelMenu({
                   className="min-h-8 rounded-lg px-2 py-1 text-xs"
                   onClick={() => onSelectReasoningEffort(effort)}
                 >
-                  <span className="flex-1">{reasoningEffortLabel(effort)}</span>
+                  <span className="flex-1">{formatReasoningEffortOption(effort)}</span>
                   <Check
                     className={cn(
                       "size-3.5",

@@ -318,7 +318,7 @@ describe("SuperChat Composer view", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("renders cloud and BYOK runtime metadata and preserves xhigh exactly", () => {
+  it("renders dynamic cloud and BYOK reasoning options without normalizing values", () => {
     const onSwitchReasoningEffort = vi.fn(() => true);
     render(<ChatComposer {...props({
       activeModel: "cloud:qwen38",
@@ -331,7 +331,7 @@ describe("SuperChat Composer view", () => {
           providerLabel: "云端",
           source: "cloud",
           contextWindow: 32768,
-          reasoningEfforts: ["low", "medium", "xhigh"],
+          reasoningEfforts: ["none", "low", "medium", "high"],
           defaultReasoningEffort: "low",
         },
         {
@@ -351,15 +351,15 @@ describe("SuperChat Composer view", () => {
     fireEvent.click(trigger);
 
     expect(screen.getByText(
-      "上下文 32,768 tokens · 思考 low / medium / xhigh",
+      "上下文 32,768 tokens · 思考 关闭思考 / low / medium / high",
     )).toBeInTheDocument();
     expect(screen.getByText(
       "上下文 131,072 tokens · 思考 medium / xhigh",
     )).toBeInTheDocument();
     expect(screen.getByText("默认 low")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("menuitem", { name: /^xhigh$/ }));
-    expect(onSwitchReasoningEffort).toHaveBeenCalledWith("xhigh");
+    fireEvent.click(screen.getByRole("menuitem", { name: "关闭思考" }));
+    expect(onSwitchReasoningEffort).toHaveBeenCalledWith("none");
   });
 
   it("closes a composer-opened model picker without returning to slash commands", () => {
