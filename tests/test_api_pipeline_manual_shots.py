@@ -110,12 +110,12 @@ async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, t
 
 
 def test_pipeline_script_status_accepts_current_sqlite_beat_fields():
-    from ai_anime.api.routes.task_execution.pipeline import _beat_has_script_content
+    from ai_anime.modules.task_execution.public import beat_has_script_content
 
-    assert _beat_has_script_content({"narration": "旁白", "visual_description": ""}) is True
-    assert _beat_has_script_content({"narration": "", "visual_description": "黑屏标题"}) is True
-    assert _beat_has_script_content({"narration_segment": "旧字段"}) is True
-    assert _beat_has_script_content({"narration": "", "visual_description": ""}) is False
+    assert beat_has_script_content({"narration": "旁白", "visual_description": ""}) is True
+    assert beat_has_script_content({"narration": "", "visual_description": "黑屏标题"}) is True
+    assert beat_has_script_content({"narration_segment": "旧字段"}) is True
+    assert beat_has_script_content({"narration": "", "visual_description": ""}) is False
 
 
 def test_pipeline_requires_every_beat_sketch(tmp_path):

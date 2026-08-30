@@ -844,7 +844,7 @@ def test_chat_websocket_transport_stays_in_api_layer() -> None:
         "async def stream_chat_turn(",
         "send_lock = asyncio.Lock()",
         "heartbeat_task = asyncio.create_task(",
-        "await websocket.send_json(event)",
+        "delivery_open = await send_json_best_effort(",
     ):
         assert owned_operation in transport_source
     for removed_route_implementation in (

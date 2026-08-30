@@ -263,7 +263,18 @@ export class CommercialModelProxy {
       );
       const assistantSelector = explicitSelector ?? assistantSelection?.selector ?? null;
       const role = explicitRole ?? inferModelRole(path);
-      const routes = this.routesForRequest(path, role, assistantSelector);
+      const requestedRoutes = this.routesForRequest(path, role, assistantSelector);
+      const reasoningEffort = assistantSelection?.reasoningEffort ?? null;
+      const routes = reasoningEffort
+        ? requestedRoutes.filter((route) =>
+            route.reasoningEfforts?.includes(reasoningEffort)
+          )
+        : requestedRoutes;
+      if (routes.length === 0) {
+        throw new CommercialApiError("当前模型不支持所选思考力度", {
+          status: 422,
+        });
+      }
       const abortController = new AbortController();
       const abortUpstream = () => abortController.abort();
       request.once("aborted", abortUpstream);
@@ -280,7 +291,7 @@ export class CommercialModelProxy {
         ...(rawBody === undefined ? {} : { rawBody }),
         routes,
         requestHeaders,
-        reasoningEffort: assistantSelection?.reasoningEffort ?? null,
+        reasoningEffort,
         signal: requestSignal,
       });
       assertModelResponseContract(path, upstream.response);
@@ -386,6 +397,7 @@ export class CommercialModelProxy {
                 (item) => item.modelId === route.modelId,
               ),
             ),
+            route.parameterOverrides,
           );
           const upstream =
             route.source === "cloud"

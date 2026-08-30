@@ -28,6 +28,7 @@ from ai_anime.modules.model_usage.domain import (
     find_insufficient_credits_error,
     find_insufficient_credits_stop,
     insufficient_credits_payload,
+    image_model_supports_quality,
     is_insufficient_credits_error,
     iter_exception_chain,
 )
@@ -108,6 +109,9 @@ from ai_anime.modules.model_usage.infrastructure.model_runtime import (
 from ai_anime.modules.model_usage.infrastructure.model_text_transport import (
     ModelTextTransportError,
     request_model_chat_content,
+)
+from ai_anime.modules.model_usage.infrastructure.protocol_errors import (
+    model_protocol_error_message,
 )
 from ai_anime.modules.model_usage.infrastructure.video_request_usage import (
     count_video_beat_attempts,
@@ -244,12 +248,14 @@ __all__ = [
     "infer_episode_from_path",
     "infer_project_output_dir",
     "install_provider_instrumentation",
+    "image_model_supports_quality",
     "insufficient_credits_payload",
     "is_insufficient_credits_error",
     "iter_exception_chain",
     "is_byok_allowed",
     "load_model_access_from_stdin",
     "model_access_configured",
+    "model_protocol_error_message",
     "record_audio_generation_attempt",
     "record_image_request",
     "record_video_request",

@@ -697,7 +697,11 @@ def test_project_sqlite_uow_composes_owned_repositories() -> None:
     graph_state = (
         PACKAGE_ROOT / "shared" / "infrastructure" / "project_sqlite_graph_state.py"
     )
+    knowledge_store = (
+        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "store.py"
+    )
     entry_source = entry.read_text(encoding="utf-8")
+    knowledge_source = knowledge_store.read_text(encoding="utf-8")
 
     assert len(entry_source.splitlines()) < 50
     assert "class SQLiteStore(" in entry_source
@@ -723,6 +727,9 @@ def test_project_sqlite_uow_composes_owned_repositories() -> None:
     assert "class ProjectSQLiteGraphStateMixin:" in graph_state.read_text(
         encoding="utf-8"
     )
+    assert "class CogneeStore(ProjectSQLiteGraphStateMixin):" in knowledge_source
+    assert "def resolve_name(" not in knowledge_source
+    assert "def get_cached_prop(" not in knowledge_source
 
 
 def test_task_restart_recovery_rules_are_owned_by_task_execution() -> None:
@@ -1310,3 +1317,33 @@ def test_cognee_litellm_transport_owns_operation_idempotency() -> None:
     assert "_install_litellm_operation_idempotency()" in source
     assert 'for operation_name in ("acompletion", "aembedding")' in source
     assert 'extra_headers["Idempotency-Key"] = str(uuid.uuid4())' in source
+
+
+def test_sqlite_sync_migrations_and_protocol_errors_have_one_owner() -> None:
+    verification_runner = (
+        PACKAGE_ROOT / "migrations" / "verification" / "runner.py"
+    ).read_text(encoding="utf-8")
+    assert "run_sqlite_migrations" in verification_runner
+    assert "def _run_sync_migrations(" not in verification_runner
+
+    sources = {
+        path: path.read_text(encoding="utf-8")
+        for path in _python_files(PACKAGE_ROOT)
+    }
+    owners = [
+        path
+        for path, source in sources.items()
+        if "def model_protocol_error_message(" in source
+    ]
+    assert owners == [
+        PACKAGE_ROOT
+        / "modules"
+        / "model_usage"
+        / "infrastructure"
+        / "protocol_errors.py"
+    ]
+    assert all("def _protocol_error_message(" not in source for source in sources.values())
+    assert all(
+        "def _newapi_protocol_error_message(" not in source
+        for source in sources.values()
+    )

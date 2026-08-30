@@ -9,6 +9,7 @@ from httpx import Response
 from ai_anime.modules.model_usage.public import configure_model_access
 from ai_anime.modules.model_usage.public import (
     ModelTextTransportError,
+    model_protocol_error_message,
     request_model_chat_content,
 )
 
@@ -24,6 +25,24 @@ def _reset_model_access(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     yield
     configure_model_access(allows_custom_models=False, mode="mixed")
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        ({"error": {"message": "provider rejected"}}, "provider rejected"),
+        ({"error": {"code": "provider_failed"}}, "provider_failed"),
+        ({"error": "plain failure"}, "plain failure"),
+        ({"status": "failed", "message": "task failed"}, "task failed"),
+        ({"status": "ok"}, ""),
+        (None, ""),
+    ],
+)
+def test_model_protocol_error_message_has_one_shared_shape(
+    payload: object,
+    expected: str,
+) -> None:
+    assert model_protocol_error_message(payload) == expected
 
 
 @pytest.mark.asyncio

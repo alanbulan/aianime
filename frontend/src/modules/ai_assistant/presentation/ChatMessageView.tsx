@@ -73,7 +73,7 @@ function PlainMessageText({ text }: { text: string }) {
   if (paragraphs.length === 0) return null;
 
   return (
-    <div className="space-y-2 break-words leading-relaxed">
+    <div className="min-w-0 space-y-2 whitespace-normal break-words [overflow-wrap:anywhere] leading-relaxed">
       {paragraphs.map((paragraph, index) => (
         <p key={`${index}-${paragraph.slice(0, 12)}`} className="whitespace-pre-wrap">
           {paragraph}
@@ -88,44 +88,57 @@ function MarkdownMessageText({ text }: { text: string }) {
   if (!normalized) return null;
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkBreaks]}
-      components={{
-        h1: ({ children }) => <h1 className="mb-2 mt-3 text-lg font-semibold leading-7 first:mt-0">{children}</h1>,
-        h2: ({ children }) => <h2 className="mb-2 mt-3 text-base font-semibold leading-6 first:mt-0">{children}</h2>,
-        h3: ({ children }) => <h3 className="mb-1.5 mt-2.5 text-sm font-semibold leading-6 first:mt-0">{children}</h3>,
-        p: ({ children }) => <p className="my-1.5 first:mt-0 last:mb-0">{children}</p>,
-        ul: ({ children }) => <ul className="my-1.5 list-disc space-y-1 pl-5">{children}</ul>,
-        ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-1 pl-5">{children}</ol>,
-        li: ({ children }) => <li className="pl-0.5">{children}</li>,
-        strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
-        em: ({ children }) => <em className="italic">{children}</em>,
-        a: ({ children, href }) => (
-          <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary underline underline-offset-2"
-          >
-            {children}
-          </a>
-        ),
-        code: ({ children }) => (
-          <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.92em]">{children}</code>
-        ),
-        pre: ({ children }) => (
-          <pre className="my-2 max-w-full overflow-x-auto rounded-md border border-border bg-muted p-2 text-xs leading-5">
-            {children}
-          </pre>
-        ),
-        hr: () => <hr className="my-4 border-0 border-t border-border" />,
-        blockquote: ({ children }) => (
-          <blockquote className="my-2 border-l-2 border-border pl-3 text-muted-foreground">{children}</blockquote>
-        ),
-      }}
+    <div
+      data-testid="message-markdown"
+      className="min-w-0 whitespace-normal break-words [overflow-wrap:anywhere]"
     >
-      {normalized}
-    </ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkBreaks]}
+        components={{
+          h1: ({ children }) => <h1 className="mb-2 mt-3 text-lg font-semibold leading-7 first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-2 mt-3 text-base font-semibold leading-6 first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-1.5 mt-2.5 text-sm font-semibold leading-6 first:mt-0">{children}</h3>,
+          p: ({ children }) => <p className="my-1.5 whitespace-normal break-words [overflow-wrap:anywhere] first:mt-0 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="my-1.5 list-disc space-y-1 pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-1 pl-5">{children}</ol>,
+          li: ({ children }) => <li className="pl-0.5">{children}</li>,
+          strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          a: ({ children, href }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-primary underline underline-offset-2"
+            >
+              {children}
+            </a>
+          ),
+          code: ({ children }) => (
+            <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.92em]">{children}</code>
+          ),
+          pre: ({ children }) => (
+            <pre className="my-2 max-w-full overflow-x-auto rounded-md border border-border bg-muted p-2 text-xs leading-5">
+              {children}
+            </pre>
+          ),
+          hr: () => <hr className="my-4 border-0 border-t border-border" />,
+          blockquote: ({ children }) => (
+            <blockquote className="my-2 border-l-2 border-border pl-3 text-muted-foreground">{children}</blockquote>
+          ),
+          table: ({ children }) => (
+            <div
+              data-testid="message-markdown-table-scroll"
+              className="my-2 max-w-full overflow-x-auto"
+            >
+              <table className="min-w-full border-collapse text-left">{children}</table>
+            </div>
+          ),
+        }}
+      >
+        {normalized}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -676,7 +689,7 @@ export const MessageBubble = memo(function MessageBubble({
             "group relative text-sm leading-6 shadow-none",
             blocks.length > 0 && !isUser && !isTool
               ? "w-full min-w-0 overflow-visible"
-              : "w-fit overflow-hidden",
+              : "w-fit min-w-0 max-w-full overflow-visible",
             isTool
               ? "max-w-[86%] rounded-[14px] border border-warning/20 bg-warning/10 px-4 pb-3 pt-2 text-card-foreground"
               : isUser

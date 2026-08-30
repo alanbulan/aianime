@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 import re
-import sqlite3
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from ai_anime.migrations.model_usage import (
-    MIGRATION_VERSION,
-    run_model_usage_migrations,
-)
-from ai_anime.migrations.sqlite import ensure_sqlite_schema
-from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
+from ai_anime.modules.model_usage.infrastructure.request_usage_db import (
+    get_request_usage_db_path,
+    request_usage_connection as _connect,
+)
 
 
 _NON_BILLABLE_FAILURE_PATTERNS = (
@@ -24,22 +20,7 @@ _NON_BILLABLE_FAILURE_PATTERNS = (
 
 
 def get_image_request_usage_db_path(project_output_dir: str | Path) -> Path:
-    project_output_dir = Path(project_output_dir).resolve()
-    output_root = Path(OUTPUT_DIR).resolve()
-    state_root = Path(STATE_DIR).resolve()
-    try:
-        rel = project_output_dir.relative_to(output_root)
-    except ValueError:
-        return (project_output_dir / "data.db").resolve()
-    if len(rel.parts) >= 2:
-        # Always anchor on user/project, even if a subdirectory was passed,
-        # so image/video usage never gets split across multiple db files.
-        from ai_anime.shared.utils.project_paths import ProjectPaths
-
-        user, project = rel.parts[0], rel.parts[1]
-        ProjectPaths(user, project).bootstrap_from_legacy_output()
-        return (state_root / user / project / "data.db").resolve()
-    return (project_output_dir / "data.db").resolve()
+    return get_request_usage_db_path(project_output_dir)
 
 
 def infer_project_output_dir(path_like: str | Path | None) -> Path | None:
@@ -72,25 +53,6 @@ def infer_episode_from_path(path_like: str | Path | None) -> int | None:
     if match:
         return int(match.group(1))
     return None
-
-
-@contextmanager
-def _connect(project_output_dir: str | Path):
-    db_path = get_image_request_usage_db_path(project_output_dir)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    ensure_sqlite_schema(
-        db_path,
-        component="model_usage",
-        version=MIGRATION_VERSION,
-        initialize=run_model_usage_migrations,
-    )
-    conn = sqlite3.connect(db_path, timeout=10, check_same_thread=False)
-    configure_sqlite_connection(conn, set_journal_mode=False)
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def record_image_request(

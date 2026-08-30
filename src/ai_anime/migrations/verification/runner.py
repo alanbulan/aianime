@@ -7,6 +7,8 @@ from collections.abc import Awaitable, Callable
 
 import aiosqlite
 
+from ai_anime.migrations.sqlite import run_sqlite_migrations
+
 from .versions.v20260823_000_initial_registry import (
     VERSION as REGISTRY_VERSION,
     apply_async as apply_registry_async,
@@ -68,39 +70,6 @@ async def _run_async_migrations(
             raise
 
 
-def _run_sync_migrations(
-    conn: sqlite3.Connection,
-    migrations: tuple[SyncMigration, ...],
-) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS schema_migrations (
-            version TEXT PRIMARY KEY,
-            applied_at TEXT NOT NULL DEFAULT (datetime('now'))
-        )
-        """
-    )
-    conn.commit()
-    applied_versions = {
-        str(row[0])
-        for row in conn.execute("SELECT version FROM schema_migrations").fetchall()
-    }
-    for version, migrate in migrations:
-        if version in applied_versions:
-            continue
-        conn.execute("BEGIN IMMEDIATE")
-        try:
-            migrate(conn)
-            conn.execute(
-                "INSERT INTO schema_migrations(version) VALUES (?)",
-                (version,),
-            )
-            conn.commit()
-        except BaseException:
-            conn.rollback()
-            raise
-
-
 async def run_verification_registry_migrations(
     db: aiosqlite.Connection,
 ) -> None:
@@ -110,7 +79,7 @@ async def run_verification_registry_migrations(
 def run_verification_registry_migrations_sync(
     conn: sqlite3.Connection,
 ) -> None:
-    _run_sync_migrations(conn, REGISTRY_SYNC_MIGRATIONS)
+    run_sqlite_migrations(conn, REGISTRY_SYNC_MIGRATIONS)
 
 
 async def run_training_db_migrations(db: aiosqlite.Connection) -> None:
@@ -118,7 +87,7 @@ async def run_training_db_migrations(db: aiosqlite.Connection) -> None:
 
 
 def run_training_db_migrations_sync(conn: sqlite3.Connection) -> None:
-    _run_sync_migrations(conn, TRAINING_SYNC_MIGRATIONS)
+    run_sqlite_migrations(conn, TRAINING_SYNC_MIGRATIONS)
 
 
 __all__ = [

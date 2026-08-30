@@ -26,17 +26,7 @@ import type {
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
 import { CreditCostInline } from '@/components/credit-cost-inline';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
-
-function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
-  const normalized = String(apiModel ?? '').trim().toLowerCase();
-  return (
-    normalized === 'gpt-image-2'
-    || normalized === 'image-2'
-    || normalized === 'image-2-official'
-    || normalized.includes('gpt-image')
-  );
-}
+import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 export interface GridActionSubmitPayload {
   sourceNodeId: string;

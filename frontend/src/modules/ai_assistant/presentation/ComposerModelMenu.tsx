@@ -23,6 +23,10 @@ import type { ModelEntry } from "@/modules/ai_assistant/domain/contracts";
 import { formatModelContextWindow } from "@/modules/model_usage/public";
 import { cn } from "@/lib/utils";
 
+function reasoningEffortLabel(effort: string): string {
+  return effort === "none" ? "关闭" : effort;
+}
+
 export function ComposerModelMenu({
   activeModel,
   activeReasoningEffort,
@@ -48,6 +52,9 @@ export function ComposerModelMenu({
 }) {
   const activeModelId = activeModel ?? "auto";
   const selectedModel = models.find((model) => model.id === activeModelId);
+  const reasoningEfforts = selectedModel?.reasoningEfforts?.length
+    ? selectedModel.reasoningEfforts
+    : [];
   const preferredAutomaticModel = models.find((model) => model.source !== "auto");
   const automaticRouting = activeModelId === "auto";
   const selectedReasoningEffort = activeReasoningEffort
@@ -59,7 +66,11 @@ export function ComposerModelMenu({
       : "自动"
     : selectedModel?.label || activeModelId;
   const compactSelectionLabel = selectedReasoningEffort
-    ? `${compactModelLabel} · ${selectedReasoningEffort}`
+    ? `${compactModelLabel} · ${
+        selectedReasoningEffort === "none"
+          ? "关闭思考"
+          : selectedReasoningEffort
+      }`
     : compactModelLabel;
   const modelRouteTooltip = automaticRouting
     ? preferredAutomaticModel
@@ -159,27 +170,27 @@ export function ComposerModelMenu({
             );
           })
         )}
-        {selectedModel?.reasoningEfforts?.length ? (
+        {reasoningEfforts.length ? (
           <>
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-foreground">
                 <BrainCircuit className="size-3.5" />
                 <span>思考力度</span>
-                {selectedModel.defaultReasoningEffort ? (
+                {selectedModel?.defaultReasoningEffort ? (
                   <span className="ml-auto font-normal text-muted-foreground">
                     默认 {selectedModel.defaultReasoningEffort}
                   </span>
                 ) : null}
               </DropdownMenuLabel>
-              {selectedModel.reasoningEfforts.map((effort) => (
+              {reasoningEfforts.map((effort) => (
                 <DropdownMenuItem
                   key={effort}
                   disabled={busy || modelsLoading}
                   className="min-h-8 rounded-lg px-2 py-1 text-xs"
                   onClick={() => onSelectReasoningEffort(effort)}
                 >
-                  <span className="flex-1">{effort}</span>
+                  <span className="flex-1">{reasoningEffortLabel(effort)}</span>
                   <Check
                     className={cn(
                       "size-3.5",

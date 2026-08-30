@@ -32,7 +32,7 @@ const models: ModelEntry[] = [
 ];
 
 describe("ComposerModelMenu", () => {
-  it("forwards model and reasoning-effort selections", async () => {
+  it("forwards model and only declared reasoning-effort selections", async () => {
     const user = userEvent.setup();
     const onSelectModel = vi.fn();
     const onSelectReasoningEffort = vi.fn();
@@ -53,10 +53,40 @@ describe("ComposerModelMenu", () => {
     );
 
     await user.click(screen.getByRole("menuitem", { name: /自动/ }));
+    expect(screen.queryByRole("menuitem", { name: "关闭" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("menuitem", { name: "high" }));
 
     expect(onSelectModel).toHaveBeenCalledWith("auto");
     expect(onSelectReasoningEffort).toHaveBeenCalledWith("high");
+  });
+
+  it("offers disabled reasoning only when the model declares none", async () => {
+    const user = userEvent.setup();
+    const onSelectReasoningEffort = vi.fn();
+    const modelsWithDisabledReasoning = models.map((model) =>
+      model.id === "claude-sonnet"
+        ? { ...model, reasoningEfforts: ["none", "low", "high"] }
+        : model
+    );
+
+    render(
+      <ComposerModelMenu
+        activeModel="claude-sonnet"
+        activeReasoningEffort="low"
+        busy={false}
+        connected
+        models={modelsWithDisabledReasoning}
+        modelsLoading={false}
+        open
+        onOpenChange={vi.fn()}
+        onSelectModel={vi.fn()}
+        onSelectReasoningEffort={onSelectReasoningEffort}
+      />,
+    );
+
+    await user.click(screen.getByRole("menuitem", { name: "关闭" }));
+
+    expect(onSelectReasoningEffort).toHaveBeenCalledWith("none");
   });
 });
 

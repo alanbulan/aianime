@@ -37,7 +37,9 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
 )
 from ai_anime.modules.model_usage.public import (
     get_usage_meter,
+    image_model_supports_quality,
     is_insufficient_credits_error,
+    model_protocol_error_message,
 )
 from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
     PromptComponents as PromptComponents,
@@ -223,20 +225,6 @@ def _newapi_context_for_error(context: dict[str, object]) -> str:
     )
 
 
-def _newapi_protocol_error_message(payload: object) -> str:
-    if not isinstance(payload, dict):
-        return ""
-    error = payload.get("error")
-    if isinstance(error, dict):
-        return str(error.get("message") or error.get("code") or "model request failed")
-    if error:
-        return str(error)
-    status = str(payload.get("status") or "").strip().lower()
-    if status in {"failed", "error"}:
-        return str(payload.get("message") or "model request failed")
-    return ""
-
-
 def _newapi_image_multipart_files(
     reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]],
 ) -> list[tuple[str, tuple[str, bytes, str]]]:
@@ -350,16 +338,6 @@ def _newapi_resolution_from_image_size(image_size: str | None) -> str:
     normalized = normalize_image_size(str(image_size or "").strip())
     lower = normalized.lower()
     return lower if lower in {"1k", "2k", "4k"} else ""
-
-
-def _newapi_image_model_supports_quality(model: str | None) -> bool:
-    model_name = str(model or "").strip().lower()
-    return model_name in {
-        "lingshan-g2",
-        "gpt-image-2",
-        "image-2",
-        "image-2-official",
-    } or "gpt-image" in model_name
 
 
 def _image_credit_billing_params(
@@ -715,7 +693,7 @@ async def _call_newapi_image_api(
         "response_format": "b64_json",
         "extra_fields": extra_fields,
     }
-    if _newapi_image_model_supports_quality(clean_model):
+    if image_model_supports_quality(clean_model):
         quality = normalize_image_quality(
             str(image_config.get("quality") or ""),
             default="medium",
@@ -897,7 +875,7 @@ async def _call_newapi_image_api(
             )
             response_id = str(result.get("id") or "").strip()
             _record_trace(provider_request_id=provider_request_id, response_id=response_id)
-            protocol_error = _newapi_protocol_error_message(result)
+            protocol_error = model_protocol_error_message(result)
             if protocol_error:
                 await _refund(
                     reservation_id,

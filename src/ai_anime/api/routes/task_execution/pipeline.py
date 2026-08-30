@@ -9,6 +9,7 @@ from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import get_sqlite_store, resolve_project_scope
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.modules.task_execution.public import (
+    beat_has_script_content,
     effective_task_status,
     get_task_manager,
     parse_task_timestamp,
@@ -117,14 +118,6 @@ def _beat_has_seedance_prompt(beat: dict) -> bool:
 
     return bool(
         parse_seedance2_config(beat.get("seedance2_config_json")).final_prompt
-    )
-
-
-def _beat_has_script_content(beat: dict) -> bool:
-    return bool(
-        str(beat.get("narration_segment") or "").strip()
-        or str(beat.get("narration") or "").strip()
-        or str(beat.get("visual_description") or "").strip()
     )
 
 
@@ -238,7 +231,7 @@ async def pipeline_status(
                     has_identity_images = False
 
     beats = await store.get_beats_as_dicts(target_ep)
-    has_script = _all_or_empty([_beat_has_script_content(b) for b in beats])
+    has_script = _all_or_empty([beat_has_script_content(b) for b in beats])
 
     sketches_dir = project_dir / "sketches" / f"ep{target_ep:03d}"
     sketch_paths = [

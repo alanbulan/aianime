@@ -91,6 +91,26 @@ CONTENT_FILTER_MESSAGE = (
     "请把需求拆得更具体，避免一次性要求完成整集或包含敏感/违规描述；"
     "也可以先让我只列当前制作进度和下一步。"
 )
+
+
+def _hermes_acp_command(
+    cli_path: Path,
+    *,
+    windows: bool | None = None,
+) -> list[str]:
+    """Build the packaged binary or source-entrypoint Hermes command."""
+    if cli_path.name != "hermes_acp.py":
+        return [str(cli_path), "acp"]
+    is_windows = os.name == "nt" if windows is None else windows
+    python_path = (
+        cli_path.parent
+        / ".venv"
+        / ("Scripts" if is_windows else "bin")
+        / ("python.exe" if is_windows else "python")
+    )
+    return [str(python_path), str(cli_path), "acp"]
+
+
 _CONTEXT_CHUNK_ERROR_MARKERS = (
     "separator is found, but chunk is longer than limit",
 )
@@ -409,6 +429,7 @@ class HermesSdkThread:
         self._req_counter = 0
         self._closed = False
         self._initialized = False
+        self._session_ready = False
         self._tool_names_by_call_id: dict[str, str] = {}
         self._model_route_selector: str | None = None
         self._model_reasoning_effort: str | None = None
@@ -456,8 +477,22 @@ class HermesSdkThread:
     async def _spawn(self) -> None:
         """Launch the hermes acp subprocess inside our sandbox."""
         if self._proc is not None:
-            return
-        base_cmd = [str(self._cli_path), "acp"]
+            exit_code = getattr(self._proc, "returncode", None)
+            if exit_code is None:
+                return
+            self._proc = None
+            await self._stop_stderr_drain()
+            self._initialized = False
+            self._session_ready = False
+            self._req_counter = 0
+            self._tool_names_by_call_id.clear()
+            _log.warning(
+                "restarting exited Hermes worker for user=%s session=%s exit_code=%s",
+                self._username,
+                self.id,
+                exit_code,
+            )
+        base_cmd = _hermes_acp_command(self._cli_path)
         # Wrap with OS sandbox (codex-linux-sandbox on Linux; sandbox-exec on macOS).
         sandboxed = wrap_command(base_cmd, SandboxSpec(user=self._username, hermes_home=self._cwd))
         _log.info("spawning hermes acp for user=%s (sandboxed=%s)", self._username,
@@ -558,6 +593,7 @@ class HermesSdkThread:
             resp, _ = await self._read_until_id(req_id, SESSION_NEW_TIMEOUT)
             if resp and "error" not in resp and resp.get("result") is not None:
                 self._capture_model_route(resp.get("result"))
+                self._session_ready = True
                 return
             _log.warning("session/load failed, falling back to session/new: %s",
                          (resp.get("error") or "empty result") if resp else "timeout")
@@ -576,6 +612,7 @@ class HermesSdkThread:
         self.id = result.get("sessionId") or f"hermes-{uuid.uuid4().hex}"
         self._capture_model_route(result)
         self._is_new = False
+        self._session_ready = True
 
     def _capture_model_route(self, result: object) -> None:
         payload = result if isinstance(result, dict) else {}
@@ -606,19 +643,39 @@ class HermesSdkThread:
     ) -> tuple[str | None, str | None]:
         """Persist an exact route override on this ACP conversation only."""
         normalized = str(selector or "").strip() or None
+        normalized_effort = str(reasoning_effort or "").strip() or None
         model_id = (
-            encode_model_route(normalized, reasoning_effort)
+            encode_model_route(normalized, normalized_effort)
             if normalized is not None
-            else encode_automatic_model(reasoning_effort)
+            else encode_automatic_model(normalized_effort)
         )
         async with self._turn_lock:
             if self._closed:
                 raise RuntimeError("HermesSdkThread is closed")
             await self._prepare()
-            req_id = await self._send(
-                "session/set_model",
-                {"sessionId": self.id, "modelId": model_id},
+            if (
+                normalized == self._model_route_selector
+                and normalized_effort == self._model_reasoning_effort
+            ):
+                return self._model_route_selector, self._model_reasoning_effort
+            reasoning_only = (
+                normalized == self._model_route_selector
+                and normalized_effort is not None
             )
+            if reasoning_only:
+                req_id = await self._send(
+                    "session/set_config_option",
+                    {
+                        "sessionId": self.id,
+                        "configId": "reasoning_effort",
+                        "value": normalized_effort,
+                    },
+                )
+            else:
+                req_id = await self._send(
+                    "session/set_model",
+                    {"sessionId": self.id, "modelId": model_id},
+                )
             response, _ = await self._read_until_id(req_id, SESSION_NEW_TIMEOUT)
             if response is None:
                 raise RuntimeError("切换当前对话模型超时")
@@ -627,7 +684,7 @@ class HermesSdkThread:
                 detail = error.get("message") if isinstance(error, dict) else error
                 raise RuntimeError(f"切换当前对话模型失败：{detail}")
             self._model_route_selector = normalized
-            self._model_reasoning_effort = str(reasoning_effort or "").strip() or None
+            self._model_reasoning_effort = normalized_effort
             return self._model_route_selector, self._model_reasoning_effort
 
     async def _prepare(self) -> None:
@@ -641,7 +698,8 @@ class HermesSdkThread:
             if self._proc is None or self._proc.stdout is None:
                 raise RuntimeError("hermes subprocess failed to start")
             await self._initialize()
-            await self._ensure_session()
+            if not self._session_ready:
+                await self._ensure_session()
 
     async def warm(self) -> None:
         """Pre-pay the cold start (spawn + initialize + session) without a prompt.
@@ -1055,6 +1113,7 @@ class HermesSdkThread:
         self.id = ""
         self._is_new = True
         self._initialized = False
+        self._session_ready = False
         self._req_counter = 0
         self._tool_names_by_call_id.clear()
         _log.warning(

@@ -69,18 +69,16 @@ def test_requested_episode_expands_the_episode_planning_target() -> None:
 
 
 def test_explicit_beat_count_invalidates_a_stale_complete_script() -> None:
-    from ai_anime.modules.task_execution.infrastructure.runners.script_workflow import (
-        _script_beats_complete,
-    )
+    from ai_anime.modules.task_execution.public import script_beats_complete
 
     beats = [
         {"beat_number": number, "visual_description": f"shot {number}"}
         for number in range(1, 35)
     ]
 
-    assert _script_beats_complete(beats, None) is True
-    assert _script_beats_complete(beats, 34) is True
-    assert _script_beats_complete(beats, 12) is False
+    assert script_beats_complete(beats, None) is True
+    assert script_beats_complete(beats, 34) is True
+    assert script_beats_complete(beats, 12) is False
 
 
 @pytest.mark.asyncio

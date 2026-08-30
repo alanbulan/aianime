@@ -49,6 +49,10 @@ from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     TERMINAL_TASK_STATUSES,
     build_interrupted_inline_recovery_plan,
 )
+from ai_anime.modules.task_execution.domain.script_progress import (
+    beat_has_script_content,
+    script_beats_complete,
+)
 
 __all__ = [
     "CloudTaskKind",
@@ -71,6 +75,7 @@ __all__ = [
     "cancel_key",
     "cloud_task_kind",
     "build_interrupted_inline_recovery_plan",
+    "beat_has_script_content",
     "display_metadata_for_task",
     "effective_task_status",
     "hashed_scope",
@@ -81,6 +86,7 @@ __all__ = [
     "queue_name",
     "remaining_capacity",
     "selection_scope",
+    "script_beats_complete",
     "task_config_scope",
     "task_scope_from_key",
     "task_state_key",

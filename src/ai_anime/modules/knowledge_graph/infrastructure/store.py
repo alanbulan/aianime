@@ -35,6 +35,9 @@ from rich.console import Console
 from ai_anime.modules.model_usage.public import get_newapi_reasoning_kwargs
 from ai_anime.modules.model_usage.public import DEFAULT_COGNEE_EMBEDDING_DIM
 from ai_anime.sqlite_store import SQLiteStore
+from ai_anime.shared.infrastructure.project_sqlite_graph_state import (
+    ProjectSQLiteGraphStateMixin,
+)
 from ai_anime.shared.utils.document_parsers import load_novel_text
 
 from ai_anime.modules.production.public import (
@@ -95,7 +98,7 @@ from ai_anime.shared.utils.path_resolver import (  # noqa: F401
 )
 
 
-class CogneeStore:
+class CogneeStore(ProjectSQLiteGraphStateMixin):
     """统一存储层 - SQLite + Cognee。
 
     使用方式：
@@ -270,26 +273,16 @@ class CogneeStore:
         store._alias_index = self._alias_index
 
     def _sync_sqlite_caches(self) -> None:
-        """将 SQLiteStore 当前缓存同步回共享缓存。"""
+        """Restore shared cache references if a legacy caller replaced one."""
         store = self._ensure_sqlite_store()
-        character_cache = dict(store._characters)
-        episode_cache = dict(store._episodes)
-        alias_cache = dict(store._alias_index)
-        prop_cache = dict(store._props)
-        self._characters.clear()
-        self._characters.update(character_cache)
-        self._episodes.clear()
-        self._episodes.update(episode_cache)
-        self._props.clear()
-        self._props.update(prop_cache)
-        self._alias_index.clear()
-        self._alias_index.update(alias_cache)
-        self._share_sqlite_caches()
-
-    @staticmethod
-    def _normalize_alias_lookup(value: str) -> str:
-        """统一别名查找键，降低空格/大小写差异导致的失配。"""
-        return " ".join((value or "").replace("\u3000", " ").strip().lower().split())
+        if self._characters is not store._characters:
+            self._characters = store._characters
+        if self._episodes is not store._episodes:
+            self._episodes = store._episodes
+        if self._props is not store._props:
+            self._props = store._props
+        if self._alias_index is not store._alias_index:
+            self._alias_index = store._alias_index
 
     def _set_cognee_context(self, verbose: bool = False) -> None:
         """设置 Cognee 的数据库上下文为当前项目。
@@ -1359,28 +1352,6 @@ class CogneeStore:
     # 查询
     # ============================================================
 
-    def resolve_name(self, name: str) -> str:
-        """解析别名为主名称。"""
-        return self._alias_index.get(name, name)
-
-    def get_cached_prop(self, name: str) -> Optional[NovelProp]:
-        """从当前缓存获取道具（支持别名查找）。"""
-        raw_name = str(name or "").strip()
-        if not raw_name:
-            return None
-        prop = self._props.get(raw_name)
-        if prop:
-            return prop
-
-        lookup = self._normalize_alias_lookup(raw_name)
-        for candidate in self._props.values():
-            if self._normalize_alias_lookup(candidate.name) == lookup:
-                return candidate
-            aliases = getattr(candidate, "aliases", []) or []
-            if any(self._normalize_alias_lookup(alias) == lookup for alias in aliases):
-                return candidate
-        return None
-
     def _normalize_prop_menu_items(self, prop_menu: Iterable[Any] | None) -> list[PropMenuItem]:
         """将 episode prop_menu 规范化为资产库标准 prop_id。"""
         normalized_items = build_prop_menu(prop_menu=list(prop_menu or []))
@@ -1441,23 +1412,6 @@ class CogneeStore:
                 )
             )
         return build_scene_menu(scene_menu=canonical_items)
-
-    def get_character(self, name: str) -> Optional[NovelCharacter]:
-        """获取角色（支持别名）。"""
-        primary = self.resolve_name(name)
-        return self._characters.get(primary)
-
-    def get_episode(self, number: int) -> Optional[NovelEpisode]:
-        """获取剧集。"""
-        return self._episodes.get(number)
-
-    def get_all_characters(self) -> List[NovelCharacter]:
-        """获取所有角色。"""
-        return list(self._characters.values())
-
-    def get_all_episodes(self) -> List[NovelEpisode]:
-        """获取所有剧集。"""
-        return sorted(self._episodes.values(), key=lambda e: e.number)
 
     async def search(self, query: str, mode: str = "graph", top_k: int = 10) -> str:
         """语义检索。"""
@@ -1524,9 +1478,6 @@ class CogneeStore:
         try:
             await self.sqlite_store.load_graph_state()
             self._sync_sqlite_caches()
-            props = await self.sqlite_store.list_props()
-
-            self._props = {prop.name: prop for prop in props}
 
             for episode in self._episodes.values():
                 episode.scene_menu = await self._normalize_scene_menu_items(episode.scene_menu)
@@ -1614,17 +1565,6 @@ class CogneeStore:
         """删除角色的某个身份。"""
         await self.sqlite_store.delete_character_identity(character_name, identity_id)
         self._sync_sqlite_caches()
-
-    async def _cascade_identity_change(self, old_id: str, new_id: str | None = None):
-        """级联更新所有 episode 的 identity_ids。"""
-        for ep in self._episodes.values():
-            ids = ep.identity_ids
-            if old_id in ids:
-                if new_id:
-                    ids = [new_id if x == old_id else x for x in ids]
-                else:
-                    ids = [x for x in ids if x != old_id]
-                await self.update_episode(ep.number, identity_ids=ids)
 
     async def add_episode(self, episode: NovelEpisode):
         """添加单个剧集。"""
@@ -2315,19 +2255,6 @@ class CogneeStore:
             self._props.clear()
             self._alias_index.clear()
             raise
-
-    # ============================================================
-    # 便捷属性
-    # ============================================================
-
-    @property
-    def character_count(self) -> int:
-        return len(self._characters)
-
-    @property
-    def episode_count(self) -> int:
-        return len(self._episodes)
-
 
 # ============================================================
 # 工厂函数

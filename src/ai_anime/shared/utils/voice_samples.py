@@ -10,6 +10,7 @@ from pathlib import Path
 from ai_anime.shared.utils.atomic_files import replace_bytes_atomically
 
 VOICE_SAMPLE_EXTENSIONS = (".mp3", ".wav", ".m4a", ".aac", ".ogg")
+READABLE_VOICE_EXTENSIONS = (*VOICE_SAMPLE_EXTENSIONS, ".webm")
 SUPPORTED_VOICE_SAMPLE_MESSAGE = "仅支持 mp3 / wav / m4a / aac / ogg"
 REFERENCE_VOICE_MIN_SECONDS = 1.8
 REFERENCE_VOICE_MAX_SECONDS = 15.2
@@ -72,6 +73,7 @@ def replace_voice_sample_content(target: Path, content: bytes) -> None:
 __all__ = [
     "REFERENCE_VOICE_MAX_SECONDS",
     "REFERENCE_VOICE_MIN_SECONDS",
+    "READABLE_VOICE_EXTENSIONS",
     "SUPPORTED_VOICE_SAMPLE_MESSAGE",
     "VOICE_SAMPLE_EXTENSIONS",
     "archive_voice_siblings",

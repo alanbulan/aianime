@@ -72,6 +72,9 @@ interface AIAnimeByokModelAssignment {
   role: string;
   priority: number;
   enabled: boolean;
+  capabilities?: Record<string, unknown>;
+  capabilityOverrides?: Record<string, unknown>;
+  parameterSchema?: Record<string, unknown>;
   contextWindow?: number;
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
@@ -81,6 +84,7 @@ interface AIAnimeByokModelAssignment {
     maxOutputTokens?: number;
     reasoningEfforts?: string[];
     defaultReasoningEffort?: string;
+    parameterOverrides?: Record<string, unknown>;
   };
 }
 

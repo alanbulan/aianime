@@ -345,11 +345,6 @@ class AssetWorldSQLiteRepositoryMixin:
             self._alias_index.pop(key, None)
         console.print(f"[green]已删除角色: {name}[/green]")
 
-    @staticmethod
-    def _normalize_alias_lookup(value: str) -> str:
-        """统一别名查找键，降低空格/大小写差异导致的失配。"""
-        return " ".join((value or "").replace("\u3000", " ").strip().lower().split())
-
     async def add_scene(self, scene: NovelScene) -> None:
         """添加或更新场景。"""
         db = await self._ensure_db()

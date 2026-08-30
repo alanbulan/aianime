@@ -14,7 +14,7 @@ import {
 import { CreditCostPill } from "@/components/credit-visual";
 import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/ui/slider";
-import { useGenerationCreditCost } from "@/modules/model_usage/public";
+import { imageModelSupportsQuality, useGenerationCreditCost } from "@/modules/model_usage/public";
 import type { CanvasRelightKeyLightDirection } from "../domain/relight";
 import { useCanvasImageModels } from "../generationCatalogComposition";
 import {
@@ -74,16 +74,6 @@ const DEFAULT_RIM_LIGHT = false;
 const DEFAULT_SMART_MODE = false;
 const EDITOR_PROMPT_TEXTAREA_CLASS =
   "mb-5 h-20 rounded-xl !border-border !bg-muted px-3 py-2 text-xs !text-foreground placeholder:!text-muted-foreground shadow-inner";
-
-function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
-  const normalized = String(apiModel ?? "").trim().toLowerCase();
-  return (
-    normalized === "gpt-image-2"
-    || normalized === "image-2"
-    || normalized === "image-2-official"
-    || normalized.includes("gpt-image")
-  );
-}
 
 // 开尔文色温 → 近似 RGB（Tanner Helland 近似，适用 ~1000-40000K）。用于色温滑块
 // 的暖冷渐变轨道、手柄颜色与 3D 光球预览着色；提交给后端的是开尔文整数本身。

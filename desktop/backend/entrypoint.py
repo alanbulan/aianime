@@ -18,6 +18,7 @@ def _verify_cognee_resources() -> dict[str, int | bool]:
     """Load every packaged Cognee prompt and verify migration resources."""
     from cognee.infrastructure.llm.prompts import render_prompt
     from cognee.root_dir import get_absolute_path
+    from jinja2 import Environment, FileSystemLoader
 
     cognee_root = Path(get_absolute_path("."))
     prompt_directory = Path(get_absolute_path("./infrastructure/llm/prompts"))
@@ -27,8 +28,14 @@ def _verify_cognee_resources() -> dict[str, int | bool]:
             f"Incomplete Cognee prompt package: expected at least 50, found {len(prompt_files)}"
         )
 
+    prompt_environment = Environment(loader=FileSystemLoader(prompt_directory))
     for prompt_file in prompt_files:
-        render_prompt(prompt_file.name, {})
+        prompt_environment.get_template(prompt_file.name)
+
+    probe_text = "AI_ANIME_COGNEE_SMOKE"
+    rendered_probe = render_prompt("extract_entities_user.txt", {"text": probe_text})
+    if probe_text not in rendered_probe:
+        raise RuntimeError("Cognee prompt renderer did not interpolate packaged resources")
 
     required_resources = (
         cognee_root / "alembic.ini",

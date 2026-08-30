@@ -6,9 +6,75 @@ import json
 
 import pytest
 
+from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_sdk
 from ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_sdk import (
     HermesSdkThread,
+    _hermes_acp_command,
 )
+
+
+def test_source_entrypoint_uses_its_isolated_runtime_python(tmp_path: Path) -> None:
+    entrypoint = tmp_path / "hermes-runtime" / "hermes_acp.py"
+
+    assert _hermes_acp_command(entrypoint, windows=True) == [
+        str(entrypoint.parent / ".venv" / "Scripts" / "python.exe"),
+        str(entrypoint),
+        "acp",
+    ]
+    assert _hermes_acp_command(entrypoint, windows=False) == [
+        str(entrypoint.parent / ".venv" / "bin" / "python"),
+        str(entrypoint),
+        "acp",
+    ]
+    packaged = tmp_path / "hermes-acp.exe"
+    assert _hermes_acp_command(packaged, windows=True) == [str(packaged), "acp"]
+
+
+@pytest.mark.asyncio
+async def test_spawn_restarts_an_exited_worker_without_losing_the_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+    exited_process = SimpleNamespace(returncode=17)
+    replacement_process = SimpleNamespace(returncode=None, stderr=None)
+    thread._proc = exited_process
+    thread._initialized = True
+    thread._session_ready = True
+    thread._req_counter = 9
+    thread._tool_names_by_call_id["tool-1"] = "ai_anime_get"
+
+    async def fake_create_subprocess_exec(*_args, **_kwargs):
+        return replacement_process
+
+    monkeypatch.setattr(
+        hermes_sdk.asyncio,
+        "create_subprocess_exec",
+        fake_create_subprocess_exec,
+    )
+    monkeypatch.setattr(
+        hermes_sdk,
+        "wrap_command",
+        lambda command, _spec: command,
+    )
+
+    await thread._spawn()
+
+    assert thread._proc is replacement_process
+    assert thread.id == "session-1"
+    assert thread._is_new is False
+    assert thread._initialized is False
+    assert thread._session_ready is False
+    assert thread._req_counter == 0
+    assert thread._tool_names_by_call_id == {}
+    await thread._stop_stderr_drain()
 
 
 @pytest.mark.asyncio
@@ -411,6 +477,20 @@ async def test_session_model_route_is_encoded_and_applied_through_acp(
 
     await thread.set_model_route(None)
     assert calls[1][1]["modelId"] == "ai-anime-assistant-auto"
+
+    selected = await thread.set_model_route(None, "none")
+    assert selected == (None, "none")
+    assert calls[2] == (
+        "session/set_config_option",
+        {
+            "sessionId": "session-1",
+            "configId": "reasoning_effort",
+            "value": "none",
+        },
+    )
+
+    await thread.set_model_route(None, "none")
+    assert len(calls) == 3
 
 
 def test_discovered_skill_command_is_expanded_before_acp_prompt(tmp_path: Path) -> None:

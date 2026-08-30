@@ -41,6 +41,7 @@ export interface ModelRuntimeOverrides {
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
   defaultReasoningEffort?: string;
+  parameterOverrides?: Record<string, unknown>;
 }
 
 export interface ByokModelAssignment {
@@ -48,6 +49,9 @@ export interface ByokModelAssignment {
   role: ByokModelRole;
   priority: number;
   enabled: boolean;
+  capabilities?: Record<string, unknown>;
+  capabilityOverrides?: Record<string, unknown>;
+  parameterSchema?: Record<string, unknown>;
   contextWindow?: number;
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
@@ -60,6 +64,7 @@ export interface EffectiveModelRuntimeSettings {
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
   defaultReasoningEffort?: string;
+  parameterOverrides?: Record<string, unknown>;
 }
 
 export function effectiveModelRuntimeSettings(
@@ -83,6 +88,9 @@ export function effectiveModelRuntimeSettings(
       : {}),
     ...(reasoningEfforts?.length ? { reasoningEfforts: [...reasoningEfforts] } : {}),
     ...(defaultReasoningEffort ? { defaultReasoningEffort } : {}),
+    ...(overrides?.parameterOverrides
+      ? { parameterOverrides: cloneParameterOverrides(overrides.parameterOverrides) }
+      : {}),
   };
 }
 
@@ -132,6 +140,19 @@ export interface ByokProviderModelDiscoveryInput {
 
 const MAX_MODEL_ASSIGNMENTS = 256;
 const MAX_BYOK_PROVIDERS = 16;
+const MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH = 8;
+const MAX_RUNTIME_PARAMETER_OVERRIDE_VALUES = 256;
+const MAX_RUNTIME_PARAMETER_OVERRIDE_BYTES = 64 * 1024;
+const MAX_RUNTIME_PARAMETER_OVERRIDE_STRING_LENGTH = 16 * 1024;
+const FORBIDDEN_RUNTIME_PARAMETER_KEYS = new Set([
+  "model",
+  "apikey",
+  "baseurl",
+  "authorization",
+  "headers",
+  "xapikey",
+  "xgoogapikey",
+]);
 const BYOK_MODEL_ROLE_SET = new Set<string>(BYOK_MODEL_ROLES);
 const DEPRECATED_BYOK_MODEL_ROLE_SET = new Set(["RERANK", "MODERATION"]);
 const BYOK_PROVIDER_PROTOCOL_SET = new Set<string>(BYOK_PROVIDER_PROTOCOLS);
@@ -280,6 +301,7 @@ export async function fetchByokModelCatalog(
       code: string;
       displayName: string;
       operation: string;
+      capabilities: Record<string, unknown>;
       parameterSchemaJson: string;
       supportedModes: Set<string>;
     }
@@ -290,23 +312,37 @@ export async function fetchByokModelCatalog(
       const capability = BYOK_ROLE_CAPABILITY[assignment.role];
       if (normalizedOperation && capability.operation !== normalizedOperation) continue;
       const key = `${provider.id}:${assignment.modelId}:${capability.operation}`;
+      const strategySchema = resolveProviderStrategy(
+        provider.protocol,
+        provider.baseUrl,
+      ).parameterSchema(
+        assignment.role,
+        assignment.modelId,
+      );
+      const declaredCapabilities = mergeModelCapabilityRecords(
+        assignment.capabilities,
+        assignment.capabilityOverrides,
+      );
       const group = grouped.get(key) ?? {
         code: assignment.modelId,
         displayName: `${assignment.modelId} · ${provider.name}`,
         operation: capability.operation,
+        capabilities: {},
         parameterSchemaJson:
-          resolveProviderStrategy(
-            provider.protocol,
-            provider.baseUrl,
-          ).parameterSchema(
-            assignment.role,
-            assignment.modelId,
-          ) ??
+          strategySchema
+          ?? (assignment.parameterSchema
+            ? JSON.stringify(assignment.parameterSchema)
+            : null)
+          ??
           (capability.operation === "AUDIO_VOICE_DESIGN"
             ? BYOK_VOICE_DESIGN_PARAMETER_SCHEMA
             : "{}"),
         supportedModes: new Set<string>(),
       };
+      group.capabilities = mergeModelCapabilityRecords(
+        group.capabilities,
+        declaredCapabilities,
+      );
       for (const mode of capability.modes ?? []) group.supportedModes.add(mode);
       grouped.set(key, group);
     }
@@ -323,9 +359,15 @@ export async function fetchByokModelCatalog(
           candidate.modelId === modelId
           && BYOK_ROLE_CAPABILITY[candidate.role].operation === item.operation
         ));
+      const supportedModes = Array.from(new Set([
+        ...stringCapabilityValues(item.capabilities.supportedModes),
+        ...stringCapabilityValues(item.capabilities.modes),
+        ...item.supportedModes,
+      ])).sort();
       const capabilities = {
-        ...(item.supportedModes.size > 0
-          ? { supportedModes: Array.from(item.supportedModes).sort() }
+        ...item.capabilities,
+        ...(supportedModes.length > 0
+          ? { supportedModes }
           : {}),
         routeSelector: `byok:${providerAndModel}`,
         ...(assignment
@@ -348,14 +390,14 @@ export async function fetchByokModelCatalog(
         assignment ? effectiveModelRuntimeSettings(assignment) : undefined,
       );
       return {
-      id: key,
-      code: item.code,
-      displayName: item.displayName,
-      operation: item.operation,
-      capabilityJson: JSON.stringify(capabilities),
-      parameterSchemaJson,
-      clientVisible: true as const,
-      status: "ACTIVE" as const,
+        id: key,
+        code: item.code,
+        displayName: item.displayName,
+        operation: item.operation,
+        capabilityJson: JSON.stringify(capabilities),
+        parameterSchemaJson,
+        clientVisible: true as const,
+        status: "ACTIVE" as const,
       };
     })
     .sort(
@@ -388,6 +430,7 @@ export class EncryptedFileCommercialModelAccessStore {
       this.filePath,
       this.secureStorage,
       parseStoredModelAccess,
+      { preserveValidationError: true },
     );
     return this.cache ?? defaultModelAccess();
   }
@@ -466,8 +509,16 @@ export class EncryptedFileCommercialModelAccessStore {
   }
 
   async clearByok(providerId?: string): Promise<StoredCommercialModelAccess> {
-    const previous = await this.load();
     const normalizedId = providerId ? normalizeProviderId(providerId) : "";
+    let previous: StoredCommercialModelAccess;
+    try {
+      previous = await this.load();
+    } catch (error) {
+      if (normalizedId) throw error;
+      const reset = defaultModelAccess();
+      await this.save(reset);
+      return reset;
+    }
     const next: StoredCommercialModelAccess = {
       ...previous,
       schemaVersion: 5,
@@ -684,6 +735,9 @@ function normalizedModelMetadata(
   | "maxOutputTokens"
   | "reasoningEfforts"
   | "defaultReasoningEffort"
+  | "capabilities"
+  | "capabilityOverrides"
+  | "parameterSchema"
   | "runtimeOverrides"
 > {
   const contextWindow = Number(record.contextWindow);
@@ -692,8 +746,20 @@ function normalizedModelMetadata(
   const defaultReasoningEffort = typeof record.defaultReasoningEffort === "string"
     ? record.defaultReasoningEffort.trim()
     : "";
+  const capabilities = normalizeModelCapabilities(
+    record.capabilities,
+    "model capabilities",
+  );
+  const capabilityOverrides = normalizeModelCapabilities(
+    record.capabilityOverrides,
+    "model capability overrides",
+  );
+  const parameterSchema = normalizeParameterSchema(record.parameterSchema);
   const runtimeOverrides = normalizeRuntimeOverrides(record.runtimeOverrides);
   return {
+    ...(capabilities ? { capabilities } : {}),
+    ...(capabilityOverrides ? { capabilityOverrides } : {}),
+    ...(parameterSchema ? { parameterSchema } : {}),
     ...(Number.isSafeInteger(contextWindow) && contextWindow > 0
       ? { contextWindow }
       : {}),
@@ -718,6 +784,7 @@ function normalizeRuntimeOverrides(value: unknown): ModelRuntimeOverrides | unde
   const requestedDefault = typeof record.defaultReasoningEffort === "string"
     ? record.defaultReasoningEffort.trim()
     : "";
+  const parameterOverrides = normalizeParameterOverrides(record.parameterOverrides);
   const overrides: ModelRuntimeOverrides = {
     ...(Number.isSafeInteger(contextWindow) && contextWindow > 0
       ? { contextWindow }
@@ -729,8 +796,180 @@ function normalizeRuntimeOverrides(value: unknown): ModelRuntimeOverrides | unde
     ...(requestedDefault && reasoningEfforts.includes(requestedDefault)
       ? { defaultReasoningEffort: requestedDefault }
       : {}),
+    ...(parameterOverrides ? { parameterOverrides } : {}),
   };
   return Object.keys(overrides).length ? overrides : undefined;
+}
+
+function normalizeParameterSchema(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  if (value === undefined || value === null) return undefined;
+  const state = { values: 0 };
+  const normalized = normalizeParameterOverrideRecord(
+    requiredRecord(value, "model parameter schema"),
+    "model parameter schema",
+    0,
+    state,
+  );
+  if (Buffer.byteLength(JSON.stringify(normalized), "utf8") > MAX_RUNTIME_PARAMETER_OVERRIDE_BYTES) {
+    throw new Error("模型参数 Schema 超过 64 KiB");
+  }
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
+function normalizeModelCapabilities(
+  value: unknown,
+  name: string,
+): Record<string, unknown> | undefined {
+  if (value === undefined || value === null) return undefined;
+  const state = { values: 0 };
+  const normalized = normalizeParameterOverrideRecord(
+    requiredRecord(value, name),
+    name,
+    1,
+    state,
+  );
+  if (Buffer.byteLength(JSON.stringify(normalized), "utf8") > MAX_RUNTIME_PARAMETER_OVERRIDE_BYTES) {
+    throw new Error(`${name} 超过 64 KiB`);
+  }
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
+function normalizeParameterOverrides(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  if (value === undefined || value === null) return undefined;
+  const state = { values: 0 };
+  const normalized = normalizeParameterOverrideRecord(
+    requiredRecord(value, "model parameter overrides"),
+    "model parameter overrides",
+    0,
+    state,
+  );
+  if (Buffer.byteLength(JSON.stringify(normalized), "utf8") > MAX_RUNTIME_PARAMETER_OVERRIDE_BYTES) {
+    throw new Error("模型参数覆盖超过 64 KiB");
+  }
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
+function normalizeParameterOverrideRecord(
+  value: Record<string, unknown>,
+  path: string,
+  depth: number,
+  state: { values: number },
+): Record<string, unknown> {
+  if (depth > MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH) {
+    throw new Error(`${path} 嵌套过深`);
+  }
+  const entries: Array<[string, unknown]> = [];
+  for (const [key, item] of Object.entries(value)) {
+    if (
+      !key
+      || key.length > 128
+      || /[\u0000-\u001f\u007f]/u.test(key)
+      || ["__proto__", "prototype", "constructor"].includes(key)
+    ) {
+      throw new Error(`${path} 包含无效字段名`);
+    }
+    const normalizedKey = key.toLowerCase().replaceAll("_", "").replaceAll("-", "");
+    if (depth === 0 && FORBIDDEN_RUNTIME_PARAMETER_KEYS.has(normalizedKey)) {
+      throw new Error(`${path}.${key} 禁止覆盖`);
+    }
+    state.values += 1;
+    if (state.values > MAX_RUNTIME_PARAMETER_OVERRIDE_VALUES) {
+      throw new Error(`模型参数覆盖最多 ${MAX_RUNTIME_PARAMETER_OVERRIDE_VALUES} 项`);
+    }
+    entries.push([
+      key,
+      normalizeParameterOverrideValue(item, `${path}.${key}`, depth + 1, state),
+    ]);
+  }
+  return Object.fromEntries(entries);
+}
+
+function normalizeParameterOverrideValue(
+  value: unknown,
+  path: string,
+  depth: number,
+  state: { values: number },
+): unknown {
+  if (value === null || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error(`${path} 必须是有限数字`);
+    return value;
+  }
+  if (typeof value === "string") {
+    if (value.length > MAX_RUNTIME_PARAMETER_OVERRIDE_STRING_LENGTH) {
+      throw new Error(`${path} 文本过长`);
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    if (depth > MAX_RUNTIME_PARAMETER_OVERRIDE_DEPTH) {
+      throw new Error(`${path} 嵌套过深`);
+    }
+    return value.map((item, index) => {
+      state.values += 1;
+      if (state.values > MAX_RUNTIME_PARAMETER_OVERRIDE_VALUES) {
+        throw new Error(`模型参数覆盖最多 ${MAX_RUNTIME_PARAMETER_OVERRIDE_VALUES} 项`);
+      }
+      return normalizeParameterOverrideValue(item, `${path}[${index}]`, depth + 1, state);
+    });
+  }
+  if (value && typeof value === "object") {
+    return normalizeParameterOverrideRecord(
+      requiredRecord(value, path),
+      path,
+      depth,
+      state,
+    );
+  }
+  throw new Error(`${path} 只能包含 JSON 值`);
+}
+
+function cloneParameterOverrides(value: Record<string, unknown>): Record<string, unknown> {
+  return normalizeParameterOverrides(value) ?? {};
+}
+
+function stringCapabilityValues(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
+function mergeModelCapabilityRecords(
+  ...sources: Array<Record<string, unknown> | undefined>
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = {};
+  for (const source of sources) {
+    if (!source) continue;
+    for (const [key, value] of Object.entries(source)) {
+      const current = jsonRecord(merged[key]);
+      const replacement = jsonRecord(value);
+      merged[key] = current && replacement
+        ? mergeModelCapabilityRecords(current, replacement)
+        : cloneModelCapabilityValue(value);
+    }
+  }
+  return merged;
+}
+
+function jsonRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function cloneModelCapabilityValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(cloneModelCapabilityValue);
+  }
+  const record = jsonRecord(value);
+  return record ? mergeModelCapabilityRecords(record) : value;
 }
 
 function normalizeReasoningEfforts(value: unknown): string[] {
@@ -869,8 +1108,23 @@ function compareProviders(left: StoredByokProvider, right: StoredByokProvider): 
 }
 
 function copyAssignment(value: ByokModelAssignment): ByokModelAssignment {
+  const capabilities = value.capabilities
+    ? normalizeModelCapabilities(value.capabilities, "model capabilities")
+    : undefined;
+  const capabilityOverrides = value.capabilityOverrides
+    ? normalizeModelCapabilities(
+        value.capabilityOverrides,
+        "model capability overrides",
+      )
+    : undefined;
+  const parameterSchema = value.parameterSchema
+    ? normalizeParameterSchema(value.parameterSchema)
+    : undefined;
   return {
     ...value,
+    ...(capabilities ? { capabilities } : {}),
+    ...(capabilityOverrides ? { capabilityOverrides } : {}),
+    ...(parameterSchema ? { parameterSchema } : {}),
     ...(value.reasoningEfforts
       ? { reasoningEfforts: [...value.reasoningEfforts] }
       : {}),
@@ -883,6 +1137,13 @@ function copyAssignment(value: ByokModelAssignment): ByokModelAssignment {
                   reasoningEfforts: [
                     ...value.runtimeOverrides.reasoningEfforts,
                   ],
+                }
+              : {}),
+            ...(value.runtimeOverrides.parameterOverrides
+              ? {
+                  parameterOverrides: cloneParameterOverrides(
+                    value.runtimeOverrides.parameterOverrides,
+                  ),
                 }
               : {}),
           },

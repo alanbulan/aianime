@@ -242,6 +242,9 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(entrypoint, /"ladybug_unicode_path": unicode_database_created/);
   assert.match(entrypoint, /from cognee\.infrastructure\.llm\.prompts import render_prompt/);
   assert.match(entrypoint, /for prompt_file in prompt_files/);
+  assert.match(entrypoint, /prompt_environment\.get_template\(prompt_file\.name\)/);
+  assert.match(entrypoint, /render_prompt\("extract_entities_user\.txt", \{"text": probe_text\}\)/);
+  assert.doesNotMatch(entrypoint, /render_prompt\(prompt_file\.name, \{\}\)/);
   assert.match(entrypoint, /cognee_root \/ "alembic" \/ "versions"/);
   assert.match(entrypoint, /import litellm\.containers/);
   assert.match(entrypoint, /containers_root \/ "endpoints\.json"/);

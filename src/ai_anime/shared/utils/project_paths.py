@@ -4,6 +4,7 @@ from pathlib import Path
 
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, RUNTIME_DIR, STATE_DIR
 
+
 class ProjectPaths:
     """统一管理项目的 output/state/runtime 目录。"""
 
@@ -150,3 +151,22 @@ class ProjectPaths:
         from ai_anime.migrations.filesystem import migrate_legacy_project_layout
 
         migrate_legacy_project_layout(self)
+
+
+def resolve_project_data_db_path(project_output_dir: str | Path) -> Path:
+    """Resolve one project's canonical SQLite database and migrate legacy state."""
+    resolved_output = Path(project_output_dir).resolve()
+    output_root = Path(OUTPUT_DIR).resolve()
+    try:
+        relative = resolved_output.relative_to(output_root)
+    except ValueError:
+        return (resolved_output / "data.db").resolve()
+    if len(relative.parts) < 2:
+        return (resolved_output / "data.db").resolve()
+
+    paths = ProjectPaths(relative.parts[0], relative.parts[1])
+    paths.bootstrap_from_legacy_output()
+    return paths.data_db.resolve()
+
+
+__all__ = ["ProjectPaths", "resolve_project_data_db_path"]

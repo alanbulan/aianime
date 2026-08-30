@@ -95,18 +95,38 @@ async def test_stream_chat_turn_emits_scoped_heartbeat():
 
 
 @pytest.mark.anyio
-async def test_stream_chat_turn_keeps_event_delivery_errors_visible():
+async def test_stream_chat_turn_keeps_generating_after_client_disconnects(caplog):
+    caplog.set_level(
+        "INFO",
+        logger="ai_anime.api.routes.ai_assistant.websocket",
+    )
+    send_attempts = 0
+
     class FailingWebSocket:
         async def send_json(self, _payload):
+            nonlocal send_attempts
+            send_attempts += 1
             raise RuntimeError("send failed")
 
-    async def event_stream(on_event):
-        await on_event({"type": "chat.delta"})
+    generated = []
 
-    with pytest.raises(RuntimeError, match="send failed"):
-        await stream_chat_turn(
-            FailingWebSocket(),
-            scope=ChatScope(kind="home"),
-            turn_id="turn-1",
-            event_stream=event_stream,
-        )
+    async def event_stream(on_event):
+        generated.append("before-disconnect")
+        await on_event({"type": "chat.delta", "text": "first"})
+        generated.append("after-disconnect")
+        await on_event({"type": "chat.delta", "text": "second"})
+        generated.append("persisted")
+
+    await stream_chat_turn(
+        FailingWebSocket(),
+        scope=ChatScope(kind="home"),
+        turn_id="turn-1",
+        event_stream=event_stream,
+    )
+
+    assert generated == ["before-disconnect", "after-disconnect", "persisted"]
+    assert send_attempts == 1
+    assert caplog.messages == [
+        "chat websocket delivery closed; generation continues "
+        "turn=turn-1 scope={'kind': 'home', 'id': None, 'conversationId': 'main'}"
+    ]

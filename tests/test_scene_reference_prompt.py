@@ -1,4 +1,5 @@
 from ai_anime.modules.production.infrastructure.media_generation.scene_reference_images import (
+    _scene_image_config,
     build_scene_reference_prompt,
 )
 from ai_anime.modules.asset_world.public import NovelScene
@@ -57,6 +58,12 @@ def test_scene_reference_prompt_keeps_variant_delta_out_of_scene_description():
     assert "正面：深灰色双向车道" in scene_description
     assert "下着小雨" not in scene_description
     assert "地面湿润有积水" not in scene_description
+
+
+def test_scene_image_config_uses_canonical_quality_capability():
+    assert _scene_image_config("lingshan-g2")["quality"] == "medium"
+    assert _scene_image_config("openai/gpt-image-1")["quality"] == "medium"
+    assert "quality" not in _scene_image_config("gemini-2.5-flash-image")
 
 
 async def test_scene_reference_does_not_forward_gateway_credentials(monkeypatch, tmp_path):

@@ -17,6 +17,10 @@ from ai_anime.modules.asset_world.infrastructure.character_voice_storage import 
     is_supported_voice_sample,
     persist_character_voice_file,
 )
+from ai_anime.shared.utils.voice_samples import (
+    READABLE_VOICE_EXTENSIONS,
+    VOICE_SAMPLE_EXTENSIONS,
+)
 
 
 def test_character_voice_path_routes_default_and_age_groups(tmp_path):
@@ -136,6 +140,11 @@ def test_is_supported_voice_sample():
     assert is_supported_voice_sample("a.mp3")
     assert is_supported_voice_sample("a.WAV")
     assert not is_supported_voice_sample("a.txt")
+
+
+def test_webm_is_readable_but_not_a_canonical_stored_voice_sample():
+    assert ".webm" in READABLE_VOICE_EXTENSIONS
+    assert ".webm" not in VOICE_SAMPLE_EXTENSIONS
 
 
 def test_age_group_slots_cover_known_values():

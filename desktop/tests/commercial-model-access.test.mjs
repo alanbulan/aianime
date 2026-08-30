@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,7 +14,10 @@ import {
   fetchByokModelCatalog,
   fetchByokProviderModelIds,
 } from "../src/commercial-model-access.ts";
-import { prepareBodyForRoute } from "../src/commercial-model-proxy-http.ts";
+import {
+  assistantModelSelectionFromBody,
+  prepareBodyForRoute,
+} from "../src/commercial-model-proxy-http.ts";
 import {
   CommercialModelProxy,
   modelRoutingSnapshot,
@@ -42,6 +45,40 @@ class MemorySessionStore {
     this.value = null;
   }
 }
+
+test("desktop route parser follows the shared cross-runtime model contract", async () => {
+  const contract = JSON.parse(await readFile(
+    new URL("../../tests/fixtures/model-route-contract.json", import.meta.url),
+    "utf8",
+  ));
+  const requestBody = (model) => Buffer.from(JSON.stringify({ model }), "utf8");
+
+  for (const item of contract.valid) {
+    assert.deepEqual(
+      assistantModelSelectionFromBody(
+        requestBody(item.model),
+        "application/json",
+        "ai-assistant",
+      ),
+      {
+        selector: item.selector,
+        reasoningEffort: item.reasoningEffort,
+      },
+      item.id,
+    );
+  }
+  for (const item of contract.invalid) {
+    assert.throws(
+      () => assistantModelSelectionFromBody(
+        requestBody(item.model),
+        "application/json",
+        "ai-assistant",
+      ),
+      (error) => error instanceof CommercialApiError && error.status === 422,
+      item.id,
+    );
+  }
+});
 
 test("model roles omit operations without an application call chain", () => {
   assert.equal(BYOK_MODEL_ROLES.includes("RERANK"), false);
@@ -1369,6 +1406,17 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
         role: "IMAGE_GENERATION",
         priority: 30,
         enabled: true,
+        capabilities: {
+          supportedModes: ["TEXT_TO_IMAGE"],
+          resolutionOptions: ["1024x1024"],
+        },
+        capabilityOverrides: {
+          resolutionOptions: ["1024x1024", "1536x1024"],
+        },
+        parameterSchema: {
+          type: "object",
+          properties: { quality: { enum: ["standard", "hd"] } },
+        },
         contextWindow: 32768,
         maxOutputTokens: 2048,
         reasoningEfforts: ["low", "medium", "xhigh"],
@@ -1378,6 +1426,10 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
           maxOutputTokens: 8192,
           reasoningEfforts: ["medium", "xhigh"],
           defaultReasoningEffort: "xhigh",
+          parameterOverrides: {
+            quality: "hd",
+            options: { transparent: true },
+          },
         },
       },
     ],
@@ -1397,6 +1449,17 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
       role: "IMAGE_GENERATION",
       priority: 30,
       enabled: true,
+      capabilities: {
+        supportedModes: ["TEXT_TO_IMAGE"],
+        resolutionOptions: ["1024x1024"],
+      },
+      capabilityOverrides: {
+        resolutionOptions: ["1024x1024", "1536x1024"],
+      },
+      parameterSchema: {
+        type: "object",
+        properties: { quality: { enum: ["standard", "hd"] } },
+      },
       contextWindow: 32768,
       maxOutputTokens: 2048,
       reasoningEfforts: ["low", "medium", "xhigh"],
@@ -1406,6 +1469,10 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
         maxOutputTokens: 8192,
         reasoningEfforts: ["medium", "xhigh"],
         defaultReasoningEffort: "xhigh",
+        parameterOverrides: {
+          quality: "hd",
+          options: { transparent: true },
+        },
       },
     },
   ]);
@@ -1416,6 +1483,10 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
       maxOutputTokens: 8192,
       reasoningEfforts: ["medium", "xhigh"],
       defaultReasoningEffort: "xhigh",
+      parameterOverrides: {
+        quality: "hd",
+        options: { transparent: true },
+      },
     },
   );
   assert.deepEqual(second.status(restored), {
@@ -1438,6 +1509,17 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
             role: "IMAGE_GENERATION",
             priority: 30,
             enabled: true,
+            capabilities: {
+              supportedModes: ["TEXT_TO_IMAGE"],
+              resolutionOptions: ["1024x1024"],
+            },
+            capabilityOverrides: {
+              resolutionOptions: ["1024x1024", "1536x1024"],
+            },
+            parameterSchema: {
+              type: "object",
+              properties: { quality: { enum: ["standard", "hd"] } },
+            },
             contextWindow: 32768,
             maxOutputTokens: 2048,
             reasoningEfforts: ["low", "medium", "xhigh"],
@@ -1447,6 +1529,10 @@ test("BYOK configuration is normalized and survives encrypted-store reload", asy
               maxOutputTokens: 8192,
               reasoningEfforts: ["medium", "xhigh"],
               defaultReasoningEffort: "xhigh",
+              parameterOverrides: {
+                quality: "hd",
+                options: { transparent: true },
+              },
             },
           },
         ],
@@ -1475,6 +1561,64 @@ test("model runtime overrides preserve xhigh and replace the request output limi
     max_completion_tokens: 8192,
     reasoning_effort: "xhigh",
   });
+});
+
+test("schema-driven parameter overrides deep-merge into non-text JSON requests", async () => {
+  const prepared = await prepareBodyForRoute(
+    Buffer.from(JSON.stringify({
+      model: "stale-image-model",
+      prompt: "portrait",
+      quality: "standard",
+      options: { seed: 42, transparent: false },
+    })),
+    "application/json",
+    "image-model-a",
+    false,
+    undefined,
+    undefined,
+    [],
+    {
+      quality: "hd",
+      options: { transparent: true },
+    },
+  );
+
+  assert.deepEqual(JSON.parse(prepared.body), {
+    model: "image-model-a",
+    prompt: "portrait",
+    quality: "hd",
+    options: { seed: 42, transparent: true },
+  });
+});
+
+test("schema-driven parameter overrides serialize into non-text multipart requests", async () => {
+  const source = new FormData();
+  source.set("model", "stale-image-model");
+  source.set("prompt", "edit portrait");
+  source.set("quality", "standard");
+  const encoded = new Request("http://model-proxy.local/images/edits", {
+    method: "POST",
+    body: source,
+  });
+  const prepared = await prepareBodyForRoute(
+    Buffer.from(await encoded.arrayBuffer()),
+    encoded.headers.get("content-type") ?? "",
+    "image-model-a",
+    false,
+    undefined,
+    undefined,
+    [],
+    {
+      quality: "hd",
+      options: { transparent: true },
+    },
+  );
+
+  assert.equal(prepared.body instanceof FormData, true);
+  assert.equal(prepared.body.get("model"), "image-model-a");
+  assert.equal(prepared.body.get("prompt"), "edit portrait");
+  assert.equal(prepared.body.get("quality"), "hd");
+  assert.equal(prepared.body.get("options"), JSON.stringify({ transparent: true }));
 });
 
 test("legacy BYOK settings migrate without deleting encrypted credentials", async (t) => {
@@ -1615,6 +1759,83 @@ test("BYOK Base URL rejects embedded credentials and query parameters", async (t
   );
 });
 
+test("saved BYOK providers report an invalid Base URL without deleting credentials", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-invalid-url-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, "model-access.bin");
+  const persisted = Buffer.from(
+    JSON.stringify({
+      schemaVersion: 5,
+      cloudModelAssignments: [],
+      byokProviders: [
+        {
+          id: "legacy-provider",
+          name: "Legacy Provider",
+          protocol: "OPENAI_COMPATIBLE",
+          baseUrl: "not a url",
+          apiKey: "",
+          enabled: true,
+          priority: 100,
+          modelAssignments: [],
+        },
+      ],
+    }),
+    "utf8",
+  );
+  await writeFile(filePath, persisted);
+
+  await assert.rejects(
+    new EncryptedFileCommercialModelAccessStore(
+      filePath,
+      passthroughSecureStorage,
+    ).load(),
+    /BYOK Base URL 无效/,
+  );
+  assert.deepEqual(await readFile(filePath), persisted);
+
+  const reset = await new EncryptedFileCommercialModelAccessStore(
+    filePath,
+    passthroughSecureStorage,
+  ).clearByok();
+  assert.deepEqual(reset, {
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [],
+  });
+  assert.notDeepEqual(await readFile(filePath), persisted);
+});
+
+test("model access self-heals unreadable ciphertext and malformed JSON", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-corrupt-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+
+  for (const [name, secureStorage, contents] of [
+    ["ciphertext", {
+      ...passthroughSecureStorage,
+      decryptString() {
+        throw new Error("credential key changed");
+      },
+    }, "encrypted"],
+    ["json", passthroughSecureStorage, "{"],
+  ]) {
+    await t.test(name, async () => {
+      const filePath = join(directory, `${name}.bin`);
+      await writeFile(filePath, contents);
+      const restored = await new EncryptedFileCommercialModelAccessStore(
+        filePath,
+        secureStorage,
+      ).load();
+
+      assert.deepEqual(restored, {
+        schemaVersion: 5,
+        cloudModelAssignments: [],
+        byokProviders: [],
+      });
+      await assert.rejects(readFile(filePath), { code: "ENOENT" });
+    });
+  }
+});
+
 test("BYOK provider model list calls only the selected endpoint with its key", async () => {
   const calls = [];
   const result = await fetchByokProviderModelIds(
@@ -1671,6 +1892,14 @@ test("BYOK provider model list calls only the selected endpoint with its key", a
   );
   assert.deepEqual(result.modelMetadata[0], {
     id: "image-model-a",
+    parameterSchema: {
+      properties: {
+        reasoning_effort: {
+          enum: ["low", "medium", "xhigh"],
+          default: "low",
+        },
+      },
+    },
     contextWindow: 32768,
     reasoningEfforts: ["low", "medium", "xhigh"],
     defaultReasoningEffort: "low",
@@ -1776,7 +2005,30 @@ test("BYOK model discovery accepts an unsaved provider form without persisting i
     },
     async (url, init) => {
       calls.push({ url: String(url), headers: new Headers(init.headers) });
-      return Response.json({ data: [{ id: "draft-model" }] });
+      return Response.json({
+        data: [{
+          id: "draft-model",
+          operation: "video",
+          supported_roles: ["VIDEO_TEXT_TO_VIDEO"],
+          metadata: {
+            capabilities: JSON.stringify({
+              generation: {
+                modes: ["TEXT_TO_VIDEO"],
+                resolutions: ["720p", "1080p"],
+                aspectRatios: ["16:9", "9:16"],
+                minDuration: 4,
+                maxDuration: 12,
+              },
+              request: {
+                schema: {
+                  type: "object",
+                  properties: { seconds: { type: "integer", minimum: 4 } },
+                },
+              },
+            }),
+          },
+        }],
+      });
     },
   );
 
@@ -1784,6 +2036,36 @@ test("BYOK model discovery accepts an unsaved provider form without persisting i
   assert.equal(calls[0].url, "https://draft.example.test/v1/models");
   assert.equal(calls[0].headers.get("Authorization"), "Bearer draft-secret");
   assert.deepEqual(result.models, ["draft-model"]);
+  assert.deepEqual(result.modelMetadata, [{
+    id: "draft-model",
+    capabilities: {
+      operation: "VIDEO",
+      generation: {
+        modes: ["TEXT_TO_VIDEO"],
+        resolutions: ["720p", "1080p"],
+        aspectRatios: ["16:9", "9:16"],
+        minDuration: 4,
+        maxDuration: 12,
+      },
+      request: {
+        schema: {
+          type: "object",
+          properties: { seconds: { type: "integer", minimum: 4 } },
+        },
+      },
+      supportedModes: ["TEXT_TO_VIDEO"],
+      supportedRoles: ["VIDEO_TEXT_TO_VIDEO"],
+      resolutionOptions: ["720p", "1080p"],
+      ratioOptions: ["16:9", "9:16"],
+      aspectRatios: ["16:9", "9:16"],
+      minDuration: 4,
+      maxDuration: 12,
+    },
+    parameterSchema: {
+      type: "object",
+      properties: { seconds: { type: "integer", minimum: 4 } },
+    },
+  }]);
   assert.equal(result.providerId, "provider-draft");
   assert.deepEqual(access.byokProviders, []);
 });
@@ -2030,6 +2312,18 @@ test("BYOK video roles expose requested modes without conflating first frame and
               role: "VIDEO_IMAGE_TO_VIDEO",
               priority: 10,
               enabled: true,
+              capabilities: {
+                resolutionOptions: ["720p"],
+                ratioOptions: ["16:9"],
+                minDuration: 4,
+                maxDuration: 8,
+                limits: { declared: true, retained: true },
+              },
+              capabilityOverrides: {
+                resolutionOptions: ["1080p"],
+                maxDuration: 12,
+                limits: { declared: false },
+              },
             },
             {
               modelId: "video-model",
@@ -2045,6 +2339,11 @@ test("BYOK video roles expose requested modes without conflating first frame and
   );
 
   assert.deepEqual(JSON.parse(catalog.items[0].capabilityJson), {
+    resolutionOptions: ["1080p"],
+    ratioOptions: ["16:9"],
+    minDuration: 4,
+    maxDuration: 12,
+    limits: { declared: false, retained: true },
     supportedModes: ["FIRST_FRAME", "IMAGE_REFERENCE", "IMAGE_TO_VIDEO"],
     routeSelector: "byok:provider-one:video-model",
   });
@@ -2067,6 +2366,12 @@ test("BYOK text catalog projects discovered context and reasoning metadata", asy
         role: "TEXT",
         priority: 10,
         enabled: true,
+        parameterSchema: {
+          type: "object",
+          properties: {
+            temperature: { type: "number", minimum: 0, maximum: 2 },
+          },
+        },
         contextWindow: 32768,
         reasoningEfforts: ["low", "medium", "xhigh"],
         defaultReasoningEffort: "low",
@@ -2085,6 +2390,10 @@ test("BYOK text catalog projects discovered context and reasoning metadata", asy
       enum: ["low", "medium", "xhigh"],
       default: "low",
     },
+  );
+  assert.deepEqual(
+    JSON.parse(catalog.items[0].parameterSchemaJson).properties.temperature,
+    { type: "number", minimum: 0, maximum: 2 },
   );
 });
 
@@ -2321,10 +2630,16 @@ test("assistant conversation override selects one exact route without changing g
       },
     },
   );
-  proxy.configureRouting({
+  const routing = {
     allowsCustomModels: true,
     cloudModelAssignments: [
-      { modelId: "cloud-text", role: "TEXT", priority: 100, enabled: true },
+      {
+        modelId: "cloud-text",
+        role: "TEXT",
+        priority: 100,
+        enabled: true,
+        reasoningEfforts: ["xhigh"],
+      },
     ],
     access: {
       schemaVersion: 5,
@@ -2344,7 +2659,8 @@ test("assistant conversation override selects one exact route without changing g
         },
       ],
     },
-  });
+  };
+  proxy.configureRouting(routing);
   await proxy.start();
   t.after(() => proxy.stop());
 
@@ -2369,6 +2685,47 @@ test("assistant conversation override selects one exact route without changing g
   assert.equal(response.headers.get("x-ai-anime-route-model"), "cloud-text");
   assert.equal(cloudCalls.length, 1);
   assert.equal(JSON.parse(cloudCalls[0].body).reasoning_effort, "xhigh");
+
+  const encodedDisabledEffort = Buffer.from("none", "utf8").toString("base64url");
+  const disabledRequest = {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+      "X-AI-Anime-Request-Surface": "ai-assistant",
+    },
+    body: JSON.stringify({
+      model: `ai-anime-route:${encodedSelector}:reasoning-effort:${encodedDisabledEffort}`,
+      messages: [],
+    }),
+  };
+  const rejectedDisabledResponse = await fetch(
+    `${proxy.baseUrl}/chat/completions`,
+    disabledRequest,
+  );
+
+  assert.equal(rejectedDisabledResponse.status, 422);
+  assert.match(
+    (await rejectedDisabledResponse.json()).error.message,
+    /不支持所选思考力度/,
+  );
+  assert.equal(cloudCalls.length, 1);
+
+  proxy.configureRouting({
+    ...routing,
+    cloudModelAssignments: routing.cloudModelAssignments.map((assignment) => ({
+      ...assignment,
+      reasoningEfforts: ["xhigh", "none"],
+    })),
+  });
+  const disabledResponse = await fetch(
+    `${proxy.baseUrl}/chat/completions`,
+    disabledRequest,
+  );
+
+  assert.equal(disabledResponse.status, 200);
+  assert.equal(cloudCalls.length, 2);
+  assert.equal(JSON.parse(cloudCalls[1].body).reasoning_effort, "none");
 });
 
 test("explicit cloud catalog video selection does not change global role priority", async (t) => {
@@ -4285,6 +4642,136 @@ test("local model proxy rejects HTML returned by the video content endpoint", as
   assert.equal(response.status, 502);
   const payload = await response.json();
   assert.match(payload.error.message, /返回了非视频内容：text\/html/);
+});
+
+test("local model proxy replays all 533 OpenAI-compatible SSE events through DONE", async (t) => {
+  const expectedContent = [
+    "我是 AI anime 助手，当前运行的模型是 **Qwen（QWEN3_8_27B）**，由自定义接入方（custom provider）提供。",
+    "关于上下文大小：我这边没有直接的精确数字。按 Qwen 这个级别的模型通常配置来看，上下文窗口一般在 **128K token** 左右，具体以你部署侧实际拉起的参数为准。",
+    "如果你需要精确的上下文上限，可以在你的部署/接入配置里查一下模型启动参数中的 `max_model_len` 或 `context_length` 字段，那个值才是权威来源。",
+    "服务端这边我继续处理 PUBLIC_HTTP 的 Bearer Key、三个远程入口鉴权、HTTPS 域名与生产配置，不再扫描客户端仓库。",
+  ].join("\n\n");
+  const contentCharacters = Array.from(expectedContent);
+  const contentParts = Array.from({ length: 91 }, (_, index) => {
+    const start = Math.floor(index * contentCharacters.length / 91);
+    const end = Math.floor((index + 1) * contentCharacters.length / 91);
+    return contentCharacters.slice(start, end).join("");
+  });
+  const reasoningParts = Array.from(
+    { length: 438 },
+    (_, index) => `思考片段-${index.toString().padStart(3, "0")};`,
+  );
+  const chunkEvent = (delta, finishReason = null) => `data: ${JSON.stringify({
+    id: "5989b3d6-4914-4a62-ba4d-8a83622443ae",
+    object: "chat.completion.chunk",
+    model: "QWEN3_8_27B",
+    choices: [{ index: 0, delta, finish_reason: finishReason }],
+  })}\n\n`;
+  const events = [
+    chunkEvent({ role: "assistant" }),
+    ...reasoningParts.map((reasoningContent) =>
+      chunkEvent({ reasoning_content: reasoningContent })
+    ),
+    ...contentParts.map((content) => chunkEvent({ content })),
+    chunkEvent({}, "stop"),
+    `data: ${JSON.stringify({
+      id: "5989b3d6-4914-4a62-ba4d-8a83622443ae",
+      object: "chat.completion.chunk",
+      model: "QWEN3_8_27B",
+      choices: [],
+      usage: { prompt_tokens: 12, completion_tokens: 533, total_tokens: 545 },
+    })}\n\n`,
+    "data: [DONE]\n\n",
+  ];
+  assert.equal(events.length, 533);
+
+  const client = {
+    async modelRequest() {
+      let eventIndex = 0;
+      const encoder = new TextEncoder();
+      return new Response(new ReadableStream({
+        pull(controller) {
+          const event = events[eventIndex];
+          if (event === undefined) {
+            controller.close();
+            return;
+          }
+          eventIndex += 1;
+          controller.enqueue(encoder.encode(event));
+        },
+      }), {
+        headers: { "Content-Type": "text/event-stream; charset=utf-8" },
+      });
+    },
+  };
+  const device = {
+    async summary() {
+      return {
+        schemaVersion: 1,
+        publicKey: "public-key",
+        publicKeyHash: "device-public-key-hash",
+      };
+    },
+  };
+  const proxy = new CommercialModelProxy(client, device);
+  configureCloudProxy(proxy, [
+    { modelId: "cloud-text-standard", role: "TEXT" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "cloud-text-standard",
+      messages: [],
+      stream: true,
+    }),
+  });
+  assert.equal(response.status, 200);
+  assert.ok(response.body);
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let replay = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    replay += decoder.decode(value, { stream: true });
+  }
+  replay += decoder.decode();
+
+  const replayedEvents = replay.split(/\r?\n\r?\n/u).filter(Boolean);
+  assert.equal(replayedEvents.length, 533);
+  let content = "";
+  let reasoningContent = "";
+  let finishReason = null;
+  let doneSeen = false;
+  for (const event of replayedEvents) {
+    assert.match(event, /^data: /u);
+    const data = event.slice("data: ".length);
+    if (data === "[DONE]") {
+      doneSeen = true;
+      continue;
+    }
+    const payload = JSON.parse(data);
+    const choice = payload.choices?.[0];
+    reasoningContent += choice?.delta?.reasoning_content ?? "";
+    content += choice?.delta?.content ?? "";
+    finishReason = choice?.finish_reason ?? finishReason;
+  }
+
+  assert.equal(doneSeen, true);
+  assert.equal(replayedEvents.at(-1), "data: [DONE]");
+  assert.equal(finishReason, "stop");
+  assert.equal(reasoningContent, reasoningParts.join(""));
+  assert.equal(content, expectedContent);
+  assert.match(content, /custom provider）提供。\n\n关于上下文大小/u);
+  assert.match(content, /context_length` 字段.*\n\n服务端这边/u);
 });
 
 test("local model proxy aborts an upstream stream when the local client disconnects", async (t) => {

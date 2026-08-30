@@ -14,6 +14,9 @@ from ai_anime.modules.model_usage.public import (
     get_newapi_text_pydantic_model_settings,
 )
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
+from ai_anime.shared.infrastructure.project_sqlite_graph_state import (
+    normalize_alias_lookup,
+)
 from ai_anime.shared.time_of_day import normalize_time_of_day
 from ai_anime.shared.utils.derived_scenes import compose_derived_scene_name
 from ai_anime.modules.narrative_planning.public import (
@@ -1258,10 +1261,6 @@ class AssetCompiler:
             )
             seen_prop_ids.add(prop_id)
 
-    @staticmethod
-    def _normalize_alias_lookup(value: str) -> str:
-        return " ".join((value or "").replace("\u3000", " ").strip().lower().split())
-
     async def _find_matching_scene(self, name: str) -> Optional[NovelScene]:
         scene = await self.cognee_store.sqlite_store.get_scene(name)
         if scene:
@@ -1437,10 +1436,10 @@ class AssetCompiler:
         if prop:
             return prop
 
-        lookup = self._normalize_alias_lookup(name)
+        lookup = normalize_alias_lookup(name)
         all_props = await self.cognee_store.sqlite_store.list_props()
         for item in all_props:
-            if any(self._normalize_alias_lookup(alias) == lookup for alias in item.aliases):
+            if any(normalize_alias_lookup(alias) == lookup for alias in item.aliases):
                 return item
             if name in item.name or item.name in name:
                 return item

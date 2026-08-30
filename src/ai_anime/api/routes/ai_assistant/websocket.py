@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -13,6 +14,7 @@ from ai_anime.modules.ai_assistant.public import ChatScope
 
 ChatEventSink = Callable[[dict[str, Any]], Awaitable[None]]
 ChatEventStream = Callable[[ChatEventSink], Awaitable[None]]
+_log = logging.getLogger(__name__)
 
 
 async def send_json_best_effort(
@@ -68,10 +70,23 @@ async def stream_chat_turn(
             interval_seconds=heartbeat_interval_seconds,
         )
     )
+    delivery_open = True
 
     async def on_event(event: dict[str, Any]) -> None:
-        async with send_lock:
-            await websocket.send_json(event)
+        nonlocal delivery_open
+        if not delivery_open:
+            return
+        delivery_open = await send_json_best_effort(
+            websocket,
+            event,
+            send_lock,
+        )
+        if not delivery_open:
+            _log.warning(
+                "chat websocket delivery closed; generation continues turn=%s scope=%s",
+                turn_id,
+                scope.to_dict(),
+            )
 
     try:
         await event_stream(on_event)

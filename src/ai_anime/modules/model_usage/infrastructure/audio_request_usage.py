@@ -2,48 +2,15 @@
 
 from __future__ import annotations
 
-import sqlite3
-from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 
-from ai_anime.migrations.model_usage import (
-    MIGRATION_VERSION,
-    run_model_usage_migrations,
+from ai_anime.modules.model_usage.infrastructure.request_usage_db import (
+    get_request_usage_db_path,
+    request_usage_connection as _connect,
 )
-from ai_anime.migrations.sqlite import ensure_sqlite_schema
-from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
-from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
 
-
-def get_audio_request_usage_db_path(project_output_dir: str | Path) -> Path:
-    project_output_dir = Path(project_output_dir).resolve()
-    output_root = Path(OUTPUT_DIR).resolve()
-    state_root = Path(STATE_DIR).resolve()
-    try:
-        rel = project_output_dir.relative_to(output_root)
-    except ValueError:
-        return (project_output_dir / "data.db").resolve()
-    return (state_root / rel / "data.db").resolve()
-
-
-@contextmanager
-def _connect(project_output_dir: str | Path):
-    db_path = get_audio_request_usage_db_path(project_output_dir)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    ensure_sqlite_schema(
-        db_path,
-        component="model_usage",
-        version=MIGRATION_VERSION,
-        initialize=run_model_usage_migrations,
-    )
-    conn = sqlite3.connect(db_path, timeout=10, check_same_thread=False)
-    configure_sqlite_connection(conn, set_journal_mode=False)
-    try:
-        yield conn
-        conn.commit()
-    finally:
-        conn.close()
+get_audio_request_usage_db_path = get_request_usage_db_path
 
 
 def record_audio_generation_attempt(

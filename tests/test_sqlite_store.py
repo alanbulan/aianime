@@ -13,10 +13,14 @@
 import asyncio
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from ai_anime.modules.narrative_planning.public import NovelEpisode
+from ai_anime.shared.infrastructure.project_sqlite_graph_state import (
+    ProjectSQLiteGraphStateMixin,
+)
 
 
 # ── 1. 导入不报错 ──────────────────────────────────────────
@@ -34,6 +38,62 @@ def test_import():
     # 确认没有 DataPoint 基类
     for cls in NovelCharacter.__mro__:
         assert "DataPoint" not in cls.__name__
+
+
+def test_cognee_store_sync_keeps_shared_cache_objects_stable():
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
+
+    class SharedCache(dict):
+        def clear(self) -> None:
+            raise AssertionError("shared caches must not be cleared during sync")
+
+    store = CogneeStore.__new__(CogneeStore)
+    store._characters = SharedCache()
+    store._episodes = SharedCache()
+    store._props = SharedCache()
+    store._alias_index = SharedCache()
+    store.sqlite_store = SimpleNamespace(
+        _characters=store._characters,
+        _episodes=store._episodes,
+        _props=store._props,
+        _alias_index=store._alias_index,
+    )
+
+    store._sync_sqlite_caches()
+
+    assert store._characters is store.sqlite_store._characters
+    assert store._episodes is store.sqlite_store._episodes
+    assert store._props is store.sqlite_store._props
+    assert store._alias_index is store.sqlite_store._alias_index
+
+
+def test_cognee_store_sync_atomically_restores_replaced_cache_reference():
+    from ai_anime.modules.knowledge_graph.infrastructure.store import CogneeStore
+
+    store = CogneeStore.__new__(CogneeStore)
+    store._characters = {"stale": object()}
+    store._episodes = {}
+    store._props = {}
+    store._alias_index = {}
+    current_characters = {"current": object()}
+    store.sqlite_store = SimpleNamespace(
+        _characters=current_characters,
+        _episodes=store._episodes,
+        _props=store._props,
+        _alias_index=store._alias_index,
+    )
+
+    store._sync_sqlite_caches()
+
+    assert store._characters is current_characters
+
+
+def test_project_graph_state_owns_alias_normalization_contract():
+    prop = SimpleNamespace(name="青铜 宝剑", aliases=["  镇妖\u3000剑  "])
+    state = ProjectSQLiteGraphStateMixin()
+    state._props = {prop.name: prop}
+
+    assert state.get_cached_prop("镇妖 剑") is prop
 
 
 # ── Fixture: 临时项目目录 + store ─────────────────────────

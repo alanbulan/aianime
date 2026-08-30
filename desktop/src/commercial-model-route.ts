@@ -21,6 +21,7 @@ export interface ModelRoute {
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
   defaultReasoningEffort?: string;
+  parameterOverrides?: Record<string, unknown>;
 }
 
 export interface PreparedBody {

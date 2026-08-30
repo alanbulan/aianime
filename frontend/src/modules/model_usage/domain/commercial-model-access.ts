@@ -61,6 +61,7 @@ export interface ModelRuntimeOverrides {
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
   defaultReasoningEffort?: string;
+  parameterOverrides?: Record<string, unknown>;
 }
 
 export interface ByokModelAssignment {
@@ -68,6 +69,9 @@ export interface ByokModelAssignment {
   role: ByokModelRole;
   priority: number;
   enabled: boolean;
+  capabilities?: Record<string, unknown>;
+  capabilityOverrides?: Record<string, unknown>;
+  parameterSchema?: Record<string, unknown>;
   contextWindow?: number;
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
@@ -77,6 +81,8 @@ export interface ByokModelAssignment {
 
 export interface ByokDiscoveredModelMetadata {
   id: string;
+  capabilities?: Record<string, unknown>;
+  parameterSchema?: Record<string, unknown>;
   contextWindow?: number;
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
@@ -336,7 +342,22 @@ function parseModelRuntimeMetadata(
   const defaultReasoningEffort = typeof value.defaultReasoningEffort === "string"
     ? value.defaultReasoningEffort.trim()
     : "";
+  const parameterSchema = optionalJsonObject(
+    value.parameterSchema,
+    "parameterSchema",
+  );
+  const capabilities = optionalJsonObject(
+    value.capabilities,
+    "capabilities",
+  );
+  const capabilityOverrides = optionalJsonObject(
+    value.capabilityOverrides,
+    "capabilityOverrides",
+  );
   return {
+    ...(capabilities ? { capabilities } : {}),
+    ...(capabilityOverrides ? { capabilityOverrides } : {}),
+    ...(parameterSchema ? { parameterSchema } : {}),
     ...(typeof contextWindow === "number"
       && Number.isSafeInteger(contextWindow)
       && contextWindow > 0
@@ -375,6 +396,10 @@ function parseRuntimeOverrides(value: unknown): Pick<
   const requestedDefault = typeof raw.defaultReasoningEffort === "string"
     ? raw.defaultReasoningEffort.trim()
     : "";
+  const parameterOverrides = optionalJsonObject(
+    raw.parameterOverrides,
+    "runtimeOverrides.parameterOverrides",
+  );
   const runtimeOverrides: ModelRuntimeOverrides = {
     ...(contextWindow === undefined ? {} : { contextWindow }),
     ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
@@ -382,6 +407,7 @@ function parseRuntimeOverrides(value: unknown): Pick<
     ...(requestedDefault && reasoningEfforts.includes(requestedDefault)
       ? { defaultReasoningEffort: requestedDefault }
       : {}),
+    ...(parameterOverrides ? { parameterOverrides } : {}),
   };
   return Object.keys(runtimeOverrides).length ? { runtimeOverrides } : {};
 }
@@ -392,6 +418,49 @@ function optionalPositiveInteger(value: unknown): number | undefined {
     && value > 0
     ? value
     : undefined;
+}
+
+function optionalJsonObject(
+  value: unknown,
+  name: string,
+): Record<string, unknown> | undefined {
+  if (value === undefined || value === null) return undefined;
+  const source = record(value, name);
+  const normalized = cloneJsonObject(source, name, 0);
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
+function cloneJsonObject(
+  value: Record<string, unknown>,
+  name: string,
+  depth: number,
+): Record<string, unknown> {
+  if (depth > 12) throw new Error(`${name} is too deeply nested`);
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      cloneJsonValue(item, `${name}.${key}`, depth + 1),
+    ]),
+  );
+}
+
+function cloneJsonValue(value: unknown, name: string, depth: number): unknown {
+  if (
+    value === null
+    || typeof value === "string"
+    || typeof value === "boolean"
+    || (typeof value === "number" && Number.isFinite(value))
+  ) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    if (depth > 12) throw new Error(`${name} is too deeply nested`);
+    return value.map((item, index) => cloneJsonValue(item, `${name}[${index}]`, depth + 1));
+  }
+  if (value && typeof value === "object") {
+    return cloneJsonObject(value as Record<string, unknown>, name, depth);
+  }
+  throw new Error(`${name} must contain JSON values`);
 }
 
 function positiveInteger(value: unknown, fallback: number): number {

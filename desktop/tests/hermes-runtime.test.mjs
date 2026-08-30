@@ -13,7 +13,7 @@ import {
 test("development and packaged Hermes paths are deterministic", () => {
   assert.equal(
     developmentHermesCliPath("C:\\repo", "win32"),
-    "C:\\repo\\desktop\\hermes-runtime\\.venv\\Scripts\\hermes.exe",
+    "C:\\repo\\desktop\\hermes-runtime\\hermes_acp.py",
   );
   assert.equal(
     packagedHermesCliPath("C:\\resources", "win32"),
@@ -108,6 +108,10 @@ test("desktop packaging pins and bundles the isolated Hermes runtime", async () 
     new URL("../hermes-runtime/hermes_acp.py", import.meta.url),
     "utf8",
   );
+  const runtimePatch = await readFile(
+    new URL("../hermes-runtime/ai_anime_acp_runtime.py", import.meta.url),
+    "utf8",
+  );
   const runtimeSpec = await readFile(
     new URL("../hermes-runtime/hermes_acp.spec", import.meta.url),
     "utf8",
@@ -134,9 +138,14 @@ test("desktop packaging pins and bundles the isolated Hermes runtime", async () 
   );
   assert.match(developmentSource, /await prepareHermesRuntime\(\)/);
   assert.match(developmentSource, /\["sync", "--project", HERMES_RUNTIME_ROOT, "--locked", "--no-dev"\]/);
+  assert.doesNotMatch(developmentSource, /developmentHermesPythonPath/);
   assert.doesNotMatch(backendSource, /AI_ANIME_CHAT_BACKEND/);
   assert.doesNotMatch(backendSource, /process\.env\.HERMES_CLI_PATH/);
   assert.match(runtimeEntrypoint, /from acp_adapter\.entry import main/);
+  assert.match(runtimeEntrypoint, /install_ai_anime_acp_runtime\(\)/);
   assert.match(runtimeEntrypoint, /args\[:1\] == \["acp"\]/);
+  assert.match(runtimePatch, /session\/set_config_option|set_config_option/);
+  assert.match(runtimePatch, /_apply_session_route/);
+  assert.doesNotMatch(runtimePatch, /_make_agent/);
   assert.match(runtimeSpec, /copy_metadata\("hermes-agent"\)/);
 });

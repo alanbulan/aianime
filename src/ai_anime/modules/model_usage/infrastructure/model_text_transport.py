@@ -7,6 +7,10 @@ from typing import Any
 
 import httpx
 
+from ai_anime.modules.model_usage.infrastructure.protocol_errors import (
+    model_protocol_error_message,
+)
+
 
 class ModelTextTransportError(RuntimeError):
     def __init__(
@@ -102,7 +106,7 @@ async def request_model_chat_content(
     request_id = request_id or str(
         data.get("request_id") or data.get("requestId") or ""
     ).strip()
-    protocol_error = _protocol_error_message(data)
+    protocol_error = model_protocol_error_message(data)
     if protocol_error:
         raise ModelTextTransportError(
             f"text model protocol error: {protocol_error}",
@@ -139,23 +143,9 @@ def _message_content_text(content: object) -> str:
     return "".join(parts).strip()
 
 
-def _protocol_error_message(payload: object) -> str:
-    if not isinstance(payload, dict):
-        return ""
-    error = payload.get("error")
-    if isinstance(error, dict):
-        return str(error.get("message") or error.get("code") or "model request failed")
-    if error:
-        return str(error)
-    status = str(payload.get("status") or "").strip().lower()
-    if status in {"failed", "error"}:
-        return str(payload.get("message") or "model request failed")
-    return ""
-
-
 def _response_error_message(response: httpx.Response) -> str:
     try:
-        return _protocol_error_message(response.json())
+        return model_protocol_error_message(response.json())
     except (TypeError, ValueError):
         return ""
 

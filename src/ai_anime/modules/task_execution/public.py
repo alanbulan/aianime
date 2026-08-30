@@ -70,6 +70,10 @@ from ai_anime.modules.task_execution.domain.task_metadata import (
     display_metadata_for_task,
 )
 from ai_anime.modules.task_execution.domain.task_time import parse_task_timestamp
+from ai_anime.modules.task_execution.domain.script_progress import (
+    beat_has_script_content,
+    script_beats_complete,
+)
 from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     ACTIVE_PROJECT_TASK_STATUSES,
     InterruptedTaskRecoveryPlan,
@@ -157,6 +161,7 @@ __all__ = [
     "build_inline_task_backend",
     "await_envelope_with_cancel_watch",
     "await_with_cancel_watch",
+    "beat_has_script_content",
     "cancel_key",
     "cloud_task_kind",
     "create_project_task_limit_use_cases",
@@ -193,6 +198,7 @@ __all__ = [
     "run_project_task_core_sync",
     "selection_scope",
     "serialize_project_task",
+    "script_beats_complete",
     "task_config_scope",
     "task_scope_from_key",
     "task_state_key",

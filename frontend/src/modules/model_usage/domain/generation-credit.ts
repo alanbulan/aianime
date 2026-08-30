@@ -21,6 +21,23 @@ export interface GenerationCreditCostRequest {
   options?: GenerationCreditCostOptions;
 }
 
+export const IMAGE_QUALITY_MODEL_IDS = [
+  "lingshan-g2",
+  "gpt-image-2",
+  "image-2",
+  "image-2-official",
+] as const;
+
+const IMAGE_QUALITY_MODEL_ID_SET = new Set<string>(IMAGE_QUALITY_MODEL_IDS);
+
+export function imageModelSupportsQuality(model: string | null | undefined): boolean {
+  const normalized = String(model ?? "").trim().toLowerCase();
+  return (
+    IMAGE_QUALITY_MODEL_ID_SET.has(normalized)
+    || normalized.includes("gpt-image")
+  );
+}
+
 export interface GenerationCreditCostResponse {
   ok: true;
   data: GenerationCreditCost;

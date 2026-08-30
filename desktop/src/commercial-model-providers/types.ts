@@ -25,6 +25,8 @@ export interface ProviderModelDiscoveryInput {
 
 export interface ProviderDiscoveredModel {
   id: string;
+  capabilities?: Record<string, unknown>;
+  parameterSchema?: Record<string, unknown>;
   contextWindow?: number;
   maxOutputTokens?: number;
   reasoningEfforts?: string[];

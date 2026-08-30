@@ -277,9 +277,32 @@ export function discoveredModelFromRecord(
   id: string,
   model: Record<string, unknown>,
 ): ProviderDiscoveredModel {
-  const capabilities = optionalObject(model.capabilities);
-  const parameterSchema = optionalObject(
-    model.parameter_schema ?? model.parameterSchema,
+  const metadata = optionalObject(model.metadata);
+  const declaredCapabilities = optionalJsonObject(
+    model.capabilities
+      ?? model.capability
+      ?? model.capability_json
+      ?? model.capabilityJson
+      ?? metadata?.capabilities
+      ?? metadata?.capability,
+  );
+  const requestContract = optionalObject(declaredCapabilities?.request);
+  const parameterSchema = optionalJsonObject(
+    model.parameter_schema
+      ?? model.parameterSchema
+      ?? model.parameter_schema_json
+      ?? model.parameterSchemaJson
+      ?? model.input_schema
+      ?? model.inputSchema
+      ?? declaredCapabilities?.parameter_schema
+      ?? declaredCapabilities?.parameterSchema
+      ?? requestContract?.parameter_schema
+      ?? requestContract?.parameterSchema
+      ?? requestContract?.schema,
+  );
+  const capabilities = normalizedDiscoveredCapabilities(
+    model,
+    declaredCapabilities,
   );
   const properties = optionalObject(parameterSchema?.properties);
   const reasoning = reasoningMetadata(
@@ -339,6 +362,10 @@ export function discoveredModelFromRecord(
   );
   return {
     id,
+    ...(capabilities ? { capabilities } : {}),
+    ...(parameterSchema && Object.keys(parameterSchema).length > 0
+      ? { parameterSchema }
+      : {}),
     ...(contextWindow === undefined ? {} : { contextWindow }),
     ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }),
     ...(reasoning.options.length === 0
@@ -350,6 +377,195 @@ export function discoveredModelFromRecord(
             : {}),
         }),
   };
+}
+
+function normalizedDiscoveredCapabilities(
+  model: Record<string, unknown>,
+  declared: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  const generation = optionalObject(declared?.generation);
+  const operation = stringValue(
+    model.operation
+      ?? model.model_operation
+      ?? model.modelOperation
+      ?? declared?.operation,
+  ).toUpperCase();
+  const supportedModes = uniqueStringValues(
+    model.supported_modes,
+    model.supportedModes,
+    declared?.supported_modes,
+    declared?.supportedModes,
+    declared?.modes,
+    generation?.supported_modes,
+    generation?.supportedModes,
+    generation?.modes,
+  );
+  const supportedRoles = Array.from(new Set(
+    uniqueStringValues(
+      model.supported_roles,
+      model.supportedRoles,
+      model.model_roles,
+      model.modelRoles,
+      declared?.supported_roles,
+      declared?.supportedRoles,
+      declared?.model_roles,
+      declared?.modelRoles,
+    ).map((role) => role.toUpperCase()),
+  ));
+  const resolutionOptions = uniqueStringValues(
+    model.resolution_options,
+    model.resolutionOptions,
+    model.resolutions,
+    declared?.resolution_options,
+    declared?.resolutionOptions,
+    declared?.resolutions,
+    generation?.resolution_options,
+    generation?.resolutionOptions,
+    generation?.resolutions,
+  );
+  const sizeOptions = uniqueStringValues(
+    model.size_options,
+    model.sizeOptions,
+    model.image_sizes,
+    model.imageSizes,
+    model.sizes,
+    declared?.size_options,
+    declared?.sizeOptions,
+    declared?.image_sizes,
+    declared?.imageSizes,
+    generation?.size_options,
+    generation?.sizeOptions,
+    generation?.image_sizes,
+    generation?.imageSizes,
+  );
+  const ratioOptions = uniqueStringValues(
+    model.ratio_options,
+    model.ratioOptions,
+    model.aspect_ratio_options,
+    model.aspectRatioOptions,
+    model.aspect_ratios,
+    model.aspectRatios,
+    declared?.ratio_options,
+    declared?.ratioOptions,
+    declared?.aspect_ratio_options,
+    declared?.aspectRatioOptions,
+    declared?.aspect_ratios,
+    declared?.aspectRatios,
+    generation?.ratio_options,
+    generation?.ratioOptions,
+    generation?.aspectRatioOptions,
+    generation?.aspectRatios,
+  );
+  const durationOptions = uniquePositiveNumbers(
+    model.duration_options,
+    model.durationOptions,
+    model.seconds_options,
+    model.secondsOptions,
+    declared?.duration_options,
+    declared?.durationOptions,
+    declared?.seconds_options,
+    declared?.secondsOptions,
+    generation?.duration_options,
+    generation?.durationOptions,
+    generation?.seconds_options,
+    generation?.secondsOptions,
+  );
+  const minDuration = firstPositiveNumber(
+    model.min_duration,
+    model.minDuration,
+    model.min_seconds,
+    model.minSeconds,
+    declared?.min_duration,
+    declared?.minDuration,
+    declared?.min_seconds,
+    declared?.minSeconds,
+    generation?.min_duration,
+    generation?.minDuration,
+    generation?.min_seconds,
+    generation?.minSeconds,
+  );
+  const maxDuration = firstPositiveNumber(
+    model.max_duration,
+    model.maxDuration,
+    model.max_seconds,
+    model.maxSeconds,
+    declared?.max_duration,
+    declared?.maxDuration,
+    declared?.max_seconds,
+    declared?.maxSeconds,
+    generation?.max_duration,
+    generation?.maxDuration,
+    generation?.max_seconds,
+    generation?.maxSeconds,
+  );
+  const supportsGenerateAudio = firstBoolean(
+    model.supports_generate_audio,
+    model.supportsGenerateAudio,
+    declared?.supports_generate_audio,
+    declared?.supportsGenerateAudio,
+    generation?.supports_generate_audio,
+    generation?.supportsGenerateAudio,
+  );
+  const supportsHumanReview = firstBoolean(
+    model.supports_human_review,
+    model.supportsHumanReview,
+    declared?.supports_human_review,
+    declared?.supportsHumanReview,
+    generation?.supports_human_review,
+    generation?.supportsHumanReview,
+  );
+  const normalized: Record<string, unknown> = {
+    ...(declared ?? {}),
+    ...(operation ? { operation } : {}),
+    ...(supportedModes.length ? { supportedModes } : {}),
+    ...(supportedRoles.length ? { supportedRoles } : {}),
+    ...(resolutionOptions.length ? { resolutionOptions } : {}),
+    ...(sizeOptions.length ? { sizeOptions } : {}),
+    ...(ratioOptions.length ? { ratioOptions, aspectRatios: ratioOptions } : {}),
+    ...(durationOptions.length ? { durationOptions } : {}),
+    ...(minDuration === undefined ? {} : { minDuration }),
+    ...(maxDuration === undefined ? {} : { maxDuration }),
+    ...(supportsGenerateAudio === undefined ? {} : { supportsGenerateAudio }),
+    ...(supportsHumanReview === undefined ? {} : { supportsHumanReview }),
+  };
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
+function uniqueStringValues(...values: unknown[]): string[] {
+  return Array.from(new Set(
+    values.flatMap((value) => (
+      Array.isArray(value)
+        ? value
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : []
+    )),
+  ));
+}
+
+function uniquePositiveNumbers(...values: unknown[]): number[] {
+  return Array.from(new Set(
+    values.flatMap((value) => (
+      Array.isArray(value)
+        ? value.filter(
+            (item): item is number =>
+              typeof item === "number" && Number.isFinite(item) && item > 0,
+          )
+        : []
+    )),
+  ));
+}
+
+function firstPositiveNumber(...values: unknown[]): number | undefined {
+  return values.find(
+    (value): value is number =>
+      typeof value === "number" && Number.isFinite(value) && value > 0,
+  );
+}
+
+function firstBoolean(...values: unknown[]): boolean | undefined {
+  return values.find((value): value is boolean => typeof value === "boolean");
 }
 
 function reasoningMetadata(value: unknown): {
@@ -385,6 +601,17 @@ function optionalObject(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : undefined;
+}
+
+function optionalJsonObject(value: unknown): Record<string, unknown> | undefined {
+  const direct = optionalObject(value);
+  if (direct) return direct;
+  if (typeof value !== "string" || !value.trim()) return undefined;
+  try {
+    return optionalObject(JSON.parse(value) as unknown);
+  } catch {
+    return undefined;
+  }
 }
 
 function firstPositiveInteger(...values: unknown[]): number | undefined {

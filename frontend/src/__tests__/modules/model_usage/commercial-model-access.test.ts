@@ -5,6 +5,7 @@ import {
   BYOK_MODEL_ROLES,
   commercialModelRoles,
   effectiveModelRuntimeSettings,
+  parseByokDiscoveredModelMetadata,
   parseCommercialModelAccessStatus,
   parseCommercialModelCatalogItem,
   resolveRequiredCatalogModelCode,
@@ -12,11 +13,45 @@ import {
   type CommercialModelCatalog,
 } from "@/modules/model_usage/domain/commercial-model-access";
 import {
+  commercialModelParameterDeclarations,
+  commercialModelParameterOverrideDeclarations,
   commercialModelRuntimeMetadata,
   formatReasoningEffort,
+  modelParameterOverrideDraft,
+  parseModelCapabilityOverridesJsonDraft,
+  parseModelParameterOverrideDrafts,
+  parseModelParameterOverridesJsonDraft,
 } from "@/modules/model_usage/domain/model-runtime-metadata";
 
 describe("commercial model details", () => {
+  it("keeps a parameter schema returned by BYOK model discovery", () => {
+    expect(parseByokDiscoveredModelMetadata({
+      id: "deepseek-ai/DeepSeek-V4-Flash-0731",
+      capabilities: {
+        supportedModes: ["TEXT_TO_IMAGE"],
+        resolutionOptions: ["1024x1024"],
+      },
+      parameterSchema: {
+        type: "object",
+        properties: {
+          temperature: { type: "number", minimum: 0, maximum: 2 },
+        },
+      },
+    })).toEqual({
+      id: "deepseek-ai/DeepSeek-V4-Flash-0731",
+      capabilities: {
+        supportedModes: ["TEXT_TO_IMAGE"],
+        resolutionOptions: ["1024x1024"],
+      },
+      parameterSchema: {
+        type: "object",
+        properties: {
+          temperature: { type: "number", minimum: 0, maximum: 2 },
+        },
+      },
+    });
+  });
+
   it("reads runtime limits from capabilities and JSON Schema properties", () => {
     const metadata = commercialModelRuntimeMetadata({
       capabilities: { contextWindowTokens: 32768 },
@@ -59,6 +94,154 @@ describe("commercial model details", () => {
         },
       },
     })).toEqual({});
+  });
+
+  it("recognizes every top-level parameter in the live Qwen catalog schema", () => {
+    const declarations = commercialModelParameterDeclarations({
+      type: "object",
+      properties: {
+        top_k: { type: "integer", minimum: -1, default: 20 },
+        top_p: { type: "number", minimum: 0, maximum: 1, default: 0.95 },
+        max_tokens: { type: "integer", minimum: 1, maximum: 131072 },
+        temperature: { type: "number", minimum: 0, maximum: 2, default: 1 },
+        reasoning_effort: {
+          type: "string",
+          enum: ["low", "medium", "high"],
+          default: "low",
+        },
+        include_reasoning: { type: "boolean", default: true },
+      },
+      additionalProperties: true,
+    });
+
+    expect(declarations.map((item) => item.path)).toEqual([
+      "top_k",
+      "top_p",
+      "max_tokens",
+      "temperature",
+      "reasoning_effort",
+      "include_reasoning",
+    ]);
+    expect(declarations.find((item) => item.path === "include_reasoning"))
+      .toMatchObject({
+        depth: 0,
+        required: false,
+        schema: { type: "boolean", default: true },
+      });
+  });
+
+  it("keeps nested JSON Schema properties addressable by their full path", () => {
+    const declarations = commercialModelParameterDeclarations({
+      type: "object",
+      properties: {
+        thinking: {
+          type: "object",
+          properties: {
+            type: {
+              type: "string",
+              enum: ["disabled", "adaptive"],
+              default: "adaptive",
+            },
+          },
+        },
+        stream_options: {
+          type: "object",
+          properties: {
+            include_usage: { type: "boolean", default: false },
+          },
+        },
+      },
+    });
+
+    expect(declarations.map((item) => [item.path, item.depth])).toEqual([
+      ["thinking", 0],
+      ["thinking.type", 1],
+      ["stream_options", 0],
+      ["stream_options.include_usage", 1],
+    ]);
+  });
+
+  it("builds nested request overrides from every writable schema leaf", () => {
+    const declarations = commercialModelParameterOverrideDeclarations({
+      type: "object",
+      properties: {
+        prompt: { type: "string" },
+        fixedCount: { type: "integer", enum: [1], default: 1 },
+        quality: { type: "string", enum: ["standard", "hd"], default: "standard" },
+        count: { type: "integer", minimum: 1, maximum: 4 },
+        options: {
+          type: "object",
+          properties: {
+            transparent: { type: "boolean", default: false },
+          },
+        },
+        fixed: { type: "string", const: "server-owned" },
+      },
+      required: ["prompt"],
+    });
+    const byPath = Object.fromEntries(declarations.map((item) => [item.path, item]));
+    const parsed = parseModelParameterOverrideDrafts(declarations, {
+      [byPath.quality.key]: JSON.stringify("hd"),
+      [byPath.count.key]: "3",
+      [byPath["options.transparent"].key]: "true",
+    });
+
+    expect(declarations.map((item) => item.path)).toEqual([
+      "quality",
+      "count",
+      "options.transparent",
+    ]);
+    expect(parsed).toEqual({
+      value: {
+        quality: "hd",
+        count: 3,
+        options: { transparent: true },
+      },
+    });
+    expect(modelParameterOverrideDraft(
+      byPath.quality,
+      parsed.value,
+    )).toBe(JSON.stringify("hd"));
+    expect(parseModelParameterOverrideDrafts(declarations, {
+      [byPath.count.key]: "9",
+    })).toEqual({ value: {}, invalidPath: "count" });
+  });
+
+  it("parses schema-less BYOK request overrides as one JSON object", () => {
+    expect(parseModelParameterOverridesJsonDraft(JSON.stringify({
+      temperature: 0.7,
+      thinking: { type: "disabled" },
+    }))).toEqual({
+      value: {
+        temperature: 0.7,
+        thinking: { type: "disabled" },
+      },
+    });
+    expect(parseModelParameterOverridesJsonDraft("[]"))
+      .toEqual({ value: {}, invalidPath: "$" });
+    expect(parseModelParameterOverridesJsonDraft('{"model":"forbidden"}'))
+      .toEqual({ value: {}, invalidPath: "model" });
+  });
+
+  it("parses non-text BYOK capability overrides independently from request routing", () => {
+    expect(parseModelCapabilityOverridesJsonDraft(JSON.stringify({
+      model: "capability-label",
+      resolutionOptions: ["720p", "1080p"],
+      ratioOptions: ["16:9", "9:16"],
+      minDuration: 4,
+      maxDuration: 10,
+    }))).toEqual({
+      value: {
+        model: "capability-label",
+        resolutionOptions: ["720p", "1080p"],
+        ratioOptions: ["16:9", "9:16"],
+        minDuration: 4,
+        maxDuration: 10,
+      },
+    });
+    expect(parseModelCapabilityOverridesJsonDraft(
+      '{"nested":{"constructor":{}}}',
+    )).toEqual({ value: {}, invalidPath: "nested.constructor" });
   });
 
   it("projects renderer-safe capability and parameter JSON", () => {
@@ -218,6 +401,10 @@ describe("commercial model access status", () => {
           maxOutputTokens: 8192,
           reasoningEfforts: ["medium", "xhigh"],
           defaultReasoningEffort: "xhigh",
+          parameterOverrides: {
+            quality: "hd",
+            options: { transparent: true },
+          },
         },
       }],
     }).cloudModelAssignments;
@@ -227,6 +414,16 @@ describe("commercial model access status", () => {
       maxOutputTokens: 2048,
       reasoningEfforts: ["low", "medium", "xhigh"],
       defaultReasoningEffort: "low",
+      runtimeOverrides: {
+        contextWindow: 65536,
+        maxOutputTokens: 8192,
+        reasoningEfforts: ["medium", "xhigh"],
+        defaultReasoningEffort: "xhigh",
+        parameterOverrides: {
+          quality: "hd",
+          options: { transparent: true },
+        },
+      },
     });
     expect(effectiveModelRuntimeSettings(assignment)).toEqual({
       contextWindow: 65536,

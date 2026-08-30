@@ -106,7 +106,10 @@ def decode_model_selection(value: object) -> ModelRouteSelection | None:
         selector = None
         suffix = remainder[len(REASONING_EFFORT_MARKER) :] if remainder else ""
     reasoning_effort = _decode_token(suffix.strip()) if suffix else None
-    if reasoning_effort is not None and not _valid_reasoning_effort(reasoning_effort):
+    if suffix and (
+        reasoning_effort is None
+        or not _valid_reasoning_effort(reasoning_effort)
+    ):
         return None
     return ModelRouteSelection(
         selector=selector,

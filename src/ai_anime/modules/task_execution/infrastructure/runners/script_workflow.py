@@ -19,6 +19,7 @@ from ai_anime.modules.task_execution.public import (
     ProjectTask,
     ProjectTaskRef,
     await_envelope_with_cancel_watch,
+    script_beats_complete,
     effective_task_status,
     project_task_state_key,
     project_task_use_cases,
@@ -31,25 +32,6 @@ from ai_anime.modules.task_execution.infrastructure.task_state import (
 _ACTIVE_STATUSES = frozenset({"submitting", "queued", "running", "cancelling"})
 _FAILED_STATUSES = frozenset({"failed", "cancelled", "canceled"})
 _TASK_NOT_FOUND_GRACE_SECONDS = 10.0
-
-
-def _beat_has_script_content(beat: dict[str, Any]) -> bool:
-    return bool(
-        str(beat.get("narration_segment") or "").strip()
-        or str(beat.get("narration") or "").strip()
-        or str(beat.get("visual_description") or "").strip()
-    )
-
-
-def _script_beats_complete(
-    beats: list[dict[str, Any]],
-    target_beats: int | None,
-) -> bool:
-    return (
-        bool(beats)
-        and (target_beats is None or len(beats) == target_beats)
-        and all(_beat_has_script_content(beat) for beat in beats)
-    )
 
 
 def _task_ref_for_node(node: ScriptWorkflowNode) -> ProjectTaskRef:
@@ -181,13 +163,13 @@ class ProjectScriptWorkflowRuntime:
                 if getattr(episode, "scene_menu", None):
                     scenes.add(episode_number)
                 beats = await store.get_beats_as_dicts(episode_number)
-                if _script_beats_complete(beats, options.target_beats):
+                if script_beats_complete(beats, options.target_beats):
                     scripts.add(episode_number)
                 elif (
                     options.target_beats is not None
                     and beats
                     and len(beats) != options.target_beats
-                    and all(_beat_has_script_content(beat) for beat in beats)
+                    and script_beats_complete(beats, None)
                 ):
                     script_target_mismatches.add(episode_number)
         finally:

@@ -14,6 +14,10 @@ from urllib.parse import urlparse
 
 import httpx
 
+from ai_anime.modules.model_usage.infrastructure.protocol_errors import (
+    model_protocol_error_message,
+)
+
 AudioSpeechModelRole = Literal["AUDIO_SPEECH", "AUDIO_VOICE_CLONE"]
 _AUDIO_SPEECH_MODEL_ROLES = frozenset({"AUDIO_SPEECH", "AUDIO_VOICE_CLONE"})
 _MAX_REFERENCE_AUDIO_BYTES = 100 * 1024 * 1024
@@ -61,26 +65,12 @@ def _reject_transport_fields(value: object, *, path: str = "metadata") -> None:
             _reject_transport_fields(item, path=f"{path}[{index}]")
 
 
-def _protocol_error_message(payload: object) -> str:
-    if not isinstance(payload, dict):
-        return ""
-    error = payload.get("error")
-    if isinstance(error, dict):
-        return str(error.get("message") or error.get("code") or "model request failed")
-    if error:
-        return str(error)
-    status = str(payload.get("status") or "").strip().lower()
-    if status in {"failed", "error"}:
-        return str(payload.get("message") or "model request failed")
-    return ""
-
-
 def _safe_error_summary(response: httpx.Response) -> str:
     try:
         payload = response.json()
     except (TypeError, ValueError):
         return f"HTTP {response.status_code}"
-    return _protocol_error_message(payload) or f"HTTP {response.status_code}"
+    return model_protocol_error_message(payload) or f"HTTP {response.status_code}"
 
 
 async def write_model_audio_speech(
@@ -390,7 +380,7 @@ async def _write_model_audio_request(
                     ).strip()
                 )
                 response_id = str(payload.get("id") or "").strip()
-                protocol_error = _protocol_error_message(payload)
+                protocol_error = model_protocol_error_message(payload)
                 if protocol_error:
                     raise ModelAudioTransportError(
                         f"model audio protocol error: {protocol_error}",

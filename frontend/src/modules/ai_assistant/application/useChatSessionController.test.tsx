@@ -339,6 +339,23 @@ describe("useChatSessionController", () => {
       selector: "cloud:text-model",
       reasoning_effort: "xhigh",
     });
+
+    act(() => harness.getSocketOptions()?.onFrame({
+      type: "session.model.state",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: "cloud:text-model",
+      reasoning_effort: "xhigh",
+    }));
+    harness.send.mockClear();
+    act(() => {
+      accepted = result.current.switchReasoningEffort("none");
+    });
+    expect(accepted).toBe(false);
+    expect(harness.send).not.toHaveBeenCalled();
   });
 
   it("submits a live decision and removes it only after the HTTP answer succeeds", async () => {

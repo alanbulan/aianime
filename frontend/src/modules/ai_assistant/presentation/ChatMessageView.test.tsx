@@ -45,6 +45,13 @@ import {
 } from "./ChatMessageView";
 import type { ChatMessage } from "@/modules/ai_assistant/domain/contracts";
 
+const LONG_OPENAI_COMPATIBLE_REPLY = [
+  "我是 AI anime 助手，当前运行的模型是 **Qwen（QWEN3_8_27B）**，由自定义接入方（custom provider）提供。",
+  "关于上下文大小：我这边没有直接的精确数字。按 Qwen 这个级别的模型通常配置来看，上下文窗口一般在 **128K token** 左右，具体以你部署侧实际拉起的参数为准。",
+  "如果你需要精确的上下文上限，可以在你的部署/接入配置里查一下模型启动参数中的 `max_model_len` 或 `context_length` 字段，那个值才是权威来源。",
+  "服务端这边我继续处理 PUBLIC_HTTP 的 Bearer Key、三个远程入口鉴权、HTTPS 域名与生产配置，不再扫描客户端仓库。",
+].join("\n\n");
+
 function message(
   role: ChatMessage["role"],
   text: string,
@@ -156,6 +163,66 @@ describe("SuperChat chat message view", () => {
       "data-emotion",
       "02",
     );
+  });
+
+  it("renders a long multi-paragraph Markdown reply without clipping its tail", () => {
+    const { container } = render(
+      <MessageBubble
+        {...bubbleProps(message("assistant", LONG_OPENAI_COMPATIBLE_REPLY))}
+      />,
+    );
+
+    const article = container.querySelector("article");
+    const markdown = screen.getByTestId("message-markdown");
+    expect(article).not.toBeNull();
+    expect(article?.className).not.toMatch(
+      /(?:truncate|whitespace-nowrap|line-clamp|overflow-hidden)/u,
+    );
+    expect(markdown?.className).not.toMatch(
+      /(?:truncate|whitespace-nowrap|line-clamp|overflow-hidden)/u,
+    );
+    expect(markdown).toHaveClass(
+      "whitespace-normal",
+      "break-words",
+      "[overflow-wrap:anywhere]",
+    );
+
+    const paragraphs = Array.from(markdown.querySelectorAll("p"));
+    expect(paragraphs).toHaveLength(4);
+    for (const paragraph of paragraphs) {
+      expect(paragraph).toBeVisible();
+    }
+    expect(paragraphs.map((paragraph) => paragraph.textContent).join("\n\n")).toBe(
+      LONG_OPENAI_COMPATIBLE_REPLY.replace(/\*\*|`/gu, ""),
+    );
+    expect(markdown).toHaveTextContent("custom provider");
+    expect(markdown).toHaveTextContent("128K token");
+    expect(screen.getByText("max_model_len")).toBeVisible();
+    expect(screen.getByText("context_length")).toBeVisible();
+    expect(markdown).toHaveTextContent(
+      "服务端这边我继续处理 PUBLIC_HTTP 的 Bearer Key、三个远程入口鉴权、HTTPS 域名与生产配置，不再扫描客户端仓库。",
+    );
+  });
+
+  it("keeps wide GFM tables inside a horizontal scroll container", () => {
+    render(
+      <MessageBubble
+        {...bubbleProps(message(
+          "assistant",
+          "| 字段 | 说明 |\n| --- | --- |\n| max_model_len | extraordinarily-long-unbroken-provider-value-1234567890 |",
+        ))}
+      />,
+    );
+
+    const scrollContainer = screen.getByTestId(
+      "message-markdown-table-scroll",
+    );
+    expect(scrollContainer).toHaveClass("max-w-full", "overflow-x-auto");
+    expect(scrollContainer).not.toHaveClass("overflow-hidden");
+    expect(screen.getByRole("table")).toBeVisible();
+    expect(
+      screen.getByText("extraordinarily-long-unbroken-provider-value-1234567890"),
+    ).toBeVisible();
   });
 
   it("maps live tool activity to the matching QiuQiu agent state", () => {

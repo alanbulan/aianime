@@ -13,7 +13,7 @@ import {
 import { CreditCostPill } from '@/components/credit-visual';
 import { UiTextArea } from '@/components/ui';
 import { Slider } from '@/components/ui/slider';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
+import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 import {
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
   MULTI_ANGLE_IMAGE_SIZES,
@@ -106,16 +106,6 @@ const EDITOR_PROMPT_TEXTAREA_CLASS =
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
-}
-
-function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
-  const normalized = String(apiModel ?? '').trim().toLowerCase();
-  return (
-    normalized === 'gpt-image-2'
-    || normalized === 'image-2'
-    || normalized === 'image-2-official'
-    || normalized.includes('gpt-image')
-  );
 }
 
 // 预览图片卡片的相对尺寸：景别越近越大、越远越小（仅影响球内预览，不发后端）。

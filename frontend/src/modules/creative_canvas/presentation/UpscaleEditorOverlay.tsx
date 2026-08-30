@@ -31,7 +31,7 @@ import type { CanvasCatalogModelOption } from '../application/generationCatalog'
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 
 import { CreditCostPill } from '@/components/credit-visual';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
+import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 export interface UpscaleEditorOverlayStore {
   updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
@@ -52,17 +52,6 @@ export type UpscaleEditorOverlayGenerateUpscale = (
   params: GenerateCanvasUpscaleParams,
   onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
 ) => Promise<GenerateCanvasUpscaleResult>;
-function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
-  if (!apiModel) return false;
-  const normalized = apiModel.toLowerCase();
-  return (
-    normalized === 'gpt-image-2'
-    || normalized === 'image-2'
-    || normalized === 'image-2-official'
-    || normalized.includes('gpt-image')
-  );
-}
-
 interface UpscalePersistedFields {
   upscaleSourceUrl?: string;
   upscaleModelId?: string;

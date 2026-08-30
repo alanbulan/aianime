@@ -15,6 +15,7 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
     get_style_preset,
 )
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
+from ai_anime.modules.model_usage.public import image_model_supports_quality
 
 SceneReferenceKind = Literal["master", "spatial_layout", "reverse_master"]
 
@@ -546,12 +547,7 @@ def _scene_image_config(
         "image_size": "1K",
         "output_format": "png",
     }
-    if str(model or "").strip().lower() in {
-        "lingshan-g2",
-        "gpt-image-2",
-        "image-2",
-        "image-2-official",
-    }:
+    if image_model_supports_quality(model):
         image_config["quality"] = "medium"
     return image_config
 

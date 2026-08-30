@@ -563,7 +563,10 @@ export function useChatSessionController({
     if (!connected || busy || modelsLoading) return false;
     const modelId = activeModel ?? "auto";
     const selected = models.find((model) => model.id === modelId);
-    if (!selected?.reasoningEfforts?.includes(reasoningEffort)) return false;
+    if (
+      !selected?.reasoningEfforts?.length
+      || !selected.reasoningEfforts.includes(reasoningEffort)
+    ) return false;
     setError(null);
     setModelsLoading(true);
     sendFrame({

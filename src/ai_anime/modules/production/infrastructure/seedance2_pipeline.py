@@ -167,8 +167,11 @@ def _validate_reference_audio_request(audio_paths: list[str]) -> None:
         )
     except ValueError as exc:
         raise ValueError(
-            f"Seedance2 参考音频时长不合规（{exc}），"
-            "请回到角色工作台把参考声线裁剪到 3-5 秒"
+            f"Seedance2 参考音频时长不合规（{exc}）。"
+            f"每段需在 {MIN_SEEDANCE2_REFERENCE_AUDIO_SECONDS:g}-"
+            f"{MAX_SEEDANCE2_REFERENCE_AUDIO_SECONDS:g} 秒内，"
+            f"合计不超过 {MAX_SEEDANCE2_REFERENCE_AUDIO_TOTAL_SECONDS:g} 秒；"
+            "为获得稳定效果，建议每段保留清晰单人声 3-5 秒"
         ) from exc
 
 

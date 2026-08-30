@@ -8,10 +8,15 @@ export interface SecureStorageAdapter {
   decryptString(value: Buffer): string;
 }
 
+export interface ReadEncryptedJsonFileOptions {
+  preserveValidationError?: boolean;
+}
+
 export async function readEncryptedJsonFile<T>(
   filePath: string,
   secureStorage: SecureStorageAdapter,
   parse: (value: unknown) => T,
+  options: ReadEncryptedJsonFileOptions = {},
 ): Promise<T | null> {
   assertEncryptionAvailable(secureStorage);
   let encrypted: Buffer;
@@ -22,9 +27,17 @@ export async function readEncryptedJsonFile<T>(
     throw error;
   }
 
+  let decoded: unknown;
   try {
-    return parse(JSON.parse(secureStorage.decryptString(encrypted)) as unknown);
+    decoded = JSON.parse(secureStorage.decryptString(encrypted)) as unknown;
   } catch {
+    await clearEncryptedFile(filePath);
+    return null;
+  }
+  try {
+    return parse(decoded);
+  } catch (error) {
+    if (options.preserveValidationError) throw error;
     await clearEncryptedFile(filePath);
     return null;
   }

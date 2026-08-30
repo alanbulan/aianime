@@ -38,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,12 +71,18 @@ import {
   BYOK_MODEL_ROLES,
   BYOK_PROVIDER_PROTOCOLS,
   catalogRouteSelector,
+  commercialModelParameterDeclarations,
+  commercialModelParameterOverrideDeclarations,
   commercialModelRuntimeMetadata,
   effectiveModelRuntimeSettings,
   commercialModelRoles,
   CommercialInvocationSection,
   formatModelContextWindow,
   formatReasoningEffort,
+  modelParameterOverrideDraft,
+  parseModelCapabilityOverridesJsonDraft,
+  parseModelParameterOverrideDrafts,
+  parseModelParameterOverridesJsonDraft,
   useClearByok,
   useDiscoverByokProviderModels,
   useCommercialModelAccessStatus,
@@ -84,9 +91,11 @@ import {
   useConfigureByok,
   useSelectCloudModels,
   type ByokModelAssignment,
+  type ByokDiscoveredModelMetadata,
   type ByokModelRole,
   type ByokProviderProtocol,
   type CommercialModelCatalogItem,
+  type ModelParameterDeclaration,
   type ModelRuntimeOverrides,
   type ByokProviderStatus,
 } from "@/modules/model_usage/public";
@@ -120,6 +129,13 @@ const BYOK_PROTOCOL_LABEL_KEYS: Record<ByokProviderProtocol, string> = {
   ANTHROPIC: "anthropic",
   GEMINI: "gemini",
 };
+
+const GEMINI_BYOK_MODEL_ROLES: readonly ByokModelRole[] = [
+  "TEXT",
+  "IMAGE_GENERATION",
+  "IMAGE_EDIT",
+  "EMBEDDING",
+];
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation();
@@ -243,6 +259,7 @@ function ModelAccessSection({
     (state) => state.activateCurrentDevice,
   );
   const access = useCommercialModelAccessStatus(open && bridgeAvailable);
+  const resetInvalidAccess = useClearByok();
   const selectCloud = useSelectCloudModels();
   const cloudAllowed = Boolean(entitlement?.capabilities.allowsCloudModels);
   const customAllowed = Boolean(entitlement?.capabilities.allowsCustomModels);
@@ -321,6 +338,34 @@ function ModelAccessSection({
       ) : null}
 
       {entitlementError ? <InlineNotice>{entitlementError}</InlineNotice> : null}
+
+      {access.error ? (
+        <InlineNotice>
+          <span className="flex flex-wrap items-center gap-2">
+            <span>
+              {errorMessage(access.error, t("settings.modelAccess.loadFailed"))}
+              {` ${t("settings.modelAccess.invalidConfigHint")}`}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={resetInvalidAccess.isPending}
+              onClick={() => {
+                void resetInvalidAccess.mutateAsync(undefined)
+                  .then(() => toast.success(t("settings.modelAccess.resetSucceeded")))
+                  .catch((error: unknown) =>
+                    toast.error(
+                      errorMessage(error, t("settings.modelAccess.resetFailed")),
+                    ),
+                  );
+              }}
+            >
+              {t("settings.modelAccess.resetInvalid")}
+            </Button>
+          </span>
+        </InlineNotice>
+      ) : null}
 
       {entitlement && !entitlement.capabilities.deviceActivated ? (
         <div className="mt-4 flex items-center justify-between gap-4 border-y border-border py-4">
@@ -476,6 +521,7 @@ function ByokProvidersPanel({
           assignment,
           assignment.modelId,
           discovered.modelMetadata,
+          protocol,
         )
       )));
     } catch (error) {
@@ -597,7 +643,15 @@ function ByokProvidersPanel({
           <Select
             value={protocol}
             onValueChange={(value) => {
-              if (value) setProtocol(value as ByokProviderProtocol);
+              if (!value) return;
+              const nextProtocol = value as ByokProviderProtocol;
+              setProtocol(nextProtocol);
+              setModelAssignments((current) => current.map((assignment) => {
+                const roles = byokModelRoleOptions(nextProtocol, assignment);
+                return roles.includes(assignment.role) || !roles[0]
+                  ? assignment
+                  : { ...assignment, role: roles[0] };
+              }));
             }}
           >
             <SelectTrigger className="w-full" aria-label={t("settings.modelAccess.providerProtocol")}>
@@ -757,6 +811,7 @@ function ByokProvidersPanel({
                               item,
                               modelId,
                               providerModels.data?.modelMetadata ?? [],
+                              protocol,
                             )
                           : item,
                       ),
@@ -769,6 +824,7 @@ function ByokProvidersPanel({
                       activeCatalog.data?.items ?? [],
                       providerId,
                       assignment.modelId,
+                      assignment.role,
                     )}
                     assignment={assignment}
                   />
@@ -778,7 +834,9 @@ function ByokProvidersPanel({
                       activeCatalog.data?.items ?? [],
                       providerId,
                       assignment.modelId,
+                      assignment.role,
                     )}
+                    allowUndeclaredParameterOverrides
                     onChange={(next) =>
                       setModelAssignments((current) =>
                         current.map((item, itemIndex) =>
@@ -810,10 +868,7 @@ function ByokProvidersPanel({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent align="end">
-                  {(protocol === "OPENAI_COMPATIBLE"
-                    ? BYOK_MODEL_ROLES
-                    : (["TEXT"] as const)
-                  ).map((role) => (
+                  {byokModelRoleOptions(protocol, assignment).map((role) => (
                     <SelectItem key={role} value={role}>
                       {t(`settings.modelAccess.roles.${BYOK_ROLE_LABEL_KEYS[role]}`)}
                     </SelectItem>
@@ -1152,18 +1207,21 @@ function ModelDetailsDialog({
   const { t } = useTranslation();
   return (
     <Dialog open={Boolean(sku)} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(76vh,680px)] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[680px]">
-        <DialogHeader className="border-b border-border px-5 py-4">
+      <DialogContent className="grid h-[min(76dvh,680px)] max-h-[calc(100dvh-2rem)] max-w-[calc(100%-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[680px]">
+        <DialogHeader className="relative z-10 border-b border-border bg-popover px-5 py-4">
           <DialogTitle>{model?.displayName ?? t("settings.modelAccess.modelDetails")}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="min-h-0 flex-1 px-5 py-4">
+        <div
+          className="min-h-0 overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-gutter:stable]"
+          data-model-details-scroll-body
+        >
           <ModelDetailsPanel model={model} loading={loading} error={error} />
-        </ScrollArea>
-        <div className="flex justify-end border-t border-border px-5 py-3">
+        </div>
+        <DialogFooter className="relative z-10 shrink-0 border-t border-border bg-popover px-5 py-3">
           <DialogClose render={<Button type="button" size="sm" variant="outline" />}>
             {t("settings.close")}
           </DialogClose>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -1211,38 +1269,142 @@ function ModelDetailsPanel({
           label={t("settings.modelAccess.status")}
           value={commercialValueLabel(t, "status", model.status)}
         />
-        <DetailValue
-          label={t("settings.modelAccess.contextWindow")}
-          value={formatModelContextWindow(runtimeMetadata.contextWindow)}
-        />
-        <DetailValue
-          label={t("settings.modelAccess.maxOutputTokens")}
-          value={formatModelContextWindow(runtimeMetadata.maxOutputTokens)}
-        />
-        <DetailValue
-          label={t("settings.modelAccess.reasoningEfforts")}
-          value={formatReasoningEffort(runtimeMetadata.reasoningEffort)}
-        />
+        {runtimeMetadata.contextWindow === undefined ? null : (
+          <DetailValue
+            label={t("settings.modelAccess.contextWindow")}
+            value={formatModelContextWindow(runtimeMetadata.contextWindow)}
+          />
+        )}
+        {runtimeMetadata.maxOutputTokens === undefined ? null : (
+          <DetailValue
+            label={t("settings.modelAccess.maxOutputTokens")}
+            value={formatModelContextWindow(runtimeMetadata.maxOutputTokens)}
+          />
+        )}
+        {runtimeMetadata.reasoningEffort === undefined ? null : (
+          <DetailValue
+            label={t("settings.modelAccess.reasoningEfforts")}
+            value={formatReasoningEffort(runtimeMetadata.reasoningEffort)}
+          />
+        )}
       </div>
+      <ModelParameterDetails parameterSchema={model.parameterSchema} />
       <JsonDetails
         label={t("settings.modelAccess.capabilities")}
         value={model.capabilities}
-      />
-      <JsonDetails
-        label={t("settings.modelAccess.parameterSchema")}
-        value={model.parameterSchema}
       />
     </div>
   );
 }
 
+function ModelParameterDetails({
+  parameterSchema,
+}: {
+  parameterSchema: Record<string, unknown>;
+}) {
+  const { t } = useTranslation();
+  const declarations = commercialModelParameterDeclarations(parameterSchema);
+  if (declarations.length === 0) return null;
+  const topLevelCount = declarations.filter((item) => item.depth === 0).length;
+  return (
+    <section className="mt-4 border-t border-border/70 pt-3">
+      <p className="text-xs font-medium text-foreground">
+        {t("settings.modelAccess.declaredParameters", { count: topLevelCount })}
+      </p>
+      <div className="mt-2 divide-y divide-border/60 rounded-md border border-border/70">
+        {declarations.map((declaration) => (
+          <ModelParameterRow key={declaration.path} declaration={declaration} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ModelParameterRow({
+  declaration,
+}: {
+  declaration: ModelParameterDeclaration;
+}) {
+  const { t } = useTranslation();
+  const facts = modelParameterFacts(declaration, t);
+  const description = typeof declaration.schema.description === "string"
+    ? declaration.schema.description.trim()
+    : "";
+  return (
+    <div
+      className="grid gap-1 px-2 py-2 text-[11px] sm:grid-cols-[minmax(0,11rem)_minmax(0,1fr)] sm:gap-3"
+      style={{ paddingInlineStart: `${8 + declaration.depth * 14}px` }}
+    >
+      <code className="break-all font-medium text-foreground">
+        {declaration.path}
+      </code>
+      <div className="min-w-0">
+        <p className="break-words text-muted-foreground">{facts.join(" · ")}</p>
+        {description ? (
+          <p className="mt-1 break-words text-foreground/80">{description}</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function modelParameterFacts(
+  declaration: ModelParameterDeclaration,
+  t: ReturnType<typeof useTranslation>["t"],
+): string[] {
+  const schema = declaration.schema;
+  const type = Array.isArray(schema.type)
+    ? schema.type.filter((value): value is string => typeof value === "string").join(" | ")
+    : typeof schema.type === "string"
+      ? schema.type
+      : "any";
+  const facts = [
+    type,
+    declaration.required
+      ? t("settings.modelAccess.parameterRequired")
+      : t("settings.modelAccess.parameterOptional"),
+  ];
+  if (schema.deprecated === true) {
+    facts.push(t("settings.modelAccess.parameterDeprecated"));
+  }
+  if (Array.isArray(schema.enum) && schema.enum.length > 0) {
+    facts.push(t("settings.modelAccess.parameterOptions", {
+      value: schema.enum.map(formatSchemaValue).join(" / "),
+    }));
+  }
+  if (Object.prototype.hasOwnProperty.call(schema, "default")) {
+    facts.push(t("settings.modelAccess.parameterDefault", {
+      value: formatSchemaValue(schema.default),
+    }));
+  }
+  const minimum = finiteNumber(schema.minimum);
+  const maximum = finiteNumber(schema.maximum);
+  if (minimum !== undefined || maximum !== undefined) {
+    facts.push(t("settings.modelAccess.parameterRange", {
+      value: `${minimum ?? "−∞"} … ${maximum ?? "+∞"}`,
+    }));
+  }
+  return facts;
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function formatSchemaValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  return JSON.stringify(value) ?? String(value);
+}
+
 function ModelRuntimeOverridesButton({
   assignment,
   model,
+  allowUndeclaredParameterOverrides = false,
   onChange,
 }: {
   assignment: ByokModelAssignment;
   model?: CommercialModelCatalogItem;
+  allowUndeclaredParameterOverrides?: boolean;
   onChange: (assignment: ByokModelAssignment) => void;
 }) {
   const { t } = useTranslation();
@@ -1251,7 +1413,19 @@ function ModelRuntimeOverridesButton({
   const [maxOutputTokens, setMaxOutputTokens] = useState("");
   const [reasoningEfforts, setReasoningEfforts] = useState("");
   const [defaultReasoningEffort, setDefaultReasoningEffort] = useState("");
+  const [parameterDrafts, setParameterDrafts] = useState<Record<string, string>>({});
+  const [manualParameterDraft, setManualParameterDraft] = useState("");
+  const [capabilityDraft, setCapabilityDraft] = useState("");
   const catalog = model ? catalogModelAssignmentMetadata(model) : {};
+  const parameterSchema = resolvedAssignmentParameterSchema(model, assignment);
+  const declaredParameters = commercialModelParameterDeclarations(parameterSchema);
+  const parameterDeclarations = commercialModelParameterOverrideDeclarations(
+    parameterSchema,
+  );
+  const showManualParameterEditor = allowUndeclaredParameterOverrides
+    && declaredParameters.length === 0;
+  const showCapabilityEditor = allowUndeclaredParameterOverrides
+    && assignment.role !== "TEXT";
   const declaredContextWindow = assignment.contextWindow
     ?? catalog.contextWindow;
   const declaredMaxOutputTokens = assignment.maxOutputTokens
@@ -1261,6 +1435,20 @@ function ModelRuntimeOverridesButton({
   const declaredDefaultReasoningEffort = assignment.defaultReasoningEffort
     ?? catalog.defaultReasoningEffort;
   const parsedReasoningEfforts = parseReasoningEffortsDraft(reasoningEfforts);
+  const allowUndeclaredTextMetadata = allowUndeclaredParameterOverrides
+    && assignment.role === "TEXT";
+  const hasContextMetadata = allowUndeclaredTextMetadata
+    || declaredContextWindow !== undefined
+    || assignment.runtimeOverrides?.contextWindow !== undefined;
+  const hasOutputMetadata = allowUndeclaredTextMetadata
+    || declaredMaxOutputTokens !== undefined
+    || assignment.runtimeOverrides?.maxOutputTokens !== undefined;
+  const hasReasoningMetadata = allowUndeclaredTextMetadata
+    || Boolean(declaredReasoningEfforts?.length)
+    || Boolean(assignment.runtimeOverrides?.reasoningEfforts?.length);
+  const hasRuntimeMetadata = hasContextMetadata
+    || hasOutputMetadata
+    || hasReasoningMetadata;
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {
@@ -1269,12 +1457,35 @@ function ModelRuntimeOverridesButton({
       setMaxOutputTokens(overrides?.maxOutputTokens?.toString() ?? "");
       setReasoningEfforts(overrides?.reasoningEfforts?.join(", ") ?? "");
       setDefaultReasoningEffort(overrides?.defaultReasoningEffort ?? "");
+      setManualParameterDraft(
+        showManualParameterEditor && overrides?.parameterOverrides
+          ? JSON.stringify(overrides.parameterOverrides, null, 2)
+          : "",
+      );
+      setCapabilityDraft(
+        assignment.capabilityOverrides
+          ? JSON.stringify(assignment.capabilityOverrides, null, 2)
+          : "",
+      );
+      setParameterDrafts(Object.fromEntries(
+        parameterDeclarations.map((declaration) => [
+          declaration.key,
+          modelParameterOverrideDraft(
+            declaration,
+            overrides?.parameterOverrides,
+          ),
+        ]),
+      ));
     }
     setOpen(nextOpen);
   };
 
   const removeOverrides = () => {
-    const { runtimeOverrides: _runtimeOverrides, ...base } = assignment;
+    const {
+      runtimeOverrides: _runtimeOverrides,
+      capabilityOverrides: _capabilityOverrides,
+      ...base
+    } = assignment;
     onChange(base);
     setOpen(false);
   };
@@ -1293,6 +1504,27 @@ function ModelRuntimeOverridesButton({
       toast.error(t("settings.modelAccess.outputExceedsContext"));
       return;
     }
+    const parsedParameters = showManualParameterEditor
+      ? parseModelParameterOverridesJsonDraft(manualParameterDraft)
+      : parseModelParameterOverrideDrafts(
+          parameterDeclarations,
+          parameterDrafts,
+        );
+    const parsedCapabilities = parseModelCapabilityOverridesJsonDraft(
+      showCapabilityEditor ? capabilityDraft : "",
+    );
+    if (parsedParameters.invalidPath) {
+      toast.error(t("settings.modelAccess.parameterOverrideInvalid", {
+        path: parsedParameters.invalidPath,
+      }));
+      return;
+    }
+    if (parsedCapabilities.invalidPath) {
+      toast.error(t("settings.modelAccess.capabilityOverrideInvalid", {
+        path: parsedCapabilities.invalidPath,
+      }));
+      return;
+    }
     const runtimeOverrides: ModelRuntimeOverrides = {
       ...(contextValue === undefined ? {} : { contextWindow: contextValue }),
       ...(outputValue === undefined ? {} : { maxOutputTokens: outputValue }),
@@ -1303,13 +1535,22 @@ function ModelRuntimeOverridesButton({
         && parsedReasoningEfforts.includes(defaultReasoningEffort)
         ? { defaultReasoningEffort }
         : {}),
+      ...(Object.keys(parsedParameters.value).length
+        ? { parameterOverrides: parsedParameters.value }
+        : {}),
     };
-    const { runtimeOverrides: _runtimeOverrides, ...base } = assignment;
-    onChange(
-      Object.keys(runtimeOverrides).length
-        ? { ...base, runtimeOverrides }
-        : base,
-    );
+    const {
+      runtimeOverrides: _runtimeOverrides,
+      capabilityOverrides: _capabilityOverrides,
+      ...base
+    } = assignment;
+    onChange({
+      ...base,
+      ...(Object.keys(runtimeOverrides).length ? { runtimeOverrides } : {}),
+      ...(Object.keys(parsedCapabilities.value).length
+        ? { capabilityOverrides: parsedCapabilities.value }
+        : {}),
+    });
     setOpen(false);
   };
 
@@ -1318,7 +1559,9 @@ function ModelRuntimeOverridesButton({
       <Button
         type="button"
         size="icon-xs"
-        variant={assignment.runtimeOverrides ? "secondary" : "ghost"}
+        variant={assignment.runtimeOverrides || assignment.capabilityOverrides
+          ? "secondary"
+          : "ghost"}
         className="size-5"
         aria-label={t("settings.modelAccess.modelParameters")}
         data-ui-tooltip={t("settings.modelAccess.modelParameters")}
@@ -1327,96 +1570,191 @@ function ModelRuntimeOverridesButton({
         <SlidersHorizontal className="size-3" />
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="gap-0 p-0 sm:max-w-[520px]">
-          <DialogHeader className="border-b border-border px-5 py-4">
+        <DialogContent className="grid h-[min(78dvh,720px)] max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[720px]">
+          <DialogHeader className="relative z-10 border-b border-border bg-popover px-5 py-4">
             <DialogTitle>{t("settings.modelAccess.modelParameters")}</DialogTitle>
             <DialogDescription className="text-xs">
               {assignment.modelId} · {t("settings.modelAccess.runtimeOverrideDescription")}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 px-5 py-4">
-            <RuntimeOverrideField
-              label={t("settings.modelAccess.contextWindow")}
-              declared={formatModelContextWindow(declaredContextWindow)}
-            >
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                aria-label={t("settings.modelAccess.contextWindow")}
-                value={contextWindow}
-                placeholder={declaredContextWindow?.toString() ?? t("settings.modelAccess.notDeclared")}
-                onChange={(event) => setContextWindow(event.target.value)}
-              />
-            </RuntimeOverrideField>
-            <RuntimeOverrideField
-              label={t("settings.modelAccess.maxOutputTokens")}
-              declared={formatModelContextWindow(declaredMaxOutputTokens)}
-            >
-              <Input
-                type="number"
-                min={1}
-                step={1}
-                aria-label={t("settings.modelAccess.maxOutputTokens")}
-                value={maxOutputTokens}
-                placeholder={declaredMaxOutputTokens?.toString() ?? t("settings.modelAccess.notDeclared")}
-                onChange={(event) => setMaxOutputTokens(event.target.value)}
-              />
-            </RuntimeOverrideField>
-            <RuntimeOverrideField
-              label={t("settings.modelAccess.reasoningEfforts")}
-              declared={declaredReasoningEfforts?.join(" / ") ?? t("settings.modelAccess.notDeclared")}
-              className="grid-cols-1 gap-1.5"
-            >
-              <Input
-                aria-label={t("settings.modelAccess.reasoningEfforts")}
-                value={reasoningEfforts}
-                placeholder={declaredReasoningEfforts?.join(", ") ?? "low, medium, xhigh"}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setReasoningEfforts(value);
-                  const options = parseReasoningEffortsDraft(value);
-                  if (defaultReasoningEffort && !options.includes(defaultReasoningEffort)) {
-                    setDefaultReasoningEffort("");
-                  }
-                }}
-              />
-            </RuntimeOverrideField>
-            <RuntimeOverrideField
-              label={t("settings.modelAccess.defaultReasoningEffort")}
-              declared={declaredDefaultReasoningEffort ?? t("settings.modelAccess.notDeclared")}
-            >
-              <Select
-                value={defaultReasoningEffort || "__follow__"}
-                disabled={parsedReasoningEfforts.length === 0}
-                onValueChange={(value) =>
-                  setDefaultReasoningEffort(value === "__follow__" ? "" : (value ?? ""))
-                }
-              >
-                <SelectTrigger
-                  className="w-full"
-                  aria-label={t("settings.modelAccess.defaultReasoningEffort")}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  <SelectItem value="__follow__">
-                    {t("settings.modelAccess.followDeclared")}
-                  </SelectItem>
-                  {parsedReasoningEfforts.map((effort) => (
-                    <SelectItem key={effort} value={effort}>{effort}</SelectItem>
+          <div
+            className="min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+            data-model-parameter-scroll-body
+          >
+            <div className="grid min-w-0 gap-5 px-5 py-4">
+              {showCapabilityEditor ? (
+                <section className="grid gap-2">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      {t("settings.modelAccess.modelCapabilityOverrides")}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                      {t("settings.modelAccess.modelCapabilityOverridesDescription")}
+                    </p>
+                  </div>
+                  <Textarea
+                    aria-label={t("settings.modelAccess.modelCapabilityOverrides")}
+                    className="min-h-32 resize-y font-mono text-xs"
+                    value={capabilityDraft}
+                    placeholder={'{\n  "resolutionOptions": ["720p", "1080p"],\n  "ratioOptions": ["16:9", "9:16"],\n  "minDuration": 4,\n  "maxDuration": 10\n}'}
+                    onChange={(event) => setCapabilityDraft(event.target.value)}
+                  />
+                </section>
+              ) : null}
+              {parameterDeclarations.length ? (
+                <section className={cn(
+                  "grid gap-4",
+                  showCapabilityEditor && "border-t border-border pt-4",
+                )}>
+                  <p className="text-xs font-medium text-foreground">
+                    {t("settings.modelAccess.requestParameterOverrides")}
+                  </p>
+                  {parameterDeclarations.map((declaration) => (
+                    <ModelParameterOverrideField
+                      key={declaration.key}
+                      declaration={declaration}
+                      draft={parameterDrafts[declaration.key] ?? ""}
+                      onChange={(draft) => setParameterDrafts((current) => ({
+                        ...current,
+                        [declaration.key]: draft,
+                      }))}
+                    />
                   ))}
-                </SelectContent>
-              </Select>
-            </RuntimeOverrideField>
+                </section>
+              ) : null}
+              {showManualParameterEditor ? (
+                <section className={cn(
+                  "grid gap-2",
+                  showCapabilityEditor && "border-t border-border pt-4",
+                )}>
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      {t("settings.modelAccess.manualRequestParameterOverrides")}
+                    </p>
+                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                      {t("settings.modelAccess.manualRequestParameterOverridesDescription")}
+                    </p>
+                  </div>
+                  <Textarea
+                    aria-label={t("settings.modelAccess.manualRequestParameterOverrides")}
+                    className="min-h-36 resize-y font-mono text-xs"
+                    value={manualParameterDraft}
+                    placeholder={'{\n  "temperature": 0.7\n}'}
+                    onChange={(event) => setManualParameterDraft(event.target.value)}
+                  />
+                </section>
+              ) : null}
+              {hasRuntimeMetadata ? (
+                <section className={cn(
+                  "grid gap-4",
+                  (showCapabilityEditor
+                    || parameterDeclarations.length
+                    || showManualParameterEditor)
+                    && "border-t border-border pt-4",
+                )}>
+                  <p className="text-xs font-medium text-foreground">
+                    {t("settings.modelAccess.runtimeMetadataOverrides")}
+                  </p>
+                  {hasContextMetadata ? (
+                    <RuntimeOverrideField
+                      label={t("settings.modelAccess.contextWindow")}
+                      declared={formatModelContextWindow(declaredContextWindow)}
+                    >
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        aria-label={t("settings.modelAccess.contextWindow")}
+                        value={contextWindow}
+                        placeholder={declaredContextWindow?.toString() ?? t("settings.modelAccess.notDeclared")}
+                        onChange={(event) => setContextWindow(event.target.value)}
+                      />
+                    </RuntimeOverrideField>
+                  ) : null}
+                  {hasOutputMetadata ? (
+                    <RuntimeOverrideField
+                      label={t("settings.modelAccess.maxOutputTokens")}
+                      declared={formatModelContextWindow(declaredMaxOutputTokens)}
+                    >
+                      <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        aria-label={t("settings.modelAccess.maxOutputTokens")}
+                        value={maxOutputTokens}
+                        placeholder={declaredMaxOutputTokens?.toString() ?? t("settings.modelAccess.notDeclared")}
+                        onChange={(event) => setMaxOutputTokens(event.target.value)}
+                      />
+                    </RuntimeOverrideField>
+                  ) : null}
+                  {hasReasoningMetadata ? (
+                    <>
+                      <RuntimeOverrideField
+                        label={t("settings.modelAccess.reasoningEfforts")}
+                        declared={declaredReasoningEfforts?.join(" / ") ?? t("settings.modelAccess.notDeclared")}
+                      >
+                        <Input
+                          aria-label={t("settings.modelAccess.reasoningEfforts")}
+                          value={reasoningEfforts}
+                          placeholder={declaredReasoningEfforts?.join(", ") ?? ""}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setReasoningEfforts(value);
+                            const options = parseReasoningEffortsDraft(value);
+                            if (defaultReasoningEffort && !options.includes(defaultReasoningEffort)) {
+                              setDefaultReasoningEffort("");
+                            }
+                          }}
+                        />
+                      </RuntimeOverrideField>
+                      <RuntimeOverrideField
+                        label={t("settings.modelAccess.defaultReasoningEffort")}
+                        declared={declaredDefaultReasoningEffort ?? t("settings.modelAccess.notDeclared")}
+                      >
+                        <Select
+                          value={defaultReasoningEffort || "__follow__"}
+                          disabled={parsedReasoningEfforts.length === 0}
+                          onValueChange={(value) =>
+                            setDefaultReasoningEffort(value === "__follow__" ? "" : (value ?? ""))
+                          }
+                        >
+                          <SelectTrigger
+                            className="w-full"
+                            aria-label={t("settings.modelAccess.defaultReasoningEffort")}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent align="end">
+                            <SelectItem value="__follow__">
+                              {t("settings.modelAccess.followDeclared")}
+                            </SelectItem>
+                            {parsedReasoningEfforts.map((effort) => (
+                              <SelectItem key={effort} value={effort}>{effort}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </RuntimeOverrideField>
+                    </>
+                  ) : null}
+                </section>
+              ) : null}
+              {!parameterDeclarations.length
+                && !showManualParameterEditor
+                && !showCapabilityEditor
+                && !hasRuntimeMetadata ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("settings.modelAccess.noOverrideableParameters")}
+                </p>
+              ) : null}
+            </div>
           </div>
-          <DialogFooter className="border-t border-border px-5 py-3">
+          <DialogFooter className="relative z-10 shrink-0 border-t border-border bg-popover px-5 py-3">
             <Button
               type="button"
               size="sm"
               variant="ghost"
               className="mr-auto"
-              disabled={!assignment.runtimeOverrides}
+              disabled={!assignment.runtimeOverrides && !assignment.capabilityOverrides}
               onClick={removeOverrides}
             >
               <RotateCcw />
@@ -1435,27 +1773,172 @@ function ModelRuntimeOverridesButton({
   );
 }
 
+function ModelParameterOverrideField({
+  declaration,
+  draft,
+  onChange,
+}: {
+  declaration: ModelParameterDeclaration;
+  draft: string;
+  onChange: (draft: string) => void;
+}) {
+  const { t } = useTranslation();
+  const title = typeof declaration.schema.title === "string"
+    ? declaration.schema.title.trim()
+    : "";
+  const label = title && title !== declaration.path
+    ? `${title} (${declaration.path})`
+    : declaration.path;
+  const description = typeof declaration.schema.description === "string"
+    ? declaration.schema.description.trim()
+    : "";
+  return (
+    <RuntimeOverrideField
+      label={label}
+      declared={modelParameterFacts(declaration, t).join(" · ")}
+      description={description}
+    >
+      <ModelParameterOverrideControl
+        declaration={declaration}
+        draft={draft}
+        onChange={onChange}
+      />
+    </RuntimeOverrideField>
+  );
+}
+
+function ModelParameterOverrideControl({
+  declaration,
+  draft,
+  onChange,
+}: {
+  declaration: ModelParameterDeclaration;
+  draft: string;
+  onChange: (draft: string) => void;
+}) {
+  const { t } = useTranslation();
+  const schema = declaration.schema;
+  const enumOptions = Array.isArray(schema.enum)
+    ? schema.enum
+        .map((value) => ({ value: JSON.stringify(value), label: formatSchemaValue(value) }))
+        .filter((item): item is { value: string; label: string } => typeof item.value === "string")
+    : [];
+  if (enumOptions.length) {
+    return (
+      <Select
+        value={draft || "__follow__"}
+        onValueChange={(value) => onChange(value === "__follow__" ? "" : (value ?? ""))}
+      >
+        <SelectTrigger className="w-full" aria-label={declaration.path}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end">
+          <SelectItem value="__follow__">{t("settings.modelAccess.followDeclared")}</SelectItem>
+          {enumOptions.map((option) => (
+            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+  const types = Array.isArray(schema.type)
+    ? schema.type.filter((value): value is string => typeof value === "string")
+    : typeof schema.type === "string"
+      ? [schema.type]
+      : [];
+  if (types.length === 1 && types[0] === "boolean") {
+    return (
+      <Select
+        value={draft || "__follow__"}
+        onValueChange={(value) => onChange(value === "__follow__" ? "" : (value ?? ""))}
+      >
+        <SelectTrigger className="w-full" aria-label={declaration.path}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent align="end">
+          <SelectItem value="__follow__">{t("settings.modelAccess.followDeclared")}</SelectItem>
+          <SelectItem value="true">true</SelectItem>
+          <SelectItem value="false">false</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  }
+  const numeric = types.includes("integer") || types.includes("number");
+  if (numeric) {
+    return (
+      <Input
+        type="number"
+        aria-label={declaration.path}
+        value={draft}
+        min={finiteNumber(schema.minimum)}
+        max={finiteNumber(schema.maximum)}
+        step={finiteNumber(schema.multipleOf) ?? (types.includes("integer") ? 1 : "any")}
+        placeholder={parameterDefaultPlaceholder(schema, t("settings.modelAccess.followDeclared"))}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  }
+  if (types.length === 1 && types[0] === "string") {
+    return (
+      <Input
+        type={schema.format === "password" ? "password" : "text"}
+        aria-label={declaration.path}
+        value={draft}
+        minLength={finiteNumber(schema.minLength)}
+        maxLength={finiteNumber(schema.maxLength)}
+        placeholder={parameterDefaultPlaceholder(schema, t("settings.modelAccess.followDeclared"))}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+  }
+  return (
+    <Textarea
+      aria-label={declaration.path}
+      className="min-h-16 font-mono text-xs"
+      value={draft}
+      placeholder={parameterDefaultPlaceholder(schema, t("settings.modelAccess.followDeclared"))}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+function parameterDefaultPlaceholder(
+  schema: Readonly<Record<string, unknown>>,
+  fallback: string,
+): string {
+  return Object.prototype.hasOwnProperty.call(schema, "default")
+    ? formatSchemaValue(schema.default)
+    : fallback;
+}
+
 function RuntimeOverrideField({
   label,
   declared,
-  className,
+  description,
   children,
 }: {
   label: string;
   declared: string;
-  className?: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
   return (
-    <div className={cn("grid grid-cols-[10rem_minmax(0,1fr)] items-center gap-3", className)}>
+    <div className="grid min-w-0 gap-3 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,1.2fr)] sm:items-start sm:gap-4">
       <div className="min-w-0">
-        <Label className="text-xs">{label}</Label>
-        <p className="truncate text-[10px] text-muted-foreground">
+        <Label className="break-words text-xs font-medium leading-5">{label}</Label>
+        <p className="mt-1 break-words text-[11px] leading-4 text-muted-foreground">
           {t("settings.modelAccess.declaredValue", { value: declared })}
         </p>
+        {description ? (
+          <p className="mt-1.5 break-words text-[11px] leading-4 text-foreground/75">
+            {description}
+          </p>
+        ) : null}
       </div>
-      {children}
+      <div className="min-w-0 self-center">
+        {children}
+      </div>
     </div>
   );
 }
@@ -1486,16 +1969,49 @@ function ModelMetadataInline({
             : {}),
         }
       : catalogMetadata?.reasoningEffort;
+  const declarations = commercialModelParameterDeclarations(
+    resolvedAssignmentParameterSchema(model, assignment),
+  );
+  const parameterCount = declarations.filter((item) => item.depth === 0).length;
+  const capability = modelCapabilitySummary(model, assignment);
   const segments = [
-    `${t("settings.modelAccess.contextWindow")} ${formatModelContextWindow(contextWindow)}`,
-    ...(!compact || maxOutputTokens !== undefined
+    ...(contextWindow !== undefined
+      ? [`${t("settings.modelAccess.contextWindow")} ${formatModelContextWindow(contextWindow)}`]
+      : []),
+    ...(maxOutputTokens !== undefined && (!compact || contextWindow === undefined)
       ? [`${t("settings.modelAccess.maxOutputShort")} ${formatModelContextWindow(maxOutputTokens)}`]
       : []),
-    `${t("settings.modelAccess.reasoningShort")} ${formatReasoningEffort(reasoningEffort)}`,
-    ...(assignment?.runtimeOverrides
+    ...(reasoningEffort !== undefined
+      ? [`${t("settings.modelAccess.reasoningShort")} ${formatReasoningEffort(reasoningEffort)}`]
+      : []),
+    ...(parameterCount > 0
+      ? [t("settings.modelAccess.parameterCount", { count: parameterCount })]
+      : []),
+    ...(capability.modeCount > 0
+      ? [t("settings.modelAccess.modeCount", { count: capability.modeCount })]
+      : []),
+    ...(capability.specificationCount > 0
+      ? [t("settings.modelAccess.specificationCount", {
+          count: capability.specificationCount,
+        })]
+      : []),
+    ...(capability.maxDuration === undefined
+      ? []
+      : [capability.minDuration === undefined
+          ? t("settings.modelAccess.durationMaximum", {
+              max: capability.maxDuration,
+            })
+          : t("settings.modelAccess.durationRange", {
+              min: capability.minDuration,
+              max: capability.maxDuration,
+            })]),
+    ...(assignment?.runtimeOverrides || assignment?.capabilityOverrides
       ? [t("settings.modelAccess.localOverride")]
       : []),
   ];
+  if (segments.length === 0) {
+    segments.push(t("settings.modelAccess.noRecognizedMetadata"));
+  }
   return (
     <span className={cn(
       "block min-w-0 flex-1 truncate text-[10px] text-muted-foreground",
@@ -1504,6 +2020,48 @@ function ModelMetadataInline({
       {segments.join(" · ")}
     </span>
   );
+}
+
+function modelCapabilitySummary(
+  model: CommercialModelCatalogItem | undefined,
+  assignment?: ByokModelAssignment,
+): {
+  modeCount: number;
+  specificationCount: number;
+  minDuration?: number;
+  maxDuration?: number;
+} {
+  const capabilities = resolvedAssignmentCapabilities(model, assignment);
+  if (Object.keys(capabilities).length === 0) {
+    return { modeCount: 0, specificationCount: 0 };
+  }
+  const modes = stringValues(capabilities.supportedModes);
+  const specifications = new Set([
+    ...stringValues(capabilities.resolutionOptions),
+    ...stringValues(capabilities.sizeOptions),
+    ...stringValues(capabilities.ratioOptions),
+    ...stringValues(capabilities.aspectRatios),
+  ]);
+  const minDuration = positiveFiniteNumber(capabilities.minDuration);
+  const maxDuration = positiveFiniteNumber(capabilities.maxDuration);
+  return {
+    modeCount: modes.length,
+    specificationCount: specifications.size,
+    ...(minDuration === undefined ? {} : { minDuration }),
+    ...(maxDuration === undefined ? {} : { maxDuration }),
+  };
+}
+
+function stringValues(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string" && Boolean(item))
+    : [];
+}
+
+function positiveFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
 }
 
 function catalogModelAssignmentMetadata(
@@ -1549,24 +2107,70 @@ function resolveByokCatalogModel(
   items: readonly CommercialModelCatalogItem[],
   providerId: string,
   modelId: string,
+  role: ByokModelRole,
 ): CommercialModelCatalogItem | undefined {
   const selector = `byok:${providerId}:${modelId}`;
-  return items.find((item) => catalogRouteSelector(item) === selector);
+  return items.find((item) => (
+    catalogRouteSelector(item) === selector
+    && commercialModelRoles(item).includes(role)
+  ));
+}
+
+function byokModelRoleOptions(
+  protocol: ByokProviderProtocol,
+  assignment: ByokModelAssignment,
+): readonly ByokModelRole[] {
+  const protocolRoles = protocol === "OPENAI_COMPATIBLE"
+    ? BYOK_MODEL_ROLES
+    : protocol === "GEMINI"
+      ? GEMINI_BYOK_MODEL_ROLES
+      : (["TEXT"] as const);
+  const capabilities = resolvedAssignmentCapabilities(undefined, assignment);
+  const explicitRoles = stringValues(
+    capabilities.supportedRoles,
+  ).filter((role): role is ByokModelRole => (
+    (BYOK_MODEL_ROLES as readonly string[]).includes(role)
+  ));
+  const operation = typeof capabilities.operation === "string"
+    ? capabilities.operation.trim()
+    : "";
+  const declaredRoles = explicitRoles.length || !operation
+    ? explicitRoles
+    : commercialModelRoles({ operation, capabilities });
+  const compatibleRoles = declaredRoles.length
+    ? protocolRoles.filter((role) => declaredRoles.includes(role))
+    : protocolRoles;
+  return compatibleRoles.length ? compatibleRoles : protocolRoles;
+}
+
+function resolvedAssignmentParameterSchema(
+  model: CommercialModelCatalogItem | undefined,
+  assignment: ByokModelAssignment | undefined,
+): Record<string, unknown> {
+  return model && Object.keys(model.parameterSchema).length > 0
+    ? model.parameterSchema
+    : assignment?.parameterSchema ?? {};
+}
+
+function resolvedAssignmentCapabilities(
+  model: CommercialModelCatalogItem | undefined,
+  assignment: ByokModelAssignment | undefined,
+): Record<string, unknown> {
+  return {
+    ...(model?.capabilities ?? {}),
+    ...(assignment?.capabilities ?? {}),
+    ...(assignment?.capabilityOverrides ?? {}),
+  };
 }
 
 function withDiscoveredModelMetadata(
   assignment: ByokModelAssignment,
   modelId: string,
-  metadata: readonly {
-    id: string;
-    contextWindow?: number;
-    maxOutputTokens?: number;
-    reasoningEfforts?: string[];
-    defaultReasoningEffort?: string;
-  }[],
+  metadata: readonly ByokDiscoveredModelMetadata[],
+  protocol: ByokProviderProtocol,
 ): ByokModelAssignment {
   const discovered = metadata.find((item) => item.id === modelId);
-  return {
+  const next: ByokModelAssignment = {
     modelId,
     role: assignment.role,
     priority: assignment.priority,
@@ -1574,6 +2178,19 @@ function withDiscoveredModelMetadata(
     ...(assignment.modelId === modelId && assignment.runtimeOverrides
       ? { runtimeOverrides: assignment.runtimeOverrides }
       : {}),
+    ...(assignment.modelId === modelId && assignment.capabilityOverrides
+      ? { capabilityOverrides: assignment.capabilityOverrides }
+      : {}),
+    ...(discovered?.capabilities
+      ? { capabilities: discovered.capabilities }
+      : assignment.modelId === modelId && assignment.capabilities
+        ? { capabilities: assignment.capabilities }
+        : {}),
+    ...(discovered?.parameterSchema
+      ? { parameterSchema: discovered.parameterSchema }
+      : assignment.modelId === modelId && assignment.parameterSchema
+        ? { parameterSchema: assignment.parameterSchema }
+        : {}),
     ...(discovered?.contextWindow
       ? { contextWindow: discovered.contextWindow }
       : {}),
@@ -1587,13 +2204,17 @@ function withDiscoveredModelMetadata(
       ? { defaultReasoningEffort: discovered.defaultReasoningEffort }
       : {}),
   };
+  const roles = byokModelRoleOptions(protocol, next);
+  return roles.includes(next.role) || !roles[0]
+    ? next
+    : { ...next, role: roles[0] };
 }
 
 function DetailValue({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
       <p className="text-[11px] text-muted-foreground">{label}</p>
-      <p className="truncate text-foreground">{value}</p>
+      <p className="break-words text-foreground">{value}</p>
     </div>
   );
 }

@@ -19,6 +19,7 @@ from typing import Callable, Literal
 from ai_anime.modules.production.infrastructure.media_generation.tts_generator import (
     TTSResult,
 )
+from ai_anime.shared.utils.voice_samples import READABLE_VOICE_EXTENSIONS
 from ai_anime.modules.production.domain.seedance2_dialogue import (
     dialogue_emotion_prompt,
     dialogue_text,
@@ -28,7 +29,7 @@ from ai_anime.modules.production.domain.seedance2_dialogue import (
 )
 
 AudioUrlBuilder = Callable[[Path], str]
-IDENTITY_VOICE_EXTENSIONS = (".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm")
+IDENTITY_VOICE_EXTENSIONS = READABLE_VOICE_EXTENSIONS
 NARRATOR_SPEAKER = "__narrator__"
 NARRATOR_ASSET_KEY = "voice:narrator"
 

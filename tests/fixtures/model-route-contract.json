@@ -1,0 +1,46 @@
+{
+  "valid": [
+    {
+      "id": "cloud-with-effort",
+      "model": "ai-anime-route:Y2xvdWQ6dGV4dC1tb2RlbA:reasoning-effort:eGhpZ2g",
+      "selector": "cloud:text-model",
+      "reasoningEffort": "xhigh"
+    },
+    {
+      "id": "provider-prefixed-byok-disabled",
+      "model": "custom:ai-anime-route:Ynlvazpwcm92aWRlci1vbmU6bW9kZWwtYQ:reasoning-effort:bm9uZQ",
+      "selector": "byok:provider-one:model-a",
+      "reasoningEffort": "none"
+    },
+    {
+      "id": "provider-prefixed-automatic",
+      "model": "custom:ai-anime-assistant-auto:reasoning-effort:aGlnaA",
+      "selector": null,
+      "reasoningEffort": "high"
+    },
+    {
+      "id": "automatic-default",
+      "model": "ai-anime-assistant-auto",
+      "selector": null,
+      "reasoningEffort": null
+    }
+  ],
+  "invalid": [
+    {
+      "id": "unsupported-selector",
+      "model": "ai-anime-route:b3JkaW5hcnktbW9kZWw"
+    },
+    {
+      "id": "malformed-reasoning-token",
+      "model": "ai-anime-route:Y2xvdWQ6dGV4dC1tb2RlbA:reasoning-effort:not+base64"
+    },
+    {
+      "id": "automatic-unknown-suffix",
+      "model": "ai-anime-assistant-auto:unexpected"
+    },
+    {
+      "id": "reasoning-control-character",
+      "model": "ai-anime-route:Y2xvdWQ6dGV4dC1tb2RlbA:reasoning-effort:bGluZQpicmVhaw"
+    }
+  ]
+}

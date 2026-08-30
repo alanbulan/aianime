@@ -18,6 +18,9 @@ GenerationCreditKind = Literal[
     "feature",
 ]
 GenerationCreditSurface = Literal["ai_anime", "canvas"]
+IMAGE_QUALITY_MODEL_IDS = frozenset(
+    {"lingshan-g2", "gpt-image-2", "image-2", "image-2-official"}
+)
 
 
 class InvalidGenerationCreditRequest(ValueError):
@@ -59,12 +62,9 @@ def normalize_quantity(value: object) -> int:
         return 1
 
 
-def _image_model_supports_quality(model: str) -> bool:
+def image_model_supports_quality(model: str | None) -> bool:
     model_name = str(model or "").strip().lower()
-    return (
-        model_name in {"lingshan-g2", "gpt-image-2", "image-2", "image-2-official"}
-        or "gpt-image" in model_name
-    )
+    return model_name in IMAGE_QUALITY_MODEL_IDS or "gpt-image" in model_name
 
 
 def image_billing_params(
@@ -78,7 +78,7 @@ def image_billing_params(
     if clean_size:
         params["size"] = clean_size
     clean_quality = str(quality or "").strip()
-    if clean_quality and _image_model_supports_quality(model):
+    if clean_quality and image_model_supports_quality(model):
         params["quality"] = clean_quality
     return params
 

@@ -43,6 +43,7 @@ from ai_anime.modules.production.infrastructure.seedance2_voice import (
     NARRATOR_SPEAKER,
     resolve_character_voice,
 )
+from ai_anime.shared.utils.project_paths import resolve_project_data_db_path
 from ai_anime.shared.utils.path_resolver import PathResolver
 from ai_anime.shared.utils.path_resolver import canonical_scene_master_path
 from ai_anime.shared.utils.path_resolver import canonical_prop_reference_path
@@ -150,7 +151,7 @@ def _load_sqlite_detected_identities(
     episode: int,
     beat_number: int,
 ) -> list[str] | None:
-    db_path = _character_db_path(project_output)
+    db_path = resolve_project_data_db_path(project_output)
     if not db_path.exists():
         return None
     try:
@@ -182,7 +183,7 @@ def _load_sqlite_detected_props(
     episode: int,
     beat_number: int,
 ) -> list[str] | None:
-    db_path = _character_db_path(project_output)
+    db_path = resolve_project_data_db_path(project_output)
     if not db_path.exists():
         return None
     try:
@@ -297,7 +298,7 @@ def _prop_asset_path(project_output: Path, prop_id: str) -> Path:
 
 
 def _load_sqlite_episode_prop_menu(project_output: Path, episode: int) -> list[dict[str, Any]]:
-    db_path = _character_db_path(project_output)
+    db_path = resolve_project_data_db_path(project_output)
     if not db_path.exists():
         return []
     try:
@@ -515,7 +516,7 @@ def validate_seedance2_reference_audio(path: Path) -> tuple[str, str]:
 
 
 def _load_sqlite_characters(project_output: Path) -> list[NovelCharacter]:
-    db_path = _character_db_path(project_output)
+    db_path = resolve_project_data_db_path(project_output)
     if not db_path.exists():
         return []
     try:
@@ -578,7 +579,7 @@ def _load_sqlite_characters(project_output: Path) -> list[NovelCharacter]:
 
 
 def _load_sqlite_props(project_output: Path) -> list[NovelProp]:
-    db_path = _character_db_path(project_output)
+    db_path = resolve_project_data_db_path(project_output)
     if not db_path.exists():
         return []
     try:
@@ -608,31 +609,6 @@ def _load_sqlite_props(project_output: Path) -> list[NovelProp]:
         except (TypeError, ValueError, json.JSONDecodeError):
             continue
     return props
-
-
-def _character_db_path(project_output: Path) -> Path:
-    """Resolve the project's data.db, anchoring on state/ (the canonical home).
-
-    Mirrors the resolution logic in `image_request_usage.get_image_request_usage_db_path`:
-    if `project_output` lives under OUTPUT_DIR, bootstrap any legacy payload
-    into state/ and return the state path. Otherwise (test fixtures, arbitrary
-    paths) fall back to `project_output / data.db` unchanged.
-    """
-    from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
-    from ai_anime.shared.utils.project_paths import ProjectPaths
-
-    project_output = Path(project_output).resolve()
-    output_root = Path(OUTPUT_DIR).resolve()
-    state_root = Path(STATE_DIR).resolve()
-    try:
-        rel = project_output.relative_to(output_root)
-    except ValueError:
-        return (project_output / "data.db").resolve()
-    if len(rel.parts) >= 2:
-        user, project = rel.parts[0], rel.parts[1]
-        ProjectPaths(user, project).bootstrap_from_legacy_output()
-        return (state_root / user / project / "data.db").resolve()
-    return (project_output / "data.db").resolve()
 
 
 def _find_character_for_identity(

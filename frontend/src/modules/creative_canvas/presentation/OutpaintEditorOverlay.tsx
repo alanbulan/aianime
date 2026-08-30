@@ -52,7 +52,7 @@ import type {
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
 import { CreditCostPill } from '@/components/credit-visual';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
+import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;
@@ -69,17 +69,6 @@ const OUTPAINT_ASPECT_OPTIONS: {
   { value: '16:9', i18nKey: 'outpaintEditor.aspect.s16_9', Icon: RectangleHorizontal },
   { value: '9:16', i18nKey: 'outpaintEditor.aspect.s9_16', Icon: RectangleVertical },
 ];
-
-function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
-  if (!apiModel) return false;
-  const normalized = apiModel.toLowerCase();
-  return (
-    normalized === 'gpt-image-2'
-    || normalized === 'image-2'
-    || normalized === 'image-2-official'
-    || normalized.includes('gpt-image')
-  );
-}
 
 export interface OutpaintEditorOverlayStore {
   addNode: (

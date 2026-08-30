@@ -5,7 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 
+def normalize_alias_lookup(value: str) -> str:
+    """Normalize user-visible asset names for case-insensitive alias lookup."""
+    return " ".join((value or "").replace("\u3000", " ").strip().lower().split())
+
+
 class ProjectSQLiteGraphStateMixin:
+    _normalize_alias_lookup = staticmethod(normalize_alias_lookup)
+
     async def load_graph_state(self) -> None:
         characters = await self.list_characters()
         episodes = await self.list_episodes()
@@ -87,4 +94,4 @@ class ProjectSQLiteGraphStateMixin:
         return len(self._props)
 
 
-__all__ = ["ProjectSQLiteGraphStateMixin"]
+__all__ = ["ProjectSQLiteGraphStateMixin", "normalize_alias_lookup"]

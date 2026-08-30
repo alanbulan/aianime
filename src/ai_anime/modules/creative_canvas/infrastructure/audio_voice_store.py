@@ -12,10 +12,9 @@ from ai_anime.shared.runtime_paths import OUTPUT_DIR
 from ai_anime.modules.production.public import file_sha256
 from ai_anime.shared.utils.media_io import get_audio_duration
 from ai_anime.shared.utils.time_format import utc_now_iso
+from ai_anime.shared.utils.voice_samples import READABLE_VOICE_EXTENSIONS
 
-USER_VOICE_EXTENSIONS = frozenset(
-    {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".webm"}
-)
+USER_VOICE_EXTENSIONS = frozenset(READABLE_VOICE_EXTENSIONS)
 USER_VOICE_SCOPE = "user_custom"
 
 

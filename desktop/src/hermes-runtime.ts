@@ -41,9 +41,7 @@ export function developmentHermesCliPath(
     repositoryRoot,
     "desktop",
     "hermes-runtime",
-    ".venv",
-    platform === "win32" ? "Scripts" : "bin",
-    platform === "win32" ? "hermes.exe" : "hermes",
+    "hermes_acp.py",
   );
 }
 

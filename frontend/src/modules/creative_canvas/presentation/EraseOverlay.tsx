@@ -51,7 +51,7 @@ import type { CanvasCatalogModelOption } from '../application/generationCatalog'
 import { buildRedHighlightMaskBlob } from '../application/maskHighlight';
 
 import { CreditCostPill } from '@/components/credit-visual';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
+import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface EraseOverlayProps {
   projectId: string;
@@ -128,17 +128,6 @@ const ERASE_TOOLBAR_BUTTON_CLASS =
   'nodrag inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50';
 const ERASE_SLIDER_CLASS =
   'nodrag nopan h-0.5 w-24 cursor-pointer appearance-none rounded-full [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-none [&::-moz-range-thumb]:h-2.5 [&::-moz-range-thumb]:w-2.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary';
-
-function imageModelSupportsQuality(apiModel: string | null | undefined): boolean {
-  if (!apiModel) return false;
-  const normalized = apiModel.toLowerCase();
-  return (
-    normalized === 'gpt-image-2'
-    || normalized === 'image-2'
-    || normalized === 'image-2-official'
-    || normalized.includes('gpt-image')
-  );
-}
 
 export function createEraseOverlay({
   useStore,

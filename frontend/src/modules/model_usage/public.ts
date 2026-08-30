@@ -76,6 +76,7 @@ export type {
   GenerationCreditCostOptions,
   GenerationCreditCostRequest,
 } from "@/modules/model_usage/domain/generation-credit";
+export { imageModelSupportsQuality } from "@/modules/model_usage/domain/generation-credit";
 export type {
   ModelAccessMode,
   ModelGatewayConfig,
@@ -86,11 +87,19 @@ export {
   resolveCatalogRouteSelection,
 } from "@/modules/model_usage/domain/catalog-route";
 export {
+  commercialModelParameterDeclarations,
+  commercialModelParameterOverrideDeclarations,
   commercialModelRuntimeMetadata,
   formatModelContextWindow,
   formatReasoningEffort,
+  modelParameterOverrideDraft,
+  parseModelCapabilityOverridesJsonDraft,
+  parseModelParameterOverrideDrafts,
+  parseModelParameterOverridesJsonDraft,
 } from "@/modules/model_usage/domain/model-runtime-metadata";
 export type {
+  ModelParameterDeclaration,
+  ModelParameterOverridesParseResult,
   ModelReasoningEffortMetadata,
   ModelRuntimeMetadata,
 } from "@/modules/model_usage/domain/model-runtime-metadata";

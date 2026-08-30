@@ -62,6 +62,7 @@ export async function prepareBodyForRoute(
   reasoningEffort?: string | null,
   maxOutputTokens?: number,
   allowedVideoExtraParameters: readonly string[] = [],
+  parameterOverrides?: Readonly<Record<string, unknown>>,
 ): Promise<PreparedBody> {
   if (rawBody === undefined) return {};
   const normalized = contentType.trim().toLowerCase();
@@ -79,12 +80,20 @@ export async function prepareBodyForRoute(
             }),
           )
         : payload;
-      const outputTokenField = Object.hasOwn(routedPayload, "max_completion_tokens")
+      const overriddenPayload = mergeParameterOverrides(
+        routedPayload,
+        filterParameterOverrides(
+          parameterOverrides,
+          cloudVideo,
+          allowedVideoExtraParameters,
+        ),
+      );
+      const outputTokenField = Object.hasOwn(overriddenPayload, "max_completion_tokens")
         ? "max_completion_tokens"
         : "max_tokens";
       return {
         body: JSON.stringify({
-          ...routedPayload,
+          ...overriddenPayload,
           model: modelId,
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
           ...(maxOutputTokens
@@ -117,6 +126,14 @@ export async function prepareBodyForRoute(
         : key;
       target.append(targetKey, value, value.name);
     });
+    for (const [key, value] of Object.entries(filterParameterOverrides(
+      parameterOverrides,
+      cloudVideo,
+      allowedVideoExtraParameters,
+    ))) {
+      const serialized = multipartParameterOverride(value);
+      if (serialized !== undefined) target.set(key, serialized);
+    }
     target.set("model", modelId);
     return { body: target };
   }
@@ -124,6 +141,60 @@ export async function prepareBodyForRoute(
     body: rawBody as unknown as BodyInit,
     ...(contentType ? { contentType } : {}),
   };
+}
+
+function filterParameterOverrides(
+  overrides: Readonly<Record<string, unknown>> | undefined,
+  cloudVideo: boolean,
+  allowedVideoExtraParameters: readonly string[],
+): Readonly<Record<string, unknown>> {
+  if (!overrides) return {};
+  if (!cloudVideo) return overrides;
+  return Object.fromEntries(
+    Object.entries(overrides).filter(([key]) => (
+      CLOUD_VIDEO_CORE_TEXT_FIELDS.has(key.toLowerCase())
+      || allowedVideoExtraParameters.includes(key)
+    )),
+  );
+}
+
+function mergeParameterOverrides(
+  payload: Record<string, unknown>,
+  overrides: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...payload };
+  for (const [key, value] of Object.entries(overrides)) {
+    const current = plainRecord(merged[key]);
+    const replacement = plainRecord(value);
+    merged[key] = current && replacement
+      ? mergeParameterOverrides(current, replacement)
+      : cloneParameterOverride(value);
+  }
+  return merged;
+}
+
+function plainRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function cloneParameterOverride(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(cloneParameterOverride);
+  const record = plainRecord(value);
+  return record
+    ? Object.fromEntries(
+        Object.entries(record).map(([key, item]) => [key, cloneParameterOverride(item)]),
+      )
+    : value;
+}
+
+function multipartParameterOverride(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean" || value === null) {
+    return String(value);
+  }
+  return JSON.stringify(value);
 }
 
 export function isVideoCreatePath(path: string): boolean {
