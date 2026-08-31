@@ -47,10 +47,10 @@ class ImageVerifier:
 
     def _get_agent(self) -> Agent:
         if self._agent is None:
-            from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+            from ai_anime.modules.model_usage.public import get_text_pydantic_model
 
             self._agent = Agent(
-                get_newapi_text_pydantic_model(),
+                get_text_pydantic_model(),
                 system_prompt=SKETCH_VERIFY_PROMPT,
                 output_type=VerificationResult,
                 retries={"output": 2},

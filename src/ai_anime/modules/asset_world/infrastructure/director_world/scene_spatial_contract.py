@@ -265,18 +265,12 @@ async def ask_model_access(
     prompt: str,
     max_tokens: int,
 ) -> str:
-    effective_model = resolve_model_for_role("TEXT")
     data_url = "data:image/jpeg;base64," + base64.b64encode(image_path.read_bytes()).decode("ascii")
-    response_format = (
-        {"type": "json_object"}
-        if effective_model.lower().startswith("openai/")
-        else None
-    )
     return await request_model_chat_content(
         temperature=0.0,
         max_tokens=max_tokens,
         timeout_seconds=120.0,
-        response_format=response_format,
+        response_format={"type": "json_object"},
         messages=[
             {
                 "role": "user",

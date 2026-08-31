@@ -18,12 +18,12 @@ async def call_creative_canvas_vision_model(
 
     from pydantic_ai import Agent, BinaryContent
 
-    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+    from ai_anime.modules.model_usage.public import get_text_pydantic_model
     from ai_anime.modules.model_usage.public import resolve_model_for_role
 
     model = resolve_model_for_role("TEXT")
     agent = Agent(
-        get_newapi_text_pydantic_model(
+        get_text_pydantic_model(
             timeout_seconds_override=timeout_seconds,
         ),
         output_type=str,

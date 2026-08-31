@@ -554,7 +554,7 @@ async def build_asset_preset_context(
                 get_style_preset,
             )
             from ai_anime.modules.production.public import (
-                NanoBananaCharacterGenerator,
+                CharacterImageGenerator,
             )
             from ai_anime.modules.project_workspace.public import load_project_config
 
@@ -570,8 +570,8 @@ async def build_asset_preset_context(
             )
             style_keywords = style_preset.get("style_instructions", "")
             negative_keywords = style_preset.get("avoid_instructions", "")
-            character_prompt_builder = NanoBananaCharacterGenerator.__new__(
-                NanoBananaCharacterGenerator
+            character_prompt_builder = CharacterImageGenerator.__new__(
+                CharacterImageGenerator
             )
         except Exception:
             project_style = ""

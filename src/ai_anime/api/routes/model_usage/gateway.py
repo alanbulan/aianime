@@ -11,14 +11,14 @@ from ai_anime.modules.model_usage.public import (
     configure_model_access,
     require_model_admin_token,
 )
-from ai_anime.modules.model_usage.public import (
-    build_model_gateway_status,
-)
+from ai_anime.modules.model_usage.public import build_model_gateway_status
 
 router = APIRouter(prefix="/model-gateway")
 
 
 class CommercialModelAssignmentBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     model_id: str = Field(alias="modelId", min_length=1, max_length=256)
     role: str = Field(min_length=1, max_length=64)
     priority: int = Field(default=100, ge=1, le=9999)
@@ -46,11 +46,23 @@ class CommercialModelAssignmentBody(BaseModel):
 
 
 class CommercialModelCapabilityBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     model_id: str = Field(alias="modelId", min_length=1, max_length=256)
-    video_profile: str | None = Field(
+    extra_parameter_names: list[str] = Field(
+        default_factory=list,
+        alias="extraParameterNames",
+        max_length=64,
+    )
+    image_prompt_profile: str | None = Field(
         default=None,
-        alias="videoProfile",
-        pattern="^(standard|seedance2|happyhorse|grok)$",
+        alias="imagePromptProfile",
+        max_length=64,
+    )
+    video_workflow: str | None = Field(
+        default=None,
+        alias="videoWorkflow",
+        pattern="^(standard|advanced-reference|reference)$",
     )
     video_ratio_options: list[str] = Field(
         default_factory=list,
@@ -67,6 +79,11 @@ class CommercialModelCapabilityBody(BaseModel):
         alias="videoSizeOptions",
         max_length=32,
     )
+    video_resolution_max_seconds: dict[str, float] = Field(
+        default_factory=dict,
+        alias="videoResolutionMaxSeconds",
+        max_length=32,
+    )
     video_supports_generate_audio: bool | None = Field(
         default=None,
         alias="videoSupportsGenerateAudio",
@@ -74,6 +91,10 @@ class CommercialModelCapabilityBody(BaseModel):
     video_supports_human_review: bool | None = Field(
         default=None,
         alias="videoSupportsHumanReview",
+    )
+    video_dialogue_only: bool | None = Field(
+        default=None,
+        alias="videoDialogueOnly",
     )
     video_extra_parameter_names: list[str] = Field(
         default_factory=list,
@@ -160,7 +181,6 @@ class CommercialModelCapabilityBody(BaseModel):
         alias="referenceVideoTotalMaxSeconds",
         gt=0,
     )
-
 
 class CommercialModelAccessBody(BaseModel):
     model_config = ConfigDict(extra="forbid")

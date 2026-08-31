@@ -3,7 +3,6 @@
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.asset_world.application.background_anchor import (
     BeatBackgroundAnchorUseCases,
 )
@@ -310,8 +309,4 @@ def style_preview_task_use_cases() -> StylePreviewTaskUseCases:
 
 
 def analyze_style() -> AnalyzeStyle:
-    return AnalyzeStyle(
-        StyleService,
-        PydanticStyleImageAnalyzer(),
-        get_usage_meter(),
-    )
+    return AnalyzeStyle(StyleService, PydanticStyleImageAnalyzer())

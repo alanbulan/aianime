@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
-    freezone_audio_eleven_music_output_path,
+    freezone_audio_music_output_path,
     freezone_audio_speech_output_path,
 )
 from ai_anime.modules.creative_canvas.infrastructure.canvas_static_urls import (
@@ -74,8 +74,8 @@ class LocalCreativeCanvasJobResultReader:
             )
         if task_type == "freezone_audio_speech":
             out = freezone_audio_speech_output_path(project_dir, job_id)
-        if task_type == "freezone_audio_eleven_music":
-            out = freezone_audio_eleven_music_output_path(project_dir, job_id)
+        if task_type == "freezone_audio_music":
+            out = freezone_audio_music_output_path(project_dir, job_id)
         if task_type == "freezone_video_compose":
             out = _video_output_path(project_dir, task_type, job_id)
         if task_type in {"freezone_text_translate", "freezone_story_script"}:

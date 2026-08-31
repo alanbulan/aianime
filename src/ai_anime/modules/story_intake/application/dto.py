@@ -36,7 +36,7 @@ class StoredStoryDocument:
 class IngestionTask:
     novel_path: Path
     config: dict[str, bool | str]
-    billable_chars: int
+    text_chars: int
 
     @classmethod
     def from_backend_payload(cls, payload: Mapping[str, Any]) -> IngestionTask:
@@ -46,21 +46,17 @@ class IngestionTask:
             for key, value in raw_config.items()
             if isinstance(value, (bool, str))
         }
-        billing = dict(payload.get("billing") or {})
         return cls(
             novel_path=Path(str(payload["novel_path"])),
             config=config,
-            billable_chars=int(billing.get("billable_chars") or 0),
+            text_chars=int(payload.get("text_chars") or 0),
         )
 
     def backend_payload(self) -> dict[str, Any]:
         return {
             "novel_path": str(self.novel_path),
             "config": dict(self.config),
-            "billing": {
-                "billable_chars": self.billable_chars,
-                "billing_quantity": self.billable_chars,
-            },
+            "text_chars": self.text_chars,
         }
 
 

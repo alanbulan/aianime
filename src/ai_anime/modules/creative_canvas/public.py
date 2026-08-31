@@ -689,10 +689,10 @@ async def generate_creative_canvas_audio_music(
     response_format: str,
 ) -> CreativeCanvasGeneratedAudio:
     from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
-        generate_freezone_audio_eleven_music,
+        generate_freezone_audio_music,
     )
 
-    return await generate_freezone_audio_eleven_music(
+    return await generate_freezone_audio_music(
         project_dir=project_dir,
         job_id=job_id,
         prompt=prompt,

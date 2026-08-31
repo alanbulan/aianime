@@ -17,7 +17,7 @@ class UnifiedStylePreviewGenerator:
         project_dir: Path,
     ) -> Sequence[str | Path]:
         from ai_anime.modules.production.public import (
-            _call_newapi_image_api,
+            call_image_generation_api,
             get_style_preset,
         )
 
@@ -59,7 +59,7 @@ OUTPUT REQUIREMENTS:
 AVOID:
 {avoid_instructions}
 """.strip()
-        image_bytes, _text, error = await _call_newapi_image_api(
+        image_bytes, _text, error = await call_image_generation_api(
             prompt=resolved_prompt,
             reference_images=None,
             image_config={

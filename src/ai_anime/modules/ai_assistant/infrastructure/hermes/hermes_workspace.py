@@ -56,10 +56,9 @@ _warned_repo_state_fallback = False
 _MANAGED_ASSET_MARKER = ".ai-anime-managed-asset"
 
 
-_DEFAULT_HERMES_MODEL = "ai-anime-assistant-LLM"
 _AI_ANIME_HERMES_PROVIDER_NAME = "custom"
 _AI_ANIME_HERMES_PROVIDER = f"custom:{_AI_ANIME_HERMES_PROVIDER_NAME}"
-_AI_ANIME_HERMES_KEY_ENV = "NEWAPI_API_KEY"
+_AI_ANIME_HERMES_KEY_ENV = "MODEL_GATEWAY_API_KEY"
 _DEFAULT_HERMES_MODEL_API_MODE = "chat_completions"
 _DEFAULT_HERMES_MODEL_CONTEXT_LENGTH = "131072"
 
@@ -68,14 +67,14 @@ _CONFIG_YAML_TEMPLATE = """# AI anime-managed hermes config.
 #
 # Edit with care; this file may be regenerated.
 #
-# Model routes through the selected NewAPI gateway (OpenAI-compatible), unified
+# Model routes through the selected Model Gateway gateway (OpenAI-compatible), unified
 # with the video/image generators. The endpoint is non-secret workspace config;
-# AI anime injects the key into the worker process as NEWAPI_API_KEY.
+# AI anime injects the key into the worker process as MODEL_GATEWAY_API_KEY.
 
 custom_providers:
   - name: custom
     base_url: {base_url}
-    key_env: NEWAPI_API_KEY
+    key_env: MODEL_GATEWAY_API_KEY
     api_mode: {api_mode}
     extra_headers:
       X-AI-Anime-Request-Surface: ai-assistant
@@ -184,28 +183,28 @@ def _root_value(*names: str) -> str:
     return ""
 
 
-def _effective_newapi_gateway() -> tuple[str, str]:
+def _effective_model_gateway() -> tuple[str, str]:
     """Return effective model-access ``(api_key, base_url)`` for Hermes."""
-    from ai_anime.modules.model_usage.public import get_effective_newapi_config
+    from ai_anime.modules.model_usage.public import get_effective_model_gateway_config
 
-    gateway = get_effective_newapi_config()
+    gateway = get_effective_model_gateway_config()
     return gateway.api_key, gateway.base_url
 
 
-def _newapi_base_url() -> str:
-    return _effective_newapi_gateway()[1]
+def _model_gateway_base_url() -> str:
+    return _effective_model_gateway()[1]
 
 
 def effective_gateway_fingerprint() -> str:
     """Return a non-secret fingerprint of the gateway used by new Hermes workers."""
-    api_key, base_url = _effective_newapi_gateway()
+    api_key, base_url = _effective_model_gateway()
     material = f"{base_url}\n{api_key}".encode("utf-8")
     return hashlib.sha256(material).hexdigest()
 
 
 def effective_gateway_credentials() -> tuple[str, str]:
-    """Return the NewAPI credentials injected into a newly spawned worker."""
-    return _effective_newapi_gateway()
+    """Return the Model Gateway credentials injected into a newly spawned worker."""
+    return _effective_model_gateway()
 
 
 def _hermes_model_default() -> str:
@@ -254,7 +253,7 @@ def _default_config_yaml() -> str:
     max_tokens = _hermes_model_max_tokens()
     return _CONFIG_YAML_TEMPLATE.format(
         model=_hermes_model_default(),
-        base_url=_newapi_base_url(),
+        base_url=_model_gateway_base_url(),
         api_mode=_hermes_model_api_mode(),
         context_length=_hermes_model_context_length(),
         max_tokens_line=(
@@ -685,7 +684,7 @@ def _ensure_model_gateway_config(config_yaml: Path) -> None:
         managed_provider = {"name": _AI_ANIME_HERMES_PROVIDER_NAME}
         providers.append(managed_provider)
         changed = True
-    api_key, base_url = _effective_newapi_gateway()
+    api_key, base_url = _effective_model_gateway()
     desired_provider = {
         "name": _AI_ANIME_HERMES_PROVIDER_NAME,
         "base_url": base_url,

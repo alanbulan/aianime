@@ -261,9 +261,8 @@ def _get_sketch_edit_generation_config(
         image_size_override=os.environ.get("SKETCH_EDIT_IMAGE_SIZE", "1K"),
         model_selector_override=model_selector,
     )
-    config["openai_image_quality"] = quality
-    config["openai_sketch_image_quality"] = quality
-    config["huimeng_image_quality"] = quality
+    config["image_quality"] = quality
+    config["sketch_image_quality"] = quality
     config["image_size"] = os.environ.get("SKETCH_EDIT_IMAGE_SIZE", "1K")
     return config
 
@@ -454,8 +453,7 @@ def execute_sketch_edit_batches(
     )
     edit_image_quality = str(
         os.environ.get("SKETCH_EDIT_IMAGE_QUALITY")
-        or edit_generator_config.get("huimeng_image_quality")
-        or edit_generator_config.get("openai_image_quality")
+        or edit_generator_config.get("image_quality")
         or "low"
     )
     edit_image_size = str(os.environ.get("SKETCH_EDIT_IMAGE_SIZE") or "1K")

@@ -226,7 +226,7 @@ class FreezoneAudioMusicRequest(BaseModel):
     )
     output_format: str = Field(
         default="mp3_44100_128",
-        description="fal 原生音频格式，例如 mp3_44100_128、opus_48000_128。",
+        description="模型网关使用的原生音频格式，例如 mp3_44100_128、opus_48000_128。",
     )
 
 

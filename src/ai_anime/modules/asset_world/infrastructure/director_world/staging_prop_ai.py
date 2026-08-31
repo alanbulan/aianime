@@ -214,11 +214,11 @@ def create_staging_prop_agent():
     from pydantic_ai import Agent
 
     from ai_anime.modules.model_usage.public import (
-        get_newapi_text_pydantic_model,
-        get_newapi_text_pydantic_model_settings,
+        get_text_pydantic_model,
+        get_text_pydantic_model_settings,
     )
 
-    model_settings = get_newapi_text_pydantic_model_settings(
+    model_settings = get_text_pydantic_model_settings(
         "STAGING_PROP_THINKING_LEVEL",
         STAGING_PROP_THINKING_LEVEL,
     )
@@ -227,7 +227,7 @@ def create_staging_prop_agent():
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(),
+        get_text_pydantic_model(),
         system_prompt=SYSTEM_PROMPT,
         output_type=StagingPropAgentOutput,
         retries={"output": 2},

@@ -249,11 +249,11 @@ async def freezone_audio_speech(
 
 
 @router.post(
-    "/projects/{project}/freezone/audio/eleven-music",
+    "/projects/{project}/freezone/audio/music",
     response_model=FreezoneJobAcceptedResponse,
     tags=["freezone-audio"],
 )
-async def freezone_audio_eleven_music(
+async def freezone_audio_music(
     project: str,
     body: FreezoneAudioMusicRequest,
     user: dict = Depends(get_api_user),

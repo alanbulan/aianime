@@ -15,7 +15,6 @@ from ai_anime.modules.identity_access.public import (
     create_desktop_session,
     revoke_browser_session,
 )
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.shared.runtime_env import cookie_secure as runtime_cookie_secure
 
 router = APIRouter()
@@ -71,7 +70,6 @@ def _desktop_user_response(username: str) -> JSONResponse:
             "data": {
                 "username": username,
                 "role": "owner",
-                "credit_balance": 0,
                 "credential_kind": "user",
             },
         }
@@ -114,19 +112,12 @@ async def logout(request: Request, user: dict = Depends(get_api_user)):  # noqa:
 
 @router.get("/auth/me")
 async def me(user: dict = Depends(get_api_user)):
-    credit_balance = 0
-    user_id = str(user.get("user_id") or user.get("id") or "").strip()
-    if user_id:
-        balance = await get_usage_meter().get_user_credit_balance(user_id)
-        credit_balance = balance if balance is not None else 0
-
     return JSONResponse(
         {
             "ok": True,
             "data": {
                 "username": user["username"],
                 "role": user["role"],
-                "credit_balance": credit_balance,
                 "credential_kind": user.get("credential_kind") or "user",
                 "current_scope_kind": user.get("current_scope_kind"),
                 "current_project_id": user.get("current_project_id"),

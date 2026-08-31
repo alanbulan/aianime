@@ -547,7 +547,7 @@ async def list_character_voice_samples(
     name: str,
     user: dict = Depends(get_api_user),
 ):
-    """获取角色 IndexTTS2 声线样本插槽。"""
+    """获取角色声线样本插槽。"""
     (
         ctx,
         _username,
@@ -604,7 +604,7 @@ async def upload_character_voice_sample(
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    """上传角色 IndexTTS2 声线样本。"""
+    """上传角色声线样本。"""
     (
         ctx,
         _username,
@@ -681,7 +681,7 @@ async def record_character_voice_sample(
     body: CharacterVoiceRecordRequest,
     user: dict = Depends(get_api_user),
 ):
-    """保存浏览器录音为角色 IndexTTS2 声线样本。"""
+    """保存浏览器录音为角色声线样本。"""
     (
         ctx,
         _username,
@@ -727,7 +727,7 @@ async def trim_character_voice_sample(
     body: CharacterVoiceTrimRequest,
     user: dict = Depends(get_api_user),
 ):
-    """裁剪角色 IndexTTS2 声线样本并写回同一插槽。"""
+    """裁剪角色声线样本并写回同一插槽。"""
     (
         ctx,
         _username,
@@ -759,7 +759,7 @@ async def delete_character_voice_sample(
     slot: str,
     user: dict = Depends(get_api_user),
 ):
-    """清除角色 IndexTTS2 声线样本。"""
+    """清除角色声线样本。"""
     (
         ctx,
         _username,

@@ -287,7 +287,7 @@ def build_task(
             ),
             "reasoning": "1-3 concise sentences, <= 150 chars",
             "edit_instruction": (
-                "nanobanana-ready edit prompt, about 120-180 chars; "
+                "image-model-ready edit prompt, about 120-180 chars; "
                 "if identities are mentioned, use exact identity + hex color"
             ),
             "confidence": 0.92,

@@ -483,7 +483,7 @@ class HermesPool:
             env["AI_ANIME_DESKTOP_TOKEN"] = desktop_token
         api_key, _base_url = effective_gateway_credentials()
         if api_key:
-            env["NEWAPI_API_KEY"] = api_key
+            env["MODEL_GATEWAY_API_KEY"] = api_key
         return env
 
     async def _evict_lru_if_full(self) -> None:

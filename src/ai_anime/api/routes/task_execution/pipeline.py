@@ -36,7 +36,7 @@ _STEP_MAP = {
     "coloring": (None, "配色+身份/道具检测"),
     "global_optimize": ("global_optimize_video", "全局视频优化"),
     "first_frames": ("selected_regen", "首帧生成"),
-    "seedance_prompts": (None, "Seedance 最终提示词"),
+    "video_prompt_optimization": (None, "最终视频提示词"),
     "tts": (None, "TTS 配音"),
     "video": ("single_video", "视频生成"),
     "compose": ("compose_episode", "合成导出"),
@@ -100,24 +100,24 @@ def _beat_file_series_current(
     return True
 
 
-def _seedance_prompts_required(username: str, project: str) -> bool:
+def _advanced_video_prompts_required(username: str, project: str) -> bool:
     from ai_anime.modules.production.public import (
-        is_seedance2_model,
         resolve_video_generation_route,
+        video_model_uses_advanced_reference_workflow,
     )
 
     try:
         route = resolve_video_generation_route(username, project)
     except (LookupError, ValueError):
         return False
-    return is_seedance2_model(route.model)
+    return video_model_uses_advanced_reference_workflow(route.model)
 
 
-def _beat_has_seedance_prompt(beat: dict) -> bool:
-    from ai_anime.modules.production.public import parse_seedance2_config
+def _beat_has_video_prompt(beat: dict) -> bool:
+    from ai_anime.modules.production.public import parse_video_config
 
     return bool(
-        parse_seedance2_config(beat.get("seedance2_config_json")).final_prompt
+        parse_video_config(beat.get("video_config_json")).final_prompt
     )
 
 
@@ -275,15 +275,18 @@ async def pipeline_status(
     frames_dir = project_dir / "frames" / f"ep{target_ep:03d}"
     audio_dir = project_dir / "audio" / f"ep{target_ep:03d}"
     videos_dir = project_dir / "videos" / "beats" / f"ep{target_ep:03d}"
-    seedance_prompts_required = _seedance_prompts_required(username, project_name)
-    missing_seedance_prompt_beats = (
+    advanced_video_prompts_required = _advanced_video_prompts_required(
+        username,
+        project_name,
+    )
+    missing_video_prompt_beats = (
         [
             int(beat.get("beat_number") or 0)
             for beat in beats
             if int(beat.get("beat_number") or 0) > 0
-            and not _beat_has_seedance_prompt(beat)
+            and not _beat_has_video_prompt(beat)
         ]
-        if seedance_prompts_required
+        if advanced_video_prompts_required
         else []
     )
 
@@ -301,7 +304,7 @@ async def pipeline_status(
             beats,
             ((sketches_dir, "png"),),
         ),
-        "seedance_prompts": not missing_seedance_prompt_beats,
+        "video_prompt_optimization": not missing_video_prompt_beats,
         "tts": _beat_file_series_complete(
             audio_dir, "mp3", beats
         ),
@@ -323,7 +326,7 @@ async def pipeline_status(
         "coloring",
         "global_optimize",
         "first_frames",
-        "seedance_prompts",
+        "video_prompt_optimization",
         "tts",
         "video",
     ):
@@ -346,7 +349,7 @@ async def pipeline_status(
             "global": global_status,
             "current_episode": target_ep,
             "episode_status": episode_status,
-            "missing_seedance_prompt_beats": missing_seedance_prompt_beats,
+            "missing_video_prompt_beats": missing_video_prompt_beats,
             "next_step": task_type or next_step,
             "next_step_name": step_name,
         },

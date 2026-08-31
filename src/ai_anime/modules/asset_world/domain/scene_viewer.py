@@ -48,7 +48,9 @@ def scene_plate_preview_payload(
         render_status = "no_time"
         render_relight = False
         render_label = f"Render：将使用 {resolved_scene_name}，锁图光"
-        seedance_label = f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：无"
+        video_reference_label = (
+            f"视频参考：将使用 {resolved_scene_name}，提示词时间：无"
+        )
     elif planned_scene_name and planned_scene_name != resolved_scene_name:
         render_status = "planned_missing"
         render_relight = True
@@ -56,22 +58,22 @@ def scene_plate_preview_payload(
             f"Render：已规划 {planned_scene_name} 但暂无图，将使用 "
             f"{resolved_scene_name}，relight 到 {time_of_day}"
         )
-        seedance_label = (
-            f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：{time_of_day}"
+        video_reference_label = (
+            f"视频参考：将使用 {resolved_scene_name}，提示词时间：{time_of_day}"
         )
     elif time_baked:
         render_status = "time_baked"
         render_relight = False
         render_label = f"Render：将使用 {resolved_scene_name}，锁图光"
-        seedance_label = (
-            f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：{time_of_day}"
+        video_reference_label = (
+            f"视频参考：将使用 {resolved_scene_name}，提示词时间：{time_of_day}"
         )
     else:
         render_status = "relight"
         render_relight = True
         render_label = f"Render：将使用 {resolved_scene_name}，relight 到 {time_of_day}"
-        seedance_label = (
-            f"Seedance2：将喂入 {resolved_scene_name}，提示词时间：{time_of_day}"
+        video_reference_label = (
+            f"视频参考：将使用 {resolved_scene_name}，提示词时间：{time_of_day}"
         )
 
     return {
@@ -88,10 +90,10 @@ def scene_plate_preview_payload(
             "status": render_status,
             "label": render_label,
         },
-        "seedance2": {
+        "videoReference": {
             "resolved_scene_name": resolved_scene_name,
             "prompt_time_of_day": time_of_day,
-            "label": seedance_label,
+            "label": video_reference_label,
         },
     }
 

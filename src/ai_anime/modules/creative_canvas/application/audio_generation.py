@@ -14,7 +14,7 @@ from ai_anime.modules.creative_canvas.application.task_submission import (
 from ai_anime.modules.project_workspace.public import ProjectContext
 
 CREATIVE_CANVAS_SPEECH_GENERATION_TASK_TYPE = "freezone_audio_speech"
-CREATIVE_CANVAS_MUSIC_GENERATION_TASK_TYPE = "freezone_audio_eleven_music"
+CREATIVE_CANVAS_MUSIC_GENERATION_TASK_TYPE = "freezone_audio_music"
 CREATIVE_CANVAS_VOICE_DESIGN_TASK_TYPE = "freezone_voice_design"
 CREATIVE_CANVAS_VOICE_PRESET_TASK_TYPE = "freezone_voice_preset"
 

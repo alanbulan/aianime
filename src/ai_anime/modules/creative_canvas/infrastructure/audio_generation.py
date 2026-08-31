@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.production.public import IndexTTS2Client
+from ai_anime.modules.production.public import SpeechSynthesisClient
 from ai_anime.modules.model_usage.public import (
     resolve_model_for_role,
     resolve_model_route,
@@ -33,167 +32,17 @@ from ai_anime.modules.production.public import (
     resolve_character_voice,
     resolve_narrator_source,
 )
-from ai_anime.shared.utils.document_parsers import count_billable_text_chars
 from ai_anime.shared.utils.async_ops import call_blocking
-
-
-logger = logging.getLogger(__name__)
-
 
 def freezone_audio_speech_output_path(project_dir: Path, job_id: str) -> Path:
     return outputs_dir(project_dir, "freezone_audio_speech") / f"{job_id}.mp3"
 
 
-def freezone_audio_eleven_music_output_path(
+def freezone_audio_music_output_path(
     project_dir: Path,
     job_id: str,
 ) -> Path:
-    return outputs_dir(project_dir, "freezone_audio_eleven_music") / f"{job_id}.mp3"
-
-
-def freezone_audio_music_billing_seconds(music_length_ms: int) -> int:
-    try:
-        value = int(music_length_ms or 0)
-    except (TypeError, ValueError):
-        value = 0
-    return max((max(value, 0) + 999) // 1000, 1)
-
-
-async def _reserve_music_model_call(
-    model: str,
-    *,
-    music_length_ms: int,
-    source: str,
-) -> str:
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    billing_seconds = freezone_audio_music_billing_seconds(music_length_ms)
-    return await get_usage_meter().reserve_current_model_call_credit(
-        model=model,
-        billing_kind="audio",
-        billing_quantity=billing_seconds,
-        metadata={
-            "source": source,
-            "music_length_ms": int(music_length_ms or 0),
-            "billing_seconds": billing_seconds,
-        },
-    )
-
-
-async def _reserve_speech_model_call(model: str, *, text: str) -> str:
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    billable_chars = count_billable_text_chars(text)
-    metrics = {
-        "call_count": 1,
-        "item_count": 1,
-        "billable_chars": billable_chars,
-    }
-    return await get_usage_meter().reserve_current_model_call_credit(
-        model=model,
-        billing_kind="audio",
-        billing_params=metrics,
-        billing_quantity=1,
-        metadata={"source": "freezone_audio_speech", **metrics},
-    )
-
-
-async def _refund_music_model_call(
-    reservation_id: str,
-    *,
-    source: str,
-    error: str,
-) -> None:
-    if not reservation_id:
-        return
-    try:
-        from ai_anime.modules.model_usage.public import get_usage_meter
-
-        await get_usage_meter().refund_model_call_credit_reservation(
-            reservation_id,
-            metadata={"source": source, "error": error[:200]},
-        )
-    except Exception:
-        logger.exception(
-            "failed to refund music model call reservation_id=%s source=%s",
-            reservation_id,
-            source,
-        )
-
-
-async def _refund_speech_model_call(
-    reservation_id: str,
-    *,
-    error: str,
-    provider_request_id: str = "",
-) -> None:
-    if not reservation_id:
-        return
-    try:
-        from ai_anime.modules.model_usage.public import get_usage_meter
-
-        metadata = {"source": "freezone_audio_speech", "error": error[:200]}
-        if provider_request_id:
-            metadata["request_id"] = provider_request_id
-        await get_usage_meter().refund_model_call_credit_reservation(
-            reservation_id,
-            metadata=metadata,
-        )
-    except Exception:
-        logger.exception(
-            "failed to refund speech model call reservation_id=%s",
-            reservation_id,
-        )
-
-
-async def _confirm_music_model_call(
-    *,
-    model: str,
-    reservation_id: str,
-) -> None:
-    if not reservation_id:
-        return
-    try:
-        from ai_anime.modules.model_usage.public import get_usage_meter
-
-        await get_usage_meter().bump_model_call(
-            user_id=None,
-            model=model,
-            credit_reservation_id=reservation_id,
-        )
-    except Exception:
-        logger.exception(
-            "failed to confirm music model call reservation_id=%s model=%s",
-            reservation_id,
-            model,
-        )
-
-
-async def _confirm_speech_model_call(
-    *,
-    model: str,
-    reservation_id: str,
-    provider_request_id: str = "",
-    response_id: str = "",
-) -> None:
-    if not reservation_id:
-        return
-    try:
-        from ai_anime.modules.model_usage.public import get_usage_meter
-
-        await get_usage_meter().bump_model_call(
-            user_id=None,
-            model=model,
-            provider_request_id=provider_request_id,
-            credit_reservation_id=reservation_id,
-            metadata={"response_id": response_id} if response_id else None,
-        )
-    except Exception:
-        logger.exception(
-            "failed to confirm speech model call reservation_id=%s model=%s",
-            reservation_id,
-            model,
-        )
+    return outputs_dir(project_dir, "freezone_audio_music") / f"{job_id}.mp3"
 
 
 def _project_path(project_dir: Path, stored_path: str) -> Path | None:
@@ -350,41 +199,21 @@ async def generate_freezone_audio_speech(
         if voice_ref is not None:
             raise ValueError("voice_ref is not allowed when mode is SPEECH")
         model_name = route.model or resolve_model_for_role("AUDIO_SPEECH")
-        reservation_id = ""
-        try:
-            if not route.selector.startswith("byok:"):
-                reservation_id = await _reserve_speech_model_call(
-                    model_name,
-                    text=clean_text,
-                )
-            transport_result = await write_model_audio_speech(
-                output_path=output_path,
-                model_role="AUDIO_SPEECH",
-                input_text=clean_text,
-                model_selector=route.selector or None,
-                voice=clean_voice,
-                response_format="mp3",
-                timeout_seconds=600.0,
-            )
-            if not output_path.exists() or output_path.stat().st_size <= 0:
-                raise RuntimeError("speech audio file was not created")
-            duration_ms = await call_blocking(
-                audio_voice_store.audio_duration_ms,
-                output_path,
-            )
-            await _confirm_speech_model_call(
-                model=model_name,
-                reservation_id=reservation_id,
-                provider_request_id=transport_result.request_id,
-                response_id=transport_result.response_id,
-            )
-        except Exception as exc:
-            await _refund_speech_model_call(
-                reservation_id,
-                error=type(exc).__name__,
-                provider_request_id=str(getattr(exc, "request_id", "") or ""),
-            )
-            raise
+        await write_model_audio_speech(
+            output_path=output_path,
+            model_role="AUDIO_SPEECH",
+            input_text=clean_text,
+            model_selector=route.selector or None,
+            voice=clean_voice,
+            response_format="mp3",
+            timeout_seconds=600.0,
+        )
+        if not output_path.exists() or output_path.stat().st_size <= 0:
+            raise RuntimeError("speech audio file was not created")
+        duration_ms = await call_blocking(
+            audio_voice_store.audio_duration_ms,
+            output_path,
+        )
         return CreativeCanvasGeneratedAudio(
             audio_path=output_path,
             duration_ms=duration_ms,
@@ -427,7 +256,7 @@ async def generate_freezone_audio_speech(
         )
 
     model_name = resolve_model_for_role("AUDIO_VOICE_CLONE")
-    generator = IndexTTS2Client()
+    generator = SpeechSynthesisClient()
     result = await generator.generate(
         prompt=clean_text,
         audio_url=build_reference_audio_url(selected_voice.audio_path),
@@ -438,7 +267,7 @@ async def generate_freezone_audio_speech(
         ),
     )
     if not result.success:
-        raise RuntimeError(result.error or "IndexTTS2 generation failed")
+        raise RuntimeError(result.error or "Speech generation failed")
 
     duration_ms = int((result.duration_seconds or 0) * 1000)
     if duration_ms <= 0:
@@ -478,7 +307,7 @@ def _audio_suffix(response_format: str) -> str:
     }.get(response_format, ".mp3")
 
 
-async def generate_freezone_audio_eleven_music(
+async def generate_freezone_audio_music(
     *,
     project_dir: Path,
     job_id: str,
@@ -497,7 +326,7 @@ async def generate_freezone_audio_eleven_music(
         raise ValueError("music_length_ms must be between 3000 and 600000")
 
     response_format = str(response_format or "mp3").strip() or "mp3"
-    output_path = freezone_audio_eleven_music_output_path(project_dir, job_id)
+    output_path = freezone_audio_music_output_path(project_dir, job_id)
     if _audio_suffix(response_format) != ".mp3":
         output_path = output_path.with_suffix(_audio_suffix(response_format))
 
@@ -510,44 +339,26 @@ async def generate_freezone_audio_eleven_music(
     }
 
     model_name = resolve_model_for_role("AUDIO_MUSIC")
-    reservation_id = ""
+    await write_model_audio_music(
+        output_path=output_path,
+        prompt=clean_prompt,
+        duration_seconds=length / 1000,
+        response_format=response_format,
+        parameters=parameters,
+        timeout_seconds=900.0,
+    )
+    if not output_path.exists() or output_path.stat().st_size <= 0:
+        raise RuntimeError("music audio file was not created")
     try:
-        reservation_id = await _reserve_music_model_call(
-            model_name,
-            music_length_ms=length,
-            source="freezone_audio_music",
+        duration_ms = await call_blocking(
+            audio_voice_store.audio_duration_ms,
+            output_path,
         )
-        await write_model_audio_music(
-            output_path=output_path,
-            prompt=clean_prompt,
-            duration_seconds=length / 1000,
-            response_format=response_format,
-            parameters=parameters,
-            timeout_seconds=900.0,
-        )
-        if not output_path.exists() or output_path.stat().st_size <= 0:
-            raise RuntimeError("NewAPI music audio file was not created")
-        try:
-            duration_ms = await call_blocking(
-                audio_voice_store.audio_duration_ms,
-                output_path,
-            )
-        except ValueError:
-            if response_format.lower() not in {"pcm", "ulaw", "alaw"}:
-                raise
-            duration_ms = length
-        duration_ms = duration_ms or length
-        await _confirm_music_model_call(
-            model=model_name,
-            reservation_id=reservation_id,
-        )
-    except Exception as exc:
-        await _refund_music_model_call(
-            reservation_id,
-            source="freezone_audio_music",
-            error=type(exc).__name__,
-        )
-        raise
+    except ValueError:
+        if response_format.lower() not in {"pcm", "ulaw", "alaw"}:
+            raise
+        duration_ms = length
+    duration_ms = duration_ms or length
     return CreativeCanvasGeneratedAudio(
         audio_path=output_path,
         duration_ms=duration_ms,

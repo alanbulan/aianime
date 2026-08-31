@@ -1,27 +1,25 @@
-"""Scene 360 generation, trace capture, and model-usage accounting."""
+"""Scene 360 generation and trace capture."""
 
 from __future__ import annotations
 
-import asyncio
-import contextvars
 import json
 import logging
 import os
 import shutil
-import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from ai_anime.modules.model_usage.public import model_access_configured
+from ai_anime.modules.model_usage.public import (
+    model_access_configured,
+    resolve_model_for_role,
+)
 from ai_anime.modules.asset_world.infrastructure.director_world import stage_manifest
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.task_execution.public import (
     TaskCancelled,
     TaskTimedOut,
     run_project_model_subprocess,
 )
-from ai_anime.modules.model_usage.public import DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
 from ai_anime.shared.utils.path_resolver import (
     compute_scene_master_path,
     compute_scene_reverse_master_path,
@@ -37,32 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 SPATIAL_CONTRACT_SCHEMA_VERSION = "scene_spatial_contract_v8_topology_only_locks"
-SPATIAL_CONTRACT_DEFAULT_MODEL = DEFAULT_SCENE_SPATIAL_CONTRACT_MODEL
 SAFE_SEAM_SPHERE_YAW_DEG = -90.0
-
-
-def _run_credit_coro(coro_factory):
-    """Run async credit helpers from this synchronous subprocess wrapper."""
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro_factory())
-
-    ctx = contextvars.copy_context()
-    result: dict[str, Any] = {}
-
-    def runner() -> None:
-        try:
-            result["value"] = ctx.run(lambda: asyncio.run(coro_factory()))
-        except BaseException as exc:  # noqa: BLE001
-            result["error"] = exc
-
-    thread = threading.Thread(target=runner, name="stage-asset-credit", daemon=True)
-    thread.start()
-    thread.join()
-    if "error" in result:
-        raise result["error"]
-    return result.get("value")
 
 
 def _clean_trace_value(value: Any) -> str:
@@ -81,7 +54,6 @@ def _read_scene_360_provider_trace(generation_dir: Path) -> dict[str, str]:
     request_id = _clean_trace_value(
         payload.get("request_id")
         or payload.get("provider_request_id")
-        or payload.get("newapi_request_id")
     )
     provider_task_id = _clean_trace_value(
         payload.get("provider_task_id") or payload.get("task_id")
@@ -97,105 +69,6 @@ def _read_scene_360_provider_trace(generation_dir: Path) -> dict[str, str]:
     if response_id:
         trace["response_id"] = response_id
     return trace
-
-
-def _scene_360_credit_billing_params(
-    *,
-    image_size: str,
-    quality: str,
-) -> dict[str, str]:
-    params: dict[str, str] = {}
-    clean_size = str(image_size or "").strip().lower()
-    if clean_size:
-        params["size"] = clean_size
-    clean_quality = str(quality or "").strip().lower()
-    if clean_quality:
-        params["quality"] = clean_quality
-    return params
-
-
-def _reserve_scene_360_model_call(
-    model: str,
-    *,
-    provider: str,
-    image_size: str,
-    quality: str,
-) -> str:
-    model_name = str(model or "").strip()
-    if not model_name:
-        return ""
-
-    async def _reserve() -> str:
-        return await get_usage_meter().reserve_current_model_call_credit(
-            model=model_name,
-            resource_kind="render",
-            billing_kind="image",
-            billing_params=_scene_360_credit_billing_params(
-                image_size=image_size,
-                quality=quality,
-            ),
-            metadata={"source": "scene_360_subprocess", "provider": provider},
-        )
-
-    return str(_run_credit_coro(_reserve) or "")
-
-
-def _refund_scene_360_model_call(
-    reservation_id: str,
-    *,
-    provider: str,
-    error: str,
-) -> None:
-    if not reservation_id:
-        return
-
-    async def _refund() -> None:
-        await get_usage_meter().refund_model_call_credit_reservation(
-            reservation_id,
-            metadata={
-                "source": "scene_360_subprocess",
-                "provider": provider,
-                "error": error[:200],
-            },
-        )
-
-    try:
-        _run_credit_coro(_refund)
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("scene_360 credit refund failed: %s", exc)
-
-
-def _confirm_scene_360_model_call(
-    *,
-    model: str,
-    reservation_id: str,
-    provider: str,
-    provider_request_id: str = "",
-    provider_task_id: str = "",
-    provider_response_id: str = "",
-) -> None:
-    if not reservation_id:
-        return
-
-    async def _confirm() -> None:
-        await get_usage_meter().bump_model_call(
-            user_id=None,
-            model=model,
-            resource_kind="render",
-            provider_request_id=provider_request_id,
-            provider_task_id=provider_task_id,
-            credit_reservation_id=reservation_id,
-            metadata={
-                "source": "scene_360_subprocess",
-                "provider": provider,
-                **({"response_id": provider_response_id} if provider_response_id else {}),
-            },
-        )
-
-    try:
-        _run_credit_coro(_confirm)
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("scene_360 credit confirm failed: %s", exc)
 
 
 def resolve_scene_360_image_model(model: str = "") -> str:
@@ -257,7 +130,6 @@ def run_scene_360(
     quality = (
         quality
         or os.environ.get("SCENE_360_IMAGE_QUALITY")
-        or os.environ.get("HUIMENG_IMAGE_QUALITY")
         or "medium"
     ).strip()
     description = description.strip() or "\n".join(
@@ -298,8 +170,7 @@ def run_scene_360(
     overlap_analysis_path = ""
     spatial_contract_path = ""
     spatial_contract_model = (
-        os.environ.get("SCENE_SPATIAL_CONTRACT_MODEL")
-        or SPATIAL_CONTRACT_DEFAULT_MODEL
+        resolve_model_for_role("TEXT") if model_access_configured() else ""
     )
     pano_correction_payload: dict[str, Any] | None = None
     if source == "master":
@@ -450,107 +321,88 @@ def run_scene_360(
         timeout_seconds,
     )
     logger.info("running scene 360 generator: %s", " ".join(cmd[:2] + ["..."]))
-    reservation_id = _reserve_scene_360_model_call(
-        resolved_model,
-        provider=provider,
-        image_size=image_size,
-        quality=quality,
+    proc = run_project_model_subprocess(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=int(timeout_seconds),
     )
-    try:
-        proc = run_project_model_subprocess(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=int(timeout_seconds),
-        )
-        if proc.returncode != 0:
-            message = (proc.stderr or proc.stdout or "").strip()
-            raise RuntimeError(f"360 全景生成失败: {message[-1200:]}")
+    if proc.returncode != 0:
+        message = (proc.stderr or proc.stdout or "").strip()
+        raise RuntimeError(f"360 全景生成失败: {message[-1200:]}")
 
-        if not generated.exists():
-            raise RuntimeError(f"360 生成器成功退出，但没有写出结果: {generated}")
+    if not generated.exists():
+        raise RuntimeError(f"360 生成器成功退出，但没有写出结果: {generated}")
 
-        provider_trace = _read_scene_360_provider_trace(generation_dir)
-        pano_path = out_dir / "pano_360.png"
-        archived: Path | None = None
-        if update_manifest and pano_path.exists():
-            archived = pano_path.with_name(f"pano_360_{timestamp}.png")
-            pano_path.replace(archived)
-        shutil.copy2(generated, pano_path)
+    provider_trace = _read_scene_360_provider_trace(generation_dir)
+    pano_path = out_dir / "pano_360.png"
+    archived: Path | None = None
+    if update_manifest and pano_path.exists():
+        archived = pano_path.with_name(f"pano_360_{timestamp}.png")
+        pano_path.replace(archived)
+    shutil.copy2(generated, pano_path)
 
-        report(
-            0.90,
-            "pano_360.png 已写入 3GS 资产包" if update_manifest else "360 全景候选已写入画布输出",
-        )
-        if update_manifest:
-            stage_manifest.update_manifest(
-                project_dir,
-                scene_id,
-                clear_fields=[
-                    "ply_path",
-                    "pano_ply_path",
-                    "collision_glb_path",
-                    "voxel_json_path",
-                    "pano_sharp_args",
-                    "single_face_sharp_args",
-                    "splat_transform_args",
-                ],
-                pano_path=pano_path.name,
-                source=manifest_source,
-                scene_360_args={
-                    "provider": provider,
-                    "model": resolved_model,
-                    "style": style,
-                    "image_size": image_size,
-                    "quality": quality,
-                    "source": source,
-                    "topology": "master_reverse_safe_side_seam" if pano_correction_payload else "",
-                    "master_path": master_path,
-                    "reverse_master_path": reverse_master_path,
-                    "spatial_contract_path": spatial_contract_path,
-                    "spatial_contract_model": (
-                        spatial_contract_model if spatial_contract_path else ""
-                    ),
-                    "overlap_analysis_path": overlap_analysis_path,
-                },
-                pano_correction=pano_correction_payload,
-            )
-        result = {
-            "ok": True,
-            "scene_id": scene_id,
-            "pano_path": str(pano_path),
-            "output_path": str(pano_path),
-            "source": manifest_source,
-            "provider": provider,
-            "model": resolved_model,
-            "image_size": image_size,
-            "quality": quality,
-            "generation_dir": str(generation_dir),
-            "archived_path": str(archived) if archived else None,
-            "manifest_updated": bool(update_manifest),
-            "pano_correction": pano_correction_payload,
-            "request_id": provider_trace.get("request_id", ""),
-            "provider_task_id": provider_trace.get("provider_task_id", ""),
-            "response_id": provider_trace.get("response_id", ""),
-            "ran_at": datetime.now(timezone.utc).isoformat(),
-            "stdout_tail": (proc.stdout or "")[-2000:],
-        }
-    except BaseException as exc:
-        _refund_scene_360_model_call(
-            reservation_id,
-            provider=provider,
-            error=exc.__class__.__name__,
-        )
-        raise
-
-    _confirm_scene_360_model_call(
-        model=resolved_model,
-        reservation_id=reservation_id,
-        provider=provider,
-        provider_request_id=provider_trace.get("request_id", ""),
-        provider_task_id=provider_trace.get("provider_task_id", ""),
-        provider_response_id=provider_trace.get("response_id", ""),
+    report(
+        0.90,
+        "pano_360.png 已写入 3GS 资产包" if update_manifest else "360 全景候选已写入画布输出",
     )
+    if update_manifest:
+        stage_manifest.update_manifest(
+            project_dir,
+            scene_id,
+            clear_fields=[
+                "ply_path",
+                "pano_ply_path",
+                "collision_glb_path",
+                "voxel_json_path",
+                "pano_sharp_args",
+                "single_face_sharp_args",
+                "splat_transform_args",
+            ],
+            pano_path=pano_path.name,
+            source=manifest_source,
+            scene_360_args={
+                "provider": provider,
+                "model": resolved_model,
+                "style": style,
+                "image_size": image_size,
+                "quality": quality,
+                "source": source,
+                "topology": (
+                    "master_reverse_safe_side_seam"
+                    if pano_correction_payload
+                    else ""
+                ),
+                "master_path": master_path,
+                "reverse_master_path": reverse_master_path,
+                "spatial_contract_path": spatial_contract_path,
+                "spatial_contract_model": (
+                    spatial_contract_model if spatial_contract_path else ""
+                ),
+                "overlap_analysis_path": overlap_analysis_path,
+            },
+            pano_correction=pano_correction_payload,
+        )
+    result = {
+        "ok": True,
+        "scene_id": scene_id,
+        "pano_path": str(pano_path),
+        "output_path": str(pano_path),
+        "source": manifest_source,
+        "provider": provider,
+        "model": resolved_model,
+        "image_size": image_size,
+        "quality": quality,
+        "generation_dir": str(generation_dir),
+        "archived_path": str(archived) if archived else None,
+        "manifest_updated": bool(update_manifest),
+        "pano_correction": pano_correction_payload,
+        "request_id": provider_trace.get("request_id", ""),
+        "provider_task_id": provider_trace.get("provider_task_id", ""),
+        "response_id": provider_trace.get("response_id", ""),
+        "ran_at": datetime.now(timezone.utc).isoformat(),
+        "stdout_tail": (proc.stdout or "")[-2000:],
+    }
     return result
 
 

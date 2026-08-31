@@ -6,12 +6,9 @@ from typing import Any
 
 from ai_anime.modules.ai_assistant.public import ChatScope
 from ai_anime.modules.model_usage.public import (
-    BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-    INSUFFICIENT_CREDITS_MESSAGE,
-    billing_rule_not_configured_payload,
-    find_billing_rule_not_configured_error,
-    find_insufficient_credits_error,
-    insufficient_credits_payload,
+    MODEL_QUOTA_EXCEEDED_MESSAGE,
+    find_model_quota_error,
+    model_quota_payload,
 )
 
 _CHAT_BUSY_MESSAGE = "当前用户已有 AI 对话正在处理中"
@@ -32,22 +29,13 @@ def chat_exception_event(
             "message": message,
         }
 
-    billing_rule_error = find_billing_rule_not_configured_error(error)
-    if billing_rule_error is not None:
+    quota_error = find_model_quota_error(error)
+    if quota_error is not None:
         return {
             "type": "error",
             "turn_id": turn_id,
-            "message": BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-            "data": billing_rule_not_configured_payload(billing_rule_error),
-        }
-
-    insufficient_error = find_insufficient_credits_error(error)
-    if insufficient_error is not None:
-        return {
-            "type": "error",
-            "turn_id": turn_id,
-            "message": INSUFFICIENT_CREDITS_MESSAGE,
-            "data": insufficient_credits_payload(insufficient_error),
+            "message": MODEL_QUOTA_EXCEEDED_MESSAGE,
+            "data": model_quota_payload(quota_error),
         }
 
     return {"type": "error", "turn_id": turn_id, "message": message}

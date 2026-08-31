@@ -22,7 +22,7 @@ from ai_anime.modules.production.public import (
     apply_style_reference,
     get_style_preset,
 )
-from ai_anime.modules.production.public import _call_newapi_image_api
+from ai_anime.modules.production.public import call_image_generation_api
 from ai_anime.modules.model_usage.public import (
     infer_project_output_dir,
     load_model_access_from_stdin,
@@ -40,7 +40,7 @@ PROJECT_DIR = Path(OUTPUT_DIR) / "admin/xuanchuanpian"
 SCENE_NAME = "兰州拉面馆"
 SCENE_DIR = PROJECT_DIR / "assets/scenes" / SCENE_NAME
 DEFAULT_MASTER = SCENE_DIR / "master.png"
-DEFAULT_OUTPUT_DIR = SCENE_DIR / "scene_360_gpt_image2_master_style_v1"
+DEFAULT_OUTPUT_DIR = SCENE_DIR / "scene_360_master_style_v1"
 DEFAULT_SCENE_DESCRIPTION = (
     "A compact interior environment with fixed architecture, entrances, windows, "
     "work surfaces, furniture groups, circulation aisles, ceiling/floor/wall materials, "
@@ -759,7 +759,7 @@ async def run(args: argparse.Namespace) -> int:
     args.image_size = str(
         args.image_size or os.environ.get("SCENE_360_IMAGE_SIZE") or SCENE_360_DEFAULT_IMAGE_SIZE
     ).strip()
-    provider = "newapi"
+    provider = "model_gateway"
     output_dir = repo_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     project_dir = infer_project_output_dir(output_dir) or PROJECT_DIR
@@ -933,7 +933,7 @@ async def run(args: argparse.Namespace) -> int:
     model = str(args.model or "").strip()
     if not model:
         raise ValueError("scene 360 image model is required")
-    image_bytes, _text, error = await _call_newapi_image_api(
+    image_bytes, _text, error = await call_image_generation_api(
         prompt=prompt,
         reference_images=reference_images,
         image_config={
@@ -975,7 +975,7 @@ async def run(args: argparse.Namespace) -> int:
                 "request_id": provider_trace.get("request_id", ""),
                 "response_id": provider_trace.get("response_id", ""),
                 "result": str(result_path),
-                "size_note": ("scene 360 defaults to image-2 2K medium; aspect_ratio=2:1"),
+                "size_note": ("scene 360 uses the selected image model at 2K; aspect_ratio=2:1"),
             },
             ensure_ascii=False,
             indent=2,

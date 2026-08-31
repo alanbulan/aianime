@@ -32,9 +32,9 @@ def application_container(application: FastAPI) -> ApplicationContainer:
 
 async def startup_application(application: FastAPI) -> None:
     try:
-        from ai_anime.migrations.model_usage import migrate_legacy_gateway_secrets
+        from ai_anime.migrations.model_usage import purge_retired_gateway_settings
 
-        await asyncio.to_thread(migrate_legacy_gateway_secrets)
+        await asyncio.to_thread(purge_retired_gateway_settings)
         container = application_container(application)
         await container.lifecycle.on_startup(register_as_worker=True)
 

@@ -16,12 +16,9 @@ from ai_anime.modules.project_workspace.public import (
     ProjectUserIdentityUnresolved,
 )
 from ai_anime.modules.model_usage.public import (
-    BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-    INSUFFICIENT_CREDITS_MESSAGE,
-    BillingRuleNotConfiguredError,
-    InsufficientCreditsError,
-    billing_rule_not_configured_payload,
-    insufficient_credits_payload,
+    MODEL_QUOTA_EXCEEDED_MESSAGE,
+    ModelQuotaExceededError,
+    model_quota_payload,
 )
 from ai_anime.modules.task_execution.public import (
     GlobalLaneQueueLimitExceeded,
@@ -180,32 +177,17 @@ async def global_lane_queue_limit_exceeded(
     )
 
 
-async def insufficient_credits(
+async def model_quota_exceeded(
     request: Request,
-    exc: InsufficientCreditsError,
+    exc: ModelQuotaExceededError,
 ) -> JSONResponse:
     _ = request
     return JSONResponse(
         status_code=402,
         content={
             "ok": False,
-            "error": INSUFFICIENT_CREDITS_MESSAGE,
-            "data": insufficient_credits_payload(exc),
-        },
-    )
-
-
-async def billing_rule_not_configured(
-    request: Request,
-    exc: BillingRuleNotConfiguredError,
-) -> JSONResponse:
-    _ = request
-    return JSONResponse(
-        status_code=409,
-        content={
-            "ok": False,
-            "error": BILLING_RULE_NOT_CONFIGURED_MESSAGE,
-            "data": billing_rule_not_configured_payload(exc),
+            "error": MODEL_QUOTA_EXCEEDED_MESSAGE,
+            "data": model_quota_payload(exc),
         },
     )
 
@@ -244,10 +226,6 @@ def register_exception_handlers(application: FastAPI) -> None:
         global_lane_queue_limit_exceeded,
     )
     application.add_exception_handler(
-        InsufficientCreditsError,
-        insufficient_credits,
-    )
-    application.add_exception_handler(
-        BillingRuleNotConfiguredError,
-        billing_rule_not_configured,
+        ModelQuotaExceededError,
+        model_quota_exceeded,
     )

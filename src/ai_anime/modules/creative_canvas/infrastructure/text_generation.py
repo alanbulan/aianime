@@ -63,18 +63,18 @@ class _CreativeCanvasStoryScriptResult(BaseModel):
 
 def _create_translation_agent(model: str, model_selector: str | None) -> Agent:
     from ai_anime.modules.model_usage.public import (
-        get_newapi_structured_output_model_settings,
-        get_newapi_text_pydantic_model,
+        get_structured_output_model_settings,
+        get_text_pydantic_model,
     )
 
-    transport_model = get_newapi_text_pydantic_model(
+    transport_model = get_text_pydantic_model(
         model_name_override=model,
         model_selector=model_selector,
     )
     return Agent(
         transport_model,
         system_prompt=CREATIVE_CANVAS_TRANSLATION_SYSTEM_PROMPT,
-        model_settings=get_newapi_structured_output_model_settings(),
+        model_settings=get_structured_output_model_settings(),
         output_type=_CreativeCanvasTranslationResult,
         retries={"output": 1},
         name="Freezone Prompt Translator",
@@ -104,11 +104,11 @@ async def _run_agent_with_readable_json_errors(
 
 def _create_story_script_agent(model: str, model_selector: str | None) -> Agent:
     from ai_anime.modules.model_usage.public import (
-        get_newapi_structured_output_model_settings,
-        get_newapi_text_pydantic_model,
+        get_structured_output_model_settings,
+        get_text_pydantic_model,
     )
 
-    llm_model = get_newapi_text_pydantic_model(
+    llm_model = get_text_pydantic_model(
         timeout_seconds_override=300.0,
         model_name_override=model,
         model_selector=model_selector,
@@ -116,7 +116,7 @@ def _create_story_script_agent(model: str, model_selector: str | None) -> Agent:
     return Agent(
         llm_model,
         system_prompt=CREATIVE_CANVAS_STORY_SCRIPT_SYSTEM_PROMPT,
-        model_settings=get_newapi_structured_output_model_settings(),
+        model_settings=get_structured_output_model_settings(),
         output_type=_CreativeCanvasStoryScriptResult,
         # 多字段结构化脚本偶尔需要多轮校验反馈才能修正字段类型。
         retries={"output": 3},

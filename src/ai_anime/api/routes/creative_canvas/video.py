@@ -267,7 +267,7 @@ async def freezone_video_omni_gen(
 ):
     """视频处理：全能参考文生视频。
 
-    支持文本、图像、视频、音频混合输入，当前默认走 Seedance 2.0。
+    支持文本、图像、视频、音频混合输入，按所选模型能力路由。
     """
     resolved = await _resolve_editor_project(project, user)
     return await _start_video_generation(
@@ -297,7 +297,7 @@ async def freezone_video_edit(
     body: FreezoneVideoEditRequest,
     user: dict = Depends(get_api_user),
 ):
-    """视频处理：视频编辑（HappyHorse 视频编辑功能）。
+    """视频处理：视频编辑。
 
     输入 1 个源视频 + 0-5 张参考图，走上游 video_url + reference_images。
     """

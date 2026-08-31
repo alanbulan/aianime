@@ -41,12 +41,9 @@ async def load_all_beats(
     """读取整集所有 beat 数据，只允许从 SQLite/Cognee store 读取。"""
     store = sqlite_store or cognee_store
     if store:
-        try:
-            beats = await store.get_beats_as_dicts(episode_num)
-            if beats:
-                return beats
-        except Exception:
-            pass
+        beats = await store.get_beats_as_dicts(episode_num)
+        if beats:
+            return beats
 
     raise FileNotFoundError(f"No beats found in SQLite for episode {episode_num}")
 

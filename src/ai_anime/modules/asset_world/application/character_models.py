@@ -23,7 +23,7 @@ class CharacterIdentity(BaseModel):
     character_name: str = Field(..., description="关联的主角色名")
     identity_name: str = Field(..., description="身份名称，如 '皇帝'、'和尚'")
 
-    # 角色唯一短标签（用于 Nano Banana Pro Identity Locking）
+    # 角色唯一短标签（用于图片生成中的身份锁定）
     character_tag: str = Field(
         default="",
         description="角色唯一短标签，如 '[JiangSN]'、'[XieZ]'，用于 Prompt 中的身份锁定",
@@ -59,14 +59,9 @@ class CharacterIdentity(BaseModel):
         description="身份级体型描述（用于幼年/老年等体型差异大的身份），fallback 到角色级 body_type",
     )
 
-    # 声音（用户手动指定，优先级最高）
-    fish_voice_id: str = Field(
-        default="",
-        description="DEPRECATED — Fish Audio voice ID. IndexTTS2 cutover uses reference_audio_path instead; field retained until magnetic data migration completes.",
-    )
     reference_audio_path: str = Field(
         default="",
-        description="身份级 IndexTTS2 参考音频路径（项目相对路径），优先级高于角色级 reference_audio_path",
+        description="身份级参考音频路径（项目相对路径），优先级高于角色级 reference_audio_path",
     )
     reference_audio_updated_at: str = Field(
         default="",
@@ -74,7 +69,7 @@ class CharacterIdentity(BaseModel):
     )
     reference_audio_sha256: str = Field(
         default="",
-        description="身份级参考音频内容 SHA256，用于 IndexTTS2 voice provenance 校验",
+        description="身份级参考音频内容 SHA256，用于声线来源校验",
     )
 
     # 身份级 portrait（用户上传或 AI 生成）
@@ -149,13 +144,9 @@ class NovelCharacter(BaseModel):
         default="youth", description="年龄段: child/youth/middle/elder"
     )
     body_type: str = Field(default="", description="体型描述，如'纤细高挑'、'健壮魁梧'")
-    fish_voice_id: str = Field(
-        default="",
-        description="DEPRECATED — Fish Audio voice ID. IndexTTS2 cutover uses reference_audio_path / voice_samples_by_age_group instead; field retained until magnetic data migration completes.",
-    )
     reference_audio_path: str = Field(
         default="",
-        description="角色级 IndexTTS2 参考音频路径（项目相对路径，default slot）",
+        description="角色级参考音频路径（项目相对路径，default slot）",
     )
     reference_audio_sha256: str = Field(
         default="",
@@ -167,7 +158,7 @@ class NovelCharacter(BaseModel):
     )
     voice_samples_by_age_group_json: str = Field(
         default="{}",
-        description="按年龄段（child/youth/middle/elder）划分的 IndexTTS2 声线样本 JSON：{slot: {path, sha256, updated_at}}",
+        description="按年龄段（child/youth/middle/elder）划分的声线样本 JSON：{slot: {path, sha256, updated_at}}",
     )
     description: str = Field(default="", description="角色描述")
 
@@ -243,7 +234,7 @@ class NovelCharacter(BaseModel):
 
     @property
     def voice_samples_by_age_group(self) -> dict[str, dict]:
-        """按年龄段划分的 IndexTTS2 声线样本（dict 视图，从 JSON 字段解析）。"""
+        """按年龄段划分的声线样本（dict 视图，从 JSON 字段解析）。"""
         if not self.voice_samples_by_age_group_json:
             return {}
         import json

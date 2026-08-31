@@ -33,7 +33,6 @@ from ai_anime.modules.asset_world.application.ports import (
     StyleImageAnalyzer,
     StylePreviewGenerator,
     StyleTaskScheduler,
-    StyleUsageMeter,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import task_config_scope
@@ -508,11 +507,9 @@ class AnalyzeStyle:
         self,
         catalog: StyleCatalog,
         analyzer: StyleImageAnalyzer,
-        usage_meter: StyleUsageMeter,
     ) -> None:
         self._catalog = catalog
         self._analyzer = analyzer
-        self._usage_meter = usage_meter
 
     async def execute(
         self,
@@ -532,27 +529,12 @@ class AnalyzeStyle:
                     command.content,
                     style_preview_extension(command.filename),
                 )
-            if command.billing is not None:
-                billing = command.billing
-                self._usage_meter.set_llm_usage_context(
-                    billing.billing_user_id,
-                    project_id=billing.project_id,
-                    resource_kind="script",
-                    billing_metadata={
-                        "billing_user_id": billing.billing_user_id,
-                        "requester_user_id": billing.requester_user_id,
-                        "project_owner_id": billing.project_owner_id,
-                        "source": "style_analyzer",
-                    },
-                )
             result = await self._analyzer.analyze(
                 command.content,
                 mime_type=command.mime_type,
             )
         except Exception as exc:
             raise StyleRejected(f"Style analysis failed: {exc}") from exc
-        finally:
-            self._usage_meter.clear_llm_usage_context()
 
         data = dict(result)
         if preview_token:

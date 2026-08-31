@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 from copy import deepcopy
 import json
@@ -323,22 +324,16 @@ def image_to_data_url(path: Path) -> str:
     return f"data:{mime};base64,{data}"
 
 
-def call_openai_chat(
+def call_text_model(
     *,
     system_prompt: str,
     user_prompt: str,
-    image_path: Path | None = None,
     image_paths: list[Path] | None = None,
-    model: str,
-    use_catalog_default: bool = False,
 ) -> str:
-    from ai_anime.modules.model_usage.public import get_model_access_openai_client
-    from ai_anime.modules.model_usage.public import resolve_model_for_role
-
-    effective_model = resolve_model_for_role("TEXT")
+    from ai_anime.modules.model_usage.public import request_model_chat_content
 
     user_content: str | list[dict[str, Any]]
-    resolved_image_paths = image_paths or ([image_path] if image_path is not None else [])
+    resolved_image_paths = image_paths or []
     if resolved_image_paths:
         user_content = [{"type": "text", "text": user_prompt}]
         for path in resolved_image_paths:
@@ -348,15 +343,14 @@ def call_openai_chat(
     else:
         user_content = user_prompt
 
-    with get_model_access_openai_client(role="TEXT") as client:
-        response = client.chat.completions.create(
-            model=effective_model,
+    message = asyncio.run(
+        request_model_chat_content(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content},
             ],
         )
-    message = response.choices[0].message.content
+    )
     if not message:
         raise RuntimeError("Model returned empty content")
     return message
@@ -790,16 +784,6 @@ def default_output_path(path: str) -> Path:
     return (Path.cwd() / output_path).resolve()
 
 
-def resolve_model(args: argparse.Namespace) -> str:
-    from ai_anime.modules.model_usage.public import DEFAULT_BLOCK_WORLD_MODEL
-
-    return (
-        args.model
-        or os.environ.get("BLOCK_WORLD_MODEL")
-        or DEFAULT_BLOCK_WORLD_MODEL
-    )
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate a AI anime Minecraft-style scene spec from text and optional image."
@@ -823,7 +807,6 @@ def main() -> None:
     )
     parser.add_argument("--scene-id", default="ai_block_world_scene")
     parser.add_argument("--display-name", default="AI Block World Scene")
-    parser.add_argument("--model", default="")
     parser.add_argument("--raw-output", default="")
     parser.add_argument(
         "--prompt-only", action="store_true", help="Write the prompt and do not call AI."
@@ -862,7 +845,6 @@ def main() -> None:
     if args.from_code:
         raw_text = Path(args.from_code).read_text(encoding="utf-8")
     else:
-        model = resolve_model(args)
         image_path = Path(args.image) if args.image else None
         if image_path is not None and not image_path.exists():
             raise SystemExit(f"image not found: {image_path}")
@@ -874,12 +856,10 @@ def main() -> None:
         reference_image_path = (
             "; ".join(str(path.resolve()) for path in all_image_paths) if all_image_paths else ""
         )
-        raw_text = call_openai_chat(
+        raw_text = call_text_model(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             image_paths=all_image_paths,
-            model=model,
-            use_catalog_default=not bool(str(args.model or "").strip()),
         )
 
     raw_output_path = args.raw_output

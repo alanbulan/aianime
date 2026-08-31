@@ -77,7 +77,7 @@ class CommercialCreativeCanvasVideoGenerationJobRuntime:
             duration=float(command.duration_seconds),
             last_frame_path=command.last_frame_path,
             references=references,
-            seedance2_config=video_options,
+            video_config=video_options,
             **extra_options,
         )
         if not result or result.status.value != "done":

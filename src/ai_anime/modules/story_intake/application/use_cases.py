@@ -62,9 +62,9 @@ class UploadStoryDocument:
         )
         try:
             story_text = self._documents.load_text(document)
-            billable_chars = self._documents.count_billable_chars(story_text)
-            if billable_chars > MAX_STORY_IMPORT_CHARS:
-                raise StoryTextTooLarge(billable_chars, MAX_STORY_IMPORT_CHARS)
+            text_chars = self._documents.count_text_chars(story_text)
+            if text_chars > MAX_STORY_IMPORT_CHARS:
+                raise StoryTextTooLarge(text_chars, MAX_STORY_IMPORT_CHARS)
             preview = self._get_chapter_preview.execute(story_text)
         except (StoryDocumentParseFailed, StoryTextTooLarge):
             raise
@@ -116,14 +116,14 @@ class StartIngestion:
             raise StoryDocumentTooLarge(MAX_STORY_IMPORT_BYTES)
         try:
             story_text = self._documents.load_text(document)
-            billable_chars = self._documents.count_billable_chars(story_text)
-            if billable_chars > MAX_STORY_IMPORT_CHARS:
-                raise StoryTextTooLarge(billable_chars, MAX_STORY_IMPORT_CHARS)
+            text_chars = self._documents.count_text_chars(story_text)
+            if text_chars > MAX_STORY_IMPORT_CHARS:
+                raise StoryTextTooLarge(text_chars, MAX_STORY_IMPORT_CHARS)
         except (StoryDocumentParseFailed, StoryTextTooLarge):
             raise
         except Exception as exc:
             logger.warning(
-                "[%s] failed to parse %s for billing",
+                "[%s] failed to parse %s for import",
                 scope.project_name,
                 document.filename,
                 exc_info=True,
@@ -154,7 +154,7 @@ class StartIngestion:
             IngestionTask(
                 novel_path=document.path,
                 config=task_config,
-                billable_chars=billable_chars,
+                text_chars=text_chars,
             ),
         )
         return {

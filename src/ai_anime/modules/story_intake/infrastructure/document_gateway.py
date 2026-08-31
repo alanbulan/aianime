@@ -16,7 +16,7 @@ from ai_anime.modules.story_intake.application.errors import (
 from ai_anime.modules.story_intake.domain import MAX_STORY_UPLOAD_BYTES
 from ai_anime.shared.utils.document_parsers import (
     DocumentParseError,
-    count_billable_novel_chars,
+    count_novel_text_chars,
     is_supported_novel_path,
     load_novel_text,
     supported_novel_extensions_label,
@@ -78,8 +78,8 @@ class LocalStoryDocumentGateway:
                 source_format=exc.source_format,
             ) from exc
 
-    def count_billable_chars(self, text: str) -> int:
-        return count_billable_novel_chars(text)
+    def count_text_chars(self, text: str) -> int:
+        return count_novel_text_chars(text)
 
     def build_chapter_preview(self, text: str) -> dict[str, Any]:
         from ai_anime.modules.knowledge_graph.public import ChapterDetector
@@ -105,7 +105,7 @@ class LocalStoryDocumentGateway:
 
         return {
             "total_chars": len(text),
-            "billable_chars": count_billable_novel_chars(text),
+            "text_chars": count_novel_text_chars(text),
             "count": len(chapters),
             "chapters": payload,
         }

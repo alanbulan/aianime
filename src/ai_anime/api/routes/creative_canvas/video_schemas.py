@@ -248,7 +248,7 @@ class FreezoneKeyframeVideoRequest(_FreezoneVideoGenerationRequest):
 
 
 class FreezoneVideoEditRequest(_FreezoneVideoGenerationRequest):
-    """视频编辑请求（HappyHorse 视频编辑功能）。
+    """视频编辑请求。
 
     输入 1 个源视频 + 0-5 张参考图，对视频进行编辑改写。
     """

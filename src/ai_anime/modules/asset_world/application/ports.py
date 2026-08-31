@@ -972,16 +972,3 @@ class StyleImageAnalyzer(Protocol):
         *,
         mime_type: str,
     ) -> Mapping[str, Any]: ...
-
-
-class StyleUsageMeter(Protocol):
-    def set_llm_usage_context(
-        self,
-        user_id: str,
-        *,
-        project_id: str | None = None,
-        resource_kind: str | None = None,
-        billing_metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    def clear_llm_usage_context(self) -> None: ...

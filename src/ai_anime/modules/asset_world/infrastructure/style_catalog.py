@@ -231,8 +231,8 @@ class StyleService:
             config = StyleConfig(**data)
             cls._preset_cache[style_id] = config
             return config
-        except Exception as e:
-            print(f"[StyleService] 加载预设失败: {style_id}, {e}")
+        except Exception as exc:
+            logger.warning("加载风格预设失败: %s: %s", style_id, exc)
             return None
 
     @classmethod

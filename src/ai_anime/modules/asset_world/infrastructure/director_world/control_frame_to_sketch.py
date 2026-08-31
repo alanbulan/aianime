@@ -18,7 +18,7 @@ from typing import Any
 
 from ai_anime.modules.production.public import get_sketch_generation_config
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
-from ai_anime.modules.production.public import REGEN_MODE_CONFIGS, NanoBananaGridGenerator
+from ai_anime.modules.production.public import REGEN_MODE_CONFIGS, ImageGridGenerator
 from ai_anime.modules.production.public import save_grid_and_split
 from ai_anime.modules.asset_world.composition import build_character_map_for_grid
 from ai_anime.modules.project_workspace.public import load_project_config_file
@@ -371,11 +371,9 @@ async def convert_control_frame_to_sketch(
             generator_config.get("image_size") or "1K",
         )
         sketch_quality = os.environ.get("DIRECTOR_CONTROL_SKETCH_IMAGE_QUALITY", "low")
-        generator_config["openai_image_quality"] = sketch_quality
-        generator_config["openai_sketch_image_quality"] = sketch_quality
-        generator_config["huimeng_image_quality"] = sketch_quality
-        generator_config["quality"] = sketch_quality
-        generator = NanoBananaGridGenerator(config=generator_config)
+        generator_config["image_quality"] = sketch_quality
+        generator_config["sketch_image_quality"] = sketch_quality
+        generator = ImageGridGenerator(config=generator_config)
 
         if candidate_output_path:
             output_path = Path(candidate_output_path).resolve()

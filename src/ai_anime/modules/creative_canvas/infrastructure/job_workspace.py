@@ -26,7 +26,7 @@ class LocalCreativeCanvasJobWorkspace:
             "freezone_video_upscale",
             "freezone_audio_separate",
             "freezone_audio_speech",
-            "freezone_audio_eleven_music",
+            "freezone_audio_music",
             "freezone_image_to_3gs",
         ):
             self.output_directory(project_dir, task_type).mkdir(

@@ -250,7 +250,7 @@ class SketchEditResult(BaseModel):
     edit_instruction: str = Field(
         default="",
         description=(
-            "可直接执行的 Nanobanana 编辑提示词。提到身份时，使用精确 identity + hex color，"
+            "可直接执行的图像编辑提示词。提到身份时，使用精确 identity + hex color，"
             "不要使用模糊颜色称呼。"
         ),
         max_length=900,

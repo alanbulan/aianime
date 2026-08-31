@@ -99,12 +99,9 @@ def _business_chat_error_from_text(text: object) -> str | None:
             "但仍有未满足的模型或声线前置。"
             f"\n\n缺失项：{raw[:1200]}"
         )
-    if (
-        "Seedance 2.0 最终提示词为空" in raw
-        or "缺少视频提示词" in raw
-    ):
+    if "最终视频提示词为空" in raw or "缺少视频提示词" in raw:
         return (
-            "视频任务没有启动：当前 Beat 缺少 Seedance 最终提示词。"
+            "视频任务没有启动：当前 Beat 缺少最终视频提示词。"
             "完整生产工作流会自动生成；局部生成前请先完成提示词生成。"
             f"\n\n错误原因：{raw[:1200]}"
         )
