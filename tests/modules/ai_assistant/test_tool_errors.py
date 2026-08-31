@@ -112,11 +112,11 @@ def test_extract_tool_chat_error_maps_voice_design_route_failure():
     assert "上游服务暂不可用" in chat_error
 
 
-def test_extract_tool_chat_error_maps_missing_seedance_prompt():
+def test_extract_tool_chat_error_maps_missing_video_prompt():
     chat_error = tool_chat_error(
         {
             "status": "failed",
-            "error": "Beat 1 Seedance 2.0 最终提示词为空",
+            "error": "Beat 1 最终视频提示词为空",
         }
     )
 

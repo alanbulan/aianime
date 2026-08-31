@@ -1,4 +1,4 @@
-"""HTTP audio generation must use the IndexTTS2 dispatcher."""
+"""HTTP audio generation must use the SpeechSynthesis dispatcher."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ class _FakeStore:
                 "audio_type": "dialogue",
                 "narration_segment": "走。",
                 "video_prompt": "镜头从角色正面缓慢推近。",
-                "seedance2_config_json": '{"final_prompt": "参考图片1，镜头从角色正面缓慢推近。"}',
+                "video_config_json": '{"final_prompt": "参考图片1，镜头从角色正面缓慢推近。"}',
             }
         ]
 
@@ -115,13 +115,13 @@ def _patch_audio_celery(
         return SimpleNamespace(
             beat_numbers=list(kwargs.get("beat_numbers") or [2]),
             errors=[],
-            billable_chars=2,
+            text_chars=2,
             voice_requirements=[],
         )
 
     monkeypatch.setattr(
         episode_audio,
-        "build_indextts2_audio_generation_plan",
+        "build_episode_audio_generation_plan",
         exact_audio_plan,
     )
     return ctx
@@ -159,7 +159,7 @@ def _fake_enqueue(calls):
 
 
 @pytest.mark.asyncio
-async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
+async def test_audio_generate_route_dispatches_speech_synthesis(monkeypatch, tmp_path):
     from ai_anime.api.routes.production.audio_schemas import EpisodeAudioGenerateRequest
     from ai_anime.api.routes.production import audio as production_audio
 
@@ -181,11 +181,11 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
     )
 
     assert response["ok"] is True
-    assert response["task_type"] == "audio_generation_indextts2"
+    assert response["task_type"] == "episode_audio_generation"
     assert calls == [
         {
             "ctx": ctx,
-            "task_type": "audio_generation_indextts2",
+            "task_type": "episode_audio_generation",
             "episode": 3,
             "payload": {
                 "episode": 3,
@@ -193,25 +193,12 @@ async def test_audio_generate_route_dispatches_indextts2(monkeypatch, tmp_path):
                 "beat_numbers": [2],
                 "output_dir": str(tmp_path),
                 "state_dir": str(tmp_path / "state"),
-                "billing": {
-                    "pricing_kind": "audio",
-                    "pricing_model": "audio-voice-clone-test",
-                    "pricing_params": {},
-                    "pricing_quantity": 1,
-                    "pricing_metrics": {
-                        "call_count": 1,
-                        "item_count": 1,
-                        "billable_chars": 2,
-                    },
-                    "items": 1,
-                    "beat_numbers": [2],
-                },
             },
         }
     ]
 
 
-def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
+def test_audio_generate_http_route_dispatches_speech_synthesis(monkeypatch, tmp_path):
     from ai_anime.api.routes.production import audio as production_audio
 
     calls = []
@@ -240,33 +227,20 @@ def test_audio_generate_http_route_dispatches_indextts2(monkeypatch, tmp_path):
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["task_type"] == "audio_generation_indextts2"
+    assert body["task_type"] == "episode_audio_generation"
     assert body["message"] == "第 3 集语音批量生成已进入队列"
-    assert calls[0]["task_type"] == "audio_generation_indextts2"
+    assert calls[0]["task_type"] == "episode_audio_generation"
     assert calls[0]["payload"] == {
         "episode": 3,
         "mode": "redo_selected",
         "beat_numbers": [2],
         "output_dir": str(tmp_path),
         "state_dir": str(tmp_path / "state"),
-        "billing": {
-            "pricing_kind": "audio",
-            "pricing_model": "audio-voice-clone-test",
-            "pricing_params": {},
-            "pricing_quantity": 1,
-            "pricing_metrics": {
-                "call_count": 1,
-                "item_count": 1,
-                "billable_chars": 2,
-            },
-            "items": 1,
-            "beat_numbers": [2],
-        },
     }
 
 
 @pytest.mark.asyncio
-async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_path):
+async def test_single_beat_audio_route_dispatches_speech_synthesis(monkeypatch, tmp_path):
     from ai_anime.api.routes.production.audio_schemas import EpisodeAudioRegenerateRequest
     from ai_anime.api.routes.production import audio as production_audio
 
@@ -286,12 +260,12 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
     )
 
     assert response["ok"] is True
-    assert response["task_type"] == "audio_generation_indextts2"
+    assert response["task_type"] == "episode_audio_generation"
     assert response["message"] == "第 3 集 Beat 2 语音生成已进入队列"
     assert calls == [
         {
             "ctx": ctx,
-            "task_type": "audio_generation_indextts2",
+            "task_type": "episode_audio_generation",
             "episode": 3,
             "payload": {
                 "episode": 3,
@@ -299,19 +273,6 @@ async def test_single_beat_audio_route_dispatches_indextts2(monkeypatch, tmp_pat
                 "beat_numbers": [2],
                 "output_dir": str(tmp_path),
                 "state_dir": str(tmp_path / "state"),
-                "billing": {
-                    "pricing_kind": "audio",
-                    "pricing_model": "audio-voice-clone-test",
-                    "pricing_params": {},
-                    "pricing_quantity": 1,
-                    "pricing_metrics": {
-                        "call_count": 1,
-                        "item_count": 1,
-                        "billable_chars": 2,
-                    },
-                    "items": 1,
-                    "beat_numbers": [2],
-                },
             },
         }
     ]

@@ -7,7 +7,6 @@ import pytest
 
 from ai_anime.modules.production.application.episode_audio import (
     AudioVoicePrerequisitesMissing,
-    EpisodeAudioBillingQuote,
     EpisodeAudioBeatMissing,
     EpisodeAudioBeatsMissing,
     EpisodeAudioGenerationPlan,
@@ -49,30 +48,7 @@ class _Planner:
         return EpisodeAudioGenerationPlan(
             beat_numbers=tuple(self.beat_numbers),
             errors=tuple(self.errors),
-            billable_chars=8,
         )
-
-
-class _Billing:
-    async def quote(self, plan) -> EpisodeAudioBillingQuote:
-        return EpisodeAudioBillingQuote(
-            beat_numbers=plan.beat_numbers,
-            quantity=plan.quantity,
-            unit_cost=2,
-            cost=2 * plan.quantity,
-            display=str(2 * plan.quantity),
-            prereq_errors=plan.errors,
-        )
-
-    def task_payload(self, plan) -> dict:
-        return {
-            "pricing_quantity": plan.quantity,
-            "pricing_metrics": {
-                "call_count": plan.quantity,
-                "item_count": plan.quantity,
-                "billable_chars": plan.billable_chars,
-            },
-        }
 
 
 class _Scheduler:
@@ -83,7 +59,7 @@ class _Scheduler:
         self.calls.append((context, task))
         return EpisodeAudioTaskReceipt(
             task_id="task-1",
-            task_key="task:audio_generation_indextts2:project:proj-1:3",
+            task_key="task:episode_audio_generation:project:proj-1:3",
             backend="celery",
             queue="default",
         )
@@ -105,7 +81,7 @@ async def test_generate_schedules_default_sync_mode(tmp_path: Path) -> None:
     source = _BeatSource([{"beat_number": 1}])
     planner = _Planner()
     scheduler = _Scheduler()
-    use_cases = EpisodeAudioUseCases(source, planner, _Billing(), scheduler)
+    use_cases = EpisodeAudioUseCases(source, planner, scheduler)
 
     result = await use_cases.generate(
         context,
@@ -113,9 +89,9 @@ async def test_generate_schedules_default_sync_mode(tmp_path: Path) -> None:
     )
 
     assert result.as_dict() == {
-        "task_type": "audio_generation_indextts2",
+        "task_type": "episode_audio_generation",
         "task_id": "task-1",
-        "task_key": "task:audio_generation_indextts2:project:proj-1:3",
+        "task_key": "task:episode_audio_generation:project:proj-1:3",
         "backend": "celery",
         "queue": "default",
         "message": "第 3 集语音批量生成已进入队列",
@@ -129,14 +105,6 @@ async def test_generate_schedules_default_sync_mode(tmp_path: Path) -> None:
         "beat_numbers": [1],
         "output_dir": str(tmp_path),
         "state_dir": str(tmp_path / "state"),
-        "billing": {
-            "pricing_quantity": 1,
-            "pricing_metrics": {
-                "call_count": 1,
-                "item_count": 1,
-                "billable_chars": 8,
-            },
-        },
     }
 
 
@@ -144,7 +112,7 @@ async def test_generate_schedules_default_sync_mode(tmp_path: Path) -> None:
 async def test_generate_rejects_episode_without_beats(tmp_path: Path) -> None:
     planner = _Planner()
     scheduler = _Scheduler()
-    use_cases = EpisodeAudioUseCases(_BeatSource([]), planner, _Billing(), scheduler)
+    use_cases = EpisodeAudioUseCases(_BeatSource([]), planner, scheduler)
 
     with pytest.raises(EpisodeAudioBeatsMissing, match="No beats found for episode 3"):
         await use_cases.generate(
@@ -163,7 +131,6 @@ async def test_generate_reports_first_five_voice_errors(tmp_path: Path) -> None:
     use_cases = EpisodeAudioUseCases(
         _BeatSource([{"beat_number": 1}]),
         _Planner(errors),
-        _Billing(),
         scheduler,
     )
 
@@ -207,7 +174,6 @@ async def test_generate_auto_designs_missing_voices_then_schedules(
                 )
             return EpisodeAudioGenerationPlan(
                 beat_numbers=(1,),
-                billable_chars=8,
             )
 
     class _Provisioner:
@@ -224,7 +190,6 @@ async def test_generate_auto_designs_missing_voices_then_schedules(
     use_cases = EpisodeAudioUseCases(
         _BeatSource([{"beat_number": 1}]),
         planner,
-        _Billing(),
         scheduler,
         provisioner,
     )
@@ -248,7 +213,6 @@ async def test_regenerate_beat_preserves_index_fallback(tmp_path: Path) -> None:
     use_cases = EpisodeAudioUseCases(
         _BeatSource([{"beat_number": 9}]),
         planner,
-        _Billing(),
         scheduler,
     )
 
@@ -268,7 +232,6 @@ async def test_regenerate_beat_rejects_unknown_number(tmp_path: Path) -> None:
     use_cases = EpisodeAudioUseCases(
         _BeatSource([{"beat_number": 9}]),
         planner,
-        _Billing(),
         scheduler,
     )
 

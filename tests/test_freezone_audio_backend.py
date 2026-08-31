@@ -10,7 +10,7 @@ from ai_anime.modules.creative_canvas.infrastructure import (
     audio_voice_store,
 )
 from ai_anime.modules.creative_canvas.infrastructure.audio_generation import (
-    freezone_audio_eleven_music_output_path,
+    freezone_audio_music_output_path,
     freezone_audio_speech_output_path,
 )
 from ai_anime.modules.creative_canvas.infrastructure.audio_voice_store import (
@@ -231,7 +231,7 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from ai_anime.modules.project_workspace.infrastructure.project_config import set_narrator_reference_audio, update_project_config_file
-    from ai_anime.modules.production.infrastructure.seedance2_voice import file_sha256
+    from ai_anime.modules.production.infrastructure.video_reference_voice import file_sha256
 
     project_dir = tmp_path / "output" / "alice" / "demo"
     narrator = project_dir / "assets" / "narrator" / "voice.wav"
@@ -242,7 +242,7 @@ async def test_freezone_audio_speech_drama_first_person_uses_project_narrator(
         "ai_anime.modules.project_workspace.infrastructure.project_config.STATE_DIR",
         tmp_path / "state",
     )
-    monkeypatch.setattr(audio_generation, "IndexTTS2Client", FakeTTSGenerator)
+    monkeypatch.setattr(audio_generation, "SpeechSynthesisClient", FakeTTSGenerator)
     monkeypatch.setattr(
         audio_generation,
         "build_reference_audio_url",
@@ -293,10 +293,6 @@ async def test_freezone_audio_model_preset_uses_speech_without_reference_audio(
 ) -> None:
     calls: list[tuple[str, dict]] = []
 
-    async def fake_reserve(model: str, *, text: str) -> str:
-        calls.append(("reserve", {"model": model, "text": text}))
-        return "reservation-1"
-
     async def fake_write(**kwargs):
         calls.append(("write", kwargs))
         output_path = Path(kwargs["output_path"])
@@ -304,12 +300,7 @@ async def test_freezone_audio_model_preset_uses_speech_without_reference_audio(
         output_path.write_bytes(b"preset-speech")
         return SimpleNamespace(request_id="request-1", response_id="response-1")
 
-    async def fake_confirm(**kwargs):
-        calls.append(("confirm", kwargs))
-
-    monkeypatch.setattr(audio_generation, "_reserve_speech_model_call", fake_reserve)
     monkeypatch.setattr(audio_generation, "write_model_audio_speech", fake_write)
-    monkeypatch.setattr(audio_generation, "_confirm_speech_model_call", fake_confirm)
     monkeypatch.setattr(audio_voice_store, "audio_duration_ms", lambda _path: 2345)
 
     result = await audio_generation.generate_freezone_audio_speech(
@@ -331,10 +322,6 @@ async def test_freezone_audio_model_preset_uses_speech_without_reference_audio(
     assert result.voice_sha256 == ""
     assert calls == [
         (
-            "reserve",
-            {"model": "audio-speech-1", "text": "这是一段试听文本。"},
-        ),
-        (
             "write",
             {
                 "output_path": output_path,
@@ -346,20 +333,11 @@ async def test_freezone_audio_model_preset_uses_speech_without_reference_audio(
                 "timeout_seconds": 600.0,
             },
         ),
-        (
-            "confirm",
-            {
-                "model": "audio-speech-1",
-                "reservation_id": "reservation-1",
-                "provider_request_id": "request-1",
-                "response_id": "response-1",
-            },
-        ),
     ]
 
 
 @pytest.mark.asyncio
-async def test_freezone_audio_eleven_music_uses_gateway_music_contract(
+async def test_freezone_audio_music_uses_gateway_music_contract(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -378,7 +356,7 @@ async def test_freezone_audio_eleven_music_uses_gateway_music_contract(
     )
     monkeypatch.setattr(audio_voice_store, "audio_duration_ms", lambda _path: 0)
 
-    result = await audio_generation.generate_freezone_audio_eleven_music(
+    result = await audio_generation.generate_freezone_audio_music(
         project_dir=tmp_path,
         job_id="music-1",
         prompt="Mysterious original soundtrack, rainforest.",
@@ -393,7 +371,7 @@ async def test_freezone_audio_eleven_music_uses_gateway_music_contract(
     assert result.voice_source == "audio-music-1"
     assert calls == [
         {
-            "output_path": freezone_audio_eleven_music_output_path(tmp_path, "music-1"),
+            "output_path": freezone_audio_music_output_path(tmp_path, "music-1"),
             "prompt": "Mysterious original soundtrack, rainforest.",
             "duration_seconds": 30.0,
             "response_format": "mp3",
@@ -408,9 +386,9 @@ async def test_freezone_audio_eleven_music_uses_gateway_music_contract(
 
 
 @pytest.mark.asyncio
-async def test_freezone_audio_eleven_music_rejects_out_of_range_length(tmp_path: Path) -> None:
+async def test_freezone_audio_music_rejects_out_of_range_length(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="music_length_ms"):
-        await audio_generation.generate_freezone_audio_eleven_music(
+        await audio_generation.generate_freezone_audio_music(
             project_dir=tmp_path,
             job_id="music-short",
             prompt="short sting",

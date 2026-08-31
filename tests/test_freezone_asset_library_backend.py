@@ -32,7 +32,7 @@ from ai_anime.modules.creative_canvas.infrastructure.preset_references import (
     _add_scene_refs,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_prop import (
+from ai_anime.modules.production.infrastructure.media_generation.prop_image_generator import (
     build_prop_reference_prompt,
 )
 from ai_anime.modules.creative_canvas.public import default_push_target_for_preset

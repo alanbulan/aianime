@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
-from ai_anime.modules.production.application.seedance2_config import Seedance2I2VMode
+from ai_anime.modules.production.application.video_config import VideoReferenceMode
 
 
 pytestmark = pytest.mark.m09
@@ -19,8 +19,8 @@ def _write_png(path: Path, *, width: int = 512, height: int = 768) -> None:
 
 def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatch):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -42,7 +42,7 @@ def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatc
         updated_at="2026-05-14T00:00:00+00:00",
     )
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -51,7 +51,7 @@ def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatc
             "scene_ref": {"scene_id": "客厅_夜"},
             "location": "旧场景字段不应优先",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -66,8 +66,8 @@ def test_multimodal_assets_use_scene_ref_identity_and_audio(tmp_path, monkeypatc
 
 
 def test_multimodal_assets_use_semantic_frame_anchors_with_other_references(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -79,7 +79,7 @@ def test_multimodal_assets_use_semantic_frame_anchors_with_other_references(tmp_
     for image_path in (first, last, identity, scene):
         _write_png(image_path)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -88,7 +88,7 @@ def test_multimodal_assets_use_semantic_frame_anchors_with_other_references(tmp_
             "scene_ref": {"scene_id": "教室"},
         },
         next_beat={"beat_number": 2},
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -105,8 +105,8 @@ def test_multimodal_assets_use_semantic_frame_anchors_with_other_references(tmp_
 
 
 def test_multimodal_assets_limit_reference_images_to_official_maximum(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -127,12 +127,12 @@ def test_multimodal_assets_limit_reference_images_to_official_maximum(tmp_path):
             / f"{identity}.png"
         )
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={"beat_number": 1, "detected_identities": identities},
         next_beat={"beat_number": 2},
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     selected = selected_reference_paths(assets, "reference_images")
@@ -148,8 +148,8 @@ def test_multimodal_assets_limit_reference_images_to_official_maximum(tmp_path):
 
 
 def test_multimodal_assets_resolve_scene_variant_to_derived_scene_master(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -160,14 +160,14 @@ def test_multimodal_assets_resolve_scene_variant_to_derived_scene_master(tmp_pat
     for image_path in (frame, base_scene, derived_scene):
         _write_png(image_path)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
             "beat_number": 1,
             "scene_ref": {"scene_id": "客厅", "variant_id": "漏水"},
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -180,8 +180,8 @@ def test_multimodal_assets_resolve_scene_variant_to_derived_scene_master(tmp_pat
 
 
 def test_multimodal_assets_resolve_time_of_day_to_time_plate(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -192,7 +192,7 @@ def test_multimodal_assets_resolve_time_of_day_to_time_plate(tmp_path):
     for image_path in (frame, base_scene, night_scene):
         _write_png(image_path)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -200,7 +200,7 @@ def test_multimodal_assets_resolve_time_of_day_to_time_plate(tmp_path):
             "scene_ref": {"scene_id": "客厅"},
             "time_of_day": "夜晚",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -213,8 +213,8 @@ def test_multimodal_assets_resolve_time_of_day_to_time_plate(tmp_path):
 
 
 def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -227,7 +227,7 @@ def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
     for image_path in (frame, base_scene, base_night_scene, variant_scene, variant_night_scene):
         _write_png(image_path)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -235,7 +235,7 @@ def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
             "scene_ref": {"scene_id": "客厅", "variant_id": "漏水"},
             "time_of_day": "夜晚",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -250,8 +250,8 @@ def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
 def test_multimodal_assets_fall_back_to_base_scene_master_when_variant_image_missing(
     tmp_path,
 ):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -263,14 +263,14 @@ def test_multimodal_assets_fall_back_to_base_scene_master_when_variant_image_mis
     for image_path in (frame, base_scene):
         _write_png(image_path)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
             "beat_number": 1,
             "scene_ref": {"scene_id": "客厅", "variant_id": "漏水"},
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -283,22 +283,22 @@ def test_multimodal_assets_fall_back_to_base_scene_master_when_variant_image_mis
     assert scene_asset.path == base_scene
 
 
-async def test_prepare_seedance2_generation_inputs_preserves_config_duration(tmp_path):
-    from ai_anime.modules.production.application.seedance2_config import dump_seedance2_config
-    from ai_anime.modules.production.infrastructure.seedance2_pipeline import prepare_seedance2_generation_inputs
+async def test_prepare_video_reference_generation_inputs_preserves_config_duration(tmp_path):
+    from ai_anime.modules.production.application.video_config import dump_video_config
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import prepare_video_reference_generation_inputs
 
     project_dir = tmp_path / "output" / "alice" / "project"
     frame = project_dir / "frames" / "ep001" / "beat_01.png"
     _write_png(frame)
 
-    prepared = await prepare_seedance2_generation_inputs(
+    prepared = await prepare_video_reference_generation_inputs(
         project_output=project_dir,
         episode=1,
         beat={
             "beat_number": 1,
-            "seedance2_config_json": dump_seedance2_config(
+            "video_config_json": dump_video_config(
                 {
-                    "mode": Seedance2I2VMode.FIRST_FRAME.value,
+                    "mode": VideoReferenceMode.FIRST_FRAME.value,
                     "duration": 8,
                     "final_prompt": "参考图片1生成视频。",
                 }
@@ -312,17 +312,17 @@ async def test_prepare_seedance2_generation_inputs_preserves_config_duration(tmp
     )
 
     assert prepared.duration == 8
-    assert '"duration":8' in prepared.seedance2_config_json
+    assert '"duration":8' in prepared.video_config_json
 
 
-async def test_prepare_seedance2_generation_rejects_contaminated_generated_prompt(
+async def test_prepare_video_reference_generation_rejects_contaminated_generated_prompt(
     tmp_path,
 ):
-    from ai_anime.modules.production.application.seedance2_config import (
-        dump_seedance2_config,
+    from ai_anime.modules.production.application.video_config import (
+        dump_video_config,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
-        prepare_seedance2_generation_inputs,
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        prepare_video_reference_generation_inputs,
     )
 
     project_dir = tmp_path / "output" / "alice" / "project"
@@ -330,7 +330,7 @@ async def test_prepare_seedance2_generation_rejects_contaminated_generated_promp
     _write_png(frame)
 
     with pytest.raises(ValueError, match="西里尔文字"):
-        await prepare_seedance2_generation_inputs(
+        await prepare_video_reference_generation_inputs(
             project_output=project_dir,
             episode=1,
             beat={
@@ -338,9 +338,9 @@ async def test_prepare_seedance2_generation_rejects_contaminated_generated_promp
                 "visual_description": "白石夏音站在音乐教室内。",
                 "narration_segment": "你听到了？",
                 "audio_type": "dialogue",
-                "seedance2_config_json": dump_seedance2_config(
+                "video_config_json": dump_video_config(
                     {
-                        "mode": Seedance2I2VMode.FIRST_FRAME.value,
+                        "mode": VideoReferenceMode.FIRST_FRAME.value,
                         "final_prompt": (
                             "她说出：“你听到了？”。"
                             "использовать参考@音频1作为角色声线。"
@@ -358,14 +358,59 @@ async def test_prepare_seedance2_generation_rejects_contaminated_generated_promp
         )
 
 
-async def test_prepare_seedance2_generation_accepts_generated_prompt_with_persisted_source(
+@pytest.mark.parametrize(
+    ("final_prompt", "error_pattern"),
+    [
+        ("镜头缓慢推近。использовать", "西里尔文字"),
+        ("镜头缓慢推近。_leaked", "异常尾部片段"),
+    ],
+)
+async def test_prepare_video_reference_generation_strictly_checks_legacy_generated_prompt(
+    tmp_path,
+    final_prompt,
+    error_pattern,
+):
+    from ai_anime.modules.production.application.video_config import (
+        dump_video_config,
+    )
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        prepare_video_reference_generation_inputs,
+    )
+
+    project_dir = tmp_path / "output" / "alice" / "project"
+    frame = project_dir / "frames" / "ep001" / "beat_08.png"
+    _write_png(frame)
+
+    with pytest.raises(ValueError, match=error_pattern):
+        await prepare_video_reference_generation_inputs(
+            project_output=project_dir,
+            episode=1,
+            beat={
+                "beat_number": 8,
+                "video_config_json": dump_video_config(
+                    {
+                        "mode": VideoReferenceMode.FIRST_FRAME.value,
+                        "final_prompt": final_prompt,
+                        "prompt_source": "generated",
+                    }
+                ),
+            },
+            video_mode="first_frame",
+            prompt="unused",
+            duration=4,
+            resolution="720p",
+            ratio="9:16",
+        )
+
+
+async def test_prepare_video_reference_generation_accepts_generated_prompt_with_persisted_source(
     tmp_path,
 ):
-    from ai_anime.modules.production.application.seedance2_config import (
-        dump_seedance2_config,
+    from ai_anime.modules.production.application.video_config import (
+        dump_video_config,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
-        prepare_seedance2_generation_inputs,
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        prepare_video_reference_generation_inputs,
     )
 
     project_dir = tmp_path / "output" / "alice" / "project"
@@ -373,15 +418,15 @@ async def test_prepare_seedance2_generation_accepts_generated_prompt_with_persis
     _write_png(frame)
     final_prompt = "角色面对镜头说出俄语台词：“Привет”。"
 
-    prepared = await prepare_seedance2_generation_inputs(
+    prepared = await prepare_video_reference_generation_inputs(
         project_output=project_dir,
         episode=1,
         beat={
             "beat_number": 8,
             "visual_description": "角色面对镜头。",
-            "seedance2_config_json": dump_seedance2_config(
+            "video_config_json": dump_video_config(
                 {
-                    "mode": Seedance2I2VMode.FIRST_FRAME.value,
+                    "mode": VideoReferenceMode.FIRST_FRAME.value,
                     "final_prompt": final_prompt,
                     "prompt_source": "generated",
                     "prompt_validation_source": "原始草稿包含俄语台词 Привет。",
@@ -399,12 +444,12 @@ async def test_prepare_seedance2_generation_accepts_generated_prompt_with_persis
 
 
 async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
-    from ai_anime.modules.production.application.seedance2_config import (
-        dump_seedance2_config,
-        parse_seedance2_config,
+    from ai_anime.modules.production.application.video_config import (
+        dump_video_config,
+        parse_video_config,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
-        prepare_seedance2_generation_inputs,
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        prepare_video_reference_generation_inputs,
     )
 
     project_dir = tmp_path / "project"
@@ -415,16 +460,16 @@ async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
     for image_path in (first, last, identity, scene):
         _write_png(image_path)
 
-    prepared = await prepare_seedance2_generation_inputs(
+    prepared = await prepare_video_reference_generation_inputs(
         project_output=project_dir,
         episode=1,
         beat={
             "beat_number": 1,
             "detected_identities": ["秦_青年"],
             "scene_ref": {"scene_id": "教室"},
-            "seedance2_config_json": dump_seedance2_config(
+            "video_config_json": dump_video_config(
                 {
-                    "mode": Seedance2I2VMode.MULTIMODAL_REFERENCE.value,
+                    "mode": VideoReferenceMode.MULTIMODAL_REFERENCE.value,
                     "final_prompt": "人物从教室门口走向窗边。",
                 }
             ),
@@ -450,16 +495,16 @@ async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
     )
     assert "其余图片与音频仅作为身份、环境、道具和声线参考" in prepared.prompt
     assert (
-        parse_seedance2_config(prepared.seedance2_config_json).final_prompt
+        parse_video_config(prepared.video_config_json).final_prompt
         == "人物从教室门口走向窗边。"
     )
 
 
 def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import build_seedance2_project_assets
+    from ai_anime.modules.production.infrastructure.video_reference_assets import build_video_reference_assets
 
     project_dir = tmp_path / "project"
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -467,7 +512,7 @@ def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_pat
             "visual_description": "{{沈月白_青年时期}}紧紧盯着{{陆辰_青年时期}}。",
             "detected_identities": ["沈月白_青年时期"],
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     identity_keys = [asset.key for asset in assets if asset.key.startswith("identity:")]
@@ -478,8 +523,8 @@ def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_pat
 
 
 def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -509,7 +554,7 @@ def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio
         )
     ]
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -520,7 +565,7 @@ def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio
             "scene_ref": {"scene_id": "兰州拉面馆"},
             "narration_segment": "面馆男青年（神色诧异）：现在啥事儿没有啊？",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
         characters=[character],
     )
 
@@ -532,8 +577,8 @@ def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio
 
 
 def test_multimodal_dialogue_assets_follow_multi_speaker_text_order(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -558,7 +603,7 @@ def test_multimodal_dialogue_assets_follow_multi_speaker_text_order(tmp_path):
         reference_audio_path="assets/characters/面馆女青年/voices/voice_default.mp3",
     )
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -569,7 +614,7 @@ def test_multimodal_dialogue_assets_follow_multi_speaker_text_order(tmp_path):
                 "面馆男青年（打开易拉罐）：现在啥事儿没有啊？" "面馆女青年（抬头）：你知道杜晨吗？"
             ),
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
         characters=[woman, man],
     )
 
@@ -583,8 +628,8 @@ def test_multimodal_narration_assets_use_project_narrator_voice_not_beat_audio(
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -606,7 +651,7 @@ def test_multimodal_narration_assets_use_project_narrator_voice_not_beat_audio(
         updated_at="2026-05-14T00:00:00+00:00",
     )
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -615,7 +660,7 @@ def test_multimodal_narration_assets_use_project_narrator_voice_not_beat_audio(
             "scene_ref": {"scene_id": "兰州拉面馆"},
             "narration_segment": "夜色里的面馆还亮着灯。",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_audios") == [str(narrator_voice)]
@@ -629,9 +674,9 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure import seedance2_assets as asset_mod
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure import video_reference_assets as asset_mod
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -650,7 +695,7 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
         updated_at="2026-05-14T00:00:00+00:00",
     )
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -658,7 +703,7 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
             "audio_type": "narration",
             "narration_segment": "夜色里的面馆还亮着灯。",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_audios") == [str(narrator_voice)]
@@ -669,13 +714,13 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
     assert "建议裁剪到 3-5 秒" in audio_asset.note
 
 
-def test_multimodal_reference_rejects_audio_below_seedance_hard_minimum(
+def test_multimodal_reference_rejects_audio_below_workflow_hard_minimum(
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure import seedance2_assets as asset_mod
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure import video_reference_assets as asset_mod
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
     )
 
     monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
@@ -697,7 +742,7 @@ def test_multimodal_reference_rejects_audio_below_seedance_hard_minimum(
         updated_at="2026-08-27T00:00:00+00:00",
     )
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -705,7 +750,7 @@ def test_multimodal_reference_rejects_audio_below_seedance_hard_minimum(
             "audio_type": "narration",
             "narration_segment": "故事开始。",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     audio_asset = next(asset for asset in assets if asset.key == "voice:narrator")
@@ -714,22 +759,22 @@ def test_multimodal_reference_rejects_audio_below_seedance_hard_minimum(
 
 
 def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
         apply_prompt_audio_selection,
-        append_seedance2_user_reference_assets,
-        build_seedance2_project_assets,
+        append_user_video_reference_assets,
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
     project_dir = tmp_path / "project"
     first_audio = project_dir / "assets" / "narrator" / "voice.mp3"
-    second_audio = project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "alt.wav"
+    second_audio = project_dir / "video_reference_uploads" / "ep001" / "beat_01" / "audios" / "alt.wav"
     first_audio.parent.mkdir(parents=True, exist_ok=True)
     second_audio.parent.mkdir(parents=True, exist_ok=True)
     first_audio.write_bytes(b"default narrator")
     second_audio.write_bytes(b"custom narrator")
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -737,9 +782,9 @@ def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
             "audio_type": "narration",
             "narration_segment": "夜色里的面馆还亮着灯。",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
-    append_seedance2_user_reference_assets(
+    append_user_video_reference_assets(
         assets,
         reference_image_paths=[],
         reference_audio_paths=[str(second_audio)],
@@ -756,8 +801,8 @@ def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
 
 def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, monkeypatch):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -799,7 +844,7 @@ def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, 
         )
     ]
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -808,7 +853,7 @@ def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, 
             "scene_ref": {"scene_id": "旧书店"},
             "narration_segment": "画外音响起。",
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
         characters=[character],
     )
 
@@ -820,8 +865,8 @@ def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, 
 
 
 def test_multimodal_assets_skip_auto_audio_for_silence_beat(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -834,7 +879,7 @@ def test_multimodal_assets_skip_auto_audio_for_silence_beat(tmp_path):
     audio.parent.mkdir(parents=True)
     audio.write_bytes(b"stale-audio")
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={
@@ -842,7 +887,7 @@ def test_multimodal_assets_skip_auto_audio_for_silence_beat(tmp_path):
             "audio_type": "silence",
             "scene_ref": {"scene_id": "客厅_夜"},
         },
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_images") == [
@@ -853,8 +898,8 @@ def test_multimodal_assets_skip_auto_audio_for_silence_beat(tmp_path):
 
 
 def test_multimodal_assets_skip_auto_audio_for_legacy_action_beat(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -865,19 +910,19 @@ def test_multimodal_assets_skip_auto_audio_for_legacy_action_beat(tmp_path):
     audio.parent.mkdir(parents=True)
     audio.write_bytes(b"stale-audio")
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={"beat_number": 1, "audio_type": "action"},
-        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
     )
 
     assert selected_reference_paths(assets, "reference_audios") == []
 
 
 def test_first_frame_mode_only_sends_current_frame(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -885,11 +930,11 @@ def test_first_frame_mode_only_sends_current_frame(tmp_path):
     frame = project_dir / "frames" / "ep001" / "beat_02.png"
     _write_png(frame)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={"beat_number": 2, "detected_identities": ["秦_青年"]},
-        mode=Seedance2I2VMode.FIRST_FRAME,
+        mode=VideoReferenceMode.FIRST_FRAME,
     )
 
     assert selected_reference_paths(assets, "image_url") == [str(frame)]
@@ -915,8 +960,8 @@ def test_first_frame_for_video_uses_matching_video_input_override(tmp_path):
 
 
 def test_first_frame_mode_uses_matching_video_input_override(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
     from ai_anime.shared.utils.path_resolver import PathResolver
@@ -929,11 +974,11 @@ def test_first_frame_mode_uses_matching_video_input_override(tmp_path):
     _write_png(override, width=720, height=1280)
     paths.write_video_input_frame_meta(2, slot="first_frame", source_path=frame)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={"beat_number": 2},
-        mode=Seedance2I2VMode.FIRST_FRAME,
+        mode=VideoReferenceMode.FIRST_FRAME,
     )
 
     assert selected_reference_paths(assets, "image_url") == [str(override)]
@@ -942,8 +987,8 @@ def test_first_frame_mode_uses_matching_video_input_override(tmp_path):
 
 
 def test_first_last_frame_mode_sends_both_frame_slots(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
 
@@ -953,12 +998,12 @@ def test_first_last_frame_mode_sends_both_frame_slots(tmp_path):
     _write_png(first)
     _write_png(last)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={"beat_number": 2},
         next_beat={"beat_number": 3},
-        mode=Seedance2I2VMode.FIRST_LAST_FRAME,
+        mode=VideoReferenceMode.FIRST_LAST_FRAME,
     )
 
     assert selected_reference_paths(assets, "first_frame_image") == [str(first)]
@@ -966,8 +1011,8 @@ def test_first_last_frame_mode_sends_both_frame_slots(tmp_path):
 
 
 def test_first_last_frame_mode_uses_matching_video_input_overrides(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
         selected_reference_paths,
     )
     from ai_anime.shared.utils.path_resolver import PathResolver
@@ -985,12 +1030,12 @@ def test_first_last_frame_mode_uses_matching_video_input_overrides(tmp_path):
     paths.write_video_input_frame_meta(2, slot="first_frame", source_path=first)
     paths.write_video_input_frame_meta(2, slot="last_frame", source_path=last)
 
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=1,
         beat={"beat_number": 2},
         next_beat={"beat_number": 3},
-        mode=Seedance2I2VMode.FIRST_LAST_FRAME,
+        mode=VideoReferenceMode.FIRST_LAST_FRAME,
     )
 
     assert selected_reference_paths(assets, "first_frame_image") == [str(first_override)]
@@ -1000,12 +1045,12 @@ def test_first_last_frame_mode_uses_matching_video_input_overrides(tmp_path):
     assert by_key["last_frame"].crop_source_path == last
 
 
-async def test_crop_seedance2_asset_to_first_frame_writes_video_input_override(
+async def test_crop_video_reference_asset_to_first_frame_writes_video_input_override(
     tmp_path,
     monkeypatch,
 ):
     from ai_anime.modules.production.infrastructure import (
-        seedance2_panel_service as panel_service,
+        video_reference_panel_service as panel_service,
     )
     from ai_anime.shared.utils.path_resolver import PathResolver
 
@@ -1018,13 +1063,13 @@ async def test_crop_seedance2_asset_to_first_frame_writes_video_input_override(
         _write_png(Path(output_path), width=720, height=1280)
 
     monkeypatch.setattr(panel_service, "crop_image_to_path", fake_crop_image_to_path)
-    monkeypatch.setattr(panel_service, "validate_seedance2_reference_image", lambda _path: "")
+    monkeypatch.setattr(panel_service, "validate_video_reference_image", lambda _path: "")
 
     class Store:
         async def update_beat_asset(self, **_kwargs):
             raise AssertionError("video input crops must not mutate reference_image_paths")
 
-    result = await panel_service.crop_seedance2_asset_to_reference(
+    result = await panel_service.crop_video_reference_asset(
         store=Store(),
         episode=1,
         beat={"beat_number": 2},

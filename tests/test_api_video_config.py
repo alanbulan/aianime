@@ -15,7 +15,7 @@ class _FakeStore:
                 {
                     "beat_number": 2,
                     "video_prompt": "old",
-                    "seedance2_config_json": "{}",
+                    "video_config_json": "{}",
                 }
             ]
         }
@@ -26,7 +26,7 @@ class _FakeStore:
 
 
 @pytest.mark.asyncio
-async def test_update_beat_accepts_seedance2_config_json(monkeypatch, tmp_path):
+async def test_update_beat_accepts_video_config_json(monkeypatch, tmp_path):
     from ai_anime.api.routes.narrative_planning import scripts
     from ai_anime.api.deps import ProjectResolution
     from ai_anime.api.routes.narrative_planning.scripts_schemas import BeatUpdate
@@ -57,15 +57,15 @@ async def test_update_beat_accepts_seedance2_config_json(monkeypatch, tmp_path):
         episode_num=3,
         beat_num=2,
         body=BeatUpdate(
-            seedance2_config_json='{"final_prompt":"参考图片1生成视频。"}',
+            video_config_json='{"final_prompt":"参考图片1生成视频。"}',
         ),
         user={"username": "alice"},
     )
 
     assert response["ok"] is True
-    assert response["data"]["seedance2_config_json"] == (
+    assert response["data"]["video_config_json"] == (
         '{"final_prompt":"参考图片1生成视频。"}'
     )
-    assert store.updated["seedance2_config_json"] == (
+    assert store.updated["video_config_json"] == (
         '{"final_prompt":"参考图片1生成视频。"}'
     )

@@ -2566,9 +2566,9 @@ def test_image_model_resolver_preserves_legacy_token_as_explicit_sku() -> None:
 
 
 def test_image_model_resolver_preserves_current_token_as_explicit_sku() -> None:
-    model = resolve_configured_image_model("newapi_gpt_image2")
+    model = resolve_configured_image_model("image-model-b")
 
-    assert model == "newapi_gpt_image2"
+    assert model == "image-model-b"
 
 
 def test_erase_prompt_mentions_masked_region_and_cleanup() -> None:
@@ -2773,7 +2773,7 @@ async def test_freezone_gen_route_passes_output_dir_and_quality(
             prompt="衣服好看点",
             aspect_ratio="16:9",
             image_size="1K",
-            model="newapi_gpt_image2",
+            model="image-model-b",
             quality="low",
             canvas_id="default",
             node_id="node_gen",
@@ -2985,7 +2985,7 @@ async def test_freezone_celery_story_script_runner_accepts_plain_dict(
     ) -> dict:
         assert source_text == "沈昭昭在深夜办公室醒来。"
         assert prompt == "节奏要快"
-        assert model == "newapi_gemini_flash"
+        assert model == "text-model-a"
         assert model_selector is None
         assert character_refs == []
         return payload_data
@@ -3007,7 +3007,7 @@ async def test_freezone_celery_story_script_runner_accepts_plain_dict(
                 "project_dir": str(project_dir),
                 "source_text": "沈昭昭在深夜办公室醒来。",
                 "prompt": "节奏要快",
-                "model": "newapi_gemini_flash",
+                "model": "text-model-a",
                 "canvas_id": "canvas_a",
                 "node_id": "node_story",
             }
@@ -3177,7 +3177,7 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
             prompt="generate",
             aspect_ratio="1:1",
             image_size="2K",
-            model="newapi_gpt_image2",
+            model="image-model-b",
             canvas_id="canvas_a",
             node_id="node_gen",
         )
@@ -3200,7 +3200,7 @@ async def test_freezone_celery_image_jobs_preserve_canvas_node_context(
             extra_reference_urls=(),
             aspect_ratio="original",
             image_size="2K",
-            model="newapi_gpt_image2",
+            model="image-model-b",
             quality=None,
             canvas_id="canvas_a",
             node_id="node_edit",
@@ -6717,7 +6717,7 @@ async def test_freezone_upscale_resolves_original_ratio_before_model_call(
             source_url="/static/admin/demo/freezone/_uploads/sample.png",
             image_size="2K",
             quality="low",
-            model="HuiMeng GPT Image 2",
+            model="image-model-primary",
             style=CreativeCanvasImageStyleConfig(template_id="three_oclock_2300"),
             camera=CreativeCanvasImageCameraConfig(
                 camera_body="Panavision DXL2",

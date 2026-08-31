@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from PIL import Image
 
-from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid
+from ai_anime.modules.production.infrastructure.media_generation import image_grid
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.infrastructure.runners import render as render_runner
 
@@ -141,7 +141,7 @@ async def test_selected_regeneration_limits_concurrency_reports_progress_and_res
                 output_path = Path(kwargs["output_path"])
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 Image.new("RGB", (16, 16), "blue").save(output_path)
-                return nanobanana_grid.GridGenerationResult(
+                return image_grid.GridGenerationResult(
                     success=True,
                     grid_image_path=str(output_path),
                     generation_time=0.01,
@@ -151,13 +151,13 @@ async def test_selected_regeneration_limits_concurrency_reports_progress_and_res
 
     generator = FakeGridGenerator()
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "create_grid_generator",
         lambda *_args, **_kwargs: generator,
     )
     progress_events: list[dict] = []
 
-    results = await nanobanana_grid.regenerate_selected_beats(
+    results = await image_grid.regenerate_selected_beats(
         selected_beats=_beats(5),
         mode_key="1x1_2-3",
         character_map={},
@@ -182,12 +182,12 @@ async def test_selected_regeneration_limits_concurrency_reports_progress_and_res
             raise AssertionError("checkpointed grids must not be generated again")
 
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "create_grid_generator",
         lambda *_args, **_kwargs: UnexpectedGenerator(),
     )
     resumed_events: list[dict] = []
-    resumed = await nanobanana_grid.regenerate_selected_beats(
+    resumed = await image_grid.regenerate_selected_beats(
         selected_beats=_beats(5),
         mode_key="1x1_2-3",
         character_map={},
@@ -222,7 +222,7 @@ async def test_selected_regeneration_exposes_completed_grid_before_batch_finishe
                 await release_second.wait()
             output_path.parent.mkdir(parents=True, exist_ok=True)
             Image.new("RGB", (16, 16), "blue").save(output_path)
-            return nanobanana_grid.GridGenerationResult(
+            return image_grid.GridGenerationResult(
                 success=True,
                 grid_image_path=str(output_path),
             )
@@ -233,13 +233,13 @@ async def test_selected_regeneration_exposes_completed_grid_before_batch_finishe
             first_grid_promoted.set()
 
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "create_grid_generator",
         lambda *_args, **_kwargs: StaggeredGridGenerator(),
     )
 
     task = asyncio.create_task(
-        nanobanana_grid.regenerate_selected_beats(
+        image_grid.regenerate_selected_beats(
             selected_beats=_beats(2),
             mode_key="1x1_2-3",
             character_map={},
@@ -273,14 +273,14 @@ async def test_selected_regeneration_retries_only_transient_failures(
         async def generate_grid(self, **kwargs):
             self.calls += 1
             if self.calls == 1:
-                return nanobanana_grid.GridGenerationResult(
+                return image_grid.GridGenerationResult(
                     success=False,
                     error="云端图片生成服务请求超时（HTTP 504）",
                 )
             output_path = Path(kwargs["output_path"])
             output_path.parent.mkdir(parents=True, exist_ok=True)
             Image.new("RGB", (16, 16), "green").save(output_path)
-            return nanobanana_grid.GridGenerationResult(
+            return image_grid.GridGenerationResult(
                 success=True,
                 grid_image_path=str(output_path),
             )
@@ -290,14 +290,14 @@ async def test_selected_regeneration_retries_only_transient_failures(
 
     generator = RetryGenerator()
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "create_grid_generator",
         lambda *_args, **_kwargs: generator,
     )
-    monkeypatch.setattr(nanobanana_grid.asyncio, "sleep", no_delay)
+    monkeypatch.setattr(image_grid.asyncio, "sleep", no_delay)
     progress_events: list[dict] = []
 
-    results = await nanobanana_grid.regenerate_selected_beats(
+    results = await image_grid.regenerate_selected_beats(
         selected_beats=_beats(1),
         mode_key="1x1_2-3",
         character_map={},
@@ -331,7 +331,7 @@ async def test_selected_regeneration_emits_heartbeat_while_provider_is_pending(
             output_path = Path(kwargs["output_path"])
             output_path.parent.mkdir(parents=True, exist_ok=True)
             Image.new("RGB", (16, 16), "yellow").save(output_path)
-            return nanobanana_grid.GridGenerationResult(
+            return image_grid.GridGenerationResult(
                 success=True,
                 grid_image_path=str(output_path),
             )
@@ -342,13 +342,13 @@ async def test_selected_regeneration_emits_heartbeat_while_provider_is_pending(
             release.set()
 
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "create_grid_generator",
         lambda *_args, **_kwargs: PendingGenerator(),
     )
 
     await asyncio.wait_for(
-        nanobanana_grid.regenerate_selected_beats(
+        image_grid.regenerate_selected_beats(
             selected_beats=_beats(1),
             mode_key="1x1_2-3",
             character_map={},

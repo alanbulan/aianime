@@ -23,7 +23,7 @@ class DummySqliteStore:
     characters: list[dict] = field(default_factory=list)
     sketch_colors: dict[str, str] = field(default_factory=dict)
     scheduled_beat_prompts: list[object] = field(default_factory=list)
-    scheduled_seedance_prompts: list[object] = field(default_factory=list)
+    scheduled_video_prompt_optimization: list[object] = field(default_factory=list)
 
     async def get_script_as_dict(self, episode: int):
         return {"episode": episode, "beats": [dict(beat) for beat in self.beats]}
@@ -49,65 +49,15 @@ class DummyCogneeStore:
     pass
 
 
-class DummyUsageMeter:
-    def __init__(self):
-        self.reserve_calls: list[dict] = []
-        self.confirm_calls: list[tuple[str, dict | None]] = []
-        self.refund_calls: list[tuple[str, dict | None]] = []
-        self.contexts: list[dict] = []
-        self.clear_count = 0
-
-    async def reserve_feature_start_credits(self, **kwargs):
-        self.reserve_calls.append(kwargs)
-        return {"id": "seedance2-prompt-reservation", "cost": 9}
-
-    async def confirm_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata=None,
-    ):
-        self.confirm_calls.append((reservation_id, metadata))
-
-    async def refund_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata=None,
-    ):
-        self.refund_calls.append((reservation_id, metadata))
-
-    def set_llm_usage_context(
-        self,
-        user_id: str,
-        project_id: str = "",
-        resource_kind: str = "",
-        billing_metadata: dict | None = None,
-    ):
-        self.contexts.append(
-            {
-                "user_id": user_id,
-                "project_id": project_id,
-                "resource_kind": resource_kind,
-                "billing_metadata": billing_metadata or {},
-            }
-        )
-
-    def clear_llm_usage_context(self):
-        self.clear_count += 1
-
-
 def _client(
     monkeypatch,
     tmp_path,
     beats: list[dict],
     *,
     ctx=None,
-    usage_meter=None,
 ):
     from ai_anime.api.routes.narrative_planning import scripts
     from ai_anime.api.deps import ProjectResolution
-    from ai_anime.modules.narrative_planning import composition
 
     sqlite_store = DummySqliteStore(beats)
     resolved_ctx = ctx or _project_ctx(tmp_path)
@@ -167,13 +117,13 @@ def _client(
             }
         )
 
-    async def fake_enqueue_seedance2_prompt_generation(_ctx, command):
-        sqlite_store.scheduled_seedance_prompts.append(command)
+    async def fake_enqueue_video_prompt_optimization(_ctx, command):
+        sqlite_store.scheduled_video_prompt_optimization.append(command)
         return SimpleNamespace(
             as_dict=lambda: {
-                "task_type": "seedance2_prompt",
-                "task_id": "task-seedance-prompt-1",
-                "task_key": "task:seedance2_prompt:demo:1:1",
+                "task_type": "video_prompt_optimization",
+                    "task_id": "task-video-prompt-1",
+                "task_key": "task:video_prompt:demo:1:1",
                 "backend": "local",
                 "queue": None,
                 "message": "第 1 集 Beat 1 视频提示词优化已入队",
@@ -187,12 +137,9 @@ def _client(
     )
     monkeypatch.setattr(
         scripts,
-        "enqueue_seedance2_prompt_generation",
-        fake_enqueue_seedance2_prompt_generation,
+        "enqueue_video_prompt_optimization",
+        fake_enqueue_video_prompt_optimization,
     )
-    if usage_meter is not None:
-        monkeypatch.setattr(composition, "get_usage_meter", lambda: usage_meter)
-
     app = FastAPI()
     app.include_router(scripts.router)
     app.dependency_overrides[scripts.get_api_user] = lambda: {"username": "admin"}
@@ -218,51 +165,22 @@ def _project_ctx(tmp_path: Path) -> ProjectContext:
     )
 
 
-def test_generate_seedance2_prompt_submits_task_without_updating_config(
+def test_generate_video_prompt_submits_task_without_updating_config(
     monkeypatch, tmp_path
 ):
-
-    saved_json = json.dumps(
-        {
-            "mode": "first_frame",
-            "duration": 5,
-            "resolution": "720p",
-            "ratio": "9:16",
-            "final_prompt": "optimized seedance2 prompt",
-            "prompt_guidance": "more camera motion",
-            "prompt_source": "generated",
-        }
-    )
-    seen = {}
-
-    async def _generate_seedance2_prompt_for_panel(**kwargs):
-        seen.update(kwargs)
-        beat = kwargs["beat"]
-        beat["seedance2_config_json"] = saved_json
-        await kwargs["store"].update_beat_asset(
-            episode_number=kwargs["episode"],
-            beat_number=int(beat["beat_number"]),
-            seedance2_config_json=saved_json,
-        )
-        return saved_json
-
-    monkeypatch.setattr(
-        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
-        _generate_seedance2_prompt_for_panel,
-    )
     client, store = _client(
         monkeypatch,
         tmp_path,
         [
             {
                 "beat_number": 1,
-                "seedance2_config_json": json.dumps(
+                "video_config_json": json.dumps(
                     {
                         "mode": "first_frame",
                         "duration": 5,
                         "resolution": "720p",
                         "ratio": "9:16",
-                        "final_prompt": "current seedance2 prompt",
+                        "final_prompt": "current video prompt",
                     }
                 ),
             },
@@ -271,9 +189,9 @@ def test_generate_seedance2_prompt_submits_task_without_updating_config(
     )
 
     response = client.post(
-        "/projects/demo/episodes/1/beats/1/seedance2-prompt/generate",
+        "/projects/demo/episodes/1/beats/1/video-prompt/optimize",
         json={
-            "manual_prompt_reference": "current seedance2 prompt",
+            "manual_prompt_reference": "current video prompt",
             "prompt_guidance": "more camera motion",
         },
     )
@@ -281,99 +199,68 @@ def test_generate_seedance2_prompt_submits_task_without_updating_config(
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["task_type"] == "seedance2_prompt"
-    assert payload["task_id"] == "task-seedance-prompt-1"
-    assert seen == {}
+    assert payload["task_type"] == "video_prompt_optimization"
+    assert payload["task_id"] == "task-video-prompt-1"
     assert store.updates == []
-    command = store.scheduled_seedance_prompts[0]
+    command = store.scheduled_video_prompt_optimization[0]
     assert command.project_dir == tmp_path
-    assert command.manual_prompt_reference == "current seedance2 prompt"
+    assert command.manual_prompt_reference == "current video prompt"
     assert command.prompt_guidance == "more camera motion"
 
 
-def test_generate_seedance2_prompt_does_not_bill_before_worker_runs(
-    monkeypatch,
-    tmp_path,
-):
-
-    saved_json = json.dumps(
-        {
-            "mode": "first_frame",
-            "duration": 5,
-            "resolution": "720p",
-            "ratio": "9:16",
-            "final_prompt": "optimized seedance2 prompt",
-            "prompt_source": "generated",
-        }
+@pytest.mark.asyncio
+async def test_video_prompt_worker_rejects_non_ai_result(tmp_path):
+    from ai_anime.modules.narrative_planning.application.video_prompt_optimization import (
+        GenerateVideoPrompt,
+        GenerateVideoPromptCommand,
+        VideoPromptRejected,
     )
 
-    async def _generate_seedance2_prompt_for_panel(**kwargs):
-        beat = kwargs["beat"]
-        beat["seedance2_config_json"] = saved_json
-        await kwargs["store"].update_beat_asset(
-            episode_number=kwargs["episode"],
-            beat_number=int(beat["beat_number"]),
-            seedance2_config_json=saved_json,
+    class _FallbackGateway:
+        def mode(self, _config_json):
+            return "first_frame"
+
+        async def generate(self, **_kwargs):
+            return json.dumps(
+                {
+                    "final_prompt": "规则草稿",
+                    "prompt_source": "fallback",
+                }
+            )
+
+        def result_fields(self, config_json):
+            config = json.loads(config_json)
+            return config["final_prompt"], config["prompt_source"]
+
+    service = GenerateVideoPrompt(gateway=_FallbackGateway())
+    store = DummySqliteStore([{"beat_number": 1}])
+
+    with pytest.raises(VideoPromptRejected, match="模型未返回可用结果"):
+        await service.execute(
+            store,
+            GenerateVideoPromptCommand(
+                episode_num=1,
+                beat_num=1,
+                project_dir=tmp_path,
+                requester_user_id="user_editor",
+                project_id="proj_123",
+            ),
         )
-        return saved_json
-
-    monkeypatch.setattr(
-        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
-        _generate_seedance2_prompt_for_panel,
-    )
-    usage_meter = DummyUsageMeter()
-    ctx = _project_ctx(tmp_path)
-    client, _store = _client(
-        monkeypatch,
-        tmp_path,
-        [
-            {
-                "beat_number": 1,
-                "seedance2_config_json": json.dumps(
-                    {
-                        "mode": "first_frame",
-                        "duration": 5,
-                        "resolution": "720p",
-                        "ratio": "9:16",
-                    }
-                ),
-            }
-        ],
-        ctx=ctx,
-        usage_meter=usage_meter,
-    )
-
-    response = client.post(
-        "/projects/demo/episodes/1/beats/1/seedance2-prompt/generate",
-        json={"prompt_guidance": "more camera motion"},
-    )
-
-    assert response.status_code == 200
-    assert response.json()["ok"] is True
-    assert response.json()["task_type"] == "seedance2_prompt"
-    assert usage_meter.reserve_calls == []
-    assert usage_meter.confirm_calls == []
-    assert usage_meter.refund_calls == []
-    assert usage_meter.contexts == []
-    assert usage_meter.clear_count == 0
-
-
-def test_generate_seedance2_prompt_projects_queue_rejection(
+def test_generate_video_prompt_projects_queue_rejection(
     monkeypatch,
     tmp_path,
 ):
 
     from ai_anime.api.routes.narrative_planning import scripts
-    from ai_anime.modules.narrative_planning.public import SeedancePromptRejected
+    from ai_anime.modules.narrative_planning.public import VideoPromptRejected
 
-    usage_meter = DummyUsageMeter()
     client, _store = _client(
         monkeypatch,
         tmp_path,
         [
             {
                 "beat_number": 1,
-                "seedance2_config_json": json.dumps(
+                "video_config_json": json.dumps(
                     {
                         "mode": "first_frame",
                         "duration": 5,
@@ -384,32 +271,27 @@ def test_generate_seedance2_prompt_projects_queue_rejection(
             }
         ],
         ctx=_project_ctx(tmp_path),
-        usage_meter=usage_meter,
     )
 
     async def reject_queue(*_args, **_kwargs):
-        raise SeedancePromptRejected("seedance2 prompt invalid")
+        raise VideoPromptRejected("video prompt invalid")
 
     monkeypatch.setattr(
         scripts,
-        "enqueue_seedance2_prompt_generation",
+        "enqueue_video_prompt_optimization",
         reject_queue,
     )
 
     response = client.post(
-        "/projects/demo/episodes/1/beats/1/seedance2-prompt/generate",
+        "/projects/demo/episodes/1/beats/1/video-prompt/optimize",
         json={"prompt_guidance": "more camera motion"},
     )
 
     assert response.status_code == 200
-    assert response.json() == {"ok": False, "error": "seedance2 prompt invalid"}
-    assert usage_meter.reserve_calls == []
-    assert usage_meter.confirm_calls == []
-    assert usage_meter.refund_calls == []
-    assert usage_meter.clear_count == 0
+    assert response.json() == {"ok": False, "error": "video prompt invalid"}
 
 
-def test_generate_seedance2_prompt_defers_mode_validation_to_worker(
+def test_generate_video_prompt_defers_mode_validation_to_worker(
     monkeypatch, tmp_path
 ):
     client, store = _client(
@@ -418,10 +300,10 @@ def test_generate_seedance2_prompt_defers_mode_validation_to_worker(
         [
             {
                 "beat_number": 1,
-                "seedance2_config_json": json.dumps(
+                "video_config_json": json.dumps(
                     {
                         "mode": "first_last_frame",
-                        "final_prompt": "current seedance2 prompt",
+                        "final_prompt": "current video prompt",
                     }
                 ),
             }
@@ -429,12 +311,12 @@ def test_generate_seedance2_prompt_defers_mode_validation_to_worker(
     )
 
     response = client.post(
-        "/projects/demo/episodes/1/beats/1/seedance2-prompt/generate",
-        json={"manual_prompt_reference": "current seedance2 prompt"},
+        "/projects/demo/episodes/1/beats/1/video-prompt/optimize",
+        json={"manual_prompt_reference": "current video prompt"},
     )
 
     assert response.status_code == 200
-    assert response.json()["task_type"] == "seedance2_prompt"
+    assert response.json()["task_type"] == "video_prompt_optimization"
     assert store.updates == []
 
 

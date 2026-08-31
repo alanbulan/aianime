@@ -19,7 +19,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure.seedance2_panel_service import build_seedance2_video_panel_state
+    from ai_anime.modules.production.infrastructure.video_reference_panel_service import build_video_reference_panel_state
 
     monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
     project_dir = tmp_path / "output" / "alice" / "project"
@@ -27,7 +27,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
     scene = project_dir / "assets" / "scenes" / "旧书店" / "master.png"
     narrator_audio = project_dir / "assets" / "narrator" / "voice.mp3"
     uploaded_audio = (
-        project_dir / "seedance2_uploads" / "ep001" / "beat_01" / "audios" / "custom.wav"
+        project_dir / "video_reference_uploads" / "ep001" / "beat_01" / "audios" / "custom.wav"
     )
     for image_path in (frame, scene):
         _write_png(image_path)
@@ -48,7 +48,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
         updated_at="2026-05-29T00:00:00+00:00",
     )
 
-    state = build_seedance2_video_panel_state(
+    state = build_video_reference_panel_state(
         project_dir=project_dir,
         episode=1,
         beat={
@@ -56,7 +56,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
             "audio_type": "narration",
             "scene_ref": {"scene_id": "旧书店"},
             "narration_segment": "画外音响起。",
-            "seedance2_config_json": json.dumps(
+            "video_config_json": json.dumps(
                 {"reference_audio_paths": [str(uploaded_audio)]}
             ),
         },
@@ -72,7 +72,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
         ("音频2", uploaded_audio),
     ]
 
-    state = build_seedance2_video_panel_state(
+    state = build_video_reference_panel_state(
         project_dir=project_dir,
         episode=1,
         beat={
@@ -80,7 +80,7 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
             "audio_type": "narration",
             "scene_ref": {"scene_id": "旧书店"},
             "narration_segment": "画外音响起。",
-            "seedance2_config_json": json.dumps(
+            "video_config_json": json.dumps(
                 {
                     "final_prompt": "参考@音频2声线。",
                     "reference_audio_paths": [str(uploaded_audio)],
@@ -97,21 +97,21 @@ def test_drama_narration_panel_sends_audio_only_when_prompt_references_it(
 
 
 def test_sync_asset_paths_preserves_unreferenced_uploaded_audio(tmp_path, monkeypatch):
-    from ai_anime.modules.production.application.seedance2_config import (
-        Seedance2VideoConfig,
+    from ai_anime.modules.production.application.video_config import (
+        BeatVideoConfig,
     )
-    from ai_anime.modules.production.infrastructure import seedance2_panel_service
+    from ai_anime.modules.production.infrastructure import video_reference_panel_service
 
     uploaded_audio = tmp_path / "custom.wav"
     uploaded_audio.write_bytes(b"user uploaded audio")
-    config = Seedance2VideoConfig(reference_audio_paths=[str(uploaded_audio)])
+    config = BeatVideoConfig(reference_audio_paths=[str(uploaded_audio)])
     monkeypatch.setattr(
-        seedance2_panel_service,
-        "build_seedance2_project_assets",
+        video_reference_panel_service,
+        "build_video_reference_assets",
         lambda **_kwargs: [],
     )
 
-    seedance2_panel_service._sync_seedance2_asset_paths(
+    video_reference_panel_service._sync_video_reference_asset_paths(
         config=config,
         project_dir=tmp_path,
         episode=1,
@@ -125,25 +125,25 @@ def test_sync_asset_paths_preserves_unreferenced_uploaded_audio(tmp_path, monkey
 async def test_prompt_regeneration_does_not_reuse_generated_output_as_manual_reference(
     tmp_path, monkeypatch
 ):
-    from ai_anime.modules.production.application.seedance2_config import (
-        dump_seedance2_config,
-        parse_seedance2_config,
+    from ai_anime.modules.production.application.video_config import (
+        dump_video_config,
+        parse_video_config,
     )
-    from ai_anime.modules.production.infrastructure import seedance2_panel_service
+    from ai_anime.modules.production.infrastructure import video_reference_panel_service
 
     captured: dict[str, object] = {}
 
     class _Store:
         async def update_beat_asset(self, **kwargs):
-            captured["saved_json"] = kwargs["seedance2_config_json"]
+            captured["saved_json"] = kwargs["video_config_json"]
 
     async def composer(**kwargs):
         captured["manual_prompt_reference"] = kwargs["manual_prompt_reference"]
         return "镜头缓慢推近白石夏音，她轻声说出：“你听到了？”。"
 
     monkeypatch.setattr(
-        seedance2_panel_service,
-        "build_seedance2_project_assets",
+        video_reference_panel_service,
+        "build_video_reference_assets",
         lambda **_kwargs: [],
     )
     beat = {
@@ -151,7 +151,7 @@ async def test_prompt_regeneration_does_not_reuse_generated_output_as_manual_ref
         "visual_description": "白石夏音站在音乐教室内。",
         "narration_segment": "你听到了？",
         "audio_type": "dialogue",
-        "seedance2_config_json": dump_seedance2_config(
+        "video_config_json": dump_video_config(
             {
                 "final_prompt": "использовать参考@音频1作为角色声线。",
                 "prompt_source": "generated",
@@ -159,7 +159,7 @@ async def test_prompt_regeneration_does_not_reuse_generated_output_as_manual_ref
         ),
     }
 
-    await seedance2_panel_service.generate_seedance2_prompt_for_panel(
+    await video_reference_panel_service.generate_video_prompt_for_panel(
         store=_Store(),
         episode=1,
         beat=beat,
@@ -169,7 +169,7 @@ async def test_prompt_regeneration_does_not_reuse_generated_output_as_manual_ref
     )
 
     assert captured["manual_prompt_reference"] == ""
-    saved = parse_seedance2_config(captured["saved_json"])
+    saved = parse_video_config(captured["saved_json"])
     assert "использовать" not in saved.final_prompt
     assert saved.prompt_source == "generated"
     assert "白石夏音" in saved.prompt_validation_source
@@ -180,27 +180,27 @@ async def test_prompt_regeneration_does_not_reuse_generated_output_as_manual_ref
 async def test_prompt_generation_persists_manual_reference_for_later_validation(
     tmp_path, monkeypatch
 ):
-    from ai_anime.modules.production.application.seedance2_config import (
-        parse_seedance2_config,
+    from ai_anime.modules.production.application.video_config import (
+        parse_video_config,
     )
-    from ai_anime.modules.production.infrastructure import seedance2_panel_service
+    from ai_anime.modules.production.infrastructure import video_reference_panel_service
 
     captured: dict[str, str] = {}
 
     class _Store:
         async def update_beat_asset(self, **kwargs):
-            captured["saved_json"] = kwargs["seedance2_config_json"]
+            captured["saved_json"] = kwargs["video_config_json"]
 
     async def composer(**_kwargs):
         return "角色面对镜头说出俄语台词：“Привет”。"
 
     monkeypatch.setattr(
-        seedance2_panel_service,
-        "build_seedance2_project_assets",
+        video_reference_panel_service,
+        "build_video_reference_assets",
         lambda **_kwargs: [],
     )
 
-    await seedance2_panel_service.generate_seedance2_prompt_for_panel(
+    await video_reference_panel_service.generate_video_prompt_for_panel(
         store=_Store(),
         episode=1,
         beat={
@@ -212,6 +212,38 @@ async def test_prompt_generation_persists_manual_reference_for_later_validation(
         composer=composer,
     )
 
-    saved = parse_seedance2_config(captured["saved_json"])
+    saved = parse_video_config(captured["saved_json"])
     assert "Привет" in saved.final_prompt
     assert "Привет" in saved.prompt_validation_source
+
+
+@pytest.mark.asyncio
+async def test_prompt_generation_surfaces_ai_failure_without_saving_fallback(
+    tmp_path, monkeypatch
+):
+    from ai_anime.modules.production.infrastructure import video_reference_panel_service
+
+    class _Store:
+        async def update_beat_asset(self, **_kwargs):
+            raise AssertionError("AI 生成失败时不应保存规则草稿")
+
+    async def composer(**_kwargs):
+        raise RuntimeError("模型不可用")
+
+    monkeypatch.setattr(
+        video_reference_panel_service,
+        "build_video_reference_assets",
+        lambda **_kwargs: [],
+    )
+
+    with pytest.raises(ValueError, match="AI 视频提示词生成失败：模型不可用"):
+        await video_reference_panel_service.generate_video_prompt_for_panel(
+            store=_Store(),
+            episode=1,
+            beat={
+                "beat_number": 1,
+                "visual_description": "角色推门进入教室。",
+            },
+            project_dir=tmp_path,
+            composer=composer,
+        )

@@ -2,8 +2,8 @@ import json
 
 import pytest
 
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
-    NanoBananaGridGenerator,
+from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+    ImageGridGenerator,
 )
 from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
     CharacterConfig,
@@ -159,7 +159,7 @@ def test_combined_composite_attachment_uses_full_sheets_not_center_crops(tmp_pat
     for idx, char_cfg in enumerate(ctx.characters.values()):
         Image.new("RGB", sizes[idx], (idx * 40, 0, 0)).save(char_cfg.reference_path)
 
-    generator = NanoBananaGridGenerator.__new__(NanoBananaGridGenerator)
+    generator = ImageGridGenerator.__new__(ImageGridGenerator)
     captured_sizes = []
 
     def fail_crop_center_panel(_path):

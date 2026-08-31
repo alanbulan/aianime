@@ -94,7 +94,7 @@ async def test_standard_drama_prop_planner_reports_string_list_validation_error(
 
     captured: dict[str, object] = {}
 
-    def fake_newapi_model() -> str:
+    def fake_model_gateway_model() -> str:
         return "prop-model"
 
     def fake_settings(thinking_env: str, default_thinking_level: str) -> dict[str, str]:
@@ -115,10 +115,10 @@ async def test_standard_drama_prop_planner_reports_string_list_validation_error(
                 )
             )
 
-    monkeypatch.setattr(asset_compiler, "get_newapi_text_pydantic_model", fake_newapi_model)
+    monkeypatch.setattr(asset_compiler, "get_text_pydantic_model", fake_model_gateway_model)
     monkeypatch.setattr(
         asset_compiler,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         fake_settings,
     )
     monkeypatch.setattr(asset_compiler, "Agent", FakeAgent)

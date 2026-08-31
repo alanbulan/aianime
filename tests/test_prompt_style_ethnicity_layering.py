@@ -19,7 +19,7 @@ def test_default_ethnicity_instruction_is_a_fallback_not_a_hard_rule():
 
 
 def test_character_default_ethnicity_instruction_allows_explicit_foreign_descriptions():
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_character import (
+    from ai_anime.modules.production.infrastructure.media_generation.character_image_generator import (
         _default_ethnicity_instruction,
     )
 
@@ -44,7 +44,7 @@ def test_prompt_sources_do_not_contain_hard_global_ethnicity_constraints():
     files = [
         *prompt_root.glob("prompt_*.py"),
         Path(
-            "src/ai_anime/modules/production/infrastructure/media_generation/nanobanana_character.py"
+            "src/ai_anime/modules/production/infrastructure/media_generation/character_image_generator.py"
         ),
     ]
     forbidden_literals = [

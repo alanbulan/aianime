@@ -12,7 +12,7 @@ from ai_anime.modules.production.application.sketch_generation import (
 )
 from ai_anime.modules.production.infrastructure.sketch_generation import (
     LocalSketchGenerationPreparer,
-    NanoBananaSketchGridPlanner,
+    SketchGridPlanner,
     TaskExecutionSketchGenerationScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -59,7 +59,7 @@ class _ImageSettings:
 
     def resolve_sketch_selection(self, project_config, requested_selection=None):
         self.calls.append((project_config, requested_selection))
-        return "newapi_nanobanana2"
+        return "image-model-a"
 
 
 class _GenerationContext:
@@ -239,7 +239,7 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
             grid_index=-1,
             sketch_scene_grouping=True,
             aspect_ratio="16:9",
-            image_generation_selection="openrouter_nanobanana2",
+            image_generation_selection="image-model-a",
         ),
     )
 
@@ -254,14 +254,14 @@ async def test_preparer_builds_all_grid_tasks_with_existing_materials(
         }
     ]
     assert props.calls == [(store, "episode-3", beats)]
-    assert image_settings.calls[0][1] == "openrouter_nanobanana2"
+    assert image_settings.calls[0][1] == "image-model-a"
     assert prepared.grid_plan == ((1, 1), (2, 2))
     assert [task.grid_index for task in prepared.tasks] == [0, 1]
     assert prepared.tasks[0].config == {
         "beats": beats,
         "character_map": {"hero": {"sketch_color": "#3366ff"}},
         "style": "cinematic",
-        "model": "newapi_nanobanana2",
+        "model": "image-model-a",
         "sketch_scene_grouping": True,
         "aspect_ratio": "16:9",
         "replace_existing": False,
@@ -288,7 +288,7 @@ async def test_preparer_marks_explicit_replacement(
     assert prepared.tasks[0].config["replace_existing"] is True
 
 
-def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(
+def test_image_grid_planner_preserves_scene_aspect_and_linear_plan(
     monkeypatch,
 ) -> None:
     scene_calls = []
@@ -298,15 +298,15 @@ def test_nanobanana_grid_planner_preserves_scene_aspect_and_linear_plan(
         return [{"rows": 1, "cols": 2}]
 
     monkeypatch.setattr(
-        "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid.sketch_scene_grid_split",
+        "ai_anime.modules.production.infrastructure.media_generation.image_grid.sketch_scene_grid_split",
         scene_plan,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid.sketch_grid_split",
+        "ai_anime.modules.production.infrastructure.media_generation.image_grid.sketch_grid_split",
         lambda total: [(1, total)],
     )
     beats = [{"beat_number": 1}, {"beat_number": 2}]
-    planner = NanoBananaSketchGridPlanner()
+    planner = SketchGridPlanner()
 
     assert planner.plan(
         beats,

@@ -2,7 +2,7 @@
 
 Schema follows source-branch contract (3 top-level keys, caller-supplied
 ``updated_at``). See ``test_project_tts_config.py`` in
-``origin/docs/seedance2-api-comparison`` for a parallel pattern.
+the production video-reference workflow for a parallel pattern.
 """
 
 from __future__ import annotations
@@ -103,24 +103,24 @@ def test_set_narrator_reference_audio_overwrites_previous(narration_env):
     assert rec == {"path": "b.mp3", "sha256": "bbb", "updated_at": "t2"}
 
 
-def test_indextts2_beat_audio_task_module_imports():
-    """C5 unblocks top-level import of indextts2_beat_audio_task."""
+def test_episode_audio_generation_module_imports():
+    """C5 unblocks top-level import of episode_audio_generation."""
     import importlib
 
-    mod = importlib.import_module("ai_anime.modules.production.infrastructure.indextts2_beat_audio_task")
-    assert hasattr(mod, "run_indextts2_beat_audio_generation")
+    mod = importlib.import_module("ai_anime.modules.production.infrastructure.episode_audio_generation")
+    assert hasattr(mod, "run_episode_audio_generation")
 
 
-def test_indextts2_uses_only_commercial_model_access_config():
+def test_speech_synthesis_uses_only_commercial_model_access_config():
     from ai_anime.modules.production.infrastructure import (
         media_generation_settings as cfg,
     )
 
     assert not hasattr(cfg, "FAL_API_KEY")
     assert not hasattr(cfg, "INDEXTTS2_FAL_ENDPOINT")
-    assert cfg.INDEXTTS2_RECORD_PROVIDER == "commercial"
-    assert hasattr(cfg, "INDEXTTS2_TIMEOUT_SECONDS")
-    assert isinstance(cfg.INDEXTTS2_TIMEOUT_SECONDS, float)
+    assert cfg.SPEECH_RECORD_PROVIDER == "commercial"
+    assert hasattr(cfg, "SPEECH_GENERATION_TIMEOUT_SECONDS")
+    assert isinstance(cfg.SPEECH_GENERATION_TIMEOUT_SECONDS, float)
 
 
 def test_project_config_uses_state_dir_as_its_single_root():

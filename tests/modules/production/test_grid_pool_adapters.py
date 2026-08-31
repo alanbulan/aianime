@@ -699,7 +699,7 @@ def test_grid_preview_preserves_missing_images_and_path_escape_errors(
         lambda *_args: {5: "sketch.png"},
     )
     monkeypatch.setattr(
-        grid_pool.nanobanana_grid,
+        grid_pool.image_grid,
         "crop_sketch_panels",
         lambda *_args, **_kwargs: str(tmp_path / "outside.jpg"),
     )
@@ -714,10 +714,10 @@ def test_rebuild_pool_uses_episode_directory_and_projects_counts(
     from ai_anime.modules.production.infrastructure import grid_pool
 
     context = _context(tmp_path)
-    calls: list[tuple[Path, int, bool]] = []
+    calls: list[tuple[Path, int]] = []
 
-    def rebuild_pool_index(*, episode_grids_dir, episode, split_cells):
-        calls.append((episode_grids_dir, episode, split_cells))
+    def rebuild_pool_index(*, episode_grids_dir, episode):
+        calls.append((episode_grids_dir, episode))
         return SimpleNamespace(
             episode=episode,
             images=[object(), object()],
@@ -734,7 +734,7 @@ def test_rebuild_pool_uses_episode_directory_and_projects_counts(
     grids_dir = Path(context.output_dir) / "grids" / "ep003"
 
     assert grids_dir.is_dir()
-    assert calls == [(grids_dir, 3, True)]
+    assert calls == [(grids_dir, 3)]
     assert rebuilt.as_dict() == {
         "episode": 3,
         "image_count": 2,
@@ -758,7 +758,7 @@ def test_pool_delete_removes_inactive_files_and_preserves_model_source(
         ("custom/prompt.txt", b"prompt"),
     ):
         (grids_dir / relative_path).write_bytes(content)
-    selector = "byok:provider-1:Seedream-5.0-lite"
+    selector = "byok:provider-1:image-model-lite"
     pool = PoolIndex(
         episode=2,
         modes={"2x1": {"total_cells": 2}},
@@ -769,7 +769,7 @@ def test_pool_delete_removes_inactive_files_and_preserves_model_source(
                 beat_nums=[1, 2],
                 grid_path="custom/grid.png",
                 prompt_path="custom/prompt.txt",
-                model="Seedream-5.0-lite",
+                model="image-model-lite",
                 model_selector=selector,
             )
         ],
@@ -785,7 +785,7 @@ def test_pool_delete_removes_inactive_files_and_preserves_model_source(
                 col=0,
                 original_beat=1,
                 type="render",
-                model="Seedream-5.0-lite",
+                model="image-model-lite",
                 model_selector=selector,
             ),
             PoolImage(
@@ -799,7 +799,7 @@ def test_pool_delete_removes_inactive_files_and_preserves_model_source(
                 col=1,
                 original_beat=2,
                 type="render",
-                model="Seedream-5.0-lite",
+                model="image-model-lite",
                 model_selector=selector,
             ),
         ],

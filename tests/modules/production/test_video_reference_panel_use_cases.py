@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from ai_anime.modules.production.application.seedance2_panel import (
-    CropSeedance2AssetCommand,
-    RemoveSeedance2AssetCommand,
-    Seedance2PanelOperationRejected,
-    Seedance2PanelQuery,
-    Seedance2PanelUseCases,
-    TrimSeedance2AudioAssetCommand,
-    UploadSeedance2AssetCommand,
+from ai_anime.modules.production.application.video_reference_panel import (
+    CropVideoReferenceAssetCommand,
+    RemoveVideoReferenceAssetCommand,
+    VideoReferencePanelOperationRejected,
+    VideoReferencePanelQuery,
+    VideoReferencePanelUseCases,
+    TrimVideoReferenceAudioAssetCommand,
+    UploadVideoReferenceAssetCommand,
 )
 
 
@@ -49,9 +49,9 @@ class _Gateway:
 async def test_panel_use_cases_delegate_all_operations() -> None:
     context = object()
     gateway = _Gateway()
-    use_cases = Seedance2PanelUseCases(gateway)
-    query = Seedance2PanelQuery(project="demo", episode_num=1, beat_num=2)
-    upload = UploadSeedance2AssetCommand(
+    use_cases = VideoReferencePanelUseCases(gateway)
+    query = VideoReferencePanelQuery(project="demo", episode_num=1, beat_num=2)
+    upload = UploadVideoReferenceAssetCommand(
         project="demo",
         episode_num=1,
         beat_num=2,
@@ -59,14 +59,14 @@ async def test_panel_use_cases_delegate_all_operations() -> None:
         content=b"image",
         content_type="image/png",
     )
-    remove = RemoveSeedance2AssetCommand(
+    remove = RemoveVideoReferenceAssetCommand(
         project="demo",
         episode_num=1,
         beat_num=2,
         media_kind="images",
-        path="seedance2_uploads/reference.png",
+        path="video_reference_uploads/reference.png",
     )
-    crop = CropSeedance2AssetCommand(
+    crop = CropVideoReferenceAssetCommand(
         project="demo",
         episode_num=1,
         beat_num=2,
@@ -74,7 +74,7 @@ async def test_panel_use_cases_delegate_all_operations() -> None:
         source_path="frames/reference.png",
         crop_data={"x": 1, "y": 2, "width": 3, "height": 4},
     )
-    trim = TrimSeedance2AudioAssetCommand(
+    trim = TrimVideoReferenceAudioAssetCommand(
         project="demo",
         episode_num=1,
         beat_num=2,
@@ -107,7 +107,7 @@ async def test_panel_use_cases_delegate_all_operations() -> None:
     [
         (
             "upload",
-            UploadSeedance2AssetCommand(
+            UploadVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=1,
                 beat_num=2,
@@ -115,22 +115,22 @@ async def test_panel_use_cases_delegate_all_operations() -> None:
                 content=b"",
                 content_type="image/png",
             ),
-            "unsupported or empty Seedance2 reference asset",
+            "unsupported or empty video reference asset",
         ),
         (
             "remove",
-            RemoveSeedance2AssetCommand(
+            RemoveVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=1,
                 beat_num=2,
                 media_kind="images",
                 path="missing.png",
             ),
-            "Seedance2 reference asset was not removed",
+            "video reference asset was not removed",
         ),
         (
             "crop",
-            CropSeedance2AssetCommand(
+            CropVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=1,
                 beat_num=2,
@@ -138,11 +138,11 @@ async def test_panel_use_cases_delegate_all_operations() -> None:
                 source_path="missing.png",
                 crop_data={},
             ),
-            "Seedance2 reference crop failed",
+            "video reference crop failed",
         ),
         (
             "trim_audio",
-            TrimSeedance2AudioAssetCommand(
+            TrimVideoReferenceAudioAssetCommand(
                 project="demo",
                 episode_num=1,
                 beat_num=2,
@@ -151,7 +151,7 @@ async def test_panel_use_cases_delegate_all_operations() -> None:
                 start_seconds=0.0,
                 duration_seconds=4.0,
             ),
-            "Seedance2 audio reference trim failed",
+            "video audio-reference trim failed",
         ),
     ],
 )
@@ -161,9 +161,9 @@ async def test_panel_use_cases_reject_unsuccessful_operations(
     command: object,
     message: str,
 ) -> None:
-    use_cases = Seedance2PanelUseCases(_Gateway(None))
+    use_cases = VideoReferencePanelUseCases(_Gateway(None))
 
-    with pytest.raises(Seedance2PanelOperationRejected) as caught:
+    with pytest.raises(VideoReferencePanelOperationRejected) as caught:
         await getattr(use_cases, operation)(object(), command)
 
     assert str(caught.value) == message

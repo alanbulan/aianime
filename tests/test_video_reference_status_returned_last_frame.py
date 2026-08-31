@@ -14,10 +14,10 @@ def _write_png(path: Path, *, width: int = 512, height: int = 768) -> None:
     path.write_bytes(header + struct.pack(">I", len(ihdr) - 4) + ihdr)
 
 
-def test_seedance2_status_exposes_returned_last_frame_asset(tmp_path):
+def test_video_reference_status_exposes_returned_last_frame_asset(tmp_path):
     from types import SimpleNamespace
 
-    from ai_anime.modules.production.infrastructure.seedance2_panel import (
+    from ai_anime.modules.production.infrastructure.video_reference_panel import (
         _returned_last_frame_status_payload,
     )
 

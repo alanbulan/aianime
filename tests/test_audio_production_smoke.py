@@ -1,4 +1,4 @@
-"""IndexTTS2 and Production Seedance2 smoke tests."""
+"""Speech synthesis and video-reference production smoke tests."""
 
 from __future__ import annotations
 
@@ -23,17 +23,17 @@ def _configured_voice_clone_route():
     configure_model_access(allows_custom_models=False, mode="mixed")
 
 
-def test_indextts2_client_module_loads():
+def test_speech_synthesis_client_module_loads():
     mod = importlib.import_module(
-        "ai_anime.modules.production.infrastructure.media_generation.indextts2"
+        "ai_anime.modules.production.infrastructure.media_generation.speech_synthesis"
     )
-    assert hasattr(mod, "IndexTTS2Client")
+    assert hasattr(mod, "SpeechSynthesisClient")
 
 
 def test_voice_audio_records_module_loads():
-    mod = importlib.import_module("ai_anime.modules.production.infrastructure.seedance2_voice_records")
-    assert hasattr(mod, "classify_seedance2_voice_audio")
-    assert hasattr(mod, "upsert_seedance2_voice_audio_record")
+    mod = importlib.import_module("ai_anime.modules.production.infrastructure.video_voice_records")
+    assert hasattr(mod, "classify_video_voice_audio")
+    assert hasattr(mod, "upsert_video_voice_audio_record")
 
 
 def test_character_voice_storage_module_loads():
@@ -45,7 +45,7 @@ def test_character_voice_storage_module_loads():
 
 
 def test_voice_clone_module_loads_without_oss_client():
-    mod = importlib.import_module("ai_anime.modules.production.infrastructure.seedance2_voice")
+    mod = importlib.import_module("ai_anime.modules.production.infrastructure.video_reference_voice")
     assert hasattr(mod, "build_reference_audio_url")
     assert hasattr(mod, "MAX_REFERENCE_AUDIO_BYTES")
 
@@ -57,33 +57,25 @@ def test_audio_request_usage_module_loads():
     assert mod is not None
 
 
-def test_production_public_exports_seedance2_runtime_contract():
+def test_production_public_exports_video_reference_runtime_contract():
     public = importlib.import_module("ai_anime.modules.production.public")
-    assert "Seedance2I2VMode" in public.__all__
-    assert "prepare_seedance2_generation_inputs" in public.__all__
+    assert "VideoReferenceMode" in public.__all__
+    assert "prepare_video_reference_generation_inputs" in public.__all__
 
 
-def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
-    import ai_anime.modules.production.infrastructure.media_generation.indextts2 as indextts2
+def test_speech_synthesis_client_reports_missing_model_base_url(monkeypatch, tmp_path):
+    import ai_anime.modules.production.infrastructure.media_generation.speech_synthesis as speech_synthesis
 
-    from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
-        IndexTTS2Client,
+    from ai_anime.modules.production.infrastructure.media_generation.speech_synthesis import (
+        SpeechSynthesisClient,
     )
-
-    async def fake_reserve(model, *, source, billable_chars):
-        return "reservation_1"
-
-    async def fake_refund(*args, **kwargs):
-        return None
 
     async def missing_transport(**kwargs):
         _ = kwargs
         raise ValueError("Model Base URL is not configured.")
 
-    monkeypatch.setattr(indextts2, "_reserve_tts_model_call", fake_reserve)
-    monkeypatch.setattr(indextts2, "_refund_tts_model_call", fake_refund)
-    monkeypatch.setattr(indextts2, "write_model_audio_speech", missing_transport)
-    client = IndexTTS2Client()
+    monkeypatch.setattr(speech_synthesis, "write_model_audio_speech", missing_transport)
+    client = SpeechSynthesisClient()
     result = asyncio.run(
         client.generate(
             prompt="hello",
@@ -95,12 +87,12 @@ def test_indextts2_client_reports_missing_model_base_url(monkeypatch, tmp_path):
     assert "Base URL" in (result.error or "")
 
 
-def test_indextts2_client_rejects_empty_prompt(tmp_path):
-    from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
-        IndexTTS2Client,
+def test_speech_synthesis_client_rejects_empty_prompt(tmp_path):
+    from ai_anime.modules.production.infrastructure.media_generation.speech_synthesis import (
+        SpeechSynthesisClient,
     )
 
-    client = IndexTTS2Client()
+    client = SpeechSynthesisClient()
     result = asyncio.run(
         client.generate(
             prompt="",
@@ -113,7 +105,7 @@ def test_indextts2_client_rejects_empty_prompt(tmp_path):
 
 
 def test_build_reference_audio_url_size_guard(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+    from ai_anime.modules.production.infrastructure.video_reference_voice import (
         MAX_REFERENCE_AUDIO_BYTES,
         build_reference_audio_url,
     )
@@ -125,7 +117,7 @@ def test_build_reference_audio_url_size_guard(tmp_path):
 
 
 def test_build_reference_audio_url_returns_data_url(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice import build_reference_audio_url
+    from ai_anime.modules.production.infrastructure.video_reference_voice import build_reference_audio_url
 
     small = tmp_path / "small.mp3"
     small.write_bytes(b"ID3\x03\x00\x00\x00fake-mp3-bytes")

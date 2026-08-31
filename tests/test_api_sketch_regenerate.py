@@ -73,7 +73,7 @@ def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
         json={
             "beat_indices": [3, 1],
             "mode_key": "1x1_2-3_sketch",
-            "image_generation_selection": "newapi_nanobanana2",
+            "image_generation_selection": "image-model-a",
         },
     )
 
@@ -89,7 +89,7 @@ def test_sketch_selected_regen_maps_request_to_application(monkeypatch):
     assert command.episode_num == 2
     assert command.beat_indices == (3, 1)
     assert command.mode_key == "1x1_2-3_sketch"
-    assert command.image_generation_selection == "newapi_nanobanana2"
+    assert command.image_generation_selection == "image-model-a"
 
 
 def test_sketch_selected_regen_preserves_rejection_envelope(monkeypatch):

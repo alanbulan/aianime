@@ -324,12 +324,12 @@ async def test_narrated_scene_analysis_retries_one_valid_empty_response(monkeypa
     monkeypatch.setattr(asset_compiler, "Agent", Agent)
     monkeypatch.setattr(
         asset_compiler,
-        "get_newapi_text_pydantic_model",
+        "get_text_pydantic_model",
         lambda: "text-model",
     )
     monkeypatch.setattr(
         asset_compiler,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         lambda *_args: {},
     )
     logs: list[str] = []

@@ -60,10 +60,28 @@ def test_scene_reference_prompt_keeps_variant_delta_out_of_scene_description():
     assert "地面湿润有积水" not in scene_description
 
 
-def test_scene_image_config_uses_canonical_quality_capability():
-    assert _scene_image_config("lingshan-g2")["quality"] == "medium"
-    assert _scene_image_config("openai/gpt-image-1")["quality"] == "medium"
-    assert "quality" not in _scene_image_config("gemini-2.5-flash-image")
+def test_scene_image_config_uses_catalog_quality_capability():
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_capabilities=[
+            {
+                "modelId": "image-model-with-quality",
+                "extraParameterNames": ["quality"],
+            },
+            {"modelId": "image-model-basic"},
+        ],
+    )
+    try:
+        assert (
+            _scene_image_config("image-model-with-quality")["quality"]
+            == "medium"
+        )
+        assert "quality" not in _scene_image_config("image-model-basic")
+    finally:
+        configure_model_access(allows_custom_models=False, mode="mixed")
 
 
 async def test_scene_reference_does_not_forward_gateway_credentials(monkeypatch, tmp_path):
@@ -73,14 +91,14 @@ async def test_scene_reference_does_not_forward_gateway_credentials(monkeypatch,
 
     captured: dict[str, object] = {}
 
-    async def fake_call_newapi_image_api(**kwargs):
+    async def fake_call_image_generation_api(**kwargs):
         captured.update(kwargs)
         return b"image-bytes", "", ""
 
     monkeypatch.setattr(
         scene_reference_images,
-        "_call_newapi_image_api",
-        fake_call_newapi_image_api,
+        "_call_image_generation_api",
+        fake_call_image_generation_api,
     )
 
     await scene_reference_images.generate_scene_reference_image(

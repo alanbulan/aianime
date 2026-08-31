@@ -74,7 +74,7 @@ def test_add_keeps_media_in_output_and_index_in_state(monkeypatch, tmp_path) -> 
     assert storage.load(context, 1).entry(entry.id) == entry
 
 
-def test_load_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_path) -> None:
+def test_load_ignores_output_sidecar(monkeypatch, tmp_path) -> None:
     _output_root, state_root = _configure_roots(monkeypatch, tmp_path)
     context = _context(tmp_path)
     episode_dir = Path(context.output_dir) / "videos" / "beats" / "ep001"
@@ -103,10 +103,9 @@ def test_load_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_path) -> None:
         / "ep001"
         / "video_pool_index.json"
     )
-    assert pool is not None
-    assert pool.beat_assignments == {"1": "beat_01_20260101_000000"}
-    assert state_path.exists()
-    assert not legacy_path.exists()
+    assert pool is None
+    assert not state_path.exists()
+    assert legacy_path.exists()
 
 
 def test_assign_copies_pool_version_and_updates_assignment(monkeypatch, tmp_path) -> None:

@@ -329,7 +329,7 @@ async def test_audio_routes_preserve_success_contract(
         ),
         user={"username": "viewer"},
     )
-    music = await audio_routes.freezone_audio_eleven_music(
+    music = await audio_routes.freezone_audio_music(
         project="project-1",
         body=FreezoneAudioMusicRequest(
             input="cinematic suspense",
@@ -491,7 +491,7 @@ async def test_audio_routes_preserve_error_contract(
                 user={"username": "viewer"},
             )
         else:
-            await audio_routes.freezone_audio_eleven_music(
+            await audio_routes.freezone_audio_music(
                 project="project-1",
                 body=FreezoneAudioMusicRequest(input="music"),
                 user={"username": "viewer"},
@@ -536,7 +536,7 @@ async def test_audio_routes_preserve_project_task_limits(
                 user={"username": "viewer"},
             )
         else:
-            await audio_routes.freezone_audio_eleven_music(
+            await audio_routes.freezone_audio_music(
                 project="project-1",
                 body=FreezoneAudioMusicRequest(input="music"),
                 user={"username": "viewer"},

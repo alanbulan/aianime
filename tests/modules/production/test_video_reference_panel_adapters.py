@@ -6,16 +6,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from ai_anime.modules.production.application.seedance2_panel import (
-    CropSeedance2AssetCommand,
-    RemoveSeedance2AssetCommand,
-    Seedance2PanelBeatMissing,
-    Seedance2PanelQuery,
-    TrimSeedance2AudioAssetCommand,
-    UploadSeedance2AssetCommand,
+from ai_anime.modules.production.application.video_reference_panel import (
+    CropVideoReferenceAssetCommand,
+    RemoveVideoReferenceAssetCommand,
+    VideoReferencePanelBeatMissing,
+    VideoReferencePanelQuery,
+    TrimVideoReferenceAudioAssetCommand,
+    UploadVideoReferenceAssetCommand,
 )
-from ai_anime.modules.production.infrastructure.seedance2_panel import (
-    LocalSeedance2PanelGateway,
+from ai_anime.modules.production.infrastructure.video_reference_panel import (
+    LocalVideoReferencePanelGateway,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 
@@ -74,20 +74,20 @@ def _context(tmp_path: Path) -> ProjectContext:
 
 
 def _gateway(monkeypatch, store: _Store):
-    from ai_anime.modules.production.infrastructure import seedance2_panel
+    from ai_anime.modules.production.infrastructure import video_reference_panel
 
     async def make_store(_context):
         return store
 
     monkeypatch.setattr(
-        seedance2_panel.project_stores,
+        video_reference_panel.project_stores,
         "make_sqlite_store_for_context",
         make_store,
     )
     episode_source = _EpisodeSource()
     prop_menu_source = _PropMenuSource()
     return (
-        LocalSeedance2PanelGateway(episode_source, prop_menu_source),
+        LocalVideoReferencePanelGateway(episode_source, prop_menu_source),
         episode_source,
         prop_menu_source,
     )
@@ -98,14 +98,14 @@ async def test_status_projects_panel_state_and_closes_store(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    from ai_anime.modules.production.infrastructure import seedance2_panel
+    from ai_anime.modules.production.infrastructure import video_reference_panel
     from ai_anime.shared.utils.path_resolver import PathResolver
 
     context = _context(tmp_path)
     beat = {
         "beat_number": 3,
         "audio_type": "silence",
-        "seedance2_config_json": "{}",
+        "video_config_json": "{}",
     }
     store = _Store([beat, {"beat_number": 4}])
     gateway, _episode_source, _prop_menu_source = _gateway(monkeypatch, store)
@@ -149,14 +149,14 @@ async def test_status_projects_panel_state_and_closes_store(
         return state
 
     monkeypatch.setattr(
-        seedance2_panel.seedance2_panel_service,
-        "build_seedance2_video_panel_state",
+        video_reference_panel.video_reference_panel_service,
+        "build_video_reference_panel_state",
         build_panel_state,
     )
 
     response = await gateway.status(
         context,
-        Seedance2PanelQuery(project="demo", episode_num=2, beat_num=3),
+        VideoReferencePanelQuery(project="demo", episode_num=2, beat_num=3),
     )
 
     data = response["data"]
@@ -232,14 +232,14 @@ async def test_status_distinguishes_invalid_voice_from_missing_asset(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    from ai_anime.modules.production.infrastructure import seedance2_panel
+    from ai_anime.modules.production.infrastructure import video_reference_panel
 
     context = _context(tmp_path)
     beat = {
         "beat_number": 3,
         "audio_type": "dialogue",
         "speaker": "白石夏音_学生时期",
-        "seedance2_config_json": "{}",
+        "video_config_json": "{}",
     }
     store = _Store([beat])
     gateway, _episode_source, _prop_menu_source = _gateway(monkeypatch, store)
@@ -253,7 +253,7 @@ async def test_status_distinguishes_invalid_voice_from_missing_asset(
     )
     voice_path.parent.mkdir(parents=True, exist_ok=True)
     voice_path.write_bytes(b"voice")
-    validation_error = "参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。"
+    validation_error = "参考声线只有 1.04 秒，当前视频工作流要求至少 1.8 秒。"
     voice_asset = SimpleNamespace(
         key="voice:白石夏音_学生时期",
         label="白石夏音 · 学生时期声线",
@@ -262,7 +262,7 @@ async def test_status_distinguishes_invalid_voice_from_missing_asset(
         exists=True,
         required=True,
         reference_label="未发送",
-        note="Seedance2 对白参考声线",
+        note="视频对白参考声线",
         validation_error=validation_error,
         fallback_text="",
         identity_id="",
@@ -282,12 +282,12 @@ async def test_status_distinguishes_invalid_voice_from_missing_asset(
         current_prompt_inputs_hash="same",
     )
     monkeypatch.setattr(
-        seedance2_panel.seedance2_panel_service,
-        "build_seedance2_video_panel_state",
+        video_reference_panel.video_reference_panel_service,
+        "build_video_reference_panel_state",
         lambda **_kwargs: state,
     )
     monkeypatch.setattr(
-        seedance2_panel,
+        video_reference_panel,
         "dialogue_voice_reference_rows",
         lambda *_args, **_kwargs: [
             SimpleNamespace(
@@ -300,7 +300,7 @@ async def test_status_distinguishes_invalid_voice_from_missing_asset(
 
     response = await gateway.status(
         context,
-        Seedance2PanelQuery(project="demo", episode_num=2, beat_num=3),
+        VideoReferencePanelQuery(project="demo", episode_num=2, beat_num=3),
     )
 
     data = response["data"]
@@ -336,10 +336,10 @@ def test_voice_status_reports_invalid_narration_reference(
     asset_key: str,
     asset_label: str,
 ) -> None:
-    from ai_anime.modules.production.infrastructure import seedance2_panel
+    from ai_anime.modules.production.infrastructure import video_reference_panel
 
     monkeypatch.setattr(
-        seedance2_panel,
+        video_reference_panel,
         "resolve_narrator_reference_status",
         lambda **_kwargs: SimpleNamespace(
             active_reference_path=tmp_path / "voice.mp3",
@@ -347,9 +347,9 @@ def test_voice_status_reports_invalid_narration_reference(
             error="",
         ),
     )
-    validation_error = "参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。"
+    validation_error = "参考声线只有 1.04 秒，当前视频工作流要求至少 1.8 秒。"
 
-    result = seedance2_panel._voice_status_payload(
+    result = video_reference_panel._voice_status_payload(
         beat={"audio_type": "narration"},
         characters=[],
         username="alice",
@@ -379,10 +379,10 @@ async def test_missing_beat_closes_store(monkeypatch, tmp_path: Path) -> None:
     store = _Store([{"beat_number": 1}])
     gateway, episode_source, prop_menu_source = _gateway(monkeypatch, store)
 
-    with pytest.raises(Seedance2PanelBeatMissing, match="Beat 9 not found"):
+    with pytest.raises(VideoReferencePanelBeatMissing, match="Beat 9 not found"):
         await gateway.status(
             _context(tmp_path),
-            Seedance2PanelQuery(project="demo", episode_num=2, beat_num=9),
+            VideoReferencePanelQuery(project="demo", episode_num=2, beat_num=9),
         )
 
     assert store.close_calls == 1
@@ -395,8 +395,8 @@ async def test_missing_beat_closes_store(monkeypatch, tmp_path: Path) -> None:
     [
         (
             "upload",
-            "save_seedance2_uploaded_asset",
-            UploadSeedance2AssetCommand(
+            "save_video_reference_uploaded_asset",
+            UploadVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=2,
                 beat_num=3,
@@ -412,23 +412,23 @@ async def test_missing_beat_closes_store(monkeypatch, tmp_path: Path) -> None:
         ),
         (
             "remove",
-            "remove_seedance2_uploaded_asset",
-            RemoveSeedance2AssetCommand(
+            "remove_video_reference_uploaded_asset",
+            RemoveVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=2,
                 beat_num=3,
                 media_kind="images",
-                path="seedance2_uploads/reference.png",
+                path="video_reference_uploads/reference.png",
             ),
             {
                 "media_kind": "images",
-                "path": "seedance2_uploads/reference.png",
+                "path": "video_reference_uploads/reference.png",
             },
         ),
         (
             "crop",
-            "crop_seedance2_asset_to_reference",
-            CropSeedance2AssetCommand(
+            "crop_video_reference_asset",
+            CropVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=2,
                 beat_num=3,
@@ -444,8 +444,8 @@ async def test_missing_beat_closes_store(monkeypatch, tmp_path: Path) -> None:
         ),
         (
             "trim_audio",
-            "trim_seedance2_audio_to_reference",
-            TrimSeedance2AudioAssetCommand(
+            "trim_video_reference_audio",
+            TrimVideoReferenceAudioAssetCommand(
                 project="demo",
                 episode_num=2,
                 beat_num=3,
@@ -472,9 +472,9 @@ async def test_asset_operations_preserve_arguments_and_return_status(
     command: object,
     expected_fields: dict,
 ) -> None:
-    from ai_anime.modules.production.infrastructure import seedance2_panel
+    from ai_anime.modules.production.infrastructure import video_reference_panel
 
-    beat = {"beat_number": 3, "seedance2_config_json": "{}"}
+    beat = {"beat_number": 3, "video_config_json": "{}"}
     store = _Store([beat, {"beat_number": 4}])
     gateway, episode_source, prop_menu_source = _gateway(monkeypatch, store)
     context = _context(tmp_path)
@@ -483,12 +483,12 @@ async def test_asset_operations_preserve_arguments_and_return_status(
 
     async def operation(**kwargs):
         calls.append(kwargs)
-        if service_method == "remove_seedance2_uploaded_asset":
+        if service_method == "remove_video_reference_uploaded_asset":
             return True
         return Path(context.output_dir) / "result"
 
     monkeypatch.setattr(
-        seedance2_panel.seedance2_panel_service,
+        video_reference_panel.video_reference_panel_service,
         service_method,
         operation,
     )
@@ -505,7 +505,7 @@ async def test_asset_operations_preserve_arguments_and_return_status(
         "beat": beat,
         **expected_fields,
     }
-    if service_method != "remove_seedance2_uploaded_asset":
+    if service_method != "remove_video_reference_uploaded_asset":
         expected["project_dir"] = Path(context.output_dir)
     assert calls == [expected]
     assert result == status_response
@@ -521,7 +521,7 @@ async def test_operation_exception_still_closes_store(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    from ai_anime.modules.production.infrastructure import seedance2_panel
+    from ai_anime.modules.production.infrastructure import video_reference_panel
 
     store = _Store([{"beat_number": 3}])
     gateway, _episode_source, _prop_menu_source = _gateway(monkeypatch, store)
@@ -530,15 +530,15 @@ async def test_operation_exception_still_closes_store(
         raise RuntimeError("operation failed")
 
     monkeypatch.setattr(
-        seedance2_panel.seedance2_panel_service,
-        "save_seedance2_uploaded_asset",
+        video_reference_panel.video_reference_panel_service,
+        "save_video_reference_uploaded_asset",
         fail,
     )
 
     with pytest.raises(RuntimeError, match="operation failed"):
         await gateway.upload(
             _context(tmp_path),
-            UploadSeedance2AssetCommand(
+            UploadVideoReferenceAssetCommand(
                 project="demo",
                 episode_num=2,
                 beat_num=3,

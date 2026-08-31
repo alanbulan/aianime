@@ -1,30 +1,22 @@
 import pytest
 
-from ai_anime.modules.production.domain.video_model import video_output_size
-
-from ai_anime.modules.production.public import (
-    grok_video_ratio,
-    grok_video_resolution,
-    happyhorse_ratio,
-    happyhorse_resolution,
-    is_grok_video_model,
-    is_happyhorse_model,
-    is_seedance2_model,
+from ai_anime.modules.production.domain.video_model import (
     normalize_video_generation_duration,
+    normalize_video_ratio,
+    uses_advanced_reference_video_workflow,
+    uses_reference_video_workflow,
+    validate_video_resolution_duration,
     video_api_resolution,
+    video_output_size,
     video_resolution,
 )
 
 
-def test_video_model_families_accept_bare_skus_only() -> None:
-    assert is_seedance2_model("seedance-2.0-fast") is True
-    assert is_seedance2_model("video-seeddance-4wlmqpxwma4r65j3") is True
-    assert is_seedance2_model("newapi_seedance-2.0-fast") is False
-    assert is_seedance2_model("seedance-1.5-pro") is False
-    assert is_happyhorse_model("happyhorse-1.0") is True
-    assert is_happyhorse_model("huimengi_happyhorse-1.0") is False
-    assert is_grok_video_model("grok-video-channel") is True
-    assert is_grok_video_model("newapi_grok-video-channel") is False
+def test_video_workflows_are_declared_by_capability() -> None:
+    assert uses_advanced_reference_video_workflow("advanced-reference") is True
+    assert uses_advanced_reference_video_workflow("standard") is False
+    assert uses_reference_video_workflow("reference") is True
+    assert uses_reference_video_workflow("advanced-reference") is False
 
 
 def test_video_duration_respects_audio_config_and_model_bounds() -> None:
@@ -39,47 +31,39 @@ def test_video_resolution_respects_each_model_capability() -> None:
     assert video_api_resolution("1280x1920") == "1080p"
     assert video_api_resolution("1366x768") == "768p"
     assert video_api_resolution("854x1280") == "720p"
-    assert video_resolution("seedance-2.0", "1080p") == "1080p"
     assert video_resolution(
-        "catalog-route",
+        "video-model-a",
         "1080p",
         ("480p", "720p", "1080p"),
     ) == "1080p"
-    assert video_resolution("catalog-route", "512p", ("512p", "768p")) == "512p"
+    assert video_resolution("video-model-a", "512p", ("512p", "768p")) == "512p"
     with pytest.raises(ValueError, match="不支持分辨率 1080p"):
-        video_resolution("seedance-2.0-fast", "1080p")
+        video_resolution("video-model-a", "1080p", ("480p", "720p"))
     with pytest.raises(ValueError, match="不支持分辨率 480p"):
-        video_resolution("seedance-2.0-value", "480p")
+        video_resolution("video-model-b", "480p", ("720p", "1080p"))
     assert video_output_size("2:3", "1080p") == "1280x1920"
     assert video_output_size("16:9", "768p") == "1366x768"
     assert video_output_size("2:3", "720p") == "854x1280"
     assert video_output_size("16:9", "1344x768") == "1344x768"
     assert video_output_size("16:9", "512p") == "910x512"
     assert video_resolution(
-        "MINIMAX_H3",
+        "video-model-c",
         "768x1344",
         (),
         ("1344x768", "768x1344", "1024x1024"),
     ) == "768x1344"
     with pytest.raises(ValueError, match="不支持分辨率 1280x720"):
         video_resolution(
-            "MINIMAX_H3",
+            "video-model-c",
             "1280x720",
             (),
             ("1344x768", "768x1344", "1024x1024"),
         )
 
 
-def test_happyhorse_and_grok_request_values_use_supported_fallbacks() -> None:
-    assert happyhorse_resolution("720x1280") == "768p"
-    assert happyhorse_resolution("768p") == "768p"
-    assert happyhorse_resolution(None) == "768p"
-    assert happyhorse_resolution("1080p", 6) == "1080p"
-    with pytest.raises(ValueError, match="1080p 仅支持 6 秒"):
-        happyhorse_resolution("1080p", 10)
-    assert happyhorse_ratio("3:4") == "3:4"
-    assert happyhorse_ratio("2:3") == "16:9"
-    assert grok_video_resolution("480p") == "480p"
-    assert grok_video_resolution("1080p") == "720p"
-    assert grok_video_ratio("2:3") == "2:3"
-    assert grok_video_ratio("4:3") == "16:9"
+def test_video_ratio_and_duration_limits_use_declared_capabilities() -> None:
+    assert normalize_video_ratio("3:4", ("16:9", "3:4")) == "3:4"
+    assert normalize_video_ratio("2:3", ("16:9", "3:4")) == "16:9"
+    validate_video_resolution_duration("1080p", 6, (("1080p", 6),))
+    with pytest.raises(ValueError, match="最多支持 6 秒"):
+        validate_video_resolution_duration("1080p", 10, (("1080p", 6),))

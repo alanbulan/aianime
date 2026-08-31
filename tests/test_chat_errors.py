@@ -1,9 +1,6 @@
 from ai_anime.api.routes.ai_assistant.errors import chat_exception_event
 from ai_anime.modules.ai_assistant.public import ChatScope
-from ai_anime.modules.model_usage.public import (
-    BillingRuleNotConfiguredError,
-    InsufficientCreditsError,
-)
+from ai_anime.modules.model_usage.public import ModelQuotaExceededError
 
 
 def test_chat_exception_event_maps_busy_turn():
@@ -27,35 +24,12 @@ def test_chat_exception_event_maps_busy_turn():
     }
 
 
-def test_chat_exception_event_maps_nested_billing_rule_error():
+def test_chat_exception_event_maps_nested_model_quota_error():
     error = RuntimeError("provider failed")
-    error.__cause__ = BillingRuleNotConfiguredError(kind="chat", key="assistant")
-
-    result = chat_exception_event(
-        error,
-        turn_id="turn-1",
-        scope=ChatScope(kind="home"),
-    )
-
-    assert result == {
-        "type": "error",
-        "turn_id": "turn-1",
-        "message": "计费规则未配置，请联系管理员设置积分规则",
-        "data": {
-            "error_code": "BILLING_RULE_NOT_CONFIGURED",
-            "message": "计费规则未配置，请联系管理员设置积分规则",
-            "billing_kind": "chat",
-            "billing_key": "assistant",
-        },
-    }
-
-
-def test_chat_exception_event_maps_nested_insufficient_credits_error():
-    error = RuntimeError("provider failed")
-    error.__cause__ = InsufficientCreditsError(
+    error.__cause__ = ModelQuotaExceededError(
         user_id="user-1",
-        cost=12,
-        balance=3,
+        required_units=12,
+        available_units=3,
     )
 
     result = chat_exception_event(
@@ -67,10 +41,10 @@ def test_chat_exception_event_maps_nested_insufficient_credits_error():
     assert result == {
         "type": "error",
         "turn_id": "turn-1",
-        "message": "积分不足，请联系管理员充值",
+        "message": "云端模型配额不足，请联系管理员",
         "data": {
             "error_code": "INSUFFICIENT_CREDITS",
-            "message": "积分不足，请联系管理员充值",
+            "message": "云端模型配额不足，请联系管理员",
             "user_id": "user-1",
             "required": 12,
             "balance": 3,

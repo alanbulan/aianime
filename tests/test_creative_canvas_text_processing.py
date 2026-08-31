@@ -131,7 +131,7 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             source_text="  沈昭昭在深夜办公室醒来。  ",
             source_url="must-not-be-read.txt",
             prompt="节奏要快",
-            model="newapi_gemini_flash",
+            model="text-model-a",
             model_selector=None,
             video_url=None,
             duration_sec=None,
@@ -170,7 +170,7 @@ async def test_text_processing_enqueues_exact_payloads_and_prefers_source_text(
             payload={
                 "source_text": "沈昭昭在深夜办公室醒来。",
                 "prompt": "节奏要快",
-                "model": "newapi_gemini_flash",
+                "model": "text-model-a",
                 "model_id": "",
                 "video_path": "",
                 "duration_sec": None,

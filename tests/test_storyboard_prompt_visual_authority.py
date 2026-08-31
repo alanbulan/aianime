@@ -627,8 +627,8 @@ def test_batch_scene_refs_are_deduped_across_panels():
 async def test_prepare_concurrent_request_sketch_attaches_scene_refs(tmp_path):
     from PIL import Image
 
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
-        NanoBananaGridGenerator,
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+        ImageGridGenerator,
     )
 
     project_dir = tmp_path / "output" / "admin" / "demo"
@@ -637,7 +637,7 @@ async def test_prepare_concurrent_request_sketch_attaches_scene_refs(tmp_path):
     for name, color in {"master.png": "white", "reverse_master.png": "gray"}.items():
         Image.new("RGB", (16, 16), color=color).save(scene_dir / name)
 
-    generator = NanoBananaGridGenerator(
+    generator = ImageGridGenerator(
         config={
             "access_mode": "cloud",
             "api_key": "test",

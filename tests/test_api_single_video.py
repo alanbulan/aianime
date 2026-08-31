@@ -48,8 +48,8 @@ async def test_single_video_route_maps_request_to_application(
     monkeypatch.setattr(production_video, "resolve_project_scope", resolve)
     monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
     request = SingleVideoRequest(
-        model="seedance-2.0-fast",
-        model_selector="cloud:seedance-2.0-fast",
+        model="video-model-reference",
+        model_selector="cloud:video-model-reference",
         resolution="1080p",
         duration=9,
         ratio="16:9",
@@ -79,8 +79,8 @@ async def test_single_video_route_maps_request_to_application(
     assert target_context is context
     assert command.episode_num == 3
     assert command.beat_num == 2
-    assert command.video_model == "seedance-2.0-fast"
-    assert command.model_selector == "cloud:seedance-2.0-fast"
+    assert command.video_model == "video-model-reference"
+    assert command.model_selector == "cloud:video-model-reference"
     assert command.resolution == "1080p"
     assert command.duration == 9
     assert command.ratio == "16:9"

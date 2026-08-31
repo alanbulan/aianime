@@ -9,7 +9,6 @@ from ai_anime.modules.asset_world.application.dto import (
     AnalyzeStyleCommand,
     AssetTaskQueueReceipt,
     CreateCustomStyleCommand,
-    StyleAnalysisBilling,
     StyleScope,
     UpdateCustomStyleCommand,
 )
@@ -106,18 +105,6 @@ class _Catalog:
         assert self.root is not None
         candidate = self.root / username / "_account" / preview_path
         return candidate if candidate.exists() else None
-
-
-class _UsageMeter:
-    def __init__(self) -> None:
-        self.contexts: list[tuple[str, dict]] = []
-        self.clear_count = 0
-
-    def set_llm_usage_context(self, user_id, **kwargs):
-        self.contexts.append((user_id, kwargs))
-
-    def clear_llm_usage_context(self):
-        self.clear_count += 1
 
 
 def test_style_config_preserves_legacy_runtime_shape() -> None:
@@ -335,9 +322,8 @@ def test_upload_style_preview_validates_media_before_persisting(tmp_path) -> Non
 
 
 @pytest.mark.asyncio
-async def test_style_analysis_stages_preview_and_scopes_usage(tmp_path) -> None:
+async def test_style_analysis_stages_preview(tmp_path) -> None:
     catalog = _Catalog(tmp_path)
-    usage = _UsageMeter()
 
     class Analyzer:
         async def analyze(self, content, *, mime_type):
@@ -348,23 +334,14 @@ async def test_style_analysis_stages_preview_and_scopes_usage(tmp_path) -> None:
         mime_type="image/png",
         filename="reference.png",
         style_id="custom_style",
-        billing=StyleAnalysisBilling(
-            billing_user_id="user-1",
-            project_id="project-1",
-            requester_user_id="user-1",
-            project_owner_id="owner-1",
-        ),
     )
 
-    data = await AnalyzeStyle(catalog, Analyzer(), usage).execute(
+    data = await AnalyzeStyle(catalog, Analyzer()).execute(
         command,
         StyleScope(username="alice", project_dir=tmp_path),
     )
 
     assert data["preview_token"].endswith("upload.png")
-    assert usage.contexts[0][0] == "user-1"
-    assert usage.contexts[0][1]["billing_metadata"]["source"] == "style_analyzer"
-    assert usage.clear_count == 1
 
 
 @pytest.mark.asyncio

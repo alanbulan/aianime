@@ -279,7 +279,7 @@ async def test_image_upscale_enqueues_exact_freezone_edit_payload(tmp_path: Path
             operation="upscale",
             source_url=source_url,
             image_size="2K",
-            model="newapi_gpt_image2",
+            model="image-model-b",
             quality="low",
             camera=camera,
             style=style,
@@ -288,7 +288,7 @@ async def test_image_upscale_enqueues_exact_freezone_edit_payload(tmp_path: Path
 
     assert result == _receipt()
     assert prompts.calls == [(build_image_upscale_prompt(), style, camera)]
-    assert models.received == ["newapi_gpt_image2"]
+    assert models.received == ["image-model-b"]
     assert scheduler.task == CreativeCanvasTaskSubmission(
         task_type=CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE,
         queue_kind="default",
@@ -461,7 +461,7 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
             image_size="4K",
             camera=camera,
             style=style,
-            model="newapi_gpt_image2",
+            model="image-model-b",
             quality="high",
             canvas_id="canvas-a",
             node_id="node-a",
@@ -472,7 +472,7 @@ async def test_reference_image_editing_enqueues_exact_payload(tmp_path: Path) ->
 
     assert result == _receipt()
     assert prompts.calls == [("edit prompt", style, camera)]
-    assert models.received == ["newapi_gpt_image2"]
+    assert models.received == ["image-model-b"]
     assert scheduler.task == CreativeCanvasTaskSubmission(
         task_type=CREATIVE_CANVAS_IMAGE_EDIT_TASK_TYPE,
         queue_kind="default",

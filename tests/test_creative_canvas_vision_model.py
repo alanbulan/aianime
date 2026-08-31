@@ -37,7 +37,7 @@ async def test_vision_model_uses_cloud_catalog_assignment(
         captured.update(kwargs)
         return TestModel(custom_output_text="视觉解析结果")
 
-    monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_get_model)
+    monkeypatch.setattr(config, "get_text_pydantic_model", fake_get_model)
     monkeypatch.setenv("FREEZONE_VISION_MODEL", "legacy-vision-model")
     configure_model_access(
         allows_custom_models=False,
@@ -67,7 +67,7 @@ async def test_vision_model_ignores_task_environment_and_uses_router_assignment(
         captured.update(kwargs)
         return TestModel(custom_output_text="视觉解析结果")
 
-    monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_get_model)
+    monkeypatch.setattr(config, "get_text_pydantic_model", fake_get_model)
     configure_model_access(
         allows_custom_models=True,
         mode="mixed",

@@ -92,7 +92,7 @@ def test_storyboard_manual_sketch_beats_exclude_manual_space_maps():
 
 
 def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
         sketch_scene_grid_split as sketch_location_grid_split,
     )
     from ai_anime.modules.narrative_planning.public import choose_manual_sketch_mode_key
@@ -109,7 +109,7 @@ def test_manual_sketch_mode_reuses_normal_sketch_grid_split():
 
 
 def test_single_sketch_plan_preserves_storyboard_order_across_repeated_scenes():
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
         sketch_scene_grid_split,
     )
 

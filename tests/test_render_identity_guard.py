@@ -1,7 +1,7 @@
 import pytest
 
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
-    NanoBananaGridGenerator,
+from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+    ImageGridGenerator,
     filter_character_map_by_precomputed,
 )
 from ai_anime.modules.production.infrastructure.media_generation.render_identity_guard import (
@@ -58,8 +58,8 @@ def test_render_guard_blocks_partial_unmarked_empty_beats():
     assert "#3" in (render_ai_detection_error(beats) or "")
 
 
-def _test_grid_generator() -> NanoBananaGridGenerator:
-    return NanoBananaGridGenerator(
+def _test_grid_generator() -> ImageGridGenerator:
+    return ImageGridGenerator(
         config={
             "access_mode": "cloud",
             "api_key": "test-key",

@@ -17,9 +17,9 @@ from ai_anime.modules.production.infrastructure.single_video import (
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import ProjectTaskSubmissionUseCases
-from ai_anime.modules.production.application.seedance2_config import (
-    Seedance2I2VMode,
-    parse_seedance2_config,
+from ai_anime.modules.production.application.video_config import (
+    VideoReferenceMode,
+    parse_video_config,
 )
 
 
@@ -89,7 +89,7 @@ def _command(**overrides) -> GenerateSingleVideoCommand:
     values = {
         "episode_num": 3,
         "beat_num": 2,
-        "video_model": "seedance-1.0-pro-fast",
+        "video_model": "video-model-standard",
         "resolution": "720x1280",
     }
     values.update(overrides)
@@ -205,7 +205,7 @@ async def test_standard_catalog_video_preserves_declared_size_and_ratio(
         single_video,
         "runtime_model_capability",
         lambda _model: SimpleNamespace(
-            video_profile=None,
+            video_workflow="standard",
             video_resolution_options=(),
             video_size_options=("1344x768", "768x1344", "1024x1024"),
             video_generation_min_seconds=1,
@@ -216,7 +216,7 @@ async def test_standard_catalog_video_preserves_declared_size_and_ratio(
     task = await preparer.prepare(
         _context(tmp_path),
         _command(
-            video_model="MINIMAX_H3",
+            video_model="video-model-basic",
             duration=4,
             resolution="768x1344",
             ratio="9:16",
@@ -313,7 +313,7 @@ async def test_standard_video_rejects_missing_mode_prompt(
 
 
 @pytest.mark.asyncio
-async def test_seedance2_uses_prepared_config_and_audio_duration(
+async def test_advanced_reference_workflow_uses_prepared_config_and_audio_duration(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -324,7 +324,7 @@ async def test_seedance2_uses_prepared_config_and_audio_duration(
         "beat_number": 2,
         "video_mode": "first_frame",
         "video_prompt": "old prompt",
-        "seedance2_config_json": (
+        "video_config_json": (
             '{"duration": 11, "final_prompt": "configured prompt"}'
         ),
     }
@@ -336,9 +336,9 @@ async def test_seedance2_uses_prepared_config_and_audio_duration(
         calls.append(kwargs)
         return SimpleNamespace(
             prompt="configured prompt",
-            seedance2_config_json=beat["seedance2_config_json"],
+            video_config_json=beat["video_config_json"],
             duration=11,
-            mode=Seedance2I2VMode.FIRST_FRAME,
+            mode=VideoReferenceMode.FIRST_FRAME,
             image_path=str(frame),
             last_frame_path=None,
             references=[],
@@ -346,24 +346,29 @@ async def test_seedance2_uses_prepared_config_and_audio_duration(
 
     monkeypatch.setattr(
         single_video,
-        "prepare_seedance2_generation_inputs",
+        "prepare_video_reference_generation_inputs",
         prepare_inputs,
+    )
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(video_workflow="advanced-reference"),
     )
 
     task = await preparer.prepare(
         _context(tmp_path),
-        _command(video_model="seedance-2.0-fast"),
+        _command(video_model="video-model-reference"),
     )
 
     assert calls[0]["duration"] == 6.4
     assert task.config["prompt"] == "configured prompt"
     assert task.config["video_duration"] == 11
-    assert task.config["seedance2_config"] == beat["seedance2_config_json"]
+    assert task.config["video_config"] == beat["video_config_json"]
     assert store.close_calls == 1
 
 
 @pytest.mark.asyncio
-async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
+async def test_advanced_reference_capability_clamps_to_model_minimum(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -375,7 +380,7 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
         "audio_type": "dialogue",
         "video_mode": "first_frame",
         "video_prompt": "old prompt",
-        "seedance2_config_json": (
+        "video_config_json": (
             '{"duration": 1, "final_prompt": "configured prompt"}'
         ),
     }
@@ -386,7 +391,7 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
         single_video,
         "runtime_model_capability",
         lambda _model: SimpleNamespace(
-            video_profile="seedance2",
+            video_workflow="advanced-reference",
             video_resolution_options=("480p", "720p", "1080p"),
             video_generation_min_seconds=4,
             video_generation_max_seconds=15,
@@ -397,9 +402,9 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
         calls.append(kwargs)
         return SimpleNamespace(
             prompt="configured prompt",
-            seedance2_config_json=beat["seedance2_config_json"],
+            video_config_json=beat["video_config_json"],
             duration=1,
-            mode=Seedance2I2VMode.FIRST_FRAME,
+            mode=VideoReferenceMode.FIRST_FRAME,
             image_path=str(frame),
             last_frame_path=None,
             references=[],
@@ -407,7 +412,7 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
 
     monkeypatch.setattr(
         single_video,
-        "prepare_seedance2_generation_inputs",
+        "prepare_video_reference_generation_inputs",
         prepare_inputs,
     )
 
@@ -424,12 +429,12 @@ async def test_cloud_seedance_profile_clamps_short_dialogue_to_model_minimum(
     assert calls[0]["resolution"] == "1080p"
     assert task.config["video_duration"] == 4.0
     assert task.config["model_role"] == "VIDEO_IMAGE_TO_VIDEO"
-    assert task.config["seedance2_config"] == beat["seedance2_config_json"]
+    assert task.config["video_config"] == beat["video_config_json"]
     assert store.close_calls == 1
 
 
 @pytest.mark.asyncio
-async def test_seedance2_merges_inline_controls_before_preparation(
+async def test_advanced_reference_workflow_merges_inline_controls_before_preparation(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -440,7 +445,7 @@ async def test_seedance2_merges_inline_controls_before_preparation(
         "beat_number": 2,
         "video_mode": "first_frame",
         "video_prompt": "old prompt",
-        "seedance2_config_json": (
+        "video_config_json": (
             '{"duration": 4, "final_prompt": "old prompt", '
             '"return_last_frame": false, "generate_audio": true, '
             '"human_review": true}'
@@ -454,9 +459,9 @@ async def test_seedance2_merges_inline_controls_before_preparation(
         calls.append(kwargs)
         return SimpleNamespace(
             prompt="fresh prompt",
-            seedance2_config_json=kwargs["beat"]["seedance2_config_json"],
+            video_config_json=kwargs["beat"]["video_config_json"],
             duration=9,
-            mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+            mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
             image_path=str(frame),
             last_frame_path=None,
             references=[],
@@ -464,11 +469,16 @@ async def test_seedance2_merges_inline_controls_before_preparation(
 
     monkeypatch.setattr(
         single_video,
-        "prepare_seedance2_generation_inputs",
+        "prepare_video_reference_generation_inputs",
         prepare_inputs,
     )
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(video_workflow="advanced-reference"),
+    )
     command = _command(
-        video_model="seedance-2.0-fast",
+        video_model="video-model-reference",
         mode="multimodal_reference",
         duration=9,
         ratio="16:9",
@@ -493,26 +503,24 @@ async def test_seedance2_merges_inline_controls_before_preparation(
 
     task = await preparer.prepare(_context(tmp_path), command)
 
-    merged = parse_seedance2_config(calls[0]["beat"]["seedance2_config_json"])
-    assert merged.mode == Seedance2I2VMode.MULTIMODAL_REFERENCE
+    merged = parse_video_config(calls[0]["beat"]["video_config_json"])
+    assert merged.mode == VideoReferenceMode.MULTIMODAL_REFERENCE
     assert merged.duration == 9
     assert merged.ratio == "16:9"
     assert merged.generate_audio is False
-    assert merged.generate_audio_user_set is True
     assert merged.return_last_frame is True
     assert merged.human_review is False
-    assert merged.human_review_user_set is True
     assert merged.final_prompt == "fresh prompt"
     assert merged.prompt_guidance == "keep motion minimal"
-    assert task.config["seedance2_config"] == beat["seedance2_config_json"]
-    assert store.updated[-1]["seedance2_config_json"] == (
-        beat["seedance2_config_json"]
+    assert task.config["video_config"] == beat["video_config_json"]
+    assert store.updated[-1]["video_config_json"] == (
+        beat["video_config_json"]
     )
     assert store.close_calls == 1
 
 
 @pytest.mark.asyncio
-async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
+async def test_advanced_reference_workflow_rejects_empty_prepared_prompt_and_closes_store(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -525,7 +533,7 @@ async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
                 "beat_number": 2,
                 "video_mode": "first_frame",
                 "video_prompt": "",
-                "seedance2_config_json": "{}",
+                "video_config_json": "{}",
             }
         ]
     )
@@ -534,9 +542,9 @@ async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
     async def prepare_inputs(**_kwargs):
         return SimpleNamespace(
             prompt="",
-            seedance2_config_json="{}",
+            video_config_json="{}",
             duration=5,
-            mode=Seedance2I2VMode.FIRST_FRAME,
+            mode=VideoReferenceMode.FIRST_FRAME,
             image_path=None,
             last_frame_path=None,
             references=[],
@@ -544,14 +552,19 @@ async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
 
     monkeypatch.setattr(
         single_video,
-        "prepare_seedance2_generation_inputs",
+        "prepare_video_reference_generation_inputs",
         prepare_inputs,
     )
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(video_workflow="advanced-reference"),
+    )
 
-    with pytest.raises(SingleVideoRejected, match="Seedance 2.0 最终提示词为空"):
+    with pytest.raises(SingleVideoRejected, match="最终视频提示词为空"):
         await preparer.prepare(
             _context(tmp_path),
-            _command(video_model="seedance-2.0-fast"),
+            _command(video_model="video-model-reference"),
         )
 
     assert store.close_calls == 1
@@ -564,12 +577,11 @@ async def test_seedance2_rejects_empty_prepared_prompt_and_closes_store(
         "expected_resolution",
         "audio_setting",
         "duration",
-        "catalog_limit",
     ),
     [
-        ("happyhorse-1.0", 9, "1080p", "origin", 6, None),
-        ("grok-video-channel", 7, "720p", None, 7, None),
-        ("happyhorse-1.0", 2, "1080p", "origin", 6, 2),
+        ("video-model-a", 9, "1080p", "origin", 6),
+        ("video-model-b", 7, "720p", None, 7),
+        ("video-model-a", 2, "1080p", "origin", 6),
     ],
 )
 @pytest.mark.asyncio
@@ -581,7 +593,6 @@ async def test_reference_video_models_prepare_bounded_references(
     expected_resolution: str,
     audio_setting: str | None,
     duration: int,
-    catalog_limit: int | None,
 ) -> None:
     from ai_anime.modules.production.infrastructure import single_video
 
@@ -590,25 +601,32 @@ async def test_reference_video_models_prepare_bounded_references(
         "beat_number": 2,
         "video_mode": "first_frame",
         "video_prompt": "old prompt",
-        "seedance2_config_json": "{}",
+        "video_config_json": "{}",
     }
     store = _Store([beat])
     preparer, props, _durations = _preparer(monkeypatch, store)
-    if catalog_limit is not None:
-        monkeypatch.setattr(
-            single_video,
-            "runtime_model_capability",
-            lambda _model: SimpleNamespace(max_reference_images=catalog_limit),
-        )
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_workflow="reference",
+            video_resolution_options=(expected_resolution,),
+            video_ratio_options=("1:1",),
+            video_extra_parameter_names=(
+                ("audio_setting",) if audio_setting is not None else ()
+            ),
+            max_reference_images=reference_limit,
+        ),
+    )
     image_paths = [f"reference-{index}.png" for index in range(1, 11)]
     monkeypatch.setattr(
         single_video,
-        "build_seedance2_project_assets",
+        "build_video_reference_assets",
         lambda **_kwargs: [],
     )
     monkeypatch.setattr(
         single_video,
-        "append_seedance2_user_reference_assets",
+        "append_user_video_reference_assets",
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(
@@ -630,7 +648,7 @@ async def test_reference_video_models_prepare_bounded_references(
             video_model=model,
             mode="multimodal_reference",
             duration=duration,
-            resolution="1080p",
+            resolution=expected_resolution,
             ratio="1:1",
             final_prompt="reference prompt",
             audio_setting=audio_setting,

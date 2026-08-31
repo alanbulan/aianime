@@ -1,6 +1,6 @@
 import pytest
 
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
     build_regen_plan,
 )
 

@@ -1,29 +1,29 @@
 from ai_anime.modules.production.domain.single_video import (
     dialogue_only_video_model_error,
     missing_video_prompt_error,
-    seedance2_initial_prompt,
+    advanced_video_initial_prompt,
     standard_video_prompt,
 )
 
 
-def test_seedance_pro_accepts_only_dialogue_beats() -> None:
+def test_dialogue_only_capability_rejects_non_dialogue_beats() -> None:
     beats = [
         {"beat_number": number, "audio_type": "narration"}
         for number in range(1, 10)
     ]
 
-    assert dialogue_only_video_model_error(beats, "seedance-1.5-pro") == (
-        "Seedance 1.5 有声只允许用于 dialogue beat；当前包含非 dialogue Beat: "
+    assert dialogue_only_video_model_error(beats, True) == (
+        "当前视频模型只允许用于 dialogue beat；当前包含非 dialogue Beat: "
         "1、2、3、4、5、6、7、8 等"
     )
     assert (
         dialogue_only_video_model_error(
             [{"beat_number": 1, "audio_type": "dialogue"}],
-            "seedance-1.5-pro",
+            True,
         )
         is None
     )
-    assert dialogue_only_video_model_error(beats, "cloud-video-standard") is None
+    assert dialogue_only_video_model_error(beats, False) is None
 
 
 def test_video_prompt_rules_preserve_generation_modes() -> None:
@@ -32,8 +32,8 @@ def test_video_prompt_rules_preserve_generation_modes() -> None:
         "keyframe_prompt": "keyframe prompt",
     }
 
-    assert seedance2_initial_prompt(beat, "first_frame") == "video prompt"
-    assert seedance2_initial_prompt(beat, "keyframe") == "keyframe prompt"
+    assert advanced_video_initial_prompt(beat, "first_frame") == "video prompt"
+    assert advanced_video_initial_prompt(beat, "keyframe") == "keyframe prompt"
     assert standard_video_prompt(beat, "first_frame") == "video prompt"
     assert standard_video_prompt(beat, "keyframe") == "keyframe prompt"
     assert missing_video_prompt_error(3) == (

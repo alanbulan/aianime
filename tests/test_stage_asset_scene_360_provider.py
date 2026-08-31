@@ -14,8 +14,6 @@ def test_scene_360_command_has_no_provider_override(monkeypatch, tmp_path):
         return type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
 
     monkeypatch.setattr(scene_360_tasks, "run_project_model_subprocess", fake_run)
-    monkeypatch.setattr(scene_360_tasks, "_reserve_scene_360_model_call", lambda *a, **k: "")
-    monkeypatch.setattr(scene_360_tasks, "_confirm_scene_360_model_call", lambda *a, **k: None)
 
     result = scene_360_tasks.run_scene_360(
         tmp_path,
@@ -50,8 +48,6 @@ def test_scene_360_command_uses_packaged_worker_dispatch(monkeypatch, tmp_path):
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "executable", "ai-anime-backend.exe")
     monkeypatch.setattr(scene_360_tasks, "run_project_model_subprocess", fake_run)
-    monkeypatch.setattr(scene_360_tasks, "_reserve_scene_360_model_call", lambda *a, **k: "")
-    monkeypatch.setattr(scene_360_tasks, "_confirm_scene_360_model_call", lambda *a, **k: None)
 
     scene_360_tasks.run_scene_360(
         tmp_path,

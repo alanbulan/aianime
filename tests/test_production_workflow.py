@@ -17,6 +17,76 @@ def test_production_workflow_request_rejects_removed_fields() -> None:
         ProductionWorkflowRequest.model_validate({"video_backend": "old-route"})
 
 
+def test_child_ticket_lookup_uses_exact_project_task_reference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow,
+    )
+
+    context = SimpleNamespace(project_id="project-1")
+    task = SimpleNamespace(task_id="child-1")
+    calls = []
+
+    class _Tasks:
+        def get_for_project(self, received_context, reference):
+            calls.append((received_context, reference))
+            return task
+
+        def list_for_project(self, _context):
+            raise AssertionError("子任务轮询不应全量读取项目任务")
+
+    monkeypatch.setattr(
+        production_workflow,
+        "project_task_use_cases",
+        lambda: _Tasks(),
+    )
+    ticket = production_workflow._ChildTicket(
+        task_type="single_video",
+        task_id="child-1",
+        label="Beat 1 视频生成",
+        episode=1,
+        beat_num=1,
+        scope="video-1",
+    )
+
+    assert production_workflow._task_for_ticket(context, ticket) is task
+    assert len(calls) == 1
+    received_context, reference = calls[0]
+    assert received_context is context
+    assert reference.task_type == "single_video"
+    assert reference.episode == 1
+    assert reference.beat_num == 1
+    assert reference.scope == "video-1"
+
+
+def test_child_ticket_lookup_rejects_replacement_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow,
+    )
+
+    class _Tasks:
+        def get_for_project(self, _context, _reference):
+            return SimpleNamespace(task_id="replacement-child")
+
+    monkeypatch.setattr(
+        production_workflow,
+        "project_task_use_cases",
+        lambda: _Tasks(),
+    )
+    ticket = production_workflow._ChildTicket(
+        task_type="single_video",
+        task_id="original-child",
+        label="Beat 1 视频生成",
+        episode=1,
+        beat_num=1,
+    )
+
+    assert production_workflow._task_for_ticket(object(), ticket) is None
+
+
 @pytest.mark.asyncio
 async def test_production_failure_cancels_only_owned_active_descendants(
     monkeypatch: pytest.MonkeyPatch,
@@ -553,11 +623,11 @@ async def test_production_runner_owns_the_complete_stage_order(
         "_ensure_first_frames",
         lambda *args, **kwargs: forced_stage("frames", *args, **kwargs),
     )
-    monkeypatch.setattr(runner, "_ensure_seedance_prompts", ensure_prompts)
+    monkeypatch.setattr(runner, "_ensure_video_prompts", ensure_prompts)
     monkeypatch.setattr(
         runner,
-        "_ensure_seedance_voice_prerequisites",
-        lambda *args, **kwargs: forced_stage("seedance_voice", *args, **kwargs),
+        "_ensure_video_voice_prerequisites",
+        lambda *args, **kwargs: forced_stage("video_voice", *args, **kwargs),
     )
     monkeypatch.setattr(
         runner,
@@ -608,7 +678,7 @@ async def test_production_runner_owns_the_complete_stage_order(
         "frames",
         "optimize",
         "audio_prereq",
-        "seedance_voice",
+        "video_voice",
         "prompts",
         "audio",
         "videos",
@@ -620,7 +690,7 @@ async def test_production_runner_owns_the_complete_stage_order(
         "audio_prereq": expected_audio_force,
         "frames": expected_visual_force,
         "prompts": expected_visual_force,
-        "seedance_voice": expected_visual_force,
+        "video_voice": expected_visual_force,
         "audio": expected_audio_force,
         "videos": expected_visual_force,
         "compose": expected_visual_force,
@@ -738,7 +808,7 @@ async def test_production_workflow_designs_and_rechecks_missing_voices(
 
 
 @pytest.mark.asyncio
-async def test_production_workflow_repairs_short_seedance_voice_before_video(
+async def test_production_workflow_repairs_short_reference_voice_before_video(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -788,7 +858,7 @@ async def test_production_workflow_repairs_short_seedance_voice_before_video(
                 label="白石夏音 · 学生时期声线",
                 media_type="audio",
                 path="voice_youth.wav",
-                reason="参考声线只有 1.04 秒，Seedance2 要求至少 1.8 秒。",
+                reason="参考声线只有 1.04 秒，当前视频工作流要求至少 1.8 秒。",
                 identity_id="白石夏音_学生时期",
             )
         ]
@@ -805,16 +875,16 @@ async def test_production_workflow_repairs_short_seedance_voice_before_video(
     monkeypatch.setattr(
         production_public,
         "resolve_video_generation_route",
-        lambda *_args, **_kwargs: SimpleNamespace(model="doubao-seedance-2.0"),
+        lambda *_args, **_kwargs: SimpleNamespace(model="video-model-reference"),
     )
     monkeypatch.setattr(
         production_public,
-        "is_seedance2_model",
+        "video_model_uses_advanced_reference_workflow",
         lambda _model: True,
     )
     monkeypatch.setattr(
         production_public,
-        "collect_seedance2_video_prereq_errors",
+        "collect_video_reference_prereq_errors",
         collect,
     )
     monkeypatch.setattr(
@@ -828,7 +898,7 @@ async def test_production_workflow_repairs_short_seedance_voice_before_video(
         project_name="demo",
     )
 
-    await runner._ensure_seedance_voice_prerequisites(
+    await runner._ensure_video_voice_prerequisites(
         context,
         1,
         [
@@ -1129,7 +1199,7 @@ def test_production_workflow_resolves_exact_composition_resolution() -> None:
 
 
 @pytest.mark.asyncio
-async def test_production_workflow_generates_missing_seedance_prompts(
+async def test_production_workflow_generates_missing_video_prompt_optimization(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1142,9 +1212,9 @@ async def test_production_workflow_generates_missing_seedance_prompts(
     beats = [
         {
             "beat_number": 1,
-            "seedance2_config_json": '{"final_prompt":"already ready"}',
+            "video_config_json": '{"final_prompt":"already ready"}',
         },
-        {"beat_number": 2, "seedance2_config_json": "{}"},
+        {"beat_number": 2, "video_config_json": "{}"},
     ]
     generated: list[int] = []
 
@@ -1160,7 +1230,7 @@ async def test_production_workflow_generates_missing_seedance_prompts(
         assert candidate is store
         generated.append(command.beat_num)
         beat = next(item for item in beats if item["beat_number"] == command.beat_num)
-        beat["seedance2_config_json"] = (
+        beat["video_config_json"] = (
             f'{{"final_prompt":"generated-{command.beat_num}"}}'
         )
         return SimpleNamespace(final_prompt=f"generated-{command.beat_num}")
@@ -1180,15 +1250,19 @@ async def test_production_workflow_generates_missing_seedance_prompts(
     monkeypatch.setattr(runner, "_episode_beats", episode_beats)
     monkeypatch.setattr(
         narrative_public,
-        "generate_seedance2_beat_prompt",
+        "generate_optimized_video_prompt",
         fake_generate,
     )
     monkeypatch.setattr(
         production_public,
         "resolve_video_generation_route",
-        lambda *_args, **_kwargs: SimpleNamespace(model="seedance-2.0"),
+        lambda *_args, **_kwargs: SimpleNamespace(model="video-model-reference"),
     )
-    monkeypatch.setattr(production_public, "is_seedance2_model", lambda _model: True)
+    monkeypatch.setattr(
+        production_public,
+        "video_model_uses_advanced_reference_workflow",
+        lambda _model: True,
+    )
 
     class _Reporter:
         def update(self, _progress, _message):
@@ -1202,7 +1276,7 @@ async def test_production_workflow_generates_missing_seedance_prompts(
         project_name="demo",
         output_dir=tmp_path,
     )
-    result = await runner._ensure_seedance_prompts(
+    result = await runner._ensure_video_prompts(
         context,
         1,
         beats,

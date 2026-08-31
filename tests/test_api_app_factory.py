@@ -199,7 +199,7 @@ async def test_shutdown_cancels_desktop_knowledge_graph_warmup(
     application.state.container = SimpleNamespace(lifecycle=Lifecycle())
     monkeypatch.setenv("AI_ANIME_DESKTOP_MODE", "1")
     monkeypatch.setattr(
-        model_usage_migrations, "migrate_legacy_gateway_secrets", lambda: None
+        model_usage_migrations, "purge_retired_gateway_settings", lambda: None
     )
     monkeypatch.setattr(project_stores, "prewarm_knowledge_graph_runtime", prewarm)
     monkeypatch.setattr(sqlite_pragmas, "litestream_enabled", lambda: False)

@@ -184,7 +184,7 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
             project_dir=tmp_path,
             job_id="job_video",
             prompt="雨夜街头，镜头缓慢推进",
-            model="MINIMAX_H3",
+            model="video-model-all-reference",
             model_role="VIDEO_ALL_REFERENCE",
             resolution="1344x768",
             extra_params={"steps": 24, "seed": 42, "turbo": True},
@@ -207,7 +207,7 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
 
     assert out.exists()
     assert captured["create"] == {
-        "model": "MINIMAX_H3",
+        "model": "video-model-all-reference",
         "model_selector": None,
         "model_role": "VIDEO_ALL_REFERENCE",
         "resolution": "1344x768",
@@ -220,7 +220,7 @@ async def test_freezone_video_generation_uses_one_commercial_generator(
         "input_reference",
         "reference_videos",
     ]
-    assert captured["generate"]["seedance2_config"] == {
+    assert captured["generate"]["video_config"] == {
         "steps": 24,
         "seed": 42,
         "turbo": True,

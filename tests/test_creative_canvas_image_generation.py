@@ -325,7 +325,7 @@ async def test_image_generation_maps_unknown_style_template(tmp_path: Path) -> N
 def test_image_generation_model_router_preserves_explicit_model_sku() -> None:
     router = FreezoneCreativeCanvasImageGenerationModelRouter()
 
-    assert router.resolve("newapi_gpt_image2") == "newapi_gpt_image2"
+    assert router.resolve("image-model-b") == "image-model-b"
     assert router.resolve("custom-image-sku") == "custom-image-sku"
     with pytest.raises(ValueError, match="model is required"):
         router.resolve("")

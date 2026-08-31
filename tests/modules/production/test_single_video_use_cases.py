@@ -38,7 +38,7 @@ def _command() -> GenerateSingleVideoCommand:
     return GenerateSingleVideoCommand(
         episode_num=3,
         beat_num=2,
-        video_model="seedance-2.0-fast",
+        video_model="video-model-reference",
         resolution="1080p",
         duration=9,
         ratio="16:9",
@@ -49,12 +49,12 @@ def _command() -> GenerateSingleVideoCommand:
     )
 
 
-def test_command_projects_only_explicit_seedance2_controls() -> None:
+def test_command_projects_only_explicit_video_controls() -> None:
     command = _command()
 
     assert command.was_provided("ratio") is True
     assert command.was_provided("resolution") is False
-    assert command.seedance2_config_overrides() == {
+    assert command.video_config_overrides() == {
         "duration": 9,
         "ratio": "16:9",
         "generate_audio": False,

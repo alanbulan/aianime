@@ -1,7 +1,7 @@
 """Unit tests for ``ai_anime.shared.utils.oss_client``.
 
 These tests do not call real OSS. They stub the bucket object used by the
-client and verify the path mapping and presign contract needed by Seedance2
+client and verify the path mapping and presign contract needed by video-reference
 human-review media uploads.
 """
 

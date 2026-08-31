@@ -364,7 +364,7 @@ async def test_sketch_runner_accepts_missing_generation_time(
         }
 
     monkeypatch.setattr(
-        "ai_anime.modules.production.public.NanoBananaGridGenerator",
+        "ai_anime.modules.production.public.ImageGridGenerator",
         FakeGridGenerator,
     )
     monkeypatch.setattr(
@@ -409,7 +409,7 @@ async def test_regenerate_selected_beats_preserves_standalone_zero_beat_number(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid
+    from ai_anime.modules.production.infrastructure.media_generation import image_grid
 
     sketch_path = tmp_path / "canvas" / "sketch.png"
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
@@ -422,19 +422,19 @@ async def test_regenerate_selected_beats_preserves_standalone_zero_beat_number(
             output_path = Path(kwargs["output_path"])
             output_path.parent.mkdir(parents=True, exist_ok=True)
             Image.new("RGB", (160, 90), "blue").save(output_path)
-            return nanobanana_grid.GridGenerationResult(
+            return image_grid.GridGenerationResult(
                 success=True,
                 grid_image_path=str(output_path),
                 generation_time=0.0,
             )
 
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "create_grid_generator",
         lambda *_args, **_kwargs: FakeGridGenerator(),
     )
 
-    results = await nanobanana_grid.regenerate_selected_beats(
+    results = await image_grid.regenerate_selected_beats(
         selected_beats=[
             {
                 "episode_number": 0,
@@ -463,20 +463,20 @@ async def test_generate_grid_render_accepts_standalone_zero_sketch_override(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid
+    from ai_anime.modules.production.infrastructure.media_generation import image_grid
 
     sketch_path = tmp_path / "canvas" / "sketch.png"
     sketch_path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (160, 90), "white").save(sketch_path)
 
     monkeypatch.setattr(
-        nanobanana_grid,
+        image_grid,
         "load_precomputed_panel_detected",
         lambda _beat_numbers, _beats: {},
     )
 
-    generator = nanobanana_grid.NanoBananaGridGenerator.__new__(
-        nanobanana_grid.NanoBananaGridGenerator
+    generator = image_grid.ImageGridGenerator.__new__(
+        image_grid.ImageGridGenerator
     )
     generator.access_mode = "cloud"
     generator.model = "fake"

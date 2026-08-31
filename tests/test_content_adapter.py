@@ -125,7 +125,7 @@ async def test_generate_rewrite_submits_episode_task(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_content_rewriter_uses_newapi_text_model(monkeypatch) -> None:
+async def test_content_rewriter_uses_model_gateway_text_model(monkeypatch) -> None:
     from ai_anime.modules.narrative_planning.infrastructure import content_rewriter_agent as content_rewriter
 
     calls: dict[str, object] = {}
@@ -147,28 +147,28 @@ async def test_content_rewriter_uses_newapi_text_model(monkeypatch) -> None:
                 },
             )()
 
-    def fake_newapi_model():
-        return "newapi-model"
+    def fake_model_gateway_model():
+        return "gateway-model"
 
-    def fake_newapi_settings(thinking_env: str, default_thinking_level: str):
+    def fake_model_gateway_settings(thinking_env: str, default_thinking_level: str):
         calls["thinking_env"] = thinking_env
         calls["default_thinking_level"] = default_thinking_level
         return {"openai_reasoning_effort": default_thinking_level}
 
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
     monkeypatch.delenv("ARK_API_KEY", raising=False)
-    monkeypatch.setenv("NEWAPI_API_KEY", "newapi-token")
+    monkeypatch.setenv("MODEL_GATEWAY_API_KEY", "gateway-token")
     monkeypatch.setattr(content_rewriter, "Agent", FakeAgent)
     monkeypatch.setattr(
         content_rewriter,
-        "get_newapi_text_pydantic_model",
-        fake_newapi_model,
+        "get_text_pydantic_model",
+        fake_model_gateway_model,
         raising=False,
     )
     monkeypatch.setattr(
         content_rewriter,
-        "get_newapi_text_pydantic_model_settings",
-        fake_newapi_settings,
+        "get_text_pydantic_model_settings",
+        fake_model_gateway_settings,
         raising=False,
     )
 
@@ -179,6 +179,6 @@ async def test_content_rewriter_uses_newapi_text_model(monkeypatch) -> None:
     )
 
     assert rewritten == "改写第一行\n改写第二行"
-    assert calls["model"] == "newapi-model"
+    assert calls["model"] == "gateway-model"
     assert calls["thinking_env"] == "CONTENT_REWRITER_THINKING_LEVEL"
     assert calls["default_thinking_level"] == "medium"

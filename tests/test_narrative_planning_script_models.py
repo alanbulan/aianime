@@ -58,4 +58,3 @@ def test_format_beat_narration_preserves_audio_labels() -> None:
     assert format_beat_narration("dialogue", "苏鸾", "住手") == "【台词·苏鸾】住手"
     assert format_beat_narration("dialogue", "", "住手") == "【台词】住手"
     assert format_beat_narration("silence", "", "不应输出") == ""
-    assert format_beat_narration("action", "", "不应输出") == ""

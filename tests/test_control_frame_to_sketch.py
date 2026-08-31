@@ -58,14 +58,14 @@ async def test_director_control_frame_to_sketch_uses_commercial_access(monkeypat
             return SimpleNamespace(success=True, error="", generation_time=0.1)
 
     monkeypatch.setattr(module, "SQLiteStore", FakeStore)
-    monkeypatch.setattr(module, "NanoBananaGridGenerator", FakeGenerator)
+    monkeypatch.setattr(module, "ImageGridGenerator", FakeGenerator)
     monkeypatch.setattr(module, "build_character_map_for_grid", lambda *args, **kwargs: {})
     monkeypatch.setattr(
         module,
         "load_project_config_file",
         lambda *_args, **_kwargs: {
             "visual_style": "realistic",
-            "sketch_image_selection": "newapi_gpt_image2",
+            "sketch_image_selection": "image-model-b",
         },
     )
     monkeypatch.setattr(

@@ -127,7 +127,7 @@ async def test_update_character_accepts_age_group(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypatch):
+async def test_list_characters_returns_speech_synthesis_voice_fields(tmp_path, monkeypatch):
     from ai_anime.api.routes.asset_world import characters
 
     voice_path = (
@@ -141,7 +141,6 @@ async def test_list_characters_returns_indextts2_voice_fields(tmp_path, monkeypa
     child_voice_path.write_bytes(b"child voice")
     character = NovelCharacter(
         name="秦",
-        fish_voice_id="legacy-fish-id",
         reference_audio_path="assets/characters/秦/voices/voice_default.wav",
         reference_audio_sha256="default-sha",
         reference_audio_updated_at="2026-05-13T00:00:00+00:00",
@@ -336,7 +335,7 @@ async def test_design_character_voices_passes_explicit_replacement_scope(
 
 
 @pytest.mark.asyncio
-async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypatch):
+async def test_list_identities_returns_speech_synthesis_voice_fields(tmp_path, monkeypatch):
     from ai_anime.api.routes.asset_world import characters
 
     voice_path = (
@@ -348,7 +347,6 @@ async def test_list_identities_returns_indextts2_voice_fields(tmp_path, monkeypa
         identity_id="秦_幼年",
         character_name="秦",
         identity_name="幼年",
-        fish_voice_id="legacy-fish-id",
         reference_audio_path="assets/characters/秦/identities/幼年_voice.wav",
         reference_audio_sha256="identity-sha",
         reference_audio_updated_at="2026-05-13T00:00:02+00:00",

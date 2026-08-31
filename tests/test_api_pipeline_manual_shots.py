@@ -85,7 +85,7 @@ async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, t
     (tmp_path / "grids" / ep_tag).mkdir(parents=True)
     (tmp_path / "grids" / ep_tag / "grid.png").write_bytes(b"x")
     monkeypatch.setattr(pipeline, "_user_has_configured", lambda username, project: True)
-    monkeypatch.setattr(pipeline, "_seedance_prompts_required", lambda *_: False)
+    monkeypatch.setattr(pipeline, "_advanced_video_prompts_required", lambda *_: False)
     monkeypatch.setattr(
         pipeline,
         "compute_portrait_path",

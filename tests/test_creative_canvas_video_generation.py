@@ -62,7 +62,7 @@ def _project_context(tmp_path: Path) -> ProjectContext:
 
 def _options(
     *,
-    model: str = "seedance-2.0-fast",
+    model: str = "video-model-audio-limited",
     prompt: str = "镜头缓慢推进",
     gen_mode: str | None = None,
     scene_optimize: str | None = None,
@@ -135,7 +135,7 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
             "video",
         ) == (3.0, 10.0, 5.0, 20.0)
         assert policy.reference_duration_limits(
-            "seedance-2.0-fast",
+            "video-model-unconfigured",
             "audio",
         ) == (None, None, None, None)
         assert policy.reference_count_limits("cloud/video-standard") == (
@@ -144,7 +144,7 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
             0,
             6,
         )
-        assert policy.reference_count_limits("seedance-2.0-fast") == (
+        assert policy.reference_count_limits("video-model-unconfigured") == (
             9,
             3,
             3,
@@ -161,13 +161,13 @@ def test_configured_video_policy_reads_projected_catalog_duration_capabilities()
         configure_model_access(allows_custom_models=False, mode="mixed")
 
 
-def test_configured_video_policy_uses_declared_h3_size_and_duration() -> None:
+def test_configured_video_policy_uses_declared_size_and_duration() -> None:
     configure_model_access(
         allows_custom_models=False,
         mode="mixed",
         model_capabilities=[
             {
-                "modelId": "MINIMAX_H3",
+                "modelId": "VIDEO_SIZED",
                 "videoRatioOptions": ["16:9", "9:16", "1:1"],
                 "videoSizeOptions": ["1344x768", "768x1344", "1024x1024"],
                 "videoSupportsGenerateAudio": False,
@@ -186,26 +186,26 @@ def test_configured_video_policy_uses_declared_h3_size_and_duration() -> None:
     )
     try:
         policy = ConfiguredCreativeCanvasVideoModelPolicy()
-        assert policy.normalize_aspect_ratio("MINIMAX_H3", "16:9") == "16:9"
-        assert policy.normalize_resolution("MINIMAX_H3", "1344x768") == "1344x768"
-        assert policy.normalize_duration("MINIMAX_H3", 3) == 3
-        assert policy.normalize_generate_audio("MINIMAX_H3", False) is False
+        assert policy.normalize_aspect_ratio("VIDEO_SIZED", "16:9") == "16:9"
+        assert policy.normalize_resolution("VIDEO_SIZED", "1344x768") == "1344x768"
+        assert policy.normalize_duration("VIDEO_SIZED", 3) == 3
+        assert policy.normalize_generate_audio("VIDEO_SIZED", False) is False
         assert policy.normalize_extra_params(
-            "MINIMAX_H3",
+            "VIDEO_SIZED",
             {"steps": 20, "seed": 42, "turbo": False},
         ) == {"steps": 20, "seed": 42, "turbo": False}
         with pytest.raises(ValueError, match="不支持分辨率 720p"):
-            policy.normalize_resolution("MINIMAX_H3", "720p")
+            policy.normalize_resolution("VIDEO_SIZED", "720p")
         with pytest.raises(ValueError, match="不支持画面比例 4:3"):
-            policy.normalize_aspect_ratio("MINIMAX_H3", "4:3")
+            policy.normalize_aspect_ratio("VIDEO_SIZED", "4:3")
         with pytest.raises(ValueError, match="不支持生成音频"):
-            policy.normalize_generate_audio("MINIMAX_H3", True)
+            policy.normalize_generate_audio("VIDEO_SIZED", True)
         with pytest.raises(ValueError, match="不支持真人素材审核"):
-            policy.normalize_human_review("MINIMAX_H3", True)
+            policy.normalize_human_review("VIDEO_SIZED", True)
         with pytest.raises(ValueError, match="is not declared: quality"):
-            policy.normalize_extra_params("MINIMAX_H3", {"quality": "720p"})
+            policy.normalize_extra_params("VIDEO_SIZED", {"quality": "720p"})
         with pytest.raises(ValueError, match="are not declared"):
-            policy.normalize_scene_optimize("MINIMAX_H3", "anime")
+            policy.normalize_scene_optimize("VIDEO_SIZED", "anime")
         assert policy.normalize_duration("ENUM_VIDEO", 5) == 5
         with pytest.raises(ValueError, match="must be one of: 3, 5, 8"):
             policy.normalize_duration("ENUM_VIDEO", 4)
@@ -225,7 +225,7 @@ class _ModelPolicy:
     def resolve_model(self, model: str | None) -> str:
         if model == "invalid":
             raise ValueError("unknown video model: invalid")
-        return str(model or "seedance-2.0-fast")
+        return str(model or "video-model-audio-limited")
 
     def normalize_aspect_ratio(self, model: str | None, value: str | None) -> str:
         del model
@@ -263,7 +263,7 @@ class _ModelPolicy:
         model: str | None,
         media_type: str,
     ) -> tuple[float | None, float | None, float | None, float | None]:
-        if media_type == "audio" and str(model or "").startswith("seedance-2.0"):
+        if media_type == "audio" and model == "video-model-audio-limited":
             return 1.8, 15.2, None, 15.2
         if media_type == "video" and model == "video-limited":
             return 2.0, 10.0, 4.0, 12.0
@@ -355,7 +355,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
             context=context,
             project_dir=project_dir,
             options=_options(
-                model="seedance-2.0-fast-value",
+                model="video-model-value-enabled",
                 scene_optimize="cinematic",
                 extra_params={"steps": 24, "seed": 42, "turbo": False},
             ),
@@ -367,7 +367,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
             context=context,
             project_dir=project_dir,
             options=_options(
-                model="happyhorse-1.0",
+                model="video-model-reference",
                 gen_mode="imageReference",
             ),
             image_urls=(
@@ -409,7 +409,7 @@ async def test_video_generation_modes_build_exact_task_inputs(tmp_path: Path) ->
         StartCreativeCanvasVideoEditCommand(
             context=context,
             project_dir=project_dir,
-            options=_options(model="happyhorse-1.0"),
+            options=_options(model="video-model-reference"),
             video_url="freezone/_uploads/source.mp4",
             image_urls=("freezone/_uploads/style.png",),
             audio_setting="origin",

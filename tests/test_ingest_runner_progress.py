@@ -38,7 +38,6 @@ async def test_ingest_log_messages_do_not_reset_progress(monkeypatch):
             "novel_path": "novel.txt",
             "models": {"text": "text-model", "embedding": "embedding-model"},
             "config": {},
-            "billing": {},
         }
     }
 

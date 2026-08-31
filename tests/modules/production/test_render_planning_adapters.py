@@ -14,7 +14,7 @@ from ai_anime.modules.production.domain.render_planning import RenderPlanGrid
 from ai_anime.modules.production.infrastructure.render_planning import (
     EnvironmentRenderPlanAvailability,
     LocalRenderPlanningPreparer,
-    NanoBananaRenderPlanEngine,
+    ImageRenderPlanEngine,
     TaskExecutionRenderPlanScheduler,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -238,7 +238,7 @@ async def test_execution_materials_load_props_and_padding_after_validation(
     assert store.close_calls == 1
 
 
-def test_nanobanana_engine_projects_plan_hash_and_fingerprint(
+def test_render_planning_engine_projects_plan_hash_and_fingerprint(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -272,17 +272,17 @@ def test_nanobanana_engine_projects_plan_hash_and_fingerprint(
         return "fingerprint"
 
     monkeypatch.setattr(
-        render_planning.nanobanana_grid,
+        render_planning.image_grid,
         "build_regen_plan",
         build_regen_plan,
     )
     monkeypatch.setattr(
-        render_planning.nanobanana_grid,
+        render_planning.image_grid,
         "hash_plan",
         hash_plan,
     )
     monkeypatch.setattr(
-        render_planning.nanobanana_grid,
+        render_planning.image_grid,
         "compute_input_fingerprint",
         compute_input_fingerprint,
     )
@@ -294,7 +294,7 @@ def test_nanobanana_engine_projects_plan_hash_and_fingerprint(
         style="cinematic",
         image_generation_selection="render-selection",
     )
-    engine = NanoBananaRenderPlanEngine()
+    engine = ImageRenderPlanEngine()
 
     plan = engine.build(
         materials,

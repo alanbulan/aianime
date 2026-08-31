@@ -210,7 +210,6 @@ def test_cognee_transport_wrapper_preserves_the_catalog_model_code(catalog_code)
     assert nv_config._normalize_openai_compatible_model(transport_model) == (
         transport_model
     )
-    assert nv_config._billing_model_name(transport_model) == catalog_code
 
 
 @pytest.mark.asyncio

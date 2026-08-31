@@ -98,7 +98,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
         json={
             "beat_indices": [3, 1],
             "mode_key": "1x1_2-3",
-            "image_generation_selection": "newapi_nanobanana2",
+            "image_generation_selection": "image-model-a",
             "sketch_aspect_padding": True,
         },
     )
@@ -114,7 +114,7 @@ def test_render_selected_regen_returns_scope_and_passes_render_settings(
     assert command.episode_num == 2
     assert command.beat_indices == (3, 1)
     assert command.mode_key == "1x1_2-3"
-    assert command.image_generation_selection == "newapi_nanobanana2"
+    assert command.image_generation_selection == "image-model-a"
     assert command.sketch_aspect_padding is True
 
 
@@ -186,7 +186,7 @@ def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path)
             "strategy": "naive",
             "aspect_mode": "9:16",
             "force_one_by_one": True,
-            "image_generation_selection": "newapi_nanobanana2",
+            "image_generation_selection": "image-model-a",
         },
     )
 
@@ -202,7 +202,7 @@ def test_render_plan_and_execute_delegate_request_mapping(monkeypatch, tmp_path)
     assert plan_command.strategy == "naive"
     assert plan_command.aspect_mode == "9:16"
     assert plan_command.force_one_by_one is True
-    assert plan_command.image_generation_selection == "newapi_nanobanana2"
+    assert plan_command.image_generation_selection == "image-model-a"
 
     execute_response = client.post(
         "/api/v1/projects/demo/episodes/2/render/execute",
@@ -327,7 +327,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
             "style": "cinematic",
             "scene_grouping": True,
             "character_grouping": False,
-            "image_generation_selection": "newapi_nanobanana2",
+            "image_generation_selection": "image-model-a",
             "sketch_aspect_padding": True,
         },
     )
@@ -344,7 +344,7 @@ def test_render_grid_regen_passes_render_settings(monkeypatch, tmp_path):
     assert command.style == "cinematic"
     assert command.scene_grouping is True
     assert command.character_grouping is False
-    assert command.image_generation_selection == "newapi_nanobanana2"
+    assert command.image_generation_selection == "image-model-a"
     assert command.sketch_aspect_padding is True
 
 

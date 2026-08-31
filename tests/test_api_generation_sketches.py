@@ -65,7 +65,7 @@ async def test_generate_sketches_route_maps_request_to_application(
         grid_index=-1,
         sketch_scene_grouping=True,
         aspect_ratio="16:9",
-        image_generation_selection="openrouter_nanobanana2",
+        image_generation_selection="image-model-a",
         replace_existing=True,
     )
 
@@ -115,7 +115,7 @@ async def test_generate_sketches_route_maps_request_to_application(
     assert command.style == "ink"
     assert command.sketch_scene_grouping is True
     assert command.aspect_ratio == "16:9"
-    assert command.image_generation_selection == "openrouter_nanobanana2"
+    assert command.image_generation_selection == "image-model-a"
     assert command.replace_existing is True
 
 

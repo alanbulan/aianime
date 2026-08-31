@@ -430,7 +430,7 @@ async def test_create_scene_composes_structured_variant_and_time_name(
 
 
 @pytest.mark.asyncio
-async def test_preview_scene_plate_explains_render_and_seedance_resolution(
+async def test_preview_scene_plate_explains_render_and_video_reference_resolution(
     tmp_path, monkeypatch
 ):
     from ai_anime.api.routes.asset_world import scenes
@@ -471,10 +471,10 @@ async def test_preview_scene_plate_explains_render_and_seedance_resolution(
                 "status": "time_baked",
                 "label": "Render：将使用 卫生间_漏水_夜，锁图光",
             },
-            "seedance2": {
+            "videoReference": {
                 "resolved_scene_name": "卫生间_漏水_夜",
                 "prompt_time_of_day": "夜晚",
-                "label": "Seedance2：将喂入 卫生间_漏水_夜，提示词时间：夜晚",
+                "label": "视频参考：将使用 卫生间_漏水_夜，提示词时间：夜晚",
             },
         },
     }
@@ -544,10 +544,10 @@ async def test_preview_scene_plate_explains_relight_fallback(tmp_path, monkeypat
         "status": "relight",
         "label": "Render：将使用 卫生间，relight 到 白天",
     }
-    assert res["data"]["seedance2"] == {
+    assert res["data"]["videoReference"] == {
         "resolved_scene_name": "卫生间",
         "prompt_time_of_day": "白天",
-        "label": "Seedance2：将喂入 卫生间，提示词时间：白天",
+        "label": "视频参考：将使用 卫生间，提示词时间：白天",
     }
 
 

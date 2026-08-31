@@ -37,7 +37,7 @@ class FakeStoryDocuments:
         self.story_text = "第一章 雨巷\n林昭撑伞。"
         self.preview = {
             "total_chars": len(self.story_text),
-            "billable_chars": 12,
+            "text_chars": 12,
             "count": 1,
             "chapters": [{"number": 1, "title": "第一章 雨巷"}],
         }
@@ -54,7 +54,7 @@ class FakeStoryDocuments:
     def load_text(self, document):
         return self.story_text
 
-    def count_billable_chars(self, text):
+    def count_text_chars(self, text):
         return 12
 
     def build_chapter_preview(self, text):
@@ -181,7 +181,7 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
     assert task.backend_payload() == {
         "novel_path": str(tmp_path / "uploads" / "novel.txt"),
         "config": {"rebuild": True, "spine_template": "narrated"},
-        "billing": {"billable_chars": 12, "billing_quantity": 12},
+        "text_chars": 12,
     }
     assert IngestionTask.from_backend_payload(task.backend_payload()) == task
     assert result == {

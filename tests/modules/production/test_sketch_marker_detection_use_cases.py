@@ -123,41 +123,6 @@ class _Detector:
         return self.detections
 
 
-class _UsageMeter:
-    def __init__(self) -> None:
-        self.reserve_calls: list[dict[str, Any]] = []
-        self.confirm_calls: list[tuple[str, dict[str, Any] | None]] = []
-        self.refund_calls: list[tuple[str, dict[str, Any] | None]] = []
-        self.contexts: list[dict[str, Any]] = []
-        self.clear_count = 0
-
-    async def reserve_feature_start_credits(self, **kwargs: Any) -> dict[str, Any]:
-        self.reserve_calls.append(kwargs)
-        return {"id": "reservation-1", "cost": 7}
-
-    async def confirm_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        self.confirm_calls.append((reservation_id, metadata))
-
-    async def refund_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        self.refund_calls.append((reservation_id, metadata))
-
-    def set_llm_usage_context(self, user_id: str, **kwargs: Any) -> None:
-        self.contexts.append({"user_id": user_id, **kwargs})
-
-    def clear_llm_usage_context(self) -> None:
-        self.clear_count += 1
-
-
 def _use_cases(
     frame_count: int,
     *,
@@ -169,7 +134,6 @@ def _use_cases(
     _Store,
     _Files,
     _Detector,
-    _UsageMeter,
 ]:
     beats = [
         {"beat_number": number, "visual_description": visual_description}
@@ -186,25 +150,22 @@ def _use_cases(
         error=detector_error,
         detections=detector_detections,
     )
-    usage_meter = _UsageMeter()
     return (
         SketchMarkerDetectionUseCases(
             _Episodes(),
             _PropMenus(),
             files,
             detector,
-            usage_meter,
         ),
         store,
         files,
         detector,
-        usage_meter,
     )
 
 
 @pytest.mark.asyncio
-async def test_detection_batches_in_numeric_order_and_confirms_usage() -> None:
-    use_cases, store, files, detector, usage_meter = _use_cases(26)
+async def test_detection_batches_in_numeric_order() -> None:
+    use_cases, store, files, detector = _use_cases(26)
 
     result = await use_cases.detect(
         store,
@@ -228,18 +189,11 @@ async def test_detection_batches_in_numeric_order_and_confirms_usage() -> None:
     assert result.total_identities == 2
     assert store.identity_writes == result.identity_detections
     assert store.prop_writes[1] == ["__NO_PROP__"]
-    assert usage_meter.reserve_calls[0]["feature_key"] == "ai_identity_detection"
-    assert usage_meter.contexts[0]["billing_metadata"][
-        "feature_credit_reservation_id"
-    ] == "reservation-1"
-    assert usage_meter.confirm_calls[0][0] == "reservation-1"
-    assert usage_meter.refund_calls == []
-    assert usage_meter.clear_count == 1
 
 
 @pytest.mark.asyncio
 async def test_screenplay_markers_override_conflicting_color_detection() -> None:
-    use_cases, store, _files, _detector, _usage_meter = _use_cases(
+    use_cases, store, _files, _detector = _use_cases(
         2,
         detector_detections={
             1: ["Heroine_Main"],
@@ -267,8 +221,8 @@ async def test_screenplay_markers_override_conflicting_color_detection() -> None
 
 
 @pytest.mark.asyncio
-async def test_detection_refunds_usage_when_detector_fails() -> None:
-    use_cases, store, _files, _detector, usage_meter = _use_cases(
+async def test_detection_wraps_detector_failure() -> None:
+    use_cases, store, _files, _detector = _use_cases(
         1,
         detector_error=RuntimeError("vision failed"),
     )
@@ -284,14 +238,11 @@ async def test_detection_refunds_usage_when_detector_fails() -> None:
         )
 
     assert store.identity_writes == {}
-    assert usage_meter.confirm_calls == []
-    assert usage_meter.refund_calls[0][0] == "reservation-1"
-    assert usage_meter.clear_count == 1
 
 
 @pytest.mark.asyncio
-async def test_detection_rejects_missing_frames_before_reserving_usage() -> None:
-    use_cases, store, files, _detector, usage_meter = _use_cases(1)
+async def test_detection_rejects_missing_frames() -> None:
+    use_cases, store, files, _detector = _use_cases(1)
     files.frames = []
 
     with pytest.raises(SketchMarkerDetectionRejected, match="No sketches found"):
@@ -303,5 +254,3 @@ async def test_detection_rejects_missing_frames_before_reserving_usage() -> None
                 requester_user_id="user-1",
             ),
         )
-
-    assert usage_meter.reserve_calls == []

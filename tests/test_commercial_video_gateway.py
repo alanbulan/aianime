@@ -39,7 +39,7 @@ def _generator(
     )
     monkeypatch.setattr(
         model_usage,
-        "get_effective_newapi_gateway_config",
+        "get_effective_model_gateway_transport_config",
         lambda: SimpleNamespace(
             mode=mode,
             base_url=base_url,
@@ -77,7 +77,7 @@ def test_text_video_builds_standard_json_payload(
         aspect_ratio="16:9",
         duration=5,
         kwargs={
-            "seedance2_config": {
+            "video_config": {
                 "resolution": "720p",
                 "scene_optimize": "anime",
                 "return_last_frame": True,
@@ -98,17 +98,17 @@ def test_text_video_builds_standard_json_payload(
     assert return_last_frame is True
 
 
-def test_h3_request_preserves_exact_size_and_explicit_semantic_ratio(
+def test_declared_size_request_preserves_exact_size_and_semantic_ratio(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     generator = _generator(
         monkeypatch,
-        model="MINIMAX_H3",
+        model="video-model-sized",
         model_role="VIDEO_IMAGE_TO_VIDEO",
         resolution="768x1344",
         model_capabilities=[
             {
-                "modelId": "MINIMAX_H3",
+                "modelId": "video-model-sized",
                 "videoSizeOptions": [
                     "1344x768",
                     "768x1344",
@@ -133,10 +133,10 @@ def test_h3_request_preserves_exact_size_and_explicit_semantic_ratio(
     assert payload["ratio"] == "9:16"
 
 
-def test_seedance_request_clamps_short_duration_before_gateway_submission(
+def test_video_request_clamps_to_catalog_minimum_before_gateway_submission(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    model = "video-seeddance-4wlmqpxwma4r65j3"
+    model = "video-model-duration-bounded"
     generator = _generator(
         monkeypatch,
         model=model,
@@ -144,7 +144,7 @@ def test_seedance_request_clamps_short_duration_before_gateway_submission(
         model_capabilities=[
             {
                 "modelId": model,
-                "videoProfile": "seedance2",
+                "videoWorkflow": "advanced-reference",
                 "videoGenerationMinSeconds": 4,
                 "videoGenerationMaxSeconds": 15,
             }
@@ -158,7 +158,7 @@ def test_seedance_request_clamps_short_duration_before_gateway_submission(
         prompt="短对白镜头",
         aspect_ratio="9:16",
         duration=0.768,
-        kwargs={"seedance2_config": {"duration": 1, "resolution": "720p"}},
+        kwargs={"video_config": {"duration": 1, "resolution": "720p"}},
     )
 
     assert payload["seconds"] == "4"
@@ -167,7 +167,7 @@ def test_seedance_request_clamps_short_duration_before_gateway_submission(
 def test_video_request_rejects_duration_above_catalog_maximum(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    model = "video-seeddance-4wlmqpxwma4r65j3"
+    model = "video-model-duration-bounded"
     generator = _generator(
         monkeypatch,
         model=model,
@@ -175,7 +175,7 @@ def test_video_request_rejects_duration_above_catalog_maximum(
         model_capabilities=[
             {
                 "modelId": model,
-                "videoProfile": "seedance2",
+                "videoWorkflow": "advanced-reference",
                 "videoGenerationMinSeconds": 4,
                 "videoGenerationMaxSeconds": 15,
             }
@@ -190,7 +190,7 @@ def test_video_request_rejects_duration_above_catalog_maximum(
             prompt="过长镜头",
             aspect_ratio="9:16",
             duration=15.2,
-            kwargs={"seedance2_config": {"duration": 15}},
+            kwargs={"video_config": {"duration": 15}},
         )
 
 
@@ -222,7 +222,7 @@ def test_reference_video_builds_standard_multipart_parts(
         prompt="保持角色一致",
         aspect_ratio="9:16",
         duration=8,
-        kwargs={"seedance2_config": {"resolution": "1080p"}},
+        kwargs={"video_config": {"resolution": "1080p"}},
     )
 
     assert payload["size"] == "1080x1920"
@@ -266,7 +266,7 @@ def test_request_level_transport_configuration_is_rejected(
             prompt="生成视频",
             aspect_ratio="16:9",
             duration=5,
-            kwargs={"seedance2_config": options},
+            kwargs={"video_config": options},
         )
 
 

@@ -5,21 +5,21 @@ def test_identity_planner_uses_the_canonical_text_model_factory(monkeypatch):
     calls = []
     sentinel = object()
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         calls.append(None)
         return sentinel
 
     monkeypatch.setattr(
         identity_planner,
-        "get_newapi_text_pydantic_model",
-        fake_newapi_model,
+        "get_text_pydantic_model",
+        fake_model_gateway_model,
     )
 
     assert IdentityPlanner._identity_model() is sentinel
     assert calls == [None]
 
 
-def test_newapi_text_model_settings_use_path_specific_thinking(monkeypatch):
+def test_model_gateway_text_model_settings_use_path_specific_thinking(monkeypatch):
     from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import IdentityPlanner
 
     monkeypatch.setenv("IDENTITY_PLANNER_CAST_THINKING_LEVEL", "low")
@@ -36,7 +36,7 @@ def test_newapi_text_model_settings_use_path_specific_thinking(monkeypatch):
     ) == {"openai_reasoning_effort": "high"}
 
 
-def test_newapi_text_model_settings_empty_env_disables(monkeypatch):
+def test_model_gateway_text_model_settings_empty_env_disables(monkeypatch):
     from ai_anime.modules.narrative_planning.infrastructure.identity_planner_agent import IdentityPlanner
 
     monkeypatch.setenv("IDENTITY_PLANNER_APPEARANCE_THINKING_LEVEL", "")
@@ -50,14 +50,14 @@ def test_newapi_text_model_settings_empty_env_disables(monkeypatch):
     )
 
 
-def test_newapi_text_provider_default_trusts_env(monkeypatch):
+def test_model_gateway_text_provider_default_trusts_env(monkeypatch):
     import asyncio
 
     import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
-    monkeypatch.delenv("NEWAPI_TEXT_TRUST_ENV", raising=False)
+    monkeypatch.delenv("MODEL_TEXT_TRUST_ENV", raising=False)
 
-    provider = config._newapi_text_openai_provider(
+    provider = config._model_gateway_text_openai_provider(
         api_key="key",
         base_url="https://example.test/v1",
         timeout_seconds=12.0,
@@ -72,14 +72,14 @@ def test_newapi_text_provider_default_trusts_env(monkeypatch):
             asyncio.run(http_client.aclose())
 
 
-def test_newapi_text_provider_can_disable_system_proxy(monkeypatch):
+def test_model_gateway_text_provider_can_disable_system_proxy(monkeypatch):
     import asyncio
 
     import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
-    monkeypatch.setenv("NEWAPI_TEXT_TRUST_ENV", "false")
+    monkeypatch.setenv("MODEL_TEXT_TRUST_ENV", "false")
 
-    provider = config._newapi_text_openai_provider(
+    provider = config._model_gateway_text_openai_provider(
         api_key="key",
         base_url="https://example.test/v1",
         timeout_seconds=12.0,
@@ -93,7 +93,7 @@ def test_newapi_text_provider_can_disable_system_proxy(monkeypatch):
             asyncio.run(http_client.aclose())
 
 
-def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
+def test_model_gateway_text_model_closes_owned_http_client_after_request(monkeypatch):
     import asyncio
     import uuid
 
@@ -101,7 +101,7 @@ def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
 
     import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
-    model = config._newapi_text_openai_model(
+    model = config._model_gateway_text_openai_model(
         "gpt-test",
         api_key="key",
         base_url="https://example.test/v1",
@@ -136,14 +136,14 @@ def test_newapi_text_model_closes_owned_http_client_after_request(monkeypatch):
     assert http_client.is_closed
 
 
-def test_newapi_text_http_retries_reuse_the_operation_idempotency_key():
+def test_model_gateway_text_http_retries_reuse_the_operation_idempotency_key():
     import asyncio
 
     import httpx
 
     import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
-    client = config._newapi_text_http_client_factory(
+    client = config._model_gateway_text_http_client_factory(
         timeout_seconds=12.0,
         omit_authorization=True,
     )()
@@ -182,7 +182,7 @@ def test_newapi_text_http_retries_reuse_the_operation_idempotency_key():
     assert config._TEXT_MODEL_IDEMPOTENCY_KEY.get() == ""
 
 
-def test_newapi_text_stream_keeps_one_key_until_the_stream_closes(monkeypatch):
+def test_model_gateway_text_stream_keeps_one_key_until_the_stream_closes(monkeypatch):
     import asyncio
     import uuid
     from contextlib import asynccontextmanager
@@ -191,7 +191,7 @@ def test_newapi_text_stream_keeps_one_key_until_the_stream_closes(monkeypatch):
 
     import ai_anime.modules.model_usage.infrastructure.model_runtime as config
 
-    model = config._newapi_text_openai_model(
+    model = config._model_gateway_text_openai_model(
         "gpt-test",
         api_key="key",
         base_url="https://example.test/v1",
@@ -227,7 +227,7 @@ def test_newapi_text_stream_keeps_one_key_until_the_stream_closes(monkeypatch):
     assert http_client.is_closed
 
 
-def test_asset_compiler_scene_planner_uses_scene_newapi_env(monkeypatch):
+def test_asset_compiler_scene_planner_uses_scene_model_gateway_env(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
@@ -237,7 +237,7 @@ def test_asset_compiler_scene_planner_uses_scene_newapi_env(monkeypatch):
     settings_calls = []
     agent_kwargs = {}
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         model_calls.append(None)
         return "scene-model"
 
@@ -254,11 +254,11 @@ def test_asset_compiler_scene_planner_uses_scene_newapi_env(monkeypatch):
             return SimpleNamespace(output=SimpleNamespace(derived_scenes=[]))
 
     monkeypatch.setattr(
-        asset_compiler, "get_newapi_text_pydantic_model", fake_newapi_model
+        asset_compiler, "get_text_pydantic_model", fake_model_gateway_model
     )
     monkeypatch.setattr(
         asset_compiler,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         fake_settings,
     )
     monkeypatch.setattr(asset_compiler, "Agent", FakeAgent)
@@ -277,7 +277,7 @@ def test_asset_compiler_scene_planner_uses_scene_newapi_env(monkeypatch):
     assert agent_kwargs["name"] == "派生场景分析师"
 
 
-def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
+def test_asset_compiler_prop_planner_uses_prop_model_gateway_env(monkeypatch):
     import asyncio
     from types import SimpleNamespace
 
@@ -287,7 +287,7 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
     settings_calls = []
     agent_kwargs = {}
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         model_calls.append(None)
         return "prop-model"
 
@@ -304,11 +304,11 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
             return SimpleNamespace(output=SimpleNamespace(requirements=[]))
 
     monkeypatch.setattr(
-        asset_compiler, "get_newapi_text_pydantic_model", fake_newapi_model
+        asset_compiler, "get_text_pydantic_model", fake_model_gateway_model
     )
     monkeypatch.setattr(
         asset_compiler,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         fake_settings,
     )
     monkeypatch.setattr(asset_compiler, "Agent", FakeAgent)
@@ -333,14 +333,14 @@ def test_asset_compiler_prop_planner_uses_prop_newapi_env(monkeypatch):
     assert agent_kwargs["name"] == "场景块道具分析师"
 
 
-def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
+def test_literal_script_writer_uses_literal_model_gateway_env(monkeypatch):
     import ai_anime.modules.narrative_planning.application.literal_script_writing as literal_script_writing
 
     model_calls = []
     settings_calls = []
     agent_kwargs = {}
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         model_calls.append(None)
         return "literal-model"
 
@@ -355,12 +355,12 @@ def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
 
     monkeypatch.setattr(
         literal_script_writing,
-        "get_newapi_text_pydantic_model",
-        fake_newapi_model,
+        "get_text_pydantic_model",
+        fake_model_gateway_model,
     )
     monkeypatch.setattr(
         literal_script_writing,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         fake_settings,
     )
     monkeypatch.setattr(literal_script_writing, "Agent", FakeAgent)
@@ -376,7 +376,7 @@ def test_literal_script_writer_uses_literal_newapi_env(monkeypatch):
     assert agent_kwargs["retries"] == {"output": 2}
 
 
-def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
+def test_ai_identity_detector_uses_model_gateway_detector_model_env(monkeypatch):
     from ai_anime.modules.model_usage import public as config
     import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
@@ -384,7 +384,7 @@ def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
     settings_calls = []
     agent_kwargs = {}
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         model_calls.append(None)
         return "detector-model"
 
@@ -398,9 +398,9 @@ def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
             agent_kwargs.update(kwargs)
 
     monkeypatch.delenv("GLOBAL_VIDEO_MODEL", raising=False)
-    monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_newapi_model)
+    monkeypatch.setattr(config, "get_text_pydantic_model", fake_model_gateway_model)
     monkeypatch.setattr(
-        config, "get_newapi_text_pydantic_model_settings", fake_settings
+        config, "get_text_pydantic_model_settings", fake_settings
     )
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)
 
@@ -413,7 +413,7 @@ def test_ai_identity_detector_uses_newapi_detector_model_env(monkeypatch):
     assert agent_kwargs["model_settings"] == {"openai_reasoning_effort": "low"}
 
 
-def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
+def test_global_video_optimizer_uses_model_gateway_optimizer_model_env(monkeypatch):
     from ai_anime.modules.model_usage import public as config
     import ai_anime.modules.production.infrastructure.global_video_optimizer as global_video_optimizer
 
@@ -421,7 +421,7 @@ def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
     settings_calls = []
     agent_kwargs = {}
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         model_calls.append(None)
         return "optimizer-model"
 
@@ -435,9 +435,9 @@ def test_global_video_optimizer_uses_newapi_optimizer_model_env(monkeypatch):
             agent_kwargs.update(kwargs)
 
     monkeypatch.delenv("GLOBAL_VIDEO_MODEL", raising=False)
-    monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_newapi_model)
+    monkeypatch.setattr(config, "get_text_pydantic_model", fake_model_gateway_model)
     monkeypatch.setattr(
-        config, "get_newapi_text_pydantic_model_settings", fake_settings
+        config, "get_text_pydantic_model_settings", fake_settings
     )
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)
 
@@ -464,12 +464,12 @@ def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypat
     monkeypatch.setenv("GLOBAL_VIDEO_OPTIMIZER_THINKING_LEVEL", "")
     monkeypatch.setattr(
         config,
-        "get_newapi_text_pydantic_model",
+        "get_text_pydantic_model",
         lambda: "optimizer-model",
     )
     monkeypatch.setattr(
         config,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         lambda thinking_env, default_thinking_level: None,
     )
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)
@@ -479,15 +479,15 @@ def test_global_video_optimizer_empty_thinking_level_disables_settings(monkeypat
     assert "model_settings" not in agent_kwargs
 
 
-def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
+def test_video_prompt_composer_uses_model_gateway_composer_model_env(monkeypatch):
     from ai_anime.modules.model_usage import public as config
-    import ai_anime.modules.production.infrastructure.seedance2_prompt as seedance2_prompt
+    import ai_anime.modules.production.infrastructure.video_prompt_composer as video_prompt
 
     model_calls = []
     settings_calls = []
     agent_kwargs = {}
 
-    def fake_newapi_model():
+    def fake_model_gateway_model():
         model_calls.append(None)
         return "composer-model"
 
@@ -500,19 +500,19 @@ def test_seedance2_prompt_composer_uses_newapi_composer_model_env(monkeypatch):
             agent_kwargs["model"] = model
             agent_kwargs.update(kwargs)
 
-    monkeypatch.setattr(config, "get_newapi_text_pydantic_model", fake_newapi_model)
+    monkeypatch.setattr(config, "get_text_pydantic_model", fake_model_gateway_model)
     monkeypatch.setattr(
-        config, "get_newapi_text_pydantic_model_settings", fake_settings
+        config, "get_text_pydantic_model_settings", fake_settings
     )
     monkeypatch.setattr("pydantic_ai.Agent", FakeAgent)
 
-    seedance2_prompt.create_seedance2_prompt_composer_agent()
+    video_prompt.create_video_prompt_composer_agent()
 
     assert model_calls == [None]
-    assert settings_calls == [("SEEDANCE2_PROMPT_COMPOSER_THINKING_LEVEL", "low")]
+    assert settings_calls == [("VIDEO_PROMPT_COMPOSER_THINKING_LEVEL", "low")]
     assert agent_kwargs["model"] == "composer-model"
     assert agent_kwargs["model_settings"] == {"openai_reasoning_effort": "low"}
-    assert agent_kwargs["name"] == "Seedance 2.0 Prompt Composer"
+    assert agent_kwargs["name"] == "Video Prompt Composer"
     assert agent_kwargs["output_type"] is str
     assert "output_retries" not in agent_kwargs
 
@@ -529,12 +529,12 @@ def test_ai_identity_detector_can_pass_explicit_thinking_level(monkeypatch):
 
     monkeypatch.setattr(
         config,
-        "get_newapi_text_pydantic_model",
+        "get_text_pydantic_model",
         lambda: "detector-model",
     )
     monkeypatch.setattr(
         config,
-        "get_newapi_text_pydantic_model_settings",
+        "get_text_pydantic_model_settings",
         lambda thinking_env, default_thinking_level: {"openai_reasoning_effort": "low"},
     )
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)

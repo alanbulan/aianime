@@ -28,7 +28,7 @@ from ai_anime.modules.production.infrastructure.media_generation.prompt_builder 
     UnifiedPromptBuilder,
     create_prompt_context,
 )
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
     resolve_render_reference_order,
 )
 from ai_anime.modules.asset_world.public import build_character_map_for_grid

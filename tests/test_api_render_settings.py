@@ -163,7 +163,7 @@ def test_render_settings_returns_current_platform_sku(monkeypatch, tmp_path):
         monkeypatch,
         tmp_path,
         {
-            "render_image_selection": "newapi_nanobanana2",
+            "render_image_selection": "image-model-a",
             "sketch_aspect_padding": True,
         },
     )
@@ -173,7 +173,7 @@ def test_render_settings_returns_current_platform_sku(monkeypatch, tmp_path):
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["data"]["render_image_selection"] == "newapi_nanobanana2"
+    assert body["data"]["render_image_selection"] == "image-model-a"
     assert "options" not in body["data"]
     assert body["data"]["sketch_aspect_padding"] is True
     assert "force_half_k" not in body["data"]
@@ -202,7 +202,7 @@ def test_render_settings_patch_persists_valid_settings(monkeypatch, tmp_path):
     response = client.patch(
         "/api/v1/projects/demo/render-settings",
         json={
-            "render_image_selection": "newapi_nanobanana2",
+            "render_image_selection": "image-model-a",
             "sketch_aspect_padding": True,
         },
     )
@@ -212,7 +212,7 @@ def test_render_settings_patch_persists_valid_settings(monkeypatch, tmp_path):
     assert body["ok"] is True
     assert saved == [
         {
-            "render_image_selection": "newapi_nanobanana2",
+            "render_image_selection": "image-model-a",
             "sketch_aspect_padding": True,
         }
     ]
@@ -239,7 +239,7 @@ def test_sketch_settings_returns_current_platform_sku(monkeypatch, tmp_path):
     client, _saved = _client(
         monkeypatch,
         tmp_path,
-        {"sketch_image_selection": "newapi_nanobanana2"},
+        {"sketch_image_selection": "image-model-a"},
     )
 
     response = client.get("/api/v1/projects/demo/sketch-settings")
@@ -247,7 +247,7 @@ def test_sketch_settings_returns_current_platform_sku(monkeypatch, tmp_path):
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["data"]["sketch_image_selection"] == "newapi_nanobanana2"
+    assert body["data"]["sketch_image_selection"] == "image-model-a"
     assert "options" not in body["data"]
 
 
@@ -271,14 +271,14 @@ def test_sketch_settings_patch_persists_valid_selection(monkeypatch, tmp_path):
 
     response = client.patch(
         "/api/v1/projects/demo/sketch-settings",
-        json={"sketch_image_selection": "newapi_nanobanana2"},
+        json={"sketch_image_selection": "image-model-a"},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert saved == [{"sketch_image_selection": "newapi_nanobanana2"}]
-    assert body["data"]["sketch_image_selection"] == "newapi_nanobanana2"
+    assert saved == [{"sketch_image_selection": "image-model-a"}]
+    assert body["data"]["sketch_image_selection"] == "image-model-a"
 
 
 def test_sketch_settings_patch_rejects_empty_model_sku(monkeypatch, tmp_path):
@@ -1323,7 +1323,7 @@ def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_pa
             project_output_dir=tmp_path,
             request_id=f"r{idx}",
             provider="openrouter",
-            model_name="nanobanana2",
+            model_name="image-model-primary",
             task_type="sketch_grid",
             scope="sketch_grid:1x1_2-3_sketch:3",
             episode=1,
@@ -1333,7 +1333,7 @@ def test_sketch_image_usage_and_guard_return_attempt_context(monkeypatch, tmp_pa
         project_output_dir=tmp_path,
         request_id="render1",
         provider="openrouter",
-        model_name="nanobanana2",
+        model_name="image-model-primary",
         task_type="render_grid",
         scope="render_grid:1x1:3",
         episode=1,
@@ -1378,7 +1378,7 @@ def test_image_generation_guard_password_verification_matches_nicegui(
             project_output_dir=tmp_path,
             request_id=f"r{idx}",
             provider="openrouter",
-            model_name="nanobanana2",
+            model_name="image-model-primary",
             task_type="sketch_grid",
             scope="sketch_grid:1x1_2-3_sketch:3",
             episode=1,
@@ -1418,7 +1418,7 @@ def test_image_generation_guard_password_verification_matches_nicegui(
 
 def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp_path):
     from ai_anime.modules.production.infrastructure.media_generation import (
-        nanobanana_grid,
+        image_grid,
         pool_indexer,
     )
 
@@ -1448,7 +1448,7 @@ def test_sketch_grid_preview_exposes_nicegui_thumbnail_contract(monkeypatch, tmp
     monkeypatch.setattr(
         pool_indexer, "build_beat_sketch_paths", fake_build_beat_sketch_paths
     )
-    monkeypatch.setattr(nanobanana_grid, "crop_sketch_panels", fake_crop_sketch_panels)
+    monkeypatch.setattr(image_grid, "crop_sketch_panels", fake_crop_sketch_panels)
 
     response = client.post(
         "/api/v1/projects/demo/episodes/1/grids/1/sketch-preview",
@@ -1470,7 +1470,7 @@ def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(
     monkeypatch, tmp_path
 ):
     from ai_anime.modules.production.infrastructure.media_generation import (
-        nanobanana_grid,
+        image_grid,
         pool_indexer,
     )
 
@@ -1519,7 +1519,7 @@ def test_sketch_grid_preview_falls_back_to_latest_pool_sketch_cells(
         calls["beat_sketch_paths"] = beat_sketch_paths
         return out_file
 
-    monkeypatch.setattr(nanobanana_grid, "crop_sketch_panels", fake_crop_sketch_panels)
+    monkeypatch.setattr(image_grid, "crop_sketch_panels", fake_crop_sketch_panels)
 
     response = client.post(
         "/api/v1/projects/demo/episodes/1/grids/1/sketch-preview",

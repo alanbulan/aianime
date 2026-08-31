@@ -16,7 +16,7 @@ async def test_style_preview_uses_real_project_context_and_surfaces_errors(
 ) -> None:
     captured: dict = {}
 
-    async def fake_call_newapi_image_api(**kwargs):
+    async def fakecall_image_generation_api(**kwargs):
         captured.update(kwargs)
         return None, "", "provider rejected image request"
 
@@ -31,8 +31,8 @@ async def test_style_preview_uses_real_project_context_and_surfaces_errors(
         },
     )
     monkeypatch.setattr(
-        "ai_anime.modules.production.public._call_newapi_image_api",
-        fake_call_newapi_image_api,
+        "ai_anime.modules.production.public.call_image_generation_api",
+        fakecall_image_generation_api,
     )
 
     with pytest.raises(RuntimeError, match="provider rejected image request"):
@@ -64,7 +64,7 @@ async def test_style_preview_writes_one_finished_reference(
     output_dir = tmp_path / "generated"
     output_dir.mkdir()
 
-    async def fake_call_newapi_image_api(**_kwargs):
+    async def fakecall_image_generation_api(**_kwargs):
         return b"style-reference", "", ""
 
     monkeypatch.setattr(
@@ -75,8 +75,8 @@ async def test_style_preview_writes_one_finished_reference(
         },
     )
     monkeypatch.setattr(
-        "ai_anime.modules.production.public._call_newapi_image_api",
-        fake_call_newapi_image_api,
+        "ai_anime.modules.production.public.call_image_generation_api",
+        fakecall_image_generation_api,
     )
     monkeypatch.setattr(
         "ai_anime.modules.asset_world.infrastructure.style_generation.tempfile.mkdtemp",
