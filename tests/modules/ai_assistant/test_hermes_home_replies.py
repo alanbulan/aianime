@@ -28,8 +28,11 @@ class StubThread:
         self.events = events
         self.error = error
         self.calls = []
+        self.model_route_applied = False
+        self.model_route_applied_before_stream = []
 
     async def stream(self, prompt, *, current_project=None):
+        self.model_route_applied_before_stream.append(self.model_route_applied)
         self.calls.append((prompt, current_project))
         for event in self.events:
             yield event
@@ -55,6 +58,12 @@ class StubHermesRuntime:
         self.forgotten.append(
             (username, scope_kind, project_id, conversation_id)
         )
+
+
+class StubSessionModels:
+    async def apply_to(self, thread, _username, _scope):
+        thread.model_route_applied = True
+        return (None, "none")
 
 
 class StubHistory:
@@ -106,7 +115,12 @@ def _build_replies(events, *, error=None, messages=None, context_policy=None):
     thread = StubThread(events, error=error)
     runtime = StubHermesRuntime(thread)
     history = StubHistory(messages, context_policy=context_policy)
-    return HermesHomeReplies(runtime, history), thread, runtime, history
+    return (
+        HermesHomeReplies(runtime, history, StubSessionModels()),
+        thread,
+        runtime,
+        history,
+    )
 
 
 def _stub_project_snapshots(monkeypatch, *snapshots):
@@ -162,6 +176,7 @@ async def test_hermes_home_replies_streams_and_persists_turn(monkeypatch):
 
     assert get_hermes_home_replies() is get_hermes_home_replies()
     assert runtime.calls == [("alice", "home", None, "main")]
+    assert thread.model_route_applied_before_stream == [True]
     assert thread.calls[0][1] is None
     assert thread.calls[0][0].startswith("继续处理\n\n[CHAT_ATTACHMENTS]")
     assert "fileName=script.txt" in thread.calls[0][0]

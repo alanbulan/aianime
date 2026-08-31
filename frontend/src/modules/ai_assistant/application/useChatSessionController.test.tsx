@@ -31,7 +31,13 @@ function createHarness(cachedMessages: ChatMessage[] = []) {
     }),
     loadCachedMessages: vi.fn(() => cachedMessages),
     loadChatModels: vi.fn(async () => ([
-      { id: "auto", label: "自动（遵循模型优先级）", source: "auto" as const },
+      {
+        id: "auto",
+        label: "自动（遵循模型优先级）",
+        source: "auto" as const,
+        reasoningEfforts: ["none", "low", "medium", "high"],
+        defaultReasoningEffort: "low",
+      },
       {
         id: "cloud:text-model",
         label: "Qwen3.8-27B",
@@ -362,6 +368,32 @@ describe("useChatSessionController", () => {
         conversationId: "chat_2",
       },
       selector: "cloud:text-model",
+      reasoning_effort: "none",
+    });
+
+    act(() => harness.getSocketOptions()?.onFrame({
+      type: "session.model.state",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: "cloud:text-model",
+      reasoning_effort: "none",
+    }));
+    harness.send.mockClear();
+    act(() => {
+      accepted = result.current.switchModel("auto");
+    });
+    expect(accepted).toBe(true);
+    expect(harness.send).toHaveBeenCalledWith({
+      type: "session.model.set",
+      scope: {
+        kind: "project",
+        id: "project-a",
+        conversationId: "chat_2",
+      },
+      selector: null,
       reasoning_effort: "none",
     });
   });

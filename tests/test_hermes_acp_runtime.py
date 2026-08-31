@@ -112,7 +112,7 @@ def test_route_codecs_reject_a_malformed_reasoning_token() -> None:
 
 
 @pytest.mark.asyncio
-async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
+async def test_acp_patch_promotes_a_raw_session_and_updates_without_rebuilding_agent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runtime = _load_runtime_module()
@@ -183,13 +183,13 @@ async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
         monkeypatch.setitem(sys.modules, name, module)
 
     agent = SimpleNamespace(
-        model="ai-anime-assistant-auto",
+        model="QWEN3_8_27B",
         provider="custom",
         reasoning_config=None,
-        context_compressor=SimpleNamespace(model="ai-anime-assistant-auto"),
+        context_compressor=SimpleNamespace(model="QWEN3_8_27B"),
         _primary_runtime={
-            "model": "ai-anime-assistant-auto",
-            "compressor_model": "ai-anime-assistant-auto",
+            "model": "QWEN3_8_27B",
+            "compressor_model": "QWEN3_8_27B",
             "reasoning_config": None,
         },
         _cached_system_prompt="cached",
@@ -197,7 +197,7 @@ async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
         _fallback_index=0,
     )
     state = SimpleNamespace(
-        model="ai-anime-assistant-auto",
+        model="QWEN3_8_27B",
         agent=agent,
     )
 
@@ -217,14 +217,16 @@ async def test_acp_patch_updates_model_and_reasoning_without_rebuilding_agent(
     acp_agent.rebuild_count = 0
     acp_agent.original_config_count = 0
 
-    await acp_agent.set_session_model("ai-anime-assistant-auto", "session-1")
-    assert state.agent.reasoning_config is None
-
-    high_model = runtime._model_with_reasoning_effort(
-        runtime._parse_assistant_route_model("ai-anime-assistant-auto"),
-        "high",
-    )
+    none_model = encode_automatic_model("none")
     original_agent = state.agent
+    await acp_agent.set_session_model(none_model, "session-1")
+
+    assert state.agent is original_agent
+    assert state.model == none_model
+    assert state.agent.reasoning_config == {"enabled": False}
+    assert acp_agent.rebuild_count == 0
+
+    high_model = encode_automatic_model("high")
     await acp_agent.set_session_model(high_model, "session-1")
 
     assert state.agent is original_agent

@@ -8,6 +8,9 @@ from ai_anime.modules.ai_assistant.application.chat_events import (
     emit_chat_event,
     emit_chat_event_best_effort,
 )
+from ai_anime.modules.ai_assistant.application.hermes_session_models import (
+    HermesSessionModels,
+)
 from ai_anime.modules.ai_assistant.application.ports import (
     ChatEventSink,
     ChatHistory,
@@ -30,9 +33,15 @@ from ai_anime.modules.project_workspace.public import list_project_workspaces
 
 
 class HermesHomeReplies:
-    def __init__(self, runtime: HermesRuntime, history: ChatHistory) -> None:
+    def __init__(
+        self,
+        runtime: HermesRuntime,
+        history: ChatHistory,
+        session_models: HermesSessionModels,
+    ) -> None:
         self._runtime = runtime
         self._history = history
+        self._session_models = session_models
 
     async def stream(
         self,
@@ -90,6 +99,7 @@ class HermesHomeReplies:
             project_id=None,
             conversation_id=scope.conversation_id,
         )
+        await self._session_models.apply_to(thread, username, scope)
 
         assistant_text = ""
         tool_text = ""

@@ -48,6 +48,8 @@ from ai_anime.modules.ai_assistant.application.ports import (
     HermesThread,
     JsonRenderErrors,
     ProjectMediaFiles,
+    SessionModelRouteRejected,
+    SessionModelRouteStore,
     UserPreferences,
 )
 from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
@@ -107,6 +109,8 @@ __all__ = [
     "ProjectChatTurns",
     "ProjectChatMessages",
     "ScopedChatMessages",
+    "SessionModelRouteRejected",
+    "SessionModelRouteStore",
     "SpeechTranscript",
     "SpeechTranscriber",
     "SpeechTranscription",

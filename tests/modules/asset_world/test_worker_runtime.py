@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import sys
-from types import SimpleNamespace
 
 import pytest
 
@@ -10,10 +9,10 @@ from ai_anime.modules.asset_world.infrastructure.director_world import worker_ru
 
 
 def test_allowlisted_worker_modules_are_importable() -> None:
-    for worker_name, module_name in worker_runtime._WORKER_MODULES.items():
-        module = importlib.import_module(module_name)
+    for worker in worker_runtime.DIRECTOR_WORLD_WORKERS:
+        module = importlib.import_module(worker.module)
 
-        assert callable(getattr(module, "main", None)), worker_name
+        assert callable(getattr(module, "main", None)), worker.name
 
 
 def test_worker_command_uses_python_module_in_source_runtime(monkeypatch):
@@ -43,27 +42,8 @@ def test_worker_command_rejects_unknown_module():
         worker_runtime.worker_command("untrusted.module")
 
 
-def test_dispatch_internal_worker_forwards_arguments(monkeypatch):
-    calls: list[list[str]] = []
-    module = SimpleNamespace(main=lambda: calls.append(list(sys.argv)))
-    monkeypatch.setattr(worker_runtime.importlib, "import_module", lambda _name: module)
+def test_director_world_declares_its_complete_worker_set() -> None:
+    workers = worker_runtime.DIRECTOR_WORLD_WORKERS
 
-    exit_code = worker_runtime.dispatch_internal_worker(
-        ["--internal-worker", "scene-360-builder", "--scene-name", "中文场景"]
-    )
-
-    assert exit_code == 0
-    assert calls == [
-        [
-            worker_runtime.SCENE_360_BUILDER_MODULE,
-            "--scene-name",
-            "中文场景",
-        ]
-    ]
-
-
-def test_dispatch_internal_worker_rejects_unknown_name():
-    with pytest.raises(SystemExit, match="Unknown internal worker"):
-        worker_runtime.dispatch_internal_worker(
-            ["--internal-worker", "untrusted-worker"]
-        )
+    assert len({worker.name for worker in workers}) == len(workers)
+    assert len({worker.module for worker in workers}) == len(workers)

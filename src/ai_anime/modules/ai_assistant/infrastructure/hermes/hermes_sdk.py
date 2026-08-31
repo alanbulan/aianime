@@ -23,6 +23,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, AsyncIterator, Literal
 
+from ai_anime.modules.ai_assistant.application.ports import (
+    SessionModelRouteRejected,
+)
 from ai_anime.modules.ai_assistant.domain import is_slash_command
 from ai_anime.modules.ai_assistant.infrastructure.hermes.command_responses import (
     help_response,
@@ -661,32 +664,19 @@ class HermesSdkThread:
                 and normalized_effort == self._model_reasoning_effort
             ):
                 return self._model_route_selector, self._model_reasoning_effort
-            reasoning_only = (
-                self._model_route_is_managed
-                and normalized == self._model_route_selector
-                and normalized_effort is not None
+            req_id = await self._send(
+                "session/set_model",
+                {"sessionId": self.id, "modelId": model_id},
             )
-            if reasoning_only:
-                req_id = await self._send(
-                    "session/set_config_option",
-                    {
-                        "sessionId": self.id,
-                        "configId": "reasoning_effort",
-                        "value": normalized_effort,
-                    },
-                )
-            else:
-                req_id = await self._send(
-                    "session/set_model",
-                    {"sessionId": self.id, "modelId": model_id},
-                )
             response, _ = await self._read_until_id(req_id, SESSION_NEW_TIMEOUT)
             if response is None:
                 raise RuntimeError("切换当前对话模型超时")
             if "error" in response:
                 error = response.get("error")
                 detail = error.get("message") if isinstance(error, dict) else error
-                raise RuntimeError(f"切换当前对话模型失败：{detail}")
+                raise SessionModelRouteRejected(
+                    f"切换当前对话模型失败：{detail}"
+                )
             self._model_route_is_managed = True
             self._model_route_selector = normalized
             self._model_reasoning_effort = normalized_effort

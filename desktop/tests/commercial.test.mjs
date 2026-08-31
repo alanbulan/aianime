@@ -775,14 +775,14 @@ test("plain HTTP is restricted to loopback addresses", () => {
   assert.doesNotThrow(
     () =>
       new CommercialApiClient({
-        baseUrl: "https://aianime.122-193-11-199.sslip.io",
+        baseUrl: "https://aianime.mingcw.com",
         sessionStore: new MemorySessionStore(),
       }),
   );
   assert.throws(
     () =>
       new CommercialApiClient({
-        baseUrl: "http://122.193.11.199:8889",
+        baseUrl: "http://203.0.113.10:8889",
         sessionStore: new MemorySessionStore(),
       }),
     (error) =>

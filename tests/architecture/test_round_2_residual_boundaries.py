@@ -1070,10 +1070,10 @@ def test_commercial_gateway_has_one_fixed_production_origin() -> None:
         and "tests" not in path.parts
     )
     assert (
-        'export const COMMERCIAL_GATEWAY_URL = "https://aianime.122-193-11-199.sslip.io";'
+        'export const COMMERCIAL_GATEWAY_URL = "https://aianime.mingcw.com";'
         in production
     )
-    assert production.count("aianime.122-193-11-199.sslip.io") == 1
+    assert production.count("aianime.mingcw.com") == 1
     assert "AI_ANIME_CLOUD_API_URL" not in production
     assert "OFFICIAL_NEWAPI_BASE_URL" not in production
 
@@ -1239,6 +1239,21 @@ def test_third_model_fallback_configuration_cannot_return() -> None:
     assert "nano-banana-pro" not in frontend_settings
     assert "setGrsaiNanoBananaProModel" not in frontend_settings
     assert "gvlm-3.1" not in canvas_registry
+
+
+def test_dotenv_loading_has_one_canonical_entrypoint() -> None:
+    canonical = PACKAGE_ROOT / "shared" / "runtime_dotenv.py"
+    violations = [
+        str(path.relative_to(REPO_ROOT))
+        for path in _python_files(PACKAGE_ROOT)
+        if path != canonical
+        and (
+            "from dotenv import" in path.read_text(encoding="utf-8")
+            or "import dotenv" in path.read_text(encoding="utf-8")
+        )
+    ]
+
+    assert violations == []
 
 
 def test_direct_text_transports_resolve_the_selected_access_model() -> None:

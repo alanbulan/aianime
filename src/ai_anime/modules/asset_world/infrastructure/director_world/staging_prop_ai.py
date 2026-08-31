@@ -9,6 +9,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
+
 from .paths import shape_hint_registry_path, shape_hints_dir
 
 STAGING_PROP_THINKING_LEVEL = "low"
@@ -151,14 +153,6 @@ SHAPE_HINT_DEFAULT_AFFORDANCES: dict[str, list[str]] = {
     "sports_car": ["seatable", "blocking_mass"],
     "pile": ["blocking_mass"],
 }
-
-
-def load_dotenv_files() -> None:
-    try:
-        from dotenv import load_dotenv
-    except Exception:
-        return
-    load_dotenv(override=False)
 
 
 def _load_file_backed_shape_hints() -> dict[str, dict[str, Any]]:
@@ -507,7 +501,7 @@ def normalize_prop(generated: dict[str, Any], request: dict[str, Any]) -> dict[s
 
 
 def generate_ai_staging_prop(request: dict[str, Any]) -> dict[str, Any]:
-    load_dotenv_files()
+    load_project_dotenv()
     from ai_anime.modules.model_usage.public import resolve_model_for_role
 
     model = resolve_model_for_role("TEXT")

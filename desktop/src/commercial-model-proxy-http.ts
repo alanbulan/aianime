@@ -48,6 +48,8 @@ const CLOUD_VIDEO_MEDIA_FIELD_ALIASES = new Map([
 const ASSISTANT_ROUTE_MODEL_PREFIX = "ai-anime-route:";
 const ASSISTANT_AUTOMATIC_MODEL_ID = "ai-anime-assistant-auto";
 const ASSISTANT_REASONING_EFFORT_MARKER = ":reasoning-effort:";
+const MODEL_SELECTOR_MAX_LENGTH = 768;
+const MODEL_SELECTOR_PREFIXES = ["cloud:", "byok:"] as const;
 
 export interface AssistantModelSelection {
   selector: string | null;
@@ -293,13 +295,17 @@ export function normalizeModelSelectorHeader(
   const normalized = String(raw ?? "").trim();
   if (!normalized) return null;
   if (
-    normalized.length > 768 ||
+    normalized.length > MODEL_SELECTOR_MAX_LENGTH ||
     /[\u0000-\u001f\u007f]/u.test(normalized) ||
-    (!normalized.startsWith("cloud:") && !normalized.startsWith("byok:"))
+    !MODEL_SELECTOR_PREFIXES.some((prefix) => normalized.startsWith(prefix))
   ) {
     throw new CommercialApiError("模型路由选择器无效", { status: 422 });
   }
   return normalized;
+}
+
+export function isCloudModelSelector(value: string): boolean {
+  return value.startsWith(MODEL_SELECTOR_PREFIXES[0]);
 }
 
 export function assistantModelSelectorFromBody(

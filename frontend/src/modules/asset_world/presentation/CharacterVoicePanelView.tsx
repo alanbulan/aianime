@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { AccountVoiceLibraryList } from "@/components/assets/account-voice-library-list";
 import { VoiceSourceTypeTabs } from "@/components/assets/voice-source-type-tabs";
 import { isVoiceSourceType } from "@/shared/voice-source/voice-source";
 const SUPPORTED_AUDIO_ACCEPT = ".mp3,.wav,.m4a,.aac,.ogg,audio/*";
@@ -145,52 +146,18 @@ export function CharacterVoicePanelView({
     onVoiceLibraryOpenChange,
   } = controller;
   const [slotDurations, setSlotDurations] = useState<Record<string, number>>({});
-  const voiceLibraryContent = libraryLoading ? (
-    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-      <Loader2 className="size-4 animate-spin" />
-      {t("characters.voiceSamples.libraryLoading")}
-    </div>
-  ) : libraryFailed ? (
-    <p className="rounded-[8px] border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-      {t("characters.voiceSamples.libraryFailed")}
-    </p>
-  ) : libraryOptions.length === 0 ? (
-    <p className="rounded-[8px] border border-border bg-muted p-3 text-sm text-muted-foreground">
-      {t("characters.voiceSamples.libraryEmpty")}
-    </p>
-  ) : (
-    <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-      {libraryOptions.map((option) => {
-        const previewSrc = resolveMediaUrl(option.previewUrl);
-        return (
-          <div
-            key={option.voiceId}
-            className="flex flex-wrap items-center gap-3 rounded-[9px] border border-border bg-muted p-3"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {option.label}
-              </p>
-              {previewSrc && (
-                <PreciseAudioPlayer
-                  src={previewSrc}
-                  className="mt-2 h-7 w-full max-w-[340px]"
-                />
-              )}
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              disabled={pending}
-              onClick={() => void bindLibraryVoice(option.voiceId)}
-              className="h-8 rounded-md px-3 text-xs"
-            >
-              {t("characters.voiceSamples.bind")}
-            </Button>
-          </div>
-        );
-      })}
-    </div>
+  const voiceLibraryContent = (
+    <AccountVoiceLibraryList
+      loading={libraryLoading}
+      failed={libraryFailed}
+      options={libraryOptions}
+      pending={pending}
+      loadingText={t("characters.voiceSamples.libraryLoading")}
+      failedText={t("characters.voiceSamples.libraryFailed")}
+      emptyText={t("characters.voiceSamples.libraryEmpty")}
+      bindText={t("characters.voiceSamples.bind")}
+      onBind={bindLibraryVoice}
+    />
   );
 
   return (

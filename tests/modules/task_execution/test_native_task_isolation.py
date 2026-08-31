@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -69,7 +70,6 @@ def test_child_process_never_recursively_isolates(monkeypatch) -> None:
 
 
 def test_isolated_runner_returns_child_result(tmp_path: Path, monkeypatch) -> None:
-    from ai_anime.modules.asset_world.infrastructure.director_world import worker_runtime
     from ai_anime.modules.task_execution.infrastructure import project_subprocesses
 
     observed: dict[str, object] = {}
@@ -90,7 +90,11 @@ def test_isolated_runner_returns_child_result(tmp_path: Path, monkeypatch) -> No
         )
         return subprocess.CompletedProcess(args, 0)
 
-    monkeypatch.setattr(worker_runtime, "worker_command", fake_worker_command)
+    monkeypatch.setattr(
+        native_task_isolation,
+        "native_project_task_worker_command",
+        lambda: fake_worker_command(native_task_isolation.__name__),
+    )
     monkeypatch.setattr(
         project_subprocesses,
         "run_project_model_subprocess",
@@ -116,10 +120,13 @@ def test_native_crash_is_reported_without_losing_parent_process(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from ai_anime.modules.asset_world.infrastructure.director_world import worker_runtime
     from ai_anime.modules.task_execution.infrastructure import project_subprocesses
 
-    monkeypatch.setattr(worker_runtime, "worker_command", lambda module: ["worker"])
+    monkeypatch.setattr(
+        native_task_isolation,
+        "native_project_task_worker_command",
+        lambda: ["worker"],
+    )
     monkeypatch.setattr(
         project_subprocesses,
         "run_project_model_subprocess",
@@ -136,3 +143,21 @@ def test_native_crash_is_reported_without_losing_parent_process(
             _ctx(tmp_path),
             cancellation_check=lambda **kwargs: None,
         )
+
+
+def test_native_worker_command_supports_source_and_frozen_runtimes(monkeypatch) -> None:
+    monkeypatch.delattr(sys, "frozen", raising=False)
+    monkeypatch.setattr(sys, "executable", "python-test")
+
+    assert native_task_isolation.native_project_task_worker_command() == [
+        "python-test",
+        "-m",
+        native_task_isolation.__name__,
+    ]
+
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    assert native_task_isolation.native_project_task_worker_command() == [
+        "python-test",
+        "--internal-worker",
+        "native-project-task",
+    ]

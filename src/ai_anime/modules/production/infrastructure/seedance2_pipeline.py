@@ -16,6 +16,9 @@ from ai_anime.modules.production.infrastructure.seedance2_assets import (
     build_seedance2_project_assets,
     selected_reference_paths,
 )
+from ai_anime.modules.production.infrastructure.seedance2_prompt import (
+    validate_seedance2_generated_prompt,
+)
 from ai_anime.modules.production.application.seedance2_config import (
     Seedance2I2VMode,
     dump_seedance2_config,
@@ -326,6 +329,11 @@ async def prepare_seedance2_generation_inputs(
         prefix = f"Beat {beat_number} " if beat_number else ""
         raise ValueError(
             f"{prefix}Seedance 2.0 最终提示词为空，请先在 Seedance 2.0 Prompt 面板生成或填写最终提示词"
+        )
+    if config.prompt_source == "generated":
+        validate_seedance2_generated_prompt(
+            final_prompt,
+            source_text=config.prompt_validation_source or None,
         )
     config.final_prompt = final_prompt
     assets = apply_prompt_audio_selection(assets, final_prompt)

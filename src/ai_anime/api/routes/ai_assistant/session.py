@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import WebSocket, WebSocketDisconnect
 
 import ai_anime.api.routes.ai_assistant.scope as chat_scope
@@ -66,6 +68,7 @@ async def _resolve_scope(
 async def _handle_session_model_frame(
     websocket: WebSocket,
     *,
+    user: dict[str, Any],
     username: str,
     current_scope: ChatScope,
     event_type: str,
@@ -103,15 +106,32 @@ async def _handle_session_model_frame(
         )
         return
     try:
+        project_ctx = await chat_access.project_context_for_scope(
+            user,
+            current_scope,
+        )
+        route_paths = (
+            {
+                "project_dir": project_ctx.output_dir,
+                "project_state_dir": project_ctx.state_dir,
+            }
+            if project_ctx is not None
+            else {}
+        )
         selector, reasoning_effort = (
             await hermes_session_models.select(
                 username,
                 current_scope,
                 message.selector,
                 message.reasoning_effort,
+                **route_paths,
             )
             if isinstance(message, SessionModelSetIn)
-            else await hermes_session_models.current(username, current_scope)
+            else await hermes_session_models.current(
+                username,
+                current_scope,
+                **route_paths,
+            )
         )
         await send_json_best_effort(
             websocket,
@@ -189,6 +209,7 @@ async def run_chat_session(websocket: WebSocket) -> None:
             if event_type in {"session.model.get", "session.model.set"}:
                 await _handle_session_model_frame(
                     websocket,
+                    user=user,
                     username=username,
                     current_scope=current_scope,
                     event_type=event_type,

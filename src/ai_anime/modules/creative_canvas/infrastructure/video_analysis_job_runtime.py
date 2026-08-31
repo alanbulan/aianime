@@ -26,6 +26,7 @@ from ai_anime.modules.creative_canvas.domain.video_analysis import (
 from ai_anime.modules.creative_canvas.infrastructure.media_process import (
     require_media_binary,
 )
+from ai_anime.shared.model_response import parse_model_json_response
 
 
 class FfmpegCreativeCanvasVideoAnalysisJobRuntime:
@@ -128,15 +129,8 @@ class FfmpegCreativeCanvasVideoAnalysisJobRuntime:
         if not text:
             raise RuntimeError("Vision model returned no text")
 
-        cleaned = text.strip()
-        if cleaned.startswith("```"):
-            cleaned = "\n".join(
-                line
-                for line in cleaned.splitlines()
-                if not line.strip().startswith("```")
-            ).strip()
         try:
-            analyses = json.loads(cleaned)
+            analyses = parse_model_json_response(text)
         except json.JSONDecodeError as exc:
             (output_dir / "raw_response.txt").write_text(text, encoding="utf-8")
             raise RuntimeError(

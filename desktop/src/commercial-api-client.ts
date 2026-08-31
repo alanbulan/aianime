@@ -67,7 +67,7 @@ export {
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const MAX_CAPTCHA_BYTES = 512 * 1024;
-export const COMMERCIAL_GATEWAY_URL = "https://aianime.122-193-11-199.sslip.io";
+export const COMMERCIAL_GATEWAY_URL = "https://aianime.mingcw.com";
 export const COMMERCIAL_RUNTIME_DEPENDENCIES_URL =
   `${COMMERCIAL_GATEWAY_URL}/api/v1/client/runtime-dependencies`;
 

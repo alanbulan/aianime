@@ -427,7 +427,7 @@ test("missing restored cloud session clears the local workspace session", async 
       removeHandler: (channel) => handlers.delete(channel),
     },
     client: {
-      baseUrl: "http://122.193.11.199:8889",
+      baseUrl: "http://203.0.113.10:8889",
       restoreSession: async () => null,
     },
     deviceIdentity: {},
@@ -546,7 +546,8 @@ test("restored sessions hydrate the complete cloud model access once", async () 
               displayName: "Qwen3 TTS Voice Design",
               operation: "AUDIO_VOICE_DESIGN",
               capabilityJson: JSON.stringify({
-                supportedModes: ["VOICE_DESIGN"],
+                modes: ["SPEECH"],
+                audioModes: ["VOICE_DESIGN"],
               }),
               isDefault: true,
             },
@@ -657,7 +658,7 @@ test("standard authorization hides persisted BYOK details from the renderer", as
       removeHandler: (channel) => handlers.delete(channel),
     },
     client: {
-      baseUrl: "http://122.193.11.199:8889",
+      baseUrl: "http://203.0.113.10:8889",
       currentLicense: async () => ({
         license: {
           id: "license-1",
@@ -718,7 +719,7 @@ test("standard authorization hides persisted BYOK details from the renderer", as
     byokProviders: [],
     cloudModelAssignments: [],
     allowsCustomModels: false,
-    gatewayOrigin: "http://122.193.11.199:8889",
+    gatewayOrigin: "http://203.0.113.10:8889",
   });
 });
 
@@ -754,7 +755,7 @@ test("Bootstrap merges configured BYOK models with cloud SKUs", async () => {
       removeHandler: (channel) => handlers.delete(channel),
     },
     client: {
-      baseUrl: "http://122.193.11.199:8889",
+      baseUrl: "http://203.0.113.10:8889",
       bootstrap: async () => ({
         softwareAuthorization: {
           license: {
@@ -1353,7 +1354,7 @@ test("release checks use Electron-owned version, platform, and architecture", as
       removeHandler: (channel) => handlers.delete(channel),
     },
     client: {
-      baseUrl: "http://122.193.11.199:8889",
+      baseUrl: "http://203.0.113.10:8889",
       checkRelease: async (query) => {
         receivedQuery = query;
         return { available: false, required: false, reason: "up-to-date" };
@@ -4959,7 +4960,7 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "old-client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -4968,7 +4969,7 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   const calls = [];
   let modelAttempts = 0;
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const call = { url: String(url), init };
@@ -5020,7 +5021,7 @@ test("cloud model writes do not blindly replay transient gateway failures", asyn
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -5029,7 +5030,7 @@ test("cloud model writes do not blindly replay transient gateway failures", asyn
   const calls = [];
   let modelAttempts = 0;
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const call = { url: String(url), init };
@@ -5068,7 +5069,7 @@ test("DELETE cloud model mutations keep one idempotency key and are not replayed
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -5076,7 +5077,7 @@ test("DELETE cloud model mutations keep one idempotency key and are not replayed
   };
   const calls = [];
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const call = { url: String(url), init };
@@ -5126,7 +5127,7 @@ test("cloud model catalog reads send the activated device and retry transient fa
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -5135,7 +5136,7 @@ test("cloud model catalog reads send the activated device and retry transient fa
   let modelAttempts = 0;
   const modelHeaders = [];
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const target = String(url);
@@ -5172,7 +5173,7 @@ test("model proxy owns cloud read retries without multiplying client retries", a
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -5180,7 +5181,7 @@ test("model proxy owns cloud read retries without multiplying client retries", a
   };
   let modelAttempts = 0;
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async (url) => {
       const target = String(url);
@@ -5224,7 +5225,7 @@ test("cloud model transport validates protocol-specific request headers", async 
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
@@ -5232,7 +5233,7 @@ test("cloud model transport validates protocol-specific request headers", async 
   };
   const calls = [];
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async (url, init) => {
       const call = { url: String(url), init };
@@ -5298,14 +5299,14 @@ test("cloud model requests reject absolute URLs and credential query parameters"
   const store = new MemorySessionStore();
   store.value = {
     schemaVersion: 1,
-    gatewayOrigin: "https://aianime.122-193-11-199.sslip.io",
+    gatewayOrigin: "https://aianime.mingcw.com",
     accessToken: "client-jwt",
     expiresAtEpochMs: Date.now() + 3_600_000,
     user,
     tenant,
   };
   const client = new CommercialApiClient({
-    baseUrl: "https://aianime.122-193-11-199.sslip.io",
+    baseUrl: "https://aianime.mingcw.com",
     sessionStore: store,
     fetchImpl: async () => Response.json({ ok: true }),
   });

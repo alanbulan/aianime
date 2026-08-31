@@ -7,6 +7,10 @@ import binascii
 import re
 from dataclasses import dataclass
 
+from ai_anime.modules.ai_assistant.domain.model_selector import (
+    normalize_model_selector,
+)
+
 
 MODEL_ROUTE_PREFIX = "ai-anime-route:"
 AUTOMATIC_MODEL_ID = "ai-anime-assistant-auto"
@@ -17,14 +21,6 @@ REASONING_EFFORT_MARKER = ":reasoning-effort:"
 class ModelRouteSelection:
     selector: str | None
     reasoning_effort: str | None
-
-
-def _valid_selector(value: str) -> bool:
-    return (
-        0 < len(value) <= 768
-        and (value.startswith("cloud:") or value.startswith("byok:"))
-        and not any(ord(char) < 32 or ord(char) == 127 for char in value)
-    )
 
 
 def _valid_reasoning_effort(value: str) -> bool:
@@ -54,8 +50,8 @@ def _decode_token(value: str) -> str | None:
 
 def encode_model_route(selector: str, reasoning_effort: str | None = None) -> str:
     """Return an opaque model id that survives Hermes provider parsing."""
-    normalized = str(selector or "").strip()
-    if not _valid_selector(normalized):
+    normalized = normalize_model_selector(selector)
+    if normalized is None:
         raise ValueError("模型路由选择器无效")
     model_id = f"{MODEL_ROUTE_PREFIX}{_encode_token(normalized)}"
     return _with_reasoning_effort(model_id, reasoning_effort)
@@ -92,8 +88,11 @@ def decode_model_selection(value: object) -> ModelRouteSelection | None:
         payload, separator, remainder = payload_and_suffix.partition(
             REASONING_EFFORT_MARKER
         )
-        selector = _decode_token(payload.strip())
-        if selector is None or not _valid_selector(selector):
+        try:
+            selector = normalize_model_selector(_decode_token(payload.strip()))
+        except ValueError:
+            return None
+        if selector is None:
             return None
         suffix = remainder if separator else ""
     else:

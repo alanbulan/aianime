@@ -30,12 +30,31 @@ class Seedance2PromptGeneration:
 Seedance2PromptComposer = Callable[..., Awaitable[str]]
 
 
+_CYRILLIC_RE = re.compile(r"[\u0400-\u04ff]")
+_SUSPICIOUS_TRAILING_FRAGMENT_RE = re.compile(
+    r"(?P<fragment>_[A-Za-z0-9][A-Za-z0-9_-]{0,23})[。！？!?]?\s*$"
+)
+_PROTOCOL_RESERVED_MARKERS = (
+    "seed:tool_call",
+    "tool_call_never_used",
+    "function_never_used",
+    "thinking_never_used",
+    "reflection_never_used",
+    "<function",
+    "<doubaothinking",
+    "<reflection",
+    "<|fcresponsebegin|>",
+    "<|fcresponseend|>",
+)
+
+
 SEEDANCE2_COMPOSER_SYSTEM_PROMPT = """你是 Seedance 2.0 图生视频提示词撰写器。
 你负责根据固定资产清单、分镜上下文、用户写作要求和规则草稿，写出最终 Seedance 2.0 prompt。
 资产顺序已经由系统决定，你只能使用资产清单中已有的图片1、音频1等编号。
 不要新增图片或音频编号，不要重排编号，不要输出 @ 符号。
 不要为了覆盖资产清单而强行使用所有素材；只引用对当前镜头有明确帮助的素材。
 时长、分辨率、画幅、真人审核等请求参数由 API 单独发送，不要写进 prompt。
+不得混入输入中不存在的外语词、协议保留标记、占位符或随机尾部片段。
 最终 prompt 使用中文，直接写给视频模型，不解释生成过程。"""
 
 
@@ -129,6 +148,40 @@ def normalize_seedance2_editor_prompt(prompt: str) -> str:
         .replace("@音频", "音频")
         .replace("@视频", "视频")
     )
+
+
+def validate_seedance2_generated_prompt(
+    prompt: str,
+    *,
+    source_text: str | None,
+) -> None:
+    """Reject model-output contamination that was not present in source inputs."""
+
+    text = _text(prompt)
+    source = _text(source_text)
+    if not text:
+        raise ValueError("Seedance2 AI 提示词为空")
+    if "\ufffd" in text:
+        raise ValueError("Seedance2 AI 提示词包含 Unicode 替换字符")
+
+    lowered = text.lower()
+    marker = next(
+        (item for item in _PROTOCOL_RESERVED_MARKERS if item in lowered),
+        "",
+    )
+    if marker:
+        raise ValueError(f"Seedance2 AI 提示词包含协议保留标记：{marker}")
+
+    if source_text is not None:
+        if _CYRILLIC_RE.search(text) and not _CYRILLIC_RE.search(source):
+            raise ValueError("Seedance2 AI 提示词包含输入中不存在的西里尔文字")
+
+        trailing = _SUSPICIOUS_TRAILING_FRAGMENT_RE.search(text)
+        if trailing and trailing.group("fragment") not in source:
+            raise ValueError(
+                "Seedance2 AI 提示词包含异常尾部片段："
+                f"{trailing.group('fragment')}"
+            )
 
 
 def _selected_assets(assets: list[Any] | None) -> list[Any]:
@@ -655,6 +708,10 @@ async def generate_seedance2_prompt(
         prompt = normalize_seedance2_editor_prompt(prompt)
         if not prompt:
             raise ValueError("AI composer returned an empty prompt")
+        validate_seedance2_generated_prompt(
+            prompt,
+            source_text=draft_prompt,
+        )
         return Seedance2PromptGeneration(
             prompt=prompt,
             used_ai=True,

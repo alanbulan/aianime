@@ -65,7 +65,6 @@ import {
   resolveImageModelResolutions,
   selectImageModel,
 } from '../application/imageModelCatalogProjection';
-import { resolveModelPriceDisplay } from '../application/modelPriceDisplay';
 import {
   buildGenerationErrorReport,
   createReferenceImagePlaceholders,
@@ -79,6 +78,7 @@ import {
   resolveImageDisplayUrl,
 } from '../domain/imageData';
 import { useReferenceMentionSync } from './useReferenceMentionSync';
+import { useNodePriceDisplay } from './useNodePriceDisplay';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import type {
   GrsaiCreditTierId,
@@ -222,7 +222,7 @@ export function createUseImageEditNodeController({
     width,
     height,
   }: ImageEditNodeControllerOptions) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const updateNodeInternals = useUpdateNodeInternals();
   const setSelectedNode = useStore((state) => state.setSelectedNode);
   const updateNodeData = useStore((state) => state.updateNodeData);
@@ -358,67 +358,16 @@ export function createUseImageEditNodeController({
   const requestResolution = selectedModel?.resolveRequest({
     referenceImageCount: incomingImages.length,
   }) ?? { requestModel: '', modeLabel: '' };
-  const resolvedPriceDisplay = useMemo(
-    () =>
-      showNodePrice && selectedModel
-        ? resolveModelPriceDisplay(selectedModel, {
-            resolution: selectedResolution.value,
-            extraParams: effectiveExtraParams,
-            language: i18n.language,
-            settings: {
-              displayCurrencyMode: priceDisplayCurrencyMode,
-              usdToCnyRate,
-              preferDiscountedPrice,
-              grsaiCreditTierId,
-            },
-          })
-        : null,
-    [
-      effectiveExtraParams,
-      grsaiCreditTierId,
-      i18n.language,
-      preferDiscountedPrice,
-      priceDisplayCurrencyMode,
-      selectedModel,
-      selectedResolution.value,
-      showNodePrice,
-      usdToCnyRate,
-    ],
-  );
-  const resolvedPriceTooltip = useMemo(() => {
-    if (!resolvedPriceDisplay) return undefined;
-    const lines = [resolvedPriceDisplay.label];
-    if (resolvedPriceDisplay.nativeLabel) {
-      lines.push(
-        t('pricing.nativePrice', {
-          value: resolvedPriceDisplay.nativeLabel,
-        }),
-      );
-    }
-    if (resolvedPriceDisplay.originalLabel) {
-      lines.push(
-        t('pricing.originalPrice', {
-          value: resolvedPriceDisplay.originalLabel,
-        }),
-      );
-    }
-    if (resolvedPriceDisplay.pointsCost) {
-      lines.push(
-        t('pricing.pointsCost', { count: resolvedPriceDisplay.pointsCost }),
-      );
-    }
-    if (resolvedPriceDisplay.grsaiCreditTier) {
-      lines.push(
-        t('pricing.grsaiTier', {
-          price: resolvedPriceDisplay.grsaiCreditTier.priceCny.toFixed(2),
-          credits: resolvedPriceDisplay.grsaiCreditTier.credits.toLocaleString(
-            i18n.language.startsWith('zh') ? 'zh-CN' : 'en-US',
-          ),
-        }),
-      );
-    }
-    return lines.join('\n');
-  }, [i18n.language, resolvedPriceDisplay, t]);
+  const { resolvedPriceDisplay, resolvedPriceTooltip } = useNodePriceDisplay({
+    show: showNodePrice,
+    model: selectedModel,
+    resolution: selectedResolution.value,
+    extraParams: effectiveExtraParams,
+    displayCurrencyMode: priceDisplayCurrencyMode,
+    usdToCnyRate,
+    preferDiscountedPrice,
+    grsaiCreditTierId,
+  });
   const supportedAspectRatioValues = useMemo(
     () => (selectedModel?.aspectRatios ?? []).map((item) => item.value),
     [selectedModel],

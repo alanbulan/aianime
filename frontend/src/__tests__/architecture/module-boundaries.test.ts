@@ -5,17 +5,15 @@ import {
   readFileSync as readFileSyncStrict,
 } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import * as ts from "typescript/unstable/ast";
-import { API } from "typescript/unstable/sync";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+
+import { scanImportSpecifiers } from "./source-inspection";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
 const MODULES_ROOT = resolve(SRC_ROOT, "modules");
 const sourceFilesCache = new Map<string, string[]>();
 const sourceTextCache = new Map<string, string>();
 const importSpecifiersCache = new Map<string, string[]>();
-const typeScriptApi = new API({ cwd: process.cwd() });
-let typeScriptSnapshot: ReturnType<API["updateSnapshot"]> | undefined;
 const CANVAS_SHELL_INTERNAL =
   "@/modules/creative_canvas/presentation/canvas-shell/internal";
 
@@ -56,21 +54,6 @@ function sourceSection(path: string, start: string, end?: string): string {
   );
 }
 
-function parseSourceFile(path: string): ts.SourceFile {
-  typeScriptSnapshot ??= typeScriptApi.updateSnapshot({
-    openFiles: [resolve(SRC_ROOT, "main.tsx")],
-  });
-  const project = typeScriptSnapshot.getDefaultProjectForFile(path);
-  const source = project?.program.getSourceFile(path);
-  if (!source) throw new Error(`TypeScript could not parse ${path}`);
-  return source;
-}
-
-afterAll(() => {
-  typeScriptSnapshot?.dispose();
-  typeScriptApi.close();
-});
-
 function importSpecifiers(path: string): string[] {
   const cached = importSpecifiersCache.get(path);
   if (cached) return cached;
@@ -78,33 +61,16 @@ function importSpecifiers(path: string): string[] {
     importSpecifiersCache.set(path, []);
     return [];
   }
-  const source = parseSourceFile(path);
-  const imports: string[] = [];
-  const visit = (node: ts.Node) => {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    ) {
-      const specifier = node.moduleSpecifier.text;
-      imports.push(
-        relativeSource(path).startsWith(
-          "modules/creative_canvas/presentation/canvas-shell/",
-        ) && specifier === CANVAS_SHELL_INTERNAL
-          ? "@/modules/creative_canvas/public"
-          : specifier,
-      );
-    } else if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteral(node.arguments[0])
-    ) {
-      imports.push(node.arguments[0].text);
-    }
-    node.forEachChild(visit);
-  };
-  visit(source);
+  const imports = scanImportSpecifiers(readFileSync(path, "utf8"), {
+    includeDynamicImports: true,
+    jsx: path.endsWith(".tsx"),
+  }).map((specifier) =>
+    relativeSource(path).startsWith(
+      "modules/creative_canvas/presentation/canvas-shell/",
+    ) && specifier === CANVAS_SHELL_INTERNAL
+      ? "@/modules/creative_canvas/public"
+      : specifier,
+  );
   importSpecifiersCache.set(path, imports);
   return imports;
 }

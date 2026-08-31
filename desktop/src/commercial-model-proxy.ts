@@ -32,6 +32,7 @@ import {
   assertModelResponseContract,
   assistantModelSelectionFromBody,
   inferModelRole,
+  isCloudModelSelector,
   isRetryableRequestFailure,
   isTimeoutAbort,
   isVideoCreatePath,
@@ -346,7 +347,7 @@ export class CommercialModelProxy {
     }
     const configured = configuredRoutes(this.routing, role);
     const selectable =
-      selector?.startsWith("cloud:")
+      selector && isCloudModelSelector(selector)
         ? uniqueRoutes([
             ...configured,
             ...configuredExplicitCloudRoutes(this.routing, role),

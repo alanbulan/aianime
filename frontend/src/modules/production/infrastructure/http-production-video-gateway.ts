@@ -468,7 +468,11 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
         p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/seedance2-prompt/generate`,
         {
           json: {
-            manual_prompt_reference: command.manualPromptReference ?? "",
+            ...(command.manualPromptReference === undefined
+              ? {}
+              : {
+                  manual_prompt_reference: command.manualPromptReference,
+                }),
             prompt_guidance: command.promptGuidance ?? "",
           },
           throwHttpErrors: false,

@@ -12,6 +12,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
+
 
 class BlockWorldUnavailable(RuntimeError):
     """Raised when the optional Node.js runtime needed for voxel build is missing."""
@@ -291,18 +293,6 @@ function buildCreation(startX, startY, startZ) {
 }
 </code>
 """
-
-
-def load_dotenv_files() -> None:
-    try:
-        from dotenv import load_dotenv
-    except Exception:
-        return
-    # Load .env from the current working directory (the project run context) and
-    # fall back to dotenv's default upward search. The previous repo-root anchor
-    # (BuilderGPT/..) no longer applies after migration into the package.
-    load_dotenv(Path.cwd() / ".env", override=False)
-    load_dotenv(override=False)
 
 
 def fresh_scene_palette() -> dict[str, dict[str, str]]:
@@ -843,7 +833,7 @@ def main() -> None:
     parser.add_argument("--max-y", type=int, default=64)
     args = parser.parse_args()
 
-    load_dotenv_files()
+    load_project_dotenv()
     from ai_anime.modules.model_usage.public import load_model_access_from_stdin
 
     load_model_access_from_stdin()

@@ -11,6 +11,10 @@ from ai_anime.modules.ai_assistant.domain import ChatScope
 ChatEventSink = Callable[[dict[str, Any]], Awaitable[None]]
 
 
+class SessionModelRouteRejected(RuntimeError):
+    """The runtime rejected a persisted per-conversation model route."""
+
+
 class HermesThread(Protocol):
     def stream(
         self,
@@ -66,6 +70,37 @@ class HermesRuntime(Protocol):
         project_id: str | None,
         conversation_id: str,
     ) -> bool: ...
+
+
+class SessionModelRouteStore(Protocol):
+    def load_model_route(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> tuple[str | None, str | None] | None: ...
+
+    def save_model_route(
+        self,
+        username: str,
+        scope: ChatScope,
+        selector: str | None,
+        reasoning_effort: str | None,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> None: ...
+
+    def clear_model_route(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> None: ...
 
 
 class ChatHistory(Protocol):

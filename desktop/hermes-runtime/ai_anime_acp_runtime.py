@@ -13,6 +13,8 @@ from typing import Any
 _AUTOMATIC_MODEL_ID = "ai-anime-assistant-auto"
 _MODEL_ROUTE_PREFIX = "ai-anime-route:"
 _REASONING_EFFORT_MARKER = ":reasoning-effort:"
+_MODEL_SELECTOR_MAX_LENGTH = 768
+_MODEL_SELECTOR_PREFIXES = ("cloud:", "byok:")
 _REASONING_CONFIG_ID = "reasoning_effort"
 _PATCH_MARKER = "_ai_anime_session_config_patch"
 
@@ -47,8 +49,8 @@ def _encode_token(value: str) -> str:
 
 def _valid_selector(value: str) -> bool:
     return (
-        0 < len(value) <= 768
-        and (value.startswith("cloud:") or value.startswith("byok:"))
+        0 < len(value) <= _MODEL_SELECTOR_MAX_LENGTH
+        and value.startswith(_MODEL_SELECTOR_PREFIXES)
         and not any(ord(char) < 32 or ord(char) == 127 for char in value)
     )
 
@@ -70,7 +72,10 @@ def _parse_assistant_route_model(value: object) -> _AssistantRouteModel | None:
         )
         encoded_selector = payload.strip()
         selector = _decode_token(encoded_selector)
-        if selector is None or not _valid_selector(selector):
+        if selector is None:
+            return None
+        selector = selector.strip()
+        if not _valid_selector(selector):
             return None
         base_model_id = (
             f"{model_id[:route_marker]}{_MODEL_ROUTE_PREFIX}{encoded_selector}"

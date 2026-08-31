@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position, useViewport } from '@xyflow/react';
 import {
@@ -49,6 +48,10 @@ import type {
 } from '../application/generateCanvasRedraw';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 import { buildRedHighlightMaskBlob } from '../application/maskHighlight';
+import {
+  useMaskPainting,
+  type MaskPaintingTool,
+} from './useMaskPainting';
 
 import { CreditCostPill } from '@/components/credit-visual';
 import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
@@ -96,8 +99,6 @@ export type EraseOverlayUploadCanvasAsset = (
   filename: string,
 ) => Promise<{ filename: string; url: string }>;
 
-type Tool = 'brush' | 'rect' | 'eraser';
-
 const ASPECT_RATIO_OPTIONS: readonly CanvasRedrawAspectRatio[] = [
   '16:9',
   '9:16',
@@ -119,8 +120,6 @@ const NUM_IMAGE_OPTIONS = [1, 2, 3, 4] as const;
 const BRUSH_MIN = 4;
 const BRUSH_MAX = 200;
 const DEFAULT_BRUSH = 40;
-const PAINT_FILL = 'rgba(239, 68, 68, 0.55)';
-const PAINT_STROKE = 'rgba(239, 68, 68, 0.55)';
 const RESULT_STACK_GAP = 24;
 const ERASE_TOOLBAR_CLASS =
   'flex items-center gap-1 rounded-full border border-border bg-popover/95 px-1.5 py-1 shadow-xl backdrop-blur-md';
@@ -156,14 +155,11 @@ export function createEraseOverlay({
     const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const sourceImageRef = useRef<HTMLImageElement | null>(null);
-    const drawingRef = useRef(false);
-    const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-    const rectStartRef = useRef<{ x: number; y: number } | null>(null);
     const undoStackRef = useRef<ImageData[]>([]);
     const redoStackRef = useRef<ImageData[]>([]);
     const baseUrlRef = useRef(imageSource.split('?')[0]);
 
-    const [tool, setTool] = useState<Tool>('brush');
+    const [tool, setTool] = useState<MaskPaintingTool>('brush');
     const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH);
     const [imageDims, setImageDims] = useState<{ w: number; h: number } | null>(null);
     const [hasMask, setHasMask] = useState(false);
@@ -241,23 +237,6 @@ export function createEraseOverlay({
       return () => window.removeEventListener('keydown', onKey);
     }, [onClose, submitting]);
 
-    const recomputeHasMask = useCallback(() => {
-      const canvas = maskCanvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!canvas || !ctx) {
-        setHasMask(false);
-        return;
-      }
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      for (let i = 3; i < data.length; i += 16 * 4) {
-        if (data[i] > 8) {
-          setHasMask(true);
-          return;
-        }
-      }
-      setHasMask(false);
-    }, []);
-
     const syncHistoryFlags = useCallback(() => {
       setCanUndo(undoStackRef.current.length > 0);
       setCanRedo(redoStackRef.current.length > 0);
@@ -278,6 +257,18 @@ export function createEraseOverlay({
       redoStackRef.current = []; // 新操作让 redo 失效
       syncHistoryFlags();
     }, [snapshot, syncHistoryFlags]);
+
+    const { onPointerDown, onPointerMove, onPointerUp, recomputeHasMask } =
+      useMaskPainting({
+        maskCanvasRef,
+        previewCanvasRef,
+        tool,
+        brushSize,
+        enabled: !submitting && Boolean(imageDims),
+        beforeStroke: pushUndoSnapshot,
+        onMaskChange: setHasMask,
+        stopPointerPropagation: true,
+      });
 
     const handleUndo = useCallback(() => {
       const canvas = maskCanvasRef.current;
@@ -304,159 +295,6 @@ export function createEraseOverlay({
       syncHistoryFlags();
       recomputeHasMask();
     }, [recomputeHasMask, snapshot, syncHistoryFlags]);
-
-    const canvasToImageCoords = useCallback((clientX: number, clientY: number) => {
-      const canvas = previewCanvasRef.current;
-      if (!canvas) return null;
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return null;
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY,
-      };
-    }, []);
-
-    const drawDot = useCallback(
-      (x: number, y: number) => {
-        const canvas = maskCanvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (!canvas || !ctx) return;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        if (tool === 'eraser') {
-          ctx.globalCompositeOperation = 'destination-out';
-        } else {
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.fillStyle = PAINT_FILL;
-        }
-        ctx.beginPath();
-        ctx.arc(x, y, brushSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-      },
-      [brushSize, tool],
-    );
-
-    const drawLine = useCallback(
-      (from: { x: number; y: number }, to: { x: number; y: number }) => {
-        const canvas = maskCanvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (!canvas || !ctx) return;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = brushSize;
-        if (tool === 'eraser') {
-          ctx.globalCompositeOperation = 'destination-out';
-          ctx.strokeStyle = 'rgba(0,0,0,1)';
-        } else {
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.strokeStyle = PAINT_STROKE;
-        }
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
-        ctx.stroke();
-      },
-      [brushSize, tool],
-    );
-
-    const drawRectPreview = useCallback(
-      (start: { x: number; y: number }, end: { x: number; y: number }) => {
-        const canvas = previewCanvasRef.current;
-        const ctx = canvas?.getContext('2d');
-        if (!canvas || !ctx) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = PAINT_FILL;
-        ctx.strokeStyle = 'rgba(239,68,68,0.85)';
-        ctx.lineWidth = Math.max(1, brushSize / 8);
-        const x = Math.min(start.x, end.x);
-        const y = Math.min(start.y, end.y);
-        const w = Math.abs(end.x - start.x);
-        const h = Math.abs(end.y - start.y);
-        ctx.fillRect(x, y, w, h);
-        ctx.strokeRect(x, y, w, h);
-      },
-      [brushSize],
-    );
-
-    const commitRect = useCallback(
-      (start: { x: number; y: number }, end: { x: number; y: number }) => {
-        const maskCanvas = maskCanvasRef.current;
-        const previewCanvas = previewCanvasRef.current;
-        const maskCtx = maskCanvas?.getContext('2d');
-        const previewCtx = previewCanvas?.getContext('2d');
-        if (!maskCanvas || !maskCtx || !previewCanvas || !previewCtx) return;
-        const x = Math.min(start.x, end.x);
-        const y = Math.min(start.y, end.y);
-        const w = Math.abs(end.x - start.x);
-        const h = Math.abs(end.y - start.y);
-        if (w < 2 || h < 2) {
-          previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-          return;
-        }
-        maskCtx.globalCompositeOperation = 'source-over';
-        maskCtx.fillStyle = PAINT_FILL;
-        maskCtx.fillRect(x, y, w, h);
-        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-      },
-      [],
-    );
-
-    const onPointerDown = useCallback(
-      (event: ReactPointerEvent<HTMLCanvasElement>) => {
-        if (submitting || !imageDims) return;
-        event.preventDefault();
-        event.stopPropagation();
-        (event.target as HTMLCanvasElement).setPointerCapture(event.pointerId);
-        const coord = canvasToImageCoords(event.clientX, event.clientY);
-        if (!coord) return;
-        pushUndoSnapshot();
-        drawingRef.current = true;
-        lastPointRef.current = coord;
-        if (tool === 'rect') {
-          rectStartRef.current = coord;
-        } else {
-          drawDot(coord.x, coord.y);
-        }
-      },
-      [canvasToImageCoords, drawDot, imageDims, pushUndoSnapshot, submitting, tool],
-    );
-
-    const onPointerMove = useCallback(
-      (event: ReactPointerEvent<HTMLCanvasElement>) => {
-        if (!drawingRef.current) return;
-        const coord = canvasToImageCoords(event.clientX, event.clientY);
-        if (!coord) return;
-        if (tool === 'rect') {
-          if (rectStartRef.current) drawRectPreview(rectStartRef.current, coord);
-        } else {
-          if (lastPointRef.current) drawLine(lastPointRef.current, coord);
-          lastPointRef.current = coord;
-        }
-      },
-      [canvasToImageCoords, drawLine, drawRectPreview, tool],
-    );
-
-    const onPointerUp = useCallback(
-      (event: ReactPointerEvent<HTMLCanvasElement>) => {
-        if (!drawingRef.current) return;
-        drawingRef.current = false;
-        try {
-          (event.target as HTMLCanvasElement).releasePointerCapture(event.pointerId);
-        } catch {
-          // pointer may already be released
-        }
-        if (tool === 'rect' && rectStartRef.current) {
-          const coord = canvasToImageCoords(event.clientX, event.clientY) ?? rectStartRef.current;
-          commitRect(rectStartRef.current, coord);
-          rectStartRef.current = null;
-        }
-        lastPointRef.current = null;
-        recomputeHasMask();
-      },
-      [canvasToImageCoords, commitRect, recomputeHasMask, tool],
-    );
 
     // 视觉模型读取 RGB；导出源图并用均匀半透明红标注编辑区域。
     const buildMaskBlob = useCallback(async (): Promise<Blob> => {

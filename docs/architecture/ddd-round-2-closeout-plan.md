@@ -10,7 +10,7 @@
 >
 > 契约参考：`F:\Code\Work\AI漫剧\client-api-integration.zh-CN.md`、`F:\Code\Work\AI漫剧\commercial-debug`
 >
-> 当前唯一 Gateway：`https://aianime.122-193-11-199.sslip.io`
+> 当前唯一 Gateway：`https://aianime.mingcw.com`
 >
 > 历史计划：[`ddd-refactoring-plan.md`](./ddd-refactoring-plan.md)
 
@@ -187,7 +187,7 @@
 | 第 966 批验证记录 | 渲染端更新安装流程接入制品下载/校验 IPC + release artifactId 投影 | 桌面 `checkRelease` IPC 经 `selectReleaseArtifactId` 按当前平台/架构从 `version.artifacts` 选出构件 id 后返回；新增 `desktop:commercial:install-artifact` IPC：仅接受 `os.tmpdir()/ai-anime-artifact-*` 下的路径、二次 SHA-256 比对后由主进程 detached 启动安装器。前端 Platform Release 网关新增 `downloadArtifact`/`installArtifact`，`CommercialReleaseStatus` 增加 `artifactId`；`VersionUpdateDialog` 与 `CommercialUpdateRequired` 增加「下载并安装」主操作与下载中/安装中/失败状态，失败可重试。zh/en 文案补齐。验证：桌面契约 48 项（新增 artifactId 投影 2 项）、前端 Platform Release 定向 23 项、架构门禁 350 项、前端/桌面 TypeScript 与 `git diff --check` 全部通过。剩余 R5/R6 仍缺网关真实服务端联调与制品公钥配置，R7 干净环境判定继续作为下一阶段，第二轮 GOAL 仍未完成 |
 | 第 967 批验证记录 | 离线租约验签落地（R4/R5 离线验签客户端能力） | 新增 `commercial-lease.ts`：按参考合同对 `payloadJson` 原始 UTF-8 字节做 Ed25519 验签，校验 `keyId`、有效期、签名载荷内 `editionType`/`allowsCustomModels` 及可选的许可/设备摘要；任一失败返回明确原因。`registerCommercialIpc` 新增 `leaseSigningKeys`/`devicePublicKeyHash` 注入点，`publishAuthorization` 与 bootstrap 在投影后执行验签并把 `lease.verifiedOffline` 置真；未配置内置公钥时保持 false（fail-closed），渲染进程仍不接触 payloadJson/signature。main 当前注入空密钥表，公钥配置后同一路径生效。桌面契约套件 55 项（新增 7 项验签用例）、TypeScript 与 `git diff --check` 全部通过。剩余 R5/R6 仍缺网关真实服务端联调、制品与许可签名公钥配置，R7 干净环境判定继续作为下一阶段，第二轮 GOAL 仍未完成 |
 | 第 968 批验证记录 | R7 干净环境代理判定：全新 venv 复跑后端门禁 | 在 `%TEMP%/ai-anime-r7-<uuid>` 创建全新 CPython 3.12.10 venv，`uv pip install -e . --group dev`（全新 site-packages，46 秒）后复跑：`tests/architecture` 184/184 全绿，`tests/contract` 82 通过、1 项既有条件跳过。证明后端在全新解释器与全新依赖安装路径下可复现全部门禁（部署环境代理，非独立机器）。前端依赖沿用锁定 node_modules 的 861 文件 3998 项证据；桌面契约 55 项。剩余 R5/R6 网关真实服务端联调、制品/许可签名公钥配置与独立机器 R7 复跑继续作为下一阶段，第二轮 GOAL 仍未完成 |
-| 第 969 批验证记录 | Gateway 地址切换为 `https://aianime.122-193-11-199.sslip.io` | `COMMERCIAL_GATEWAY_URL` 改为 HTTPS 域名（唯一生产地址，无服务器选择）；旧 `http://122.193.11.199:8889` 不再属于批准明文例外，架构门禁固定新常量与新 host 唯一计数；受影响的云端模型/明文传输测试夹具同步切到新地址，其余代码与行为不变。桌面契约 55 项、后端架构 184 项、桌面 TypeScript 与 `git diff --check` 全部通过 |
+| 第 969 批验证记录 | Gateway 地址切换为受信 HTTPS 域名 | `COMMERCIAL_GATEWAY_URL` 改为当时的唯一 HTTPS 生产地址（无服务器选择）；旧明文 IP 地址不再属于批准例外，架构门禁固定常量与 host 唯一计数；受影响的云端模型/明文传输测试夹具同步切换，其余代码与行为不变。桌面契约 55 项、后端架构 184 项、桌面 TypeScript 与 `git diff --check` 全部通过 |
 | 第 970 批验证记录 | 前端 modules 反向依赖收敛：任务控制器簇、通用 hooks、stores、mention-textarea 归位 | `TaskControllerProvider` 与五个任务 hooks（useTaskController/useStageTask/useScopedTaskBatchInvalidation/useTaskStream/useEpisodeImageTaskInvalidation）迁入 `modules/task_execution/presentation` 并经 public 导出；通用 hooks（media-query/now/debounced/escape-to-close/responsive-columns/reduced-motion/transient-confirmation/resizable-pane）迁入 `shared/hooks`；beats 路由参数 hook 归入 `modules/narrative_planning`；stores 按域归位（appStore→project_workspace、settingsStore→creative_canvas），aspect/region/episode-workbench/save-status/seen-pool 留在 `shared/stores`，依赖的 aspect-ratio/cluster-config/localStorageQuota 工具迁入 shared；mention-textarea 整体迁入 `modules/mention_textarea`。`frontend/src/hooks`、`frontend/src/stores` 已清空，`modules` 对 `@/hooks`、`@/stores`、非 viewer-kit 的 `@/features` 反向依赖为 0（新增残余门禁固定）。逐批 tsc、受影响回归与架构门禁全绿 |
 | 第 971 批验证记录 | 完整前端套件终验 + 防回潮断言 | `npx vitest run` 861 个文件 4000 项：3999 通过，唯一失败为 `app-module-initialization` 路由树导入在满负载下的 30 秒超时，单独复跑 24 秒通过（负载型超时，非回归）。新增 `keeps modules independent from legacy frontend worlds` 断言：modules 不得 import `@/hooks/`、`@/stores/`、或除 `@/features/viewer-kit/public` 外的 `@/features/`。架构门禁 397 项全绿。剩余结构项：后端 modules→顶层遗留包（generators/seedance2_i2v/director_world 等）收敛仍待执行；viewer-kit 作为经 public 消费的共享特性保留 |
 | 第 972 批验证记录 | 后端第一批归位：`chat/`（Hermes 运行时）迁入 `modules/ai_assistant/infrastructure/hermes` | 8 个文件（hermes_pool/hermes_sdk/hermes_workspace/ai_anime_mcp/runtime_config/service）整体迁入 ai_assistant infrastructure，仓库内 `ai_anime.chat.*` 引用归零（含 hermes 单测与分层边界门禁的路径/禁止标记同步迁移）；顺带清理迁移文件内的两处 F841 死赋值。后端架构 184/184、契约 82+1 跳过、hermes 单测 36 项、Ruff 与 compileall 全部通过。顶层遗留包剩余：generators/seedance2_i2v/director_world/verification/ports/cognee/agents/security/utils（下一批继续） |
@@ -207,7 +207,7 @@
 | 第 986 批验证记录 | Creative Canvas 前端唯一模块边界收口：features/canvas 整体迁入 Creative Canvas presentation | 40 个文件（Canvas 装配壳、18 个节点入口、nodes/index 注册表、20 个 ui 适配层/浮层及 2 个测试）`git mv` 至 `modules/creative_canvas/presentation/canvas-shell`；app 壳、`__tests__/features/canvas` 与 viewer-kit 契约测试的导入/mock 全部切换到模块路径；架构门禁的 entryPath/registryPath/declarationOwners/颜色预算同步到新路径，旧目录不回流上限收紧到 0，legacy Canvas 消费者白名单清空；`features/` 仅剩 viewer-kit。前端架构门禁 398、全量 vitest 861 文件 4000 项、tsc、`git diff --check` 全部通过 |
 | 第 987 批验证记录 | 锁定环境复验与文档完成状态校正 | 桌面 TypeScript 通过、桌面契约 55 项全过；后端架构/定向 212 项、契约 82+1 跳过、Ruff、compileall 全绿（前端全量 861 文件 4000 项与架构 398 项已随第 986 批记录）。文档结论、R1 阶段表/状态段与当前检查点同步为 Creative Canvas 唯一边界已完成、features/ 仅剩 viewer-kit、后端顶层单文件收敛登记为后续项 |
 | 第 988 批验证记录 | 主计划文档与 README 完成状态/目录同步 | `ddd-refactoring-plan.md` 顶部状态、阶段 8 行与阶段 10 行按当前代码校正（阶段 8 已完成、阶段 10 待 R7）；README 领域地图去掉 task-center/features/canvas/features/freezone/features/superchat 旧所有者，目录树移除 task-center/bootstrap/ports/task_backend/generators 等已删除路径，后端树改为 modules/shared/styles/desktop_server/config 等当前结构。纯文档变更，无代码与门禁影响 |
-| 第 989 批验证记录 | 真实网关只读联调探测（无凭据） | `https://aianime.122-193-11-199.sslip.io` 在线且为真实服务：`/api/v1/auth/captcha` 缺 `tenantCode` 时返回 400 `{"message":"field \"tenantCode\" is not set"}`，且不识别查询参数（与集成文档的 GET query 契约不一致）；`/api/v1/client/auth/login` POST 校验真实，`platform` 租户返回“租户不存在或服务已到期，请核对租户编码或联系管理员”；`/api/v1/client/bootstrap`、`/api/v1/client/releases/check` 无 token 返回 401；文档中的 `/api/v1/config/public`、`/api/v1/config/logo` 在真实服务端为 404，尚未实现；错误信封为 `{"message": ...}`。需后端提供真实租户编码、测试账号/验证码与签名公钥后继续登录→Bootstrap→许可→目录全链联调 |
+| 第 989 批验证记录 | 当时唯一 Gateway 的真实网关只读联调探测（无凭据） | 联调时该 Gateway 在线且为真实服务：`/api/v1/auth/captcha` 缺 `tenantCode` 时返回 400 `{"message":"field \"tenantCode\" is not set"}`，且不识别查询参数（与集成文档的 GET query 契约不一致）；`/api/v1/client/auth/login` POST 校验真实，`platform` 租户返回“租户不存在或服务已到期，请核对租户编码或联系管理员”；`/api/v1/client/bootstrap`、`/api/v1/client/releases/check` 无 token 返回 401；文档中的 `/api/v1/config/public`、`/api/v1/config/logo` 在真实服务端为 404，尚未实现；错误信封为 `{"message": ...}`。需后端提供真实租户编码、测试账号/验证码与签名公钥后继续登录→Bootstrap→许可→目录全链联调 |
 | 第 990 批验证记录 | 清理确认无引用的残余文件与遗留判断 | 删除后端零引用单文件 `task_jobs.py`(202 行)/`model_gateway_runtime.py`(69 行)/`telemetry.py`(58 行) 与前端零引用资源 `assets/icons/two-finger-pan.gif`；移除 `dev-backend-watch.ts` 的失效 `/watch/` 预登录判断与 themed-toaster 测试的 `/watch/demo` 用例；清除 pyproject 指向已删除文件的 2 条过期 Ruff 豁免。后端架构/定向 212、前端架构 398、Ruff、compileall、tsc、定向 11 项全部通过 |
 | 第 991 批验证记录 | 移除全部生产/开发 mock 接线，通知与版本更新只走真实商业链路 | 前端通知抽屉/header/版本更新弹窗改为纯商业数据源，删除 release-notifications mock 链（query-hooks/ports/http gateway/browser storage/domain 及对应测试与门禁断言）；后端删除 `MockReleaseFeed`（release feed 固定 NoOp 空源）、`mock_cloud_adapter.py`/`mock_cloud_backend.py` 及其测试，`desktop_server` 不再设置 `AI_ANIME_CLOUD_ADAPTER`/`AI_ANIME_RELEASE_FEED_ADAPTER=mock`，任务后端默认 inline 本地执行；README 同步。后端架构/定向 205、契约 82+1 跳过、前端架构 398、tsc、受影响 9 项全部通过；Mock 生成器保留为仅测试夹具（`use_mock=True`），生产默认 Commercial |
 | 第 992 批验证记录 | 删除 Mock 生成器并修复受影响测试 | `MockImageGenerator`/`MockTTSGenerator`/`MockVideoGenerator` 及全部 `use_mock` 开关从生产与测试中删除（cli 的 `--mock` 参数同步移除）；修复 13 个测试文件的过期 monkeypatch 目标（改经 generators.public / agents.public / seedance2_i2v.public / knowledge_graph）与旧路径断言（generators / cognee / verification / task_identity / director_world shape_hints），重命名 3 个重复 basename 测试文件消除全量收集冲突。受影响批量 662 项、架构门禁、契约单跑、Ruff、compileall 全部通过。全量套件仍存在既有顺序污染（模块级 `app = create_app()` 导入期捕获桌面模式、模型访问模式等），与本次改动无关，另行登记 |
@@ -218,7 +218,7 @@
 
 当前主仓库已经具备以下事实能力：
 
-- `desktop/src/commercial.ts` 固定唯一服务器 `https://aianime.122-193-11-199.sslip.io`，实现客户端登录、刷新、退出、Bootstrap、许可、额度、目录、公告和版本检查 transport。
+- `desktop/src/commercial.ts` 固定唯一服务器 `https://aianime.mingcw.com`，实现客户端登录、刷新、退出、Bootstrap、许可、额度、目录、公告和版本检查 transport。
 - Electron 主进程使用 `safeStorage` 加密 JWT、Ed25519 设备私钥和 BYOK 配置；preload 只暴露白名单 IPC，不暴露 JWT、私钥、通用 fetch 或任意请求头。
 - 商业登录成功/会话恢复会建立本地 FastAPI HttpOnly Cookie；两种会话分别负责 Gateway 与本地工作区。
 - Identity & Access 已有三态路由门禁：未登录回登录页，无许可或设备未激活进入许可页，许可与本地会话均有效后才进入工作区。
@@ -461,7 +461,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 | 优先级 | 问题 | 影响 | 建议网关改进 |
 | --- | --- | --- | --- |
-| P0 | 当前唯一 Gateway 是公网 `https://aianime.122-193-11-199.sslip.io` | 登录密码、JWT、设备激活和业务内容在 HTTPS 链路下加密传输；仍需确认 TLS 证书受信与 HTTP 明文端点拒绝 | 配置受信任域名与有效 TLS 证书，HTTP 仅做 301 跳转且认证端点拒绝明文请求 |
+| P0 | 当前唯一 Gateway 是公网 `https://aianime.mingcw.com` | 登录密码、JWT、设备激活和业务内容在 HTTPS 链路下加密传输；仍需确认 TLS 证书受信与 HTTP 明文端点拒绝 | 配置受信任域名与有效 TLS 证书，HTTP 仅做 301 跳转且认证端点拒绝明文请求 |
 | P0 | 许可响应没有服务端权威的“允许进入客户端”结果和拒绝原因；`license/device/activation.status` 枚举及过期语义未固定 | 客户端目前只能按许可、设备和激活记录是否存在来门禁，无法可靠区分过期、冻结、撤销、席位回收和临时网络错误 | 在 Bootstrap/current license 返回 `workspaceAccess.allowed`、稳定 `denialCode`、`evaluatedAt`，并固定所有状态枚举；最终授权判断必须由服务端完成 |
 | P0 | Release check 的完整响应 schema、版本 notes、artifact 字段在文档中不完整 | 前端只能用宽松 DTO，强制更新判断和 release notes 容易漂移 | 固化 OpenAPI schema，至少明确 `available/required/reason/version/artifacts/notes/publishedAt` |
 | P0 | 更新制品只有 `signature`，未明确算法、`keyId`、签名原文和公钥轮换 | 客户端无法可靠验签，只能校验 SHA-256 | 返回 `signatureAlgorithm`、`keyId`，发布签名公钥集和规范化签名载荷 |
@@ -545,7 +545,7 @@ Cloud 图片目录目前对“未声明角色”的旧响应采用临时宽容�
 
 已完成：
 
-1. Electron main 已建立唯一 Commercial Gateway transport，生产地址只允许 `https://aianime.122-193-11-199.sslip.io`；没有服务器选择或旧地址环境覆盖。
+1. Electron main 已建立唯一 Commercial Gateway transport，生产地址只允许 `https://aianime.mingcw.com`；没有服务器选择或旧地址环境覆盖。
 2. Electron `safeStorage` 已加密会话文件，JWT 刷新采用内存单飞；退出清除 JWT 和本地 Cookie，但保留设备私钥。
 3. preload 只暴露显式 IPC；架构门禁禁止 token、通用 fetch、任意路径、任意 header 和 Secret 读取能力进入 renderer。
 4. Identity & Access 已有公开配置、Logo、验证码、登录、恢复、会话摘要和退出 ports；本地 Cookie store 与云端 JWT store 独立。

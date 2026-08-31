@@ -15,6 +15,9 @@ from ai_anime.modules.ai_assistant.application.chat_presentation import (
     ChatPresentation,
 )
 from ai_anime.modules.ai_assistant.application.display_fallback import DisplayFallbacks
+from ai_anime.modules.ai_assistant.application.hermes_session_models import (
+    HermesSessionModels,
+)
 from ai_anime.modules.ai_assistant.application.page_agent_sessions import (
     PageAgentSessions,
 )
@@ -28,6 +31,7 @@ from ai_anime.modules.ai_assistant.application.project_messages import (
 )
 from ai_anime.modules.ai_assistant.application.prompt_context import AgentPromptContext
 from ai_anime.modules.ai_assistant.domain import (
+    ChatScope,
     completion_text_or_existing,
     dedupe_tool_ui_specs,
     display_tool_call_key,
@@ -61,6 +65,7 @@ class HermesProjectReplies:
         presentation: ChatPresentation,
         page_sessions: PageAgentSessions,
         display_fallbacks: DisplayFallbacks,
+        session_models: HermesSessionModels,
     ) -> None:
         self._runtime = runtime
         self._prompt_context = prompt_context
@@ -69,6 +74,7 @@ class HermesProjectReplies:
         self._presentation = presentation
         self._page_sessions = page_sessions
         self._display_fallbacks = display_fallbacks
+        self._session_models = session_models
 
     async def stream(
         self,
@@ -116,6 +122,17 @@ class HermesProjectReplies:
             scope_kind="project" if project else "home",
             project_id=project or None,
             conversation_id=conversation_id,
+        )
+        await self._session_models.apply_to(
+            thread,
+            username,
+            ChatScope(
+                kind="project" if project else "home",
+                id=project or None,
+                conversation_id=conversation_id,
+            ),
+            project_dir=project_dir,
+            project_state_dir=project_state_dir,
         )
         previous_assistant = [
             str(message.get("content") or "")

@@ -546,15 +546,31 @@ export function useChatSessionController({
 
   const switchModel = useCallback((modelId: string) => {
     if (!connected || busy || modelsLoading) return false;
+    const selected = models.find((model) => model.id === modelId);
+    const preservedReasoningEffort = activeReasoningEffort
+      && selected?.reasoningEfforts?.includes(activeReasoningEffort)
+      ? activeReasoningEffort
+      : null;
     setError(null);
     setModelsLoading(true);
     sendFrame({
       type: "session.model.set",
       scope: desiredScope,
       selector: modelId === "auto" ? null : modelId,
+      ...(preservedReasoningEffort
+        ? { reasoning_effort: preservedReasoningEffort }
+        : {}),
     });
     return true;
-  }, [busy, connected, desiredScope, modelsLoading, sendFrame]);
+  }, [
+    activeReasoningEffort,
+    busy,
+    connected,
+    desiredScope,
+    models,
+    modelsLoading,
+    sendFrame,
+  ]);
 
   const switchReasoningEffort = useCallback((reasoningEffort: string) => {
     if (!connected || busy || modelsLoading) return false;

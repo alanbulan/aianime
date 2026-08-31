@@ -15,7 +15,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
-import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +30,7 @@ from ai_anime.modules.model_usage.public import (
     request_model_chat_content,
 )
 from ai_anime.modules.verification.infrastructure import failure_registry
+from ai_anime.shared.model_response import parse_model_json_object_response
 
 
 
@@ -150,28 +150,6 @@ def _filter_contract_dependent_modes(
     return [mode for mode in active_modes if mode.get("code") not in contract_codes]
 
 
-def _extract_json_object(text: str) -> dict[str, Any] | None:
-    """Best-effort parse of a JSON object out of a possibly noisy VLM reply."""
-    if not text:
-        return None
-    text = text.strip()
-    # Strip common code-fence decorations.
-    text = re.sub(r"^```(?:json)?\s*", "", text)
-    text = re.sub(r"\s*```\s*$", "", text)
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-    # Fallback: find first { ... } block.
-    match = re.search(r"\{[^{}]*\}", text, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return None
-
-
 async def _ask_vlm_once(
     *,
     image_bytes: bytes,
@@ -232,8 +210,9 @@ async def gate_single_cell(
         verdict.error = f"vlm call failed: {exc}"
         return verdict
     verdict.raw_response = raw
-    parsed = _extract_json_object(raw)
-    if parsed is None:
+    try:
+        parsed = parse_model_json_object_response(raw)
+    except (json.JSONDecodeError, ValueError):
         verdict.error = "vlm response not JSON"
         return verdict
     for code in [m["code"] for m in active_modes]:

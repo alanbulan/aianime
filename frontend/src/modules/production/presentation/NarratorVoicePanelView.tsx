@@ -31,9 +31,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
 import type { NarratorVoicePanelController } from "@/modules/production/application/use-narrator-voice-panel-controller";
+import { AccountVoiceLibraryList } from "@/components/assets/account-voice-library-list";
 import { VoiceSourceTypeTabs } from "@/components/assets/voice-source-type-tabs";
 import { isVoiceSourceType } from "@/shared/voice-source/voice-source";
 
@@ -143,52 +143,18 @@ export function NarratorVoicePanelView({
         (presetVoiceRequiresVoice && !presetVoice) ||
           !aiSampleText.trim()
         : true);
-  const accountVoiceContent = accountVoiceLoading ? (
-    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-      <Loader2 className="size-4 animate-spin" />
-      {t("episode.workbench.video.narratorVoiceLibraryLoading")}
-    </div>
-  ) : accountVoiceFailed ? (
-    <p className="rounded-[8px] border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-      {t("episode.workbench.video.narratorVoiceLibraryFailed")}
-    </p>
-  ) : accountVoiceOptions.length === 0 ? (
-    <p className="rounded-[8px] border border-border bg-muted p-3 text-sm text-muted-foreground">
-      {t("episode.workbench.video.narratorVoiceLibraryEmpty")}
-    </p>
-  ) : (
-    <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
-      {accountVoiceOptions.map((option) => {
-        const previewSrc = resolveMediaUrl(option.previewUrl);
-        return (
-          <div
-            key={option.voiceId}
-            className="flex flex-wrap items-center gap-3 rounded-[9px] border border-border bg-muted p-3"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {option.label}
-              </p>
-              {previewSrc && (
-                <PreciseAudioPlayer
-                  src={previewSrc}
-                  className="mt-2 h-7 w-full max-w-[340px]"
-                />
-              )}
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              disabled={bindPending}
-              onClick={() => void onBindAccountVoice(option.voiceId)}
-              className="h-8 rounded-md px-3 text-xs"
-            >
-              {t("episode.workbench.video.narratorVoiceBind")}
-            </Button>
-          </div>
-        );
-      })}
-    </div>
+  const accountVoiceContent = (
+    <AccountVoiceLibraryList
+      loading={accountVoiceLoading}
+      failed={accountVoiceFailed}
+      options={accountVoiceOptions}
+      pending={bindPending}
+      loadingText={t("episode.workbench.video.narratorVoiceLibraryLoading")}
+      failedText={t("episode.workbench.video.narratorVoiceLibraryFailed")}
+      emptyText={t("episode.workbench.video.narratorVoiceLibraryEmpty")}
+      bindText={t("episode.workbench.video.narratorVoiceBind")}
+      onBind={onBindAccountVoice}
+    />
   );
 
   return (

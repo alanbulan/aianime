@@ -59,3 +59,10 @@ def fs_url(path: Path) -> str:
     if not posix.startswith("/"):
         posix = "/" + posix
     return f"/@fs{posix}"
+
+
+def resolve_cli_path(value: str | Path) -> Path:
+    path = Path(value).expanduser()
+    if path.is_absolute():
+        return path
+    return (Path.cwd() / path).resolve()

@@ -119,3 +119,99 @@ def test_sync_asset_paths_preserves_unreferenced_uploaded_audio(tmp_path, monkey
     )
 
     assert config.reference_audio_paths == [str(uploaded_audio)]
+
+
+@pytest.mark.asyncio
+async def test_prompt_regeneration_does_not_reuse_generated_output_as_manual_reference(
+    tmp_path, monkeypatch
+):
+    from ai_anime.modules.production.application.seedance2_config import (
+        dump_seedance2_config,
+        parse_seedance2_config,
+    )
+    from ai_anime.modules.production.infrastructure import seedance2_panel_service
+
+    captured: dict[str, object] = {}
+
+    class _Store:
+        async def update_beat_asset(self, **kwargs):
+            captured["saved_json"] = kwargs["seedance2_config_json"]
+
+    async def composer(**kwargs):
+        captured["manual_prompt_reference"] = kwargs["manual_prompt_reference"]
+        return "镜头缓慢推近白石夏音，她轻声说出：“你听到了？”。"
+
+    monkeypatch.setattr(
+        seedance2_panel_service,
+        "build_seedance2_project_assets",
+        lambda **_kwargs: [],
+    )
+    beat = {
+        "beat_number": 8,
+        "visual_description": "白石夏音站在音乐教室内。",
+        "narration_segment": "你听到了？",
+        "audio_type": "dialogue",
+        "seedance2_config_json": dump_seedance2_config(
+            {
+                "final_prompt": "использовать参考@音频1作为角色声线。",
+                "prompt_source": "generated",
+            }
+        ),
+    }
+
+    await seedance2_panel_service.generate_seedance2_prompt_for_panel(
+        store=_Store(),
+        episode=1,
+        beat=beat,
+        project_dir=tmp_path,
+        manual_prompt_reference="использовать参考@音频1作为角色声线。",
+        composer=composer,
+    )
+
+    assert captured["manual_prompt_reference"] == ""
+    saved = parse_seedance2_config(captured["saved_json"])
+    assert "использовать" not in saved.final_prompt
+    assert saved.prompt_source == "generated"
+    assert "白石夏音" in saved.prompt_validation_source
+    assert "использовать" not in saved.prompt_validation_source
+
+
+@pytest.mark.asyncio
+async def test_prompt_generation_persists_manual_reference_for_later_validation(
+    tmp_path, monkeypatch
+):
+    from ai_anime.modules.production.application.seedance2_config import (
+        parse_seedance2_config,
+    )
+    from ai_anime.modules.production.infrastructure import seedance2_panel_service
+
+    captured: dict[str, str] = {}
+
+    class _Store:
+        async def update_beat_asset(self, **kwargs):
+            captured["saved_json"] = kwargs["seedance2_config_json"]
+
+    async def composer(**_kwargs):
+        return "角色面对镜头说出俄语台词：“Привет”。"
+
+    monkeypatch.setattr(
+        seedance2_panel_service,
+        "build_seedance2_project_assets",
+        lambda **_kwargs: [],
+    )
+
+    await seedance2_panel_service.generate_seedance2_prompt_for_panel(
+        store=_Store(),
+        episode=1,
+        beat={
+            "beat_number": 1,
+            "visual_description": "角色面对镜头。",
+        },
+        project_dir=tmp_path,
+        manual_prompt_reference="保留俄语台词 Привет",
+        composer=composer,
+    )
+
+    saved = parse_seedance2_config(captured["saved_json"])
+    assert "Привет" in saved.final_prompt
+    assert "Привет" in saved.prompt_validation_source

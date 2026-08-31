@@ -291,4 +291,37 @@ describe("Seedance2 config controller", () => {
     expect(result.current.promptCostDisplay).toBe("6");
     expect(toastSuccess).toHaveBeenCalledWith("任务已提交");
   });
+
+  it("does not submit an unchanged generated prompt as a manual reference", async () => {
+    generatePrompt.mockResolvedValue({
+      ok: true,
+      task_type: "seedance2_prompt",
+      task_id: "task-seedance2-2",
+      task_key: "seedance2_prompt:demo:1:1",
+      message: "任务已提交",
+      scope: "seedance2_prompt:1",
+    });
+    const { result } = renderController({
+      beat: makeBeat({
+        seedance2_config_json: JSON.stringify({
+          mode: "multimodal_reference",
+          mode_user_set: true,
+          duration: 5,
+          resolution: "720p",
+          ratio: "9:16",
+          final_prompt: "上一轮生成稿 Привет",
+          prompt_source: "generated",
+        }),
+      }),
+    });
+
+    await act(async () => {
+      await result.current.generatePrompt();
+    });
+
+    expect(generatePrompt).toHaveBeenCalledWith({
+      beatNum: 1,
+      promptGuidance: "",
+    });
+  });
 });

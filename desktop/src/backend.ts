@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { randomBytes } from "node:crypto";
 import { resolveHermesRuntimePaths } from "./hermes-runtime.js";
+import type { CommercialModelCapabilitySnapshot } from "./commercial-contracts.js";
 import {
   bundledBackendPath,
   bundledFfmpegPath,
@@ -74,32 +75,7 @@ interface ModelAccessInput {
     reasoningEfforts?: string[];
     defaultReasoningEffort?: string;
   }>;
-  modelCapabilities?: Array<{
-    modelId: string;
-    videoProfile?: "standard" | "seedance2" | "happyhorse" | "grok";
-    videoRatioOptions?: string[];
-    videoResolutionOptions?: string[];
-    videoSizeOptions?: string[];
-    videoSupportsGenerateAudio?: boolean;
-    videoSupportsHumanReview?: boolean;
-    videoExtraParameterNames?: string[];
-    videoSceneOptimizeOptions?: string[];
-    videoGenerationMinSeconds?: number;
-    videoGenerationMaxSeconds?: number;
-    videoDurationOptions?: number[];
-    maxReferenceImages?: number;
-    maxReferenceVideos?: number;
-    maxReferenceAudios?: number;
-    maxReferenceTotal?: number;
-    referenceAudioMinSeconds?: number;
-    referenceAudioMaxSeconds?: number;
-    referenceAudioTotalMinSeconds?: number;
-    referenceAudioTotalMaxSeconds?: number;
-    referenceVideoMinSeconds?: number;
-    referenceVideoMaxSeconds?: number;
-    referenceVideoTotalMinSeconds?: number;
-    referenceVideoTotalMaxSeconds?: number;
-  }>;
+  modelCapabilities?: CommercialModelCapabilitySnapshot[];
 }
 
 export class LocalBackend {

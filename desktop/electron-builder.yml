@@ -7,7 +7,7 @@ directories:
   output: release
 publish:
   provider: generic
-  url: https://aianime.122-193-11-199.sslip.io/api/v1/client/releases/updater/
+  url: https://aianime.mingcw.com/api/v1/client/releases/updater/
 files:
   - dist/**/*
   - "!**/*.map"

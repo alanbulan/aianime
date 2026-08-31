@@ -27,6 +27,10 @@ from ai_anime.modules.model_usage.public import (
     infer_project_output_dir,
     load_model_access_from_stdin,
 )
+from ai_anime.modules.asset_world.infrastructure.director_world.paths import (
+    resolve_cli_path as repo_path,
+)
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
 from ai_anime.shared.runtime_paths import OUTPUT_DIR
 
 # Demo defaults for standalone/manual runs. In production scene_360_tasks
@@ -50,21 +54,6 @@ SCENE_360_MASTER_THUMB_MAX_SIDE = 768
 SCENE_360_MASTER_THUMB_JPEG_QUALITY = 70
 SPATIAL_CONTRACT_SCHEMA_VERSION = "scene_spatial_contract_v8_topology_only_locks"
 SAFE_SEAM_SPHERE_YAW_DEG = -90.0
-
-
-def load_env() -> None:
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return
-    load_dotenv()
-
-
-def repo_path(value: str | Path) -> Path:
-    path = Path(value).expanduser()
-    if path.is_absolute():
-        return path
-    return (Path.cwd() / path).resolve()
 
 
 def image_tuple(path: Path) -> tuple[str, bytes, str]:
@@ -760,7 +749,7 @@ def make_contact_sheet(
 
 
 async def run(args: argparse.Namespace) -> int:
-    load_env()
+    load_project_dotenv()
     load_model_access_from_stdin()
     args.quality = str(
         args.quality

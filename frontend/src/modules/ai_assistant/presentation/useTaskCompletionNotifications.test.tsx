@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { ReactNode } from "react";
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useTaskCompletionNotifications } from "@/modules/ai_assistant/public";
 import {
@@ -49,6 +49,10 @@ function wrapperFor(eventBus: TaskEventBus) {
 }
 
 describe("SuperChat task completion notifications", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("does not subscribe without a project", () => {
     const eventBus = createTaskEventBus();
     const subscribe = vi.spyOn(eventBus, "on");
@@ -124,6 +128,7 @@ describe("SuperChat task completion notifications", () => {
   });
 
   it("uses each failure detail fallback and unsubscribes on unmount", () => {
+    vi.useFakeTimers();
     const eventBus = createTaskEventBus();
     const appendNotification = vi.fn(async (_text: string) => true);
     const { unmount } = renderHook(
@@ -161,6 +166,7 @@ describe("SuperChat task completion notifications", () => {
         }),
         previous: null,
       });
+      vi.runAllTimers();
     });
 
     expect(appendNotification.mock.calls.map(([text]) => text)).toEqual([
@@ -178,6 +184,95 @@ describe("SuperChat task completion notifications", () => {
       });
     });
     expect(appendNotification).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(["parent-first", "child-first"] as const)(
+    "coalesces a failed parent task and child task into the leaf notification (%s)",
+    (order) => {
+      vi.useFakeTimers();
+      const eventBus = createTaskEventBus();
+      const appendNotification = vi.fn(async (_text: string) => true);
+      renderHook(
+        () => useTaskCompletionNotifications({
+          project: "project-a",
+          appendNotification,
+          t,
+        }),
+        { wrapper: wrapperFor(eventBus) },
+      );
+      const error = "Agent 已完成但未生成文件";
+      const parent = task({
+        task_key: "workflow",
+        task_id: "workflow-1",
+        task_type: "production_workflow",
+        display_name: "完整生产工作流",
+        status: "failed",
+        error,
+      });
+      const child = task({
+        task_key: "single-video",
+        task_id: "single-video-1",
+        task_type: "single_video",
+        display_name: "生成单镜视频 · ep1（第 1 集 Beat 8）",
+        status: "failed",
+        error,
+        metadata: { parent_task_id: "workflow-1" },
+      });
+
+      act(() => {
+        const orderedTasks = order === "parent-first" ? [parent, child] : [child, parent];
+        for (const failedTask of orderedTasks) {
+          eventBus.emit({ type: "task_failed", task: failedTask, previous: null });
+        }
+        vi.runAllTimers();
+      });
+
+      expect(appendNotification).toHaveBeenCalledTimes(1);
+      expect(appendNotification).toHaveBeenCalledWith(
+        "生成单镜视频 · ep1（第 1 集 Beat 8）失败：Agent 已完成但未生成文件\n请根据错误处理前置条件后再继续。",
+      );
+    },
+  );
+
+  it("keeps a parent failure that arrives outside the coalescing window", () => {
+    vi.useFakeTimers();
+    const eventBus = createTaskEventBus();
+    const appendNotification = vi.fn(async (_text: string) => true);
+    renderHook(
+      () => useTaskCompletionNotifications({
+        project: "project-a",
+        appendNotification,
+        t,
+      }),
+      { wrapper: wrapperFor(eventBus) },
+    );
+    const child = task({
+      task_key: "single-video",
+      task_id: "single-video-1",
+      display_name: "生成单镜视频",
+      status: "failed",
+      error: "子任务失败",
+      metadata: { parent_task_id: "workflow-1" },
+    });
+    const parent = task({
+      task_key: "workflow",
+      task_id: "workflow-1",
+      display_name: "完整生产工作流",
+      status: "failed",
+      error: "工作流独立失败",
+    });
+
+    act(() => {
+      eventBus.emit({ type: "task_failed", task: child, previous: null });
+      vi.advanceTimersByTime(751);
+      eventBus.emit({ type: "task_failed", task: parent, previous: null });
+      vi.runAllTimers();
+    });
+
+    expect(appendNotification.mock.calls.map(([text]) => text)).toEqual([
+      "生成单镜视频失败：子任务失败\n请根据错误处理前置条件后再继续。",
+      "完整生产工作流失败：工作流独立失败\n请根据错误处理前置条件后再继续。",
+    ]);
   });
 
   it("retains deduplication across project changes", () => {
@@ -216,5 +311,46 @@ describe("SuperChat task completion notifications", () => {
     });
 
     expect(appendNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("delivers a pending failure to its original scope after a project change", () => {
+    vi.useFakeTimers();
+    const eventBus = createTaskEventBus();
+    const originalAppend = vi.fn(async (_text: string) => true);
+    const nextAppend = vi.fn(async (_text: string) => true);
+    const { rerender } = renderHook(
+      ({ project, appendNotification }) => useTaskCompletionNotifications({
+        project,
+        appendNotification,
+        t,
+      }),
+      {
+        initialProps: {
+          project: "project-a",
+          appendNotification: originalAppend,
+        },
+        wrapper: wrapperFor(eventBus),
+      },
+    );
+
+    act(() => {
+      eventBus.emit({
+        type: "task_failed",
+        task: task({ task_key: "delayed-failure", error: "生成失败" }),
+        previous: null,
+      });
+    });
+    rerender({
+      project: "project-b",
+      appendNotification: nextAppend,
+    });
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    expect(originalAppend).toHaveBeenCalledWith(
+      "分镜生成失败：生成失败\n请根据错误处理前置条件后再继续。",
+    );
+    expect(nextAppend).not.toHaveBeenCalled();
   });
 });

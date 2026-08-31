@@ -100,7 +100,7 @@ test("runtime dependency IPC registers status/install handlers and checks the ac
 test("runtime dependency manifest defaults to the domestic release host", () => {
   assert.equal(
     runtimeDependencyManifestUrl("win32", "x64", {}),
-    "https://aianime.122-193-11-199.sslip.io/api/v1/client/runtime-dependencies/win32-x64/manifest.json",
+    "https://aianime.mingcw.com/api/v1/client/runtime-dependencies/win32-x64/manifest.json",
   );
   assert.equal(
     runtimeDependencyManifestUrl("darwin", "arm64", {

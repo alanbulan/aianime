@@ -15,8 +15,13 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     PROJECT_TASK_CHILD_PROCESS_ENV,
 )
+from ai_anime.shared.infrastructure.internal_workers import (
+    InternalWorkerSpec,
+    internal_worker_command,
+)
 
 _SCHEMA_VERSION = 1
+NATIVE_PROJECT_TASK_WORKER = InternalWorkerSpec("native-project-task", __name__)
 ISOLATED_NATIVE_TASK_TYPES = frozenset(
     {
         "ingest_fast",
@@ -29,6 +34,12 @@ ISOLATED_NATIVE_TASK_TYPES = frozenset(
     }
 )
 TaskCancellationCheck = Callable[..., Awaitable[bool]]
+
+
+def native_project_task_worker_command() -> list[str]:
+    """Build the task-execution worker command for source and frozen runtimes."""
+
+    return internal_worker_command(NATIVE_PROJECT_TASK_WORKER)
 
 
 def should_isolate_project_task(
@@ -125,7 +136,6 @@ def run_isolated_project_task(
     *,
     cancellation_check: TaskCancellationCheck,
 ) -> dict[str, Any] | None:
-    from ai_anime.modules.asset_world.public import native_project_task_worker_command
     from ai_anime.modules.task_execution.infrastructure.project_subprocesses import (
         run_project_model_subprocess,
     )
@@ -237,7 +247,9 @@ if __name__ == "__main__":
 
 __all__ = [
     "ISOLATED_NATIVE_TASK_TYPES",
+    "NATIVE_PROJECT_TASK_WORKER",
     "main",
+    "native_project_task_worker_command",
     "run_isolated_project_task",
     "should_isolate_project_task",
     "wrap_project_task_runner",

@@ -315,6 +315,27 @@ describe("commercial model details", () => {
     ).toEqual(["AUDIO_VOICE_DESIGN"]);
   });
 
+  it("prefers the audioModes catalog alias over generic modes", () => {
+    expect(
+      commercialModelRoles({
+        operation: "AUDIO_VOICE_CLONE",
+        capabilities: {
+          modes: ["music"],
+          audioModes: ["speech", "voiceClone"],
+        },
+      }),
+    ).toEqual(["AUDIO_SPEECH", "AUDIO_VOICE_CLONE"]);
+  });
+
+  it("treats blank mode declarations as undeclared", () => {
+    expect(
+      commercialModelRoles({
+        operation: "IMAGE",
+        capabilities: { supportedModes: ["  "] },
+      }),
+    ).toEqual(["IMAGE_GENERATION"]);
+  });
+
   it("maps canonical multimodal video capability to reference roles", () => {
     expect(
       commercialModelRoles({
@@ -332,7 +353,7 @@ describe("commercial model details", () => {
 const baseStatus = {
   mode: "mixed",
   allowsCustomModels: true,
-  gatewayOrigin: "http://122.193.11.199:8889",
+  gatewayOrigin: "http://203.0.113.10:8889",
   byokConfigured: true,
   cloudModelAssignments: [],
   byokProviders: [],

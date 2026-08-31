@@ -1,9 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 
-import * as ts from "typescript/unstable/ast";
-import { API } from "typescript/unstable/sync";
-import { afterAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+
+import { scanImportSpecifiers } from "./source-inspection";
 
 const SRC_ROOT = resolve(process.cwd(), "src");
 const DESKTOP_ROOT = resolve(process.cwd(), "../desktop");
@@ -17,46 +17,15 @@ function sourceFiles(root: string): string[] {
   });
 }
 
-const typeScriptApi = new API({ cwd: process.cwd() });
-let typeScriptSnapshot: ReturnType<API["updateSnapshot"]> | undefined;
-
-function parseSourceFile(path: string): ts.SourceFile {
-  typeScriptSnapshot ??= typeScriptApi.updateSnapshot({
-    openFiles: [
-      resolve(SRC_ROOT, "main.tsx"),
-      resolve(DESKTOP_ROOT, "src/main.ts"),
-    ],
-  });
-  const project = typeScriptSnapshot.getDefaultProjectForFile(path);
-  const source = project?.program.getSourceFile(path);
-  if (!source) throw new Error(`TypeScript could not parse ${path}`);
-  return source;
-}
-
-afterAll(() => {
-  typeScriptSnapshot?.dispose();
-  typeScriptApi.close();
-});
-
 function relativeSource(path: string): string {
   return relative(SRC_ROOT, path).replace(/\\/g, "/");
 }
 
 function importSpecifiers(path: string): string[] {
-  const source = parseSourceFile(path);
-  const imports: string[] = [];
-  const visit = (node: ts.Node) => {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    ) {
-      imports.push(node.moduleSpecifier.text);
-    }
-    node.forEachChild(visit);
-  };
-  visit(source);
-  return imports;
+  return scanImportSpecifiers(readFileSync(path, "utf8"), {
+    includeDynamicImports: false,
+    jsx: path.endsWith(".tsx"),
+  });
 }
 
 describe("round 2 residual architecture boundaries", () => {

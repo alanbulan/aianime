@@ -294,15 +294,6 @@ def __getattr__(name: str) -> Any:
     return value
 
 
-def native_project_task_worker_command() -> list[str]:
-    from ai_anime.modules.asset_world.infrastructure.director_world.worker_runtime import (
-        NATIVE_PROJECT_TASK_MODULE,
-        worker_command,
-    )
-
-    return worker_command(NATIVE_PROJECT_TASK_MODULE)
-
-
 def style_catalog_use_cases() -> StyleCatalogUseCases:
     from ai_anime.modules.asset_world.composition import style_catalog_use_cases as build
 
@@ -649,7 +640,6 @@ __all__ = [
     "fs_url",
     "generate_ai_staging_prop",
     "load_beat_blocking",
-    "native_project_task_worker_command",
     "run_pano_sharp",
     "run_scene_360",
     "run_single_face_sharp",

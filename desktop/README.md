@@ -63,7 +63,7 @@ pnpm --dir desktop package:mac    # 在 Apple Silicon Mac 上生成 DMG 与 ZIP
 
 ## 商业链路
 
-- 固定 Gateway：`https://aianime.122-193-11-199.sslip.io`。
+- 固定 Gateway：`https://aianime.mingcw.com`。
 - 模型调用只有两条入口：普通版 Cloud 由云端中转；专业版 BYOK 由用户自填标准模型接口，客户端只做请求不中转。
 - 对象存储统一走平台云端，不提供用户 BYOK 存储入口。
 - Agent 执行使用内置 Hermes ACP，模型仍只走 Cloud / BYOK 两条入口。

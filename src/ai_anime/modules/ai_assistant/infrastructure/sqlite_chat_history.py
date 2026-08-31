@@ -20,6 +20,8 @@ from ai_anime.modules.ai_assistant.domain import (
 from ai_anime.modules.ai_assistant.infrastructure.local_state import local_state_root
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 
+_MODEL_ROUTE_SETTING_PREFIX = "session-model-route:"
+
 
 class SQLiteChatHistory:
     def db_for(self, username: str, scope: ChatScope) -> Path:
@@ -923,6 +925,126 @@ class SQLiteChatHistory:
         finally:
             conn.close()
 
+    @staticmethod
+    def _model_route_setting_key(conversation_id: str) -> str:
+        normalized = str(conversation_id or "main").strip() or "main"
+        return f"{_MODEL_ROUTE_SETTING_PREFIX}{normalized}"
+
+    def load_model_route(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> tuple[str | None, str | None] | None:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            row = conn.execute(
+                "SELECT value FROM chat_settings WHERE key = ?",
+                (self._model_route_setting_key(scope.conversation_id),),
+            ).fetchone()
+            if row is None:
+                return None
+            try:
+                payload = json.loads(str(row["value"] or ""))
+            except (TypeError, ValueError):
+                return None
+            if not isinstance(payload, dict):
+                return None
+            selector = payload.get("selector")
+            reasoning_effort = payload.get("reasoning_effort")
+            if selector is not None and not isinstance(selector, str):
+                return None
+            if reasoning_effort is not None and not isinstance(
+                reasoning_effort,
+                str,
+            ):
+                return None
+            return (
+                str(selector or "").strip() or None,
+                str(reasoning_effort or "").strip() or None,
+            )
+        finally:
+            conn.close()
+
+    def save_model_route(
+        self,
+        username: str,
+        scope: ChatScope,
+        selector: str | None,
+        reasoning_effort: str | None,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> None:
+        value = json.dumps(
+            {
+                "selector": str(selector or "").strip() or None,
+                "reasoning_effort": str(reasoning_effort or "").strip() or None,
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            conn.execute(
+                """
+                INSERT INTO chat_settings(key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                  value = excluded.value,
+                  updated_at = excluded.updated_at
+                """,
+                (
+                    self._model_route_setting_key(scope.conversation_id),
+                    value,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def clear_model_route(
+        self,
+        username: str,
+        scope: ChatScope,
+        *,
+        project_dir: str | Path | None = None,
+        project_state_dir: str | Path | None = None,
+    ) -> None:
+        conn = self._connect_database(
+            self._db_path_for_scope(
+                username,
+                scope,
+                project_dir=project_dir,
+                project_state_dir=project_state_dir,
+            )
+        )
+        try:
+            conn.execute(
+                "DELETE FROM chat_settings WHERE key = ?",
+                (self._model_route_setting_key(scope.conversation_id),),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
     def delete_conversation(
         self,
         username: str,
@@ -941,6 +1063,10 @@ class SQLiteChatHistory:
         )
         try:
             conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "DELETE FROM chat_settings WHERE key = ?",
+                (self._model_route_setting_key(scope.conversation_id),),
+            )
             conn.execute(
                 "DELETE FROM chat_ui_events WHERE conversation_id = ?",
                 (scope.conversation_id,),

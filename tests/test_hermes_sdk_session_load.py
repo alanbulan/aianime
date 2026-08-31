@@ -6,6 +6,9 @@ import json
 
 import pytest
 
+from ai_anime.modules.ai_assistant.application.ports import (
+    SessionModelRouteRejected,
+)
 from ai_anime.modules.ai_assistant.infrastructure.hermes import hermes_sdk
 from ai_anime.modules.ai_assistant.infrastructure.hermes.hermes_sdk import (
     HermesSdkThread,
@@ -483,17 +486,52 @@ async def test_session_model_route_is_encoded_and_applied_through_acp(
 
     selected = await thread.set_model_route(None, "none")
     assert selected == (None, "none")
-    assert calls[2] == (
-        "session/set_config_option",
-        {
-            "sessionId": "session-1",
-            "configId": "reasoning_effort",
-            "value": "none",
-        },
-    )
+    assert calls[2][0] == "session/set_model"
+    encoded = decode_model_selection(calls[2][1]["modelId"])
+    assert encoded is not None
+    assert encoded.selector is None
+    assert encoded.reasoning_effort == "none"
 
     await thread.set_model_route(None, "none")
     assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_session_model_route_rejection_uses_typed_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    thread = HermesSdkThread(
+        cli_path=tmp_path / "hermes-acp.exe",
+        cwd=tmp_path,
+        env={},
+        model=None,
+        username="alice",
+        session_id="session-1",
+    )
+
+    async def fake_prepare() -> None:
+        thread.id = "session-1"
+
+    async def fake_send(_method: str, _params: dict) -> int:
+        return 1
+
+    async def fake_read_until_id(_target_id: int, _timeout: float):
+        return (
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "error": {"message": "model no longer exists"},
+            },
+            [],
+        )
+
+    monkeypatch.setattr(thread, "_prepare", fake_prepare)
+    monkeypatch.setattr(thread, "_send", fake_send)
+    monkeypatch.setattr(thread, "_read_until_id", fake_read_until_id)
+
+    with pytest.raises(SessionModelRouteRejected, match="model no longer exists"):
+        await thread.set_model_route("cloud:removed-model", "high")
 
 
 @pytest.mark.asyncio

@@ -23,6 +23,7 @@ class Seedance2VideoConfig(BaseModel):
     final_prompt: str = ""
     prompt_guidance: str = ""
     prompt_source: str = ""
+    prompt_validation_source: str = ""
     prompt_inputs_hash: str = ""
     prompt_updated_at: str = ""
     duration: int = 4
@@ -43,6 +44,7 @@ class Seedance2VideoConfig(BaseModel):
         "final_prompt",
         "prompt_guidance",
         "prompt_source",
+        "prompt_validation_source",
         "prompt_inputs_hash",
         "prompt_updated_at",
         "resolution",

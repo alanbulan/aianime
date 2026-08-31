@@ -145,6 +145,38 @@ describe("Seedance2 prompt generation query", () => {
     ).toBe("old-config");
   });
 
+  it("omits an absent manual prompt reference from the request body", async () => {
+    let body: unknown = null;
+    server.use(
+      http.post(
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/seedance2-prompt/generate",
+        async ({ request }) => {
+          body = await request.clone().json();
+          return HttpResponse.json({
+            ok: true,
+            task_type: "seedance2_prompt",
+            task_id: "task-seedance2-prompt",
+            task_key: "task:seedance2_prompt:1:2",
+            message: "第 1 集 Beat 2 视频提示词优化已入队",
+          });
+        },
+      ),
+    );
+
+    const { result } = renderHook(() => useGenerateSeedance2Prompt("demo", 1), {
+      wrapper,
+    });
+    result.current.mutate({
+      beatNum: 2,
+      promptGuidance: "more camera motion",
+    });
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(body).toEqual({
+      prompt_guidance: "more camera motion",
+    });
+  });
+
   it("parses feature billing errors from the Seedance2 prompt endpoint", async () => {
     server.use(
       http.post(

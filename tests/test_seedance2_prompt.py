@@ -693,3 +693,96 @@ async def test_generate_seedance2_prompt_uses_ai_composer_before_fallback():
     assert result.prompt == "根据图片1生成官方风格视频。"
     assert result.used_ai is True
     assert result.error == ""
+
+
+@pytest.mark.parametrize(
+    "contaminated_prompt",
+    [
+        "镜头缓慢推近。использовать参考音频1作为角色声线。",
+        "镜头缓慢推近。<|FCResponseBegin|>",
+        "镜头缓慢推近。_unexpected_fragment",
+    ],
+)
+async def test_generate_seedance2_prompt_falls_back_on_contaminated_ai_output(
+    contaminated_prompt: str,
+) -> None:
+    from ai_anime.modules.production.application.seedance2_config import (
+        Seedance2I2VMode,
+    )
+    from ai_anime.modules.production.infrastructure.seedance2_prompt import (
+        generate_seedance2_prompt,
+    )
+
+    async def fake_composer(**_kwargs):
+        return contaminated_prompt
+
+    result = await generate_seedance2_prompt(
+        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        beat={
+            "visual_description": "白石夏音站在音乐教室内。",
+            "narration_segment": "你听到了？",
+            "audio_type": "dialogue",
+        },
+        assets=[],
+        text_overlay={},
+        prompt_guidance="",
+        composer=fake_composer,
+    )
+
+    assert result.used_ai is False
+    assert result.prompt == result.draft_prompt
+    assert contaminated_prompt not in result.prompt
+    assert result.error
+
+
+async def test_generate_seedance2_prompt_allows_cyrillic_from_source_dialogue() -> None:
+    from ai_anime.modules.production.application.seedance2_config import (
+        Seedance2I2VMode,
+    )
+    from ai_anime.modules.production.infrastructure.seedance2_prompt import (
+        generate_seedance2_prompt,
+    )
+
+    async def fake_composer(**_kwargs):
+        return "角色面对镜头说出俄语台词：“Привет”。"
+
+    result = await generate_seedance2_prompt(
+        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        beat={
+            "visual_description": "角色面对镜头。",
+            "narration_segment": "Привет",
+            "audio_type": "dialogue",
+        },
+        assets=[],
+        text_overlay={},
+        prompt_guidance="",
+        composer=fake_composer,
+    )
+
+    assert result.used_ai is True
+    assert result.prompt == "角色面对镜头说出俄语台词：“Привет”。"
+    assert result.error == ""
+
+
+async def test_generate_seedance2_prompt_allows_chinese_underscore_suffix() -> None:
+    from ai_anime.modules.production.application.seedance2_config import (
+        Seedance2I2VMode,
+    )
+    from ai_anime.modules.production.infrastructure.seedance2_prompt import (
+        generate_seedance2_prompt,
+    )
+
+    async def fake_composer(**_kwargs):
+        return "镜头缓慢推近，进入角色的_回忆画面"
+
+    result = await generate_seedance2_prompt(
+        mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+        beat={"visual_description": "镜头缓慢推近角色。"},
+        assets=[],
+        text_overlay={},
+        prompt_guidance="",
+        composer=fake_composer,
+    )
+
+    assert result.used_ai is True
+    assert result.prompt == "镜头缓慢推近，进入角色的_回忆画面"

@@ -315,6 +315,89 @@ async def test_prepare_seedance2_generation_inputs_preserves_config_duration(tmp
     assert '"duration":8' in prepared.seedance2_config_json
 
 
+async def test_prepare_seedance2_generation_rejects_contaminated_generated_prompt(
+    tmp_path,
+):
+    from ai_anime.modules.production.application.seedance2_config import (
+        dump_seedance2_config,
+    )
+    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
+        prepare_seedance2_generation_inputs,
+    )
+
+    project_dir = tmp_path / "output" / "alice" / "project"
+    frame = project_dir / "frames" / "ep001" / "beat_08.png"
+    _write_png(frame)
+
+    with pytest.raises(ValueError, match="西里尔文字"):
+        await prepare_seedance2_generation_inputs(
+            project_output=project_dir,
+            episode=1,
+            beat={
+                "beat_number": 8,
+                "visual_description": "白石夏音站在音乐教室内。",
+                "narration_segment": "你听到了？",
+                "audio_type": "dialogue",
+                "seedance2_config_json": dump_seedance2_config(
+                    {
+                        "mode": Seedance2I2VMode.FIRST_FRAME.value,
+                        "final_prompt": (
+                            "她说出：“你听到了？”。"
+                            "использовать参考@音频1作为角色声线。"
+                        ),
+                        "prompt_source": "generated",
+                        "prompt_validation_source": "镜头草稿不含外语。",
+                    }
+                ),
+            },
+            video_mode="first_frame",
+            prompt="unused",
+            duration=4,
+            resolution="720p",
+            ratio="9:16",
+        )
+
+
+async def test_prepare_seedance2_generation_accepts_generated_prompt_with_persisted_source(
+    tmp_path,
+):
+    from ai_anime.modules.production.application.seedance2_config import (
+        dump_seedance2_config,
+    )
+    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
+        prepare_seedance2_generation_inputs,
+    )
+
+    project_dir = tmp_path / "output" / "alice" / "project"
+    frame = project_dir / "frames" / "ep001" / "beat_08.png"
+    _write_png(frame)
+    final_prompt = "角色面对镜头说出俄语台词：“Привет”。"
+
+    prepared = await prepare_seedance2_generation_inputs(
+        project_output=project_dir,
+        episode=1,
+        beat={
+            "beat_number": 8,
+            "visual_description": "角色面对镜头。",
+            "seedance2_config_json": dump_seedance2_config(
+                {
+                    "mode": Seedance2I2VMode.FIRST_FRAME.value,
+                    "final_prompt": final_prompt,
+                    "prompt_source": "generated",
+                    "prompt_validation_source": "原始草稿包含俄语台词 Привет。",
+                }
+            ),
+        },
+        video_mode="first_frame",
+        prompt="unused",
+        duration=4,
+        resolution="720p",
+        ratio="9:16",
+    )
+
+    assert prepared.prompt == final_prompt
+
+
 async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
     from ai_anime.modules.production.application.seedance2_config import (
         dump_seedance2_config,

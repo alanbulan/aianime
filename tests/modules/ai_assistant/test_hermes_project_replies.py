@@ -26,8 +26,11 @@ class StubThread:
         self.events = events
         self.error = error
         self.calls = []
+        self.model_route_applied = False
+        self.model_route_applied_before_stream = []
 
     async def stream(self, prompt, *, current_project=None):
+        self.model_route_applied_before_stream.append(self.model_route_applied)
         self.calls.append((prompt, current_project))
         for event in self.events:
             yield event
@@ -53,6 +56,12 @@ class StubHermesRuntime:
         self.forgotten.append(
             (username, scope_kind, project_id, conversation_id)
         )
+
+
+class StubSessionModels:
+    async def apply_to(self, thread, _username, _scope, **_kwargs):
+        thread.model_route_applied = True
+        return (None, "none")
 
 
 class StubPromptContext:
@@ -241,6 +250,7 @@ def _build_replies(
         StubPresentation(),
         sessions,
         fallbacks,
+        StubSessionModels(),
     )
     return replies, thread, runtime, messages, media, sessions, fallbacks
 
@@ -278,6 +288,7 @@ async def test_hermes_project_replies_stream_and_persist_visible_events(
     )
 
     assert runtime.calls == [("alice", "project", "project-a", "main")]
+    assert thread.model_route_applied_before_stream == [True]
     assert thread.calls == [("context:alice:project-a:question", "project-a")]
     assert [event["type"] for event in emitted] == [
         "thread_started",

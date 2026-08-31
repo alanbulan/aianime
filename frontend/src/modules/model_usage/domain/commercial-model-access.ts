@@ -521,11 +521,15 @@ export function commercialModelRoles(
 ): ByokModelRole[] {
   const operation = item.operation.trim().toUpperCase();
   const roles = ROLES_BY_OPERATION[operation] ?? [];
-  const rawModes = item.capabilities.supportedModes ?? item.capabilities.modes;
+  const rawModes =
+    item.capabilities.supportedModes ??
+    item.capabilities.audioModes ??
+    item.capabilities.modes;
   const modes = Array.isArray(rawModes)
     ? rawModes
         .filter((value): value is string => typeof value === "string")
         .map(normalizeMode)
+        .filter(Boolean)
     : [];
   return roles.filter((role) => {
     const requiredModes = MODES_BY_ROLE[role];

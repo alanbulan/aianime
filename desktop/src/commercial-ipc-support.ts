@@ -728,7 +728,7 @@ function catalogItemModes(capabilityJson: string | undefined): string[] {
   }
   const capabilities = optionalRecord(value);
   const rawModes =
-    capabilities.supportedModes ?? capabilities.modes ?? capabilities.audioModes;
+    capabilities.supportedModes ?? capabilities.audioModes ?? capabilities.modes;
   if (!Array.isArray(rawModes)) return [];
   return rawModes
     .filter((mode): mode is string => typeof mode === "string")

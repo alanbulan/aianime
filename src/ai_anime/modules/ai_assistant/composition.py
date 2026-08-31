@@ -46,7 +46,7 @@ _hermes_runtime = LocalHermesRuntime()
 _chat_worker_lifecycle = ChatWorkerLifecycle(_hermes_runtime, _chat_run_locks)
 _hermes_runtime_prewarmer = HermesRuntimePrewarmer(_hermes_runtime)
 _hermes_session_commands = HermesSessionCommands(_hermes_runtime)
-_hermes_session_models = HermesSessionModels(_hermes_runtime)
+_hermes_session_models = HermesSessionModels(_chat_history)
 _display_fallbacks = DisplayFallbacks(HttpDisplayFallbackGateway())
 _page_agent_sessions = PageAgentSessions()
 _project_media = ProjectMedia(LocalProjectMediaFiles())
@@ -54,7 +54,11 @@ _project_chat_messages = ProjectChatMessages(_chat_history, _project_media)
 _scoped_chat_messages = ScopedChatMessages(_chat_history, _project_chat_messages)
 _speech_transcription = SpeechTranscription(LocalSpeechTranscriber())
 _deterministic_project_replies = DeterministicProjectReplies(_project_chat_messages)
-_hermes_home_replies = HermesHomeReplies(_hermes_runtime, _chat_history)
+_hermes_home_replies = HermesHomeReplies(
+    _hermes_runtime,
+    _chat_history,
+    _hermes_session_models,
+)
 _hermes_project_replies = HermesProjectReplies(
     _hermes_runtime,
     _agent_prompt_context,
@@ -63,6 +67,7 @@ _hermes_project_replies = HermesProjectReplies(
     _chat_presentation,
     _page_agent_sessions,
     _display_fallbacks,
+    _hermes_session_models,
 )
 _project_assistant_replies = ProjectAssistantReplies(
     _chat_run_locks,

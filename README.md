@@ -557,7 +557,7 @@ ai-anime-desktop/
 固定 Gateway：
 
 ```text
-https://aianime.122-193-11-199.sslip.io
+https://aianime.mingcw.com
 ```
 
 产品调用链统一为：

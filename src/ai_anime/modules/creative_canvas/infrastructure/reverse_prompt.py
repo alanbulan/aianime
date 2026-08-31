@@ -11,6 +11,7 @@ from ai_anime.modules.creative_canvas.application.vision_analysis import (
 from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
     call_creative_canvas_vision_model,
 )
+from ai_anime.shared.model_response import strip_model_response_code_fence
 
 
 def build_image_reverse_prompt_task() -> str:
@@ -38,13 +39,7 @@ async def reverse_prompt_from_image(*, image_path: Path) -> str:
             )
         ],
     )
-    prompt_text = prompt_text.strip()
-    if prompt_text.startswith("```"):
-        prompt_text = "\n".join(
-            line
-            for line in prompt_text.splitlines()
-            if not line.strip().startswith("```")
-        ).strip()
+    prompt_text = strip_model_response_code_fence(prompt_text)
     if not prompt_text:
         raise RuntimeError("reverse prompt model returned empty prompt")
     return prompt_text

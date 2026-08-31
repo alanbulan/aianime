@@ -200,6 +200,20 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
     ),
     "utf8",
   );
+  const nativeTaskIsolation = await readFile(
+    new URL(
+      "../../src/ai_anime/modules/task_execution/infrastructure/native_task_isolation.py",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const internalWorkers = await readFile(
+    new URL(
+      "../../src/ai_anime/shared/infrastructure/internal_workers.py",
+      import.meta.url,
+    ),
+    "utf8",
+  );
   const desktopPackage = JSON.parse(
     await readFile(new URL("../package.json", import.meta.url), "utf8"),
   );
@@ -234,8 +248,12 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(workerRuntime, /"scene-overlap-analyzer"/);
   assert.match(workerRuntime, /"scene-spatial-contract"/);
   assert.match(workerRuntime, /"block-world-builder"/);
-  assert.match(workerRuntime, /"native-project-task"/);
-  assert.match(workerRuntime, /"--internal-worker"/);
+  assert.doesNotMatch(workerRuntime, /native-project-task/);
+  assert.match(nativeTaskIsolation, /"native-project-task"/);
+  assert.match(entrypoint, /DIRECTOR_WORLD_WORKERS/);
+  assert.match(entrypoint, /NATIVE_PROJECT_TASK_WORKER/);
+  assert.doesNotMatch(entrypoint, /dispatch_native_project_task_worker/);
+  assert.match(internalWorkers, /"--internal-worker"/);
   assert.match(entrypoint, /from ladybug import Connection, Database/);
   assert.match(entrypoint, /_install_ladybug_windows_path_compatibility/);
   assert.match(entrypoint, /"中文项目" \/ "graph\.lbug"/);

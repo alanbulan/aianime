@@ -10,7 +10,7 @@
     "build": "tsc -b && vite build",
     "build:ce": "tsc -b && vite build --mode ce",
     "preview": "vite preview",
-    "test": "pnpm test:unit && pnpm test:component && pnpm test:browser",
+    "test": "node run-test-projects.mjs",
     "test:unit": "vitest run --project unit",
     "test:component": "vitest run --project component",
     "test:browser": "vitest run --project browser",

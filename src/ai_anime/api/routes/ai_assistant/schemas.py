@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError, model_validator
 from ai_anime.modules.ai_assistant.public import (
     ChatScope,
     InteractiveChatScopeKind,
+    normalize_model_selector,
 )
 
 _InboundT = TypeVar("_InboundT", bound=BaseModel)
@@ -90,24 +91,13 @@ class SessionModelGetIn(BaseModel):
 class SessionModelSetIn(BaseModel):
     type: Literal["session.model.set"]
     scope: ChatScopePayload
-    selector: str | None = Field(default=None, max_length=768)
+    selector: str | None = None
     reasoning_effort: str | None = Field(default=None, max_length=64)
 
     @model_validator(mode="after")
     def validate_selector(self) -> "SessionModelSetIn":
         if self.selector is not None:
-            normalized = self.selector.strip()
-            if not normalized:
-                self.selector = None
-            else:
-                if not (
-                    normalized.startswith("cloud:")
-                    or normalized.startswith("byok:")
-                ):
-                    raise ValueError("selector must be a commercial model route")
-                if any(ord(char) < 32 or ord(char) == 127 for char in normalized):
-                    raise ValueError("selector contains control characters")
-                self.selector = normalized
+            self.selector = normalize_model_selector(self.selector)
         if self.reasoning_effort is not None:
             effort = self.reasoning_effort.strip()
             if not effort:

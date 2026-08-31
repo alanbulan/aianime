@@ -21,6 +21,29 @@ def _typescript_string_collection(path: Path, name: str) -> tuple[str, ...]:
     return tuple(re.findall(r'["\']([^"\']+)["\']', match.group(1)))
 
 
+def _typescript_string_array_record(
+    path: Path,
+    name: str,
+) -> dict[str, tuple[str, ...]]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"\bconst\s+{re.escape(name)}\s*:.*?=\s*\{{(.*?)^\}};",
+        source,
+        re.DOTALL | re.MULTILINE,
+    )
+    assert match is not None, f"missing TypeScript record {name} in {path}"
+    entries = re.findall(
+        r"^\s*([A-Z0-9_]+):\s*\[(.*?)\],?$",
+        match.group(1),
+        re.DOTALL | re.MULTILINE,
+    )
+    assert entries, f"missing TypeScript record entries {name} in {path}"
+    return {
+        key: tuple(re.findall(r'["\']([^"\']+)["\']', values))
+        for key, values in entries
+    }
+
+
 def _python_frozenset(path: Path, name: str) -> frozenset[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     for node in tree.body:
@@ -33,11 +56,42 @@ def _python_frozenset(path: Path, name: str) -> frozenset[str]:
     raise AssertionError(f"missing Python frozenset {name} in {path}")
 
 
+def _python_literal_constant(path: Path, name: str):
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == name
+            for target in node.targets
+        ):
+            return ast.literal_eval(node.value)
+        if (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == name
+        ):
+            return ast.literal_eval(node.value)
+    raise AssertionError(f"missing Python constant {name} in {path}")
+
+
 def _typescript_integer_constant(path: Path, name: str) -> int:
     source = path.read_text(encoding="utf-8")
     match = re.search(rf"\bconst\s+{re.escape(name)}\s*=\s*(\d+)\s*;", source)
     assert match is not None, f"missing TypeScript integer {name} in {path}"
     return int(match.group(1))
+
+
+def _typescript_capability_fallback_chain(
+    path: Path,
+    name: str,
+) -> tuple[str, ...]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"\bconst\s+{re.escape(name)}\s*=\s*(.*?);",
+        source,
+        re.DOTALL,
+    )
+    assert match is not None, f"missing TypeScript fallback chain {name} in {path}"
+    return tuple(re.findall(r"\bcapabilities\.([A-Za-z0-9_]+)", match.group(1)))
 
 
 def test_model_roles_and_protocols_stay_aligned_across_runtimes() -> None:
@@ -78,6 +132,66 @@ def test_model_roles_and_protocols_stay_aligned_across_runtimes() -> None:
     assert frontend_depth == desktop_depth == 8
 
 
+def test_model_selector_validation_stays_aligned_across_runtimes() -> None:
+    python_contract = (
+        REPO_ROOT
+        / "src"
+        / "ai_anime"
+        / "modules"
+        / "ai_assistant"
+        / "domain"
+        / "model_selector.py"
+    )
+    hermes_runtime = (
+        REPO_ROOT / "desktop" / "hermes-runtime" / "ai_anime_acp_runtime.py"
+    )
+    desktop_contract = (
+        REPO_ROOT / "desktop" / "src" / "commercial-model-proxy-http.ts"
+    )
+    schema = (
+        REPO_ROOT
+        / "src"
+        / "ai_anime"
+        / "api"
+        / "routes"
+        / "ai_assistant"
+        / "schemas.py"
+    )
+    codec = (
+        REPO_ROOT
+        / "src"
+        / "ai_anime"
+        / "modules"
+        / "ai_assistant"
+        / "infrastructure"
+        / "hermes"
+        / "model_route.py"
+    )
+
+    expected_length = _python_literal_constant(
+        python_contract, "MODEL_SELECTOR_MAX_LENGTH"
+    )
+    expected_prefixes = _python_literal_constant(
+        python_contract, "MODEL_SELECTOR_PREFIXES"
+    )
+    assert expected_length == 768
+    assert expected_prefixes == ("cloud:", "byok:")
+    assert _python_literal_constant(
+        hermes_runtime, "_MODEL_SELECTOR_MAX_LENGTH"
+    ) == expected_length
+    assert _python_literal_constant(
+        hermes_runtime, "_MODEL_SELECTOR_PREFIXES"
+    ) == expected_prefixes
+    assert _typescript_integer_constant(
+        desktop_contract, "MODEL_SELECTOR_MAX_LENGTH"
+    ) == expected_length
+    assert _typescript_string_collection(
+        desktop_contract, "MODEL_SELECTOR_PREFIXES"
+    ) == expected_prefixes
+    assert "normalize_model_selector" in schema.read_text(encoding="utf-8")
+    assert "normalize_model_selector" in codec.read_text(encoding="utf-8")
+
+
 def test_video_core_parameter_names_stay_aligned_across_runtimes() -> None:
     frontend_contract = (
         REPO_ROOT
@@ -100,6 +214,56 @@ def test_video_core_parameter_names_stay_aligned_across_runtimes() -> None:
     )
     assert frontend_names == desktop_names
     assert len(frontend_names) == len(set(frontend_names))
+
+
+def test_cloud_role_derivation_stays_aligned_across_runtimes() -> None:
+    frontend_contract = (
+        REPO_ROOT
+        / "frontend"
+        / "src"
+        / "modules"
+        / "model_usage"
+        / "domain"
+        / "commercial-model-access.ts"
+    )
+    desktop_contract = REPO_ROOT / "desktop" / "src" / "commercial-ipc-support.ts"
+    audio_contract = (
+        REPO_ROOT
+        / "frontend"
+        / "src"
+        / "modules"
+        / "model_usage"
+        / "domain"
+        / "audio-model.ts"
+    )
+
+    assert _typescript_string_array_record(
+        frontend_contract,
+        "ROLES_BY_OPERATION",
+    ) == _typescript_string_array_record(
+        desktop_contract,
+        "CLOUD_ROLES_BY_OPERATION",
+    )
+    assert _typescript_string_array_record(
+        frontend_contract,
+        "MODES_BY_ROLE",
+    ) == _typescript_string_array_record(
+        desktop_contract,
+        "CLOUD_ROLE_MODES",
+    )
+    expected_mode_keys = ("supportedModes", "audioModes", "modes")
+    assert _typescript_capability_fallback_chain(
+        frontend_contract,
+        "rawModes",
+    ) == expected_mode_keys
+    assert _typescript_capability_fallback_chain(
+        desktop_contract,
+        "rawModes",
+    ) == expected_mode_keys
+    assert _typescript_capability_fallback_chain(
+        audio_contract,
+        "declaredModes",
+    ) == expected_mode_keys
 
 
 def test_image_quality_capability_stays_aligned_across_runtimes() -> None:

@@ -268,6 +268,89 @@ async def test_run_chat_session_applies_model_selector_to_current_conversation(
 
 
 @pytest.mark.anyio
+async def test_project_model_selector_uses_resolved_project_storage(
+    tmp_path,
+    monkeypatch,
+):
+    project_scope = ChatScope(kind="project", id="01JPROJECT", conversation_id="main")
+    websocket = RecordingWebSocket(
+        [
+            {
+                "type": "session.model.set",
+                "scope": project_scope.to_dict(),
+                "selector": "cloud:text-model",
+                "reasoning_effort": "high",
+            }
+        ]
+    )
+    project_dir = tmp_path / "output" / "alice" / "我的项目"
+    project_state_dir = tmp_path / "state" / "alice" / "我的项目"
+    selections = []
+
+    async def authenticate(_websocket):
+        return {"username": "alice"}
+
+    async def send_scope(_websocket, _user, _username, _scope):
+        return project_scope
+
+    async def project_context(_user, scope):
+        assert scope == project_scope
+        return type(
+            "ProjectContext",
+            (),
+            {"output_dir": project_dir, "state_dir": project_state_dir},
+        )()
+
+    class IdleLifecycle:
+        def is_busy(self, _username):
+            return False
+
+    class RecordingModels:
+        async def select(
+            self,
+            username,
+            scope,
+            selector,
+            reasoning_effort,
+            **paths,
+        ):
+            selections.append(
+                (username, scope, selector, reasoning_effort, paths)
+            )
+            return selector, reasoning_effort
+
+    monkeypatch.setattr(chat_session, "get_websocket_user", authenticate)
+    monkeypatch.setattr(chat_session.chat_scope, "send_scope_changed", send_scope)
+    monkeypatch.setattr(
+        chat_session.chat_access,
+        "project_context_for_scope",
+        project_context,
+    )
+    monkeypatch.setattr(chat_session, "chat_worker_lifecycle", IdleLifecycle())
+    monkeypatch.setattr(chat_session, "hermes_session_models", RecordingModels())
+    monkeypatch.setattr(
+        chat_session,
+        "hermes_runtime_prewarmer",
+        RecordingPrewarmer(),
+    )
+
+    await chat_session.run_chat_session(websocket)
+
+    assert selections == [
+        (
+            "alice",
+            project_scope,
+            "cloud:text-model",
+            "high",
+            {
+                "project_dir": project_dir,
+                "project_state_dir": project_state_dir,
+            },
+        )
+    ]
+
+
+@pytest.mark.anyio
 async def test_run_chat_session_deletes_requested_conversation(monkeypatch):
     websocket = RecordingWebSocket(
         [

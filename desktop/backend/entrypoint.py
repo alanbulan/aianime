@@ -116,10 +116,18 @@ if __name__ == "__main__":
     if "--runtime-smoke-check" in sys.argv[1:]:
         raise SystemExit(_run_runtime_smoke_check())
     from ai_anime.modules.asset_world.infrastructure.director_world.worker_runtime import (
+        DIRECTOR_WORLD_WORKERS,
+    )
+    from ai_anime.modules.task_execution.infrastructure.native_task_isolation import (
+        NATIVE_PROJECT_TASK_WORKER,
+    )
+    from ai_anime.shared.infrastructure.internal_workers import (
         dispatch_internal_worker,
     )
 
-    worker_exit_code = dispatch_internal_worker()
+    worker_exit_code = dispatch_internal_worker(
+        (*DIRECTOR_WORLD_WORKERS, NATIVE_PROJECT_TASK_WORKER)
+    )
     if worker_exit_code is not None:
         raise SystemExit(worker_exit_code)
     from ai_anime.desktop_server import main

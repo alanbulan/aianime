@@ -7,7 +7,6 @@ import argparse
 import asyncio
 import base64
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +20,11 @@ from ai_anime.modules.model_usage.public import (
 from ai_anime.modules.model_usage.public import (
     request_model_chat_content,
 )
+from ai_anime.modules.asset_world.infrastructure.director_world.paths import (
+    resolve_cli_path as repo_path,
+)
+from ai_anime.shared.model_response import parse_model_json_object_response
+from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
 # Demo defaults for standalone/manual runs. In production scene_360_tasks
 # always passes absolute --master/--reverse/--output-dir, so these are never used.
@@ -30,21 +34,6 @@ DEFAULT_SCENE_DIR = PROJECT_DIR / "assets/scenes" / DEFAULT_SCENE_NAME
 DEFAULT_MASTER = DEFAULT_SCENE_DIR / "master.png"
 DEFAULT_REVERSE = DEFAULT_SCENE_DIR / "reverse_master.png"
 DEFAULT_OUTPUT_DIR = DEFAULT_SCENE_DIR / "overlap_continuation_test"
-
-
-def load_env() -> None:
-    try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return
-    load_dotenv()
-
-
-def repo_path(value: str | Path) -> Path:
-    path = Path(value).expanduser()
-    if path.is_absolute():
-        return path
-    return (Path.cwd() / path).resolve()
 
 
 def _font(size: int) -> ImageFont.ImageFont:
@@ -254,20 +243,6 @@ async def ask_model_access(
     )
 
 
-def parse_json(text: str) -> dict[str, Any]:
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
-        cleaned = re.sub(r"\s*```$", "", cleaned)
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", cleaned, flags=re.S)
-        if not match:
-            raise
-        return json.loads(match.group(0))
-
-
 def render_annotation(sheet_path: Path, analysis: dict[str, Any], output_dir: Path) -> Path:
     sheet = Image.open(sheet_path).convert("RGB")
     side_w = 640
@@ -408,7 +383,7 @@ def _wrap(text: str, width: int) -> list[str]:
 
 
 async def run(args: argparse.Namespace) -> None:
-    load_env()
+    load_project_dotenv()
     load_model_access_from_stdin()
     master = repo_path(args.master)
     reverse = repo_path(args.reverse)
@@ -433,7 +408,7 @@ async def run(args: argparse.Namespace) -> None:
         prompt=prompt,
     )
     (output_dir / "overlap_continuation_raw_response.txt").write_text(raw_text, encoding="utf-8")
-    analysis = parse_json(raw_text)
+    analysis = parse_model_json_object_response(raw_text)
     ai_insert = analysis.get("pano_prompt_insert")
     analysis["ai_pano_prompt_insert"] = ai_insert
     analysis["pano_prompt_insert"] = synthesize_pano_prompt_insert(analysis)

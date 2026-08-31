@@ -80,7 +80,7 @@ if ([Environment]::Is64BitOperatingSystem -ne $true) {
 $runtimeBaseUrl = if ($env:AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL) {
     $env:AI_ANIME_RUNTIME_DOWNLOAD_BASE_URL.TrimEnd("/")
 } else {
-    "https://aianime.122-193-11-199.sslip.io/api/v1/client/runtime-dependencies"
+    "https://aianime.mingcw.com/api/v1/client/runtime-dependencies"
 }
 if (-not $ManifestUrl) {
     $ManifestUrl = if ($env:AI_ANIME_RUNTIME_MANIFEST_URL) {

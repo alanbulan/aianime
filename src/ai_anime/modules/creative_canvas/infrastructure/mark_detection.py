@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from io import BytesIO
 from pathlib import Path
-from typing import Any
 
 from PIL import Image
 
@@ -20,6 +18,7 @@ from ai_anime.modules.creative_canvas.domain import CreativeCanvasMarkSelection
 from ai_anime.modules.creative_canvas.infrastructure.vision_model import (
     call_creative_canvas_vision_model,
 )
+from ai_anime.shared.model_response import parse_model_json_object_response
 
 
 def build_mark_detection_task(selection: CreativeCanvasMarkSelection) -> str:
@@ -88,22 +87,6 @@ def crop_mark_focus_image(
     return buffer.getvalue()
 
 
-def _extract_json_object(text: str) -> dict[str, Any]:
-    cleaned = (text or "").strip()
-    if cleaned.startswith("```"):
-        cleaned = "\n".join(
-            line for line in cleaned.splitlines() if not line.strip().startswith("```")
-        ).strip()
-    start = cleaned.find("{")
-    end = cleaned.rfind("}")
-    if start >= 0 and end > start:
-        cleaned = cleaned[start : end + 1]
-    payload = json.loads(cleaned)
-    if not isinstance(payload, dict):
-        raise ValueError("response is not a JSON object")
-    return payload
-
-
 class PydanticAICreativeCanvasMarkDetector:
     async def detect(
         self,
@@ -124,7 +107,7 @@ class PydanticAICreativeCanvasMarkDetector:
             ],
             timeout_seconds=90.0,
         )
-        payload = _extract_json_object(text)
+        payload = parse_model_json_object_response(text)
         label = str(payload.get("label") or "").strip()
         note = str(payload.get("note") or "").strip()
         if not label:

@@ -60,7 +60,7 @@ function createGateway(
   return {
     status: vi.fn(async () => ({
       configured: true,
-      gatewayOrigin: "http://122.193.11.199:8889",
+      gatewayOrigin: "http://203.0.113.10:8889",
     })),
     fetchPublicConfig: vi.fn(async () => publicConfig),
     fetchPublicLogo: vi.fn(async () => ({

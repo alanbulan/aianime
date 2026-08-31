@@ -1139,12 +1139,12 @@ describe("SuperChat boundaries", () => {
     );
     for (const ownedOperation of [
       "const notifiedTaskKeysRef = useRef<Set<string>>(new Set());",
-      'return taskEventBus.on("*", (event) => {',
+      'taskEventBus.on("*", (event) => {',
       'event.type !== "task_complete" && event.type !== "task_failed"',
       "const taskProject =",
       "const dedupeKey =",
       "buildChatTaskLabel(event.task, t)",
-      "void appendNotification(text)",
+      "void appendNotification(",
     ]) {
       expect(controller).toContain(ownedOperation);
       expect(panel).not.toContain(ownedOperation);

@@ -249,33 +249,82 @@ def test_delete_conversation_removes_only_the_selected_conversation(
 ):
     monkeypatch.setenv("AI_ANIME_STATE_DIR", str(tmp_path / "state"))
     history = SQLiteChatHistory()
-    base = ChatScope(kind="project", id="show-1")
+    project_id = "01JAAAAAAAAAAAAAAAAAAAAAAA"
+    project_state_dir = tmp_path / "state" / "alice" / "我的项目"
+    base = ChatScope(kind="project", id=project_id)
     branch = ChatScope(
         kind="project",
-        id="show-1",
+        id=project_id,
         conversation_id="chat_2",
     )
-    history.append_message("alice", base, "user", "保留")
-    branch_message = history.append_message(
+    history.append_project_message(
         "alice",
-        branch,
+        project_id,
+        "user",
+        "保留",
+        project_state_dir=project_state_dir,
+    )
+    branch_message = history.append_project_message(
+        "alice",
+        project_id,
         "assistant",
         "删除",
         turn_id="turn-2",
+        project_state_dir=project_state_dir,
+        conversation_id="chat_2",
     )
     history.append_ui_event(
         "alice",
         branch,
         "turn-2",
         {"type": "task.completed", "message_id": branch_message["id"]},
+        project_state_dir=project_state_dir,
+    )
+    history.save_model_route(
+        "alice",
+        branch,
+        "cloud:text-model",
+        "high",
+        project_state_dir=project_state_dir,
     )
 
-    assert history.delete_conversation("alice", branch) is True
-    assert history.list_messages("alice", branch) == []
+    assert history.load_model_route(
+        "alice",
+        branch,
+        project_state_dir=project_state_dir,
+    ) == ("cloud:text-model", "high")
+
+    assert history.delete_conversation(
+        "alice",
+        branch,
+        project_state_dir=project_state_dir,
+    ) is True
+    assert history.load_model_route(
+        "alice",
+        branch,
+        project_state_dir=project_state_dir,
+    ) is None
+    assert history.list_project_messages(
+        "alice",
+        project_id,
+        project_state_dir=project_state_dir,
+        conversation_id="chat_2",
+    ) == []
     assert [
-        item["id"] for item in history.list_conversations("alice", base)
+        item["id"]
+        for item in history.list_conversations(
+            "alice",
+            base,
+            project_state_dir=project_state_dir,
+        )
     ] == ["main"]
-    assert history.list_messages("alice", base)[0]["content"] == "保留"
+    assert history.list_project_messages(
+        "alice",
+        project_id,
+        project_state_dir=project_state_dir,
+    )[0]["content"] == "保留"
+    assert project_state_dir.joinpath("chat.db").is_file()
+    assert not (tmp_path / "state" / "alice" / project_id / "chat.db").exists()
 
 
 def test_visible_history_hides_trace_and_strips_assistant_replay(

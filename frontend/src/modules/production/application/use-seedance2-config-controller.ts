@@ -476,10 +476,20 @@ export function createUseSeedance2ConfigController(
 
     const generatePrompt = useCallback(async () => {
       try {
+        const currentDraft = draftRef.current;
+        const currentPrompt = currentDraft.final_prompt.trim();
+        const generatedPrompt = config.final_prompt.trim();
+        const manualPromptReference =
+          config.prompt_source === "generated" &&
+          currentPrompt === generatedPrompt
+            ? undefined
+            : currentDraft.final_prompt;
         const response = await generate.mutateAsync({
           beatNum: options.beat.beat_number,
-          manualPromptReference: draftRef.current.final_prompt,
-          promptGuidance: draftRef.current.prompt_guidance,
+          ...(manualPromptReference === undefined
+            ? {}
+            : { manualPromptReference }),
+          promptGuidance: currentDraft.prompt_guidance,
         });
         if (!response.ok) {
           toast.error(
@@ -494,6 +504,8 @@ export function createUseSeedance2ConfigController(
         toast.error(backendErrorToastMessage(error, t));
       }
     }, [
+      config.final_prompt,
+      config.prompt_source,
       generate,
       generationTask,
       options.beat.beat_number,

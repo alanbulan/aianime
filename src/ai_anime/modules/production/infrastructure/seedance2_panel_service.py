@@ -117,6 +117,7 @@ async def save_seedance2_video_panel_config(
     if final_prompt is not None:
         config.final_prompt = str(final_prompt or "").strip()
         config.prompt_source = "manual" if config.final_prompt else ""
+        config.prompt_validation_source = ""
     if text_overlay is not None:
         overlay = dict(config.text_overlay or {})
         overlay.update(text_overlay)
@@ -197,11 +198,20 @@ async def generate_seedance2_prompt_for_panel(
         reference_audio_paths=list(config.reference_audio_paths),
     )
     initial_prompt = _seedance2_initial_prompt(beat)
-    reference_prompt = str(
-        manual_prompt_reference
+    supplied_reference = (
+        str(manual_prompt_reference or "").strip()
         if manual_prompt_reference is not None
-        else (config.final_prompt or initial_prompt or "")
-    ).strip()
+        else None
+    )
+    saved_prompt = str(config.final_prompt or "").strip()
+    if config.prompt_source == "generated" and (
+        supplied_reference is None or supplied_reference == saved_prompt
+    ):
+        reference_prompt = ""
+    elif supplied_reference is not None:
+        reference_prompt = supplied_reference
+    else:
+        reference_prompt = str(config.final_prompt or initial_prompt or "").strip()
     prompt_beat = _beat_with_seedance2_initial_prompt(beat, initial_prompt)
     inputs_hash = _seedance2_prompt_inputs_hash(
         config=config,
@@ -224,6 +234,7 @@ async def generate_seedance2_prompt_for_panel(
     )
     config.final_prompt = mark_seedance2_prompt_references_for_editor(result.prompt)
     config.prompt_source = "generated" if result.used_ai else "fallback"
+    config.prompt_validation_source = result.draft_prompt if result.used_ai else ""
     config.prompt_inputs_hash = inputs_hash
     config.prompt_updated_at = datetime.now().isoformat(timespec="seconds")
     saved_json = dump_seedance2_config(config)
