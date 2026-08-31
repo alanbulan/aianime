@@ -101,42 +101,6 @@ def _rollback_asset_moves(moved: list[tuple[Path, str, str]]) -> None:
         shutil.move(str(current), str(original))
 
 
-async def _cascade_voice_speakers(
-    db: aiosqlite.Connection,
-    old_name: str,
-    new_name: str,
-) -> None:
-    async with db.execute(
-        "SELECT episode_number, beat_number, speaker "
-        "FROM seedance2_voice_audio_records"
-    ) as cursor:
-        rows = await cursor.fetchall()
-    for row in rows:
-        speaker = str(row["speaker"] or "")
-        remapped = remap_identity_id(speaker, old_name, new_name)
-        if remapped == speaker:
-            continue
-        key = (row["episode_number"], row["beat_number"])
-        async with db.execute(
-            "SELECT 1 FROM seedance2_voice_audio_records "
-            "WHERE episode_number = ? AND beat_number = ? AND speaker = ?",
-            (*key, remapped),
-        ) as cursor:
-            occupied = await cursor.fetchone() is not None
-        if occupied:
-            await db.execute(
-                "DELETE FROM seedance2_voice_audio_records "
-                "WHERE episode_number = ? AND beat_number = ? AND speaker = ?",
-                (*key, speaker),
-            )
-        else:
-            await db.execute(
-                "UPDATE seedance2_voice_audio_records SET speaker = ? "
-                "WHERE episode_number = ? AND beat_number = ? AND speaker = ?",
-                (remapped, *key, speaker),
-            )
-
-
 async def _cascade_character_references(
     db: aiosqlite.Connection,
     old_name: str,
@@ -223,7 +187,6 @@ async def _cascade_character_references(
                 "WHERE name = ?",
                 (remapped, row["name"]),
             )
-    await _cascade_voice_speakers(db, old_name, new_name)
 
 
 async def _migrate_character(

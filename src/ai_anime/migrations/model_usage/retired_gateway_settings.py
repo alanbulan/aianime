@@ -1,4 +1,4 @@
-"""Remove secrets left by the retired local model-gateway settings."""
+"""Remove settings and secrets left by retired local model-gateway storage."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from pathlib import Path
 from ai_anime.migrations.sqlite import ensure_sqlite_schema, run_sqlite_migrations
 from ai_anime.shared.runtime_paths import STATE_DIR
 
-VERSION = "20260823_001_purge_legacy_gateway_secrets"
+VERSION = "20260831_000_purge_retired_gateway_settings"
 
 
-def migrate_legacy_gateway_secrets() -> None:
+def purge_retired_gateway_settings() -> None:
     path = Path(STATE_DIR) / "local" / "settings.db"
     if not path.is_file():
         return
@@ -24,13 +24,15 @@ def migrate_legacy_gateway_secrets() -> None:
         if table is None:
             return
 
-        def purge_legacy_settings(conn: sqlite3.Connection) -> None:
+        def purge_retired_settings(conn: sqlite3.Connection) -> None:
             conn.execute(
                 """
                 DELETE FROM runtime_settings
                 WHERE key = 'model_gateway_mode'
                    OR key LIKE 'official_newapi_%'
                    OR key LIKE 'custom_newapi_%'
+                   OR key LIKE 'official_model_gateway_%'
+                   OR key LIKE 'custom_model_gateway_%'
                    OR key = 'media_relay_provider'
                    OR key = 'media_relay_ttl_seconds'
                    OR key LIKE 'oss_relay_%'
@@ -41,15 +43,15 @@ def migrate_legacy_gateway_secrets() -> None:
 
         run_sqlite_migrations(
             connection,
-            ((VERSION, purge_legacy_settings),),
+            ((VERSION, purge_retired_settings),),
         )
 
     ensure_sqlite_schema(
         path,
-        component="legacy_gateway_secret_purge",
-        version=1,
+        component="retired_gateway_settings_purge",
+        version=2,
         initialize=initialize,
     )
 
 
-__all__ = ["VERSION", "migrate_legacy_gateway_secrets"]
+__all__ = ["VERSION", "purge_retired_gateway_settings"]

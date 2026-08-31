@@ -21,9 +21,17 @@ from .versions.v20260823_001_path_safe_asset_names import (
     VERSION as PATH_SAFE_ASSET_NAMES_VERSION,
     apply as apply_path_safe_asset_names,
 )
-from .versions.v20260823_000_legacy_columns import (
-    VERSION as LEGACY_COLUMNS_VERSION,
-    apply as apply_legacy_columns,
+from .versions.v20260831_000_generic_video_config import (
+    VERSION as GENERIC_VIDEO_CONFIG_VERSION,
+    apply as apply_generic_video_config,
+)
+from .versions.v20260831_001_canonical_audio_types import (
+    VERSION as CANONICAL_AUDIO_TYPES_VERSION,
+    apply as apply_canonical_audio_types,
+)
+from .versions.v20260831_002_remove_provider_voice_state import (
+    VERSION as REMOVE_PROVIDER_VOICE_STATE_VERSION,
+    apply as apply_remove_provider_voice_state,
 )
 
 MigrationRollback = Callable[[], None]
@@ -37,11 +45,14 @@ Migration = tuple[
 
 MIGRATIONS: tuple[Migration, ...] = (
     (INITIAL_SCHEMA_VERSION, apply_initial_schema),
-    (LEGACY_COLUMNS_VERSION, apply_legacy_columns),
     (PATH_SAFE_ASSET_NAMES_VERSION, apply_path_safe_asset_names),
+    (GENERIC_VIDEO_CONFIG_VERSION, apply_generic_video_config),
+    (CANONICAL_AUDIO_TYPES_VERSION, apply_canonical_audio_types),
+    (REMOVE_PROVIDER_VOICE_STATE_VERSION, apply_remove_provider_voice_state),
 )
 
-MIGRATION_VERSION = len(MIGRATIONS)
+# Schema component versions are monotonic even when obsolete migrations are removed.
+MIGRATION_VERSION = 8
 
 
 async def run_project_migrations(

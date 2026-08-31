@@ -319,8 +319,8 @@ class NarrativeSQLiteRepositoryMixin:
             video_mode=row["video_mode"] if "video_mode" in row.keys() else "first_frame",
             video_prompt=row["video_prompt"] if "video_prompt" in row.keys() else "",
             keyframe_prompt=row["keyframe_prompt"] if "keyframe_prompt" in row.keys() else "",
-            seedance2_config_json=(
-                row["seedance2_config_json"] if "seedance2_config_json" in row.keys() else "{}"
+            video_config_json=(
+                row["video_config_json"] if "video_config_json" in row.keys() else "{}"
             ),
             time_of_day=row["time_of_day"] if "time_of_day" in row.keys() else "",
             shot_order=row["shot_order"] if "shot_order" in row.keys() else None,
@@ -372,7 +372,7 @@ class NarrativeSQLiteRepositoryMixin:
                     "video_mode": getattr(b, "video_mode", "first_frame"),
                     "video_prompt": getattr(b, "video_prompt", ""),
                     "keyframe_prompt": getattr(b, "keyframe_prompt", ""),
-                    "seedance2_config_json": getattr(b, "seedance2_config_json", "{}"),
+                    "video_config_json": getattr(b, "video_config_json", "{}"),
                     "detected_identities": normalize_detected_identities(
                         json.loads(b.detected_identities_json or "[]")
                     ),
@@ -421,7 +421,7 @@ class NarrativeSQLiteRepositoryMixin:
         video_mode: str | None = None,
         video_prompt: str | None = None,
         keyframe_prompt: str | None = None,
-        seedance2_config_json: str | None = None,
+        video_config_json: str | None = None,
         time_of_day: str | None = None,
         shot_order: int | None = None,
         duration_seconds: float | None = None,
@@ -456,8 +456,8 @@ class NarrativeSQLiteRepositoryMixin:
             properties["video_prompt"] = video_prompt
         if keyframe_prompt is not None:
             properties["keyframe_prompt"] = keyframe_prompt
-        if seedance2_config_json is not None:
-            properties["seedance2_config_json"] = str(seedance2_config_json or "{}")
+        if video_config_json is not None:
+            properties["video_config_json"] = str(video_config_json or "{}")
         if time_of_day is not None:
             properties["time_of_day"] = time_of_day
         if shot_order is not None:

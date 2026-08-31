@@ -6,20 +6,16 @@ import sqlite3
 
 from ai_anime.migrations.sqlite import run_sqlite_migrations
 
-from .versions.v20260823_000_initial_seedance_voice_records import (
-    VERSION as INITIAL_VOICE_RECORDS_VERSION,
-    apply as apply_initial_voice_records,
-)
-from .versions.v20260823_001_seedance_voice_text_hash import (
-    VERSION as VOICE_TEXT_HASH_VERSION,
-    apply as apply_voice_text_hash,
+from .versions.v20260831_000_generic_video_voice_records import (
+    VERSION as VIDEO_VOICE_RECORDS_VERSION,
+    apply as apply_video_voice_records,
 )
 
 MIGRATIONS = (
-    (INITIAL_VOICE_RECORDS_VERSION, apply_initial_voice_records),
-    (VOICE_TEXT_HASH_VERSION, apply_voice_text_hash),
+    (VIDEO_VOICE_RECORDS_VERSION, apply_video_voice_records),
 )
-MIGRATION_VERSION = len(MIGRATIONS)
+# Schema component versions are monotonic even when obsolete migrations are removed.
+MIGRATION_VERSION = 3
 
 
 def run_production_migrations(conn: sqlite3.Connection) -> None:

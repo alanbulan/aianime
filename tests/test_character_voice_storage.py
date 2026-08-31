@@ -190,7 +190,7 @@ def test_trim_voice_sample_uses_shared_reference_duration_limit(monkeypatch):
         )
 
 
-def test_trim_voice_sample_content_outputs_seedance2_ready_clip(tmp_path):
+def test_trim_voice_sample_content_outputs_video_reference_ready_clip(tmp_path):
     import shutil
     import subprocess
 

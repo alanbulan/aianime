@@ -1,13 +1,16 @@
-"""Create the Seedance voice provenance schema."""
+"""Create the provider-neutral video voice provenance schema."""
 
 from __future__ import annotations
 
 import sqlite3
 
-VERSION = "20260823_000_initial_seedance_voice_records"
+VERSION = "20260831_000_generic_video_voice_records"
 
 SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS seedance2_voice_audio_records (
+DROP INDEX IF EXISTS idx_seedance2_voice_audio_speaker;
+DROP TABLE IF EXISTS seedance2_voice_audio_records;
+
+CREATE TABLE IF NOT EXISTS video_voice_audio_records (
     episode_number INTEGER NOT NULL,
     beat_number INTEGER NOT NULL,
     speaker TEXT NOT NULL,
@@ -22,8 +25,8 @@ CREATE TABLE IF NOT EXISTS seedance2_voice_audio_records (
     error TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (episode_number, beat_number, speaker)
 );
-CREATE INDEX IF NOT EXISTS idx_seedance2_voice_audio_speaker
-ON seedance2_voice_audio_records(episode_number, speaker);
+CREATE INDEX IF NOT EXISTS idx_video_voice_audio_speaker
+ON video_voice_audio_records(episode_number, speaker);
 """
 
 

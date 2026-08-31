@@ -47,8 +47,8 @@ RECORDED_AUDIO_EXTENSION_BY_MIME = {
 def decode_recorded_audio_data_url(data_url: str) -> tuple[bytes, str]:
     """Decode a browser MediaRecorder data URL into (content, extension).
 
-    Outputs are always re-encoded into a fal-compatible format. Browser
-    MediaRecorder defaults to webm/opus which IndexTTS2 (fal) rejects, so
+    Outputs are always re-encoded into a model-gateway-compatible format. Browser
+    MediaRecorder defaults to webm/opus, while some speech models require MP3, so
     anything not already in :data:`VOICE_SAMPLE_EXTENSIONS` is transcoded to
     mp3 via ffmpeg.
     """
@@ -121,7 +121,7 @@ def trim_voice_sample_content(
     start_seconds: float = 0.0,
     duration_seconds: float = 4.0,
 ) -> tuple[bytes, str]:
-    """Trim uploaded/recorded voice content to a Seedance2-friendly MP3 clip."""
+    """Trim uploaded/recorded voice content to a video-reference MP3 clip."""
 
     if not content:
         raise ValueError("音频内容为空")
@@ -138,7 +138,7 @@ def trim_voice_sample_content(
         raise ValueError("裁剪时长必须大于 0 秒")
     if duration > REFERENCE_VOICE_MAX_SECONDS:
         raise ValueError(
-            "Seedance2 参考声线单段最长 "
+            "视频参考声线单段最长 "
             f"{REFERENCE_VOICE_MAX_SECONDS:g} 秒"
         )
 

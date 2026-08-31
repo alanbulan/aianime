@@ -1,4 +1,4 @@
-"""Seedance 2.0 identity voice audio provenance records."""
+"""Video voice-audio provenance records."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from ai_anime.migrations.sqlite import ensure_sqlite_schema
 
 
 @dataclass(frozen=True)
-class Seedance2VoiceAudioRecord:
+class VideoVoiceAudioRecord:
     episode_number: int
     beat_number: int
     speaker: str
@@ -33,9 +33,9 @@ class Seedance2VoiceAudioRecord:
 
 
 @dataclass(frozen=True)
-class Seedance2VoiceAudioState:
+class VideoVoiceAudioState:
     state: str
-    record: Seedance2VoiceAudioRecord | None = None
+    record: VideoVoiceAudioRecord | None = None
 
 
 @contextmanager
@@ -58,18 +58,18 @@ def _connect(db_path: str | Path):
         conn.close()
 
 
-def seedance2_voice_scope(episode: int, speaker: str) -> str:
+def video_voice_scope(episode: int, speaker: str) -> str:
     return f"ep{int(episode):03d}:{str(speaker or '').strip()}"
 
 
-def seedance2_narration_scope(episode: int) -> str:
+def video_narration_scope(episode: int) -> str:
     return f"ep{int(episode):03d}:narrator"
 
 
-def _row_to_record(row: sqlite3.Row | None) -> Seedance2VoiceAudioRecord | None:
+def _row_to_record(row: sqlite3.Row | None) -> VideoVoiceAudioRecord | None:
     if row is None:
         return None
-    return Seedance2VoiceAudioRecord(
+    return VideoVoiceAudioRecord(
         episode_number=int(row["episode_number"]),
         beat_number=int(row["beat_number"]),
         speaker=str(row["speaker"] or ""),
@@ -85,7 +85,7 @@ def _row_to_record(row: sqlite3.Row | None) -> Seedance2VoiceAudioRecord | None:
     )
 
 
-def upsert_seedance2_voice_audio_record(
+def upsert_video_voice_audio_record(
     *,
     db_path: str | Path,
     episode_number: int,
@@ -104,7 +104,7 @@ def upsert_seedance2_voice_audio_record(
     with _connect(db_path) as conn:
         conn.execute(
             """
-            INSERT INTO seedance2_voice_audio_records (
+            INSERT INTO video_voice_audio_records (
                 episode_number, beat_number, speaker, audio_path, voice_sha256,
                 text_sha256, mode, provider, model, generated_at, status, error
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -136,18 +136,18 @@ def upsert_seedance2_voice_audio_record(
         )
 
 
-def get_seedance2_voice_audio_record(
+def get_video_voice_audio_record(
     *,
     db_path: str | Path,
     episode_number: int,
     beat_number: int,
     speaker: str,
-) -> Seedance2VoiceAudioRecord | None:
+) -> VideoVoiceAudioRecord | None:
     with _connect(db_path) as conn:
         row = conn.execute(
             """
             SELECT *
-            FROM seedance2_voice_audio_records
+            FROM video_voice_audio_records
             WHERE episode_number = ? AND beat_number = ? AND speaker = ?
             """,
             (int(episode_number), int(beat_number), str(speaker or "").strip()),
@@ -155,7 +155,7 @@ def get_seedance2_voice_audio_record(
     return _row_to_record(row)
 
 
-def classify_seedance2_voice_audio(
+def classify_video_voice_audio(
     *,
     db_path: str | Path,
     episode_number: int,
@@ -164,22 +164,22 @@ def classify_seedance2_voice_audio(
     audio_path: str | Path,
     current_voice_sha256: str,
     current_text_sha256: str | None = None,
-) -> Seedance2VoiceAudioState:
+) -> VideoVoiceAudioState:
     path = Path(audio_path)
     if not path.exists() or path.stat().st_size <= 0:
-        return Seedance2VoiceAudioState(state="missing", record=None)
-    record = get_seedance2_voice_audio_record(
+        return VideoVoiceAudioState(state="missing", record=None)
+    record = get_video_voice_audio_record(
         db_path=db_path,
         episode_number=episode_number,
         beat_number=beat_number,
         speaker=speaker,
     )
     if record is None:
-        return Seedance2VoiceAudioState(state="unknown", record=None)
+        return VideoVoiceAudioState(state="unknown", record=None)
     if record.voice_sha256 != str(current_voice_sha256 or "").strip():
-        return Seedance2VoiceAudioState(state="stale", record=record)
+        return VideoVoiceAudioState(state="stale", record=record)
     if current_text_sha256 is not None and record.text_sha256 != str(
         current_text_sha256 or ""
     ).strip():
-        return Seedance2VoiceAudioState(state="stale", record=record)
-    return Seedance2VoiceAudioState(state="current", record=record)
+        return VideoVoiceAudioState(state="stale", record=record)
+    return VideoVoiceAudioState(state="current", record=record)

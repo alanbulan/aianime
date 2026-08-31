@@ -4,7 +4,7 @@ import pytest
 pytestmark = pytest.mark.m09
 
 
-async def test_update_beat_asset_persists_seedance2_config_json(tmp_path):
+async def test_update_beat_asset_persists_video_config_json(tmp_path):
     from ai_anime.modules.narrative_planning.public import NovelVisualBeat
     from ai_anime.modules.narrative_planning.public import NovelEpisode
     from ai_anime.sqlite_store import SQLiteStore
@@ -26,9 +26,9 @@ async def test_update_beat_asset_persists_seedance2_config_json(tmp_path):
     ok = await store.update_beat_asset(
         episode_number=1,
         beat_number=1,
-        seedance2_config_json='{"final_prompt":"参考图片1生成视频。"}',
+        video_config_json='{"final_prompt":"参考图片1生成视频。"}',
     )
     beats = await store.get_beats_as_dicts(1)
 
     assert ok is True
-    assert beats[0]["seedance2_config_json"] == '{"final_prompt":"参考图片1生成视频。"}'
+    assert beats[0]["video_config_json"] == '{"final_prompt":"参考图片1生成视频。"}'

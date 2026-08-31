@@ -46,15 +46,15 @@ class AssetWorldSQLiteRepositoryMixin:
         db = await self._ensure_db()
         await db.execute(
             """INSERT INTO characters (name, aliases_json, role, is_main, gender, age_group,
-               body_type, fish_voice_id, description, face_prompt, appearance_details, identities_json,
+               body_type, description, face_prompt, appearance_details, identities_json,
                reference_audio_path, reference_audio_sha256, reference_audio_updated_at,
                voice_samples_by_age_group_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(name) DO UPDATE SET
                aliases_json=excluded.aliases_json, role=excluded.role,
                is_main=excluded.is_main, gender=excluded.gender,
                age_group=excluded.age_group, body_type=excluded.body_type,
-               fish_voice_id=excluded.fish_voice_id, description=excluded.description,
+               description=excluded.description,
                face_prompt=excluded.face_prompt, appearance_details=excluded.appearance_details,
                identities_json=excluded.identities_json,
                reference_audio_path=excluded.reference_audio_path,
@@ -70,7 +70,6 @@ class AssetWorldSQLiteRepositoryMixin:
                 character.gender,
                 character.age_group,
                 character.body_type,
-                character.fish_voice_id,
                 character.description,
                 character.face_prompt,
                 character.appearance_details,
@@ -301,7 +300,7 @@ class AssetWorldSQLiteRepositoryMixin:
 
     @staticmethod
     async def _cascade_voice_record_speaker(db, old_name: str, new_name: str) -> None:
-        table = "seedance2_voice_audio_records"
+        table = "video_voice_audio_records"
         async with db.execute(
             f"SELECT episode_number, beat_number, speaker FROM {table}"
         ) as cursor:
@@ -733,7 +732,6 @@ class AssetWorldSQLiteRepositoryMixin:
                 gender=row["gender"] or "",
                 age_group=row["age_group"] if "age_group" in row.keys() else "youth",
                 body_type=row["body_type"] or "",
-                fish_voice_id=row["fish_voice_id"] if "fish_voice_id" in row.keys() else "",
                 description=row["description"] or "",
                 face_prompt=row["face_prompt"] or "",
                 appearance_details=row["appearance_details"] or "",

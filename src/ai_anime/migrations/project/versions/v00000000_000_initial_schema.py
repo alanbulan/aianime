@@ -17,8 +17,11 @@ CREATE TABLE IF NOT EXISTS characters (
     gender            TEXT DEFAULT '',
     age_group         TEXT DEFAULT 'youth',
     body_type         TEXT DEFAULT '',
-    fish_voice_id     TEXT DEFAULT '',
     description       TEXT DEFAULT '',
+    reference_audio_path TEXT DEFAULT '',
+    reference_audio_sha256 TEXT DEFAULT '',
+    reference_audio_updated_at TEXT DEFAULT '',
+    voice_samples_by_age_group_json TEXT DEFAULT '{}',
     face_prompt       TEXT DEFAULT '',
     appearance_details TEXT DEFAULT '',
     identities_json   TEXT DEFAULT '[]',
@@ -91,6 +94,7 @@ CREATE TABLE IF NOT EXISTS beats (
     time_of_day            TEXT DEFAULT '',
     video_mode             TEXT DEFAULT 'first_frame',
     video_prompt           TEXT DEFAULT '',
+    video_config_json      TEXT NOT NULL DEFAULT '{}',
     keyframe_prompt        TEXT DEFAULT '',
     shot_order             INTEGER,
     duration_seconds       REAL,
@@ -139,23 +143,6 @@ CREATE TABLE IF NOT EXISTS sketch_failure_mode_hits (
     last_seen_at        TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS seedance2_voice_audio_records (
-    episode_number INTEGER NOT NULL,
-    beat_number INTEGER NOT NULL,
-    speaker TEXT NOT NULL,
-    audio_path TEXT NOT NULL,
-    voice_sha256 TEXT NOT NULL,
-    text_sha256 TEXT NOT NULL DEFAULT '',
-    mode TEXT NOT NULL,
-    provider TEXT NOT NULL,
-    model TEXT NOT NULL,
-    generated_at TEXT NOT NULL,
-    status TEXT NOT NULL,
-    error TEXT NOT NULL DEFAULT '',
-    PRIMARY KEY (episode_number, beat_number, speaker)
-);
-CREATE INDEX IF NOT EXISTS idx_seedance2_voice_audio_speaker
-    ON seedance2_voice_audio_records(episode_number, speaker);
 """
 
 

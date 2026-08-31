@@ -1,10 +1,73 @@
 import hashlib
+import sqlite3
+
+
+def test_generic_voice_migration_discards_provider_specific_records(tmp_path):
+    from ai_anime.modules.production.infrastructure.video_voice_records import (
+        get_video_voice_audio_record,
+    )
+
+    db_path = tmp_path / "state" / "data.db"
+    db_path.parent.mkdir(parents=True)
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE seedance2_voice_audio_records (
+                episode_number INTEGER NOT NULL,
+                beat_number INTEGER NOT NULL,
+                speaker TEXT NOT NULL,
+                audio_path TEXT NOT NULL,
+                voice_sha256 TEXT NOT NULL,
+                text_sha256 TEXT NOT NULL DEFAULT '',
+                mode TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                status TEXT NOT NULL,
+                error TEXT NOT NULL DEFAULT '',
+                PRIMARY KEY (episode_number, beat_number, speaker)
+            );
+            CREATE TABLE schema_migrations (
+                version TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE TABLE ai_anime_schema_components (
+                component TEXT PRIMARY KEY,
+                version INTEGER NOT NULL
+            );
+            INSERT INTO ai_anime_schema_components VALUES ('production', 2);
+            INSERT INTO schema_migrations(version)
+            VALUES ('20260823_000_initial_seedance_voice_records');
+            INSERT INTO schema_migrations(version)
+            VALUES ('20260823_001_seedance_voice_text_hash');
+            INSERT INTO seedance2_voice_audio_records VALUES (
+                1, 1, 'narrator', 'old.mp3', 'voice', 'text', 'old',
+                'provider-a', 'speech-model-a', '2026-08-31', 'completed', ''
+            );
+            """
+        )
+
+    assert get_video_voice_audio_record(
+        db_path=db_path,
+        episode_number=1,
+        beat_number=1,
+        speaker="narrator",
+    ) is None
+    with sqlite3.connect(db_path) as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+        }
+    assert "video_voice_audio_records" in tables
+    assert "seedance2_voice_audio_records" not in tables
 
 
 def test_voice_audio_record_upsert_and_lookup(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice_records import (
-        get_seedance2_voice_audio_record,
-        upsert_seedance2_voice_audio_record,
+    from ai_anime.modules.production.infrastructure.video_voice_records import (
+        get_video_voice_audio_record,
+        upsert_video_voice_audio_record,
     )
 
     db_path = tmp_path / "state" / "data.db"
@@ -12,7 +75,7 @@ def test_voice_audio_record_upsert_and_lookup(tmp_path):
     audio_path.parent.mkdir(parents=True)
     audio_path.write_bytes(b"audio")
 
-    upsert_seedance2_voice_audio_record(
+    upsert_video_voice_audio_record(
         db_path=db_path,
         episode_number=1,
         beat_number=3,
@@ -20,13 +83,13 @@ def test_voice_audio_record_upsert_and_lookup(tmp_path):
         audio_path=audio_path,
         voice_sha256="abc123",
         mode="missing_only",
-        provider="fal.ai",
-        model="IndexTTS2",
+        provider="provider-a",
+        model="speech-model-a",
         status="completed",
         error="",
     )
 
-    record = get_seedance2_voice_audio_record(
+    record = get_video_voice_audio_record(
         db_path=db_path,
         episode_number=1,
         beat_number=3,
@@ -39,10 +102,10 @@ def test_voice_audio_record_upsert_and_lookup(tmp_path):
     assert record.status == "completed"
 
 
-def test_classify_seedance2_voice_audio_states(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice_records import (
-        classify_seedance2_voice_audio,
-        upsert_seedance2_voice_audio_record,
+def test_classify_video_voice_audio_states(tmp_path):
+    from ai_anime.modules.production.infrastructure.video_voice_records import (
+        classify_video_voice_audio,
+        upsert_video_voice_audio_record,
     )
 
     db_path = tmp_path / "state" / "data.db"
@@ -55,7 +118,7 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"audio")
 
-    upsert_seedance2_voice_audio_record(
+    upsert_video_voice_audio_record(
         db_path=db_path,
         episode_number=1,
         beat_number=3,
@@ -63,12 +126,12 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
         audio_path=stale_path,
         voice_sha256="old",
         mode="redo_all",
-        provider="fal.ai",
-        model="IndexTTS2",
+        provider="provider-a",
+        model="speech-model-a",
         status="completed",
         error="",
     )
-    upsert_seedance2_voice_audio_record(
+    upsert_video_voice_audio_record(
         db_path=db_path,
         episode_number=1,
         beat_number=4,
@@ -76,13 +139,13 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
         audio_path=current_path,
         voice_sha256="new",
         mode="redo_all",
-        provider="fal.ai",
-        model="IndexTTS2",
+        provider="provider-a",
+        model="speech-model-a",
         status="completed",
         error="",
     )
 
-    assert classify_seedance2_voice_audio(
+    assert classify_video_voice_audio(
         db_path=db_path,
         episode_number=1,
         beat_number=1,
@@ -90,7 +153,7 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
         audio_path=missing_path,
         current_voice_sha256="new",
     ).state == "missing"
-    assert classify_seedance2_voice_audio(
+    assert classify_video_voice_audio(
         db_path=db_path,
         episode_number=1,
         beat_number=2,
@@ -98,7 +161,7 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
         audio_path=unknown_path,
         current_voice_sha256="new",
     ).state == "unknown"
-    assert classify_seedance2_voice_audio(
+    assert classify_video_voice_audio(
         db_path=db_path,
         episode_number=1,
         beat_number=3,
@@ -106,7 +169,7 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
         audio_path=stale_path,
         current_voice_sha256="new",
     ).state == "stale"
-    assert classify_seedance2_voice_audio(
+    assert classify_video_voice_audio(
         db_path=db_path,
         episode_number=1,
         beat_number=4,
@@ -116,10 +179,10 @@ def test_classify_seedance2_voice_audio_states(tmp_path):
     ).state == "current"
 
 
-def test_classify_seedance2_voice_audio_marks_text_hash_changes_stale(tmp_path):
-    from ai_anime.modules.production.infrastructure.seedance2_voice_records import (
-        classify_seedance2_voice_audio,
-        upsert_seedance2_voice_audio_record,
+def test_classify_video_voice_audio_marks_text_hash_changes_stale(tmp_path):
+    from ai_anime.modules.production.infrastructure.video_voice_records import (
+        classify_video_voice_audio,
+        upsert_video_voice_audio_record,
     )
 
     db_path = tmp_path / "state" / "data.db"
@@ -129,7 +192,7 @@ def test_classify_seedance2_voice_audio_marks_text_hash_changes_stale(tmp_path):
     old_text_hash = hashlib.sha256("旧台词".encode("utf-8")).hexdigest()
     new_text_hash = hashlib.sha256("新台词".encode("utf-8")).hexdigest()
 
-    upsert_seedance2_voice_audio_record(
+    upsert_video_voice_audio_record(
         db_path=db_path,
         episode_number=1,
         beat_number=5,
@@ -138,13 +201,13 @@ def test_classify_seedance2_voice_audio_marks_text_hash_changes_stale(tmp_path):
         voice_sha256="voice",
         text_sha256=old_text_hash,
         mode="sync_changed",
-        provider="fal.ai",
-        model="IndexTTS2",
+        provider="provider-a",
+        model="speech-model-a",
         status="completed",
         error="",
     )
 
-    assert classify_seedance2_voice_audio(
+    assert classify_video_voice_audio(
         db_path=db_path,
         episode_number=1,
         beat_number=5,
@@ -153,7 +216,7 @@ def test_classify_seedance2_voice_audio_marks_text_hash_changes_stale(tmp_path):
         current_voice_sha256="voice",
         current_text_sha256=old_text_hash,
     ).state == "current"
-    assert classify_seedance2_voice_audio(
+    assert classify_video_voice_audio(
         db_path=db_path,
         episode_number=1,
         beat_number=5,
@@ -175,7 +238,7 @@ def test_audio_scope_attempt_count_tracks_task_starts(tmp_path):
 
     assert count_audio_scope_attempts(
         project_output_dir=project_output_dir,
-        task_type="seedance2_voice_audio",
+        task_type="video_reference_voice_audio",
         scope="ep001:谢铮_幼年时期",
         episode=1,
     ) == 0
@@ -183,9 +246,9 @@ def test_audio_scope_attempt_count_tracks_task_starts(tmp_path):
     record_audio_generation_attempt(
         project_output_dir=project_output_dir,
         request_id="attempt-1",
-        provider="fal.ai",
-        model_name="IndexTTS2",
-        task_type="seedance2_voice_audio",
+        provider="provider-a",
+        model_name="speech-model-a",
+        task_type="video_reference_voice_audio",
         scope="ep001:谢铮_幼年时期",
         episode=1,
         speaker="谢铮_幼年时期",
@@ -198,7 +261,7 @@ def test_audio_scope_attempt_count_tracks_task_starts(tmp_path):
 
     assert count_audio_scope_attempts(
         project_output_dir=project_output_dir,
-        task_type="seedance2_voice_audio",
+        task_type="video_reference_voice_audio",
         scope="ep001:谢铮_幼年时期",
         episode=1,
     ) == 1
