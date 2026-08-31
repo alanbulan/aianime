@@ -1,10 +1,11 @@
 """首尾帧过渡提示词生成 Agent。
 
 分析两帧之间的差异，生成描述过渡动作的提示词。
-用于 wan2.2-kf2v-flash 首尾帧视频生成模型。
+用于支持首尾帧约束的视频生成模型。
 """
 
 import io
+import logging
 import os
 from typing import Optional
 
@@ -12,6 +13,8 @@ from pydantic_ai import Agent, BinaryContent
 from PIL import Image as PILImage
 
 from ai_anime.shared.utils.logging import log_agent_start, log_agent_end
+
+logger = logging.getLogger(__name__)
 
 
 # 首尾帧过渡提示词生成器指令（英文版 SuperPower）
@@ -65,9 +68,9 @@ Output ONLY the transition prompt in Chinese. 4–6 句, ~50–90 字.
 
 def create_keyframe_prompt_builder_agent(language: str = "en") -> Agent:
     """创建首尾帧过渡提示词生成 Agent。"""
-    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+    from ai_anime.modules.model_usage.public import get_text_pydantic_model
 
-    model = get_newapi_text_pydantic_model()
+    model = get_text_pydantic_model()
     return Agent(model, system_prompt=KEYFRAME_PROMPT_BUILDER_INSTRUCTIONS_EN, output_type=str, name="Keyframe Prompt Builder")
 
 
@@ -117,10 +120,12 @@ class KeyframePromptBuilder:
 
         compressed_size = len(image_bytes)
         ratio = (1 - compressed_size / original_size) * 100
-        print(
-            f"[KeyframePromptBuilder] 压缩图片: {os.path.basename(image_path)}: "
-            f"{original_size/1024:.0f}KB → {compressed_size/1024:.0f}KB "
-            f"({ratio:.0f}% 压缩)"
+        logger.info(
+            "压缩关键帧图片 %s: %.0fKB -> %.0fKB (%.0f%%)",
+            os.path.basename(image_path),
+            original_size / 1024,
+            compressed_size / 1024,
+            ratio,
         )
 
         return image_bytes

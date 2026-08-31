@@ -22,7 +22,7 @@ PERSISTED_BEAT_UPDATE_FIELDS = frozenset(
         "keyframe_prompt",
         "narration_segment",
         "scene_ref",
-        "seedance2_config_json",
+        "video_config_json",
         "speaker",
         "time_of_day",
         "video_mode",

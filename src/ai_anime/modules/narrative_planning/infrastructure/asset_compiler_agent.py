@@ -10,8 +10,8 @@ from pydantic_ai import Agent
 from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 from ai_anime.modules.model_usage.public import (
-    get_newapi_text_pydantic_model,
-    get_newapi_text_pydantic_model_settings,
+    get_text_pydantic_model,
+    get_text_pydantic_model_settings,
 )
 from ai_anime.modules.asset_world.public import NovelProp, NovelScene
 from ai_anime.shared.infrastructure.project_sqlite_graph_state import (
@@ -496,9 +496,9 @@ class AssetCompiler:
             existing_lines.append("；".join(part for part in parts if part))
 
         agent = Agent(
-            get_newapi_text_pydantic_model(),
+            get_text_pydantic_model(),
             system_prompt=BASE_SCENE_RECONCILE_PROMPT,
-            model_settings=get_newapi_text_pydantic_model_settings(
+            model_settings=get_text_pydantic_model_settings(
                 "EPISODE_SCENE_RECONCILE_THINKING_LEVEL",
                 "low",
             ),
@@ -807,9 +807,9 @@ class AssetCompiler:
 {excerpt}
 """
         agent = Agent(
-            get_newapi_text_pydantic_model(),
+            get_text_pydantic_model(),
             system_prompt=NARRATED_SCENE_PROMPT,
-            model_settings=get_newapi_text_pydantic_model_settings(
+            model_settings=get_text_pydantic_model_settings(
                 "NARRATED_SCENE_ASSET_THINKING_LEVEL",
                 "low",
             ),
@@ -901,9 +901,9 @@ class AssetCompiler:
 {block_text}
 """
         agent = Agent(
-            get_newapi_text_pydantic_model(),
+            get_text_pydantic_model(),
             system_prompt=DERIVED_SCENE_PROMPT,
-            model_settings=get_newapi_text_pydantic_model_settings(
+            model_settings=get_text_pydantic_model_settings(
                 "EPISODE_SCENE_PLANNER_THINKING_LEVEL",
                 "low",
             ),
@@ -1063,9 +1063,9 @@ class AssetCompiler:
 {candidate_section}
 """
         agent = Agent(
-            get_newapi_text_pydantic_model(),
+            get_text_pydantic_model(),
             system_prompt=BLOCK_PROP_PROMPT,
-            model_settings=get_newapi_text_pydantic_model_settings(
+            model_settings=get_text_pydantic_model_settings(
                 "EPISODE_PROP_PLANNER_THINKING_LEVEL",
                 "low",
             ),

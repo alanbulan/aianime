@@ -1,13 +1,12 @@
-"""Episode IndexTTS2 audio scheduling use cases."""
+"""Episode audio scheduling use cases."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.application.ports import (
-    ProductionEpisodeAudioBilling,
     ProductionEpisodeAudioPlanner,
     ProductionEpisodeAudioScheduler,
     ProductionEpisodeBeatSource,
@@ -16,7 +15,7 @@ from ai_anime.modules.production.application.ports import (
 from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
 from ai_anime.modules.project_workspace.public import ProjectContext
 
-INDEXTTS2_AUDIO_TASK_TYPE = "audio_generation_indextts2"
+EPISODE_AUDIO_TASK_TYPE = "episode_audio_generation"
 
 
 @dataclass(frozen=True)
@@ -31,31 +30,15 @@ class EpisodeAudioGenerationPlan:
     beat_numbers: tuple[int, ...] = ()
     errors: tuple[str, ...] = ()
     voice_requirements: tuple[VoiceDesignRequirement, ...] = ()
-    billable_chars: int = 0
-    pricing_model: str = ""
 
     @property
     def quantity(self) -> int:
         return len(self.beat_numbers)
 
-
-@dataclass(frozen=True)
-class EpisodeAudioBillingQuote:
-    beat_numbers: tuple[int, ...]
-    quantity: int
-    unit_cost: int
-    cost: int
-    display: str
-    prereq_errors: tuple[str, ...]
-
     def as_dict(self) -> dict[str, Any]:
         return {
             "beat_numbers": list(self.beat_numbers),
-            "quantity": self.quantity,
-            "unit_cost": self.unit_cost,
-            "cost": self.cost,
-            "display": self.display,
-            "prereq_errors": list(self.prereq_errors),
+            "prereq_errors": list(self.errors),
         }
 
 
@@ -66,7 +49,6 @@ class EpisodeAudioTask:
     beat_numbers: list[int] | None
     output_dir: str | Path
     state_dir: str | Path
-    billing: dict[str, Any] = field(default_factory=dict)
 
     def backend_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {
@@ -76,8 +58,6 @@ class EpisodeAudioTask:
             "output_dir": str(self.output_dir),
             "state_dir": str(self.state_dir),
         }
-        if self.billing:
-            payload["billing"] = dict(self.billing)
         return payload
 
 
@@ -117,7 +97,7 @@ class ScheduledEpisodeAudio:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "task_type": INDEXTTS2_AUDIO_TASK_TYPE,
+            "task_type": EPISODE_AUDIO_TASK_TYPE,
             "task_id": self.task_id,
             "task_key": self.task_key,
             "backend": self.backend,
@@ -157,13 +137,11 @@ class EpisodeAudioUseCases:
         self,
         beat_source: ProductionEpisodeBeatSource,
         planner: ProductionEpisodeAudioPlanner,
-        billing: ProductionEpisodeAudioBilling,
         scheduler: ProductionEpisodeAudioScheduler,
         voice_provisioner: ProductionVoiceDesignProvisioner | None = None,
     ) -> None:
         self._beat_source = beat_source
         self._planner = planner
-        self._billing = billing
         self._scheduler = scheduler
         self._voice_provisioner = voice_provisioner
 
@@ -178,13 +156,6 @@ class EpisodeAudioUseCases:
             command.beat_numbers,
             command.mode or "sync_changed",
         )
-
-    async def billing_quote(
-        self,
-        context: ProjectContext,
-        command: GenerateEpisodeAudioCommand,
-    ) -> EpisodeAudioBillingQuote:
-        return await self._billing.quote(await self.plan(context, command))
 
     async def generate(
         self,
@@ -268,7 +239,6 @@ class EpisodeAudioUseCases:
                 beat_numbers=list(plan.beat_numbers),
                 output_dir=context.output_dir,
                 state_dir=context.state_dir,
-                billing=self._billing.task_payload(plan),
             ),
         )
         return ScheduledEpisodeAudio.from_receipt(

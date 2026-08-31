@@ -5,12 +5,12 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict
 
 
-class Seedance2AssetDeleteRequest(BaseModel):
+class VideoReferenceAssetDeleteRequest(BaseModel):
     media_kind: Literal["images", "audios"]
     path: str
 
 
-class Seedance2AssetCropRequest(BaseModel):
+class VideoReferenceAssetCropRequest(BaseModel):
     asset_key: str
     source_path: str
     target: Literal["reference_image", "first_frame", "last_frame"] = "reference_image"
@@ -20,7 +20,7 @@ class Seedance2AssetCropRequest(BaseModel):
     height: float
 
 
-class Seedance2AssetAudioTrimRequest(BaseModel):
+class VideoReferenceAssetAudioTrimRequest(BaseModel):
     asset_key: str
     source_path: str
     start_seconds: float = 0
@@ -28,7 +28,7 @@ class Seedance2AssetAudioTrimRequest(BaseModel):
 
 
 class GlobalOptimizeRequest(BaseModel):
-    language: str = "en"  # "zh" 中文 / "en" SuperPower英文(Gemini)
+    language: str = "en"
 
 
 class VideoComposeRequest(BaseModel):
@@ -47,7 +47,7 @@ class SingleVideoRequest(BaseModel):
         "project_selection"
     )
     use_director_render: bool = False
-    seedance2_config_json: Optional[str] = None
+    video_config_json: Optional[str] = None
     mode: Optional[str] = None
     duration: Optional[int] = None
     ratio: Optional[str] = None
@@ -63,9 +63,9 @@ class SingleVideoRequest(BaseModel):
 
 __all__ = [
     "GlobalOptimizeRequest",
-    "Seedance2AssetAudioTrimRequest",
-    "Seedance2AssetCropRequest",
-    "Seedance2AssetDeleteRequest",
+    "VideoReferenceAssetAudioTrimRequest",
+    "VideoReferenceAssetCropRequest",
+    "VideoReferenceAssetDeleteRequest",
     "SingleVideoRequest",
     "VideoComposeRequest",
 ]

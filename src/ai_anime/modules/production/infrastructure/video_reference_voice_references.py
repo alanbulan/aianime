@@ -1,4 +1,4 @@
-"""Seedance 2.0 voice-reference status helpers shared by REST API and UI."""
+"""Voice-reference status helpers shared by REST API and UI."""
 
 from __future__ import annotations
 
@@ -15,11 +15,11 @@ from ai_anime.modules.project_workspace.public import (
     load_effective_narration_style_for_voice,
     load_narrator_reference_audio,
 )
-from ai_anime.modules.production.domain.seedance2_dialogue import (
+from ai_anime.modules.production.domain.video_dialogue import (
     speaker_display_name,
-    unique_seedance2_dialogue_speakers,
+    unique_video_dialogue_speakers,
 )
-from ai_anime.modules.production.infrastructure.seedance2_voice import (
+from ai_anime.modules.production.infrastructure.video_reference_voice import (
     DEFAULT_NARRATION_STYLE,
     NarratorResolution,
     file_sha256,
@@ -163,7 +163,7 @@ def dialogue_voice_reference_rows(
     characters: list[Any],
     project_dir: str | Path,
 ) -> list[DialogueVoiceReferenceRow]:
-    speakers = unique_seedance2_dialogue_speakers(beat)
+    speakers = unique_video_dialogue_speakers(beat)
     if not speakers:
         _options, selected_speaker = current_beat_speaker_options(beat)
         speakers = [selected_speaker] if selected_speaker else []

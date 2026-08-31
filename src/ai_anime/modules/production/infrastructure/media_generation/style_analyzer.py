@@ -2,12 +2,15 @@
 
 import asyncio
 import io
-import os
+import logging
 from typing import Literal
 
 from PIL import Image
 from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, ImageUrl
+
+
+logger = logging.getLogger(__name__)
 
 
 class StyleAnalysisResult(BaseModel):
@@ -90,21 +93,13 @@ Return ONLY valid JSON with no markdown formatting:
   "suggested_label": "..."
 }"""
 
-    def __init__(
-        self,
-        model: str | None = None,
-    ):
+    def __init__(self):
         from ai_anime.modules.model_usage.public import (
-            get_newapi_text_pydantic_model,
+            get_text_pydantic_model,
         )
 
-        self.model = (
-            model
-            or os.environ.get("STYLE_ANALYZER_MODEL", "").strip()
-            or "gemini-3.5-flash"
-        )
         self.agent = Agent(
-            get_newapi_text_pydantic_model(),
+            get_text_pydantic_model(),
             system_prompt=(
                 "You separate invariant rendering technique from depicted subject content and "
                 "return reusable visual style settings that never encode character identity."
@@ -148,7 +143,7 @@ Return ONLY valid JSON with no markdown formatting:
         Args:
             image_bytes: 原始图片数据
             max_size: 最大边长（像素）
-            quality: JPEG 质量（默认 60，与项目其他 Gemini 调用一致）
+            quality: JPEG 压缩质量
 
         Returns:
             (压缩后数据, MIME 类型)
@@ -170,10 +165,11 @@ Return ONLY valid JSON with no markdown formatting:
 
         compressed_size = len(compressed_data)
         ratio = (1 - compressed_size / original_size) * 100
-        print(
-            f"[StyleAnalyzer压缩] "
-            f"{original_size / 1024:.0f}KB → {compressed_size / 1024:.0f}KB "
-            f"({ratio:.0f}% 压缩)"
+        logger.debug(
+            "风格参考图压缩：%.0fKB → %.0fKB（%.0f%%）",
+            original_size / 1024,
+            compressed_size / 1024,
+            ratio,
         )
 
         return compressed_data, "image/jpeg"

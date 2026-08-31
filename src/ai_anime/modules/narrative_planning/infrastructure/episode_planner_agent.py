@@ -20,15 +20,18 @@
         └── 第4轮: 生成剧集大纲
 """
 
+import logging
 from typing import Optional, List, Callable, TYPE_CHECKING
 
 from pydantic_ai import Agent
 from pydantic import BaseModel, Field
 
-from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+from ai_anime.modules.model_usage.public import get_text_pydantic_model
 from ai_anime.modules.knowledge_graph.public import create_episode_planner_tools
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.shared.utils.logging import log_agent_start, log_agent_end
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from ai_anime.modules.knowledge_graph.public import CogneeStore
@@ -165,7 +168,7 @@ def create_episode_planner_agent(tools: List[Callable]) -> Agent:
         配置好的 Agent
     """
     return Agent(
-        get_newapi_text_pydantic_model(),
+        get_text_pydantic_model(),
         system_prompt=EPISODE_PLANNER_PROMPT,
         tools=tools,
         output_type=EpisodePlannerOutput,
@@ -237,7 +240,7 @@ class EpisodePlannerAgent:
         def log(message: str):
             if on_log:
                 on_log(message)
-            print(f"[EpisodePlanner] {message}")
+            logger.info("EpisodePlanner: %s", message)
 
         log_agent_start("剧集规划师", f"规划 {target_episodes} 集")
         report(0.1, "初始化规划...")
@@ -408,7 +411,7 @@ class EpisodePlannerAgent:
         def log(message: str):
             if on_log:
                 on_log(message)
-            print(f"[EpisodePlanner.fallback] {message}")
+            logger.info("EpisodePlanner fallback: %s", message)
 
         log("使用旧方案（单次 LLM 调用）...")
 

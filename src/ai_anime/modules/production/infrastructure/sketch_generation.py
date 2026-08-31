@@ -40,7 +40,7 @@ from ai_anime.modules.task_execution.public import (
 from ai_anime.shared.infrastructure import project_stores
 
 
-class NanoBananaSketchGridPlanner:
+class SketchGridPlanner:
     def plan(
         self,
         beats: list[dict[str, Any]],
@@ -48,7 +48,7 @@ class NanoBananaSketchGridPlanner:
         scene_grouping: bool,
         aspect_ratio: str,
     ) -> tuple[GridShape, ...]:
-        from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+        from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
             sketch_grid_split,
             sketch_scene_grid_split,
         )
@@ -74,7 +74,7 @@ class LocalSketchGenerationPreparer:
             [Any, ProjectContext], ProductionGenerationContextUseCases
         ],
         prop_menu_source: ProductionRuntimePropMenuSource,
-        grid_planner: NanoBananaSketchGridPlanner,
+        grid_planner: SketchGridPlanner,
     ) -> None:
         self._settings = settings
         self._image_settings = image_settings
@@ -209,3 +209,6 @@ class TaskExecutionSketchGenerationScheduler:
             backend=receipt.backend,
             queue=receipt.queue,
         )
+
+
+SketchGridPlanner = SketchGridPlanner

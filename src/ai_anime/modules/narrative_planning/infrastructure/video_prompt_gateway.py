@@ -4,21 +4,21 @@ from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.narrative_planning.application.ports import (
-    SeedancePromptStore,
+    VideoPromptStore,
 )
 
 
-class SeedancePanelPromptGateway:
+class ProductionVideoPromptGateway:
     def mode(self, config_json: Any) -> str:
-        from ai_anime.modules.production.public import parse_seedance2_config
+        from ai_anime.modules.production.public import parse_video_config
 
-        config = parse_seedance2_config(config_json)
+        config = parse_video_config(config_json)
         return str(getattr(config.mode, "value", config.mode))
 
     async def generate(
         self,
         *,
-        store: SeedancePromptStore,
+        store: VideoPromptStore,
         episode: int,
         beat: dict[str, Any],
         project_dir: str | Path,
@@ -28,10 +28,10 @@ class SeedancePanelPromptGateway:
         prop_menu: list[Any],
     ) -> str:
         from ai_anime.modules.production.public import (
-            generate_seedance2_prompt_for_panel,
+            generate_video_prompt_for_panel,
         )
 
-        return await generate_seedance2_prompt_for_panel(
+        return await generate_video_prompt_for_panel(
             store=store,
             episode=episode,
             beat=beat,
@@ -43,7 +43,7 @@ class SeedancePanelPromptGateway:
         )
 
     def result_fields(self, config_json: str) -> tuple[str, str]:
-        from ai_anime.modules.production.public import parse_seedance2_config
+        from ai_anime.modules.production.public import parse_video_config
 
-        config = parse_seedance2_config(config_json)
+        config = parse_video_config(config_json)
         return config.final_prompt, config.prompt_source

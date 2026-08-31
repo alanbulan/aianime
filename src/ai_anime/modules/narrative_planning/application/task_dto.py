@@ -47,7 +47,7 @@ class BeatVideoPromptTask:
 
 
 @dataclass(frozen=True)
-class SeedancePromptTask:
+class VideoPromptOptimizationTask:
     episode: int
     beat_num: int
     project_dir: str | Path

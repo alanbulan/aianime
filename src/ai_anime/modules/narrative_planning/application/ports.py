@@ -12,7 +12,7 @@ from ai_anime.modules.narrative_planning.application.task_dto import (
     EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScriptGenerationTask,
-    SeedancePromptTask,
+    VideoPromptOptimizationTask,
     TaskQueueReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -132,10 +132,10 @@ class NarrativeTaskScheduler(Protocol):
         task: BeatVideoPromptTask,
     ) -> TaskQueueReceipt: ...
 
-    async def enqueue_seedance_prompt(
+    async def enqueue_video_prompt(
         self,
         task_context: ProjectContext,
-        task: SeedancePromptTask,
+        task: VideoPromptOptimizationTask,
     ) -> TaskQueueReceipt: ...
 
     async def enqueue_episode_rewrite(
@@ -157,7 +157,7 @@ class NarrativeTaskScheduler(Protocol):
     ) -> TaskQueueReceipt: ...
 
 
-class SeedancePromptStore(Protocol):
+class VideoPromptStore(Protocol):
     async def get_script_as_dict(self, episode_num: int) -> dict[str, Any] | None: ...
 
     async def update_beat_asset(
@@ -168,13 +168,13 @@ class SeedancePromptStore(Protocol):
     ) -> bool: ...
 
 
-class SeedancePromptGateway(Protocol):
+class VideoPromptGateway(Protocol):
     def mode(self, config_json: Any) -> str: ...
 
     async def generate(
         self,
         *,
-        store: SeedancePromptStore,
+        store: VideoPromptStore,
         episode: int,
         beat: dict[str, Any],
         project_dir: str | Path,
@@ -185,37 +185,6 @@ class SeedancePromptGateway(Protocol):
     ) -> str: ...
 
     def result_fields(self, config_json: str) -> tuple[str, str]: ...
-
-
-class FeatureUsageMeter(Protocol):
-    async def reserve_feature_start_credits(
-        self,
-        **kwargs: Any,
-    ) -> dict[str, Any]: ...
-
-    async def confirm_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    async def refund_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    def set_llm_usage_context(
-        self,
-        user_id: str,
-        project_id: str = "",
-        resource_kind: str = "",
-        billing_metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    def clear_llm_usage_context(self) -> None: ...
 
 
 class EpisodeRepository(Protocol):

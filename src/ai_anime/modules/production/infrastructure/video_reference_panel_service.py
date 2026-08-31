@@ -1,4 +1,4 @@
-"""Seedance 2.0 panel-domain helpers shared by REST API and legacy UI."""
+"""Provider-neutral video-reference panel helpers."""
 
 from __future__ import annotations
 
@@ -14,38 +14,42 @@ from ai_anime.modules.project_workspace.public import (
     load_project_config_file,
     persist_narrator_voice_content,
 )
-from ai_anime.modules.production.infrastructure.seedance2_assets import (
-    Seedance2ResolvedAsset,
-    append_seedance2_user_reference_assets,
+from ai_anime.modules.production.infrastructure.video_reference_assets import (
+    VideoReferenceAsset,
+    append_user_video_reference_assets,
     apply_prompt_audio_selection,
-    build_seedance2_project_assets,
+    build_video_reference_assets,
     selected_reference_paths,
-    validate_seedance2_reference_image,
+    validate_video_reference_image,
 )
 from ai_anime.modules.asset_world.public import (
     VOICE_SAMPLE_EXTENSIONS,
     trim_voice_sample_content,
 )
 from ai_anime.shared.utils.async_ops import call_blocking
-from ai_anime.modules.production.application.seedance2_config import (
-    Seedance2I2VMode,
-    dump_seedance2_config,
-    parse_seedance2_config,
+from ai_anime.modules.production.application.video_config import (
+    VideoReferenceMode,
+    dump_video_config,
+    parse_video_config,
 )
-from ai_anime.modules.production.infrastructure.seedance2_prompt import (
-    build_seedance2_prompt_draft,
-    compute_seedance2_prompt_inputs_hash,
-    generate_seedance2_prompt,
+from ai_anime.modules.production.infrastructure.video_prompt_composer import (
+    build_video_prompt_draft,
+    compute_video_prompt_inputs_hash,
+    generate_video_prompt,
 )
-from ai_anime.modules.production.infrastructure.seedance2_voice import (
+from ai_anime.modules.production.infrastructure.video_reference_voice import (
     NARRATOR_ASSET_KEY,
-    normalize_seedance2_audio_type,
+    normalize_video_audio_type,
+)
+from ai_anime.modules.production.infrastructure.video_reference_storage import (
+    VIDEO_REFERENCE_CROP_DIR,
+    VIDEO_REFERENCE_UPLOAD_DIR,
 )
 from ai_anime.shared.utils.media_io import crop_image_to_path, get_audio_duration
 from ai_anime.shared.utils.path_resolver import PathResolver
 
 
-SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES: dict[str, str] = {
+VIDEO_PROMPT_GUIDANCE_TEMPLATES: dict[str, str] = {
     "主体": "主体：明确画面核心人物或物体、当前动作和状态，避免多个主体争抢焦点。",
     "场景": "场景：补充空间背景、地点关系、关键道具和环境材质，保持与参考图一致。",
     "光影": "光影：描述主光源、明暗层次、色温和氛围，避免忽明忽暗。",
@@ -56,7 +60,7 @@ SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES: dict[str, str] = {
 
 
 @dataclass(frozen=True)
-class Seedance2VideoPanelState:
+class VideoReferencePanelState:
     mode: str
     duration: int
     duration_floor: int
@@ -69,14 +73,14 @@ class Seedance2VideoPanelState:
     final_prompt: str
     prompt_source: str
     text_overlay: dict[str, Any]
-    assets: list[Seedance2ResolvedAsset]
+    assets: list[VideoReferenceAsset]
     storyboard_context: list[tuple[str, str]]
     prompt_inputs_hash: str
     current_prompt_inputs_hash: str
     prompt_status: str
 
 
-async def save_seedance2_video_panel_config(
+async def save_video_reference_panel_config(
     *,
     store: Any,
     episode: int,
@@ -95,9 +99,9 @@ async def save_seedance2_video_panel_config(
     next_beat: dict[str, Any] | None = None,
     prop_menu: list[Any] | None = None,
 ) -> str:
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     if mode is not None:
-        config.mode = Seedance2I2VMode(mode)
+        config.mode = VideoReferenceMode(mode)
     if duration is not None:
         config.duration = int(duration)
     if resolution is not None:
@@ -106,12 +110,10 @@ async def save_seedance2_video_panel_config(
         config.ratio = str(ratio or "9:16").strip()
     if generate_audio is not None:
         config.generate_audio = bool(generate_audio)
-        config.generate_audio_user_set = True
     if return_last_frame is not None:
         config.return_last_frame = bool(return_last_frame)
     if human_review is not None:
         config.human_review = bool(human_review)
-        config.human_review_user_set = True
     if prompt_guidance is not None:
         config.prompt_guidance = str(prompt_guidance or "").strip()
     if final_prompt is not None:
@@ -123,7 +125,7 @@ async def save_seedance2_video_panel_config(
         overlay.update(text_overlay)
         config.text_overlay = overlay
     if project_dir is not None:
-        _sync_seedance2_asset_paths(
+        _sync_video_reference_asset_paths(
             config=config,
             project_dir=project_dir,
             episode=episode,
@@ -132,17 +134,17 @@ async def save_seedance2_video_panel_config(
             prop_menu=prop_menu,
         )
 
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     await store.update_beat_asset(
         episode_number=episode,
         beat_number=int(beat.get("beat_number") or 0),
-        seedance2_config_json=saved_json,
+        video_config_json=saved_json,
     )
     return saved_json
 
 
-async def append_seedance2_prompt_guidance_template(
+async def append_video_prompt_guidance_template(
     *,
     store: Any | None,
     episode: int,
@@ -150,26 +152,26 @@ async def append_seedance2_prompt_guidance_template(
     label: str,
     prompt_guidance: str | None = None,
 ) -> str:
-    template = SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES.get(str(label or "").strip())
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    template = VIDEO_PROMPT_GUIDANCE_TEMPLATES.get(str(label or "").strip())
+    config = parse_video_config(beat.get("video_config_json"))
     if prompt_guidance is not None:
         config.prompt_guidance = str(prompt_guidance or "").strip()
     if template and template not in config.prompt_guidance:
         parts = [part for part in [config.prompt_guidance, template] if part]
         config.prompt_guidance = "\n".join(parts)
 
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     if store is not None:
         await store.update_beat_asset(
             episode_number=episode,
             beat_number=int(beat.get("beat_number") or 0),
-            seedance2_config_json=saved_json,
+            video_config_json=saved_json,
         )
     return saved_json
 
 
-async def generate_seedance2_prompt_for_panel(
+async def generate_video_prompt_for_panel(
     *,
     store: Any,
     episode: int,
@@ -181,10 +183,10 @@ async def generate_seedance2_prompt_for_panel(
     prompt_guidance: str | None = None,
     prop_menu: list[Any] | None = None,
 ) -> str:
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     if prompt_guidance is not None:
         config.prompt_guidance = str(prompt_guidance or "").strip()
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=Path(project_dir),
         episode=episode,
         beat=beat,
@@ -192,12 +194,12 @@ async def generate_seedance2_prompt_for_panel(
         next_beat=next_beat,
         prop_menu=prop_menu,
     )
-    append_seedance2_user_reference_assets(
+    append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
         reference_audio_paths=list(config.reference_audio_paths),
     )
-    initial_prompt = _seedance2_initial_prompt(beat)
+    initial_prompt = _initial_video_prompt(beat)
     supplied_reference = (
         str(manual_prompt_reference or "").strip()
         if manual_prompt_reference is not None
@@ -212,13 +214,13 @@ async def generate_seedance2_prompt_for_panel(
         reference_prompt = supplied_reference
     else:
         reference_prompt = str(config.final_prompt or initial_prompt or "").strip()
-    prompt_beat = _beat_with_seedance2_initial_prompt(beat, initial_prompt)
-    inputs_hash = _seedance2_prompt_inputs_hash(
+    prompt_beat = _beat_with_initial_video_prompt(beat, initial_prompt)
+    inputs_hash = _video_prompt_inputs_hash(
         config=config,
         beat=prompt_beat,
         assets=assets,
     )
-    result = await generate_seedance2_prompt(
+    result = await generate_video_prompt(
         mode=config.mode,
         beat=prompt_beat,
         assets=assets,
@@ -232,22 +234,25 @@ async def generate_seedance2_prompt_for_panel(
         manual_prompt_reference=reference_prompt,
         composer=composer,
     )
-    config.final_prompt = mark_seedance2_prompt_references_for_editor(result.prompt)
-    config.prompt_source = "generated" if result.used_ai else "fallback"
-    config.prompt_validation_source = result.draft_prompt if result.used_ai else ""
+    if not result.used_ai:
+        detail = result.error.strip() or "模型未返回可用提示词"
+        raise ValueError(f"AI 视频提示词生成失败：{detail}")
+    config.final_prompt = mark_video_prompt_references_for_editor(result.prompt)
+    config.prompt_source = "generated"
+    config.prompt_validation_source = result.draft_prompt
     config.prompt_inputs_hash = inputs_hash
     config.prompt_updated_at = datetime.now().isoformat(timespec="seconds")
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     await store.update_beat_asset(
         episode_number=episode,
         beat_number=int(beat.get("beat_number") or 0),
-        seedance2_config_json=saved_json,
+        video_config_json=saved_json,
     )
     return saved_json
 
 
-async def save_seedance2_uploaded_asset(
+async def save_video_reference_uploaded_asset(
     *,
     store: Any,
     episode: int,
@@ -257,14 +262,14 @@ async def save_seedance2_uploaded_asset(
     content: bytes,
     content_type: str = "",
 ) -> Path | None:
-    media_kind = _seedance2_uploaded_media_kind(filename, content_type)
+    media_kind = _video_reference_media_kind(filename, content_type)
     if not media_kind or not content:
         return None
 
     beat_num = int(beat.get("beat_number") or 0)
     upload_dir = (
         Path(project_dir)
-        / "seedance2_uploads"
+        / VIDEO_REFERENCE_UPLOAD_DIR
         / f"ep{episode:03d}"
         / f"beat_{beat_num:02d}"
         / media_kind
@@ -273,7 +278,7 @@ async def save_seedance2_uploaded_asset(
     target = _next_available_upload_path(upload_dir, filename)
     target.write_bytes(bytes(content))
 
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     path_value = str(target)
     if media_kind == "images":
         config.reference_image_paths = _unique_paths(
@@ -284,17 +289,17 @@ async def save_seedance2_uploaded_asset(
             list(config.reference_audio_paths) + [path_value]
         )
 
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     await store.update_beat_asset(
         episode_number=episode,
         beat_number=beat_num,
-        seedance2_config_json=saved_json,
+        video_config_json=saved_json,
     )
     return target
 
 
-async def crop_seedance2_asset_to_reference(
+async def crop_video_reference_asset(
     *,
     store: Any,
     episode: int,
@@ -320,10 +325,10 @@ async def crop_seedance2_asset_to_reference(
     else:
         output_path = (
             Path(project_dir)
-            / "seedance2_crops"
+            / VIDEO_REFERENCE_CROP_DIR
             / f"ep{episode:03d}"
             / f"beat_{beat_num:02d}"
-            / f"{_seedance2_safe_asset_key(str(asset_key or 'asset'))}.png"
+            / f"{_safe_video_reference_asset_key(str(asset_key or 'asset'))}.png"
         )
     await crop_image_to_path(
         source,
@@ -333,23 +338,23 @@ async def crop_seedance2_asset_to_reference(
         height=height,
         output_path=output_path,
     )
-    if validate_seedance2_reference_image(output_path):
+    if validate_video_reference_image(output_path):
         return None
     if target in {"first_frame", "last_frame"}:
         paths.write_video_input_frame_meta(beat_num, slot=target, source_path=source)
         return output_path
 
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     output_value = str(output_path)
     config.reference_image_paths = _unique_paths(
         list(config.reference_image_paths) + [output_value]
     )
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     await store.update_beat_asset(
         episode_number=episode,
         beat_number=beat_num,
-        seedance2_config_json=saved_json,
+        video_config_json=saved_json,
     )
     return output_path
 
@@ -375,7 +380,7 @@ def _resolve_project_audio_source(project_dir: Path, source_path: str | Path) ->
     return source
 
 
-async def trim_seedance2_audio_to_reference(
+async def trim_video_reference_audio(
     *,
     store: Any,
     episode: int,
@@ -410,30 +415,30 @@ async def trim_seedance2_audio_to_reference(
     beat_num = int(beat.get("beat_number") or 0)
     output_path = (
         Path(project_dir)
-        / "seedance2_crops"
+        / VIDEO_REFERENCE_CROP_DIR
         / f"ep{episode:03d}"
         / f"beat_{beat_num:02d}"
-        / f"{_seedance2_safe_asset_key(str(asset_key or 'audio'))}_trimmed.mp3"
+        / f"{_safe_video_reference_asset_key(str(asset_key or 'audio'))}_trimmed.mp3"
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_bytes(content)
 
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     output_value = str(output_path)
     config.reference_audio_paths = _unique_paths(
         list(config.reference_audio_paths) + [output_value]
     )
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     await store.update_beat_asset(
         episode_number=episode,
         beat_number=beat_num,
-        seedance2_config_json=saved_json,
+        video_config_json=saved_json,
     )
     return output_path
 
 
-async def remove_seedance2_uploaded_asset(
+async def remove_video_reference_uploaded_asset(
     *,
     store: Any,
     episode: int,
@@ -441,24 +446,24 @@ async def remove_seedance2_uploaded_asset(
     media_kind: str,
     path: str,
 ) -> bool:
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     paths = config.reference_image_paths if media_kind == "images" else config.reference_audio_paths
     path_value = str(path)
     if path_value not in paths:
         return False
     paths[:] = [existing for existing in paths if existing != path_value]
-    _seedance2_unlink_user_reference_file(path_value)
-    saved_json = dump_seedance2_config(config)
-    beat["seedance2_config_json"] = saved_json
+    _unlink_video_reference_file(path_value)
+    saved_json = dump_video_config(config)
+    beat["video_config_json"] = saved_json
     await store.update_beat_asset(
         episode_number=episode,
         beat_number=int(beat.get("beat_number") or 0),
-        seedance2_config_json=saved_json,
+        video_config_json=saved_json,
     )
     return True
 
 
-def build_seedance2_video_panel_state(
+def build_video_reference_panel_state(
     *,
     project_dir: Path,
     episode: int,
@@ -466,15 +471,15 @@ def build_seedance2_video_panel_state(
     next_beat: dict[str, Any] | None = None,
     characters: list[Any] | None = None,
     prop_menu: list[Any] | None = None,
-) -> Seedance2VideoPanelState:
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
-    duration_floor = _seedance2_duration_floor(
+) -> VideoReferencePanelState:
+    config = parse_video_config(beat.get("video_config_json"))
+    duration_floor = _video_duration_floor(
         project_dir=project_dir,
         episode=episode,
         beat=beat,
     )
     duration = max(int(config.duration or 4), duration_floor)
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=project_dir,
         episode=episode,
         beat=beat,
@@ -483,29 +488,29 @@ def build_seedance2_video_panel_state(
         characters=characters,
         prop_menu=prop_menu,
     )
-    append_seedance2_user_reference_assets(
+    append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
         reference_audio_paths=list(config.reference_audio_paths),
     )
     prompt_source = config.prompt_source or "saved"
     final_prompt = config.final_prompt
-    initial_prompt = _seedance2_initial_prompt(beat)
+    initial_prompt = _initial_video_prompt(beat)
     if not final_prompt and initial_prompt:
-        final_prompt = _seedance2_default_prompt(
-            beat=_beat_with_seedance2_initial_prompt(beat, initial_prompt),
+        final_prompt = _default_video_prompt(
+            beat=_beat_with_initial_video_prompt(beat, initial_prompt),
             config=config,
             assets=assets,
             text_overlay=config.text_overlay,
         )
         prompt_source = "fallback"
     assets = apply_prompt_audio_selection(assets, final_prompt)
-    current_prompt_inputs_hash = _seedance2_prompt_inputs_hash(
+    current_prompt_inputs_hash = _video_prompt_inputs_hash(
         config=config,
         beat=beat,
         assets=assets,
     )
-    return Seedance2VideoPanelState(
+    return VideoReferencePanelState(
         mode=config.mode.value,
         duration=duration,
         duration_floor=duration_floor,
@@ -519,14 +524,14 @@ def build_seedance2_video_panel_state(
         prompt_source=prompt_source,
         text_overlay=dict(config.text_overlay or {}),
         assets=assets,
-        storyboard_context=_seedance2_storyboard_context(beat),
+        storyboard_context=_video_storyboard_context(beat),
         prompt_inputs_hash=config.prompt_inputs_hash,
         current_prompt_inputs_hash=current_prompt_inputs_hash,
-        prompt_status=_seedance2_prompt_status(config, current_prompt_inputs_hash),
+        prompt_status=_video_prompt_status(config, current_prompt_inputs_hash),
     )
 
 
-def mark_seedance2_prompt_references_for_editor(prompt: str) -> str:
+def mark_video_prompt_references_for_editor(prompt: str) -> str:
     text = str(prompt or "")
     text = re.sub(r"@@+(图片|音频)\s*(\d+)", r"@\1\2", text)
     text = re.sub(r"@?(图片|音频)\s+(\d+)", r"@\1\2", text)
@@ -569,14 +574,14 @@ def _existing_user_audio_paths(config: Any, project_dir: Path) -> list[str]:
 
 def _drop_auto_narration_audio_when_user_audio_selected(
     *,
-    assets: list[Seedance2ResolvedAsset],
+    assets: list[VideoReferenceAsset],
     config: Any,
     project_dir: Path,
     beat: dict[str, Any],
-) -> list[Seedance2ResolvedAsset]:
+) -> list[VideoReferenceAsset]:
     if _is_narrated_project(project_dir):
         return assets
-    if normalize_seedance2_audio_type(beat) != "narration":
+    if normalize_video_audio_type(beat) != "narration":
         return assets
     if not _existing_user_audio_paths(config, project_dir):
         return assets
@@ -587,7 +592,7 @@ def _drop_auto_narration_audio_when_user_audio_selected(
     ]
 
 
-def _sync_seedance2_asset_paths(
+def _sync_video_reference_asset_paths(
     *,
     config: Any,
     project_dir: Path,
@@ -596,7 +601,7 @@ def _sync_seedance2_asset_paths(
     next_beat: dict[str, Any] | None = None,
     prop_menu: list[Any] | None = None,
 ) -> None:
-    assets = build_seedance2_project_assets(
+    assets = build_video_reference_assets(
         project_output=Path(project_dir),
         episode=episode,
         beat=beat,
@@ -604,7 +609,7 @@ def _sync_seedance2_asset_paths(
         next_beat=next_beat,
         prop_menu=prop_menu,
     )
-    append_seedance2_user_reference_assets(
+    append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
         reference_audio_paths=list(config.reference_audio_paths),
@@ -622,14 +627,14 @@ def _sync_seedance2_asset_paths(
     config.reference_audio_paths = _unique_paths(auto_audios + extra_audios)
 
 
-def _seedance2_default_prompt(
+def _default_video_prompt(
     *,
     beat: dict[str, Any],
     config: Any,
-    assets: list[Seedance2ResolvedAsset],
+    assets: list[VideoReferenceAsset],
     text_overlay: dict[str, Any],
 ) -> str:
-    return build_seedance2_prompt_draft(
+    return build_video_prompt_draft(
         mode=config.mode,
         beat=beat,
         assets=assets,
@@ -638,11 +643,11 @@ def _seedance2_default_prompt(
     )
 
 
-def _seedance2_initial_prompt(beat: dict[str, Any]) -> str:
+def _initial_video_prompt(beat: dict[str, Any]) -> str:
     return str(beat.get("video_prompt") or beat.get("keyframe_prompt") or "").strip()
 
 
-def _beat_with_seedance2_initial_prompt(
+def _beat_with_initial_video_prompt(
     beat: dict[str, Any],
     initial_prompt: str,
 ) -> dict[str, Any]:
@@ -654,7 +659,7 @@ def _beat_with_seedance2_initial_prompt(
     return updated
 
 
-def _seedance2_uploaded_media_kind(filename: str, content_type: str) -> str | None:
+def _video_reference_media_kind(filename: str, content_type: str) -> str | None:
     name = str(filename or "").lower()
     mime = str(content_type or "").lower()
     if mime.startswith("image/"):
@@ -668,7 +673,7 @@ def _seedance2_uploaded_media_kind(filename: str, content_type: str) -> str | No
     return None
 
 
-def _safe_upload_name(filename: str, default: str = "seedance2_asset") -> str:
+def _safe_upload_name(filename: str, default: str = "video_reference_asset") -> str:
     name = Path(str(filename or default)).name.strip()
     return name or default
 
@@ -684,7 +689,7 @@ def _next_available_upload_path(upload_dir: Path, filename: str) -> Path:
     return target.with_name(f"{target.stem}_latest{target.suffix}")
 
 
-def _seedance2_safe_asset_key(asset_key: str) -> str:
+def _safe_video_reference_asset_key(asset_key: str) -> str:
     return (
         "".join(
             char if char.isalnum() or char in {"_", ".", "-"} else "_" for char in asset_key
@@ -693,14 +698,17 @@ def _seedance2_safe_asset_key(asset_key: str) -> str:
     )
 
 
-def _seedance2_unlink_user_reference_file(path: str | Path) -> bool:
+def _unlink_video_reference_file(path: str | Path) -> bool:
     text = str(path or "").strip()
     if not text or text.startswith(("http://", "https://")):
         return False
     file_path = Path(text)
     if not file_path.exists() or not file_path.is_file():
         return False
-    if "seedance2_uploads" not in file_path.parts and "seedance2_crops" not in file_path.parts:
+    if (
+        VIDEO_REFERENCE_UPLOAD_DIR not in file_path.parts
+        and VIDEO_REFERENCE_CROP_DIR not in file_path.parts
+    ):
         return False
     try:
         file_path.unlink()
@@ -709,13 +717,13 @@ def _seedance2_unlink_user_reference_file(path: str | Path) -> bool:
     return True
 
 
-def _seedance2_prompt_inputs_hash(
+def _video_prompt_inputs_hash(
     *,
     config: Any,
     beat: dict[str, Any],
-    assets: list[Seedance2ResolvedAsset],
+    assets: list[VideoReferenceAsset],
 ) -> str:
-    return compute_seedance2_prompt_inputs_hash(
+    return compute_video_prompt_inputs_hash(
         mode=config.mode,
         beat=beat,
         assets=assets,
@@ -724,7 +732,7 @@ def _seedance2_prompt_inputs_hash(
     )
 
 
-def _seedance2_prompt_status(config: Any, current_hash: str) -> str:
+def _video_prompt_status(config: Any, current_hash: str) -> str:
     if not str(config.final_prompt or "").strip():
         return "未生成"
     if str(config.prompt_source or "") in {"manual", "edited"}:
@@ -738,9 +746,9 @@ def _seedance2_prompt_status(config: Any, current_hash: str) -> str:
     return "旧提示词"
 
 
-def _seedance2_storyboard_context(beat: dict[str, Any]) -> list[tuple[str, str]]:
+def _video_storyboard_context(beat: dict[str, Any]) -> list[tuple[str, str]]:
     spoken_text = ""
-    if normalize_seedance2_audio_type(beat) in {"narration", "dialogue"}:
+    if normalize_video_audio_type(beat) in {"narration", "dialogue"}:
         spoken_text = str(
             beat.get("narration_segment") or beat.get("dialogue") or beat.get("narration") or ""
         ).strip()
@@ -758,11 +766,11 @@ def _seedance2_storyboard_context(beat: dict[str, Any]) -> list[tuple[str, str]]
     return [(label, value) for label, value in rows if value]
 
 
-def _seedance2_duration_floor(*, project_dir: Path, episode: int, beat: dict[str, Any]) -> int:
+def _video_duration_floor(*, project_dir: Path, episode: int, beat: dict[str, Any]) -> int:
     beat_num = int(beat.get("beat_number") or 0)
     audio_duration = None
     audio_path = project_dir / "audio" / f"ep{episode:03d}" / f"beat_{beat_num:02d}.mp3"
-    if normalize_seedance2_audio_type(beat) in {"narration", "dialogue"} and audio_path.exists():
+    if normalize_video_audio_type(beat) in {"narration", "dialogue"} and audio_path.exists():
         try:
             audio_duration = get_audio_duration(str(audio_path))
         except Exception:
@@ -775,15 +783,15 @@ def _seedance2_duration_floor(*, project_dir: Path, episode: int, beat: dict[str
 
 
 __all__ = [
-    "SEEDANCE2_PROMPT_GUIDANCE_TEMPLATES",
-    "Seedance2VideoPanelState",
-    "append_seedance2_prompt_guidance_template",
-    "build_seedance2_video_panel_state",
-    "crop_seedance2_asset_to_reference",
-    "generate_seedance2_prompt_for_panel",
-    "mark_seedance2_prompt_references_for_editor",
-    "remove_seedance2_uploaded_asset",
-    "save_seedance2_uploaded_asset",
-    "save_seedance2_video_panel_config",
-    "trim_seedance2_audio_to_reference",
+    "VIDEO_PROMPT_GUIDANCE_TEMPLATES",
+    "VideoReferencePanelState",
+    "append_video_prompt_guidance_template",
+    "build_video_reference_panel_state",
+    "crop_video_reference_asset",
+    "generate_video_prompt_for_panel",
+    "mark_video_prompt_references_for_editor",
+    "remove_video_reference_uploaded_asset",
+    "save_video_reference_uploaded_asset",
+    "save_video_reference_panel_config",
+    "trim_video_reference_audio",
 ]

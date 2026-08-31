@@ -1,4 +1,4 @@
-"""Seedance2 panel read model and reference-asset adapters."""
+"""Video-reference panel read model and local asset adapters."""
 
 from __future__ import annotations
 
@@ -12,25 +12,29 @@ from ai_anime.modules.production.application.ports import (
     ProductionEpisodeSource,
     ProductionRuntimePropMenuSource,
 )
-from ai_anime.modules.production.application.seedance2_panel import (
-    CropSeedance2AssetCommand,
-    RemoveSeedance2AssetCommand,
-    Seedance2PanelBeatMissing,
-    Seedance2PanelQuery,
-    TrimSeedance2AudioAssetCommand,
-    UploadSeedance2AssetCommand,
+from ai_anime.modules.production.application.video_reference_panel import (
+    CropVideoReferenceAssetCommand,
+    RemoveVideoReferenceAssetCommand,
+    VideoReferencePanelBeatMissing,
+    VideoReferencePanelQuery,
+    TrimVideoReferenceAudioAssetCommand,
+    UploadVideoReferenceAssetCommand,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.production.application.seedance2_config import (
-    parse_seedance2_config,
+from ai_anime.modules.production.application.video_config import (
+    parse_video_config,
 )
-from ai_anime.modules.production.domain.seedance2_dialogue import (
-    normalize_seedance2_audio_type,
+from ai_anime.modules.production.domain.video_dialogue import (
+    normalize_video_audio_type,
 )
-from ai_anime.modules.production.infrastructure import seedance2_panel_service
-from ai_anime.modules.production.infrastructure.seedance2_voice_references import (
+from ai_anime.modules.production.infrastructure import video_reference_panel_service
+from ai_anime.modules.production.infrastructure.video_reference_voice_references import (
     dialogue_voice_reference_rows,
     resolve_narrator_reference_status,
+)
+from ai_anime.modules.production.infrastructure.video_reference_storage import (
+    VIDEO_REFERENCE_CROP_DIR,
+    VIDEO_REFERENCE_UPLOAD_DIR,
 )
 from ai_anime.shared import project_media
 from ai_anime.shared.infrastructure import project_stores
@@ -40,11 +44,11 @@ from ai_anime.shared.utils.path_resolver import PathResolver
 logger = logging.getLogger(__name__)
 
 _PanelRequest = (
-    Seedance2PanelQuery
-    | UploadSeedance2AssetCommand
-    | RemoveSeedance2AssetCommand
-    | CropSeedance2AssetCommand
-    | TrimSeedance2AudioAssetCommand
+    VideoReferencePanelQuery
+    | UploadVideoReferenceAssetCommand
+    | RemoveVideoReferenceAssetCommand
+    | CropVideoReferenceAssetCommand
+    | TrimVideoReferenceAudioAssetCommand
 )
 
 
@@ -114,8 +118,8 @@ def _asset_status_payload(
         )
     can_delete = (
         str(asset.key).startswith(("user_image:", "user_audio:"))
-        or "seedance2_uploads" in Path(absolute_path).parts
-        or "seedance2_crops" in Path(absolute_path).parts
+        or VIDEO_REFERENCE_UPLOAD_DIR in Path(absolute_path).parts
+        or VIDEO_REFERENCE_CROP_DIR in Path(absolute_path).parts
     )
     return {
         "key": str(asset.key),
@@ -186,7 +190,7 @@ def _returned_last_frame_status_payload(
         "required": False,
         "state": "unused",
         "reference_label": "尾帧",
-        "note": "Seedance2 返回尾帧",
+        "note": "视频模型返回尾帧",
         "status_detail": "",
         "identity_id": "",
         "prop_id": "",
@@ -215,7 +219,7 @@ def _voice_status_payload(
     output_dir: Path,
     assets: list[Any],
 ) -> dict[str, Any]:
-    audio_type = normalize_seedance2_audio_type(beat)
+    audio_type = normalize_video_audio_type(beat)
     if audio_type == "silence":
         return {
             "required": False,
@@ -286,7 +290,7 @@ def _voice_status_payload(
     }
 
 
-class LocalSeedance2PanelGateway:
+class LocalVideoReferencePanelGateway:
     def __init__(
         self,
         episode_source: ProductionEpisodeSource,
@@ -313,7 +317,7 @@ class LocalSeedance2PanelGateway:
                 None,
             )
             if beat is None:
-                raise Seedance2PanelBeatMissing(request.beat_num)
+                raise VideoReferencePanelBeatMissing(request.beat_num)
             next_beat = next(
                 (
                     item
@@ -348,7 +352,7 @@ class LocalSeedance2PanelGateway:
     async def _status_response(self, session: _PanelSession) -> dict[str, Any]:
         request = session.request
         state = await call_blocking(
-            seedance2_panel_service.build_seedance2_video_panel_state,
+            video_reference_panel_service.build_video_reference_panel_state,
             project_dir=session.output_dir,
             episode=request.episode_num,
             beat=session.beat,
@@ -369,8 +373,8 @@ class LocalSeedance2PanelGateway:
             for asset in assets
         ]
         try:
-            config = parse_seedance2_config(
-                session.beat.get("seedance2_config_json") or "{}"
+            config = parse_video_config(
+                session.beat.get("video_config_json") or "{}"
             )
             returned_last_frame = _returned_last_frame_status_payload(
                 project_context=session.context,
@@ -381,7 +385,7 @@ class LocalSeedance2PanelGateway:
             )
         except Exception:
             logger.warning(
-                "Failed to build Seedance2 returned-last-frame status for "
+                "Failed to build video-reference returned-last-frame status for "
                 "project=%s episode=%s beat=%s",
                 request.project,
                 request.episode_num,
@@ -396,9 +400,9 @@ class LocalSeedance2PanelGateway:
             "ok": True,
             "data": {
                 "beat_number": request.beat_num,
-                "audio_type": normalize_seedance2_audio_type(session.beat),
-                "seedance2_config_json": str(
-                    session.beat.get("seedance2_config_json") or ""
+                "audio_type": normalize_video_audio_type(session.beat),
+                "video_config_json": str(
+                    session.beat.get("video_config_json") or ""
                 ),
                 "media": {
                     "render_ready": paths.frame(request.beat_num).exists(),
@@ -458,7 +462,7 @@ class LocalSeedance2PanelGateway:
     async def status(
         self,
         context: ProjectContext,
-        query: Seedance2PanelQuery,
+        query: VideoReferencePanelQuery,
     ) -> dict[str, Any]:
         async with self._session(context, query) as session:
             return await self._status_response(session)
@@ -466,10 +470,10 @@ class LocalSeedance2PanelGateway:
     async def upload(
         self,
         context: ProjectContext,
-        command: UploadSeedance2AssetCommand,
+        command: UploadVideoReferenceAssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            target = await seedance2_panel_service.save_seedance2_uploaded_asset(
+            target = await video_reference_panel_service.save_video_reference_uploaded_asset(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,
@@ -483,10 +487,10 @@ class LocalSeedance2PanelGateway:
     async def remove(
         self,
         context: ProjectContext,
-        command: RemoveSeedance2AssetCommand,
+        command: RemoveVideoReferenceAssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            removed = await seedance2_panel_service.remove_seedance2_uploaded_asset(
+            removed = await video_reference_panel_service.remove_video_reference_uploaded_asset(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,
@@ -498,10 +502,10 @@ class LocalSeedance2PanelGateway:
     async def crop(
         self,
         context: ProjectContext,
-        command: CropSeedance2AssetCommand,
+        command: CropVideoReferenceAssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            target = await seedance2_panel_service.crop_seedance2_asset_to_reference(
+            target = await video_reference_panel_service.crop_video_reference_asset(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,
@@ -515,10 +519,10 @@ class LocalSeedance2PanelGateway:
     async def trim_audio(
         self,
         context: ProjectContext,
-        command: TrimSeedance2AudioAssetCommand,
+        command: TrimVideoReferenceAudioAssetCommand,
     ) -> dict[str, Any] | None:
         async with self._session(context, command) as session:
-            target = await seedance2_panel_service.trim_seedance2_audio_to_reference(
+            target = await video_reference_panel_service.trim_video_reference_audio(
                 store=session.store,
                 episode=command.episode_num,
                 beat=session.beat,

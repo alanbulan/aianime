@@ -14,7 +14,7 @@ from ai_anime.modules.project_workspace.public import ProjectContext
 
 SINGLE_VIDEO_TASK_TYPE = "single_video"
 
-_SEEDANCE2_CONFIG_FIELDS = (
+_VIDEO_CONFIG_FIELDS = (
     "mode",
     "duration",
     "resolution",
@@ -37,7 +37,7 @@ class GenerateSingleVideoCommand:
     resolution: str
     model_selector: str | None = None
     use_director_render: bool = False
-    seedance2_config_json: str | None = None
+    video_config_json: str | None = None
     mode: str | None = None
     duration: int | None = None
     ratio: str | None = None
@@ -54,10 +54,10 @@ class GenerateSingleVideoCommand:
     def was_provided(self, field_name: str) -> bool:
         return field_name in self.provided_fields
 
-    def seedance2_config_overrides(self) -> dict[str, Any]:
+    def video_config_overrides(self) -> dict[str, Any]:
         return {
             field_name: getattr(self, field_name)
-            for field_name in _SEEDANCE2_CONFIG_FIELDS
+            for field_name in _VIDEO_CONFIG_FIELDS
             if self.was_provided(field_name)
             and getattr(self, field_name) is not None
         }

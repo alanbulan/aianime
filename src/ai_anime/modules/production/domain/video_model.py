@@ -5,34 +5,18 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable
 
-SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL = {
-    "seedance-2.0-fast": ("480p", "720p"),
-    "seedance-2.0": ("480p", "720p", "1080p"),
-    "seedance-2.0-value": ("720p", "1080p"),
-    "seedance-2.0-fast-value": ("720p", "1080p"),
-    "seedance-1.5-pro": ("480p", "720p", "1080p"),
-}
-SEEDANCE2_DEFAULT_RESOLUTION_OPTIONS = ("480p", "720p")
-HAPPYHORSE_RESOLUTION_OPTIONS = ("768p", "1080p")
-HAPPYHORSE_RATIO_OPTIONS = ("16:9", "9:16", "1:1", "4:3", "3:4")
-HAPPYHORSE_SUPPORTED_MODES = ("first_frame", "multimodal_reference")
-GROK_VIDEO_RESOLUTION_OPTIONS = ("720p", "480p")
-GROK_VIDEO_RATIO_OPTIONS = ("16:9", "9:16", "1:1", "2:3", "3:2")
-GROK_VIDEO_SUPPORTED_MODES = ("first_frame", "multimodal_reference")
-SEEDANCE2_DEFAULT_MIN_DURATION = 4.0
+DEFAULT_VIDEO_RESOLUTION_OPTIONS = ("480p", "720p")
+VIDEO_WORKFLOW_STANDARD = "standard"
+VIDEO_WORKFLOW_ADVANCED_REFERENCE = "advanced-reference"
+VIDEO_WORKFLOW_REFERENCE = "reference"
 
 
-def is_seedance2_model(
-    model: str | None,
-    video_profile: str | None = None,
-) -> bool:
-    profile = str(video_profile or "").strip().lower()
-    if profile:
-        return profile == "seedance2"
-    normalized = str(model or "").strip().lower()
-    return normalized.startswith("seedance-2.0") or normalized.startswith(
-        ("video-seeddance-", "video-seedance-")
-    )
+def uses_advanced_reference_video_workflow(workflow: str | None) -> bool:
+    return str(workflow or "").strip().lower() == VIDEO_WORKFLOW_ADVANCED_REFERENCE
+
+
+def uses_reference_video_workflow(workflow: str | None) -> bool:
+    return str(workflow or "").strip().lower() == VIDEO_WORKFLOW_REFERENCE
 
 
 def normalize_video_generation_duration(
@@ -67,14 +51,6 @@ def normalize_video_generation_duration(
                     f"{maximum:g} 秒"
                 )
     return target
-
-
-def is_happyhorse_model(model: str | None) -> bool:
-    return str(model or "").strip().lower() in {"happyhorse-1.0", "happyhorse-1.1"}
-
-
-def is_grok_video_model(model: str | None) -> bool:
-    return str(model or "").strip().lower() == "grok-video-channel"
 
 
 def video_api_resolution(resolution: str | None) -> str:
@@ -173,10 +149,7 @@ def video_resolution_options(
     )
     if declared:
         return declared
-    return SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL.get(
-        str(model or "").strip().lower(),
-        SEEDANCE2_DEFAULT_RESOLUTION_OPTIONS,
-    )
+    return DEFAULT_VIDEO_RESOLUTION_OPTIONS
 
 
 def video_resolution(
@@ -224,35 +197,48 @@ def _exact_video_size(value: object) -> str | None:
     return f"{width}x{height}"
 
 
-def happyhorse_resolution(
-    resolution: str | None,
-    duration: float | int | None = None,
+def normalize_video_ratio(
+    ratio: str | None,
+    declared_options: Iterable[str] | None = None,
 ) -> str:
-    raw = str(resolution or "").strip().lower()
-    value = "768p"
-    if any(token in raw for token in ("768", "1080")):
-        value = video_api_resolution(raw)
-        if value not in HAPPYHORSE_RESOLUTION_OPTIONS:
-            value = "768p"
+    options = tuple(
+        dict.fromkeys(
+            normalized
+            for raw in declared_options or ()
+            if (
+                normalized := str(raw or "").strip().lower()
+            ) == "auto"
+            or (
+                ":" in normalized
+                and all(part.isdigit() and int(part) > 0 for part in normalized.split(":", 1))
+            )
+        )
+    )
+    value = str(ratio or "").strip()
+    if options:
+        return value if value in options else options[0]
+    return value or "16:9"
+
+
+def validate_video_resolution_duration(
+    resolution: str,
+    duration: float | int | None,
+    resolution_max_seconds: Iterable[tuple[str, float]] | None = None,
+) -> None:
+    limits = {
+        str(key or "").strip().lower(): float(value)
+        for key, value in resolution_max_seconds or ()
+        if str(key or "").strip() and float(value) > 0
+    }
+    maximum = limits.get(str(resolution or "").strip().lower())
+    if maximum is None:
+        return
     try:
         duration_seconds = float(duration) if duration is not None else 0.0
     except (TypeError, ValueError):
         duration_seconds = 0.0
-    if duration_seconds > 6 and value == "1080p":
-        raise ValueError("Hailuo 2.3 的 1080p 仅支持 6 秒视频；更长视频请选择 768p")
-    return value
-
-
-def happyhorse_ratio(ratio: str | None) -> str:
-    value = str(ratio or "").strip()
-    return value if value in HAPPYHORSE_RATIO_OPTIONS else "16:9"
-
-
-def grok_video_resolution(resolution: str | None) -> str:
-    value = str(resolution or "").strip().lower()
-    return value if value in GROK_VIDEO_RESOLUTION_OPTIONS else "720p"
-
-
-def grok_video_ratio(ratio: str | None) -> str:
-    value = str(ratio or "").strip()
-    return value if value in GROK_VIDEO_RATIO_OPTIONS else "16:9"
+    if duration_seconds > maximum:
+        raise ValueError(
+            f"所选分辨率 {resolution} 最多支持 {maximum:g} 秒视频；"
+            "请缩短时长或选择其他分辨率"
+        )

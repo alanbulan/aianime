@@ -9,8 +9,8 @@ from pydantic_ai import Agent
 from pydantic_ai.exceptions import ContentFilterError
 
 from ai_anime.modules.model_usage.public import (
-    get_newapi_text_pydantic_model,
-    get_newapi_text_pydantic_model_settings,
+    get_text_pydantic_model,
+    get_text_pydantic_model_settings,
 )
 from ai_anime.modules.production.public import (
     extract_char_identities_from_markers,
@@ -387,9 +387,9 @@ class LiteralScriptWritingWorkflow:
     def agent(self) -> Agent:
         if self._agent is None:
             self._agent = Agent(
-                get_newapi_text_pydantic_model(),
+                get_text_pydantic_model(),
                 system_prompt=LITERAL_SCRIPT_PROMPT,
-                model_settings=get_newapi_text_pydantic_model_settings(
+                model_settings=get_text_pydantic_model_settings(
                     "LITERAL_BEAT_META_THINKING_LEVEL",
                     "low",
                 ),

@@ -149,9 +149,9 @@ def format_beat_narration(audio_type: str, speaker: str, narration: str) -> str:
 
     dialogue beat → 【台词·{speaker}】{narration}
     narration beat → {narration}
-    silence/action beat → ""
+    silence beat → ""
     """
-    if audio_type in {"silence", "action"}:
+    if audio_type == "silence":
         return ""
     if audio_type == "dialogue" and narration:
         if speaker:

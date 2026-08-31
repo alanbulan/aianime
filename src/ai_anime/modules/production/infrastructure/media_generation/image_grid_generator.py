@@ -20,7 +20,7 @@ from ai_anime.modules.asset_world.public import StyleService
 from ai_anime.modules.model_usage.public import (
     infer_episode_from_path,
     infer_project_output_dir,
-    is_insufficient_credits_error,
+    is_model_quota_error,
     record_image_request,
     update_image_request_status,
 )
@@ -69,7 +69,7 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
 logger = logging.getLogger(__name__)
 _STANDARD_IMAGE_MAX_FILES = 10
 _FACADE_MODULE_NAME = (
-    "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid"
+    "ai_anime.modules.production.infrastructure.media_generation.image_grid"
 )
 _FACADE_SYNC_NAMES = (
     "DEFAULT_POOL_TEMPLATE",
@@ -88,7 +88,7 @@ _FACADE_SYNC_NAMES = (
     "UnifiedPromptBuilder",
     "_InlineImagePart",
     "_STANDARD_IMAGE_MAX_FILES",
-    "_call_newapi_image_api",
+    "_call_image_generation_api",
     "_count_batch_composite_chars",
     "_has_director_image_ref",
     "_infer_project_dir",
@@ -108,7 +108,7 @@ _FACADE_SYNC_NAMES = (
     "global_prop_marker_colors",
     "infer_episode_from_path",
     "infer_project_output_dir",
-    "is_insufficient_credits_error",
+    "is_model_quota_error",
     "load_precomputed_panel_detected",
     "logger",
     "normalize_image_size",
@@ -130,8 +130,8 @@ def _facade_module():
     return importlib.import_module(_FACADE_MODULE_NAME)
 
 
-async def _call_newapi_image_api(*args, **kwargs):
-    return await _facade_module()._call_newapi_image_api(*args, **kwargs)
+async def _call_image_generation_api(*args, **kwargs):
+    return await _facade_module()._call_image_generation_api(*args, **kwargs)
 
 
 def _infer_project_dir(*args, **kwargs):
@@ -193,8 +193,8 @@ def _generation_beat_number(beat: dict, fallback_index: int) -> int:
     return fallback_index + 1
 
 
-class NanoBananaGridGenerator:
-    """NanoBananaPro 网格生成器。
+class ImageGridGenerator:
+    """ImageGeneration 网格生成器。
 
     支持多种模式（统一使用批量生成，动态优化）:
     - "1x1": 单张生成（1K 分辨率）
@@ -207,7 +207,7 @@ class NanoBananaGridGenerator:
     通过当前商业模型访问生成分镜网格。
 
     示例:
-        >>> generator = NanoBananaGridGenerator(config=generator_config)
+        >>> generator = ImageGridGenerator(config=generator_config)
         >>> # 3x3 模式批量生成
         >>> results = await generator.generate_grid_batch(
         ...     all_beats=beats_data,
@@ -226,13 +226,8 @@ class NanoBananaGridGenerator:
         self.model = config["model"]
         self.model_selector = str(config.get("model_selector") or "").strip()
         self.model_params = dict(config.get("model_params") or {})
-        self.image_quality = config.get(
-            "image_quality", config.get("openai_image_quality", "medium")
-        )
-        self.sketch_image_quality = config.get(
-            "sketch_image_quality",
-            config.get("openai_sketch_image_quality", "low"),
-        )
+        self.image_quality = config.get("image_quality", "medium")
+        self.sketch_image_quality = config.get("sketch_image_quality", "low")
         self.default_image_size = config.get("image_size", "1K")
         self.mode = config.get("mode", "3x3")
         self.rows = config["rows"]
@@ -240,7 +235,7 @@ class NanoBananaGridGenerator:
         self.batch_size = config.get("batch_size", self.rows * self.cols)
         self.total_panels = config["total_panels"]
 
-        logger.info(f"[NanoBanana Grid] Model: {self.model}")
+        logger.info(f"[ImageGeneration Grid] Model: {self.model}")
 
     async def generate_grid(
         self,
@@ -321,7 +316,7 @@ class NanoBananaGridGenerator:
         # 使用全局默认风格
         if style is None:
             style = IMAGE_DEFAULT_STYLE
-        logger.info(f"[NanoBananaPro] 使用风格: {style}, 网格: {rows}x{cols}")
+        logger.info(f"[ImageGeneration] 使用风格: {style}, 网格: {rows}x{cols}")
 
         if len(beats) < 1:
             return GridGenerationResult(
@@ -333,12 +328,12 @@ class NanoBananaGridGenerator:
         # 如果不足网格容量，后面会用黑色填充
         actual_beat_count = min(len(beats), grid_capacity)
         logger.info(
-            f"[NanoBananaPro] 有效 beats: {actual_beat_count}/{grid_capacity}，不足部分用黑色填充"
+            f"[ImageGeneration] 有效 beats: {actual_beat_count}/{grid_capacity}，不足部分用黑色填充"
         )
         if not sketch and sketch_dir:
             detection_error = render_ai_detection_error(beats[:grid_capacity])
             if detection_error:
-                logger.info(f"[NanoBananaPro] ❌ {detection_error}")
+                logger.info(f"[ImageGeneration] ❌ {detection_error}")
                 return GridGenerationResult(
                     success=False,
                     error=detection_error,
@@ -361,7 +356,7 @@ class NanoBananaGridGenerator:
                     char_info["reference_path"] = ref_path
                     char_info["reference_mode"] = "composite"
                     logger.info(
-                        f"[NanoBananaPro] {char_name}: 复合图模式 -> {ref_path}"
+                        f"[ImageGeneration] {char_name}: 复合图模式 -> {ref_path}"
                     )
                     valid_character_map[char_name] = char_info
                     continue
@@ -370,14 +365,14 @@ class NanoBananaGridGenerator:
                     char_info["reference_path"] = ref_path
                     char_info["reference_mode"] = "portrait_only"
                     logger.info(
-                        f"[NanoBananaPro] {char_name}: Portrait 模式（仅锁脸）-> {ref_path}"
+                        f"[ImageGeneration] {char_name}: Portrait 模式（仅锁脸）-> {ref_path}"
                     )
                     valid_character_map[char_name] = char_info
                     continue
 
                 char_info["reference_path"] = None
                 char_info["reference_mode"] = "prompt_only"
-                logger.info(f"[NanoBananaPro] {char_name}: 提示词模式（无参考图）")
+                logger.info(f"[ImageGeneration] {char_name}: 提示词模式（无参考图）")
                 valid_character_map[char_name] = char_info
 
             # 1. 构建网格 Prompt
@@ -492,7 +487,7 @@ class NanoBananaGridGenerator:
 
             if sketch:
                 # Sketch 模式使用 UnifiedPromptBuilder（与导出逻辑一致）
-                logger.info("[NanoBananaPro] 进入 Sketch 模式")
+                logger.info("[ImageGeneration] 进入 Sketch 模式")
 
                 # prompt_aspect_ratio 优先（two-pass 时图用 1:1 但 prompt 写 2:3）
                 _prompt_ar = prompt_aspect_ratio or (
@@ -560,7 +555,7 @@ class NanoBananaGridGenerator:
                     )
 
                 if sketch_result or has_all_pool_sketches:
-                    logger.info("[NanoBananaPro] 进入 Render 模式 (基于草图渲染)")
+                    logger.info("[ImageGeneration] 进入 Render 模式 (基于草图渲染)")
                     if has_all_pool_sketches:
                         logger.info(
                             f"[Render] 使用图片池草图: {len(beat_sketch_paths)} 个 beat"
@@ -641,7 +636,7 @@ class NanoBananaGridGenerator:
                 else:
                     # 草图未找到，明确报错终止（不 fallback）
                     msg = f"Render 模式需要草图但未找到覆盖 beat {beat_range_start}-{beat_range_end} 的草图"
-                    logger.info(f"[NanoBananaPro] ❌ {msg}")
+                    logger.info(f"[ImageGeneration] ❌ {msg}")
                     return GridGenerationResult(
                         success=False,
                         error=msg,
@@ -649,7 +644,7 @@ class NanoBananaGridGenerator:
             else:
                 # 需要草图或草图目录
                 msg = "generate_grid() 需要 sketch 或 sketch_dir 参数"
-                logger.info(f"[NanoBananaPro] ❌ {msg}")
+                logger.info(f"[ImageGeneration] ❌ {msg}")
                 return GridGenerationResult(
                     success=False,
                     error=msg,
@@ -665,7 +660,7 @@ class NanoBananaGridGenerator:
                 runtime_style_preset,
             )
             logger.info(
-                f"[NanoBananaPro] 构建 Prompt 完成，共 {len(beats[:grid_capacity])} 个分镜"
+                f"[ImageGeneration] 构建 Prompt 完成，共 {len(beats[:grid_capacity])} 个分镜"
             )
 
             # 保存 prompt 到文件（审计用）
@@ -677,11 +672,11 @@ class NanoBananaGridGenerator:
                 grid_basename = Path(output_path).stem  # "grid_01"
                 prompt_file = prompts_dir / f"{grid_basename}.prompt.txt"
                 prompt_file.write_text(prompt, encoding="utf-8")
-                logger.info(f"[NanoBananaPro] Grid Prompt 已保存: {prompt_file}")
+                logger.info(f"[ImageGeneration] Grid Prompt 已保存: {prompt_file}")
 
             # Prompt-Only 模式：只生成提示词，跳过 API 调用
             if prompt_only:
-                logger.info("[NanoBananaPro] Prompt-Only 模式，跳过 API 调用")
+                logger.info("[ImageGeneration] Prompt-Only 模式，跳过 API 调用")
                 # 在 Render 模式下，显示 sketch 切片信息（用于验证）
                 if is_render_mode:
                     sketch_capacity = (
@@ -690,10 +685,10 @@ class NanoBananaGridGenerator:
                     local_offset = beat_start_index % sketch_capacity
                     end_index = local_offset + len(beats[:grid_capacity])
                     logger.info(
-                        f"[NanoBananaPro] [Render 预览] 草图 {SKETCH_GRID_CONFIG['rows']}x{SKETCH_GRID_CONFIG['cols']}"
+                        f"[ImageGeneration] [Render 预览] 草图 {SKETCH_GRID_CONFIG['rows']}x{SKETCH_GRID_CONFIG['cols']}"
                     )
                     logger.info(
-                        f"[NanoBananaPro] [Render 预览] 本地切片: [{local_offset}:{end_index}] (共 {end_index - local_offset} panels)"
+                        f"[ImageGeneration] [Render 预览] 本地切片: [{local_offset}:{end_index}] (共 {end_index - local_offset} panels)"
                     )
                 return GridGenerationResult(
                     success=True,
@@ -766,8 +761,7 @@ class NanoBananaGridGenerator:
             # =================================================================
 
             # 2. 准备参考图
-            # 按照 Google 官方文档：prompt 在前，图像连续排列在后
-            # https://ai.google.dev/gemini-api/docs/image-generation
+            # 网关多模态请求约定：prompt 在前，图像连续排列在后。
             contents = [prompt]  # prompt 放在最前面
             submitted_refs: list[dict] = []
 
@@ -792,7 +786,7 @@ class NanoBananaGridGenerator:
                         }
                     )
                     logger.info(
-                        "[NanoBananaPro] 添加草图底图 (Image 1 composition lock): "
+                        "[ImageGeneration] 添加草图底图 (Image 1 composition lock): "
                         f"{previous_grid_path}"
                     )
 
@@ -822,7 +816,7 @@ class NanoBananaGridGenerator:
                     ctx, beats, grid_capacity, valid_character_map
                 )
 
-                logger.info(f"[NanoBananaPro] 角色参考图顺序: {ordered_chars}")
+                logger.info(f"[ImageGeneration] 角色参考图顺序: {ordered_chars}")
                 self._append_reference_parts_from_plan(
                     contents,
                     ctx,
@@ -850,7 +844,7 @@ class NanoBananaGridGenerator:
                     encoding="utf-8",
                 )
                 logger.info(
-                    f"[NanoBananaPro] Submitted Prompt/Refs 已保存: {submitted_file}"
+                    f"[ImageGeneration] Submitted Prompt/Refs 已保存: {submitted_file}"
                 )
 
             # contents 结构:
@@ -904,7 +898,7 @@ class NanoBananaGridGenerator:
                 contents,
                 include_mime=True,
             )
-            image_bytes, _text, error_detail = await _call_newapi_image_api(
+            image_bytes, _text, error_detail = await _call_image_generation_api(
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -931,7 +925,7 @@ class NanoBananaGridGenerator:
                     os.makedirs(output_dir, exist_ok=True)
                 with open(output_path, "wb") as f:
                     f.write(image_bytes)
-                logger.info(f"[NanoBananaPro] 网格图已保存: {output_path}")
+                logger.info(f"[ImageGeneration] 网格图已保存: {output_path}")
 
                 # 5.1 后处理：移除面板间缝隙并覆盖
                 try:
@@ -947,13 +941,13 @@ class NanoBananaGridGenerator:
                     with open(output_path, "rb") as f:
                         image_bytes = f.read()
                     logger.info(
-                        f"[NanoBananaPro] Gap removal 后处理完成: {output_path}"
+                        f"[ImageGeneration] Gap removal 后处理完成: {output_path}"
                     )
                 except Exception as e:
-                    logger.info(f"[NanoBananaPro] Gap removal 失败，保留原图: {e}")
+                    logger.info(f"[ImageGeneration] Gap removal 失败，保留原图: {e}")
 
             generation_time = time.time() - start_time
-            logger.info(f"[NanoBananaPro] 生成完成，耗时 {generation_time:.1f}s")
+            logger.info(f"[ImageGeneration] 生成完成，耗时 {generation_time:.1f}s")
 
             return _usage_success(output_path, image_bytes)
 
@@ -970,7 +964,7 @@ class NanoBananaGridGenerator:
                     status="failed",
                     error_message=str(e),
                 )
-            if is_insufficient_credits_error(e):
+            if is_model_quota_error(e):
                 raise
             return GridGenerationResult(
                 success=False,
@@ -1084,7 +1078,7 @@ class NanoBananaGridGenerator:
                 contents,
                 include_mime=True,
             )
-            image_bytes, _, error_detail = await _call_newapi_image_api(
+            image_bytes, _, error_detail = await _call_image_generation_api(
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -1162,7 +1156,7 @@ class NanoBananaGridGenerator:
     ) -> GridGenerationResult:
         """Second pass: 保持分镜构图，转换宽高比（1:1 → 9:16）。
 
-        读取 Pass 1 保存的完整提示词，连同草图一起发给 Gemini，
+        读取 Pass 1 保存的完整提示词，连同草图一起发给图片模型，
         确保模型理解每个 panel 的内容，只改比例不丢信息。
 
         Args:
@@ -1258,7 +1252,7 @@ class NanoBananaGridGenerator:
                 contents,
                 include_mime=True,
             )
-            image_bytes, _text, error_detail = await _call_newapi_image_api(
+            image_bytes, _text, error_detail = await _call_image_generation_api(
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -1634,7 +1628,7 @@ class NanoBananaGridGenerator:
                 include_mime=True,
             )
             try:
-                image_bytes, _, error_detail = await _call_newapi_image_api(
+                image_bytes, _, error_detail = await _call_image_generation_api(
                     prompt=prompt,
                     reference_images=references or None,
                     image_config={
@@ -1686,7 +1680,7 @@ class NanoBananaGridGenerator:
                     grid_cols=request["cols"],
                 )
             except Exception as exc:
-                if is_insufficient_credits_error(exc):
+                if is_model_quota_error(exc):
                     raise
                 return GridGenerationResult(
                     success=False,
@@ -1757,9 +1751,9 @@ class NanoBananaGridGenerator:
 
         total_beats = len(all_beats)
         logger.info(
-            f"[NanoBananaPro Batch] 共 {total_beats} 个 beats，最大网格: {max_grid_rows}x{max_grid_cols}"
+            f"[ImageGeneration Batch] 共 {total_beats} 个 beats，最大网格: {max_grid_rows}x{max_grid_cols}"
         )
-        logger.info("[NanoBananaPro Batch] 动态网格优化已启用（最小化黑色填充）")
+        logger.info("[ImageGeneration Batch] 动态网格优化已启用（最小化黑色填充）")
 
         # 确保输出目录存在
         if output_dir:
@@ -1778,7 +1772,7 @@ class NanoBananaGridGenerator:
                 for mk, loc in zip(grid_plan_tuples, loc_labels)
             ]
             logger.info(
-                f"[NanoBananaPro Batch] 场景分组模式: "
+                f"[ImageGeneration Batch] 场景分组模式: "
                 f"{' + '.join(scene_grid_labels)} "
                 f"(共 {len(grid_plan_tuples)} 个网格)"
             )
@@ -1821,7 +1815,7 @@ class NanoBananaGridGenerator:
                 for mk in grid_plan_tuples
             ]
             logger.info(
-                f"[NanoBananaPro Batch] 完美分割方案: {' + '.join(grid_labels)} "
+                f"[ImageGeneration Batch] 完美分割方案: {' + '.join(grid_labels)} "
                 f"= {sum(grid_capacities)} (共 {len(grid_plan_tuples)} 个网格，0 填充)"
             )
 
@@ -1851,7 +1845,7 @@ class NanoBananaGridGenerator:
             # 角色过滤交给 generate_grid 内部完成，避免批量阶段重复解析引用。
             batch_character_map = character_map
             logger.info(
-                f"[NanoBananaPro Batch] 网格 {batch_idx + 1} 候选角色: "
+                f"[ImageGeneration Batch] 网格 {batch_idx + 1} 候选角色: "
                 f"{list(batch_character_map.keys())}"
             )
 
@@ -1859,7 +1853,7 @@ class NanoBananaGridGenerator:
             # （如果因为某种原因 beat 数量不匹配，这里会有问题，但理论上不会发生）
             if len(batch_beats) != batch_capacity:
                 logger.info(
-                    f"[NanoBananaPro Batch] 警告: 网格 {batch_idx + 1} beat 数量不匹配 ({len(batch_beats)} vs {batch_capacity})"
+                    f"[ImageGeneration Batch] 警告: 网格 {batch_idx + 1} beat 数量不匹配 ({len(batch_beats)} vs {batch_capacity})"
                 )
 
             # 生成网格图路径
@@ -1868,7 +1862,7 @@ class NanoBananaGridGenerator:
                 output_path = str(Path(output_dir) / f"grid_{batch_idx + 1:02d}.png")
 
             logger.info(
-                f"[NanoBananaPro Batch] 生成网格 {batch_idx + 1} (beats {start_idx}-{end_idx}, 网格: {batch_rows}x{batch_cols})"
+                f"[ImageGeneration Batch] 生成网格 {batch_idx + 1} (beats {start_idx}-{end_idx}, 网格: {batch_rows}x{batch_cols})"
             )
 
             # 调用单网格生成（使用过滤后的角色映射和动态网格尺寸）
@@ -1908,18 +1902,18 @@ class NanoBananaGridGenerator:
                 try:
                     on_grid_complete(batch_idx, result)
                 except Exception as e:
-                    logger.info(f"[NanoBananaPro Batch] 回调错误: {e}")
+                    logger.info(f"[ImageGeneration Batch] 回调错误: {e}")
 
             if not result.success:
                 logger.info(
-                    f"[NanoBananaPro Batch] 网格 {batch_idx + 1} 生成失败: {result.error}"
+                    f"[ImageGeneration Batch] 网格 {batch_idx + 1} 生成失败: {result.error}"
                 )
                 # 继续生成下一个网格，不中断整个流程
 
         successful = sum(1 for r in results if r.success)
         total_grids = len(results)
         logger.info(
-            f"[NanoBananaPro Batch] 批量生成完成: {successful}/{total_grids} 成功"
+            f"[ImageGeneration Batch] 批量生成完成: {successful}/{total_grids} 成功"
         )
 
         return results
@@ -1984,7 +1978,7 @@ class NanoBananaGridGenerator:
             target_start_idx = 0  # 场景分组无连续起始索引
             loc_name = entry.get("scene_id", "")
             logger.info(
-                f"[NanoBananaPro Regen] 场景分组: 网格 {grid_index + 1} ({loc_name}, "
+                f"[ImageGeneration Regen] 场景分组: 网格 {grid_index + 1} ({loc_name}, "
                 f"{len(target_batch_beats)} beats, "
                 f"网格: {target_batch_rows}x{target_batch_cols})"
             )
@@ -2014,7 +2008,7 @@ class NanoBananaGridGenerator:
         actual_beat_count = len(target_batch_beats)
         if not scene_grid_plan:
             logger.info(
-                f"[NanoBananaPro Regen] 重新生成网格 {grid_index + 1} "
+                f"[ImageGeneration Regen] 重新生成网格 {grid_index + 1} "
                 f"(beats {target_start_idx + 1}-{target_start_idx + actual_beat_count}, "
                 f"网格: {target_batch_rows}x{target_batch_cols})"
             )
@@ -2022,14 +2016,14 @@ class NanoBananaGridGenerator:
         # 角色过滤交给 generate_grid 内部完成，避免重生阶段重复解析引用。
         batch_character_map = character_map
         logger.info(
-            f"[NanoBananaPro Regen] 网格 {grid_index + 1} 候选角色: "
+            f"[ImageGeneration Regen] 网格 {grid_index + 1} 候选角色: "
             f"{list(batch_character_map.keys())}"
         )
 
         # 完美分割不需要填充，但检查以防万一
         if len(target_batch_beats) != batch_capacity:
             logger.info(
-                f"[NanoBananaPro Regen] 警告: 网格 {grid_index + 1} beat 数量不匹配 "
+                f"[ImageGeneration Regen] 警告: 网格 {grid_index + 1} beat 数量不匹配 "
                 f"({len(target_batch_beats)} vs {batch_capacity})"
             )
 
@@ -2065,10 +2059,10 @@ class NanoBananaGridGenerator:
         )
 
         if result.success:
-            logger.info(f"[NanoBananaPro Regen] 网格 {grid_index + 1} 重新生成成功")
+            logger.info(f"[ImageGeneration Regen] 网格 {grid_index + 1} 重新生成成功")
         else:
             logger.info(
-                f"[NanoBananaPro Regen] 网格 {grid_index + 1} 重新生成失败: {result.error}"
+                f"[ImageGeneration Regen] 网格 {grid_index + 1} 重新生成失败: {result.error}"
             )
 
         # 添加额外的元数据到结果
@@ -2166,7 +2160,7 @@ class NanoBananaGridGenerator:
             return _InlineImagePart(image_data, mime_type)
 
         except Exception as e:
-            logger.info(f"[NanoBananaPro] 加载参考图失败: {image_path}, {e}")
+            logger.info(f"[ImageGeneration] 加载参考图失败: {image_path}, {e}")
             return None
 
     def _append_reference_parts_from_plan(
@@ -2206,7 +2200,7 @@ class NanoBananaGridGenerator:
                         names.append(char_name)
                         if verbose:
                             logger.info(
-                                f"[NanoBananaPro] 添加完整多视图参考 sheet: {char_name} -> "
+                                f"[ImageGeneration] 添加完整多视图参考 sheet: {char_name} -> "
                                 f"{sheet.size[0]}x{sheet.size[1]}px"
                             )
                     if sheets:
@@ -2215,7 +2209,7 @@ class NanoBananaGridGenerator:
                             contents.append(merged_part)
                             if verbose:
                                 logger.info(
-                                    f"[NanoBananaPro] 多人完整 sheet 合并参考图: {names}"
+                                    f"[ImageGeneration] 多人完整 sheet 合并参考图: {names}"
                                 )
                 finally:
                     for sheet in sheets:
@@ -2246,17 +2240,17 @@ class NanoBananaGridGenerator:
                     continue
                 if kind == "composite":
                     logger.info(
-                        "[NanoBananaPro] 添加参考图 (复合图): "
+                        "[ImageGeneration] 添加参考图 (复合图): "
                         f"{entry.get('char_name', '')} -> {path}"
                     )
                 elif kind == "portrait_only":
                     logger.info(
-                        "[NanoBananaPro] 添加参考图 (Portrait): "
+                        "[ImageGeneration] 添加参考图 (Portrait): "
                         f"{entry.get('char_name', '')} -> {path}"
                     )
                 else:
                     logger.info(
-                        "[NanoBananaPro] 添加身份级 Portrait (年龄变体): "
+                        "[ImageGeneration] 添加身份级 Portrait (年龄变体): "
                         f"{entry.get('char_name', '')}/{entry.get('tag', '')}"
                     )
             elif kind in {"scene", "prop"}:
@@ -2296,12 +2290,12 @@ class NanoBananaGridGenerator:
                     except OSError:
                         size_bytes = -1
                     logger.info(
-                        f"[NanoBananaPro][RefPlan] kind={kind} "
+                        f"[ImageGeneration][RefPlan] kind={kind} "
                         f"base_id={getattr(ref, 'base_id', '')} "
                         f"path={path} bytes={size_bytes}"
                     )
                     logger.info(
-                        f"[NanoBananaPro] 添加{label}参考图: "
+                        f"[ImageGeneration] 添加{label}参考图: "
                         f"{getattr(ref, 'base_id', '')}"
                     )
 
@@ -2368,7 +2362,7 @@ class NanoBananaGridGenerator:
         merged.save(buffer, format="JPEG", quality=compress_quality, optimize=True)
         image_data = buffer.getvalue()
         logger.info(
-            f"[NanoBananaPro] 合并参考图: {len(panels)} 角色, "
+            f"[ImageGeneration] 合并参考图: {len(panels)} 角色, "
             f"{total_w}x{max_h}px, {len(image_data) / 1024:.0f}KB"
         )
 
@@ -2474,7 +2468,7 @@ class NanoBananaGridGenerator:
             project_dir=str(panel_project_dir) if panel_project_dir else None,
         )
 
-        # 3. 准备并行任务 (使用 NanoBanana/Gemini)
+        # 3. 准备并行图片生成任务
         tasks = []
 
         for i, beat in enumerate(beats):
@@ -2658,7 +2652,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
                     ref_bytes,
                     style_preset,
                 )
-            image_bytes, _, error_detail = await _call_newapi_image_api(
+            image_bytes, _, error_detail = await _call_image_generation_api(
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -2680,7 +2674,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
             logger.info(f"Commercial Render Error: {e}")
             return None
 
-    async def upscale_with_nanobanana(
+    async def upscale_image(
         self,
         input_path: str,
         output_path: str,
@@ -2689,7 +2683,7 @@ CRITICAL: Keep exact composition from sketch. Only add color, texture, and light
         target_width: int = 720,
         target_height: int = 1280,
     ) -> Path:
-        """使用 NanoBananaPro 做高清修复。
+        """使用 ImageGeneration 做高清修复。
 
         将网格切割的小图(~819x819)转换为竖屏图(768x1376)，再缩放到目标尺寸。
 
@@ -2739,7 +2733,7 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
 """
 
         try:
-            logger.info(f"[NanoBananaPro Upscale] 处理: {input_path}")
+            logger.info(f"[ImageGeneration Upscale] 处理: {input_path}")
             ref_bytes = []
             if hasattr(ref_image, "inline_data") and ref_image.inline_data:
                 ref_bytes.append(
@@ -2754,7 +2748,7 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
                 ref_bytes,
                 style_preset,
             )
-            image_bytes, _, error_detail = await _call_newapi_image_api(
+            image_bytes, _, error_detail = await _call_image_generation_api(
                 prompt=prompt,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -2779,11 +2773,11 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
             img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
             img.save(output_path)
             Path(temp_path).unlink()
-            logger.info(f"[NanoBananaPro Upscale] 完成: {output_path}")
+            logger.info(f"[ImageGeneration Upscale] 完成: {output_path}")
             return Path(output_path)
 
         except Exception as e:
-            logger.info(f"[NanoBananaPro Upscale] 失败: {e}")
+            logger.info(f"[ImageGeneration Upscale] 失败: {e}")
             raise
 
     async def generate_single_preview(
@@ -2800,8 +2794,8 @@ CRITICAL: The output must look like a higher-resolution vertical crop/extension 
         Args:
             prompt: 场景描述（中文或英文）
             style_config: 完整风格配置字典，包含：
-                - style_instructions: Gemini 风格指令
-                - avoid_instructions: Gemini 避免指令
+                - style_instructions: 正向风格指令
+                - avoid_instructions: 负向风格指令
             reference_images: 参考图路径列表（可选）
             output_path: 输出路径（可选）
 
@@ -2852,7 +2846,7 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
                 ref_bytes,
                 style_config,
             )
-            image_bytes, _, error_detail = await _call_newapi_image_api(
+            image_bytes, _, error_detail = await _call_image_generation_api(
                 prompt=prompt_text,
                 reference_images=ref_bytes or None,
                 image_config={
@@ -2902,10 +2896,10 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
     ) -> GridGenerationResult:
         """生成 Shot 级 Grid（v2.0 Shot-Centric）。
 
-        一个 Shot 内的 N 个 beats → 1 个 Grid 图，用作 Seedance 2.0 的 @图片 分镜参考。
+        一个 Shot 内的 N 个 beats → 1 个 Grid 图，用作高级参考视频工作流的分镜参考。
         Grid 格式根据 beat 数自动选择：1→1x1, 2→1x2, 3→1x3, 4→2x2, 5→3x3(前5格填充)。
 
-        该 Grid 直接作为整张图喂给 Seedance 2.0，不裁切。
+        该 Grid 作为整张参考图提交，不裁切。
 
         Args:
             shot_beats: Shot 内的 beats 列表（1-5 个）
@@ -2946,6 +2940,6 @@ OUTPUT: Single high-quality image, no watermarks, no text overlays.
         )
 
 
-for _method_name, _method in list(vars(NanoBananaGridGenerator).items()):
+for _method_name, _method in list(vars(ImageGridGenerator).items()):
     if inspect.isfunction(_method):
-        setattr(NanoBananaGridGenerator, _method_name, _syncing_method(_method))
+        setattr(ImageGridGenerator, _method_name, _syncing_method(_method))

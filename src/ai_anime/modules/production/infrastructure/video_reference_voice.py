@@ -1,9 +1,4 @@
-"""Seedance 2.0 dialogue audio preparation via IndexTTS2.
-
-This module is intentionally separate from the global TTS pipeline. It only
-supports the Seedance 2.0 workbench flow: create/refresh the current beat MP3
-so the existing Seedance 2.0 ``reference_audios`` asset path can pick it up.
-"""
+"""Dialogue and narration audio preparation for video-reference workflows."""
 
 from __future__ import annotations
 
@@ -20,11 +15,11 @@ from ai_anime.modules.production.infrastructure.media_generation.tts_generator i
     TTSResult,
 )
 from ai_anime.shared.utils.voice_samples import READABLE_VOICE_EXTENSIONS
-from ai_anime.modules.production.domain.seedance2_dialogue import (
+from ai_anime.modules.production.domain.video_dialogue import (
     dialogue_emotion_prompt,
     dialogue_text,
     narration_beat_text,
-    normalize_seedance2_audio_type,
+    normalize_video_audio_type,
     same_voice_dialogue_beats,
 )
 
@@ -63,7 +58,7 @@ def narration_style_prompt(style: str) -> str:
 
 
 @dataclass
-class Seedance2VoiceBatchResult:
+class VideoVoiceBatchResult:
     speaker: str
     total: int = 0
     generated: int = 0
@@ -282,7 +277,7 @@ def resolve_narrator_source(
     )
 
 
-async def generate_seedance2_narration_audio(
+async def generate_video_narration_audio(
     *,
     beat: dict,
     episode: int,
@@ -295,7 +290,7 @@ async def generate_seedance2_narration_audio(
     emotion_prompt: str = "",
 ) -> TTSResult | None:
     """Generate narration audio for a single beat using the narrator reference."""
-    if normalize_seedance2_audio_type(beat) != "narration":
+    if normalize_video_audio_type(beat) != "narration":
         return None
 
     text = narration_beat_text(beat)
@@ -309,11 +304,11 @@ async def generate_seedance2_narration_audio(
         )
 
     if generator is None:
-        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
-            IndexTTS2Client,
+        from ai_anime.modules.production.infrastructure.media_generation.speech_synthesis import (
+            SpeechSynthesisClient,
         )
 
-        generator = IndexTTS2Client()
+        generator = SpeechSynthesisClient()
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(project_dir, episode, beat_num)
@@ -335,7 +330,7 @@ MAX_REFERENCE_AUDIO_BYTES = 5_000_000
 
 
 def build_reference_audio_url(audio_path: Path) -> str:
-    """Return an IndexTTS2-readable data URL for a local reference audio file.
+    """Return a model-readable data URL for a local reference audio file.
 
     Reference audio still follows the v2.0 flow and travels as an inline
     ``data:`` URL. We cap raw audio at 5 MB and ask the user to re-encode
@@ -471,7 +466,7 @@ async def resolve_dialogue_reference_audio(
     return None
 
 
-async def generate_seedance2_dialogue_audio(
+async def generate_video_dialogue_audio(
     *,
     beat: dict,
     episode: int,
@@ -481,13 +476,13 @@ async def generate_seedance2_dialogue_audio(
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
 ) -> TTSResult | None:
-    """Generate the current Seedance 2.0 dialogue beat audio with IndexTTS2.
+    """Generate the current dialogue beat audio with the selected speech model.
 
     Returns ``None`` when the beat is not a dialogue candidate or has no
     configured reference sample, so callers can present UI-only guidance without
     changing the normal project TTS pipeline.
     """
-    if normalize_seedance2_audio_type(beat) != "dialogue":
+    if normalize_video_audio_type(beat) != "dialogue":
         return None
 
     narration = dialogue_text(beat)
@@ -504,11 +499,11 @@ async def generate_seedance2_dialogue_audio(
         )
 
     if generator is None:
-        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
-            IndexTTS2Client,
+        from ai_anime.modules.production.infrastructure.media_generation.speech_synthesis import (
+            SpeechSynthesisClient,
         )
 
-        generator = IndexTTS2Client()
+        generator = SpeechSynthesisClient()
 
     builder = audio_url_builder or build_reference_audio_url
     output_path = beat_audio_path(store.project_dir, episode, beat_num)
@@ -526,7 +521,7 @@ async def generate_seedance2_dialogue_audio(
     return maybe_result
 
 
-async def generate_seedance2_dialogue_audio_for_voice(
+async def generate_video_dialogue_audio_for_voice(
     *,
     beats: list[dict],
     speaker: str,
@@ -536,27 +531,27 @@ async def generate_seedance2_dialogue_audio_for_voice(
     generator=None,
     audio_url_builder: AudioUrlBuilder | None = None,
     emotion_prompt: str = "",
-) -> Seedance2VoiceBatchResult:
+) -> VideoVoiceBatchResult:
     """Generate dialogue audio for beats sharing the same identity/period voice."""
-    result = Seedance2VoiceBatchResult(speaker=str(speaker or "").strip())
+    result = VideoVoiceBatchResult(speaker=str(speaker or "").strip())
     targets = same_voice_dialogue_beats(beats, result.speaker)
     result.total = len(targets)
     if not targets:
         return result
 
     if generator is None:
-        from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
-            IndexTTS2Client,
+        from ai_anime.modules.production.infrastructure.media_generation.speech_synthesis import (
+            SpeechSynthesisClient,
         )
 
-        generator = IndexTTS2Client()
+        generator = SpeechSynthesisClient()
 
     for beat_num, beat in targets:
         output_path = beat_audio_path(store.project_dir, episode, beat_num)
         if missing_only and output_path.exists() and output_path.stat().st_size > 0:
             result.skipped_existing += 1
             continue
-        item_result = await generate_seedance2_dialogue_audio(
+        item_result = await generate_video_dialogue_audio(
             beat=beat,
             episode=episode,
             beat_num=beat_num,

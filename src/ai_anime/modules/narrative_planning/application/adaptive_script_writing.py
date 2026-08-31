@@ -7,8 +7,8 @@ from pydantic_ai import Agent
 from pydantic_ai.exceptions import ContentFilterError
 
 from ai_anime.modules.model_usage.public import (
-    get_newapi_text_pydantic_model,
-    get_newapi_text_pydantic_model_settings,
+    get_text_pydantic_model,
+    get_text_pydantic_model_settings,
 )
 from ai_anime.modules.narrative_planning.application.literal_script_writing import (
     LiteralBeatMetaOutput,
@@ -117,9 +117,9 @@ class AdaptiveScriptWritingWorkflow(LiteralScriptWritingWorkflow):
     def adaptive_agent(self) -> Agent:
         if self._adaptive_agent is None:
             self._adaptive_agent = Agent(
-                get_newapi_text_pydantic_model(),
+                get_text_pydantic_model(),
                 system_prompt=ADAPTIVE_SCRIPT_PROMPT,
-                model_settings=get_newapi_text_pydantic_model_settings(
+                model_settings=get_text_pydantic_model_settings(
                     "LITERAL_BEAT_META_THINKING_LEVEL",
                     "low",
                 ),

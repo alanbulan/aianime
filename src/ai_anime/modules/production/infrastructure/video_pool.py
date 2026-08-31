@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import BaseModel, Field
 
 from ai_anime.modules.production.application.video_pool import (
     AddGeneratedVideoCommand,
@@ -16,7 +16,6 @@ from ai_anime.modules.production.domain.video_pool import VideoPool, VideoPoolEn
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared import project_media
 from ai_anime.shared.utils.state_index_files import (
-    ensure_state_index_from_legacy,
     index_file_lock,
     resolve_state_index_path,
     write_json_atomic,
@@ -32,10 +31,7 @@ class _StoredVideoPoolEntry(BaseModel):
     generated_at: datetime
     duration: float = 5.0
     video_mode: str = "first_frame"
-    video_model: str = Field(
-        default="",
-        validation_alias=AliasChoices("video_model", "backend"),
-    )
+    video_model: str = ""
     prompt: str = ""
 
     def to_domain(self) -> VideoPoolEntry:
@@ -111,10 +107,6 @@ class LocalVideoPoolStorage:
         episode_dir = self._episode_dir(context, episode_num)
         index_path = self._index_path(episode_dir)
         with index_file_lock(index_path):
-            index_path = ensure_state_index_from_legacy(
-                episode_dir,
-                _VIDEO_POOL_INDEX_FILENAME,
-            )
             return self._load_unlocked(index_path)
 
     def add(
@@ -149,10 +141,6 @@ class LocalVideoPoolStorage:
         )
         index_path = self._index_path(episode_dir)
         with index_file_lock(index_path):
-            index_path = ensure_state_index_from_legacy(
-                episode_dir,
-                _VIDEO_POOL_INDEX_FILENAME,
-            )
             pool = self._load_unlocked(index_path) or VideoPool(
                 episode=command.episode_num
             )
@@ -171,10 +159,6 @@ class LocalVideoPoolStorage:
         episode_dir = self._episode_dir(context, episode_num)
         index_path = self._index_path(episode_dir)
         with index_file_lock(index_path):
-            index_path = ensure_state_index_from_legacy(
-                episode_dir,
-                _VIDEO_POOL_INDEX_FILENAME,
-            )
             pool = self._load_unlocked(index_path)
             if pool is None:
                 return False
@@ -200,10 +184,6 @@ class LocalVideoPoolStorage:
         episode_dir = self._episode_dir(context, episode_num)
         index_path = self._index_path(episode_dir)
         with index_file_lock(index_path):
-            index_path = ensure_state_index_from_legacy(
-                episode_dir,
-                _VIDEO_POOL_INDEX_FILENAME,
-            )
             pool = self._load_unlocked(index_path)
             if pool is None:
                 return "missing"

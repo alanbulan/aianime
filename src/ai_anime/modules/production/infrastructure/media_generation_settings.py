@@ -12,10 +12,10 @@ from ai_anime.shared.runtime_paths import OUTPUT_DIR
 
 load_project_dotenv()
 
-INDEXTTS2_TIMEOUT_SECONDS = float(
-    os.environ.get("INDEXTTS2_TIMEOUT_SECONDS", "1800")
+SPEECH_GENERATION_TIMEOUT_SECONDS = float(
+    os.environ.get("SPEECH_GENERATION_TIMEOUT_SECONDS", "1800")
 )
-INDEXTTS2_RECORD_PROVIDER = "commercial"
+SPEECH_RECORD_PROVIDER = "commercial"
 
 IMAGE_DEFAULT_WIDTH = int(os.environ.get("IMAGE_DEFAULT_WIDTH", "1440"))
 IMAGE_DEFAULT_HEIGHT = int(os.environ.get("IMAGE_DEFAULT_HEIGHT", "2560"))
@@ -175,10 +175,8 @@ def get_video_config() -> dict:
     }
 
 
-OPENAI_IMAGE_QUALITY = os.environ.get("OPENAI_IMAGE_QUALITY", "medium")
-OPENAI_SKETCH_IMAGE_QUALITY = os.environ.get(
-    "OPENAI_SKETCH_IMAGE_QUALITY", "low"
-)
+IMAGE_GENERATION_QUALITY = os.environ.get("IMAGE_GENERATION_QUALITY", "medium")
+SKETCH_IMAGE_QUALITY = os.environ.get("SKETCH_IMAGE_QUALITY", "low")
 GRID_MODE = os.environ.get("GRID_MODE", "1x1")
 MODE_CONFIG = {
     "1x1": (1, 1, 1),
@@ -201,13 +199,13 @@ GRID_TOTAL_PANELS = 25
 
 def _image_provider_config(*, model_override: str | None = None) -> dict:
     from ai_anime.modules.model_usage.public import (
-        get_effective_newapi_gateway_config,
+        get_effective_model_gateway_transport_config,
     )
 
     model = str(model_override or "").strip()
     if not model:
         raise ValueError("image model is required")
-    gateway = get_effective_newapi_gateway_config()
+    gateway = get_effective_model_gateway_transport_config()
     return {
         "provider": "commercial",
         "access_mode": gateway.mode,
@@ -228,8 +226,8 @@ def get_grid_generation_config(
         "model": provider_config["model"],
         "model_selector": str(model_selector_override or "").strip(),
         "model_params": dict(model_params_override or {}),
-        "openai_image_quality": OPENAI_IMAGE_QUALITY,
-        "openai_sketch_image_quality": OPENAI_SKETCH_IMAGE_QUALITY,
+        "image_quality": IMAGE_GENERATION_QUALITY,
+        "sketch_image_quality": SKETCH_IMAGE_QUALITY,
         "image_size": image_size_override or "1K",
         "mode": GRID_MODE,
         "rows": GRID_ROWS,
@@ -247,7 +245,7 @@ def get_sketch_generation_config(
         model_override=model_override,
         model_selector_override=model_selector_override,
     )
-    config["openai_image_quality"] = OPENAI_SKETCH_IMAGE_QUALITY
+    config["image_quality"] = SKETCH_IMAGE_QUALITY
     config["image_size"] = "1K"
     return config
 

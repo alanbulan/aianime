@@ -132,10 +132,10 @@ class NovelVisualBeat(BaseModel):
     video_prompt: str = Field(default="", description="视频运动提示词")
     keyframe_prompt: str = Field(default="", description="首尾帧过渡提示词")
 
-    # Seedance 2.0 per-beat config overrides (Stage B; Stage A persists '{}' default)
-    seedance2_config_json: str = Field(
+    # Provider-neutral per-beat video configuration.
+    video_config_json: str = Field(
         default="{}",
-        description="Seedance 2.0 per-beat 覆写 JSON（Stage B 真正使用，Stage A 仅落库占位）",
+        description="视频生成参数与参考素材配置 JSON",
     )
 
     # 对话支持
@@ -167,7 +167,7 @@ class NovelVisualBeat(BaseModel):
         )
 
         if not self.narration or not self.narration.strip():
-            if not self.is_manual_shot and self.audio_type not in {"silence", "action"}:
+            if not self.is_manual_shot and self.audio_type != "silence":
                 self.narration = "(empty)"
         if not self.visual_description or not self.visual_description.strip():
             if not self.is_manual_shot:

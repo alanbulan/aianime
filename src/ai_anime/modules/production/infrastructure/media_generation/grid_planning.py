@@ -969,8 +969,8 @@ def _render_pool_template_for_aspect(aspect_mode: str) -> list[str]:
 # =============================================================================
 # Shot-Level Grid 配置（v2.0 Shot-Centric）
 # =============================================================================
-# Shot 内 N 个 beats → 1 个 Grid，作为 Seedance 2.0 的 @图片 分镜参考
-# 仅使用已验证的格式（Seedance 2.0 理解的 Grid 布局）
+# Shot 内 N 个 beats → 1 个 Grid，作为高级参考视频工作流的分镜参考。
+# 仅使用已验证的网格布局。
 
 SHOT_GRID_CONFIGS: Dict[int, dict] = {
     1: {

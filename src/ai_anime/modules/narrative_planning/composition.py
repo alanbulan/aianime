@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.narrative_planning.application.adaptive_script_writing import (
     AdaptiveScriptWritingWorkflow,
 )
@@ -31,14 +30,14 @@ from ai_anime.modules.narrative_planning.application.narrative_tasks import (
     ScheduleEpisodeAssetPlanning,
     ScheduleEpisodeIdentityPlanning,
     ScheduleEpisodePlanning,
-    ScheduleSeedancePrompt,
+    ScheduleVideoPromptOptimization,
     StartScriptGeneration,
 )
 from ai_anime.modules.narrative_planning.application.script_documents import (
     ScriptDocumentService,
 )
-from ai_anime.modules.narrative_planning.application.seedance_prompts import (
-    GenerateSeedancePrompt,
+from ai_anime.modules.narrative_planning.application.video_prompt_optimization import (
+    GenerateVideoPrompt,
 )
 from ai_anime.modules.narrative_planning.infrastructure import (
     beat_prompt_generators,
@@ -49,8 +48,8 @@ from ai_anime.modules.narrative_planning.infrastructure.beat_media import (
     LocalEpisodeBeatMediaCatalog,
     ProjectContextMediaUrlBuilder,
 )
-from ai_anime.modules.narrative_planning.infrastructure.seedance_prompt_gateway import (
-    SeedancePanelPromptGateway,
+from ai_anime.modules.narrative_planning.infrastructure.video_prompt_gateway import (
+    ProductionVideoPromptGateway,
 )
 from ai_anime.modules.narrative_planning.infrastructure.manual_beat_assets import (
     LocalManualBeatAssetWorkspace,
@@ -128,8 +127,8 @@ def schedule_beat_video_prompt() -> ScheduleBeatVideoPrompt:
     return ScheduleBeatVideoPrompt(narrative_task_scheduler())
 
 
-def schedule_seedance_prompt() -> ScheduleSeedancePrompt:
-    return ScheduleSeedancePrompt(narrative_task_scheduler())
+def schedule_video_prompt_optimization() -> ScheduleVideoPromptOptimization:
+    return ScheduleVideoPromptOptimization(narrative_task_scheduler())
 
 
 def schedule_episode_rewrite() -> ScheduleEpisodeRewrite:
@@ -148,11 +147,8 @@ def schedule_episode_identity_planning() -> ScheduleEpisodeIdentityPlanning:
     return ScheduleEpisodeIdentityPlanning(narrative_task_scheduler())
 
 
-def generate_seedance_prompt() -> GenerateSeedancePrompt:
-    return GenerateSeedancePrompt(
-        gateway=SeedancePanelPromptGateway(),
-        usage_meter=get_usage_meter(),
-    )
+def generate_video_prompt() -> GenerateVideoPrompt:
+    return GenerateVideoPrompt(gateway=ProductionVideoPromptGateway())
 
 
 def create_script_writing_workflow(

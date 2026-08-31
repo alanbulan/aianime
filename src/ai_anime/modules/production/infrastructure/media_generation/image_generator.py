@@ -17,7 +17,10 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
     apply_style_reference,
     get_style_preset,
 )
-from ai_anime.modules.model_usage.public import is_insufficient_credits_error
+from ai_anime.modules.model_usage.public import (
+    REMOTE_MODEL_QUOTA_CODE,
+    is_model_quota_error,
+)
 
 
 class ImageGenResult(BaseModel):
@@ -53,11 +56,11 @@ async def _generate_commercial_image(
     reference_images: list[tuple[bytes, str] | tuple[str, bytes, str]] | None,
     aspect_ratio: str,
 ) -> tuple[bytes | None, str]:
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
-        _call_newapi_image_api,
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+        _call_image_generation_api,
     )
 
-    image_bytes, _text, error = await _call_newapi_image_api(
+    image_bytes, _text, error = await _call_image_generation_api(
         prompt=prompt,
         reference_images=reference_images,
         image_config={
@@ -165,7 +168,7 @@ class CommercialImageGenerator:
                 generation_time=time.time() - started_at,
             )
         except Exception as exc:
-            if is_insufficient_credits_error(exc):
+            if is_model_quota_error(exc):
                 raise
             return ImageGenResult(
                 success=False,
@@ -208,11 +211,11 @@ async def generate_character_reference_unified(
         return []
 
     try:
-        from ai_anime.modules.production.infrastructure.media_generation.nanobanana_character import (
-            NanoBananaCharacterGenerator,
+        from ai_anime.modules.production.infrastructure.media_generation.character_image_generator import (
+            CharacterImageGenerator,
         )
 
-        result = await NanoBananaCharacterGenerator(
+        result = await CharacterImageGenerator(
             model=resolved_model,
             model_selector=model_selector,
         ).generate_character_portrait(
@@ -235,8 +238,8 @@ async def generate_character_reference_unified(
 
     if result.success:
         return result.reference_paths
-    if is_insufficient_credits_error(message=result.error or ""):
-        raise RuntimeError("INSUFFICIENT_CREDITS")
+    if is_model_quota_error(message=result.error or ""):
+        raise RuntimeError(REMOTE_MODEL_QUOTA_CODE)
     if raise_on_error:
         raise RuntimeError(result.error or f"{resolved_model} image generation failed")
     return []
@@ -267,11 +270,11 @@ async def generate_identity_image_unified(
             raise RuntimeError("identity image model is required")
         return False
     try:
-        from ai_anime.modules.production.infrastructure.media_generation.nanobanana_character import (
-            NanoBananaCharacterGenerator,
+        from ai_anime.modules.production.infrastructure.media_generation.character_image_generator import (
+            CharacterImageGenerator,
         )
 
-        result = await NanoBananaCharacterGenerator(
+        result = await CharacterImageGenerator(
             model=resolved_model,
             model_selector=model_selector,
         ).generate_identity_with_reference(
@@ -301,8 +304,8 @@ async def generate_identity_image_unified(
             "prompt_file": result.prompt_file,
         }
     if not result.success:
-        if is_insufficient_credits_error(message=result.error or ""):
-            raise RuntimeError("INSUFFICIENT_CREDITS")
+        if is_model_quota_error(message=result.error or ""):
+            raise RuntimeError(REMOTE_MODEL_QUOTA_CODE)
         if raise_on_error:
             raise RuntimeError(result.error or "Identity image generation failed")
     return result.success

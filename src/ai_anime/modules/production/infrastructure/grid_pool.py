@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid, pool_indexer
+from ai_anime.modules.production.infrastructure.media_generation import image_grid, pool_indexer
 from ai_anime.modules.production.application.grid_pool import (
     BeatSketchCandidates,
     BeatSketchCandidateView,
@@ -709,7 +709,7 @@ class LocalGridPoolGateway:
             f"{command.rows}x{command.cols}.jpg"
         )
         preview_path = Path(
-            nanobanana_grid.crop_sketch_panels(
+            image_grid.crop_sketch_panels(
                 str(grids_dir),
                 beat_numbers,
                 command.rows,
@@ -747,7 +747,6 @@ class LocalGridPoolGateway:
         pool = pool_indexer.rebuild_pool_index(
             episode_grids_dir=grids_dir,
             episode=episode_num,
-            split_cells=True,
         )
         return RebuiltGridPool(
             episode=pool.episode,

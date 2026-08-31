@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from ai_anime.modules.production.infrastructure.media_generation import nanobanana_grid
+from ai_anime.modules.production.infrastructure.media_generation import image_grid
 from ai_anime.modules.production.infrastructure.media_generation.render_identity_guard import (
     render_ai_detection_error,
 )
@@ -167,7 +167,7 @@ class LocalRenderPlanningPreparer:
             await store.close()
 
 
-class NanoBananaRenderPlanEngine:
+class ImageRenderPlanEngine:
     def build(
         self,
         materials: RenderPlanningMaterials,
@@ -176,7 +176,7 @@ class NanoBananaRenderPlanEngine:
         aspect_mode: str,
         force_one_by_one: bool,
     ) -> tuple[RenderPlanGrid, ...]:
-        plan = nanobanana_grid.build_regen_plan(
+        plan = image_grid.build_regen_plan(
             selected_beats=materials.selected_beats,
             strategy=strategy,
             aspect_mode=aspect_mode,
@@ -198,7 +198,7 @@ class NanoBananaRenderPlanEngine:
         )
 
     def hash(self, plan: tuple[RenderPlanGrid, ...]) -> str:
-        return nanobanana_grid.hash_plan(list(plan))
+        return image_grid.hash_plan(list(plan))
 
     def fingerprint(
         self,
@@ -210,7 +210,7 @@ class NanoBananaRenderPlanEngine:
         force_one_by_one: bool,
     ) -> str:
         hasher = RefImageHasher(Path(context.output_dir) / ".render_plan_cache")
-        return nanobanana_grid.compute_input_fingerprint(
+        return image_grid.compute_input_fingerprint(
             beats=materials.selected_beats,
             character_map=materials.character_map,
             sketch_colors=materials.sketch_colors,
@@ -242,3 +242,6 @@ class TaskExecutionRenderPlanScheduler:
         return RenderPlanGridTaskReceipt(
             task_id=receipt.task_id,
         )
+
+
+ImageRenderPlanEngine = ImageRenderPlanEngine

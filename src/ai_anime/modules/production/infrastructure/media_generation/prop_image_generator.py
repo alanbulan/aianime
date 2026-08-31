@@ -1,6 +1,6 @@
 """道具三视图参考图生成器。
 
-使用 Google AI Studio (Gemini) 生成道具三视图参考图：
+通过统一图片模型网关生成道具三视图参考图：
 正面 (FRONT) / 侧面 (SIDE) / 背面 (BACK)
 
 核心概念：道具独立建模
@@ -12,6 +12,7 @@
 - https://www.51cto.com/article/837277.html（纳米漫剧流水线 - 道具建模）
 """
 
+import logging
 import os
 import time
 from typing import Mapping, Optional
@@ -23,12 +24,14 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
     get_grid_generation_config,
     get_style_preset,
 )
-from ai_anime.modules.model_usage.public import is_insufficient_credits_error
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
-    _call_newapi_image_api,
+from ai_anime.modules.model_usage.public import is_model_quota_error
+from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+    _call_image_generation_api,
     normalize_image_size,
     normalize_image_quality,
 )
+
+logger = logging.getLogger(__name__)
 
 
 PROP_REF_ASPECT_RATIO = "16:9"
@@ -153,35 +156,34 @@ async def generate_prop_reference(
         None,
         style_preset,
     )
-    print(f"[PropRefGen] 生成道具三视图: {visual_prompt[:60]}...")
-    print(f"[PropRefGen] Model: {resolved_model}")
+    logger.info("生成道具三视图，模型=%s，提示词=%s...", resolved_model, visual_prompt[:60])
 
     try:
-        result_path = await _generate_via_newapi(
+        result_path = await _generate_via_gateway(
             prompt=prompt,
             output_path=output_path,
             model=resolved_model,
             model_selector=str(config.get("model_selector") or "") or None,
-            quality=config.get("openai_image_quality", "medium"),
+            quality=config.get("image_quality", "medium"),
             reference_images=references,
         )
 
         elapsed = time.time() - start_time
         if result_path:
-            print(f"[PropRefGen] 三视图已生成: {result_path}，耗时 {elapsed:.1f}s")
+            logger.info("道具三视图已生成: %s，耗时 %.1fs", result_path, elapsed)
         else:
-            print(f"[PropRefGen] 生成失败，耗时 {elapsed:.1f}s")
+            logger.warning("道具三视图生成失败，耗时 %.1fs", elapsed)
         return result_path
 
-    except Exception as e:
-        if is_insufficient_credits_error(e):
+    except Exception as exc:
+        if is_model_quota_error(exc):
             raise
         elapsed = time.time() - start_time
-        print(f"[PropRefGen] 生成异常: {e}，耗时 {elapsed:.1f}s")
+        logger.warning("道具三视图生成异常: %s，耗时 %.1fs", exc, elapsed)
         return None
 
 
-async def _generate_via_newapi(
+async def _generate_via_gateway(
     prompt: str,
     output_path: str,
     model: str,
@@ -191,7 +193,7 @@ async def _generate_via_newapi(
 ) -> Optional[str]:
     """通过当前商业图片模型生成道具参考图。"""
 
-    image_bytes, _text_content, error_text = await _call_newapi_image_api(
+    image_bytes, _text_content, error_text = await _call_image_generation_api(
         prompt=prompt,
         reference_images=reference_images or None,
         image_config={
@@ -210,5 +212,5 @@ async def _generate_via_newapi(
             f.write(image_bytes)
         return output_path
 
-    print(f"[PropRefGen] AI anime API 生成失败: {error_text or 'No response'}")
+    logger.warning("道具三视图 API 生成失败: %s", error_text or "No response")
     return None

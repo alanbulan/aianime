@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.production.application.ports import (
     ProductionEpisodeSource,
-    ProductionFeatureUsageMeter,
     ProductionRuntimePropMenuSource,
     ProductionSketchMarkerDetectionFiles,
     ProductionSketchMarkerDetectionStore,
@@ -25,10 +23,6 @@ from ai_anime.modules.production.domain.sketch_marker_detection import (
     sketch_detection_grid_shape,
 )
 
-logger = logging.getLogger(__name__)
-
-AI_IDENTITY_DETECTION_FEATURE_KEY = "ai_identity_detection"
-MODEL_CALL_CREDIT_POLICY_FEATURE_INCLUDED = "feature_included"
 SKETCH_DETECTION_BATCH_SIZE = 25
 SKETCH_DETECTION_REVIEW_MESSAGE = (
     "AI 已完成出场身份/道具识别，请核对每个 beat；"
@@ -86,13 +80,11 @@ class SketchMarkerDetectionUseCases:
         prop_menus: ProductionRuntimePropMenuSource,
         files: ProductionSketchMarkerDetectionFiles,
         detector: ProductionSketchMarkerDetector,
-        usage_meter: ProductionFeatureUsageMeter,
     ) -> None:
         self._episodes = episodes
         self._prop_menus = prop_menus
         self._files = files
         self._detector = detector
-        self._usage_meter = usage_meter
 
     async def detect(
         self,
@@ -156,26 +148,7 @@ class SketchMarkerDetectionUseCases:
             command.episode_num,
         )
 
-        reservation = await self._usage_meter.reserve_feature_start_credits(
-            user_id=command.requester_user_id,
-            feature_key=AI_IDENTITY_DETECTION_FEATURE_KEY,
-            project_id=command.project_id,
-            resource_kind="sketch",
-            task_type=AI_IDENTITY_DETECTION_FEATURE_KEY,
-            metadata=self._event_metadata(command, sketch_count=len(frames)),
-            require_price_rule=True,
-            require_positive_cost=True,
-        )
-        reservation_id = str(reservation.get("id") or "")
-        billing_metadata = self._billing_metadata(reservation, reservation_id)
-
         try:
-            self._usage_meter.set_llm_usage_context(
-                command.requester_user_id,
-                project_id=command.project_id,
-                resource_kind="sketch",
-                billing_metadata=billing_metadata,
-            )
             raw_detections = await self._detect_batches(
                 frames,
                 grid_dir,
@@ -196,21 +169,8 @@ class SketchMarkerDetectionUseCases:
                 command.episode_num,
                 classified.props,
             )
-            if reservation_id:
-                await self._usage_meter.confirm_feature_credit_reservation(
-                    reservation_id,
-                    metadata=self._event_metadata(
-                        command,
-                        sketch_count=len(frames),
-                        detected_identity_count=classified.total_identities,
-                        detected_prop_count=classified.total_props,
-                    ),
-                )
         except Exception as exc:
-            await self._refund_after_failure(reservation_id, command, exc)
             raise SketchMarkerDetectionFailed(str(exc)) from exc
-        finally:
-            self._usage_meter.clear_llm_usage_context()
 
         return SketchMarkerDetectionResult(
             identity_detections=classified.identities,
@@ -269,53 +229,3 @@ class SketchMarkerDetectionUseCases:
             )
             detections.update(map_grid_panel_detections(batch, panel_detections))
         return detections
-
-    @staticmethod
-    def _billing_metadata(
-        reservation: dict[str, Any],
-        reservation_id: str,
-    ) -> dict[str, Any]:
-        metadata: dict[str, Any] = {
-            "model_call_credit_policy": MODEL_CALL_CREDIT_POLICY_FEATURE_INCLUDED,
-            "feature_key": AI_IDENTITY_DETECTION_FEATURE_KEY,
-            "source": "sync_api",
-        }
-        if reservation_id:
-            metadata.update(
-                {
-                    "feature_credit_reservation_id": reservation_id,
-                    "feature_credit_charge_id": reservation_id,
-                    "feature_credit_cost": str(reservation.get("cost") or 0),
-                }
-            )
-        return metadata
-
-    @staticmethod
-    def _event_metadata(
-        command: DetectSketchMarkersCommand,
-        **details: Any,
-    ) -> dict[str, Any]:
-        return {
-            "source": "sync_api",
-            "endpoint": "detect_sketch_identities",
-            "episode": command.episode_num,
-            **details,
-        }
-
-    async def _refund_after_failure(
-        self,
-        reservation_id: str,
-        command: DetectSketchMarkersCommand,
-        error: Exception,
-    ) -> None:
-        if not reservation_id:
-            return
-        try:
-            await self._usage_meter.refund_feature_credit_reservation(
-                reservation_id,
-                metadata=self._event_metadata(command, error=str(error)),
-            )
-        except Exception:
-            logger.exception(
-                "Failed to refund AI identity detection feature credit reservation"
-            )

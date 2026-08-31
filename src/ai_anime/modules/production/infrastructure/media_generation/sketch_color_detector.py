@@ -7,10 +7,13 @@
 """
 
 import colorsys
+import logging
 from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger(__name__)
 
 
 def _hex_to_hsv(hex_code: str) -> tuple[float, float, float]:
@@ -101,7 +104,16 @@ def detect_sketch_colors(
             prefix = f"[sketch_detect] {verbose_label} " if verbose_label else "[sketch_detect] "
             color_name = parts[1] if len(parts) > 1 else ""
             hsv_info = f"target=({target_h:.0f}°,{target_s:.2f},{target_v:.2f})"
-            print(f"{prefix}{key}: ratio={ratio:.4f} {mark}  {hex_code} {color_name} {hsv_info}")
+            logger.debug(
+                "%s%s: ratio=%.4f %s %s %s %s",
+                prefix,
+                key,
+                ratio,
+                mark,
+                hex_code,
+                color_name,
+                hsv_info,
+            )
 
         if ratio >= threshold:
             detected.add(key)

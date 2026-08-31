@@ -5,14 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 
-_DIALOGUE_ONLY_VIDEO_MODELS = {"seedance-1.5-pro"}
-
-
 def dialogue_only_video_model_error(
     beats: list[dict[str, Any]],
-    video_model: str,
+    dialogue_only: bool,
 ) -> str | None:
-    if video_model not in _DIALOGUE_ONLY_VIDEO_MODELS:
+    if not dialogue_only:
         return None
 
     non_dialogue = [
@@ -26,12 +23,12 @@ def dialogue_only_video_model_error(
     preview = "、".join(str(number) for number in non_dialogue[:8])
     suffix = " 等" if len(non_dialogue) > 8 else ""
     return (
-        "Seedance 1.5 有声只允许用于 dialogue beat；当前包含非 dialogue Beat: "
+        "当前视频模型只允许用于 dialogue beat；当前包含非 dialogue Beat: "
         f"{preview}{suffix}"
     )
 
 
-def seedance2_initial_prompt(beat: dict[str, Any], video_mode: str) -> str:
+def advanced_video_initial_prompt(beat: dict[str, Any], video_mode: str) -> str:
     if video_mode == "keyframe":
         return str(beat.get("keyframe_prompt") or "").strip()
     return str(beat.get("video_prompt") or beat.get("keyframe_prompt") or "").strip()

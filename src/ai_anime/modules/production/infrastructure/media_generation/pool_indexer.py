@@ -5,13 +5,13 @@
 
 import hashlib
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Union
 
 
 from ai_anime.shared.utils.state_index_files import (
-    ensure_state_index_from_legacy,
     index_file_lock,
     resolve_state_index_path,
     write_json_atomic,
@@ -30,6 +30,7 @@ from ai_anime.modules.production.infrastructure.grid_pool_models import (
 import re
 
 _POOL_INDEX_FILENAME = "pool_index.json"
+logger = logging.getLogger(__name__)
 
 
 def compute_beat_content_hash(
@@ -159,7 +160,7 @@ def build_pool_index(
         )
     if render_items:
         pool.modes["render"] = {"total_cells": len(render_items)}
-        print(f"[PoolIndexer] 扫描到 {len(render_items)} 个 beat render 图")
+        logger.info("图片池扫描到 %s 张分镜成片", len(render_items))
 
     # 扫描 sketch/ 目录
     sketch_items = sorted(
@@ -192,9 +193,9 @@ def build_pool_index(
         )
     if sketch_items:
         pool.modes["sketch"] = {"total_cells": len(sketch_items)}
-        print(f"[PoolIndexer] 扫描到 {len(sketch_items)} 个 beat 草图")
+        logger.info("图片池扫描到 %s 张分镜草图", len(sketch_items))
 
-    print(f"[PoolIndexer] 索引完成: episode={episode}, 共 {len(pool.images)} 张图片")
+    logger.info("图片池索引完成：episode=%s，共 %s 张图片", episode, len(pool.images))
     return pool
 
 
@@ -262,7 +263,7 @@ def _pool_index_payload(pool: PoolIndex) -> dict:
 
 def _save_pool_index_unlocked(pool: PoolIndex, index_path: Path) -> Path:
     write_json_atomic(index_path, _pool_index_payload(pool))
-    print(f"[PoolIndexer] 索引已保存: {index_path}")
+    logger.debug("图片池索引已保存：%s", index_path)
     return index_path
 
 
@@ -270,15 +271,10 @@ def save_pool_index(
     pool: PoolIndex,
     episode_grids_dir: Union[str, Path],
 ) -> Path:
-    """保存图片池索引到 state JSON 文件。
-
-    旧 output/grids/epXXX/pool_index.json 会在首次访问时 move 到 state，
-    后续只维护 state 里的 sidecar，避免 output 成为状态源。
-    """
+    """保存图片池索引到 state JSON 文件。"""
     grids_dir = Path(episode_grids_dir)
     index_path = resolve_state_index_path(grids_dir, _POOL_INDEX_FILENAME)
     with index_file_lock(index_path):
-        index_path = ensure_state_index_from_legacy(grids_dir, _POOL_INDEX_FILENAME)
         return _save_pool_index_unlocked(pool, index_path)
 
 
@@ -289,10 +285,8 @@ def _load_pool_index_unlocked(index_path: Path) -> Optional[PoolIndex]:
     with open(index_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # 检查是否为旧格式（简单的 key-value 映射）
     if "episode" not in data:
-        # 旧格式，返回 None 让调用者重建索引
-        print(f"[load_pool_index] 旧格式 pool_index.json，需要重建索引")
+        logger.warning("图片池索引格式无效，将按媒体文件重建：%s", index_path)
         return None
 
     # 解析 images，处理 generated_at 字段
@@ -329,7 +323,7 @@ def _load_pool_index_for_update(
     episode_grids_dir: Union[str, Path],
 ) -> tuple[Path, Optional[PoolIndex]]:
     grids_dir = Path(episode_grids_dir)
-    index_path = ensure_state_index_from_legacy(grids_dir, _POOL_INDEX_FILENAME)
+    index_path = resolve_state_index_path(grids_dir, _POOL_INDEX_FILENAME)
     return index_path, _load_pool_index_unlocked(index_path)
 
 
@@ -340,14 +334,12 @@ def load_pool_index(
     grids_dir = Path(episode_grids_dir)
     index_path = resolve_state_index_path(grids_dir, _POOL_INDEX_FILENAME)
     with index_file_lock(index_path):
-        index_path = ensure_state_index_from_legacy(grids_dir, _POOL_INDEX_FILENAME)
         return _load_pool_index_unlocked(index_path)
 
 
 def rebuild_pool_index(
     episode_grids_dir: Union[str, Path],
     episode: int,
-    split_cells: bool = False,
 ) -> PoolIndex:
     """重建图片池索引。
 
@@ -356,8 +348,6 @@ def rebuild_pool_index(
     Args:
         episode_grids_dir: 集数的 grids 目录路径
         episode: 集数
-        split_cells: 已弃用，保留参数兼容
-
     Returns:
         新建的 PoolIndex 对象
     """
@@ -392,17 +382,17 @@ def select_frame_from_pool(
         pool = load_pool_index(episode_grids_dir)
 
     if pool is None:
-        print(f"[PoolIndexer] 警告: 无法加载池索引 {episode_grids_dir}")
+        logger.warning("无法加载图片池索引：%s", episode_grids_dir)
         return None
 
     cell_path = pool.get_cell_path(pool_id)
     if cell_path is None:
-        print(f"[PoolIndexer] 警告: 找不到图片 {pool_id}")
+        logger.warning("图片池中找不到图片：%s", pool_id)
         return None
 
     full_path = Path(episode_grids_dir) / cell_path
     if not full_path.exists():
-        print(f"[PoolIndexer] 警告: 文件不存在 {full_path}")
+        logger.warning("图片池文件不存在：%s", full_path)
         return None
 
     return str(full_path)
@@ -428,13 +418,13 @@ def delete_cell_from_pool(
         # 1. 加载索引
         index_path, pool = _load_pool_index_for_update(grids_dir)
         if pool is None:
-            print(f"[PoolIndexer] 警告: 无法加载池索引 {grids_dir}")
+            logger.warning("无法加载图片池索引：%s", grids_dir)
             return "missing"
 
         # 2. 找到图片
         img = pool.get_image(pool_id)
         if img is None:
-            print(f"[PoolIndexer] 警告: 找不到图片 {pool_id}")
+            logger.warning("图片池中找不到图片：%s", pool_id)
             return "missing"
 
         assignment_aliases = _pool_image_assignment_aliases(img)
@@ -459,7 +449,7 @@ def delete_cell_from_pool(
             cell_path = safe_file(img.cell_path)
             if cell_path is not None and cell_path.is_file():
                 cell_path.unlink()
-                print(f"[PoolIndexer] 已删除文件: {cell_path}")
+                logger.info("已删除图片池文件：%s", cell_path)
 
         # 4. 从索引中移除
         pool.images = [i for i in pool.images if i.id != pool_id]
@@ -476,7 +466,7 @@ def delete_cell_from_pool(
                     path = safe_file(relative_path)
                     if path is not None and path.is_file():
                         path.unlink()
-                        print(f"[PoolIndexer] 已删除文件: {path}")
+                        logger.info("已删除图片池文件：%s", path)
             pool.grids = [
                 entry for entry in pool.grids if entry.grid_path != img.grid_path
             ]
@@ -487,7 +477,7 @@ def delete_cell_from_pool(
 
         # 6. 保存更新后的索引
         _save_pool_index_unlocked(pool, index_path)
-    print(f"[PoolIndexer] 已从池中删除: {pool_id}")
+    logger.info("已从图片池删除：%s", pool_id)
 
     return "deleted"
 
@@ -632,7 +622,7 @@ def add_beat_images_to_pool(
             added += 1
 
     if added > 0:
-        print(f"[PoolIndexer] 新增 {added} 张 beat 中心命名图片到池")
+        logger.info("新增 %s 张分镜图片到图片池", added)
 
     return added
 
@@ -839,7 +829,7 @@ def assign_beat_image(
     with index_file_lock(index_path):
         index_path, pool = _load_pool_index_for_update(grids_dir)
         if pool is None:
-            print(f"[PoolIndexer] 警告: 无法加载池索引 {grids_dir}")
+            logger.warning("无法加载图片池索引：%s", grids_dir)
             return False
 
         if img_type != "sketch":
@@ -853,10 +843,10 @@ def assign_beat_image(
                 frames_dir.mkdir(parents=True, exist_ok=True)
                 dst = frames_dir / f"beat_{beat_num:02d}.png"
                 shutil.copy2(str(src), str(dst))
-                print(f"[PoolIndexer] 已 copy 到 frames: {dst}")
+                logger.info("图片池素材已复制到分镜目录：%s", dst)
 
         _save_pool_index_unlocked(pool, index_path)
-    print(f"[PoolIndexer] Beat {beat_num} ({img_type}) → {image_path}")
+    logger.info("分镜 %s（%s）已指向 %s", beat_num, img_type, image_path)
     return True
 
 
@@ -925,7 +915,7 @@ def add_cell_with_dedup(
     content_hash = compute_image_hash(cell_path)
 
     if content_hash and pool.has_duplicate_cell(beat_num, content_hash):
-        print(f"[PoolIndexer] 去重：Beat {beat_num} 已存在内容相同的图片，跳过")
+        logger.info("分镜 %s 已有相同内容的图片，跳过重复写入", beat_num)
         return None
 
     rel_path = cell_path.relative_to(episode_grids_dir).as_posix()

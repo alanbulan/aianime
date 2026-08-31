@@ -6,8 +6,8 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
-    _call_newapi_image_api,
+from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+    _call_image_generation_api,
 )
 from ai_anime.modules.production.infrastructure.media_generation_settings import (
     IMAGE_DEFAULT_STYLE,
@@ -15,7 +15,7 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
     get_style_preset,
 )
 from ai_anime.modules.asset_world.public import NovelScene, build_scene_effective_prompt
-from ai_anime.modules.model_usage.public import image_model_supports_quality
+from ai_anime.modules.model_usage.public import runtime_model_capability
 
 SceneReferenceKind = Literal["master", "spatial_layout", "reverse_master"]
 
@@ -547,7 +547,8 @@ def _scene_image_config(
         "image_size": "1K",
         "output_format": "png",
     }
-    if image_model_supports_quality(model):
+    capability = runtime_model_capability(model_selector or model)
+    if capability is not None and "quality" in capability.extra_parameter_names:
         image_config["quality"] = "medium"
     return image_config
 
@@ -618,7 +619,7 @@ async def generate_scene_reference_image(
         style_preset,
     )
     selected_model = _scene_image_model(kind, model)
-    image_bytes, _text, error = await _call_newapi_image_api(
+    image_bytes, _text, error = await _call_image_generation_api(
         prompt=prompt,
         reference_images=references or None,
         image_config=_scene_image_config(selected_model, model_selector),

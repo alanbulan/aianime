@@ -23,15 +23,13 @@ from urllib.parse import quote, urlparse
 import aiohttp
 
 from ai_anime.modules.model_usage.public import (
-    is_insufficient_credits_error,
+    is_model_quota_error,
     model_protocol_error_message,
     record_video_request,
     runtime_model_capability,
     update_video_request_status,
 )
 from ai_anime.modules.production.domain.video_model import (
-    SEEDANCE2_DEFAULT_MIN_DURATION,
-    is_seedance2_model,
     normalize_video_generation_duration,
     video_output_size,
 )
@@ -114,7 +112,7 @@ class ShotReference:
     field: str = ""  # 标准视频协议的 multipart 字段名；为空时按角色和类型推导
 
 
-def _seedance2_config_mapping(value) -> dict:
+def _video_config_mapping(value) -> dict:
     if isinstance(value, dict):
         return dict(value)
     if isinstance(value, str):
@@ -129,7 +127,7 @@ def _seedance2_config_mapping(value) -> dict:
     return {}
 
 
-def _seedance2_duration_from_config(config: dict, fallback: float) -> float:
+def _video_duration_from_config(config: dict, fallback: float) -> float:
     if "duration" not in config:
         return fallback
     try:
@@ -192,14 +190,14 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         generate_audio: bool | None = None,
     ) -> None:
         from ai_anime.modules.model_usage.public import (
-            get_effective_newapi_gateway_config,
+            get_effective_model_gateway_transport_config,
         )
         from ai_anime.modules.production.infrastructure.media_generation_settings import (
             DEFAULT_VIDEO_RESOLUTION,
         )
         from ai_anime.modules.model_usage.public import resolve_model_for_role
 
-        gateway = get_effective_newapi_gateway_config()
+        gateway = get_effective_model_gateway_transport_config()
         self.access_mode = str(gateway.mode or "").strip().lower()
         if self.access_mode != "mixed":
             raise ValueError("商业模型访问模式必须是 mixed")
@@ -258,10 +256,9 @@ class CommercialVideoGenerator(VideoGeneratorBase):
     @staticmethod
     def _request_id(headers: object, payload: object = None) -> str:
         getter = getattr(headers, "get", lambda _name: "")
-        for name in ("x-request-id", "x-newapi-request-id", "x-oneapi-request-id"):
-            value = getter(name)
-            if value:
-                return str(value)
+        value = getter("x-request-id")
+        if value:
+            return str(value)
         if isinstance(payload, dict):
             for name in ("request_id", "requestId"):
                 value = payload.get(name)
@@ -338,31 +335,22 @@ class CommercialVideoGenerator(VideoGeneratorBase):
         duration: float,
         kwargs: dict,
     ) -> tuple[dict[str, object], list[tuple[str, tuple[bytes, str, str] | str]], bool]:
-        config = _seedance2_config_mapping(kwargs.get("seedance2_config"))
-        self._reject_transport_options(config, path="seedance2_config")
+        config = _video_config_mapping(kwargs.get("video_config"))
+        self._reject_transport_options(config, path="video_config")
         self._reject_transport_options(
             {
                 key: value
                 for key, value in kwargs.items()
-                if key != "seedance2_config"
+                if key != "video_config"
             }
         )
-        configured_duration = _seedance2_duration_from_config(config, duration)
+        configured_duration = _video_duration_from_config(config, duration)
         capability = runtime_model_capability(self.model)
-        uses_seedance2 = is_seedance2_model(
-            self.model,
-            getattr(capability, "video_profile", None),
-        )
         minimum_duration = getattr(
             capability,
             "video_generation_min_seconds",
             None,
         )
-        if uses_seedance2:
-            minimum_duration = max(
-                float(minimum_duration or 0),
-                SEEDANCE2_DEFAULT_MIN_DURATION,
-            )
         duration_seconds = normalize_video_generation_duration(
             configured_duration,
             duration,
@@ -968,7 +956,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                 )
             if isinstance(exc, CommercialVideoError) and exc.request_id:
                 log(f"视频网关 request_id: {exc.request_id}")
-            if is_insufficient_credits_error(exc):
+            if is_model_quota_error(exc):
                 raise
             return VideoGenResult(
                 status=VideoGenStatus.FAILED,

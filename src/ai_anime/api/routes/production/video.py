@@ -6,31 +6,31 @@ from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.deps import resolve_project_scope
 from ai_anime.api.routes.production.video_schemas import (
     GlobalOptimizeRequest,
-    Seedance2AssetAudioTrimRequest,
-    Seedance2AssetCropRequest,
-    Seedance2AssetDeleteRequest,
+    VideoReferenceAssetAudioTrimRequest,
+    VideoReferenceAssetCropRequest,
+    VideoReferenceAssetDeleteRequest,
     SingleVideoRequest,
     VideoComposeRequest,
 )
 from ai_anime.modules.production.public import (
     ComposeEpisodeVideoCommand,
-    CropSeedance2AssetCommand,
+    CropVideoReferenceAssetCommand,
     EpisodeBeatsMissing,
     GlobalVideoOptimizationBeatsMissing,
     GlobalVideoOptimizationSketchesMissing,
     GenerateSingleVideoCommand,
     OptimizeEpisodeVideoCommand,
-    RemoveSeedance2AssetCommand,
-    Seedance2PanelBeatMissing,
-    Seedance2PanelOperationRejected,
-    Seedance2PanelQuery,
+    RemoveVideoReferenceAssetCommand,
+    VideoReferencePanelBeatMissing,
+    VideoReferencePanelOperationRejected,
+    VideoReferencePanelQuery,
     SingleVideoRejected,
-    TrimSeedance2AudioAssetCommand,
-    UploadSeedance2AssetCommand,
+    TrimVideoReferenceAudioAssetCommand,
+    UploadVideoReferenceAssetCommand,
     episode_video_use_cases,
     global_video_optimization_use_cases,
     resolve_video_generation_route,
-    seedance2_panel_use_cases,
+    video_reference_panel_use_cases,
     single_video_use_cases,
 )
 
@@ -38,76 +38,76 @@ router = APIRouter()
 
 
 @router.get(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-status"
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/status"
 )
-async def get_seedance2_beat_status(
+async def get_video_reference_status(
     project: str,
     episode_num: int,
     beat_num: int,
     user: dict = Depends(get_api_user),
 ):
-    """Return NiceGUI-aligned read-only Seedance 2.0 status for one Beat."""
+    """Return the video-reference status for one beat."""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
-        return await seedance2_panel_use_cases().status(
+        return await video_reference_panel_use_cases().status(
             resolved.ctx,
-            Seedance2PanelQuery(
+            VideoReferencePanelQuery(
                 project=project,
                 episode_num=episode_num,
                 beat_num=beat_num,
             ),
         )
-    except Seedance2PanelBeatMissing as exc:
+    except VideoReferencePanelBeatMissing as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/upload"
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/upload"
 )
-async def upload_seedance2_asset(
+async def upload_video_reference_asset(
     project: str,
     episode_num: int,
     beat_num: int,
     file: UploadFile = File(...),
     user: dict = Depends(get_api_user),
 ):
-    """Upload a manual Seedance 2.0 reference asset."""
+    """Upload a manual video-reference asset."""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
     content = await file.read()
     try:
-        return await seedance2_panel_use_cases().upload(
+        return await video_reference_panel_use_cases().upload(
             resolved.ctx,
-            UploadSeedance2AssetCommand(
+            UploadVideoReferenceAssetCommand(
                 project=project,
                 episode_num=episode_num,
                 beat_num=beat_num,
-                filename=file.filename or "seedance2_asset",
+                filename=file.filename or "video_reference_asset",
                 content=content,
                 content_type=file.content_type or "",
             ),
         )
-    except Seedance2PanelBeatMissing as exc:
+    except VideoReferencePanelBeatMissing as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Seedance2PanelOperationRejected as exc:
+    except VideoReferencePanelOperationRejected as exc:
         return {"ok": False, "error": str(exc)}
 
 
 @router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/delete"
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/delete"
 )
-async def delete_seedance2_asset(
+async def delete_video_reference_asset(
     project: str,
     episode_num: int,
     beat_num: int,
-    body: Seedance2AssetDeleteRequest,
+    body: VideoReferenceAssetDeleteRequest,
     user: dict = Depends(get_api_user),
 ):
-    """Remove a manually attached Seedance 2.0 reference asset."""
+    """Remove a manually attached video-reference asset."""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
-        return await seedance2_panel_use_cases().remove(
+        return await video_reference_panel_use_cases().remove(
             resolved.ctx,
-            RemoveSeedance2AssetCommand(
+            RemoveVideoReferenceAssetCommand(
                 project=project,
                 episode_num=episode_num,
                 beat_num=beat_num,
@@ -115,28 +115,28 @@ async def delete_seedance2_asset(
                 path=body.path,
             ),
         )
-    except Seedance2PanelBeatMissing as exc:
+    except VideoReferencePanelBeatMissing as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Seedance2PanelOperationRejected as exc:
+    except VideoReferencePanelOperationRejected as exc:
         return {"ok": False, "error": str(exc)}
 
 
 @router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/crop"
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/crop"
 )
-async def crop_seedance2_asset(
+async def crop_video_reference_asset(
     project: str,
     episode_num: int,
     beat_num: int,
-    body: Seedance2AssetCropRequest,
+    body: VideoReferenceAssetCropRequest,
     user: dict = Depends(get_api_user),
 ):
-    """Crop an existing Seedance 2.0 image reference into a manual reference."""
+    """Crop an existing image into a manual video reference."""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
-        return await seedance2_panel_use_cases().crop(
+        return await video_reference_panel_use_cases().crop(
             resolved.ctx,
-            CropSeedance2AssetCommand(
+            CropVideoReferenceAssetCommand(
                 project=project,
                 episode_num=episode_num,
                 beat_num=beat_num,
@@ -145,28 +145,28 @@ async def crop_seedance2_asset(
                 crop_data=body.model_dump(),
             ),
         )
-    except Seedance2PanelBeatMissing as exc:
+    except VideoReferencePanelBeatMissing as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Seedance2PanelOperationRejected as exc:
+    except VideoReferencePanelOperationRejected as exc:
         return {"ok": False, "error": str(exc)}
 
 
 @router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/audio-trim"
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/audio-trim"
 )
-async def trim_seedance2_audio_asset(
+async def trim_video_reference_audio(
     project: str,
     episode_num: int,
     beat_num: int,
-    body: Seedance2AssetAudioTrimRequest,
+    body: VideoReferenceAssetAudioTrimRequest,
     user: dict = Depends(get_api_user),
 ):
-    """Trim an existing Seedance 2.0 audio reference into a 3-5 second clip."""
+    """Trim an existing audio reference into a short reusable clip."""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
     try:
-        return await seedance2_panel_use_cases().trim_audio(
+        return await video_reference_panel_use_cases().trim_audio(
             resolved.ctx,
-            TrimSeedance2AudioAssetCommand(
+            TrimVideoReferenceAudioAssetCommand(
                 project=project,
                 episode_num=episode_num,
                 beat_num=beat_num,
@@ -176,7 +176,7 @@ async def trim_seedance2_audio_asset(
                 duration_seconds=body.duration_seconds,
             ),
         )
-    except Seedance2PanelBeatMissing as exc:
+    except VideoReferencePanelBeatMissing as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         return {"ok": False, "error": str(exc)}
@@ -244,7 +244,7 @@ async def generate_single_video(
                 model_selector=model_selector or None,
                 resolution=body.resolution,
                 use_director_render=body.use_director_render,
-                seedance2_config_json=body.seedance2_config_json,
+                video_config_json=body.video_config_json,
                 mode=body.mode,
                 duration=body.duration,
                 ratio=body.ratio,

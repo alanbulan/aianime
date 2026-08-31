@@ -71,7 +71,7 @@ from ai_anime.modules.narrative_planning.application.ports import (
     ManualBeatStore,
     NarrativeContentStore,
     NarrativeScriptStore,
-    SeedancePromptStore,
+    VideoPromptStore,
     ScriptDocumentStore,
     ScriptGenerationStore,
 )
@@ -98,17 +98,17 @@ from ai_anime.modules.narrative_planning.application.script_workflow import (
     ScriptWorkflowTicket,
     build_script_workflow_plan,
 )
-from ai_anime.modules.narrative_planning.application.seedance_prompts import (
-    GenerateSeedancePromptCommand,
-    GeneratedSeedancePrompt,
-    SeedancePromptRejected,
+from ai_anime.modules.narrative_planning.application.video_prompt_optimization import (
+    GenerateVideoPromptCommand,
+    GeneratedVideoPrompt,
+    VideoPromptRejected,
 )
 from ai_anime.modules.narrative_planning.application.task_dto import (
     BeatVideoPromptTask,
     EpisodeAssetPlanningTask,
     EpisodeRewriteTask,
     ScheduledNarrativeTask,
-    SeedancePromptTask,
+    VideoPromptOptimizationTask,
 )
 from ai_anime.modules.narrative_planning.composition import (
     beat_video_prompts,
@@ -116,7 +116,7 @@ from ai_anime.modules.narrative_planning.composition import (
     episode_catalog,
     episode_beat_media_projection,
     episode_content_service,
-    generate_seedance_prompt,
+    generate_video_prompt,
     manual_beat_service,
     manual_sketch_catalog,
     manual_sketch_mode_key,
@@ -125,7 +125,7 @@ from ai_anime.modules.narrative_planning.composition import (
     schedule_episode_asset_planning,
     schedule_episode_identity_planning,
     schedule_episode_planning,
-    schedule_seedance_prompt,
+    schedule_video_prompt_optimization,
     script_document_service,
     start_script_generation,
 )
@@ -429,13 +429,13 @@ async def enqueue_beat_video_prompt_generation(
     )
 
 
-async def enqueue_seedance2_prompt_generation(
+async def enqueue_video_prompt_optimization(
     task_context: ProjectContext,
-    command: GenerateSeedancePromptCommand,
+    command: GenerateVideoPromptCommand,
 ) -> ScheduledNarrativeTask:
-    return await schedule_seedance_prompt().execute(
+    return await schedule_video_prompt_optimization().execute(
         task_context,
-        SeedancePromptTask(
+        VideoPromptOptimizationTask(
             episode=command.episode_num,
             beat_num=command.beat_num,
             project_dir=command.project_dir,
@@ -463,11 +463,11 @@ async def enqueue_episode_rewrite_generation(
     )
 
 
-async def generate_seedance2_beat_prompt(
-    store: SeedancePromptStore,
-    command: GenerateSeedancePromptCommand,
-) -> GeneratedSeedancePrompt:
-    return await generate_seedance_prompt().execute(store, command)
+async def generate_optimized_video_prompt(
+    store: VideoPromptStore,
+    command: GenerateVideoPromptCommand,
+) -> GeneratedVideoPrompt:
+    return await generate_video_prompt().execute(store, command)
 
 
 async def resolve_beat_video_prompt_target(
@@ -516,9 +516,9 @@ __all__ = [
     "EpisodeAssetPlanningTask",
     "FinalBeatTransitionNotAllowed",
     "GenerateEpisodeRewriteCommand",
-    "GenerateSeedancePromptCommand",
+    "GenerateVideoPromptCommand",
     "GeneratedEpisodeRewrite",
-    "GeneratedSeedancePrompt",
+    "GeneratedVideoPrompt",
     "GeneratedBeatVideoPrompt",
     "IdentityPlanRequired",
     "IdentityPlanner",
@@ -538,7 +538,7 @@ __all__ = [
     "ProjectContextRequired",
     "ScenePlanRequired",
     "ScheduledNarrativeTask",
-    "SeedancePromptRejected",
+    "VideoPromptRejected",
     "ScriptNotFound",
     "ScriptStoreSyncFailed",
     "ScriptWorkflowBlocked",
@@ -564,13 +564,13 @@ __all__ = [
     "create_script_writing_workflow",
     "enqueue_beat_video_prompt_generation",
     "enqueue_episode_rewrite_generation",
-    "enqueue_seedance2_prompt_generation",
+    "enqueue_video_prompt_optimization",
     "episode_details_data",
     "format_beat_narration",
     "delete_manual_shot",
     "generate_and_save_beat_video_prompt",
     "generate_episode_rewrite",
-    "generate_seedance2_beat_prompt",
+    "generate_optimized_video_prompt",
     "get_episode_details",
     "get_episode_beats",
     "insert_manual_shot",

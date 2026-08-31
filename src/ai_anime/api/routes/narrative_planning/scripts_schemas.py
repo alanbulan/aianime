@@ -20,14 +20,14 @@ class BeatUpdate(BaseModel):
     video_prompt: Optional[str] = None
     keyframe_prompt: Optional[str] = None
     video_mode: Optional[str] = None  # "first_frame" | "keyframe"
-    seedance2_config_json: Optional[str] = None
+    video_config_json: Optional[str] = None
     audio_type: Optional[str] = None  # "silence" | "narration" | "dialogue"
     speaker: Optional[str] = None  # 说话人身份ID（dialogue 时必填）
     detected_identities: Optional[list[str]] = None
     detected_props: Optional[list[str]] = None
 
 
-class Seedance2PromptGenerateRequest(BaseModel):
+class VideoPromptGenerateRequest(BaseModel):
     manual_prompt_reference: Optional[str] = None
     prompt_guidance: Optional[str] = None
 
@@ -45,5 +45,5 @@ __all__ = [
     "BeatVideoPromptGenerateRequest",
     "ScriptGenerateRequest",
     "ScriptSaveRequest",
-    "Seedance2PromptGenerateRequest",
+    "VideoPromptGenerateRequest",
 ]

@@ -1,4 +1,4 @@
-"""Project asset resolution for Seedance 2.0 image-to-video."""
+"""Project asset resolution for reference-capable video models."""
 
 from __future__ import annotations
 
@@ -30,13 +30,13 @@ from ai_anime.modules.asset_world.public import (
     resolve_scene_plate,
 )
 from ai_anime.modules.narrative_planning.public import beat_scene_ref
-from ai_anime.modules.production.application.seedance2_config import Seedance2I2VMode
-from ai_anime.modules.production.domain.seedance2_dialogue import (
-    normalize_seedance2_audio_type,
+from ai_anime.modules.production.application.video_config import VideoReferenceMode
+from ai_anime.modules.production.domain.video_dialogue import (
+    normalize_video_audio_type,
     speaker_display_name,
-    unique_seedance2_dialogue_speakers,
+    unique_video_dialogue_speakers,
 )
-from ai_anime.modules.production.infrastructure.seedance2_voice import (
+from ai_anime.modules.production.infrastructure.video_reference_voice import (
     DEFAULT_NARRATION_STYLE,
     find_identity_reference_audio,
     NARRATOR_ASSET_KEY,
@@ -56,17 +56,17 @@ MIN_REFERENCE_ASPECT_RATIO = 0.4
 MAX_REFERENCE_ASPECT_RATIO = 2.5
 MIN_REFERENCE_DIMENSION = 300
 MAX_REFERENCE_DIMENSION = 6000
-MIN_SEEDANCE2_VOICE_REFERENCE_SECONDS = 3.0
-MAX_SEEDANCE2_VOICE_REFERENCE_SECONDS = 5.0
+MIN_VIDEO_VOICE_REFERENCE_SECONDS = 3.0
+MAX_VIDEO_VOICE_REFERENCE_SECONDS = 5.0
 MIN_SUPPORTED_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MIN_SECONDS
 MAX_SUPPORTED_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MAX_SECONDS
-MAX_SEEDANCE2_REFERENCE_IMAGES = 9
+MAX_VIDEO_REFERENCE_IMAGES = 9
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class Seedance2ResolvedAsset:
+class VideoReferenceAsset:
     key: str
     label: str
     media_type: str
@@ -87,13 +87,13 @@ class Seedance2ResolvedAsset:
     crop_source_path: Path | None = None
 
 
-def _limit_seedance2_reference_images(
-    assets: list[Seedance2ResolvedAsset],
-) -> list[Seedance2ResolvedAsset]:
-    """Keep the ordered multimodal image request within Seedance 2.0's limit."""
+def _limit_video_reference_images(
+    assets: list[VideoReferenceAsset],
+) -> list[VideoReferenceAsset]:
+    """Number selected reference images in deterministic request order."""
 
     selected_count = 0
-    result: list[Seedance2ResolvedAsset] = []
+    result: list[VideoReferenceAsset] = []
     for asset in assets:
         if not (
             asset.media_type == "image"
@@ -103,7 +103,7 @@ def _limit_seedance2_reference_images(
             result.append(asset)
             continue
         selected_count += 1
-        if selected_count <= MAX_SEEDANCE2_REFERENCE_IMAGES:
+        if selected_count <= MAX_VIDEO_REFERENCE_IMAGES:
             result.append(
                 replace(
                     asset,
@@ -112,7 +112,7 @@ def _limit_seedance2_reference_images(
                 )
             )
             continue
-        overflow_note = f"超过单次最多 {MAX_SEEDANCE2_REFERENCE_IMAGES} 张参考图，未发送。"
+        overflow_note = f"超过单次最多 {MAX_VIDEO_REFERENCE_IMAGES} 张参考图，未发送。"
         result.append(
             replace(
                 asset,
@@ -124,7 +124,6 @@ def _limit_seedance2_reference_images(
             )
         )
     return result
-
 
 def _text(value: Any) -> str:
     return str(value or "").strip()
@@ -469,12 +468,12 @@ def _read_jpeg_size(path: Path) -> tuple[int, int] | None:
     return None
 
 
-def read_seedance2_image_size(path: Path) -> tuple[int, int] | None:
+def read_video_reference_image_size(path: Path) -> tuple[int, int] | None:
     return _read_png_size(path) or _read_jpeg_size(path)
 
 
-def validate_seedance2_reference_image(path: Path) -> str:
-    size = read_seedance2_image_size(path)
+def validate_video_reference_image(path: Path) -> str:
+    size = read_video_reference_image_size(path)
     if not size:
         return ""
     width, height = size
@@ -491,26 +490,26 @@ def validate_seedance2_reference_image(path: Path) -> str:
     return ""
 
 
-def validate_seedance2_reference_audio(path: Path) -> tuple[str, str]:
+def validate_video_reference_audio(path: Path) -> tuple[str, str]:
     try:
         duration = probe_voice_sample_duration_seconds(path)
     except ValueError:
         return "", ""
     if duration < MIN_SUPPORTED_VOICE_REFERENCE_SECONDS:
         return (
-            f"参考声线只有 {duration:.2f} 秒，Seedance2 要求至少 "
+            f"参考声线只有 {duration:.2f} 秒，视频模型要求至少 "
             f"{MIN_SUPPORTED_VOICE_REFERENCE_SECONDS:.1f} 秒。",
             "",
         )
     if duration > MAX_SUPPORTED_VOICE_REFERENCE_SECONDS:
         return (
-            f"参考声线为 {duration:.2f} 秒，Seedance2 单段最多 "
+            f"参考声线为 {duration:.2f} 秒，视频模型单段最多 "
             f"{MAX_SUPPORTED_VOICE_REFERENCE_SECONDS:.1f} 秒。",
             "",
         )
-    if duration < MIN_SEEDANCE2_VOICE_REFERENCE_SECONDS:
+    if duration < MIN_VIDEO_VOICE_REFERENCE_SECONDS:
         return "", f"当前 {duration:.1f} 秒，建议裁剪到 3-5 秒。"
-    if duration > MAX_SEEDANCE2_VOICE_REFERENCE_SECONDS:
+    if duration > MAX_VIDEO_VOICE_REFERENCE_SECONDS:
         return "", f"当前 {duration:.1f} 秒，建议裁剪到 3-5 秒。"
     return "", ""
 
@@ -544,7 +543,6 @@ def _load_sqlite_characters(project_output: Path) -> list[NovelCharacter]:
                     gender=row["gender"] or "" if "gender" in keys else "",
                     age_group=row["age_group"] or "youth" if "age_group" in keys else "youth",
                     body_type=row["body_type"] or "" if "body_type" in keys else "",
-                    fish_voice_id=row["fish_voice_id"] or "" if "fish_voice_id" in keys else "",
                     description=row["description"] or "" if "description" in keys else "",
                     face_prompt=row["face_prompt"] or "" if "face_prompt" in keys else "",
                     appearance_details=(
@@ -796,7 +794,7 @@ def _dialogue_voice_assets(
 ) -> list[dict[str, Any]]:
     refs: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for speaker in unique_seedance2_dialogue_speakers(beat):
+    for speaker in unique_video_dialogue_speakers(beat):
         character = next(
             (item for item in characters if _speaker_matches_character(speaker, item)),
             None,
@@ -896,21 +894,21 @@ def _narration_voice_asset(
     }
 
 
-def build_seedance2_project_assets(
+def build_video_reference_assets(
     *,
     project_output: Path,
     episode: int,
     beat: dict[str, Any],
-    mode: Seedance2I2VMode,
+    mode: VideoReferenceMode,
     next_beat: dict[str, Any] | None = None,
     characters: list[Any] | None = None,
     prop_menu: list[Any] | None = None,
-) -> list[Seedance2ResolvedAsset]:
-    """Resolve project assets in the order used for Seedance 2.0 requests."""
+) -> list[VideoReferenceAsset]:
+    """Resolve project assets in deterministic video-request order."""
 
     beat_num = int(beat.get("beat_number") or 0)
     next_beat_num = int(next_beat.get("beat_number") or 0) if next_beat else 0
-    assets: list[Seedance2ResolvedAsset] = []
+    assets: list[VideoReferenceAsset] = []
     next_image_number = 1
     next_audio_number = 1
 
@@ -931,7 +929,7 @@ def build_seedance2_project_assets(
     ) -> None:
         nonlocal next_image_number
         exists = path.exists()
-        validation_error = validate_seedance2_reference_image(path) if exists and selected else ""
+        validation_error = validate_video_reference_image(path) if exists and selected else ""
         use = selected and exists and not validation_error
         image_number = next_image_number if use else None
         if image_number:
@@ -943,7 +941,7 @@ def build_seedance2_project_assets(
             else (validation_error or note)
         )
         assets.append(
-            Seedance2ResolvedAsset(
+            VideoReferenceAsset(
                 key=key,
                 label=label,
                 media_type="image",
@@ -978,7 +976,7 @@ def build_seedance2_project_assets(
         validation_error = ""
         validation_note = ""
         if exists and selected:
-            validation_error, validation_note = validate_seedance2_reference_audio(path)
+            validation_error, validation_note = validate_video_reference_audio(path)
         use = selected and exists and not validation_error
         audio_number = next_audio_number if use else None
         if audio_number:
@@ -987,7 +985,7 @@ def build_seedance2_project_assets(
             f"{note}；{validation_note}" if validation_note and note else (validation_note or note)
         )
         assets.append(
-            Seedance2ResolvedAsset(
+            VideoReferenceAsset(
                 key=key,
                 label=label,
                 media_type="audio",
@@ -1013,7 +1011,7 @@ def build_seedance2_project_assets(
         )
         or first_frame_source
     )
-    if mode == Seedance2I2VMode.FIRST_FRAME:
+    if mode == VideoReferenceMode.FIRST_FRAME:
         add_image(
             key="first_frame",
             label=f"首帧 render · Beat {beat_num}",
@@ -1025,7 +1023,7 @@ def build_seedance2_project_assets(
         )
         return assets
 
-    if mode == Seedance2I2VMode.FIRST_LAST_FRAME:
+    if mode == VideoReferenceMode.FIRST_LAST_FRAME:
         last_frame_beat_num = next_beat_num or beat_num + 1
         last_frame_source = paths.frame(last_frame_beat_num)
         last_frame_path = (
@@ -1168,7 +1166,7 @@ def build_seedance2_project_assets(
         note="用于约束场景结构、材质和空间关系。",
     )
 
-    audio_type = normalize_seedance2_audio_type(beat)
+    audio_type = normalize_video_audio_type(beat)
     if audio_type == "dialogue":
         for voice_asset in _dialogue_voice_assets(
             project_output=project_output,
@@ -1181,7 +1179,7 @@ def build_seedance2_project_assets(
                 path=voice_asset["path"],
                 selected=True,
                 identity_id=voice_asset["identity_id"],
-                note="Seedance 2.0 多参考模式只发送角色参考声线，不预生成台词音频。",
+                note="多参考模式只发送角色参考声线，不预生成台词音频。",
             )
     elif audio_type == "narration":
         voice_asset = _narration_voice_asset(
@@ -1194,13 +1192,13 @@ def build_seedance2_project_assets(
             path=voice_asset["path"],
             selected=True,
             identity_id=voice_asset["identity_id"],
-            note="Seedance 2.0 解说只发送参考声线，不预生成解说音频。",
+            note="解说镜头只发送参考声线，不预生成解说音频。",
         )
 
-    return _limit_seedance2_reference_images(assets)
+    return _limit_video_reference_images(assets)
 
 
-def selected_reference_paths(assets: list[Seedance2ResolvedAsset], request_field: str) -> list[str]:
+def selected_reference_paths(assets: list[VideoReferenceAsset], request_field: str) -> list[str]:
     return [
         str(asset.path)
         for asset in assets
@@ -1216,8 +1214,8 @@ def _user_reference_paths(config_paths: list[str], auto_paths: set[str]) -> list
     ]
 
 
-def append_seedance2_user_reference_assets(
-    assets: list[Seedance2ResolvedAsset],
+def append_user_video_reference_assets(
+    assets: list[VideoReferenceAsset],
     *,
     reference_image_paths: list[str],
     reference_audio_paths: list[str],
@@ -1241,24 +1239,24 @@ def append_seedance2_user_reference_assets(
     for path in _user_reference_paths(list(reference_image_paths), auto_image_paths):
         item_path = Path(path)
         validation_error = (
-            validate_seedance2_reference_image(item_path) if item_path.exists() else ""
+            validate_video_reference_image(item_path) if item_path.exists() else ""
         )
         selected = (
             item_path.exists()
             and not validation_error
-            and image_count < MAX_SEEDANCE2_REFERENCE_IMAGES
+            and image_count < MAX_VIDEO_REFERENCE_IMAGES
         )
         if selected:
             image_count += 1
         overflow_note = (
-            f"超过单次最多 {MAX_SEEDANCE2_REFERENCE_IMAGES} 张参考图，未发送。"
+            f"超过单次最多 {MAX_VIDEO_REFERENCE_IMAGES} 张参考图，未发送。"
             if item_path.exists()
             and not validation_error
             and not selected
             else ""
         )
         assets.append(
-            Seedance2ResolvedAsset(
+            VideoReferenceAsset(
                 key=f"user_image:{path}",
                 label=item_path.name,
                 media_type="image",
@@ -1275,7 +1273,7 @@ def append_seedance2_user_reference_assets(
         audio_count += 1
         item_path = Path(path)
         assets.append(
-            Seedance2ResolvedAsset(
+            VideoReferenceAsset(
                 key=f"user_audio:{path}",
                 label=item_path.name,
                 media_type="audio",
@@ -1289,13 +1287,13 @@ def append_seedance2_user_reference_assets(
 
 
 def apply_prompt_audio_selection(
-    assets: list[Seedance2ResolvedAsset],
+    assets: list[VideoReferenceAsset],
     final_prompt: str,
-) -> list[Seedance2ResolvedAsset]:
+) -> list[VideoReferenceAsset]:
     """Mark audio references as sent only when the current prompt mentions their label."""
 
     prompt_text = str(final_prompt or "")
-    result: list[Seedance2ResolvedAsset] = []
+    result: list[VideoReferenceAsset] = []
     for asset in assets:
         if asset.media_type != "audio" or not asset.reference_label.startswith("音频"):
             result.append(asset)

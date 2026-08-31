@@ -22,22 +22,22 @@ from ai_anime.api.deps import (
 from ai_anime.api.routes.narrative_planning.scripts_schemas import (
     BeatUpdate,
     BeatVideoPromptGenerateRequest,
-    Seedance2PromptGenerateRequest,
+    VideoPromptGenerateRequest,
     ScriptGenerateRequest,
     ScriptSaveRequest,
 )
 from ai_anime.modules.narrative_planning.public import (
     BeatNotFound,
     BeatStoreUpdateFailed,
-    GenerateSeedancePromptCommand,
+    GenerateVideoPromptCommand,
     IdentityPlanRequired,
     ProjectContextRequired,
     ScenePlanRequired,
-    SeedancePromptRejected,
+    VideoPromptRejected,
     ScriptNotFound,
     ScriptStoreSyncFailed,
     enqueue_beat_video_prompt_generation,
-    enqueue_seedance2_prompt_generation,
+    enqueue_video_prompt_optimization,
     load_episode_script,
     resolve_beat_video_prompt_target,
     save_episode_script,
@@ -48,7 +48,7 @@ from ai_anime.modules.narrative_planning.public import (
 router = APIRouter()
 
 
-def _requester_user_id_for_billing(resolved: Any, user: dict) -> str:
+def _requester_user_id(resolved: Any, user: dict) -> str:
     ctx = getattr(resolved, "ctx", None)
     return str(
         getattr(ctx, "requester_user_id", "")
@@ -216,29 +216,29 @@ async def generate_beat_video_prompt(
 
 
 @router.post(
-    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-prompt/generate"
+    "/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-prompt/optimize"
 )
-async def generate_seedance2_prompt(
+async def generate_video_prompt(
     project: str,
     episode_num: int,
     beat_num: int,
-    body: Seedance2PromptGenerateRequest | None = None,
+    body: VideoPromptGenerateRequest | None = None,
     user: dict = Depends(get_api_user),
 ):
-    """AI 生成单个 Beat 的 Seedance2 final_prompt 并保存回配置 JSON。"""
+    """Generate and persist an optimized prompt for one beat's video config."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
-    body = body or Seedance2PromptGenerateRequest()
+    body = body or VideoPromptGenerateRequest()
     ctx = getattr(resolved, "ctx", None)
     if ctx is None:
-        return {"ok": False, "error": "Seedance2 提示词生成需要 project context"}
+        return {"ok": False, "error": "视频提示词优化需要 project context"}
     try:
-        scheduled = await enqueue_seedance2_prompt_generation(
+        scheduled = await enqueue_video_prompt_optimization(
             ctx,
-            GenerateSeedancePromptCommand(
+            GenerateVideoPromptCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
                 project_dir=resolved.project_dir,
-                requester_user_id=_requester_user_id_for_billing(
+                requester_user_id=_requester_user_id(
                     resolved,
                     user,
                 ),
@@ -249,7 +249,7 @@ async def generate_seedance2_prompt(
         )
     except (ScriptNotFound, BeatNotFound) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except SeedancePromptRejected as exc:
+    except VideoPromptRejected as exc:
         return {"ok": False, "error": str(exc)}
     return {"ok": True, **scheduled.as_dict()}
 

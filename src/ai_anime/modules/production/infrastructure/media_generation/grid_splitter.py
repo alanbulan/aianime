@@ -4,11 +4,14 @@
 """
 
 import io
+import logging
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 def _trim_outer_border(
@@ -74,8 +77,13 @@ def _trim_outer_border(
         right = w
 
     if top > 0 or bottom < h or left > 0 or right < w:
-        print(f"[GridSplitter] Outer border trimmed: "
-              f"top={top}, bottom={h-bottom}, left={left}, right={w-right}")
+        logger.info(
+            "Grid outer border trimmed: top=%s bottom=%s left=%s right=%s",
+            top,
+            h - bottom,
+            left,
+            w - right,
+        )
         cropped = img.crop((left, top, right, bottom))
         return cropped, np.array(cropped.convert("L"))
 
@@ -247,9 +255,13 @@ def remove_grid_gaps(
         c = idx % cols
         result.paste(panel, (c * target_w, r * target_h))
 
-    print(f"[GridSplitter] Gap removal: {rows}x{cols} grid, "
-          f"v_gaps={[(s, e) for s, e in v_gaps if s != e]}, "
-          f"h_gaps={[(s, e) for s, e in h_gaps if s != e]}")
+    logger.info(
+        "Grid gaps removed: %sx%s v_gaps=%s h_gaps=%s",
+        rows,
+        cols,
+        [(start, end) for start, end in v_gaps if start != end],
+        [(start, end) for start, end in h_gaps if start != end],
+    )
 
     return result
 
@@ -301,16 +313,16 @@ def split_grid(
     # 后处理：移除面板间缝隙
     try:
         img = remove_grid_gaps(img, rows, cols)
-    except Exception as e:
-        print(f"[GridSplitter] Gap removal 失败，使用原图: {e}")
+    except Exception as exc:
+        logger.warning("网格间隙移除失败，使用原图: %s", exc)
 
     width, height = img.size
-    print(f"[GridSplitter] 网格图尺寸: {width}x{height}")
+    logger.info("网格图尺寸: %sx%s", width, height)
 
     # 计算每个格子的尺寸
     cell_width = width // cols
     cell_height = height // rows
-    print(f"[GridSplitter] 分镜尺寸: {cell_width}x{cell_height}, 网格: {rows}x{cols}")
+    logger.info("分镜尺寸: %sx%s，网格: %sx%s", cell_width, cell_height, rows, cols)
 
     # 确保输出目录存在
     output_dir = Path(output_dir)
@@ -336,9 +348,9 @@ def split_grid(
             cell.save(output_path)
             output_paths.append(output_path)
 
-            print(f"[GridSplitter] 分镜 {beat_num}/{rows * cols}: {output_path}")
+            logger.info("分镜 %s/%s: %s", beat_num, rows * cols, output_path)
 
-    print(f"[GridSplitter] 分割完成，共 {len(output_paths)} 个分镜")
+    logger.info("网格分割完成，共 %s 个分镜", len(output_paths))
     return output_paths
 
 
@@ -408,5 +420,5 @@ def combine_to_grid(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     grid_img.save(output_path)
 
-    print(f"[GridSplitter] 合并完成: {output_path}")
+    logger.info("网格合并完成: %s", output_path)
     return output_path

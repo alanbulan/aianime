@@ -36,7 +36,7 @@ from ai_anime.modules.task_execution.public import (
 from ai_anime.shared.infrastructure import project_stores
 
 
-class NanoBananaGridRegenerationPlanner:
+class ImageGridRegenerationPlanner:
     def selected_beat_numbers(
         self,
         beats: list[dict[str, Any]],
@@ -46,7 +46,7 @@ class NanoBananaGridRegenerationPlanner:
         scene_grouping: bool,
         character_grouping: bool,
     ) -> tuple[int, ...]:
-        from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+        from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
             REGEN_MODE_CONFIGS,
             character_grid_split,
             perfect_grid_split,
@@ -120,7 +120,7 @@ class LocalGridRegenerationPreparer:
         generation_context_factory: Callable[
             [Any, ProjectContext], ProductionGenerationContextUseCases
         ],
-        planner: NanoBananaGridRegenerationPlanner,
+        planner: ImageGridRegenerationPlanner,
     ) -> None:
         self._settings = settings
         self._image_settings = image_settings
@@ -228,3 +228,6 @@ class TaskExecutionGridRegenerationScheduler:
             backend=receipt.backend,
             queue=receipt.queue,
         )
+
+
+ImageGridRegenerationPlanner = ImageGridRegenerationPlanner

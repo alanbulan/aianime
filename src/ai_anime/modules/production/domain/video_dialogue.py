@@ -1,4 +1,4 @@
-"""Dialogue parsing helpers for Seedance 2.0 voice references."""
+"""Provider-neutral dialogue parsing helpers for video voice references."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ _QUOTE_DIALOGUE_PATTERNS = (
 
 
 @dataclass(frozen=True)
-class Seedance2SpokenLine:
+class VideoSpokenLine:
     speaker: str
     text: str
     action: str = ""
@@ -65,19 +65,17 @@ def dialogue_emotion_prompt(beat: dict[str, Any]) -> str:
     return re.sub(r"\s+", " ", emotion_text).strip(" ：:，,。.;；、 \t\r\n")
 
 
-def normalize_seedance2_audio_type(beat: dict[str, Any]) -> str:
-    """Return the Seedance2 audio route from beat metadata."""
+def normalize_video_audio_type(beat: dict[str, Any]) -> str:
+    """Return the video-reference audio route from beat metadata."""
 
     audio_type = _text(beat.get("audio_type"))
-    if audio_type == "action":
-        return "silence"
     if audio_type:
         return audio_type
     return "dialogue" if _text(beat.get("speaker")) else "narration"
 
 
 def dialogue_voice_key(beat: dict[str, Any]) -> str:
-    if normalize_seedance2_audio_type(beat) != "dialogue" or not dialogue_text(beat):
+    if normalize_video_audio_type(beat) != "dialogue" or not dialogue_text(beat):
         return ""
     return _text(beat.get("speaker"))
 
@@ -106,14 +104,14 @@ def narration_beat_text(beat: dict[str, Any]) -> str:
     )
 
 
-def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLine]:
+def parse_video_spoken_lines(beat: dict[str, Any]) -> list[VideoSpokenLine]:
     """Parse dialogue text into speaker/action/text lines.
 
     Only parses explicit literal-script lines such as ``角色（动作）：台词``.
     Ambiguous beat-level prose is left intact for the AI prompt composer.
     """
 
-    if normalize_seedance2_audio_type(beat) != "dialogue":
+    if normalize_video_audio_type(beat) != "dialogue":
         return []
 
     raw = _spoken_source(beat)
@@ -121,7 +119,7 @@ def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLi
         return []
 
     matches = list(_SPEAKER_PREFIX_RE.finditer(raw))
-    lines: list[Seedance2SpokenLine] = []
+    lines: list[VideoSpokenLine] = []
     for index, match in enumerate(matches):
         start = match.end()
         end = matches[index + 1].start() if index + 1 < len(matches) else len(raw)
@@ -129,7 +127,7 @@ def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLi
         if not text:
             continue
         lines.append(
-            Seedance2SpokenLine(
+            VideoSpokenLine(
                 speaker=_text(match.group("speaker")),
                 action=_text(match.group("action") or match.group("action_ascii")),
                 text=text,
@@ -141,10 +139,10 @@ def parse_seedance2_spoken_lines(beat: dict[str, Any]) -> list[Seedance2SpokenLi
     return []
 
 
-def required_seedance2_dialogue_texts(beat: dict[str, Any]) -> list[str]:
+def required_video_dialogue_texts(beat: dict[str, Any]) -> list[str]:
     """Return verbatim dialogue that must remain in the final prompt."""
 
-    lines = parse_seedance2_spoken_lines(beat)
+    lines = parse_video_spoken_lines(beat)
     if lines:
         return [line.text for line in lines if line.text]
 
@@ -159,12 +157,12 @@ def required_seedance2_dialogue_texts(beat: dict[str, Any]) -> list[str]:
     return [text]
 
 
-def unique_seedance2_dialogue_speakers(beat: dict[str, Any]) -> list[str]:
+def unique_video_dialogue_speakers(beat: dict[str, Any]) -> list[str]:
     """Return dialogue speakers in first-spoken order."""
 
     seen: set[str] = set()
     speakers: list[str] = []
-    for line in parse_seedance2_spoken_lines(beat):
+    for line in parse_video_spoken_lines(beat):
         if line.speaker in seen:
             continue
         seen.add(line.speaker)

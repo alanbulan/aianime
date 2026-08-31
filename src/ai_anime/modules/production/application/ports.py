@@ -17,7 +17,6 @@ if TYPE_CHECKING:
         DirectorControlSketchTaskReceipt,
     )
     from ai_anime.modules.production.application.episode_audio import (
-        EpisodeAudioBillingQuote,
         EpisodeAudioGenerationPlan,
         EpisodeAudioTask,
         EpisodeAudioTaskReceipt,
@@ -69,12 +68,12 @@ if TYPE_CHECKING:
         RenderPlanGridTaskReceipt,
         RenderPlanningMaterials,
     )
-    from ai_anime.modules.production.application.seedance2_panel import (
-        CropSeedance2AssetCommand,
-        RemoveSeedance2AssetCommand,
-        Seedance2PanelQuery,
-        TrimSeedance2AudioAssetCommand,
-        UploadSeedance2AssetCommand,
+    from ai_anime.modules.production.application.video_reference_panel import (
+        CropVideoReferenceAssetCommand,
+        RemoveVideoReferenceAssetCommand,
+        VideoReferencePanelQuery,
+        TrimVideoReferenceAudioAssetCommand,
+        UploadVideoReferenceAssetCommand,
     )
     from ai_anime.modules.production.application.selected_regeneration import (
         RegenerateSelectedBeatsCommand,
@@ -305,37 +304,6 @@ class ProductionSketchMarkerDetector(Protocol):
     ) -> dict[Any, list[str]]: ...
 
 
-class ProductionFeatureUsageMeter(Protocol):
-    async def reserve_feature_start_credits(
-        self,
-        **kwargs: Any,
-    ) -> dict[str, Any]: ...
-
-    async def confirm_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    async def refund_feature_credit_reservation(
-        self,
-        reservation_id: str,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    def set_llm_usage_context(
-        self,
-        user_id: str,
-        project_id: str = "",
-        resource_kind: str = "",
-        billing_metadata: dict[str, Any] | None = None,
-    ) -> None: ...
-
-    def clear_llm_usage_context(self) -> None: ...
-
-
 class ProductionImageUsageReader(Protocol):
     def summary(
         self,
@@ -416,15 +384,6 @@ class ProductionEpisodeAudioPlanner(Protocol):
         beat_numbers: list[int] | None,
         mode: str,
     ) -> EpisodeAudioGenerationPlan: ...
-
-
-class ProductionEpisodeAudioBilling(Protocol):
-    async def quote(
-        self,
-        plan: EpisodeAudioGenerationPlan,
-    ) -> EpisodeAudioBillingQuote: ...
-
-    def task_payload(self, plan: EpisodeAudioGenerationPlan) -> dict[str, Any]: ...
 
 
 class ProductionEpisodeAudioScheduler(Protocol):
@@ -563,35 +522,35 @@ class ProductionGlobalVideoOptimizationScheduler(Protocol):
     ) -> GlobalVideoOptimizationTaskReceipt: ...
 
 
-class ProductionSeedance2PanelGateway(Protocol):
+class ProductionVideoReferencePanelGateway(Protocol):
     async def status(
         self,
         context: ProjectContext,
-        query: Seedance2PanelQuery,
+        query: VideoReferencePanelQuery,
     ) -> dict[str, Any]: ...
 
     async def upload(
         self,
         context: ProjectContext,
-        command: UploadSeedance2AssetCommand,
+        command: UploadVideoReferenceAssetCommand,
     ) -> dict[str, Any] | None: ...
 
     async def remove(
         self,
         context: ProjectContext,
-        command: RemoveSeedance2AssetCommand,
+        command: RemoveVideoReferenceAssetCommand,
     ) -> dict[str, Any] | None: ...
 
     async def crop(
         self,
         context: ProjectContext,
-        command: CropSeedance2AssetCommand,
+        command: CropVideoReferenceAssetCommand,
     ) -> dict[str, Any] | None: ...
 
     async def trim_audio(
         self,
         context: ProjectContext,
-        command: TrimSeedance2AudioAssetCommand,
+        command: TrimVideoReferenceAudioAssetCommand,
     ) -> dict[str, Any] | None: ...
 
 

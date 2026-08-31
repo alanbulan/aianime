@@ -28,35 +28,31 @@ from ai_anime.modules.production.application.single_video import (
 from ai_anime.modules.production.domain.single_video import (
     dialogue_only_video_model_error,
     missing_video_prompt_error,
-    seedance2_initial_prompt,
+    advanced_video_initial_prompt,
     standard_video_prompt,
 )
 from ai_anime.modules.production.domain.video_model import (
-    SEEDANCE2_DEFAULT_MIN_DURATION,
-    grok_video_ratio,
-    grok_video_resolution,
-    happyhorse_ratio,
-    happyhorse_resolution,
-    is_grok_video_model,
-    is_happyhorse_model,
-    is_seedance2_model,
     normalize_video_generation_duration,
+    normalize_video_ratio,
+    uses_advanced_reference_video_workflow,
+    uses_reference_video_workflow,
+    validate_video_resolution_duration,
     video_api_resolution,
     video_resolution,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.production.infrastructure.seedance2_assets import (
-    append_seedance2_user_reference_assets,
-    build_seedance2_project_assets,
+from ai_anime.modules.production.infrastructure.video_reference_assets import (
+    append_user_video_reference_assets,
+    build_video_reference_assets,
     selected_reference_paths,
 )
-from ai_anime.modules.production.application.seedance2_config import (
-    Seedance2I2VMode,
-    dump_seedance2_config,
-    parse_seedance2_config,
+from ai_anime.modules.production.application.video_config import (
+    VideoReferenceMode,
+    dump_video_config,
+    parse_video_config,
 )
-from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
-    prepare_seedance2_generation_inputs,
+from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+    prepare_video_reference_generation_inputs,
 )
 from ai_anime.modules.task_execution.public import (
     ProjectTaskSubmission,
@@ -78,45 +74,40 @@ class _ReferenceVideoPreparation:
     config_json: str
 
 
-def _merge_seedance2_request_config(
+def _merge_video_reference_request_config(
     beat: dict[str, Any],
     *,
-    seedance2_config_json: str | None,
+    video_config_json: str | None,
     config_overrides: dict[str, Any],
 ) -> str | None:
-    if seedance2_config_json is None and not config_overrides:
+    if video_config_json is None and not config_overrides:
         return None
 
-    merged = parse_seedance2_config(
-        beat.get("seedance2_config_json")
+    merged = parse_video_config(
+        beat.get("video_config_json")
     ).model_dump(mode="json")
     incoming: dict[str, Any] = {}
-    if seedance2_config_json is not None:
+    if video_config_json is not None:
         try:
-            incoming = json.loads(str(seedance2_config_json or "{}"))
+            incoming = json.loads(str(video_config_json or "{}"))
         except json.JSONDecodeError as exc:
-            raise ValueError("seedance2_config_json must be valid JSON") from exc
+            raise ValueError("video_config_json must be valid JSON") from exc
         if not isinstance(incoming, dict):
-            raise ValueError("seedance2_config_json must be a JSON object")
+            raise ValueError("video_config_json must be a JSON object")
         merged.update(incoming)
     merged.update(config_overrides)
 
-    if "generate_audio" in incoming or "generate_audio" in config_overrides:
-        merged["generate_audio_user_set"] = True
-    if "human_review" in incoming or "human_review" in config_overrides:
-        merged["human_review_user_set"] = True
-
-    saved_json = dump_seedance2_config(merged)
-    beat["seedance2_config_json"] = saved_json
+    saved_json = dump_video_config(merged)
+    beat["video_config_json"] = saved_json
     return saved_json
 
 
-def _seedance2_video_model_role(mode: Seedance2I2VMode) -> str:
+def _video_model_role(mode: VideoReferenceMode) -> str:
     return {
-        Seedance2I2VMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
-        Seedance2I2VMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
-        Seedance2I2VMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
-        Seedance2I2VMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
+        VideoReferenceMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
+        VideoReferenceMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
+        VideoReferenceMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
+        VideoReferenceMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
     }[mode]
 
 
@@ -138,9 +129,9 @@ def _prepare_reference_video_beat(
     ratio: str | None,
     prop_menu: list[Any],
 ) -> _ReferenceVideoPreparation:
-    config = parse_seedance2_config(beat.get("seedance2_config_json"))
+    config = parse_video_config(beat.get("video_config_json"))
     mode = config.mode
-    if mode == Seedance2I2VMode.FIRST_LAST_FRAME or video_mode == "keyframe":
+    if mode == VideoReferenceMode.FIRST_LAST_FRAME or video_mode == "keyframe":
         raise ValueError(
             f"{model_label} 不支持首尾帧模式，请改用首帧模式或多参模式"
         )
@@ -162,18 +153,18 @@ def _prepare_reference_video_beat(
 
     image_path: str | None = None
     references: list[dict[str, str]] = []
-    if mode == Seedance2I2VMode.FIRST_FRAME:
+    if mode == VideoReferenceMode.FIRST_FRAME:
         image_path = str(frame_path)
     else:
-        assets = build_seedance2_project_assets(
+        assets = build_video_reference_assets(
             project_output=output_dir,
             episode=episode_num,
             beat=beat,
-            mode=Seedance2I2VMode.MULTIMODAL_REFERENCE,
+            mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
             next_beat=next_beat,
             prop_menu=prop_menu,
         )
-        append_seedance2_user_reference_assets(
+        append_user_video_reference_assets(
             assets,
             reference_image_paths=list(config.reference_image_paths),
             reference_audio_paths=[],
@@ -200,7 +191,7 @@ def _prepare_reference_video_beat(
         ratio=config.ratio,
         image_path=image_path,
         references=references,
-        config_json=dump_seedance2_config(config),
+        config_json=dump_video_config(config),
     )
 
 
@@ -228,7 +219,7 @@ class LocalSingleVideoPreparer:
         self._prop_menu_source = prop_menu_source
         self._audio_durations = audio_durations
 
-    async def _persist_seedance2_config(
+    async def _persist_video_config(
         self,
         store: Any,
         *,
@@ -240,7 +231,7 @@ class LocalSingleVideoPreparer:
             await store.update_beat_asset(
                 episode_number=episode_num,
                 beat_number=beat_num,
-                seedance2_config_json=config_json,
+                video_config_json=config_json,
             )
 
     async def _prop_menu(
@@ -253,7 +244,7 @@ class LocalSingleVideoPreparer:
         episode = self._episode_source.episode_or_none(store, episode_num)
         return await self._prop_menu_source.for_episode(store, episode, beats)
 
-    async def _prepare_seedance2(
+    async def _prepare_video_reference(
         self,
         store: Any,
         *,
@@ -266,21 +257,21 @@ class LocalSingleVideoPreparer:
         prop_menu: list[Any],
         resolution_options: tuple[str, ...],
     ) -> Any:
-        current_config = parse_seedance2_config(
-            beat.get("seedance2_config_json")
+        current_config = parse_video_config(
+            beat.get("video_config_json")
         )
         requested_resolution = (
             video_api_resolution(command.resolution)
             if command.was_provided("resolution")
             else current_config.resolution
         )
-        prepared = await prepare_seedance2_generation_inputs(
+        prepared = await prepare_video_reference_generation_inputs(
             project_output=context.output_dir,
             episode=command.episode_num,
             beat=beat,
             next_beat=next_beat,
             video_mode=video_mode,
-            prompt=seedance2_initial_prompt(beat, video_mode),
+            prompt=advanced_video_initial_prompt(beat, video_mode),
             duration=duration,
             resolution=video_resolution(
                 command.video_model,
@@ -292,16 +283,16 @@ class LocalSingleVideoPreparer:
         )
         if not str(prepared.prompt or "").strip():
             raise ValueError(
-                f"Beat {command.beat_num} Seedance 2.0 最终提示词为空，"
-                "请先填写 Seedance2.0主体提示词或点击“AI 优化”。"
+                f"Beat {command.beat_num} 最终视频提示词为空，"
+                "请先填写主体提示词或点击“AI 优化”。"
             )
 
-        beat["seedance2_config_json"] = prepared.seedance2_config_json
-        await self._persist_seedance2_config(
+        beat["video_config_json"] = prepared.video_config_json
+        await self._persist_video_config(
             store,
             episode_num=command.episode_num,
             beat_num=command.beat_num,
-            config_json=prepared.seedance2_config_json,
+            config_json=prepared.video_config_json,
         )
         return prepared
 
@@ -334,14 +325,13 @@ class LocalSingleVideoPreparer:
         if beat is None:
             raise SingleVideoRejected(f"Beat {command.beat_num} not found")
 
+        model_capability = runtime_model_capability(command.video_model)
         model_error = dialogue_only_video_model_error(
             [beat],
-            command.video_model,
+            bool(getattr(model_capability, "video_dialogue_only", False)),
         )
         if model_error:
             raise SingleVideoRejected(model_error)
-
-        model_capability = runtime_model_capability(command.video_model)
         resolution_options = getattr(
             model_capability,
             "video_resolution_options",
@@ -352,12 +342,22 @@ class LocalSingleVideoPreparer:
             "video_size_options",
             (),
         )
-        is_seedance2 = is_seedance2_model(
-            command.video_model,
-            getattr(model_capability, "video_profile", None),
+        video_workflow = getattr(model_capability, "video_workflow", None)
+        uses_advanced_reference = uses_advanced_reference_video_workflow(
+            video_workflow
         )
-        is_happyhorse = is_happyhorse_model(command.video_model)
-        is_grok_video = is_grok_video_model(command.video_model)
+        uses_reference = uses_reference_video_workflow(video_workflow)
+        resolution_max_seconds = getattr(
+            model_capability,
+            "video_resolution_max_seconds",
+            (),
+        )
+        ratio_options = getattr(model_capability, "video_ratio_options", ())
+        extra_parameter_names = getattr(
+            model_capability,
+            "video_extra_parameter_names",
+            (),
+        )
         output_dir = Path(context.output_dir)
         paths = PathResolver(output_dir, command.episode_num)
         frame_path = paths.first_frame_for_video(
@@ -401,18 +401,18 @@ class LocalSingleVideoPreparer:
                 prompt = standard_video_prompt(beat, video_mode)
                 model_role = "VIDEO_IMAGE_TO_VIDEO"
 
-        seedance2_config_json = None
+        video_config_json = None
         single_video_resolution: str | None = None
         references: list[dict[str, str]] = []
         reference_ratio: str | None = None
-        if is_seedance2 or is_happyhorse or is_grok_video:
+        if uses_advanced_reference or uses_reference:
             try:
-                request_config_json = _merge_seedance2_request_config(
+                request_config_json = _merge_video_reference_request_config(
                     beat,
-                    seedance2_config_json=command.seedance2_config_json,
-                    config_overrides=command.seedance2_config_overrides(),
+                    video_config_json=command.video_config_json,
+                    config_overrides=command.video_config_overrides(),
                 )
-                await self._persist_seedance2_config(
+                await self._persist_video_config(
                     store,
                     episode_num=command.episode_num,
                     beat_num=command.beat_num,
@@ -432,8 +432,8 @@ class LocalSingleVideoPreparer:
                     command.ratio if command.was_provided("ratio") else None
                 )
 
-                if is_seedance2:
-                    prepared = await self._prepare_seedance2(
+                if uses_advanced_reference:
+                    prepared = await self._prepare_video_reference(
                         store,
                         context=context,
                         command=command,
@@ -452,13 +452,13 @@ class LocalSingleVideoPreparer:
                         else frame_path
                     )
                     last_frame_path = prepared.last_frame_path
-                    seedance2_config_json = prepared.seedance2_config_json
-                    prepared_config = parse_seedance2_config(
-                        prepared.seedance2_config_json
+                    video_config_json = prepared.video_config_json
+                    prepared_config = parse_video_config(
+                        prepared.video_config_json
                     )
                     single_video_resolution = prepared_config.resolution
                     reference_ratio = prepared_config.ratio
-                    model_role = _seedance2_video_model_role(prepared.mode)
+                    model_role = _video_model_role(prepared.mode)
                     video_mode = (
                         "keyframe" if prepared.last_frame_path else "first_frame"
                     )
@@ -468,22 +468,34 @@ class LocalSingleVideoPreparer:
                         "max_reference_images",
                         None,
                     )
+                    def resolve_reference_resolution(
+                        value: str | None,
+                        target_duration: float,
+                    ) -> str:
+                        resolved = video_resolution(
+                            command.video_model,
+                            value,
+                            resolution_options,
+                            size_options,
+                        )
+                        validate_video_resolution_duration(
+                            resolved,
+                            target_duration,
+                            resolution_max_seconds,
+                        )
+                        return resolved
+
                     prepared_reference = _prepare_reference_video_beat(
-                        model_label=(
-                            "HappyHorse 1.0" if is_happyhorse else "Grok Video"
-                        ),
+                        model_label=command.video_model or "当前视频模型",
                         max_reference_images=(
                             declared_reference_limit
                             if declared_reference_limit is not None
-                            else (9 if is_happyhorse else 7)
+                            else 1
                         ),
-                        resolution_resolver=(
-                            happyhorse_resolution
-                            if is_happyhorse
-                            else lambda value, _duration: grok_video_resolution(value)
-                        ),
-                        ratio_resolver=(
-                            happyhorse_ratio if is_happyhorse else grok_video_ratio
+                        resolution_resolver=resolve_reference_resolution,
+                        ratio_resolver=lambda value: normalize_video_ratio(
+                            value,
+                            ratio_options,
                         ),
                         output_dir=output_dir,
                         episode_num=command.episode_num,
@@ -497,7 +509,7 @@ class LocalSingleVideoPreparer:
                         ratio=requested_ratio,
                         prop_menu=prop_menu,
                     )
-                    await self._persist_seedance2_config(
+                    await self._persist_video_config(
                         store,
                         episode_num=command.episode_num,
                         beat_num=command.beat_num,
@@ -511,7 +523,7 @@ class LocalSingleVideoPreparer:
                         else None
                     )
                     last_frame_path = None
-                    seedance2_config_json = prepared_reference.config_json
+                    video_config_json = prepared_reference.config_json
                     single_video_resolution = prepared_reference.resolution
                     reference_ratio = prepared_reference.ratio
                     references = prepared_reference.references
@@ -554,11 +566,6 @@ class LocalSingleVideoPreparer:
             "video_generation_min_seconds",
             None,
         )
-        if is_seedance2:
-            minimum_duration = max(
-                float(minimum_duration or 0),
-                SEEDANCE2_DEFAULT_MIN_DURATION,
-            )
         maximum_duration = getattr(
             model_capability,
             "video_generation_max_seconds",
@@ -591,22 +598,22 @@ class LocalSingleVideoPreparer:
                 f"{context.owner_username}/{context.project_name}"
             ),
         }
-        if seedance2_config_json:
-            config["seedance2_config"] = seedance2_config_json
+        if video_config_json:
+            config["video_config"] = video_config_json
         if single_video_resolution:
             config["resolution"] = single_video_resolution
         if command.was_provided("ratio") and str(command.ratio or "").strip():
             config["ratio"] = str(command.ratio).strip()
-        if is_seedance2 and reference_ratio:
+        if uses_advanced_reference and reference_ratio:
             config["ratio"] = reference_ratio
-        if is_happyhorse:
-            config["ratio"] = happyhorse_ratio(reference_ratio)
+        if uses_reference:
+            config["ratio"] = normalize_video_ratio(reference_ratio, ratio_options)
             config["references"] = references
-            if command.audio_setting is not None:
+            if (
+                "audio_setting" in extra_parameter_names
+                and command.audio_setting is not None
+            ):
                 config["audio_setting"] = command.audio_setting
-        if is_grok_video:
-            config["ratio"] = grok_video_ratio(reference_ratio)
-            config["references"] = references
 
         return SingleVideoTask(
             episode_num=command.episode_num,

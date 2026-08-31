@@ -14,8 +14,8 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_va
 
 from pydantic_ai import Agent
 from ai_anime.modules.model_usage.public import (
-    get_newapi_text_pydantic_model,
-    get_newapi_text_pydantic_model_settings,
+    get_text_pydantic_model,
+    get_text_pydantic_model_settings,
 )
 from ai_anime.modules.asset_world.public import CharacterIdentity
 from ai_anime.shared.env_guard import preserve_st_env
@@ -359,14 +359,14 @@ class IdentityPlanner:
 
     @staticmethod
     def _identity_model():
-        return get_newapi_text_pydantic_model()
+        return get_text_pydantic_model()
 
     @staticmethod
     def _identity_model_settings(
         thinking_env: str,
         default_thinking_level: str,
     ) -> dict | None:
-        return get_newapi_text_pydantic_model_settings(
+        return get_text_pydantic_model_settings(
             thinking_env,
             default_thinking_level,
         )

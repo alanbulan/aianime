@@ -571,7 +571,7 @@ The scene reference defines WHERE the environment is. Your job is to add WHO is 
 Keep scene lines minimal and clean — this is still a storyboard sketch, not a rendered scene.
 """.strip()
 
-        rough_gpt_sketch = _uses_gpt_image_sketch_profile(ctx) and not (
+        rough_sketch_profile = _uses_rough_sketch_prompt_profile(ctx) and not (
             has_director_scene_refs and has_director_blocking_refs
         )
         if has_director_scene_refs and has_director_blocking_refs:
@@ -622,7 +622,7 @@ Backgrounds are minimal contextual black/gray line art based on attached scene r
 """
             environment_rules = """- Unnamed props/environment → black line art, no fill
 - Background → simplified architectural black/gray lines based on attached master/reverse scene references when provided; omit decorative detail."""
-        if rough_gpt_sketch:
+        if rough_sketch_profile:
             style_block = """STYLE: in the style of a **rushed film director's storyboard scribble**, **rough hand-drawn sketch on cheap white paper**, **completely uninterested in artistic finish**, loose pencil/marker doodle scribbled in 30 seconds, deliberately unpolished, raw thumbnail-grade draft.
 - Imperfect strokes; uneven line weight; visible "thinking on paper" feel
 - This is a DRAFT / THUMBNAIL / BLOCKING SKETCH — NOT a finished illustration, NOT digital art, NOT vector graphics, NOT a children's book illustration, NOT clean line art
@@ -751,13 +751,13 @@ LAYOUT (CRITICAL - MUST BE EXACT):
 
             visual_desc = visual_desc.rstrip("。！？，、；：")
 
-            # Sketch 模式：Nanobanana 自主构图（Master Director），不注入导演手册的镜头语言
+            # Sketch 模式：由图片模型自主构图，不注入导演手册的镜头语言。
             panel_desc = visual_desc
             # 默认 sketch 不再注入大段 BLOCKING 约束；仅在 render 模式或 3GS director 修图模式下保留几何约束
             blocking_hints = (
                 []
                 if ctx.mode == PromptMode.SKETCH
-                or rough_gpt_sketch
+                or rough_sketch_profile
                 or (has_director_scene_refs and has_director_blocking_refs)
                 else components.infer_sketch_blocking_hints(
                     beat,
@@ -803,7 +803,7 @@ LAYOUT (CRITICAL - MUST BE EXACT):
         # 填充不足的 panels（使用明确的占位符，避免模型自作主张）
         if len(actual_beats) < total_panels:
             for i in range(len(actual_beats) + 1, total_panels + 1):
-                if rough_gpt_sketch:
+                if rough_sketch_profile:
                     lines.append(
                         f"- **Panel {i}** [BLANK PLACEHOLDER]: A completely blank unused panel. "
                         "Pure white background only. No scenery, no characters, no symbols, no marks, no text."
@@ -999,7 +999,7 @@ LAYOUT (CRITICAL - MUST BE EXACT):
                 "- Background is the chosen 3GS camera translated into simplified line-art sketch\n"
                 "- No blurred 3GS pixels, no rendered texture, no cinematic lighting, no screenshot look"
             )
-        elif rough_gpt_sketch:
+        elif rough_sketch_profile:
             background_check = (
                 "- Background canvas is PURE WHITE\n"
                 "- Backgrounds are sparse light-gray context only; characters and action must dominate every panel"
@@ -1039,7 +1039,7 @@ This pass translates a 3GS director control frame into a normal production sketc
 - Draw the mannequin physical action from visual_description, including facing direction, feet direction, arms/hands holding/carrying/lifting a prop when the beat says so; listed-panel global props use their assigned prop marker color even when the real object would normally be brown/gray/etc.; local/episode props and similar untagged objects stay black/gray line art.
 - Add only minimal beat action detail needed for readability, inside the same screen regions.
 - Keep each panel legible as a production-usable storyboard image, not a generic summary poster""".format()
-        elif rough_gpt_sketch:
+        elif rough_sketch_profile:
             directing = """DIRECTING GUIDELINES:
 - Use directing freedom only where the panel description leaves camera/framing unspecified.
 - Prioritize the written visual_description over generic shot variety.
@@ -1263,7 +1263,9 @@ class UnifiedPromptBuilder:
         return strategy.build(self.ctx, self.components)
 
 
-def _uses_gpt_image_sketch_profile(ctx: PromptContext) -> bool:
-    """Whether this sketch should use the rough GPT-image prompt profile."""
-    model = (ctx.image_model or "").strip().lower()
-    return model in {"image-2", "image-2-official"} or "gpt-image" in model
+def _uses_rough_sketch_prompt_profile(ctx: PromptContext) -> bool:
+    """Whether the selected model declares the rough-sketch prompt profile."""
+    from ai_anime.modules.model_usage.public import runtime_model_capability
+
+    capability = runtime_model_capability(ctx.image_model)
+    return getattr(capability, "image_prompt_profile", None) == "rough-sketch"

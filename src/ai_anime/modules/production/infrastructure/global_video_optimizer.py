@@ -4,6 +4,7 @@
 """
 
 import io
+import logging
 import os
 import re
 from pathlib import Path
@@ -13,6 +14,8 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.output import NativeOutput
 from PIL import Image as PILImage
+
+logger = logging.getLogger(__name__)
 
 
 VISION_INPUT_MAX_EDGE = 2048
@@ -187,9 +190,9 @@ def _format_color_mapping_descriptor(info: dict) -> str:
 
 def create_global_video_reviewer_agent(language: str = "en") -> Agent:
     """创建全局视频审核 Agent。"""
-    from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+    from ai_anime.modules.model_usage.public import get_text_pydantic_model
 
-    model = get_newapi_text_pydantic_model()
+    model = get_text_pydantic_model()
     return Agent(
         model,
         system_prompt=GLOBAL_VIDEO_REVIEWER_INSTRUCTIONS_EN,
@@ -201,11 +204,11 @@ def create_global_video_reviewer_agent(language: str = "en") -> Agent:
 def create_global_video_optimizer_agent(language: str = "en") -> Agent:
     """创建全局视频优化 Agent。"""
     from ai_anime.modules.model_usage.public import (
-        get_newapi_text_pydantic_model,
-        get_newapi_text_pydantic_model_settings,
+        get_text_pydantic_model,
+        get_text_pydantic_model_settings,
     )
 
-    model_settings = get_newapi_text_pydantic_model_settings(
+    model_settings = get_text_pydantic_model_settings(
         "GLOBAL_VIDEO_OPTIMIZER_THINKING_LEVEL",
         "low",
     )
@@ -214,7 +217,7 @@ def create_global_video_optimizer_agent(language: str = "en") -> Agent:
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(),
+        get_text_pydantic_model(),
         system_prompt=GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN,
         output_type=str,
         name="Global Video Motion Director",
@@ -239,10 +242,12 @@ class GlobalVideoPromptOptimizer:
         original_size = os.path.getsize(image_path)
         compressed_size = len(image_bytes)
         ratio = (1 - compressed_size / original_size) * 100 if original_size > 0 else 0
-        print(
-            f"[GlobalVideoOptimizer] 压缩图片: {os.path.basename(image_path)}: "
-            f"{original_size / 1024:.0f}KB → {compressed_size / 1024:.0f}KB "
-            f"({ratio:.0f}% 压缩)"
+        logger.info(
+            "压缩视频优化图片 %s: %.0fKB -> %.0fKB (%.0f%%)",
+            os.path.basename(image_path),
+            original_size / 1024,
+            compressed_size / 1024,
+            ratio,
         )
         return image_bytes
 
@@ -391,8 +396,7 @@ Output the Chinese motion prompt directly. No JSON, explanation, or markdown."""
         agent = self._get_agent(language)
         user_prompt = [task, image_content]
 
-        print(f"\n[GlobalVideoOptimizer] Beat {bn}: sending sketch frame + context")
-        print(f"[GlobalVideoOptimizer] Beat {bn}: task length={len(task)} chars")
+        logger.info("优化 Beat %s：发送草图和上下文，任务长度=%s", bn, len(task))
 
         response = await agent.run(user_prompt)
 
@@ -414,9 +418,7 @@ Output the Chinese motion prompt directly. No JSON, explanation, or markdown."""
             if line and line not in result["prompt"]:
                 result["prompt"] = f"{result['prompt']} Says: {line}"
 
-        print(
-            f"[GlobalVideoOptimizer] Beat {bn}: prompt generated ({len(result['prompt'])} chars)"
-        )
+        logger.info("Beat %s 视频提示词已生成，长度=%s", bn, len(result["prompt"]))
         return result
 
     def _build_color_map_text(self, character_color_map: dict) -> str:
@@ -557,11 +559,11 @@ Output one JSON object with a `detections` array containing one object per panel
 def _create_identity_detector_agent() -> Agent:
     """创建 AI 角色颜色识别 Agent。"""
     from ai_anime.modules.model_usage.public import (
-        get_newapi_text_pydantic_model,
-        get_newapi_text_pydantic_model_settings,
+        get_text_pydantic_model,
+        get_text_pydantic_model_settings,
     )
 
-    model_settings = get_newapi_text_pydantic_model_settings(
+    model_settings = get_text_pydantic_model_settings(
         "GLOBAL_VIDEO_IDENTITY_DETECTOR_THINKING_LEVEL",
         "low",
     )
@@ -570,7 +572,7 @@ def _create_identity_detector_agent() -> Agent:
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(),
+        get_text_pydantic_model(),
         system_prompt=AI_IDENTITY_DETECTOR_INSTRUCTIONS,
         output_type=NativeOutput(BeatIdentityBatch),
         name="角色颜色识别",
@@ -625,15 +627,13 @@ Use an empty identities array for panels with no colored markers."""
                         media_type="image/jpeg",
                     )
                 )
-            except Exception as e:
-                print(f"[detect_identities_by_ai] 加载图片失败: {path}, {e}")
+            except Exception as exc:
+                logger.warning("身份检测图片加载失败: %s: %s", path, exc)
 
     if not images:
         raise RuntimeError("没有可用的草图网格图片")
 
-    print(
-        f"[detect_identities_by_ai] 发送 {len(images)} 张网格图片, {total_beats} beats"
-    )
+    logger.info("身份检测发送 %s 张网格图片，包含 %s 个 Beat", len(images), total_beats)
     response = await agent.run([task] + images)
 
     if not response.output.detections:
@@ -644,9 +644,7 @@ Use an empty identities array for panels with no colored markers."""
         bi.beat_number: bi.identities for bi in beat_identities
     }
 
-    print(
-        f"[detect_identities_by_ai] 识别结果: { {k: v for k, v in sorted(result.items())} }"
-    )
+    logger.info("身份检测结果: %s", {key: value for key, value in sorted(result.items())})
     return result
 
 

@@ -483,7 +483,7 @@ async def _generate_usable_voice_design(
         return max(usable, key=lambda item: item[0])[1]
     detail = "；".join(failures) or "模型未返回可读取的音频"
     raise ValueError(
-        "文字声线设计结果不符合 Seedance2 参考声线要求 "
+        "文字声线设计结果不符合视频参考声线要求 "
         f"（需 {MIN_USABLE_VOICE_REFERENCE_SECONDS:.1f}-"
         f"{MAX_USABLE_VOICE_REFERENCE_SECONDS:.1f} 秒）：{detail}"
     )

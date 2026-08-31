@@ -7,7 +7,7 @@ from ai_anime.modules.narrative_planning.application.task_dto import (
     EpisodeIdentityPlanningTask,
     EpisodePlanningTask,
     ScriptGenerationTask,
-    SeedancePromptTask,
+    VideoPromptOptimizationTask,
     TaskQueueReceipt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -81,15 +81,15 @@ class TaskExecutionScheduler:
             queue=receipt.queue,
         )
 
-    async def enqueue_seedance_prompt(
+    async def enqueue_video_prompt(
         self,
         task_context: ProjectContext,
-        task: SeedancePromptTask,
+        task: VideoPromptOptimizationTask,
     ) -> TaskQueueReceipt:
         receipt = await self._submissions.submit(
             task_context,
             ProjectTaskSubmission(
-                task_type="seedance2_prompt",
+                task_type="video_prompt_optimization",
                 episode=task.episode,
                 beat_num=task.beat_num,
                 payload=task.backend_payload(),

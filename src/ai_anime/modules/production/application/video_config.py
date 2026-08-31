@@ -1,4 +1,4 @@
-"""Typed Seedance 2.0 image-to-video configuration."""
+"""Provider-neutral per-beat video generation configuration."""
 
 from __future__ import annotations
 
@@ -9,17 +9,17 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 
 
-class Seedance2I2VMode(str, Enum):
+class VideoReferenceMode(str, Enum):
     TEXT_TO_VIDEO = "text_to_video"
     FIRST_FRAME = "first_frame"
     FIRST_LAST_FRAME = "first_last_frame"
     MULTIMODAL_REFERENCE = "multimodal_reference"
 
 
-class Seedance2VideoConfig(BaseModel):
-    """Per-beat Seedance 2.0 settings persisted in beats.seedance2_config_json."""
+class BeatVideoConfig(BaseModel):
+    """Per-beat video settings persisted in ``beats.video_config_json``."""
 
-    mode: Seedance2I2VMode = Seedance2I2VMode.MULTIMODAL_REFERENCE
+    mode: VideoReferenceMode = VideoReferenceMode.MULTIMODAL_REFERENCE
     final_prompt: str = ""
     prompt_guidance: str = ""
     prompt_source: str = ""
@@ -30,10 +30,8 @@ class Seedance2VideoConfig(BaseModel):
     resolution: str = "720p"
     ratio: str = "9:16"
     generate_audio: bool = True
-    generate_audio_user_set: bool = False
     return_last_frame: bool = False
     human_review: bool = True
-    human_review_user_set: bool = False
     scene_optimize: str = ""
     reference_image_paths: list[str] = Field(default_factory=list)
     reference_audio_paths: list[str] = Field(default_factory=list)
@@ -66,30 +64,25 @@ class Seedance2VideoConfig(BaseModel):
         return max(1, duration)
 
 
-def parse_seedance2_config(value: Any) -> Seedance2VideoConfig:
+def parse_video_config(value: Any) -> BeatVideoConfig:
     """Parse a stored dict/JSON config into a normalized config object."""
 
-    if isinstance(value, Seedance2VideoConfig):
+    if isinstance(value, BeatVideoConfig):
         return value
     if isinstance(value, str):
         text = value.strip()
         if not text:
-            return Seedance2VideoConfig()
+            return BeatVideoConfig()
         try:
             value = json.loads(text)
         except json.JSONDecodeError:
-            return Seedance2VideoConfig(final_prompt=text)
+            return BeatVideoConfig()
     if isinstance(value, dict):
-        value = dict(value)
-        if value.get("generate_audio") is False and not value.get("generate_audio_user_set"):
-            value["generate_audio"] = True
-        if value.get("human_review") is False and not value.get("human_review_user_set"):
-            value["human_review"] = True
-        return Seedance2VideoConfig.model_validate(value)
-    return Seedance2VideoConfig()
+        return BeatVideoConfig.model_validate(value)
+    return BeatVideoConfig()
 
 
-def dump_seedance2_config(config: Seedance2VideoConfig | dict[str, Any] | str | None) -> str:
+def dump_video_config(config: BeatVideoConfig | dict[str, Any] | str | None) -> str:
     """Serialize config for SQLite storage."""
 
-    return parse_seedance2_config(config).model_dump_json()
+    return parse_video_config(config).model_dump_json()

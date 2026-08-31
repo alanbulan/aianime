@@ -173,7 +173,7 @@ def complete_detected_refs_from_visual_description(
     # The screenplay markers are the production source of truth.  Color
     # detection is only a fallback for legacy/manual beats without markers;
     # unioning both sources lets a false-positive sketch color silently add a
-    # different character to Render, Seedance references and voice checks.
+    # different character to render, video-reference and voice checks.
     marker_identities = _extract_identity_marker_ids(visual_description)
     if marker_identities:
         completed_identities = [

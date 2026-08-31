@@ -1,4 +1,4 @@
-"""Seedance 2.0 prompt composition helpers."""
+"""Provider-neutral video prompt composition helpers."""
 
 from __future__ import annotations
 
@@ -13,12 +13,12 @@ from ai_anime.modules.production.domain.detected_refs import (
     real_detected_props,
 )
 from ai_anime.modules.narrative_planning.public import beat_scene_ref
-from ai_anime.modules.production.application.seedance2_config import Seedance2I2VMode
-from ai_anime.modules.production.domain.seedance2_dialogue import speaker_display_name
+from ai_anime.modules.production.application.video_config import VideoReferenceMode
+from ai_anime.modules.production.domain.video_dialogue import speaker_display_name
 
 
 @dataclass(frozen=True)
-class Seedance2PromptGeneration:
+class GeneratedVideoPrompt:
     """Result of AI-first prompt generation."""
 
     prompt: str
@@ -27,7 +27,7 @@ class Seedance2PromptGeneration:
     error: str = ""
 
 
-Seedance2PromptComposer = Callable[..., Awaitable[str]]
+VideoPromptComposer = Callable[..., Awaitable[str]]
 
 
 _CYRILLIC_RE = re.compile(r"[\u0400-\u04ff]")
@@ -41,15 +41,17 @@ _PROTOCOL_RESERVED_MARKERS = (
     "thinking_never_used",
     "reflection_never_used",
     "<function",
-    "<doubaothinking",
-    "<reflection",
     "<|fcresponsebegin|>",
     "<|fcresponseend|>",
 )
+_PROTOCOL_RESERVED_TAG_RE = re.compile(
+    r"<[a-z0-9_-]*(?:thinking|reflection)\b",
+    re.IGNORECASE,
+)
 
 
-SEEDANCE2_COMPOSER_SYSTEM_PROMPT = """你是 Seedance 2.0 图生视频提示词撰写器。
-你负责根据固定资产清单、分镜上下文、用户写作要求和规则草稿，写出最终 Seedance 2.0 prompt。
+VIDEO_PROMPT_COMPOSER_SYSTEM_PROMPT = """你是视频生成提示词撰写器。
+你负责根据固定资产清单、分镜上下文、用户写作要求和规则草稿，写出最终视频提示词。
 资产顺序已经由系统决定，你只能使用资产清单中已有的图片1、音频1等编号。
 不要新增图片或音频编号，不要重排编号，不要输出 @ 符号。
 不要为了覆盖资产清单而强行使用所有素材；只引用对当前镜头有明确帮助的素材。
@@ -139,7 +141,7 @@ def _scene_ref_label(beat: dict[str, Any], assets: list[Any] | None = None) -> s
     return desired_label
 
 
-def normalize_seedance2_editor_prompt(prompt: str) -> str:
+def normalize_video_editor_prompt(prompt: str) -> str:
     """Convert editor-only @ mentions into model-facing reference labels."""
 
     return (
@@ -150,7 +152,7 @@ def normalize_seedance2_editor_prompt(prompt: str) -> str:
     )
 
 
-def validate_seedance2_generated_prompt(
+def validate_generated_video_prompt(
     prompt: str,
     *,
     source_text: str | None,
@@ -160,26 +162,29 @@ def validate_seedance2_generated_prompt(
     text = _text(prompt)
     source = _text(source_text)
     if not text:
-        raise ValueError("Seedance2 AI 提示词为空")
+        raise ValueError("AI 视频提示词为空")
     if "\ufffd" in text:
-        raise ValueError("Seedance2 AI 提示词包含 Unicode 替换字符")
+        raise ValueError("AI 视频提示词包含 Unicode 替换字符")
 
     lowered = text.lower()
     marker = next(
         (item for item in _PROTOCOL_RESERVED_MARKERS if item in lowered),
         "",
     )
+    if not marker:
+        reserved_tag = _PROTOCOL_RESERVED_TAG_RE.search(text)
+        marker = reserved_tag.group(0) if reserved_tag else ""
     if marker:
-        raise ValueError(f"Seedance2 AI 提示词包含协议保留标记：{marker}")
+        raise ValueError(f"AI 视频提示词包含协议保留标记：{marker}")
 
     if source_text is not None:
         if _CYRILLIC_RE.search(text) and not _CYRILLIC_RE.search(source):
-            raise ValueError("Seedance2 AI 提示词包含输入中不存在的西里尔文字")
+            raise ValueError("AI 视频提示词包含输入中不存在的西里尔文字")
 
         trailing = _SUSPICIOUS_TRAILING_FRAGMENT_RE.search(text)
         if trailing and trailing.group("fragment") not in source:
             raise ValueError(
-                "Seedance2 AI 提示词包含异常尾部片段："
+                "AI 视频提示词包含异常尾部片段："
                 f"{trailing.group('fragment')}"
             )
 
@@ -214,7 +219,9 @@ def _prompt_available_assets(assets: list[Any] | None) -> list[Any]:
     return result
 
 
-def build_seedance2_asset_manifest(assets: list[Any] | None) -> list[dict[str, str]]:
+def build_video_reference_asset_manifest(
+    assets: list[Any] | None,
+) -> list[dict[str, str]]:
     """Return the fixed asset order visible to the AI composer and prompt editor."""
 
     manifest: list[dict[str, str]] = []
@@ -236,7 +243,7 @@ def build_seedance2_asset_manifest(assets: list[Any] | None) -> list[dict[str, s
     return manifest
 
 
-def build_seedance2_asset_fallback_manifest(
+def build_video_reference_fallback_manifest(
     assets: list[Any] | None,
 ) -> list[dict[str, str]]:
     """Return text-only reference constraints for assets that are not sent to the API."""
@@ -370,10 +377,10 @@ def _text_with_asset_references(text: Any, assets: list[Any] | None) -> str:
 
 def _reference_sentence_for_assets(
     *,
-    mode: Seedance2I2VMode | str,
+    mode: VideoReferenceMode | str,
     assets: list[Any] | None,
 ) -> str:
-    mode = Seedance2I2VMode(mode)
+    mode = VideoReferenceMode(mode)
     image_parts: list[str] = []
     audio_parts: list[str] = []
 
@@ -390,10 +397,10 @@ def _reference_sentence_for_assets(
             audio_parts.append(f"{label}作为{title or '声音参考'}")
             continue
 
-        if mode == Seedance2I2VMode.FIRST_FRAME:
+        if mode == VideoReferenceMode.FIRST_FRAME:
             image_parts.append(f"{label}作为首帧画面")
             continue
-        if mode == Seedance2I2VMode.FIRST_LAST_FRAME and key == "last_frame":
+        if mode == VideoReferenceMode.FIRST_LAST_FRAME and key == "last_frame":
             image_parts.append(f"{label}作为尾帧画面")
             continue
         if key == "first_frame":
@@ -428,9 +435,9 @@ def _reference_sentence_for_assets(
         elif prop_id:
             image_parts.append(f"{prop_id}道具按提示词生成：{fallback_text}")
 
-    if mode == Seedance2I2VMode.FIRST_LAST_FRAME and len(image_parts) >= 2:
+    if mode == VideoReferenceMode.FIRST_LAST_FRAME and len(image_parts) >= 2:
         base = f"以{image_parts[0]}，{image_parts[1]}，视频自然过渡"
-    elif mode == Seedance2I2VMode.FIRST_FRAME and image_parts:
+    elif mode == VideoReferenceMode.FIRST_FRAME and image_parts:
         base = f"以{image_parts[0]}生成图生视频"
     else:
         base = (
@@ -474,9 +481,9 @@ def build_text_overlay_prompt_fragment(text_overlay: dict[str, Any] | None) -> s
     )
 
 
-def build_seedance2_prompt_draft(
+def build_video_prompt_draft(
     *,
-    mode: Seedance2I2VMode | str,
+    mode: VideoReferenceMode | str,
     beat: dict[str, Any],
     assets: list[Any] | None,
     text_overlay: dict[str, Any] | None,
@@ -499,8 +506,8 @@ def build_seedance2_prompt_draft(
     spoken = _beat_spoken_prompt_fragment(beat, assets)
     spoken_label = _beat_spoken_label(beat)
     overlay = build_text_overlay_prompt_fragment(text_overlay)
-    guidance = normalize_seedance2_editor_prompt(prompt_guidance)
-    manual = normalize_seedance2_editor_prompt(manual_prompt_reference)
+    guidance = normalize_video_editor_prompt(prompt_guidance)
+    manual = normalize_video_editor_prompt(manual_prompt_reference)
 
     lines = [_clean_sentence(reference)]
     if visual:
@@ -522,12 +529,12 @@ def build_seedance2_prompt_draft(
             _clean_sentence(f"用户手动版本可作为改写参考：{_sentence_text(manual)}")
         )
 
-    return normalize_seedance2_editor_prompt("".join(line for line in lines if line))
+    return normalize_video_editor_prompt("".join(line for line in lines if line))
 
 
-def compute_seedance2_prompt_inputs_hash(
+def compute_video_prompt_inputs_hash(
     *,
-    mode: Seedance2I2VMode | str,
+    mode: VideoReferenceMode | str,
     beat: dict[str, Any],
     assets: list[Any] | None,
     text_overlay: dict[str, Any] | None,
@@ -536,7 +543,7 @@ def compute_seedance2_prompt_inputs_hash(
     """Hash only prompt-relevant inputs, excluding request-only video controls."""
 
     payload = {
-        "mode": Seedance2I2VMode(mode).value,
+        "mode": VideoReferenceMode(mode).value,
         "beat": {
             "visual_description": beat.get("visual_description") or "",
             "scene_ref": beat.get("scene_ref") or {},
@@ -552,8 +559,8 @@ def compute_seedance2_prompt_inputs_hash(
             ),
             "detected_props": real_detected_props(beat.get("detected_props") or []),
         },
-        "assets": build_seedance2_asset_manifest(assets),
-        "asset_fallbacks": build_seedance2_asset_fallback_manifest(assets),
+        "assets": build_video_reference_asset_manifest(assets),
+        "asset_fallbacks": build_video_reference_fallback_manifest(assets),
         "text_overlay": text_overlay or {},
         "prompt_guidance": _text(prompt_guidance),
     }
@@ -561,9 +568,9 @@ def compute_seedance2_prompt_inputs_hash(
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def build_seedance2_prompt_composer_task(
+def build_video_prompt_composer_task(
     *,
-    mode: Seedance2I2VMode | str,
+    mode: VideoReferenceMode | str,
     beat: dict[str, Any],
     assets: list[Any] | None,
     text_overlay: dict[str, Any] | None,
@@ -573,8 +580,8 @@ def build_seedance2_prompt_composer_task(
     manual_prompt_reference: str = "",
 ) -> str:
     payload = {
-        "mode": Seedance2I2VMode(mode).value,
-        "asset_manifest": build_seedance2_asset_manifest(assets),
+        "mode": VideoReferenceMode(mode).value,
+        "asset_manifest": build_video_reference_asset_manifest(assets),
         "beat": {
             "visual_description": beat.get("visual_description") or "",
             "scene_ref": beat.get("scene_ref") or {},
@@ -589,17 +596,17 @@ def build_seedance2_prompt_composer_task(
             ),
             "detected_props": real_detected_props(beat.get("detected_props") or []),
         },
-        "asset_fallbacks": build_seedance2_asset_fallback_manifest(assets),
+        "asset_fallbacks": build_video_reference_fallback_manifest(assets),
         "text_overlay": text_overlay or {},
         "user_prompt_guidance": _text(prompt_guidance),
-        "manual_prompt_reference": normalize_seedance2_editor_prompt(
+        "manual_prompt_reference": normalize_video_editor_prompt(
             manual_prompt_reference
         ),
         "request_params_for_context_only": request_params or {},
-        "rule_based_draft_prompt": normalize_seedance2_editor_prompt(draft_prompt),
+        "rule_based_draft_prompt": normalize_video_editor_prompt(draft_prompt),
     }
     return (
-        "请根据下面 JSON 写出最终 Seedance 2.0 图生视频 prompt。\n\n"
+        "请根据下面 JSON 写出最终图生视频提示词。\n\n"
         "硬性要求：\n"
         "- 必须遵循官方写法，使用“图片1”“音频1”等编号指代参考素材。\n"
         "- 只能使用 asset_manifest 中已有编号，不能新增图片或音频编号。\n"
@@ -617,16 +624,16 @@ def build_seedance2_prompt_composer_task(
     )
 
 
-def create_seedance2_prompt_composer_agent():
+def create_video_prompt_composer_agent():
     from pydantic_ai import Agent
 
     from ai_anime.modules.model_usage.public import (
-        get_newapi_text_pydantic_model,
-        get_newapi_text_pydantic_model_settings,
+        get_text_pydantic_model,
+        get_text_pydantic_model_settings,
     )
 
-    model_settings = get_newapi_text_pydantic_model_settings(
-        "SEEDANCE2_PROMPT_COMPOSER_THINKING_LEVEL",
+    model_settings = get_text_pydantic_model_settings(
+        "VIDEO_PROMPT_COMPOSER_THINKING_LEVEL",
         "low",
     )
     agent_kwargs: dict[str, Any] = {}
@@ -634,17 +641,17 @@ def create_seedance2_prompt_composer_agent():
         agent_kwargs["model_settings"] = model_settings
 
     return Agent(
-        get_newapi_text_pydantic_model(),
-        system_prompt=SEEDANCE2_COMPOSER_SYSTEM_PROMPT,
+        get_text_pydantic_model(),
+        system_prompt=VIDEO_PROMPT_COMPOSER_SYSTEM_PROMPT,
         output_type=str,
-        name="Seedance 2.0 Prompt Composer",
+        name="Video Prompt Composer",
         **agent_kwargs,
     )
 
 
-async def compose_seedance2_prompt_with_agent(
+async def compose_video_prompt_with_agent(
     *,
-    mode: Seedance2I2VMode | str,
+    mode: VideoReferenceMode | str,
     beat: dict[str, Any],
     assets: list[Any] | None,
     text_overlay: dict[str, Any] | None,
@@ -653,9 +660,9 @@ async def compose_seedance2_prompt_with_agent(
     request_params: dict[str, Any] | None = None,
     manual_prompt_reference: str = "",
 ) -> str:
-    agent = create_seedance2_prompt_composer_agent()
+    agent = create_video_prompt_composer_agent()
     result = await agent.run(
-        build_seedance2_prompt_composer_task(
+        build_video_prompt_composer_task(
             mode=mode,
             beat=beat,
             assets=assets,
@@ -666,26 +673,26 @@ async def compose_seedance2_prompt_with_agent(
             manual_prompt_reference=manual_prompt_reference,
         )
     )
-    prompt = normalize_seedance2_editor_prompt(result.output)
+    prompt = normalize_video_editor_prompt(result.output)
     if not prompt:
         raise ValueError("AI composer returned an empty prompt")
     return prompt
 
 
-async def generate_seedance2_prompt(
+async def generate_video_prompt(
     *,
-    mode: Seedance2I2VMode | str,
+    mode: VideoReferenceMode | str,
     beat: dict[str, Any],
     assets: list[Any] | None,
     text_overlay: dict[str, Any] | None,
     prompt_guidance: str,
     request_params: dict[str, Any] | None = None,
     manual_prompt_reference: str = "",
-    composer: Seedance2PromptComposer | None = None,
-) -> Seedance2PromptGeneration:
-    """Generate a Seedance 2.0 prompt, preferring AI and falling back to rules."""
+    composer: VideoPromptComposer | None = None,
+) -> GeneratedVideoPrompt:
+    """Generate a video prompt, preferring AI and falling back to rules."""
 
-    draft_prompt = build_seedance2_prompt_draft(
+    draft_prompt = build_video_prompt_draft(
         mode=mode,
         beat=beat,
         assets=assets,
@@ -694,7 +701,7 @@ async def generate_seedance2_prompt(
         manual_prompt_reference=manual_prompt_reference,
     )
     try:
-        compose = composer or compose_seedance2_prompt_with_agent
+        compose = composer or compose_video_prompt_with_agent
         prompt = await compose(
             mode=mode,
             beat=beat,
@@ -705,21 +712,21 @@ async def generate_seedance2_prompt(
             request_params=request_params or {},
             manual_prompt_reference=manual_prompt_reference,
         )
-        prompt = normalize_seedance2_editor_prompt(prompt)
+        prompt = normalize_video_editor_prompt(prompt)
         if not prompt:
             raise ValueError("AI composer returned an empty prompt")
-        validate_seedance2_generated_prompt(
+        validate_generated_video_prompt(
             prompt,
             source_text=draft_prompt,
         )
-        return Seedance2PromptGeneration(
+        return GeneratedVideoPrompt(
             prompt=prompt,
             used_ai=True,
             draft_prompt=draft_prompt,
             error="",
         )
     except Exception as exc:
-        return Seedance2PromptGeneration(
+        return GeneratedVideoPrompt(
             prompt=draft_prompt,
             used_ai=False,
             draft_prompt=draft_prompt,

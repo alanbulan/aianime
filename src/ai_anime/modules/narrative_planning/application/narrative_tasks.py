@@ -14,7 +14,7 @@ from ai_anime.modules.narrative_planning.application.task_dto import (
     EpisodePlanningTask,
     ScheduledNarrativeTask,
     ScriptGenerationTask,
-    SeedancePromptTask,
+    VideoPromptOptimizationTask,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.story_intake.public import require_imported_story
@@ -141,22 +141,22 @@ class ScheduleBeatVideoPrompt:
         )
 
 
-class ScheduleSeedancePrompt:
+class ScheduleVideoPromptOptimization:
     def __init__(self, task_scheduler: NarrativeTaskScheduler) -> None:
         self._task_scheduler = task_scheduler
 
     async def execute(
         self,
         task_context: ProjectContext,
-        task: SeedancePromptTask,
+        task: VideoPromptOptimizationTask,
     ) -> ScheduledNarrativeTask:
-        receipt = await self._task_scheduler.enqueue_seedance_prompt(
+        receipt = await self._task_scheduler.enqueue_video_prompt(
             task_context,
             task,
         )
         return ScheduledNarrativeTask.from_receipt(
             receipt,
-            task_type="seedance2_prompt",
+            task_type="video_prompt_optimization",
             message=(
                 f"第 {task.episode} 集 Beat {task.beat_num} 视频提示词优化已入队"
             ),

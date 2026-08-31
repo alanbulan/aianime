@@ -12,6 +12,8 @@ from ai_anime.modules.production.domain.detected_refs import (
     real_detected_identities,
 )
 
+logger = logging.getLogger(__name__)
+
 
 BRIDGMAN_CHARACTER_PALETTE = [
     ("#FF00FF", "FLUORESCENT MAGENTA"),
@@ -145,9 +147,9 @@ def assign_identity_sketch_colors(
             color_map[marker_id] = f"{hex_code} {color_name}"
             assigned_hues.append(_hex_to_hue(hex_code))
             used_indices.add(best_index)
-            print(f"[sketch_color] {marker_id}: {hex_code} {color_name}")
+            logger.debug("草图标记配色 %s: %s %s", marker_id, hex_code, color_name)
         else:
-            logging.warning(
+            logger.warning(
                 "[assign_sketch_colors] 调色板用尽，%s 未分配颜色",
                 marker_id,
             )

@@ -3,6 +3,7 @@
 使用 FFmpeg + MoviePy 生成视频。
 """
 
+import logging
 import os
 import re
 import subprocess
@@ -22,6 +23,8 @@ from ai_anime.shared.infrastructure.video_encoding import (
     ffmpeg_video_encoding_args,
     ffmpeg_video_quality_args,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _run_video_subprocess(cmd: list[str], *, timeout: int = 30 * 60) -> subprocess.CompletedProcess:
@@ -312,8 +315,8 @@ class VideoComposer:
 
         except (TaskCancelled, TaskTimedOut):
             raise
-        except Exception as e:
-            print(f"创建场景视频失败: {e}")
+        except Exception as exc:
+            logger.warning("创建场景视频失败: %s", exc)
             return False
 
     async def _create_title_card(self, title: str, output_path: str) -> bool:
@@ -487,8 +490,8 @@ class VideoComposer:
 
         except (TaskCancelled, TaskTimedOut):
             raise
-        except Exception as e:
-            print(f"合并视频失败: {e}")
+        except Exception as exc:
+            logger.warning("合并视频失败: %s", exc)
             return False
 
     async def add_subtitles(
@@ -753,18 +756,18 @@ async def adjust_video_duration(
     except ValueError:
         source_duration = 5.0  # 默认 5 秒
 
-    print(f"[adjust_video_duration] 源时长: {source_duration:.2f}s, 目标: {target_duration:.2f}s")
+    logger.info("调整视频时长: %.2fs -> %.2fs", source_duration, target_duration)
 
     # 计算时长差异
     duration_diff = abs(target_duration - source_duration)
     if duration_diff < 0.1:
         # 时长足够接近，无需调整
-        print("[adjust_video_duration] 时长足够接近，无需调整")
+        logger.debug("视频时长足够接近，无需调整")
         return video_path
 
     if target_duration < source_duration:
         # 目标较短：裁剪末尾
-        print(f"[adjust_video_duration] 裁剪视频: {source_duration:.2f}s -> {target_duration:.2f}s")
+        logger.info("裁剪视频: %.2fs -> %.2fs", source_duration, target_duration)
         cmd = [
             "ffmpeg",
             "-y",
@@ -777,13 +780,13 @@ async def adjust_video_duration(
     else:
         # 目标较长：需要拉伸
         stretch_ratio = target_duration / source_duration
-        print(f"[adjust_video_duration] 拉伸比例: {stretch_ratio:.2f}x")
+        logger.info("视频拉伸比例: %.2fx", stretch_ratio)
 
         if stretch_ratio <= 1.5 or method == "speed":
             # 变速拉伸（减慢播放）
             # setpts: 视频时间戳，atempo: 音频速度
             speed_factor = 1 / stretch_ratio  # 0.5 = 慢 2 倍
-            print(f"[adjust_video_duration] 变速拉伸: {speed_factor:.2f}x 速度")
+            logger.info("视频变速拉伸: %.2fx 速度", speed_factor)
             cmd = [
                 "ffmpeg",
                 "-y",
@@ -799,7 +802,7 @@ async def adjust_video_duration(
         else:
             # 冻结最后一帧填充
             freeze_duration = target_duration - source_duration
-            print(f"[adjust_video_duration] 冻结最后一帧: {freeze_duration:.2f}s")
+            logger.info("冻结视频最后一帧: %.2fs", freeze_duration)
 
             # 使用 tpad 滤镜冻结最后一帧
             cmd = [
@@ -816,7 +819,7 @@ async def adjust_video_duration(
     result = _run_video_subprocess(cmd)
 
     if result.returncode != 0:
-        print(f"[adjust_video_duration] FFmpeg 错误: {result.stderr[:500]}")
+        logger.warning("调整视频时长时 FFmpeg 失败: %s", result.stderr[:500])
         return video_path  # 失败时返回原视频
 
     # 如果需要覆盖源文件

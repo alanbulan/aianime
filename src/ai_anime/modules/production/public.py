@@ -10,11 +10,7 @@ if TYPE_CHECKING:
         IMAGE_DEFAULT_HEIGHT,
         IMAGE_DEFAULT_STYLE,
         IMAGE_DEFAULT_WIDTH,
-        INDEXTTS2_RECORD_PROVIDER,
-        INDEXTTS2_TIMEOUT_SECONDS,
         MODE_CONFIG,
-        OPENAI_IMAGE_QUALITY,
-        OPENAI_SKETCH_IMAGE_QUALITY,
         VIDEO_CODEC,
         apply_style_reference,
         get_grid_generation_config,
@@ -26,20 +22,16 @@ if TYPE_CHECKING:
         get_video_config,
         list_available_styles,
     )
-    from ai_anime.modules.production.infrastructure.media_generation import (
-        nanobanana_grid,
-        pool_indexer,
-    )
+    from ai_anime.modules.production.infrastructure.media_generation import pool_indexer
     from ai_anime.modules.production.infrastructure.global_video_optimizer import (
         build_color_appearance_map,
         get_global_video_optimizer,
         prepare_global_optimizer_input,
     )
-    from ai_anime.modules.production.infrastructure.indextts2_beat_audio_task import (
-        IndexTTS2AudioGenerationPlan,
-        build_indextts2_audio_generation_plan,
-        collect_indextts2_voice_prereq_errors,
-        run_indextts2_beat_audio_generation,
+    from ai_anime.modules.production.infrastructure.episode_audio_generation import (
+        build_episode_audio_generation_plan,
+        collect_episode_audio_prereq_errors,
+        run_episode_audio_generation,
     )
     from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
         VoiceDesignModelUnavailable,
@@ -48,21 +40,21 @@ if TYPE_CHECKING:
         provision_missing_character_voices,
         provision_voice_design_requirements,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_assets import (
-        Seedance2ResolvedAsset,
-        append_seedance2_user_reference_assets,
-        build_seedance2_project_assets,
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        VideoReferenceAsset,
+        append_user_video_reference_assets,
+        build_video_reference_assets,
         selected_reference_paths,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_panel_service import (
-        generate_seedance2_prompt_for_panel,
+    from ai_anime.modules.production.infrastructure.video_reference_panel_service import (
+        generate_video_prompt_for_panel,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_pipeline import (
-        Seedance2VideoPrereqError,
-        collect_seedance2_video_prereq_errors,
-        prepare_seedance2_generation_inputs,
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        VideoReferencePrereqError,
+        collect_video_reference_prereq_errors,
+        prepare_video_reference_generation_inputs,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_voice import (
+    from ai_anime.modules.production.infrastructure.video_reference_voice import (
         DEFAULT_NARRATION_STYLE,
         NARRATION_STYLES,
         build_reference_audio_url,
@@ -71,7 +63,7 @@ if TYPE_CHECKING:
         resolve_character_voice,
         resolve_narrator_source,
     )
-    from ai_anime.modules.production.infrastructure.seedance2_voice_references import (
+    from ai_anime.modules.production.infrastructure.video_reference_voice_references import (
         dialogue_voice_reference_rows,
         resolve_narrator_reference_status,
     )
@@ -83,17 +75,17 @@ if TYPE_CHECKING:
         generate_character_reference_unified,
         generate_identity_image_unified,
     )
-    from ai_anime.modules.production.infrastructure.media_generation.indextts2 import (
-        IndexTTS2Client,
+    from ai_anime.modules.production.infrastructure.media_generation.speech_synthesis import (
+        SpeechSynthesisClient,
     )
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_character import (
-        NanoBananaCharacterGenerator,
+    from ai_anime.modules.production.infrastructure.media_generation.character_image_generator import (
+        CharacterImageGenerator,
     )
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid import (
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
         REGEN_MODE_CONFIGS,
         SKETCH_DEFAULT_MODE_KEY,
-        NanoBananaGridGenerator,
-        _call_newapi_image_api,
+        ImageGridGenerator,
+        call_image_generation_api,
         _resolve_scene_prop_asset_refs,
         character_grid_split,
         create_grid_generator,
@@ -110,7 +102,7 @@ if TYPE_CHECKING:
         sketch_pass1_mode_key,
         sketch_scene_grid_split,
     )
-    from ai_anime.modules.production.infrastructure.media_generation.nanobanana_prop import (
+    from ai_anime.modules.production.infrastructure.media_generation.prop_image_generator import (
         PROP_REF_IMAGE_SIZE,
         build_prop_reference_prompt,
         generate_prop_reference,
@@ -166,9 +158,8 @@ from ai_anime.modules.production.application.director_control_sketch import (
     ScheduledDirectorControlSketch,
 )
 from ai_anime.modules.production.application.episode_audio import (
-    INDEXTTS2_AUDIO_TASK_TYPE,
+    EPISODE_AUDIO_TASK_TYPE,
     AudioVoicePrerequisitesMissing,
-    EpisodeAudioBillingQuote,
     EpisodeAudioBeatMissing,
     EpisodeAudioBeatsMissing,
     EpisodeAudioGenerationNotRequired,
@@ -315,21 +306,21 @@ from ai_anime.modules.production.application.render_planning import (
     RenderPlanRejected,
     RenderPlanUseCases,
 )
-from ai_anime.modules.production.application.seedance2_panel import (
-    CropSeedance2AssetCommand,
-    RemoveSeedance2AssetCommand,
-    Seedance2PanelBeatMissing,
-    Seedance2PanelOperationRejected,
-    Seedance2PanelQuery,
-    Seedance2PanelUseCases,
-    TrimSeedance2AudioAssetCommand,
-    UploadSeedance2AssetCommand,
+from ai_anime.modules.production.application.video_reference_panel import (
+    CropVideoReferenceAssetCommand,
+    RemoveVideoReferenceAssetCommand,
+    VideoReferencePanelBeatMissing,
+    VideoReferencePanelOperationRejected,
+    VideoReferencePanelQuery,
+    VideoReferencePanelUseCases,
+    TrimVideoReferenceAudioAssetCommand,
+    UploadVideoReferenceAssetCommand,
 )
-from ai_anime.modules.production.application.seedance2_config import (
-    Seedance2I2VMode,
-    Seedance2VideoConfig,
-    dump_seedance2_config,
-    parse_seedance2_config,
+from ai_anime.modules.production.application.video_config import (
+    VideoReferenceMode,
+    BeatVideoConfig,
+    dump_video_config,
+    parse_video_config,
 )
 from ai_anime.modules.production.application.selected_regeneration import (
     SELECTED_RENDER_REGEN_TASK_TYPE,
@@ -375,19 +366,16 @@ from ai_anime.modules.production.domain.detected_refs import (
     real_detected_identities,
     real_detected_props,
 )
-from ai_anime.modules.production.domain.seedance2_dialogue import (
-    normalize_seedance2_audio_type,
+from ai_anime.modules.production.domain.video_dialogue import (
+    normalize_video_audio_type,
 )
 from ai_anime.modules.production.domain.voice_design import VoiceDesignRequirement
 from ai_anime.modules.production.domain.video_model import (
-    grok_video_ratio,
-    grok_video_resolution,
-    happyhorse_ratio,
-    happyhorse_resolution,
-    is_grok_video_model,
-    is_happyhorse_model,
-    is_seedance2_model as _is_seedance2_model,
     normalize_video_generation_duration,
+    normalize_video_ratio,
+    uses_advanced_reference_video_workflow,
+    uses_reference_video_workflow,
+    validate_video_resolution_duration,
     video_api_resolution,
     video_resolution,
 )
@@ -408,114 +396,114 @@ _MEDIA_GENERATION = "ai_anime.modules.production.infrastructure.media_generation
 _MEDIA_SETTINGS = "ai_anime.modules.production.infrastructure.media_generation_settings"
 
 
-def is_seedance2_model(model: str | None) -> bool:
-    """Use the desktop catalog profile before falling back to stable model SKUs."""
+def video_model_workflow(model: str | None) -> str:
+    """Return the workflow explicitly declared by the desktop model catalog."""
 
     from ai_anime.modules.model_usage.public import runtime_model_capability
 
     capability = runtime_model_capability(model)
-    return _is_seedance2_model(
-        model,
-        getattr(capability, "video_profile", None),
-    )
+    return str(getattr(capability, "video_workflow", None) or "standard")
+
+
+def video_model_uses_advanced_reference_workflow(model: str | None) -> bool:
+    return uses_advanced_reference_video_workflow(video_model_workflow(model))
+
+
+def video_model_uses_reference_workflow(model: str | None) -> bool:
+    return uses_reference_video_workflow(video_model_workflow(model))
 
 _LAZY_MODULES = {
-    "nanobanana_grid": f"{_MEDIA_GENERATION}.nanobanana_grid",
     "pool_indexer": f"{_MEDIA_GENERATION}.pool_indexer",
 }
 
 _LAZY_EXPORTS = {
     "DEFAULT_NARRATION_STYLE": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "DEFAULT_NARRATION_STYLE",
     ),
     "NARRATION_STYLES": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "NARRATION_STYLES",
     ),
-    "Seedance2ResolvedAsset": (
-        "ai_anime.modules.production.infrastructure.seedance2_assets",
-        "Seedance2ResolvedAsset",
+    "VideoReferenceAsset": (
+        "ai_anime.modules.production.infrastructure.video_reference_assets",
+        "VideoReferenceAsset",
     ),
     "build_color_appearance_map": (
         "ai_anime.modules.production.infrastructure.global_video_optimizer",
         "build_color_appearance_map",
     ),
-    "append_seedance2_user_reference_assets": (
-        "ai_anime.modules.production.infrastructure.seedance2_assets",
-        "append_seedance2_user_reference_assets",
+    "append_user_video_reference_assets": (
+        "ai_anime.modules.production.infrastructure.video_reference_assets",
+        "append_user_video_reference_assets",
     ),
     "build_reference_audio_url": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "build_reference_audio_url",
     ),
-    "build_seedance2_project_assets": (
-        "ai_anime.modules.production.infrastructure.seedance2_assets",
-        "build_seedance2_project_assets",
+    "build_video_reference_assets": (
+        "ai_anime.modules.production.infrastructure.video_reference_assets",
+        "build_video_reference_assets",
     ),
     "build_character_voice_requirement": (
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
         "build_character_voice_requirement",
     ),
-    "collect_seedance2_video_prereq_errors": (
-        "ai_anime.modules.production.infrastructure.seedance2_pipeline",
-        "collect_seedance2_video_prereq_errors",
+    "collect_video_reference_prereq_errors": (
+        "ai_anime.modules.production.infrastructure.video_reference_pipeline",
+        "collect_video_reference_prereq_errors",
     ),
-    "collect_indextts2_voice_prereq_errors": (
-        "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
-        "collect_indextts2_voice_prereq_errors",
+    "collect_episode_audio_prereq_errors": (
+        "ai_anime.modules.production.infrastructure.episode_audio_generation",
+        "collect_episode_audio_prereq_errors",
     ),
-    "build_indextts2_audio_generation_plan": (
-        "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
-        "build_indextts2_audio_generation_plan",
-    ),
-    "IndexTTS2AudioGenerationPlan": (
-        "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
-        "IndexTTS2AudioGenerationPlan",
+    "build_episode_audio_generation_plan": (
+        "ai_anime.modules.production.infrastructure.episode_audio_generation",
+        "build_episode_audio_generation_plan",
     ),
     "dialogue_voice_reference_rows": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice_references",
+        "ai_anime.modules.production.infrastructure.video_reference_voice_references",
         "dialogue_voice_reference_rows",
     ),
     "file_sha256": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "file_sha256",
     ),
-    "generate_seedance2_prompt_for_panel": (
-        "ai_anime.modules.production.infrastructure.seedance2_panel_service",
-        "generate_seedance2_prompt_for_panel",
+    "generate_video_prompt_for_panel": (
+        "ai_anime.modules.production.infrastructure.video_reference_panel_service",
+        "generate_video_prompt_for_panel",
     ),
     "get_global_video_optimizer": (
         "ai_anime.modules.production.infrastructure.global_video_optimizer",
         "get_global_video_optimizer",
     ),
     "narration_style_prompt": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "narration_style_prompt",
     ),
-    "prepare_seedance2_generation_inputs": (
-        "ai_anime.modules.production.infrastructure.seedance2_pipeline",
-        "prepare_seedance2_generation_inputs",
+    "prepare_video_reference_generation_inputs": (
+        "ai_anime.modules.production.infrastructure.video_reference_pipeline",
+        "prepare_video_reference_generation_inputs",
     ),
     "prepare_global_optimizer_input": (
         "ai_anime.modules.production.infrastructure.global_video_optimizer",
         "prepare_global_optimizer_input",
     ),
     "resolve_character_voice": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "resolve_character_voice",
     ),
     "resolve_narrator_reference_status": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice_references",
+        "ai_anime.modules.production.infrastructure.video_reference_voice_references",
         "resolve_narrator_reference_status",
     ),
     "resolve_narrator_source": (
-        "ai_anime.modules.production.infrastructure.seedance2_voice",
+        "ai_anime.modules.production.infrastructure.video_reference_voice",
         "resolve_narrator_source",
     ),
-    "run_indextts2_beat_audio_generation": (
-        "ai_anime.modules.production.infrastructure.indextts2_beat_audio_task",
-        "run_indextts2_beat_audio_generation",
+    "run_episode_audio_generation": (
+        "ai_anime.modules.production.infrastructure.episode_audio_generation",
+        "run_episode_audio_generation",
     ),
     "provision_voice_design_requirements": (
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
@@ -533,12 +521,12 @@ _LAZY_EXPORTS = {
         "ai_anime.modules.production.infrastructure.voice_design_provisioning",
         "VoiceDesignProvisioningFailed",
     ),
-    "Seedance2VideoPrereqError": (
-        "ai_anime.modules.production.infrastructure.seedance2_pipeline",
-        "Seedance2VideoPrereqError",
+    "VideoReferencePrereqError": (
+        "ai_anime.modules.production.infrastructure.video_reference_pipeline",
+        "VideoReferencePrereqError",
     ),
     "selected_reference_paths": (
-        "ai_anime.modules.production.infrastructure.seedance2_assets",
+        "ai_anime.modules.production.infrastructure.video_reference_assets",
         "selected_reference_paths",
     ),
 }
@@ -550,20 +538,7 @@ _LAZY_EXPORTS.update(
         "IMAGE_DEFAULT_HEIGHT": (_MEDIA_SETTINGS, "IMAGE_DEFAULT_HEIGHT"),
         "IMAGE_DEFAULT_STYLE": (_MEDIA_SETTINGS, "IMAGE_DEFAULT_STYLE"),
         "IMAGE_DEFAULT_WIDTH": (_MEDIA_SETTINGS, "IMAGE_DEFAULT_WIDTH"),
-        "INDEXTTS2_RECORD_PROVIDER": (
-            _MEDIA_SETTINGS,
-            "INDEXTTS2_RECORD_PROVIDER",
-        ),
-        "INDEXTTS2_TIMEOUT_SECONDS": (
-            _MEDIA_SETTINGS,
-            "INDEXTTS2_TIMEOUT_SECONDS",
-        ),
         "MODE_CONFIG": (_MEDIA_SETTINGS, "MODE_CONFIG"),
-        "OPENAI_IMAGE_QUALITY": (_MEDIA_SETTINGS, "OPENAI_IMAGE_QUALITY"),
-        "OPENAI_SKETCH_IMAGE_QUALITY": (
-            _MEDIA_SETTINGS,
-            "OPENAI_SKETCH_IMAGE_QUALITY",
-        ),
         "VIDEO_CODEC": (_MEDIA_SETTINGS, "VIDEO_CODEC"),
         "apply_style_reference": (_MEDIA_SETTINGS, "apply_style_reference"),
         "get_grid_generation_config": (
@@ -583,17 +558,20 @@ _LAZY_EXPORTS.update(
         "get_tts_config": (_MEDIA_SETTINGS, "get_tts_config"),
         "get_video_config": (_MEDIA_SETTINGS, "get_video_config"),
         "list_available_styles": (_MEDIA_SETTINGS, "list_available_styles"),
-        "IndexTTS2Client": (f"{_MEDIA_GENERATION}.indextts2", "IndexTTS2Client"),
-        "NanoBananaCharacterGenerator": (
-            f"{_MEDIA_GENERATION}.nanobanana_character",
-            "NanoBananaCharacterGenerator",
+        "SpeechSynthesisClient": (
+            f"{_MEDIA_GENERATION}.speech_synthesis",
+            "SpeechSynthesisClient",
         ),
-        "NanoBananaGridGenerator": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
-            "NanoBananaGridGenerator",
+        "CharacterImageGenerator": (
+            f"{_MEDIA_GENERATION}.character_image_generator",
+            "CharacterImageGenerator",
+        ),
+        "ImageGridGenerator": (
+            f"{_MEDIA_GENERATION}.image_grid",
+            "ImageGridGenerator",
         ),
         "PROP_REF_IMAGE_SIZE": (
-            f"{_MEDIA_GENERATION}.nanobanana_prop",
+            f"{_MEDIA_GENERATION}.prop_image_generator",
             "PROP_REF_IMAGE_SIZE",
         ),
         "PromptComponents": (
@@ -602,11 +580,11 @@ _LAZY_EXPORTS.update(
         ),
         "PromptMode": (f"{_MEDIA_GENERATION}.prompt_builder", "PromptMode"),
         "REGEN_MODE_CONFIGS": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "REGEN_MODE_CONFIGS",
         ),
         "SKETCH_DEFAULT_MODE_KEY": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "SKETCH_DEFAULT_MODE_KEY",
         ),
         "SceneAsset": (f"{_MEDIA_GENERATION}.video_composer", "SceneAsset"),
@@ -618,12 +596,12 @@ _LAZY_EXPORTS.update(
             "UnifiedPromptBuilder",
         ),
         "VideoComposer": (f"{_MEDIA_GENERATION}.video_composer", "VideoComposer"),
-        "_call_newapi_image_api": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
-            "_call_newapi_image_api",
+        "call_image_generation_api": (
+            f"{_MEDIA_GENERATION}.image_grid",
+            "call_image_generation_api",
         ),
         "_resolve_scene_prop_asset_refs": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "_resolve_scene_prop_asset_refs",
         ),
         "build_beat_sketch_paths": (
@@ -631,7 +609,7 @@ _LAZY_EXPORTS.update(
             "build_beat_sketch_paths",
         ),
         "build_prop_reference_prompt": (
-            f"{_MEDIA_GENERATION}.nanobanana_prop",
+            f"{_MEDIA_GENERATION}.prop_image_generator",
             "build_prop_reference_prompt",
         ),
         "build_scene_reference_prompt": (
@@ -639,7 +617,7 @@ _LAZY_EXPORTS.update(
             "build_scene_reference_prompt",
         ),
         "character_grid_split": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "character_grid_split",
         ),
         "combine_to_grid": (f"{_MEDIA_GENERATION}.grid_splitter", "combine_to_grid"),
@@ -648,7 +626,7 @@ _LAZY_EXPORTS.update(
             "compute_beat_content_hash",
         ),
         "create_grid_generator": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "create_grid_generator",
         ),
         "create_image_generator": (
@@ -676,7 +654,7 @@ _LAZY_EXPORTS.update(
             "detect_sketch_colors",
         ),
         "filter_character_map_by_precomputed": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "filter_character_map_by_precomputed",
         ),
         "generate_character_reference_unified": (
@@ -688,11 +666,11 @@ _LAZY_EXPORTS.update(
             "generate_identity_image_unified",
         ),
         "generate_prop_reference": (
-            f"{_MEDIA_GENERATION}.nanobanana_prop",
+            f"{_MEDIA_GENERATION}.prop_image_generator",
             "generate_prop_reference",
         ),
         "generate_reference_edit_image": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "generate_reference_edit_image",
         ),
         "generate_scene_reference_image": (
@@ -700,11 +678,11 @@ _LAZY_EXPORTS.update(
             "generate_scene_reference_image",
         ),
         "generate_text_to_image": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "generate_text_to_image",
         ),
         "get_sketch_nxn_modes": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "get_sketch_nxn_modes",
         ),
         "is_pool_image_stale": (
@@ -713,11 +691,11 @@ _LAZY_EXPORTS.update(
         ),
         "load_pool_index": (f"{_MEDIA_GENERATION}.pool_indexer", "load_pool_index"),
         "load_precomputed_panel_detected": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "load_precomputed_panel_detected",
         ),
         "normalize_image_size": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "normalize_image_size",
         ),
         "normalize_video_title": (
@@ -725,7 +703,7 @@ _LAZY_EXPORTS.update(
             "normalize_video_title",
         ),
         "perfect_grid_split": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "perfect_grid_split",
         ),
         "rebuild_pool_index": (
@@ -733,7 +711,7 @@ _LAZY_EXPORTS.update(
             "rebuild_pool_index",
         ),
         "regenerate_selected_beats": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "regenerate_selected_beats",
         ),
         "render_ai_detection_error": (
@@ -746,19 +724,19 @@ _LAZY_EXPORTS.update(
         ),
         "save_pool_index": (f"{_MEDIA_GENERATION}.pool_indexer", "save_pool_index"),
         "scene_grid_split": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "scene_grid_split",
         ),
         "sketch_grid_split": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "sketch_grid_split",
         ),
         "sketch_pass1_mode_key": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "sketch_pass1_mode_key",
         ),
         "sketch_scene_grid_split": (
-            f"{_MEDIA_GENERATION}.nanobanana_grid",
+            f"{_MEDIA_GENERATION}.image_grid",
             "sketch_scene_grid_split",
         ),
     }
@@ -838,9 +816,9 @@ def render_plan_use_cases() -> RenderPlanUseCases:
     return build()
 
 
-def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
+def video_reference_panel_use_cases() -> VideoReferencePanelUseCases:
     from ai_anime.modules.production.composition import (
-        seedance2_panel_use_cases as build,
+        video_reference_panel_use_cases as build,
     )
 
     return build()
@@ -957,11 +935,7 @@ __all__ = [
     "IMAGE_DEFAULT_HEIGHT",
     "IMAGE_DEFAULT_STYLE",
     "IMAGE_DEFAULT_WIDTH",
-    "INDEXTTS2_RECORD_PROVIDER",
-    "INDEXTTS2_TIMEOUT_SECONDS",
     "MODE_CONFIG",
-    "OPENAI_IMAGE_QUALITY",
-    "OPENAI_SKETCH_IMAGE_QUALITY",
     "VIDEO_CODEC",
     "AddGeneratedVideoCommand",
     "AssignProjectSketchColorsCommand",
@@ -969,8 +943,7 @@ __all__ = [
     "DIRECTOR_CONTROL_TO_SKETCH_TASK_KIND",
     "GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE",
     "GRID_REGENERATION_TASK_TYPE",
-    "INDEXTTS2_AUDIO_TASK_TYPE",
-    "IndexTTS2AudioGenerationPlan",
+    "EPISODE_AUDIO_TASK_TYPE",
     "SELECTED_RENDER_REGEN_TASK_TYPE",
     "SELECTED_SKETCH_REGEN_TASK_TYPE",
     "SKETCH_GENERATION_TASK_TYPE",
@@ -986,13 +959,12 @@ __all__ = [
     "DeletedGridPoolImage",
     "DeletedVideoPoolEntry",
     "CropCurrentSketchCommand",
-    "CropSeedance2AssetCommand",
+    "CropVideoReferenceAssetCommand",
     "DetectProjectSketchMarkersCommand",
     "DirectorControlSketchUnavailable",
     "DirectorControlSketchUseCases",
     "EpisodeBeatsMissing",
     "EpisodeAudioBeatMissing",
-    "EpisodeAudioBillingQuote",
     "EpisodeAudioBeatsMissing",
     "EpisodeAudioGenerationNotRequired",
     "EpisodeAudioGenerationPlan",
@@ -1056,7 +1028,7 @@ __all__ = [
     "RenderPlanUseCases",
     "ReplaceSketchRegenQueueCommand",
     "RebuiltGridPool",
-    "RemoveSeedance2AssetCommand",
+    "RemoveVideoReferenceAssetCommand",
     "ScheduledEpisodeVideo",
     "ScheduledEpisodeAudio",
     "ScheduledGlobalVideoOptimization",
@@ -1067,13 +1039,13 @@ __all__ = [
     "ScheduledSketchEditExecution",
     "ScheduledSelectedRegeneration",
     "ScheduledSingleVideo",
-    "Seedance2I2VMode",
-    "Seedance2PanelBeatMissing",
-    "Seedance2PanelOperationRejected",
-    "Seedance2PanelQuery",
-    "Seedance2PanelUseCases",
-    "Seedance2ResolvedAsset",
-    "Seedance2VideoConfig",
+    "VideoReferenceMode",
+    "VideoReferencePanelBeatMissing",
+    "VideoReferencePanelOperationRejected",
+    "VideoReferencePanelQuery",
+    "VideoReferencePanelUseCases",
+    "VideoReferenceAsset",
+    "BeatVideoConfig",
     "SelectedRegenerationKind",
     "SelectedRegenerationRejected",
     "SelectedRegenerationUseCases",
@@ -1111,8 +1083,8 @@ __all__ = [
     "SketchRegenQueueUseCases",
     "UpdateRenderImageSettingsCommand",
     "UpdateSketchImageSettingsCommand",
-    "TrimSeedance2AudioAssetCommand",
-    "UploadSeedance2AssetCommand",
+    "TrimVideoReferenceAudioAssetCommand",
+    "UploadVideoReferenceAssetCommand",
     "UploadedBeatPoolImage",
     "UploadBeatPoolImageCommand",
     "UploadedGridImage",
@@ -1125,54 +1097,48 @@ __all__ = [
     "VoiceDesignRequirement",
     "VoiceDesignModelUnavailable",
     "VoiceDesignProvisioningFailed",
-    "Seedance2VideoPrereqError",
+    "VideoReferencePrereqError",
     "assign_identity_sketch_colors",
     "apply_style_reference",
-    "append_seedance2_user_reference_assets",
+    "append_user_video_reference_assets",
     "authoritative_detected_refs_for_beat",
     "build_reference_audio_url",
     "build_episode_identity_alias_map",
     "build_color_appearance_map",
-    "build_seedance2_project_assets",
+    "build_video_reference_assets",
     "build_character_voice_requirement",
-    "build_indextts2_audio_generation_plan",
-    "collect_indextts2_voice_prereq_errors",
-    "collect_seedance2_video_prereq_errors",
+    "build_episode_audio_generation_plan",
+    "collect_episode_audio_prereq_errors",
+    "collect_video_reference_prereq_errors",
     "collect_prop_marker_ids_from_beat",
     "canonicalize_visual_identity_markers",
     "complete_detected_refs_from_visual_description",
     "director_control_sketch_use_cases",
     "dialogue_voice_reference_rows",
-    "dump_seedance2_config",
+    "dump_video_config",
     "episode_audio_use_cases",
     "episode_export_use_cases",
     "episode_video_use_cases",
     "extract_char_identities_from_markers",
     "extract_prop_ids_from_markers",
     "file_sha256",
-    "generate_seedance2_prompt_for_panel",
+    "generate_video_prompt_for_panel",
     "get_global_video_optimizer",
     "get_grid_generation_config",
-    "grok_video_ratio",
-    "grok_video_resolution",
     "global_video_optimization_use_cases",
     "grid_regeneration_use_cases",
     "grid_pool_use_cases",
-    "happyhorse_ratio",
-    "happyhorse_resolution",
     "global_prop_marker_colors",
     "image_generation_usage_use_cases",
-    "is_grok_video_model",
-    "is_happyhorse_model",
-    "is_seedance2_model",
     "manual_sketch_regeneration_use_cases",
     "narration_style_prompt",
     "normalize_detected_identities",
     "normalize_detected_props",
     "normalize_video_generation_duration",
-    "normalize_seedance2_audio_type",
-    "parse_seedance2_config",
-    "prepare_seedance2_generation_inputs",
+    "normalize_video_ratio",
+    "normalize_video_audio_type",
+    "parse_video_config",
+    "prepare_video_reference_generation_inputs",
     "prepare_global_optimizer_input",
     "production_generation_context_use_cases",
     "production_image_settings_use_cases",
@@ -1187,7 +1153,7 @@ __all__ = [
     "resolve_character_voice",
     "resolve_narrator_reference_status",
     "resolve_narrator_source",
-    "run_indextts2_beat_audio_generation",
+    "run_episode_audio_generation",
     "selected_reference_paths",
     "sketch_generation_use_cases",
     "sketch_edit_execution_use_cases",
@@ -1196,16 +1162,20 @@ __all__ = [
     "sketch_marker_detection_task_use_cases",
     "sketch_regen_queue_use_cases",
     "video_api_resolution",
-    "seedance2_panel_use_cases",
+    "video_model_uses_advanced_reference_workflow",
+    "video_model_uses_reference_workflow",
+    "video_model_workflow",
+    "video_reference_panel_use_cases",
     "selected_regeneration_use_cases",
     "video_resolution",
+    "validate_video_resolution_duration",
     "single_video_use_cases",
     "video_pool_use_cases",
     "DEFAULT_NARRATION_STYLE",
     "NARRATION_STYLES",
-    "IndexTTS2Client",
-    "NanoBananaCharacterGenerator",
-    "NanoBananaGridGenerator",
+    "SpeechSynthesisClient",
+    "CharacterImageGenerator",
+    "ImageGridGenerator",
     "PROP_REF_IMAGE_SIZE",
     "PromptComponents",
     "PromptMode",
@@ -1217,7 +1187,7 @@ __all__ = [
     "TTSResult",
     "UnifiedPromptBuilder",
     "VideoComposer",
-    "_call_newapi_image_api",
+    "call_image_generation_api",
     "_resolve_scene_prop_asset_refs",
     "build_beat_sketch_paths",
     "build_prop_reference_prompt",
@@ -1250,7 +1220,6 @@ __all__ = [
     "load_pool_index",
     "load_precomputed_panel_detected",
     "list_available_styles",
-    "nanobanana_grid",
     "normalize_image_size",
     "normalize_video_title",
     "perfect_grid_split",

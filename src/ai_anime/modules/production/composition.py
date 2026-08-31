@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from ai_anime.modules.model_usage.public import get_usage_meter
 from ai_anime.modules.production.application.director_control_sketch import (
     DirectorControlSketchUseCases,
 )
@@ -62,8 +61,8 @@ from ai_anime.modules.production.application.manual_sketch_regeneration import (
 from ai_anime.modules.production.application.render_planning import (
     RenderPlanUseCases,
 )
-from ai_anime.modules.production.application.seedance2_panel import (
-    Seedance2PanelUseCases,
+from ai_anime.modules.production.application.video_reference_panel import (
+    VideoReferencePanelUseCases,
 )
 from ai_anime.modules.production.application.selected_regeneration import (
     SelectedRegenerationUseCases,
@@ -101,8 +100,7 @@ from ai_anime.modules.production.infrastructure.episode_export import (
     LocalEpisodeExportFiles,
 )
 from ai_anime.modules.production.infrastructure.episode_audio import (
-    IndexTTS2EpisodeAudioPlanner,
-    ModelUsageEpisodeAudioBilling,
+    CatalogEpisodeAudioPlanner,
     TaskExecutionEpisodeAudioScheduler,
 )
 from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
@@ -144,7 +142,7 @@ from ai_anime.modules.production.infrastructure.global_video_optimization import
 )
 from ai_anime.modules.production.infrastructure.grid_regeneration import (
     LocalGridRegenerationPreparer,
-    NanoBananaGridRegenerationPlanner,
+    ImageGridRegenerationPlanner,
     TaskExecutionGridRegenerationScheduler,
 )
 from ai_anime.modules.production.infrastructure.grid_pool import LocalGridPoolGateway
@@ -154,11 +152,11 @@ from ai_anime.modules.production.infrastructure.manual_sketch_regeneration impor
 from ai_anime.modules.production.infrastructure.render_planning import (
     EnvironmentRenderPlanAvailability,
     LocalRenderPlanningPreparer,
-    NanoBananaRenderPlanEngine,
+    ImageRenderPlanEngine,
     TaskExecutionRenderPlanScheduler,
 )
-from ai_anime.modules.production.infrastructure.seedance2_panel import (
-    LocalSeedance2PanelGateway,
+from ai_anime.modules.production.infrastructure.video_reference_panel import (
+    LocalVideoReferencePanelGateway,
 )
 from ai_anime.modules.production.infrastructure.selected_regeneration import (
     LocalSelectedRegenerationPreparer,
@@ -171,7 +169,7 @@ from ai_anime.modules.production.infrastructure.single_video import (
 )
 from ai_anime.modules.production.infrastructure.sketch_generation import (
     LocalSketchGenerationPreparer,
-    NanoBananaSketchGridPlanner,
+    SketchGridPlanner,
     TaskExecutionSketchGenerationScheduler,
 )
 from ai_anime.modules.production.infrastructure.sketch_edit_execution import (
@@ -184,8 +182,7 @@ from ai_anime.modules.task_execution.public import project_task_submission_use_c
 def episode_audio_use_cases() -> EpisodeAudioUseCases:
     return EpisodeAudioUseCases(
         SqliteEpisodeBeatSource(),
-        IndexTTS2EpisodeAudioPlanner(),
-        ModelUsageEpisodeAudioBilling(),
+        CatalogEpisodeAudioPlanner(),
         TaskExecutionEpisodeAudioScheduler(project_task_submission_use_cases()),
         ModelUsageVoiceDesignProvisioner(),
     )
@@ -237,7 +234,7 @@ def grid_regeneration_use_cases() -> GridRegenerationUseCases:
                 store,
                 context.owner_username,
             ),
-            NanoBananaGridRegenerationPlanner(),
+            ImageGridRegenerationPlanner(),
         ),
         TaskExecutionGridRegenerationScheduler(project_task_submission_use_cases()),
     )
@@ -263,14 +260,14 @@ def render_plan_use_cases() -> RenderPlanUseCases:
             ),
             AssetWorldRuntimePropMenuSource(),
         ),
-        NanoBananaRenderPlanEngine(),
+        ImageRenderPlanEngine(),
         TaskExecutionRenderPlanScheduler(project_task_submission_use_cases()),
     )
 
 
-def seedance2_panel_use_cases() -> Seedance2PanelUseCases:
-    return Seedance2PanelUseCases(
-        LocalSeedance2PanelGateway(
+def video_reference_panel_use_cases() -> VideoReferencePanelUseCases:
+    return VideoReferencePanelUseCases(
+        LocalVideoReferencePanelGateway(
             CompatibleEpisodeSource(),
             AssetWorldRuntimePropMenuSource(),
         )
@@ -302,7 +299,7 @@ def sketch_generation_use_cases() -> SketchGenerationUseCases:
                 context.owner_username,
             ),
             AssetWorldRuntimePropMenuSource(),
-            NanoBananaSketchGridPlanner(),
+            SketchGridPlanner(),
         ),
         TaskExecutionSketchGenerationScheduler(project_task_submission_use_cases()),
     )
@@ -416,7 +413,6 @@ def sketch_marker_use_cases() -> SketchMarkerUseCases:
             AssetWorldRuntimePropMenuSource(),
             LocalSketchMarkerDetectionFiles(),
             GlobalVideoOptimizerSketchMarkerDetector(),
-            get_usage_meter(),
         ),
     )
 

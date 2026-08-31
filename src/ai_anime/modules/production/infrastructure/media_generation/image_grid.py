@@ -7,7 +7,7 @@ Sketch 模式按 beat 顺序分块生成网格，并通过当前 cloud/BYOK 访�
 1. 从 beats 数据构建网格 Prompt
 2. 调用当前商业图片模型生成网格图
 3. 使用 grid_splitter 分割成独立分镜
-4. 使用 Seedream 图生图做高清修复
+4. 使用当前图片模型做高清修复
 """
 
 import asyncio
@@ -36,10 +36,9 @@ from ai_anime.modules.production.infrastructure.media_generation_settings import
     get_style_preset as get_style_preset,
 )
 from ai_anime.modules.model_usage.public import (
-    get_usage_meter,
-    image_model_supports_quality,
-    is_insufficient_credits_error,
+    is_model_quota_error,
     model_protocol_error_message,
+    runtime_model_capability,
 )
 from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
     PromptComponents as PromptComponents,
@@ -130,8 +129,8 @@ from ai_anime.modules.production.infrastructure.media_generation.grid_planning i
     _coalesce_locations as _coalesce_locations,
     SKETCH_NXN_MODES as SKETCH_NXN_MODES,
 )
-from ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid_generator import (
-    NanoBananaGridGenerator as NanoBananaGridGenerator,
+from ai_anime.modules.production.infrastructure.media_generation.image_grid_generator import (
+    ImageGridGenerator as ImageGridGenerator,
     _generation_beat_number as _generation_beat_number,
 )
 
@@ -152,33 +151,24 @@ _STANDARD_IMAGE_EXTENSION_BY_MIME = {
 logger = logging.getLogger(__name__)
 
 
-def _newapi_request_id_from_headers(headers: Any) -> str:
+def _provider_request_id_from_headers(headers: Any) -> str:
     if not headers:
         return ""
-    return (
-        headers.get("x-request-id")
-        or headers.get("x-newapi-request-id")
-        or headers.get("x-oneapi-request-id")
-        or ""
-    )
+    return headers.get("x-request-id") or ""
 
 
-NEWAPI_IMAGE_CONNECT_TIMEOUT_SECONDS = 15.0
-NEWAPI_IMAGE_READ_TIMEOUT_SECONDS = 1200.0
-NEWAPI_IMAGE_WRITE_TIMEOUT_SECONDS = 60.0
-NEWAPI_IMAGE_POOL_TIMEOUT_SECONDS = 15.0
-NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS = 30 * 60.0
-# 保留旧常量名，避免外部集成导入失败；实际请求使用上面的分阶段超时。
-NEWAPI_IMAGE_HTTP_TIMEOUT_SECONDS = NEWAPI_IMAGE_READ_TIMEOUT_SECONDS
+IMAGE_GATEWAY_CONNECT_TIMEOUT_SECONDS = 15.0
+IMAGE_GATEWAY_READ_TIMEOUT_SECONDS = 1200.0
+IMAGE_GATEWAY_WRITE_TIMEOUT_SECONDS = 60.0
+IMAGE_GATEWAY_POOL_TIMEOUT_SECONDS = 15.0
+IMAGE_GATEWAY_TOTAL_TIMEOUT_SECONDS = 30 * 60.0
 
 
-def _newapi_safe_header_summary(headers: Any) -> dict[str, str]:
+def _safe_header_summary(headers: Any) -> dict[str, str]:
     if not headers:
         return {}
     safe_keys = (
         "x-request-id",
-        "x-newapi-request-id",
-        "x-oneapi-request-id",
         "x-ai-anime-route-source",
         "x-ai-anime-route-model",
         "x-ai-anime-route-role",
@@ -194,7 +184,7 @@ def _newapi_safe_header_summary(headers: Any) -> dict[str, str]:
     return summary
 
 
-def _newapi_safe_request_context(
+def _safe_request_context(
     *,
     endpoint: str,
     request_path: str,
@@ -214,7 +204,7 @@ def _newapi_safe_request_context(
     }
 
 
-def _newapi_context_for_error(context: dict[str, object]) -> str:
+def _context_for_error(context: dict[str, object]) -> str:
     return (
         f"model={context.get('model')}; "
         f"endpoint={context.get('endpoint')}; "
@@ -225,7 +215,7 @@ def _newapi_context_for_error(context: dict[str, object]) -> str:
     )
 
 
-def _newapi_image_multipart_files(
+def _image_multipart_files(
     reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]],
 ) -> list[tuple[str, tuple[str, bytes, str]]]:
     if len(reference_images) > _STANDARD_IMAGE_MAX_FILES:
@@ -334,26 +324,10 @@ def normalize_image_size(size: str) -> str:
     return "1K" if str(size or "").strip() == "0.5K" else str(size or "").strip()
 
 
-def _newapi_resolution_from_image_size(image_size: str | None) -> str:
+def _resolution_from_image_size(image_size: str | None) -> str:
     normalized = normalize_image_size(str(image_size or "").strip())
     lower = normalized.lower()
     return lower if lower in {"1k", "2k", "4k"} else ""
-
-
-def _image_credit_billing_params(
-    *,
-    image_size: str | None = None,
-    quality: str | None = None,
-    model_params: dict[str, object] | None = None,
-) -> dict[str, object]:
-    params: dict[str, object] = dict(model_params or {})
-    clean_size = str(image_size or "").strip().lower()
-    if clean_size:
-        params["size"] = clean_size
-    clean_quality = str(quality or "").strip().lower()
-    if clean_quality:
-        params["quality"] = clean_quality
-    return params
 
 
 def _round_standard_edge(value: float) -> int:
@@ -363,8 +337,8 @@ def _round_standard_edge(value: float) -> int:
 def resolve_standard_image_size(aspect_ratio: str = "1:1", image_size: str = "1K") -> str:
     """Map internal aspect/image-size labels to standard flexible size strings.
 
-    gpt-image-2 supports flexible sizes, but they must satisfy OpenAI's documented
-    constraints: both edges are multiples of 16, max edge <= 3840, ratio <= 3:1,
+    Flexible-size image APIs require bounded dimensions: both edges are multiples
+    of 16, max edge <= 3840, ratio <= 3:1,
     and total pixels within the valid range. "1K" here means the smallest valid
     draft size near a 1024px long edge.
     """
@@ -494,7 +468,7 @@ async def _generate_image(
     style: str | None,
 ) -> Path:
     """Shared body for text-only and image-edit single-image generation."""
-    generator = NanoBananaGridGenerator(config=config)
+    generator = ImageGridGenerator(config=config)
     ref_paths = list(reference_image_paths or [])
     ref_bytes: list[bytes | tuple[str, bytes, str]] = [
         Path(path).read_bytes() for path in ref_paths
@@ -516,7 +490,7 @@ async def _generate_image(
             ref_bytes,
             style_preset,
         )
-    image_bytes, _, error_detail = await _call_newapi_image_api(
+    image_bytes, _, error_detail = await _call_image_generation_api(
         prompt=effective_prompt,
         reference_images=ref_bytes or None,
         image_config={
@@ -643,14 +617,14 @@ def find_sketch_for_beat_range(
     return path, rows, cols
 
 
-async def _call_newapi_image_api(
+async def _call_image_generation_api(
     *,
     prompt: str,
     reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]] | None = None,
     image_config: dict | None = None,
     trace: dict[str, str] | None = None,
 ) -> tuple[bytes | None, str, str]:
-    """Call newAPI's OpenAI-compatible Images API."""
+    """Call the model gateway's standard image-generation API."""
     import httpx
 
     from ai_anime.modules.model_usage.public import get_model_access_json_transport
@@ -679,7 +653,7 @@ async def _call_newapi_image_api(
         "aspect_ratio": aspect_ratio,
         "image_size": image_size,
     }
-    resolution = _newapi_resolution_from_image_size(image_size)
+    resolution = _resolution_from_image_size(image_size)
     if resolution:
         extra_fields["resolution"] = resolution
 
@@ -693,7 +667,8 @@ async def _call_newapi_image_api(
         "response_format": "b64_json",
         "extra_fields": extra_fields,
     }
-    if image_model_supports_quality(clean_model):
+    capability = runtime_model_capability(model_selector or clean_model)
+    if capability is not None and "quality" in capability.extra_parameter_names:
         quality = normalize_image_quality(
             str(image_config.get("quality") or ""),
             default="medium",
@@ -710,11 +685,11 @@ async def _call_newapi_image_api(
     if reference_images:
         request_path = "images/edits"
         try:
-            multipart_files = _newapi_image_multipart_files(reference_images)
+            multipart_files = _image_multipart_files(reference_images)
         except (TypeError, ValueError) as exc:
             return None, "", str(exc)
 
-    request_context = _newapi_safe_request_context(
+    request_context = _safe_request_context(
         endpoint=endpoint,
         request_path=request_path,
         model=clean_model,
@@ -723,69 +698,6 @@ async def _call_newapi_image_api(
         reference_image_count=len(multipart_files),
     )
     logger.info("AI anime API image request: %s", request_context)
-    async def _reserve(source: str) -> str:
-        return await get_usage_meter().reserve_current_model_call_credit(
-            model=clean_model,
-            billing_kind="image",
-            billing_params=_image_credit_billing_params(
-                image_size=image_size,
-                quality=extra_fields.get("quality"),
-                model_params=model_params,
-            ),
-            metadata={"source": source},
-        )
-
-    async def _refund(
-        reservation_id: str,
-        source: str,
-        error: str,
-        *,
-        request_id: str = "",
-        http_status: int | None = None,
-        headers: dict[str, str] | None = None,
-    ) -> None:
-        if not reservation_id:
-            return
-        try:
-            metadata: dict[str, object] = {"source": source, "error": error[:200]}
-            if request_id:
-                metadata["request_id"] = request_id
-            if http_status is not None:
-                metadata["http_status"] = http_status
-            if headers:
-                metadata["response_headers"] = headers
-            await get_usage_meter().refund_model_call_credit_reservation(
-                reservation_id,
-                metadata=metadata,
-            )
-        except Exception:
-            logger.exception(
-                "failed to refund image model call reservation_id=%s source=%s",
-                reservation_id,
-                source,
-            )
-
-    async def _confirm(
-        reservation_id: str,
-        *,
-        provider_request_id: str = "",
-        response_id: str = "",
-    ) -> None:
-        try:
-            await get_usage_meter().bump_model_call(
-                user_id=None,
-                model=clean_model,
-                provider_request_id=provider_request_id,
-                credit_reservation_id=reservation_id,
-                metadata={"response_id": response_id} if response_id else None,
-            )
-        except Exception:
-            logger.exception(
-                "failed to confirm image model call reservation_id=%s model=%s",
-                reservation_id,
-                clean_model,
-            )
-
     def _record_trace(
         *,
         provider_request_id: str = "",
@@ -798,24 +710,22 @@ async def _call_newapi_image_api(
         if response_id:
             trace["response_id"] = response_id
 
-    reservation_id = ""
     provider_request_id = ""
     try:
-        reservation_id = await _reserve("newapi_image_api")
         request_headers = dict(headers)
         request_headers["Idempotency-Key"] = str(uuid.uuid4())
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=NEWAPI_IMAGE_CONNECT_TIMEOUT_SECONDS,
-                read=NEWAPI_IMAGE_READ_TIMEOUT_SECONDS,
-                write=NEWAPI_IMAGE_WRITE_TIMEOUT_SECONDS,
-                pool=NEWAPI_IMAGE_POOL_TIMEOUT_SECONDS,
+                connect=IMAGE_GATEWAY_CONNECT_TIMEOUT_SECONDS,
+                read=IMAGE_GATEWAY_READ_TIMEOUT_SECONDS,
+                write=IMAGE_GATEWAY_WRITE_TIMEOUT_SECONDS,
+                pool=IMAGE_GATEWAY_POOL_TIMEOUT_SECONDS,
             ),
             follow_redirects=True,
         ) as client:
             logger.info("AI anime API image POST start: %s", request_context.get("endpoint"))
-            async with asyncio.timeout(NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS):
+            async with asyncio.timeout(IMAGE_GATEWAY_TOTAL_TIMEOUT_SECONDS):
                 if multipart_files:
                     request_headers.pop("Content-Type", None)
                     form_fields = {
@@ -845,24 +755,12 @@ async def _call_newapi_image_api(
             )
             response.raise_for_status()
             response_headers = getattr(response, "headers", {}) or {}
-            provider_request_id = _newapi_request_id_from_headers(response_headers)
+            provider_request_id = _provider_request_id_from_headers(response_headers)
             try:
                 result = response.json()
             except (TypeError, ValueError) as exc:
-                await _refund(
-                    reservation_id,
-                    "newapi_image_api",
-                    "invalid_json",
-                    request_id=provider_request_id,
-                )
                 return None, "", f"AI anime API Images response is not valid JSON: {exc}"
             if not isinstance(result, dict):
-                await _refund(
-                    reservation_id,
-                    "newapi_image_api",
-                    "invalid_response_shape",
-                    request_id=provider_request_id,
-                )
                 return None, "", "AI anime API Images response must be an object"
             logger.info(
                 "AI anime API image POST parsed: data_count=%d keys=%s",
@@ -877,12 +775,6 @@ async def _call_newapi_image_api(
             _record_trace(provider_request_id=provider_request_id, response_id=response_id)
             protocol_error = model_protocol_error_message(result)
             if protocol_error:
-                await _refund(
-                    reservation_id,
-                    "newapi_image_api",
-                    "protocol_error",
-                    request_id=provider_request_id,
-                )
                 request_context_text = (
                     f"request_id={provider_request_id}; " if provider_request_id else ""
                 )
@@ -895,46 +787,24 @@ async def _call_newapi_image_api(
 
             data = result.get("data") or []
             if not isinstance(data, list) or not data:
-                await _refund(
-                    reservation_id,
-                    "newapi_image_api",
-                    "missing_data",
-                    request_id=provider_request_id,
-                )
                 return None, "", f"AI anime API Images response missing data: {sorted(result.keys())}"
 
             first = data[0] or {}
             if not isinstance(first, dict):
-                await _refund(
-                    reservation_id,
-                    "newapi_image_api",
-                    "invalid_image_item",
-                    request_id=provider_request_id,
-                )
                 return None, "", "AI anime API Images data[0] must be an object"
             image_b64 = first.get("b64_json") or ""
             if image_b64:
                 image_bytes = base64.b64decode(image_b64)
-                await _confirm(
-                    reservation_id,
-                    provider_request_id=provider_request_id,
-                    response_id=response_id,
-                )
                 return image_bytes, "", ""
 
             image_url = first.get("url") or first.get("image_url") or ""
             if image_url.startswith("data:image"):
                 _, b64_data = image_url.split(",", 1)
                 image_bytes = base64.b64decode(b64_data)
-                await _confirm(
-                    reservation_id,
-                    provider_request_id=provider_request_id,
-                    response_id=response_id,
-                )
                 return image_bytes, "", ""
             if image_url:
-                # NewAPI 返 URL 而非 b64 时,要二次 GET 拉图。这个 await 是常见的
-                # "newapi 已生成但任务还在 await" hang 点 —— 用单独的短 timeout
+                # Model Gateway 返 URL 而非 b64 时,要二次 GET 拉图。这个 await 是常见的
+                # 图片已生成但任务仍在等待下载是常见挂起点，使用独立短超时。
                 # (60s),避免落入主生成请求的长读取超时。
                 # 加 phase log 让 hang 时能定位卡在哪。
                 logger.info("AI anime API image GET url start: %s", image_url[:120])
@@ -947,49 +817,24 @@ async def _call_newapi_image_api(
                 )
                 image_response.raise_for_status()
                 image_bytes = image_response.content
-                await _confirm(
-                    reservation_id,
-                    provider_request_id=provider_request_id,
-                    response_id=response_id,
-                )
                 return image_bytes, "", ""
 
-            await _refund(
-                reservation_id,
-                "newapi_image_api",
-                "missing_image_payload",
-                request_id=provider_request_id,
-            )
             return None, "", f"AI anime API Images response missing b64_json/url: {first}"
     except TimeoutError:
-        await _refund(
-            reservation_id,
-            "newapi_image_api",
-            "total_timeout",
-            request_id=provider_request_id,
-        )
-        timeout_minutes = int(NEWAPI_IMAGE_TOTAL_TIMEOUT_SECONDS // 60)
+        timeout_minutes = int(IMAGE_GATEWAY_TOTAL_TIMEOUT_SECONDS // 60)
         logger.warning(
             "AI anime API image request exceeded absolute timeout: %s minutes; %s",
             timeout_minutes,
-            _newapi_context_for_error(request_context),
+            _context_for_error(request_context),
         )
         return None, "", f"请求超时：图片生成超过 {timeout_minutes} 分钟，已中止"
     except httpx.HTTPStatusError as exc:
         body = (exc.response.text or "")[:2000]
         status_code = exc.response.status_code
         response_headers = getattr(exc.response, "headers", {}) or {}
-        safe_headers = _newapi_safe_header_summary(response_headers)
-        request_id = _newapi_request_id_from_headers(response_headers) or provider_request_id
-        await _refund(
-            reservation_id,
-            "newapi_image_api",
-            f"HTTP {status_code}",
-            request_id=request_id,
-            http_status=status_code,
-            headers=safe_headers,
-        )
-        error_context = _newapi_context_for_error(request_context)
+        safe_headers = _safe_header_summary(response_headers)
+        request_id = _provider_request_id_from_headers(response_headers) or provider_request_id
+        error_context = _context_for_error(request_context)
         header_context = (
             f"request_id={request_id}; headers={safe_headers}; "
             if request_id or safe_headers
@@ -1019,15 +864,9 @@ async def _call_newapi_image_api(
             f"HTTP {status_code}: {header_context}{error_context}; body={body}",
         )
     except Exception as exc:
-        await _refund(
-            reservation_id,
-            "newapi_image_api",
-            type(exc).__name__,
-            request_id=provider_request_id,
-        )
-        if is_insufficient_credits_error(exc):
+        if is_model_quota_error(exc):
             raise
-        error_context = _newapi_context_for_error(request_context)
+        error_context = _context_for_error(request_context)
         detail = f"{type(exc).__name__}: {exc!r}; {error_context}"
         logger.warning("AI anime API image request exception: %s", detail)
         return None, "", f"请求异常: {detail}"
@@ -1441,6 +1280,10 @@ async def regenerate_selected_beats(
     return [result for result in results if result is not None]
 
 
-def create_grid_generator(config: Optional[dict] = None) -> NanoBananaGridGenerator:
+def create_grid_generator(config: Optional[dict] = None) -> ImageGridGenerator:
     """使用当前商业模型访问配置创建网格生成器。"""
-    return NanoBananaGridGenerator(config=config)
+    return ImageGridGenerator(config=config)
+
+
+ImageGridGenerator = ImageGridGenerator
+call_image_generation_api = _call_image_generation_api

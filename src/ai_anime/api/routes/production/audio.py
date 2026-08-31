@@ -22,16 +22,15 @@ from ai_anime.modules.production.public import (
 router = APIRouter()
 
 
-@router.post("/projects/{project}/episodes/{episode_num}/audio/billing-quote")
-async def audio_generation_billing_quote(
+@router.post("/projects/{project}/episodes/{episode_num}/audio/plan")
+async def audio_generation_plan(
     project: str,
     episode_num: int,
     body: EpisodeAudioGenerateRequest = EpisodeAudioGenerateRequest(),
     user: dict = Depends(get_api_user),
 ):
-    """Quote the exact Beat audio calls through the shared model usage protocol."""
     resolved = await resolve_project_scope(project, user, required_role="viewer")
-    quote = await episode_audio_use_cases().billing_quote(
+    plan = await episode_audio_use_cases().plan(
         resolved.ctx,
         GenerateEpisodeAudioCommand(
             episode_num=episode_num,
@@ -39,7 +38,7 @@ async def audio_generation_billing_quote(
             beat_numbers=body.beat_numbers,
         ),
     )
-    return {"ok": True, "data": quote.as_dict()}
+    return {"ok": True, "data": plan.as_dict()}
 
 
 @router.post("/projects/{project}/episodes/{episode_num}/audio/generate")
@@ -49,7 +48,7 @@ async def generate_audio(
     body: EpisodeAudioGenerateRequest = EpisodeAudioGenerateRequest(),
     user: dict = Depends(get_api_user),
 ):
-    """Generate episode audio with IndexTTS2."""
+    """Generate episode audio with the selected speech model."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         scheduled = await episode_audio_use_cases().generate(
@@ -84,7 +83,7 @@ async def regenerate_beat_audio(
     body: EpisodeAudioRegenerateRequest = EpisodeAudioRegenerateRequest(),
     user: dict = Depends(get_api_user),
 ):
-    """Regenerate one Beat's IndexTTS2 audio."""
+    """Regenerate one Beat's audio with the selected speech model."""
     resolved = await resolve_project_scope(project, user, required_role="editor")
     try:
         scheduled = await episode_audio_use_cases().regenerate_beat(
