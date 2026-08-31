@@ -37,7 +37,6 @@ from ai_anime.modules.production.domain.video_model import (
     uses_advanced_reference_video_workflow,
     uses_reference_video_workflow,
     validate_video_resolution_duration,
-    video_api_resolution,
     video_resolution,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -256,12 +255,13 @@ class LocalSingleVideoPreparer:
         duration: float,
         prop_menu: list[Any],
         resolution_options: tuple[str, ...],
+        size_options: tuple[str, ...],
     ) -> Any:
         current_config = parse_video_config(
             beat.get("video_config_json")
         )
         requested_resolution = (
-            video_api_resolution(command.resolution)
+            command.resolution
             if command.was_provided("resolution")
             else current_config.resolution
         )
@@ -277,6 +277,7 @@ class LocalSingleVideoPreparer:
                 command.video_model,
                 requested_resolution,
                 resolution_options,
+                size_options,
             ),
             ratio=command.ratio if command.was_provided("ratio") else None,
             prop_menu=prop_menu,
@@ -443,6 +444,7 @@ class LocalSingleVideoPreparer:
                         duration=video_duration,
                         prop_menu=prop_menu,
                         resolution_options=resolution_options,
+                        size_options=size_options,
                     )
                     prompt = prepared.prompt
                     video_duration = prepared.duration

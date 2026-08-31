@@ -167,13 +167,12 @@ function videoModelOptionFromCatalog(
     workflow,
     supportsAdvancedConfig,
     supportsNativeAudio:
-      booleanValue(
-        firstDefined(
-          capabilities.generateAudio,
-          capabilities.nativeAudio,
-          capabilities.audio,
-        ),
-      ) ?? Boolean(properties.generate_audio),
+      [
+        capabilities.generateAudio,
+        capabilities.nativeAudio,
+        capabilities.audio,
+      ].some((value) => booleanValue(value) === true) ||
+      Boolean(properties.generate_audio),
     dialogueOnly: booleanValue(capabilities.dialogueOnly) ?? false,
     ...optional("minDuration", minDuration),
     ...optional("maxDuration", maxDuration),

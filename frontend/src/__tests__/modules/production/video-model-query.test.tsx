@@ -108,7 +108,7 @@ describe("Production video model query", () => {
     ]);
   });
 
-  it("projects H3 exact frame sizes into one semantic resolution tier", () => {
+  it("keeps H3 exact sizes and audio capabilities aligned with the catalog", () => {
     const useVideoModels = createUseVideoModels(() => ({
       data: {
         catalogVersion: "catalog-h3",
@@ -122,14 +122,16 @@ describe("Production video model query", () => {
               routeSelector: "cloud:video-model-basic",
               supportedModes: ["IMAGE_TO_VIDEO", "MULTIMODAL_REFERENCE"],
               ratioOptions: ["16:9", "9:16", "1:1"],
-              resolutionOptions: ["1344x768", "768x1344", "1024x1024"],
+              resolutionOptions: ["1024x576", "576x1024", "1024x1024"],
               minDuration: 1,
               maxDuration: 15,
+              nativeAudio: true,
+              generateAudio: false,
             },
             parameterSchema: {
               properties: {
                 size: {
-                  enum: ["1344x768", "768x1344", "1024x1024"],
+                  enum: ["1024x576", "576x1024", "1024x1024"],
                 },
               },
             },
@@ -146,11 +148,14 @@ describe("Production video model query", () => {
       expect.objectContaining({
         value: "cloud:video-model-basic",
         apiModel: "video-model-basic",
-        resolutionOptions: ["768p"],
-        sizeOptions: ["1344x768", "768x1344", "1024x1024"],
+        workflow: "standard",
+        supportsAdvancedConfig: true,
+        supportsNativeAudio: true,
+        sizeOptions: ["1024x576", "576x1024", "1024x1024"],
         ratioOptions: ["16:9", "9:16", "1:1"],
       }),
     ]);
+    expect(result.current.data[0]).not.toHaveProperty("resolutionOptions");
   });
 
   it("does not let a stale persisted model bypass the current catalog", () => {

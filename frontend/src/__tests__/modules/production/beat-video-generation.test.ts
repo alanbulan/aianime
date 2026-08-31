@@ -118,4 +118,31 @@ describe("beat video generation domain", () => {
       model: "video-model-d",
     });
   });
+
+  it("uses an exact catalog size when no semantic resolution is declared", () => {
+    const sourceConfig = makeDraft({ ratio: "9:16", resolution: "720p" });
+    const result = prepareBeatVideoGeneration({
+      model: "video-model-sized",
+      modelSelector: "cloud:video-model-sized",
+      beatNumber: 8,
+      kind: "advanced",
+      dirty: false,
+      draft: sourceConfig,
+      supportsSceneOptimize: false,
+      ratioOptions: ["16:9", "9:16", "1:1"],
+      resolutionOptions: [],
+      sizeOptions: ["1024x576", "576x1024", "1024x1024"],
+      sourceConfig,
+    });
+
+    expect(result.command).toEqual({
+      beatNum: 8,
+      model: "video-model-sized",
+      modelSelector: "cloud:video-model-sized",
+      duration: 5,
+      mode: "multimodal_reference",
+      ratio: "9:16",
+      resolution: "576x1024",
+    });
+  });
 });

@@ -325,7 +325,8 @@ async def test_advanced_reference_workflow_uses_prepared_config_and_audio_durati
         "video_mode": "first_frame",
         "video_prompt": "old prompt",
         "video_config_json": (
-            '{"duration": 11, "final_prompt": "configured prompt"}'
+            '{"duration": 11, "resolution": "576x1024", '
+            '"ratio": "9:16", "final_prompt": "configured prompt"}'
         ),
     }
     store = _Store([beat])
@@ -352,18 +353,31 @@ async def test_advanced_reference_workflow_uses_prepared_config_and_audio_durati
     monkeypatch.setattr(
         single_video,
         "runtime_model_capability",
-        lambda _model: SimpleNamespace(video_workflow="advanced-reference"),
+        lambda _model: SimpleNamespace(
+            video_workflow="advanced-reference",
+            video_resolution_options=(),
+            video_size_options=("1024x576", "576x1024", "1024x1024"),
+        ),
     )
 
     task = await preparer.prepare(
         _context(tmp_path),
-        _command(video_model="video-model-reference"),
+        _command(
+            video_model="video-model-reference",
+            resolution="576x1024",
+            ratio="9:16",
+            provided_fields=frozenset({"resolution", "ratio"}),
+        ),
     )
 
     assert calls[0]["duration"] == 6.4
+    assert calls[0]["resolution"] == "576x1024"
+    assert calls[0]["ratio"] == "9:16"
     assert task.config["prompt"] == "configured prompt"
     assert task.config["video_duration"] == 11
     assert task.config["video_config"] == beat["video_config_json"]
+    assert task.config["resolution"] == "576x1024"
+    assert task.config["ratio"] == "9:16"
     assert store.close_calls == 1
 
 

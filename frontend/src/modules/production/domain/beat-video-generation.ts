@@ -7,7 +7,6 @@ import {
   serializeReferenceVideoConfig,
   type ExactVideoResolution,
   type BeatVideoConfigDraft,
-  type VideoResolutionTier,
   type VideoResolution,
 } from "@/modules/production/domain/video-config";
 
@@ -90,15 +89,18 @@ export function prepareBeatVideoGeneration(
       normalizedDraft.resolution,
       normalizedDraft.ratio,
     );
+    const resolution =
+      exactSize ??
+      (input.resolutionOptions.length
+        ? normalizedDraft.resolution
+        : undefined);
     return {
       command: {
         ...baseCommand,
         duration: normalizedDraft.duration,
         mode: normalizedDraft.mode,
         ratio: normalizedDraft.ratio,
-        ...(input.resolutionOptions.length
-          ? { resolution: exactSize ?? normalizedDraft.resolution }
-          : {}),
+        ...(resolution ? { resolution } : {}),
       },
       draftChanged,
       normalizedDraft,
@@ -148,14 +150,10 @@ function exactVideoSizeForConfig(
 
   const [ratioWidth, ratioHeight] = ratio.split(":").map(Number);
   const targetRatio = ratioWidth / ratioHeight;
-  const targetShortEdge = resolution.includes("x")
-    ? undefined
-    : {
-        "480p": 480,
-        "720p": 720,
-        "768p": 768,
-        "1080p": 1080,
-      }[resolution as VideoResolutionTier];
+  const tierMatch = /^(\d{2,5})p$/.exec(resolution);
+  const targetShortEdge = tierMatch
+    ? Number(tierMatch[1])
+    : undefined;
 
   return normalizedSizes.reduce((best, candidate) => {
     const score = exactSizeScore(candidate, targetRatio, targetShortEdge);
