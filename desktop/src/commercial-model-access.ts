@@ -36,6 +36,14 @@ export const BYOK_MODEL_ROLES = [
 
 export type ByokModelRole = (typeof BYOK_MODEL_ROLES)[number];
 
+export function normalizeCommercialModelMode(value: string): string {
+  return value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_");
+}
+
 export interface ModelRuntimeOverrides {
   contextWindow?: number;
   maxOutputTokens?: number;
@@ -154,7 +162,6 @@ const FORBIDDEN_RUNTIME_PARAMETER_KEYS = new Set([
   "xgoogapikey",
 ]);
 const BYOK_MODEL_ROLE_SET = new Set<string>(BYOK_MODEL_ROLES);
-const DEPRECATED_BYOK_MODEL_ROLE_SET = new Set(["RERANK", "MODERATION"]);
 const BYOK_PROVIDER_PROTOCOL_SET = new Set<string>(BYOK_PROVIDER_PROTOCOLS);
 const BYOK_ROLE_CAPABILITY: Record<
   ByokModelRole,
@@ -430,7 +437,6 @@ export class EncryptedFileCommercialModelAccessStore {
       this.filePath,
       this.secureStorage,
       parseStoredModelAccess,
-      { preserveValidationError: true },
     );
     return this.cache ?? defaultModelAccess();
   }
@@ -464,11 +470,7 @@ export class EncryptedFileCommercialModelAccessStore {
         requestedAssignments,
       );
     }
-    const modelAssignments = migrateStoredProviderAssignments(
-      protocol,
-      baseUrl,
-      requestedAssignments,
-    );
+    const modelAssignments = requestedAssignments;
     assertProviderAssignments(protocol, baseUrl, modelAssignments);
     const nextProvider: StoredByokProvider = {
       id: providerId,
@@ -566,10 +568,7 @@ function defaultModelAccess(): StoredCommercialModelAccess {
 function parseStoredModelAccess(value: unknown): StoredCommercialModelAccess {
   const record = requiredRecord(value, "model access record");
   const schemaVersion = Number(record.schemaVersion);
-  if ([1, 2, 3].includes(schemaVersion)) {
-    return migrateLegacyModelAccess(record, schemaVersion);
-  }
-  if (schemaVersion !== 4 && schemaVersion !== 5) {
+  if (schemaVersion !== 5) {
     throw new Error("不支持的模型访问配置版本");
   }
   if (!Array.isArray(record.byokProviders)) {
@@ -584,80 +583,19 @@ function parseStoredModelAccess(value: unknown): StoredCommercialModelAccess {
       record.cloudModelAssignments,
     ),
     byokProviders: record.byokProviders
-      .map((item, index) =>
-        parseProvider(
-          item,
-          index,
-          schemaVersion === 4 ? "OPENAI_COMPATIBLE" : undefined,
-        ),
-      )
+      .map((item, index) => parseProvider(item, index))
       .sort(compareProviders),
-  };
-}
-
-function migrateLegacyModelAccess(
-  record: Record<string, unknown>,
-  schemaVersion: number,
-): StoredCommercialModelAccess {
-  const mode = String(record.mode ?? "").trim().toLowerCase();
-  if (mode !== "cloud" && mode !== "byok") {
-    throw new Error("模型访问模式无效");
-  }
-  const rawBaseUrl =
-    typeof record.byokBaseUrl === "string" ? record.byokBaseUrl.trim() : "";
-  if (mode === "byok" && !rawBaseUrl) {
-    throw new Error("BYOK 模式缺少 Base URL");
-  }
-  const cloudModelAssignments =
-    schemaVersion >= 3
-      ? normalizeStoredModelAssignments(record.cloudModelAssignments)
-      : [];
-  if (!rawBaseUrl) {
-    return { schemaVersion: 5, cloudModelAssignments, byokProviders: [] };
-  }
-  const baseUrl = normalizeByokBaseUrl(
-    rawBaseUrl,
-    "OPENAI_COMPATIBLE",
-  );
-  return {
-    schemaVersion: 5,
-    cloudModelAssignments,
-    byokProviders: [
-      {
-        id: "legacy-openai-compatible",
-        name: normalizeProviderName(undefined, undefined, baseUrl),
-        protocol: "OPENAI_COMPATIBLE",
-        baseUrl,
-        apiKey:
-          typeof record.byokApiKey === "string"
-            ? record.byokApiKey.trim()
-            : "",
-        enabled: true,
-        priority: 100,
-        modelAssignments:
-          schemaVersion >= 2
-            ? normalizeStoredModelAssignments(record.byokModelAssignments)
-            : [],
-      },
-    ],
   };
 }
 
 function parseProvider(
   value: unknown,
   index: number,
-  defaultProtocol?: ByokProviderProtocol,
 ): StoredByokProvider {
   const record = requiredRecord(value, `BYOK provider[${index}]`);
-  const protocol = normalizeProviderProtocol(
-    record.protocol ?? defaultProtocol,
-  );
+  const protocol = normalizeProviderProtocol(record.protocol);
   const baseUrl = normalizeByokBaseUrl(String(record.baseUrl ?? ""), protocol);
-  const modelAssignments = migrateStoredProviderAssignments(
-    protocol,
-    baseUrl,
-    normalizeStoredModelAssignments(record.modelAssignments),
-  );
+  const modelAssignments = normalizeStoredModelAssignments(record.modelAssignments);
   assertProviderAssignments(protocol, baseUrl, modelAssignments);
   return {
     id: normalizeProviderId(String(record.id ?? "")),
@@ -672,16 +610,7 @@ function parseProvider(
 }
 
 function normalizeStoredModelAssignments(value: unknown): ByokModelAssignment[] {
-  if (!Array.isArray(value)) return normalizeModelAssignments(value);
-  return normalizeModelAssignments(
-    value.filter((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) return true;
-      const role = String((item as Record<string, unknown>).role ?? "")
-        .trim()
-        .toUpperCase();
-      return !DEPRECATED_BYOK_MODEL_ROLE_SET.has(role);
-    }),
-  );
+  return normalizeModelAssignments(value);
 }
 
 function normalizeModelAssignments(
@@ -1052,14 +981,6 @@ function normalizeProviderProtocol(value: unknown): ByokProviderProtocol {
     throw new Error("BYOK 供应商协议无效");
   }
   return protocol as ByokProviderProtocol;
-}
-
-function migrateStoredProviderAssignments(
-  protocol: ByokProviderProtocol,
-  baseUrl: string,
-  assignments: readonly ByokModelAssignment[],
-): ByokModelAssignment[] {
-  return resolveProviderStrategy(protocol, baseUrl).migrateAssignments(assignments);
 }
 
 function assertProviderAssignments(

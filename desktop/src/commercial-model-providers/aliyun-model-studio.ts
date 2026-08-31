@@ -7,7 +7,6 @@ import {
   assertPost,
   audioFormat,
   base64AudioResponse,
-  copyAssignments,
   discoverOpenAiCompatibleModelCatalog,
   discoverOpenAiCompatibleModels,
   fetchProvider,
@@ -66,10 +65,6 @@ export const aliyunTokenPlanProviderStrategy: CommercialModelProviderStrategy = 
   discoverModels: discoverOpenAiCompatibleModelCatalog,
   parameterSchema: () => null,
   validateInputAssignments: assertTokenPlanAssignments,
-  migrateAssignments: (assignments) =>
-    assignments
-      .filter((assignment) => assignment.role === "TEXT")
-      .map((assignment) => ({ ...assignment })),
   validateAssignments: assertTokenPlanAssignments,
   request: (route, input, prepared) => {
     if (route.role !== "TEXT") {
@@ -95,7 +90,6 @@ export const aliyunModelStudioProviderStrategy: CommercialModelProviderStrategy 
     role === "AUDIO_VOICE_DESIGN" && isQwenAudioTtsModel(modelId)
       ? QWEN_AUDIO_VOICE_DESIGN_SCHEMA
       : null,
-  migrateAssignments: copyAssignments,
   validateAssignments: () => undefined,
   request: (route, input, prepared) =>
     route.role === "AUDIO_VOICE_DESIGN" && isQwenAudioTtsModel(route.modelId)

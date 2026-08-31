@@ -80,13 +80,6 @@ export const miniMaxAudioProviderStrategy: CommercialModelProviderStrategy =
         : role === "AUDIO_SPEECH"
           ? SPEECH_SCHEMA
           : null,
-    migrateAssignments: (assignments) =>
-      assignments.map((assignment) =>
-        assignment.role === "AUDIO_VOICE_DESIGN" &&
-        assignment.modelId !== VOICE_DESIGN_MODEL
-          ? { ...assignment, modelId: VOICE_DESIGN_MODEL }
-          : { ...assignment },
-      ),
     validateAssignments: (assignments) => {
       validateNativeAudioRoles("MiniMax Speech", assignments, [
         "AUDIO_SPEECH",

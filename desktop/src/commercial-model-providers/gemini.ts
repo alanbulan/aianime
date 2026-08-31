@@ -9,7 +9,6 @@ import type {
   ProviderModelDiscoveryInput,
 } from "./types.js";
 import {
-  copyAssignments,
   discoveredModelFromRecord,
   fetchProvider,
   generatedCompletionId,
@@ -45,7 +44,6 @@ export const geminiProviderStrategy: CommercialModelProviderStrategy = {
   discoverModelIds: discoverModels,
   discoverModels: discoverModelCatalog,
   parameterSchema: () => null,
-  migrateAssignments: copyAssignments,
   validateAssignments: (assignments) => {
     const unsupported = assignments.find(
       (assignment) => !SUPPORTED_ROLES.has(assignment.role),

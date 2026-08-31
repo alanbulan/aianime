@@ -43,7 +43,6 @@ export interface CommercialModelProviderStrategy {
   ): Promise<ProviderDiscoveredModel[]>;
   parameterSchema(role: string, modelId: string): string | null;
   validateInputAssignments?(assignments: readonly ProviderAssignment[]): void;
-  migrateAssignments<T extends ProviderAssignment>(assignments: readonly T[]): T[];
   validateAssignments(assignments: readonly ProviderAssignment[]): void;
   request(
     route: ModelRoute,

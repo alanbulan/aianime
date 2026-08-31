@@ -4,6 +4,7 @@ import { verifyOfflineLease } from "./commercial-lease.js";
 import {
   BYOK_MODEL_ROLES,
   fetchByokModelCatalog,
+  normalizeCommercialModelMode,
   type ByokModelAssignment,
   type ByokModelRole,
   type CommercialModelAccessStatus,
@@ -123,6 +124,20 @@ function positiveNumberArray(value: unknown): number[] {
     : [];
 }
 
+function positiveNumberRecord(value: unknown): Record<string, number> | undefined {
+  const record = optionalRecord(value);
+  const entries = Object.entries(record)
+    .map(([key, item]) => [key.trim().toLowerCase(), item] as const)
+    .filter(
+      (entry): entry is readonly [string, number] =>
+        /^\d{2,5}p$/.test(entry[0]) &&
+        typeof entry[1] === "number" &&
+        Number.isFinite(entry[1]) &&
+        entry[1] > 0,
+    );
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
+
 function projectedVideoExtraParameterNames(
   properties: Record<string, unknown>,
 ): string[] {
@@ -130,6 +145,23 @@ function projectedVideoExtraParameterNames(
     (key) =>
       /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key) &&
       !VIDEO_CORE_PARAMETER_NAMES.has(key),
+  );
+}
+
+const UNIVERSAL_PARAMETER_NAMES = new Set([
+  "model",
+  "prompt",
+  "input",
+  "content",
+]);
+
+function projectedExtraParameterNames(
+  properties: Record<string, unknown>,
+): string[] {
+  return Object.keys(properties).filter(
+    (key) =>
+      /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key) &&
+      !UNIVERSAL_PARAMETER_NAMES.has(key),
   );
 }
 
@@ -217,27 +249,6 @@ function projectedVideoSizeOptions(
         .filter((value): value is string => value !== null),
     ),
   );
-}
-
-function projectedVideoProfile(
-  capabilities: Record<string, unknown>,
-  modelCode: string,
-): CommercialModelCapabilitySnapshot["videoProfile"] {
-  const declared = String(
-    capabilities.videoProfile ??
-      capabilities.uiProfile ??
-      capabilities.family ??
-      "",
-  );
-  const normalized = `${declared} ${modelCode}`
-    .replace(/[\s._/-]/g, "")
-    .toLowerCase();
-  if (normalized.includes("happyhorse")) return "happyhorse";
-  if (normalized.includes("grokvideo")) return "grok";
-  if (normalized.includes("seedance2") || normalized.includes("seeddance")) {
-    return "seedance2";
-  }
-  return undefined;
 }
 
 function parseCatalogRecord(
@@ -358,7 +369,7 @@ export function mergeModelCapabilities(
 ): void {
   for (const item of catalog?.items ?? []) {
     target.delete(item.code);
-    if (item.operation !== "VIDEO") continue;
+    if (item.operation !== "VIDEO" && item.operation !== "IMAGE") continue;
     const capabilities = parseCatalogRecord(
       item.capabilityJson,
       item.code,
@@ -380,8 +391,26 @@ export function mergeModelCapabilities(
     const projected: CommercialModelCapabilitySnapshot = {
       modelId: item.code,
     };
-    const videoProfile = projectedVideoProfile(capabilities, item.code);
-    if (videoProfile) projected.videoProfile = videoProfile;
+    const extraParameterNames = projectedExtraParameterNames(properties);
+    if (extraParameterNames.length) {
+      projected.extraParameterNames = extraParameterNames;
+    }
+    if (item.operation === "IMAGE") {
+      const imagePromptProfile = optionalText(capabilities.imagePromptProfile);
+      if (imagePromptProfile) projected.imagePromptProfile = imagePromptProfile;
+    }
+    if (item.operation !== "VIDEO") {
+      if (Object.keys(projected).length > 1) target.set(item.code, projected);
+      continue;
+    }
+    const videoWorkflow = optionalText(capabilities.videoWorkflow);
+    if (
+      videoWorkflow === "standard" ||
+      videoWorkflow === "advanced-reference" ||
+      videoWorkflow === "reference"
+    ) {
+      projected.videoWorkflow = videoWorkflow;
+    }
     const videoRatioOptions = projectedVideoRatioOptions(
       capabilities,
       properties,
@@ -399,6 +428,12 @@ export function mergeModelCapabilities(
     const videoSizeOptions = projectedVideoSizeOptions(capabilities, properties);
     if (videoSizeOptions.length) {
       projected.videoSizeOptions = videoSizeOptions;
+    }
+    const videoResolutionMaxSeconds = positiveNumberRecord(
+      capabilities.videoResolutionMaxSeconds,
+    );
+    if (videoResolutionMaxSeconds) {
+      projected.videoResolutionMaxSeconds = videoResolutionMaxSeconds;
     }
     const supportsGenerateAudio = declaredBoolean(
       capabilities.supportsGenerateAudio,
@@ -419,9 +454,13 @@ export function mergeModelCapabilities(
     if (supportsHumanReview !== undefined) {
       projected.videoSupportsHumanReview = supportsHumanReview;
     }
-    const extraParameterNames = projectedVideoExtraParameterNames(properties);
-    if (extraParameterNames.length) {
-      projected.videoExtraParameterNames = extraParameterNames;
+    const dialogueOnly = declaredBoolean(capabilities.dialogueOnly);
+    if (dialogueOnly !== undefined) {
+      projected.videoDialogueOnly = dialogueOnly;
+    }
+    const videoExtraParameterNames = projectedVideoExtraParameterNames(properties);
+    if (videoExtraParameterNames.length) {
+      projected.videoExtraParameterNames = videoExtraParameterNames;
     }
     const sceneOptimizeProperty = optionalRecord(properties.scene_optimize);
     const sceneOptimizeCamelProperty = optionalRecord(properties.sceneOptimize);
@@ -732,13 +771,7 @@ function catalogItemModes(capabilityJson: string | undefined): string[] {
   if (!Array.isArray(rawModes)) return [];
   return rawModes
     .filter((mode): mode is string => typeof mode === "string")
-    .map((mode) =>
-      mode
-        .trim()
-        .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-        .toUpperCase()
-        .replaceAll(/[^A-Z0-9]+/g, "_"),
-    )
+    .map(normalizeCommercialModelMode)
     .filter(Boolean);
 }
 

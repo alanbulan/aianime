@@ -38,10 +38,9 @@ export const requiredText = createRequiredText(
 export function createNativeProviderStrategy(
   input: Omit<
     CommercialModelProviderStrategy,
-    "normalizeBaseUrl" | "migrateAssignments" | "parameterSchema"
+    "normalizeBaseUrl" | "parameterSchema"
   > & {
     canonicalHosts: ReadonlySet<string>;
-    migrateAssignments?: CommercialModelProviderStrategy["migrateAssignments"];
     parameterSchema?: CommercialModelProviderStrategy["parameterSchema"];
   },
 ): CommercialModelProviderStrategy {
@@ -52,21 +51,12 @@ export function createNativeProviderStrategy(
         ? `${url.origin}/v1`
         : url.toString().replace(/\/+$/, ""),
     parameterSchema: input.parameterSchema ?? (() => null),
-    migrateAssignments:
-      input.migrateAssignments ??
-      ((assignments) => assignments.map((item) => ({ ...item }))),
   };
 }
 
 export function normalizeOpenAiBaseUrl(url: URL): string {
   const baseUrl = url.toString().replace(/\/+$/, "");
   return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-}
-
-export function copyAssignments<T extends ProviderAssignment>(
-  assignments: readonly T[],
-): T[] {
-  return assignments.map((item) => ({ ...item }));
 }
 
 export function validateNativeAudioRoles(

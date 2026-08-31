@@ -9,7 +9,6 @@ import type {
   ProviderModelDiscoveryInput,
 } from "./types.js";
 import {
-  copyAssignments,
   createNativeProviderStrategy,
   discoveredModelFromRecord,
   fetchProvider,
@@ -34,7 +33,6 @@ export const anthropicProviderStrategy: CommercialModelProviderStrategy =
     canonicalHosts: new Set(["api.anthropic.com"]),
     discoverModelIds: discoverModels,
     discoverModels: discoverModelCatalog,
-    migrateAssignments: copyAssignments,
     validateAssignments: (assignments) => {
       const unsupported = assignments.find(
         (assignment) => assignment.role !== "TEXT",

@@ -150,12 +150,9 @@ test("provider strategy factory covers native protocols, audio providers, and ev
     ]),
     /Token Plan.*不能配置为音频、图像或视频用途/,
   );
-  assert.deepEqual(tokenPlan.migrateAssignments([
-    { modelId: "qwen3.7-plus", role: "TEXT" },
-    { modelId: "qwen-audio-3.0-tts-plus", role: "AUDIO_VOICE_DESIGN" },
-  ]), [
-    { modelId: "qwen3.7-plus", role: "TEXT" },
-  ]);
+  assert.doesNotThrow(() => tokenPlan.validateAssignments([
+    { modelId: "text-model", role: "TEXT" },
+  ]));
   assert.equal(
     resolveProviderStrategy("OPENAI_COMPATIBLE", "https://models.example.test/v1").id,
     "openai-compatible",
@@ -1136,7 +1133,7 @@ test("video catalog synchronization sends only projected generation capabilities
                     operation: "VIDEO",
                     isDefault: true,
                     capabilityJson: JSON.stringify({
-                      videoProfile: "seedance2",
+                      videoWorkflow: "advanced-reference",
                       ratioOptions: ["16:9", "9:16"],
                       resolutionOptions: ["480p", "720p", "768P", "1080p"],
                       sceneOptimizeOptions: ["ANIME", "realistic"],
@@ -1174,8 +1171,8 @@ test("video catalog synchronization sends only projected generation capabilities
                   },
                   {
                     id: "video-2",
-                    code: "MINIMAX_H3",
-                    displayName: "MiniMax H3",
+                    code: "cloud/video-basic",
+                    displayName: "Cloud Video Basic",
                     operation: "VIDEO",
                     capabilityJson: JSON.stringify({
                       supportedModes: ["firstFrame"],
@@ -1282,7 +1279,8 @@ test("video catalog synchronization sends only projected generation capabilities
   assert.deepEqual(synchronized.at(-1).modelCapabilities, [
     {
       modelId: "cloud/video-standard",
-      videoProfile: "seedance2",
+      extraParameterNames: ["duration"],
+      videoWorkflow: "advanced-reference",
       videoRatioOptions: ["16:9", "9:16"],
       videoResolutionOptions: ["480p", "720p", "768p", "1080p"],
       videoSceneOptimizeOptions: ["ANIME", "realistic"],
@@ -1304,7 +1302,8 @@ test("video catalog synchronization sends only projected generation capabilities
       referenceVideoTotalMaxSeconds: 20,
     },
     {
-      modelId: "MINIMAX_H3",
+      modelId: "cloud/video-basic",
+      extraParameterNames: ["size", "seconds", "steps", "seed", "turbo"],
       videoRatioOptions: ["16:9", "9:16", "1:1"],
       videoSizeOptions: ["1344x768", "768x1344", "1024x1024"],
       videoSupportsGenerateAudio: false,
@@ -1323,7 +1322,7 @@ test("video catalog synchronization sends only projected generation capabilities
       "TEXT:cloud/text-standard",
       "VIDEO_TEXT_TO_VIDEO:cloud/video-standard",
       "VIDEO_IMAGE_TO_VIDEO:cloud/video-standard",
-      "VIDEO_IMAGE_TO_VIDEO:MINIMAX_H3",
+      "VIDEO_IMAGE_TO_VIDEO:cloud/video-basic",
       "VIDEO_FIRST_LAST_FRAME:cloud/video-standard",
     ]),
   );
@@ -1688,8 +1687,8 @@ test("schema-driven parameter overrides serialize into non-text multipart reques
   assert.equal(prepared.body.get("options"), JSON.stringify({ transparent: true }));
 });
 
-test("legacy BYOK settings migrate without deleting encrypted credentials", async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-legacy-"));
+test("outdated model access settings are discarded instead of migrated", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-outdated-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const filePath = join(directory, "model-access.bin");
   await writeFile(
@@ -1698,50 +1697,28 @@ test("legacy BYOK settings migrate without deleting encrypted credentials", asyn
       JSON.stringify({
         schemaVersion: 3,
         mode: "byok",
-        cloudModelAssignments: [
-          { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
-        ],
-        byokBaseUrl: "https://legacy.example/v1",
-        byokApiKey: "legacy-secret",
-        byokModelAssignments: [
-          { modelId: "legacy-text", role: "TEXT", priority: 20, enabled: true },
-        ],
+        cloudModelAssignments: [],
+        byokBaseUrl: "https://outdated.example/v1",
+        byokApiKey: "outdated-secret",
+        byokModelAssignments: [],
       }),
       "utf8",
     ),
   );
 
-  const migrated = await new EncryptedFileCommercialModelAccessStore(
+  const restored = await new EncryptedFileCommercialModelAccessStore(
     filePath,
     passthroughSecureStorage,
   ).load();
-  assert.equal(migrated.schemaVersion, 5);
-  assert.deepEqual(migrated.cloudModelAssignments, [
-    { modelId: "cloud-text", role: "TEXT", priority: 10, enabled: true },
-  ]);
-  assert.deepEqual(migrated.byokProviders, [
-    {
-      id: "legacy-openai-compatible",
-      name: "legacy.example",
-      protocol: "OPENAI_COMPATIBLE",
-      baseUrl: "https://legacy.example/v1",
-      apiKey: "legacy-secret",
-      enabled: true,
-      priority: 100,
-      modelAssignments: [
-        { modelId: "legacy-text", role: "TEXT", priority: 20, enabled: true },
-      ],
-    },
-  ]);
-
-  const reloaded = await new EncryptedFileCommercialModelAccessStore(
-    filePath,
-    passthroughSecureStorage,
-  ).load();
-  assert.deepEqual(reloaded, migrated);
+  assert.deepEqual(restored, {
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [],
+  });
+  await assert.rejects(readFile(filePath), { code: "ENOENT" });
 });
 
-test("removed BYOK roles no longer invalidate the rest of a saved provider", async (t) => {
+test("unsupported saved roles discard the model access file", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-role-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const filePath = join(directory, "model-access.bin");
@@ -1775,10 +1752,12 @@ test("removed BYOK roles no longer invalidate the rest of a saved provider", asy
     filePath,
     passthroughSecureStorage,
   ).load();
-  assert.equal(restored.byokProviders[0].apiKey, "saved-secret");
-  assert.deepEqual(restored.byokProviders[0].modelAssignments, [
-    { modelId: "text-model", role: "TEXT", priority: 10, enabled: true },
-  ]);
+  assert.deepEqual(restored, {
+    schemaVersion: 5,
+    cloudModelAssignments: [],
+    byokProviders: [],
+  });
+  await assert.rejects(readFile(filePath), { code: "ENOENT" });
 });
 
 test("cloud model selections survive configuring and clearing BYOK providers", async (t) => {
@@ -1826,7 +1805,7 @@ test("BYOK Base URL rejects embedded credentials and query parameters", async (t
   );
 });
 
-test("saved BYOK providers report an invalid Base URL without deleting credentials", async (t) => {
+test("invalid saved BYOK providers are discarded", async (t) => {
   const directory = await mkdtemp(join(tmpdir(), "ai-anime-model-access-invalid-url-"));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const filePath = join(directory, "model-access.bin");
@@ -1836,8 +1815,8 @@ test("saved BYOK providers report an invalid Base URL without deleting credentia
       cloudModelAssignments: [],
       byokProviders: [
         {
-          id: "legacy-provider",
-          name: "Legacy Provider",
+          id: "invalid-provider",
+          name: "Invalid Provider",
           protocol: "OPENAI_COMPATIBLE",
           baseUrl: "not a url",
           apiKey: "",
@@ -1851,25 +1830,16 @@ test("saved BYOK providers report an invalid Base URL without deleting credentia
   );
   await writeFile(filePath, persisted);
 
-  await assert.rejects(
-    new EncryptedFileCommercialModelAccessStore(
-      filePath,
-      passthroughSecureStorage,
-    ).load(),
-    /BYOK Base URL 无效/,
-  );
-  assert.deepEqual(await readFile(filePath), persisted);
-
   const reset = await new EncryptedFileCommercialModelAccessStore(
     filePath,
     passthroughSecureStorage,
-  ).clearByok();
+  ).load();
   assert.deepEqual(reset, {
     schemaVersion: 5,
     cloudModelAssignments: [],
     byokProviders: [],
   });
-  assert.notDeepEqual(await readFile(filePath), persisted);
+  await assert.rejects(readFile(filePath), { code: "ENOENT" });
 });
 
 test("model access self-heals unreadable ciphertext and malformed JSON", async (t) => {
@@ -2269,7 +2239,7 @@ test("native provider strategies validate their real model-role capabilities", a
     /仅支持文本模型用途/,
   );
 
-  const fish = await store.configureByok({
+  await assert.rejects(store.configureByok({
     providerId: "fish",
     name: "Fish Audio",
     protocol: "OPENAI_COMPATIBLE",
@@ -2278,6 +2248,22 @@ test("native provider strategies validate their real model-role capabilities", a
     modelAssignments: [
       {
         modelId: "s2.1-pro-free",
+        role: "AUDIO_VOICE_DESIGN",
+        priority: 10,
+        enabled: true,
+      },
+    ],
+  }), /必须填写 voice-design-1/);
+
+  const fish = await store.configureByok({
+    providerId: "fish",
+    name: "Fish Audio",
+    protocol: "OPENAI_COMPATIBLE",
+    baseUrl: "https://api.fish.audio/v1/tts/v1",
+    apiKey: "secret",
+    modelAssignments: [
+      {
+        modelId: "voice-design-1",
         role: "AUDIO_VOICE_DESIGN",
         priority: 10,
         enabled: true,

@@ -5,7 +5,6 @@ import { randomUUID } from "node:crypto";
 import { isModelWriteMethod } from "../commercial-api-client.js";
 import type { CommercialModelProviderStrategy } from "./types.js";
 import {
-  copyAssignments,
   discoverOpenAiCompatibleModelCatalog,
   discoverOpenAiCompatibleModels,
   fetchProvider,
@@ -42,7 +41,6 @@ export const openAiCompatibleProviderStrategy: CommercialModelProviderStrategy =
   discoverModelIds: discoverOpenAiCompatibleModels,
   discoverModels: discoverOpenAiCompatibleModelCatalog,
   parameterSchema: () => null,
-  migrateAssignments: copyAssignments,
   validateAssignments: () => undefined,
   request: requestOpenAiCompatible,
 };
