@@ -141,7 +141,7 @@ def test_creative_canvas_audio_runtime_has_one_owner() -> None:
         "class CreativeCanvasGeneratedAudio": application,
         "def create_user_audio_voice(": voice_store,
         "async def generate_freezone_audio_speech(": generation,
-        "async def generate_freezone_audio_eleven_music(": generation,
+        "async def generate_freezone_audio_music(": generation,
     }
     for signature, owner in owners.items():
         matching_owners = [
@@ -960,7 +960,7 @@ def test_recent_bounded_context_moves_do_not_regress() -> None:
     )
     public = modules_root / "production" / "public.py"
     for owner_file in (
-        "nanobanana_grid.py",
+        "image_grid.py",
         "pool_indexer.py",
         "prompt_builder.py",
         "video_composer.py",
@@ -973,10 +973,9 @@ def test_recent_bounded_context_moves_do_not_regress() -> None:
 
     public_source = public.read_text(encoding="utf-8")
     for public_name in (
-        "NanoBananaGridGenerator",
-        "IndexTTS2Client",
+        "ImageGridGenerator",
+        "SpeechSynthesisClient",
         "create_video_composer",
-        "nanobanana_grid",
     ):
         assert f'"{public_name}"' in public_source
 
@@ -988,7 +987,7 @@ def test_media_generation_mega_modules_stay_split_behind_compatibility_facades()
         PACKAGE_ROOT / "modules" / "production" / "infrastructure" / "media_generation"
     )
     prompt_facade = media_generation / "prompt_builder.py"
-    grid_facade = media_generation / "nanobanana_grid.py"
+    grid_facade = media_generation / "image_grid.py"
     prompt_source = prompt_facade.read_text(encoding="utf-8")
     grid_source = grid_facade.read_text(encoding="utf-8")
 
@@ -997,13 +996,13 @@ def test_media_generation_mega_modules_stay_split_behind_compatibility_facades()
         "prompt_components.py",
         "prompt_strategies.py",
         "grid_planning.py",
-        "nanobanana_grid_generator.py",
+        "image_grid_generator.py",
     ):
         assert (media_generation / implementation).is_file()
 
     assert "class PromptComponents" not in prompt_source
     assert "class UnifiedPromptBuilder" not in prompt_source
-    assert "class NanoBananaGridGenerator" not in grid_source
+    assert "class ImageGridGenerator" not in grid_source
     assert "def scene_grid_split(" not in grid_source
     assert {
         "ai_anime.modules.production.infrastructure.media_generation.prompt_components",
@@ -1012,7 +1011,7 @@ def test_media_generation_mega_modules_stay_split_behind_compatibility_facades()
     }.issubset(_imports(prompt_facade))
     assert {
         "ai_anime.modules.production.infrastructure.media_generation.grid_planning",
-        "ai_anime.modules.production.infrastructure.media_generation.nanobanana_grid_generator",
+        "ai_anime.modules.production.infrastructure.media_generation.image_grid_generator",
     }.issubset(_imports(grid_facade))
 
 
@@ -1075,7 +1074,7 @@ def test_commercial_gateway_has_one_fixed_production_origin() -> None:
     )
     assert production.count("aianime.mingcw.com") == 1
     assert "AI_ANIME_CLOUD_API_URL" not in production
-    assert "OFFICIAL_NEWAPI_BASE_URL" not in production
+    assert "OFFICIAL_MODEL_GATEWAY_BASE_URL" not in production
 
 
 def test_frontend_commercial_bootstrap_has_one_composition_owner() -> None:
@@ -1114,7 +1113,7 @@ def test_fastapi_model_access_uses_only_the_desktop_mixed_router() -> None:
     assert 'MODE_BYOK = "byok"' not in settings
     assert "AI_ANIME_CLOUD_PROXY_BASE_URL" in policy
     assert "AI_ANIME_CLOUD_PROXY_TOKEN" in policy
-    assert "OFFICIAL_NEWAPI_BASE_URL" not in policy
+    assert "OFFICIAL_MODEL_GATEWAY_BASE_URL" not in policy
     assert "OPENROUTER_API_KEY" not in policy
 
 
@@ -1182,7 +1181,7 @@ def test_legacy_image_model_configuration_cannot_return() -> None:
     forbidden = {
         "fixed_image",
         "IMAGE_GENERATION_SELECTIONS",
-        "NEWAPI_IMAGE_MODEL",
+        "IMAGE_GATEWAY_MODEL",
         "SEEDREAM_MODEL",
         "SEEDEDIT_MODEL",
         "VOLCENGINE_VISUAL_ENDPOINT",
@@ -1198,7 +1197,7 @@ def test_legacy_image_model_configuration_cannot_return() -> None:
     assert violations == []
 
 
-def test_third_model_fallback_configuration_cannot_return() -> None:
+def test_provider_specific_model_fallback_configuration_cannot_return() -> None:
     backend_config = (
         PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "model_runtime.py"
     ).read_text(encoding="utf-8")
@@ -1231,13 +1230,14 @@ def test_third_model_fallback_configuration_cannot_return() -> None:
     assert "VIDEO_MODEL_IDS" not in backend_config
     assert "DEFAULT_VIDEO_MODEL" not in backend_config
     assert '"video_model": ""' in project_config
-    assert frontend_settings.count("grsaiNanoBananaProModel") == 1
-    assert (
-        "delete persistedWithoutLegacySecrets.grsaiNanoBananaProModel;"
-        in frontend_settings
-    )
-    assert "nano-banana-pro" not in frontend_settings
-    assert "setGrsaiNanoBananaProModel" not in frontend_settings
+    for retired_setting in (
+        "grsaiImageGenerationModel",
+        "setGrsaiImageGenerationModel",
+        "showNodePrice",
+        "priceDisplayCurrencyMode",
+        "mediaStorage",
+    ):
+        assert retired_setting not in frontend_settings
     assert "gvlm-3.1" not in canvas_registry
 
 
@@ -1274,12 +1274,6 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
         / "asset_world"
         / "infrastructure"
         / "director_world"
-        / "block_world_builder.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "asset_world"
-        / "infrastructure"
-        / "director_world"
         / "scene_overlap_analyzer.py",
         PACKAGE_ROOT
         / "modules"
@@ -1292,11 +1286,6 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
         / "verification"
         / "infrastructure"
         / "sketch_visual_gate.py",
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "generation_catalog.py",
     )
     violations = [
         str(path.relative_to(REPO_ROOT))
@@ -1304,6 +1293,16 @@ def test_direct_text_transports_resolve_the_selected_access_model() -> None:
         if "resolve_model_for_role" not in path.read_text(encoding="utf-8")
     ]
     assert violations == []
+
+    block_world_builder = (
+        PACKAGE_ROOT
+        / "modules"
+        / "asset_world"
+        / "infrastructure"
+        / "director_world"
+        / "block_world_builder.py"
+    ).read_text(encoding="utf-8")
+    assert "request_model_chat_content" in block_world_builder
 
     raw_chat_transports = {
         path.relative_to(PACKAGE_ROOT).as_posix()
@@ -1344,7 +1343,7 @@ def test_sqlite_sync_migrations_and_protocol_errors_have_one_owner() -> None:
         PACKAGE_ROOT
         / "migrations"
         / "model_usage"
-        / "legacy_gateway_secrets.py"
+        / "retired_gateway_settings.py"
     ).read_text(encoding="utf-8")
     assert "run_sqlite_migrations" in legacy_gateway_migration
     assert "CREATE TABLE IF NOT EXISTS schema_migrations" not in legacy_gateway_migration
@@ -1367,7 +1366,7 @@ def test_sqlite_sync_migrations_and_protocol_errors_have_one_owner() -> None:
     ]
     assert all("def _protocol_error_message(" not in source for source in sources.values())
     assert all(
-        "def _newapi_protocol_error_message(" not in source
+        "def _model_gateway_protocol_error_message(" not in source
         for source in sources.values()
     )
     video_generator = (

@@ -94,6 +94,18 @@ def _typescript_capability_fallback_chain(
     return tuple(re.findall(r"\bcapabilities\.([A-Za-z0-9_]+)", match.group(1)))
 
 
+def _typescript_function_body(path: Path, name: str) -> str:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"\bexport\s+function\s+{re.escape(name)}\s*\([^)]*\)"
+        rf"\s*:\s*[^{{]+\{{(.*?)^\}}",
+        source,
+        re.DOTALL | re.MULTILINE,
+    )
+    assert match is not None, f"missing TypeScript function {name} in {path}"
+    return re.sub(r"\s+", " ", match.group(1)).strip()
+
+
 def test_model_roles_and_protocols_stay_aligned_across_runtimes() -> None:
     frontend = REPO_ROOT / "frontend" / "src" / "modules" / "model_usage" / "domain"
     frontend_contract = frontend / "commercial-model-access.ts"
@@ -264,19 +276,36 @@ def test_cloud_role_derivation_stays_aligned_across_runtimes() -> None:
         audio_contract,
         "declaredModes",
     ) == expected_mode_keys
+    assert _typescript_function_body(
+        frontend_contract,
+        "normalizeCommercialModelMode",
+    ) == _typescript_function_body(
+        REPO_ROOT / "desktop" / "src" / "commercial-model-access.ts",
+        "normalizeCommercialModelMode",
+    )
 
 
-def test_image_quality_capability_stays_aligned_across_runtimes() -> None:
-    frontend_contract = (
-        REPO_ROOT
-        / "frontend"
-        / "src"
+def test_image_parameters_are_driven_by_catalog_capabilities() -> None:
+    frontend = REPO_ROOT / "frontend" / "src"
+    capability = (
+        frontend
+        / "modules"
+        / "creative_canvas"
+        / "domain"
+        / "imageModelCapability.ts"
+    )
+    source = capability.read_text(encoding="utf-8")
+
+    assert "supportsCanvasImageParameter" in source
+    assert "model?.parameterSchema" in source
+    assert not (
+        frontend
         / "modules"
         / "model_usage"
         / "domain"
         / "generation-credit.ts"
-    )
-    python_contract = (
+    ).exists()
+    assert not (
         REPO_ROOT
         / "src"
         / "ai_anime"
@@ -284,31 +313,13 @@ def test_image_quality_capability_stays_aligned_across_runtimes() -> None:
         / "model_usage"
         / "domain"
         / "generation_credit.py"
+    ).exists()
+    production_source = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in frontend.rglob("*")
+        if path.is_file()
+        and path.suffix in {".ts", ".tsx"}
+        and "__tests__" not in path.parts
     )
-    frontend_ids = frozenset(
-        _typescript_string_collection(frontend_contract, "IMAGE_QUALITY_MODEL_IDS")
-    )
-    python_ids = _python_frozenset(python_contract, "IMAGE_QUALITY_MODEL_IDS")
-    assert frontend_ids == python_ids
-
-    overlays = (
-        "EraseOverlay.tsx",
-        "GridActionConfirmOverlay.tsx",
-        "LightEditorPanel.tsx",
-        "MultiAngleEditorPanel.tsx",
-        "OutpaintEditorOverlay.tsx",
-        "RedrawOverlay.tsx",
-        "UpscaleEditorOverlay.tsx",
-    )
-    presentation = (
-        REPO_ROOT
-        / "frontend"
-        / "src"
-        / "modules"
-        / "creative_canvas"
-        / "presentation"
-    )
-    for name in overlays:
-        source = (presentation / name).read_text(encoding="utf-8")
-        assert "imageModelSupportsQuality" in source
-        assert "function imageModelSupportsQuality" not in source
+    assert "IMAGE_QUALITY_MODEL_IDS" not in production_source
+    assert "imageModelSupportsQuality" not in production_source

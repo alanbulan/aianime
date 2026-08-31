@@ -107,7 +107,7 @@ def test_tasks_routes_are_covered_by_openapi_contract():
         "character_portrait",
         "script_writer",
         "single_video",
-        "audio_generation_indextts2",
+        "episode_audio_generation",
         "freezone_gen",
     ],
 )

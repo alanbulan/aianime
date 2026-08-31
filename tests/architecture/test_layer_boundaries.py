@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -306,9 +307,9 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
             "routes/production/video.py",
             (
                 "GlobalOptimizeRequest",
-                "Seedance2AssetAudioTrimRequest",
-                "Seedance2AssetCropRequest",
-                "Seedance2AssetDeleteRequest",
+                "VideoReferenceAssetAudioTrimRequest",
+                "VideoReferenceAssetCropRequest",
+                "VideoReferenceAssetDeleteRequest",
                 "SingleVideoRequest",
                 "VideoComposeRequest",
             ),
@@ -321,7 +322,7 @@ def test_route_request_schemas_are_owned_by_their_adapters() -> None:
                 "BeatVideoPromptGenerateRequest",
                 "ScriptGenerateRequest",
                 "ScriptSaveRequest",
-                "Seedance2PromptGenerateRequest",
+                "VideoPromptGenerateRequest",
             ),
         ),
         (
@@ -1002,19 +1003,15 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
 
     assert "fastapi" not in _imports(access)
     assert "ai_anime.modules.ai_assistant.public" in _imports(access)
-    assert "ai_anime.modules.model_usage.public" in _imports(access)
     assert "ai_anime.modules.project_workspace.public" in _imports(access)
     assert "ai_anime.api.routes.ai_assistant.access" not in _imports(route)
     assert "ai_anime.api.routes.ai_assistant.access" in _imports(http_route)
     assert "ai_anime.api.routes.ai_assistant.access" in _imports(scope_adapter)
     assert "ai_anime.api.routes.ai_assistant.access" in _imports(turn_adapter)
     for owned_rule in (
-        '_AI_ASSISTANT_CHAT_FEATURE_KEY = "ai_assistant_chat"',
         "async def project_context_for_scope(",
-        "def _requester_user_id(",
         "async def require_ai_assistant_access(",
         'required_role="viewer"',
-        "get_usage_meter().require_feature_credit_balance(",
     ):
         assert owned_rule in access_source
         assert owned_rule not in route_source
@@ -1028,6 +1025,8 @@ def test_chat_access_checks_stay_in_api_acl_adapter() -> None:
     ):
         assert removed_route_dependency not in route_source
         assert removed_route_dependency not in http_source
+    assert "model_usage" not in access_source
+    assert "credit" not in access_source.lower()
     assert "chat_access.project_context_for_scope(" not in route_source
     assert http_source.count("chat_access.project_context_for_scope(") == 4
     assert scope_source.count("chat_access.project_context_for_scope(") == 1
@@ -1155,20 +1154,15 @@ def test_chat_error_events_stay_in_api_adapter() -> None:
     for owned_rule in (
         "def chat_exception_event(",
         "当前用户已有 AI 对话正在处理中",
-        "find_billing_rule_not_configured_error(error)",
-        "billing_rule_not_configured_payload(billing_rule_error)",
-        "find_insufficient_credits_error(error)",
-        "insufficient_credits_payload(insufficient_error)",
+        "find_model_quota_error(error)",
+        "model_quota_payload(quota_error)",
     ):
         assert owned_rule in errors_source
         assert owned_rule not in route_source
     for removed_route_dependency in (
-        "BILLING_RULE_NOT_CONFIGURED_MESSAGE",
-        "INSUFFICIENT_CREDITS_MESSAGE",
-        "find_billing_rule_not_configured_error",
-        "find_insufficient_credits_error",
-        "billing_rule_not_configured_payload",
-        "insufficient_credits_payload",
+        "MODEL_QUOTA_EXCEEDED_MESSAGE",
+        "find_model_quota_error",
+        "model_quota_payload",
     ):
         assert removed_route_dependency not in route_source
     assert turn_source.count("chat_exception_event(") == 1
@@ -2211,130 +2205,42 @@ def test_model_usage_callers_use_the_public_api() -> None:
     assert not failures, "\n".join(failures)
 
 
-def test_model_usage_owns_credit_quote_and_generation_cost() -> None:
-    route = PACKAGE_ROOT / "api" / "routes" / "model_usage" / "credits.py"
-    composition = PACKAGE_ROOT / "modules" / "model_usage" / "composition.py"
-    registered_quote = (
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "registered_credit_quote.py"
+def test_retired_local_billing_stack_is_removed() -> None:
+    model_usage = PACKAGE_ROOT / "modules" / "model_usage"
+    retired = (
+        PACKAGE_ROOT / "api" / "routes" / "model_usage" / "credits.py",
+        model_usage / "composition.py",
+        model_usage / "application" / "generation_credit.py",
+        model_usage / "domain" / "billing_errors.py",
+        model_usage / "domain" / "generation_credit.py",
+        model_usage / "infrastructure" / "local_usage.py",
+        model_usage / "infrastructure" / "provider_instrumentation.py",
+        model_usage / "infrastructure" / "registered_usage.py",
+        model_usage / "infrastructure" / "registered_credit_quote.py",
+        model_usage / "infrastructure" / "generation_catalog.py",
+        model_usage / "infrastructure" / "runtime_context.py",
     )
-    local_ports = PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
-    container = PACKAGE_ROOT / "modules" / "bootstrap" / "container.py"
-    route_source = route.read_text(encoding="utf-8")
-    composition_source = composition.read_text(encoding="utf-8")
-    registered_quote_source = registered_quote.read_text(encoding="utf-8")
+    assert not [path for path in retired if path.exists()]
 
-    assert not (PACKAGE_ROOT / "ports" / "credit_quote.py").exists()
-    assert not (PACKAGE_ROOT / "ports" / "local" / "credit_quote.py").exists()
-    assert route_source.count("generation_credit_queries().cost(") == 1
-    assert "ai_anime.modules.model_usage.public" in _imports(route)
-    assert "get_credit_quote" not in route_source
-    assert "def _fixed_image_cost_model(" not in route_source
-    assert "def _image_selection_cost_model(" not in route_source
-    assert "RegisteredCreditQuote" in composition_source
-    assert registered_quote_source.count('get_port("credit_quote")') == 1
-    assert "ai_anime.modules.model_usage.public" in _imports(local_ports)
-    assert "ai_anime.modules.model_usage.public" in _imports(container)
-
-
-def test_model_usage_owns_billing_error_taxonomy() -> None:
-    billing_errors = (
-        PACKAGE_ROOT / "modules" / "model_usage" / "domain" / "billing_errors.py"
+    guarded = (
+        model_usage / "public.py",
+        PACKAGE_ROOT / "modules" / "bootstrap" / "container.py",
+        PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py",
     )
-    public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
-    source = billing_errors.read_text(encoding="utf-8")
-    public_source = public.read_text(encoding="utf-8")
-
-    assert not (PACKAGE_ROOT / "shared" / "billing_errors.py").exists()
-    assert "class InsufficientCreditsError(" in source
-    assert "class BillingRuleNotConfiguredError(" in source
-    assert "def insufficient_credits_payload(" in source
-    assert "def billing_rule_not_configured_payload(" in source
-    assert "InsufficientCreditsError" in public_source
-    assert "BillingRuleNotConfiguredError" in public_source
-
-
-def test_model_usage_owns_usage_meter_contract_and_local_adapters() -> None:
-    application_ports = (
-        PACKAGE_ROOT / "modules" / "model_usage" / "application" / "ports.py"
+    forbidden = (
+        "UsageMeter",
+        "BillingRuleNotConfigured",
+        "generation_credit",
+        "credit_quote",
+        "install_provider_instrumentation",
     )
-    local_usage = (
-        PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "local_usage.py"
-    )
-    composition = PACKAGE_ROOT / "modules" / "model_usage" / "composition.py"
-    registered_usage = (
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "registered_usage.py"
-    )
-    public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
-    legacy_ports = PACKAGE_ROOT / "shared" / "ports" / "__init__.py"
-    local_ports = PACKAGE_ROOT / "shared" / "ports" / "local" / "__init__.py"
-    container = PACKAGE_ROOT / "modules" / "bootstrap" / "container.py"
-
-    assert not (PACKAGE_ROOT / "ports" / "usage.py").exists()
-    assert not (PACKAGE_ROOT / "ports" / "local" / "usage.py").exists()
-    assert "class UsageMeter(Protocol)" in application_ports.read_text(encoding="utf-8")
-    assert "class ProviderInstrumentation(Protocol)" in application_ports.read_text(
-        encoding="utf-8"
-    )
-    assert "class NoOpUsageMeter:" in local_usage.read_text(encoding="utf-8")
-    assert "class NoOpProviderInstrumentation:" in local_usage.read_text(
-        encoding="utf-8"
-    )
-    assert (
-        registered_usage.read_text(encoding="utf-8").count(
-            'registry.get_port("usage_meter")'
-        )
-        == 1
-    )
-    assert "resolve_registered_usage_meter()" in composition.read_text(encoding="utf-8")
-    assert "def get_usage_meter(" not in legacy_ports.read_text(encoding="utf-8")
-    assert "build_local_usage_adapters" in public.read_text(encoding="utf-8")
-    assert "build_local_usage_adapters" in local_ports.read_text(encoding="utf-8")
-    assert "ai_anime.modules.model_usage.public" in _imports(container)
-
-
-def test_model_usage_owns_runtime_provider_instrumentation() -> None:
-    provider = (
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "provider_instrumentation.py"
-    )
-    runtime_context = (
-        PACKAGE_ROOT
-        / "modules"
-        / "model_usage"
-        / "infrastructure"
-        / "runtime_context.py"
-    )
-    local_usage = (
-        PACKAGE_ROOT / "modules" / "model_usage" / "infrastructure" / "local_usage.py"
-    )
-    public = PACKAGE_ROOT / "modules" / "model_usage" / "public.py"
-    cognee_config = (
-        PACKAGE_ROOT / "modules" / "knowledge_graph" / "infrastructure" / "config.py"
-    )
-    provider_source = provider.read_text(encoding="utf-8")
-    public_source = public.read_text(encoding="utf-8")
-
-    assert not (PACKAGE_ROOT / "llm_instrumentation.py").exists()
-    assert runtime_context.exists()
-    assert "ai_anime.modules.model_usage.public" not in _imports(provider)
-    assert "resolve_registered_usage_meter" in provider_source
-    assert "runtime_context" in "\n".join(_imports(local_usage))
-    assert "install_provider_instrumentation" in public_source
-    assert "set_model_call_reservation_active" in public_source
-    assert "reset_model_call_reservation_active" in public_source
-    assert "ai_anime.modules.model_usage.public" in _imports(cognee_config)
-    assert "ai_anime.llm_instrumentation" not in _imports(cognee_config)
+    violations = [
+        f"{_relative(path)}: {token}"
+        for path in guarded
+        for token in forbidden
+        if token in path.read_text(encoding="utf-8")
+    ]
+    assert not violations, "\n".join(violations)
 
 
 def test_platform_release_does_not_keep_a_noop_release_feed() -> None:
@@ -2615,7 +2521,7 @@ def test_freezone_job_result_route_delegates_to_application() -> None:
         "def _public_freezone_video_story_result(",
         "migrate_canvas_static_urls_in_memory",
         "freezone_audio_speech_output_path",
-        "freezone_audio_eleven_music_output_path",
+        "freezone_audio_music_output_path",
         "TAG_FREEZONE_JOBS",
     ):
         assert legacy_implementation not in legacy_source
@@ -3237,7 +3143,7 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
 
     endpoint_paths = (
         '"/projects/{project}/freezone/audio/speech"',
-        '"/projects/{project}/freezone/audio/eleven-music"',
+        '"/projects/{project}/freezone/audio/music"',
         '"/projects/{project}/freezone/audio/voices/design"',
         '"/projects/{project}/freezone/audio/voices/preset"',
     )
@@ -3253,7 +3159,7 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
     assert "creative_canvas.create_router()" in api_router_source
     for legacy_implementation in (
         "async def freezone_audio_speech(",
-        "async def freezone_audio_eleven_music(",
+        "async def freezone_audio_music(",
         "def _start_freezone_audio_speech_task(",
         "FreezoneAudioSpeechRequest",
         "FreezoneAudioMusicRequest",
@@ -3278,8 +3184,8 @@ def test_freezone_audio_generation_routes_delegate_to_application() -> None:
         "run_freezone_audio_speech",
     ) in runner_registrations
     assert (
-        "freezone_audio_eleven_music",
-        "run_freezone_audio_eleven_music",
+        "freezone_audio_music",
+        "run_freezone_audio_music",
     ) in runner_registrations
     assert (
         "freezone_voice_design",
@@ -4625,7 +4531,7 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
     assert "GenerateEpisodeAudioCommand" in source
     assert "production.create_router()" in api_router_source
     for handler_name in (
-        "audio_generation_billing_quote",
+        "audio_generation_plan",
         "generate_audio",
         "regenerate_beat_audio",
     ):
@@ -4642,7 +4548,7 @@ def test_production_episode_audio_routes_delegate_to_application() -> None:
         "get_task_backend",
         "enqueue_project_task",
         "project_task_state_key",
-        "collect_indextts2_voice_prereq_errors",
+        "collect_episode_audio_prereq_errors",
         "音频生成需要 project context",
     ):
         assert implementation_detail not in source
@@ -4947,7 +4853,7 @@ def test_narrative_planning_episode_asset_menus_have_one_owner() -> None:
         / "production"
         / "infrastructure"
         / "media_generation"
-        / "nanobanana_grid.py",
+        / "image_grid.py",
         PACKAGE_ROOT / "modules" / "asset_world" / "infrastructure" / "prop_catalog.py",
         PACKAGE_ROOT / "shared" / "utils" / "asset_resolver.py",
     )
@@ -4990,7 +4896,7 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
             "manual_beats.py",
             "script_documents.py",
             "script_models.py",
-            "seedance_prompts.py",
+            "video_prompt_optimization.py",
         )
     )
     external_callers = (
@@ -5004,7 +4910,7 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         / "production"
         / "infrastructure"
         / "media_generation"
-        / "nanobanana_grid.py",
+        / "image_grid.py",
         PACKAGE_ROOT
         / "modules"
         / "production"
@@ -5015,12 +4921,12 @@ def test_narrative_planning_persisted_beat_models_have_one_owner() -> None:
         / "modules"
         / "production"
         / "infrastructure"
-        / "seedance2_assets.py",
+        / "video_prompt_composer.py",
         PACKAGE_ROOT
         / "modules"
         / "production"
         / "infrastructure"
-        / "seedance2_prompt.py",
+        / "video_reference_assets.py",
     )
     legacy_source = _removed_models_source(legacy_models)
     owner_source = beat_models.read_text(encoding="utf-8")
@@ -5114,7 +5020,7 @@ def test_asset_world_character_models_have_one_owner() -> None:
         / "modules"
         / "production"
         / "infrastructure"
-        / "seedance2_assets.py",
+        / "video_reference_assets.py",
     )
     owner_source = character_models.read_text(encoding="utf-8")
     public_source = public.read_text(encoding="utf-8")
@@ -5170,7 +5076,7 @@ def test_asset_world_prop_model_has_one_owner() -> None:
         / "modules"
         / "production"
         / "infrastructure"
-        / "seedance2_assets.py",
+        / "video_reference_assets.py",
     )
 
     assert "class NovelProp(" not in _removed_models_source(legacy_models)
@@ -5347,30 +5253,30 @@ def test_production_detected_refs_have_one_owner() -> None:
     assert not legacy_imports, "\n".join(legacy_imports)
 
 
-def test_seedance2_capability_is_owned_by_production() -> None:
+def test_video_reference_capability_is_owned_by_production() -> None:
     production = PACKAGE_ROOT / "modules" / "production"
-    legacy = PACKAGE_ROOT / "modules" / "seedance2_i2v"
+    retired = PACKAGE_ROOT / "modules" / "seedance2_i2v"
     owners = (
-        production / "application" / "seedance2_config.py",
-        production / "domain" / "seedance2_dialogue.py",
-        production / "infrastructure" / "seedance2_assets.py",
-        production / "infrastructure" / "seedance2_panel_service.py",
-        production / "infrastructure" / "seedance2_pipeline.py",
-        production / "infrastructure" / "seedance2_prompt.py",
-        production / "infrastructure" / "seedance2_voice.py",
-        production / "infrastructure" / "seedance2_voice_records.py",
-        production / "infrastructure" / "seedance2_voice_references.py",
-        production / "infrastructure" / "indextts2_beat_audio_task.py",
+        production / "application" / "video_config.py",
+        production / "domain" / "video_dialogue.py",
+        production / "infrastructure" / "video_reference_assets.py",
+        production / "infrastructure" / "video_reference_panel_service.py",
+        production / "infrastructure" / "video_reference_pipeline.py",
+        production / "infrastructure" / "video_prompt_composer.py",
+        production / "infrastructure" / "video_reference_voice.py",
+        production / "infrastructure" / "video_voice_records.py",
+        production / "infrastructure" / "video_reference_voice_references.py",
+        production / "infrastructure" / "episode_audio_generation.py",
     )
     public_source = (production / "public.py").read_text(encoding="utf-8")
 
-    assert not list(legacy.rglob("*.py"))
+    assert not list(retired.rglob("*.py"))
     assert all(path.is_file() for path in owners)
     for export in (
-        "Seedance2I2VMode",
-        "generate_seedance2_prompt_for_panel",
-        "prepare_seedance2_generation_inputs",
-        "run_indextts2_beat_audio_generation",
+        "VideoReferenceMode",
+        "generate_video_prompt_for_panel",
+        "prepare_video_reference_generation_inputs",
+        "run_episode_audio_generation",
     ):
         assert f'"{export}"' in public_source
 
@@ -5407,12 +5313,12 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
     video_schemas = PACKAGE_ROOT / "api" / "routes/production/video_schemas.py"
     video_runner = TASK_RUNNERS_ROOT / "video.py"
-    seedance_pipeline = (
+    reference_pipeline = (
         PACKAGE_ROOT
         / "modules"
         / "production"
         / "infrastructure"
-        / "seedance2_pipeline.py"
+        / "video_reference_pipeline.py"
     )
     source = route.read_text(encoding="utf-8")
 
@@ -5424,8 +5330,10 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
     assert "class SingleVideoRequest(" in video_schema_source
     assert "model: Optional[str] = None" in video_schema_source
     assert "backend" not in video_schema_source.lower()
-    assert "is_seedance2_model" in video_runner.read_text(encoding="utf-8")
-    assert "huimeng" not in seedance_pipeline.read_text(encoding="utf-8").lower()
+    model_specific_names = ("seedance", "happyhorse", "grok", "huimeng")
+    for path in (video_runner, reference_pipeline):
+        lowered = path.read_text(encoding="utf-8").lower()
+        assert not [name for name in model_specific_names if name in lowered]
     for legacy_module in (
         PACKAGE_ROOT / "modules" / "production" / "domain" / "video_backend.py",
         PACKAGE_ROOT
@@ -5440,6 +5348,102 @@ def test_production_video_models_use_the_commercial_catalog_contract() -> None:
         / "video_backend_catalog.py",
     ):
         assert not legacy_module.exists()
+
+
+def test_business_layers_do_not_hardcode_provider_or_model_names() -> None:
+    roots = (
+        PACKAGE_ROOT / "modules" / "production",
+        PACKAGE_ROOT / "modules" / "narrative_planning",
+        PACKAGE_ROOT / "modules" / "asset_world",
+        PACKAGE_ROOT / "modules" / "creative_canvas",
+        PACKAGE_ROOT / "modules" / "verification",
+        REPO_ROOT / "frontend" / "src" / "modules" / "production",
+        REPO_ROOT / "frontend" / "src" / "modules" / "narrative_planning",
+        REPO_ROOT / "frontend" / "src" / "modules" / "asset_world",
+        REPO_ROOT / "frontend" / "src" / "modules" / "creative_canvas",
+    )
+    forbidden = (
+        ("seedance", re.compile(r"seedance", re.IGNORECASE)),
+        ("seedream", re.compile(r"seedream", re.IGNORECASE)),
+        ("nanobanana", re.compile(r"nano[-_ ]?banana", re.IGNORECASE)),
+        ("indextts", re.compile(r"index[-_ ]?tts", re.IGNORECASE)),
+        ("happyhorse", re.compile(r"happy[-_ ]?horse", re.IGNORECASE)),
+        ("huimeng", re.compile(r"huimeng", re.IGNORECASE)),
+        ("doubao", re.compile(r"doubao", re.IGNORECASE)),
+        ("minimax", re.compile(r"MiniMax|minimax")),
+        ("elevenlabs", re.compile(r"eleven[-_ ]?labs", re.IGNORECASE)),
+        ("fish-audio", re.compile(r"fish[-_ ]?audio", re.IGNORECASE)),
+        ("fish-voice-id", re.compile(r"fish[-_ ]?voice[-_ ]?id", re.IGNORECASE)),
+        ("gemini", re.compile(r"Gemini|gemini")),
+        ("anthropic", re.compile(r"anthropic", re.IGNORECASE)),
+        ("openai", re.compile(r"OpenAI|OpenAi|openai")),
+        ("qwen", re.compile(r"qwen", re.IGNORECASE)),
+        ("deepseek", re.compile(r"deep[-_ ]?seek", re.IGNORECASE)),
+        ("kling", re.compile(r"kling", re.IGNORECASE)),
+        ("hailuo", re.compile(r"hailuo", re.IGNORECASE)),
+        ("runway", re.compile(r"runway", re.IGNORECASE)),
+        ("wan2", re.compile(r"wan2", re.IGNORECASE)),
+        ("ltx2", re.compile(r"ltx2", re.IGNORECASE)),
+        ("sora", re.compile(r"sora", re.IGNORECASE)),
+        ("grok", re.compile(r"grok", re.IGNORECASE)),
+        ("fal", re.compile(r"\bfal(?:\.ai|[-_])", re.IGNORECASE)),
+        ("volcengine", re.compile(r"volcengine", re.IGNORECASE)),
+        ("byteplus", re.compile(r"byteplus", re.IGNORECASE)),
+        ("newapi", re.compile(r"new[-_ ]?api", re.IGNORECASE)),
+        ("replicate", re.compile(r"\breplicate\b", re.IGNORECASE)),
+        ("stability-ai", re.compile(r"stability[-_ ]?ai", re.IGNORECASE)),
+        ("midjourney", re.compile(r"midjourney", re.IGNORECASE)),
+        ("ideogram", re.compile(r"ideogram", re.IGNORECASE)),
+    )
+    violations: list[str] = []
+    for root in roots:
+        for path in root.rglob("*"):
+            if not path.is_file() or path.suffix not in {".py", ".ts", ".tsx"}:
+                continue
+            if "tests" in path.parts or "__tests__" in path.parts or ".test." in path.name:
+                continue
+            source = path.read_text(encoding="utf-8")
+            matches = [name for name, pattern in forbidden if pattern.search(source)]
+            if matches:
+                violations.append(
+                    f"{path.relative_to(REPO_ROOT).as_posix()}: {', '.join(matches)}"
+                )
+
+    assert not violations, "\n".join(violations)
+
+
+def test_service_runtime_uses_logging_instead_of_bare_print() -> None:
+    stdout_entrypoints = {
+        "desktop_server.py",
+        "migrations/verification/global_shared.py",
+        "migrations/verification/seed_mirror_once.py",
+        "modules/asset_world/infrastructure/director_world/block_world_builder.py",
+        "modules/asset_world/infrastructure/director_world/control_frame_to_sketch.py",
+        "modules/asset_world/infrastructure/director_world/pano_sharp.py",
+        "modules/asset_world/infrastructure/director_world/scene_360_builder.py",
+        "modules/asset_world/infrastructure/director_world/scene_overlap_analyzer.py",
+        "modules/asset_world/infrastructure/director_world/scene_spatial_contract.py",
+        "modules/asset_world/infrastructure/director_world/staging_prop_ai.py",
+        "modules/backup/infrastructure/files_sync.py",
+        "modules/backup/infrastructure/sqlite_snapshots.py",
+    }
+    violations: list[str] = []
+    for path in _python_files(PACKAGE_ROOT):
+        relative = _relative(path)
+        if relative in stdout_entrypoints or relative.startswith(
+            "modules/verification/presentation/cli/"
+        ):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "print"
+            ):
+                violations.append(f"{relative}:{node.lineno}")
+
+    assert not violations, "\n".join(violations)
 
 
 def test_production_global_video_optimization_route_delegates_to_application() -> None:
@@ -5673,17 +5677,17 @@ def test_production_render_plan_routes_delegate_to_application() -> None:
     assert not _python_files(render_plan_package)
 
 
-def test_production_seedance2_panel_routes_delegate_to_application() -> None:
+def test_production_video_reference_panel_routes_delegate_to_application() -> None:
     route = PACKAGE_ROOT / "api" / "routes" / "production" / "video.py"
     source = route.read_text(encoding="utf-8")
 
-    assert source.count("seedance2_panel_use_cases().") == 5
-    assert "async def get_seedance2_beat_status(" in source
+    assert source.count("video_reference_panel_use_cases().") == 5
+    assert "async def get_video_reference_status(" in source
     for legacy_helper in (
-        "_seedance2_asset_status_payload",
-        "_seedance2_returned_last_frame_status_payload",
-        "_seedance2_voice_status_payload",
-        "_seedance2_panel_context",
+        "_asset_status_payload",
+        "_returned_last_frame_status_payload",
+        "_video_reference_voice_status_payload",
+        "_video_reference_panel_context",
         "_seedance2_status_response",
     ):
         assert legacy_helper not in source
@@ -5692,8 +5696,8 @@ def test_production_seedance2_panel_routes_delegate_to_application() -> None:
         "make_sqlite_store(",
         "panel_service",
         "PathResolver",
-        "build_seedance2_video_panel_state",
-        "parse_seedance2_config",
+        "build_video_reference_panel_state",
+        "parse_video_config",
         "dialogue_voice_reference_rows",
         "resolve_narrator_reference_status",
         "make_project_static_url",
@@ -5711,14 +5715,14 @@ def test_production_single_video_route_delegates_to_application() -> None:
     assert "async def generate_single_video(" in source
     for legacy_helper in (
         "_validate_seedance_pro_dialogue_only",
-        "_seedance2_initial_prompt",
+        "_initial_video_prompt",
         "_legacy_video_prompt_for_mode",
         "_missing_video_prompt_error",
         "SEEDANCE2_SINGLE_VIDEO_CONFIG_FIELDS",
         "_seedance2_request_config_overrides",
-        "_merge_seedance2_request_config",
+        "_merge_video_reference_request_config",
         "_api_audio_duration_seconds",
-        "_prepare_seedance2_api_beat",
+        "_prepare_video_reference_api_beat",
         "_prepare_happyhorse_api_beat",
         "_prepare_grok_video_api_beat",
     ):
@@ -5729,7 +5733,7 @@ def test_production_single_video_route_delegates_to_application() -> None:
         "get_beats_as_dicts",
         "PathResolver",
         "resolve_target_video_duration",
-        "prepare_seedance2_generation_inputs",
+        "prepare_video_reference_generation_inputs",
         "_runtime_prop_menu_with_global_props",
         "get_task_backend",
         "enqueue_project_task",
@@ -5766,13 +5770,13 @@ def test_production_generation_context_routes_delegate_to_application() -> None:
 
 
 def test_production_sketch_color_rules_have_one_owner() -> None:
-    nanobanana = (
+    image_grid = (
         PACKAGE_ROOT
         / "modules"
         / "production"
         / "infrastructure"
         / "media_generation"
-        / "nanobanana_grid.py"
+        / "image_grid.py"
     )
     route = PACKAGE_ROOT / "api" / "routes" / "production" / "sketch.py"
     callers = {
@@ -5787,15 +5791,15 @@ def test_production_sketch_color_rules_have_one_owner() -> None:
     }
 
     assert not (PACKAGE_ROOT / "generators" / "episode_optimizer.py").exists()
-    assert "def _global_prop_marker_colors(" not in nanobanana.read_text(
+    assert "def _global_prop_marker_colors(" not in image_grid.read_text(
         encoding="utf-8"
     )
     assert "def _color_assignment_requires_full_sketch_clean(" not in (
         route.read_text(encoding="utf-8")
     )
-    assert "global_prop_marker_colors" in nanobanana.read_text(encoding="utf-8")
-    assert "ai_anime.modules.production.domain.sketch_color" in _imports(nanobanana)
-    assert "ai_anime.modules.production.public" not in _imports(nanobanana)
+    assert "global_prop_marker_colors" in image_grid.read_text(encoding="utf-8")
+    assert "ai_anime.modules.production.domain.sketch_color" in _imports(image_grid)
+    assert "ai_anime.modules.production.public" not in _imports(image_grid)
     for path, public_name in callers.items():
         source = path.read_text(encoding="utf-8")
         assert public_name in source

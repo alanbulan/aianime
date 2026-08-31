@@ -93,6 +93,8 @@ export function scanNativeTitleAttributePositions(
     if (
       candidate?.kind !== ts.SyntaxKind.Identifier ||
       candidate.text !== "title" ||
+      tokens[index - 1]?.kind === ts.SyntaxKind.MinusToken ||
+      tokens[index - 1]?.kind === ts.SyntaxKind.ColonToken ||
       (nextKind !== ts.SyntaxKind.EqualsToken &&
         nextKind !== ts.SyntaxKind.SlashToken &&
         nextKind !== ts.SyntaxKind.GreaterThanToken)

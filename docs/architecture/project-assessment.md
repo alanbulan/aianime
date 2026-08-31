@@ -53,7 +53,7 @@
 ### P2（优化项，摘要）
 
 - 4 个 600+ 行巨型组件（`KnowledgeGraphVisualization.tsx:668` 等）；全项目无 ErrorBoundary，存在 fire-and-forget（`main.tsx:9` `void bootstrapApplication()`）
-- `nanobanana_grid.py` 96 处 print 调试残留；6 处同步 `sqlite3.connect` 散落顶层文件未走统一工厂
+- `image_grid.py` 96 处 print 调试残留；6 处同步 `sqlite3.connect` 散落顶层文件未走统一工厂
 - i18n 仅 71 行单文件、少量硬编码中文；`features/` 与 `modules/` 存在同名重复实现（`browserStoryboardGenRuntime`）
 - 依赖风险：`litellm>=1.85.0.dev1` 使用 dev 版本；world 可选依赖 `sharp/da2` 走 git+https 引用
 - 仓库卫生：根目录 `jr_error.log` 与 `frontend/node_modules.broken-*` 已移出工作区

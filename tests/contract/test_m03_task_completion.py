@@ -192,12 +192,12 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
             "prompt": beat["video_prompt"],
         }
 
-    async def fake_seedance2_prompt_for_panel(**kwargs):
-        from ai_anime.modules.production.application.seedance2_config import dump_seedance2_config
+    async def fake_video_prompt_for_panel(**kwargs):
+        from ai_anime.modules.production.application.video_config import dump_video_config
 
-        return dump_seedance2_config(
+        return dump_video_config(
             {
-                "final_prompt": "fixed seedance final prompt",
+                "final_prompt": "fixed optimized video prompt",
                 "prompt_source": "generated",
             }
         )
@@ -209,8 +209,8 @@ def m03_completion_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(scripts, "resolve_project_scope", resolve_project_scope)
     monkeypatch.setattr(tasks, "resolve_project_context", resolve_project_context)
     monkeypatch.setattr(
-        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
-        fake_seedance2_prompt_for_panel,
+        "ai_anime.modules.production.public.generate_video_prompt_for_panel",
+        fake_video_prompt_for_panel,
     )
 
     app = FastAPI()
@@ -407,7 +407,7 @@ def test_negative_manual_shot_delete_rejects_regular_beat(m03_completion_client)
     assert beats[0]["is_manual_shot"] is False
 
 
-def test_seedance2_prompt_does_not_create_media_side_effects(m03_completion_client):
+def test_video_prompt_does_not_create_media_side_effects(m03_completion_client):
     client, ctx = m03_completion_client
     _seed_imported_story(ctx)
     client.post(
@@ -424,18 +424,18 @@ def test_seedance2_prompt_does_not_create_media_side_effects(m03_completion_clie
         if path.suffix.lower() in {".mp4", ".mov", ".png", ".jpg", ".jpeg", ".webp"}
     }
     response = client.post(
-        "/api/v1/projects/proj_m03_completion/episodes/1/beats/1/seedance2-prompt/generate",
+        "/api/v1/projects/proj_m03_completion/episodes/1/beats/1/video-prompt/optimize",
         json={"prompt_guidance": "固定提示"},
     )
     assert response.status_code == 200
     payload = response.json()
     assert payload["ok"] is True
-    assert payload["task_type"] == "seedance2_prompt"
+    assert payload["task_type"] == "video_prompt_optimization"
     assert payload["task_key"]
-    task = _wait_for_task(ctx, "seedance2_prompt", 1, beat_num=1)
+    task = _wait_for_task(ctx, "video_prompt_optimization", 1, beat_num=1)
     assert task.status == "completed"
-    assert task.result["final_prompt"] == "fixed seedance final prompt"
-    assert "seedance2_config_json" in task.result
+    assert task.result["final_prompt"] == "fixed optimized video prompt"
+    assert "video_config_json" in task.result
 
     after_media = {
         path.relative_to(ctx.output_dir)

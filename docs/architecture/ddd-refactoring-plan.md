@@ -500,7 +500,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四十批执行补充：生成前的容错剧集读取、角色模型投影、草图颜色读取/缺失分配/持久化和 Asset & World 角色映射委托已迁入 `ProductionGenerationContextUseCases` 及其 infrastructure adapters；`generation.py` 与 Freezone 统一经 Production public API 调用，两个旧私有 helper 已删除，route 间导入额度和实际依赖均降为零，不保留转发别名。
 
-第四十一批执行补充：身份稳定配色、全局道具标记配色和颜色变化触发草图失效三类规则已统一迁入 Production domain；NanoBanana、生成路由、Freezone、Asset & World 和脚本任务 runner 全部改经 Production public API，旧 `generators/episode_optimizer.py`、NanoBanana 私有道具配色实现和 route 私有失效 helper 已删除，不保留兼容入口。
+第四十一批执行补充：身份稳定配色、全局道具标记配色和颜色变化触发草图失效三类规则已统一迁入 Production domain；ImageGeneration、生成路由、Freezone、Asset & World 和脚本任务 runner 全部改经 Production public API，旧 `generators/episode_optimizer.py`、ImageGeneration 私有道具配色实现和 route 私有失效 helper 已删除，不保留兼容入口。
 
 第四十二批执行补充：`/sketches/assign-colors` 的已有颜色读取、身份/道具配色、运行时 Prop 菜单、Store 写回容错和草图失效清理已迁入 `SketchColorAssignmentUseCases`；Episode 容错读取抽为共享 infrastructure port adapter，角色上下文与显式配色复用同一实现，路由只保留项目解析、Beat 空结果和响应映射。
 
@@ -526,7 +526,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五十三批执行补充：单 Beat 视频生成的提示词与 Seedance 1.5 有声校验规则、显式请求字段、任务 DTO/回执和排队结果已迁入 Production domain/application；SQLite Store、音频时长、首尾帧、Seedance2/HappyHorse/Grok 输入准备和任务后端适配归 infrastructure，成功与失败路径均关闭 Store；视频端点只保留请求映射与错误信封，原路由十一项 helper 及内联编排已删除，视频 runner 复用唯一任务类型，不保留双轨入口。
 
-第五十四批执行补充：剧集草图的颜色前置条件、网格索引校验与全网格分派规则，以及命令、任务 DTO/回执和响应投影已迁入 Production domain/application；项目设置、NanoBanana 网格计划、SQLite 材料读取、角色与 Prop 上下文、图片源归一化、草图目录清理和任务后端适配归 infrastructure，成功与拒绝路径均关闭 Store；草图生成端点只保留请求与错误映射，原内联编排已删除，草图 runner 复用唯一任务类型，不保留双轨入口。
+第五十四批执行补充：剧集草图的颜色前置条件、网格索引校验与全网格分派规则，以及命令、任务 DTO/回执和响应投影已迁入 Production domain/application；项目设置、ImageGeneration 网格计划、SQLite 材料读取、角色与 Prop 上下文、图片源归一化、草图目录清理和任务后端适配归 infrastructure，成功与拒绝路径均关闭 Store；草图生成端点只保留请求与错误映射，原内联编排已删除，草图 runner 复用唯一任务类型，不保留双轨入口。
 
 第五十五批执行补充：Director Control 控制帧前置状态、任务 DTO/回执、缺失错误和排队响应已迁入 Production application；Asset & World 控制帧状态与项目媒体 URL、任务后端和 task key 归 infrastructure 适配，端点只保留命令与错误映射；不可能进入的无 `ProjectContext` actor 分支、测试伪入口和 Freezone 中零调用的重复排队 helper 已删除，草图 runner 复用唯一 task kind，不保留双轨实现。
 
@@ -534,7 +534,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第五十七批执行补充：单网格 Render 再生的命令、任务 DTO/回执和响应投影已迁入 Production application；角色/场景/顺序三种网格选区规划、项目设置、角色映射、仅目标网格的 AI 检测、图片源/补边归一化、SQLite 生命周期和任务后端适配归 infrastructure；端点只保留请求与错误映射，原内联 Store、网格规划、校验、config/payload/scope/排队实现及不可能的无 `ProjectContext` 分支已删除，render runner 复用唯一任务类型常量。
 
-第五十八批执行补充：Render Plan 网格值对象、Beat 归一化和自定义计划校验已迁入 Production domain，规划/执行命令、材料、任务 DTO、400/409 问题模型及响应投影归 application；Feature Flag、SQLite/角色/Prop/图片设置材料准备、NanoBanana 计划/指纹适配、共享参考图 Hasher 和任务后端归 infrastructure；两个端点只保留请求与 HTTP 映射，原两套 Store/校验/角色映射/指纹/计划重算/payload/排队实现、不可能的无 `ProjectContext` 分支、重复 `ai_anime.render_plan` Hasher 包和无调用响应 schema 已删除。
+第五十八批执行补充：Render Plan 网格值对象、Beat 归一化和自定义计划校验已迁入 Production domain，规划/执行命令、材料、任务 DTO、400/409 问题模型及响应投影归 application；Feature Flag、SQLite/角色/Prop/图片设置材料准备、ImageGeneration 计划/指纹适配、共享参考图 Hasher 和任务后端归 infrastructure；两个端点只保留请求与 HTTP 映射，原两套 Store/校验/角色映射/指纹/计划重算/payload/排队实现、不可能的无 `ProjectContext` 分支、重复 `ai_anime.render_plan` Hasher 包和无调用响应 schema 已删除。
 
 第六十批执行补充：网格图片池列表与索引重建的响应 DTO 和应用用例已迁入 Production application；池索引读取/重建、Beat 内容哈希、过期判断、SQLite 生命周期和项目媒体 URL 归 infrastructure；两个端点只保留项目权限、用例调用和响应投影，原路由内联实现已删除，上传、候选选择和切图能力保持原边界不动。
 
@@ -895,7 +895,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 - Asset & World 项目资产 URL 适配收敛完成；角色、道具、场景和 Beat Viewer 共用 `shared/project_media.py` 的唯一 builder，三个 `_asset_url` 与一个 `_viewer_asset_url` 已删除；Asset & World、资产 API、项目媒体、M04/M05/M06 与架构门禁合并回归 320 项测试通过，8 条均为既有依赖弃用告警。
 - Asset & World 阶段退出检查完成；网格角色引用迁移后的模块与架构回归 183 项、相关生成调用链 31 项、Freezone 191 项通过，失效角色自动提升清理后的身份/架构回归 40 项通过，最终 M04/M05 契约 17 项通过；全仓 Ruff 与 `git diff --check` 通过。
 - Production 前四批分层完成；姿势编辑扩大回归 66 项、裁剪规则/实际 PNG 写回/M05/架构门禁回归 63 项、图片设置与 Freezone/M06/M09 回归 98 项及运行时选择补充回归 11 项通过；生成角色上下文的 Production/架构回归 59 项、生成/M05/M09 扩大回归 83 项、Freezone/M06/角色映射回归 161 项通过，8 条均为既有依赖弃用告警；旧 helper 引用和 route 间导入均为零，全仓 Ruff 与 `git diff --check` 通过。
-- Production 草图标记颜色领域规则收敛完成；领域与架构回归 52 项通过，NanoBanana/Freezone/脚本 runner/M05 扩大回归 20 项通过、5 项按既有条件跳过，8 条均为既有依赖弃用告警；旧颜色模块与私有实现引用为零。
+- Production 草图标记颜色领域规则收敛完成；领域与架构回归 52 项通过，ImageGeneration/Freezone/脚本 runner/M05 扩大回归 20 项通过、5 项按既有条件跳过，8 条均为既有依赖弃用告警；旧颜色模块与私有实现引用为零。
 - Production 显式草图配色用例收敛完成；Production/API/架构回归 77 项、生成/M05 回归 43 项、Freezone/M06 回归 159 项通过，8 条均为既有依赖弃用告警；assign-colors 路由中的 Store 写回、Prop 菜单和文件清理实现均已清除。
 - Production AI 草图 Marker 检测用例收敛完成；Production/草图/API/架构回归 125 项、Generation/M05 回归 18 项、Freezone/M06 回归 58 项通过，8 条均为既有依赖弃用告警；检测端点中的文件、模型、计费、分类和持久化实现均已清除。
 - Production 草图重生成队列用例收敛完成；Production/API/架构回归 121 项、M05/M09 契约 18 项、Freezone/M06 回归 42 项通过，8 条均为既有依赖弃用告警；队列端点中的配置读写、旧键迁移和响应组装实现均已清除。
@@ -2157,7 +2157,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第二轮后端第十一批已为 Creative Canvas 任务输出工作区、生成历史写入、视觉分析和反推执行建立窄 application 合同与本地 infrastructure adapter，并由 composition/public 提供稳定入口；旧 `freezone/jobs.py` 及 Freezone、Stage Asset、Video 三类 task runner 的 11 处低层直连全部切换，runner 不再知道 `_outputs` 布局、JSONL 记录构建或视觉 transport。历史记录的 task key、prompt 截断、结果深拷贝和追加语义仍由唯一 history adapter 持有；视觉模型仍只经过既有云端/BYOK 双入口，不新增第三条调用链。Production Sketch 两项门禁经 AST 复核确认只因扫描整个路由文件而误命中另一个合法 handler，现改为检查目标函数体，禁止项集合未放宽。application/runner/视觉/历史/视频/3GS 定向回归 65 项、Freezone 图片 145 项、音频/文本/视频 35 项及完整后端架构门禁 153 项通过，修改文件 Ruff、Python 编译和 `git diff --check` 通过。`jobs.py` 巨石、task runner 对旧 jobs 的依赖、前端旧 feature、组合根循环和最终干净环境复验仍未完成，阶段 8、阶段 10 和第二轮 GOAL 继续保持进行中。
 
-第二轮后端第十二批没有把 1,488 行 `freezone/jobs.py` 原样换目录，而是新增 `application/job_execution.py` 作为任务命令与端口所有者，将图片执行、媒体进程、视频增强/音频分离、时间线合成、视频擦除、商业视频生成和抽帧/视觉分析拆入 7 个独立 infrastructure adapter；视频分析提示词与增强规则分别归入 domain，composition/public 负责唯一装配。Freezone、Video、Stage Asset 三类 runner 和直接测试调用方一次切换，旧 `jobs.py`、无调用的 `stale.py` 和过期包壳全部删除，不保留 facade、兼容别名或第二套实现。runner 对旧 jobs 的 17 处导入、旧 Freezone Python 源及旧包 generator 直连均归零；任务执行聚焦 28 项、Freezone 图片 145 项、音频与历史 19 项、完整后端架构门禁 183 项通过。门禁复核同时确认 OpenAPI 缺少的 12 个操作正是此前移除的旧模型列表、本地 NewAPI 管理和视频后端接口，快照据真实合同更新为浏览器 281、桌面 283。前端旧 feature、跨上下文 Task Execution 和最终干净环境复验仍未完成，阶段 8、阶段 10 和第二轮 GOAL 继续保持进行中。
+第二轮后端第十二批没有把 1,488 行 `freezone/jobs.py` 原样换目录，而是新增 `application/job_execution.py` 作为任务命令与端口所有者，将图片执行、媒体进程、视频增强/音频分离、时间线合成、视频擦除、商业视频生成和抽帧/视觉分析拆入 7 个独立 infrastructure adapter；视频分析提示词与增强规则分别归入 domain，composition/public 负责唯一装配。Freezone、Video、Stage Asset 三类 runner 和直接测试调用方一次切换，旧 `jobs.py`、无调用的 `stale.py` 和过期包壳全部删除，不保留 facade、兼容别名或第二套实现。runner 对旧 jobs 的 17 处导入、旧 Freezone Python 源及旧包 generator 直连均归零；任务执行聚焦 28 项、Freezone 图片 145 项、音频与历史 19 项、完整后端架构门禁 183 项通过。门禁复核同时确认 OpenAPI 缺少的 12 个操作正是此前移除的旧模型列表、本地 Model Gateway 管理和视频后端接口，快照据真实合同更新为浏览器 281、桌面 283。前端旧 feature、跨上下文 Task Execution 和最终干净环境复验仍未完成，阶段 8、阶段 10 和第二轮 GOAL 继续保持进行中。
 
 第二轮前端第一批（R1-A）已把 Narrative Planning 的 Episodes、Script、Beats 页面装配移到 `app/workspace-composition.tsx`，将本上下文查询装配独立为 `modules/narrative_planning/query-composition.ts`，并从 Narrative public 删除页面与 TextPane 运行时再导出；Asset World 的 Characters 页面通过显式 `renderNarratorVoicePanel` port 接收 Production UI，不再反向导入 Production composition。Production 只经 Narrative public 使用无环查询边界，Narrative、RenderSection、SketchSection 中为规避 TDZ 添加的同名 `(...args) => useX(...args)` 延迟转发全部删除。三个 Narrative 路由和 Characters 路由统一导入 App composition root，不保留旧页面出口。前端 TypeScript、实际加载 Characters/Beats/Compose/Freezone 懒路由的 2 项初始化回归和完整前端架构门禁 331 项通过；R1-A 已关闭，但旧 `features/canvas`/`features/freezone` 仍有 926/162 个 TS/TSX 文件，R1、阶段 8、阶段 10 和第二轮 GOAL 继续保持进行中。
 
@@ -2517,7 +2517,7 @@ Canvas 可以继续使用单一 Zustand store 保证原子更新，但实现拆�
 
 第四百五十五批已将全局道具持久化与资产编排共用的 `NovelProp` 从后端公共 `models.py` 迁入唯一 Asset & World application `prop_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复模型。Asset & World 内部道具目录 infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、SQLiteStore 与 Seedance 素材解析等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `faf1b136c821d77c2859e35c4f10acf3c4676454f8d31bd0f701f80a49e521c8` 与迁移前一致，新增默认序列化、可变默认值隔离和唯一所有权门禁。本批模型、M04/M06 合同、剧集详情与架构回归 185 项，道具 API、SQLite、Asset Compiler、Seedance 和 Prop Catalog 回归 122 项，最终完整架构门禁 149 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
-第四百五十六批已将 `NovelScene` 与唯一有效场景提示词组合函数 `build_scene_effective_prompt` 从后端公共 `models.py` 一并迁入唯一 Asset & World application `scene_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复逻辑。Asset & World 内部 Scene Catalog infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、Freezone、场景参考图生成器、SQLiteStore 与 AssetResolver 等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `41287f2ff117c3217eebdb1d408f35eca55739620e5d5c41b2fc47f20efb5777` 与迁移前一致，新增默认序列化、结构化场景轴组合、历史融合 prompt 保留和唯一所有权门禁。本批模型、场景提示词、场景板解析、Asset Compiler、M05/M06 与架构回归 211 项，场景 API、SQLite、Cognee 场景提取、NewAPI、AssetResolver 与 Freezone 回归 156 项通过；最终完整架构门禁 150 项，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
+第四百五十六批已将 `NovelScene` 与唯一有效场景提示词组合函数 `build_scene_effective_prompt` 从后端公共 `models.py` 一并迁入唯一 Asset & World application `scene_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复逻辑。Asset & World 内部 Scene Catalog infrastructure 直连 application 模型，Asset Compiler、Cognee pipeline/store、Freezone、场景参考图生成器、SQLiteStore 与 AssetResolver 等模块外调用方统一经 Asset & World `public.py` 使用稳定入口；Pydantic JSON Schema 哈希 `41287f2ff117c3217eebdb1d408f35eca55739620e5d5c41b2fc47f20efb5777` 与迁移前一致，新增默认序列化、结构化场景轴组合、历史融合 prompt 保留和唯一所有权门禁。本批模型、场景提示词、场景板解析、Asset Compiler、M05/M06 与架构回归 211 项，场景 API、SQLite、Cognee 场景提取、Model Gateway、AssetResolver 与 Freezone 回归 156 项通过；最终完整架构门禁 150 项，修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 
 第四百五十七批已将 SQLite/Cognee 持久化与手工分镜编排共用的 `NovelVisualBeat` 从后端公共 `models.py` 迁入唯一 Narrative Planning application `beat_models.py`，旧定义及无生产调用方的 `cognee` 包级转发直接删除，不保留 facade、别名或重复模型。Narrative Planning 内部手工分镜用例直连 application 模型，Cognee pipeline/store、SQLiteStore 与模块外测试统一经 Narrative Planning `public.py` 使用稳定入口；当前模型暂时复用旧巨石中唯一的 `SceneRef` 与 `_coerce_scene_ref`，不复制场景引用规范化逻辑，下一批由同一 `beat_models.py` 吸收该引用组并消除此依赖。Pydantic JSON Schema 哈希 `95ea11fa128f1170596ca118966594bf8bd75f7055e47ea0e718c8c68ddee5ac` 与迁移前一致，新增空文本补全、历史 SceneRef key 规范化、手工空镜头保留和唯一所有权门禁。持久化 beat、手工分镜、M03、Seedance 配置、项目路由与架构回归 187 项通过、3 项按既有条件跳过，SQLite/Cognee 与资产 API 回归 74 项，最终完整架构门禁 151 项通过；修改文件 Ruff、Python 编译和 `git diff --check` 均通过。
 

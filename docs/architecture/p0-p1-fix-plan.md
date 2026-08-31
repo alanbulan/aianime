@@ -13,7 +13,7 @@
 - `shared/infrastructure/project_stores.py`：新增请求级 store 生命周期注册表（`begin/end/register_request_store`），两个 SQLite 工厂创建后自动注册。
 - `api/middleware/request_store_close.py`：HTTP 中间件在响应结束后统一 close 本请求任务打开的 store。
 - 注册按"请求所有者任务 id"门控：请求期间 spawn 的 inline 后台任务不会被误关；`SQLiteStore.close()` 幂等，既有手动 close 不受影响。
-- `nanobanana_grid.py:5195` 裸 `except:` 收敛为 `except Exception` + 日志。
+- `image_grid.py:5195` 裸 `except:` 收敛为 `except Exception` + 日志。
 - `verification.py` 3 处 `except Exception: pass` 收敛为 `logger.debug`。
 - 新增 `tests/test_request_store_lifecycle.py`（含后台任务隔离断言）；layer boundary 149 项、API 路由子集 79 项通过。
 
@@ -23,7 +23,7 @@
 
 **策略**：按风险分三批，全部改为 `logger.debug/warning` + 明确 fallback，禁止裸 `except`。
 
-- 第一批（已启动）：生成管线 + 验证 API（nanobanana_grid 裸 except、verification 3 处）——完成。
+- 第一批（已启动）：生成管线 + 验证 API（image_grid 裸 except、verification 3 处）——完成。
 - 任务执行、取消和恢复路径已经随 Task Execution 迁移复核；不得吞掉会改变任务终态的异常。
 - 其余精确异常捕获多为兼容解析、清理和 best-effort 观测。后续按具体行为修改，不做会改变 fallback 语义的全仓机械替换。
 
@@ -42,7 +42,7 @@
 ## 4. P2 快速清理（顺手项）
 
 - 根目录 `jr_error.log` 与 `frontend/node_modules.broken-*` 已移出工作区。
-- `nanobanana_grid.py` 96 处 print 调试残留改为 logger。
+- `image_grid.py` 96 处 print 调试残留改为 logger。
 - i18n 中文硬编码抽到 `public/locales/zh`；同名重复实现 `browserStoryboardGenRuntime` 二选一。
 
 ## 5. 商业链路（外部依赖）

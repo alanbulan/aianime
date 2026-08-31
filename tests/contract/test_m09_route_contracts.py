@@ -40,22 +40,22 @@ _M09_OPERATIONS = {
     ("GET", "/api/v1/projects/{project}/episodes/{episode_num}/video-pool"),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-pool-select"),
     ("DELETE", "/api/v1/projects/{project}/episodes/{episode_num}/video-pool/{pool_id}"),
-    ("GET", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2-status"),
+    ("GET", "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/status"),
     (
         "POST",
-        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/upload",
+        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/upload",
     ),
     (
         "POST",
-        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/delete",
+        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/delete",
     ),
     (
         "POST",
-        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/crop",
+        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/crop",
     ),
     (
         "POST",
-        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/seedance2/assets/audio-trim",
+        "/api/v1/projects/{project}/episodes/{episode_num}/beats/{beat_num}/video-reference/assets/audio-trim",
     ),
     ("POST", "/api/v1/projects/{project}/episodes/{episode_num}/optimize/video-global"),
     ("GET", "/api/v1/projects/{project}/assets/{asset_type}/{asset_id}/references"),
@@ -103,7 +103,7 @@ class _M09Store:
                 "scene_ref": {"scene_id": _SCENE},
                 "detected_identities": [NO_CHARACTER_MARKER],
                 "detected_props": [],
-                "seedance2_config_json": "{}",
+                "video_config_json": "{}",
             },
             {
                 "episode_number": 1,
@@ -115,7 +115,7 @@ class _M09Store:
                 "scene_ref": {"scene_id": _SCENE},
                 "detected_identities": [NO_CHARACTER_MARKER],
                 "detected_props": [],
-                "seedance2_config_json": "{}",
+                "video_config_json": "{}",
             },
         ]
 
@@ -226,8 +226,8 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         ("videos/beats/ep001/beat_01.mp4", b"beat-video"),
         ("videos/episodes/ep001_final.mp4", b"final-video"),
         ("media/existing.mp4", b"media-video"),
-        ("seedance2_uploads/ep001/beat_01/images/ref.png", _png_bytes()),
-        ("seedance2_uploads/ep001/beat_01/audios/ref.wav", b"audio"),
+        ("video_reference_uploads/ep001/beat_01/images/ref.png", _png_bytes()),
+        ("video_reference_uploads/ep001/beat_01/audios/ref.wav", b"audio"),
     ):
         target = project_dir / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -300,7 +300,7 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def srt_duration(*_args, **_kwargs):
         return 5.0
 
-    async def seedance2_panel_response(*_args, **_kwargs):
+    async def video_reference_panel_response(*_args, **_kwargs):
         return {"ok": True, "data": {"beat_num": 1, "assets": {"items": []}}}
 
     async def runtime_prop_menu(*_args, **_kwargs):
@@ -360,17 +360,17 @@ def m09_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "make_project_static_url",
         lambda ctx, rel, local_path=None: f"/static/projects/{ctx.project_id}/{rel}",
     )
-    seedance2_panel = SimpleNamespace(
-        status=seedance2_panel_response,
-        upload=seedance2_panel_response,
-        remove=seedance2_panel_response,
-        crop=seedance2_panel_response,
-        trim_audio=seedance2_panel_response,
+    video_reference_panel = SimpleNamespace(
+        status=video_reference_panel_response,
+        upload=video_reference_panel_response,
+        remove=video_reference_panel_response,
+        crop=video_reference_panel_response,
+        trim_audio=video_reference_panel_response,
     )
     monkeypatch.setattr(
         production_video,
-        "seedance2_panel_use_cases",
-        lambda: seedance2_panel,
+        "video_reference_panel_use_cases",
+        lambda: video_reference_panel,
     )
     monkeypatch.setattr(
         project_file_delivery,
@@ -551,28 +551,28 @@ def test_m09_l2_exercises_all_21_endpoint_contracts(m09_client_factory):
             json={"pool_id": pool_id},
         )
     )
-    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/seedance2-status"))
+    _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video-reference/status"))
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/seedance2/assets/upload",
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video-reference/assets/upload",
             files={"file": ("ref.png", png, "image/png")},
         )
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/seedance2/assets/delete",
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video-reference/assets/delete",
             json={
                 "media_kind": "images",
-                "path": "seedance2_uploads/ep001/beat_01/images/ref.png",
+                "path": "video_reference_uploads/ep001/beat_01/images/ref.png",
             },
         )
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/seedance2/assets/crop",
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video-reference/assets/crop",
             json={
                 "asset_key": "manual:image",
-                "source_path": "seedance2_uploads/ep001/beat_01/images/ref.png",
+                "source_path": "video_reference_uploads/ep001/beat_01/images/ref.png",
                 "width": 1,
                 "height": 1,
             },
@@ -580,10 +580,10 @@ def test_m09_l2_exercises_all_21_endpoint_contracts(m09_client_factory):
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/seedance2/assets/audio-trim",
+            f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/video-reference/assets/audio-trim",
             json={
                 "asset_key": "manual:audio",
-                "source_path": "seedance2_uploads/ep001/beat_01/audios/ref.wav",
+                "source_path": "video_reference_uploads/ep001/beat_01/audios/ref.wav",
             },
         )
     )

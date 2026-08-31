@@ -96,7 +96,6 @@ def test_ce_auth_me_logout_and_project_crud_contract(
             "data": {
                 "username": "local",
                 "role": "owner",
-                "credit_balance": 0,
                 "credential_kind": "user",
                 "current_scope_kind": None,
                 "current_project_id": None,

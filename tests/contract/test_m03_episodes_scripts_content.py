@@ -129,7 +129,7 @@ class _M03Store:
                 "video_mode": beat.get("video_mode", "first_frame"),
                 "video_prompt": beat.get("video_prompt", ""),
                 "keyframe_prompt": beat.get("keyframe_prompt", ""),
-                "seedance2_config_json": beat.get("seedance2_config_json", "{}"),
+                "video_config_json": beat.get("video_config_json", "{}"),
                 "is_manual_shot": bool(beat.get("is_manual_shot", False)),
                 "scene_ref": beat.get("scene_ref"),
                 "time_of_day": beat.get("time_of_day", ""),
@@ -159,7 +159,7 @@ class _M03Store:
                     "video_mode": beat.video_mode,
                     "video_prompt": beat.video_prompt,
                     "keyframe_prompt": beat.keyframe_prompt,
-                    "seedance2_config_json": beat.seedance2_config_json,
+                    "video_config_json": beat.video_config_json,
                     "is_manual_shot": beat.is_manual_shot,
                     "scene_ref": {},
                     "time_of_day": beat.time_of_day,
@@ -242,12 +242,12 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     async def fake_rewrite_episode_content(*args, **kwargs):
         return "改写第一行\n改写第二行"
 
-    async def fake_seedance2_prompt_for_panel(**kwargs):
-        from ai_anime.modules.production.application.seedance2_config import dump_seedance2_config
+    async def fake_video_prompt_for_panel(**kwargs):
+        from ai_anime.modules.production.application.video_config import dump_video_config
 
-        return dump_seedance2_config(
+        return dump_video_config(
             {
-                "final_prompt": "seedance final prompt",
+                "final_prompt": "optimized video prompt",
                 "prompt_source": "generated",
             }
         )
@@ -257,8 +257,8 @@ def m03_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         fake_rewrite_episode_content,
     )
     monkeypatch.setattr(
-        "ai_anime.modules.production.public.generate_seedance2_prompt_for_panel",
-        fake_seedance2_prompt_for_panel,
+        "ai_anime.modules.production.public.generate_video_prompt_for_panel",
+        fake_video_prompt_for_panel,
     )
 
     app = FastAPI()
@@ -418,13 +418,13 @@ def test_m03_l2_covers_episodes_scripts_and_content_endpoints(m03_client):
     assert video_prompt.json()["task_type"] == "beat_video_prompt"
     assert video_prompt.json()["backend"] == "inline"
 
-    seedance = client.post(
-        "/api/v1/projects/demo/episodes/1/beats/1/seedance2-prompt/generate",
+    video_prompt = client.post(
+        "/api/v1/projects/demo/episodes/1/beats/1/video-prompt/optimize",
         json={"prompt_guidance": "更紧张"},
     )
-    assert seedance.status_code == 200
-    assert seedance.json()["task_type"] == "seedance2_prompt"
-    assert seedance.json()["backend"] == "inline"
+    assert video_prompt.status_code == 200
+    assert video_prompt.json()["task_type"] == "video_prompt_optimization"
+    assert video_prompt.json()["backend"] == "inline"
 
     manual = client.post(
         "/api/v1/projects/demo/episodes/1/beats/insert-manual",
@@ -462,7 +462,7 @@ def test_m03_routes_return_no_5xx_for_representative_requests(m03_client):
         ("POST", "/api/v1/projects/demo/episodes/1/script/generate", {}),
         ("PATCH", "/api/v1/projects/demo/episodes/1/beats/1", {"visual_description": "v"}),
         ("POST", "/api/v1/projects/demo/episodes/1/beats/1/video-prompt/generate", {}),
-        ("POST", "/api/v1/projects/demo/episodes/1/beats/1/seedance2-prompt/generate", {}),
+        ("POST", "/api/v1/projects/demo/episodes/1/beats/1/video-prompt/optimize", {}),
         ("PUT", "/api/v1/projects/demo/episodes/1/script", {"beats": []}),
         ("GET", "/api/v1/projects/demo/episodes/1/raw-content", None),
         ("PUT", "/api/v1/projects/demo/episodes/1/raw-content", {"content": "原文"}),

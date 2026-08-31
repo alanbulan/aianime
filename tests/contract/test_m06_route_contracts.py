@@ -1409,9 +1409,9 @@ def _freezone_task_cases(client: TestClient, assets: SimpleNamespace):
             ),
         ),
         (
-            "freezone_audio_eleven_music",
+            "freezone_audio_music",
             client.post(
-                f"/api/v1/projects/{p}/freezone/audio/eleven-music",
+                f"/api/v1/projects/{p}/freezone/audio/music",
                 json={
                     "input": "cinematic rain-soaked suspense music",
                 },
@@ -1480,7 +1480,7 @@ def test_m06_freezone_task_backend_responses_are_ce_ee_isomorphic(
         "freezone_text_translate",
         "freezone_story_script",
         "freezone_audio_speech",
-        "freezone_audio_eleven_music",
+        "freezone_audio_music",
     }
 
 

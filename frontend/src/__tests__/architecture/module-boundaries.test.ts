@@ -1226,10 +1226,6 @@ describe("frontend architecture boundaries", () => {
       moduleRoot,
       "presentation/NodeResizeHandle.test.tsx",
     );
-    const priceBadgePath = resolve(
-      moduleRoot,
-      "presentation/NodePriceBadge.tsx",
-    );
     const expandButtonPath = resolve(
       moduleRoot,
       "presentation/PanelExpandButton.tsx",
@@ -1314,7 +1310,6 @@ describe("frontend architecture boundaries", () => {
       resizeHandleTestPath,
       "utf8",
     );
-    const priceBadgeSource = readFileSync(priceBadgePath, "utf8");
     const expandButtonSource = readFileSync(expandButtonPath, "utf8");
     const controlStylesSource = readFileSync(controlStylesPath, "utf8");
     const actionToolbarStylesSource = readFileSync(
@@ -1348,7 +1343,6 @@ describe("frontend architecture boundaries", () => {
       ["export function", "GroupNodeView("].join(" "),
       ["export function", "canvasNodeFrameClass("].join(" "),
       ["export function", "NodeResizeHandle("].join(" "),
-      ["export function", "NodePriceBadge("].join(" "),
       ["export function", "PanelExpandButton("].join(" "),
       ["export function", "ZoomScaledToolbar("].join(" "),
       ["export function", "NodeToolbarIconChip("].join(" "),
@@ -1384,7 +1378,6 @@ describe("frontend architecture boundaries", () => {
       ["modules/creative_canvas/presentation/GroupNodeView.tsx"],
       ["modules/creative_canvas/presentation/canvasNodeFrameStyles.ts"],
       ["modules/creative_canvas/presentation/NodeResizeHandle.tsx"],
-      ["modules/creative_canvas/presentation/NodePriceBadge.tsx"],
       ["modules/creative_canvas/presentation/PanelExpandButton.tsx"],
       ["modules/creative_canvas/presentation/ZoomScaledToolbar.tsx"],
       ["modules/creative_canvas/presentation/NodeToolbarIconChip.tsx"],
@@ -1466,7 +1459,6 @@ describe("frontend architecture boundaries", () => {
     );
     expect(importSpecifiers(frameStylesPath)).toEqual([]);
     expect(importSpecifiers(resizeHandlePath)).toEqual(["@xyflow/react"]);
-    expect(importSpecifiers(priceBadgePath)).toEqual([]);
     expect(new Set(importSpecifiers(expandButtonPath))).toEqual(
       new Set([
         "lucide-react",
@@ -1495,7 +1487,9 @@ describe("frontend architecture boundaries", () => {
     expect(importSpecifiers(editableTableCellPath)).toEqual(["react"]);
     expect(frameStylesSource).toContain("CANVAS_NODE_OPS_PANEL_CLASS");
     expect(resizeHandleSource).toContain("<NodeResizeControl");
-    expect(priceBadgeSource).not.toContain("@/features/");
+    expect(
+      existsSync(resolve(moduleRoot, "presentation/NodePriceBadge.tsx")),
+    ).toBe(false);
     expect(expandButtonSource).not.toContain("@/features/");
     for (const sharedPresentationSource of [
       controlStylesSource,
@@ -2730,7 +2724,7 @@ describe("frontend architecture boundaries", () => {
     expect(entrySource).not.toContain("useEffect(");
     expect(entrySource).not.toContain("className=");
     expect(controllerSource).toContain("useStore((state)");
-    expect(controllerSource).toContain("useSettingsStore(");
+    expect(controllerSource).not.toContain("useSettingsStore(");
     expect(controllerSource).toContain(
       "canvasAiGateway.submitGenerateImageJob(",
     );
@@ -3135,7 +3129,6 @@ describe("frontend architecture boundaries", () => {
     ].map((path) => resolve(SRC_ROOT, path));
     const declarations = [
       ["export const", "ImageGenNode", "=", "memo("].join(" "),
-      ["export function", "isImage2Model("].join(" "),
       ["export function", "createUseImageGenNodeController("].join(" "),
       ["export function", "AspectSizeChip("].join(" "),
       ["export function", "ImageGenNodeView("].join(" "),
@@ -3157,7 +3150,6 @@ describe("frontend architecture boundaries", () => {
     );
     expect(declarationOwners).toEqual([
       ["modules/creative_canvas/presentation/canvas-shell/nodes/ImageGenNode.tsx"],
-      ["modules/creative_canvas/domain/imageGenNodeModel.ts"],
       ["modules/creative_canvas/presentation/useImageGenNodeController.ts"],
       ["modules/creative_canvas/presentation/ImageGenNodeControls.tsx"],
       ["modules/creative_canvas/presentation/ImageGenNodeView.tsx"],
@@ -5454,7 +5446,9 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/public",
     );
     expect(bootstrap).toContain("installFreezoneCanvasStorageReclaimer();");
-    expect(importSpecifiers(settingsPath)).toContain("../domain/modelPricing");
+    expect(importSpecifiers(settingsPath)).not.toContain("../domain/modelPricing");
+    expect(settings).not.toContain("showNodePrice");
+    expect(settings).not.toContain("priceDisplayCurrencyMode");
     expect(settings).not.toContain("@/features/canvas/public");
     expect(settings).not.toContain("@/features/freezone/canvasDraftStorage");
     expect(settings).not.toContain("@/features/canvas/pricing/types");
@@ -17944,11 +17938,6 @@ describe("frontend architecture boundaries", () => {
         )
         .map((specifier) => `${relativeSource(path)}: ${specifier}`),
     );
-    const endpointOwners = externalSources
-      .filter((path) =>
-        readFileSync(path, "utf8").includes("api/v1/generation-credit-cost"),
-      )
-      .map(relativeSource);
     const modelGatewayEndpointOwners = sourceFiles(SRC_ROOT)
       .filter((path) => !relativeSource(path).startsWith("__tests__/"))
       .filter((path) =>
@@ -17970,7 +17959,6 @@ describe("frontend architecture boundaries", () => {
       existsSync(resolve(SRC_ROOT, "lib/queries/model-gateway.ts")),
     ).toBe(false);
     expect(internalImportFailures).toEqual([]);
-    expect(endpointOwners).toEqual([]);
     expect(legacyModelGatewayImports).toEqual([]);
     expect(modelGatewayEndpointOwners).toEqual([
       "modules/model_usage/infrastructure/http-model-gateway-gateway.ts",
@@ -17986,8 +17974,9 @@ describe("frontend architecture boundaries", () => {
       .map((path) => readFileSync(path, "utf8"))
       .join("\n");
     for (const removedEndpoint of [
+      "/generation-credit-cost",
       "/model-gateway/official/",
-      "/model-gateway/custom/newapi/",
+      "/model-gateway/custom/model_gateway/",
       "/model-gateway/media-relay/",
     ]) {
       expect(productionModelSources).not.toContain(removedEndpoint);
@@ -18006,15 +17995,13 @@ describe("frontend architecture boundaries", () => {
     );
     expect(settingsSource).not.toContain("gatewayOrigin");
     expect(settingsSource).not.toContain("MediaStorage");
-    expect(
-      readFileSync(
-        resolve(
-          moduleRoot,
-          "infrastructure/http-generation-credit-gateway.ts",
-        ),
-        "utf8",
-      ),
-    ).toContain("api/v1/generation-credit-cost");
+    for (const retiredPath of [
+      "application/query-hooks.ts",
+      "domain/generation-credit.ts",
+      "infrastructure/http-generation-credit-gateway.ts",
+    ]) {
+      expect(existsSync(resolve(moduleRoot, retiredPath)), retiredPath).toBe(false);
+    }
   });
 
   it("keeps Platform Release callers on its public API", () => {
@@ -19422,76 +19409,76 @@ describe("frontend architecture boundaries", () => {
       existsSync(
         resolve(
           SRC_ROOT,
-          "components/episode/beat-workbench/seedance2-mentions.ts",
+          "components/episode/beat-workbench/video-reference-mentions.ts",
         ),
       ),
     ).toBe(false);
     expect(videoPaneSource).not.toContain(
-      "function Seedance2AssetCropDialog",
+      "function VideoReferenceAssetCropDialog",
     );
     expect(videoPaneSource).not.toContain(
-      "function Seedance2AudioTrimDialog",
+      "function VideoReferenceAudioTrimDialog",
     );
     expect(videoPaneSource).not.toContain("function clampCropBox");
     expect(videoPaneSource).not.toContain("function BeatVideoPlayer");
-    expect(videoPaneSource).not.toContain("function Seedance2SummaryPill");
+    expect(videoPaneSource).not.toContain("function VideoReferenceSummaryPill");
     expect(videoPaneSource).not.toContain("function isErrorResponse");
     expect(videoPaneSource).not.toContain("function videoModelDisplayLabel");
-    expect(videoPaneSource).not.toContain("function getSeedance2MentionQuery");
+    expect(videoPaneSource).not.toContain("function getVideoReferenceMentionQuery");
     expect(videoPaneSource).not.toContain("useVideoPool(");
     expect(videoPaneSource).not.toContain("useVideoPoolSelect(");
     expect(videoPaneSource).not.toContain("formatRelativeTime");
     expect(videoPaneSource).not.toContain("MEDIA_THUMB_CLASS");
-    expect(videoPaneSource).not.toContain("useUploadSeedance2Asset(");
-    expect(videoPaneSource).not.toContain("useDeleteSeedance2Asset(");
-    expect(videoPaneSource).not.toContain("useCropSeedance2Asset(");
-    expect(videoPaneSource).not.toContain("useTrimSeedance2Asset(");
-    expect(videoPaneSource).not.toContain("handleSeedance2AssetUpload");
-    expect(videoPaneSource).not.toContain("handleCropSeedance2Asset");
-    expect(videoPaneSource).not.toContain("handleTrimSeedance2Asset");
-    expect(videoPaneSource).not.toContain("data-seedance2-reference-tile");
-    expect(videoPaneSource).not.toContain("seedance2UploadInputRef");
-    expect(videoPaneSource).not.toContain("seedance2CropTargetForAsset");
+    expect(videoPaneSource).not.toContain("useUploadVideoReferenceAsset(");
+    expect(videoPaneSource).not.toContain("useDeleteVideoReferenceAsset(");
+    expect(videoPaneSource).not.toContain("useCropVideoReferenceAsset(");
+    expect(videoPaneSource).not.toContain("useTrimVideoReferenceAsset(");
+    expect(videoPaneSource).not.toContain("handleVideoReferenceAssetUpload");
+    expect(videoPaneSource).not.toContain("handleCropVideoReferenceAsset");
+    expect(videoPaneSource).not.toContain("handleTrimVideoReferenceAsset");
+    expect(videoPaneSource).not.toContain("data-video-reference-reference-tile");
+    expect(videoPaneSource).not.toContain("videoReferenceUploadInputRef");
+    expect(videoPaneSource).not.toContain("videoReferenceCropTargetForAsset");
     expect(videoPaneSource).not.toContain("useGenerateBeatVideoPrompt(");
     expect(videoPaneSource).not.toContain("beatVideoPromptTask");
     expect(videoPaneSource).not.toContain("legacyVideoPrompt");
-    expect(videoPaneSource).not.toContain("saveLegacyVideoPrompt");
-    expect(videoPaneSource).not.toContain("useGenerateSeedance2Prompt(");
-    expect(videoPaneSource).not.toContain("seedance2DraftRef");
-    expect(videoPaneSource).not.toContain("setSeedance2Draft");
-    expect(videoPaneSource).not.toContain("saveSeedance2Draft");
-    expect(videoPaneSource).not.toContain("getSeedance2ConfigSaveKey");
+    expect(videoPaneSource).not.toContain("saveBasicVideoPrompt");
+    expect(videoPaneSource).not.toContain("useGenerateVideoPrompt(");
+    expect(videoPaneSource).not.toContain("videoReferenceDraftRef");
+    expect(videoPaneSource).not.toContain("setVideoReferenceDraft");
+    expect(videoPaneSource).not.toContain("saveVideoReferenceDraft");
+    expect(videoPaneSource).not.toContain("getBeatVideoConfigSaveKey");
     expect(videoPaneSource).not.toContain("SEEDANCE2_AUTOSAVE_DELAY_MS");
-    expect(videoPaneSource).not.toContain("seedance2ReferenceSelectionRef");
-    expect(videoPaneSource).not.toContain("prevSeedance2LabelIdentityRef");
+    expect(videoPaneSource).not.toContain("videoReferenceSelectionRef");
+    expect(videoPaneSource).not.toContain("prevVideoReferenceLabelIdentityRef");
     expect(videoPaneSource).not.toContain("mentionDismissedQuery");
-    expect(videoPaneSource).not.toContain("insertSeedance2Reference");
-    expect(videoPaneSource).not.toContain("buildSeedance2LabelIdentityMaps(");
-    expect(videoPaneSource).not.toContain("getSeedance2MentionQuery(");
-    expect(videoPaneSource).not.toContain("remapSeedance2Mentions(");
+    expect(videoPaneSource).not.toContain("insertVideoReference");
+    expect(videoPaneSource).not.toContain("buildVideoReferenceLabelIdentityMaps(");
+    expect(videoPaneSource).not.toContain("getVideoReferenceMentionQuery(");
+    expect(videoPaneSource).not.toContain("remapVideoReferenceMentions(");
     expect(videoPaneSource).not.toContain("normalizeMentionSeparatorSpaces(");
-    expect(videoPaneViewSource).toContain("<Seedance2ConfigView");
+    expect(videoPaneViewSource).toContain("<BeatVideoConfigView");
     expect(videoPaneSource).not.toContain("<MentionTextarea");
-    expect(videoPaneSource).not.toContain("<Seedance2Field");
-    expect(videoPaneSource).not.toContain("<Seedance2SummaryPill");
-    expect(videoPaneSource).not.toContain("seedance2-prompt-panel");
+    expect(videoPaneSource).not.toContain("<VideoReferenceField");
+    expect(videoPaneSource).not.toContain("<VideoReferenceSummaryPill");
+    expect(videoPaneSource).not.toContain("video-reference-prompt-panel");
     expect(videoPaneSource).not.toContain("returned_last_frame");
     expect(videoPaneSource).not.toContain("handleMentionKeyDown");
     expect(videoPaneSource).not.toContain("handleReferenceDragStart");
     expect(videoPaneSource).not.toContain("renderReferenceControls");
     expect(videoPaneSource).toContain("createElement(VideoPaneView");
     expect(videoPaneSource).not.toContain("<VideoPaneMediaView");
-    expect(videoPaneSource).not.toContain("<LegacyVideoPromptView");
+    expect(videoPaneSource).not.toContain("<BasicVideoPromptView");
     expect(videoPaneSource).not.toContain("<VideoParamField");
-    expect(videoPaneSource).not.toContain("<Seedance2ReferenceCropAssetsView");
-    expect(videoPaneSource).not.toContain("<Seedance2AssetCropDialog");
-    expect(videoPaneSource).not.toContain("<Seedance2AudioTrimDialog");
+    expect(videoPaneSource).not.toContain("<VideoReferenceCropAssetsView");
+    expect(videoPaneSource).not.toContain("<VideoReferenceAssetCropDialog");
+    expect(videoPaneSource).not.toContain("<VideoReferenceAudioTrimDialog");
     expect(videoPaneSource).not.toContain("<BeatVideoGenerationConfirmDialog");
     expect(videoPaneSource).not.toContain("<Input");
     expect(videoPaneSource).not.toContain("<Select");
     expect(videoPaneSource).not.toContain("happyHorseConfigJson");
     expect(videoPaneSource).not.toContain("grokVideoConfigJson");
-    expect(videoPaneSource).not.toContain("seedance2ConfigJson:");
+    expect(videoPaneSource).not.toContain("videoConfigJson:");
     expect(videoPaneSource).not.toContain("useRegenerateBeatVideo(");
     expect(videoPaneSource).not.toContain("useTaskController(");
     expect(videoPaneSource).not.toContain("regenTask");
@@ -19504,12 +19491,12 @@ describe("frontend architecture boundaries", () => {
     expect(videoPaneSource).not.toContain("useState(");
     expect(videoPaneSource).not.toContain("useProjectAspectRatio(");
     expect(videoPaneSource).not.toContain("useVideoModels(");
-    expect(videoPaneSource).not.toContain("useSeedance2BeatStatus(");
+    expect(videoPaneSource).not.toContain("useVideoReferenceBeatStatus(");
     expect(videoPaneSource).not.toContain(
-      "useLegacyVideoPromptController(",
+      "useBasicVideoPromptController(",
     );
     expect(videoPaneSource).not.toContain(
-      "useSeedance2ConfigController(",
+      "useBeatVideoConfigController(",
     );
     expect(videoPaneSource).not.toContain(
       "useBeatVideoGenerationController(",
@@ -19534,16 +19521,16 @@ describe("frontend architecture boundaries", () => {
       "queries.useVideoModels",
     );
     expect(videoPaneControllerSource).toContain(
-      "queries.useSeedance2BeatStatus",
+      "queries.useVideoReferenceBeatStatus",
     );
     expect(videoPaneControllerSource).toContain(
       "dependencies.useProjectAspectRatio",
     );
     expect(videoPaneControllerSource).toContain(
-      "dependencies.useLegacyVideoPromptController",
+      "dependencies.useBasicVideoPromptController",
     );
     expect(videoPaneControllerSource).toContain(
-      "dependencies.useSeedance2ConfigController",
+      "dependencies.useBeatVideoConfigController",
     );
     expect(videoPaneControllerSource).toContain(
       "dependencies.useBeatVideoGenerationController",
@@ -19552,7 +19539,7 @@ describe("frontend architecture boundaries", () => {
       "dependencies.useVideoPaneMediaController",
     );
     expect(videoPaneControllerSource).toContain(
-      "isVideoReferenceCropModel(",
+      'selectedModel?.workflow === "reference"',
     );
     expect(videoPaneControllerSource).not.toContain("document.");
     expect(videoPaneControllerSource).not.toContain("navigator.");
@@ -19890,9 +19877,7 @@ describe("frontend architecture boundaries", () => {
     expect(productionPublicSource).not.toContain("SketchGridGalleryView");
     expect(productionPublicSource).not.toContain("RenderGridGroup");
     expect(productionPublicSource).not.toContain("SketchGridGroup");
-    expect(batchBarControllerSource).toContain(
-      "episodeAudioBillingRevision(beats)",
-    );
+    expect(batchBarControllerSource).not.toContain("episodeAudioBillingRevision");
     expect(batchBarSource).not.toContain(
       "export function episodeAudioBillingRevision",
     );
@@ -19925,8 +19910,8 @@ describe("frontend architecture boundaries", () => {
     expect(batchBarViewSource).toContain("<Button");
     expect(batchBarViewSource).toContain("<AlertDialog");
     expect(batchBarViewSource).toContain("<Tooltip");
-    expect(batchBarViewSource).toContain("<CreditCostInline");
-    expect(batchBarViewSource).toContain("<CreditCostPill");
+    expect(batchBarViewSource).not.toContain("CreditCostInline");
+    expect(batchBarViewSource).not.toContain("CreditCostPill");
     expect(batchBarViewSource).toContain("controller: BatchBarController");
     expect(batchBarViewSource).toContain("BatchBarModelSelect");
     expect(batchBarViewSource).toContain("SketchAspectSelect");
@@ -19956,12 +19941,10 @@ describe("frontend architecture boundaries", () => {
       "queries.useUpdateSketchSettings",
     );
     expect(batchBarControllerSource).toContain("queries.useVideoModels");
-    expect(batchBarControllerSource).toContain(
-      "dependencies.useGenerationCreditCost",
-    );
+    expect(batchBarControllerSource).not.toContain("useGenerationCreditCost");
     expect(batchBarControllerSource).toContain("useTaskController(");
     expect(batchBarControllerSource).toContain(
-      "TASK_TYPES.AUDIO_GENERATION_INDEXTTS2",
+      "TASK_TYPES.EPISODE_AUDIO_GENERATION",
     );
     expect(batchBarControllerSource).toContain(
       "TASK_TYPES.GLOBAL_OPTIMIZE_VIDEO",
@@ -20000,11 +19983,11 @@ describe("frontend architecture boundaries", () => {
     expect(renderPlanDialogControllerSource).toContain(
       "queries.useRenderExecute",
     );
-    expect(renderPlanDialogControllerSource).toContain(
+    expect(renderPlanDialogControllerSource).not.toContain(
       "queries.useRenderSettings",
     );
-    expect(renderPlanDialogControllerSource).toContain(
-      "dependencies.useGenerationCreditCosts",
+    expect(renderPlanDialogControllerSource).not.toContain(
+      "useGenerationCreditCosts",
     );
     expect(renderPlanDialogControllerSource).toContain("toast.");
     expect(renderPlanDialogControllerSource).not.toContain("useQueries(");
@@ -20014,12 +19997,10 @@ describe("frontend architecture boundaries", () => {
     expect(productionCompositionSource).toContain(
       "createUseRenderPlanDialogController",
     );
-    expect(productionCompositionSource).toContain(
-      "useGenerationCreditCosts",
-    );
+    expect(productionCompositionSource).not.toContain("useGenerationCreditCosts");
     expect(renderPlanDialogViewSource).toContain("className=");
     expect(renderPlanDialogViewSource).toContain("<AlertDialog");
-    expect(renderPlanDialogViewSource).toContain("<CreditCostInline");
+    expect(renderPlanDialogViewSource).not.toContain("CreditCostInline");
     expect(renderPlanDialogViewSource).toContain("function PlanCard");
     expect(renderPlanDialogViewSource).not.toContain("useRenderPlan(");
     expect(renderPlanDialogViewSource).not.toContain("useRenderExecute(");
@@ -20939,7 +20920,7 @@ describe("frontend architecture boundaries", () => {
         const source = readFileSync(path, "utf8");
         return (
           source.includes("}/freezone/audio/speech`") &&
-          source.includes("}/freezone/audio/eleven-music`")
+          source.includes("}/freezone/audio/music`")
         );
       })
       .map(relativeSource)
@@ -20964,7 +20945,7 @@ describe("frontend architecture boundaries", () => {
       "dependencies.onTaskSubmitted(task)",
     );
     expect(applicationSource).toContain(
-      '"freezone_audio_eleven_music"',
+      '"freezone_audio_music"',
     );
     expect(new Set(importSpecifiers(infrastructurePath))).toEqual(
       new Set([
@@ -21038,7 +21019,7 @@ describe("frontend architecture boundaries", () => {
       expect(legacyOpsSource).not.toContain(legacySymbol);
     }
     expect(legacyOpsSource).not.toContain("}/freezone/audio/speech`");
-    expect(legacyOpsSource).not.toContain("}/freezone/audio/eleven-music`");
+    expect(legacyOpsSource).not.toContain("}/freezone/audio/music`");
   });
 
   it("keeps Canvas audio operations split into model, controller, and view", () => {
@@ -21079,7 +21060,7 @@ describe("frontend architecture boundaries", () => {
     const viewTestSource = readFileSync(viewTestPath, "utf8");
     const declarations = [
       ["export function", "AudioOperationsPanel("].join(" "),
-      ["export function", "musicBillingSecondsFromMs("].join(" "),
+      ["export function", "resolveAudioMusicSettings("].join(" "),
       ["export function", "createUseAudioOperationsPanelController("].join(" "),
       ["export function", "AudioOperationsPanelView("].join(" "),
     ];
@@ -21133,7 +21114,8 @@ describe("frontend architecture boundaries", () => {
     expect(controllerSource).toContain("projectId,");
     expect(controllerSource).toContain("canvasId,");
     expect(controllerSource).not.toContain("readUrl");
-    expect(controllerSource).toContain("useGenerationCreditCost(");
+    expect(controllerSource).not.toContain("useGenerationCreditCost(");
+    expect(controllerSource).not.toContain("CreditCost");
     expect(controllerSource).toContain("navigator.clipboard.writeText(");
     expect(controllerSource).not.toContain("className=");
     expect(controllerSource).not.toContain("lucide-react");
@@ -29714,7 +29696,7 @@ describe("frontend architecture boundaries", () => {
     expect(videoNode).toContain(
       "videoModelUsesTypedReferenceModes(selectedVideoModel)",
     );
-    expect(videoNode).not.toContain("/seedance2/i.test(");
+    expect(videoNode).not.toContain("/video-reference/i.test(");
   });
 
   it("keeps video clip range rules in one pure domain module", () => {
@@ -33235,14 +33217,12 @@ describe("frontend architecture boundaries", () => {
     }
   });
 
-  it("keeps Canvas image catalog projection and pricing in Creative Canvas", () => {
+  it("keeps Canvas image catalog projection in Creative Canvas", () => {
     const moduleRoot = resolve(SRC_ROOT, "modules/creative_canvas");
     const publicSource = readFileSync(resolve(moduleRoot, "public.ts"), "utf8");
     const ownerPaths = [
       "application/imageModelCatalogProjection.ts",
-      "application/modelPriceDisplay.ts",
       "domain/imageModelDefinition.ts",
-      "domain/modelPricing.ts",
     ].map((path) => resolve(moduleRoot, path));
     const legacyPaths = [
       "features/canvas/models",
@@ -33252,7 +33232,6 @@ describe("frontend architecture boundaries", () => {
     const consumers = [
       "modules/creative_canvas/presentation/useImageEditNodeController.ts",
       "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts",
-      "modules/creative_canvas/presentation/settingsStore.ts",
     ].map((path) => resolve(SRC_ROOT, path));
     const controlsPath = resolve(
       moduleRoot,
@@ -33272,12 +33251,16 @@ describe("frontend architecture boundaries", () => {
     expect(publicSource).toContain(
       "@/modules/creative_canvas/application/imageModelCatalogProjection",
     );
-    expect(publicSource).toContain(
-      "@/modules/creative_canvas/application/modelPriceDisplay",
-    );
-    expect(publicSource).toContain(
-      "@/modules/creative_canvas/domain/modelPricing",
-    );
+    expect(publicSource).not.toContain("modelPriceDisplay");
+    expect(publicSource).not.toContain("modelPricing");
+    for (const retiredPath of [
+      "application/modelPriceDisplay.ts",
+      "domain/modelPricing.ts",
+      "presentation/NodePriceBadge.tsx",
+      "presentation/useNodePriceDisplay.ts",
+    ]) {
+      expect(existsSync(resolve(moduleRoot, retiredPath)), retiredPath).toBe(false);
+    }
     expect(existsSync(controlsPath)).toBe(true);
     expect(
       existsSync(resolve(SRC_ROOT, "features/canvas/ui/ModelParamsControls.tsx")),
@@ -33300,31 +33283,12 @@ describe("frontend architecture boundaries", () => {
       "@/modules/creative_canvas/presentation/ModelParamsControls",
     );
     for (const path of consumers) {
-      if (
-        relativeSource(path) ===
-          "modules/creative_canvas/presentation/useStoryboardGenNodeController.ts" ||
-        relativeSource(path) ===
-          "modules/creative_canvas/presentation/useImageEditNodeController.ts"
-      ) {
-        expect(importSpecifiers(path)).not.toContain(
-          "@/modules/creative_canvas/public",
-        );
-        expect(importSpecifiers(path)).toContain(
-          "../application/imageModelCatalogProjection",
-        );
-      } else if (
-        relativeSource(path) ===
-        "modules/creative_canvas/presentation/settingsStore.ts"
-      ) {
-        expect(importSpecifiers(path)).not.toContain(
-          "@/modules/creative_canvas/public",
-        );
-        expect(importSpecifiers(path)).toContain("../domain/modelPricing");
-      } else {
-        expect(importSpecifiers(path)).toContain(
-          "@/modules/creative_canvas/public",
-        );
-      }
+      expect(importSpecifiers(path)).not.toContain(
+        "@/modules/creative_canvas/public",
+      );
+      expect(importSpecifiers(path)).toContain(
+        "../application/imageModelCatalogProjection",
+      );
       const source = readFileSync(path, "utf8");
       expect(source).not.toContain("@/features/canvas/models");
       expect(source).not.toContain("@/features/canvas/pricing");

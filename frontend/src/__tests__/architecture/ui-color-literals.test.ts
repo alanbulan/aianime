@@ -12,8 +12,8 @@ const COLOR_LITERAL_MAX: Record<string, number> = {
   "app/styles/themes.css": 126,
   "app/styles/tokens.css": 9,
   "modules/creative_canvas/infrastructure/browserImageCommands.ts": 2,
-  "components/credit-visual.tsx": 6,
-  "modules/production/presentation/Seedance2AssetCropDialog.tsx": 1,
+  "components/quota-visual.tsx": 6,
+  "modules/production/presentation/VideoReferenceAssetCropDialog.tsx": 1,
   "modules/production/presentation/RenderSectionView.tsx": 1,
   "modules/production/presentation/SketchPoseEditorDialogView.tsx": 3,
   "modules/production/presentation/SketchCropDialogView.tsx": 1,
@@ -82,7 +82,7 @@ const DOMAIN_COLOR_DATA = new Set([
 ]);
 
 const DOMAIN_VISUALIZATIONS = new Set([
-  "components/credit-visual.tsx",
+  "components/quota-visual.tsx",
   "modules/project_workspace/presentation/components/project-folder.module.css",
   "modules/project_workspace/presentation/components/project-folder.tsx",
 ]);

@@ -563,7 +563,7 @@ def test_scene_reference_generation_accepts_image_source_model(m05_client_factor
 
     payload = client.post(
         f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/master/generate-async",
-        json={"model": "newapi_gpt_image2"},
+        json={"model": "image-model-b"},
     ).json()
     _assert_task_shape(
         payload,
@@ -572,7 +572,7 @@ def test_scene_reference_generation_accepts_image_source_model(m05_client_factor
     )
 
     assert payload["ok"] is True
-    assert task_backend.calls[-1]["payload"]["model"] == "newapi_gpt_image2"
+    assert task_backend.calls[-1]["payload"]["model"] == "image-model-b"
 
 
 def test_scene_stage_generation_uses_world_queue_and_owned_payload(

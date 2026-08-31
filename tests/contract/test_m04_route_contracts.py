@@ -338,13 +338,13 @@ def m04_client_factory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         return SimpleNamespace(
             beat_numbers=(1,),
             errors=(),
-            billable_chars=3,
+            text_chars=3,
             voice_requirements=(),
         )
 
     monkeypatch.setattr(
         episode_audio,
-        "build_indextts2_audio_generation_plan",
+        "build_episode_audio_generation_plan",
         audio_plan,
     )
 
@@ -490,7 +490,7 @@ def test_prop_reference_generation_accepts_image_source_model(m04_client_factory
 
     payload = client.post(
         f"/api/v1/projects/{_PROJECT}/props/{_PROP}/reference/generate-async",
-        json={"model": "newapi_nanobanana2"},
+        json={"model": "image-model-a"},
     ).json()
     _assert_task_shape(
         payload,
@@ -499,7 +499,7 @@ def test_prop_reference_generation_accepts_image_source_model(m04_client_factory
     )
 
     assert payload["ok"] is True
-    assert task_backend.calls[-1]["payload"]["model"] == "newapi_nanobanana2"
+    assert task_backend.calls[-1]["payload"]["model"] == "image-model-a"
 
 
 def test_image_settings_preserve_validation_error_contracts(m04_client_factory):
@@ -910,14 +910,14 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
             ),
         ),
         (
-            "audio_generation_indextts2",
+            "episode_audio_generation",
             client.post(
                 f"/api/v1/projects/{_PROJECT}/episodes/1/audio/generate",
                 json={},
             ),
         ),
         (
-            "audio_generation_indextts2",
+            "episode_audio_generation",
             client.post(
                 f"/api/v1/projects/{_PROJECT}/episodes/1/beats/1/audio",
                 json={},
@@ -935,8 +935,8 @@ def test_m04_task_backend_responses_are_ce_ee_isomorphic(
         "identity_image",
         "prop_reference_asset",
         "batch_prop_ref",
-        "audio_generation_indextts2",
-        "audio_generation_indextts2",
+        "episode_audio_generation",
+        "episode_audio_generation",
     ]
     portrait_call = next(
         call for call in task_backend.calls if call["task_type"] == "character_portrait"
