@@ -9,12 +9,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from ai_anime.shared.env_guard import preserve_st_env
-from ai_anime.modules.model_usage.public import get_newapi_reasoning_kwargs
+from ai_anime.modules.model_usage.public import get_model_reasoning_kwargs
 from ai_anime.modules.project_workspace.public import ensure_project_dirs
 from ai_anime.modules.knowledge_graph.infrastructure.screenplay_normalizer import (
     NormalizedSceneBlock,
@@ -40,6 +41,8 @@ from ai_anime.modules.asset_world.public import (
 from ai_anime.modules.narrative_planning.public import (
     NovelEpisode as _NovelEpisode,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -78,12 +81,12 @@ def _set_cognee_project_context(
 
     cognee_system_dir, cognee_data_dir = apply_cognee_project_storage_context(state_dir, cognee)
     if verbose:
-        print(
-            f"[cognee_context] project={project_name} "
-            f"project_dir={project_dir} "
-            f"system_root_directory={cognee_system_dir} "
-            f"data_root_directory={cognee_data_dir}",
-            flush=True,
+        logger.info(
+            "Cognee context: project=%s project_dir=%s system_root=%s data_root=%s",
+            project_name,
+            project_dir,
+            cognee_system_dir,
+            cognee_data_dir,
         )
 
 
@@ -196,7 +199,7 @@ async def extract_episodes_from_text(
         text,
         system_prompt,
         EpisodeList,
-        **get_newapi_reasoning_kwargs(
+        **get_model_reasoning_kwargs(
             thinking_env="COGNEE_LLM_THINKING_LEVEL",
             default_thinking_level="high",
         ),
@@ -332,7 +335,7 @@ async def extract_characters_from_graph(
             on_progress(progress, task)
 
     def log(message: str):
-        print(f"[extract_characters] {message}")
+        logger.info("extract_characters: %s", message)
 
     _set_cognee_project_context(project_name=project_name, project_dir=project_dir, verbose=True)
 
@@ -421,7 +424,7 @@ async def extract_characters_from_graph(
             context_text,
             system_prompt,
             CharacterEnrichmentList,
-            **get_newapi_reasoning_kwargs(
+            **get_model_reasoning_kwargs(
                 thinking_env="COGNEE_LLM_THINKING_LEVEL",
                 default_thinking_level="high",
             ),
@@ -502,8 +505,8 @@ async def extract_episodes_with_characters(
         from cognee.modules.engine.operations.setup import setup
 
     def log(message: str):
-        # 只打印到控制台，不调用 on_log（由 store.py 统一管理日志回调）
-        print(f"[extract_episodes] {message}")
+        # 不调用 on_log；由 store.py 统一管理日志回调。
+        logger.info("extract_episodes: %s", message)
 
     await setup()
     log(f"开始规划 {target_episodes} 集...")
@@ -542,7 +545,7 @@ async def extract_episodes_with_characters(
         text,
         system_prompt,
         EpisodeList,
-        **get_newapi_reasoning_kwargs(
+        **get_model_reasoning_kwargs(
             thinking_env="COGNEE_LLM_THINKING_LEVEL",
             default_thinking_level="high",
         ),
@@ -723,14 +726,14 @@ def _create_scene_build_agent(system_prompt: str, output_type: Any, name: str):
     """
     from pydantic_ai import Agent
     from ai_anime.modules.model_usage.public import (
-        get_newapi_text_pydantic_model,
-        get_newapi_text_pydantic_model_settings,
+        get_text_pydantic_model,
+        get_text_pydantic_model_settings,
     )
 
     return Agent(
-        get_newapi_text_pydantic_model(),
+        get_text_pydantic_model(),
         system_prompt=system_prompt,
-        model_settings=get_newapi_text_pydantic_model_settings(
+        model_settings=get_text_pydantic_model_settings(
             "SCENE_BUILD_THINKING_LEVEL",
             "high",
         ),
@@ -930,7 +933,7 @@ async def extract_scenes_from_script(
             on_progress(progress, task)
 
     def log(message: str):
-        print(f"[extract_scenes] {message}")
+        logger.info("extract_scenes: %s", message)
 
     synopsis = extract_synopsis(novel_text)
     if synopsis:
@@ -1230,7 +1233,7 @@ async def extract_props_from_graph(
             on_progress(progress, task)
 
     def log(message: str):
-        print(f"[extract_props] {message}")
+        logger.info("extract_props: %s", message)
 
     _set_cognee_project_context(project_name=project_name, project_dir=project_dir, verbose=True)
 
@@ -1303,7 +1306,7 @@ async def extract_props_from_graph(
             context_text,
             system_prompt,
             PropEnrichmentList,
-            **get_newapi_reasoning_kwargs(
+            **get_model_reasoning_kwargs(
                 thinking_env="COGNEE_LLM_THINKING_LEVEL",
                 default_thinking_level="high",
             ),

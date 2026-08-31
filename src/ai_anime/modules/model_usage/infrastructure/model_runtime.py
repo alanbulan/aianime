@@ -36,24 +36,13 @@ def _env_bool(name: str, default: bool) -> bool:
     return default
 
 
-def _get_newapi_text_model_profile(model_name: str):
-    """Attach Gemini-compatible model profile while routing through newAPI."""
-    normalized = (model_name or "").strip()
-    if not normalized.startswith("gemini-") or "image" in normalized:
-        return None
-
-    from pydantic_ai.providers.openrouter import OpenRouterProvider
-
-    return OpenRouterProvider.model_profile(f"google/{normalized}")
-
-
-def _newapi_text_http_client_factory(
+def _model_gateway_text_http_client_factory(
     *,
     timeout_seconds: float,
     omit_authorization: bool = False,
     model_selector: str | None = None,
 ) -> Any:
-    trust_env = _env_bool("NEWAPI_TEXT_TRUST_ENV", True)
+    trust_env = _env_bool("MODEL_TEXT_TRUST_ENV", True)
 
     def factory():
         import httpx
@@ -85,7 +74,7 @@ def _newapi_text_http_client_factory(
     return factory
 
 
-def _newapi_text_openai_provider(
+def _model_gateway_text_openai_provider(
     *,
     api_key: str,
     base_url: str,
@@ -98,7 +87,7 @@ def _newapi_text_openai_provider(
     class _LifecycleManagedOpenAIProvider(OpenAIProvider):
         def __init__(self) -> None:
             omit_authorization = not str(api_key or "").strip()
-            http_client_factory = _newapi_text_http_client_factory(
+            http_client_factory = _model_gateway_text_http_client_factory(
                 timeout_seconds=timeout_seconds,
                 omit_authorization=omit_authorization,
                 model_selector=model_selector,
@@ -119,7 +108,7 @@ def _newapi_text_openai_provider(
     return _LifecycleManagedOpenAIProvider()
 
 
-def _newapi_text_openai_model(
+def _model_gateway_text_openai_model(
     model_name: str,
     *,
     api_key: str,
@@ -153,7 +142,7 @@ def _newapi_text_openai_model(
 
     return _AutoClosingOpenAIChatModel(
         model_name,
-        provider=_newapi_text_openai_provider(
+        provider=_model_gateway_text_openai_provider(
             api_key=api_key,
             base_url=base_url,
             timeout_seconds=timeout_seconds,
@@ -163,7 +152,7 @@ def _newapi_text_openai_model(
     )
 
 
-def get_newapi_text_pydantic_model(
+def get_text_pydantic_model(
     *,
     timeout_seconds_override: float | None = None,
     model_name_override: str | None = None,
@@ -175,29 +164,29 @@ def get_newapi_text_pydantic_model(
     )
 
     model_name = str(model_name_override or "").strip() or resolve_model_for_role("TEXT")
-    api_key, base_url = get_newapi_runtime_credentials()
+    api_key, base_url = get_model_gateway_credentials()
     if not base_url:
         raise ValueError("Model Base URL is not configured.")
     timeout_seconds = (
         float(timeout_seconds_override)
         if timeout_seconds_override is not None
-        else _env_float("NEWAPI_TEXT_TIMEOUT_SECONDS", 120.0)
+        else _env_float("MODEL_TEXT_TIMEOUT_SECONDS", 120.0)
     )
-    return _newapi_text_openai_model(
+    return _model_gateway_text_openai_model(
         model_name,
         api_key=api_key,
         base_url=base_url,
         timeout_seconds=timeout_seconds,
-        profile=_get_newapi_text_model_profile(model_name),
+        profile=None,
         model_selector=str(model_selector or "").strip() or None,
     )
 
 
-def get_newapi_text_pydantic_model_settings(
+def get_text_pydantic_model_settings(
     thinking_env: str,
     default_thinking_level: str,
 ) -> dict | None:
-    """Build PydanticAI model settings for a newAPI text task."""
+    """Build PydanticAI model settings for a model gateway text task."""
     thinking_level = get_text_thinking_level(thinking_env, default_thinking_level)
     reasoning_effort = _normalize_openai_compat_reasoning_effort(thinking_level)
     if not reasoning_effort:
@@ -205,12 +194,12 @@ def get_newapi_text_pydantic_model_settings(
     return {"openai_reasoning_effort": reasoning_effort}
 
 
-def get_newapi_structured_output_model_settings() -> dict[str, str]:
+def get_structured_output_model_settings() -> dict[str, str]:
     """Disable reasoning for schema-constrained PydanticAI output."""
     return {"openai_reasoning_effort": "none"}
 
 
-def get_newapi_structured_output_litellm_kwargs() -> dict[str, object]:
+def get_structured_output_litellm_kwargs() -> dict[str, object]:
     """Disable reasoning for schema-constrained LiteLLM/Instructor output."""
     return {
         "reasoning_effort": "none",
@@ -259,12 +248,12 @@ def _normalize_openai_compat_reasoning_effort(value: str | None) -> str:
     return normalized if normalized in _OPENAI_COMPAT_REASONING_EFFORTS else ""
 
 
-def get_newapi_reasoning_kwargs(
+def get_model_reasoning_kwargs(
     *,
     thinking_env: str | None = None,
     default_thinking_level: str | None = None,
 ) -> dict:
-    """Build reasoning kwargs for OpenAI-compatible newAPI/Cognee calls.
+    """Build reasoning kwargs for OpenAI-compatible model gateway/Cognee calls.
 
     Explicit empty env values disable sending reasoning parameters.
     Both supported access modes use an OpenAI-compatible request shape.
@@ -284,19 +273,19 @@ def get_newapi_reasoning_kwargs(
     }
 
 
-def get_effective_newapi_gateway_config():
+def get_effective_model_gateway_transport_config():
     """Return the selected cloud-proxy or BYOK runtime endpoint."""
     from ai_anime.modules.model_usage.infrastructure.model_gateway_settings import (
-        get_effective_newapi_config,
+        get_effective_model_gateway_config,
     )
 
-    return get_effective_newapi_config()
+    return get_effective_model_gateway_config()
 
 
-def get_newapi_runtime_credentials() -> tuple[str, str]:
+def get_model_gateway_credentials() -> tuple[str, str]:
     """Resolve the single process-wide cloud-proxy or BYOK endpoint."""
 
-    gateway = get_effective_newapi_gateway_config()
+    gateway = get_effective_model_gateway_transport_config()
     return str(gateway.api_key or "").strip(), str(gateway.base_url or "").strip()
 
 
@@ -305,7 +294,7 @@ def get_model_access_json_transport(
     model_selector: str | None = None,
 ) -> tuple[str, dict[str, str]]:
     """Return the process-wide model endpoint and JSON request headers."""
-    api_key, base_url = get_newapi_runtime_credentials()
+    api_key, base_url = get_model_gateway_credentials()
     if not base_url:
         raise ValueError("Model Base URL is not configured.")
     headers = {"Content-Type": "application/json"}
@@ -328,7 +317,7 @@ def get_model_access_openai_client(
     import httpx
     from openai import OpenAI
 
-    api_key, base_url = get_newapi_runtime_credentials()
+    api_key, base_url = get_model_gateway_credentials()
     if not base_url:
         raise ValueError("Model Base URL is not configured.")
 

@@ -85,9 +85,9 @@ def test_video_history_omits_model_keys_when_absent(tmp_path: Path) -> None:
 
 def test_history_model_mode_extra_maps_and_omits() -> None:
     assert _history_model_mode_extra(
-        {"model_id": "seedream_4_0", "gen_mode": "image_to_image"}
-    ) == {"model": "seedream_4_0", "gen_mode": "image_to_image"}
-    # 缺省 → 省略（向后兼容）
+        {"model_id": "image_model_v2", "gen_mode": "image_to_image"}
+    ) == {"model": "image_model_v2", "gen_mode": "image_to_image"}
+    # 未提供 → 省略
     assert _history_model_mode_extra({"prompt": "x"}) == {}
     # 仅其一
     assert _history_model_mode_extra({"model_id": "m"}) == {"model": "m"}
@@ -109,17 +109,17 @@ def test_image_history_persists_model_and_gen_mode(tmp_path: Path) -> None:
         job_id="job_i1",
         media_type="image",
         result={"output_url": "/static/a.png"},
-        model="seedream_4_0",
+        model="image_model_v2",
         gen_mode="image_to_image",
     )
     assert rec is not None
-    assert rec["model"] == "seedream_4_0"
+    assert rec["model"] == "image_model_v2"
     assert rec["gen_mode"] == "image_to_image"
 
     stored = read_generation_history(
         project_dir=project_dir, canvas_id="default", node_id="img_1"
     )
-    assert stored[-1]["model"] == "seedream_4_0"
+    assert stored[-1]["model"] == "image_model_v2"
     assert stored[-1]["gen_mode"] == "image_to_image"
 
 

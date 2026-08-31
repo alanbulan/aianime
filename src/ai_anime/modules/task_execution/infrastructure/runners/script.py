@@ -8,11 +8,11 @@ from typing import Any
 
 from ai_anime.modules.narrative_planning.public import (
     GenerateEpisodeRewriteCommand,
-    GenerateSeedancePromptCommand,
+    GenerateVideoPromptCommand,
     create_script_writing_workflow,
     generate_and_save_beat_video_prompt,
     generate_episode_rewrite,
-    generate_seedance2_beat_prompt,
+    generate_optimized_video_prompt,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.shared.infrastructure.project_stores import (
@@ -47,14 +47,14 @@ def run_beat_video_prompt(
     )
 
 
-def run_seedance2_prompt(
+def run_video_prompt_optimization(
     envelope: dict[str, Any], ctx: ProjectContext
 ) -> dict[str, Any]:
     return asyncio.run(
         await_envelope_with_cancel_watch(
-            _run_seedance2_prompt(envelope, ctx),
+            _run_video_prompt_optimization(envelope, ctx),
             envelope,
-            task_type="seedance2_prompt",
+            task_type="video_prompt_optimization",
         )
     )
 
@@ -114,7 +114,7 @@ async def _run_beat_video_prompt(
         await store.close()
 
 
-async def _run_seedance2_prompt(
+async def _run_video_prompt_optimization(
     envelope: dict[str, Any], ctx: ProjectContext
 ) -> dict[str, Any]:
     payload = envelope.get("payload") or {}
@@ -125,7 +125,7 @@ async def _run_seedance2_prompt(
     def update_progress(progress: float, task: str) -> None:
         manager.update_progress_for_project(
             ctx,
-            "seedance2_prompt",
+            "video_prompt_optimization",
             episode,
             beat_num=beat_num,
             progress=progress,
@@ -136,9 +136,9 @@ async def _run_seedance2_prompt(
     update_progress(0.05, f"开始优化 Beat {beat_num} 视频提示词")
     store = await make_sqlite_store_for_context(ctx)
     try:
-        generated = await generate_seedance2_beat_prompt(
+        generated = await generate_optimized_video_prompt(
             store,
-            GenerateSeedancePromptCommand(
+            GenerateVideoPromptCommand(
                 episode_num=episode,
                 beat_num=beat_num,
                 project_dir=str(payload.get("project_dir") or ctx.output_dir),
@@ -280,5 +280,5 @@ async def _run_script_writer(
 
 register_project_task_runner("script_writer", run_script_writer)
 register_project_task_runner("beat_video_prompt", run_beat_video_prompt)
-register_project_task_runner("seedance2_prompt", run_seedance2_prompt)
+register_project_task_runner("video_prompt_optimization", run_video_prompt_optimization)
 register_project_task_runner("episode_rewrite", run_episode_rewrite)

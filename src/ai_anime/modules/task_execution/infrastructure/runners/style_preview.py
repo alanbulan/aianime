@@ -99,7 +99,6 @@ async def _run_style_analysis(
 ) -> dict[str, Any]:
     from ai_anime.modules.asset_world.public import (
         AnalyzeStyleCommand,
-        StyleAnalysisBilling,
         StyleScope,
         analyze_style,
     )
@@ -146,7 +145,6 @@ async def _run_style_analysis(
                 mime_type=str(payload.get("mime_type") or "image/jpeg"),
                 filename=str(payload.get("filename") or source_path.name),
                 style_id=str(payload.get("style_id") or ""),
-                billing=StyleAnalysisBilling.from_project_context(context),
             ),
             style_scope,
         )

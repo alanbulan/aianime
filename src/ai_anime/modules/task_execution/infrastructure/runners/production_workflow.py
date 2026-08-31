@@ -166,15 +166,22 @@ def _ticket_from_scheduled(
     )
 
 
-def _task_by_id(context: ProjectContext, task_id: str) -> Any | None:
-    return next(
-        (
-            task
-            for task in project_task_use_cases().list_for_project(context)
-            if task.task_id == task_id
+def _task_for_ticket(
+    context: ProjectContext,
+    ticket: _ChildTicket,
+) -> Any | None:
+    task = project_task_use_cases().get_for_project(
+        context,
+        ProjectTaskRef(
+            task_type=ticket.task_type,
+            episode=ticket.episode,
+            beat_num=ticket.beat_num,
+            scope=ticket.scope,
         ),
-        None,
     )
+    if task is None or task.task_id != ticket.task_id:
+        return None
+    return task
 
 
 async def _wait_ticket(
@@ -186,7 +193,7 @@ async def _wait_ticket(
     started = time.monotonic()
     missing_since: float | None = None
     while True:
-        task = _task_by_id(context, ticket.task_id)
+        task = _task_for_ticket(context, ticket)
         now = time.monotonic()
         if task is None:
             missing_since = missing_since or now
@@ -1144,7 +1151,7 @@ async def _ensure_first_frames(
         )
 
 
-async def _ensure_seedance_prompts(
+async def _ensure_video_prompts(
     context: ProjectContext,
     episode_num: int,
     beats: list[dict[str, Any]],
@@ -1156,13 +1163,13 @@ async def _ensure_seedance_prompts(
     force: bool = False,
 ) -> list[dict[str, Any]]:
     from ai_anime.modules.narrative_planning.public import (
-        GenerateSeedancePromptCommand,
-        generate_seedance2_beat_prompt,
+        GenerateVideoPromptCommand,
+        generate_optimized_video_prompt,
     )
     from ai_anime.modules.production.public import (
-        is_seedance2_model,
-        parse_seedance2_config,
+        parse_video_config,
         resolve_video_generation_route,
+        video_model_uses_advanced_reference_workflow,
     )
 
     model_route = resolve_video_generation_route(
@@ -1171,7 +1178,7 @@ async def _ensure_seedance_prompts(
         requested_model,
         routing_policy=video_routing_policy,
     )
-    if not is_seedance2_model(model_route.model):
+    if not video_model_uses_advanced_reference_workflow(model_route.model):
         return beats
 
     pending = [
@@ -1180,8 +1187,8 @@ async def _ensure_seedance_prompts(
         if int(beat.get("beat_number") or 0) > 0
         and (
             force
-            or not parse_seedance2_config(
-                beat.get("seedance2_config_json")
+            or not parse_video_config(
+                beat.get("video_config_json")
             ).final_prompt
         )
     ]
@@ -1193,12 +1200,12 @@ async def _ensure_seedance_prompts(
         for index, beat_num in enumerate(pending, start=1):
             reporter.update(
                 progress,
-                f"第 {episode_num} 集生成 Seedance 提示词 "
+                f"第 {episode_num} 集生成视频提示词 "
                 f"{index}/{len(pending)}（Beat {beat_num}）",
             )
-            await generate_seedance2_beat_prompt(
+            await generate_optimized_video_prompt(
                 store,
-                GenerateSeedancePromptCommand(
+                GenerateVideoPromptCommand(
                     episode_num=episode_num,
                     beat_num=beat_num,
                     project_dir=context.output_dir,
@@ -1216,17 +1223,17 @@ async def _ensure_seedance_prompts(
         int(beat.get("beat_number") or 0)
         for beat in updated
         if int(beat.get("beat_number") or 0) > 0
-        and not parse_seedance2_config(beat.get("seedance2_config_json")).final_prompt
+        and not parse_video_config(beat.get("video_config_json")).final_prompt
     ]
     if missing_after:
         raise RuntimeError(
-            "Seedance 最终提示词生成后仍有空值："
+            "视频最终提示词生成后仍有空值："
             + "、".join(f"Beat {number}" for number in missing_after)
         )
     return updated
 
 
-async def _ensure_seedance_voice_prerequisites(
+async def _ensure_video_voice_prerequisites(
     context: ProjectContext,
     episode_num: int,
     beats: list[dict[str, Any]],
@@ -1240,10 +1247,10 @@ async def _ensure_seedance_voice_prerequisites(
     from ai_anime.modules.production.public import (
         VoiceDesignModelUnavailable,
         build_character_voice_requirement,
-        collect_seedance2_video_prereq_errors,
-        is_seedance2_model,
+        collect_video_reference_prereq_errors,
         provision_voice_design_requirements,
         resolve_video_generation_route,
+        video_model_uses_advanced_reference_workflow,
     )
 
     paths = PathResolver(context.output_dir, episode_num)
@@ -1257,7 +1264,7 @@ async def _ensure_seedance_voice_prerequisites(
         requested_model,
         routing_policy=video_routing_policy,
     )
-    if not is_seedance2_model(model_route.model):
+    if not video_model_uses_advanced_reference_workflow(model_route.model):
         return
 
     async def load_characters() -> list[Any]:
@@ -1268,7 +1275,7 @@ async def _ensure_seedance_voice_prerequisites(
             await store.close()
 
     characters = await load_characters()
-    errors = collect_seedance2_video_prereq_errors(
+    errors = collect_video_reference_prereq_errors(
         project_output=context.output_dir,
         episode=episode_num,
         beats=beats,
@@ -1318,7 +1325,7 @@ async def _ensure_seedance_voice_prerequisites(
                 ]
             ) from exc
         characters = await load_characters()
-        errors = collect_seedance2_video_prereq_errors(
+        errors = collect_video_reference_prereq_errors(
             project_output=context.output_dir,
             episode=episode_num,
             beats=beats,
@@ -1331,7 +1338,7 @@ async def _ensure_seedance_voice_prerequisites(
             f"Beat {error.beat_number} {error.label}：{error.reason}"
             for error in audio_errors
         ]
-        raise RuntimeError("Seedance2 参考声线前置不满足：" + "；".join(details))
+        raise RuntimeError("视频参考声线前置不满足：" + "；".join(details))
 
 
 async def _ensure_audio(
@@ -1673,7 +1680,7 @@ async def _run_production_workflow_steps(
             progress=base + episode_span * 0.45,
             force=overwrite_existing_assets,
         )
-        await _ensure_seedance_voice_prerequisites(
+        await _ensure_video_voice_prerequisites(
             context,
             episode_num,
             beats,
@@ -1683,7 +1690,7 @@ async def _run_production_workflow_steps(
             progress=base + episode_span * 0.52,
             force=overwrite_existing_assets,
         )
-        beats = await _ensure_seedance_prompts(
+        beats = await _ensure_video_prompts(
             context,
             episode_num,
             beats,

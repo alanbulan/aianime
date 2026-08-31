@@ -1495,7 +1495,7 @@ def run_freezone_ai_staging_prop(
     )
 
 
-async def _run_freezone_audio_eleven_music_async(
+async def _run_freezone_audio_music_async(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
@@ -1509,7 +1509,7 @@ async def _run_freezone_audio_eleven_music_async(
     job_id = str(payload["job_id"])
     project_dir = Path(str(payload.get("project_dir") or ctx.output_dir))
     creative_canvas_job_workspace().initialize(project_dir)
-    _update(ctx, "freezone_audio_eleven_music", job_id, 0.1, "开始文本生成音乐...")
+    _update(ctx, "freezone_audio_music", job_id, 0.1, "开始文本生成音乐...")
     result = await generate_creative_canvas_audio_music(
         project_dir=project_dir,
         job_id=job_id,
@@ -1535,12 +1535,12 @@ async def _run_freezone_audio_eleven_music_async(
     }
 
 
-def run_freezone_audio_eleven_music(
+def run_freezone_audio_music(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     return _run_cancellable(
-        envelope, _run_freezone_audio_eleven_music_async(envelope, ctx)
+        envelope, _run_freezone_audio_music_async(envelope, ctx)
     )
 
 
@@ -1578,5 +1578,5 @@ register_project_task_runner(
     "freezone_ai_staging_prop", run_freezone_ai_staging_prop
 )
 register_project_task_runner(
-    "freezone_audio_eleven_music", run_freezone_audio_eleven_music
+    "freezone_audio_music", run_freezone_audio_music
 )

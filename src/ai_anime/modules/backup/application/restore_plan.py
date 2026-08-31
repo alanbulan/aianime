@@ -39,7 +39,7 @@ def build_restore_config(
     replica:
       type: oss
       bucket: {bucket}
-      path: {prefix}/ltx/state/{user}/{project}/{rel}
+      path: {prefix}/state/{user}/{project}/{rel}
       endpoint: {endpoint}
       region: {region}
       access-key-id: ${{OSS_ACCESS_KEY_ID}}

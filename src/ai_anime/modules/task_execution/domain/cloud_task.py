@@ -40,10 +40,9 @@ _EXPLICIT_KINDS: dict[str, CloudTaskKind] = {
     "global_optimize_video": "video",
     "freezone_video_gen": "video",
     "audio_generation": "audio",
-    "indextts2_audio_generation": "audio",
-    "audio_generation_indextts2": "audio",
+    "episode_audio_generation": "audio",
     "freezone_audio_speech": "audio",
-    "freezone_audio_eleven_music": "audio",
+    "freezone_audio_music": "audio",
 }
 
 

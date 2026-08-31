@@ -109,14 +109,14 @@ async def test_single_video_runner_includes_returned_last_frame_in_task_result(
 
 
 @pytest.mark.asyncio
-async def test_single_video_runner_preserves_seedance2_config_resolution(
+async def test_single_video_runner_preserves_video_config_resolution(
     tmp_path,
     monkeypatch,
 ):
     from ai_anime.modules.production.infrastructure.media_generation.video_generator import (
         VideoGenStatus,
     )
-    from ai_anime.modules.production.application.seedance2_config import Seedance2I2VMode
+    from ai_anime.modules.production.application.video_config import VideoReferenceMode
     from ai_anime.modules.task_execution.infrastructure.runners import video as video_runner
 
     prepare_calls = []
@@ -142,12 +142,12 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
 
     async def fake_prepare(**kwargs):
         prepare_calls.append(kwargs)
-        seedance2_config_json = kwargs["beat"]["seedance2_config_json"]
+        video_config_json = kwargs["beat"]["video_config_json"]
         return SimpleNamespace(
             prompt="configured prompt",
-            seedance2_config_json=seedance2_config_json,
+            video_config_json=video_config_json,
             duration=6,
-            mode=Seedance2I2VMode.FIRST_FRAME,
+            mode=VideoReferenceMode.FIRST_FRAME,
             image_path="https://example.com/first.png",
             last_frame_path=None,
             references=[],
@@ -159,8 +159,13 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
         lambda **_kwargs: FakeVideoGenerator(),
     )
     monkeypatch.setattr(
-        "ai_anime.modules.production.public.prepare_seedance2_generation_inputs",
+        "ai_anime.modules.production.public.prepare_video_reference_generation_inputs",
         fake_prepare,
+    )
+    monkeypatch.setattr(
+        video_runner,
+        "video_model_uses_advanced_reference_workflow",
+        lambda model: model == "video-model-advanced-reference",
     )
     _patch_video_pool(monkeypatch, video_runner)
 
@@ -173,14 +178,14 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
                 "config": {
                     "beat": {
                         "beat_number": 1,
-                        "seedance2_config_json": (
+                        "video_config_json": (
                             '{"final_prompt":"configured prompt",'
                             '"duration":8,"resolution":"1080p","ratio":"16:9"}'
                         ),
                     },
                     "frame_path": "https://example.com/first.png",
                     "prompt": "configured prompt",
-                    "video_model": "seedance-2.0",
+                    "video_model": "video-model-advanced-reference",
                     "video_duration": 6,
                 }
             },
@@ -190,13 +195,13 @@ async def test_single_video_runner_preserves_seedance2_config_resolution(
 
     assert result["invocation_id"] == "invocation-1"
     assert prepare_calls[0]["resolution"] is None
-    assert '"duration":8' in generate_calls[0]["seedance2_config"]
-    assert '"resolution":"1080p"' in generate_calls[0]["seedance2_config"]
-    assert '"ratio":"16:9"' in generate_calls[0]["seedance2_config"]
+    assert '"duration":8' in generate_calls[0]["video_config"]
+    assert '"resolution":"1080p"' in generate_calls[0]["video_config"]
+    assert '"ratio":"16:9"' in generate_calls[0]["video_config"]
 
 
 @pytest.mark.asyncio
-async def test_single_video_runner_passes_happyhorse_references_and_audio_setting(
+async def test_single_video_runner_passes_references_and_audio_setting(
     tmp_path,
     monkeypatch,
 ):
@@ -242,8 +247,8 @@ async def test_single_video_runner_passes_happyhorse_references_and_audio_settin
                 "config": {
                     "beat": {"beat_number": 1},
                     "frame_path": None,
-                    "prompt": "happyhorse prompt",
-                    "video_model": "happyhorse-1.0",
+                    "prompt": "reference video prompt",
+                    "video_model": "video-model-reference",
                     "video_duration": 7,
                     "ratio": "1:1",
                     "audio_setting": "origin",

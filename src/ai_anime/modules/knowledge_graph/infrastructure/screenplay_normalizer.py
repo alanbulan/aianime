@@ -148,14 +148,14 @@ def _create_screenplay_normalizer_agent():
     from pydantic_ai import Agent
 
     from ai_anime.modules.model_usage.public import (
-        get_newapi_text_pydantic_model,
-        get_newapi_text_pydantic_model_settings,
+        get_text_pydantic_model,
+        get_text_pydantic_model_settings,
     )
 
     return Agent(
-        get_newapi_text_pydantic_model(),
+        get_text_pydantic_model(),
         system_prompt=SCREENPLAY_NORMALIZER_SYSTEM_PROMPT,
-        model_settings=get_newapi_text_pydantic_model_settings(
+        model_settings=get_text_pydantic_model_settings(
             "SCREENPLAY_NORMALIZER_THINKING_LEVEL",
             "low",
         ),

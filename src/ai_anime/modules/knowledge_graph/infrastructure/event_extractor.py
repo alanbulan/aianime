@@ -62,7 +62,7 @@ class EventExtractor:
             事件列表
         """
         from pydantic_ai import Agent
-        from ai_anime.modules.model_usage.public import get_newapi_text_pydantic_model
+        from ai_anime.modules.model_usage.public import get_text_pydantic_model
 
         def log(msg: str):
             if on_log:
@@ -96,7 +96,7 @@ class EventExtractor:
 
         try:
             agent = Agent(
-                get_newapi_text_pydantic_model(),
+                get_text_pydantic_model(),
                 output_type=ExtractedEventList,
             )
             ai_result = await agent.run(prompt)

@@ -11,14 +11,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ai_anime.api.routes.model_usage import gateway as model_gateway
-from ai_anime.migrations.model_usage import legacy_gateway_secrets
+from ai_anime.migrations.model_usage import retired_gateway_settings
 from ai_anime.modules.model_usage.infrastructure import model_runtime as config
 from ai_anime.modules.model_usage.public import (
     MODE_MIXED,
     build_model_gateway_status,
     configure_model_access,
     get_effective_cognee_embedding_config,
-    get_effective_newapi_config,
+    get_effective_model_gateway_config,
     resolve_model_assignment_for_role,
     resolve_model_for_role,
     runtime_model_access,
@@ -73,8 +73,8 @@ def test_all_editions_use_only_the_electron_mixed_router(
     tmp_path,
 ) -> None:
     _isolate_runtime(monkeypatch, tmp_path)
-    monkeypatch.setenv("NEWAPI_BASE_URL", "https://legacy.example/v1")
-    monkeypatch.setenv("NEWAPI_API_KEY", "legacy-secret")
+    monkeypatch.setenv("MODEL_GATEWAY_BASE_URL", "https://legacy.example/v1")
+    monkeypatch.setenv("MODEL_GATEWAY_API_KEY", "legacy-secret")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://legacy-openai.example/v1")
     monkeypatch.setenv("OPENAI_API_KEY", "legacy-openai-secret")
     configure_model_access(
@@ -84,7 +84,7 @@ def test_all_editions_use_only_the_electron_mixed_router(
     )
 
     access = runtime_model_access()
-    effective = get_effective_newapi_config()
+    effective = get_effective_model_gateway_config()
 
     assert access.mode == MODE_MIXED
     assert effective.mode == MODE_MIXED
@@ -110,7 +110,7 @@ def test_internal_capability_endpoint_accepts_only_router_state(
         "modelCapabilities": [
             {
                 "modelId": "cloud/video-standard",
-                "videoProfile": "seedance2",
+                "videoWorkflow": "advanced-reference",
                 "videoRatioOptions": ["16:9", "9:16"],
                 "videoResolutionOptions": ["512p", "720p"],
                 "videoSizeOptions": ["1344x768", "768x1344", "1024x1024"],
@@ -180,7 +180,7 @@ def test_internal_capability_endpoint_accepts_only_router_state(
     assert "legacy" not in status_response.text
     capability = runtime_model_capability("cloud/video-standard")
     assert capability is not None
-    assert capability.video_profile == "seedance2"
+    assert capability.video_workflow == "advanced-reference"
     assert capability.video_generation_min_seconds == 4
     assert capability.video_generation_max_seconds == 15
     assert capability.max_reference_images == 5
@@ -313,14 +313,14 @@ def test_text_model_factory_uses_role_default_and_router_endpoint(
         captured.update({"model": model_name, **kwargs})
         return object()
 
-    monkeypatch.setattr(config, "_newapi_text_openai_model", fake_model)
+    monkeypatch.setattr(config, "_model_gateway_text_openai_model", fake_model)
 
-    config.get_newapi_text_pydantic_model()
+    config.get_text_pydantic_model()
     assert captured["model"] == "cloud-text"
     assert captured["base_url"] == "http://127.0.0.1:45678/v1"
     assert captured["api_key"] == "desktop-proxy-token"
 
-    config.get_newapi_text_pydantic_model()
+    config.get_text_pydantic_model()
     assert captured["model"] == "cloud-text"
 
 
@@ -345,7 +345,7 @@ def test_startup_migration_purges_retired_local_gateway_secrets(
     tmp_path,
 ) -> None:
     _isolate_runtime(monkeypatch, tmp_path)
-    monkeypatch.setattr(legacy_gateway_secrets, "STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setattr(retired_gateway_settings, "STATE_DIR", str(tmp_path / "state"))
     database = tmp_path / "state" / "local" / "settings.db"
     database.parent.mkdir(parents=True)
     with sqlite3.connect(database) as connection:
@@ -357,13 +357,13 @@ def test_startup_migration_purges_retired_local_gateway_secrets(
             "INSERT INTO runtime_settings(key, value, updated_at) VALUES (?, ?, ?)",
             [
                 ("model_gateway_mode", "custom", "now"),
-                ("official_newapi_api_key", "official-secret", "now"),
-                ("custom_newapi_api_key", "custom-secret", "now"),
+                ("official_model_gateway_api_key", "official-secret", "now"),
+                ("custom_model_gateway_api_key", "custom-secret", "now"),
                 ("media_relay_provider", "aliyun_oss", "now"),
             ],
         )
 
-    legacy_gateway_secrets.migrate_legacy_gateway_secrets()
+    retired_gateway_settings.purge_retired_gateway_settings()
 
     with sqlite3.connect(database) as connection:
         keys = {
@@ -371,8 +371,8 @@ def test_startup_migration_purges_retired_local_gateway_secrets(
             for row in connection.execute("SELECT key FROM runtime_settings").fetchall()
         }
     assert "model_gateway_mode" not in keys
-    assert not any(key.startswith("official_newapi_") for key in keys)
-    assert not any(key.startswith("custom_newapi_") for key in keys)
+    assert not any(key.startswith("official_model_gateway_") for key in keys)
+    assert not any(key.startswith("custom_model_gateway_") for key in keys)
     assert not any("relay" in key for key in keys)
     assert "model_access_v2_migrated" not in keys
 
@@ -412,9 +412,9 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
     api_key = "desktop-proxy-token"
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", base_url)
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", api_key)
-    monkeypatch.setenv("OPENAI_API_KEY", "legacy-openai-secret")
-    monkeypatch.setenv("OPENROUTER_API_KEY", "legacy-openrouter-secret")
-    monkeypatch.setenv("MODEL_API_KEY", "legacy-model-secret")
+    monkeypatch.setenv("FUTURE_PROVIDER_API_KEY", "direct-provider-secret")
+    monkeypatch.setenv("FUTURE_PROVIDER_ACCESS_TOKEN", "direct-provider-token")
+    monkeypatch.setenv("FUTURE_PROVIDER_BASE_URL", "https://provider.invalid/v1")
     configure_model_access(
         allows_custom_models=allows_custom_models,
         mode=MODE_MIXED,
@@ -422,7 +422,7 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
         model_capabilities=[
             {
                 "modelId": "cloud/video-standard",
-                "videoProfile": "seedance2",
+                "videoWorkflow": "advanced-reference",
                 "videoRatioOptions": ["16:9", "9:16"],
                 "videoResolutionOptions": ["720p", "1080p"],
                 "videoSizeOptions": ["1344x768", "768x1344"],
@@ -444,11 +444,11 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "loaded = load_model_access_from_stdin()",
             "access = runtime_model_access()",
             "capability = runtime_model_capability('cloud/video-standard')",
-            "legacy = ['AI_ANIME_CLOUD_PROXY_TOKEN', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'MODEL_API_KEY']",
+            "direct = ['AI_ANIME_CLOUD_PROXY_TOKEN', 'FUTURE_PROVIDER_API_KEY', 'FUTURE_PROVIDER_ACCESS_TOKEN', 'FUTURE_PROVIDER_BASE_URL']",
             "print(json.dumps({'loaded': loaded, 'allowsCustomModels': is_byok_allowed(), 'mode': access.mode, 'baseUrl': access.base_url, "
             "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
             "'modelAssignments': [[item.model_id, item.role] for item in access.model_assignments], "
-            "'videoProfile': capability.video_profile if capability else None, "
+            "'videoWorkflow': capability.video_workflow if capability else None, "
             "'videoRatioOptions': list(capability.video_ratio_options) if capability else None, "
             "'videoResolutionOptions': list(capability.video_resolution_options) if capability else None, "
             "'videoSizeOptions': list(capability.video_size_options) if capability else None, "
@@ -460,7 +460,7 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "'videoGenerationMinSeconds': capability.video_generation_min_seconds if capability else None, "
             "'maxReferenceImages': capability.max_reference_images if capability else None, "
             "'referenceVideoMaxSeconds': capability.reference_video_max_seconds if capability else None, "
-            "'legacyPresent': any(os.environ.get(name) for name in legacy), "
+            "'directProviderEnvironmentPresent': any(os.environ.get(name) for name in direct), "
             "'stdinMarkerPresent': 'AI_ANIME_MODEL_ACCESS_STDIN' in os.environ}))",
         ]
     )
@@ -485,7 +485,7 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             ["cloud-text", "TEXT"],
             ["byok-text", "TEXT"],
         ],
-        "videoProfile": "seedance2",
+        "videoWorkflow": "advanced-reference",
         "videoRatioOptions": ["16:9", "9:16"],
         "videoResolutionOptions": ["720p", "1080p"],
         "videoSizeOptions": ["1344x768", "768x1344"],
@@ -497,7 +497,7 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
         "videoGenerationMinSeconds": 4.0,
         "maxReferenceImages": 5,
         "referenceVideoMaxSeconds": 10.0,
-        "legacyPresent": False,
+        "directProviderEnvironmentPresent": False,
         "stdinMarkerPresent": False,
     }
     assert api_key not in " ".join(completed.args)

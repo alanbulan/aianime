@@ -10,11 +10,6 @@ class _TaskManager:
         return None
 
 
-class _UsageMeter:
-    async def set_project_llm_usage_context(self, **_kwargs) -> None:
-        return None
-
-
 class _Store:
     def __init__(self) -> None:
         self.closed = False
@@ -53,7 +48,6 @@ async def test_episode_asset_runner_closes_store_when_planning_fails(monkeypatch
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(episode_assets, "get_task_manager", lambda: _TaskManager())
-    monkeypatch.setattr(episode_assets, "get_usage_meter", lambda: _UsageMeter())
 
     with pytest.raises(RuntimeError, match="planner failed"):
         await episode_assets._run_episode_asset_planner(

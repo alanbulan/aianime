@@ -217,7 +217,7 @@ async def _run_batch_render_async(
     ctx: ProjectContext,
 ) -> dict[str, Any]:
     from ai_anime.modules.production.public import get_render_generation_config
-    from ai_anime.modules.production.public import NanoBananaGridGenerator, scene_grid_split
+    from ai_anime.modules.production.public import ImageGridGenerator, scene_grid_split
     from ai_anime.modules.production.public import (
         build_beat_sketch_paths,
         load_pool_index,
@@ -291,7 +291,7 @@ async def _run_batch_render_async(
         model_override=image_model,
         model_selector_override=str(config.get("model_selector") or "") or None,
     )
-    generator = NanoBananaGridGenerator(config=generator_config)
+    generator = ImageGridGenerator(config=generator_config)
     log(f"[Render Image] access_mode={generator.access_mode}, model={generator.model}")
 
     prepared_requests = []
@@ -639,8 +639,7 @@ async def _run_selected_regen_async(
     )
     image_quality = str(config.get("image_quality") or "").strip().lower()
     if image_quality in {"low", "medium", "high"}:
-        generator_config["openai_image_quality"] = image_quality
-        generator_config["huimeng_image_quality"] = image_quality
+        generator_config["image_quality"] = image_quality
     log(
         f"[{'Sketch' if is_sketch else 'Render'} Image] "
         f"provider={generator_config.get('provider')}, model={generator_config.get('model')}"

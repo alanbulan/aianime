@@ -25,18 +25,14 @@ from ai_anime.modules.model_usage.public import (
     runtime_model_access,
 )
 from ai_anime.modules.model_usage.public import (
-    InsufficientCreditsStop,
-    find_insufficient_credits_error,
-    find_insufficient_credits_stop,
-    get_usage_meter,
-    reset_model_call_reservation_active,
-    set_model_call_reservation_active,
+    find_model_quota_error,
+    find_model_quota_stop,
 )
 from ai_anime.shared.env_guard import preserve_st_env
 from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
 # 抑制 cognee/litellm 内部的 Pydantic 序列化警告
-# （豆包等非 OpenAI provider 的 Message 字段数与 cognee 期望不同，不影响功能）
+# （部分非 OpenAI-compatible provider 的 Message 字段数与 Cognee 期望不同）
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
 
 # Cognee reads configuration during import, so bootstrap the canonical project
@@ -338,20 +334,13 @@ def _normalize_openai_compatible_model(model: str) -> str:
     )
 
 
-def _billing_model_name(model: str) -> str:
-    clean_model = str(model or "").strip()
-    if clean_model.startswith("openai/"):
-        return clean_model[len("openai/") :]
-    return clean_model
-
-
-def _effective_newapi_gateway() -> tuple[str, str]:
+def _effective_model_gateway() -> tuple[str, str]:
     access = runtime_model_access()
     return str(access.api_key or "").strip(), str(access.base_url or "").strip()
 
 
 def _current_gateway_fingerprint() -> str:
-    api_key, base_url = _effective_newapi_gateway()
+    api_key, base_url = _effective_model_gateway()
     material = f"{base_url}\n{api_key}".encode("utf-8")
     return hashlib.sha256(material).hexdigest()
 
@@ -556,7 +545,7 @@ def _exc_info_value(value: object) -> BaseException | None:
     return None
 
 
-def _log_record_has_insufficient_credits(record: logging.LogRecord) -> bool:
+def _log_record_has_model_quota_error(record: logging.LogRecord) -> bool:
     candidates: list[BaseException] = []
     record_exc = _exc_info_value(getattr(record, "exc_info", None))
     if record_exc is not None:
@@ -572,28 +561,28 @@ def _log_record_has_insufficient_credits(record: logging.LogRecord) -> bool:
             candidates.append(exception)
 
     return any(
-        find_insufficient_credits_stop(exc) is not None
-        or find_insufficient_credits_error(exc) is not None
+        find_model_quota_stop(exc) is not None
+        or find_model_quota_error(exc) is not None
         for exc in candidates
     )
 
 
-def _install_insufficient_credits_log_filter() -> None:
-    """Suppress Cognee/Rich tracebacks for expected credit-limit stops only."""
+def _install_model_quota_log_filter() -> None:
+    """Suppress Cognee/Rich tracebacks for expected remote-quota stops only."""
 
-    class InsufficientCreditsLogFilter(logging.Filter):
-        _ai_anime_insufficient_credits_filter = True
+    class ModelQuotaLogFilter(logging.Filter):
+        _ai_anime_model_quota_filter = True
 
         def filter(self, record: logging.LogRecord) -> bool:
-            return not _log_record_has_insufficient_credits(record)
+            return not _log_record_has_model_quota_error(record)
 
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
         if not any(
-            getattr(existing_filter, "_ai_anime_insufficient_credits_filter", False)
+            getattr(existing_filter, "_ai_anime_model_quota_filter", False)
             for existing_filter in handler.filters
         ):
-            handler.addFilter(InsufficientCreditsLogFilter())
+            handler.addFilter(ModelQuotaLogFilter())
 
 
 def _headers_to_plain_dict(headers: object) -> dict[str, str]:
@@ -744,10 +733,6 @@ def _embedding_response_trace(
         or merged_headers.get("x-request-id", "")
         or merged_headers.get("request-id", "")
         or merged_headers.get("request_id", "")
-        or merged_headers.get("x-newapi-request-id", "")
-        or merged_headers.get("newapi-request-id", "")
-        or merged_headers.get("x-oneapi-request-id", "")
-        or merged_headers.get("oneapi-request-id", "")
         or merged_headers.get("x-goog-request-id", "")
     )
     return request_id, response_id
@@ -834,7 +819,7 @@ async def _call_cognee_embedding_gateway(
 
 
 def _patch_cognee_embedding_gateway() -> None:
-    """Force Cognee LiteLLM embeddings through the newAPI OpenAI-compatible gateway."""
+    """Force Cognee LiteLLM embeddings through the model gateway OpenAI-compatible gateway."""
     global _embedding_gateway_patch_installed
     if _embedding_gateway_patch_installed:
         return
@@ -882,81 +867,11 @@ def _patch_cognee_embedding_gateway() -> None:
         }
         headers_token = _embedding_headers_capture.set(captured_headers)
         gateway_token = _embedding_gateway_call_context.set(call_context)
-        raw_model = str(
-            getattr(self, "model", "") or os.getenv("EMBEDDING_MODEL", "")
-        ).strip()
-        billing_model = _billing_model_name(raw_model)
-        reservation_id = ""
-        active_token = None
         try:
-            try:
-                reservation_id = (
-                    await get_usage_meter().reserve_current_model_call_credit(
-                        model=billing_model,
-                        billing_kind="embedding",
-                        metadata={"source": "cognee_embedding_gateway"},
-                    )
-                )
-            except Exception as exc:
-                insufficient = find_insufficient_credits_error(exc)
-                if insufficient is not None:
-                    raise InsufficientCreditsStop(
-                        user_id=insufficient.user_id,
-                        cost=insufficient.cost,
-                        balance=insufficient.balance,
-                    ) from None
-                raise
-            active_token = set_model_call_reservation_active(bool(reservation_id))
             result = await original_embed_text(self, text)
-        except BaseException:
-            if reservation_id:
-                try:
-                    await get_usage_meter().refund_model_call_credit_reservation(
-                        reservation_id,
-                        metadata={"source": "cognee_embedding_gateway_exception"},
-                    )
-                except Exception as refund_error:
-                    logger.warning(
-                        "failed to refund Cognee embedding reservation: %s",
-                        refund_error,
-                    )
-            raise
         finally:
-            if active_token is not None:
-                try:
-                    reset_model_call_reservation_active(active_token)
-                except Exception as reset_error:
-                    logger.debug(
-                        "failed to reset Cognee reservation context: %s",
-                        reset_error,
-                    )
             _embedding_gateway_call_context.reset(gateway_token)
             _embedding_headers_capture.reset(headers_token)
-        if reservation_id:
-            try:
-                request_id = (
-                    str(call_context.get("request_id") or "")
-                    or captured_headers.get("x-request-id")
-                    or captured_headers.get("x-newapi-request-id")
-                    or captured_headers.get("x-oneapi-request-id")
-                    or ""
-                )
-                metadata = {"source": "cognee_embedding_gateway"}
-                response_id = str(call_context.get("response_id") or "")
-                if response_id:
-                    metadata["response_id"] = response_id
-                await get_usage_meter().bump_model_call(
-                    user_id=None,
-                    model=billing_model,
-                    credit_reservation_id=reservation_id,
-                    provider_request_id=request_id,
-                    metadata=metadata,
-                )
-            except Exception as usage_error:
-                logger.warning(
-                    "failed to record Cognee embedding usage: %s",
-                    usage_error,
-                )
         return result
 
     engine_cls.embed_text = patched_embed_text
@@ -1097,7 +1012,7 @@ def init_cognee(
     clean_text_model = resolve_model_for_role("TEXT")
     clean_embedding_model = resolve_model_for_role("EMBEDDING")
 
-    api_key, gateway_base_url = _effective_newapi_gateway()
+    api_key, gateway_base_url = _effective_model_gateway()
     if not gateway_base_url:
         raise ValueError(
             "未设置 Cognee 模型 Base URL。请登录云端或配置专业版 BYOK。"
@@ -1142,7 +1057,7 @@ def init_cognee(
     if hasattr(cognee.config, "set_embedding_api_key"):
         cognee.config.set_embedding_api_key(embedding_api_key or api_key)
     _patch_cognee_embedding_timeout()
-    _install_insufficient_credits_log_filter()
+    _install_model_quota_log_filter()
     _install_litellm_operation_idempotency()
     _patch_cognee_embedding_gateway()
     _active_gateway_fingerprint = _current_gateway_fingerprint()

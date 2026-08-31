@@ -17,11 +17,6 @@ def test_container_captures_required_ce_ports(monkeypatch) -> None:
     assert container.project_registry is registry.get_port("project_registry")
     assert container.project_access is registry.get_port("project_access")
     assert container.audit_sink is registry.get_port("audit_sink")
-    assert container.credit_quote is registry.get_port("credit_quote")
-    assert container.usage_meter is registry.get_port("usage_meter")
-    assert container.provider_instrumentation is registry.get_port(
-        "provider_instrumentation"
-    )
     assert container.task_backend is registry.get_port("task_backend")
     assert container.cancellation_store is registry.get_port("cancellation_store")
     assert container.lifecycle is registry.get_port("lifecycle")

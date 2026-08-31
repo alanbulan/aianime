@@ -11,7 +11,7 @@ from ai_anime.modules.production.public import (
     AddGeneratedVideoCommand,
     GLOBAL_VIDEO_OPTIMIZATION_TASK_TYPE,
     SINGLE_VIDEO_TASK_TYPE,
-    is_seedance2_model,
+    video_model_uses_advanced_reference_workflow,
     video_pool_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
@@ -135,20 +135,19 @@ async def _run_single_video_async(
     video_duration = config.get("video_duration", 5.0)
     video_model = str(config.get("video_model") or "").strip()
     last_frame_path = config.get("last_frame_path")
-    seedance2_config = config.get("seedance2_config") or beat.get(
-        "seedance2_config_json"
+    video_config = config.get("video_config") or beat.get("video_config_json")
+    uses_advanced_reference = video_model_uses_advanced_reference_workflow(
+        video_model
     )
-    uses_seedance2 = is_seedance2_model(video_model)
 
     paths = PathResolver(output_dir, episode)
     videos_dir = paths.videos_dir()
     videos_dir.mkdir(parents=True, exist_ok=True)
     video_path = paths.video(beat_num)
     gen_kwargs: dict[str, Any] = {}
-    # 非 seedance2 后端（含 seedance-1.5-pro）的清晰度走构造参数透传；
-    # seedance2 的清晰度在 prepare 阶段并入 seedance2_config，无需在此重复。
+    # 标准工作流的清晰度走构造参数；高级参考工作流在准备阶段并入视频配置。
     single_resolution = config.get("resolution")
-    if single_resolution and not uses_seedance2:
+    if single_resolution and not uses_advanced_reference:
         gen_kwargs["resolution"] = str(single_resolution)
     video_gen = create_video_generator(
         model_role=str(config.get("model_role") or ""),
@@ -170,20 +169,20 @@ async def _run_single_video_async(
             current_task=f"生成 Beat {beat_num} 视频",
         )
 
-    if video_mode == "keyframe" and last_frame_path and not uses_seedance2:
+    if video_mode == "keyframe" and last_frame_path and not uses_advanced_reference:
         video_duration = 5.0
 
-    seedance2_references = []
-    if uses_seedance2:
+    video_references = []
+    if uses_advanced_reference:
         from ai_anime.modules.production.public import (
-            Seedance2I2VMode,
-            prepare_seedance2_generation_inputs,
+            VideoReferenceMode,
+            prepare_video_reference_generation_inputs,
         )
 
-        prepared = await prepare_seedance2_generation_inputs(
+        prepared = await prepare_video_reference_generation_inputs(
             project_output=output_dir,
             episode=episode,
-            beat={**beat, "seedance2_config_json": seedance2_config or "{}"},
+            beat={**beat, "video_config_json": video_config or "{}"},
             next_beat=config.get("next_beat"),
             video_mode=video_mode,
             prompt=prompt,
@@ -200,16 +199,16 @@ async def _run_single_video_async(
         video_duration = prepared.duration
         frame_path = prepared.image_path
         last_frame_path = prepared.last_frame_path
-        seedance2_config = prepared.seedance2_config_json
-        seedance2_references = prepared.references
+        video_config = prepared.video_config_json
+        video_references = prepared.references
         video_mode = (
             "keyframe"
-            if prepared.mode == Seedance2I2VMode.FIRST_LAST_FRAME
+            if prepared.mode == VideoReferenceMode.FIRST_LAST_FRAME
             else "first_frame"
         )
 
-    model_references = seedance2_references
-    if not uses_seedance2:
+    model_references = video_references
+    if not uses_advanced_reference:
         model_references = [
             ShotReference(
                 type=str(item.get("type") or "image"),
@@ -242,8 +241,8 @@ async def _run_single_video_async(
         generate_kwargs["references"] = model_references
     if config.get("audio_setting"):
         generate_kwargs["audio_setting"] = str(config["audio_setting"])
-    if uses_seedance2:
-        generate_kwargs["seedance2_config"] = seedance2_config
+    if uses_advanced_reference:
+        generate_kwargs["video_config"] = video_config
 
     result = await video_gen.generate(**generate_kwargs)
     if result.status.value != "done":
@@ -491,21 +490,24 @@ async def _run_video_generation_async(
             if video_mode == "keyframe" and last_frame_path
             else "VIDEO_IMAGE_TO_VIDEO"
         )
-        if is_seedance2_model(video_model) and model_role != "VIDEO_FIRST_LAST_FRAME":
+        if (
+            video_model_uses_advanced_reference_workflow(video_model)
+            and model_role != "VIDEO_FIRST_LAST_FRAME"
+        ):
             from ai_anime.modules.production.public import (
-                Seedance2I2VMode,
-                parse_seedance2_config,
+                VideoReferenceMode,
+                parse_video_config,
             )
 
-            seedance_mode = parse_seedance2_config(
-                beat.get("seedance2_config_json")
+            reference_mode = parse_video_config(
+                beat.get("video_config_json")
             ).mode
             model_role = {
-                Seedance2I2VMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
-                Seedance2I2VMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
-                Seedance2I2VMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
-                Seedance2I2VMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
-            }[seedance_mode]
+                VideoReferenceMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
+                VideoReferenceMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
+                VideoReferenceMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
+                VideoReferenceMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
+            }[reference_mode]
 
         single_envelope = {
             "task_type": SINGLE_VIDEO_TASK_TYPE,

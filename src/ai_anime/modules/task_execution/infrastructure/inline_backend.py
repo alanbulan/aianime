@@ -162,9 +162,6 @@ class InlineTaskBackend:
             "queue_kind": lane_name,
             "payload": payload,
         }
-        billing_metadata = payload.get("billing")
-        if isinstance(billing_metadata, dict) and billing_metadata:
-            envelope["billing_metadata"] = dict(billing_metadata)
         await self._submit_lane_job(
             _InlineLaneJob(
                 envelope=envelope,

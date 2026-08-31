@@ -28,7 +28,7 @@ class ModelTextTransportError(RuntimeError):
 async def request_model_chat_content(
     *,
     messages: list[dict[str, Any]],
-    max_tokens: int,
+    max_tokens: int | None = None,
     temperature: float = 0.0,
     response_format: dict[str, Any] | None = None,
     timeout_seconds: float = 120.0,
@@ -43,7 +43,7 @@ async def request_model_chat_content(
 
     if not messages:
         raise ValueError("text model messages are required")
-    if int(max_tokens) <= 0:
+    if max_tokens is not None and int(max_tokens) <= 0:
         raise ValueError("max_tokens must be positive")
     effective_model = resolve_model_for_role("TEXT")
 
@@ -53,9 +53,10 @@ async def request_model_chat_content(
     payload: dict[str, Any] = {
         "model": effective_model,
         "temperature": float(temperature),
-        "max_tokens": int(max_tokens),
         "messages": messages,
     }
+    if max_tokens is not None:
+        payload["max_tokens"] = int(max_tokens)
     if response_format is not None:
         payload["response_format"] = response_format
 
@@ -151,9 +152,4 @@ def _response_error_message(response: httpx.Response) -> str:
 
 
 def _request_id(headers: httpx.Headers) -> str:
-    return (
-        headers.get("x-request-id")
-        or headers.get("x-newapi-request-id")
-        or headers.get("x-oneapi-request-id")
-        or ""
-    )
+    return headers.get("x-request-id") or ""

@@ -108,9 +108,9 @@ def _effective_project_config(
         username=username,
     )
     if result.get("visual_style") not in available:
-        print(
-            f"[load_project_config] visual_style '{result['visual_style']}' 无效，回退默认",
-            flush=True,
+        _log.warning(
+            "项目 visual_style 无效，回退默认值: %s",
+            result["visual_style"],
         )
         result["visual_style"] = default_config["visual_style"]
 
@@ -180,10 +180,11 @@ def save_project_config(username: str, project: str, config: dict | None = None,
             existing_config.update(kwargs)
 
     saved_config = update_project_config_file(username, project, _apply)
-    print(
-        "[save_project_config] 已保存配置: "
-        f"{username}/{project}/project_config.json -> {saved_config}",
-        flush=True,
+    _log.info(
+        "已保存项目配置: %s/%s/project_config.json -> %s",
+        username,
+        project,
+        saved_config,
     )
     return saved_config
 

@@ -24,7 +24,7 @@ _LONG_MEDIA_TASK_TYPES = frozenset(
     {
         "selected_regen",
         "sketch_regen",
-        "seedance2_prompt",
+        "video_prompt_optimization",
         "episode_rewrite",
         "style_analysis",
         "character_voice_design",

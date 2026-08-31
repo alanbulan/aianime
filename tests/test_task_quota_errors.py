@@ -4,9 +4,9 @@ import sys
 import pytest
 
 from ai_anime.modules.model_usage.public import (
-    INSUFFICIENT_CREDITS_CODE,
-    INSUFFICIENT_CREDITS_MESSAGE,
-    InsufficientCreditsStop,
+    MODEL_QUOTA_EXCEEDED_MESSAGE,
+    REMOTE_MODEL_QUOTA_CODE,
+    ModelQuotaExceededStop,
 )
 from ai_anime.shared.provider_errors import (
     CONTENT_MODERATION_FAILED_CODE,
@@ -36,22 +36,26 @@ def test_task_serialization_exposes_error_code() -> None:
         project="kk",
         episode=0,
         status="failed",
-        metadata={"error_code": INSUFFICIENT_CREDITS_CODE},
+        metadata={"error_code": REMOTE_MODEL_QUOTA_CODE},
     )
 
-    assert serialize_project_task(task)["error_code"] == INSUFFICIENT_CREDITS_CODE
+    assert serialize_project_task(task)["error_code"] == REMOTE_MODEL_QUOTA_CODE
 
 
-def test_celery_task_failure_maps_insufficient_credits_stop(monkeypatch) -> None:
+def test_celery_task_failure_maps_model_quota_stop(monkeypatch) -> None:
     celery_tasks = _import_celery_tasks(monkeypatch)
 
-    stop = InsufficientCreditsStop(user_id="usr_1", cost=2, balance=1)
+    stop = ModelQuotaExceededStop(
+        user_id="usr_1",
+        required_units=2,
+        available_units=1,
+    )
 
     error, metadata, handled = celery_tasks.project_task_failure_for_exception(stop)
 
     assert handled is True
-    assert error == INSUFFICIENT_CREDITS_MESSAGE
-    assert metadata["error_code"] == INSUFFICIENT_CREDITS_CODE
+    assert error == MODEL_QUOTA_EXCEEDED_MESSAGE
+    assert metadata["error_code"] == REMOTE_MODEL_QUOTA_CODE
     assert metadata["required"] == 2
     assert metadata["balance"] == 1
 

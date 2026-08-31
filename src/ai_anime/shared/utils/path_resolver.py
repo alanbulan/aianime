@@ -115,15 +115,6 @@ def compute_scene_spatial_layout_path(project_dir: Path, scene_name: str) -> str
     return str(path) if path.exists() else ""
 
 
-def _first_existing_scene_file(project_dir: Path, scene_name: str, candidates: list[str]) -> str:
-    scene_dir = _scene_dir(project_dir, scene_name)
-    for rel_path in candidates:
-        path = scene_dir / rel_path
-        if path.exists():
-            return str(path)
-    return ""
-
-
 def canonical_scene_reverse_master_path(project_dir: Path, scene_name: str) -> Path:
     """Canonical scene-level reverse master image slot path."""
     return _scene_dir(project_dir, scene_name) / "reverse_master.png"
@@ -135,42 +126,6 @@ def compute_scene_reverse_master_path(project_dir: Path, scene_name: str) -> str
     return str(path) if path.exists() else ""
 
 
-def compute_scene_topdown_path(project_dir: Path, scene_name: str) -> str:
-    """动态计算场景俯视/平面图路径。
-
-    当前仍处在实验迁移期，因此兼容最近几轮测试文件名；以后稳定后应收敛到
-    `top_down.png` 或 `floor_plan.png`。
-    """
-    return _first_existing_scene_file(
-        project_dir,
-        scene_name,
-        [
-            "top_down.png",
-            "top_down_ref.png",
-            "floor_plan.png",
-            "top_down_openai_master_style_test_1k_square.png",
-            "top_down_openai_master_style_test_1k.png",
-            "blueprint_sheet_openai_master_test/floor_plan.png",
-        ],
-    )
-
-
-def compute_scene_reverse_path(project_dir: Path, scene_name: str) -> str:
-    """动态计算场景反向/背面参考图路径。"""
-    return _first_existing_scene_file(
-        project_dir,
-        scene_name,
-        [
-            "reverse.png",
-            "reverse_ref.png",
-            "reverse_openai_master_topdown_preset_v2_1k.png",
-            "reverse_openai_master_topdown_test_1k.png",
-            "reverse_render_ref.png",
-            "blueprint_sheet_openai_master_test/back_elevation.png",
-        ],
-    )
-
-
 def compute_scene_world_model_pack_paths(project_dir: Path, scene_name: str) -> list[str]:
     """返回 render 阶段的场景参考包。
 
@@ -179,11 +134,6 @@ def compute_scene_world_model_pack_paths(project_dir: Path, scene_name: str) -> 
     """
     paths = [compute_scene_master_path(project_dir, scene_name)]
     return [path for path in paths if path]
-
-
-def compute_scene_style_reference_path(project_dir: Path, scene_name: str) -> str:
-    """Legacy alias: 返回 master 源图。"""
-    return compute_scene_master_path(project_dir, scene_name)
 
 
 def compute_director_ref_dir(project_dir: Path, episode: int, beat_num: int) -> Path:
@@ -789,55 +739,3 @@ class PathResolver:
             self.output_dir / "grids" / self._ep_str,
             "pool_index.json",
         )
-
-    def find_grid_image(
-        self,
-        grid_type: str,
-        mode_key: str,
-        beat_nums: list[int],
-    ) -> Optional[Path]:
-        """查找整图文件（兼容新旧路径）。
-
-        搜索顺序：
-        1. 新 preset 目录: {preset}/{type}_{mode}_{beats}_grid_{ts}.png
-        2. 旧 mode_key 目录: {mode_key}/grid_*.png
-        3. 旧 render/sketch 目录: render/regen_*.png, sketch/regen_*.png
-
-        Returns:
-            找到的文件路径，或 None
-        """
-        ep_grids = self.episode_grids_dir()
-        beats_str = "-".join(str(b) for b in beat_nums)
-
-        # 1. 搜索 preset 目录
-        for preset in ("scene", "char", "loc", "custom"):
-            preset_dir = ep_grids / preset
-            if preset_dir.exists():
-                pattern = f"{grid_type}_{mode_key}_{beats_str}_grid_*.png"
-                matches = sorted(preset_dir.glob(pattern))
-                if matches:
-                    return matches[-1]  # 最新的
-
-        # 2. 旧 mode_key 目录
-        mode_dir = ep_grids / mode_key
-        if mode_dir.exists():
-            scoped_path = mode_dir / compute_scoped_grid_filename(
-                mode_key,
-                beat_nums,
-                prefix="grid",
-                ext="png",
-            )
-            if scoped_path.exists():
-                return scoped_path
-            for f in sorted(mode_dir.glob("grid_*.png")):
-                return f
-
-        # 3. 旧 render/sketch 目录
-        type_dir = ep_grids / ("sketch" if grid_type == "sketch" else "render")
-        if type_dir.exists():
-            for f in sorted(type_dir.glob(f"regen_{mode_key}_b*.png")):
-                return f
-            for f in sorted(type_dir.glob(f"regen_{mode_key}_g*.png")):
-                return f
-
-        return None

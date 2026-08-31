@@ -46,8 +46,6 @@ def test_ensure_bootstrap_registers_local_ports_for_explicit_ce(monkeypatch) -> 
     assert registry.get_port("auth_session") is not None
     assert registry.get_port("project_registry") is not None
     assert registry.get_port("project_access") is not None
-    assert registry.get_port("usage_meter") is not None
-    assert registry.get_port("provider_instrumentation") is not None
     assert registry.get_port("task_backend") is not None
     assert registry.get_port("cancellation_store") is not None
     assert registry.get_port("audit_sink") is not None
@@ -103,7 +101,6 @@ def test_ensure_bootstrap_reports_all_missing_ee_ports_when_entry_points_empty(m
         "auth_session",
         "project_registry",
         "project_access",
-        "usage_meter",
         "lifecycle",
     ):
         assert name in message
@@ -126,30 +123,8 @@ def test_ensure_bootstrap_reports_partially_registered_ee_ports(monkeypatch) -> 
 
     message = str(exc.value)
     assert "lifecycle" not in message
-    for name in ("auth", "auth_session", "project_registry", "project_access", "usage_meter"):
+    for name in ("auth", "auth_session", "project_registry", "project_access"):
         assert name in message
-
-
-def test_ensure_bootstrap_requires_provider_instrumentation_for_ee(monkeypatch) -> None:
-    registry = _registry()
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
-
-    class EntryPoint:
-        def load(self):
-            def register():
-                for name in registry._EE_REQUIRED_PORTS:
-                    if name != "provider_instrumentation":
-                        registry.register_port(name, object())
-
-            return register
-
-    monkeypatch.setattr(registry, "entry_points", lambda *, group: [EntryPoint()], raising=False)
-
-    with pytest.raises(RuntimeError) as exc:
-        registry.ensure_bootstrap()
-
-    assert "provider_instrumentation" in str(exc.value)
 
 
 def test_ensure_bootstrap_requires_task_backend_ports_for_ee(monkeypatch) -> None:
@@ -196,28 +171,6 @@ def test_ensure_bootstrap_requires_audit_sink_for_ee(monkeypatch) -> None:
         registry.ensure_bootstrap()
 
     assert "audit_sink" in str(exc.value)
-
-
-def test_ensure_bootstrap_requires_credit_quote_for_ee(monkeypatch) -> None:
-    registry = _registry()
-    monkeypatch.setenv("AI_ANIME_CONTROL_PLANE_DSN", "postgresql://example")
-    monkeypatch.delenv("AI_ANIME_EDITION", raising=False)
-
-    class EntryPoint:
-        def load(self):
-            def register():
-                for name in registry._EE_REQUIRED_PORTS:
-                    if name != "credit_quote":
-                        registry.register_port(name, object())
-
-            return register
-
-    monkeypatch.setattr(registry, "entry_points", lambda *, group: [EntryPoint()], raising=False)
-
-    with pytest.raises(RuntimeError) as exc:
-        registry.ensure_bootstrap()
-
-    assert "credit_quote" in str(exc.value)
 
 
 def test_ensure_bootstrap_requires_explicit_ce_without_control_plane(monkeypatch) -> None:

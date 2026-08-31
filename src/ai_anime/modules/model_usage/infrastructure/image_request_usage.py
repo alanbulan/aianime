@@ -13,7 +13,7 @@ from ai_anime.modules.model_usage.infrastructure.request_usage_db import (
 )
 
 
-_NON_BILLABLE_FAILURE_PATTERNS = (
+_UNCOUNTED_FAILURE_PATTERNS = (
     "%未返回图像数据%",
     "%模型未返回图像%",
 )
@@ -124,7 +124,7 @@ def update_image_request_status(
         )
 
 
-def _append_billable_usage_filter(where: list[str], params: list[object]) -> None:
+def _append_counted_request_filter(where: list[str], params: list[object]) -> None:
     where.append(
         """
         NOT (
@@ -135,7 +135,7 @@ def _append_billable_usage_filter(where: list[str], params: list[object]) -> Non
         )
         """.strip()
     )
-    params.extend(_NON_BILLABLE_FAILURE_PATTERNS)
+    params.extend(_UNCOUNTED_FAILURE_PATTERNS)
 
 
 def count_image_scope_attempts(
@@ -150,7 +150,7 @@ def count_image_scope_attempts(
     if episode is not None:
         where.append("episode = ?")
         params.append(episode)
-    _append_billable_usage_filter(where, params)
+    _append_counted_request_filter(where, params)
 
     with _connect(project_output_dir) as conn:
         row = conn.execute(
@@ -180,7 +180,7 @@ def get_image_usage_summary(
     if episode is not None:
         where.append("episode = ?")
         params.append(episode)
-    _append_billable_usage_filter(where, params)
+    _append_counted_request_filter(where, params)
 
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
     today_sql = f"{where_sql} {'AND' if where_sql else 'WHERE'} substr(accepted_at, 1, 10) = ?"

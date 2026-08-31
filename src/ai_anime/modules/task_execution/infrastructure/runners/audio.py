@@ -5,28 +5,28 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from ai_anime.modules.production.public import INDEXTTS2_AUDIO_TASK_TYPE
+from ai_anime.modules.production.public import EPISODE_AUDIO_TASK_TYPE
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import await_envelope_with_cancel_watch
 from ai_anime.modules.task_execution.public import register_project_task_runner
 from ai_anime.modules.task_execution.infrastructure.task_state import get_task_manager
 
-def run_indextts2_audio(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any] | None:
+def run_episode_audio(envelope: dict[str, Any], ctx: ProjectContext) -> dict[str, Any] | None:
     return asyncio.run(
         await_envelope_with_cancel_watch(
-            _run_indextts2_audio(envelope, ctx),
+            _run_episode_audio(envelope, ctx),
             envelope,
-            task_type=INDEXTTS2_AUDIO_TASK_TYPE,
+            task_type=EPISODE_AUDIO_TASK_TYPE,
         )
     )
 
 
-async def _run_indextts2_audio(
+async def _run_episode_audio(
     envelope: dict[str, Any],
     ctx: ProjectContext,
 ) -> dict[str, Any] | None:
     from ai_anime.modules.production.public import (
-        run_indextts2_beat_audio_generation,
+        run_episode_audio_generation,
     )
     from ai_anime.sqlite_store import SQLiteStore
 
@@ -48,7 +48,7 @@ async def _run_indextts2_audio(
     async def on_progress(done: int, total: int, current: str) -> None:
         manager.update_progress_for_project(
             ctx,
-            INDEXTTS2_AUDIO_TASK_TYPE,
+            EPISODE_AUDIO_TASK_TYPE,
             episode,
             progress=(done / total) if total else 0.0,
             current_task=current,
@@ -58,13 +58,13 @@ async def _run_indextts2_audio(
     def on_log(message: str) -> None:
         manager.update_progress_for_project(
             ctx,
-            INDEXTTS2_AUDIO_TASK_TYPE,
+            EPISODE_AUDIO_TASK_TYPE,
             episode,
             logs=[message],
         )
 
     try:
-        result = await run_indextts2_beat_audio_generation(
+        result = await run_episode_audio_generation(
             store=store,
             username=ctx.owner_username,
             project=ctx.project_name,
@@ -91,10 +91,10 @@ async def _run_indextts2_audio(
             "skipped": skipped,
             "failed": len(result.failed),
             "generated_beats": list(result.generated_beats),
-            "indextts2_detail": result.to_dict(),
+            "audio_generation_detail": result.to_dict(),
         }
     finally:
         await store.close()
 
 
-register_project_task_runner(INDEXTTS2_AUDIO_TASK_TYPE, run_indextts2_audio)
+register_project_task_runner(EPISODE_AUDIO_TASK_TYPE, run_episode_audio)

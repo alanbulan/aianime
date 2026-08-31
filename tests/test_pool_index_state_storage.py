@@ -35,7 +35,7 @@ def test_save_pool_index_writes_state_sidecar_not_output(monkeypatch, tmp_path):
     assert payload["beat_assignments"] == {"1": "render/beat_01.png"}
 
 
-def test_load_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_path):
+def test_load_pool_index_ignores_output_sidecar(monkeypatch, tmp_path):
     output_root, state_root = _configure_roots(monkeypatch, tmp_path)
     from ai_anime.modules.production.infrastructure.media_generation.pool_indexer import (
         load_pool_index,
@@ -62,7 +62,6 @@ def test_load_pool_index_lazily_moves_legacy_output_sidecar(monkeypatch, tmp_pat
     pool = load_pool_index(grids_dir)
 
     state_path = state_root / "admin" / "demo" / "grids" / "ep001" / "pool_index.json"
-    assert pool is not None
-    assert pool.beat_assignments == {"1": "render/beat_01.png"}
-    assert state_path.exists()
-    assert not legacy_path.exists()
+    assert pool is None
+    assert not state_path.exists()
+    assert legacy_path.exists()

@@ -1,4 +1,4 @@
-"""OSS presign helpers used by Seedance2 human-review media uploads.
+"""OSS presign helpers used by video human-review media uploads.
 
 The bucket is initialized lazily. Missing credentials or missing ``oss2`` SDK
 return ``None`` so local development can continue without OSS.

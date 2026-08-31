@@ -31,29 +31,23 @@ _TASK_PROCESS_SCOPE: contextvars.ContextVar[dict[str, Any] | None] = contextvars
 _REGISTRY_LOCK = threading.Lock()
 _PROCESSES_BY_TASK: dict[str, set[subprocess.Popen]] = {}
 _CANCEL_KILLED_PROCS: set[int] = set()
-_DIRECT_MODEL_CREDENTIAL_ENV_NAMES = frozenset(
-    {
-        "AI_ANIME_CLOUD_PROXY_BASE_URL",
-        "AI_ANIME_CLOUD_PROXY_TOKEN",
-        "AI_ANIME_MODEL_ADMIN_TOKEN",
-        "ANTHROPIC_API_KEY",
-        "ARK_API_KEY",
-        "BLOCK_WORLD_API_KEY",
-        "GEMINI_API_KEY",
-        "GOOGLE_API_KEY",
-        "HUIMENG_API_KEY",
-        "HUIMENGI_API_KEY",
-        "MODEL_API_KEY",
-        "NEWAPI_API_KEY",
-        "NEWAPI_BASE_URL",
-        "OPENAI_API_KEY",
-        "OPENAI_API_BASE",
-        "OPENAI_BASE_URL",
-        "OPENROUTER_API_KEY",
-        "OPENROUTER_BASE_URL",
-        "VOLCENGINE_VISUAL_API_KEY",
-    }
+_DIRECT_MODEL_ENV_SUFFIXES = (
+    "_API_KEY",
+    "_TOKEN",
+    "_API_TOKEN",
+    "_ACCESS_TOKEN",
+    "_AUTH_TOKEN",
+    "_SECRET",
+    "_SECRET_KEY",
+    "_CREDENTIALS",
+    "_API_BASE",
+    "_BASE_URL",
 )
+
+
+def _is_direct_model_environment(name: str) -> bool:
+    normalized = str(name or "").strip().upper()
+    return normalized.endswith(_DIRECT_MODEL_ENV_SUFFIXES)
 
 
 @contextlib.contextmanager
@@ -403,8 +397,11 @@ def run_project_model_subprocess(
 ) -> subprocess.CompletedProcess:
     """Run a model child with one process-local access snapshot over stdin."""
     child_env = dict(os.environ if env is None else env)
-    for name in _DIRECT_MODEL_CREDENTIAL_ENV_NAMES:
-        child_env.pop(name, None)
+    child_env = {
+        name: value
+        for name, value in child_env.items()
+        if not _is_direct_model_environment(name)
+    }
     child_env[MODEL_ACCESS_STDIN_ENV] = "1"
     return run_project_subprocess(
         args,

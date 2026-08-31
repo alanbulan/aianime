@@ -14,14 +14,14 @@ def test_global_video_reviewer_uses_the_canonical_text_model_factory(monkeypatch
     calls: list[None] = []
     sentinel = object()
 
-    def fake_get_newapi_text_pydantic_model():
+    def fake_get_text_pydantic_model():
         calls.append(None)
         return sentinel
 
     monkeypatch.setattr(
         config,
-        "get_newapi_text_pydantic_model",
-        fake_get_newapi_text_pydantic_model,
+        "get_text_pydantic_model",
+        fake_get_text_pydantic_model,
     )
     monkeypatch.setattr(global_video_optimizer, "Agent", FakeAgent)
 
@@ -38,14 +38,14 @@ def test_keyframe_prompt_builder_uses_the_canonical_text_model_factory(monkeypat
     calls: list[None] = []
     sentinel = object()
 
-    def fake_get_newapi_text_pydantic_model():
+    def fake_get_text_pydantic_model():
         calls.append(None)
         return sentinel
 
     monkeypatch.setattr(
         config,
-        "get_newapi_text_pydantic_model",
-        fake_get_newapi_text_pydantic_model,
+        "get_text_pydantic_model",
+        fake_get_text_pydantic_model,
     )
     monkeypatch.setattr(keyframe_prompt_builder, "Agent", FakeAgent)
 

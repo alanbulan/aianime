@@ -60,12 +60,16 @@ class RuntimeModelAssignment:
 @dataclass(frozen=True)
 class RuntimeModelCapability:
     model_id: str
-    video_profile: str | None = None
+    extra_parameter_names: tuple[str, ...] = ()
+    image_prompt_profile: str | None = None
+    video_workflow: str | None = None
     video_ratio_options: tuple[str, ...] = ()
     video_resolution_options: tuple[str, ...] = ()
     video_size_options: tuple[str, ...] = ()
+    video_resolution_max_seconds: tuple[tuple[str, float], ...] = ()
     video_supports_generate_audio: bool | None = None
     video_supports_human_review: bool | None = None
+    video_dialogue_only: bool | None = None
     video_extra_parameter_names: tuple[str, ...] = ()
     video_scene_optimize_options: tuple[str, ...] = ()
     video_generation_min_seconds: float | None = None
@@ -213,7 +217,14 @@ _COUNT_CAPABILITY_FIELDS = {
     "maxReferenceAudios": "max_reference_audios",
     "maxReferenceTotal": "max_reference_total",
 }
-_VIDEO_PROFILES = frozenset({"standard", "seedance2", "happyhorse", "grok"})
+_VIDEO_WORKFLOWS = frozenset({"standard", "advanced-reference", "reference"})
+
+
+def normalize_video_workflow(value: object) -> str | None:
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        return None
+    return normalized if normalized in _VIDEO_WORKFLOWS else None
 
 
 def _normalize_video_resolution_options(
@@ -237,6 +248,38 @@ def _normalize_video_resolution_options(
         if option not in options:
             options.append(option)
     return tuple(options)
+
+
+def _normalize_video_resolution_max_seconds(
+    value: object,
+    *,
+    index: int,
+) -> tuple[tuple[str, float], ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, Mapping):
+        raise ValueError(
+            f"model capability {index} has invalid videoResolutionMaxSeconds"
+        )
+    limits: dict[str, float] = {}
+    for raw_resolution, raw_seconds in value.items():
+        resolution = str(raw_resolution or "").strip().lower()
+        if (
+            re.fullmatch(r"\d{2,5}p", resolution) is None
+            or isinstance(raw_seconds, bool)
+            or not isinstance(raw_seconds, (int, float))
+            or not math.isfinite(raw_seconds)
+            or raw_seconds <= 0
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid videoResolutionMaxSeconds"
+            )
+        limits[resolution] = float(raw_seconds)
+    if len(limits) > 32:
+        raise ValueError(
+            f"model capability {index} has invalid videoResolutionMaxSeconds"
+        )
+    return tuple(sorted(limits.items()))
 
 
 def _normalize_video_ratio_options(
@@ -377,9 +420,33 @@ def _normalize_model_capabilities(
             model_id = str(value.get("modelId") or value.get("model_id") or "").strip()
             if not model_id or len(model_id) > 256:
                 raise ValueError(f"model capability {index} has an invalid modelId")
-            video_profile = str(
-                value.get("videoProfile") or value.get("video_profile") or ""
-            ).strip().lower() or None
+            raw_video_workflow = value.get(
+                "videoWorkflow",
+                value.get("video_workflow"),
+            )
+            video_workflow = normalize_video_workflow(raw_video_workflow)
+            if raw_video_workflow and video_workflow is None:
+                raise ValueError(
+                    f"model capability {index} has an invalid videoWorkflow"
+                )
+            extra_parameter_names = _normalize_video_extra_parameter_names(
+                value.get(
+                    "extraParameterNames",
+                    value.get("extra_parameter_names"),
+                ),
+                index=index,
+            )
+            raw_image_prompt_profile = value.get(
+                "imagePromptProfile",
+                value.get("image_prompt_profile"),
+            )
+            image_prompt_profile = (
+                str(raw_image_prompt_profile or "").strip() or None
+            )
+            if image_prompt_profile is not None and len(image_prompt_profile) > 64:
+                raise ValueError(
+                    f"model capability {index} has invalid imagePromptProfile"
+                )
             video_ratio_options = _normalize_video_ratio_options(
                 value.get(
                     "videoRatioOptions",
@@ -398,6 +465,13 @@ def _normalize_model_capabilities(
                 value.get(
                     "videoSizeOptions",
                     value.get("video_size_options"),
+                ),
+                index=index,
+            )
+            video_resolution_max_seconds = _normalize_video_resolution_max_seconds(
+                value.get(
+                    "videoResolutionMaxSeconds",
+                    value.get("video_resolution_max_seconds"),
                 ),
                 index=index,
             )
@@ -422,6 +496,17 @@ def _normalize_model_capabilities(
             ):
                 raise ValueError(
                     f"model capability {index} has invalid videoSupportsHumanReview"
+                )
+            video_dialogue_only = value.get(
+                "videoDialogueOnly",
+                value.get("video_dialogue_only"),
+            )
+            if video_dialogue_only is not None and not isinstance(
+                video_dialogue_only,
+                bool,
+            ):
+                raise ValueError(
+                    f"model capability {index} has invalid videoDialogueOnly"
                 )
             video_extra_parameter_names = _normalize_video_extra_parameter_names(
                 value.get(
@@ -473,12 +558,16 @@ def _normalize_model_capabilities(
                 count_fields[field_name] = raw
             capability = RuntimeModelCapability(
                 model_id=model_id,
-                video_profile=video_profile,
+                extra_parameter_names=extra_parameter_names,
+                image_prompt_profile=image_prompt_profile,
+                video_workflow=video_workflow,
                 video_ratio_options=video_ratio_options,
                 video_resolution_options=video_resolution_options,
                 video_size_options=video_size_options,
+                video_resolution_max_seconds=video_resolution_max_seconds,
                 video_supports_generate_audio=video_supports_generate_audio,
                 video_supports_human_review=video_supports_human_review,
+                video_dialogue_only=video_dialogue_only,
                 video_extra_parameter_names=video_extra_parameter_names,
                 video_scene_optimize_options=video_scene_optimize_options,
                 video_duration_options=video_duration_options,
@@ -490,7 +579,22 @@ def _normalize_model_capabilities(
         model_id = capability.model_id.strip()
         if not model_id or len(model_id) > 256:
             raise ValueError(f"model capability {index} has an invalid modelId")
-        video_profile = str(capability.video_profile or "").strip().lower() or None
+        video_workflow = normalize_video_workflow(capability.video_workflow)
+        if capability.video_workflow and video_workflow is None:
+            raise ValueError(
+                f"model capability {index} has an invalid videoWorkflow"
+            )
+        extra_parameter_names = _normalize_video_extra_parameter_names(
+            capability.extra_parameter_names,
+            index=index,
+        )
+        image_prompt_profile = (
+            str(capability.image_prompt_profile or "").strip() or None
+        )
+        if image_prompt_profile is not None and len(image_prompt_profile) > 64:
+            raise ValueError(
+                f"model capability {index} has invalid imagePromptProfile"
+            )
         video_ratio_options = _normalize_video_ratio_options(
             capability.video_ratio_options,
             index=index,
@@ -501,6 +605,10 @@ def _normalize_model_capabilities(
         )
         video_size_options = _normalize_video_size_options(
             capability.video_size_options,
+            index=index,
+        )
+        video_resolution_max_seconds = _normalize_video_resolution_max_seconds(
+            dict(capability.video_resolution_max_seconds),
             index=index,
         )
         video_supports_generate_audio = capability.video_supports_generate_audio
@@ -519,6 +627,11 @@ def _normalize_model_capabilities(
             raise ValueError(
                 f"model capability {index} has invalid videoSupportsHumanReview"
             )
+        video_dialogue_only = capability.video_dialogue_only
+        if video_dialogue_only is not None and not isinstance(video_dialogue_only, bool):
+            raise ValueError(
+                f"model capability {index} has invalid videoDialogueOnly"
+            )
         video_extra_parameter_names = _normalize_video_extra_parameter_names(
             capability.video_extra_parameter_names,
             index=index,
@@ -531,9 +644,9 @@ def _normalize_model_capabilities(
             capability.video_duration_options,
             index=index,
         )
-        if video_profile is not None and video_profile not in _VIDEO_PROFILES:
+        if video_workflow is not None and video_workflow not in _VIDEO_WORKFLOWS:
             raise ValueError(
-                f"model capability {index} has an invalid videoProfile"
+                f"model capability {index} has an invalid videoWorkflow"
             )
         for external_name, field_name in _COUNT_CAPABILITY_FIELDS.items():
             count = getattr(capability, field_name)
@@ -578,12 +691,16 @@ def _normalize_model_capabilities(
                 )
         unique[model_id] = RuntimeModelCapability(
             model_id=model_id,
-            video_profile=video_profile,
+            extra_parameter_names=extra_parameter_names,
+            image_prompt_profile=image_prompt_profile,
+            video_workflow=video_workflow,
             video_ratio_options=video_ratio_options,
             video_resolution_options=video_resolution_options,
             video_size_options=video_size_options,
+            video_resolution_max_seconds=video_resolution_max_seconds,
             video_supports_generate_audio=video_supports_generate_audio,
             video_supports_human_review=video_supports_human_review,
+            video_dialogue_only=video_dialogue_only,
             video_extra_parameter_names=video_extra_parameter_names,
             video_scene_optimize_options=video_scene_optimize_options,
             video_duration_options=video_duration_options,
@@ -725,8 +842,18 @@ def serialize_model_access_for_subprocess() -> str:
                 {
                     "modelId": item.model_id,
                     **(
-                        {"videoProfile": item.video_profile}
-                        if item.video_profile is not None
+                        {"imagePromptProfile": item.image_prompt_profile}
+                        if item.image_prompt_profile is not None
+                        else {}
+                    ),
+                    **(
+                        {"extraParameterNames": list(item.extra_parameter_names)}
+                        if item.extra_parameter_names
+                        else {}
+                    ),
+                    **(
+                        {"videoWorkflow": item.video_workflow}
+                        if item.video_workflow is not None
                         else {}
                     ),
                     **(
@@ -745,11 +872,25 @@ def serialize_model_access_for_subprocess() -> str:
                     ),
                     **(
                         {
+                            "videoResolutionMaxSeconds": dict(
+                                item.video_resolution_max_seconds
+                            )
+                        }
+                        if item.video_resolution_max_seconds
+                        else {}
+                    ),
+                    **(
+                        {
                             "videoSupportsHumanReview": (
                                 item.video_supports_human_review
                             )
                         }
                         if item.video_supports_human_review is not None
+                        else {}
+                    ),
+                    **(
+                        {"videoDialogueOnly": item.video_dialogue_only}
+                        if item.video_dialogue_only is not None
                         else {}
                     ),
                     **(

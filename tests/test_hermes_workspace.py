@@ -62,8 +62,8 @@ def isolated_workspace(tmp_path, monkeypatch):
         ],
     )
     for key in (
-        "NEWAPI_API_KEY",
-        "NEWAPI_BASE_URL",
+        "MODEL_GATEWAY_API_KEY",
+        "MODEL_GATEWAY_BASE_URL",
         "MODEL_GATEWAY_RUNTIME_VERSION",
         "OPENAI_API_KEY",
         "OPENAI_API_BASE",
@@ -338,10 +338,10 @@ def test_fresh_config_uses_router_catalog_and_keeps_proxy_transport(
     (isolated_workspace / ".env").write_text(
         "\n".join(
             [
-                "NEWAPI_API_KEY=root-key",
+                "MODEL_GATEWAY_API_KEY=root-key",
                 "HERMES_MODEL=gemini-3.5-flash",
                 "HERMES_MODEL_PROVIDER=openrouter",
-                "HERMES_MODEL_BASE_URL=http://newapi.local/v1",
+                "HERMES_MODEL_BASE_URL=http://model_gateway.local/v1",
                 "HERMES_MODEL_API_MODE=responses",
                 "HERMES_MODEL_CONTEXT_LENGTH=65536",
             ]
@@ -363,7 +363,7 @@ def test_fresh_config_uses_router_catalog_and_keeps_proxy_transport(
     assert provider == {
         "name": "custom",
         "base_url": "http://127.0.0.1:45678/v1",
-        "key_env": "NEWAPI_API_KEY",
+        "key_env": "MODEL_GATEWAY_API_KEY",
         "api_mode": "responses",
         "extra_headers": {"X-AI-Anime-Request-Surface": "ai-assistant"},
     }
@@ -397,7 +397,7 @@ def test_existing_config_syncs_router_model_without_persisting_provider_keys(
 
     assert "api_key" not in parsed["model"]
     assert _ai_anime_provider(parsed)["base_url"] == "http://127.0.0.1:45678/v1"
-    assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(parsed)["key_env"] == "MODEL_GATEWAY_API_KEY"
     assert "rotated-key" not in config_path.read_text(encoding="utf-8")
     assert parsed["custom_block"]["keep"] is True
     assert parsed["compression"] == {
@@ -427,7 +427,7 @@ def test_hermes_uses_highest_priority_router_text_model_before_root_env(
     isolated_workspace, repo_skills, repo_plugins
 ):
     (isolated_workspace / ".env").write_text(
-        "NEWAPI_API_KEY=root-key\nNEWAPI_BASE_URL=http://root-gateway/v1\n",
+        "MODEL_GATEWAY_API_KEY=root-key\nMODEL_GATEWAY_BASE_URL=http://root-gateway/v1\n",
         encoding="utf-8",
     )
     configure_model_access(
@@ -445,7 +445,7 @@ def test_hermes_uses_highest_priority_router_text_model_before_root_env(
 
     assert "api_key" not in parsed["model"]
     assert _ai_anime_provider(parsed)["base_url"] == "http://127.0.0.1:45678/v1"
-    assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(parsed)["key_env"] == "MODEL_GATEWAY_API_KEY"
     assert parsed["model"]["default"] == "custom-text"
     assert "custom-key" not in (home / "config.yaml").read_text(encoding="utf-8")
     assert "OPENAI_API_KEY" not in env_text
@@ -486,7 +486,7 @@ def test_hermes_keyless_provider_still_uses_authenticated_desktop_proxy(
     provider = _ai_anime_provider(parsed)
 
     assert provider["base_url"] == "http://127.0.0.1:45678/v1"
-    assert provider["key_env"] == "NEWAPI_API_KEY"
+    assert provider["key_env"] == "MODEL_GATEWAY_API_KEY"
     assert "api_key" not in provider
     assert parsed["model"]["default"] == "local-text"
 
@@ -505,22 +505,22 @@ def test_idempotent_rerun(isolated_workspace, repo_skills, repo_plugins):
     assert "OPENROUTER_API_KEY=secret" in (home1 / ".env").read_text()
 
 
-def test_fresh_workspace_does_not_persist_newapi_key(
+def test_fresh_workspace_does_not_persist_model_gateway_key(
     isolated_workspace, repo_skills, repo_plugins, monkeypatch
 ):
     (isolated_workspace / ".env").write_text(
-        "NEWAPI_API_KEY=test-newapi-key\n",
+        "MODEL_GATEWAY_API_KEY=test-model_gateway-key\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "test-newapi-key")
+    monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_TOKEN", "test-model_gateway-key")
 
     home = hw.ensure_user_hermes_workspace("admin")
     env_text = (home / ".env").read_text(encoding="utf-8")
     config = yaml.safe_load((home / "config.yaml").read_text(encoding="utf-8"))
 
     assert "api_key" not in config["model"]
-    assert _ai_anime_provider(config)["key_env"] == "NEWAPI_API_KEY"
-    assert "test-newapi-key" not in (home / "config.yaml").read_text(encoding="utf-8")
+    assert _ai_anime_provider(config)["key_env"] == "MODEL_GATEWAY_API_KEY"
+    assert "test-model_gateway-key" not in (home / "config.yaml").read_text(encoding="utf-8")
     assert "OPENAI_API_KEY" not in env_text
 
 
@@ -554,17 +554,17 @@ custom_providers:
         item.get("name") == "user-provider"
         for item in config["custom_providers"]
     )
-    assert _ai_anime_provider(config)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(config)["key_env"] == "MODEL_GATEWAY_API_KEY"
 
 
 def test_existing_env_is_preserved(
     isolated_workspace, repo_skills, repo_plugins, monkeypatch
 ):
     (isolated_workspace / ".env").write_text(
-        "NEWAPI_API_KEY=root-key\n",
+        "MODEL_GATEWAY_API_KEY=root-key\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("NEWAPI_API_KEY", "root-key")
+    monkeypatch.setenv("MODEL_GATEWAY_API_KEY", "root-key")
     home = isolated_workspace / "state" / "admin" / ".hermes"
     home.mkdir(parents=True)
     (home / ".env").write_text("OPENAI_API_KEY=user-key\n", encoding="utf-8")
@@ -598,7 +598,7 @@ agent:
     assert parsed["agent"]["custom_setting"] == "keep"
     assert parsed["model"]["default"] == "cloud-text-default"
     assert parsed["model"]["provider"] == "custom:custom"
-    assert _ai_anime_provider(parsed)["key_env"] == "NEWAPI_API_KEY"
+    assert _ai_anime_provider(parsed)["key_env"] == "MODEL_GATEWAY_API_KEY"
 
 
 @pytest.mark.parametrize(

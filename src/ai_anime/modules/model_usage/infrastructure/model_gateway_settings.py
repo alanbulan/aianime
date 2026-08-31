@@ -18,7 +18,7 @@ MODE_MIXED = "mixed"
 
 
 @dataclass(frozen=True)
-class EffectiveNewApiConfig:
+class EffectiveModelGatewayConfig:
     mode: str
     source: str
     base_url: str
@@ -43,9 +43,9 @@ def normalize_relay_base_url(value: str | None) -> str:
     return base if base.endswith("/v1") else f"{base}/v1"
 
 
-def get_effective_newapi_config() -> EffectiveNewApiConfig:
+def get_effective_model_gateway_config() -> EffectiveModelGatewayConfig:
     access = runtime_model_access()
-    return EffectiveNewApiConfig(
+    return EffectiveModelGatewayConfig(
         mode=access.mode,
         source="mixed_router",
         base_url=normalize_relay_base_url(access.base_url),
@@ -55,7 +55,7 @@ def get_effective_newapi_config() -> EffectiveNewApiConfig:
 
 def build_model_gateway_status() -> dict[str, Any]:
     access = runtime_model_access()
-    effective = get_effective_newapi_config()
+    effective = get_effective_model_gateway_config()
     cloud_base_url = normalize_relay_base_url(
         os.environ.get("AI_ANIME_CLOUD_PROXY_BASE_URL", "")
     )

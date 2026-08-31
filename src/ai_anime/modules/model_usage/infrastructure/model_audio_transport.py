@@ -523,9 +523,4 @@ async def _audio_bytes_from_payload(
 
 
 def _request_id(headers: httpx.Headers) -> str:
-    return (
-        headers.get("x-request-id")
-        or headers.get("x-newapi-request-id")
-        or headers.get("x-oneapi-request-id")
-        or ""
-    )
+    return headers.get("x-request-id") or ""

@@ -35,8 +35,7 @@ _PROJECT_TASK_RESOURCE_KINDS = {
     "compose_episode": "video",
     "global_optimize_video": "script",
     "audio_generation": "tts",
-    "indextts2_audio_generation": "tts",
-    "audio_generation_indextts2": "tts",
+    "episode_audio_generation": "tts",
     "freezone_video_gen": "video",
     "freezone_analyze": "video",
     "freezone_video_story": "video",
@@ -46,16 +45,7 @@ _PROJECT_TASK_RESOURCE_KINDS = {
 
 
 def resource_kind_for_task(task_type: str) -> str:
-    return _PROJECT_TASK_RESOURCE_KINDS.get(task_type, "")
-
-
-def metrics_user_id_for_project_context(context: Any) -> str:
-    requester_user_id = str(
-        getattr(context, "requester_user_id", "") or ""
-    ).strip()
-    if requester_user_id:
-        return requester_user_id
-    return str(getattr(context, "owner_id", "") or "").strip()
+    return _PROJECT_TASK_RESOURCE_KINDS.get(str(task_type or "").strip(), "")
 
 
 def _positive_int(value: Any) -> int | None:
@@ -146,53 +136,21 @@ def resource_refs_for_task_success(
     return [f"{_episode_ref(episode)}:{task_type}"]
 
 
-def clean_billing_metadata(value: Any) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        return {}
-    cleaned: dict[str, Any] = {}
-    for key, item in value.items():
-        clean_key = str(key or "").strip()
-        if not clean_key or item is None:
-            continue
-        if isinstance(item, str):
-            clean_item = item.strip()
-            if not clean_item:
-                continue
-            cleaned[clean_key] = clean_item
-        else:
-            cleaned[clean_key] = item
-    return cleaned
-
-
-def feature_credit_reservation_id(metadata: dict[str, Any]) -> str:
-    return str(
-        metadata.get("feature_credit_reservation_id")
-        or metadata.get("feature_credit_charge_id")
-        or ""
-    ).strip()
-
-
 def completion_metadata_with_provider_task_id(
     metadata: dict[str, Any],
     result: Any,
 ) -> dict[str, Any]:
     completion_metadata = dict(metadata)
+    provider_task_id = ""
     if isinstance(result, dict):
-        provider_task_id = (
-            result.get("provider_task_id")
-            or result.get("huimeng_task_id")
-            or result.get("newapi_task_id")
-        )
-        if provider_task_id:
-            completion_metadata["provider_task_id"] = str(provider_task_id)
+        provider_task_id = str(result.get("provider_task_id") or "").strip()
+    if provider_task_id:
+        completion_metadata["provider_task_id"] = provider_task_id
     return completion_metadata
 
 
 __all__ = [
-    "clean_billing_metadata",
     "completion_metadata_with_provider_task_id",
-    "feature_credit_reservation_id",
-    "metrics_user_id_for_project_context",
     "resource_kind_for_task",
     "resource_refs_for_task_success",
 ]

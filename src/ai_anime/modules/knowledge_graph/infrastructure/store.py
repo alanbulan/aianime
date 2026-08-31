@@ -32,7 +32,7 @@ with preserve_st_env():
     from cognee.modules.engine.operations.setup import setup
     from cognee.modules.migrations.startup import apply_all_migrations
 from rich.console import Console
-from ai_anime.modules.model_usage.public import get_newapi_reasoning_kwargs
+from ai_anime.modules.model_usage.public import get_model_reasoning_kwargs
 from ai_anime.modules.model_usage.public import DEFAULT_COGNEE_EMBEDDING_DIM
 from ai_anime.sqlite_store import SQLiteStore
 from ai_anime.shared.infrastructure.project_sqlite_graph_state import (
@@ -295,12 +295,12 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
             cognee,
         )
         if verbose:
-            print(
-                f"[cognee_context] project={self.project_name} "
-                f"project_dir={self.project_dir} "
-                f"system_root_directory={cognee_system_dir} "
-                f"data_root_directory={cognee_data_dir}",
-                flush=True,
+            logger.debug(
+                "Cognee context：project=%s project_dir=%s system_root=%s data_root=%s",
+                self.project_name,
+                self.project_dir,
+                cognee_system_dir,
+                cognee_data_dir,
             )
 
     @staticmethod
@@ -561,7 +561,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
         """将小说原文保存到文件。"""
         self.sqlite_store.save_novel_content(content)
         novel_path = Path(self.project_dir) / "novel.txt"
-        print(f"[store] 原文已保存: {novel_path} ({len(content)} 字符)")
+        logger.info("原文已保存：%s（%s 字符）", novel_path, len(content))
 
     def load_novel_content(self) -> Optional[str]:
         """从文件加载小说原文。"""
@@ -1224,7 +1224,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"},
-                **get_newapi_reasoning_kwargs(
+                **get_model_reasoning_kwargs(
                     thinking_env="COGNEE_LLM_THINKING_LEVEL",
                     default_thinking_level="high",
                 ),
@@ -1276,7 +1276,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 response_format={"type": "json_object"},
-                **get_newapi_reasoning_kwargs(
+                **get_model_reasoning_kwargs(
                     thinking_env="COGNEE_LLM_THINKING_LEVEL",
                     default_thinking_level="high",
                 ),
@@ -1474,7 +1474,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
 
     async def load_graph_state(self) -> None:
         """从 SQLite 加载角色和剧集到内存缓存。"""
-        print(f"[load_graph_state] 从 SQLite 加载...")
+        logger.debug("正在从 SQLite 加载图谱状态")
         try:
             await self.sqlite_store.load_graph_state()
             self._sync_sqlite_caches()
@@ -1483,11 +1483,14 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
                 episode.scene_menu = await self._normalize_scene_menu_items(episode.scene_menu)
                 episode.prop_menu = self._normalize_prop_menu_items(episode.prop_menu)
 
-            print(
-                f"[load_graph_state] 加载完成: 角色={len(self._characters)}, 剧集={len(self._episodes)}, 道具={len(self._props)}"
+            logger.info(
+                "图谱状态加载完成：角色=%s，剧集=%s，道具=%s",
+                len(self._characters),
+                len(self._episodes),
+                len(self._props),
             )
-        except Exception as e:
-            print(f"[load_graph_state] 加载失败: {e}，使用空数据")
+        except Exception:
+            logger.exception("图谱状态加载失败，将使用空数据")
             self._characters.clear()
             self._episodes.clear()
             self._props.clear()
@@ -1575,9 +1578,10 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
         """更新剧集属性。"""
         episode = self.get_episode(episode_number)
         if not episode:
-            print(
-                f"[update_episode] 剧集 {episode_number} 不在 _episodes 缓存中! 缓存 keys={list(self._episodes.keys())}",
-                flush=True,
+            logger.warning(
+                "剧集 %s 不在内存缓存中，当前键：%s",
+                episode_number,
+                list(self._episodes.keys()),
             )
             raise ValueError(f"剧集 {episode_number} 不存在")
 
@@ -1595,9 +1599,11 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
                 if field_name not in protected_fields:
                     setattr(episode, field_name, getattr(persisted, field_name))
 
-        print(
-            f"[update_episode] ep{episode_number} 更新前: identity_ids={episode.identity_ids}, updates={list(updates.keys())}",
-            flush=True,
+        logger.debug(
+            "剧集 %s 更新前：identity_ids=%s，updates=%s",
+            episode_number,
+            episode.identity_ids,
+            list(updates.keys()),
         )
 
         for key, value in updates.items():
@@ -1608,11 +1614,12 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
             elif hasattr(episode, key):
                 setattr(episode, key, value)
             else:
-                print(f"[update_episode] 警告: ep{episode_number} 没有属性 {key}", flush=True)
+                logger.warning("剧集 %s 没有属性 %s", episode_number, key)
 
-        print(
-            f"[update_episode] ep{episode_number} 更新后: identity_ids={episode.identity_ids}",
-            flush=True,
+        logger.debug(
+            "剧集 %s 更新后：identity_ids=%s",
+            episode_number,
+            episode.identity_ids,
         )
 
         new_number = updates.get("number", old_number)
@@ -1637,7 +1644,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
     ) -> int:
         """批量写入 per-beat 检测身份。"""
         count = await self.sqlite_store.set_beat_detected_identities(episode_number, detections)
-        print(f"[store] set_beat_detected_identities: ep{episode_number} updated {count} beats")
+        logger.debug("剧集 %s 已更新 %s 个分镜的检测身份", episode_number, count)
         return count
 
     async def set_beat_detected_props(
@@ -1645,7 +1652,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
     ) -> int:
         """批量写入 per-beat 检测道具。"""
         count = await self.sqlite_store.set_beat_detected_props(episode_number, detections)
-        print(f"[store] set_beat_detected_props: ep{episode_number} updated {count} beats")
+        logger.debug("剧集 %s 已更新 %s 个分镜的检测道具", episode_number, count)
         return count
 
     async def add_visual_beats(self, beats: List[NovelVisualBeat]):
@@ -2160,7 +2167,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
         video_mode: str = None,
         video_prompt: str = None,
         keyframe_prompt: str = None,
-        seedance2_config_json: str = None,
+        video_config_json: str = None,
         time_of_day: str = None,
         shot_order: int | None = None,
         duration_seconds: float | None = None,
@@ -2180,7 +2187,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
             video_mode=video_mode,
             video_prompt=video_prompt,
             keyframe_prompt=keyframe_prompt,
-            seedance2_config_json=seedance2_config_json,
+            video_config_json=video_config_json,
             time_of_day=time_of_day,
             shot_order=shot_order,
             duration_seconds=duration_seconds,

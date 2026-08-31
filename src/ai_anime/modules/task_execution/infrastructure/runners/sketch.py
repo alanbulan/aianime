@@ -283,7 +283,7 @@ async def _run_sketch_generation_async(
 ) -> dict[str, Any]:
     from ai_anime.modules.production.public import get_sketch_generation_config
     from ai_anime.modules.production.public import (
-        NanoBananaGridGenerator,
+        ImageGridGenerator,
         REGEN_MODE_CONFIGS,
         SKETCH_DEFAULT_MODE_KEY,
         sketch_grid_split,
@@ -483,12 +483,12 @@ async def _run_sketch_generation_async(
     if use_director_refs:
         import os
 
-        generator_config["openai_image_quality"] = os.environ.get(
-            "OPENAI_SKETCH_IMAGE_QUALITY", "low"
+        generator_config["image_quality"] = os.environ.get(
+            "SKETCH_IMAGE_QUALITY", "low"
         )
         log("[Sketch Image] 3GS 导演实景草图使用统一图片模型访问")
 
-    generator = NanoBananaGridGenerator(config=generator_config)
+    generator = ImageGridGenerator(config=generator_config)
     log(f"[Sketch Image] access_mode={generator.access_mode}, model={generator.model}")
 
     output_path = str(
@@ -579,7 +579,7 @@ async def _run_sketch_generation_async(
             raise RuntimeError(f"草图生成失败: {result.error}")
 
     log(
-        f"[NanoBananaPro] 网格图生成完成，耗时 "
+        f"[ImageGeneration] 网格图生成完成，耗时 "
         f"{_format_generation_time(result.generation_time)}",
         progress=0.8,
     )

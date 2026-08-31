@@ -245,7 +245,7 @@ def ensure_image_url(reference: str | Path, *, ttl: int | None = None) -> str:
     - data:image/...;base64 references are uploaded to the relay.
     - local files are uploaded to the relay.
 
-    This keeps newAPI/HuiMeng image calls from receiving local paths or data URLs
+    This keeps remote image-model calls from receiving local paths or data URLs
     when the upstream channel requires fetchable URL inputs.
     """
     value = str(reference or "").strip()

@@ -6,7 +6,7 @@
 
 用于:
 - prompt_builder.py: 替换为 character_tag
-- nanobanana_grid.py: 替换为 character_tag
+- 图像网格生成适配器：替换为 character_tag
 - state.py: 替换为角色外貌描述或真实姓名
 """
 

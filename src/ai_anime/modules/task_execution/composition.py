@@ -63,12 +63,6 @@ def _cancellation_store() -> Any:
     return get_cancellation_store()
 
 
-def _usage_meter() -> Any:
-    from ai_anime.modules.model_usage.public import get_usage_meter
-
-    return get_usage_meter()
-
-
 async def _eligible_user_count(context: Any) -> int:
     from ai_anime.modules.project_workspace.public import (
         count_project_task_eligible_users,
@@ -184,7 +178,6 @@ def run_project_task_core_sync(
         manager,
         run_task_id=run_task_id,
         metadata=metadata,
-        usage_meter=_usage_meter(),
         cancellation_check=is_cancel_requested,
         task_run_context=project_task_run_context,
         subprocess_context=subprocess_context,

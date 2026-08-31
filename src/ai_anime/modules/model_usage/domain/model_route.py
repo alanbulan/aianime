@@ -12,7 +12,7 @@ class ModelRoute:
 
 
 def resolve_model_route(selection: str | None) -> ModelRoute:
-    """Decode desktop catalog selectors while retaining legacy model codes."""
+    """Decode an explicit catalog selector or a direct runtime model ID."""
 
     value = str(selection or "").strip()
     if value.startswith("cloud:"):

@@ -316,7 +316,7 @@ def test_generate_portrait_forwards_only_explicit_model_overrides(
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
     result = ai_anime_plugin._handle_generate_portrait(
-        {"name": "白石夏音", "model": "byok:trae:Seedream-5.0-lite"}
+        {"name": "白石夏音", "model": "byok:provider-1:image-model-lite"}
     )
 
     assert result["ok"] is True
@@ -324,7 +324,7 @@ def test_generate_portrait_forwards_only_explicit_model_overrides(
         (
             "POST",
             "/api/v1/projects/project-1/characters/%E7%99%BD%E7%9F%B3%E5%A4%8F%E9%9F%B3/portrait-async",
-            {"model": "byok:trae:Seedream-5.0-lite"},
+            {"model": "byok:provider-1:image-model-lite"},
         )
     ]
 
@@ -560,7 +560,7 @@ def test_complete_generation_allows_an_explicit_user_model_override(
         {
             "episodes": [1],
             "rebuild": False,
-            "video_model": "byok:provider-a:seedance-2.0",
+            "video_model": "byok:provider-a:video-model-reference",
             "video_resolution": "720p",
             "add_subtitles": True,
             "add_bgm": False,
@@ -574,7 +574,7 @@ def test_complete_generation_allows_an_explicit_user_model_override(
             "/api/v1/projects/project-1/workflow/production",
             {
                 "video_routing_policy": "project_selection",
-                "video_model": "byok:provider-a:seedance-2.0",
+                "video_model": "byok:provider-a:video-model-reference",
                 "episodes": [1],
                 "rebuild": False,
                 "video_resolution": "720p",

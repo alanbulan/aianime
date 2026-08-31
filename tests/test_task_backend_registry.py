@@ -15,7 +15,7 @@ def test_importing_runners_registers_builtin_project_task_runners():
     for task_type in {
         "single_video",
         "sketch_generation",
-        "audio_generation_indextts2",
+        "episode_audio_generation",
         "build_scenes",
         "character_voice_design",
         "verification_model",
