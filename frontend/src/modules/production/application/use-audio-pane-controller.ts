@@ -18,21 +18,19 @@ import {
   type VoiceConfigurationTarget,
 } from "@/modules/production/domain/audio-prerequisite";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
-import type { AudioBillingQuote } from "@/modules/production/domain/audio-generation";
-import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
+import type { AudioGenerationPlan } from "@/modules/production/domain/audio-generation";
 
-interface AudioBillingQuoteQuery {
-  data?: ProductionDataResponse<AudioBillingQuote>;
-  error?: unknown;
+interface AudioGenerationPlanQuery {
+  data?: ProductionDataResponse<AudioGenerationPlan>;
 }
 
 export interface AudioPaneQueries {
-  useAudioBillingQuote(
+  useAudioGenerationPlan(
     project: string,
     episode: number,
     command: { beatNumbers: number[]; mode: string },
     revision: string,
-  ): AudioBillingQuoteQuery;
+  ): AudioGenerationPlanQuery;
   useRegenerateBeatAudio(
     project: string,
     episode: number,
@@ -55,7 +53,6 @@ export interface AudioPaneControllerOptions {
 export interface AudioPaneController {
   audioSource: string | null;
   beatNumber: number;
-  costDisplay?: string | null;
   narrationEmpty: boolean;
   regenerationOpen: boolean;
   regenerationDisabled: boolean;
@@ -76,7 +73,7 @@ export function createUseAudioPaneController(
     const { beat, episode, onConfigureVoice, project, state } = options;
     const { t } = useTranslation();
     const regenerate = queries.useRegenerateBeatAudio(project, episode);
-    const audioQuote = queries.useAudioBillingQuote(
+    const audioPlan = queries.useAudioGenerationPlan(
       project,
       episode,
       { beatNumbers: [beat.beat_number], mode: "redo_selected" },
@@ -88,10 +85,10 @@ export function createUseAudioPaneController(
       ].join(":"),
     );
     const prerequisiteError =
-      audioQuote.data?.data.prereq_errors?.[0] ?? "";
+      audioPlan.data?.data.prereq_errors?.[0] ?? "";
     const audioTask = useTaskController({
       key: {
-        taskType: TASK_TYPES.AUDIO_GENERATION_INDEXTTS2,
+        taskType: TASK_TYPES.EPISODE_AUDIO_GENERATION,
         project,
         episode,
       },
@@ -149,17 +146,9 @@ export function createUseAudioPaneController(
       setRegenerationOpen(true);
     };
 
-    const costDisplay = prerequisiteError
-      ? null
-      : audioQuote.data?.data.display ??
-        (audioQuote.error instanceof BillingRuleNotConfiguredError
-          ? t("common.billingRuleNotConfiguredShort")
-          : null);
-
     return {
       audioSource: beat.audio_url ? resolveMediaUrl(beat.audio_url) : null,
       beatNumber: beat.beat_number,
-      costDisplay,
       narrationEmpty: (beat.narration_segment ?? "").trim() === "",
       regenerationOpen,
       regenerationDisabled:

@@ -14,8 +14,8 @@ import type {
   ProductionErrorResponse,
   ProductionTaskResponse,
   ProductionVideoGateway,
-  Seedance2BeatStatusResponse,
-  Seedance2PromptResponse,
+  VideoReferenceBeatStatusResponse,
+  VideoPromptOptimizationResponse,
   VideoPoolResponse,
   VideoPoolSelectResponse,
 } from "@/modules/production/application/ports";
@@ -25,7 +25,7 @@ import type {
   NarratorVoiceStatusData,
 } from "@/modules/production/domain/narrator-voice";
 import type {
-  AudioBillingQuote,
+  AudioGenerationPlan,
   GenerateAudioCommand,
 } from "@/modules/production/domain/audio-generation";
 import type { FinalVideoData } from "@/modules/production/domain/episode-compose";
@@ -47,7 +47,7 @@ import type {
   RenderExecuteResult,
   RenderPlan,
 } from "@/modules/production/domain/render-plan";
-import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
+import type { VideoInputCropTarget } from "@/modules/production/domain/video-reference-panel";
 import type {
   CropSketchCommand,
   SaveSketchPoseEditorCommand,
@@ -376,25 +376,25 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<PoolDeleteResponse>();
   },
-  async getSeedance2BeatStatus(project, episode, beatNumber, signal) {
+  async getVideoReferenceBeatStatus(project, episode, beatNumber, signal) {
     return api
       .get(
-        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/seedance2-status`,
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/video-reference/status`,
         { signal },
       )
-      .json<Seedance2BeatStatusResponse>();
+      .json<VideoReferenceBeatStatusResponse>();
   },
-  async uploadSeedance2Asset(project, episode, beatNumber, file) {
+  async uploadVideoReferenceAsset(project, episode, beatNumber, file) {
     const formData = new FormData();
     formData.append("file", file, file.name);
     return uploadApi
       .post(
-        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/seedance2/assets/upload`,
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/video-reference/assets/upload`,
         { body: formData },
       )
-      .json<Seedance2BeatStatusResponse>();
+      .json<VideoReferenceBeatStatusResponse>();
   },
-  async deleteSeedance2Asset(
+  async deleteVideoReferenceAsset(
     project,
     episode,
     beatNumber,
@@ -403,12 +403,12 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   ) {
     return api
       .post(
-        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/seedance2/assets/delete`,
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/video-reference/assets/delete`,
         { json: { media_kind: mediaKind, path } },
       )
-      .json<Seedance2BeatStatusResponse>();
+      .json<VideoReferenceBeatStatusResponse>();
   },
-  async cropSeedance2Asset(
+  async cropVideoReferenceAsset(
     project,
     episode,
     beatNumber,
@@ -419,7 +419,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   ) {
     return api
       .post(
-        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/seedance2/assets/crop`,
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/video-reference/assets/crop`,
         {
           json: {
             asset_key: assetKey,
@@ -429,9 +429,9 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
           },
         },
       )
-      .json<Seedance2BeatStatusResponse>();
+      .json<VideoReferenceBeatStatusResponse>();
   },
-  async trimSeedance2Asset(
+  async trimVideoReferenceAsset(
     project,
     episode,
     beatNumber,
@@ -442,7 +442,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
   ) {
     return api
       .post(
-        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/seedance2/assets/audio-trim`,
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${beatNumber}/video-reference/assets/audio-trim`,
         {
           json: {
             asset_key: assetKey,
@@ -452,7 +452,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
           },
         },
       )
-      .json<Seedance2BeatStatusResponse>();
+      .json<VideoReferenceBeatStatusResponse>();
   },
   async optimizeEpisodeVideo(project, episode, language) {
     return api
@@ -462,10 +462,10 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
-  async generateSeedance2Prompt(project, episode, command) {
-    return jsonWithBackendError<Seedance2PromptResponse>(
+  async generateVideoPrompt(project, episode, command) {
+    return jsonWithBackendError<VideoPromptOptimizationResponse>(
       api.post(
-        p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/seedance2-prompt/generate`,
+        p`api/v1/projects/${project}/episodes/${episode}/beats/${command.beatNum}/video-prompt/optimize`,
         {
           json: {
             ...(command.manualPromptReference === undefined
@@ -515,8 +515,8 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
               : {}),
             ...(command.ratio !== undefined ? { ratio: command.ratio } : {}),
             ...(command.mode !== undefined ? { mode: command.mode } : {}),
-            ...(command.seedance2ConfigJson !== undefined
-              ? { seedance2_config_json: command.seedance2ConfigJson }
+            ...(command.videoConfigJson !== undefined
+              ? { video_config_json: command.videoConfigJson }
               : {}),
             ...(command.audioSetting !== undefined
               ? { audio_setting: command.audioSetting }
@@ -605,7 +605,7 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
       )
       .json<ProductionTaskResponse | ProductionErrorResponse>();
   },
-  async getEpisodeAudioBillingQuote(
+  async getEpisodeAudioGenerationPlan(
     project,
     episode,
     command: GenerateAudioCommand,
@@ -614,9 +614,9 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
     const json: { beat_numbers?: number[]; mode?: string } = {};
     if (command.beatNumbers?.length) json.beat_numbers = command.beatNumbers;
     if (command.mode) json.mode = command.mode;
-    return jsonWithBackendError<ProductionDataResponse<AudioBillingQuote>>(
+    return jsonWithBackendError<ProductionDataResponse<AudioGenerationPlan>>(
       api.post(
-        p`api/v1/projects/${project}/episodes/${episode}/audio/billing-quote`,
+        p`api/v1/projects/${project}/episodes/${episode}/audio/plan`,
         { json, signal, throwHttpErrors: false },
       ),
     );

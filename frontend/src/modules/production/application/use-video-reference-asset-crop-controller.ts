@@ -10,9 +10,9 @@ import {
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
   cropAspectRatioValue,
-  type Seedance2CropAspect,
-  type Seedance2CropIntent,
-} from "@/modules/production/domain/seedance2-crop";
+  type VideoReferenceCropAspect,
+  type VideoReferenceCropIntent,
+} from "@/modules/production/domain/video-reference-crop";
 
 interface CropDragState {
   clientX: number;
@@ -20,9 +20,9 @@ interface CropDragState {
   crop: CropBox;
 }
 
-export function useSeedance2AssetCropController(
-  intent: Seedance2CropIntent | null,
-  targetCropAspect: Seedance2CropAspect,
+export function useVideoReferenceAssetCropController(
+  intent: VideoReferenceCropIntent | null,
+  targetCropAspect: VideoReferenceCropAspect,
 ) {
   const asset = intent?.asset ?? null;
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -36,7 +36,7 @@ export function useSeedance2AssetCropController(
     height: 1,
   });
   const [cropAspect, setCropAspect] =
-    useState<Seedance2CropAspect>(targetCropAspect);
+    useState<VideoReferenceCropAspect>(targetCropAspect);
   // The 1x1 placeholder above is not a usable crop. `imageSrc` resolves
   // synchronously, so it cannot stand in for "the image has decoded".
   const [loaded, setLoaded] = useState(false);

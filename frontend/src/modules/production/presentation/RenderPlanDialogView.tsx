@@ -2,7 +2,6 @@
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2 } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +27,6 @@ export function RenderPlanDialogView({
   open,
   plan,
   planPending,
-  renderPlanCostDisplay,
   staleBanner,
   onConfirm,
   onOpenChange,
@@ -99,7 +97,6 @@ export function RenderPlanDialogView({
             ) : (
               confirmLabel
             )}
-            <CreditCostInline display={renderPlanCostDisplay} />
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

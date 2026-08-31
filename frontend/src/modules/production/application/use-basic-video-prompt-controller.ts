@@ -8,36 +8,21 @@ import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/modules/task_execution/public";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { BeatVideoPromptResponse } from "@/modules/production/application/ports";
-import {
-  backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
-} from "@/shared/api/errors";
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-  error?: unknown;
-}
+import { backendErrorToastMessage } from "@/shared/api/errors";
 
 interface PromptMutation {
   isPending: boolean;
   mutateAsync(command: { beatNum: number }): Promise<BeatVideoPromptResponse>;
 }
 
-export interface LegacyVideoPromptQueries {
+export interface BasicVideoPromptQueries {
   useGenerateBeatVideoPrompt(
     project: string,
     episode: number,
   ): PromptMutation;
 }
 
-export interface LegacyVideoPromptControllerDependencies {
-  useGenerationCreditCost(
-    kind: "feature",
-    value: "beat_video_prompt",
-  ): CreditCostQuery;
-}
-
-export interface LegacyVideoPromptUpdateCommand {
+export interface BasicVideoPromptUpdateCommand {
   beatNum: number;
   data: {
     keyframe_prompt?: string;
@@ -45,15 +30,14 @@ export interface LegacyVideoPromptUpdateCommand {
   };
 }
 
-export interface LegacyVideoPromptControllerOptions {
+export interface BasicVideoPromptControllerOptions {
   beat: Beat;
   episode: number;
   project: string;
-  updateBeat(command: LegacyVideoPromptUpdateCommand): Promise<unknown>;
+  updateBeat(command: BasicVideoPromptUpdateCommand): Promise<unknown>;
 }
 
-export interface LegacyVideoPromptController {
-  costDisplay: string | null;
+export interface BasicVideoPromptController {
   field: "keyframe_prompt" | "video_prompt";
   generationPending: boolean;
   prompt: string;
@@ -64,26 +48,25 @@ export interface LegacyVideoPromptController {
 
 function promptFieldForBeat(
   beat: Beat,
-): LegacyVideoPromptController["field"] {
+): BasicVideoPromptController["field"] {
   return beat.video_mode === "keyframe" ? "keyframe_prompt" : "video_prompt";
 }
 
 function promptValueForBeat(
   beat: Beat,
-  field: LegacyVideoPromptController["field"],
+  field: BasicVideoPromptController["field"],
 ): string {
   return field === "keyframe_prompt"
     ? (beat.keyframe_prompt ?? "")
     : (beat.video_prompt ?? "");
 }
 
-export function createUseLegacyVideoPromptController(
-  queries: LegacyVideoPromptQueries,
-  dependencies: LegacyVideoPromptControllerDependencies,
+export function createUseBasicVideoPromptController(
+  queries: BasicVideoPromptQueries,
 ) {
-  return function useLegacyVideoPromptController(
-    options: LegacyVideoPromptControllerOptions,
-  ): LegacyVideoPromptController {
+  return function useBasicVideoPromptController(
+    options: BasicVideoPromptControllerOptions,
+  ): BasicVideoPromptController {
     const { beat, episode, project, updateBeat } = options;
     const { t } = useTranslation();
     const field = promptFieldForBeat(beat);
@@ -99,16 +82,6 @@ export function createUseLegacyVideoPromptController(
       },
       invalidateKeys: [queryKeys.beats(project, episode)],
     });
-    const promptCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "beat_video_prompt",
-    );
-    const costDisplay =
-      promptCost.data?.data.display ??
-      (promptCost.error instanceof BillingRuleNotConfiguredError
-        ? t("common.billingRuleNotConfiguredShort")
-        : null);
-
     useEffect(() => {
       setPrompt(sourcePrompt);
     }, [beat.beat_number, field, sourcePrompt]);
@@ -152,7 +125,6 @@ export function createUseLegacyVideoPromptController(
     };
 
     return {
-      costDisplay,
       field,
       generationPending: generate.isPending || generationTask.started,
       prompt,

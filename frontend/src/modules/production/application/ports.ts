@@ -1,7 +1,7 @@
 // Copyright (c) 2026 AI anime
 import type { Beat } from "@/modules/narrative_planning/public";
 import type {
-  AudioBillingQuote,
+  AudioGenerationPlan,
   GenerateAudioCommand,
 } from "@/modules/production/domain/audio-generation";
 import type {
@@ -44,15 +44,15 @@ import type {
   RenderPlan,
 } from "@/modules/production/domain/render-plan";
 import type {
-  GenerateSeedance2PromptCommand,
+  GenerateVideoPromptCommand,
   RegenerateBeatVideoCommand,
   VideoPromptLanguage,
 } from "@/modules/production/domain/video-generation";
 import type { VideoPoolData } from "@/modules/production/domain/video-pool";
 import type {
-  Seedance2BeatStatus,
+  VideoReferenceBeatStatus,
   VideoInputCropTarget,
-} from "@/modules/production/domain/seedance2-panel";
+} from "@/modules/production/domain/video-reference-panel";
 import type {
   CropSketchCommand,
   SaveSketchPoseEditorCommand,
@@ -101,9 +101,9 @@ export interface ProductionTaskResponse {
   scope?: string;
 }
 
-export interface Seedance2PromptResult {
+export interface VideoPromptOptimizationResult {
   beat: Beat;
-  seedance2_config_json: string;
+  video_config_json: string;
   final_prompt: string;
   prompt_source?: string;
 }
@@ -185,26 +185,26 @@ export interface ProductionVideoGateway {
     episode: number,
     poolId: string,
   ): Promise<PoolDeleteResponse>;
-  getSeedance2BeatStatus(
+  getVideoReferenceBeatStatus(
     project: string,
     episode: number,
     beatNumber: number,
     signal?: AbortSignal,
-  ): Promise<Seedance2BeatStatusResponse>;
-  uploadSeedance2Asset(
+  ): Promise<VideoReferenceBeatStatusResponse>;
+  uploadVideoReferenceAsset(
     project: string,
     episode: number,
     beatNumber: number,
     file: File,
-  ): Promise<Seedance2BeatStatusResponse>;
-  deleteSeedance2Asset(
+  ): Promise<VideoReferenceBeatStatusResponse>;
+  deleteVideoReferenceAsset(
     project: string,
     episode: number,
     beatNumber: number,
     mediaKind: "images" | "audios",
     path: string,
-  ): Promise<Seedance2BeatStatusResponse>;
-  cropSeedance2Asset(
+  ): Promise<VideoReferenceBeatStatusResponse>;
+  cropVideoReferenceAsset(
     project: string,
     episode: number,
     beatNumber: number,
@@ -212,8 +212,8 @@ export interface ProductionVideoGateway {
     sourcePath: string,
     target: VideoInputCropTarget,
     crop: { x: number; y: number; width: number; height: number },
-  ): Promise<Seedance2BeatStatusResponse>;
-  trimSeedance2Asset(
+  ): Promise<VideoReferenceBeatStatusResponse>;
+  trimVideoReferenceAsset(
     project: string,
     episode: number,
     beatNumber: number,
@@ -221,17 +221,17 @@ export interface ProductionVideoGateway {
     sourcePath: string,
     startSeconds: number,
     durationSeconds: number,
-  ): Promise<Seedance2BeatStatusResponse>;
+  ): Promise<VideoReferenceBeatStatusResponse>;
   optimizeEpisodeVideo(
     project: string,
     episode: number,
     language: VideoPromptLanguage,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
-  generateSeedance2Prompt(
+  generateVideoPrompt(
     project: string,
     episode: number,
-    command: GenerateSeedance2PromptCommand,
-  ): Promise<Seedance2PromptResponse>;
+    command: GenerateVideoPromptCommand,
+  ): Promise<VideoPromptOptimizationResponse>;
   generateBeatVideoPrompt(
     project: string,
     episode: number,
@@ -278,12 +278,12 @@ export interface ProductionVideoGateway {
     episode: number,
     command: GenerateAudioCommand,
   ): Promise<ProductionTaskResponse | ProductionErrorResponse>;
-  getEpisodeAudioBillingQuote(
+  getEpisodeAudioGenerationPlan(
     project: string,
     episode: number,
     command: GenerateAudioCommand,
     signal?: AbortSignal,
-  ): Promise<ProductionDataResponse<AudioBillingQuote>>;
+  ): Promise<ProductionDataResponse<AudioGenerationPlan>>;
   regenerateBeatAudio(
     project: string,
     episode: number,
@@ -436,11 +436,11 @@ export type GridCutResponse =
   | ProductionDataResponse<GridCutResult>
   | ProductionErrorResponse;
 
-export type Seedance2BeatStatusResponse =
-  | ProductionDataResponse<Seedance2BeatStatus>
+export type VideoReferenceBeatStatusResponse =
+  | ProductionDataResponse<VideoReferenceBeatStatus>
   | ProductionErrorResponse;
 
-export type Seedance2PromptResponse =
+export type VideoPromptOptimizationResponse =
   | ProductionTaskResponse
   | ProductionErrorResponse;
 

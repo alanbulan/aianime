@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import {
   catalogRouteSelector,
-  catalogRouteValue,
   resolveCatalogRouteSelection,
 } from "@/modules/model_usage/public";
 
@@ -21,14 +20,17 @@ export interface ImageModelOption {
 export function imageModelOptionsFromCatalog(
   items: readonly ImageCatalogItem[],
 ): ImageModelOption[] {
-  return items.map((item) => {
+  return items.flatMap((item) => {
     const routeSelector = catalogRouteSelector(item);
-    return {
-      value: catalogRouteValue(item),
-      apiModel: item.code,
-      ...(routeSelector ? { routeSelector } : {}),
-      label: item.displayName,
-    };
+    if (!routeSelector) return [];
+    return [
+      {
+        value: routeSelector,
+        apiModel: item.code,
+        routeSelector,
+        label: item.displayName,
+      },
+    ];
   });
 }
 

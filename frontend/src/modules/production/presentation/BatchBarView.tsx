@@ -3,8 +3,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Clapperboard, Loader2, Mic2, Palette, Sparkles, Wand2 } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
-import { CreditCostPill } from "@/components/credit-visual";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,7 +43,6 @@ const TOOLBAR_CONTROL_CLASS =
   "h-[26px] gap-1.5 rounded-[6px] border border-border bg-muted px-2 py-0 text-[11px] font-medium text-foreground/85 transition-colors hover:border-primary/40 hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring disabled:text-muted-foreground/50";
 
 interface BatchBarConfirmation {
-  costDisplay: string;
   description: string;
   onConfirm(): void;
   title: string;
@@ -184,9 +181,7 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
     audioPending,
     audioPrerequisiteErrors,
     audioUnavailableForVideoModel,
-    detectIdentitiesCostDisplay,
     detectIdentitiesPending,
-    episodeAudioCostDisplay,
     errorDialog,
     globalOptimizePending,
     productionWorkflowPending,
@@ -208,9 +203,8 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
     title: string,
     description: string,
     onConfirm: () => void,
-    costDisplay = "",
   ) => {
-    setConfirm({ title, description, onConfirm, costDisplay });
+    setConfirm({ title, description, onConfirm });
   };
 
   return (
@@ -299,7 +293,6 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
               <Wand2 className="size-3.5" />
             )}
             {t("episode.workbench.batch.aiDetect")}
-            <CreditCostInline display={detectIdentitiesCostDisplay} />
           </Button>
           <Button
             size="sm"
@@ -341,7 +334,6 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                         t("episode.workbench.batch.genAudioTitle"),
                         t("episode.workbench.batch.genAudioDesc"),
                         onGenerateAudio,
-                        episodeAudioCostDisplay,
                       );
                     }}
                     disabled={
@@ -366,13 +358,6 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
                   aria-hidden="true"
                   className="inline-flex min-w-7 justify-start"
                 >
-                  {audioPrerequisiteErrors.length === 0 && (
-                    <CreditCostPill
-                      display={episodeAudioCostDisplay}
-                      disabled={audioUnavailableForVideoModel}
-                      className="h-4 bg-transparent px-0 text-[11px]"
-                    />
-                  )}
                 </span>
               </TooltipTrigger>
               {audioUnavailableForVideoModel && (
@@ -406,18 +391,12 @@ export function BatchBarView({ controller }: BatchBarViewProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              variant={confirm?.costDisplay ? "outline" : undefined}
               onClick={() => {
                 confirm?.onConfirm();
                 setConfirm(null);
               }}
-              className={cn(
-                confirm?.costDisplay &&
-                  "relative border-[3px] border-primary bg-transparent pr-9 transition-transform hover:border-primary hover:bg-transparent active:scale-95",
-              )}
             >
               {t("common.confirmExecute")}
-              <CreditCostInline display={confirm?.costDisplay ?? ""} />
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

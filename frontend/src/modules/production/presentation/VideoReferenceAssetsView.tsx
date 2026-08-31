@@ -17,10 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
-import type { Seedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
-import { seedance2CropTargetForAsset } from "@/modules/production/domain/seedance2-crop";
-import type { Seedance2AssetItem } from "@/modules/production/domain/seedance2-panel";
-import type { Seedance2ConfigDraft } from "@/modules/production/domain/video-config";
+import type { VideoReferenceAssetOperationsController } from "@/modules/production/application/use-video-reference-asset-operations-controller";
+import { videoReferenceCropTargetForAsset } from "@/modules/production/domain/video-reference-crop";
+import type { VideoReferenceAssetItem } from "@/modules/production/domain/video-reference-panel";
+import type { BeatVideoConfigDraft } from "@/modules/production/domain/video-config";
 
 const SECONDARY_ACTION_CLASS =
   "h-7 gap-1 rounded-[7px] border-border bg-muted px-2.5 text-[12px] font-normal text-foreground/76 shadow-none hover:border-foreground/25 hover:bg-accent hover:text-foreground disabled:border-border disabled:bg-muted disabled:text-muted-foreground/45";
@@ -33,7 +33,7 @@ const REFERENCE_TILE_CLASS =
 const TILE_ACTION_CLASS =
   "size-6 rounded-[6px] border border-media-foreground/20 bg-media/70 text-media-foreground/90 shadow-lg backdrop-blur-sm hover:border-media-foreground/30 hover:bg-media-foreground/15 hover:text-media-foreground";
 
-interface Seedance2ReferenceStats {
+interface VideoReferenceStats {
   fallbacks: number;
   invalid: number;
   missing: number;
@@ -41,49 +41,49 @@ interface Seedance2ReferenceStats {
   unused: number;
 }
 
-type ReferenceAssetState = NonNullable<Seedance2AssetItem["state"]>;
+type ReferenceAssetState = NonNullable<VideoReferenceAssetItem["state"]>;
 
 const REFERENCE_STATE_LABEL_KEYS: Record<ReferenceAssetState, string> = {
-  sent: "seedance2ReferenceSent",
-  invalid: "seedance2ReferenceInvalid",
-  missing: "seedance2ReferenceMissing",
-  fallback: "seedance2ReferenceFallback",
-  unused: "seedance2ReferenceUnused",
+  sent: "videoReferenceSent",
+  invalid: "videoReferenceInvalid",
+  missing: "videoReferenceMissing",
+  fallback: "videoReferenceFallback",
+  unused: "videoReferenceUnused",
 };
 
-export function seedance2ReferenceStatsText(
+export function videoReferenceStatsText(
   t: TFunction,
-  stats: Seedance2ReferenceStats,
+  stats: VideoReferenceStats,
 ): string {
   const parts = [
-    t("episode.workbench.video.seedance2ReferenceStatSent", {
+    t("episode.workbench.video.videoReferenceStatSent", {
       count: stats.selected,
     }),
   ];
   if (stats.invalid > 0) {
     parts.push(
-      t("episode.workbench.video.seedance2ReferenceStatInvalid", {
+      t("episode.workbench.video.videoReferenceStatInvalid", {
         count: stats.invalid,
       }),
     );
   }
   if (stats.missing > 0) {
     parts.push(
-      t("episode.workbench.video.seedance2ReferenceStatMissing", {
+      t("episode.workbench.video.videoReferenceStatMissing", {
         count: stats.missing,
       }),
     );
   }
   if (stats.unused > 0) {
     parts.push(
-      t("episode.workbench.video.seedance2ReferenceStatUnused", {
+      t("episode.workbench.video.videoReferenceStatUnused", {
         count: stats.unused,
       }),
     );
   }
   if (stats.fallbacks > 0) {
     parts.push(
-      t("episode.workbench.video.seedance2ReferenceStatFallback", {
+      t("episode.workbench.video.videoReferenceStatFallback", {
         count: stats.fallbacks,
       }),
     );
@@ -92,7 +92,7 @@ export function seedance2ReferenceStatsText(
 }
 
 function referenceAssetState(
-  asset: Seedance2AssetItem,
+  asset: VideoReferenceAssetItem,
 ): ReferenceAssetState {
   // The API state is authoritative; keep this fallback aligned with backend
   // _asset_delivery_state for older payloads.
@@ -137,7 +137,7 @@ function ReferencePanelHeader({
           )}
         />
         <Library className="size-3.5 text-muted-foreground/78" />
-        <span>{t("episode.workbench.video.seedance2ReferenceDetails")}</span>
+        <span>{t("episode.workbench.video.videoReferenceDetails")}</span>
       </Button>
       <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
         {badge}
@@ -152,12 +152,12 @@ function EmptyReferences() {
 
   return (
     <p className="rounded-[8px] border border-dashed border-border bg-muted p-2 text-xs text-muted-foreground">
-      {t("episode.workbench.video.seedance2ReferenceEmpty")}
+      {t("episode.workbench.video.videoReferenceEmpty")}
     </p>
   );
 }
 
-export function Seedance2ReferenceCropAssetsView({
+export function VideoReferenceCropAssetsView({
   aspectRatio,
   assets,
   className,
@@ -166,9 +166,9 @@ export function Seedance2ReferenceCropAssetsView({
   onOpenChange,
 }: {
   aspectRatio: string;
-  assets: Seedance2AssetItem[];
+  assets: VideoReferenceAssetItem[];
   className?: string;
-  controller: Seedance2AssetOperationsController;
+  controller: VideoReferenceAssetOperationsController;
   open: boolean;
   onOpenChange(open: boolean): void;
 }) {
@@ -195,7 +195,7 @@ export function Seedance2ReferenceCropAssetsView({
                 return (
                   <div
                     key={asset.key}
-                    data-seedance2-reference-tile
+                    data-video-reference-reference-tile
                     className={REFERENCE_TILE_CLASS}
                     style={{ aspectRatio }}
                     data-ui-tooltip={asset.note || asset.label}
@@ -230,7 +230,7 @@ export function Seedance2ReferenceCropAssetsView({
                           variant="ghost"
                           className={TILE_ACTION_CLASS}
                           aria-label={t(
-                            "episode.workbench.video.seedance2AssetCrop",
+                            "episode.workbench.video.videoReferenceAssetCrop",
                           )}
                           onClick={() =>
                             controller.openCrop({
@@ -256,7 +256,7 @@ export function Seedance2ReferenceCropAssetsView({
   );
 }
 
-export function Seedance2ReferenceAssetsView({
+export function VideoReferenceAssetsView({
   assets,
   controller,
   imageOnly,
@@ -270,13 +270,13 @@ export function Seedance2ReferenceAssetsView({
   onOpenChange,
   onReferenceDragStart,
 }: {
-  assets: Seedance2AssetItem[];
-  controller: Seedance2AssetOperationsController;
+  assets: VideoReferenceAssetItem[];
+  controller: VideoReferenceAssetOperationsController;
   imageOnly: boolean;
   invalidCount: number;
   fallbackCount: number;
   missingCount: number;
-  mode: Seedance2ConfigDraft["mode"];
+  mode: BeatVideoConfigDraft["mode"];
   open: boolean;
   selectedCount: number;
   unusedCount: number;
@@ -293,7 +293,7 @@ export function Seedance2ReferenceAssetsView({
   return (
     <div className="rounded-[10px] border border-border bg-card">
       <ReferencePanelHeader
-        badge={seedance2ReferenceStatsText(t, {
+        badge={videoReferenceStatsText(t, {
           fallbacks: fallbackCount,
           invalid: invalidCount,
           missing: missingCount,
@@ -316,7 +316,7 @@ export function Seedance2ReferenceAssetsView({
           ) : (
             <Upload className="size-3" />
           )}
-          {t("episode.workbench.video.seedance2AssetUpload")}
+          {t("episode.workbench.video.videoReferenceAssetUpload")}
         </Button>
         <input
           ref={uploadInputRef}
@@ -347,7 +347,7 @@ export function Seedance2ReferenceAssetsView({
                 const displayReferenceLabel =
                   referenceLabel ||
                   (isMissingImage
-                    ? t("episode.workbench.video.seedance2ReferenceImage")
+                    ? t("episode.workbench.video.videoReferenceImage")
                     : asset.reference_label);
                 const assetImageSrc =
                   asset.media_type === "image" &&
@@ -373,7 +373,7 @@ export function Seedance2ReferenceAssetsView({
                 return (
                   <div
                     key={asset.key}
-                    data-seedance2-reference-tile
+                    data-video-reference-reference-tile
                     draggable={canInsertReference}
                     onDragStart={(event) => {
                       if (referenceLabel) {
@@ -452,12 +452,12 @@ export function Seedance2ReferenceAssetsView({
                             variant="ghost"
                             className={TILE_ACTION_CLASS}
                             aria-label={t(
-                              "episode.workbench.video.seedance2AssetCrop",
+                              "episode.workbench.video.videoReferenceAssetCrop",
                             )}
                             onClick={() =>
                               controller.openCrop({
                                 asset,
-                                target: seedance2CropTargetForAsset(mode, asset),
+                                target: videoReferenceCropTargetForAsset(mode, asset),
                               })
                             }
                           >
@@ -471,10 +471,10 @@ export function Seedance2ReferenceAssetsView({
                             variant="ghost"
                             className={TILE_ACTION_CLASS}
                             aria-label={t(
-                              "episode.workbench.video.seedance2AssetCrop",
+                              "episode.workbench.video.videoReferenceAssetCrop",
                             )}
                             data-ui-tooltip={t(
-                              "episode.workbench.video.seedance2AssetAudioTrim",
+                              "episode.workbench.video.videoReferenceAssetAudioTrim",
                             )}
                             onClick={() => controller.openTrim(asset)}
                           >
@@ -489,7 +489,7 @@ export function Seedance2ReferenceAssetsView({
                             disabled={controller.deletePending}
                             className="size-5 rounded-[5px] border border-media-foreground/10 bg-media/35 text-media-foreground/60 hover:bg-destructive/15 hover:text-destructive"
                             aria-label={t(
-                              "episode.workbench.video.seedance2AssetDelete",
+                              "episode.workbench.video.videoReferenceAssetDelete",
                             )}
                             onClick={() => void controller.deleteAsset(asset)}
                           >
@@ -513,16 +513,16 @@ export function Seedance2ReferenceAssetsView({
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
               <div className="min-w-0 space-y-1">
                 <div className="font-medium">
-                  {t("episode.workbench.video.seedance2ReferenceProblemTitle")}
+                  {t("episode.workbench.video.videoReferenceProblemTitle")}
                 </div>
                 {problemAssets.map((asset) => (
                   <div key={asset.key} className="break-words text-[11px]">
-                    {t("episode.workbench.video.seedance2ReferenceProblemItem", {
+                    {t("episode.workbench.video.videoReferenceProblemItem", {
                       label: asset.label,
                       detail:
                         asset.validation_error ||
                         asset.status_detail ||
-                        t("episode.workbench.video.seedance2ReferenceMissing"),
+                        t("episode.workbench.video.videoReferenceMissing"),
                     })}
                   </div>
                 ))}

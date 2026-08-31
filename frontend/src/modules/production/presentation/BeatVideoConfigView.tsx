@@ -13,7 +13,6 @@ import {
   WandSparkles,
 } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
   VIDEO_PROMPT_TEXTAREA_CLASS,
@@ -33,68 +32,67 @@ import { ratioToCss } from "@/shared/aspect-ratio";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { cn } from "@/lib/utils";
 import type { BeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
-import type { Seedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
-import type { Seedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
+import type { VideoReferenceAssetOperationsController } from "@/modules/production/application/use-video-reference-asset-operations-controller";
+import type { BeatVideoConfigController } from "@/modules/production/application/use-beat-video-config-controller";
 import type {
-  Seedance2MentionController,
-  Seedance2MentionField,
-} from "@/modules/production/application/use-seedance2-mention-controller";
+  VideoReferenceMentionController,
+  VideoReferenceMentionField,
+} from "@/modules/production/application/use-video-reference-mention-controller";
 import type {
-  Seedance2AssetItem,
-  Seedance2BeatStatus,
-} from "@/modules/production/domain/seedance2-panel";
+  VideoReferenceAssetItem,
+  VideoReferenceBeatStatus,
+} from "@/modules/production/domain/video-reference-panel";
 import {
   clampDuration,
-  happyHorseResolutionOptionsForDuration,
-  normalizeGrokVideoRatio,
-  normalizeHappyHorseMode,
-  normalizeHappyHorseRatio,
-  normalizeSeedance2Mode,
-  normalizeSeedance2Ratio,
+  normalizeReferenceVideoMode,
+  normalizeReferenceVideoRatio,
+  normalizeVideoReferenceMode,
+  normalizeVideoAspectRatio,
   normalizeVideoResolution,
+  referenceVideoResolutionOptionsForDuration,
 } from "@/modules/production/domain/video-config";
 import { BeatVideoGenerationAction } from "@/modules/production/presentation/BeatVideoGenerationView";
 import {
-  Seedance2ReferenceAssetsView,
-  seedance2ReferenceStatsText,
-} from "@/modules/production/presentation/Seedance2ReferenceAssetsView";
+  VideoReferenceAssetsView,
+  videoReferenceStatsText,
+} from "@/modules/production/presentation/VideoReferenceAssetsView";
 import {
-  Seedance2Checkbox,
-  Seedance2Field,
-  Seedance2SummaryPill,
+  VideoReferenceCheckbox,
+  VideoReferenceField,
+  VideoReferenceSummaryPill,
 } from "@/modules/production/presentation/VideoPaneParts";
 
 const REFERENCE_DRAG_TYPE =
-  "application/x-ai-anime-seedance2-reference";
+  "application/x-ai-anime-video-reference-reference";
 const PROMPT_GUIDANCE_TEMPLATES = [
   {
     key: "subject",
-    labelKey: "seedance2GuidanceSubject",
+    labelKey: "videoReferenceGuidanceSubject",
     text: "主体：明确画面核心人物或物体、当前动作和状态，避免多个主体争抢焦点。",
   },
   {
     key: "scene",
-    labelKey: "seedance2GuidanceScene",
+    labelKey: "videoReferenceGuidanceScene",
     text: "场景：补充空间背景、地点关系、关键道具和环境材质，保持与参考图一致。",
   },
   {
     key: "lighting",
-    labelKey: "seedance2GuidanceLighting",
+    labelKey: "videoReferenceGuidanceLighting",
     text: "光影：描述主光源、明暗层次、色温和氛围，避免忽明忽暗。",
   },
   {
     key: "camera",
-    labelKey: "seedance2GuidanceCamera",
+    labelKey: "videoReferenceGuidanceCamera",
     text: "镜头：说明景别、视角、运镜速度和运动方向，保持镜头运动清晰可执行。",
   },
   {
     key: "style",
-    labelKey: "seedance2GuidanceStyle",
+    labelKey: "videoReferenceGuidanceStyle",
     text: "风格：限定画面质感、时代感、色彩倾向和真实度，避免风格漂移。",
   },
   {
     key: "no_subtitle",
-    labelKey: "seedance2GuidanceNoSubtitle",
+    labelKey: "videoReferenceGuidanceNoSubtitle",
     text: "无字幕：避免生成任何文字或字幕，保持画面纯净。",
   },
 ] as const;
@@ -105,29 +103,28 @@ const PILL_ACTION_CLASS =
 const SEGMENTED_OPTION_CLASS =
   "h-7 rounded-[7px] border px-1.5 text-xs font-normal shadow-none transition-[background-color,border-color,color] duration-150";
 
-export interface Seedance2ConfigViewProps {
-  assetOperations: Seedance2AssetOperationsController;
-  assets: Seedance2AssetItem[];
-  config: Seedance2ConfigController;
+export interface BeatVideoConfigViewProps {
+  assetOperations: VideoReferenceAssetOperationsController;
+  assets: VideoReferenceAssetItem[];
+  config: BeatVideoConfigController;
   fallbackAudioReady: boolean;
   fallbackFrameReady: boolean;
   generation: BeatVideoGenerationController;
   hasGeneratedVideo: boolean;
   mediaCandidateCount: number;
-  mention: Seedance2MentionController;
+  mention: VideoReferenceMentionController;
   modelLabel: string;
   projectAspect: "2:3" | "16:9";
   referencesOpen: boolean;
   savePending: boolean;
   showAudioMediaStatus: boolean;
-  showGrokVideoConfig: boolean;
-  showHappyHorseConfig: boolean;
-  showSeedance2Config: boolean;
-  status: Seedance2BeatStatus | null;
+  showAdvancedVideoConfig: boolean;
+  showReferenceVideoConfig: boolean;
+  status: VideoReferenceBeatStatus | null;
   onReferencesOpenChange(open: boolean): void;
 }
 
-export function Seedance2ConfigView({
+export function BeatVideoConfigView({
   assetOperations,
   assets,
   config,
@@ -142,24 +139,22 @@ export function Seedance2ConfigView({
   referencesOpen,
   savePending,
   showAudioMediaStatus,
-  showGrokVideoConfig,
-  showHappyHorseConfig,
-  showSeedance2Config,
+  showAdvancedVideoConfig,
+  showReferenceVideoConfig,
   status,
   onReferencesOpenChange,
-}: Seedance2ConfigViewProps) {
+}: BeatVideoConfigViewProps) {
   const { t } = useTranslation();
-  const seedance2Id = useId();
+  const videoReferenceId = useId();
   const draft = config.draft;
-  const happyHorseResolutionOptions = happyHorseResolutionOptionsForDuration(
-    config.happyHorseResolutionOptions,
+  const referenceResolutionOptions = referenceVideoResolutionOptionsForDuration(
+    config.referenceResolutionOptions,
     draft.duration,
+    config.referenceResolutionMaxSeconds,
   );
-  const resolutionOptions = showHappyHorseConfig
-    ? happyHorseResolutionOptions
-    : showGrokVideoConfig
-      ? config.grokResolutionOptions
-      : config.seedance2ResolutionOptions;
+  const resolutionOptions = showReferenceVideoConfig
+    ? referenceResolutionOptions
+    : config.videoResolutionOptions;
   const returnedLastFrameAsset =
     assets.find((asset) => {
       if (asset.media_type !== "image" || !(asset.url || asset.path)) {
@@ -181,11 +176,11 @@ export function Seedance2ConfigView({
     draft.ratio || projectAspect,
   );
   const promptStatus = config.ready
-    ? t("episode.workbench.video.seedance2Ready")
-    : t("episode.workbench.video.seedance2Missing");
+    ? t("episode.workbench.video.videoReferenceReady")
+    : t("episode.workbench.video.videoReferenceMissing");
 
   const rememberSelection = (
-    field: Seedance2MentionField,
+    field: VideoReferenceMentionField,
     target: HTMLTextAreaElement,
   ) => {
     mention.rememberSelection(field, {
@@ -218,7 +213,7 @@ export function Seedance2ConfigView({
     }
   };
   const handleReferenceDrop = (
-    field: Seedance2MentionField,
+    field: VideoReferenceMentionField,
     event: DragEvent<HTMLTextAreaElement>,
   ) => {
     const customLabel = event.dataTransfer.getData(REFERENCE_DRAG_TYPE);
@@ -238,7 +233,7 @@ export function Seedance2ConfigView({
     mention.insertDroppedReference(field, label, selection);
   };
   const handleMentionKeyDown = (
-    field: Seedance2MentionField,
+    field: VideoReferenceMentionField,
     event: KeyboardEvent<HTMLTextAreaElement>,
   ) => {
     mention.setActiveField(field);
@@ -264,13 +259,13 @@ export function Seedance2ConfigView({
         break;
     }
   };
-  const renderReferenceControls = (field: Seedance2MentionField) => {
+  const renderReferenceControls = (field: VideoReferenceMentionField) => {
     if (mention.activeField !== field) return null;
     if (mention.mentionOpen) {
       return (
         <div className="rounded-[8px] border border-border bg-muted p-1.5">
           <div className="mb-1 text-[10px] font-medium text-muted-foreground/78">
-            {t("episode.workbench.video.seedance2MentionCandidates")}
+            {t("episode.workbench.video.videoReferenceMentionCandidates")}
           </div>
           <div className="flex flex-wrap gap-1">
             {mention.mentionOptions.map((asset, index) => (
@@ -302,7 +297,7 @@ export function Seedance2ConfigView({
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[11px] text-muted-foreground/78">
-          {t("episode.workbench.video.seedance2AtReferences")}
+          {t("episode.workbench.video.videoReferenceAtReferences")}
         </span>
         {mention.referenceOptions.map((asset) => (
           <Button
@@ -327,27 +322,23 @@ export function Seedance2ConfigView({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <Settings2 className="size-3.5 text-muted-foreground/78" />
         <Label className="text-xs font-medium text-foreground/82">
-          {showGrokVideoConfig
-            ? "Grok Video 检视器"
-            : showHappyHorseConfig
-              ? "HappyHorse 检视器"
-              : modelLabel
-                ? `${modelLabel} 检视器`
-                : t("episode.workbench.video.seedance2Inspector")}
+          {modelLabel
+            ? `${modelLabel} 检视器`
+            : t("episode.workbench.video.videoReferenceInspector")}
         </Label>
-        <Seedance2SummaryPill
+        <VideoReferenceSummaryPill
           active={status?.media.render_ready ?? fallbackFrameReady}
           label={t("episode.workbench.video.renderReady")}
         />
         {showAudioMediaStatus && (
-          <Seedance2SummaryPill
+          <VideoReferenceSummaryPill
             active={status?.media.audio_ready ?? fallbackAudioReady}
             label={t("episode.workbench.video.audioReady")}
           />
         )}
-        <Seedance2SummaryPill active={config.ready} label={promptStatus} />
-        {showSeedance2Config && (
-          <Seedance2SummaryPill
+        <VideoReferenceSummaryPill active={config.ready} label={promptStatus} />
+        {showAdvancedVideoConfig && (
+          <VideoReferenceSummaryPill
             active={status?.voice.ready ?? false}
             attention={Boolean(status?.voice.required && !status.voice.ready)}
             detail={status?.voice.detail}
@@ -358,7 +349,7 @@ export function Seedance2ConfigView({
           />
         )}
         <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-          {seedance2ReferenceStatsText(t, {
+          {videoReferenceStatsText(t, {
             fallbacks: status?.assets.fallbacks ?? 0,
             invalid: status?.assets.invalid ?? 0,
             missing: status?.assets.missing ?? 0,
@@ -373,10 +364,10 @@ export function Seedance2ConfigView({
         </span>
       </div>
 
-      <Seedance2ReferenceAssetsView
+      <VideoReferenceAssetsView
         assets={assets}
         controller={assetOperations}
-        imageOnly={showHappyHorseConfig || showGrokVideoConfig}
+        imageOnly={showReferenceVideoConfig}
         invalidCount={status?.assets.invalid ?? 0}
         fallbackCount={status?.assets.fallbacks ?? 0}
         missingCount={status?.assets.missing ?? 0}
@@ -389,22 +380,22 @@ export function Seedance2ConfigView({
       />
 
       <div className="grid gap-3 rounded-[10px] border border-border bg-card p-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
-        <Seedance2Field
+        <VideoReferenceField
           label={t("episode.workbench.video.mode")}
-          htmlFor={`${seedance2Id}-mode`}
+          htmlFor={`${videoReferenceId}-mode`}
         >
           <Select
             value={draft.mode}
             onValueChange={(value) =>
               config.updateMode(
-                showHappyHorseConfig || showGrokVideoConfig
-                  ? normalizeHappyHorseMode(value)
-                  : normalizeSeedance2Mode(value),
+                showReferenceVideoConfig
+                  ? normalizeReferenceVideoMode(value)
+                  : normalizeVideoReferenceMode(value),
               )
             }
           >
             <SelectTrigger
-              id={`${seedance2Id}-mode`}
+              id={`${videoReferenceId}-mode`}
               className={cn("!h-9", CONTROL_CLASS)}
             >
               <span
@@ -412,61 +403,71 @@ export function Seedance2ConfigView({
                 className="flex flex-1 items-center gap-1.5 text-left"
               >
                 {t(
-                  `episode.workbench.video.seedance2ModeLabels.${
-                    showHappyHorseConfig || showGrokVideoConfig
-                      ? normalizeHappyHorseMode(draft.mode)
+                  `episode.workbench.video.videoReferenceModeLabels.${
+                    showReferenceVideoConfig
+                      ? normalizeReferenceVideoMode(draft.mode)
                       : draft.mode
                   }`,
                 )}
               </span>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
-              {(showHappyHorseConfig || showGrokVideoConfig
+              {(showReferenceVideoConfig
                 ? (["first_frame", "multimodal_reference"] as const)
-                : config.seedance2ModeOptions
+                : config.videoModeOptions
               ).map((mode) => (
                 <SelectItem key={mode} value={mode}>
                   {t(
-                    `episode.workbench.video.seedance2ModeLabels.${mode}`,
+                    `episode.workbench.video.videoReferenceModeLabels.${mode}`,
                   )}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        </Seedance2Field>
-        <Seedance2Field
+        </VideoReferenceField>
+        <VideoReferenceField
           label={t("episode.workbench.video.duration")}
-          htmlFor={`${seedance2Id}-duration`}
+          htmlFor={`${videoReferenceId}-duration`}
         >
           <Input
-            id={`${seedance2Id}-duration`}
+            id={`${videoReferenceId}-duration`}
             aria-label={t("episode.workbench.video.duration")}
             type="number"
-            min={config.seedance2DurationBounds.min}
-            max={config.seedance2DurationBounds.max}
+            min={config.videoDurationBounds.min}
+            max={config.videoDurationBounds.max}
             value={draft.duration}
             onChange={(event) => {
               const duration = clampDuration(
                 event.target.value,
-                config.seedance2DurationBounds,
+                config.videoDurationBounds,
               );
               config.changeDraft((current) => ({
                 ...current,
                 duration,
-                ...(showHappyHorseConfig
-                  && duration > 6
-                  && current.resolution === "1080p"
-                  ? { resolution: "768p" as const }
+                ...(showReferenceVideoConfig
+                  && !referenceVideoResolutionOptionsForDuration(
+                    config.referenceResolutionOptions,
+                    duration,
+                    config.referenceResolutionMaxSeconds,
+                  ).includes(current.resolution)
+                  ? {
+                      resolution:
+                        referenceVideoResolutionOptionsForDuration(
+                          config.referenceResolutionOptions,
+                          duration,
+                          config.referenceResolutionMaxSeconds,
+                        )[0] ?? current.resolution,
+                    }
                   : {}),
               }));
             }}
             className={cn("!h-9", CONTROL_CLASS)}
           />
-        </Seedance2Field>
+        </VideoReferenceField>
         {resolutionOptions.length ? (
-          <Seedance2Field
+          <VideoReferenceField
             label={t("episode.workbench.video.resolution")}
-            htmlFor={`${seedance2Id}-resolution`}
+            htmlFor={`${videoReferenceId}-resolution`}
           >
             <Select
               value={draft.resolution}
@@ -478,7 +479,7 @@ export function Seedance2ConfigView({
               }
             >
               <SelectTrigger
-                id={`${seedance2Id}-resolution`}
+                id={`${videoReferenceId}-resolution`}
                 className={cn("!h-9", CONTROL_CLASS)}
               >
                 <SelectValue />
@@ -493,37 +494,36 @@ export function Seedance2ConfigView({
                 ))}
               </SelectContent>
             </Select>
-          </Seedance2Field>
+          </VideoReferenceField>
         ) : null}
-        <Seedance2Field
+        <VideoReferenceField
           label={t("episode.workbench.video.ratio")}
-          htmlFor={`${seedance2Id}-ratio`}
+          htmlFor={`${videoReferenceId}-ratio`}
         >
           <Select
             value={draft.ratio}
             onValueChange={(value) =>
               config.updateDraft(
                 "ratio",
-                showGrokVideoConfig
-                  ? normalizeGrokVideoRatio(value)
-                  : showHappyHorseConfig
-                    ? normalizeHappyHorseRatio(value)
-                    : normalizeSeedance2Ratio(value),
+                showReferenceVideoConfig
+                  ? normalizeReferenceVideoRatio(
+                      value,
+                      config.referenceRatioOptions,
+                    )
+                  : normalizeVideoAspectRatio(value),
               )
             }
           >
             <SelectTrigger
-              id={`${seedance2Id}-ratio`}
+              id={`${videoReferenceId}-ratio`}
               className={cn("!h-9", CONTROL_CLASS)}
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
-              {(showHappyHorseConfig
-                ? config.happyHorseRatioOptions
-                : showGrokVideoConfig
-                  ? config.grokRatioOptions
-                  : config.seedance2RatioOptions
+              {(showReferenceVideoConfig
+                ? config.referenceRatioOptions
+                : config.videoRatioOptions
               ).map((ratio) => (
                 <SelectItem key={ratio} value={ratio}>
                   {ratio}
@@ -531,7 +531,7 @@ export function Seedance2ConfigView({
               ))}
             </SelectContent>
           </Select>
-        </Seedance2Field>
+        </VideoReferenceField>
       </div>
 
       <p
@@ -539,18 +539,18 @@ export function Seedance2ConfigView({
         className="px-1 text-[11px] leading-5 text-muted-foreground"
       >
         {t(
-          `episode.workbench.video.seedance2ModeDescriptions.${
-            showHappyHorseConfig || showGrokVideoConfig
-              ? normalizeHappyHorseMode(draft.mode)
+          `episode.workbench.video.videoReferenceModeDescriptions.${
+            showReferenceVideoConfig
+              ? normalizeReferenceVideoMode(draft.mode)
               : draft.mode
           }`,
         )}
       </p>
 
       <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-muted-foreground">
-        {showSeedance2Config && (
-          <Seedance2Checkbox
-            id={`${seedance2Id}-return-last-frame`}
+        {showAdvancedVideoConfig && (
+          <VideoReferenceCheckbox
+            id={`${videoReferenceId}-return-last-frame`}
             checked={draft.return_last_frame}
             label={t("episode.workbench.video.returnLastFrame")}
             onChange={(checked) =>
@@ -558,15 +558,15 @@ export function Seedance2ConfigView({
             }
           />
         )}
-        {config.isValueStyle && (
+        {config.supportsSceneOptimize && (
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground/80">
-              {t("episode.workbench.video.seedance2GuidanceStyle")}
+              {t("episode.workbench.video.videoReferenceGuidanceStyle")}
             </span>
             <div
               role="radiogroup"
               aria-label={t(
-                "episode.workbench.video.seedance2GuidanceStyle",
+                "episode.workbench.video.videoReferenceGuidanceStyle",
               )}
               className="inline-flex items-center gap-1"
             >
@@ -589,7 +589,7 @@ export function Seedance2ConfigView({
                     }
                   >
                     {t(
-                      `episode.workbench.video.seedance2SceneOptimizeLabels.${style}`,
+                      `episode.workbench.video.videoReferenceSceneOptimizeLabels.${style}`,
                     )}
                   </button>
                 );
@@ -599,10 +599,10 @@ export function Seedance2ConfigView({
         )}
       </div>
 
-      {showSeedance2Config && draft.return_last_frame && (
+      {showAdvancedVideoConfig && draft.return_last_frame && (
         <div
-          data-seedance2-returned-last-frame
-          data-testid="seedance2-returned-last-frame-panel"
+          data-video-reference-returned-last-frame
+          data-testid="video-reference-returned-last-frame-panel"
           className="inline-flex w-fit max-w-full flex-col rounded-[8px] border border-border bg-card p-1.5"
         >
           <div className="mb-1 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
@@ -620,7 +620,7 @@ export function Seedance2ConfigView({
             )}
           </div>
           <div
-            data-testid="seedance2-returned-last-frame-box"
+            data-testid="video-reference-returned-last-frame-box"
             className={cn(
               "relative w-[7.5rem] max-w-full overflow-hidden rounded-[7px] bg-muted",
               returnedLastFrameSrc && returnedLastFrameAsset
@@ -649,18 +649,18 @@ export function Seedance2ConfigView({
       )}
 
       <div
-        data-testid="seedance2-prompt-panel"
+        data-testid="video-reference-prompt-panel"
         className="rounded-[10px] border border-border bg-card p-3"
       >
         <div className="grid gap-3">
-          <Seedance2Field
-            label={t("episode.workbench.video.seedance2PromptGuidance")}
-            htmlFor={`${seedance2Id}-prompt-guidance`}
+          <VideoReferenceField
+            label={t("episode.workbench.video.videoReferencePromptGuidance")}
+            htmlFor={`${videoReferenceId}-prompt-guidance`}
           >
             <MentionTextarea
-              id={`${seedance2Id}-prompt-guidance`}
+              id={`${videoReferenceId}-prompt-guidance`}
               aria-label={t(
-                "episode.workbench.video.seedance2PromptGuidance",
+                "episode.workbench.video.videoReferencePromptGuidance",
               )}
               value={draft.prompt_guidance}
               onChange={(event) => {
@@ -694,7 +694,7 @@ export function Seedance2ConfigView({
                 VIDEO_PROMPT_TEXTAREA_CLASS,
               )}
             />
-          </Seedance2Field>
+          </VideoReferenceField>
           {renderReferenceControls("prompt_guidance")}
           <div className="flex flex-wrap gap-1.5">
             {PROMPT_GUIDANCE_TEMPLATES.map((template) => (
@@ -716,19 +716,17 @@ export function Seedance2ConfigView({
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Label
-                htmlFor={`${seedance2Id}-prompt`}
+                htmlFor={`${videoReferenceId}-prompt`}
                 className="text-[11px] text-muted-foreground/78"
               >
-                {showGrokVideoConfig
-                  ? "Grok 提示词"
-                  : showHappyHorseConfig
-                    ? "主体提示词"
-                    : t("episode.workbench.video.seedance2Prompt")}
+                {showReferenceVideoConfig
+                  ? "主体提示词"
+                  : t("episode.workbench.video.videoReferencePrompt")}
               </Label>
             </div>
             <MentionTextarea
-              id={`${seedance2Id}-prompt`}
-              aria-label={t("episode.workbench.video.seedance2Prompt")}
+              id={`${videoReferenceId}-prompt`}
+              aria-label={t("episode.workbench.video.videoReferencePrompt")}
               value={draft.final_prompt}
               onChange={(event) => {
                 config.updateDraft("final_prompt", event.target.value);
@@ -776,12 +774,9 @@ export function Seedance2ConfigView({
               ) : (
                 <WandSparkles className="size-3" />
               )}
-              {showGrokVideoConfig
-                ? "生成 Grok 提示词"
-                : showHappyHorseConfig
-                  ? "生成主体提示词"
-                  : t("episode.workbench.video.seedance2GeneratePrompt")}
-              <CreditCostInline display={config.promptCostDisplay} />
+              {showReferenceVideoConfig
+                ? "生成主体提示词"
+                : t("episode.workbench.video.videoReferenceGeneratePrompt")}
             </Button>
             <BeatVideoGenerationAction
               className={MEDIA_PRIMARY_ACTION_BUTTON_CLASS}

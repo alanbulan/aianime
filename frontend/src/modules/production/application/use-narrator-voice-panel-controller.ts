@@ -155,7 +155,7 @@ export interface NarratorVoicePanelController {
   onGenerateDesignedVoice(): Promise<void>;
   onVoiceSourceTypeChange(value: VoiceSourceType): void;
   onGeneratePresetVoice(): Promise<void>;
-  onOpenAiVoice(): void;
+  onOpenVoiceGenerator(): void;
   onOpenRecord(): void;
   onOpenTrim(): void;
   onRecordOpenChange(open: boolean): void;
@@ -274,8 +274,8 @@ export function createUseNarratorVoicePanelController(
       },
       invalidateKeys: [
         queryKeys.narratorVoice(options.project),
-        queryKeys.seedance2BeatStatusProject(options.project),
-        queryKeys.audioBillingQuotes(options.project),
+        queryKeys.videoReferenceBeatStatusProject(options.project),
+        queryKeys.audioGenerationPlans(options.project),
         queryKeys.characterVoiceLibrary(options.project),
       ],
       showCompleteToast: false,
@@ -296,8 +296,8 @@ export function createUseNarratorVoicePanelController(
       },
       invalidateKeys: [
         queryKeys.narratorVoice(options.project),
-        queryKeys.seedance2BeatStatusProject(options.project),
-        queryKeys.audioBillingQuotes(options.project),
+        queryKeys.videoReferenceBeatStatusProject(options.project),
+        queryKeys.audioGenerationPlans(options.project),
         queryKeys.characterVoiceLibrary(options.project),
       ],
       showCompleteToast: false,
@@ -400,7 +400,7 @@ export function createUseNarratorVoicePanelController(
       }
     };
 
-    const openAiVoice = () => {
+    const openVoiceGenerator = () => {
       const defaultPresetModel = presetVoiceModels.find(
         (option) => option.value === defaultPresetVoiceSelector,
       );
@@ -758,7 +758,7 @@ export function createUseNarratorVoicePanelController(
       onGenerateDesignedVoice: generateDesignedVoice,
       onGeneratePresetVoice: generatePreset,
       onVoiceSourceTypeChange: setVoiceSourceType,
-      onOpenAiVoice: openAiVoice,
+      onOpenVoiceGenerator: openVoiceGenerator,
       onOpenRecord: openRecord,
       onOpenTrim: openTrim,
       onRecordOpenChange: closeRecordDialog,

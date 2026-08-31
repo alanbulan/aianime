@@ -1,6 +1,6 @@
 // Copyright (c) 2026 AI anime
 
-export interface Seedance2AssetItem {
+export interface VideoReferenceAssetItem {
   key: string;
   label: string;
   media_type: string;
@@ -25,10 +25,10 @@ export interface Seedance2AssetItem {
   can_delete?: boolean;
 }
 
-export interface Seedance2BeatStatus {
+export interface VideoReferenceBeatStatus {
   beat_number: number;
   audio_type: string;
-  seedance2_config_json: string;
+  video_config_json: string;
   media: {
     render_ready: boolean;
     audio_ready: boolean;
@@ -59,7 +59,7 @@ export interface Seedance2BeatStatus {
     images: number;
     audios: number;
     fallbacks: number;
-    items: Seedance2AssetItem[];
+    items: VideoReferenceAssetItem[];
   };
 }
 

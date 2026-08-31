@@ -10,81 +10,81 @@ import {
 import { normalizeMentionSeparatorSpaces } from "@/lib/mention-markers";
 import { resolveMediaUrl } from "@/lib/media-url";
 import {
-  buildSeedance2LabelIdentityMaps,
-  findSeedance2TrailingMention,
-  getSeedance2MentionQuery,
-  remapSeedance2Mentions,
-  sameSeedance2LabelIdentity,
-  type Seedance2LabelIdentityMaps,
-} from "@/modules/production/domain/seedance2-mentions";
-import type { Seedance2AssetItem } from "@/modules/production/domain/seedance2-panel";
-import type { Seedance2ConfigDraft } from "@/modules/production/domain/video-config";
+  buildVideoReferenceLabelIdentityMaps,
+  findVideoReferenceTrailingMention,
+  getVideoReferenceMentionQuery,
+  remapVideoReferenceMentions,
+  sameVideoReferenceLabelIdentity,
+  type VideoReferenceLabelIdentityMaps,
+} from "@/modules/production/domain/video-reference-mentions";
+import type { VideoReferenceAssetItem } from "@/modules/production/domain/video-reference-panel";
+import type { BeatVideoConfigDraft } from "@/modules/production/domain/video-config";
 
-export type Seedance2MentionField = "prompt_guidance" | "final_prompt";
+export type VideoReferenceMentionField = "prompt_guidance" | "final_prompt";
 
-export interface Seedance2MentionSelection {
+export interface VideoReferenceMentionSelection {
   end: number;
   start: number;
 }
 
-export interface Seedance2MentionControllerOptions {
-  assets: Seedance2AssetItem[];
+export interface VideoReferenceMentionControllerOptions {
+  assets: VideoReferenceAssetItem[];
   beatNumber: number;
   changeDraft(
-    updater: (current: Seedance2ConfigDraft) => Seedance2ConfigDraft,
+    updater: (current: BeatVideoConfigDraft) => BeatVideoConfigDraft,
   ): void;
-  draft: Seedance2ConfigDraft;
+  draft: BeatVideoConfigDraft;
   enabled: boolean;
 }
 
-export interface Seedance2MentionController {
-  activeField: Seedance2MentionField;
+export interface VideoReferenceMentionController {
+  activeField: VideoReferenceMentionField;
   activeIndex: number;
   mentionLabels: string[];
   mentionOpen: boolean;
-  mentionOptions: Seedance2AssetItem[];
+  mentionOptions: VideoReferenceAssetItem[];
   mentionPreviews: Record<string, string>;
   mentionQuery: string | null;
-  referenceOptions: Seedance2AssetItem[];
+  referenceOptions: VideoReferenceAssetItem[];
   acceptsReference(label: string): boolean;
   appendGuidanceTemplate(template: string): void;
-  appendReference(field: Seedance2MentionField, label: string): void;
-  dismissMention(field: Seedance2MentionField): void;
+  appendReference(field: VideoReferenceMentionField, label: string): void;
+  dismissMention(field: VideoReferenceMentionField): void;
   insertDroppedReference(
-    field: Seedance2MentionField,
+    field: VideoReferenceMentionField,
     label: string,
-    selection?: Seedance2MentionSelection,
+    selection?: VideoReferenceMentionSelection,
   ): boolean;
   moveActiveIndex(delta: number): void;
   rememberSelection(
-    field: Seedance2MentionField,
-    selection: Seedance2MentionSelection,
+    field: VideoReferenceMentionField,
+    selection: VideoReferenceMentionSelection,
   ): void;
-  selectActiveMention(field: Seedance2MentionField): boolean;
-  selectMention(field: Seedance2MentionField, label: string): void;
-  setActiveField(field: Seedance2MentionField): void;
+  selectActiveMention(field: VideoReferenceMentionField): boolean;
+  selectMention(field: VideoReferenceMentionField, label: string): void;
+  setActiveField(field: VideoReferenceMentionField): void;
   setActiveIndex(index: number): void;
 }
 
-export function useSeedance2MentionController(
-  options: Seedance2MentionControllerOptions,
-): Seedance2MentionController {
+export function useVideoReferenceMentionController(
+  options: VideoReferenceMentionControllerOptions,
+): VideoReferenceMentionController {
   const [activeIndex, setActiveIndexState] = useState(0);
   const [activeField, setActiveFieldState] =
-    useState<Seedance2MentionField>("final_prompt");
+    useState<VideoReferenceMentionField>("final_prompt");
   const [dismissedQuery, setDismissedQuery] = useState<{
-    field: Seedance2MentionField;
+    field: VideoReferenceMentionField;
     query: string | null;
   } | null>(null);
   const selectionRef = useRef<
-    Record<Seedance2MentionField, Seedance2MentionSelection | null>
+    Record<VideoReferenceMentionField, VideoReferenceMentionSelection | null>
   >({
     prompt_guidance: null,
     final_prompt: null,
   });
   const previousIdentityRef = useRef<{
     beatNumber: number;
-    maps: Seedance2LabelIdentityMaps;
+    maps: VideoReferenceLabelIdentityMaps;
   } | null>(null);
 
   const referenceOptions = useMemo(
@@ -102,7 +102,7 @@ export function useSeedance2MentionController(
     [referenceOptions],
   );
   const identityMaps = useMemo(
-    () => buildSeedance2LabelIdentityMaps(referenceOptions),
+    () => buildVideoReferenceLabelIdentityMaps(referenceOptions),
     [referenceOptions],
   );
   const mentionPreviews = useMemo(() => {
@@ -114,7 +114,7 @@ export function useSeedance2MentionController(
     }
     return previews;
   }, [referenceOptions]);
-  const mentionQuery = getSeedance2MentionQuery(
+  const mentionQuery = getVideoReferenceMentionQuery(
     options.draft[activeField],
   );
   const mentionOptions = useMemo(() => {
@@ -145,14 +145,14 @@ export function useSeedance2MentionController(
       maps: identityMaps,
     };
     if (!previous || previous.beatNumber !== options.beatNumber) return;
-    if (sameSeedance2LabelIdentity(previous.maps, identityMaps)) return;
+    if (sameVideoReferenceLabelIdentity(previous.maps, identityMaps)) return;
     options.changeDraft((current) => {
-      const finalPrompt = remapSeedance2Mentions(
+      const finalPrompt = remapVideoReferenceMentions(
         current.final_prompt,
         previous.maps,
         identityMaps,
       );
-      const promptGuidance = remapSeedance2Mentions(
+      const promptGuidance = remapVideoReferenceMentions(
         current.prompt_guidance,
         previous.maps,
         identityMaps,
@@ -178,11 +178,11 @@ export function useSeedance2MentionController(
 
   const insertReference = useCallback(
     (
-      field: Seedance2MentionField,
+      field: VideoReferenceMentionField,
       label: string,
       insertOptions: {
         replaceTrailingMention?: boolean;
-        selection?: Seedance2MentionSelection;
+        selection?: VideoReferenceMentionSelection;
       } = {},
     ) => {
       const token = `@${label} `;
@@ -206,7 +206,7 @@ export function useSeedance2MentionController(
           return { ...current, [field]: nextText };
         }
         const mention = insertOptions.replaceTrailingMention
-          ? findSeedance2TrailingMention(text)
+          ? findVideoReferenceTrailingMention(text)
           : null;
         const nextPrompt = text.endsWith("@")
           ? `${text.slice(0, -1)}${token}`
@@ -232,7 +232,7 @@ export function useSeedance2MentionController(
   );
 
   const selectMention = useCallback(
-    (field: Seedance2MentionField, label: string) => {
+    (field: VideoReferenceMentionField, label: string) => {
       setActiveFieldState(field);
       insertReference(field, label, { replaceTrailingMention: true });
       setDismissedQuery({ field, query: label });
@@ -263,7 +263,7 @@ export function useSeedance2MentionController(
     dismissMention: (field) => {
       setDismissedQuery({
         field,
-        query: getSeedance2MentionQuery(options.draft[field]),
+        query: getVideoReferenceMentionQuery(options.draft[field]),
       });
     },
     insertDroppedReference: (field, label, selection) => {

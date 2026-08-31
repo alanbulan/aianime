@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import type { VideoModelOption } from "@/modules/production/domain/video-model";
 
-const SEEDANCE2_DEFAULT_MODE_OPTIONS = [
+const DEFAULT_ADVANCED_VIDEO_MODE_OPTIONS = [
   "first_frame",
   "first_last_frame",
   "multimodal_reference",
 ] as const;
-const SEEDANCE2_DEFAULT_RATIO_OPTIONS = [
+const DEFAULT_ADVANCED_VIDEO_RATIO_OPTIONS = [
   "9:16",
   "16:9",
   "1:1",
@@ -14,28 +14,17 @@ const SEEDANCE2_DEFAULT_RATIO_OPTIONS = [
   "3:4",
   "21:9",
 ] as const;
-const HAPPYHORSE_RESOLUTION_OPTIONS = ["768p", "1080p"] as const;
-const HAPPYHORSE_RATIO_OPTIONS = ["16:9", "9:16", "1:1", "4:3", "3:4"] as const;
-const GROK_VIDEO_RESOLUTION_OPTIONS = ["720p", "480p"] as const;
-const GROK_VIDEO_RATIO_OPTIONS = ["16:9", "9:16", "1:1", "2:3", "3:2"] as const;
-const SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL = {
-  "seedance-2.0-fast": ["480p", "720p"],
-  "seedance-2.0": ["480p", "720p", "1080p"],
-  "seedance-2.0-value": ["720p", "1080p"],
-  "seedance-2.0-fast-value": ["720p", "1080p"],
-  "seedance-1.5-pro": ["480p", "720p", "1080p"],
-} as const;
+const DEFAULT_REFERENCE_VIDEO_RESOLUTION_OPTIONS = ["720p"] as const;
+const DEFAULT_REFERENCE_VIDEO_RATIO_OPTIONS = ["16:9"] as const;
 
-export type Seedance2Resolution = "480p" | "720p" | "768p" | "1080p";
+export type VideoResolutionTier = "480p" | "720p" | "768p" | "1080p";
 export type ExactVideoResolution = `${number}x${number}`;
-export type VideoResolution = Seedance2Resolution | ExactVideoResolution;
-export type HappyHorseRatio = (typeof HAPPYHORSE_RATIO_OPTIONS)[number];
-export type GrokVideoRatio = (typeof GROK_VIDEO_RATIO_OPTIONS)[number];
-export type Seedance2Mode =
+export type VideoResolution = VideoResolutionTier | ExactVideoResolution;
+export type VideoReferenceMode =
   | "first_frame"
   | "first_last_frame"
   | "multimodal_reference";
-export type Seedance2Ratio =
+export type VideoAspectRatio =
   | "9:16"
   | "16:9"
   | "1:1"
@@ -45,24 +34,28 @@ export type Seedance2Ratio =
   | "2:3"
   | "3:2";
 
-export interface Seedance2DurationBounds {
+export interface VideoDurationBounds {
   min: number;
   max: number;
 }
 
-export interface Seedance2ConfigDraft {
-  raw: Record<string, unknown>;
-  mode: Seedance2Mode;
-  mode_user_set: boolean;
+export interface BeatVideoConfigDraft {
+  managed: {
+    prompt_validation_source: string;
+    prompt_inputs_hash: string;
+    prompt_updated_at: string;
+    reference_image_paths: string[];
+    reference_audio_paths: string[];
+    selected_asset_keys: string[];
+  };
+  mode: VideoReferenceMode;
   duration: number;
   resolution: VideoResolution;
-  ratio: Seedance2Ratio;
+  ratio: VideoAspectRatio;
   generate_audio: boolean;
-  generate_audio_user_set: boolean;
   return_last_frame: boolean;
   scene_optimize: "" | "anime" | "realistic";
   human_review: boolean;
-  human_review_user_set: boolean;
   prompt_source: string;
   prompt_guidance: string;
   final_prompt: string;
@@ -84,32 +77,32 @@ export type VideoModelConfigCapabilities = Pick<
   | "supportedModes"
   | "minDuration"
   | "maxDuration"
+  | "resolutionMaxSeconds"
+  | "sceneOptimizeOptions"
 >;
 
-export function parseSeedance2Config(
+export function parseBeatVideoConfig(
   value: string | null | undefined,
-  defaultRatio: Seedance2Ratio = "9:16",
-): Seedance2ConfigDraft {
+  defaultRatio: VideoAspectRatio = "9:16",
+): BeatVideoConfigDraft {
   const text = String(value ?? "").trim();
-  if (!text) return defaultSeedance2Config({}, defaultRatio);
+  if (!text) return defaultBeatVideoConfig({}, defaultRatio);
   try {
     const parsed = JSON.parse(text);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return defaultSeedance2Config(parsed as Record<string, unknown>, defaultRatio);
+      return defaultBeatVideoConfig(parsed as Record<string, unknown>, defaultRatio);
     }
-  } catch {
-    return defaultSeedance2Config({ final_prompt: text }, defaultRatio);
-  }
-  return defaultSeedance2Config({}, defaultRatio);
+  } catch {}
+  return defaultBeatVideoConfig({}, defaultRatio);
 }
 
-export function seedance2DefaultRatioForProjectAspect(
+export function defaultVideoRatioForProjectAspect(
   aspect: "2:3" | "16:9",
-): Seedance2Ratio {
+): VideoAspectRatio {
   return aspect === "16:9" ? "16:9" : "9:16";
 }
 
-export function normalizeSeedance2Mode(value: unknown): Seedance2Mode {
+export function normalizeVideoReferenceMode(value: unknown): VideoReferenceMode {
   if (
     value === "first_frame" ||
     value === "first_last_frame" ||
@@ -120,22 +113,6 @@ export function normalizeSeedance2Mode(value: unknown): Seedance2Mode {
   return "multimodal_reference";
 }
 
-export function isSeedance2ValueModel(value: string | null | undefined): boolean {
-  const text = normalizeVideoModelId(value);
-  return text === "seedance-2.0-value" || text === "seedance-2.0-fast-value";
-}
-
-export function normalizeVideoModelId(value: string | null | undefined): string {
-  const raw = String(value ?? "").trim().toLowerCase();
-  const pathless = raw.slice(raw.lastIndexOf("/") + 1);
-  for (const prefix of ["newapi_", "huimeng_"]) {
-    if (pathless.startsWith(prefix)) {
-      return pathless.slice(prefix.length);
-    }
-  }
-  return pathless;
-}
-
 export function videoModelDisplayLabel(
   value: string | null | undefined,
   labels: ReadonlyMap<string, string>,
@@ -144,19 +121,11 @@ export function videoModelDisplayLabel(
   if (!text) return "";
   const exact = labels.get(text);
   if (exact) return exact;
-  const model = normalizeVideoModelId(text);
-  if (model.startsWith("seedance-2.0")) {
-    return `Seedance ${model.slice("seedance-".length)}`;
-  }
   return text;
 }
 
-export function isSeedance15ProModel(value: string | null | undefined): boolean {
-  return normalizeVideoModelId(value) === "seedance-1.5-pro";
-}
-
-export function seedance2ResolutionOptionsForModel(
-  value: string | null | undefined,
+export function videoResolutionOptionsForModel(
+  _value: string | null | undefined,
   capabilities?: VideoModelConfigCapabilities | null,
 ): readonly VideoResolution[] {
   const declaredOptions = Array.from(
@@ -166,11 +135,7 @@ export function seedance2ResolutionOptionsForModel(
         .filter((option): option is VideoResolution => option !== null),
     ),
   );
-  if (declaredOptions.length) return declaredOptions;
-  const model = normalizeVideoModelId(value);
-  return SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL[
-    model as keyof typeof SEEDANCE2_RESOLUTION_OPTIONS_BY_MODEL
-  ] ?? [];
+  return declaredOptions;
 }
 
 function normalizedVideoResolution(value: unknown): VideoResolution | null {
@@ -191,7 +156,7 @@ function normalizedVideoResolution(value: unknown): VideoResolution | null {
   return `${width}x${height}` as ExactVideoResolution;
 }
 
-function seedance2ModeFromCapability(value: string): Seedance2Mode | null {
+function videoModeFromCapability(value: string): VideoReferenceMode | null {
   const normalized = value
     .trim()
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
@@ -218,26 +183,26 @@ function seedance2ModeFromCapability(value: string): Seedance2Mode | null {
   return null;
 }
 
-export function seedance2ModeOptionsForModel(
+export function videoModeOptionsForModel(
   capabilities?: VideoModelConfigCapabilities | null,
-): readonly Seedance2Mode[] {
+): readonly VideoReferenceMode[] {
   const declared = capabilities?.supportedModes;
-  if (!declared?.length) return SEEDANCE2_DEFAULT_MODE_OPTIONS;
+  if (!declared?.length) return DEFAULT_ADVANCED_VIDEO_MODE_OPTIONS;
   const options = Array.from(
     new Set(
       declared
-        .map(seedance2ModeFromCapability)
-        .filter((mode): mode is Seedance2Mode => mode !== null),
+        .map(videoModeFromCapability)
+        .filter((mode): mode is VideoReferenceMode => mode !== null),
     ),
   );
-  return options.length ? options : SEEDANCE2_DEFAULT_MODE_OPTIONS;
+  return options.length ? options : DEFAULT_ADVANCED_VIDEO_MODE_OPTIONS;
 }
 
-export function seedance2RatioOptionsForModel(
+export function videoRatioOptionsForModel(
   capabilities?: VideoModelConfigCapabilities | null,
-): readonly Seedance2Ratio[] {
+): readonly VideoAspectRatio[] {
   const options = capabilities?.ratioOptions?.filter(
-    (ratio): ratio is Seedance2Ratio =>
+    (ratio): ratio is VideoAspectRatio =>
       ratio === "9:16" ||
       ratio === "16:9" ||
       ratio === "1:1" ||
@@ -247,17 +212,19 @@ export function seedance2RatioOptionsForModel(
       ratio === "2:3" ||
       ratio === "3:2",
   );
-  return options?.length ? Array.from(new Set(options)) : SEEDANCE2_DEFAULT_RATIO_OPTIONS;
+  return options?.length
+    ? Array.from(new Set(options))
+    : DEFAULT_ADVANCED_VIDEO_RATIO_OPTIONS;
 }
 
-export function normalizeSeedance2DraftForModel(
-  draft: Seedance2ConfigDraft,
+export function normalizeAdvancedVideoDraftForModel(
+  draft: BeatVideoConfigDraft,
   resolutionOptions: readonly VideoResolution[],
-  model: string | null | undefined,
+  _model: string | null | undefined,
   isValueStyle: boolean,
-  modeOptions: readonly Seedance2Mode[] = SEEDANCE2_DEFAULT_MODE_OPTIONS,
-  ratioOptions: readonly Seedance2Ratio[] = SEEDANCE2_DEFAULT_RATIO_OPTIONS,
-): Seedance2ConfigDraft {
+  modeOptions: readonly VideoReferenceMode[] = DEFAULT_ADVANCED_VIDEO_MODE_OPTIONS,
+  ratioOptions: readonly VideoAspectRatio[] = DEFAULT_ADVANCED_VIDEO_RATIO_OPTIONS,
+): BeatVideoConfigDraft {
   const fallbackResolution = resolutionOptions.includes("720p")
     ? "720p"
     : resolutionOptions[0];
@@ -273,7 +240,7 @@ export function normalizeSeedance2DraftForModel(
     ? draft.ratio
     : ratioOptions[0] || "16:9";
   const sceneOptimize = isValueStyle
-    ? draft.scene_optimize || defaultSeedance2ValueSceneOptimize(model)
+    ? draft.scene_optimize || "anime"
     : "";
   if (
     draft.resolution === resolution &&
@@ -292,107 +259,75 @@ export function normalizeSeedance2DraftForModel(
   };
 }
 
-export function happyHorseResolutionOptionsForModel(
+export function referenceVideoResolutionOptionsForModel(
   model: VideoModelConfigCapabilities | null | undefined,
-): readonly Seedance2Resolution[] {
-  const options = model?.resolutionOptions?.filter(
-    (value): value is Seedance2Resolution =>
-      value === "768p" || value === "1080p",
-  );
-  return options?.length ? options : HAPPYHORSE_RESOLUTION_OPTIONS;
+): readonly VideoResolution[] {
+  const options = model?.resolutionOptions
+    ?.map(normalizedVideoResolution)
+    .filter(
+      (value): value is VideoResolution => value !== null,
+    );
+  return options?.length ? options : DEFAULT_REFERENCE_VIDEO_RESOLUTION_OPTIONS;
 }
 
-export function happyHorseResolutionOptionsForDuration(
-  options: readonly Seedance2Resolution[],
+export function referenceVideoResolutionOptionsForDuration(
+  options: readonly VideoResolution[],
   duration: number,
-): readonly Seedance2Resolution[] {
-  if (Number(duration) > 6 && options.includes("768p")) return ["768p"];
-  return options;
+  resolutionMaxSeconds: Readonly<Record<string, number>> = {},
+): readonly VideoResolution[] {
+  const targetDuration = Number(duration);
+  if (!Number.isFinite(targetDuration) || targetDuration <= 0) return options;
+  const supported = options.filter((resolution) => {
+    const maximum = Number(resolutionMaxSeconds[resolution]);
+    return !Number.isFinite(maximum) || maximum <= 0 || targetDuration <= maximum;
+  });
+  return supported.length ? supported : options;
 }
 
-export function happyHorseRatioOptionsForModel(
+export function referenceVideoRatioOptionsForModel(
   model: VideoModelConfigCapabilities | null | undefined,
-): readonly HappyHorseRatio[] {
+): readonly VideoAspectRatio[] {
   const options = model?.ratioOptions?.filter(
-    (value): value is HappyHorseRatio =>
-      value === "16:9" ||
-      value === "9:16" ||
-      value === "1:1" ||
-      value === "4:3" ||
-      value === "3:4",
+    (value): value is VideoAspectRatio =>
+      /^\d{1,4}:\d{1,4}$/.test(value) &&
+      value.split(":").every((part) => Number(part) > 0),
   );
-  return options?.length ? options : HAPPYHORSE_RATIO_OPTIONS;
+  return options?.length ? options : DEFAULT_REFERENCE_VIDEO_RATIO_OPTIONS;
 }
 
-export function grokVideoResolutionOptionsForModel(
-  model: VideoModelConfigCapabilities | null | undefined,
-): readonly Seedance2Resolution[] {
-  const options = model?.resolutionOptions?.filter(
-    (value): value is Seedance2Resolution => value === "720p" || value === "480p",
-  );
-  return options?.length ? options : GROK_VIDEO_RESOLUTION_OPTIONS;
-}
-
-export function grokVideoRatioOptionsForModel(
-  model: VideoModelConfigCapabilities | null | undefined,
-): readonly GrokVideoRatio[] {
-  const options = model?.ratioOptions?.filter(
-    (value): value is GrokVideoRatio =>
-      value === "16:9" ||
-      value === "9:16" ||
-      value === "1:1" ||
-      value === "2:3" ||
-      value === "3:2",
-  );
-  return options?.length ? options : GROK_VIDEO_RATIO_OPTIONS;
-}
-
-export function normalizeHappyHorseMode(value: unknown): Seedance2Mode {
+export function normalizeReferenceVideoMode(value: unknown): VideoReferenceMode {
   return value === "first_frame" ? "first_frame" : "multimodal_reference";
 }
 
-export function normalizeHappyHorseRatio(
+export function normalizeReferenceVideoRatio(
   value: unknown,
-  fallback: HappyHorseRatio = "16:9",
-): HappyHorseRatio {
-  return HAPPYHORSE_RATIO_OPTIONS.includes(value as HappyHorseRatio)
-    ? (value as HappyHorseRatio)
-    : fallback;
+  options: readonly VideoAspectRatio[],
+  fallback: VideoAspectRatio = "16:9",
+): VideoAspectRatio {
+  return options.includes(value as VideoAspectRatio)
+    ? (value as VideoAspectRatio)
+    : options[0] || fallback;
 }
 
-export function normalizeGrokVideoRatio(
-  value: unknown,
-  fallback: GrokVideoRatio = "16:9",
-): GrokVideoRatio {
-  return GROK_VIDEO_RATIO_OPTIONS.includes(value as GrokVideoRatio)
-    ? (value as GrokVideoRatio)
-    : fallback;
-}
-
-export function normalizeHappyHorseDraftForModel(
-  draft: Seedance2ConfigDraft,
-  resolutionOptions: readonly Seedance2Resolution[],
-  ratioOptions: readonly HappyHorseRatio[],
-): Seedance2ConfigDraft {
-  const durationResolutionOptions = happyHorseResolutionOptionsForDuration(
+export function normalizeReferenceVideoDraftForModel(
+  draft: BeatVideoConfigDraft,
+  resolutionOptions: readonly VideoResolution[],
+  ratioOptions: readonly VideoAspectRatio[],
+  resolutionMaxSeconds: Readonly<Record<string, number>> = {},
+): BeatVideoConfigDraft {
+  const durationResolutionOptions = referenceVideoResolutionOptionsForDuration(
     resolutionOptions,
     draft.duration,
+    resolutionMaxSeconds,
   );
-  const fallbackResolution = durationResolutionOptions.includes("768p")
-    ? "768p"
-    : durationResolutionOptions.includes("1080p")
-      ? "1080p"
-    : durationResolutionOptions[0] || "768p";
-  const resolution: Seedance2Resolution = durationResolutionOptions.includes(
-    draft.resolution as Seedance2Resolution,
+  const fallbackResolution = durationResolutionOptions[0] || "720p";
+  const resolution: VideoResolution = durationResolutionOptions.includes(
+    draft.resolution,
   )
-    ? (draft.resolution as Seedance2Resolution)
+    ? draft.resolution
     : fallbackResolution;
-  const fallbackRatio = ratioOptions[0] || "16:9";
-  const ratio = ratioOptions.includes(draft.ratio as HappyHorseRatio)
-    ? draft.ratio
-    : fallbackRatio;
-  const mode = normalizeHappyHorseMode(draft.mode);
+  const ratio = normalizeReferenceVideoRatio(draft.ratio, ratioOptions);
+  const mode = normalizeReferenceVideoMode(draft.mode);
   if (
     draft.mode === mode &&
     draft.resolution === resolution &&
@@ -407,65 +342,18 @@ export function normalizeHappyHorseDraftForModel(
   return {
     ...draft,
     mode,
-    mode_user_set: true,
     resolution,
     ratio,
     generate_audio: false,
-    generate_audio_user_set: false,
     return_last_frame: false,
     scene_optimize: "",
     human_review: false,
-    human_review_user_set: false,
-  };
-}
-
-export function normalizeGrokVideoDraftForModel(
-  draft: Seedance2ConfigDraft,
-  resolutionOptions: readonly Seedance2Resolution[],
-  ratioOptions: readonly GrokVideoRatio[],
-): Seedance2ConfigDraft {
-  const fallbackResolution = resolutionOptions.includes("720p")
-    ? "720p"
-    : resolutionOptions[0] || "720p";
-  const resolution: Seedance2Resolution = resolutionOptions.includes(
-    draft.resolution as Seedance2Resolution,
-  )
-    ? (draft.resolution as Seedance2Resolution)
-    : fallbackResolution;
-  const fallbackRatio = ratioOptions[0] || "16:9";
-  const ratio = ratioOptions.includes(draft.ratio as GrokVideoRatio)
-    ? draft.ratio
-    : fallbackRatio;
-  const mode = normalizeHappyHorseMode(draft.mode);
-  if (
-    draft.mode === mode &&
-    draft.resolution === resolution &&
-    draft.ratio === ratio &&
-    draft.generate_audio === false &&
-    draft.return_last_frame === false &&
-    draft.scene_optimize === "" &&
-    draft.human_review === false
-  ) {
-    return draft;
-  }
-  return {
-    ...draft,
-    mode,
-    mode_user_set: true,
-    resolution,
-    ratio,
-    generate_audio: false,
-    generate_audio_user_set: false,
-    return_last_frame: false,
-    scene_optimize: "",
-    human_review: false,
-    human_review_user_set: false,
   };
 }
 
 export function videoDurationBoundsForModel(
   model: VideoModelConfigCapabilities | null | undefined,
-): Seedance2DurationBounds {
+): VideoDurationBounds {
   const min = Number(model?.minDuration);
   const max = Number(model?.maxDuration);
   const safeMin = Number.isFinite(min) && min > 0 ? Math.round(min) : 1;
@@ -473,10 +361,10 @@ export function videoDurationBoundsForModel(
   return { min: safeMin, max: safeMax };
 }
 
-export function normalizeSeedance2Resolution(
+export function normalizeVideoResolutionTier(
   value: unknown,
-  fallback: Seedance2Resolution = "720p",
-): Seedance2Resolution {
+  fallback: VideoResolutionTier = "720p",
+): VideoResolutionTier {
   if (
     value === "480p" ||
     value === "720p" ||
@@ -495,10 +383,10 @@ export function normalizeVideoResolution(
   return normalizedVideoResolution(value) ?? fallback;
 }
 
-export function normalizeSeedance2Ratio(
+export function normalizeVideoAspectRatio(
   value: unknown,
-  fallback: Seedance2Ratio = "9:16",
-): Seedance2Ratio {
+  fallback: VideoAspectRatio = "9:16",
+): VideoAspectRatio {
   if (
     value === "9:16" ||
     value === "16:9" ||
@@ -516,7 +404,7 @@ export function normalizeSeedance2Ratio(
 
 export function clampDuration(
   value: unknown,
-  bounds: Seedance2DurationBounds = { min: 1, max: 15 },
+  bounds: VideoDurationBounds = { min: 1, max: 15 },
 ): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -525,48 +413,42 @@ export function clampDuration(
   return Math.max(bounds.min, Math.min(bounds.max, Math.round(parsed)));
 }
 
-export function sameSeedance2Config(
-  left: Seedance2ConfigDraft,
-  right: Seedance2ConfigDraft,
+export function sameBeatVideoConfig(
+  left: BeatVideoConfigDraft,
+  right: BeatVideoConfigDraft,
 ): boolean {
   return (
     left.mode === right.mode &&
-    left.mode_user_set === right.mode_user_set &&
     left.duration === right.duration &&
     left.resolution === right.resolution &&
     left.ratio === right.ratio &&
     left.generate_audio === right.generate_audio &&
-    left.generate_audio_user_set === right.generate_audio_user_set &&
     left.return_last_frame === right.return_last_frame &&
     left.scene_optimize === right.scene_optimize &&
     left.human_review === right.human_review &&
-    left.human_review_user_set === right.human_review_user_set &&
     left.prompt_guidance === right.prompt_guidance &&
     left.final_prompt === right.final_prompt &&
     JSON.stringify(left.text_overlay) === JSON.stringify(right.text_overlay)
   );
 }
 
-export function serializeSeedance2Config(
-  draft: Seedance2ConfigDraft,
-  previous: Seedance2ConfigDraft,
+export function serializeBeatVideoConfig(
+  draft: BeatVideoConfigDraft,
+  previous: BeatVideoConfigDraft,
 ): Record<string, unknown> {
   // Keep final_prompt verbatim so an inserted mention's separator space survives autosave.
   const finalPrompt = draft.final_prompt;
   const trimmedFinalPrompt = finalPrompt.trim();
   return {
-    ...draft.raw,
+    ...draft.managed,
     mode: draft.mode,
-    mode_user_set: draft.mode_user_set,
     duration: draft.duration,
     resolution: draft.resolution,
     ratio: draft.ratio,
     generate_audio: true,
-    generate_audio_user_set: false,
     return_last_frame: draft.return_last_frame,
     scene_optimize: draft.scene_optimize,
     human_review: draft.human_review,
-    human_review_user_set: draft.human_review_user_set,
     prompt_guidance: draft.prompt_guidance.trim(),
     final_prompt: finalPrompt,
     text_overlay: {
@@ -585,88 +467,63 @@ export function serializeSeedance2Config(
   };
 }
 
-export function serializeHappyHorseConfig(
-  draft: Seedance2ConfigDraft,
-  previous: Seedance2ConfigDraft,
+export function serializeReferenceVideoConfig(
+  draft: BeatVideoConfigDraft,
+  previous: BeatVideoConfigDraft,
 ): Record<string, unknown> {
-  const config = serializeSeedance2Config(draft, previous);
+  const config = serializeBeatVideoConfig(draft, previous);
   return {
     ...config,
-    mode: normalizeHappyHorseMode(draft.mode),
-    mode_user_set: true,
-    resolution:
-      draft.duration <= 6 && draft.resolution === "1080p"
-        ? "1080p"
-        : "768p",
-    ratio: normalizeHappyHorseRatio(draft.ratio),
+    mode: normalizeReferenceVideoMode(draft.mode),
+    resolution: draft.resolution,
+    ratio: draft.ratio,
     generate_audio: false,
-    generate_audio_user_set: false,
     return_last_frame: false,
     scene_optimize: "",
     human_review: false,
-    human_review_user_set: false,
   };
 }
 
-export function serializeGrokVideoConfig(
-  draft: Seedance2ConfigDraft,
-  previous: Seedance2ConfigDraft,
-): Record<string, unknown> {
-  const config = serializeSeedance2Config(draft, previous);
-  return {
-    ...config,
-    mode: normalizeHappyHorseMode(draft.mode),
-    mode_user_set: true,
-    resolution: draft.resolution === "480p" ? "480p" : "720p",
-    ratio: normalizeGrokVideoRatio(draft.ratio),
-    generate_audio: false,
-    generate_audio_user_set: false,
-    return_last_frame: false,
-    scene_optimize: "",
-    human_review: false,
-    human_review_user_set: false,
-  };
-}
-
-export function getSeedance2ConfigSaveKey(
+export function getBeatVideoConfigSaveKey(
   beatNumber: number,
   config: Record<string, unknown>,
 ): string {
   return `${beatNumber}:${JSON.stringify(config)}`;
 }
 
-function defaultSeedance2Config(
+function defaultBeatVideoConfig(
   raw: Record<string, unknown>,
-  defaultRatio: Seedance2Ratio,
-): Seedance2ConfigDraft {
+  defaultRatio: VideoAspectRatio,
+): BeatVideoConfigDraft {
   const textOverlay =
     raw.text_overlay && typeof raw.text_overlay === "object" && !Array.isArray(raw.text_overlay)
       ? (raw.text_overlay as Record<string, unknown>)
       : {};
-  const modeUserSet = raw.mode_user_set === true;
-  const rawMode = normalizeSeedance2Mode(raw.mode);
   return {
-    raw,
-    mode: !modeUserSet && raw.mode === "first_frame" ? "multimodal_reference" : rawMode,
-    mode_user_set: modeUserSet,
+    managed: {
+      prompt_validation_source: String(raw.prompt_validation_source ?? ""),
+      prompt_inputs_hash: String(raw.prompt_inputs_hash ?? ""),
+      prompt_updated_at: String(raw.prompt_updated_at ?? ""),
+      reference_image_paths: stringList(raw.reference_image_paths),
+      reference_audio_paths: stringList(raw.reference_audio_paths),
+      selected_asset_keys: stringList(raw.selected_asset_keys),
+    },
+    mode: normalizeVideoReferenceMode(raw.mode),
     duration: clampDuration(raw.duration),
     resolution: normalizeVideoResolution(raw.resolution),
-    ratio: normalizeSeedance2Ratio(raw.ratio, defaultRatio),
-    generate_audio_user_set: false,
-    generate_audio: true,
+    ratio: normalizeVideoAspectRatio(raw.ratio, defaultRatio),
+    generate_audio:
+      typeof raw.generate_audio === "boolean" ? raw.generate_audio : true,
     return_last_frame: raw.return_last_frame === true,
-    scene_optimize: normalizeSeedance2SceneOptimize(raw.scene_optimize),
-    human_review_user_set: raw.human_review_user_set === true,
+    scene_optimize: normalizeVideoSceneOptimize(raw.scene_optimize),
     human_review:
-      raw.human_review === false && raw.human_review_user_set === true
-        ? false
-        : true,
+      typeof raw.human_review === "boolean" ? raw.human_review : true,
     prompt_source: String(raw.prompt_source ?? ""),
     prompt_guidance: String(raw.prompt_guidance ?? ""),
     final_prompt: String(raw.final_prompt ?? ""),
     text_overlay: {
       enabled: textOverlay.enabled === true,
-      kind: normalizeSeedance2TextOverlayKind(textOverlay.kind),
+      kind: normalizeVideoTextOverlayKind(textOverlay.kind),
       content: String(textOverlay.content ?? ""),
       placement: String(textOverlay.placement ?? "画面下方居中"),
       timing: String(textOverlay.timing ?? "全片持续"),
@@ -676,21 +533,14 @@ function defaultSeedance2Config(
   };
 }
 
-function defaultSeedance2ValueSceneOptimize(
-  value: string | null | undefined,
-): Seedance2ConfigDraft["scene_optimize"] {
-  const text = String(value ?? "").trim().toLowerCase();
-  return text.includes("fast-value") ? "realistic" : "anime";
-}
-
-function normalizeSeedance2SceneOptimize(
+function normalizeVideoSceneOptimize(
   value: unknown,
-): Seedance2ConfigDraft["scene_optimize"] {
+): BeatVideoConfigDraft["scene_optimize"] {
   if (value === "anime" || value === "realistic") return value;
   return "";
 }
 
-function normalizeSeedance2TextOverlayKind(value: unknown): string {
+function normalizeVideoTextOverlayKind(value: unknown): string {
   if (
     value === "ad_copy" ||
     value === "subtitle" ||
@@ -698,6 +548,14 @@ function normalizeSeedance2TextOverlayKind(value: unknown): string {
   ) {
     return value;
   }
-  if (value === "caption") return "subtitle";
   return "subtitle";
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 }

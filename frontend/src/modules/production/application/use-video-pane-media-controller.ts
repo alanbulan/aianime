@@ -33,10 +33,14 @@ export interface VideoPaneMediaControllerOptions {
   project: string;
   state: BeatStageState;
   videoActive: boolean;
-  videoModels: ReadonlyArray<{ value: string; label: string }>;
+  videoModels: ReadonlyArray<{
+    value: string;
+    apiModel?: string;
+    label: string;
+  }>;
   videoProgress: number;
   videoUrl?: string | null;
-  useSeedance2Preview: boolean;
+  useVideoReferencePreview: boolean;
 }
 
 export interface VideoPaneMediaCandidate {
@@ -59,7 +63,7 @@ export interface VideoPaneMediaController {
   previewSource: string | null;
   selectionPending: boolean;
   state: BeatStageState;
-  useSeedance2Preview: boolean;
+  useVideoReferencePreview: boolean;
   videoActive: boolean;
   videoPercent: number;
   deleteCandidate(poolId: string): Promise<void>;
@@ -90,9 +94,11 @@ export function createUseVideoPaneMediaController(
     const modelLabels = useMemo(
       () =>
         new Map(
-          options.videoModels.map((model) => [
-            model.value,
-            model.label,
+          options.videoModels.flatMap((model) => [
+            [model.value, model.label] as const,
+            ...(model.apiModel
+              ? ([[model.apiModel, model.label]] as const)
+              : []),
           ]),
         ),
       [options.videoModels],
@@ -181,7 +187,7 @@ export function createUseVideoPaneMediaController(
       previewSource,
       selectionPending: poolSelect.isPending,
       state: options.state,
-      useSeedance2Preview: options.useSeedance2Preview,
+      useVideoReferencePreview: options.useVideoReferencePreview,
       videoActive: options.videoActive,
       videoPercent: Math.max(
         0,

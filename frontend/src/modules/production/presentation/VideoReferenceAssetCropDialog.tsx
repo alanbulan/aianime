@@ -12,35 +12,35 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useSeedance2AssetCropController } from "@/modules/production/application/use-seedance2-asset-crop-controller";
+import { useVideoReferenceAssetCropController } from "@/modules/production/application/use-video-reference-asset-crop-controller";
 import type {
-  Seedance2CropAspect,
-  Seedance2CropIntent,
-} from "@/modules/production/domain/seedance2-crop";
+  VideoReferenceCropAspect,
+  VideoReferenceCropIntent,
+} from "@/modules/production/domain/video-reference-crop";
 import type {
-  Seedance2AssetItem,
+  VideoReferenceAssetItem,
   VideoInputCropTarget,
-} from "@/modules/production/domain/seedance2-panel";
+} from "@/modules/production/domain/video-reference-panel";
 
-export function Seedance2AssetCropDialog({
+export function VideoReferenceAssetCropDialog({
   intent,
   targetCropAspect,
   pending,
   onOpenChange,
   onSave,
 }: {
-  intent: Seedance2CropIntent | null;
-  targetCropAspect: Seedance2CropAspect;
+  intent: VideoReferenceCropIntent | null;
+  targetCropAspect: VideoReferenceCropAspect;
   pending: boolean;
   onOpenChange(open: boolean): void;
   onSave(
-    asset: Seedance2AssetItem,
+    asset: VideoReferenceAssetItem,
     target: VideoInputCropTarget,
     crop: CropBox,
   ): void;
 }) {
   const { t } = useTranslation();
-  const controller = useSeedance2AssetCropController(intent, targetCropAspect);
+  const controller = useVideoReferenceAssetCropController(intent, targetCropAspect);
   const cropBoxStyle = cropBoxPercentStyle(
     controller.crop,
     controller.imageSize.width,
@@ -59,7 +59,7 @@ export function Seedance2AssetCropDialog({
             {`裁剪 ${controller.cropAspect}`}
           </div>
           <DialogTitle className="absolute left-1/2 max-w-[52vw] -translate-x-1/2 truncate text-center text-sm font-medium text-foreground">
-            {t("episode.workbench.video.seedance2AssetCropTitle")}
+            {t("episode.workbench.video.videoReferenceAssetCropTitle")}
           </DialogTitle>
           <button
             type="button"
@@ -124,7 +124,7 @@ export function Seedance2AssetCropDialog({
                 </div>
               ) : (
                 <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
-                  {t("episode.workbench.video.seedance2ReferenceMissing")}
+                  {t("episode.workbench.video.videoReferenceMissing")}
                 </div>
               )}
             </div>
@@ -150,7 +150,7 @@ export function Seedance2AssetCropDialog({
                 ) : (
                   <Scissors className="size-3.5" />
                 )}
-                {t("episode.workbench.video.seedance2AssetCrop")}
+                {t("episode.workbench.video.videoReferenceAssetCrop")}
               </Button>
             </div>
           </>

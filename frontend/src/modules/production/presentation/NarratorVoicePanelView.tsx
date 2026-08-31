@@ -105,7 +105,7 @@ export function NarratorVoicePanelView({
     onGenerateDesignedVoice,
     onGeneratePresetVoice,
     onVoiceSourceTypeChange,
-    onOpenAiVoice,
+    onOpenVoiceGenerator,
     onOpenRecord,
     onOpenTrim,
     onRecordOpenChange,
@@ -182,7 +182,7 @@ export function NarratorVoicePanelView({
               )}
             />
             {hasVoice
-              ? t("episode.workbench.video.seedance2Ready")
+              ? t("episode.workbench.video.videoReferenceReady")
               : t("episode.workbench.video.narratorVoiceMissing")}
           </span>
         </div>
@@ -208,7 +208,7 @@ export function NarratorVoicePanelView({
             size="xs"
             variant="outline"
             disabled={pending}
-            onClick={onOpenAiVoice}
+            onClick={onOpenVoiceGenerator}
             className={SECONDARY_ACTION_CLASS}
           >
             <Sparkles className="size-3" />

@@ -27,7 +27,6 @@ import { StalePoolSelectError } from "@/modules/production/application/image-poo
 import type {
   BeatImageUploadResponse,
   ImagePoolSelectResponse,
-  ProductionDataResponse,
   ProductionErrorResponse,
   ProductionTaskResponse,
 } from "@/modules/production/application/ports";
@@ -37,19 +36,10 @@ import {
 } from "@/modules/production/domain/image-pool";
 import type {
   SketchAspectRatio,
-  SketchSettingsData,
 } from "@/modules/production/domain/image-settings";
 import type { RegenerateSketchesCommand } from "@/modules/production/domain/sketch-generation";
 
 const NEW_WINDOW_MS = 10 * 60 * 1000;
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
-
-interface SketchSettingsQuery {
-  data?: ProductionDataResponse<SketchSettingsData>;
-}
 
 interface PoolSelectMutation {
   isPending: boolean;
@@ -118,7 +108,6 @@ export interface SketchSectionControllerQueries {
     project: string,
     episode: number,
   ): RegenerateSketchesMutation;
-  useSketchSettings(project: string): SketchSettingsQuery;
   useScript(project: string, episode: number): SketchScriptQuery;
   useUpdateBeatBackgroundAnchor(
     project: string,
@@ -148,15 +137,6 @@ export interface SketchSectionControllerDependencies {
     episode: number,
     beatNumber: number,
   ): Promise<unknown>;
-  useGenerationCreditCost(
-    kind: "image_selection",
-    value: string | undefined,
-    options: {
-      imageRole: "sketch";
-      modeKey: string;
-      surface: "ai_anime";
-    },
-  ): CreditCostQuery;
   useAssetNavigation(
     project: string,
   ): (kind: "identity" | "prop", id: string) => void;
@@ -300,7 +280,6 @@ export interface SketchSectionController {
   sketchActive: boolean;
   sketchAspectRatio: string;
   sketchPercent: number;
-  sketchRegenCostDisplay?: string | null;
   stageDialogOpen: boolean;
   stalePromptOpen: boolean;
   uploadPending: boolean;
@@ -366,20 +345,10 @@ export function createUseSketchSectionController(
       options.project,
       options.episode,
     );
-    const sketchSettings = queries.useSketchSettings(options.project);
     const singleSketchModeKey =
       spec.sketchAspect === "16:9"
         ? "1x1_16-9_sketch"
         : "1x1_2-3_sketch";
-    const sketchRegenCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      sketchSettings.data?.data.sketch_image_selection,
-      {
-        surface: "ai_anime",
-        imageRole: "sketch",
-        modeKey: singleSketchModeKey,
-      },
-    );
     const uploadSketch = queries.useUploadBeatImage(
       options.project,
       options.episode,
@@ -892,7 +861,6 @@ export function createUseSketchSectionController(
       sketchActive,
       sketchAspectRatio: ratioToCss(spec.sketchAspect),
       sketchPercent,
-      sketchRegenCostDisplay: sketchRegenCost.data?.data.display,
       stageDialogOpen,
       stalePromptOpen: stalePrompt !== null,
       uploadPending: uploadSketch.isPending,

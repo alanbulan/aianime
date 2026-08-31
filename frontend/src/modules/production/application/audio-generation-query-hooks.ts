@@ -15,7 +15,7 @@ export function createAudioGenerationQueryHooks(
     });
   }
 
-  function useAudioBillingQuote(
+  function useAudioGenerationPlan(
     project: string,
     episode: number,
     command: GenerateAudioCommand = {},
@@ -25,14 +25,14 @@ export function createAudioGenerationQueryHooks(
     const mode = command.mode ?? "sync_changed";
     return useQuery({
       queryKey: [
-        ...queryKeys.audioBillingQuotes(project),
+        ...queryKeys.audioGenerationPlans(project),
         episode,
         mode,
         beatNumbers.join(","),
         revision,
       ] as const,
       queryFn: ({ signal }) =>
-        gateway.getEpisodeAudioBillingQuote(
+        gateway.getEpisodeAudioGenerationPlan(
           project,
           episode,
           {
@@ -56,5 +56,5 @@ export function createAudioGenerationQueryHooks(
     });
   }
 
-  return { useAudioBillingQuote, useGenerateAudio, useRegenerateBeatAudio };
+  return { useAudioGenerationPlan, useGenerateAudio, useRegenerateBeatAudio };
 }

@@ -2,7 +2,6 @@
 import { useTranslation } from "react-i18next";
 import { Film, Loader2, RefreshCw, Square } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +63,6 @@ export function BeatVideoGenerationAction({
       {hasGeneratedVideo
         ? t("common.regenerate")
         : t("episode.workbench.video.generateVideo")}
-      <CreditCostInline display={controller.costDisplay} />
     </Button>
   );
 }

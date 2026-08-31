@@ -22,7 +22,6 @@ import {
   X,
 } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   CROP_DIALOG_SAVE_BUTTON_CLASS,
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
@@ -113,7 +112,6 @@ export function RenderSectionView({
     renderActive,
     renderAspectRatio,
     renderPercent,
-    renderRegenCostDisplay,
     stalePromptOpen,
     uploadPending,
     onConfirmRegen,
@@ -303,7 +301,6 @@ export function RenderSectionView({
                   {previewUrl
                     ? t("common.regenerate")
                     : t("episode.workbench.render.generateNew")}
-                  <CreditCostInline display={renderRegenCostDisplay} />
                 </Button>
               )}
               {relight ? (

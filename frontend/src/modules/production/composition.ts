@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { createElement, useMemo } from "react";
 
-import { formatCreditCost } from "@/components/credit-visual";
 import { withImageCacheBust } from "@/shared/media/image-cache";
 import { useNow } from "@/shared/hooks/use-now";
 import { useTaskController } from "@/modules/task_execution/public";
@@ -16,8 +15,6 @@ import {
   useCommercialModelAccessStatus,
   loadCommercialModelCatalog,
   resolveCommercialModelRoleRoute,
-  useGenerationCreditCost,
-  useGenerationCreditCosts,
 } from "@/modules/model_usage/public";
 import { useTasks } from "@/modules/task_execution/public";
 import {
@@ -44,7 +41,7 @@ import { createRenderPlanQueryHooks } from "@/modules/production/application/ren
 import { createUseVideoModels } from "@/modules/production/application/video-model-query-hooks";
 import { createVideoGenerationQueryHooks } from "@/modules/production/application/video-generation-query-hooks";
 import { createVideoPoolQueryHooks } from "@/modules/production/application/video-pool-query-hooks";
-import { createSeedance2PanelQueryHooks } from "@/modules/production/application/seedance2-panel-query-hooks";
+import { createVideoReferencePanelQueryHooks } from "@/modules/production/application/video-reference-panel-query-hooks";
 import { createSketchPoseEditorQueryHooks } from "@/modules/production/application/sketch-pose-editor-query-hooks";
 import { createSketchMarkerQueryHooks } from "@/modules/production/application/sketch-marker-query-hooks";
 import { createSketchGenerationQueryHooks } from "@/modules/production/application/sketch-generation-query-hooks";
@@ -53,7 +50,7 @@ import { createUseBatchBarController } from "@/modules/production/application/us
 import { createUseBeatStates } from "@/modules/production/application/use-beat-states";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import { createUseEpisodeComposePageController } from "@/modules/production/application/use-episode-compose-page-controller";
-import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
+import { createUseBasicVideoPromptController } from "@/modules/production/application/use-basic-video-prompt-controller";
 import {
   createUseNarratorVoicePanelController,
   type NarratorVoicePresetAvailability,
@@ -65,15 +62,15 @@ import {
 import { createUseRenderPlanDialogController } from "@/modules/production/application/use-render-plan-dialog-controller";
 import { createUseSketchCropDialogController } from "@/modules/production/application/use-sketch-crop-dialog-controller";
 import { createUseSketchPoseEditorDialogController } from "@/modules/production/application/use-sketch-pose-editor-dialog-controller";
-import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
-import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
+import { createUseVideoReferenceAssetOperationsController } from "@/modules/production/application/use-video-reference-asset-operations-controller";
+import { createUseBeatVideoConfigController } from "@/modules/production/application/use-beat-video-config-controller";
 import {
   createUseSketchGridCardController,
   createUseSketchGridGalleryController,
 } from "@/modules/production/application/use-sketch-grid-gallery-controller";
 import { createUseVideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import { createUseVideoPaneController } from "@/modules/production/application/use-video-pane-controller";
-import { useSeedance2MentionController } from "@/modules/production/application/use-seedance2-mention-controller";
+import { useVideoReferenceMentionController } from "@/modules/production/application/use-video-reference-mention-controller";
 import { httpProductionVideoGateway } from "@/modules/production/infrastructure/http-production-video-gateway";
 import { promptLanguageFromLocale } from "@/modules/production/domain/video-generation";
 import { AudioPaneView } from "@/modules/production/presentation/AudioPaneView";
@@ -99,7 +96,7 @@ const useAudioPaneController = createUseAudioPaneController(
 const videoPoolQueries = createVideoPoolQueryHooks(
   httpProductionVideoGateway,
 );
-const seedance2PanelQueries = createSeedance2PanelQueryHooks(
+const videoReferencePanelQueries = createVideoReferencePanelQueryHooks(
   httpProductionVideoGateway,
 );
 const imagePoolQueries = createImagePoolQueryHooks(
@@ -178,35 +175,29 @@ const gridBrowserCommands = {
   },
 };
 export const useBeatVideoGenerationController =
-  createUseBeatVideoGenerationController(videoGenerationQueries, {
-    useGenerationCreditCost,
-  });
-export const useLegacyVideoPromptController =
-  createUseLegacyVideoPromptController(videoGenerationQueries, {
-    useGenerationCreditCost,
-  });
-export const useSeedance2ConfigController =
-  createUseSeedance2ConfigController(videoGenerationQueries, {
-    useGenerationCreditCost,
-  });
-export const useSeedance2AssetOperationsController =
-  createUseSeedance2AssetOperationsController(seedance2PanelQueries);
+  createUseBeatVideoGenerationController(videoGenerationQueries);
+export const useBasicVideoPromptController =
+  createUseBasicVideoPromptController(videoGenerationQueries);
+export const useBeatVideoConfigController =
+  createUseBeatVideoConfigController(videoGenerationQueries);
+export const useVideoReferenceAssetOperationsController =
+  createUseVideoReferenceAssetOperationsController(videoReferencePanelQueries);
 export const useVideoPaneMediaController = createUseVideoPaneMediaController(
   videoPoolQueries,
   { useNow },
 );
 export const useVideoPaneController = createUseVideoPaneController(
   {
-    useSeedance2BeatStatus: seedance2PanelQueries.useSeedance2BeatStatus,
+    useVideoReferenceBeatStatus: videoReferencePanelQueries.useVideoReferenceBeatStatus,
     useVideoModels,
   },
   {
     useBeatVideoGenerationController,
-    useLegacyVideoPromptController,
+    useBasicVideoPromptController,
     useProjectAspectRatio,
-    useSeedance2AssetOperationsController,
-    useSeedance2ConfigController,
-    useSeedance2MentionController,
+    useVideoReferenceAssetOperationsController,
+    useBeatVideoConfigController,
+    useVideoReferenceMentionController,
     useVideoPaneMediaController,
   },
 );
@@ -246,7 +237,7 @@ export const useSketchGridCardController =
 export const useBatchBarController = createUseBatchBarController(
   {
     useAssignColors: sketchMarkerQueries.useAssignColors,
-    useAudioBillingQuote: audioGenerationQueries.useAudioBillingQuote,
+    useAudioGenerationPlan: audioGenerationQueries.useAudioGenerationPlan,
     useDetectIdentities: sketchMarkerQueries.useDetectIdentities,
     useGenerateAudio: audioGenerationQueries.useGenerateAudio,
     useGlobalOptimize: videoGenerationQueries.useGlobalOptimize,
@@ -258,18 +249,12 @@ export const useBatchBarController = createUseBatchBarController(
     useImageModels,
     useVideoModels,
   },
-  { useGenerationCreditCost },
 );
 export const useRenderPlanDialogController =
   createUseRenderPlanDialogController(
     {
       useRenderExecute: renderPlanQueries.useRenderExecute,
       useRenderPlan: renderPlanQueries.useRenderPlan,
-      useRenderSettings: imageSettingsQueries.useRenderSettings,
-    },
-    {
-      formatCreditCost,
-      useGenerationCreditCosts,
     },
   );
 export const useSketchCropDialogController =
@@ -314,16 +299,16 @@ export const {
   useUploadGrid,
 } = imageGridQueries;
 export const {
-  useSeedance2BeatStatus,
-  useUploadSeedance2Asset,
-  useDeleteSeedance2Asset,
-  useCropSeedance2Asset,
-  useTrimSeedance2Asset,
-} = seedance2PanelQueries;
+  useVideoReferenceBeatStatus,
+  useUploadVideoReferenceAsset,
+  useDeleteVideoReferenceAsset,
+  useCropVideoReferenceAsset,
+  useTrimVideoReferenceAsset,
+} = videoReferencePanelQueries;
 export const {
   useProductionWorkflow,
   useGlobalOptimize,
-  useGenerateSeedance2Prompt,
+  useGenerateVideoPrompt,
   useGenerateBeatVideoPrompt,
   useRegenerateBeatVideo,
 } = videoGenerationQueries;
@@ -337,7 +322,7 @@ export const {
   useDeleteNarratorVoice,
 } = narratorVoiceQueries;
 export const {
-  useAudioBillingQuote,
+  useAudioGenerationPlan,
   useGenerateAudio,
   useRegenerateBeatAudio,
 } =

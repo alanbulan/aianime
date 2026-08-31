@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -7,7 +7,6 @@ import type {
   ProductionDataResponse,
   ProductionErrorResponse,
 } from "@/modules/production/application/ports";
-import type { RenderSettingsData } from "@/modules/production/domain/image-settings";
 import type {
   CreateRenderPlanCommand,
   ExecuteRenderPlanCommand,
@@ -39,35 +38,9 @@ interface RenderExecuteMutation {
   mutateAsync(command: ExecuteRenderPlanCommand): Promise<RenderExecuteResponse>;
 }
 
-interface RenderSettingsQuery {
-  data?: ProductionDataResponse<RenderSettingsData>;
-}
-
-interface CreditCostQuery {
-  data?: { data: { cost: number } };
-}
-
-export interface RenderPlanCreditCostRequest {
-  kind: "image_selection";
-  value: string | null;
-  options: {
-    imageRole: "render";
-    modeKey: string;
-    surface: "ai_anime";
-  };
-}
-
 export interface RenderPlanDialogControllerQueries {
   useRenderExecute(project: string, episode: number): RenderExecuteMutation;
   useRenderPlan(project: string, episode: number): RenderPlanMutation;
-  useRenderSettings(project: string): RenderSettingsQuery;
-}
-
-export interface RenderPlanDialogControllerDependencies {
-  formatCreditCost(cost: number): string;
-  useGenerationCreditCosts(
-    requests: readonly RenderPlanCreditCostRequest[],
-  ): readonly CreditCostQuery[];
 }
 
 export interface RenderPlanDialogControllerOptions {
@@ -89,7 +62,6 @@ export interface RenderPlanDialogController {
   open: boolean;
   plan: RenderPlan | null;
   planPending: boolean;
-  renderPlanCostDisplay: string | null;
   staleBanner: RenderPlanStaleBanner;
   onConfirm(): void;
   onOpenChange(open: boolean): void;
@@ -97,7 +69,6 @@ export interface RenderPlanDialogController {
 
 export function createUseRenderPlanDialogController(
   queries: RenderPlanDialogControllerQueries,
-  dependencies: RenderPlanDialogControllerDependencies,
 ) {
   return function useRenderPlanDialogController({
     open,
@@ -112,36 +83,9 @@ export function createUseRenderPlanDialogController(
     const { t } = useTranslation();
     const planMutation = queries.useRenderPlan(project, episode);
     const executeMutation = queries.useRenderExecute(project, episode);
-    const renderSettings = queries.useRenderSettings(project);
     const [plan, setPlan] = useState<RenderPlan | null>(null);
     const [staleBanner, setStaleBanner] =
       useState<RenderPlanStaleBanner>(null);
-    const renderImageSelection =
-      renderSettings.data?.data.render_image_selection ?? null;
-    const renderCostModeKeys = useMemo(
-      () => [
-        ...new Set(
-          (plan?.plan ?? []).map((entry) => entry.mode_key).filter(Boolean),
-        ),
-      ],
-      [plan?.plan],
-    );
-    const renderCostRequests = useMemo<RenderPlanCreditCostRequest[]>(
-      () =>
-        renderCostModeKeys.map((modeKey) => ({
-          kind: "image_selection",
-          value: renderImageSelection,
-          options: {
-            surface: "ai_anime",
-            modeKey,
-            imageRole: "render",
-          },
-        })),
-      [renderCostModeKeys, renderImageSelection],
-    );
-    const renderCostQueries =
-      dependencies.useGenerationCreditCosts(renderCostRequests);
-
     useEffect(() => {
       if (!open) return;
       setPlan(null);
@@ -262,31 +206,12 @@ export function createUseRenderPlanDialogController(
       }
     };
 
-    let renderPlanCostDisplay: string | null = null;
-    if (plan) {
-      let complete = true;
-      let totalCost = 0;
-      for (const entry of plan.plan) {
-        const queryIndex = renderCostModeKeys.indexOf(entry.mode_key);
-        const cost = renderCostQueries[queryIndex]?.data?.data.cost;
-        if (typeof cost !== "number") {
-          complete = false;
-          break;
-        }
-        totalCost += cost;
-      }
-      renderPlanCostDisplay = complete
-        ? dependencies.formatCreditCost(totalCost)
-        : null;
-    }
-
     return {
       beatCount: beatIndices.length,
       executePending: executeMutation.isPending,
       open,
       plan,
       planPending: planMutation.isPending,
-      renderPlanCostDisplay,
       staleBanner,
       onConfirm: () => {
         void confirm();

@@ -35,7 +35,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   MEDIA_PRIMARY_ACTION_BUTTON_CLASS,
   MEDIA_THUMB_DELETE_CLASS,
@@ -112,7 +111,6 @@ export function SketchSectionView({
     sketchActive,
     sketchAspectRatio,
     sketchPercent,
-    sketchRegenCostDisplay,
     stalePromptOpen,
     uploadPending,
     onBackgroundDialogOpenChange,
@@ -430,7 +428,6 @@ export function SketchSectionView({
               {hasSketch
                 ? t("common.regenerate")
                 : t("common.generateNew")}
-              <CreditCostInline display={sketchRegenCostDisplay} />
             </Button>
           )}
         </div>

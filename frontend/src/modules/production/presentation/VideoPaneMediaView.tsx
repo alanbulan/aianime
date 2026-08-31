@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import type { VideoPaneMediaController } from "@/modules/production/application/use-video-pane-media-controller";
 import {
   BeatVideoPlayer,
-  Seedance2MediaPreview,
+  VideoReferenceMediaPreview,
 } from "@/modules/production/presentation/VideoPaneParts";
 import {
   MEDIA_THUMB_ACTIVE_CLASS,
@@ -50,8 +50,8 @@ export function VideoPaneMediaView({
   return (
     <>
       <div className={VIDEO_PREVIEW_CLASS} style={{ aspectRatio: "16 / 9" }}>
-        {controller.useSeedance2Preview ? (
-          <Seedance2MediaPreview
+        {controller.useVideoReferencePreview ? (
+          <VideoReferenceMediaPreview
             src={controller.previewSource}
             state={controller.state}
           />

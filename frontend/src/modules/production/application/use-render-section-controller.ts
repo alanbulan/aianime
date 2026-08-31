@@ -22,7 +22,6 @@ import { StalePoolSelectError } from "@/modules/production/application/image-poo
 import type {
   BeatImageUploadResponse,
   ImagePoolSelectResponse,
-  ProductionDataResponse,
   ProductionErrorResponse,
   ProductionTaskResponse,
 } from "@/modules/production/application/ports";
@@ -30,18 +29,9 @@ import {
   imagePoolModelSource,
   type PoolImage,
 } from "@/modules/production/domain/image-pool";
-import type { RenderSettingsData } from "@/modules/production/domain/image-settings";
 import type { RegenerateRenderBeatsCommand } from "@/modules/production/domain/sketch-generation";
 
 const NEW_WINDOW_MS = 10 * 60 * 1000;
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
-
-interface RenderSettingsQuery {
-  data?: ProductionDataResponse<RenderSettingsData>;
-}
 
 interface PoolSelectMutation {
   isPending: boolean;
@@ -100,7 +90,6 @@ export interface RenderSectionControllerQueries {
     project: string,
     episode: number,
   ): RegenerateRenderMutation;
-  useRenderSettings(project: string): RenderSettingsQuery;
   useScenePlatePreview(
     project: string,
     sceneId: string,
@@ -136,15 +125,6 @@ export interface RenderSectionControllerDependencies {
     episode: number,
     beatNumber: number,
   ): Promise<unknown>;
-  useGenerationCreditCost(
-    kind: "image_selection",
-    value: string | undefined,
-    options: {
-      imageRole: "render";
-      modeKey: "1x1_2-3" | "1x1_16-9";
-      surface: "ai_anime";
-    },
-  ): CreditCostQuery;
   useNow(): number;
   useProjectAspectRatio(project: string): {
     spec: { ratioValue: number; renderAspect: string };
@@ -267,7 +247,6 @@ export interface RenderSectionController {
   renderActive: boolean;
   renderAspectRatio: string;
   renderPercent: number;
-  renderRegenCostDisplay?: string | null;
   stalePromptOpen: boolean;
   uploadPending: boolean;
   commitDirectorCapture(meta: RenderDirectorCaptureMeta): Promise<void>;
@@ -370,16 +349,6 @@ export function createUseRenderSectionController(
     const regenerate = queries.useRegenerateRenderBeats(
       options.project,
       options.episode,
-    );
-    const renderSettings = queries.useRenderSettings(options.project);
-    const renderRegenCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      renderSettings.data?.data.render_image_selection,
-      {
-        surface: "ai_anime",
-        imageRole: "render",
-        modeKey: singleRenderModeKey,
-      },
     );
     const uploadRender = queries.useUploadBeatImage(
       options.project,
@@ -787,7 +756,6 @@ export function createUseRenderSectionController(
       renderActive: regenTask.started,
       renderAspectRatio: ratioToCss(aspectSpec.renderAspect),
       renderPercent,
-      renderRegenCostDisplay: renderRegenCost.data?.data.display,
       stalePromptOpen: stalePrompt !== null,
       uploadPending: uploadRender.isPending,
       commitDirectorCapture,

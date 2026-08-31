@@ -313,7 +313,7 @@ function formatVideoTime(seconds: number): string {
   return `${minutes}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
-export function Seedance2MediaPreview({
+export function VideoReferenceMediaPreview({
   src,
   state,
 }: {
@@ -333,7 +333,7 @@ export function Seedance2MediaPreview({
   return <BeatVideoPlayer src={src} beatNum={0} />;
 }
 
-export function Seedance2SummaryPill({
+export function VideoReferenceSummaryPill({
   active,
   attention = false,
   detail,
@@ -371,7 +371,7 @@ export function Seedance2SummaryPill({
   );
 }
 
-export function Seedance2Field({
+export function VideoReferenceField({
   label,
   htmlFor,
   children,
@@ -420,7 +420,7 @@ export function VideoParamField({
   );
 }
 
-export function Seedance2Checkbox({
+export function VideoReferenceCheckbox({
   id,
   checked,
   label,

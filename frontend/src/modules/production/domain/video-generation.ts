@@ -2,7 +2,7 @@
 
 export type VideoPromptLanguage = "zh" | "en";
 
-export interface GenerateSeedance2PromptCommand {
+export interface GenerateVideoPromptCommand {
   beatNum: number;
   manualPromptReference?: string;
   promptGuidance?: string;
@@ -17,7 +17,7 @@ export interface RegenerateBeatVideoCommand {
   duration?: number;
   ratio?: string;
   mode?: string;
-  seedance2ConfigJson?: string;
+  videoConfigJson?: string;
   audioSetting?: string;
 }
 

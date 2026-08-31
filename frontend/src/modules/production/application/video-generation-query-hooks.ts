@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { patchBeatQueryCache } from "@/modules/production/application/beat-query-cache";
 import type { ProductionVideoGateway } from "@/modules/production/application/ports";
 import type {
-  GenerateSeedance2PromptCommand,
+  GenerateVideoPromptCommand,
   RegenerateBeatVideoCommand,
   VideoPromptLanguage,
 } from "@/modules/production/domain/video-generation";
@@ -36,10 +36,10 @@ export function createVideoGenerationQueryHooks(
     });
   }
 
-  function useGenerateSeedance2Prompt(project: string, episode: number) {
+  function useGenerateVideoPrompt(project: string, episode: number) {
     return useMutation({
-      mutationFn: (command: GenerateSeedance2PromptCommand) =>
-        gateway.generateSeedance2Prompt(project, episode, command),
+      mutationFn: (command: GenerateVideoPromptCommand) =>
+        gateway.generateVideoPrompt(project, episode, command),
     });
   }
 
@@ -77,7 +77,7 @@ export function createVideoGenerationQueryHooks(
   return {
     useProductionWorkflow,
     useGlobalOptimize,
-    useGenerateSeedance2Prompt,
+    useGenerateVideoPrompt,
     useGenerateBeatVideoPrompt,
     useRegenerateBeatVideo,
   };

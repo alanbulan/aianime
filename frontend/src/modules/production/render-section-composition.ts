@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/public";
 import { useNow } from "@/shared/hooks/use-now";
-import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import {
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,
@@ -21,7 +20,6 @@ import {
   usePoolDelete,
   usePoolSelect,
   useRegenerateRenderBeats,
-  useRenderSettings,
   useUploadBeatImage,
 } from "@/modules/production/composition";
 import type { PoolImage } from "@/modules/production/domain/image-pool";
@@ -38,7 +36,6 @@ const useRenderSectionController = createUseRenderSectionController(
     usePoolDelete,
     usePoolSelect,
     useRegenerateRenderBeats,
-    useRenderSettings,
     useScenePlatePreview,
     useUpdateBeatBackgroundAnchor,
     useUploadBeatBackgroundAnchor,
@@ -58,7 +55,6 @@ const useRenderSectionController = createUseRenderSectionController(
         beat: beatNumber,
         primary_slot: "frame",
       }),
-    useGenerationCreditCost,
     useNow,
     useProjectAspectRatio,
     useSeenRenderCandidates: (project, episode) => ({

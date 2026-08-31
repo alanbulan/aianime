@@ -14,9 +14,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resolveMediaUrl } from "@/lib/media-url";
-import type { Seedance2AssetItem } from "@/modules/production/domain/seedance2-panel";
+import type { VideoReferenceAssetItem } from "@/modules/production/domain/video-reference-panel";
 
-export function Seedance2AudioTrimDialog({
+export function VideoReferenceAudioTrimDialog({
   asset,
   start,
   duration,
@@ -26,7 +26,7 @@ export function Seedance2AudioTrimDialog({
   onOpenChange,
   onSave,
 }: {
-  asset: Seedance2AssetItem | null;
+  asset: VideoReferenceAssetItem | null;
   start: string;
   duration: string;
   pending: boolean;
@@ -43,18 +43,18 @@ export function Seedance2AudioTrimDialog({
       <DialogContent className="gap-4 overflow-hidden rounded-2xl border border-border bg-popover p-7 text-popover-foreground shadow-2xl sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {t("episode.workbench.video.seedance2AssetAudioTrimTitle")}
+            {t("episode.workbench.video.videoReferenceAssetAudioTrimTitle")}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-xs leading-5 text-muted-foreground">
-            {t("episode.workbench.video.seedance2AssetAudioTrimHint")}
+            {t("episode.workbench.video.videoReferenceAssetAudioTrimHint")}
           </p>
           {audioSrc && <PreciseAudioPlayer src={audioSrc} className="w-full" />}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
-                {t("episode.workbench.video.seedance2AssetAudioTrimStart")}
+                {t("episode.workbench.video.videoReferenceAssetAudioTrimStart")}
               </Label>
               <Input
                 type="number"
@@ -67,7 +67,7 @@ export function Seedance2AudioTrimDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
-                {t("episode.workbench.video.seedance2AssetAudioTrimDuration")}
+                {t("episode.workbench.video.videoReferenceAssetAudioTrimDuration")}
               </Label>
               <Input
                 type="number"
@@ -101,7 +101,7 @@ export function Seedance2AudioTrimDialog({
             ) : (
               <Scissors className="size-3.5" />
             )}
-            {t("episode.workbench.video.seedance2AssetAudioTrimApply")}
+            {t("episode.workbench.video.videoReferenceAssetAudioTrimApply")}
           </Button>
         </DialogFooter>
       </DialogContent>

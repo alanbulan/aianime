@@ -7,7 +7,6 @@ import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public
 import { ThreeDDirectorDialog } from "@/features/viewer-kit/public";
 import { useNavigateToAsset } from "@/modules/asset_world/public";
 import { useNow } from "@/shared/hooks/use-now";
-import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import {
   useBeatBackgroundAnchors,
   useBeatDirectorStageManifest,
@@ -28,7 +27,6 @@ import {
   useRegenerateSketches,
   useSketchCropDialogController,
   useSketchPoseEditorDialogController,
-  useSketchSettings,
   useUploadBeatImage,
 } from "@/modules/production/composition";
 import type { PoolImage } from "@/modules/production/domain/image-pool";
@@ -94,7 +92,6 @@ const useSketchSectionController = createUseSketchSectionController(
     usePoolSelect,
     useRegenerateSketches,
     useScript,
-    useSketchSettings,
     useUpdateBeatBackgroundAnchor,
     useUploadBeatImage,
   },
@@ -114,7 +111,6 @@ const useSketchSectionController = createUseSketchSectionController(
         primary_slot: "sketch",
       }),
     useAssetNavigation: useNavigateToAsset,
-    useGenerationCreditCost,
     useNow,
     useProjectAspectRatio,
     useSeenSketchCandidates: (project, episode) => ({

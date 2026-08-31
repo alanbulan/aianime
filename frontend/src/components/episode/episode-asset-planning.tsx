@@ -11,7 +11,6 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -81,8 +80,6 @@ interface EpisodeAssetPlanningProps {
   identityDefaultMap?: Record<string, string> | null;
   sceneMenu?: EpisodeSceneMenuItem[] | null;
   propMenu?: EpisodePropMenuItem[] | null;
-  sceneCostDisplay?: string | null;
-  propCostDisplay?: string | null;
   identityPending?: boolean;
   scenePending?: boolean;
   propPending?: boolean;
@@ -141,8 +138,6 @@ export function EpisodeAssetPlanning({
   identityDefaultMap,
   sceneMenu,
   propMenu,
-  sceneCostDisplay,
-  propCostDisplay,
   identityPending = false,
   scenePending = false,
   propPending = false,
@@ -224,7 +219,6 @@ export function EpisodeAssetPlanning({
           emptyLabel={labels.noScenes}
           items={scenes}
           actionLabel={scenes.length > 0 ? labels.replanScenes : labels.planScenes}
-          costDisplay={sceneCostDisplay}
           pending={scenePending}
           onPlan={onPlanScenes}
         />
@@ -238,7 +232,6 @@ export function EpisodeAssetPlanning({
           emptyLabel={labels.noProps}
           items={props.map((item) => item.prop_id.trim())}
           actionLabel={props.length > 0 ? labels.replanProps : labels.planProps}
-          costDisplay={propCostDisplay}
           pending={propPending}
           onPlan={onPlanProps}
           renderItem={(propId) => {
@@ -277,7 +270,6 @@ function AssetPlanningRow({
   emptyLabel,
   items,
   actionLabel,
-  costDisplay,
   pending,
   onPlan,
   renderItem,
@@ -288,7 +280,6 @@ function AssetPlanningRow({
   emptyLabel: string;
   items: string[];
   actionLabel: string;
-  costDisplay?: string | null;
   pending: boolean;
   onPlan: () => void;
   renderItem?: (item: string) => ReactNode;
@@ -316,7 +307,6 @@ function AssetPlanningRow({
         >
           {pending && <Loader2 className="animate-spin" />}
           {actionLabel}
-          <CreditCostInline display={costDisplay} />
         </Button>
       </div>
       <div className="flex min-h-0 flex-1 flex-wrap content-start items-center gap-1.5 overflow-y-auto">

@@ -3,46 +3,45 @@ import { useMemo } from "react";
 
 import type { AspectSpec } from "@/shared/aspect-ratio";
 import type { Beat } from "@/modules/narrative_planning/public";
-import type { Seedance2BeatStatusResponse } from "@/modules/production/application/ports";
+import type { VideoReferenceBeatStatusResponse } from "@/modules/production/application/ports";
 import type {
   BeatVideoGenerationController,
   BeatVideoGenerationControllerOptions,
 } from "@/modules/production/application/use-beat-video-generation-controller";
 import type {
-  LegacyVideoPromptController,
-  LegacyVideoPromptControllerOptions,
-  LegacyVideoPromptUpdateCommand,
-} from "@/modules/production/application/use-legacy-video-prompt-controller";
+  BasicVideoPromptController,
+  BasicVideoPromptControllerOptions,
+  BasicVideoPromptUpdateCommand,
+} from "@/modules/production/application/use-basic-video-prompt-controller";
 import type {
-  Seedance2AssetOperationsController,
-  Seedance2AssetOperationsControllerOptions,
-} from "@/modules/production/application/use-seedance2-asset-operations-controller";
+  VideoReferenceAssetOperationsController,
+  VideoReferenceAssetOperationsControllerOptions,
+} from "@/modules/production/application/use-video-reference-asset-operations-controller";
 import type {
-  Seedance2ConfigController,
-  Seedance2ConfigControllerOptions,
-  Seedance2ConfigUpdateCommand,
-} from "@/modules/production/application/use-seedance2-config-controller";
+  BeatVideoConfigController,
+  BeatVideoConfigControllerOptions,
+  BeatVideoConfigUpdateCommand,
+} from "@/modules/production/application/use-beat-video-config-controller";
 import type {
-  Seedance2MentionController,
-  Seedance2MentionControllerOptions,
-} from "@/modules/production/application/use-seedance2-mention-controller";
+  VideoReferenceMentionController,
+  VideoReferenceMentionControllerOptions,
+} from "@/modules/production/application/use-video-reference-mention-controller";
 import type {
   VideoPaneMediaController,
   VideoPaneMediaControllerOptions,
 } from "@/modules/production/application/use-video-pane-media-controller";
-import { isVideoReferenceCropModel } from "@/modules/production/domain/seedance2-crop";
 import type {
-  Seedance2AssetItem,
-  Seedance2BeatStatus,
-} from "@/modules/production/domain/seedance2-panel";
+  VideoReferenceAssetItem,
+  VideoReferenceBeatStatus,
+} from "@/modules/production/domain/video-reference-panel";
 import {
   resolveVideoModelOption,
   type VideoModelOption,
 } from "@/modules/production/domain/video-model";
 import type { BeatStageState } from "@/modules/production/domain/beat-state";
 
-interface Seedance2StatusQuery {
-  data?: Seedance2BeatStatusResponse;
+interface VideoReferenceStatusQuery {
+  data?: VideoReferenceBeatStatusResponse;
   refetch(): unknown;
 }
 
@@ -51,12 +50,12 @@ interface VideoModelsQuery {
 }
 
 export interface VideoPaneControllerQueries {
-  useSeedance2BeatStatus(
+  useVideoReferenceBeatStatus(
     project: string,
     episode: number,
     beatNumber: number,
     enabled: boolean,
-  ): Seedance2StatusQuery;
+  ): VideoReferenceStatusQuery;
   useVideoModels(enabled?: boolean): VideoModelsQuery;
 }
 
@@ -64,19 +63,19 @@ export interface VideoPaneControllerDependencies {
   useBeatVideoGenerationController(
     options: BeatVideoGenerationControllerOptions,
   ): BeatVideoGenerationController;
-  useLegacyVideoPromptController(
-    options: LegacyVideoPromptControllerOptions,
-  ): LegacyVideoPromptController;
+  useBasicVideoPromptController(
+    options: BasicVideoPromptControllerOptions,
+  ): BasicVideoPromptController;
   useProjectAspectRatio(project: string): { spec: AspectSpec };
-  useSeedance2AssetOperationsController(
-    options: Seedance2AssetOperationsControllerOptions,
-  ): Seedance2AssetOperationsController;
-  useSeedance2ConfigController(
-    options: Seedance2ConfigControllerOptions,
-  ): Seedance2ConfigController;
-  useSeedance2MentionController(
-    options: Seedance2MentionControllerOptions,
-  ): Seedance2MentionController;
+  useVideoReferenceAssetOperationsController(
+    options: VideoReferenceAssetOperationsControllerOptions,
+  ): VideoReferenceAssetOperationsController;
+  useBeatVideoConfigController(
+    options: BeatVideoConfigControllerOptions,
+  ): BeatVideoConfigController;
+  useVideoReferenceMentionController(
+    options: VideoReferenceMentionControllerOptions,
+  ): VideoReferenceMentionController;
   useVideoPaneMediaController(
     options: VideoPaneMediaControllerOptions,
   ): VideoPaneMediaController;
@@ -91,32 +90,31 @@ export interface VideoPaneControllerOptions {
   state: BeatStageState;
   updateBeat(
     command:
-      | LegacyVideoPromptUpdateCommand
-      | Seedance2ConfigUpdateCommand,
+      | BasicVideoPromptUpdateCommand
+      | BeatVideoConfigUpdateCommand,
   ): Promise<unknown>;
 }
 
 export interface VideoPaneController {
-  assetOperations: Seedance2AssetOperationsController;
+  assetOperations: VideoReferenceAssetOperationsController;
   beatNumber: number;
-  config: Seedance2ConfigController;
+  config: BeatVideoConfigController;
   fallbackAudioReady: boolean;
   fallbackFrameReady: boolean;
   generation: BeatVideoGenerationController;
-  legacyPrompt: LegacyVideoPromptController;
+  basicPrompt: BasicVideoPromptController;
   media: VideoPaneMediaController;
-  mention: Seedance2MentionController;
+  mention: VideoReferenceMentionController;
   modelLabel: string;
-  modelReferenceAssets: Seedance2AssetItem[];
+  modelReferenceAssets: VideoReferenceAssetItem[];
   projectAspect: "2:3" | "16:9";
-  referenceCropAssets: Seedance2AssetItem[];
+  referenceCropAssets: VideoReferenceAssetItem[];
   savePending: boolean;
-  showGrokVideoConfig: boolean;
-  showHappyHorseConfig: boolean;
+  showAdvancedVideoConfig: boolean;
+  showReferenceVideoConfig: boolean;
   showReferenceDetails: boolean;
-  showSeedance2Config: boolean;
   sketchAspect: "2:3" | "16:9";
-  status: Seedance2BeatStatus | null;
+  status: VideoReferenceBeatStatus | null;
 }
 
 export function createUseVideoPaneController(
@@ -133,7 +131,7 @@ export function createUseVideoPaneController(
     updateBeat,
   }: VideoPaneControllerOptions): VideoPaneController {
     const { spec } = dependencies.useProjectAspectRatio(project);
-    const legacyPrompt = dependencies.useLegacyVideoPromptController({
+    const basicPrompt = dependencies.useBasicVideoPromptController({
       beat,
       episode,
       project,
@@ -141,55 +139,52 @@ export function createUseVideoPaneController(
     });
     const { data: videoModels } = queries.useVideoModels(Boolean(project));
     const assetOperations =
-      dependencies.useSeedance2AssetOperationsController({
+      dependencies.useVideoReferenceAssetOperationsController({
         beatNumber: beat.beat_number,
         episode,
         project,
       });
     const selectedModel = resolveVideoModelOption(videoModels, defaultModel);
-    const showSeedance2Config =
-      selectedModel?.profile === "seedance2" ||
-      (selectedModel?.profile === "standard" &&
+    const showAdvancedVideoConfig =
+      selectedModel?.workflow === "advanced-reference" ||
+      (selectedModel?.workflow === "standard" &&
         selectedModel.supportsAdvancedConfig);
-    const showHappyHorseConfig = selectedModel?.profile === "happyhorse";
-    const showGrokVideoConfig = selectedModel?.profile === "grok";
+    const showReferenceVideoConfig = selectedModel?.workflow === "reference";
     const showPromptConfig =
-      showSeedance2Config || showHappyHorseConfig || showGrokVideoConfig;
+      showAdvancedVideoConfig || showReferenceVideoConfig;
     const showReferenceDetails =
-      showPromptConfig ||
-      isVideoReferenceCropModel(selectedModel?.apiModel ?? defaultModel);
-    const seedance2Status = queries.useSeedance2BeatStatus(
+      showPromptConfig || (selectedModel?.referenceImageMax ?? 0) > 0;
+    const videoReferenceStatus = queries.useVideoReferenceBeatStatus(
       project,
       episode,
       beat.beat_number,
       showReferenceDetails,
     );
     const status =
-      seedance2Status.data?.ok === true
-        ? seedance2Status.data.data
+      videoReferenceStatus.data?.ok === true
+        ? videoReferenceStatus.data.data
         : null;
-    const config = dependencies.useSeedance2ConfigController({
+    const config = dependencies.useBeatVideoConfigController({
       model: defaultModel,
       beat,
       episode,
       project,
       projectAspect: spec.renderAspect,
       selectedModel,
-      showGrokVideoConfig,
-      showHappyHorseConfig,
-      showSeedance2Config,
-      refetchStatus: seedance2Status.refetch,
+      showAdvancedVideoConfig,
+      showReferenceVideoConfig,
+      refetchStatus: videoReferenceStatus.refetch,
       updateBeat,
     });
     const assetItems = status?.assets.items ?? [];
     const modelReferenceAssets = useMemo(
       () =>
-        showHappyHorseConfig || showGrokVideoConfig
+        showReferenceVideoConfig
           ? assetItems.filter((asset) => asset.media_type === "image")
           : assetItems,
-      [assetItems, showGrokVideoConfig, showHappyHorseConfig],
+      [assetItems, showReferenceVideoConfig],
     );
-    const mention = dependencies.useSeedance2MentionController({
+    const mention = dependencies.useVideoReferenceMentionController({
       assets: modelReferenceAssets,
       beatNumber: beat.beat_number,
       changeDraft: config.changeDraft,
@@ -215,8 +210,8 @@ export function createUseVideoPaneController(
         project,
         prompt: showPromptConfig
           ? config.draft.final_prompt
-          : legacyPrompt.prompt,
-        promptKind: showPromptConfig ? "seedance2" : "legacy",
+          : basicPrompt.prompt,
+        promptKind: showPromptConfig ? "configured" : "basic",
         saveDraft: (draft) =>
           config.saveDraft(draft, { suppressSuccess: true }),
       });
@@ -229,7 +224,7 @@ export function createUseVideoPaneController(
       videoModels,
       videoProgress: generation.progress,
       videoUrl: beat.video_url,
-      useSeedance2Preview: showSeedance2Config,
+      useVideoReferencePreview: showAdvancedVideoConfig,
     });
 
     return {
@@ -239,7 +234,7 @@ export function createUseVideoPaneController(
       fallbackAudioReady: Boolean(beat.audio_url),
       fallbackFrameReady: Boolean(beat.frame_url),
       generation,
-      legacyPrompt,
+      basicPrompt,
       media,
       mention,
       modelLabel: selectedModel?.label ?? defaultModel,
@@ -247,10 +242,9 @@ export function createUseVideoPaneController(
       projectAspect: spec.renderAspect,
       referenceCropAssets,
       savePending,
-      showGrokVideoConfig,
-      showHappyHorseConfig,
+      showAdvancedVideoConfig,
+      showReferenceVideoConfig,
       showReferenceDetails,
-      showSeedance2Config,
       sketchAspect: spec.sketchAspect,
       status,
     };

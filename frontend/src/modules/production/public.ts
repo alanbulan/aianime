@@ -5,21 +5,21 @@ export {
   NarratorVoicePanel,
   RenderPlanDialog,
   useAssignColors,
-  useAudioBillingQuote,
+  useAudioGenerationPlan,
   useBatchBarController,
   useBeatStates,
   useComposeEpisode,
   useBindNarratorVoice,
-  useCropSeedance2Asset,
+  useCropVideoReferenceAsset,
   useCutGrid,
   useDeleteNarratorVoice,
-  useDeleteSeedance2Asset,
+  useDeleteVideoReferenceAsset,
   useDetectIdentities,
   useDirectorControlToSketch,
   useGenerateBeatVideoPrompt,
   useGenerateAudio,
   useGenerateNarratorVoicePreset,
-  useGenerateSeedance2Prompt,
+  useGenerateVideoPrompt,
   useGenerateSketches,
   useGrids,
   useGridsByBeat,
@@ -27,7 +27,7 @@ export {
   usePoolSelect,
   useProductionWorkflow,
   useGlobalOptimize,
-  useLegacyVideoPromptController,
+  useBasicVideoPromptController,
   useFinalVideo,
   useNarratorVoiceStatus,
   useNarratorVoicePanelController,
@@ -40,17 +40,17 @@ export {
   useRebuildPoolIndex,
   useRenderPlanDialogController,
   useRenderSettings,
-  useSeedance2BeatStatus,
-  useSeedance2AssetOperationsController,
-  useSeedance2ConfigController,
+  useVideoReferenceBeatStatus,
+  useVideoReferenceAssetOperationsController,
+  useBeatVideoConfigController,
   useSketchGridPreview,
   useSketchSettings,
-  useTrimSeedance2Asset,
+  useTrimVideoReferenceAsset,
   useTrimNarratorVoice,
   useUploadNarratorVoice,
   useUploadBeatImage,
   useUploadGrid,
-  useUploadSeedance2Asset,
+  useUploadVideoReferenceAsset,
   useBeatVideoGenerationController,
   useUpdateRenderSettings,
   useUpdateSketchSettings,
@@ -74,22 +74,22 @@ export type {
   EpisodeCounts,
   StageCount,
 } from "@/modules/production/domain/beat-state";
-export { Seedance2AssetCropDialog } from "@/modules/production/presentation/Seedance2AssetCropDialog";
-export { Seedance2AudioTrimDialog } from "@/modules/production/presentation/Seedance2AudioTrimDialog";
-export { Seedance2ConfigView } from "@/modules/production/presentation/Seedance2ConfigView";
-export { LegacyVideoPromptView } from "@/modules/production/presentation/LegacyVideoPromptView";
+export { VideoReferenceAssetCropDialog } from "@/modules/production/presentation/VideoReferenceAssetCropDialog";
+export { VideoReferenceAudioTrimDialog } from "@/modules/production/presentation/VideoReferenceAudioTrimDialog";
+export { BeatVideoConfigView } from "@/modules/production/presentation/BeatVideoConfigView";
+export { BasicVideoPromptView } from "@/modules/production/presentation/BasicVideoPromptView";
 export {
   BeatVideoGenerationAction,
   BeatVideoGenerationConfirmDialog,
 } from "@/modules/production/presentation/BeatVideoGenerationView";
 export {
-  Seedance2ReferenceAssetsView,
-  Seedance2ReferenceCropAssetsView,
-} from "@/modules/production/presentation/Seedance2ReferenceAssetsView";
+  VideoReferenceAssetsView,
+  VideoReferenceCropAssetsView,
+} from "@/modules/production/presentation/VideoReferenceAssetsView";
 export {
-  Seedance2Checkbox,
-  Seedance2Field,
-  Seedance2SummaryPill,
+  VideoReferenceCheckbox,
+  VideoReferenceField,
+  VideoReferenceSummaryPill,
   VideoParamField,
 } from "@/modules/production/presentation/VideoPaneParts";
 export { VideoPaneMediaView } from "@/modules/production/presentation/VideoPaneMediaView";
@@ -97,7 +97,6 @@ export { BatchBarView } from "@/modules/production/presentation/BatchBarView";
 export type { BatchBarViewProps } from "@/modules/production/presentation/BatchBarView";
 export type {
   BatchBarController,
-  BatchBarControllerDependencies,
   BatchBarControllerOptions,
   BatchBarControllerQueries,
   BatchBarErrorDialog,
@@ -109,9 +108,7 @@ export type {
   RenderPlanDialogViewProps,
 } from "@/modules/production/presentation/RenderPlanDialogView";
 export type {
-  RenderPlanCreditCostRequest,
   RenderPlanDialogController,
-  RenderPlanDialogControllerDependencies,
   RenderPlanDialogControllerOptions,
   RenderPlanDialogControllerQueries,
   RenderPlanStaleBanner,
@@ -128,11 +125,11 @@ export type {
 export { StalePoolSelectError } from "@/modules/production/application/image-pool-errors";
 export { isProductionErrorResponse } from "@/modules/production/application/ports";
 export {
-  useSeedance2MentionController,
-  type Seedance2MentionController,
-  type Seedance2MentionField,
-  type Seedance2MentionSelection,
-} from "@/modules/production/application/use-seedance2-mention-controller";
+  useVideoReferenceMentionController,
+  type VideoReferenceMentionController,
+  type VideoReferenceMentionField,
+  type VideoReferenceMentionSelection,
+} from "@/modules/production/application/use-video-reference-mention-controller";
 export { prepareBeatVideoGeneration } from "@/modules/production/domain/beat-video-generation";
 export type {
   BeatVideoGenerationInput,
@@ -171,10 +168,10 @@ export type {
   UpdateRenderSettingsCommand,
   UpdateSketchSettingsCommand,
 } from "@/modules/production/domain/image-settings";
-export { episodeAudioBillingRevision } from "@/modules/production/domain/audio-generation";
+export { episodeAudioPlanRevision } from "@/modules/production/domain/audio-generation";
 export type {
-  AudioBillingQuote,
-  EpisodeAudioBillingBeat,
+  AudioGenerationPlan,
+  EpisodeAudioPlanBeat,
   GenerateAudioCommand,
 } from "@/modules/production/domain/audio-generation";
 export type {
@@ -240,32 +237,31 @@ export type {
   SketchPoseEditorState,
 } from "@/modules/production/domain/sketch-pose-editor";
 export {
-  buildSeedance2LabelIdentityMaps,
-  findSeedance2TrailingMention,
-  getSeedance2MentionQuery,
-  remapSeedance2Mentions,
-  sameSeedance2LabelIdentity,
-} from "@/modules/production/domain/seedance2-mentions";
+  buildVideoReferenceLabelIdentityMaps,
+  findVideoReferenceTrailingMention,
+  getVideoReferenceMentionQuery,
+  remapVideoReferenceMentions,
+  sameVideoReferenceLabelIdentity,
+} from "@/modules/production/domain/video-reference-mentions";
 export type {
-  Seedance2LabelIdentityMaps,
-  Seedance2ReferenceAssetLike,
-  Seedance2TrailingMention,
-} from "@/modules/production/domain/seedance2-mentions";
+  VideoReferenceLabelIdentityMaps,
+  VideoReferenceAssetLike,
+  VideoReferenceTrailingMention,
+} from "@/modules/production/domain/video-reference-mentions";
 export {
-  isVideoReferenceCropModel,
-  seedance2CropAspectForMode,
-  seedance2CropTargetForAsset,
+  videoReferenceCropAspectForMode,
+  videoReferenceCropTargetForAsset,
   videoInputCropAspectForProjectAspect,
-} from "@/modules/production/domain/seedance2-crop";
+} from "@/modules/production/domain/video-reference-crop";
 export type {
-  Seedance2CropAspect,
-  Seedance2CropIntent,
-} from "@/modules/production/domain/seedance2-crop";
+  VideoReferenceCropAspect,
+  VideoReferenceCropIntent,
+} from "@/modules/production/domain/video-reference-crop";
 export type {
-  Seedance2AssetItem,
-  Seedance2BeatStatus,
+  VideoReferenceAssetItem,
+  VideoReferenceBeatStatus,
   VideoInputCropTarget,
-} from "@/modules/production/domain/seedance2-panel";
+} from "@/modules/production/domain/video-reference-panel";
 export {
   resolveAuthorizedVideoModel,
   resolveVideoModelOption,
@@ -277,44 +273,35 @@ export type {
 } from "@/modules/production/domain/video-pool";
 export {
   clampDuration,
-  getSeedance2ConfigSaveKey,
-  grokVideoRatioOptionsForModel,
-  grokVideoResolutionOptionsForModel,
-  happyHorseRatioOptionsForModel,
-  happyHorseResolutionOptionsForDuration,
-  happyHorseResolutionOptionsForModel,
-  isSeedance15ProModel,
-  isSeedance2ValueModel,
-  normalizeGrokVideoDraftForModel,
-  normalizeGrokVideoRatio,
-  normalizeHappyHorseDraftForModel,
-  normalizeHappyHorseMode,
-  normalizeHappyHorseRatio,
-  normalizeSeedance2DraftForModel,
-  normalizeSeedance2Mode,
-  normalizeSeedance2Ratio,
-  normalizeSeedance2Resolution,
+  getBeatVideoConfigSaveKey,
+  normalizeReferenceVideoDraftForModel,
+  normalizeReferenceVideoMode,
+  normalizeReferenceVideoRatio,
+  normalizeAdvancedVideoDraftForModel,
+  normalizeVideoReferenceMode,
+  normalizeVideoAspectRatio,
+  normalizeVideoResolutionTier,
   normalizeVideoResolution,
-  parseSeedance2Config,
-  sameSeedance2Config,
-  seedance2DefaultRatioForProjectAspect,
-  seedance2ModeOptionsForModel,
-  seedance2RatioOptionsForModel,
-  seedance2ResolutionOptionsForModel,
-  serializeGrokVideoConfig,
-  serializeHappyHorseConfig,
-  serializeSeedance2Config,
+  parseBeatVideoConfig,
+  sameBeatVideoConfig,
+  defaultVideoRatioForProjectAspect,
+  videoModeOptionsForModel,
+  videoRatioOptionsForModel,
+  videoResolutionOptionsForModel,
+  referenceVideoRatioOptionsForModel,
+  referenceVideoResolutionOptionsForDuration,
+  referenceVideoResolutionOptionsForModel,
+  serializeReferenceVideoConfig,
+  serializeBeatVideoConfig,
   videoDurationBoundsForModel,
   videoModelDisplayLabel,
 } from "@/modules/production/domain/video-config";
 export type {
-  GrokVideoRatio,
-  HappyHorseRatio,
-  Seedance2ConfigDraft,
-  Seedance2DurationBounds,
-  Seedance2Mode,
-  Seedance2Ratio,
-  Seedance2Resolution,
+  BeatVideoConfigDraft,
+  VideoDurationBounds,
+  VideoReferenceMode,
+  VideoAspectRatio,
+  VideoResolutionTier,
   VideoResolution,
   VideoModelConfigCapabilities,
 } from "@/modules/production/domain/video-config";

@@ -1,39 +1,39 @@
 // Copyright (c) 2026 AI anime
 import { buildMentionRegex } from "@/lib/mention-markers";
 
-export interface Seedance2ReferenceAssetLike {
+export interface VideoReferenceAssetLike {
   reference_label: string;
   url?: string;
   path?: string;
   key: string;
 }
 
-export function seedance2AssetIdentity(
-  asset: Seedance2ReferenceAssetLike,
+export function videoReferenceAssetIdentity(
+  asset: VideoReferenceAssetLike,
 ): string {
   return asset.url || asset.path || asset.key;
 }
 
-export interface Seedance2LabelIdentityMaps {
+export interface VideoReferenceLabelIdentityMaps {
   labelToIdentity: Map<string, string>;
   identityToLabel: Map<string, string>;
   labels: string[];
 }
 
-export interface Seedance2TrailingMention {
+export interface VideoReferenceTrailingMention {
   index: number;
   query: string;
 }
 
-export function buildSeedance2LabelIdentityMaps(
-  assets: Seedance2ReferenceAssetLike[],
-): Seedance2LabelIdentityMaps {
+export function buildVideoReferenceLabelIdentityMaps(
+  assets: VideoReferenceAssetLike[],
+): VideoReferenceLabelIdentityMaps {
   const labelToIdentity = new Map<string, string>();
   const identityToLabel = new Map<string, string>();
   const labels: string[] = [];
   for (const asset of assets) {
     const label = asset.reference_label;
-    const identity = seedance2AssetIdentity(asset);
+    const identity = videoReferenceAssetIdentity(asset);
     if (!label || !identity) continue;
     if (!labelToIdentity.has(label)) {
       labelToIdentity.set(label, identity);
@@ -46,9 +46,9 @@ export function buildSeedance2LabelIdentityMaps(
   return { labelToIdentity, identityToLabel, labels };
 }
 
-export function sameSeedance2LabelIdentity(
-  a: Seedance2LabelIdentityMaps,
-  b: Seedance2LabelIdentityMaps,
+export function sameVideoReferenceLabelIdentity(
+  a: VideoReferenceLabelIdentityMaps,
+  b: VideoReferenceLabelIdentityMaps,
 ): boolean {
   if (a.labelToIdentity.size !== b.labelToIdentity.size) return false;
   for (const [label, identity] of a.labelToIdentity) {
@@ -57,10 +57,10 @@ export function sameSeedance2LabelIdentity(
   return true;
 }
 
-export function remapSeedance2Mentions(
+export function remapVideoReferenceMentions(
   text: string,
-  prev: Seedance2LabelIdentityMaps,
-  current: Seedance2LabelIdentityMaps,
+  prev: VideoReferenceLabelIdentityMaps,
+  current: VideoReferenceLabelIdentityMaps,
 ): string {
   const knownLabels = Array.from(new Set([...prev.labels, ...current.labels]));
   const pattern = buildMentionRegex(knownLabels);
@@ -93,14 +93,14 @@ export function remapSeedance2Mentions(
   return out;
 }
 
-export function findSeedance2TrailingMention(
+export function findVideoReferenceTrailingMention(
   text: string,
-): Seedance2TrailingMention | null {
+): VideoReferenceTrailingMention | null {
   const match = /@([^\s@]*)$/u.exec(text.trimEnd());
   if (!match) return null;
   return { index: match.index, query: match[1] ?? "" };
 }
 
-export function getSeedance2MentionQuery(text: string): string | null {
-  return findSeedance2TrailingMention(text)?.query ?? null;
+export function getVideoReferenceMentionQuery(text: string): string | null {
+  return findVideoReferenceTrailingMention(text)?.query ?? null;
 }

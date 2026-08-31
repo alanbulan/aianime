@@ -5,16 +5,12 @@ export interface GenerateAudioCommand {
   mode?: string;
 }
 
-export interface AudioBillingQuote {
+export interface AudioGenerationPlan {
   beat_numbers: number[];
-  quantity: number;
-  unit_cost: number;
-  cost: number;
-  display: string;
   prereq_errors: string[];
 }
 
-export interface EpisodeAudioBillingBeat {
+export interface EpisodeAudioPlanBeat {
   audio_type?: string | null;
   audio_url?: string | null;
   beat_number?: number | null;
@@ -22,8 +18,8 @@ export interface EpisodeAudioBillingBeat {
   speaker?: string | null;
 }
 
-export function episodeAudioBillingRevision(
-  beats: readonly EpisodeAudioBillingBeat[],
+export function episodeAudioPlanRevision(
+  beats: readonly EpisodeAudioPlanBeat[],
 ): string {
   return beats
     .map((beat) =>

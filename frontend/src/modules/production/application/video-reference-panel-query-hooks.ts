@@ -10,20 +10,20 @@ import { queryKeys } from "@/lib/query-keys";
 import { patchBeatQueryCache } from "@/modules/production/application/beat-query-cache";
 import type {
   ProductionVideoGateway,
-  Seedance2BeatStatusResponse,
+  VideoReferenceBeatStatusResponse,
 } from "@/modules/production/application/ports";
-import type { VideoInputCropTarget } from "@/modules/production/domain/seedance2-panel";
+import type { VideoInputCropTarget } from "@/modules/production/domain/video-reference-panel";
 
-function syncSeedance2AssetMutation(
+function syncVideoReferenceAssetMutation(
   queryClient: QueryClient,
   project: string,
   episode: number,
   beatNumber: number,
-  response: Seedance2BeatStatusResponse,
+  response: VideoReferenceBeatStatusResponse,
   invalidateNarratorVoice = false,
 ) {
   queryClient.invalidateQueries({
-    queryKey: queryKeys.seedance2BeatStatus(project, episode, beatNumber),
+    queryKey: queryKeys.videoReferenceBeatStatus(project, episode, beatNumber),
   });
   if (invalidateNarratorVoice) {
     queryClient.invalidateQueries({
@@ -31,26 +31,26 @@ function syncSeedance2AssetMutation(
     });
   }
   if (!response.ok) return;
-  const configJson = response.data.seedance2_config_json;
+  const configJson = response.data.video_config_json;
   if (!configJson) return;
   patchBeatQueryCache(queryClient, project, episode, beatNumber, {
-    seedance2_config_json: configJson,
+    video_config_json: configJson,
   });
 }
 
-export function createSeedance2PanelQueryHooks(
+export function createVideoReferencePanelQueryHooks(
   gateway: ProductionVideoGateway,
 ) {
-  function useSeedance2BeatStatus(
+  function useVideoReferenceBeatStatus(
     project: string,
     episode: number,
     beatNumber: number,
     enabled: boolean,
   ) {
     return useQuery({
-      queryKey: queryKeys.seedance2BeatStatus(project, episode, beatNumber),
+      queryKey: queryKeys.videoReferenceBeatStatus(project, episode, beatNumber),
       queryFn: ({ signal }) =>
-        gateway.getSeedance2BeatStatus(
+        gateway.getVideoReferenceBeatStatus(
           project,
           episode,
           beatNumber,
@@ -60,13 +60,13 @@ export function createSeedance2PanelQueryHooks(
     });
   }
 
-  function useUploadSeedance2Asset(project: string, episode: number) {
+  function useUploadVideoReferenceAsset(project: string, episode: number) {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({ beatNum, file }: { beatNum: number; file: File }) =>
-        gateway.uploadSeedance2Asset(project, episode, beatNum, file),
+        gateway.uploadVideoReferenceAsset(project, episode, beatNum, file),
       onSuccess: (response, { beatNum }) => {
-        syncSeedance2AssetMutation(
+        syncVideoReferenceAssetMutation(
           queryClient,
           project,
           episode,
@@ -77,7 +77,7 @@ export function createSeedance2PanelQueryHooks(
     });
   }
 
-  function useDeleteSeedance2Asset(project: string, episode: number) {
+  function useDeleteVideoReferenceAsset(project: string, episode: number) {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({
@@ -89,7 +89,7 @@ export function createSeedance2PanelQueryHooks(
         mediaKind: "images" | "audios";
         path: string;
       }) =>
-        gateway.deleteSeedance2Asset(
+        gateway.deleteVideoReferenceAsset(
           project,
           episode,
           beatNum,
@@ -97,7 +97,7 @@ export function createSeedance2PanelQueryHooks(
           path,
         ),
       onSuccess: (response, { beatNum }) => {
-        syncSeedance2AssetMutation(
+        syncVideoReferenceAssetMutation(
           queryClient,
           project,
           episode,
@@ -108,7 +108,7 @@ export function createSeedance2PanelQueryHooks(
     });
   }
 
-  function useCropSeedance2Asset(project: string, episode: number) {
+  function useCropVideoReferenceAsset(project: string, episode: number) {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({
@@ -124,7 +124,7 @@ export function createSeedance2PanelQueryHooks(
         crop: { x: number; y: number; width: number; height: number };
         target?: VideoInputCropTarget;
       }) =>
-        gateway.cropSeedance2Asset(
+        gateway.cropVideoReferenceAsset(
           project,
           episode,
           beatNum,
@@ -134,7 +134,7 @@ export function createSeedance2PanelQueryHooks(
           crop,
         ),
       onSuccess: (response, { beatNum }) => {
-        syncSeedance2AssetMutation(
+        syncVideoReferenceAssetMutation(
           queryClient,
           project,
           episode,
@@ -145,7 +145,7 @@ export function createSeedance2PanelQueryHooks(
     });
   }
 
-  function useTrimSeedance2Asset(project: string, episode: number) {
+  function useTrimVideoReferenceAsset(project: string, episode: number) {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({
@@ -161,7 +161,7 @@ export function createSeedance2PanelQueryHooks(
         startSeconds: number;
         durationSeconds: number;
       }) =>
-        gateway.trimSeedance2Asset(
+        gateway.trimVideoReferenceAsset(
           project,
           episode,
           beatNum,
@@ -171,7 +171,7 @@ export function createSeedance2PanelQueryHooks(
           durationSeconds,
         ),
       onSuccess: (response, { beatNum }) => {
-        syncSeedance2AssetMutation(
+        syncVideoReferenceAssetMutation(
           queryClient,
           project,
           episode,
@@ -184,10 +184,10 @@ export function createSeedance2PanelQueryHooks(
   }
 
   return {
-    useSeedance2BeatStatus,
-    useUploadSeedance2Asset,
-    useDeleteSeedance2Asset,
-    useCropSeedance2Asset,
-    useTrimSeedance2Asset,
+    useVideoReferenceBeatStatus,
+    useUploadVideoReferenceAsset,
+    useDeleteVideoReferenceAsset,
+    useCropVideoReferenceAsset,
+    useTrimVideoReferenceAsset,
   };
 }

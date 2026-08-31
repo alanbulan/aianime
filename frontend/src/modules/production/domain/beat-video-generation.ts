@@ -1,17 +1,13 @@
 // Copyright (c) 2026 AI anime
 import type { RegenerateBeatVideoCommand } from "@/modules/production/domain/video-generation";
 import {
-  normalizeGrokVideoDraftForModel,
-  normalizeHappyHorseDraftForModel,
-  normalizeSeedance2DraftForModel,
-  sameSeedance2Config,
-  serializeGrokVideoConfig,
-  serializeHappyHorseConfig,
-  type GrokVideoRatio,
-  type HappyHorseRatio,
+  normalizeReferenceVideoDraftForModel,
+  normalizeAdvancedVideoDraftForModel,
+  sameBeatVideoConfig,
+  serializeReferenceVideoConfig,
   type ExactVideoResolution,
-  type Seedance2ConfigDraft,
-  type Seedance2Resolution,
+  type BeatVideoConfigDraft,
+  type VideoResolutionTier,
   type VideoResolution,
 } from "@/modules/production/domain/video-config";
 
@@ -21,56 +17,43 @@ interface BeatVideoGenerationInputBase {
   beatNumber: number;
 }
 
-export interface Seedance2BeatVideoGenerationInput
+export interface AdvancedBeatVideoGenerationInput
   extends BeatVideoGenerationInputBase {
-  kind: "seedance2";
-  draft: Seedance2ConfigDraft;
+  kind: "advanced";
+  draft: BeatVideoConfigDraft;
   dirty: boolean;
-  isValueStyle: boolean;
-  modeOptions?: readonly Seedance2ConfigDraft["mode"][];
-  ratioOptions?: readonly Seedance2ConfigDraft["ratio"][];
+  supportsSceneOptimize: boolean;
+  modeOptions?: readonly BeatVideoConfigDraft["mode"][];
+  ratioOptions?: readonly BeatVideoConfigDraft["ratio"][];
   resolutionOptions: readonly VideoResolution[];
   sizeOptions?: readonly string[];
-  sourceConfig: Seedance2ConfigDraft;
+  sourceConfig: BeatVideoConfigDraft;
 }
 
-export interface HappyHorseBeatVideoGenerationInput
+export interface ReferenceBeatVideoGenerationInput
   extends BeatVideoGenerationInputBase {
-  kind: "happyhorse";
-  draft: Seedance2ConfigDraft;
-  ratioOptions: readonly HappyHorseRatio[];
-  resolutionOptions: readonly Seedance2Resolution[];
-  sourceConfig: Seedance2ConfigDraft;
+  kind: "reference";
+  draft: BeatVideoConfigDraft;
+  ratioOptions: readonly BeatVideoConfigDraft["ratio"][];
+  resolutionOptions: readonly VideoResolution[];
+  resolutionMaxSeconds?: Readonly<Record<string, number>>;
+  sourceConfig: BeatVideoConfigDraft;
 }
 
-export interface GrokBeatVideoGenerationInput
+export interface BasicBeatVideoGenerationInput
   extends BeatVideoGenerationInputBase {
-  kind: "grok";
-  draft: Seedance2ConfigDraft;
-  ratioOptions: readonly GrokVideoRatio[];
-  resolutionOptions: readonly Seedance2Resolution[];
-  sourceConfig: Seedance2ConfigDraft;
-}
-
-export interface LegacyBeatVideoGenerationInput
-  extends BeatVideoGenerationInputBase {
-  kind: "legacy";
-  seedance15?: {
-    duration: number;
-    resolution: Seedance2Resolution;
-  };
+  kind: "basic";
 }
 
 export type BeatVideoGenerationInput =
-  | Seedance2BeatVideoGenerationInput
-  | HappyHorseBeatVideoGenerationInput
-  | GrokBeatVideoGenerationInput
-  | LegacyBeatVideoGenerationInput;
+  | AdvancedBeatVideoGenerationInput
+  | ReferenceBeatVideoGenerationInput
+  | BasicBeatVideoGenerationInput;
 
 export interface PreparedBeatVideoGeneration {
   command: RegenerateBeatVideoCommand;
   draftChanged: boolean;
-  normalizedDraft: Seedance2ConfigDraft | null;
+  normalizedDraft: BeatVideoConfigDraft | null;
   saveDraftBeforeGeneration: boolean;
 }
 
@@ -83,31 +66,25 @@ export function prepareBeatVideoGeneration(
     ...(input.modelSelector ? { modelSelector: input.modelSelector } : {}),
   };
 
-  if (input.kind === "legacy") {
+  if (input.kind === "basic") {
     return {
-      command: input.seedance15
-        ? {
-            ...baseCommand,
-            duration: input.seedance15.duration,
-            resolution: input.seedance15.resolution,
-          }
-        : baseCommand,
+      command: baseCommand,
       draftChanged: false,
       normalizedDraft: null,
       saveDraftBeforeGeneration: false,
     };
   }
 
-  if (input.kind === "seedance2") {
-    const normalizedDraft = normalizeSeedance2DraftForModel(
+  if (input.kind === "advanced") {
+    const normalizedDraft = normalizeAdvancedVideoDraftForModel(
       input.draft,
       input.resolutionOptions,
       input.model,
-      input.isValueStyle,
+      input.supportsSceneOptimize,
       input.modeOptions,
       input.ratioOptions,
     );
-    const draftChanged = !sameSeedance2Config(normalizedDraft, input.draft);
+    const draftChanged = !sameBeatVideoConfig(normalizedDraft, input.draft);
     const exactSize = exactVideoSizeForConfig(
       input.sizeOptions,
       normalizedDraft.resolution,
@@ -127,37 +104,15 @@ export function prepareBeatVideoGeneration(
       normalizedDraft,
       saveDraftBeforeGeneration:
         input.dirty ||
-        !sameSeedance2Config(normalizedDraft, input.sourceConfig),
+        !sameBeatVideoConfig(normalizedDraft, input.sourceConfig),
     };
   }
 
-  if (input.kind === "happyhorse") {
-    const normalizedDraft = normalizeHappyHorseDraftForModel(
-      input.draft,
-      input.resolutionOptions,
-      input.ratioOptions,
-    );
-    return {
-      command: {
-        ...baseCommand,
-        duration: normalizedDraft.duration,
-        mode: normalizedDraft.mode,
-        ratio: normalizedDraft.ratio,
-        resolution: normalizedDraft.resolution,
-        seedance2ConfigJson: JSON.stringify(
-          serializeHappyHorseConfig(normalizedDraft, input.sourceConfig),
-        ),
-      },
-      draftChanged: !sameSeedance2Config(normalizedDraft, input.draft),
-      normalizedDraft,
-      saveDraftBeforeGeneration: false,
-    };
-  }
-
-  const normalizedDraft = normalizeGrokVideoDraftForModel(
+  const normalizedDraft = normalizeReferenceVideoDraftForModel(
     input.draft,
     input.resolutionOptions,
     input.ratioOptions,
+    input.resolutionMaxSeconds,
   );
   return {
     command: {
@@ -166,11 +121,11 @@ export function prepareBeatVideoGeneration(
       mode: normalizedDraft.mode,
       ratio: normalizedDraft.ratio,
       resolution: normalizedDraft.resolution,
-      seedance2ConfigJson: JSON.stringify(
-        serializeGrokVideoConfig(normalizedDraft, input.sourceConfig),
+      videoConfigJson: JSON.stringify(
+        serializeReferenceVideoConfig(normalizedDraft, input.sourceConfig),
       ),
     },
-    draftChanged: !sameSeedance2Config(normalizedDraft, input.draft),
+    draftChanged: !sameBeatVideoConfig(normalizedDraft, input.draft),
     normalizedDraft,
     saveDraftBeforeGeneration: false,
   };
@@ -179,7 +134,7 @@ export function prepareBeatVideoGeneration(
 function exactVideoSizeForConfig(
   sizeOptions: readonly string[] | undefined,
   resolution: VideoResolution,
-  ratio: Seedance2ConfigDraft["ratio"],
+  ratio: BeatVideoConfigDraft["ratio"],
 ): ExactVideoResolution | undefined {
   const normalizedSizes = (sizeOptions ?? [])
     .map((value) => value.trim().toLowerCase())
@@ -200,7 +155,7 @@ function exactVideoSizeForConfig(
         "720p": 720,
         "768p": 768,
         "1080p": 1080,
-      }[resolution as Seedance2Resolution];
+      }[resolution as VideoResolutionTier];
 
   return normalizedSizes.reduce((best, candidate) => {
     const score = exactSizeScore(candidate, targetRatio, targetShortEdge);

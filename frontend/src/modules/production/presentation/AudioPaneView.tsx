@@ -2,7 +2,6 @@
 import { useTranslation } from "react-i18next";
 import { Loader2, RefreshCw } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import {
   AlertDialog,
@@ -62,9 +61,6 @@ export function AudioPaneView({
             {controller.voiceConfigurationRequired
               ? t("episode.workbench.audio.configureVoiceAction")
               : t("common.regenerate")}
-            {!controller.voiceConfigurationRequired && (
-              <CreditCostInline display={controller.costDisplay} />
-            )}
           </Button>
         </div>
       )}

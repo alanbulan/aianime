@@ -5,23 +5,23 @@ import { toast } from "sonner";
 
 import type { CropBox } from "@/shared/aspect-ratio";
 import { isProductionErrorResponse } from "@/modules/production/application/ports";
-import type { Seedance2CropIntent } from "@/modules/production/domain/seedance2-crop";
+import type { VideoReferenceCropIntent } from "@/modules/production/domain/video-reference-crop";
 import type {
-  Seedance2AssetItem,
+  VideoReferenceAssetItem,
   VideoInputCropTarget,
-} from "@/modules/production/domain/seedance2-panel";
+} from "@/modules/production/domain/video-reference-panel";
 
 interface Mutation<TCommand> {
   isPending: boolean;
   mutateAsync(command: TCommand): Promise<unknown>;
 }
 
-export interface Seedance2AssetOperationQueries {
-  useUploadSeedance2Asset(
+export interface VideoReferenceAssetOperationQueries {
+  useUploadVideoReferenceAsset(
     project: string,
     episode: number,
   ): Mutation<{ beatNum: number; file: File }>;
-  useDeleteSeedance2Asset(
+  useDeleteVideoReferenceAsset(
     project: string,
     episode: number,
   ): Mutation<{
@@ -29,7 +29,7 @@ export interface Seedance2AssetOperationQueries {
     mediaKind: "images" | "audios";
     path: string;
   }>;
-  useCropSeedance2Asset(
+  useCropVideoReferenceAsset(
     project: string,
     episode: number,
   ): Mutation<{
@@ -39,7 +39,7 @@ export interface Seedance2AssetOperationQueries {
     target: VideoInputCropTarget;
     crop: CropBox;
   }>;
-  useTrimSeedance2Asset(
+  useTrimVideoReferenceAsset(
     project: string,
     episode: number,
   ): Mutation<{
@@ -51,28 +51,28 @@ export interface Seedance2AssetOperationQueries {
   }>;
 }
 
-export interface Seedance2AssetOperationsControllerOptions {
+export interface VideoReferenceAssetOperationsControllerOptions {
   beatNumber: number;
   episode: number;
   project: string;
 }
 
-export interface Seedance2AssetOperationsController {
-  cropIntent: Seedance2CropIntent | null;
+export interface VideoReferenceAssetOperationsController {
+  cropIntent: VideoReferenceCropIntent | null;
   cropPending: boolean;
   deletePending: boolean;
-  trimAsset: Seedance2AssetItem | null;
+  trimAsset: VideoReferenceAssetItem | null;
   trimDuration: string;
   trimPending: boolean;
   trimStart: string;
   uploadPending: boolean;
   closeCrop(): void;
   closeTrim(): void;
-  deleteAsset(asset: Seedance2AssetItem): Promise<void>;
-  openCrop(intent: Seedance2CropIntent): void;
-  openTrim(asset: Seedance2AssetItem): void;
+  deleteAsset(asset: VideoReferenceAssetItem): Promise<void>;
+  openCrop(intent: VideoReferenceCropIntent): void;
+  openTrim(asset: VideoReferenceAssetItem): void;
   saveCrop(
-    asset: Seedance2AssetItem,
+    asset: VideoReferenceAssetItem,
     target: VideoInputCropTarget,
     crop: CropBox,
   ): Promise<void>;
@@ -82,32 +82,32 @@ export interface Seedance2AssetOperationsController {
   uploadAsset(file: File): Promise<void>;
 }
 
-export function createUseSeedance2AssetOperationsController(
-  queries: Seedance2AssetOperationQueries,
+export function createUseVideoReferenceAssetOperationsController(
+  queries: VideoReferenceAssetOperationQueries,
 ) {
-  return function useSeedance2AssetOperationsController(
-    options: Seedance2AssetOperationsControllerOptions,
-  ): Seedance2AssetOperationsController {
+  return function useVideoReferenceAssetOperationsController(
+    options: VideoReferenceAssetOperationsControllerOptions,
+  ): VideoReferenceAssetOperationsController {
     const { t } = useTranslation();
-    const upload = queries.useUploadSeedance2Asset(
+    const upload = queries.useUploadVideoReferenceAsset(
       options.project,
       options.episode,
     );
-    const remove = queries.useDeleteSeedance2Asset(
+    const remove = queries.useDeleteVideoReferenceAsset(
       options.project,
       options.episode,
     );
-    const cropMutation = queries.useCropSeedance2Asset(
+    const cropMutation = queries.useCropVideoReferenceAsset(
       options.project,
       options.episode,
     );
-    const trim = queries.useTrimSeedance2Asset(
+    const trim = queries.useTrimVideoReferenceAsset(
       options.project,
       options.episode,
     );
     const [cropIntent, setCropIntent] =
-      useState<Seedance2CropIntent | null>(null);
-    const [trimAsset, setTrimAsset] = useState<Seedance2AssetItem | null>(null);
+      useState<VideoReferenceCropIntent | null>(null);
+    const [trimAsset, setTrimAsset] = useState<VideoReferenceAssetItem | null>(null);
     const [trimStart, setTrimStart] = useState("0");
     const [trimDuration, setTrimDuration] = useState("4");
 
@@ -124,13 +124,13 @@ export function createUseSeedance2AssetOperationsController(
           file,
         });
         if (showResponseError(response)) return;
-        toast.success(t("episode.workbench.video.seedance2AssetUploaded"));
+        toast.success(t("episode.workbench.video.videoReferenceAssetUploaded"));
       } catch {
         toast.error(t("common.error"));
       }
     };
 
-    const deleteAsset = async (asset: Seedance2AssetItem) => {
+    const deleteAsset = async (asset: VideoReferenceAssetItem) => {
       const path = asset.abs_path || asset.path || "";
       if (!path) return;
       try {
@@ -140,14 +140,14 @@ export function createUseSeedance2AssetOperationsController(
           path,
         });
         if (showResponseError(response)) return;
-        toast.success(t("episode.workbench.video.seedance2AssetDeleted"));
+        toast.success(t("episode.workbench.video.videoReferenceAssetDeleted"));
       } catch {
         toast.error(t("common.error"));
       }
     };
 
     const saveCrop = async (
-      asset: Seedance2AssetItem,
+      asset: VideoReferenceAssetItem,
       target: VideoInputCropTarget,
       crop: CropBox,
     ) => {
@@ -167,7 +167,7 @@ export function createUseSeedance2AssetOperationsController(
           crop,
         });
         if (showResponseError(response)) return;
-        toast.success(t("episode.workbench.video.seedance2AssetCropped"));
+        toast.success(t("episode.workbench.video.videoReferenceAssetCropped"));
         setCropIntent(null);
       } catch {
         toast.error(t("common.error"));
@@ -186,7 +186,7 @@ export function createUseSeedance2AssetOperationsController(
         durationSeconds <= 0
       ) {
         toast.error(
-          t("episode.workbench.video.seedance2AssetAudioTrimInvalid"),
+          t("episode.workbench.video.videoReferenceAssetAudioTrimInvalid"),
         );
         return;
       }
@@ -199,7 +199,7 @@ export function createUseSeedance2AssetOperationsController(
           durationSeconds,
         });
         if (showResponseError(response)) return;
-        toast.success(t("episode.workbench.video.seedance2AssetAudioTrimmed"));
+        toast.success(t("episode.workbench.video.videoReferenceAssetAudioTrimmed"));
         setTrimAsset(null);
       } catch {
         toast.error(t("common.error"));

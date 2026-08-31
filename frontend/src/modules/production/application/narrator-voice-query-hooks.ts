@@ -21,10 +21,10 @@ function invalidateNarratorVoiceQueries(
     queryKey: queryKeys.narratorVoice(project),
   });
   queryClient.invalidateQueries({
-    queryKey: queryKeys.seedance2BeatStatusProject(project),
+    queryKey: queryKeys.videoReferenceBeatStatusProject(project),
   });
   queryClient.invalidateQueries({
-    queryKey: queryKeys.audioBillingQuotes(project),
+    queryKey: queryKeys.audioGenerationPlans(project),
   });
   queryClient.invalidateQueries({
     queryKey: queryKeys.characterVoiceLibrary(project),

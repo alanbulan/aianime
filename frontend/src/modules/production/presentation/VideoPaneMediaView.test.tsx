@@ -13,7 +13,7 @@ vi.mock("react-i18next", () => ({
 
 vi.mock("@/modules/production/presentation/VideoPaneParts", () => ({
   BeatVideoPlayer: () => <div>视频播放器</div>,
-  Seedance2MediaPreview: () => <div>视频播放器</div>,
+  VideoReferenceMediaPreview: () => <div>视频播放器</div>,
 }));
 
 describe("VideoPaneMediaView", () => {
@@ -25,8 +25,8 @@ describe("VideoPaneMediaView", () => {
         {
           active: true,
           id: "candidate-1",
-          modelLabel: "Seedance 2.0-fast",
-          modelTooltip: "seedance-2.0-fast",
+          modelLabel: "Video Model Reference",
+          modelTooltip: "video-model-reference",
           previewSource: null,
           timeLabel: "6小时前",
           timeTooltip: "生成于 6.9小时前",
@@ -38,7 +38,7 @@ describe("VideoPaneMediaView", () => {
       previewSource: "/beat-5.mp4",
       selectionPending: false,
       state: "ready",
-      useSeedance2Preview: false,
+      useVideoReferencePreview: false,
       videoActive: false,
       videoPercent: 100,
       deleteCandidate: vi.fn(async () => undefined),
@@ -63,8 +63,8 @@ describe("VideoPaneMediaView", () => {
         {
           active: true,
           id: "active",
-          modelLabel: "Seedance 2.0-fast",
-          modelTooltip: "doubao:seedance-2.0-fast",
+          modelLabel: "Video Model Reference",
+          modelTooltip: "provider-a:video-model-reference",
           previewSource: null,
           timeLabel: null,
           timeTooltip: null,
@@ -85,7 +85,7 @@ describe("VideoPaneMediaView", () => {
       previewSource: null,
       selectionPending: false,
       state: "ready",
-      useSeedance2Preview: false,
+      useVideoReferencePreview: false,
       videoActive: false,
       videoPercent: 100,
       deleteCandidate,

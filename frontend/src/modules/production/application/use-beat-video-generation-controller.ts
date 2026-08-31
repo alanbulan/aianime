@@ -15,12 +15,8 @@ import {
   type BeatVideoGenerationInput,
 } from "@/modules/production/domain/beat-video-generation";
 import type { RegenerateBeatVideoCommand } from "@/modules/production/domain/video-generation";
-import type { Seedance2ConfigDraft } from "@/modules/production/domain/video-config";
+import type { BeatVideoConfigDraft } from "@/modules/production/domain/video-config";
 import { backendErrorToastMessage } from "@/shared/api/errors";
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
 
 interface RegenerationMutation {
   isPending: boolean;
@@ -36,33 +32,20 @@ export interface BeatVideoGenerationQueries {
   ): RegenerationMutation;
 }
 
-export interface BeatVideoGenerationControllerDependencies {
-  useGenerationCreditCost(
-    kind: "video_model",
-    value: string,
-    options: {
-      params: { resolution: string };
-      quantity: number;
-      surface: "ai_anime";
-    },
-  ): CreditCostQuery;
-}
-
 export interface BeatVideoGenerationControllerOptions {
   beatNumber: number;
   episode: number;
   generationInput: BeatVideoGenerationInput;
   project: string;
   prompt: string;
-  promptKind: "legacy" | "seedance2";
-  applyNormalizedDraft(draft: Seedance2ConfigDraft): void;
-  saveDraft(draft: Seedance2ConfigDraft): Promise<boolean>;
+  promptKind: "basic" | "configured";
+  applyNormalizedDraft(draft: BeatVideoConfigDraft): void;
+  saveDraft(draft: BeatVideoConfigDraft): Promise<boolean>;
 }
 
 export interface BeatVideoGenerationController {
   beatNumber: number;
   confirmationOpen: boolean;
-  costDisplay?: string | null;
   generationPending: boolean;
   progress: number;
   started: boolean;
@@ -73,22 +56,8 @@ export interface BeatVideoGenerationController {
   stopGeneration(): Promise<void>;
 }
 
-function generationCost(input: BeatVideoGenerationInput): {
-  duration: number;
-  resolution: string;
-} {
-  if (input.kind !== "legacy") {
-    return {
-      duration: input.draft.duration,
-      resolution: input.draft.resolution,
-    };
-  }
-  return input.seedance15 ?? { duration: 5, resolution: "720p" };
-}
-
 export function createUseBeatVideoGenerationController(
   queries: BeatVideoGenerationQueries,
-  dependencies: BeatVideoGenerationControllerDependencies,
 ) {
   return function useBeatVideoGenerationController(
     options: BeatVideoGenerationControllerOptions,
@@ -111,23 +80,12 @@ export function createUseBeatVideoGenerationController(
       ],
     });
     const [confirmationOpen, setConfirmationOpen] = useState(false);
-    const cost = generationCost(options.generationInput);
-    const creditCost = dependencies.useGenerationCreditCost(
-      "video_model",
-      options.generationInput.model,
-      {
-        surface: "ai_anime",
-        params: { resolution: cost.resolution },
-        quantity: cost.duration,
-      },
-    );
-
     const validatePrompt = (): boolean => {
       if (options.prompt.trim()) return true;
       toast.error(
         t(
-          options.promptKind === "seedance2"
-            ? "episode.workbench.video.seedance2PromptRequired"
+          options.promptKind === "configured"
+            ? "episode.workbench.video.videoReferencePromptRequired"
             : "episode.workbench.video.beatVideoPromptRequired",
           { n: options.beatNumber },
         ),
@@ -174,7 +132,6 @@ export function createUseBeatVideoGenerationController(
     return {
       beatNumber: options.beatNumber,
       confirmationOpen,
-      costDisplay: creditCost.data?.data.display,
       generationPending: regenerate.isPending,
       progress: task.stream?.progress ?? 0,
       started: task.started,

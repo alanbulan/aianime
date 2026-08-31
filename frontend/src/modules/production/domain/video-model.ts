@@ -1,5 +1,20 @@
 // Copyright (c) 2026 AI anime
 
+export type VideoWorkflow = "standard" | "advanced-reference" | "reference";
+
+const VIDEO_WORKFLOWS = new Set<VideoWorkflow>([
+  "standard",
+  "advanced-reference",
+  "reference",
+]);
+
+function resolveVideoWorkflow(capabilities: Record<string, unknown>): VideoWorkflow {
+  const declared = String(capabilities.videoWorkflow ?? "").trim().toLowerCase();
+  return VIDEO_WORKFLOWS.has(declared as VideoWorkflow)
+    ? (declared as VideoWorkflow)
+    : "standard";
+}
+
 export interface VideoCatalogItem {
   code: string;
   displayName: string;
@@ -12,16 +27,19 @@ export interface VideoModelOption {
   apiModel?: string;
   routeSelector?: string;
   label: string;
-  profile: "standard" | "seedance2" | "happyhorse" | "grok";
+  workflow: VideoWorkflow;
   supportsAdvancedConfig: boolean;
   supportsNativeAudio: boolean;
   dialogueOnly: boolean;
   minDuration?: number;
   maxDuration?: number;
   resolutionOptions?: string[];
+  resolutionMaxSeconds?: Record<string, number>;
   sizeOptions?: string[];
   ratioOptions?: string[];
   supportedModes?: string[];
+  sceneOptimizeOptions?: string[];
+  extraParameterNames?: string[];
   referenceImageMax?: number;
   referenceVideoMax?: number;
   referenceAudioMax?: number;
@@ -30,7 +48,12 @@ export interface VideoModelOption {
 export function videoModelOptionsFromCatalog(
   items: readonly VideoCatalogItem[],
 ): VideoModelOption[] {
-  return items.map(videoModelOptionFromCatalog);
+  return items.flatMap((item) => {
+    const routeSelector = stringValue(item.capabilities.routeSelector);
+    return routeSelector
+      ? [videoModelOptionFromCatalog(item, routeSelector)]
+      : [];
+  });
 }
 
 export function resolveAuthorizedVideoModel(
@@ -53,19 +76,16 @@ export function resolveVideoModelOption<
   const persisted = String(persistedModel ?? "").trim();
   const exact = options.find((option) => option.value === persisted);
   if (exact) return exact;
-  const legacyMatches = options.filter(
-    (option) => (option.apiModel ?? option.value) === persisted,
-  );
-  return legacyMatches.length === 1 ? legacyMatches[0] : undefined;
+  return undefined;
 }
 
-export function videoModelOptionFromCatalog(
+function videoModelOptionFromCatalog(
   item: VideoCatalogItem,
+  routeSelector: string,
 ): VideoModelOption {
   const capabilities = item.capabilities;
-  const routeSelector = stringValue(capabilities.routeSelector);
   const properties = schemaProperties(item.parameterSchema);
-  const profile = videoProfile(capabilities, item.code, item.displayName);
+  const workflow = resolveVideoWorkflow(capabilities);
   const declaredResolutionOptions = stringArray(
     firstDefined(
       capabilities.resolutionOptions,
@@ -102,6 +122,18 @@ export function videoModelOptionFromCatalog(
   const supportedModes = stringArray(
     firstDefined(capabilities.supportedModes, capabilities.modes),
   );
+  const sceneOptimizeOptions = stringArray(
+    firstDefined(
+      capabilities.sceneOptimizeOptions,
+      properties.scene_optimize?.enum,
+      properties.sceneOptimize?.enum,
+    ),
+  );
+  const extraParameterNames = unique(
+    Object.keys(properties).filter(
+      (name) => !VIDEO_CORE_PARAMETER_NAMES.has(name),
+    ),
+  );
   const minDuration = finiteNumber(
     firstDefined(
       capabilities.minDuration,
@@ -119,7 +151,7 @@ export function videoModelOptionFromCatalog(
   const supportsAdvancedConfig =
     booleanValue(capabilities.advancedConfig) ??
     Boolean(
-      profile !== "standard" ||
+      workflow !== "standard" ||
         properties.seconds ||
         properties.duration ||
         properties.size ||
@@ -128,11 +160,11 @@ export function videoModelOptionFromCatalog(
     );
 
   return {
-    value: routeSelector ?? item.code,
+    value: routeSelector,
     apiModel: item.code,
-    ...optional("routeSelector", routeSelector),
+    routeSelector,
     label: item.displayName,
-    profile,
+    workflow,
     supportsAdvancedConfig,
     supportsNativeAudio:
       booleanValue(
@@ -149,9 +181,20 @@ export function videoModelOptionFromCatalog(
       "resolutionOptions",
       resolutionOptions,
     ),
+    ...optional(
+      "resolutionMaxSeconds",
+      positiveNumberRecord(
+        firstDefined(
+          capabilities.videoResolutionMaxSeconds,
+          capabilities.resolutionMaxSeconds,
+        ),
+      ),
+    ),
     ...optionalArray("sizeOptions", sizeOptions),
     ...optionalArray("ratioOptions", ratioOptions),
     ...optionalArray("supportedModes", supportedModes),
+    ...optionalArray("sceneOptimizeOptions", sceneOptimizeOptions),
+    ...optionalArray("extraParameterNames", extraParameterNames),
     ...optional(
       "referenceImageMax",
       finiteNumber(capabilities.referenceImageMax),
@@ -167,28 +210,29 @@ export function videoModelOptionFromCatalog(
   };
 }
 
-function videoProfile(
-  capabilities: Record<string, unknown>,
-  code: string,
-  displayName: string,
-): VideoModelOption["profile"] {
-  const declared = String(
-    firstDefined(
-      capabilities.videoProfile,
-      capabilities.uiProfile,
-      capabilities.family,
-    ) ?? "",
-  )
-    .trim()
-    .toLowerCase();
-  const normalized = `${declared} ${code} ${displayName}`
-    .replace(/[\s._-]/g, "")
-    .toLowerCase();
-  if (normalized.includes("happyhorse")) return "happyhorse";
-  if (normalized.includes("grokvideo")) return "grok";
-  if (normalized.includes("seedance2")) return "seedance2";
-  return "standard";
-}
+const VIDEO_CORE_PARAMETER_NAMES = new Set([
+  "model",
+  "prompt",
+  "mode",
+  "seconds",
+  "duration",
+  "size",
+  "resolution",
+  "ratio",
+  "aspect_ratio",
+  "generate_audio",
+  "human_review",
+  "scene_optimize",
+  "image",
+  "images",
+  "input_reference",
+  "first_frame_image",
+  "last_frame_image",
+  "reference_images",
+  "reference_videos",
+  "reference_audios",
+  "references",
+]);
 
 function schemaProperties(
   schema: Record<string, unknown>,
@@ -219,6 +263,20 @@ function stringArray(value: unknown): string[] {
 function finiteNumber(value: unknown): number | undefined {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function positiveNumberRecord(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const entries = Object.entries(value)
+    .map(([key, item]) => [key.trim().toLowerCase(), item] as const)
+    .filter(
+      (entry): entry is readonly [string, number] =>
+        /^\d{2,5}p$/.test(entry[0]) &&
+        typeof entry[1] === "number" &&
+        Number.isFinite(entry[1]) &&
+        entry[1] > 0,
+    );
+  return entries.length ? Object.fromEntries(entries) : undefined;
 }
 
 function booleanValue(value: unknown): boolean | undefined {
