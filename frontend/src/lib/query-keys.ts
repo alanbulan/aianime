@@ -93,14 +93,14 @@ export const queryKeys = {
     ["projects", p, "episodes", ep, "beats", beat, "director-control-frame"] as const,
   videoPool: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "video-pool"] as const,
-  seedance2BeatStatusProject: (p: string) =>
-    ["seedance2-beat-status", p] as const,
-  seedance2BeatStatus: (p: string, ep: number, beat: number) =>
-    ["seedance2-beat-status", p, ep, beat] as const,
+  videoReferenceBeatStatusProject: (p: string) =>
+    ["video-reference-beat-status", p] as const,
+  videoReferenceBeatStatus: (p: string, ep: number, beat: number) =>
+    ["video-reference-beat-status", p, ep, beat] as const,
   renderSettings: (p: string) => ["projects", p, "render-settings"] as const,
   sketchSettings: (p: string) => ["projects", p, "sketch-settings"] as const,
   narratorVoice: (p: string) => ["projects", p, "narrator-voice"] as const,
-  audioBillingQuotes: (p: string) => ["audio-billing-quote", p] as const,
+  audioGenerationPlans: (p: string) => ["audio-generation-plan", p] as const,
   finalVideo: (p: string, ep: number) =>
     ["projects", p, "episodes", ep, "final-video"] as const,
   tasks: (p?: string) => (p ? (["projects", p, "tasks"] as const) : (["tasks"] as const)),

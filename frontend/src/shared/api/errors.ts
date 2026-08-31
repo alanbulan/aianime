@@ -40,25 +40,16 @@ export class BackendStatusError extends Error {
   }
 }
 
-export class InsufficientCreditsError extends BackendStatusError {
-  constructor(
-    message: string,
-    status: number,
-    body?: unknown,
-  ) {
-    super(message, status, body);
-    this.name = "InsufficientCreditsError";
-  }
-}
+export const REMOTE_MODEL_QUOTA_CODE = "INSUFFICIENT_CREDITS";
 
-export class BillingRuleNotConfiguredError extends BackendStatusError {
+export class ModelQuotaExceededError extends BackendStatusError {
   constructor(
     message: string,
     status: number,
     body?: unknown,
   ) {
     super(message, status, body);
-    this.name = "BillingRuleNotConfiguredError";
+    this.name = "ModelQuotaExceededError";
   }
 }
 
@@ -108,7 +99,7 @@ function projectQueueLimitPlainMessage(
 export function errorFromBackendBody(status: number, body: unknown, fallback: string): Error | null {
   if (!body || typeof body !== "object") {
     if (status === 402) {
-      return new InsufficientCreditsError(fallback, status, body);
+      return new ModelQuotaExceededError(fallback, status, body);
     }
     return null;
   }
@@ -151,16 +142,12 @@ export function errorFromBackendBody(status: number, body: unknown, fallback: st
         ? detail
         : findNestedString(body, "message") ?? fallback;
 
-  if (errorCode === "INSUFFICIENT_CREDITS") {
-    return new InsufficientCreditsError(message, status, body);
+  if (errorCode === REMOTE_MODEL_QUOTA_CODE) {
+    return new ModelQuotaExceededError(message, status, body);
   }
   if (status === 402) {
-    return new InsufficientCreditsError(message, status, body);
+    return new ModelQuotaExceededError(message, status, body);
   }
-  if (errorCode === "BILLING_RULE_NOT_CONFIGURED") {
-    return new BillingRuleNotConfiguredError(message, status, body);
-  }
-
   if (status === 429 && typeof queueKind === "string" && queueKind.trim()) {
     const normalizedScope = limitScope === "user" ? "user" : "project";
     return new ProjectQueueLimitError(
@@ -239,7 +226,7 @@ export async function jsonWithBackendError<T>(request: Promise<Response>): Promi
  * gateway. Sketch/render/video failures surface as a RuntimeError whose text
  * embeds the gateway response, e.g.
  *
- *   草图重生未生成可用图片（...）: HTTP 429: ...; body={"error":{"code":"huimeng_low_quality_skipped","type":"channel_policy",...}}
+ *   草图重生未生成可用图片（...）: HTTP 429: ...; body={"error":{"code":"image_low_quality_skipped","type":"channel_policy",...}}
  *
  * A `channel_policy` rejection is a *route-layer* refusal (the gateway skipped
  * the channel before dispatching, e.g. low-quality sketch regen), NOT real
@@ -331,7 +318,7 @@ export function classifyGatewayError(
 ): GatewayErrorKind | null {
   if (!raw) return null;
   // `"type":"channel_policy"` is the authoritative marker; `_skipped` codes
-  // (huimeng_low_quality_skipped, ...) are the same route-layer family.
+  // (image_low_quality_skipped, ...) are the same route-layer family.
   if (/channel[_-]?policy/i.test(raw) || /_skipped\b/i.test(raw)) {
     return "channel_policy";
   }
@@ -363,13 +350,8 @@ export function humanizeTaskError(
 }
 
 export function backendErrorToastMessage(error: unknown, t: TFunction): string {
-  if (error instanceof InsufficientCreditsError) {
-    return t("common.insufficientCredits", {
-      defaultValue: error.message || t("common.error"),
-    });
-  }
-  if (error instanceof BillingRuleNotConfiguredError) {
-    return t("common.billingRuleNotConfigured", {
+  if (error instanceof ModelQuotaExceededError) {
+    return t("common.modelQuotaExceeded", {
       defaultValue: error.message || t("common.error"),
     });
   }

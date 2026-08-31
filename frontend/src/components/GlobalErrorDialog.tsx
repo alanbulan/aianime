@@ -34,14 +34,6 @@ export function GlobalErrorDialog({
   const [showDetails, setShowDetails] = useState(false);
   const copiedResetTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
-  const rawErrorText = [message, details, copyText].filter(Boolean).join('\n\n');
-  const isOpenRouterConfigError = /OPENROUTER_API_KEY|API key not set/i.test(rawErrorText);
-  const displayTitle = isOpenRouterConfigError
-    ? t('errorDialog.serviceConfigTitle')
-    : title;
-  const displayMessage = isOpenRouterConfigError
-    ? t('errorDialog.openRouterConfigMessage')
-    : message;
   const technicalDetails = useMemo(() => {
     const detailText = details?.trim();
     const messageText = message.trim();
@@ -115,10 +107,10 @@ export function GlobalErrorDialog({
           </div>
           <div className="min-w-0">
             <DialogTitle className="text-[17px] font-semibold leading-6 text-popover-foreground">
-              {displayTitle}
+              {title}
             </DialogTitle>
             <DialogDescription className="mt-2 text-[14px] leading-6 text-popover-foreground/78">
-              {displayMessage}
+              {message}
             </DialogDescription>
           </div>
         </DialogHeader>

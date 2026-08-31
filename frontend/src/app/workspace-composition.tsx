@@ -87,26 +87,17 @@ export function CharactersPageContent({ project }: { project: string }) {
 
 function EpisodeListItemContent({
   episode,
-  identityCostDisplay,
   onSelect,
   project,
-  propCostDisplay,
-  sceneCostDisplay,
 }: {
   episode: Episode;
-  identityCostDisplay?: string | null;
   onSelect(): void;
   project: string;
-  propCostDisplay?: string | null;
-  sceneCostDisplay?: string | null;
 }) {
   const controller = useEpisodeListItemController({
     episode,
-    identityCostDisplay,
     onSelect,
     project,
-    propCostDisplay,
-    sceneCostDisplay,
   });
   return createElement(EpisodeListItemView, { controller });
 }
@@ -133,12 +124,9 @@ export function EpisodesPageContent({
   const renderEpisodeListItem = (episode: Episode) =>
     createElement(EpisodeListItemContent, {
       episode,
-      identityCostDisplay: controller.planIdentitiesCostDisplay,
       key: episode.number,
       onSelect: () => onSelectEpisode(episode.number),
       project,
-      propCostDisplay: controller.planPropsCostDisplay,
-      sceneCostDisplay: controller.planScenesCostDisplay,
     });
 
   return createElement(EpisodesPageView, {

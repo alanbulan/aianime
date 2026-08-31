@@ -47,7 +47,7 @@ export const TASK_EPISODE_STAGES: Readonly<
   audio: {
     routeSegment: "/audio",
     taskTypes: [
-      TASK_TYPES.AUDIO_GENERATION_INDEXTTS2,
+      TASK_TYPES.EPISODE_AUDIO_GENERATION,
       TASK_TYPES.AUDIO_GENERATION,
     ],
   },

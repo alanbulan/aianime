@@ -28,7 +28,7 @@ export const TASK_TYPES = {
   SCRIPT_WRITER: "script_writer",
   LITERAL_SCRIPT_WRITER: "literal_script_writer",
   BEAT_VIDEO_PROMPT: "beat_video_prompt",
-  SEEDANCE2_PROMPT: "seedance2_prompt",
+  VIDEO_PROMPT_OPTIMIZATION: "video_prompt_optimization",
   EPISODE_REWRITE: "episode_rewrite",
   // Backend emits `director_notes`; keep the FE key aligned with that exact
   // task_type so the task stream and cancel endpoint target the same task.
@@ -44,7 +44,7 @@ export const TASK_TYPES = {
   AI_IDENTITY_DETECTION: "ai_identity_detection",
   // Audio
   AUDIO_GENERATION: "audio_generation",
-  AUDIO_GENERATION_INDEXTTS2: "audio_generation_indextts2",
+  EPISODE_AUDIO_GENERATION: "episode_audio_generation",
   FREEZONE_VOICE_DESIGN: "freezone_voice_design",
   FREEZONE_VOICE_PRESET: "freezone_voice_preset",
   FREEZONE_MARK_DETECT: "freezone_mark_detect",
@@ -70,7 +70,7 @@ export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 export const SCOPED_TASK_TYPES = new Set<TaskType>([
   TASK_TYPES.SINGLE_VIDEO,
   TASK_TYPES.BEAT_VIDEO_PROMPT,
-  TASK_TYPES.SEEDANCE2_PROMPT,
+  TASK_TYPES.VIDEO_PROMPT_OPTIMIZATION,
   TASK_TYPES.GRID_REGENERATE,
   TASK_TYPES.SKETCH_REGEN,
   TASK_TYPES.SELECTED_REGEN,

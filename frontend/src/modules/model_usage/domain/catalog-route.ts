@@ -15,7 +15,7 @@ export function catalogRouteSelector(
 }
 
 export function catalogRouteValue(item: CatalogRouteItem): string {
-  return catalogRouteSelector(item) ?? item.code;
+  return catalogRouteSelector(item) ?? "";
 }
 
 export function resolveCatalogRouteSelection(
@@ -24,9 +24,5 @@ export function resolveCatalogRouteSelection(
 ): string {
   const persisted = String(persistedSelection ?? "").trim();
   const exact = items.find((item) => catalogRouteValue(item) === persisted);
-  if (exact) return catalogRouteValue(exact);
-  const legacyMatches = items.filter((item) => item.code === persisted);
-  return legacyMatches.length === 1
-    ? catalogRouteValue(legacyMatches[0]!)
-    : "";
+  return exact ? catalogRouteValue(exact) : "";
 }

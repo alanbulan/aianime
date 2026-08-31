@@ -136,9 +136,6 @@ export function buildChatModelEntries(
             ...(automaticModel.defaultReasoningEffort
               ? { defaultReasoningEffort: automaticModel.defaultReasoningEffort }
               : {}),
-            ...(automaticModel.reasoningEffortDescription
-              ? { reasoningEffortDescription: automaticModel.reasoningEffortDescription }
-              : {}),
           }
         : {}),
     },

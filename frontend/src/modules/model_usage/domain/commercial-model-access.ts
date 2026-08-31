@@ -528,7 +528,7 @@ export function commercialModelRoles(
   const modes = Array.isArray(rawModes)
     ? rawModes
         .filter((value): value is string => typeof value === "string")
-        .map(normalizeMode)
+        .map(normalizeCommercialModelMode)
         .filter(Boolean)
     : [];
   return roles.filter((role) => {
@@ -544,7 +544,7 @@ export function commercialModelRoles(
   });
 }
 
-function normalizeMode(value: string): string {
+export function normalizeCommercialModelMode(value: string): string {
   return value
     .trim()
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")

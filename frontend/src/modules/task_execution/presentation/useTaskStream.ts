@@ -9,6 +9,7 @@ import {
   backendErrorToastMessage,
   errorFromBackendBody,
   humanizeTaskError,
+  REMOTE_MODEL_QUOTA_CODE,
 } from "@/shared/api/errors";
 import { p } from "@/shared/api/path";
 import type { TaskStreamEvent } from "../public";
@@ -83,7 +84,7 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
         t,
       );
       if (localized) return localized;
-      const status = data.error_code === "INSUFFICIENT_CREDITS" ? 402 : 409;
+      const status = data.error_code === REMOTE_MODEL_QUOTA_CODE ? 402 : 409;
       const parsed = data.error_code
         ? errorFromBackendBody(
             status,

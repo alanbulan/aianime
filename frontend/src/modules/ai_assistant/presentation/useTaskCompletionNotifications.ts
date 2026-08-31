@@ -16,6 +16,11 @@ type UseTaskCompletionNotificationsOptions = {
   t: Translate;
 };
 
+interface PendingFailure {
+  timer: ReturnType<typeof setTimeout>;
+  deliver: () => void;
+}
+
 const PARENT_CHILD_FAILURE_COALESCE_MS = 750;
 
 function taskIdentity(task: TaskState): string {
@@ -36,15 +41,15 @@ export function useTaskCompletionNotifications({
   const taskEventBus = useTaskEventBus();
   const notifiedTaskKeysRef = useRef<Set<string>>(new Set());
   const failedParentDeadlinesRef = useRef<Map<string, number>>(new Map());
-  const pendingFailureTimersRef = useRef<
-    Map<string, ReturnType<typeof setTimeout>>
-  >(new Map());
+  const pendingFailuresRef = useRef<Map<string, PendingFailure>>(new Map());
 
   useEffect(() => () => {
-    for (const timer of pendingFailureTimersRef.current.values()) {
-      clearTimeout(timer);
+    const pendingFailures = [...pendingFailuresRef.current.values()];
+    for (const pending of pendingFailures) {
+      clearTimeout(pending.timer);
+      pending.deliver();
     }
-    pendingFailureTimersRef.current.clear();
+    pendingFailuresRef.current.clear();
     failedParentDeadlinesRef.current.clear();
   }, []);
 
@@ -83,10 +88,10 @@ export function useTaskCompletionNotifications({
           parentTaskId,
           parentDeadline,
         );
-        const pendingParent = pendingFailureTimersRef.current.get(parentTaskId);
+        const pendingParent = pendingFailuresRef.current.get(parentTaskId);
         if (pendingParent !== undefined) {
-          clearTimeout(pendingParent);
-          pendingFailureTimersRef.current.delete(parentTaskId);
+          clearTimeout(pendingParent.timer);
+          pendingFailuresRef.current.delete(parentTaskId);
         }
       }
 
@@ -98,8 +103,8 @@ export function useTaskCompletionNotifications({
       };
       if (isCoalescedParentFailure()) return;
 
-      const timer = setTimeout(() => {
-        pendingFailureTimersRef.current.delete(taskId);
+      const deliverFailure = () => {
+        pendingFailuresRef.current.delete(taskId);
         if (
           parentTaskId
           && failedParentDeadlinesRef.current.get(parentTaskId) === parentDeadline
@@ -110,8 +115,12 @@ export function useTaskCompletionNotifications({
         void appendNotification(
           `${label}失败：${event.task.error || event.task.current_task || "未提供具体错误原因"}\n请根据错误处理前置条件后再继续。`,
         );
-      }, PARENT_CHILD_FAILURE_COALESCE_MS);
-      pendingFailureTimersRef.current.set(taskId, timer);
+      };
+      const timer = setTimeout(
+        deliverFailure,
+        PARENT_CHILD_FAILURE_COALESCE_MS,
+      );
+      pendingFailuresRef.current.set(taskId, { timer, deliver: deliverFailure });
     });
 
     return unsubscribe;

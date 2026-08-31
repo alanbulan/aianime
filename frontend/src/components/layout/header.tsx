@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CreditBalanceBadge } from "@/components/layout/credit-balance-badge";
+import { ModelQuotaBadge } from "@/components/layout/model-quota-badge";
 import { NotificationDrawer } from "@/components/notification-drawer";
 import { BRAND_NAME, BrandMark } from "@/components/brand";
 import { SettingsDialog } from "@/components/settings-dialog";
@@ -287,7 +287,7 @@ export function Header() {
           </Button>
         </div>
       ) : null}
-      <CreditBalanceBadge />
+      <ModelQuotaBadge />
       <div
         ref={accountAnchorRef}
         className="relative ml-1 flex items-center"

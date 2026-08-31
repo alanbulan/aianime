@@ -353,4 +353,38 @@ describe("SuperChat task completion notifications", () => {
     );
     expect(nextAppend).not.toHaveBeenCalled();
   });
+
+  it("flushes a pending failure exactly once when unmounted", () => {
+    vi.useFakeTimers();
+    const eventBus = createTaskEventBus();
+    const appendNotification = vi.fn(async (_text: string) => true);
+    const { unmount } = renderHook(
+      () => useTaskCompletionNotifications({
+        project: "project-a",
+        appendNotification,
+        t,
+      }),
+      { wrapper: wrapperFor(eventBus) },
+    );
+
+    act(() => {
+      eventBus.emit({
+        type: "task_failed",
+        task: task({ task_key: "unmount-failure", error: "生成失败" }),
+        previous: null,
+      });
+    });
+    expect(appendNotification).not.toHaveBeenCalled();
+
+    unmount();
+
+    expect(appendNotification).toHaveBeenCalledTimes(1);
+    expect(appendNotification).toHaveBeenCalledWith(
+      "分镜生成失败：生成失败\n请根据错误处理前置条件后再继续。",
+    );
+    act(() => {
+      vi.runAllTimers();
+    });
+    expect(appendNotification).toHaveBeenCalledTimes(1);
+  });
 });

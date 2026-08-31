@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import {
   backendErrorCodeToastMessage,
   humanizeTaskError,
+  REMOTE_MODEL_QUOTA_CODE,
 } from "@/shared/api/errors";
 import type { TaskState } from "@/modules/task_execution/domain/contracts";
 
@@ -13,13 +14,8 @@ export function taskErrorMessage(task: TaskState, t: TFunction): string {
     t,
   );
   if (localized) return localized;
-  if (task.error_code === "INSUFFICIENT_CREDITS") {
-    return t("common.insufficientCredits", {
-      defaultValue: task.error || t("common.error"),
-    });
-  }
-  if (task.error_code === "BILLING_RULE_NOT_CONFIGURED") {
-    return t("common.billingRuleNotConfigured", {
+  if (task.error_code === REMOTE_MODEL_QUOTA_CODE) {
+    return t("common.modelQuotaExceeded", {
       defaultValue: task.error || t("common.error"),
     });
   }

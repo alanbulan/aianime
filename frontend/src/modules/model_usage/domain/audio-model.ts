@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { catalogRouteValue } from './catalog-route';
+import { catalogRouteSelector } from './catalog-route';
 
 export const AUDIO_SPEECH_CATALOG_OPERATION = 'AUDIO_VOICE_CLONE';
 
@@ -137,7 +137,9 @@ export function audioPresetVoiceOptions(
 export function audioSpeechModelOptions(
   items: readonly AudioCatalogItem[],
 ): AudioSpeechModelOption[] {
-  return items.map((item) => {
+  return items.flatMap((item) => {
+    const routeSelector = catalogRouteSelector(item);
+    if (!routeSelector) return [];
     const voices = audioPresetVoiceOptions(item);
     const schema = objectRecord(item.parameterSchema);
     const properties = objectRecord(schema?.properties);
@@ -147,16 +149,18 @@ export function audioSpeechModelOptions(
     const acceptsVoice =
       voices.length > 0 || Boolean(properties?.voice) || !schemaIsExplicit;
     const required = Array.isArray(schema?.required) ? schema.required : [];
-    return {
-      value: catalogRouteValue(item),
-      label: item.displayName,
-      voices,
-      acceptsVoice,
-      allowsCustomVoice: acceptsVoice && voices.length === 0,
-      requiresVoice:
-        voices.length > 0 || required.some((value) => value === 'voice'),
-      isDefault: item.isDefault === true,
-    };
+    return [
+      {
+        value: routeSelector,
+        label: item.displayName,
+        voices,
+        acceptsVoice,
+        allowsCustomVoice: acceptsVoice && voices.length === 0,
+        requiresVoice:
+          voices.length > 0 || required.some((value) => value === 'voice'),
+        isDefault: item.isDefault === true,
+      },
+    ];
   });
 }
 
@@ -217,11 +221,12 @@ export function audioVoiceDesignModelOptions(
   items: readonly AudioCatalogItem[],
 ): AudioVoiceDesignModelOption[] {
   return items.flatMap((item) => {
+    const routeSelector = catalogRouteSelector(item);
     const config = audioVoiceDesignConfig(item);
-    if (!config) return [];
+    if (!routeSelector || !config) return [];
     return [
       {
-        value: catalogRouteValue(item),
+        value: routeSelector,
         label: item.displayName,
         config,
         isDefault: item.isDefault === true,

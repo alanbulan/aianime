@@ -54,7 +54,6 @@ export type ModelEntry = {
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
   defaultReasoningEffort?: string;
-  reasoningEffortDescription?: string;
 };
 
 export type ChatToolEntry = {
