@@ -17,7 +17,6 @@ import {
   VIDEO_NODE_OPERATIONS_PANEL_EXPANDED_WIDTH,
   VIDEO_NODE_OPERATIONS_PANEL_GAP,
 } from '../application/videoNodeModel';
-import { CreditCostPill } from '@/components/credit-visual';
 import type { VideoNodeController } from './useVideoNodeController';
 import { CameraMovementChip } from './CameraMovementChip';
 import { CharacterLibraryChip } from './CharacterLibraryChip';
@@ -65,7 +64,6 @@ import {
   canvasNodeFrameClass,
 } from './canvasNodeFrameStyles';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -135,7 +133,6 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
     supportsHumanReview,
     humanReview,
     count,
-    totalCreditCostDisplay,
     cameraMovementId,
     cameraTemplates,
     cameraTemplatesLoading,
@@ -595,11 +592,6 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
               </button>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <CreditCostPill
-                display={totalCreditCostDisplay}
-                disabled={submitDisabled}
-                className={NODE_CREDIT_PILL_FLAT_CLASS}
-              />
               <button
                 type="button"
                 disabled={submitDisabled}

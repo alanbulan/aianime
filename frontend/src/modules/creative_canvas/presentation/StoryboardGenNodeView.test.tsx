@@ -38,10 +38,6 @@ vi.mock('./CanvasNodeImage', () => ({
   ),
 }));
 
-vi.mock('./NodePriceBadge', () => ({
-  NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
-}));
-
 vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
@@ -90,10 +86,6 @@ vi.mock('./ModelParamsControls', () => ({
       </button>
     </div>
   ),
-}));
-
-vi.mock('@/components/credit-visual', () => ({
-  CreditSparkIcon: () => <span>credit-icon</span>,
 }));
 
 vi.mock('@/components/ui', () => ({
@@ -187,8 +179,6 @@ function createController(): StoryboardGenNodeController {
     selectedResolution: { value: '1K', label: '1K' },
     selectedAspectRatio: { value: '16:9', label: '16:9' },
     aspectRatioOptions: [{ value: '16:9', label: '16:9' }],
-    resolvedPriceDisplay: null,
-    resolvedPriceTooltip: undefined,
     effectiveExtraParams: {},
     showWebSearchToggle: false,
     webSearchEnabled: false,
@@ -288,7 +278,6 @@ describe('StoryboardGenNodeView', () => {
   it('forwards grid, model, and modifier-aware generation commands', () => {
     const controller = createController();
     controller.error = '生成失败';
-    controller.resolvedPriceDisplay = { label: '3 点' } as never;
     render(<StoryboardGenNodeView controller={controller} />);
 
     const rowControl = screen.getByText('行').parentElement as HTMLElement;
@@ -320,7 +309,6 @@ describe('StoryboardGenNodeView', () => {
       altKey: true,
       shiftKey: true,
     });
-    expect(screen.getByText('price:3 点')).toBeInTheDocument();
     expect(screen.getByText('生成失败')).toBeInTheDocument();
   });
 });

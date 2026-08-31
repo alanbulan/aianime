@@ -60,7 +60,6 @@ import type {
 } from '../application/translateCanvasText';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
 
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const SPAWN_UPLOAD_WIDTH = 320;
 const EDIT_VIEW_ZOOM = 1.4;
@@ -183,11 +182,6 @@ export function createUseTextAnnotationNodeController({
         ? data.model
         : DEFAULT_SHARED_MODEL_ID;
     const { models: videoModels } = useCanvasVideoModels(projectId);
-    const reversePromptCost = useGenerationCreditCost(
-      mode === 'imageToPrompt' ? 'freezone_image_reverse_prompt' : '',
-      null,
-      { surface: 'canvas' },
-    );
     const { isGenerating, progress: generationProgress } =
       useNodeGenerationTaskState(data);
     const isReferenceOnly = Boolean(data.referenceOnly);
@@ -636,7 +630,6 @@ export function createUseTextAnnotationNodeController({
       textPlaceholder,
       hasUserContent,
       submitDisabled,
-      reversePromptCostDisplay: reversePromptCost.data?.data.display,
       reversePromptDurationMs: TEXT_ANNOTATION_REVERSE_PROMPT_DURATION_MS,
       compactInputValue:
         mode === 'imageToPrompt' &&

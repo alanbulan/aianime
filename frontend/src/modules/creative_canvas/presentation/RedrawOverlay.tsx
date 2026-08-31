@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 
 import { CANVAS_NODE_INPUT_PLACEHOLDER_CLASS } from './canvasNodeFrameStyles';
-import { NODE_CREDIT_PILL_FLAT_CLASS } from './canvasNodeControlStyles';
 import { ProviderModelPicker } from './ProviderModelPicker';
 import { DEFAULT_ASPECT_RATIO } from '../domain/aspectRatio';
 import {
@@ -53,7 +52,6 @@ import {
   type MaskPaintingTool,
 } from './useMaskPainting';
 
-import { CreditCostPill } from '@/components/credit-visual';
 import {
   Select,
   SelectContent,
@@ -61,7 +59,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface RedrawOverlayProps {
   projectId: string;
@@ -174,17 +171,6 @@ export function createRedrawOverlay({
     const selectedModel =
       availableModels.find((m) => m.id === modelId)
       ?? availableModels[0];
-    const creditCost = useGenerationCreditCost(
-      'image_selection',
-      selectedModel?.apiModel ?? null,
-      {
-        surface: 'canvas',
-        params: imageModelSupportsQuality(selectedModel?.apiModel)
-          ? { size: imageSize, quality: 'medium' }
-          : { size: imageSize },
-        quantity: Math.min(Math.max(numImages, 1), 4),
-      },
-    );
 
     // Load base image, size all canvases.
     useEffect(() => {
@@ -626,10 +612,6 @@ export function createRedrawOverlay({
 
               <div className="ml-auto flex items-center gap-2">
                 {error && <span className="text-destructive">{error}</span>}
-                <CreditCostPill
-                  display={creditCost.data?.data.display}
-                  className={NODE_CREDIT_PILL_FLAT_CLASS}
-                />
                 <button
                   type="button"
                   onClick={handleSubmit}

@@ -21,7 +21,6 @@ import {
   NODE_CONTROL_PARAMS_CHIP_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
 } from './canvasNodeControlStyles';
-import { NodePriceBadge } from './NodePriceBadge';
 import { NodeResizeHandle } from './NodeResizeHandle';
 import {
   IMAGE_EDIT_NODE_SIZE_LIMITS,
@@ -94,8 +93,6 @@ export function ImageEditNodeView({
     selectedResolution,
     aspectRatioOptions,
     selectedAspectRatio,
-    resolvedPriceDisplay,
-    resolvedPriceTooltip,
     showWebSearchToggle,
     webSearchEnabled,
     showImagePicker,
@@ -121,14 +118,6 @@ export function ImageEditNodeView({
         className={NODE_HEADER_FLOATING_POSITION_CLASS}
         icon={<Sparkles className="h-4 w-4" />}
         titleText={title}
-        rightSlot={
-          resolvedPriceDisplay ? (
-            <NodePriceBadge
-              label={resolvedPriceDisplay.label}
-              title={resolvedPriceTooltip}
-            />
-          ) : undefined
-        }
         editable
         onTitleChange={controller.rename}
       />

@@ -245,7 +245,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
       catalogVersion: "h3-v1",
       items: [{
         id: "h3",
-        code: "MINIMAX_H3",
+        code: "video-model-basic",
         displayName: "MiniMax H3",
         operation: "VIDEO",
         capabilities,
@@ -253,7 +253,7 @@ describe("httpCanvasGenerationCatalogGateway", () => {
       }],
     })).toEqual([
       expect.objectContaining({
-        apiModel: "MINIMAX_H3",
+        apiModel: "video-model-basic",
         supportedModes: ["textToVideo", "imageToVideo", "allReference"],
         sizeOptions: ["1344x768", "768x1344", "1024x1024"],
         aspectRatioOptions: ["16:9", "9:16", "1:1"],

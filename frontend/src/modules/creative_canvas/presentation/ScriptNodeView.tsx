@@ -17,7 +17,6 @@ import {
   X,
 } from 'lucide-react';
 
-import { CreditCostPill } from '@/components/credit-visual';
 import type { ScriptGenAction } from '../application/scriptNodeModel';
 import {
   CANVAS_NODE_INPUT_FRAME_CLASS,
@@ -26,7 +25,6 @@ import {
   CANVAS_NODE_PANEL_SURFACE_CLASS,
 } from './canvasNodeFrameStyles';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -531,11 +529,6 @@ function ScriptOperationsPanel({
               <Languages className="h-4 w-4" />
             )}
           </IconButton>
-          <CreditCostPill
-            display={controller.scriptCostDisplay}
-            disabled={controller.submitDisabled}
-            className={NODE_CREDIT_PILL_FLAT_CLASS}
-          />
           <button
             type="button"
             disabled={controller.submitDisabled}

@@ -63,12 +63,7 @@ import {
 } from '../application/generationErrorReport';
 import { resolveErrorContent } from '../application/errorDialog';
 import type { CanvasImageJobGateway } from '../application/canvasImageJob';
-import type {
-  GrsaiCreditTierId,
-  PriceDisplayCurrencyMode,
-} from '../domain/modelPricing';
 import { backendErrorToastMessage } from '@/shared/api/errors';
-import { useNodePriceDisplay } from './useNodePriceDisplay';
 
 export interface StoryboardGenNodeStore {
   setSelectedNode: (id: string | null) => void;
@@ -97,11 +92,6 @@ export interface StoryboardGenNodeSettingsStore {
   ignoreAtTagWhenCopyingAndGenerating: boolean;
   enableStoryboardGenGridPreviewShortcut: boolean;
   showStoryboardGenAdvancedRatioControls: boolean;
-  showNodePrice: boolean;
-  priceDisplayCurrencyMode: PriceDisplayCurrencyMode;
-  usdToCnyRate: number;
-  preferDiscountedPrice: boolean;
-  grsaiCreditTierId: GrsaiCreditTierId;
 }
 
 export type StoryboardGenNodeSettingsStoreHook = <TSelected>(
@@ -255,18 +245,6 @@ export function createUseStoryboardGenNodeController({
   const showAdvancedRatioControls = useSettingsStore(
     (state) => state.showStoryboardGenAdvancedRatioControls,
   );
-  const showNodePrice = useSettingsStore((state) => state.showNodePrice);
-  const priceDisplayCurrencyMode = useSettingsStore(
-    (state) => state.priceDisplayCurrencyMode,
-  );
-  const usdToCnyRate = useSettingsStore((state) => state.usdToCnyRate);
-  const preferDiscountedPrice = useSettingsStore(
-    (state) => state.preferDiscountedPrice,
-  );
-  const grsaiCreditTierId = useSettingsStore(
-    (state) => state.grsaiCreditTierId,
-  );
-
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const activeFrameTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -390,16 +368,6 @@ export function createUseStoryboardGenNodeController({
   const requestResolution = selectedModel?.resolveRequest({
     referenceImageCount: incomingImages.length,
   }) ?? { requestModel: '', modeLabel: '' };
-  const { resolvedPriceDisplay, resolvedPriceTooltip } = useNodePriceDisplay({
-    show: showNodePrice,
-    model: selectedModel,
-    resolution: selectedResolution.value,
-    extraParams: effectiveExtraParams,
-    displayCurrencyMode: priceDisplayCurrencyMode,
-    usdToCnyRate,
-    preferDiscountedPrice,
-    grsaiCreditTierId,
-  });
   const supportedAspectRatioValues = useMemo(
     () => (selectedModel?.aspectRatios ?? []).map((item) => item.value),
     [selectedModel],
@@ -970,8 +938,6 @@ export function createUseStoryboardGenNodeController({
     selectedResolution,
     selectedAspectRatio,
     aspectRatioOptions,
-    resolvedPriceDisplay,
-    resolvedPriceTooltip,
     effectiveExtraParams,
     showWebSearchToggle: false,
     webSearchEnabled: false,

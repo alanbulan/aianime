@@ -21,7 +21,6 @@ const mocks = vi.hoisted(() => ({
   }>,
   detachUpstream: vi.fn(),
   useAudioGeneration: vi.fn(),
-  creditCost: vi.fn(),
   modelAccess: vi.fn(),
   modelCatalog: vi.fn(),
   translate: vi.fn(),
@@ -33,7 +32,6 @@ vi.mock('@/modules/model_usage/public', async (importOriginal) => {
   >();
   return {
     ...actual,
-    useGenerationCreditCost: (...args: unknown[]) => mocks.creditCost(...args),
     useCommercialModelAccessStatus: (...args: unknown[]) => mocks.modelAccess(...args),
     useCommercialModelCatalog: (...args: unknown[]) => mocks.modelCatalog(...args),
   };
@@ -65,9 +63,6 @@ describe('useAudioOperationsPanelController', () => {
       effectivePrompt: mocks.effectivePrompt,
       isGenerating: mocks.isGenerating,
     }));
-    mocks.creditCost.mockReset().mockReturnValue({
-      data: { data: { display: '2 积分' } },
-    });
     mocks.modelCatalog.mockReset().mockReturnValue({
       data: {
         catalogVersion: 'audio-v1',
@@ -160,7 +155,7 @@ describe('useAudioOperationsPanelController', () => {
     expect(result.current.voiceEmotionSupported).toBe(true);
   });
 
-  it('projects music settings, billing quantity, references, and commands', () => {
+  it('projects music settings, references, and commands', () => {
     mocks.upstreamContents = [
       {
         nodeId: 'text-a',
@@ -187,11 +182,6 @@ describe('useAudioOperationsPanelController', () => {
       }),
     );
 
-    expect(mocks.creditCost).toHaveBeenCalledWith(
-      'freezone_audio_music',
-      'audio-music-1',
-      { surface: 'canvas', quantity: 31 },
-    );
     expect(mocks.useAudioGeneration).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 'project-a',
@@ -269,11 +259,6 @@ describe('useAudioOperationsPanelController', () => {
     expect(mocks.modelCatalog).toHaveBeenCalledWith(
       'AUDIO_VOICE_CLONE',
       expect.any(Boolean),
-    );
-    expect(mocks.creditCost).toHaveBeenCalledWith(
-      'beat_tts',
-      'audio-speech-1',
-      {},
     );
     expect(result.current.voiceSettings).toMatchObject({
       generationMode: 'speech',

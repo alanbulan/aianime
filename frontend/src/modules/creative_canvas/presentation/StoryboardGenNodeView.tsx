@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Minus, Plus, Sparkles } from 'lucide-react';
 
-import { CreditSparkIcon } from '@/components/credit-visual';
 import { UiButton } from '@/components/ui';
 import { CanvasNodeImage } from './CanvasNodeImage';
 import {
@@ -13,7 +12,6 @@ import {
 } from './canvasNodeFrameStyles';
 import { NODE_CONTROL_PRIMARY_BUTTON_CLASS } from './canvasNodeControlStyles';
 import { ModelParamsControls } from './ModelParamsControls';
-import { NodePriceBadge } from './NodePriceBadge';
 import { NodeResizeHandle } from './NodeResizeHandle';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
 import { STORYBOARD_GEN_FRAME_GRID_GAP_PX } from '../domain/storyboardGenNodeModel';
@@ -162,14 +160,6 @@ export function StoryboardGenNodeView({
         headerAdjust={STORYBOARD_GEN_HEADER_ADJUST}
         iconAdjust={STORYBOARD_GEN_ICON_ADJUST}
         titleAdjust={STORYBOARD_GEN_TITLE_ADJUST}
-        rightSlot={
-          controller.resolvedPriceDisplay ? (
-            <NodePriceBadge
-              label={controller.resolvedPriceDisplay.label}
-              title={controller.resolvedPriceTooltip}
-            />
-          ) : undefined
-        }
         editable
         onTitleChange={controller.rename}
       />
@@ -424,7 +414,7 @@ export function StoryboardGenNodeView({
           size="sm"
           className={`!min-w-0 shrink-0 ${NODE_CONTROL_PRIMARY_BUTTON_CLASS} ${STORYBOARD_GEN_GENERATE_BUTTON_CLASS}`}
         >
-          <CreditSparkIcon className={STORYBOARD_GEN_ACTION_ICON_CLASS} />
+          <Sparkles className={STORYBOARD_GEN_ACTION_ICON_CLASS} />
           {controller.copy.generate}
         </UiButton>
       </div>

@@ -43,10 +43,6 @@ export interface AudioUpstreamTextSource {
   readonly text: string;
 }
 
-export function musicBillingSecondsFromMs(ms: number): number {
-  return Math.max(Math.ceil(Math.max(ms, 0) / 1000), 1);
-}
-
 export function resolveAudioMusicSettings(
   data: AudioOperationsNodeSource,
 ): AudioMusicSettings {

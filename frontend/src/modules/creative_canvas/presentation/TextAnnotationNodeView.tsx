@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { CreditCostInline } from '@/components/credit-cost-inline';
 import type { TextAnnotationNodeController } from './useTextAnnotationNodeController';
 import {
   CANVAS_NODE_INPUT_BODY_FRAME_CLASS,
@@ -209,9 +208,6 @@ function CompactOpsPanel({
           />
         )}
         <div className="flex items-center gap-1.5">
-          {controller.mode === 'imageToPrompt' ? (
-            <CreditCostInline display={controller.reversePromptCostDisplay} />
-          ) : null}
           <button
             type="button"
             disabled={controller.submitDisabled}

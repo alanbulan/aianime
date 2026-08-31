@@ -16,14 +16,12 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { CreditCostPill } from "@/components/credit-visual";
 import type {
   VideoSubtitleEraseBox,
   VideoSubtitleEraseMode,
 } from "../domain/videoSubtitleErase";
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from "./canvasNodeFrameStyles";
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -234,12 +232,6 @@ export function SubtitleEraseOpsPanel({
           <RotateCcw className="h-4 w-4" />
         </button>
       )}
-
-      <CreditCostPill
-        display="0"
-        disabled={submitDisabled}
-        className={NODE_CREDIT_PILL_FLAT_CLASS}
-      />
 
       <button
         type="button"

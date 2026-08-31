@@ -88,7 +88,7 @@ describe("freezoneAudioGenerationGateway", () => {
       }),
     ).resolves.toBe(task);
     expect(apiCall).toHaveBeenCalledWith(
-      "projects/project%2F2/freezone/audio/eleven-music",
+      "projects/project%2F2/freezone/audio/music",
       {
         method: "POST",
         json: {

@@ -10,10 +10,8 @@ import {
   X,
 } from 'lucide-react';
 
-import { CreditCostPill } from '@/components/credit-visual';
 import { UiTextArea } from '@/components/ui';
 import { Slider } from '@/components/ui/slider';
-import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 import {
   DEFAULT_MULTI_ANGLE_IMAGE_SIZE,
   MULTI_ANGLE_IMAGE_SIZES,
@@ -24,7 +22,6 @@ import {
 import { useCanvasImageModels } from '../generationCatalogComposition';
 import { MultiAngleSphere } from './MultiAngleSphere';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -391,12 +388,6 @@ export function MultiAngleEditorPanel({
   const [imageSize, setImageSize] = useState<MultiAngleImageSize>(DEFAULT_MULTI_ANGLE_IMAGE_SIZE);
   const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
   const selectedModel = imageModels[0];
-  const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
-    surface: 'canvas',
-    params: imageModelSupportsQuality(selectedModel?.apiModel)
-      ? { size: imageSize, quality: 'medium' }
-      : { size: imageSize },
-  });
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -636,10 +627,6 @@ export function MultiAngleEditorPanel({
           )}
 
           <div className="mt-auto flex items-center justify-end gap-5">
-            <CreditCostPill
-              display={creditCost.data?.data.display}
-              className={NODE_CREDIT_PILL_FLAT_CLASS}
-            />
             <button
               type="button"
               className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS}`}

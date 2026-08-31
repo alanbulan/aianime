@@ -14,7 +14,6 @@ import {
 
 import { MUSIC_LENGTH_PRESETS } from '../application/audioOperationsPanelModel';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -26,7 +25,6 @@ import { OperationPanelShell } from './OperationPanelShell';
 import { PanelExpandButton } from './PanelExpandButton';
 import { ReferenceTextChip } from './ReferenceTextChip';
 import type { AudioOperationsPanelController } from './useAudioOperationsPanelController';
-import { CreditCostPill } from '@/components/credit-visual';
 import { UiSelect } from '@/components/ui';
 import {
   Tooltip,
@@ -82,7 +80,6 @@ export function AudioOperationsPanelView({
     toggleMusicSettings,
     voiceSettings,
     voiceEmotionSupported,
-    audioCostDisplay,
     routedModelLabel,
     modelRouteLoading,
     modelRouteError,
@@ -234,11 +231,6 @@ export function AudioOperationsPanelView({
             <Settings2 className="h-4 w-4" />
           </IconButton>
         )}
-        <CreditCostPill
-          display={audioCostDisplay}
-          disabled={submitDisabled}
-          className={NODE_CREDIT_PILL_FLAT_CLASS}
-        />
         <button
           type="button"
           disabled={submitDisabled}

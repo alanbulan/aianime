@@ -65,12 +65,6 @@ vi.mock('./ProviderModelPicker', () => ({
   ),
 }));
 
-vi.mock('@/components/credit-cost-inline', () => ({
-  CreditCostInline: ({ display }: { display?: string }) => (
-    <div>credit:{display}</div>
-  ),
-}));
-
 function createController(): TextAnnotationNodeController {
   return {
     id: 'text-a',
@@ -106,7 +100,6 @@ function createController(): TextAnnotationNodeController {
     textPlaceholder: 'node.textNode.placeholder',
     hasUserContent: true,
     submitDisabled: false,
-    reversePromptCostDisplay: '2 credits',
     reversePromptDurationMs: 15000,
     compactInputValue: '正文',
     compactInputPlaceholder: 'node.textNode.placeholder',
@@ -196,7 +189,6 @@ describe('TextAnnotationNodeView', () => {
     );
 
     expect(screen.getByText('generation-overlay:0.25')).toBeInTheDocument();
-    expect(screen.getByText('credit:2 credits')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'node.textNode.submit' }),
     ).toBeInTheDocument();

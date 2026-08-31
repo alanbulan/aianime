@@ -5,8 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ImageEditNodeData } from '../domain/canvasNodeData';
 import {
   createUseImageEditNodeController,
-  type ImageEditNodeSettingsStore,
-  type ImageEditNodeSettingsStoreHook,
   type ImageEditNodeStore,
   type ImageEditNodeStoreHook,
 } from './useImageEditNodeController';
@@ -22,13 +20,6 @@ const mocks = vi.hoisted(() => ({
   }>,
   upstreamText: '',
   upstreamReferenceUrls: [] as string[],
-  settings: {
-    showNodePrice: false,
-    priceDisplayCurrencyMode: 'credits',
-    usdToCnyRate: 7.2,
-    preferDiscountedPrice: true,
-    grsaiCreditTierId: null as string | null,
-  },
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
   addNode: vi.fn(),
@@ -136,10 +127,6 @@ vi.mock('../application/imageModelCatalogProjection', () => ({
   selectImageModel: () => mocks.imageModel,
 }));
 
-vi.mock('../application/modelPriceDisplay', () => ({
-  resolveModelPriceDisplay: () => null,
-}));
-
 vi.mock('../application/errorDialog', () => ({
   resolveErrorContent: () => ({ message: '生成失败', details: '诊断详情' }),
 }));
@@ -158,12 +145,8 @@ const useStore = ((selector: (state: ImageEditNodeStore) => unknown) =>
     autoGroupSpawn: mocks.autoGroupSpawn,
   })) as unknown as ImageEditNodeStoreHook;
 
-const useSettingsStore = ((selector: (state: ImageEditNodeSettingsStore) => unknown) =>
-  selector(mocks.settings as unknown as ImageEditNodeSettingsStore)) as unknown as ImageEditNodeSettingsStoreHook;
-
 const useImageEditNodeController = createUseImageEditNodeController({
   useStore,
-  useSettingsStore,
   readGraph: () => ({
     nodes: mocks.storeNodes as never,
     edges: mocks.storeEdges as never,

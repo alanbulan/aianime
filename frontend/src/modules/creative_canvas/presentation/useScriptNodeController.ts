@@ -41,7 +41,6 @@ import type { CanvasGenerationTaskRef } from '../application/completeCanvasMedia
 import { useNodeGenerationHistory } from './useNodeGenerationHistory';
 import { useNodeGenerationTaskState } from './useNodeGenerationTaskState';
 
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const REFERENCE_PREVIEW_WIDTH = 240;
 const REFERENCE_PREVIEW_OFFSET = 10;
@@ -181,10 +180,6 @@ export function createUseScriptNodeController({
     const submitDisabled = isGenerating || !hasGenerationSource;
     const showOperationsPanel =
       isNodeSelected && (hasUpstream || scriptPromptHasContent(data));
-    const scriptCost = useGenerationCreditCost(
-      showOperationsPanel ? 'freezone_story_script' : '',
-    );
-
     const submit = useCallback(async () => {
       if (isGenerating) return;
       if (!projectId) {
@@ -413,7 +408,6 @@ export function createUseScriptNodeController({
       actions: SCRIPT_NODE_ACTIONS,
       showOperationsPanel,
       submitDisabled,
-      scriptCostDisplay: scriptCost.data?.data.display,
       select: () => setSelectedNode(id),
       rename: (displayName: string) => updateNodeData(id, { displayName }),
       changePrompt: (nextPrompt: string) =>

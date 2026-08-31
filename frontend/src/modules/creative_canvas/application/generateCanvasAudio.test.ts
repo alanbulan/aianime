@@ -102,7 +102,7 @@ describe("Canvas audio generation", () => {
     const deps = dependencies();
     const task = {
       task_key: "music-task",
-      task_type: "freezone_audio_eleven_music",
+      task_type: "freezone_audio_music",
       job_id: "music-job",
     };
     vi.mocked(deps.submissionGateway.submitMusic).mockResolvedValue(task);
@@ -127,7 +127,7 @@ describe("Canvas audio generation", () => {
     );
     expect(deps.resultGateway.fetchResultUrl).toHaveBeenCalledWith(
       "project-2",
-      "freezone_audio_eleven_music",
+      "freezone_audio_music",
       "music-job",
     );
   });

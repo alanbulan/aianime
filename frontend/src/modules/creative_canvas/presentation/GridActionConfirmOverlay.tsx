@@ -25,8 +25,6 @@ import type {
 } from '../application/generateCanvasGridAction';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
-import { CreditCostInline } from '@/components/credit-cost-inline';
-import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 export interface GridActionSubmitPayload {
   sourceNodeId: string;
@@ -103,16 +101,6 @@ export function createGridActionConfirmOverlay({
       const updateNodeData = useStore((state) => state.updateNodeData);
       const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
       const selectedModel = imageModels[0];
-      const gridActionCost = useGenerationCreditCost(
-        'image_selection',
-        selectedModel?.apiModel ?? null,
-        {
-          surface: 'canvas',
-          params: imageModelSupportsQuality(selectedModel?.apiModel)
-            ? { size: '2K', quality: 'medium' }
-            : { size: '2K' },
-        },
-      );
 
       const handleSubmit = useCallback(async () => {
         if (!selectedModel) return;
@@ -214,8 +202,6 @@ export function createGridActionConfirmOverlay({
               <ImageIcon className="h-3.5 w-3.5 shrink-0 text-text-muted" />
               <span className="truncate font-medium">{request.label}</span>
             </div>
-            <CreditCostInline display={gridActionCost.data?.data.display} />
-
             <button
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90"

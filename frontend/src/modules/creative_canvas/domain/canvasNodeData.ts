@@ -110,7 +110,7 @@ export interface VideoNodeData extends NodeDisplayData {
   durationSec?: number;
   generateAudio?: boolean;
   /**
-   * 真人素材审核开关。仅 Seedance 2.0 视频模型展示。开启后请求体里
+   * 真人素材审核开关。仅声明支持该能力的视频模型展示。开启后请求体里
    * `human_review: true`，素材含真实人脸时降低被拦截概率（不保证通过、可能增加审核时间）。
    * 默认 false / 不展示时不发送。
    */
@@ -290,7 +290,7 @@ export interface ImageGenNodeData extends NodeImageData {
    * 的那张。单张生成时为空。
    */
   generationBatch?: string[] | null;
-  /** Quality preset for image2 models; defaults to 'medium' when unset. */
+  /** Optional image quality preset; defaults to 'medium' when unset. */
   quality?: ImageQuality;
   requestAspectRatio?: string;
   count?: ImageGenCount;
@@ -355,7 +355,7 @@ export interface AudioNodeData extends NodeDisplayData {
   /**
    * 音频节点的生成类型：
    * - 'speech'(默认/缺省)：文本转语音(/freezone/audio/speech)。model_preset 走预设音色，其他 voiceRef 走参考音频克隆。
-   * - 'music'：文字生成音乐(/freezone/audio/eleven-music),用 text 作为音乐描述 prompt。
+   * - 'music'：文字生成音乐(/freezone/audio/music),用 text 作为音乐描述 prompt。
    */
   audioKind?: 'speech' | 'music';
   /** 当前 AUDIO 商业目录中选择的裸模型 SKU。 */
@@ -461,8 +461,6 @@ export interface Pano360ViewerNodeData extends NodeDisplayData {
 export interface ThreeDWorldNodeData extends NodeDisplayData {
   /** 用户提示词（操作面板下方输入）。 */
   prompt?: string;
-  /** 模型 id。模型当前未对接，前端写死为 'marble-1.1'。 */
-  model?: string;
   /** image-to-3gs 异步任务的 task_key，用于 await + UI 状态显示。 */
   taskKey?: string | null;
   /** 后端 SHARP 跑完后返回的 3GS 包静态地址，优先 SOG，兼容旧 PLY。 */

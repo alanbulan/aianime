@@ -11,12 +11,6 @@ import {
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
-vi.mock("@/components/credit-visual", () => ({
-  CreditCostPill: ({ disabled }: { disabled?: boolean }) => (
-    <span data-testid="credit-cost" data-disabled={String(disabled)} />
-  ),
-}));
-
 class ResizeObserverMock {
   observe = vi.fn();
   disconnect = vi.fn();

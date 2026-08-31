@@ -30,19 +30,11 @@ const mocks = vi.hoisted(() => ({
   refreshHistory: vi.fn(async () => undefined),
   generateCanvasStoryScript: vi.fn(),
   translateCanvasText: vi.fn(),
-  generationCreditCost: vi.fn(),
 }));
 
 vi.mock('@xyflow/react', () => ({
   useUpdateNodeInternals: () => mocks.updateNodeInternals,
   Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
-}));
-
-vi.mock('@/modules/model_usage/public', () => ({
-  useGenerationCreditCost: (kind: string) => {
-    mocks.generationCreditCost(kind);
-    return { data: { data: { display: '3 credits' } } };
-  },
 }));
 
 vi.mock('./useNodeGenerationHistory', () => ({
@@ -150,7 +142,6 @@ describe('useScriptNodeController', () => {
     mocks.refreshHistory.mockReset().mockResolvedValue(undefined);
     mocks.generateCanvasStoryScript.mockReset();
     mocks.translateCanvasText.mockReset();
-    mocks.generationCreditCost.mockReset();
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
   });
 
@@ -187,7 +178,6 @@ describe('useScriptNodeController', () => {
       hasUpstream: true,
       size: { width: 700, height: 350 },
       showOperationsPanel: true,
-      scriptCostDisplay: '3 credits',
     });
     expect(result.current.references[0].nodeId).toBe('text-a');
     expect(mocks.updateNodeInternals).toHaveBeenCalledWith('script-a');
@@ -381,6 +371,5 @@ describe('useScriptNodeController', () => {
       expect(result.current.panelExpanded).toBe(false);
       expect(result.current.referencePreview).toBeNull();
     });
-    expect(mocks.generationCreditCost).toHaveBeenCalledWith('');
   });
 });

@@ -16,7 +16,6 @@ import { useTranslation } from 'react-i18next';
 
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './canvasNodeFrameStyles';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -51,8 +50,6 @@ import type {
 } from '../application/generateCanvasOutpaint';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
-import { CreditCostPill } from '@/components/credit-visual';
-import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 // 数量 > 1 时多个结果节点纵向错开摆放的间距。
 const RESULT_STACK_GAP = 24;
@@ -139,17 +136,6 @@ export function createOutpaintEditorOverlay({
       const selectedModel =
         availableModels.find((m) => m.id === modelId)
         ?? availableModels[0];
-      const creditCost = useGenerationCreditCost(
-        'image_selection',
-        selectedModel?.apiModel ?? null,
-        {
-          surface: 'canvas',
-          params: imageModelSupportsQuality(selectedModel?.apiModel)
-            ? { size: imageSize, quality: 'medium' }
-            : { size: imageSize },
-          quantity: Math.min(Math.max(numImages, 1), 4),
-        },
-      );
 
       const nodeWidth =
         typeof node.measured?.width === 'number'
@@ -389,11 +375,6 @@ export function createOutpaintEditorOverlay({
                 renderLabel={(v) => t('outpaintEditor.numImages', { count: v })}
                 titleI18nKey="outpaintEditor.numImagesLabel"
               />
-              <CreditCostPill
-                display={creditCost.data?.data.display}
-                className={NODE_CREDIT_PILL_FLAT_CLASS}
-              />
-
               <button
                 type="button"
                 onClick={handleSubmit}

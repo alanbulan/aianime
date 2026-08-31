@@ -38,7 +38,7 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
   },
   async submitMusic(projectId, command) {
     return await apiCall<CanvasAudioGenerationTaskRef>(
-      `projects/${encodeURIComponent(projectId)}/freezone/audio/eleven-music`,
+      `projects/${encodeURIComponent(projectId)}/freezone/audio/music`,
       {
         method: "POST",
         json: {

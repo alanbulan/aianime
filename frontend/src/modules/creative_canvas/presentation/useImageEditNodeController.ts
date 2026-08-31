@@ -78,12 +78,7 @@ import {
   resolveImageDisplayUrl,
 } from '../domain/imageData';
 import { useReferenceMentionSync } from './useReferenceMentionSync';
-import { useNodePriceDisplay } from './useNodePriceDisplay';
 import { backendErrorToastMessage } from '@/shared/api/errors';
-import type {
-  GrsaiCreditTierId,
-  PriceDisplayCurrencyMode,
-} from '../domain/modelPricing';
 
 export interface ImageEditNodeStore {
   setSelectedNode: (id: string | null) => void;
@@ -108,18 +103,6 @@ export interface ImageEditNodeStore {
 
 export type ImageEditNodeStoreHook = <TSelected>(
   selector: (state: ImageEditNodeStore) => TSelected,
-) => TSelected;
-
-export interface ImageEditNodeSettingsStore {
-  showNodePrice: boolean;
-  priceDisplayCurrencyMode: PriceDisplayCurrencyMode;
-  usdToCnyRate: number;
-  preferDiscountedPrice: boolean;
-  grsaiCreditTierId: GrsaiCreditTierId;
-}
-
-export type ImageEditNodeSettingsStoreHook = <TSelected>(
-  selector: (state: ImageEditNodeSettingsStore) => TSelected,
 ) => TSelected;
 
 export type ImageEditNodeReadGraph = () => {
@@ -184,7 +167,6 @@ export interface ImageEditNodeControllerOptions {
 
 export function createUseImageEditNodeController({
   useStore,
-  useSettingsStore,
   readGraph,
   canvasAiGateway,
   CURRENT_RUNTIME_SESSION_ID,
@@ -199,7 +181,6 @@ export function createUseImageEditNodeController({
   resolveImageEditPickerAnchor,
 }: {
   useStore: ImageEditNodeStoreHook;
-  useSettingsStore: ImageEditNodeSettingsStoreHook;
   readGraph: ImageEditNodeReadGraph;
   canvasAiGateway: ImageEditCanvasAiGateway;
   CURRENT_RUNTIME_SESSION_ID: string;
@@ -230,18 +211,6 @@ export function createUseImageEditNodeController({
   const findNodePosition = useStore((state) => state.findNodePosition);
   const addEdge = useStore((state) => state.addEdge);
   const autoGroupSpawn = useStore((state) => state.autoGroupSpawn);
-  const showNodePrice = useSettingsStore((state) => state.showNodePrice);
-  const priceDisplayCurrencyMode = useSettingsStore(
-    (state) => state.priceDisplayCurrencyMode,
-  );
-  const usdToCnyRate = useSettingsStore((state) => state.usdToCnyRate);
-  const preferDiscountedPrice = useSettingsStore(
-    (state) => state.preferDiscountedPrice,
-  );
-  const grsaiCreditTierId = useSettingsStore(
-    (state) => state.grsaiCreditTierId,
-  );
-
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLTextAreaElement>(null);
@@ -358,16 +327,6 @@ export function createUseImageEditNodeController({
   const requestResolution = selectedModel?.resolveRequest({
     referenceImageCount: incomingImages.length,
   }) ?? { requestModel: '', modeLabel: '' };
-  const { resolvedPriceDisplay, resolvedPriceTooltip } = useNodePriceDisplay({
-    show: showNodePrice,
-    model: selectedModel,
-    resolution: selectedResolution.value,
-    extraParams: effectiveExtraParams,
-    displayCurrencyMode: priceDisplayCurrencyMode,
-    usdToCnyRate,
-    preferDiscountedPrice,
-    grsaiCreditTierId,
-  });
   const supportedAspectRatioValues = useMemo(
     () => (selectedModel?.aspectRatios ?? []).map((item) => item.value),
     [selectedModel],
@@ -982,8 +941,6 @@ export function createUseImageEditNodeController({
     selectedResolution,
     aspectRatioOptions,
     selectedAspectRatio,
-    resolvedPriceDisplay,
-    resolvedPriceTooltip,
     showWebSearchToggle: false,
     webSearchEnabled: false,
     showImagePicker,

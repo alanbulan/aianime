@@ -22,7 +22,6 @@ import {
 
 import { CANVAS_NODE_TOOLBAR_PILL_CLASS } from './canvasNodeFrameStyles';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from './canvasNodeControlStyles';
@@ -53,8 +52,6 @@ import {
   type MaskPaintingTool,
 } from './useMaskPainting';
 
-import { CreditCostPill } from '@/components/credit-visual';
-import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 interface EraseOverlayProps {
   projectId: string;
@@ -175,13 +172,6 @@ export function createEraseOverlay({
     const [aspectRatio, setAspectRatio] = useState<CanvasRedrawAspectRatio>('16:9');
     const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
-    const creditCost = useGenerationCreditCost('image_selection', selectedModel?.apiModel ?? null, {
-      surface: 'canvas',
-      params: imageModelSupportsQuality(selectedModel?.apiModel)
-        ? { size: imageSize, quality: 'medium' }
-        : { size: imageSize },
-      quantity: Math.min(Math.max(numImages, 1), 4),
-    });
 
     // 节点在画布坐标系里的尺寸（flow 单位）。蒙版画布要按当前缩放贴合到节点上的图。
     const nodeWidth =
@@ -633,11 +623,6 @@ export function createEraseOverlay({
                 {error}
               </span>
             )}
-            <CreditCostPill
-              display={creditCost.data?.data.display}
-              className={NODE_CREDIT_PILL_FLAT_CLASS}
-            />
-
             <button
               type="button"
               onClick={handleSubmit}

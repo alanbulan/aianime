@@ -33,7 +33,7 @@ const mocks = vi.hoisted(() => ({
   isGenerating: false,
   videoModels: [{
     id: 'route-h3',
-    apiModel: 'MINIMAX_H3',
+    apiModel: 'video-model-basic',
     routeSelector: 'route-h3',
     label: 'MiniMax H3',
     supportedModes: ['textToVideo'],
@@ -72,12 +72,6 @@ vi.mock('@xyflow/react', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.translate }),
-}));
-
-vi.mock('@/modules/model_usage/public', () => ({
-  useGenerationCreditCost: () => ({
-    data: { data: { display: '2 credits' } },
-  }),
 }));
 
 vi.mock('../domain/modelDefaults', () => ({
@@ -223,7 +217,7 @@ describe('useTextAnnotationNodeController', () => {
     mocks.isGenerating = false;
     mocks.videoModels = [{
       id: 'route-h3',
-      apiModel: 'MINIMAX_H3',
+      apiModel: 'video-model-basic',
       routeSelector: 'route-h3',
       label: 'MiniMax H3',
       supportedModes: ['textToVideo'],
@@ -495,7 +489,7 @@ describe('useTextAnnotationNodeController', () => {
       expect.objectContaining({
         nodeId: 'video-a',
         prompt: '视频提示词',
-        model: 'MINIMAX_H3',
+        model: 'video-model-basic',
         modelSelector: 'route-h3',
         genMode: 'textToVideo',
         aspectRatio: '9:16',

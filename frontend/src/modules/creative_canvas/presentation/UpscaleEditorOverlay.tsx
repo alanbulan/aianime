@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 
 import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from './canvasNodeFrameStyles';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from './canvasNodeControlStyles';
@@ -30,8 +29,6 @@ import type {
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 
-import { CreditCostPill } from '@/components/credit-visual';
-import { imageModelSupportsQuality, useGenerationCreditCost } from '@/modules/model_usage/public';
 
 export interface UpscaleEditorOverlayStore {
   updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
@@ -98,16 +95,6 @@ export function createUpscaleEditorOverlay({
   const selectedModel =
     availableModels.find((m) => m.id === persistedModelId)
     ?? availableModels[0];
-  const creditCost = useGenerationCreditCost(
-    'image_selection',
-    selectedModel?.apiModel ?? null,
-    {
-      surface: 'canvas',
-      params: imageModelSupportsQuality(selectedModel?.apiModel)
-        ? { size: persistedImageSize, quality: 'medium' }
-        : { size: persistedImageSize },
-    },
-  );
 
   const handleModelChange = useCallback(
     (modelId: string) => {
@@ -244,10 +231,6 @@ export function createUpscaleEditorOverlay({
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-3 border-t border-border pt-3">
-          <CreditCostPill
-            display={creditCost.data?.data.display}
-            className={NODE_CREDIT_PILL_FLAT_CLASS}
-          />
           <button
             type="button"
             onClick={handleSubmit}

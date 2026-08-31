@@ -45,7 +45,7 @@ interface AspectSizeChipProps {
   aspectRatio: string;
   size: ImageSize;
   quality: ImageQuality;
-  /** image2 系模型才显示「画质」选择器，并在标签里带上画质。 */
+  /** 仅对声明画质能力的模型显示选择器，并在标签里带上画质。 */
   showQuality: boolean;
   onChange: (patch: Partial<ImageGenNodeData>) => void;
 }

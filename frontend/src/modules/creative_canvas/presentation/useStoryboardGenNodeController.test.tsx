@@ -20,11 +20,6 @@ const mocks = vi.hoisted(() => ({
     ignoreAtTagWhenCopyingAndGenerating: true,
     enableStoryboardGenGridPreviewShortcut: false,
     showStoryboardGenAdvancedRatioControls: false,
-    showNodePrice: false,
-    priceDisplayCurrencyMode: 'credits',
-    usdToCnyRate: 7.2,
-    preferDiscountedPrice: true,
-    grsaiCreditTierId: null as string | null,
   },
   setSelectedNode: vi.fn(),
   updateNodeData: vi.fn(),
@@ -97,10 +92,6 @@ vi.mock('../application/imageModelCatalogProjection', () => ({
   resolveImageModelResolution: () => mocks.imageModel.resolutions[0],
   resolveImageModelResolutions: () => mocks.imageModel.resolutions,
   selectImageModel: () => mocks.imageModel,
-}));
-
-vi.mock('../application/modelPriceDisplay', () => ({
-  resolveModelPriceDisplay: () => null,
 }));
 
 const useStore = ((selector: (state: StoryboardGenNodeStore) => unknown) =>
@@ -177,7 +168,6 @@ describe('useStoryboardGenNodeController', () => {
       ignoreAtTagWhenCopyingAndGenerating: true,
       enableStoryboardGenGridPreviewShortcut: false,
       showStoryboardGenAdvancedRatioControls: false,
-      showNodePrice: false,
     });
     mocks.setSelectedNode.mockReset();
     mocks.updateNodeData.mockReset();

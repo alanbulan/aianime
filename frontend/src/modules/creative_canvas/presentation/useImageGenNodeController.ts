@@ -40,7 +40,6 @@ import {
   IMAGE_GEN_NODE_MIN_WIDTH,
   IMAGE_GEN_OPERATIONS_PANEL_HEIGHT,
   IMAGE_GEN_OPERATIONS_PANEL_MIN_WIDTH,
-  isImage2Model,
   resolveImageGenEffectivePrompt,
   resolveImageGenModel,
   resolveImageGenNaturalSize,
@@ -55,6 +54,7 @@ import {
 import { collectCandidateBindingsForNode } from '../domain/mainlineContext';
 import {
   filterCanvasImageModels,
+  supportsCanvasImageParameter,
   type CanvasImageMode,
 } from '../domain/imageModelCapability';
 import {
@@ -133,8 +133,6 @@ import type {
   DirectorControlFrameBundle,
   DirectorStageManifest,
 } from '@/features/viewer-kit/public';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { formatCreditCost } from '@/components/credit-visual';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import {
@@ -519,19 +517,7 @@ export function createUseImageGenNodeController({
     [availableModels, data.model],
   );
   const modelId = selectedModel?.id ?? "";
-  const isImage2 = isImage2Model(selectedModel?.apiModel);
-  const imageSelectionForCost =
-    imageModelsLoading ? null : selectedModel?.apiModel ?? null;
-  const imageCreditCost = useGenerationCreditCost('image_selection', imageSelectionForCost, {
-    surface: 'canvas',
-    params: isImage2 ? { size, quality } : { size },
-    quantity: Math.min(Math.max(effectiveCount, 1), 4),
-  });
-  const totalCreditCostDisplay = useMemo(() => {
-    const total = imageCreditCost.data?.data.cost;
-    if (typeof total !== 'number') return null;
-    return formatCreditCost(total);
-  }, [imageCreditCost.data?.data.cost]);
+  const supportsQuality = supportsCanvasImageParameter(selectedModel, 'quality');
   // collectCandidateBindingsForNode 只关心连到 this node 的边。用 useShallow 只订阅
   // 本节点相连的边(逐元素比较),拖动无关节点时边引用稳定,本节点不再重渲染。
   const connectedEdges = useStore(
@@ -1009,8 +995,8 @@ export function createUseImageGenNodeController({
       // 非标准值（如 "43:24"）或 "auto"，提交前吸附到最接近的合法比例（auto→1:1）。
       aspectRatio: snapImageGenAspectRatio(aspectRatio) as typeof aspectRatio,
       imageSize: size,
-      // 画质仅对 image2 系模型生效，其余模型不下发该字段。
-      quality: isImage2 ? quality : null,
+      // 只在模型契约声明该参数时下发画质。
+      quality: supportsQuality ? quality : null,
       referenceUrls,
       model: apiModel,
       modelId,
@@ -1156,7 +1142,7 @@ export function createUseImageGenNodeController({
     count,
     effectiveCount,
     id,
-    isImage2,
+    supportsQuality,
     modelId,
     orderedReferenceUrls,
     prompt,
@@ -1532,8 +1518,7 @@ export function createUseImageGenNodeController({
     handleRestoreHistory,
     modelId,
     imageModelMode,
-    isImage2,
-    totalCreditCostDisplay,
+    supportsQuality,
     cameraSummary,
     selectedStyle,
     upstreamImageContents,

@@ -43,7 +43,6 @@ import {
   NODE_OPS_PANEL_ENTER_CLASS,
 } from './canvasNodeFrameStyles';
 import {
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
@@ -78,9 +77,6 @@ import {
 } from './ImageGenNodeControls';
 import { NodeContextPromptPaletteButton } from '@/modules/creative_canvas/canvasComposition';
 import { NodeHeader, NODE_HEADER_FLOATING_POSITION_CLASS } from './NodeHeader';
-import {
-  CreditCostPill,
-} from '@/components/credit-visual';
 import { ThreeDDirectorDialog } from '@/features/viewer-kit/public';
 
 export interface ImageGenNodeViewProps {
@@ -128,8 +124,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
     handleRestoreHistory,
     modelId,
     imageModelMode,
-    isImage2,
-    totalCreditCostDisplay,
+    supportsQuality,
     cameraSummary,
     selectedStyle,
     upstreamImageContents,
@@ -793,7 +788,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
                 aspectRatio={aspectRatio}
                 size={size}
                 quality={quality}
-                showQuality={isImage2}
+                showQuality={supportsQuality}
                 onChange={(patch) => updateNodeData(id, patch)}
               />
               <CameraChip
@@ -830,11 +825,6 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
               </button>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <CreditCostPill
-                display={totalCreditCostDisplay}
-                disabled={submitDisabled}
-                className={NODE_CREDIT_PILL_FLAT_CLASS}
-              />
               <button
                 type="button"
                 disabled={submitDisabled}

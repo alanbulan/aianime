@@ -516,7 +516,6 @@ export const useStoryboardGenNodeController =
   });
 export const useImageEditNodeController = createUseImageEditNodeController({
   useStore: useCanvasStore,
-  useSettingsStore,
   readGraph: () =>
     useCanvasStore.getState() as unknown as {
       nodes: CanvasNode[];

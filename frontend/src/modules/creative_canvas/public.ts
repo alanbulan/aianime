@@ -89,15 +89,6 @@ export {
   resolveImageModelResolutions,
   selectImageModel,
 } from "@/modules/creative_canvas/application/imageModelCatalogProjection";
-export {
-  createFixedResolutionPricing,
-  createGrsaiPointsPricing,
-  createMultiplierPricing,
-  getGrsaiCreditTier,
-  isHighThinkingEnabled,
-  resolveModelPriceDisplay,
-  resolvePriceDisplayCurrency,
-} from "@/modules/creative_canvas/application/modelPriceDisplay";
 export type {
   AspectRatioOption,
   ExtraParamDefinition,
@@ -107,22 +98,6 @@ export type {
   MediaModelType,
   ResolutionOption,
 } from "@/modules/creative_canvas/domain/imageModelDefinition";
-export {
-  DEFAULT_GRSAI_CREDIT_TIER_ID,
-  GRSAI_CREDIT_TIERS,
-  PRICE_CURRENCIES,
-  PRICE_DISPLAY_CURRENCY_MODES,
-} from "@/modules/creative_canvas/domain/modelPricing";
-export type {
-  GrsaiCreditTierDefinition,
-  GrsaiCreditTierId,
-  ModelPriceQuote,
-  ModelPricingDefinition,
-  PriceComputationContext,
-  PriceCurrency,
-  PriceDisplayCurrencyMode,
-  PricingSettingsSnapshot,
-} from "@/modules/creative_canvas/domain/modelPricing";
 export {
   prefetchCanvasCameraOptions,
   prefetchCanvasImageModels,
@@ -1224,7 +1199,6 @@ export {
   hasEffectiveImageGenPrompt,
   hasImageGenCameraSelection,
   imageGenAlbumUrls,
-  isImage2Model,
   resolveImageGenEffectivePrompt,
   resolveImageGenModel,
   resolveImageGenNaturalSize,
@@ -2750,7 +2724,6 @@ export {
   MUSIC_LENGTH_PRESETS,
   filterAudioUpstreamTextContents,
   isAudioSubmitDisabled,
-  musicBillingSecondsFromMs,
   resolveAudioMusicSettings,
   resolveAudioVoiceSettings,
 } from "@/modules/creative_canvas/application/audioOperationsPanelModel";
@@ -3584,8 +3557,6 @@ export type {
 } from "@/modules/creative_canvas/presentation/useStyleNodeController";
 export { VideoNodeView } from "@/modules/creative_canvas/presentation/VideoNodeView";
 export type { VideoNodeController } from "@/modules/creative_canvas/presentation/useVideoNodeController";
-export { NodePriceBadge } from "@/modules/creative_canvas/presentation/NodePriceBadge";
-export type { NodePriceBadgeProps } from "@/modules/creative_canvas/presentation/NodePriceBadge";
 export { PanelExpandButton } from "@/modules/creative_canvas/presentation/PanelExpandButton";
 export type { PanelExpandButtonProps } from "@/modules/creative_canvas/presentation/PanelExpandButton";
 export {
@@ -3596,7 +3567,6 @@ export {
   NODE_CONTROL_PARAMS_CHIP_CLASS,
   NODE_CONTROL_PRIMARY_BUTTON_CLASS,
   NODE_COUNT_POPOVER_CLASS,
-  NODE_CREDIT_PILL_FLAT_CLASS,
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
   NODE_GENERATE_BUTTON_DISABLED_CLASS,

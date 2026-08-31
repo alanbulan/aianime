@@ -11,9 +11,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { CreditDisplayHiddenProvider } from '@/components/credit-visual';
 import { isImmersiveViewerActive } from '@/features/viewer-kit/public';
-import { isCeRuntime } from '@/lib/runtime-config';
 
 import { createCanvasNodeTypes } from '../nodes';
 import { canvasEdgeTypes } from '../../../canvasComposition';
@@ -141,7 +139,6 @@ export function CanvasStageView({
   );
 
   return (
-    <CreditDisplayHiddenProvider value={isCeRuntime()}>
       <div
         {...wrapperProps}
         className="relative h-full w-full bg-background"
@@ -256,6 +253,5 @@ export function CanvasStageView({
 
         <VideoViewerModal {...videoViewerProps} />
       </div>
-    </CreditDisplayHiddenProvider>
   );
 }

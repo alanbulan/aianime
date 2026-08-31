@@ -1,6 +1,4 @@
 // Copyright (c) 2026 AI anime
-import type { ModelPricingDefinition } from './modelPricing';
-
 export type MediaModelType = 'image' | 'video' | 'audio';
 
 export interface AspectRatioOption {
@@ -47,7 +45,6 @@ export interface ImageModelDefinition {
   resolveResolutions?: (context: ImageModelRuntimeContext) => ResolutionOption[];
   extraParamsSchema?: ExtraParamDefinition[];
   defaultExtraParams?: Record<string, unknown>;
-  pricing?: ModelPricingDefinition;
   resolveRequest: (context: { referenceImageCount: number }) => {
     requestModel: string;
     modeLabel: string;

@@ -2,7 +2,7 @@
 /**
  * Reference image role tagging (v1.6ζ).
  *
- * The base GenNode connects N reference images as a flat array. AI anime's `nanobanana_grid` likewise
+ * The base GenNode connects N reference images as a flat array. The grid generator likewise
  * doesn't natively distinguish "use this as the character anchor" vs "use
  * this as the style reference" — but those have very different effects on
  * how the model uses the image.
@@ -82,7 +82,7 @@ function renderReferenceRolesForPrompt(
 
 /**
  * Reorder references so character anchors come first, then pose, then style,
- * then generic. Most providers (gpt-image-2, nanobanana, OpenRouter Gemini)
+ * then generic. Most image providers
  * weight earlier references higher; pinning identity first usually wins.
  *
  * Returns reordered URLs + a remapped role table aligned to the new order.

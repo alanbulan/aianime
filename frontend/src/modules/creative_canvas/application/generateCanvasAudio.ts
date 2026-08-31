@@ -65,7 +65,7 @@ export interface CanvasAudioGenerationSubmissionGateway {
 export interface CanvasAudioGenerationResultGateway {
   fetchResultUrl(
     projectId: string,
-    taskType: "freezone_audio_speech" | "freezone_audio_eleven_music",
+    taskType: "freezone_audio_speech" | "freezone_audio_music",
     jobId: string,
   ): Promise<string>;
 }
@@ -138,7 +138,7 @@ export async function generateCanvasAudio(
   );
   const taskType =
     params.kind === "music"
-      ? "freezone_audio_eleven_music"
+      ? "freezone_audio_music"
       : "freezone_audio_speech";
   const audioUrl = await dependencies.resultGateway.fetchResultUrl(
     params.projectId,

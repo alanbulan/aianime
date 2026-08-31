@@ -31,8 +31,6 @@ import type {
 } from '../application/generateCanvasScene360';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
 
-import { CreditCostInline } from '@/components/credit-cost-inline';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
 
 const PANO_VIEWER_LAYOUT_WIDTH = 720;
 const PANO_VIEWER_LAYOUT_HEIGHT = 420;
@@ -92,14 +90,6 @@ export function createScene360Overlay({
     const updateNodeData = useStore((state) => state.updateNodeData);
     const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
     const selectedModel = imageModels[0];
-    const panoCost = useGenerationCreditCost(
-      'image_selection',
-      selectedModel?.apiModel ?? null,
-      {
-        surface: 'canvas',
-        params: { size: '2K', quality: 'medium' },
-      },
-    );
 
     // 全景输出比例（生成参数，仅影响本次出图，不改节点的展示比例）。
     const [aspectRatio, setAspectRatio] = useState<CanvasScene360AspectRatio>(
@@ -223,8 +213,6 @@ export function createScene360Overlay({
             onChange={setAspectRatio}
             label={t('scene360.aspectRatioLabel')}
           />
-          <CreditCostInline display={panoCost.data?.data.display} />
-
           <button
             type="button"
             className={`${NODE_GENERATE_BUTTON_BASE_CLASS} shrink-0 ${NODE_GENERATE_BUTTON_ENABLED_CLASS}`}

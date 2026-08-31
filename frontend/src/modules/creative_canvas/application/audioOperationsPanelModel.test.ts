@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import {
   filterAudioUpstreamTextContents,
   isAudioSubmitDisabled,
-  musicBillingSecondsFromMs,
   resolveAudioMusicSettings,
   resolveAudioVoiceSettings,
 } from './audioOperationsPanelModel';
@@ -27,12 +26,6 @@ describe('audioOperationsPanelModel', () => {
       forceInstrumental: false,
       respectSectionsDurations: false,
     });
-  });
-
-  it('rounds music billing up to whole seconds with a one-second floor', () => {
-    expect(musicBillingSecondsFromMs(0)).toBe(1);
-    expect(musicBillingSecondsFromMs(-500)).toBe(1);
-    expect(musicBillingSecondsFromMs(30_001)).toBe(31);
   });
 
   it('projects voice display fallbacks without inventing a stored voice', () => {

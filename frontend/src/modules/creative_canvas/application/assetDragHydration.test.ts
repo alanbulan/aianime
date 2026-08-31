@@ -178,7 +178,7 @@ describe("spawnCanvasAssetNode — 还原链路 model/genMode", () => {
       label: "i",
       url: "/static/p/i.png",
       restoreAsGeneratedImage: true,
-      model: "seedream_4_0",
+      model: "image_model_v2",
       source: {},
     } satisfies CanvasAssetDragPayload;
 
@@ -188,6 +188,6 @@ describe("spawnCanvasAssetNode — 还原链路 model/genMode", () => {
     // 还原走 imageGen('imageGenNode'):它读 data.imageUrl 直接展示、可编辑、带 data.model。
     expect(created[0]?.type).toBe("imageGenNode");
     expect(created[0]?.data.imageUrl).toBe("/static/p/i.png");
-    expect(created[0]?.data.model).toBe("seedream_4_0");
+    expect(created[0]?.data.model).toBe("image_model_v2");
   });
 });

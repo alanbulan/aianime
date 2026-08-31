@@ -34,7 +34,7 @@ interface ProviderModelPickerBaseProps {
    * Returns a disabled reason for a given model option, or null when the model
    * is selectable. When non-null, that option is rendered greyed-out and not
    * clickable, with the reason shown as a hover tooltip. Used by the video node
-   * to block Seedance 1.0 models while reference media is attached.
+   * to block models without reference-media support while media is attached.
    */
   getOptionDisabledReason?: (model: ModelOption) => string | null;
 }

@@ -42,7 +42,6 @@ export const NODE_FLOATING_PANEL_SURFACE_CLASS =
 export const NODE_COUNT_POPOVER_CLASS =
   `nodrag nowheel absolute bottom-full right-0 z-50 mb-2 w-[88px] overflow-hidden p-1 ${NODE_FLOATING_PANEL_SURFACE_CLASS}`;
 
-export const NODE_CREDIT_PILL_FLAT_CLASS = 'rounded-none bg-transparent px-0';
 
 export const NODE_GENERATE_BUTTON_BASE_CLASS =
   'nodrag inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors';

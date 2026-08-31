@@ -124,9 +124,6 @@ import type {
 } from '../domain/cameraMovementPresets';
 import type { VideoGenCount } from '../domain/videoGenerationModel';
 import type { VideoReferenceCapEntry } from '../domain/videoReferenceLimits';
-import { formatCreditCost } from '@/components/credit-visual';
-import { useGenerationCreditCost } from '@/modules/model_usage/public';
-import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
 import { downloadUrlAsFile } from '@/lib/browserDownload';
 import { backendErrorToastMessage } from '@/shared/api/errors';
 import { useExternalFileHandoff } from './useExternalFileHandoff';
@@ -530,42 +527,6 @@ export function createUseVideoNodeController({
     supportsGenerateAudio,
     updateNodeData,
   ]);
-  const videoModelForCost =
-    videoModelsLoading
-      ? null
-      : (selectedVideoModel?.apiModel ?? null);
-  // Debounce the cost-estimate inputs: dragging the duration slider (and,
-  // to a lesser degree, flipping count/output/model) churns the query key
-  // and TanStack Query aborts each in-flight request, spraying "Canceled"
-  // rows across the Network tab. Coalesce to one request once the params
-  // settle (~350ms). Primitives only — see useDebouncedValue's contract.
-  const debouncedModel = useDebouncedValue(videoModelForCost, 350);
-  const debouncedOutputParameter = useDebouncedValue(
-    outputDefinition?.parameter ?? null,
-    350,
-  );
-  const debouncedOutputValue = useDebouncedValue(outputValue, 350);
-  const debouncedCount = useDebouncedValue(count, 350);
-  const debouncedDurationSec = useDebouncedValue(durationSec, 350);
-  const videoCreditCost = useGenerationCreditCost(
-    "video_model",
-    debouncedModel,
-    {
-      surface: "canvas",
-      params:
-        debouncedOutputParameter && debouncedOutputValue
-          ? { [debouncedOutputParameter]: debouncedOutputValue }
-          : {},
-      quantity:
-        Math.min(Math.max(debouncedCount, 1), 4) *
-        (debouncedDurationSec ?? 0),
-    },
-  );
-  const totalCreditCostDisplay = useMemo(() => {
-    const total = videoCreditCost.data?.data.cost;
-    if (typeof total !== "number") return null;
-    return formatCreditCost(total);
-  }, [videoCreditCost.data?.data.cost]);
   const cameraMovementId =
     typeof data.cameraMovement === "string" ? data.cameraMovement : null;
   // Pull the camera-template catalog from `/freezone/video/camera-templates`.
@@ -2275,7 +2236,6 @@ export function createUseVideoNodeController({
     supportsHumanReview,
     humanReview,
     count,
-    totalCreditCostDisplay,
     cameraMovementId,
     cameraTemplates,
     cameraTemplatesLoading,

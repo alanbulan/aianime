@@ -121,10 +121,6 @@ vi.mock('../domain/imageData', () => ({
   resolveImageDisplayUrl: (url: string) => url,
 }));
 
-vi.mock('./NodePriceBadge', () => ({
-  NodePriceBadge: ({ label }: { label: string }) => <div>price:{label}</div>,
-}));
-
 vi.mock('./NodeResizeHandle', () => ({
   NodeResizeHandle: ({
     minWidth,
@@ -234,8 +230,6 @@ function createController(): ImageEditNodeController {
     selectedResolution: { value: '1K', label: '1K' } as never,
     aspectRatioOptions: [{ value: '1:1', label: '1:1' }],
     selectedAspectRatio: { value: '1:1', label: '1:1' },
-    resolvedPriceDisplay: null,
-    resolvedPriceTooltip: undefined,
     showWebSearchToggle: false,
     webSearchEnabled: false,
     showImagePicker: false,
@@ -277,7 +271,6 @@ function createController(): ImageEditNodeController {
 describe('ImageEditNodeView', () => {
   it('renders projected references and forwards node, prompt, and generation commands', () => {
     const controller = createController();
-    controller.resolvedPriceDisplay = { label: '3 点' } as never;
     controller.error = '生成失败';
     render(<ImageEditNodeView controller={controller} />);
 
@@ -289,7 +282,6 @@ describe('ImageEditNodeView', () => {
 
     expect(screen.getAllByAltText('图1')).toHaveLength(2);
     expect(screen.getByText('text:场景描述')).toBeInTheDocument();
-    expect(screen.getByText('price:3 点')).toBeInTheDocument();
     expect(screen.getByText('生成失败')).toBeInTheDocument();
     expect(controller.rename).toHaveBeenCalledWith('新标题');
     expect(controller.focusPrompt).toHaveBeenCalled();

@@ -430,7 +430,6 @@ const threeDWorldNodeDefinition: CanvasNodeDefinition<ThreeDWorldNodeData> = {
   createDefaultData: () => ({
     displayName: DEFAULT_NODE_DISPLAY_NAME[CANVAS_NODE_TYPES.threeDWorld],
     prompt: '',
-    model: 'marble-1.1',
     taskKey: null,
     plyUrl: null,
     sourceNodeId: null,

@@ -62,7 +62,6 @@ function controller(
     submitDisabled: false,
     submit: vi.fn(async () => undefined),
     translate: vi.fn(async () => undefined),
-    audioCostDisplay: '2 积分',
     routedModelLabel: '云端 · audio-voice-clone-1',
     modelRouteLoading: false,
     modelRouteError: '',

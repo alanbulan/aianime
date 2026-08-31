@@ -12,7 +12,6 @@ import {
 import {
   filterAudioUpstreamTextContents,
   isAudioSubmitDisabled,
-  musicBillingSecondsFromMs,
   resolveAudioMusicSettings,
   resolveAudioVoiceSettings,
 } from '../application/audioOperationsPanelModel';
@@ -31,7 +30,6 @@ import {
   resolveCommercialModelRoleRoute,
   useCommercialModelAccessStatus,
   useCommercialModelCatalog,
-  useGenerationCreditCost,
 } from '@/modules/model_usage/public';
 
 export interface AudioOperationsPanelStore {
@@ -204,16 +202,6 @@ export function createUseAudioOperationsPanelController({
         data.musicLengthMs,
         data.respectSectionsDurations,
       ],
-    );
-    const audioCost = useGenerationCreditCost(
-      isMusic ? 'freezone_audio_music' : 'beat_tts',
-      routedModel || null,
-      isMusic
-        ? {
-            surface: 'canvas',
-            quantity: musicBillingSecondsFromMs(musicSettings.musicLengthMs),
-          }
-        : {},
     );
     const {
       generate: submit,
@@ -398,7 +386,6 @@ export function createUseAudioOperationsPanelController({
         presetRouteMismatch,
       submit,
       translate,
-      audioCostDisplay: audioCost.data?.data.display,
       routedModelLabel: audioRoute
         ? `${audioRoute.providerName} · ${audioRoute.modelId}`
         : '',

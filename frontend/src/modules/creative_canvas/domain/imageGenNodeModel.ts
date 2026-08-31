@@ -58,7 +58,7 @@ export const IMAGE_GEN_SIZE_OPTIONS = [
 ] as const;
 export const IMAGE_GEN_COUNT_OPTIONS = [1, 2, 4] as const;
 export type ImageGenCount = (typeof IMAGE_GEN_COUNT_OPTIONS)[number];
-/** Image quality preset, only honored by image2 models (gpt-image-2). */
+/** Image quality preset used when the selected model declares a quality parameter. */
 export type ImageQuality = 'low' | 'medium' | 'high';
 export const IMAGE_GEN_SELECTED_BACKGROUND_CROP_ASPECT_OPTIONS = [
   '2:3',
@@ -85,10 +85,6 @@ export interface ImageGenReferencePreviewPosition {
 export interface ImageGenReferencePreviewRect {
   left: number;
   top: number;
-}
-
-export function isImage2Model(apiModel: string | null | undefined): boolean {
-  return /image[-_]?2/i.test(apiModel ?? '');
 }
 
 export function resolveImageGenModel<T extends ImageGenModelOption>(

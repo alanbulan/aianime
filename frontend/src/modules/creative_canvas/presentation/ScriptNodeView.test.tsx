@@ -97,12 +97,6 @@ vi.mock('./NodeGenerationHistory', () => ({
   ),
 }));
 
-vi.mock('@/components/credit-visual', () => ({
-  CreditCostPill: ({ display }: { display?: string }) => (
-    <div>credit:{display}</div>
-  ),
-}));
-
 function createController(): ScriptNodeController {
   return {
     data: {
@@ -133,7 +127,6 @@ function createController(): ScriptNodeController {
     ],
     showOperationsPanel: false,
     submitDisabled: false,
-    scriptCostDisplay: '3 credits',
     select: vi.fn(),
     rename: vi.fn(),
     changePrompt: vi.fn(),
@@ -232,7 +225,6 @@ describe('ScriptNodeView', () => {
     };
     render(<ScriptNodeView controller={controller} />);
 
-    expect(screen.getByText('credit:3 credits')).toBeInTheDocument();
     expect(document.body.querySelector('video[src="/video.mp4"]')).not.toBeNull();
     fireEvent.change(screen.getByDisplayValue('剧情提示'), {
       target: { value: '新提示' },
