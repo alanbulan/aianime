@@ -237,7 +237,6 @@ vi.mock("@/modules/project_workspace/public", () => ({
 }));
 
 vi.mock("@/modules/model_usage/public", () => ({
-  useGenerationCreditCost: () => ({ data: undefined, error: null }),
   useCommercialModelCatalog: (operation: string) => ({
     data: {
       catalogVersion: "test",

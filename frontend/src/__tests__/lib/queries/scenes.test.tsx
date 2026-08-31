@@ -11,9 +11,7 @@ vi.mock("@/shared/api/transport", () => ({
   api: ky.create({ baseUrl: "http://localhost:3000/" }),
 }));
 
-import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 import {
-  useBuildScenes,
   useGenerateSceneMasterAsync,
   useSceneDirectorStageManifest,
 } from "@/modules/asset_world/public";
@@ -94,35 +92,6 @@ describe("scene director stage manifest query", () => {
   });
 });
 
-describe("build scenes mutation", () => {
-  it("surfaces missing feature billing rules as a typed error", async () => {
-    server.use(
-      http.post("http://localhost:3000/api/v1/projects/demo/scenes/build", () =>
-        HttpResponse.json(
-          {
-            ok: false,
-            error: "计费规则未配置，请联系管理员设置积分规则",
-            data: {
-              error_code: "BILLING_RULE_NOT_CONFIGURED",
-              billing_kind: "feature",
-              billing_key: "build_scenes",
-            },
-          },
-          { status: 409 },
-        ),
-      ),
-    );
-
-    const { result } = renderHook(() => useBuildScenes("demo"), {
-      wrapper: makeWrapperWithMainDefaults(),
-    });
-
-    await expect(result.current.mutateAsync()).rejects.toBeInstanceOf(
-      BillingRuleNotConfiguredError,
-    );
-  });
-});
-
 describe("scene reference generation mutation", () => {
   it("passes the selected image source model when generating a master image", async () => {
     let requestBody: unknown = null;
@@ -144,8 +113,8 @@ describe("scene reference generation mutation", () => {
       wrapper: makeWrapperWithMainDefaults(),
     });
 
-    await result.current.mutateAsync({ model: "newapi_gpt_image2" });
+    await result.current.mutateAsync({ model: "image-model-b" });
 
-    expect(requestBody).toEqual({ model: "newapi_gpt_image2" });
+    expect(requestBody).toEqual({ model: "image-model-b" });
   });
 });

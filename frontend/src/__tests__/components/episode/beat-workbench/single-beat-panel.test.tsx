@@ -66,15 +66,15 @@ vi.mock("@/modules/narrative_planning/composition", async () => {
           {
             value: "standard",
             label: "Standard",
-            profile: "standard" as const,
+            workflow: "standard" as const,
             supportsAdvancedConfig: false,
             supportsNativeAudio: false,
             dialogueOnly: false,
           },
           {
-            value: "seedance-2.0-fast",
-            label: "Seedance 2.0 Fast",
-            profile: "seedance2" as const,
+            value: "video-model-reference",
+            label: "Video Model Reference",
+            workflow: "advanced-reference" as const,
             supportsAdvancedConfig: true,
             supportsNativeAudio: true,
             dialogueOnly: false,
@@ -149,7 +149,7 @@ function renderPanel(
         project="demo"
         episode={1}
         stages={{ audio: "missing", video: "missing", sketch: "ready", render: "ready" }}
-        defaultModel="seedance-2.0-fast"
+        defaultModel="video-model-reference"
         onDefaultModelChange={options.onDefaultModelChange ?? vi.fn()}
         spineTemplate={options.spineTemplate}
         openSections={openSections}

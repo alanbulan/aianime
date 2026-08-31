@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createUseBeatVideoGenerationController } from "@/modules/production/application/use-beat-video-generation-controller";
 import type { BeatVideoGenerationInput } from "@/modules/production/domain/beat-video-generation";
 import {
-  parseSeedance2Config,
-  type Seedance2ConfigDraft,
+  parseBeatVideoConfig,
+  type BeatVideoConfigDraft,
 } from "@/modules/production/domain/video-config";
 
 const regenerate = vi.hoisted(() => vi.fn());
@@ -40,18 +40,13 @@ const useController = createUseBeatVideoGenerationController(
       mutateAsync: regenerate,
     }),
   },
-  {
-    useGenerationCreditCost: () => ({
-      data: { data: { display: "12" } },
-    }),
-  },
 );
 
 function makeDraft(
-  overrides: Partial<Seedance2ConfigDraft> = {},
-): Seedance2ConfigDraft {
+  overrides: Partial<BeatVideoConfigDraft> = {},
+): BeatVideoConfigDraft {
   return {
-    ...parseSeedance2Config("", "9:16"),
+    ...parseBeatVideoConfig("", "9:16"),
     final_prompt: "镜头提示词",
     ...overrides,
   };
@@ -60,12 +55,12 @@ function makeDraft(
 function makeGenerationInput(): BeatVideoGenerationInput {
   const sourceConfig = makeDraft({ resolution: "1080p" });
   return {
-    model: "seedance-2.0-fast",
+    model: "video-model-a",
     beatNumber: 1,
-    kind: "seedance2",
+    kind: "advanced",
     dirty: false,
     draft: sourceConfig,
-    isValueStyle: false,
+    supportsSceneOptimize: false,
     resolutionOptions: ["720p"],
     sourceConfig,
   };
@@ -73,11 +68,11 @@ function makeGenerationInput(): BeatVideoGenerationInput {
 
 function renderController(
   overrides: Partial<{
-    applyNormalizedDraft(draft: Seedance2ConfigDraft): void;
+    applyNormalizedDraft(draft: BeatVideoConfigDraft): void;
     generationInput: BeatVideoGenerationInput;
     prompt: string;
-    promptKind: "legacy" | "seedance2";
-    saveDraft(draft: Seedance2ConfigDraft): Promise<boolean>;
+    promptKind: "basic" | "configured";
+    saveDraft(draft: BeatVideoConfigDraft): Promise<boolean>;
   }> = {},
 ) {
   return renderHook(() =>
@@ -88,7 +83,7 @@ function renderController(
         overrides.generationInput ?? makeGenerationInput(),
       project: "demo",
       prompt: overrides.prompt ?? "镜头提示词",
-      promptKind: overrides.promptKind ?? "seedance2",
+      promptKind: overrides.promptKind ?? "configured",
       applyNormalizedDraft:
         overrides.applyNormalizedDraft ?? vi.fn(),
       saveDraft:
@@ -119,7 +114,7 @@ describe("beat video generation controller", () => {
 
     expect(result.current.confirmationOpen).toBe(false);
     expect(toastError).toHaveBeenCalledWith(
-      "episode.workbench.video.seedance2PromptRequired",
+      "episode.workbench.video.videoReferencePromptRequired",
     );
     expect(regenerate).not.toHaveBeenCalled();
   });
@@ -130,7 +125,6 @@ describe("beat video generation controller", () => {
     act(() => result.current.requestGeneration());
 
     expect(result.current.confirmationOpen).toBe(true);
-    expect(result.current.costDisplay).toBe("12");
     expect(result.current.progress).toBe(0.25);
   });
 
@@ -157,7 +151,7 @@ describe("beat video generation controller", () => {
     );
     expect(regenerate).toHaveBeenCalledWith({
       beatNum: 1,
-      model: "seedance-2.0-fast",
+      model: "video-model-a",
       duration: 5,
       mode: "multimodal_reference",
       ratio: "9:16",

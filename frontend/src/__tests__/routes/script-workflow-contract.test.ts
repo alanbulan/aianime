@@ -39,17 +39,13 @@ describe("script workflow canonical contract", () => {
     expect(beatsController).toContain("queries.useEpisodeDetail");
     expect(beatsController).toContain("identityPlanReady");
     expect(beatsController).toContain("episode.script.identityRequired");
-    expect(beatsController).toContain('"script_writer"');
-    expect(beatsController).toContain("BillingRuleNotConfiguredError");
-    expect(beatsView).toMatch(
-      /<CreditCostInline\s+display=\{generateScriptCostDisplay\}/,
-    );
+    expect(beatsController).toContain("TASK_TYPES.SCRIPT_WRITER");
     expect(beatsController).toContain(
       "backendErrorToastMessage(error, t)",
     );
-    expect(beatsController).toContain('taskType: "script_writer"');
+    expect(beatsController).toContain("taskType: TASK_TYPES.SCRIPT_WRITER");
     expect(beatsController).toContain(
-      'alsoReconcile: ["literal_script_writer"]',
+      "alsoReconcile: [TASK_TYPES.LITERAL_SCRIPT_WRITER]",
     );
     expect(beatsSources).not.toContain("useGenerateLiteralScript");
     expect(beatsSources).not.toContain(
@@ -71,11 +67,7 @@ describe("script workflow canonical contract", () => {
     expect(scriptController).toContain("dependencies.useProject");
     expect(scriptController).toContain("beat_source_text");
     expect(scriptController).toContain("queries.useGenerateScript");
-    expect(scriptController).toContain('"script_writer"');
-    expect(scriptController).toContain("BillingRuleNotConfiguredError");
-    expect(scriptView).toMatch(
-      /<CreditCostInline\s+display=\{generateScriptCostDisplay\}/,
-    );
+    expect(scriptController).toContain("TASK_TYPES.SCRIPT_WRITER");
     expect(scriptController).toContain("queries.useGenerateRewrite");
     expect(scriptController).toContain('spine_template === "narrated"');
     expect(scriptController).toContain("initializedSourceRef");
@@ -109,6 +101,9 @@ describe("script workflow canonical contract", () => {
     expect(scriptPageSources).not.toContain("useGenerateStaging");
     expect(scriptPageSources).not.toContain("CONTENT_REWRITER");
     expect(scriptPageSources).not.toContain('value="json"');
+    expect(scriptPageSources).not.toContain("BillingRuleNotConfiguredError");
+    expect(scriptPageSources).not.toContain("CreditCostInline");
+    expect(scriptPageSources).not.toContain("generateScriptCostDisplay");
   });
 
   it("keeps unsupported main-branch script endpoints out of the v2-storage query layer", () => {

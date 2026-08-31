@@ -41,7 +41,7 @@ describe("Production render settings queries", () => {
           return HttpResponse.json({
             ok: true,
             data: {
-              render_image_selection: "openrouter_nanobanana2",
+              render_image_selection: "image-model-a",
               sketch_aspect_padding: true,
             },
           });
@@ -56,7 +56,7 @@ describe("Production render settings queries", () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/render-settings");
     expect(result.current.data?.data.render_image_selection).toBe(
-      "openrouter_nanobanana2",
+      "image-model-a",
     );
     expect(result.current.data?.data.sketch_aspect_padding).toBe(true);
   });
@@ -73,7 +73,7 @@ describe("Production render settings queries", () => {
           return HttpResponse.json({
             ok: true,
             data: {
-              render_image_selection: "openrouter_nanobanana2",
+              render_image_selection: "image-model-a",
               sketch_aspect_padding: true,
             },
           });
@@ -85,14 +85,14 @@ describe("Production render settings queries", () => {
       wrapper,
     });
     result.current.mutate({
-      renderImageSelection: "openrouter_nanobanana2",
+      renderImageSelection: "image-model-a",
       sketchAspectPadding: true,
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/render-settings");
     expect(receivedBody).toEqual({
-      render_image_selection: "openrouter_nanobanana2",
+      render_image_selection: "image-model-a",
       sketch_aspect_padding: true,
     });
   });
@@ -109,7 +109,7 @@ describe("Production sketch settings queries", () => {
           return HttpResponse.json({
             ok: true,
             data: {
-              sketch_image_selection: "openrouter_nanobanana2",
+              sketch_image_selection: "image-model-a",
             },
           });
         },
@@ -123,7 +123,7 @@ describe("Production sketch settings queries", () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/sketch-settings");
     expect(result.current.data?.data.sketch_image_selection).toBe(
-      "openrouter_nanobanana2",
+      "image-model-a",
     );
   });
 
@@ -139,7 +139,7 @@ describe("Production sketch settings queries", () => {
           return HttpResponse.json({
             ok: true,
             data: {
-              sketch_image_selection: "openrouter_nanobanana2",
+              sketch_image_selection: "image-model-a",
             },
           });
         },
@@ -150,13 +150,13 @@ describe("Production sketch settings queries", () => {
       wrapper,
     });
     result.current.mutate({
-      sketchImageSelection: "openrouter_nanobanana2",
+      sketchImageSelection: "image-model-a",
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe("/api/v1/projects/demo/sketch-settings");
     expect(receivedBody).toEqual({
-      sketch_image_selection: "openrouter_nanobanana2",
+      sketch_image_selection: "image-model-a",
     });
   });
 });

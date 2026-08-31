@@ -12,7 +12,6 @@ vi.mock("@/shared/api/transport", () => ({
 
 import { server } from "@/__tests__/setup-msw";
 import {
-  useAudioBillingQuote,
   useGenerateAudio,
   useRegenerateBeatAudio,
 } from "@/modules/production/public";
@@ -29,48 +28,7 @@ function wrapper({ children }: { children: ReactNode }) {
   );
 }
 
-describe("Production IndexTTS2 audio queries", () => {
-  it("posts the exact audio quote parameters to the project endpoint", async () => {
-    let receivedBody: unknown = undefined;
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/audio/billing-quote",
-        async ({ request }) => {
-          receivedBody = await request.clone().json();
-          return HttpResponse.json({
-            ok: true,
-            data: {
-              beat_numbers: [2],
-              quantity: 1,
-              unit_cost: 5,
-              cost: 5,
-              display: "5",
-              prereq_errors: [],
-            },
-          });
-        },
-      ),
-    );
-
-    const { result } = renderHook(
-      () =>
-        useAudioBillingQuote(
-          "demo",
-          1,
-          { beatNumbers: [2], mode: "redo_selected" },
-          "revision-1",
-        ),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(receivedBody).toEqual({
-      beat_numbers: [2],
-      mode: "redo_selected",
-    });
-    expect(result.current.data?.data.beat_numbers).toEqual([2]);
-  });
-
+describe("Production SpeechSynthesis audio queries", () => {
   it("maps selected beat audio generation to the async task endpoint", async () => {
     let requestedPath = "";
     let receivedBody: unknown = undefined;
@@ -82,7 +40,7 @@ describe("Production IndexTTS2 audio queries", () => {
           receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
-            task_type: "audio_generation_indextts2",
+            task_type: "episode_audio_generation",
             message: "started",
           });
         },
@@ -105,7 +63,7 @@ describe("Production IndexTTS2 audio queries", () => {
     });
     expect(result.current.data?.ok).toBe(true);
     if (result.current.data?.ok !== true) throw new Error("expected task response");
-    expect(result.current.data.task_type).toBe("audio_generation_indextts2");
+    expect(result.current.data.task_type).toBe("episode_audio_generation");
   });
 
   it("maps single beat regeneration to the async task endpoint", async () => {
@@ -119,7 +77,7 @@ describe("Production IndexTTS2 audio queries", () => {
           receivedBody = await request.clone().json();
           return HttpResponse.json({
             ok: true,
-            task_type: "audio_generation_indextts2",
+            task_type: "episode_audio_generation",
             message: "started",
           });
         },
@@ -138,6 +96,6 @@ describe("Production IndexTTS2 audio queries", () => {
     expect(receivedBody).toEqual({});
     expect(result.current.data?.ok).toBe(true);
     if (result.current.data?.ok !== true) throw new Error("expected task response");
-    expect(result.current.data.task_type).toBe("audio_generation_indextts2");
+    expect(result.current.data.task_type).toBe("episode_audio_generation");
   });
 });

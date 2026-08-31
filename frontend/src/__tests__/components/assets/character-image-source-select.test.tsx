@@ -73,7 +73,7 @@ function installImageCatalog() {
               displayName: "Character portrait",
               operation: "IMAGE",
               capabilityJson:
-                '{"supportedModes":["TEXT_TO_IMAGE","IMAGE_EDIT"]}',
+                '{"routeSelector":"cloud:portrait","supportedModes":["TEXT_TO_IMAGE","IMAGE_EDIT"]}',
               parameterSchemaJson: "{}",
             },
             {
@@ -82,7 +82,7 @@ function installImageCatalog() {
               displayName: "Identity image",
               operation: "IMAGE",
               capabilityJson:
-                '{"supportedModes":["TEXT_TO_IMAGE","IMAGE_EDIT"]}',
+                '{"routeSelector":"cloud:identity","supportedModes":["TEXT_TO_IMAGE","IMAGE_EDIT"]}',
               parameterSchemaJson: "{}",
             },
           ],
@@ -104,7 +104,7 @@ describe("CharacterImageSourceSelect", () => {
             ok: true,
             data: {
               asset_kind: "character",
-              image_source_selection: "identity",
+              image_source_selection: "cloud:identity",
             },
           }),
       ),
@@ -132,7 +132,7 @@ describe("CharacterImageSourceSelect", () => {
     installImageCatalog();
     const user = userEvent.setup();
     const onSelectionChange = vi.fn();
-    let currentSelection = "identity";
+    let currentSelection = "cloud:identity";
     let requestedPath = "";
     let patchBody: unknown = null;
     server.use(
@@ -152,7 +152,7 @@ describe("CharacterImageSourceSelect", () => {
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
           patchBody = await request.clone().json();
-          currentSelection = "portrait";
+          currentSelection = "cloud:portrait";
           return HttpResponse.json({
             ok: true,
             data: {
@@ -184,8 +184,8 @@ describe("CharacterImageSourceSelect", () => {
     expect(requestedPath).toBe(
       "/api/v1/projects/demo/image-source-selection/character",
     );
-    expect(patchBody).toEqual({ image_source_selection: "portrait" });
-    expect(onSelectionChange).toHaveBeenCalledWith("portrait");
+    expect(patchBody).toEqual({ image_source_selection: "cloud:portrait" });
+    expect(onSelectionChange).toHaveBeenCalledWith("cloud:portrait");
   });
 
   it("distinguishes a catalog failure from an empty catalog", async () => {
@@ -268,7 +268,8 @@ describe("CharacterImageSourceSelect", () => {
                 code: "generation-only",
                 displayName: "Generation only",
                 operation: "IMAGE",
-                capabilityJson: '{"supportedModes":["TEXT_TO_IMAGE"]}',
+                capabilityJson:
+                  '{"routeSelector":"cloud:generation-only","supportedModes":["TEXT_TO_IMAGE"]}',
                 parameterSchemaJson: "{}",
               },
             ],
@@ -284,7 +285,7 @@ describe("CharacterImageSourceSelect", () => {
             ok: true,
             data: {
               asset_kind: "prop",
-              image_source_selection: "generation-only",
+              image_source_selection: "cloud:generation-only",
             },
           }),
       ),

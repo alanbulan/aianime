@@ -26,12 +26,12 @@ describe("imagePoolModelSource", () => {
     expect(
       imagePoolModelSource({
         ...image,
-        model: "seedream-5.0-lite",
-        model_selector: "sku:BYOK:seedream-5.0-lite",
+        model: "image-model-v2",
+        model_selector: "sku:BYOK:image-model-v2",
       }),
     ).toEqual({
-      label: "seedream-5.0-lite",
-      tooltip: "sku:BYOK:seedream-5.0-lite",
+      label: "image-model-v2",
+      tooltip: "sku:BYOK:image-model-v2",
     });
   });
 

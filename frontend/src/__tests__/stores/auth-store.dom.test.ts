@@ -132,7 +132,7 @@ describe("auth-store", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        data: { username: "admin", role: "admin", credit_balance: 10 },
+        data: { username: "admin", role: "admin" },
       }),
     });
     global.fetch = fetchMock;
@@ -149,7 +149,7 @@ describe("auth-store", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        data: { username: "admin", role: "admin", credit_balance: 42 },
+        data: { username: "admin", role: "admin" },
       }),
     });
     global.fetch = fetchMock;
@@ -157,7 +157,7 @@ describe("auth-store", () => {
     await expect(useAuthStore.getState().validateSession()).resolves.toBe(true);
     await expect(useAuthStore.getState().getCurrentUser()).resolves.toMatchObject({
       username: "admin",
-      credit_balance: 42,
+      role: "admin",
     });
 
     expect(authMeCallCount(fetchMock)).toBe(1);

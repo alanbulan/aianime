@@ -28,7 +28,7 @@ beforeAll(async () => {
           episode: {
             workbench: {
               video: {
-                seedance2Ready: "已配置",
+                videoReferenceReady: "已配置",
                 narratorVoice: "解说声线",
                 narratorVoiceMissing: "声线缺失",
                 narratorVoiceMissingDetail: "第三人称项目解说声线未配置",
@@ -51,7 +51,7 @@ beforeAll(async () => {
                 narratorVoiceTrim: "裁剪",
                 narratorVoiceDelete: "删除",
                 narratorVoiceTrimTitle: "裁剪解说声线",
-                narratorVoiceTrimHint: "Seedance 2.0 建议参考声线保留清晰单人声 3-5 秒。",
+                narratorVoiceTrimHint: "Video Model Reference Pro 建议参考声线保留清晰单人声 3-5 秒。",
                 narratorVoiceTrimStart: "起始秒",
                 narratorVoiceTrimDuration: "保留秒数",
                 narratorVoiceTrimApply: "裁剪到 3-5 秒",
@@ -151,7 +151,7 @@ function NarratorVoicePanel({
     onGenerateDesignedVoice: async () => undefined,
     onVoiceSourceTypeChange: vi.fn(),
     onGeneratePresetVoice: async () => undefined,
-    onOpenAiVoice: () => setAiVoiceOpen(true),
+    onOpenVoiceGenerator: () => setAiVoiceOpen(true),
     onOpenRecord: vi.fn(),
     onOpenTrim: () => setTrimOpen(true),
     onRecordOpenChange: vi.fn(),

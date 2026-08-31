@@ -3,18 +3,18 @@ import { useState } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { useSeedance2MentionController } from "@/modules/production/application/use-seedance2-mention-controller";
-import type { Seedance2AssetItem } from "@/modules/production/domain/seedance2-panel";
+import { useVideoReferenceMentionController } from "@/modules/production/application/use-video-reference-mention-controller";
+import type { VideoReferenceAssetItem } from "@/modules/production/domain/video-reference-panel";
 import {
-  parseSeedance2Config,
-  type Seedance2ConfigDraft,
+  parseBeatVideoConfig,
+  type BeatVideoConfigDraft,
 } from "@/modules/production/domain/video-config";
 
 function makeDraft(
-  overrides: Partial<Seedance2ConfigDraft> = {},
-): Seedance2ConfigDraft {
+  overrides: Partial<BeatVideoConfigDraft> = {},
+): BeatVideoConfigDraft {
   return {
-    ...parseSeedance2Config("", "9:16"),
+    ...parseBeatVideoConfig("", "9:16"),
     ...overrides,
   };
 }
@@ -23,8 +23,8 @@ function makeAsset(
   label: string,
   key: string,
   path: string,
-  overrides: Partial<Seedance2AssetItem> = {},
-): Seedance2AssetItem {
+  overrides: Partial<VideoReferenceAssetItem> = {},
+): VideoReferenceAssetItem {
   return {
     key,
     label,
@@ -39,13 +39,13 @@ function makeAsset(
 }
 
 function renderController(
-  draft: Seedance2ConfigDraft,
-  initialAssets: Seedance2AssetItem[],
+  draft: BeatVideoConfigDraft,
+  initialAssets: VideoReferenceAssetItem[],
 ) {
   return renderHook(
     ({ assets, beatNumber }) => {
       const [currentDraft, setCurrentDraft] = useState(draft);
-      const controller = useSeedance2MentionController({
+      const controller = useVideoReferenceMentionController({
         assets,
         beatNumber,
         changeDraft: setCurrentDraft,
@@ -60,7 +60,7 @@ function renderController(
   );
 }
 
-describe("Seedance2 mention controller", () => {
+describe("VideoReference mention controller", () => {
   it("filters usable references and builds image previews", () => {
     const assets = [
       makeAsset("图片1", "image:a", "/static/style-examples/a.png"),

@@ -500,7 +500,7 @@ describe("SketchGridGallery", () => {
           episode={1}
           beats={plannedBeats}
           aspectRatio="16:9"
-          imageGenerationSelection="openrouter_nanobanana2"
+          imageGenerationSelection="image-model-a"
         />
       </I18nextProvider>,
     );
@@ -514,7 +514,7 @@ describe("SketchGridGallery", () => {
       sketchSceneGrouping: true,
       aspectRatio: "16:9",
       replaceExisting: true,
-      imageGenerationSelection: "openrouter_nanobanana2",
+      imageGenerationSelection: "image-model-a",
     });
   });
 

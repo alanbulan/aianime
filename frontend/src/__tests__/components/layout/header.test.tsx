@@ -95,8 +95,8 @@ vi.mock("@/modules/project_workspace/presentation/appStore", () => ({
   useAppStore: () => vi.fn(),
 }));
 
-vi.mock("@/components/layout/credit-balance-badge", () => ({
-  CreditBalanceBadge: () => <div data-testid="credit-balance" />,
+vi.mock("@/components/layout/model-quota-badge", () => ({
+  ModelQuotaBadge: () => <div data-testid="model-quota" />,
 }));
 
 vi.mock("@/components/ui/button", () => ({

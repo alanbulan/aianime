@@ -2,8 +2,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createUseSeedance2AssetOperationsController } from "@/modules/production/application/use-seedance2-asset-operations-controller";
-import type { Seedance2AssetItem } from "@/modules/production/domain/seedance2-panel";
+import { createUseVideoReferenceAssetOperationsController } from "@/modules/production/application/use-video-reference-asset-operations-controller";
+import type { VideoReferenceAssetItem } from "@/modules/production/domain/video-reference-panel";
 
 const upload = vi.hoisted(() => vi.fn());
 const remove = vi.hoisted(() => vi.fn());
@@ -20,26 +20,26 @@ vi.mock("sonner", () => ({
   toast: { error: toastError, success: toastSuccess },
 }));
 
-const useController = createUseSeedance2AssetOperationsController({
-  useUploadSeedance2Asset: () => ({
+const useController = createUseVideoReferenceAssetOperationsController({
+  useUploadVideoReferenceAsset: () => ({
     isPending: false,
     mutateAsync: async (command) => upload(command),
   }),
-  useDeleteSeedance2Asset: () => ({
+  useDeleteVideoReferenceAsset: () => ({
     isPending: false,
     mutateAsync: async (command) => remove(command),
   }),
-  useCropSeedance2Asset: () => ({
+  useCropVideoReferenceAsset: () => ({
     isPending: false,
     mutateAsync: async (command) => crop(command),
   }),
-  useTrimSeedance2Asset: () => ({
+  useTrimVideoReferenceAsset: () => ({
     isPending: false,
     mutateAsync: async (command) => trim(command),
   }),
 });
 
-const imageAsset: Seedance2AssetItem = {
+const imageAsset: VideoReferenceAssetItem = {
   key: "first_frame",
   label: "首帧",
   media_type: "image",
@@ -53,7 +53,7 @@ const imageAsset: Seedance2AssetItem = {
   crop_source_abs_path: "C:/source.png",
 };
 
-const audioAsset: Seedance2AssetItem = {
+const audioAsset: VideoReferenceAssetItem = {
   ...imageAsset,
   key: "voice:narrator",
   media_type: "audio",
@@ -61,7 +61,7 @@ const audioAsset: Seedance2AssetItem = {
   abs_path: "C:/voice.mp3",
 };
 
-describe("Production Seedance2 asset operations controller", () => {
+describe("Production VideoReference asset operations controller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     for (const command of [upload, remove, crop, trim]) {
@@ -122,7 +122,7 @@ describe("Production Seedance2 asset operations controller", () => {
     await act(() => result.current.saveTrim());
     expect(trim).not.toHaveBeenCalled();
     expect(toastError).toHaveBeenCalledWith(
-      "episode.workbench.video.seedance2AssetAudioTrimInvalid",
+      "episode.workbench.video.videoReferenceAssetAudioTrimInvalid",
     );
 
     act(() => {

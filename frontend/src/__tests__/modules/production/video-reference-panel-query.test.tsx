@@ -15,12 +15,12 @@ import { queryKeys } from "@/lib/query-keys";
 import { server } from "@/__tests__/setup-msw";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
-  useCropSeedance2Asset,
-  useDeleteSeedance2Asset,
-  useSeedance2BeatStatus,
-  useTrimSeedance2Asset,
-  useUploadSeedance2Asset,
-  type Seedance2BeatStatus,
+  useCropVideoReferenceAsset,
+  useDeleteVideoReferenceAsset,
+  useVideoReferenceBeatStatus,
+  useTrimVideoReferenceAsset,
+  useUploadVideoReferenceAsset,
+  type VideoReferenceBeatStatus,
 } from "@/modules/production/public";
 
 function createWrapper(queryClient: QueryClient) {
@@ -36,15 +36,15 @@ function makeBeat(configJson = "old-config"): Beat {
     beat_number: 3,
     narration_segment: "旁白",
     visual_description: "画面",
-    seedance2_config_json: configJson,
+    video_config_json: configJson,
   };
 }
 
-function makeStatus(configJson: string): Seedance2BeatStatus {
+function makeStatus(configJson: string): VideoReferenceBeatStatus {
   return {
     beat_number: 3,
     audio_type: "narration",
-    seedance2_config_json: configJson,
+    video_config_json: configJson,
     media: {
       render_ready: true,
       audio_ready: true,
@@ -92,7 +92,7 @@ function makeStatus(configJson: string): Seedance2BeatStatus {
   };
 }
 
-describe("Production Seedance2 panel queries", () => {
+describe("Production VideoReference panel queries", () => {
   it("loads the beat status through the Production gateway", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -100,7 +100,7 @@ describe("Production Seedance2 panel queries", () => {
     let requestedPath = "";
     server.use(
       http.get(
-        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2-status",
+        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/video-reference/status",
         ({ request }) => {
           requestedPath = new URL(request.url).pathname;
           return HttpResponse.json({ ok: true, data: makeStatus("loaded") });
@@ -109,17 +109,17 @@ describe("Production Seedance2 panel queries", () => {
     );
 
     const { result } = renderHook(
-      () => useSeedance2BeatStatus("demo", 2, 3, true),
+      () => useVideoReferenceBeatStatus("demo", 2, 3, true),
       { wrapper: createWrapper(queryClient) },
     );
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe(
-      "/api/v1/projects/demo/episodes/2/beats/3/seedance2-status",
+      "/api/v1/projects/demo/episodes/2/beats/3/video-reference/status",
     );
     expect(result.current.data).toMatchObject({
       ok: true,
-      data: { seedance2_config_json: "loaded" },
+      data: { video_config_json: "loaded" },
     });
   });
 
@@ -142,28 +142,28 @@ describe("Production Seedance2 panel queries", () => {
 
     server.use(
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/upload",
+        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/video-reference/assets/upload",
         ({ request }) => {
           uploadContentType = request.headers.get("content-type") ?? "";
           return HttpResponse.json({ ok: true, data: makeStatus("uploaded") });
         },
       ),
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/delete",
+        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/video-reference/assets/delete",
         async ({ request }) => {
           deleteBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: makeStatus("deleted") });
         },
       ),
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/crop",
+        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/video-reference/assets/crop",
         async ({ request }) => {
           cropBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: makeStatus("cropped") });
         },
       ),
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/audio-trim",
+        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/video-reference/assets/audio-trim",
         async ({ request }) => {
           trimBody = await request.clone().json();
           return HttpResponse.json({ ok: true, data: makeStatus("trimmed") });
@@ -173,10 +173,10 @@ describe("Production Seedance2 panel queries", () => {
 
     const { result } = renderHook(
       () => ({
-        upload: useUploadSeedance2Asset("demo", 2),
-        remove: useDeleteSeedance2Asset("demo", 2),
-        crop: useCropSeedance2Asset("demo", 2),
-        trim: useTrimSeedance2Asset("demo", 2),
+        upload: useUploadVideoReferenceAsset("demo", 2),
+        remove: useDeleteVideoReferenceAsset("demo", 2),
+        crop: useCropVideoReferenceAsset("demo", 2),
+        trim: useTrimVideoReferenceAsset("demo", 2),
       }),
       { wrapper: createWrapper(queryClient) },
     );
@@ -189,7 +189,7 @@ describe("Production Seedance2 panel queries", () => {
       await result.current.remove.mutateAsync({
         beatNum: 3,
         mediaKind: "images",
-        path: "seedance2/reference.png",
+        path: "videoReference/reference.png",
       });
       await result.current.crop.mutateAsync({
         beatNum: 3,
@@ -209,7 +209,7 @@ describe("Production Seedance2 panel queries", () => {
     expect(uploadContentType).toContain("multipart/form-data");
     expect(deleteBody).toEqual({
       media_kind: "images",
-      path: "seedance2/reference.png",
+      path: "videoReference/reference.png",
     });
     expect(cropBody).toEqual({
       asset_key: "first_frame",
@@ -229,10 +229,10 @@ describe("Production Seedance2 panel queries", () => {
     expect(
       queryClient.getQueryData<{ ok: true; data: Beat[] }>(
         queryKeys.beats("demo", 2),
-      )?.data[0]?.seedance2_config_json,
+      )?.data[0]?.video_config_json,
     ).toBe("trimmed");
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.seedance2BeatStatus("demo", 2, 3),
+      queryKey: queryKeys.videoReferenceBeatStatus("demo", 2, 3),
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: queryKeys.narratorVoice("demo"),
@@ -249,13 +249,13 @@ describe("Production Seedance2 panel queries", () => {
     );
     server.use(
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/seedance2/assets/delete",
+        "http://localhost:3000/api/v1/projects/demo/episodes/2/beats/3/video-reference/assets/delete",
         () => HttpResponse.json({ ok: false, error: "素材不存在" }),
       ),
     );
 
     const { result } = renderHook(
-      () => useDeleteSeedance2Asset("demo", 2),
+      () => useDeleteVideoReferenceAsset("demo", 2),
       { wrapper: createWrapper(queryClient) },
     );
     await act(async () => {
@@ -269,7 +269,7 @@ describe("Production Seedance2 panel queries", () => {
     expect(
       queryClient.getQueryData<{ ok: true; data: Beat[] }>(
         queryKeys.beats("demo", 2),
-      )?.data[0]?.seedance2_config_json,
+      )?.data[0]?.video_config_json,
     ).toBe("old-config");
   });
 });

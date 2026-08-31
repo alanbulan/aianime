@@ -60,7 +60,6 @@ function IdentityCardHarness() {
       costume_image_url: "",
     },
     identityAge: "middle",
-    identityCostDisplay: "12 credits",
     imageAttempts: 0,
     imageInputRef,
     isAgeVariant: true,
@@ -91,7 +90,6 @@ function IdentityCardHarness() {
     setGeneratePortraitOpen: vi.fn(),
     setRenameOpen: vi.fn(),
     setRenameValue: vi.fn(),
-    showCreditDecorations: false,
     updatePending: false,
     upload: vi.fn(),
     uploadCostumePending: false,
@@ -109,8 +107,8 @@ function IdentityCardHarness() {
   );
 }
 
-describe("characters page CE generation credit gating", () => {
-  it("hides generation costs and keeps credit styling out of CE dialogs", async () => {
+describe("characters page CE generation dialogs", () => {
+  it("opens the identity generation confirmation dialog", async () => {
     const user = userEvent.setup();
     render(
       <I18nextProvider i18n={i18n}>
@@ -119,8 +117,6 @@ describe("characters page CE generation credit gating", () => {
     );
 
     expect(screen.getByText("Middle")).toBeInTheDocument();
-    expect(screen.queryByText("12 credits")).not.toBeInTheDocument();
-
     const identityGenerate = screen
       .getAllByRole("button", { name: "characters.identities.generate" })
       .find((button) => !button.hasAttribute("disabled"));
@@ -135,9 +131,5 @@ describe("characters page CE generation credit gating", () => {
       expect(dialogAction.closest("[role='alertdialog']")).toBeTruthy(),
     );
 
-    expect(identityGenerate).not.toHaveClass("pr-9");
-    expect(dialogAction).not.toHaveClass("pr-9");
-    expect(dialogAction).not.toHaveClass("border-[3px]");
-    expect(screen.queryByText("12 credits")).not.toBeInTheDocument();
   });
 });

@@ -132,7 +132,7 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultModel="huimeng_seedance-2.0-fast"
+          defaultModel="cloud-video-reference"
           onDefaultModelChange={vi.fn()}
         />
       </I18nextProvider>,
@@ -158,7 +158,7 @@ describe("ActionPanel", () => {
       states,
       project: "demo",
       episode: 1,
-      defaultModel: "huimeng_seedance-2.0-fast",
+      defaultModel: "cloud-video-reference",
       onDefaultModelChange: vi.fn(),
     };
 
@@ -210,7 +210,7 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultModel="huimeng_seedance-2.0-fast"
+          defaultModel="cloud-video-reference"
           onDefaultModelChange={vi.fn()}
         />
       </I18nextProvider>,
@@ -228,7 +228,7 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultModel="huimeng_seedance-2.0-fast"
+          defaultModel="cloud-video-reference"
           onDefaultModelChange={vi.fn()}
         />
       </I18nextProvider>,
@@ -255,7 +255,7 @@ describe("ActionPanel", () => {
           states={states}
           project="demo"
           episode={1}
-          defaultModel="huimeng_seedance-2.0-fast"
+          defaultModel="cloud-video-reference"
           onDefaultModelChange={vi.fn()}
           targetSection="sketch"
         />

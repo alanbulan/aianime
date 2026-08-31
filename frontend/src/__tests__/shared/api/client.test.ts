@@ -5,9 +5,8 @@ import type { TFunction } from "i18next";
 import { apiCall } from "@/shared/api/client";
 import {
   backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
   errorFromBackendBody,
-  InsufficientCreditsError,
+  ModelQuotaExceededError,
   ProjectQueueLimitError,
 } from "@/shared/api/errors";
 
@@ -156,12 +155,12 @@ describe("apiCall backend errors", () => {
     });
   });
 
-  it("uses i18n for insufficient credits display text", () => {
+  it("uses i18n for remote model quota display text", () => {
     const error = errorFromBackendBody(
       402,
       {
         ok: false,
-        error: "积分不足，请联系管理员充值",
+        error: "Model quota exceeded",
         data: {
           error_code: "INSUFFICIENT_CREDITS",
           required: 6,
@@ -171,107 +170,36 @@ describe("apiCall backend errors", () => {
       "Payment Required",
     );
     const tMock = vi.fn((key: string, options?: { defaultValue?: string }) => {
-      if (key === "common.insufficientCredits") {
-        return "Insufficient credits. Please contact your administrator to recharge.";
+      if (key === "common.modelQuotaExceeded") {
+        return "Cloud model quota exceeded. Please contact your administrator.";
       }
       return options?.defaultValue ?? key;
     });
     const t = tMock as unknown as TFunction;
 
-    expect(error).toBeInstanceOf(InsufficientCreditsError);
+    expect(error).toBeInstanceOf(ModelQuotaExceededError);
     expect(backendErrorToastMessage(error, t)).toBe(
-      "Insufficient credits. Please contact your administrator to recharge.",
+      "Cloud model quota exceeded. Please contact your administrator.",
     );
-    expect(tMock).toHaveBeenCalledWith("common.insufficientCredits", {
-      defaultValue: "积分不足，请联系管理员充值",
+    expect(tMock).toHaveBeenCalledWith("common.modelQuotaExceeded", {
+      defaultValue: "Model quota exceeded",
     });
   });
 
-  it("treats bare 402 responses as insufficient credits", () => {
+  it("treats bare 402 responses as a remote model quota rejection", () => {
     const error = errorFromBackendBody(402, null, "Payment Required");
     const tMock = vi.fn((key: string, options?: { defaultValue?: string }) => {
-      if (key === "common.insufficientCredits") {
-        return "Insufficient credits. Please contact your administrator to recharge.";
+      if (key === "common.modelQuotaExceeded") {
+        return "Cloud model quota exceeded. Please contact your administrator.";
       }
       return options?.defaultValue ?? key;
     });
     const t = tMock as unknown as TFunction;
 
-    expect(error).toBeInstanceOf(InsufficientCreditsError);
+    expect(error).toBeInstanceOf(ModelQuotaExceededError);
     expect(backendErrorToastMessage(error, t)).toBe(
-      "Insufficient credits. Please contact your administrator to recharge.",
+      "Cloud model quota exceeded. Please contact your administrator.",
     );
   });
 
-  it("uses i18n for missing billing rule display text", () => {
-    const error = errorFromBackendBody(
-      409,
-      {
-        ok: false,
-        error: "计费规则未配置，请联系管理员设置积分规则",
-        data: {
-          error_code: "BILLING_RULE_NOT_CONFIGURED",
-          billing_kind: "feature",
-          billing_key: "build_characters",
-        },
-      },
-      "Conflict",
-    );
-    const tMock = vi.fn((key: string, options?: { defaultValue?: string }) => {
-      if (key === "common.billingRuleNotConfigured") {
-        return "Billing rule is not configured. Please contact an administrator to set credit pricing.";
-      }
-      return options?.defaultValue ?? key;
-    });
-    const t = tMock as unknown as TFunction;
-
-    expect(error).toBeInstanceOf(BillingRuleNotConfiguredError);
-    expect(backendErrorToastMessage(error, t)).toBe(
-      "Billing rule is not configured. Please contact an administrator to set credit pricing.",
-    );
-    expect(tMock).toHaveBeenCalledWith("common.billingRuleNotConfigured", {
-      defaultValue: "计费规则未配置，请联系管理员设置积分规则",
-    });
-  });
-
-  it("maps task metadata missing billing rule responses to the billing rule error", () => {
-    const error = errorFromBackendBody(
-      409,
-      {
-        ok: false,
-        error: "计费规则未配置，请联系管理员设置积分规则",
-        data: {
-          task_id: "task_1",
-          status: "failed",
-          metadata: {
-            error_code: "BILLING_RULE_NOT_CONFIGURED",
-            billing_kind: "feature",
-            billing_key: "ingest_fast",
-          },
-        },
-      },
-      "Request failed with status code 409 Conflict",
-    );
-
-    expect(error).toBeInstanceOf(BillingRuleNotConfiguredError);
-    expect(error?.message).toBe("计费规则未配置，请联系管理员设置积分规则");
-  });
-
-  it("maps FastAPI detail object missing billing rule responses to the billing rule error", () => {
-    const error = errorFromBackendBody(
-      409,
-      {
-        detail: {
-          error_code: "BILLING_RULE_NOT_CONFIGURED",
-          message: "计费规则未配置，请联系管理员设置积分规则",
-          billing_kind: "feature",
-          billing_key: "ingest_fast",
-        },
-      },
-      "Request failed with status code 409 Conflict",
-    );
-
-    expect(error).toBeInstanceOf(BillingRuleNotConfiguredError);
-    expect(error?.message).toBe("计费规则未配置，请联系管理员设置积分规则");
-  });
 });

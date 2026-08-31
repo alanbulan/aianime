@@ -43,7 +43,7 @@ const useVideoPaneMediaController = createUseVideoPaneMediaController(
               generated_at: "2026-07-25T08:00:00Z",
               duration: 5,
               video_mode: "first_frame",
-              video_model: "seedance-2.0-fast",
+              video_model: "video-model-reference",
               prompt: "old",
             },
             {
@@ -90,10 +90,17 @@ const options = {
   project: "demo",
   state: "ready" as const,
   videoActive: true,
-  videoModels: [{ value: "configured", label: "配置模型" }],
+  videoModels: [
+    { value: "configured", label: "配置模型" },
+    {
+      value: "cloud:video-model-reference",
+      apiModel: "video-model-reference",
+      label: "Video Model Reference",
+    },
+  ],
   videoProgress: 0.426,
   videoUrl: "/static/current.mp4",
-  useSeedance2Preview: true,
+  useVideoReferencePreview: true,
 };
 
 describe("Production video pane media controller", () => {
@@ -124,7 +131,7 @@ describe("Production video pane media controller", () => {
       }),
       expect.objectContaining({
         active: false,
-        modelLabel: "Seedance 2.0-fast",
+        modelLabel: "Video Model Reference",
         id: "old",
         timeLabel: "2小时前",
         timeTooltip: "生成于 2小时前",

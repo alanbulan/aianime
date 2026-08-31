@@ -19,8 +19,8 @@ const t = ((key: string, opts?: { defaultValue?: string }) => {
 
 const CHANNEL_POLICY_RAW =
   '草图重生未生成可用图片（mode=1x1_2-3_sketch, beats=[5]）: HTTP 429: ' +
-  'body={"error":{"message":"huimeng channel skipped for low quality request",' +
-  '"type":"channel_policy","code":"huimeng_low_quality_skipped"}}';
+  'body={"error":{"message":"image channel skipped for low quality request",' +
+  '"type":"channel_policy","code":"image_low_quality_skipped"}}';
 
 const REAL_429_RAW =
   'Render 重生未生成可用图片: HTTP 429: rate limit exceeded; body={"error":{"message":"Too Many Requests"}}';
@@ -63,7 +63,7 @@ describe("classifyGatewayError", () => {
 
   it("detects _skipped codes even without the literal channel_policy string", () => {
     expect(
-      classifyGatewayError('HTTP 429: body={"error":{"code":"huimeng_low_quality_skipped"}}'),
+      classifyGatewayError('HTTP 429: body={"error":{"code":"image_low_quality_skipped"}}'),
     ).toBe("channel_policy");
   });
 

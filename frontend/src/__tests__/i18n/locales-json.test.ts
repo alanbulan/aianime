@@ -30,18 +30,18 @@ describe("locale translation files", () => {
     expect([...enKeys].filter((key) => !zhKeys.has(key)).sort()).toEqual([]);
   });
 
-  it("uses the requested custom prompt label for Seedance2 guidance in Chinese", () => {
+  it("uses the requested custom prompt label for VideoReference guidance in Chinese", () => {
     const content = readFileSync("public/locales/zh/translation.json", "utf8");
     const translations = JSON.parse(content);
 
-    expect(translations.episode.workbench.video.seedance2PromptGuidance).toBe("自定义提示词");
+    expect(translations.episode.workbench.video.videoReferencePromptGuidance).toBe("自定义提示词");
   });
 
-  it("labels Seedance2 text-only reference fallbacks as missing reference images in Chinese", () => {
+  it("labels VideoReference text-only reference fallbacks as missing reference images in Chinese", () => {
     const content = readFileSync("public/locales/zh/translation.json", "utf8");
     const translations = JSON.parse(content);
 
-    expect(translations.episode.workbench.video.seedance2ReferenceFallback).toBe("缺参考图");
+    expect(translations.episode.workbench.video.videoReferenceFallback).toBe("缺参考图");
   });
 
   it("uses the requested default project queue full toast in Chinese", () => {

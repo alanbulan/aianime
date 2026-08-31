@@ -38,7 +38,7 @@ describe("application route authentication", () => {
         ok: true,
         json: async () => ({
           ok: true,
-          data: { username: "local", role: "owner", credit_balance: 0 },
+          data: { username: "local", role: "owner" },
         }),
       })),
     );

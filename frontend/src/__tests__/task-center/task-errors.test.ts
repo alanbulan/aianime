@@ -19,29 +19,6 @@ function task(partial: Partial<TaskState>): TaskState {
 }
 
 describe("taskErrorMessage", () => {
-  it("uses i18n for missing billing rule task errors", () => {
-    const tMock = vi.fn((key: string, options?: { defaultValue?: string }) => {
-      if (key === "common.billingRuleNotConfigured") {
-        return "Billing rule is not configured.";
-      }
-      return options?.defaultValue ?? key;
-    });
-    const t = tMock as unknown as TFunction;
-
-    expect(
-      taskErrorMessage(
-        task({
-          error_code: "BILLING_RULE_NOT_CONFIGURED",
-          error: "计费规则未配置，请联系管理员设置积分规则",
-        }),
-        t,
-      ),
-    ).toBe("Billing rule is not configured.");
-    expect(tMock).toHaveBeenCalledWith("common.billingRuleNotConfigured", {
-      defaultValue: "计费规则未配置，请联系管理员设置积分规则",
-    });
-  });
-
   it("uses only the nested provider message in failure notifications", () => {
     const t = vi.fn((key: string) => key) as unknown as TFunction;
     const raw =

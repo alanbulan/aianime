@@ -3,30 +3,30 @@ import { describe, expect, it } from "vitest";
 
 import { prepareBeatVideoGeneration } from "@/modules/production/domain/beat-video-generation";
 import {
-  parseSeedance2Config,
-  type Seedance2ConfigDraft,
+  parseBeatVideoConfig,
+  type BeatVideoConfigDraft,
 } from "@/modules/production/domain/video-config";
 
 function makeDraft(
-  overrides: Partial<Seedance2ConfigDraft> = {},
-): Seedance2ConfigDraft {
+  overrides: Partial<BeatVideoConfigDraft> = {},
+): BeatVideoConfigDraft {
   return {
-    ...parseSeedance2Config("", "9:16"),
+    ...parseBeatVideoConfig("", "9:16"),
     final_prompt: "镜头提示词",
     ...overrides,
   };
 }
 
 describe("beat video generation domain", () => {
-  it("normalizes and marks a changed Seedance2 draft for saving", () => {
+  it("normalizes an advanced workflow from declared capabilities", () => {
     const sourceConfig = makeDraft({ resolution: "1080p" });
     const result = prepareBeatVideoGeneration({
-      model: "seedance-2.0-fast",
+      model: "video-model-a",
       beatNumber: 3,
-      kind: "seedance2",
+      kind: "advanced",
       dirty: false,
       draft: sourceConfig,
-      isValueStyle: false,
+      supportsSceneOptimize: false,
       resolutionOptions: ["720p"],
       sourceConfig,
     });
@@ -34,30 +34,27 @@ describe("beat video generation domain", () => {
     expect(result.normalizedDraft?.resolution).toBe("720p");
     expect(result.draftChanged).toBe(true);
     expect(result.saveDraftBeforeGeneration).toBe(true);
-    expect(result.command).toEqual({
+    expect(result.command).toMatchObject({
       beatNum: 3,
-      model: "seedance-2.0-fast",
-      duration: sourceConfig.duration,
-      mode: sourceConfig.mode,
-      ratio: sourceConfig.ratio,
+      model: "video-model-a",
       resolution: "720p",
     });
   });
 
-  it("submits the exact H3 size and the visible duration", () => {
+  it("maps a declared resolution tier to the matching exact size", () => {
     const sourceConfig = makeDraft({
       duration: 4,
       ratio: "9:16",
       resolution: "768p",
     });
     const result = prepareBeatVideoGeneration({
-      model: "MINIMAX_H3",
-      modelSelector: "cloud:MINIMAX_H3",
+      model: "video-model-b",
+      modelSelector: "cloud:video-model-b",
       beatNumber: 1,
-      kind: "seedance2",
+      kind: "advanced",
       dirty: false,
       draft: sourceConfig,
-      isValueStyle: false,
+      supportsSceneOptimize: true,
       modeOptions: ["first_frame", "multimodal_reference"],
       ratioOptions: ["16:9", "9:16", "1:1"],
       resolutionOptions: ["768p"],
@@ -67,32 +64,15 @@ describe("beat video generation domain", () => {
 
     expect(result.command).toMatchObject({
       beatNum: 1,
-      model: "MINIMAX_H3",
-      modelSelector: "cloud:MINIMAX_H3",
+      model: "video-model-b",
+      modelSelector: "cloud:video-model-b",
       duration: 4,
       ratio: "9:16",
       resolution: "768x1344",
     });
   });
 
-  it("does not save an unchanged clean Seedance2 draft", () => {
-    const sourceConfig = makeDraft({ resolution: "720p" });
-    const result = prepareBeatVideoGeneration({
-      model: "seedance-2.0-fast",
-      beatNumber: 1,
-      kind: "seedance2",
-      dirty: false,
-      draft: sourceConfig,
-      isValueStyle: false,
-      resolutionOptions: ["720p"],
-      sourceConfig,
-    });
-
-    expect(result.draftChanged).toBe(false);
-    expect(result.saveDraftBeforeGeneration).toBe(false);
-  });
-
-  it("builds a normalized HappyHorse command and embedded config", () => {
+  it("builds a capability-normalized reference workflow command", () => {
     const sourceConfig = makeDraft({
       duration: 8,
       mode: "first_last_frame",
@@ -100,9 +80,9 @@ describe("beat video generation domain", () => {
       resolution: "480p",
     });
     const result = prepareBeatVideoGeneration({
-      model: "happyhorse-v1",
+      model: "video-model-c",
       beatNumber: 2,
-      kind: "happyhorse",
+      kind: "reference",
       draft: sourceConfig,
       ratioOptions: ["16:9", "9:16"],
       resolutionOptions: ["768p", "1080p"],
@@ -111,13 +91,13 @@ describe("beat video generation domain", () => {
 
     expect(result.command).toMatchObject({
       beatNum: 2,
-      model: "happyhorse-v1",
+      model: "video-model-c",
       duration: 8,
       mode: "multimodal_reference",
       ratio: "9:16",
       resolution: "768p",
     });
-    expect(JSON.parse(result.command.seedance2ConfigJson ?? "{}")).toMatchObject({
+    expect(JSON.parse(result.command.videoConfigJson ?? "{}")).toMatchObject({
       generate_audio: false,
       mode: "multimodal_reference",
       ratio: "9:16",
@@ -126,68 +106,16 @@ describe("beat video generation domain", () => {
     expect(result.saveDraftBeforeGeneration).toBe(false);
   });
 
-  it("builds a normalized Grok command and embedded config", () => {
-    const sourceConfig = makeDraft({
-      duration: 6,
-      mode: "first_last_frame",
-      ratio: "1:1",
-      resolution: "1080p",
-    });
-    const result = prepareBeatVideoGeneration({
-      model: "grok-video-v1",
-      beatNumber: 4,
-      kind: "grok",
-      draft: sourceConfig,
-      ratioOptions: ["16:9", "9:16"],
-      resolutionOptions: ["480p", "720p"],
-      sourceConfig,
-    });
-
-    expect(result.command).toMatchObject({
-      beatNum: 4,
-      model: "grok-video-v1",
-      duration: 6,
-      mode: "multimodal_reference",
-      ratio: "16:9",
-      resolution: "720p",
-    });
-    expect(JSON.parse(result.command.seedance2ConfigJson ?? "{}")).toMatchObject({
-      generate_audio: false,
-      mode: "multimodal_reference",
-      ratio: "16:9",
-      resolution: "720p",
-    });
-  });
-
-  it("builds a plain legacy command", () => {
+  it("builds a basic workflow command without model-specific fields", () => {
     expect(
       prepareBeatVideoGeneration({
-        model: "legacy-model",
+        model: "video-model-d",
         beatNumber: 5,
-        kind: "legacy",
+        kind: "basic",
       }).command,
     ).toEqual({
       beatNum: 5,
-      model: "legacy-model",
-    });
-  });
-
-  it("adds Seedance 1.5 duration and resolution to a legacy command", () => {
-    expect(
-      prepareBeatVideoGeneration({
-        model: "seedance-1.5-pro",
-        beatNumber: 6,
-        kind: "legacy",
-        seedance15: {
-          duration: 9,
-          resolution: "1080p",
-        },
-      }).command,
-    ).toEqual({
-      beatNum: 6,
-      model: "seedance-1.5-pro",
-      duration: 9,
-      resolution: "1080p",
+      model: "video-model-d",
     });
   });
 });

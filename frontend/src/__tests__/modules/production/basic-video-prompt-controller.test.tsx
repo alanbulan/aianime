@@ -3,7 +3,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Beat } from "@/modules/narrative_planning/public";
-import { createUseLegacyVideoPromptController } from "@/modules/production/application/use-legacy-video-prompt-controller";
+import { createUseBasicVideoPromptController } from "@/modules/production/application/use-basic-video-prompt-controller";
 
 const generatePrompt = vi.hoisted(() => vi.fn());
 const taskStart = vi.hoisted(() => vi.fn());
@@ -25,16 +25,11 @@ vi.mock("sonner", () => ({
   toast: { error: toastError, success: toastSuccess },
 }));
 
-const useController = createUseLegacyVideoPromptController(
+const useController = createUseBasicVideoPromptController(
   {
     useGenerateBeatVideoPrompt: () => ({
       isPending: false,
       mutateAsync: generatePrompt,
-    }),
-  },
-  {
-    useGenerationCreditCost: () => ({
-      data: { data: { display: "5" } },
     }),
   },
 );
@@ -76,8 +71,6 @@ describe("legacy video prompt controller", () => {
 
     expect(result.current.field).toBe("video_prompt");
     expect(result.current.prompt).toBe("原视频提示词");
-    expect(result.current.costDisplay).toBe("5");
-
     rerender({
       beat: makeBeat({
         beat_number: 2,

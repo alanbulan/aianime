@@ -88,11 +88,6 @@ vi.mock("@/modules/asset_world/infrastructure/http-asset-world-gateway", () => (
   },
 }));
 
-vi.mock("@/modules/model_usage/public", () => ({
-  useGenerationCreditCost: () => ({ data: undefined, error: null }),
-  useGenerationCreditCosts: () => [],
-}));
-
 vi.mock("@/modules/project_workspace/public", () => ({
   useProject: () => ({ data: { visual_style: "ink" } }),
   useUpdateProject: mutation,
@@ -191,13 +186,7 @@ beforeAll(async () => {
 
 afterEach(() => cleanup());
 
-function classNameContains(container: HTMLElement, token: string) {
-  return Array.from(container.querySelectorAll("*")).some((node) =>
-    String(node.getAttribute("class") ?? "").includes(token),
-  );
-}
-
-describe("styles page CE generation credit gating", () => {
+describe("styles page CE workflow", () => {
   beforeEach(() => {
     runtimeState.isCeRuntime = true;
     toastErrorMock.mockClear();
@@ -232,12 +221,12 @@ describe("styles page CE generation credit gating", () => {
     };
   });
 
-  it("renders style controls without credit UI, credit styling, or credit errors", async () => {
+  it("renders style controls", async () => {
     const Component = Route.options.component as ComponentType;
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
-    const { container } = render(
+    render(
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
           <Component />
@@ -253,12 +242,6 @@ describe("styles page CE generation credit gating", () => {
       ),
     ).toBeInTheDocument();
 
-    expect(screen.queryByText(/credits?/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/积分|额度/)).not.toBeInTheDocument();
-    expect(classNameContains(container, "#007A87")).toBe(false);
-    expect(toastErrorMock).not.toHaveBeenCalledWith(
-      expect.stringMatching(/积分不足|credit|insufficient/i),
-    );
   });
 
   it("rejects unsupported reference images before upload or analysis", async () => {

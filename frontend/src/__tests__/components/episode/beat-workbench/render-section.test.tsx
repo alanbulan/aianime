@@ -155,7 +155,7 @@ vi.mock("@/modules/production/composition", () => ({
     data: {
       ok: true,
       data: {
-        render_image_selection: "doubao_seedream-3.0-t2i",
+        render_image_selection: "image-model-render",
         options: {},
         sketch_aspect_padding: true,
       },
@@ -176,16 +176,6 @@ const scenePlatePreviewState: {
     };
   };
 } = { data: null };
-
-vi.mock("@/modules/model_usage/public", () => ({
-  useGenerationCreditCosts: () => [],
-  useGenerationCreditCost: () => ({
-    data: {
-      ok: true,
-      data: { cost: 1, display: "1 credit" },
-    },
-  }),
-}));
 
 vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
   useTaskController: () => ({
@@ -464,7 +454,7 @@ describe("RenderSection", () => {
 
     expect(screen.getByText("Relight 到 白天")).toBeInTheDocument();
     expect(getByUiTooltip("Relight：按 beat 时间重新打光，不改变场景结构。")).toBeInTheDocument();
-    expect(screen.queryByText(/Seedance2/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/VideoReference/)).not.toBeInTheDocument();
   });
 
   it("shows locked-light state when render will not relight", () => {

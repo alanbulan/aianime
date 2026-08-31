@@ -19,7 +19,7 @@ const characterQueries = readFileSync(
   "utf-8",
 );
 
-describe("character workbench IndexTTS2 cutover", () => {
+describe("character workbench SpeechSynthesis cutover", () => {
   it("does not expose legacy Fish voice controls in the character workbench", () => {
     expect(workbenchSource).not.toContain("VOICE_TYPE_OPTIONS");
     expect(workbenchSource).not.toContain("characters.voice.");
@@ -28,7 +28,7 @@ describe("character workbench IndexTTS2 cutover", () => {
     expect(workbenchSource).not.toContain("fish_voice_id");
   });
 
-  it("uses IndexTTS2 voice sample fields in frontend character types", () => {
+  it("uses SpeechSynthesis voice sample fields in frontend character types", () => {
     expect(characterTypes).not.toContain("fish_voice_id");
     expect(characterTypes).toContain("reference_audio_path");
     expect(characterTypes).toContain("reference_audio_url");

@@ -29,20 +29,24 @@ describe("video model options alignment", () => {
     expect(modelDomain).toContain("capabilities.dialogueOnly");
   });
 
-  it("supports the Grok Video inspector from backend capabilities", () => {
+  it("selects the reference inspector from backend workflow capabilities", () => {
     const videoPaneController = read(
       "src/modules/production/application/use-video-pane-controller.ts",
     );
-    const seedance2ConfigView = read(
-      "src/modules/production/presentation/Seedance2ConfigView.tsx",
+    const videoReferenceConfigView = read(
+      "src/modules/production/presentation/BeatVideoConfigView.tsx",
     );
     const modelDomain = read("src/modules/production/domain/video-model.ts");
-    const videoConfig = read("src/modules/production/domain/video-config.ts");
-
-    expect(modelDomain).toContain('normalized.includes("grokvideo")');
-    expect(videoPaneController).toContain("showGrokVideoConfig");
-    expect(seedance2ConfigView).toContain("Grok Video 检视器");
-    expect(videoConfig).toContain('"3:2"');
+    expect(modelDomain).toContain("capabilities.videoWorkflow");
+    expect(modelDomain).toContain('"advanced-reference"');
+    expect(modelDomain).toContain('"reference"');
+    expect(videoPaneController).toContain(
+      'selectedModel?.workflow === "reference"',
+    );
+    expect(videoPaneController).toContain("showReferenceVideoConfig");
+    expect(videoReferenceConfigView).toContain("showReferenceVideoConfig");
+    expect([modelDomain, videoPaneController, videoReferenceConfigView].join("\n"))
+      .not.toMatch(/grok|seedance|happyhorse/i);
   });
 
   it("uses the authenticated VIDEO catalog without a static fallback", () => {

@@ -12,7 +12,6 @@ vi.mock("@/shared/api/transport", () => ({
   uploadApi: ky.create({ baseUrl: "http://localhost:3000/", timeout: false }),
 }));
 
-import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 import { queryKeys } from "@/lib/query-keys";
 import {
   useKnowledgeGraph,
@@ -144,34 +143,5 @@ describe("ingest query error contract", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.error).toBeInstanceOf(Error);
     expect(result.current.error?.message).toBe("File 'missing.txt' not found in uploads/");
-  });
-
-  it("maps start 409 billing rule responses to the billing rule error", async () => {
-    server.use(
-      http.post("http://localhost:3000/api/v1/projects/demo/ingest/start", () =>
-        HttpResponse.json(
-          {
-            ok: false,
-            error: "计费规则未配置，请联系管理员设置积分规则",
-            data: {
-              error_code: "BILLING_RULE_NOT_CONFIGURED",
-              billing_kind: "feature",
-              billing_key: "ingest_fast",
-            },
-          },
-          { status: 409 },
-        ),
-      ),
-    );
-
-    const { result } = renderHook(() => useStartIngest("demo"), { wrapper });
-    result.current.mutate({
-      filename: "novel.txt",
-      rebuild: true,
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-    expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);
-    expect(result.current.error?.message).toBe("计费规则未配置，请联系管理员设置积分规则");
   });
 });

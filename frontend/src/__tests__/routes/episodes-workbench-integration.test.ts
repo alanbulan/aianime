@@ -49,24 +49,18 @@ describe("episodes workbench integration", () => {
     expect(viewSource).toContain("episode.list.planProps");
   });
 
-  it("shows feature credit cost on list-card planning actions", () => {
-    expect(pageControllerSource).toContain('"identity_planner"');
-    expect(pageControllerSource).toContain('"episode_scene_planner"');
-    expect(pageControllerSource).toContain('"episode_prop_planner"');
-    expect(pageControllerSource).toContain("BillingRuleNotConfiguredError");
-    expect(workspaceCompositionSource).toContain(
-      "identityCostDisplay: controller.planIdentitiesCostDisplay",
-    );
-    expect(workspaceCompositionSource).toContain(
-      "sceneCostDisplay: controller.planScenesCostDisplay",
-    );
-    expect(workspaceCompositionSource).toContain(
-      "propCostDisplay: controller.planPropsCostDisplay",
-    );
-    expect(viewSource).toContain("<CreditCostInline display={costDisplay} />");
-    expect(viewSource).toContain("costDisplay={identityCostDisplay}");
-    expect(viewSource).toContain("costDisplay={sceneCostDisplay}");
-    expect(viewSource).toContain("costDisplay={propCostDisplay}");
+  it("does not retain the retired local billing UI", () => {
+    const sources = [
+      pageControllerSource,
+      itemControllerSource,
+      workspaceCompositionSource,
+      viewSource,
+    ].join("\n");
+
+    expect(sources).not.toContain("BillingRuleNotConfiguredError");
+    expect(sources).not.toContain("CreditCostInline");
+    expect(sources).not.toContain("CostDisplay");
+    expect(sources).not.toContain("useGenerationCreditCost");
   });
 
   it("surfaces backend errors for scene and prop planning", () => {
@@ -108,18 +102,6 @@ describe("episodes workbench integration", () => {
     );
     expect(viewSource).toContain(
       "showReplan={!selectedEpisode && displayEpisodes.length > 0}",
-    );
-  });
-
-  it("shows feature credit cost on episode planning actions", () => {
-    expect(pageControllerSource).toContain('"build_episodes"');
-    expect(pageControllerSource).toContain("BillingRuleNotConfiguredError");
-    expect(viewSource).toContain("planCostDisplay={planEpisodesCostDisplay}");
-    expect(viewSource).toMatch(
-      /<CreditCostInline\s+display=\{planCostDisplay\}/,
-    );
-    expect(viewSource).toMatch(
-      /<CreditCostInline\s+display=\{planEpisodesCostDisplay\}/,
     );
   });
 

@@ -1,12 +1,12 @@
 // Copyright (c) 2026 AI anime
 import { describe, expect, it } from "vitest";
 
-import { episodeAudioBillingRevision } from "@/modules/production/public";
+import { episodeAudioPlanRevision } from "@/modules/production/public";
 
 describe("Production audio generation domain", () => {
   it("builds a stable revision from every field that changes the exact quote", () => {
     expect(
-      episodeAudioBillingRevision([
+      episodeAudioPlanRevision([
         {
           beat_number: 1,
           audio_type: "dialogue",

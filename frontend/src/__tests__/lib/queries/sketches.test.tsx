@@ -17,19 +17,28 @@ vi.mock("@/modules/model_usage/public", async (importOriginal) => ({
     catalogVersion: "test-image-catalog",
     items: [
       {
-        code: "openrouter_nanobanana2",
+        code: "image-model-a",
         operation: "IMAGE",
-        capabilities: { supportedModes: ["IMAGE_EDIT"] },
+        capabilities: {
+          routeSelector: "cloud:image-model-a",
+          supportedModes: ["IMAGE_EDIT"],
+        },
       },
       {
-        code: "cloud/image-current",
+        code: "image-model-current",
         operation: "IMAGE",
-        capabilities: { supportedModes: ["IMAGE_EDIT"] },
+        capabilities: {
+          routeSelector: "cloud:image-model-current",
+          supportedModes: ["IMAGE_EDIT"],
+        },
       },
       {
         code: "image-platform-sku",
         operation: "IMAGE",
-        capabilities: { supportedModes: ["IMAGE_EDIT"] },
+        capabilities: {
+          routeSelector: "cloud:image-platform-sku",
+          supportedModes: ["IMAGE_EDIT"],
+        },
       },
     ],
   })),
@@ -55,7 +64,6 @@ import {
   useRegenerateSketches,
 } from "@/modules/production/public";
 import { api } from "@/shared/api/transport";
-import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 
 function wrapper({ children }: { children: ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -77,7 +85,7 @@ beforeEach(() => {
       () =>
         HttpResponse.json({
           ok: true,
-          data: { sketch_image_selection: "openrouter_nanobanana2" },
+          data: { sketch_image_selection: "cloud:image-model-a" },
         }),
     ),
     http.get(
@@ -86,7 +94,7 @@ beforeEach(() => {
         HttpResponse.json({
           ok: true,
           data: {
-            render_image_selection: "openrouter_nanobanana2",
+            render_image_selection: "cloud:image-model-a",
             sketch_aspect_padding: false,
           },
         }),
@@ -124,7 +132,7 @@ describe("sketch generation query", () => {
     expect(requestedPath).toBe("/api/v1/projects/demo/episodes/1/sketches/generate");
     expect(receivedBody).toEqual({
       grid_index: -1,
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "cloud:image-model-a",
     });
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) throw new Error("expected sketch generation to succeed");
@@ -153,7 +161,7 @@ describe("sketch generation query", () => {
 
     result.current.mutate({
       aspectRatio: "16:9",
-      imageGenerationSelection: "openrouter_nanobanana2",
+      imageGenerationSelection: "cloud:image-model-a",
       replaceExisting: true,
     });
 
@@ -161,7 +169,7 @@ describe("sketch generation query", () => {
     expect(receivedBody).toEqual({
       grid_index: 0,
       aspect_ratio: "16:9",
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "cloud:image-model-a",
       replace_existing: true,
     });
   });
@@ -192,7 +200,7 @@ describe("selected sketch regeneration query", () => {
 
     result.current.mutate({
       beatIndices: [2, 4],
-      imageGenerationSelection: "cloud/image-current",
+      imageGenerationSelection: "cloud:image-model-current",
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
@@ -202,7 +210,7 @@ describe("selected sketch regeneration query", () => {
     expect(receivedBody).toEqual({
       beat_indices: [2, 4],
       mode_key: "1x1_2-3_sketch",
-      image_generation_selection: "cloud/image-current",
+      image_generation_selection: "cloud:image-model-current",
     });
   });
 });
@@ -636,7 +644,7 @@ describe("render grid query", () => {
     expect(receivedBody).toEqual({
       scene_grouping: true,
       character_grouping: false,
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "cloud:image-model-a",
     });
   });
 
@@ -662,7 +670,7 @@ describe("render grid query", () => {
 
     result.current.mutate({
       gridIndex: 3,
-      imageGenerationSelection: "image-platform-sku",
+      imageGenerationSelection: "cloud:image-platform-sku",
       sketchAspectPadding: false,
     });
 
@@ -670,7 +678,7 @@ describe("render grid query", () => {
     expect(receivedBody).toEqual({
       scene_grouping: false,
       character_grouping: false,
-      image_generation_selection: "image-platform-sku",
+      image_generation_selection: "cloud:image-platform-sku",
       sketch_aspect_padding: false,
     });
   });
@@ -700,7 +708,7 @@ describe("render grid query", () => {
 
     result.current.mutate({
       beatIndices: [1, 3],
-      imageGenerationSelection: "openrouter_nanobanana2",
+      imageGenerationSelection: "cloud:image-model-a",
       sketchAspectPadding: true,
     });
 
@@ -709,7 +717,7 @@ describe("render grid query", () => {
     expect(receivedBody).toEqual({
       beat_indices: [1, 3],
       mode_key: "1x1_2-3",
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "cloud:image-model-a",
       sketch_aspect_padding: true,
     });
   });
@@ -852,36 +860,6 @@ describe("sketch action queries", () => {
     );
 
     postSpy.mockRestore();
-  });
-
-  it("parses AI detection billing errors from backend responses", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/sketches/detect-identities",
-        () =>
-          HttpResponse.json(
-            {
-              ok: false,
-              error: "计费规则未配置，请联系管理员设置积分规则",
-              data: {
-                error_code: "BILLING_RULE_NOT_CONFIGURED",
-                billing_kind: "feature",
-                billing_key: "ai_identity_detection",
-              },
-            },
-            { status: 409 },
-          ),
-      ),
-    );
-
-    const { result } = renderHook(() => useDetectIdentities("demo", 1), {
-      wrapper,
-    });
-
-    result.current.mutate();
-
-    await waitFor(() => expect(result.current.error).toBeDefined());
-    expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);
   });
 
   it("does not refresh beat caches before the queued detection task completes", async () => {

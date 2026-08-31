@@ -27,9 +27,12 @@ describe("authorized production image gateway", () => {
       load: vi.fn().mockResolvedValue({
         items: [
           {
-            code: "cloud/image-current",
+            code: "image-current",
             operation: "IMAGE",
-            capabilities: { supportedModes: ["IMAGE_EDIT"] },
+            capabilities: {
+              routeSelector: "cloud:image-current",
+              supportedModes: ["IMAGE_EDIT"],
+            },
           },
         ],
       }),
@@ -49,7 +52,7 @@ describe("authorized production image gateway", () => {
     const gateway = gatewayStub({
       getSketchSettings: vi.fn().mockResolvedValue({
         ok: true,
-        data: { sketch_image_selection: "cloud/image-current" },
+        data: { sketch_image_selection: "cloud:image-current" },
       }),
       regenerateSketches,
     });
@@ -57,9 +60,12 @@ describe("authorized production image gateway", () => {
       load: vi.fn().mockResolvedValue({
         items: [
           {
-            code: "cloud/image-current",
+            code: "image-current",
             operation: "IMAGE",
-            capabilities: { supportedModes: ["IMAGE_EDIT"] },
+            capabilities: {
+              routeSelector: "cloud:image-current",
+              supportedModes: ["IMAGE_EDIT"],
+            },
           },
         ],
       }),
@@ -73,7 +79,7 @@ describe("authorized production image gateway", () => {
     expect(regenerateSketches).toHaveBeenCalledWith("demo", 2, {
       beatIndices: [3],
       modeKey: "1x1_2-3_sketch",
-      imageGenerationSelection: "cloud/image-current",
+      imageGenerationSelection: "cloud:image-current",
     });
   });
 
@@ -90,9 +96,12 @@ describe("authorized production image gateway", () => {
       load: vi.fn().mockResolvedValue({
         items: [
           {
-            code: "cloud/image-current",
+            code: "image-current",
             operation: "IMAGE",
-            capabilities: { supportedModes: ["IMAGE_EDIT"] },
+            capabilities: {
+              routeSelector: "cloud:image-current",
+              supportedModes: ["IMAGE_EDIT"],
+            },
           },
         ],
       }),
@@ -119,7 +128,10 @@ describe("authorized production image gateway", () => {
           {
             code: "user-image-model",
             operation: "IMAGE",
-            capabilities: { supportedModes: ["IMAGE_EDIT"] },
+            capabilities: {
+              routeSelector: "byok:provider-1:user-image-model",
+              supportedModes: ["IMAGE_EDIT"],
+            },
           },
         ],
       }),
@@ -128,7 +140,7 @@ describe("authorized production image gateway", () => {
     await guarded.createRenderPlan("demo", 4, {
       aspectMode: "16:9",
       beatIndices: [1],
-      imageGenerationSelection: "user-image-model",
+      imageGenerationSelection: "byok:provider-1:user-image-model",
       strategy: "location",
     });
 
@@ -136,7 +148,7 @@ describe("authorized production image gateway", () => {
     expect(createRenderPlan).toHaveBeenCalledWith("demo", 4, {
       aspectMode: "16:9",
       beatIndices: [1],
-      imageGenerationSelection: "user-image-model",
+      imageGenerationSelection: "byok:provider-1:user-image-model",
       strategy: "location",
     });
   });

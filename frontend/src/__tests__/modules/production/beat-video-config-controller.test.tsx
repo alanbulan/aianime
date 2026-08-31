@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Beat } from "@/modules/narrative_planning/public";
-import { createUseSeedance2ConfigController } from "@/modules/production/application/use-seedance2-config-controller";
+import { createUseBeatVideoConfigController } from "@/modules/production/application/use-beat-video-config-controller";
 import type { VideoModelOption } from "@/modules/production/domain/video-model";
 import { TaskControllerProvider } from "@/modules/task_execution/public";
 
@@ -32,16 +32,11 @@ vi.mock("@/modules/task_execution/presentation/useTaskStream", () => ({
   }),
 }));
 
-const useController = createUseSeedance2ConfigController(
+const useController = createUseBeatVideoConfigController(
   {
-    useGenerateSeedance2Prompt: () => ({
+    useGenerateVideoPrompt: () => ({
       isPending: false,
       mutateAsync: generatePrompt,
-    }),
-  },
-  {
-    useGenerationCreditCost: () => ({
-      data: { data: { display: "6" } },
     }),
   },
 );
@@ -56,9 +51,8 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
     detected_identities: [],
     video_prompt: "视频提示词",
     keyframe_prompt: "",
-    seedance2_config_json: JSON.stringify({
+    video_config_json: JSON.stringify({
       mode: "multimodal_reference",
-      mode_user_set: true,
       duration: 5,
       resolution: "720p",
       ratio: "9:16",
@@ -72,9 +66,9 @@ function makeModel(
   overrides: Partial<VideoModelOption> = {},
 ): VideoModelOption {
   return {
-    value: "seedance-2.0-fast",
-    label: "Seedance 2.0 Fast",
-    profile: "seedance2",
+    value: "video-model-reference",
+    label: "Video Model Reference",
+    workflow: "advanced-reference",
     supportsAdvancedConfig: true,
     supportsNativeAudio: true,
     dialogueOnly: false,
@@ -89,9 +83,8 @@ function renderController(
     model: string;
     beat: Beat;
     selectedModel: VideoModelOption;
-    showGrokVideoConfig: boolean;
-    showHappyHorseConfig: boolean;
-    showSeedance2Config: boolean;
+    showAdvancedVideoConfig: boolean;
+    showReferenceVideoConfig: boolean;
   }> = {},
   updateBeat = vi.fn().mockResolvedValue(undefined),
 ) {
@@ -116,9 +109,8 @@ function renderController(
         project: "demo",
         projectAspect: "2:3",
         selectedModel,
-        showGrokVideoConfig: overrides.showGrokVideoConfig ?? false,
-        showHappyHorseConfig: overrides.showHappyHorseConfig ?? false,
-        showSeedance2Config: overrides.showSeedance2Config ?? true,
+        showAdvancedVideoConfig: overrides.showAdvancedVideoConfig ?? true,
+        showReferenceVideoConfig: overrides.showReferenceVideoConfig ?? false,
         refetchStatus: vi.fn(),
         updateBeat,
       }),
@@ -127,7 +119,7 @@ function renderController(
   };
 }
 
-describe("Seedance2 config controller", () => {
+describe("VideoReference config controller", () => {
   beforeEach(() => {
     generatePrompt.mockReset();
     toastError.mockReset();
@@ -150,26 +142,26 @@ describe("Seedance2 config controller", () => {
 
     expect(updateBeat).toHaveBeenCalledTimes(1);
     const command = updateBeat.mock.calls[0][0];
-    expect(JSON.parse(command.data.seedance2_config_json)).toMatchObject({
+    expect(JSON.parse(command.data.video_config_json)).toMatchObject({
       final_prompt: "更新后的提示词",
       prompt_source: "manual",
     });
   });
 
-  it("normalizes an unsupported value-model resolution", () => {
+  it("normalizes unsupported settings from declared capabilities", () => {
     const { result } = renderController({
-      model: "seedance-2.0-value",
+      model: "video-model-a",
       beat: makeBeat({
-        seedance2_config_json: JSON.stringify({
+        video_config_json: JSON.stringify({
           mode: "multimodal_reference",
-          mode_user_set: true,
           resolution: "480p",
           final_prompt: "主体提示词",
         }),
       }),
       selectedModel: makeModel({
-        value: "seedance-2.0-value",
+        value: "video-model-a",
         resolutionOptions: ["720p", "1080p"],
+        sceneOptimizeOptions: ["anime", "realistic"],
       }),
     });
 
@@ -177,17 +169,17 @@ describe("Seedance2 config controller", () => {
     expect(result.current.draft.scene_optimize).toBe("anime");
   });
 
-  it("prefers catalog-declared Seedance resolution options over the route name", () => {
+  it("uses catalog-declared resolution options", () => {
     const { result } = renderController({
       model: "catalog-route-without-model-family-name",
       selectedModel: makeModel({
         value: "catalog-route-without-model-family-name",
-        apiModel: "provider/seedance-2.0",
+        apiModel: "provider/video-model-a",
         resolutionOptions: ["480p", "720p", "1080p"],
       }),
     });
 
-    expect(result.current.seedance2ResolutionOptions).toEqual([
+    expect(result.current.videoResolutionOptions).toEqual([
       "480p",
       "720p",
       "1080p",
@@ -196,10 +188,10 @@ describe("Seedance2 config controller", () => {
 
   it("keeps H3 quality and ratio as independent visible controls", () => {
     const h3 = makeModel({
-      value: "cloud:MINIMAX_H3",
-      apiModel: "MINIMAX_H3",
-      routeSelector: "cloud:MINIMAX_H3",
-      profile: "standard",
+      value: "cloud:video-model-c",
+      apiModel: "video-model-c",
+      routeSelector: "cloud:video-model-c",
+      workflow: "advanced-reference",
       minDuration: 1,
       ratioOptions: ["16:9", "9:16", "1:1"],
       resolutionOptions: ["768p"],
@@ -210,9 +202,8 @@ describe("Seedance2 config controller", () => {
       model: h3.value,
       selectedModel: h3,
       beat: makeBeat({
-        seedance2_config_json: JSON.stringify({
+        video_config_json: JSON.stringify({
           mode: "multimodal_reference",
-          mode_user_set: true,
           duration: 4,
           resolution: "720p",
           ratio: "9:16",
@@ -221,59 +212,30 @@ describe("Seedance2 config controller", () => {
       }),
     });
 
-    expect(result.current.seedance2ResolutionOptions).toEqual(["768p"]);
+    expect(result.current.videoResolutionOptions).toEqual(["768p"]);
     expect(result.current.draft.resolution).toBe("768p");
     expect(result.current.generationInput).toMatchObject({
-      kind: "seedance2",
-      model: "MINIMAX_H3",
-      modelSelector: "cloud:MINIMAX_H3",
+      kind: "advanced",
+      model: "video-model-c",
+      modelSelector: "cloud:video-model-c",
       resolutionOptions: ["768p"],
       sizeOptions: ["1344x768", "768x1344", "1024x1024"],
     });
 
     act(() => result.current.updateDraft("ratio", "16:9"));
 
-    expect(result.current.seedance2ResolutionOptions).toEqual(["768p"]);
+    expect(result.current.videoResolutionOptions).toEqual(["768p"]);
     expect(result.current.draft.resolution).toBe("768p");
-  });
-
-  it("uses the rounded audio duration as the Seedance 1.5 floor", () => {
-    const model = makeModel({
-      value: "seedance-1.5-pro",
-      profile: "standard",
-      supportsAdvancedConfig: false,
-      supportsNativeAudio: false,
-      minDuration: 4,
-      maxDuration: 12,
-      resolutionOptions: ["720p", "1080p"],
-    });
-    const { result } = renderController({
-      model: model.value,
-      beat: makeBeat({ audio_duration_seconds: 6.2 }),
-      selectedModel: model,
-      showSeedance2Config: false,
-    });
-
-    expect(result.current.isSeedance15ProConfig).toBe(true);
-    expect(result.current.seedance15DurationBounds).toEqual({
-      min: 7,
-      max: 12,
-    });
-    expect(result.current.seedance15Duration).toBe(7);
-    expect(result.current.generationInput).toMatchObject({
-      kind: "legacy",
-      seedance15: { duration: 7, resolution: "720p" },
-    });
   });
 
   it("submits prompt generation to the task controller", async () => {
     generatePrompt.mockResolvedValue({
       ok: true,
-      task_type: "seedance2_prompt",
-      task_id: "task-seedance2-1",
-      task_key: "seedance2_prompt:demo:1:1",
+      task_type: "video_prompt_optimization",
+      task_id: "task-video-reference-1",
+      task_key: "videoReference_prompt:demo:1:1",
       message: "任务已提交",
-      scope: "seedance2_prompt:1",
+      scope: "videoReference_prompt:1",
     });
     const { result } = renderController();
 
@@ -288,24 +250,22 @@ describe("Seedance2 config controller", () => {
     });
     expect(result.current.draft.final_prompt).toBe("主体提示词");
     expect(result.current.promptPending).toBe(true);
-    expect(result.current.promptCostDisplay).toBe("6");
     expect(toastSuccess).toHaveBeenCalledWith("任务已提交");
   });
 
   it("does not submit an unchanged generated prompt as a manual reference", async () => {
     generatePrompt.mockResolvedValue({
       ok: true,
-      task_type: "seedance2_prompt",
-      task_id: "task-seedance2-2",
-      task_key: "seedance2_prompt:demo:1:1",
+      task_type: "video_prompt_optimization",
+      task_id: "task-video-reference-2",
+      task_key: "videoReference_prompt:demo:1:1",
       message: "任务已提交",
-      scope: "seedance2_prompt:1",
+      scope: "videoReference_prompt:1",
     });
     const { result } = renderController({
       beat: makeBeat({
-        seedance2_config_json: JSON.stringify({
+        video_config_json: JSON.stringify({
           mode: "multimodal_reference",
-          mode_user_set: true,
           duration: 5,
           resolution: "720p",
           ratio: "9:16",

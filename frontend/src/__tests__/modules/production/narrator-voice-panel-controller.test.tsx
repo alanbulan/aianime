@@ -238,7 +238,7 @@ describe("Production narrator voice panel controller", () => {
     );
     const file = new File(["voice"], "voice.wav", { type: "audio/wav" });
 
-    act(() => result.current.onOpenAiVoice());
+    act(() => result.current.onOpenVoiceGenerator());
     await waitFor(() =>
       expect(result.current.accountVoiceOptions).toHaveLength(1),
     );
@@ -282,7 +282,7 @@ describe("Production narrator voice panel controller", () => {
       { wrapper },
     );
 
-    act(() => result.current.onOpenAiVoice());
+    act(() => result.current.onOpenVoiceGenerator());
     expect(result.current.aiVoiceOpen).toBe(true);
     expect(result.current.presetVoice).toBe("claire");
 
@@ -347,7 +347,7 @@ describe("Production narrator voice panel controller", () => {
       { wrapper },
     );
 
-    act(() => result.current.onOpenAiVoice());
+    act(() => result.current.onOpenVoiceGenerator());
     expect(result.current.voiceSourceType).toBe("voice_design");
     expect(result.current.designLanguage).toBe("zh");
     expect(result.current.designVoiceModelSelector).toBe(

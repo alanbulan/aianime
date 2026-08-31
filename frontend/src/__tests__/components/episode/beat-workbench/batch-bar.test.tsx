@@ -24,7 +24,6 @@ beforeAll(async () => {
             confirmExecute: "确认执行",
             error: "错误",
             ok: "OK",
-            billingRuleNotConfiguredShort: "需配置",
           },
           episode: {
             script: { identityRequired: "需要身份规划" },
@@ -145,10 +144,8 @@ function BatchBar({
     audioPending: false,
     audioPrerequisiteErrors: [],
     audioUnavailableForVideoModel:
-      videoModel === "huimeng_seedance-2.0-fast",
-    detectIdentitiesCostDisplay: "5",
+      videoModel === "cloud-video-reference",
     detectIdentitiesPending: false,
-    episodeAudioCostDisplay: "5",
     errorDialog: null,
     globalOptimizePending: false,
     productionWorkflowPending: false,
@@ -235,7 +232,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -255,7 +252,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -274,7 +271,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -291,7 +288,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -309,7 +306,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -327,7 +324,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -365,7 +362,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           spineTemplate="narrated"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -383,7 +380,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           spineTemplate="drama"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -403,7 +400,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -414,7 +411,7 @@ describe("BatchBar", () => {
     expect(screen.queryByRole("button", { name: "补生成草图" })).not.toBeInTheDocument();
   });
 
-  it("shows whole-episode audio cost on the button and confirm action", async () => {
+  it("shows the whole-episode audio action and confirmation", async () => {
     const user = userEvent.setup();
     render(
       <I18nextProvider i18n={i18n}>
@@ -422,7 +419,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           spineTemplate="narrated"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -434,17 +431,16 @@ describe("BatchBar", () => {
     await user.click(screen.getByRole("button", { name: "生成音频" }));
 
     expect(screen.getByRole("button", { name: "确认执行" })).toBeInTheDocument();
-    expect(screen.getAllByText("5").length).toBeGreaterThanOrEqual(2);
   });
 
-  it("keeps whole-episode TTS generation visible but unavailable when Seedance2 is selected", async () => {
+  it("keeps whole-episode TTS generation visible but unavailable when VideoReference is selected", async () => {
     render(
       <I18nextProvider i18n={i18n}>
         <BatchBar
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="huimeng_seedance-2.0-fast"
+          videoModel="cloud-video-reference"
           spineTemplate="narrated"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -465,7 +461,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           spineTemplate="drama"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
@@ -484,7 +480,7 @@ describe("BatchBar", () => {
           project="demo"
           episode={1}
           beats={DEFAULT_BEATS}
-          videoModel="seedance"
+          videoModel="video-model"
           sketchAspectRatio="2:3"
           onSketchAspectRatioChange={vi.fn()}
         />
@@ -492,7 +488,6 @@ describe("BatchBar", () => {
     );
 
     const aiDetectButton = screen.getByRole("button", { name: "AI 检测" });
-    expect(aiDetectButton).toHaveTextContent("5");
     await user.click(aiDetectButton);
 
     expect(detectIdentitiesMock).toHaveBeenCalledTimes(1);

@@ -72,11 +72,6 @@ const useRenderPlanDialogController = createUseRenderPlanDialogController(
     useRenderExecute: mockUse(
       () => executeHandler,
     ) as RenderPlanDialogControllerQueries["useRenderExecute"],
-    useRenderSettings: () => ({ data: undefined }),
-  },
-  {
-    formatCreditCost: String,
-    useGenerationCreditCosts: () => [],
   },
 );
 

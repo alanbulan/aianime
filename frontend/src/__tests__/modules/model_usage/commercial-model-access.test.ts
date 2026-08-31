@@ -5,6 +5,7 @@ import {
   BYOK_MODEL_ROLES,
   commercialModelRoles,
   effectiveModelRuntimeSettings,
+  normalizeCommercialModelMode,
   parseByokDiscoveredModelMetadata,
   parseCommercialModelAccessStatus,
   parseCommercialModelCatalogItem,
@@ -24,6 +25,14 @@ import {
 } from "@/modules/model_usage/domain/model-runtime-metadata";
 
 describe("commercial model details", () => {
+  it("normalizes cloud mode aliases consistently", () => {
+    expect([
+      normalizeCommercialModelMode("voiceClone"),
+      normalizeCommercialModelMode(" first-last.frame "),
+      normalizeCommercialModelMode("  "),
+    ]).toEqual(["VOICE_CLONE", "FIRST_LAST_FRAME", ""]);
+  });
+
   it("keeps a parameter schema returned by BYOK model discovery", () => {
     expect(parseByokDiscoveredModelMetadata({
       id: "deepseek-ai/DeepSeek-V4-Flash-0731",

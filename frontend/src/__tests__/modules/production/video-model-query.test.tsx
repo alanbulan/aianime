@@ -19,11 +19,12 @@ describe("Production video model query", () => {
           items: [
             {
               id: "video-1",
-              code: "seedance-2.0-fast",
-              displayName: "Seedance 2.0 Fast",
+              code: "video-model-reference",
+              displayName: "Video Model Reference",
               operation: "VIDEO",
               capabilities: {
-                videoProfile: "seedance2",
+                routeSelector: "cloud:video-model-reference",
+                videoWorkflow: "advanced-reference",
                 generateAudio: true,
               },
               parameterSchema: {
@@ -45,9 +46,9 @@ describe("Production video model query", () => {
     expect(requestedOperation).toBe("VIDEO");
     expect(result.current.data).toEqual([
       expect.objectContaining({
-        value: "seedance-2.0-fast",
-        label: "Seedance 2.0 Fast",
-        profile: "seedance2",
+        value: "cloud:video-model-reference",
+        label: "Video Model Reference",
+        workflow: "advanced-reference",
         supportsNativeAudio: true,
         minDuration: 4,
         maxDuration: 15,
@@ -56,18 +57,20 @@ describe("Production video model query", () => {
     ]);
   });
 
-  it("recognizes the cloud Seedance2 catalog entry from its display name", () => {
+  it("uses the workflow and route declared by the catalog", () => {
     const useVideoModels = createUseVideoModels(() => ({
       data: {
         catalogVersion: "catalog-v1",
         items: [
           {
-            id: "cloud-seedance-2",
-            code: "video-seeddance-4wlmqpxwma4r65j3",
-            displayName: "doubao-seedance-2.0",
+            id: "cloud-video-model",
+            code: "video-model-multimodal",
+            displayName: "Multimodal video model",
             operation: "VIDEO",
             capabilities: {
-              routeSelector: "cloud:video-seeddance-4wlmqpxwma4r65j3",
+              routeSelector: "cloud:video-model-multimodal",
+              videoWorkflow: "advanced-reference",
+              advancedConfig: true,
               modes: [
                 "TEXT_TO_VIDEO",
                 "IMAGE_TO_VIDEO",
@@ -92,10 +95,10 @@ describe("Production video model query", () => {
 
     expect(result.current.data).toEqual([
       expect.objectContaining({
-        value: "cloud:video-seeddance-4wlmqpxwma4r65j3",
-        apiModel: "video-seeddance-4wlmqpxwma4r65j3",
-        label: "doubao-seedance-2.0",
-        profile: "seedance2",
+        value: "cloud:video-model-multimodal",
+        apiModel: "video-model-multimodal",
+        label: "Multimodal video model",
+        workflow: "advanced-reference",
         supportsAdvancedConfig: true,
         minDuration: 4,
         maxDuration: 15,
@@ -112,11 +115,11 @@ describe("Production video model query", () => {
         items: [
           {
             id: "h3",
-            code: "MINIMAX_H3",
-            displayName: "MiniMax H3 (Self-hosted)",
+            code: "video-model-basic",
+            displayName: "Exact-size video model",
             operation: "VIDEO",
             capabilities: {
-              routeSelector: "cloud:MINIMAX_H3",
+              routeSelector: "cloud:video-model-basic",
               supportedModes: ["IMAGE_TO_VIDEO", "MULTIMODAL_REFERENCE"],
               ratioOptions: ["16:9", "9:16", "1:1"],
               resolutionOptions: ["1344x768", "768x1344", "1024x1024"],
@@ -141,8 +144,8 @@ describe("Production video model query", () => {
 
     expect(result.current.data).toEqual([
       expect.objectContaining({
-        value: "cloud:MINIMAX_H3",
-        apiModel: "MINIMAX_H3",
+        value: "cloud:video-model-basic",
+        apiModel: "video-model-basic",
         resolutionOptions: ["768p"],
         sizeOptions: ["1344x768", "768x1344", "1024x1024"],
         ratioOptions: ["16:9", "9:16", "1:1"],
@@ -160,25 +163,24 @@ describe("Production video model query", () => {
     expect(resolveAuthorizedVideoModel([], "removed-video")).toBe("");
   });
 
-  it("resolves a cloud model code back to its routed catalog option", () => {
+  it("accepts only explicit routed catalog selections", () => {
     const options = [
       {
         value: "cloud:model-42",
-        apiModel: "doubao-seedance-2.0",
-        label: "doubao-seedance-2.0",
+        apiModel: "provider-video-model",
+        label: "provider-video-model",
       },
       {
-        value: "byok:trae:Seedance-2.0-fast",
-        apiModel: "Seedance-2.0-fast",
-        label: "Seedance-2.0-fast · trae",
+        value: "byok:provider-a:video-model-reference",
+        apiModel: "video-model-reference",
+        label: "Video Model Reference · provider-a",
       },
     ];
 
-    expect(
-      resolveVideoModelOption(options, "doubao-seedance-2.0"),
-    ).toBe(options[0]);
-    expect(
-      resolveAuthorizedVideoModel(options, "doubao-seedance-2.0"),
-    ).toBe("cloud:model-42");
+    expect(resolveVideoModelOption(options, "provider-video-model")).toBeUndefined();
+    expect(resolveVideoModelOption(options, "cloud:model-42")).toBe(options[0]);
+    expect(resolveAuthorizedVideoModel(options, "cloud:model-42")).toBe(
+      "cloud:model-42",
+    );
   });
 });

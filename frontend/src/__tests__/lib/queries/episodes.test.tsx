@@ -12,7 +12,6 @@ vi.mock("@/shared/api/transport", () => ({
 }));
 
 import { queryKeys } from "@/lib/query-keys";
-import { BillingRuleNotConfiguredError } from "@/shared/api/errors";
 import {
   deriveEpisodeStats,
   derivePipelineEpisodeStatuses,
@@ -25,7 +24,6 @@ import {
   useEpisodeDetail,
   usePlanEpisodeProps,
   usePlanEpisodeScenes,
-  usePlanEpisodes,
   usePlanIdentities,
   useUpdateEpisode,
 } from "@/modules/narrative_planning/public";
@@ -145,92 +143,6 @@ describe("episode identity planning", () => {
     });
   });
 
-  it("surfaces missing feature billing rules as a typed error", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/identities/plan",
-        () =>
-          HttpResponse.json(
-            {
-              ok: false,
-              error: "计费规则未配置，请联系管理员设置积分规则",
-              data: {
-                error_code: "BILLING_RULE_NOT_CONFIGURED",
-                billing_kind: "feature",
-                billing_key: "identity_planner",
-              },
-            },
-            { status: 409 },
-          ),
-      ),
-    );
-
-    const { result } = renderHook(() => usePlanIdentities("demo"), { wrapper });
-
-    await expect(result.current.mutateAsync(1)).rejects.toBeInstanceOf(
-      BillingRuleNotConfiguredError,
-    );
-  });
-});
-
-describe("episode planning", () => {
-  it("surfaces missing feature billing rules as a typed error", async () => {
-    server.use(
-      http.post("http://localhost:3000/api/v1/projects/demo/episodes/plan", () =>
-        HttpResponse.json(
-          {
-            ok: false,
-            error: "计费规则未配置，请联系管理员设置积分规则",
-            data: {
-              error_code: "BILLING_RULE_NOT_CONFIGURED",
-              billing_kind: "feature",
-              billing_key: "build_episodes",
-            },
-          },
-          { status: 409 },
-        ),
-      ),
-    );
-
-    const { result } = renderHook(() => usePlanEpisodes("demo"), { wrapper });
-
-    await expect(result.current.mutateAsync({})).rejects.toBeInstanceOf(
-      BillingRuleNotConfiguredError,
-    );
-  });
-
-  it.each([
-    ["scene", "episode_scene_planner", usePlanEpisodeScenes],
-    ["prop", "episode_prop_planner", usePlanEpisodeProps],
-  ] as const)(
-    "surfaces missing %s planning billing rules as a typed error",
-    async (kind, billingKey, useHook) => {
-      server.use(
-        http.post(
-          `http://localhost:3000/api/v1/projects/demo/episodes/1/${kind === "scene" ? "scenes" : "props"}/plan`,
-          () =>
-            HttpResponse.json(
-              {
-                ok: false,
-                error: "计费规则未配置，请联系管理员设置积分规则",
-                data: {
-                  error_code: "BILLING_RULE_NOT_CONFIGURED",
-                  billing_kind: "feature",
-                  billing_key: billingKey,
-                },
-              },
-              { status: 409 },
-            ),
-        ),
-      );
-
-      const { result } = renderHook(() => useHook("demo"), { wrapper });
-
-      await expect(result.current.mutateAsync(1)).rejects.toBeInstanceOf(
-        BillingRuleNotConfiguredError,
-      );
-    },
-  );
 });
 
 describe("pipeline status contract", () => {

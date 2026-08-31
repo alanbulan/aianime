@@ -196,8 +196,8 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     const videoPaneView = read(
       "src/modules/production/presentation/VideoPaneView.tsx",
     );
-    const seedance2ConfigView = read(
-      "src/modules/production/presentation/Seedance2ConfigView.tsx",
+    const videoReferenceConfigView = read(
+      "src/modules/production/presentation/BeatVideoConfigView.tsx",
     );
 
     expect(view).toContain("showAudioMediaStatus={isNarratedProject}");
@@ -207,7 +207,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(videoPaneView).toContain(
       "showAudioMediaStatus={showAudioMediaStatus}",
     );
-    expect(seedance2ConfigView).toContain("showAudioMediaStatus &&");
+    expect(videoReferenceConfigView).toContain("showAudioMediaStatus &&");
   });
 
   it("persists the authorized video model through project config instead of local-only storage", () => {
@@ -218,7 +218,7 @@ describe("beats workbench v2-storage sketch-studio contract", () => {
     expect(controller).toContain("handleVideoModelChange");
     expect(controller).toContain("video_model: model");
     expect(controller).not.toContain("video_backend");
-    expect(view).not.toContain("isSeedance2Backend");
+    expect(view).not.toContain("isVideoReferenceBackend");
     expect(pageSources).not.toContain('"video-model"');
   });
 

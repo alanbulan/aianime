@@ -16,13 +16,12 @@ describe("settings store", () => {
             accessKeySecret: "legacy-access-secret",
           },
         },
-        showNodePrice: true,
       },
       20,
     );
 
     expect(migrated).not.toHaveProperty("mediaStorage");
-    expect(migrated).toMatchObject({ showNodePrice: true });
+    expect(migrated).not.toHaveProperty("showNodePrice");
     expect(useSettingsStore.getState()).not.toHaveProperty("mediaStorage");
   });
 });

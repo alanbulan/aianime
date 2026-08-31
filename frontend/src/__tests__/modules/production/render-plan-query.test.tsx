@@ -72,7 +72,7 @@ describe("Production render-plan queries", () => {
       strategy: "location",
       aspectMode: "9:16",
       forceOneByOne: false,
-      imageGenerationSelection: "openrouter_nanobanana2",
+      imageGenerationSelection: "image-model-a",
       sketchAspectPadding: true,
     });
 
@@ -82,7 +82,7 @@ describe("Production render-plan queries", () => {
       strategy: "location",
       aspect_mode: "9:16",
       force_one_by_one: false,
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "image-model-a",
       sketch_aspect_padding: true,
     });
     expect(result.current.data?.ok).toBe(true);
@@ -124,7 +124,7 @@ describe("Production render-plan queries", () => {
       aspectMode: "9:16",
       beatIndices: [1, 2, 3, 4, 5],
       forceOneByOne: false,
-      imageGenerationSelection: "openrouter_nanobanana2",
+      imageGenerationSelection: "image-model-a",
       sketchAspectPadding: true,
       customPlan: false,
     });
@@ -138,7 +138,7 @@ describe("Production render-plan queries", () => {
       aspect_mode: "9:16",
       beat_indices: [1, 2, 3, 4, 5],
       force_one_by_one: false,
-      image_generation_selection: "openrouter_nanobanana2",
+      image_generation_selection: "image-model-a",
       sketch_aspect_padding: true,
       custom_plan: false,
     });

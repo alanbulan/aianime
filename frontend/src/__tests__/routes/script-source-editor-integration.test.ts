@@ -40,34 +40,16 @@ describe("script route source editor integration", () => {
     expect(view).toContain("project={project}");
   });
 
-  it("shows feature credit cost on detail scene and prop planning", () => {
-    const planning = read(
-      "src/components/episode/episode-asset-planning.tsx",
-    );
-
-    expect(controller).toContain('"episode_scene_planner"');
-    expect(controller).toContain('"episode_prop_planner"');
-    expect(controller).toContain("BillingRuleNotConfiguredError");
-    expect(view).toContain("sceneCostDisplay={planScenesCostDisplay}");
-    expect(view).toContain("propCostDisplay={planPropsCostDisplay}");
+  it("surfaces planning errors without retaining local billing UI", () => {
     expect(controller).toMatch(
       /const handlePlanScenes[\s\S]*backendErrorToastMessage\(response\.error, t\)[\s\S]*catch \(error\)[\s\S]*backendErrorToastMessage\(error, t\)/,
     );
     expect(controller).toMatch(
       /const handlePlanProps[\s\S]*backendErrorToastMessage\(response\.error, t\)[\s\S]*catch \(error\)[\s\S]*backendErrorToastMessage\(error, t\)/,
     );
-    expect(planning).toContain("<CreditCostInline display={costDisplay} />");
-  });
-
-  it("shows feature credit cost on detail identity planning", () => {
-    const picker = read("src/components/identity-picker-dialog.tsx");
-
-    expect(controller).toContain('"identity_planner"');
-    expect(controller).toContain("BillingRuleNotConfiguredError");
-    expect(view).toContain("planCostDisplay={planIdentitiesCostDisplay}");
-    expect(picker).toContain(
-      "<CreditCostInline display={planCostDisplay} />",
-    );
+    expect(scriptPageSources).not.toContain("BillingRuleNotConfiguredError");
+    expect(scriptPageSources).not.toContain("CreditCostInline");
+    expect(scriptPageSources).not.toContain("CostDisplay");
   });
 
   it("wires episode prop promotion labels into the planning area", () => {

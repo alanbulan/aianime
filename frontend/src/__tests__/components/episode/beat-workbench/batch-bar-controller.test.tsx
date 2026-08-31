@@ -119,7 +119,7 @@ const renderSettingsQuery = {
   data: {
     ok: true as const,
     data: {
-      render_image_selection: "render-a",
+      render_image_selection: "cloud:render-a",
       sketch_aspect_padding: false,
     },
   },
@@ -129,7 +129,7 @@ const sketchSettingsQuery = {
   data: {
     ok: true as const,
     data: {
-      sketch_image_selection: "sketch-a",
+      sketch_image_selection: "cloud:sketch-a",
     },
   },
   isLoading: false,
@@ -147,40 +147,27 @@ const videoModelsQuery = {
     {
       value: "standard",
       label: "Standard",
-      profile: "standard" as const,
+      workflow: "standard" as const,
       supportsAdvancedConfig: false,
       supportsNativeAudio: false,
       dialogueOnly: false,
     },
     {
-      value: "seedance2",
-      label: "Seedance 2",
-      profile: "seedance2" as const,
+      value: "videoReference",
+      label: "Video Model Reference",
+      workflow: "advanced-reference" as const,
       supportsAdvancedConfig: true,
       supportsNativeAudio: true,
       dialogueOnly: false,
     },
   ],
 };
-const audioBillingQuoteQuery = {
-  data: {
-    ok: true as const,
-    data: {
-      beat_numbers: [1, 2],
-      quantity: 2,
-      unit_cost: 5,
-      cost: 10,
-      display: "credits:10",
-      prereq_errors: [],
-    },
-  },
-};
 const imageModelsQuery = {
   data: [
-    { value: "render-a", label: "Render A" },
-    { value: "render-b", label: "Render B" },
-    { value: "sketch-a", label: "Sketch A" },
-    { value: "sketch-b", label: "Sketch B" },
+    { value: "cloud:render-a", apiModel: "render-a", label: "Render A" },
+    { value: "cloud:render-b", apiModel: "render-b", label: "Render B" },
+    { value: "cloud:sketch-a", apiModel: "sketch-a", label: "Sketch A" },
+    { value: "cloud:sketch-b", apiModel: "sketch-b", label: "Sketch B" },
   ],
   isLoading: false,
 };
@@ -188,7 +175,9 @@ const imageModelsQuery = {
 const useBatchBarController = createUseBatchBarController(
   {
     useAssignColors: () => assignColorsMutation,
-    useAudioBillingQuote: () => audioBillingQuoteQuery,
+    useAudioGenerationPlan: () => ({
+      data: { ok: true, data: { beat_numbers: [1, 2], prereq_errors: [] } },
+    }),
     useDetectIdentities: () => detectIdentitiesMutation,
     useGenerateAudio: () => generateAudioMutation,
     useGlobalOptimize: () => globalOptimizeMutation,
@@ -199,11 +188,6 @@ const useBatchBarController = createUseBatchBarController(
     useUpdateSketchSettings: () => updateSketchSettingsMutation,
     useImageModels: () => imageModelsQuery,
     useVideoModels: () => videoModelsQuery,
-  },
-  {
-    useGenerationCreditCost: () => ({
-      data: { data: { display: "7" } },
-    }),
   },
 );
 
@@ -236,7 +220,7 @@ const defaultOptions: BatchBarControllerOptions = {
   project: "demo",
   sketchAspectRatio: "2:3",
   spineTemplate: "narrated",
-  videoModel: "seedance2",
+  videoModel: "videoReference",
 };
 
 beforeEach(() => {
@@ -275,7 +259,7 @@ beforeEach(() => {
 });
 
 describe("BatchBar controller", () => {
-  it("projects model capabilities, visibility, and episode costs", () => {
+  it("projects model capabilities and visibility", () => {
     const { result, rerender } = renderHook(
       (options: BatchBarControllerOptions) =>
         useBatchBarController(options),
@@ -283,19 +267,17 @@ describe("BatchBar controller", () => {
     );
 
     expect(result.current.audioUnavailableForVideoModel).toBe(true);
-    expect(result.current.detectIdentitiesCostDisplay).toBe("7");
-    expect(result.current.episodeAudioCostDisplay).toBe("credits:10");
     expect(result.current.renderModel).toMatchObject({
       isLoading: false,
       isPending: false,
       isVisible: true,
       options: [
-        { label: "Render A", value: "render-a" },
-        { label: "Render B", value: "render-b" },
-        { label: "Sketch A", value: "sketch-a" },
-        { label: "Sketch B", value: "sketch-b" },
+        { label: "Render A", value: "cloud:render-a" },
+        { label: "Render B", value: "cloud:render-b" },
+        { label: "Sketch A", value: "cloud:sketch-a" },
+        { label: "Sketch B", value: "cloud:sketch-b" },
       ],
-      value: "render-a",
+      value: "cloud:render-a",
     });
     expect(result.current.sketchAspectRatio).toBe("2:3");
     expect(result.current.sketchModel).toMatchObject({
@@ -303,12 +285,12 @@ describe("BatchBar controller", () => {
       isPending: false,
       isVisible: true,
       options: [
-        { label: "Render A", value: "render-a" },
-        { label: "Render B", value: "render-b" },
-        { label: "Sketch A", value: "sketch-a" },
-        { label: "Sketch B", value: "sketch-b" },
+        { label: "Render A", value: "cloud:render-a" },
+        { label: "Render B", value: "cloud:render-b" },
+        { label: "Sketch A", value: "cloud:sketch-a" },
+        { label: "Sketch B", value: "cloud:sketch-b" },
       ],
-      value: "sketch-a",
+      value: "cloud:sketch-a",
     });
     expect(result.current.showEpisodeAudio).toBe(true);
     expect(result.current.showGlobalOptimize).toBe(true);
@@ -337,15 +319,19 @@ describe("BatchBar controller", () => {
       useBatchBarController(defaultOptions),
     );
 
-    await act(async () => result.current.renderModel.onChange("render-b"));
-    await act(async () => result.current.sketchModel.onChange("sketch-b"));
+    await act(async () =>
+      result.current.renderModel.onChange("cloud:render-b"),
+    );
+    await act(async () =>
+      result.current.sketchModel.onChange("cloud:sketch-b"),
+    );
     act(() => result.current.onSketchAspectRatioChange("16:9"));
 
     expect(updateRenderSettings).toHaveBeenCalledWith({
-      renderImageSelection: "render-b",
+      renderImageSelection: "cloud:render-b",
     });
     expect(updateSketchSettings).toHaveBeenCalledWith({
-      sketchImageSelection: "sketch-b",
+      sketchImageSelection: "cloud:sketch-b",
     });
     expect(onSketchAspectRatioChange).toHaveBeenCalledWith("16:9");
   });
@@ -360,8 +346,12 @@ describe("BatchBar controller", () => {
       useBatchBarController(defaultOptions),
     );
 
-    await act(async () => result.current.renderModel.onChange("render-b"));
-    await act(async () => result.current.sketchModel.onChange("sketch-b"));
+    await act(async () =>
+      result.current.renderModel.onChange("cloud:render-b"),
+    );
+    await act(async () =>
+      result.current.sketchModel.onChange("cloud:sketch-b"),
+    );
 
     expect(hookMocks.toastError).toHaveBeenNthCalledWith(
       1,
@@ -373,7 +363,7 @@ describe("BatchBar controller", () => {
   it("starts episode audio tracking and exposes response failures", async () => {
     generateAudio.mockResolvedValueOnce({
       ok: true,
-      task_type: "audio_generation_indextts2",
+      task_type: "episode_audio_generation",
       message: "started",
       scope: "audio-scope",
     });

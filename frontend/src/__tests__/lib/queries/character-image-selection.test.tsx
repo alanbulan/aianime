@@ -100,10 +100,10 @@ describe("character image selection query hooks", () => {
             ok: true,
             data: {
               asset_kind: "prop",
-              image_source_selection: "newapi_nanobanana2",
+              image_source_selection: "image-model-a",
               options: {
-                newapi_gpt_image2: "LingShan-G2",
-                newapi_nanobanana2: "LingShan-NB-2",
+                "image-model-b": "Image Model B",
+                "image-model-a": "Image Model A",
               },
             },
           });
@@ -116,12 +116,12 @@ describe("character image selection query hooks", () => {
       { wrapper },
     );
 
-    result.current.mutate("newapi_nanobanana2");
+    result.current.mutate("image-model-a");
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe(
       "/api/v1/projects/demo/image-source-selection/prop",
     );
-    expect(patchBody).toEqual({ image_source_selection: "newapi_nanobanana2" });
+    expect(patchBody).toEqual({ image_source_selection: "image-model-a" });
   });
 });

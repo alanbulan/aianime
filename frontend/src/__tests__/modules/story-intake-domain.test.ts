@@ -6,7 +6,7 @@ import {
   resolveIngestSettings,
 } from "@/modules/story_intake/domain/ingest-settings";
 import {
-  countBillableNovelChars,
+  countNovelTextChars,
   isActiveIngestionTask,
 } from "@/modules/story_intake/domain/ingestion";
 
@@ -62,7 +62,7 @@ describe("story intake domain rules", () => {
   });
 
   it("counts billable characters and recognizes active ingest tasks", () => {
-    expect(countBillableNovelChars("第一章\n  雨 巷\u3000")).toBe(5);
+    expect(countNovelTextChars("第一章\n  雨 巷\u3000")).toBe(5);
     expect(isActiveIngestionTask("ingest_fast", "running")).toBe(true);
     expect(isActiveIngestionTask("ingest_fast", "completed")).toBe(false);
     expect(isActiveIngestionTask("video_gen", "running")).toBe(false);

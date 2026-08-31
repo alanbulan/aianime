@@ -15,7 +15,7 @@ describe("httpIdentityGateway", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        data: { username: "alice", role: "owner", credit_balance: 12 },
+        data: { username: "alice", role: "owner" },
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -41,7 +41,7 @@ describe("httpIdentityGateway", () => {
       ok: true,
       json: async () => ({
         ok: true,
-        data: { username: "licensed", role: "owner", credit_balance: 0 },
+        data: { username: "licensed", role: "owner" },
       }),
     });
     vi.stubGlobal("fetch", fetchMock);

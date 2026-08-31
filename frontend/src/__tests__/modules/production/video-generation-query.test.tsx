@@ -15,15 +15,12 @@ import { queryKeys } from "@/lib/query-keys";
 import type { Beat } from "@/modules/narrative_planning/public";
 import {
   useGenerateBeatVideoPrompt,
-  useGenerateSeedance2Prompt,
+  useGenerateVideoPrompt,
   useGlobalOptimize,
   useProductionWorkflow,
   useRegenerateBeatVideo,
 } from "@/modules/production/public";
-import {
-  BillingRuleNotConfiguredError,
-  ProjectQueueLimitError,
-} from "@/shared/api/errors";
+import { ProjectQueueLimitError } from "@/shared/api/errors";
 import { useAppStore } from "@/modules/project_workspace/public";
 
 afterEach(() => {
@@ -48,7 +45,7 @@ function makeBeat(): Beat {
     beat_number: 2,
     narration_segment: "旁白",
     visual_description: "画面",
-    seedance2_config_json: "old-config",
+    video_config_json: "old-config",
     video_prompt: "old-prompt",
   };
 }
@@ -88,7 +85,7 @@ describe("canonical production workflow query", () => {
   });
 });
 
-describe("Seedance2 prompt generation query", () => {
+describe("video prompt optimization query", () => {
   it("posts prompt inputs and leaves completion data to task reconciliation", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
@@ -101,22 +98,22 @@ describe("Seedance2 prompt generation query", () => {
     let body: unknown = null;
     server.use(
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/seedance2-prompt/generate",
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/video-prompt/optimize",
         async ({ request }) => {
           requestedPath = new URL(request.url).pathname;
           body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
-            task_type: "seedance2_prompt",
-            task_id: "task-seedance2-prompt",
-            task_key: "task:seedance2_prompt:1:2",
+            task_type: "videoReference_prompt",
+            task_id: "task-video-reference-prompt",
+            task_key: "task:videoReference_prompt:1:2",
             message: "第 1 集 Beat 2 视频提示词优化已入队",
           });
         },
       ),
     );
 
-    const { result } = renderHook(() => useGenerateSeedance2Prompt("demo", 1), {
+    const { result } = renderHook(() => useGenerateVideoPrompt("demo", 1), {
       wrapper: wrapperWithClient(queryClient),
     });
     result.current.mutate({
@@ -127,7 +124,7 @@ describe("Seedance2 prompt generation query", () => {
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(requestedPath).toBe(
-      "/api/v1/projects/demo/episodes/1/beats/2/seedance2-prompt/generate",
+      "/api/v1/projects/demo/episodes/1/beats/2/video-prompt/optimize",
     );
     expect(body).toEqual({
       manual_prompt_reference: "current prompt",
@@ -135,13 +132,13 @@ describe("Seedance2 prompt generation query", () => {
     });
     expect(result.current.data).toMatchObject({
       ok: true,
-      task_type: "seedance2_prompt",
-      task_id: "task-seedance2-prompt",
+      task_type: "videoReference_prompt",
+      task_id: "task-video-reference-prompt",
     });
     expect(
       queryClient.getQueryData<{ ok: true; data: Beat[] }>(
         queryKeys.beats("demo", 1),
-      )?.data[0]?.seedance2_config_json,
+      )?.data[0]?.video_config_json,
     ).toBe("old-config");
   });
 
@@ -149,21 +146,21 @@ describe("Seedance2 prompt generation query", () => {
     let body: unknown = null;
     server.use(
       http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/seedance2-prompt/generate",
+        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/video-prompt/optimize",
         async ({ request }) => {
           body = await request.clone().json();
           return HttpResponse.json({
             ok: true,
-            task_type: "seedance2_prompt",
-            task_id: "task-seedance2-prompt",
-            task_key: "task:seedance2_prompt:1:2",
+            task_type: "videoReference_prompt",
+            task_id: "task-video-reference-prompt",
+            task_key: "task:videoReference_prompt:1:2",
             message: "第 1 集 Beat 2 视频提示词优化已入队",
           });
         },
       ),
     );
 
-    const { result } = renderHook(() => useGenerateSeedance2Prompt("demo", 1), {
+    const { result } = renderHook(() => useGenerateVideoPrompt("demo", 1), {
       wrapper,
     });
     result.current.mutate({
@@ -177,38 +174,6 @@ describe("Seedance2 prompt generation query", () => {
     });
   });
 
-  it("parses feature billing errors from the Seedance2 prompt endpoint", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/seedance2-prompt/generate",
-        () =>
-          HttpResponse.json(
-            {
-              ok: false,
-              error: "计费规则未配置，请联系管理员设置积分规则",
-              data: {
-                error_code: "BILLING_RULE_NOT_CONFIGURED",
-                billing_kind: "feature",
-                billing_key: "seedance2_prompt",
-              },
-            },
-            { status: 409 },
-          ),
-      ),
-    );
-
-    const { result } = renderHook(() => useGenerateSeedance2Prompt("demo", 1), {
-      wrapper,
-    });
-    result.current.mutate({
-      beatNum: 2,
-      manualPromptReference: "current prompt",
-      promptGuidance: "more camera motion",
-    });
-
-    await waitFor(() => expect(result.current.error).toBeDefined());
-    expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);
-  });
 });
 
 describe("1.x beat video prompt generation query", () => {
@@ -293,34 +258,6 @@ describe("1.x beat video prompt generation query", () => {
     expect(body).toEqual({ language: "en" });
   });
 
-  it("parses feature billing errors from the 1.x video prompt endpoint", async () => {
-    server.use(
-      http.post(
-        "http://localhost:3000/api/v1/projects/demo/episodes/1/beats/2/video-prompt/generate",
-        () =>
-          HttpResponse.json(
-            {
-              ok: false,
-              error: "计费规则未配置，请联系管理员设置积分规则",
-              data: {
-                error_code: "BILLING_RULE_NOT_CONFIGURED",
-                billing_kind: "feature",
-                billing_key: "beat_video_prompt",
-              },
-            },
-            { status: 409 },
-          ),
-      ),
-    );
-
-    const { result } = renderHook(() => useGenerateBeatVideoPrompt("demo", 1), {
-      wrapper,
-    });
-    result.current.mutate({ beatNum: 2 });
-
-    await waitFor(() => expect(result.current.error).toBeDefined());
-    expect(result.current.error).toBeInstanceOf(BillingRuleNotConfiguredError);
-  });
 });
 
 describe("video generation commands", () => {
@@ -376,26 +313,26 @@ describe("video generation commands", () => {
     });
     result.current.mutate({
       beatNum: 6,
-      model: "seedance-2.0-fast",
+      model: "video-model-reference",
       useDirectorRender: true,
       resolution: "720p",
       duration: 5,
       ratio: "16:9",
       mode: "first_frame",
-      seedance2ConfigJson: '{"final_prompt":"镜头推进"}',
+      videoConfigJson: '{"final_prompt":"镜头推进"}',
       audioSetting: "enabled",
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(body).toEqual({
-      model: "seedance-2.0-fast",
+      model: "video-model-reference",
       video_routing_policy: "project_selection",
       use_director_render: true,
       resolution: "720p",
       duration: 5,
       ratio: "16:9",
       mode: "first_frame",
-      seedance2_config_json: '{"final_prompt":"镜头推进"}',
+      video_config_json: '{"final_prompt":"镜头推进"}',
       audio_setting: "enabled",
     });
   });
@@ -426,7 +363,7 @@ describe("video generation commands", () => {
     });
     const promise = result.current.mutateAsync({
       beatNum: 6,
-      model: "seedance-1.0-pro-fast",
+      model: "video-model-standard",
     });
 
     await expect(promise).rejects.toMatchObject({

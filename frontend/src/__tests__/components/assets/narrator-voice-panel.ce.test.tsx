@@ -8,17 +8,9 @@ import type { NarratorVoicePanelController } from "@/modules/production/applicat
 import { NarratorVoicePanelView } from "@/modules/production/presentation/NarratorVoicePanelView";
 
 const runtimeState = vi.hoisted(() => ({ isCeRuntime: true }));
-const toastErrorMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/runtime-config", () => ({
   isCeRuntime: () => runtimeState.isCeRuntime,
-}));
-
-vi.mock("sonner", () => ({
-  toast: {
-    error: toastErrorMock,
-    success: vi.fn(),
-  },
 }));
 
 function NarratorVoicePanel({ project: _project }: { project: string }) {
@@ -77,7 +69,7 @@ function NarratorVoicePanel({ project: _project }: { project: string }) {
     onGenerateDesignedVoice: async () => undefined,
     onVoiceSourceTypeChange: vi.fn(),
     onGeneratePresetVoice: async () => undefined,
-    onOpenAiVoice: vi.fn(),
+    onOpenVoiceGenerator: vi.fn(),
     onOpenRecord: vi.fn(),
     onOpenTrim: vi.fn(),
     onRecordOpenChange: vi.fn(),
@@ -114,7 +106,7 @@ beforeAll(async () => {
           episode: {
             workbench: {
               video: {
-                seedance2Ready: "Ready",
+                videoReferenceReady: "Ready",
                 narratorVoice: "Narrator voice",
                 narratorVoiceMissing: "Missing",
                 narratorVoiceUpload: "Upload",
@@ -145,20 +137,13 @@ beforeAll(async () => {
   });
 });
 
-function classNameContains(container: HTMLElement, token: string) {
-  return Array.from(container.querySelectorAll("*")).some((node) =>
-    String(node.getAttribute("class") ?? "").includes(token),
-  );
-}
-
-describe("NarratorVoicePanel CE generation credit gating", () => {
+describe("NarratorVoicePanel CE workflow", () => {
   beforeEach(() => {
     runtimeState.isCeRuntime = true;
-    toastErrorMock.mockClear();
   });
 
-  it("keeps the narrator voice entry point free of credit UI, credit styling, and credit errors", () => {
-    const { container } = render(
+  it("renders the narrator voice entry point", () => {
+    render(
       <I18nextProvider i18n={i18n}>
         <NarratorVoicePanel project="demo" />
       </I18nextProvider>,
@@ -167,11 +152,5 @@ describe("NarratorVoicePanel CE generation credit gating", () => {
     expect(screen.getAllByText("Narrator voice")).not.toHaveLength(0);
     expect(screen.getAllByRole("button", { name: "Upload" })).not.toHaveLength(0);
 
-    expect(screen.queryByText(/credits?/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/积分|额度/)).not.toBeInTheDocument();
-    expect(classNameContains(container, "#007A87")).toBe(false);
-    expect(toastErrorMock).not.toHaveBeenCalledWith(
-      expect.stringMatching(/积分不足|credit|insufficient/i),
-    );
   });
 });

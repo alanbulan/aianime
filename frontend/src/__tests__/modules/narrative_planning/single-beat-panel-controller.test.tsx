@@ -47,9 +47,9 @@ const useSingleBeatPanelController = createUseSingleBeatPanelController(
     useVideoModels: () => ({
       data: [
         {
-          value: "seedance2",
-          label: "Seedance 2",
-          profile: "seedance2" as const,
+          value: "videoReference",
+          label: "Video Model Reference",
+          workflow: "advanced-reference" as const,
           supportsAdvancedConfig: true,
           supportsNativeAudio: true,
           dialogueOnly: false,
@@ -72,7 +72,7 @@ describe("SingleBeatPanel controller", () => {
     const { result } = renderHook(() =>
       useSingleBeatPanelController({
         beat,
-        defaultModel: "seedance2",
+        defaultModel: "videoReference",
         episode: 3,
         onDefaultModelChange,
         onToggleSection,
@@ -121,9 +121,8 @@ describe("SingleBeatPanel controller", () => {
     expect(result.current.videoModels).toEqual([
       {
         dialogueOnly: false,
-        isSeedance2: true,
-        label: "Seedance 2",
-        value: "seedance2",
+        label: "Video Model Reference",
+        value: "videoReference",
       },
     ]);
     expect(result.current.onDefaultModelChange).toBe(
@@ -137,7 +136,7 @@ describe("SingleBeatPanel controller", () => {
     const { result } = renderHook(() =>
       useSingleBeatPanelController({
         beat,
-        defaultModel: "seedance2",
+        defaultModel: "videoReference",
         episode: 3,
         onDefaultModelChange: vi.fn(),
         onToggleSection: vi.fn(),

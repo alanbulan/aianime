@@ -94,7 +94,7 @@ vi.mock("@/modules/production/composition", () => ({
       data: {
         ok: true,
         data: {
-          sketch_image_selection: "doubao_seedream-3.0-t2i",
+          sketch_image_selection: "image-model-sketch",
           options: {},
         },
       },
@@ -105,16 +105,6 @@ vi.mock("@/modules/production/composition", () => ({
     }),
     useSketchCropDialogController: ({ open }: { open: boolean }) => ({ open }),
     useSketchPoseEditorDialogController: ({ open }: { open: boolean }) => ({ open }),
-}));
-
-vi.mock("@/modules/model_usage/public", () => ({
-  useGenerationCreditCosts: () => [],
-  useGenerationCreditCost: () => ({
-    data: {
-      ok: true,
-      data: { cost: 1, display: "1 credit" },
-    },
-  }),
 }));
 
 vi.mock("@/modules/asset_world/public", () => ({
