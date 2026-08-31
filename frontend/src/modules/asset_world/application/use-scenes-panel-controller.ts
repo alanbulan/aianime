@@ -27,13 +27,7 @@ import {
 import {
   backendErrorResponseToastMessage,
   backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-  error?: unknown;
-}
 
 export interface ScenesPanelControllerDependencies {
   readStoredSceneGroupSelection(project: string): string | null;
@@ -42,7 +36,6 @@ export interface ScenesPanelControllerDependencies {
     ready: boolean,
   ): RefObject<HTMLDivElement | null>;
   useAssetReferenceIndex(project: string): AssetReferenceIndex;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
   writeStoredSceneGroupSelection(project: string, baseName: string): void;
 }
 
@@ -81,10 +74,6 @@ export function createUseScenesPanelController(
     const buildScenes = sceneQueries.useBuildScenes(project);
     const imageSourceQuery =
       imageSourceQueries.useAssetImageSourceSelection(project, "scene");
-    const buildScenesCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "build_scenes",
-    );
     const referenceIndex = dependencies.useAssetReferenceIndex(project);
 
     const allItems = scenesQuery.data?.data ?? [];
@@ -270,11 +259,6 @@ export function createUseScenesPanelController(
 
     return {
       allItems,
-      buildScenesCostDisplay:
-        buildScenesCost.data?.data.display ??
-        (buildScenesCost.error instanceof BillingRuleNotConfiguredError
-          ? t("common.billingRuleNotConfiguredShort")
-          : null),
       buildScenesPending: buildScenes.isPending,
       deleteDialog: {
         confirm: confirmDelete,

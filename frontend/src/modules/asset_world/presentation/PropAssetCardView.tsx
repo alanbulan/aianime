@@ -16,7 +16,6 @@ import { LightboxImage } from "@/components/lightbox-image";
 import { ASSET_CARD_META_BADGE_CLASS } from "@/components/assets/asset-card-styles";
 import { UsageCountBadge } from "@/components/assets/usage-count-badge";
 import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,7 +32,6 @@ export interface PropAssetCardViewProps {
   generating?: boolean;
   uploading?: boolean;
   referenceCount?: number;
-  referenceCost?: string;
   onEdit: () => void;
   onDelete: () => void;
   onGenerateReference: () => void;
@@ -47,7 +45,6 @@ export function PropAssetCardView({
   generating = false,
   uploading = false,
   referenceCount = 0,
-  referenceCost,
   onEdit,
   onDelete,
   onGenerateReference,
@@ -183,7 +180,6 @@ export function PropAssetCardView({
               : referenceUrl
                 ? t("assets.props.regenerateReference")
                 : t("assets.props.generateReference")}
-            <CreditCostInline display={referenceCost} />
           </Button>
           <Button
             type="button"
@@ -222,7 +218,6 @@ export function PropAssetCardControllerView({
     onDelete,
     onEdit,
     prop,
-    referenceCost,
     referenceCount,
     uploading,
   } = controller;
@@ -233,7 +228,6 @@ export function PropAssetCardControllerView({
       generating={generating}
       uploading={uploading}
       referenceCount={referenceCount}
-      referenceCost={referenceCost}
       freezonePending={freezonePending}
       onEdit={onEdit}
       onDelete={onDelete}

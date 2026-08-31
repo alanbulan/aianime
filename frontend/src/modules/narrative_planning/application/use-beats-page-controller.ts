@@ -3,8 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useEpisodeImageTaskInvalidation } from "@/modules/task_execution/public";
-import { useTaskController } from "@/modules/task_execution/public";
+import {
+  TASK_TYPES,
+  useEpisodeImageTaskInvalidation,
+  useTaskController,
+} from "@/modules/task_execution/public";
 import {
   aspectRatioForOrientation,
   orientationForAspectRatio,
@@ -28,10 +31,7 @@ import type {
   SketchStudioController,
   SketchStudioControllerOptions,
 } from "@/modules/narrative_planning/application/use-sketch-studio-controller";
-import {
-  backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
-} from "@/shared/api/errors";
+import { backendErrorToastMessage } from "@/shared/api/errors";
 import { useProjectAspectRatio } from "@/shared/stores/aspect-ratio-store";
 
 export type BeatsTargetSection = "sketch" | "render" | "audio" | "video";
@@ -60,11 +60,6 @@ interface RebuildPoolIndexMutation {
   mutateAsync(): Promise<{ data: { image_count: number } }>;
 }
 
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-  error: unknown;
-}
-
 interface VideoModelsQuery {
   data: Array<{ value: string }>;
 }
@@ -74,10 +69,6 @@ export interface BeatsPageControllerDependencies {
     project: string,
     options: { scope: "episode"; episode: number },
   ): Promise<unknown>;
-  useGenerationCreditCost(
-    kind: string,
-    value?: string | null,
-  ): CreditCostQuery;
   useBeatSelection: UseBeatSelection;
   useBeatStates(
     project: string,
@@ -111,18 +102,6 @@ type UseBeatsSketchPlanController = (
 type UseSketchStudioController = (
   options: SketchStudioControllerOptions,
 ) => SketchStudioController;
-
-function creditCostDisplay(
-  query: CreditCostQuery,
-  billingRuleFallback: string,
-): string | null {
-  return (
-    query.data?.data.display ??
-    (query.error instanceof BillingRuleNotConfiguredError
-      ? billingRuleFallback
-      : null)
-  );
-}
 
 export function createUseBeatsPageController(
   queries: NarrativePlanningQueryHooks,
@@ -274,7 +253,6 @@ export function createUseBeatsPageController(
       checkedBeatNumbers,
       clearSelection,
       episodeNumber,
-      imageGenerationSelection,
       project,
       sketchAspectRatio,
     });
@@ -336,13 +314,9 @@ export function createUseBeatsPageController(
     }, [beats, clearSelection, isLoading, selection]);
 
     const generateScript = queries.useGenerateScript(project, episodeNumber);
-    const generateScriptCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "script_writer",
-    );
     const scriptTask = useTaskController({
-      key: { taskType: "script_writer", project, episode: episodeNumber },
-      alsoReconcile: ["literal_script_writer"],
+      key: { taskType: TASK_TYPES.SCRIPT_WRITER, project, episode: episodeNumber },
+      alsoReconcile: [TASK_TYPES.LITERAL_SCRIPT_WRITER],
       invalidateKeys: [
         queryKeys.script(project, episodeNumber),
         queryKeys.beats(project, episodeNumber),
@@ -426,10 +400,6 @@ export function createUseBeatsPageController(
         generateScript.isPending ||
         scriptTask.started,
       generatePending: generateScript.isPending || scriptTask.started,
-      generateScriptCostDisplay: creditCostDisplay(
-        generateScriptCost,
-        t("common.billingRuleNotConfiguredShort"),
-      ),
       generateTitle: !identityPlanReady
         ? t("episode.script.identityRequired")
         : !scenePlanReady

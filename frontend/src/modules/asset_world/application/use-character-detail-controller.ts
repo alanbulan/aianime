@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { useTaskController } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import type { CharacterQueryHooks } from "@/modules/asset_world/application/character-query-hooks";
-import { isOkDataResponse } from "@/modules/asset_world/application/response";
 import type {
   Character,
   CharacterMainCopy,
@@ -16,17 +15,8 @@ import {
 } from "@/shared/api/errors";
 import { saveScopes, trackSave } from "@/shared/stores/save-status-store";
 
-interface CreditCostQuery {
-  data?: unknown;
-}
-
 export interface CharacterDetailControllerDependencies {
   openCharacterFreezone(project: string, characterName: string): Promise<unknown>;
-  useGenerationCreditCost(
-    kind: string,
-    value: string | undefined,
-    options: { surface: "ai_anime"; imageRole: "character" },
-  ): CreditCostQuery;
 }
 
 export interface CharacterDetailControllerOptions {
@@ -70,11 +60,6 @@ export function createUseCharacterDetailController(
     const uploadPortrait = queries.useUploadPortrait(
       project,
       character.name,
-    );
-    const portraitCostQuery = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageModel,
-      { surface: "ai_anime", imageRole: "character" },
     );
     const portraitTask = useTaskController({
       key: {
@@ -281,11 +266,6 @@ export function createUseCharacterDetailController(
       },
       portrait: {
         attemptCount,
-        costDisplay: isOkDataResponse<{ display: string }>(
-          portraitCostQuery.data,
-        )
-          ? portraitCostQuery.data.data.display
-          : "",
         generate,
         generateBusy: generatePortrait.isPending || portraitTask.started,
         generateConfirmOpen,

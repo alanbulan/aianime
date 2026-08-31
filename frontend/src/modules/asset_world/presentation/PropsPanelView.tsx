@@ -9,7 +9,6 @@ import {
   AssetSearchBox,
   AssetSortSelect,
 } from "@/components/assets/asset-search-box";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { StageProgressPanel } from "@/components/stage-progress-panel";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,7 +52,6 @@ export function PropsPanelView({
     batchGeneratePending,
     batchLogs,
     batchProgress,
-    batchReferenceCost,
     batchStopping,
     deleteDialog,
     gridRef,
@@ -94,7 +92,6 @@ export function PropsPanelView({
             <Sparkles className="size-3.5" />
           )}
           {t("assets.props.batchGenerate")}
-          <CreditCostInline display={batchReferenceCost} />
         </Button>
         <TooltipProvider delay={80}>
           <Tooltip>

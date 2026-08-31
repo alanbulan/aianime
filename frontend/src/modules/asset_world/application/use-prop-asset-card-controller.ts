@@ -9,20 +9,10 @@ import { propReferenceAssetScope } from "@/modules/task_execution/public";
 import type { PropQueryHooks } from "@/modules/asset_world/application/prop-query-hooks";
 import { isErrorDataResponse } from "@/modules/asset_world/application/response";
 import type { PropAsset } from "@/modules/asset_world/domain/prop";
-import type { GenerationCreditCostOptions } from "@/modules/model_usage/public";
 import { backendErrorToastMessage } from "@/shared/api/errors";
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
 
 export interface PropAssetCardControllerDependencies {
   openPropFreezone(project: string, propName: string): Promise<void>;
-  useGenerationCreditCost(
-    kind: string,
-    value: string,
-    options?: GenerationCreditCostOptions,
-  ): CreditCostQuery;
 }
 
 export interface PropAssetCardControllerOptions {
@@ -52,11 +42,6 @@ export function createUsePropAssetCardController(
     const uploadReference = propQueries.useUploadPropReference(
       project,
       prop.name,
-    );
-    const referenceCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageSourceSelection,
-      { imageRole: "prop_reference" },
     );
     const [freezonePending, setFreezonePending] = useState(false);
     const referenceTask = useTaskController({
@@ -114,7 +99,6 @@ export function createUsePropAssetCardController(
       onDelete,
       onEdit,
       prop,
-      referenceCost: referenceCost.data?.data.display ?? undefined,
       referenceCount,
       uploading: uploadReference.isPending,
     };

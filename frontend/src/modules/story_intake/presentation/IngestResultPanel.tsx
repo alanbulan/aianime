@@ -50,7 +50,6 @@ export function IngestResultPanel({
     logsScrollRef,
     chaptersData,
     chaptersFetching,
-    ingestFeatureCostDisplay,
     ingestStarted,
     reuploadConfirmOpen,
     setReuploadConfirmOpen,
@@ -70,7 +69,7 @@ export function IngestResultPanel({
     previewFile,
     previewStatus,
     totalChars,
-    billableChars,
+    textChars,
     totalCharsUnknown,
     isStarting,
     chapterTitle,
@@ -98,7 +97,6 @@ export function IngestResultPanel({
           isIngesting={ingestStarted}
           canStart={!!uploadedFile && !ingestSubmitted}
           isStarting={isStarting}
-          ingestCostDisplay={ingestFeatureCostDisplay}
           onStart={handleStartIngest}
           onCancel={handleCancelIngest}
           isCancelling={cancelTask.isPending}
@@ -175,11 +173,11 @@ export function IngestResultPanel({
               }
             />
             <StatCard
-              label={t("ingest.statBillableChars")}
+              label={t("ingest.statTextChars")}
               value={
                 totalCharsUnknown
                   ? <span className="text-muted-foreground">—</span>
-                  : billableChars.toLocaleString()
+                  : textChars.toLocaleString()
               }
             />
             <StatCard

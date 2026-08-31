@@ -32,7 +32,6 @@ import {
   HeaderCollapseProvider,
 } from "@/components/episode/header-collapse";
 import { StageProgressPanel } from "@/components/stage-progress-panel";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { EpisodeListSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { SUBTLE_HEADER_ACTION_BUTTON_CLASS } from "@/components/ui/header-action-styles";
@@ -197,7 +196,6 @@ function TopBar({
   showReplan,
   onPlan,
   planPending,
-  planCostDisplay,
   showRefresh,
   onRefresh,
   refreshPending,
@@ -213,7 +211,6 @@ function TopBar({
   showReplan: boolean;
   onPlan: () => void;
   planPending: boolean;
-  planCostDisplay?: string | null;
   showRefresh: boolean;
   onRefresh: () => Promise<boolean>;
   refreshPending: boolean;
@@ -293,11 +290,6 @@ function TopBar({
               <Play className="size-3.5" />
             )}
             {t("episode.list.replanEpisodes")}
-            <CreditCostInline
-              display={planCostDisplay}
-              className="text-primary-foreground"
-              iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
-            />
           </Button>
         )}
         {showPlan && (
@@ -313,11 +305,6 @@ function TopBar({
               <Play className="size-3.5" />
             )}
             {t("episode.list.planEpisodes")}
-            <CreditCostInline
-              display={planCostDisplay}
-              className="text-primary-foreground"
-              iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
-            />
           </Button>
         )}
         {showBack && (
@@ -420,7 +407,6 @@ function EpisodePlanShortcut({
   icon,
   summary,
   actionLabel,
-  costDisplay,
   pending,
   disabled = false,
   onClick,
@@ -428,7 +414,6 @@ function EpisodePlanShortcut({
   icon: React.ReactNode;
   summary: string;
   actionLabel: string;
-  costDisplay?: string | null;
   pending: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -460,7 +445,6 @@ function EpisodePlanShortcut({
           <Sparkles className="size-3" />
         )}
         {actionLabel}
-        <CreditCostInline display={costDisplay} />
       </Button>
     </div>
   );
@@ -479,14 +463,11 @@ export function EpisodeListItemView({
     handlePlanIdentities,
     handlePlanProps,
     handlePlanScenes,
-    identityCostDisplay,
     identityCount,
     identityPending,
     onSelect,
-    propCostDisplay,
     propCount,
     propPending,
-    sceneCostDisplay,
     sceneCount,
     scenePending,
     shotCount,
@@ -554,7 +535,6 @@ export function EpisodeListItemView({
           }
           pending={identityPending}
           disabled={identityPending}
-          costDisplay={identityCostDisplay}
           onClick={handlePlanIdentities}
         />
         <EpisodePlanShortcut
@@ -567,7 +547,6 @@ export function EpisodeListItemView({
           }
           pending={scenePending}
           disabled={scenePending}
-          costDisplay={sceneCostDisplay}
           onClick={handlePlanScenes}
         />
         <EpisodePlanShortcut
@@ -580,7 +559,6 @@ export function EpisodeListItemView({
           }
           pending={propPending}
           disabled={propPending}
-          costDisplay={propCostDisplay}
           onClick={handlePlanProps}
         />
       </div>
@@ -625,7 +603,6 @@ export function EpisodesPageView({
     isLoading,
     onBackToEpisodes,
     onSelectEpisode,
-    planEpisodesCostDisplay,
     planPending,
     planTask,
     project,
@@ -645,7 +622,6 @@ export function EpisodesPageView({
       showReplan={!selectedEpisode && displayEpisodes.length > 0}
       onPlan={handlePlan}
       planPending={planPending}
-      planCostDisplay={planEpisodesCostDisplay}
       showRefresh={!selectedEpisode}
       onRefresh={handleRefresh}
       refreshPending={refreshPending}
@@ -733,7 +709,6 @@ export function EpisodesPageView({
                       <Play className="size-3.5" />
                     )}
                     {t("episode.list.planEpisodes")}
-                    <CreditCostInline display={planEpisodesCostDisplay} />
                   </Button>
                 </div>
               ) : (

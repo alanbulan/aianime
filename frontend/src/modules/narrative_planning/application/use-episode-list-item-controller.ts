@@ -16,9 +16,6 @@ import { backendErrorToastMessage } from "@/shared/api/errors";
 export interface EpisodeListItemControllerOptions {
   project: string;
   episode: Episode;
-  identityCostDisplay?: string | null;
-  sceneCostDisplay?: string | null;
-  propCostDisplay?: string | null;
   onSelect(): void;
 }
 

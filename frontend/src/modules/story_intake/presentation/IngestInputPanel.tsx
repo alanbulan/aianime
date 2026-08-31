@@ -48,7 +48,6 @@ export function IngestInputPanel({
     setFormatCheckDetails,
     uploadMutation,
     startIngestMutation,
-    ingestFeatureCostDisplay,
     ingestStarted,
     visualStyleOptions,
     settingsValues,
@@ -341,7 +340,6 @@ export function IngestInputPanel({
               ingestStarted
             }
             isBusy={isStarting || ingestStarted}
-            costDisplay={ingestFeatureCostDisplay}
           />
         </div>
       </div>

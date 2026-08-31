@@ -23,10 +23,6 @@ interface TaskListQuery {
   data?: { data: TaskState[] };
 }
 
-interface CreditCostQuery {
-  data?: { data: { cost?: number } };
-}
-
 interface RegenerateSketchesMutation {
   mutateAsync(params: {
     beatIndices: number[];
@@ -43,21 +39,10 @@ export interface BeatsSketchPlanControllerDependencies {
     beatNumbers: number[],
     aspectRatio: SketchAspectRatio,
   ): SketchPlanItem[];
-  formatCreditCost(cost: number): string;
   getLockedSketchItemIds(
     tasks: TaskState[] | undefined,
     items: readonly SketchPlanItem[],
   ): Set<string>;
-  sketchModelCallCount(items: readonly SketchPlanItem[]): number;
-  useGenerationCreditCost(
-    kind: string,
-    value?: string | null,
-    options?: {
-      surface?: "ai_anime" | "canvas" | null;
-      imageRole?: string | null;
-      modeKey?: string | null;
-    },
-  ): CreditCostQuery;
   useRegenerateSketches(
     project: string,
     episode: number,
@@ -70,7 +55,6 @@ export interface BeatsSketchPlanControllerOptions {
   checkedBeatNumbers: number[];
   clearSelection(): void;
   episodeNumber: number;
-  imageGenerationSelection?: string;
   project: string;
   sketchAspectRatio: SketchAspectRatio;
 }
@@ -86,7 +70,6 @@ export function createUseBeatsSketchPlanController(
       checkedBeatNumbers,
       clearSelection,
       episodeNumber,
-      imageGenerationSelection,
       project,
       sketchAspectRatio,
     } = options;
@@ -96,17 +79,6 @@ export function createUseBeatsSketchPlanController(
       episodeNumber,
     );
     const tasks = dependencies.useTasks({ project, episode: episodeNumber });
-    const sketchCostModeKey =
-      sketchAspectRatio === "16:9" ? "1x1_16-9_sketch" : "1x1_2-3_sketch";
-    const sketchCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageGenerationSelection,
-      {
-        surface: "ai_anime",
-        imageRole: "sketch",
-        modeKey: sketchCostModeKey,
-      },
-    );
     const { track: trackSketchRegeneration } =
       useScopedTaskBatchInvalidation({
         project,
@@ -150,14 +122,6 @@ export function createUseBeatsSketchPlanController(
     const sketchPlanUnlockedCount = sketchPlanItems.filter(
       (item) => !lockedSketchItemIds.has(item.id),
     ).length;
-    const sketchPlanCostDisplay = useMemo(() => {
-      const unitCost = sketchCost.data?.data.cost;
-      if (typeof unitCost !== "number") return null;
-      return dependencies.formatCreditCost(
-        unitCost * dependencies.sketchModelCallCount(sketchPlanItems),
-      );
-    }, [sketchCost.data?.data.cost, sketchPlanItems]);
-
     const openSketchPlan = useCallback(() => {
       if (checkedBeatNumbers.length === 0) return;
       setSketchPlanOpen(true);
@@ -262,7 +226,6 @@ export function createUseBeatsSketchPlanController(
       renderPlanOpen,
       setRenderPlanOpen,
       setSketchPlanOpen,
-      sketchPlanCostDisplay,
       sketchPlanItems,
       sketchPlanOpen,
       sketchPlanUnlockedCount,

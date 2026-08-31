@@ -19,7 +19,7 @@ export function createStoryIntakeQueryHooks(gateway: StoryIntakeGateway) {
             {
               chapters: preview.chapters,
               total_chars: preview.total_chars,
-              billable_chars: preview.billable_chars,
+              text_chars: preview.text_chars,
               count: preview.count,
               preview_only: true,
             },

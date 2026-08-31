@@ -16,14 +16,6 @@ import {
   type Style,
 } from "@/modules/asset_world/domain/style";
 
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
-
-export interface CreateStyleControllerDependencies {
-  useGenerationCreditCost(kind: string): CreditCostQuery;
-}
-
 export interface CreateStyleControllerOptions {
   onCreated(styleId: string): void;
   onOpenChange(open: boolean): void;
@@ -33,7 +25,6 @@ export interface CreateStyleControllerOptions {
 
 export function createUseCreateStyleController(
   queries: StyleQueryHooks,
-  dependencies: CreateStyleControllerDependencies,
 ) {
   return function useCreateStyleController(
     options: CreateStyleControllerOptions,
@@ -44,7 +35,6 @@ export function createUseCreateStyleController(
     const createStyle = queries.useCreateStyle();
     const analyzeStyle = queries.useAnalyzeStyle(project);
     const uploadStylePreview = queries.useUploadStylePreview();
-    const styleAnalyzeCost = dependencies.useGenerationCreditCost("style_analyzer");
     const [id, setId] = useState("");
     const [name, setName] = useState("");
     const [analyzed, setAnalyzed] = useState<EditableStyleConfig | null>(null);
@@ -200,7 +190,6 @@ export function createUseCreateStyleController(
       previewUrl,
       setId,
       setName,
-      styleAnalyzeCostDisplay: styleAnalyzeCost.data?.data.display,
     };
   };
 }

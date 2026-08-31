@@ -62,7 +62,7 @@ export interface ScenePlatePreview {
     status: "no_time" | "time_baked" | "relight" | "planned_missing";
     label: string;
   };
-  seedance2: {
+  videoReference: {
     resolved_scene_name: string;
     prompt_time_of_day: string;
     label: string;

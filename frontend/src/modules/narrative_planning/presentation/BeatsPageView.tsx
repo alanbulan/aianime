@@ -9,7 +9,6 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Brush, Clapperboard, Loader2, Play, RefreshCw } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   useEpisodeActionsSlot,
   useRegisterEpisodeActionsSlot,
@@ -71,7 +70,6 @@ export function BeatsPageView({
     episodeNumber,
     generateDisabled,
     generatePending,
-    generateScriptCostDisplay,
     generateTitle,
     handleCardClick,
     handleGenerate,
@@ -110,7 +108,6 @@ export function BeatsPageView({
     renderPlanOpen,
     setRenderPlanOpen,
     setSketchPlanOpen,
-    sketchPlanCostDisplay,
     sketchPlanItems,
     sketchPlanOpen,
     sketchPlanUnlockedCount,
@@ -196,7 +193,6 @@ export function BeatsPageView({
             <Play className="size-4" />
           )}
           {t("episode.beats.generateBeats")}
-          <CreditCostInline display={generateScriptCostDisplay} />
         </Button>
         <AlertDialog
           open={generateConfirmOpen}
@@ -488,7 +484,6 @@ export function BeatsPageView({
                 grids: sketchPlanItems.length,
                 defaultValue: `确认草图 ${sketchPlanItems.length} 个网格`,
               })}
-              <CreditCostInline display={sketchPlanCostDisplay} />
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

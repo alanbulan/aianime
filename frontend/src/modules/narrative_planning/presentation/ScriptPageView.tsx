@@ -2,7 +2,6 @@
 import { useTranslation } from "react-i18next";
 import { Loader2, Play, Sparkles, Square } from "lucide-react";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   EpisodeAssetPlanning,
   type AssetPlanningCategory,
@@ -39,7 +38,6 @@ export function ScriptPageView({
     generateButtonBusy,
     generateButtonDisabled,
     generateButtonTitle,
-    generateScriptCostDisplay,
     generating,
     estimatedBeatCount,
     handleGenerateButtonClick,
@@ -64,9 +62,6 @@ export function ScriptPageView({
     onTargetDurationBlur,
     onTargetDurationChange,
     pickerOpen,
-    planIdentitiesCostDisplay,
-    planPropsCostDisplay,
-    planScenesCostDisplay,
     project,
     propMenu,
     propPlanning,
@@ -277,13 +272,6 @@ export function ScriptPageView({
             {scriptTaskStarted
               ? t("common.stop")
               : t("episode.script.generateScript")}
-            {!scriptTaskStarted && (
-              <CreditCostInline
-                display={generateScriptCostDisplay}
-                className="text-primary-foreground"
-                iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
-              />
-            )}
           </Button>
         </div>
       </div>
@@ -340,8 +328,6 @@ export function ScriptPageView({
                 identityPending={identityPlanning}
                 scenePending={scenePlanning}
                 propPending={propPlanning}
-                sceneCostDisplay={planScenesCostDisplay}
-                propCostDisplay={planPropsCostDisplay}
                 onPlanIdentities={() => setPickerOpen(true)}
                 onIdentityChange={handleIdentityChange}
                 onPlanScenes={handlePlanScenes}
@@ -455,7 +441,6 @@ export function ScriptPageView({
         onChange={handleIdentityChange}
         onPlan={handlePlanIdentities}
         planPending={identityPlanning}
-        planCostDisplay={planIdentitiesCostDisplay}
       />
     </div>
   );

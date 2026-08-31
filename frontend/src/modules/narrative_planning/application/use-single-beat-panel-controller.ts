@@ -19,7 +19,6 @@ export interface SingleBeatSectionViewModel {
 
 export interface VideoModelHeaderOption {
   dialogueOnly: boolean;
-  isSeedance2: boolean;
   label: string;
   value: string;
 }
@@ -200,7 +199,6 @@ export function createUseSingleBeatPanelController(
     const videoModels = videoModelOptions.map(
       (model) => ({
         dialogueOnly: model.dialogueOnly,
-        isSeedance2: model.profile === "seedance2",
         label: model.label,
         value: model.value,
       }),

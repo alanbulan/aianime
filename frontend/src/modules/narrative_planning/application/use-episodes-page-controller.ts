@@ -16,7 +16,6 @@ import {
 import {
   backendErrorResponseToastMessage,
   backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 
 interface CharacterListQuery {
@@ -29,16 +28,10 @@ interface AssetListQuery {
   data?: { data: readonly unknown[] };
 }
 
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-  error: unknown;
-}
-
 export interface EpisodesPageControllerDependencies {
   useCharacters(project: string): CharacterListQuery;
   useScenes(project: string): AssetListQuery;
   useProps(project: string): AssetListQuery;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
 }
 
 export interface EpisodesPageControllerOptions {
@@ -46,18 +39,6 @@ export interface EpisodesPageControllerOptions {
   selectedEpisodeNumber: number | null;
   onBackToEpisodes(): void;
   onSelectEpisode(episodeNumber: number): void;
-}
-
-function creditCostDisplay(
-  query: CreditCostQuery,
-  billingRuleFallback: string,
-): string | null {
-  return (
-    query.data?.data.display ??
-    (query.error instanceof BillingRuleNotConfiguredError
-      ? billingRuleFallback
-      : null)
-  );
 }
 
 export function createUseEpisodesPageController(
@@ -139,23 +120,6 @@ export function createUseEpisodesPageController(
     );
 
     const planEpisodes = queries.usePlanEpisodes(project);
-    const planEpisodesCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "build_episodes",
-    );
-    const planIdentitiesCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "identity_planner",
-    );
-    const planScenesCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "episode_scene_planner",
-    );
-    const planPropsCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "episode_prop_planner",
-    );
-    const billingRuleFallback = t("common.billingRuleNotConfiguredShort");
     const planTask = useStageTask({
       taskType: "build_episodes",
       project,
@@ -214,23 +178,7 @@ export function createUseEpisodesPageController(
       handlePlan,
       handleRefresh,
       isLoading: episodesLoading || pipelineLoading,
-      planEpisodesCostDisplay: creditCostDisplay(
-        planEpisodesCost,
-        billingRuleFallback,
-      ),
-      planIdentitiesCostDisplay: creditCostDisplay(
-        planIdentitiesCost,
-        billingRuleFallback,
-      ),
       planPending: planEpisodes.isPending || planTask.started,
-      planPropsCostDisplay: creditCostDisplay(
-        planPropsCost,
-        billingRuleFallback,
-      ),
-      planScenesCostDisplay: creditCostDisplay(
-        planScenesCost,
-        billingRuleFallback,
-      ),
       planTask,
       refreshPending: episodesFetching || pipelineFetching,
       selectedBeatCount: selectedBeatsResponse?.data.length ?? 0,

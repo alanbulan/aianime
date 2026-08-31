@@ -29,7 +29,6 @@ import {
 import { UsageCountBadge } from "@/components/assets/usage-count-badge";
 import { ASSET_CARD_META_BADGE_CLASS } from "@/components/assets/asset-card-styles";
 import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { resolveMediaUrl } from "@/lib/media-url";
 import { sceneTypeLabel } from "@/lib/scene-type";
 import { cn } from "@/lib/utils";
@@ -51,9 +50,6 @@ export interface SceneAssetCardViewProps {
   masterPlyRunning?: boolean;
   reversePlyRunning?: boolean;
   panoPlyRunning?: boolean;
-  masterCost?: string;
-  reverseCost?: string;
-  panoCost?: string;
   customUploading?: boolean;
   customDeleting?: boolean;
   onEdit: () => void;
@@ -172,9 +168,6 @@ export function SceneAssetCardView({
   masterPlyRunning = false,
   reversePlyRunning = false,
   panoPlyRunning = false,
-  masterCost,
-  reverseCost,
-  panoCost,
   customUploading = false,
   customDeleting = false,
   onEdit,
@@ -351,7 +344,6 @@ export function SceneAssetCardView({
                 {hasMaster
                   ? t("assets.scenes.regenerateMaster")
                   : t("assets.scenes.generateMaster")}
-                <CreditCostInline display={masterCost} />
               </Button>
             </div>
           </div>
@@ -382,7 +374,6 @@ export function SceneAssetCardView({
                 {hasReverse
                   ? t("assets.scenes.regenerateReverse")
                   : t("assets.scenes.generateReverse")}
-                <CreditCostInline display={reverseCost} />
               </Button>
             </div>
           </div>
@@ -424,7 +415,6 @@ export function SceneAssetCardView({
                   <ImageIcon className="size-3" />
                 )}
                 {panoGenerateLabel}
-                <CreditCostInline display={panoCost} />
               </Button>
               <Button
                 type="button"
@@ -624,7 +614,6 @@ export function SceneAssetCardControllerView({
     handleOpenStageViewer,
     handlePanoCapture,
     handleSaveDirectorWorld,
-    masterCost,
     masterInputRef,
     masterPlyRunning,
     masterRunning,
@@ -634,14 +623,12 @@ export function SceneAssetCardControllerView({
     openUploadCustom,
     openUploadMaster,
     openUploadPano,
-    panoCost,
     panoDialogOpen,
     panoInputRef,
     panoManifest,
     panoPlyRunning,
     panoRunning,
     referenceCount,
-    reverseCost,
     reversePlyRunning,
     reverseRunning,
     scene,
@@ -669,9 +656,6 @@ export function SceneAssetCardControllerView({
         panoPlyRunning={panoPlyRunning}
         customUploading={customUploading}
         customDeleting={customDeleting}
-        masterCost={masterCost}
-        reverseCost={reverseCost}
-        panoCost={panoCost}
         onEdit={onEdit}
         onDelete={onDelete}
         onUploadMaster={openUploadMaster}

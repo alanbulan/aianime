@@ -1,4 +1,3 @@
-import { formatCreditCost } from "@/components/credit-visual";
 import { openPresetProjectionInMyCanvas } from "@/modules/creative_canvas/public";
 import {
   useAssetWorkspaceNavigation,
@@ -8,7 +7,6 @@ import {
   useScenes,
 } from "@/modules/asset_world/public";
 import { useNavigateToAsset } from "@/modules/asset_world/public";
-import { useGenerationCreditCost } from "@/modules/model_usage/public";
 import { useTasks } from "@/modules/task_execution/public";
 import { TASK_TYPES, isActiveStatus } from "@/modules/task_execution/public";
 import { createUseActionPanelController } from "@/modules/narrative_planning/application/use-action-panel-controller";
@@ -29,7 +27,6 @@ import { useBeatsViewToggles } from "@/modules/narrative_planning/infrastructure
 import {
   createSketchRegenPlanItems,
   getLockedSketchRegenItemIds,
-  sketchRegenModelCallCount,
   useBeatStates,
   useGridsByBeat,
   useRebuildPoolIndex,
@@ -82,7 +79,6 @@ export const useEpisodesPageController = createUseEpisodesPageController(
     useCharacters,
     useProps,
     useScenes,
-    useGenerationCreditCost,
   },
 );
 export const useEpisodeListItemController = createUseEpisodeListItemController(
@@ -92,13 +88,11 @@ export const useScriptPageController = createUseScriptPageController(
   narrativePlanningQueries,
   {
     useCharacters,
-    useGenerationCreditCost,
     useProject,
   },
 );
 const useBeatsSketchPlanController = createUseBeatsSketchPlanController({
   createSketchPlanItems: createSketchRegenPlanItems,
-  formatCreditCost,
   getLockedSketchItemIds: (tasks, items) =>
     getLockedSketchRegenItemIds(
       tasks,
@@ -107,8 +101,6 @@ const useBeatsSketchPlanController = createUseBeatsSketchPlanController({
         task.task_type === TASK_TYPES.SKETCH_REGEN &&
         isActiveStatus(task.status),
     ),
-  sketchModelCallCount: sketchRegenModelCallCount,
-  useGenerationCreditCost,
   useRegenerateSketches,
   useTasks,
 });
@@ -135,7 +127,6 @@ export const useBeatsPageController = createUseBeatsPageController(
   narrativePlanningQueries,
   {
     openEpisodeFreezone: openPresetProjectionInMyCanvas,
-    useGenerationCreditCost,
     useBeatSelection,
     useBeatStates,
     useProject,

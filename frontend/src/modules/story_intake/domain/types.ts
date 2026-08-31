@@ -30,7 +30,7 @@ export interface UploadResult {
   text_preview?: string;
   text_preview_truncated?: boolean;
   total_chars?: number;
-  billable_chars?: number;
+  text_chars?: number;
   count?: number;
   chapters?: Chapter[];
   format_check?: FormatCheck;
@@ -39,7 +39,7 @@ export interface UploadResult {
 export interface ChaptersResult {
   chapters: Chapter[];
   total_chars: number;
-  billable_chars?: number;
+  text_chars?: number;
   count?: number;
   preview_only?: boolean;
 }

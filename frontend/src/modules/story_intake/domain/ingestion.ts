@@ -21,6 +21,6 @@ export function isActiveIngestionTask(taskType: string, status: string): boolean
   return taskType === "ingest_fast" && ACTIVE_INGEST_STATUSES.has(status);
 }
 
-export function countBillableNovelChars(text: string): number {
+export function countNovelTextChars(text: string): number {
   return text ? text.replace(/[\s\u3000]+/g, "").length : 0;
 }

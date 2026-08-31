@@ -7,18 +7,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import {
-  backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
-} from "@/shared/api/errors";
+import { backendErrorToastMessage } from "@/shared/api/errors";
 import { queryKeys } from "@/lib/query-keys";
-import {
-  useGenerationCreditCost,
-} from "@/modules/model_usage/public";
 import { useProject, useUpdateProject } from "@/modules/project_workspace/public";
 import { useStyles } from "@/modules/asset_world/public";
 import { useCancelTask, useTasks } from "@/modules/task_execution/public";
-import { useDebouncedValue } from "@/shared/hooks/use-debounced-value";
 import { useTaskStream } from "@/modules/task_execution/public";
 import type { StoryIntakeQueryHooks } from "@/modules/story_intake/application/query-hooks";
 import type { ImportPreviewPreference } from "@/modules/story_intake/application/ports";
@@ -34,7 +27,6 @@ import {
   toProjectSettingsPayload,
 } from "@/modules/story_intake/domain/ingest-settings";
 import {
-  countBillableNovelChars,
   isActiveIngestionTask,
   type IngestFileStatus,
   type InputMode,
@@ -107,47 +99,6 @@ export function createUseStoryIntakeController(
     const chaptersData = chaptersRes;
     const hasImportedContent = (chaptersData?.chapters?.length ?? 0) > 0;
     const isUploadOnlyPreview = Boolean(chaptersData?.preview_only);
-
-    const pastedBillableChars = useMemo(
-      () => countBillableNovelChars(pastedText.trim()),
-      [pastedText],
-    );
-    const debouncedPastedBillableChars = useDebouncedValue(pastedBillableChars, 450);
-    const billingBillableChars =
-      inputMode === "paste" && debouncedPastedBillableChars > 0
-        ? debouncedPastedBillableChars
-        : typeof uploadedFile?.billable_chars === "number"
-          ? uploadedFile.billable_chars
-          : typeof chaptersData?.billable_chars === "number"
-            ? chaptersData.billable_chars
-            : null;
-    const hasBillableInput = inputMode === "paste"
-      ? pastedBillableChars > 0
-      : (billingBillableChars ?? 0) > 0;
-    const ingestFeatureCost = useGenerationCreditCost("feature", "ingest_fast", {
-      quantity: billingBillableChars && billingBillableChars > 0
-        ? billingBillableChars
-        : undefined,
-    });
-    const ingestFeatureCostData = ingestFeatureCost.data?.data;
-    const queriedIngestFeatureCostDisplay =
-      ingestFeatureCostData?.display ??
-      (ingestFeatureCost.error instanceof BillingRuleNotConfiguredError
-        ? t("common.billingRuleNotConfiguredShort")
-        : null);
-    const lastStableIngestCostDisplayRef = useRef<string | null>(null);
-    useEffect(() => {
-      if (!hasBillableInput) {
-        lastStableIngestCostDisplayRef.current = null;
-        return;
-      }
-      if (queriedIngestFeatureCostDisplay) {
-        lastStableIngestCostDisplayRef.current = queriedIngestFeatureCostDisplay;
-      }
-    }, [hasBillableInput, queriedIngestFeatureCostDisplay]);
-    const ingestFeatureCostDisplay = hasBillableInput
-      ? queriedIngestFeatureCostDisplay ?? lastStableIngestCostDisplayRef.current
-      : null;
 
     // SSE task streaming
     const [ingestStarted, setIngestStarted] = useState(false);
@@ -502,11 +453,11 @@ export function createUseStoryIntakeController(
               sum + (ch.word_count ?? ch.char_count ?? ch.content?.length ?? 0),
             0,
           );
-    const billableChars =
-      typeof uploadedFile?.billable_chars === "number"
-        ? uploadedFile.billable_chars
-        : typeof chaptersData?.billable_chars === "number"
-          ? chaptersData.billable_chars
+    const textChars =
+      typeof uploadedFile?.text_chars === "number"
+        ? uploadedFile.text_chars
+        : typeof chaptersData?.text_chars === "number"
+          ? chaptersData.text_chars
           : totalChars;
     const totalCharsUnknown = totalChars === 0 && !chaptersData?.total_chars;
     const isStarting = updateProject.isPending || startIngestMutation.isPending;
@@ -554,7 +505,6 @@ export function createUseStoryIntakeController(
       startIngestMutation,
       chaptersData,
       chaptersFetching,
-      ingestFeatureCostDisplay,
       ingestStarted,
       reuploadConfirmOpen,
       setReuploadConfirmOpen,
@@ -582,7 +532,7 @@ export function createUseStoryIntakeController(
       previewFile,
       previewStatus,
       totalChars,
-      billableChars,
+      textChars,
       totalCharsUnknown,
       isStarting,
       chapterTitle,

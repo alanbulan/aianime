@@ -16,11 +16,6 @@ import {
 } from "@/modules/asset_world/domain/asset-collection";
 import type { AssetReferenceIndex } from "@/modules/asset_world/domain/character";
 import type { PropAsset } from "@/modules/asset_world/domain/prop";
-import type { GenerationCreditCostOptions } from "@/modules/model_usage/public";
-
-interface CreditCostQuery {
-  data?: { data: { cost?: number | null } };
-}
 
 export interface PropsPanelControllerDependencies {
   useAssetFocus(
@@ -28,22 +23,11 @@ export interface PropsPanelControllerDependencies {
     ready: boolean,
   ): RefObject<HTMLDivElement | null>;
   useAssetReferenceIndex(project: string): AssetReferenceIndex;
-  useGenerationCreditCost(
-    kind: string,
-    value: string,
-    options?: GenerationCreditCostOptions,
-  ): CreditCostQuery;
 }
 
 export interface PropsPanelControllerOptions {
   focusId?: string | null;
   project: string;
-}
-
-function formatCreditCost(value: number): string {
-  return Number.isInteger(value)
-    ? String(value)
-    : value.toFixed(2).replace(/\.?0+$/, "");
 }
 
 export function createUsePropsPanelController(
@@ -74,29 +58,12 @@ export function createUsePropsPanelController(
       imageSourceQueries.useAssetImageSourceSelection(project, "prop");
     const imageSourceSelection =
       imageSourceQuery.data?.data.image_source_selection ?? "";
-    const referenceCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageSourceSelection,
-      { imageRole: "prop_reference" },
-    );
     const batchTask = useTaskController({
       key: { taskType: "batch_prop_ref", project, episode: 0 },
       invalidateKeys: [queryKeys.props(project)],
     });
 
     const allItems = propsQuery.data?.data ?? [];
-    const missingReferenceCount = useMemo(
-      () =>
-        allItems.filter(
-          (prop) => !prop.reference_url && !prop.reference_path,
-        ).length,
-      [allItems],
-    );
-    const batchReferenceCost = useMemo(() => {
-      const unitCost = referenceCost.data?.data.cost;
-      if (!unitCost || missingReferenceCount <= 0) return null;
-      return formatCreditCost(unitCost * missingReferenceCount);
-    }, [missingReferenceCount, referenceCost.data?.data.cost]);
     const items = useMemo(() => {
       const filtered = filterAssets(allItems, searchQuery, (prop) => [
         prop.name,
@@ -198,7 +165,6 @@ export function createUsePropsPanelController(
       batchGeneratePending: batchGenerate.isPending,
       batchLogs,
       batchProgress: batchTask.stream.progress,
-      batchReferenceCost,
       batchStopping: batchTask.stopping,
       deleteDialog: {
         confirm: confirmDelete,

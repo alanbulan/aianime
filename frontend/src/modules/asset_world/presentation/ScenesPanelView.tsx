@@ -8,7 +8,6 @@ import {
   AssetSearchBox,
   AssetSortSelect,
 } from "@/components/assets/asset-search-box";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -125,7 +124,6 @@ export function ScenesPanelView({
   const { t } = useTranslation();
   const {
     allItems,
-    buildScenesCostDisplay,
     buildScenesPending,
     deleteDialog,
     gridRef,
@@ -177,11 +175,6 @@ export function ScenesPanelView({
             <Sparkles className="size-3.5" />
           )}
           {t("assets.scenes.build")}
-          <CreditCostInline
-            display={buildScenesCostDisplay}
-            className="text-primary-foreground"
-            iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
-          />
         </Button>
       </AssetHeaderActions>
       {isLoading ? (

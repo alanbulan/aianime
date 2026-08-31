@@ -14,19 +14,6 @@ import type {
 } from "@/modules/asset_world/domain/character";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 
-interface CreditCostQuery {
-  data?: unknown;
-}
-
-export interface IdentityCardControllerDependencies {
-  isCeRuntime(): boolean;
-  useGenerationCreditCost(
-    kind: string,
-    value: string | undefined,
-    options: { surface: "ai_anime"; imageRole: "identity" },
-  ): CreditCostQuery;
-}
-
 export interface IdentityCardControllerOptions {
   ageLabel: string;
   characterAgeGroup?: string;
@@ -42,7 +29,6 @@ export interface IdentityCardControllerOptions {
 
 export function createUseIdentityCardController(
   queries: CharacterQueryHooks,
-  dependencies: IdentityCardControllerDependencies,
 ) {
   return function useIdentityCardController(
     options: IdentityCardControllerOptions,
@@ -89,11 +75,6 @@ export function createUseIdentityCardController(
     const generatePortrait = queries.useGenerateIdentityPortraitAsync(
       project,
       characterName,
-    );
-    const costQuery = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageModel,
-      { surface: "ai_anime", imageRole: "identity" },
     );
     const imageTask = useTaskController({
       key: {
@@ -359,9 +340,6 @@ export function createUseIdentityCardController(
       generatePortraitOpen,
       identity,
       identityAge,
-      identityCostDisplay: isOkDataResponse<{ display: string }>(costQuery.data)
-        ? costQuery.data.data.display
-        : "",
       imageAttempts,
       imageInputRef,
       isAgeVariant,
@@ -393,7 +371,6 @@ export function createUseIdentityCardController(
       setGeneratePortraitOpen,
       setRenameOpen,
       setRenameValue,
-      showCreditDecorations: !dependencies.isCeRuntime(),
       updatePending: updateIdentity.isPending,
       upload,
       uploadCostumePending: uploadCostume.isPending,

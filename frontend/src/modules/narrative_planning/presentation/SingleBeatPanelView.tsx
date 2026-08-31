@@ -223,11 +223,6 @@ function VideoModelHeaderSelect({
             >
               <span className="flex items-center gap-2">
                 {model.label}
-                {model.isSeedance2 && (
-                  <span className="text-[10px] text-muted-foreground">
-                    Seedance2
-                  </span>
-                )}
                 {model.dialogueOnly && (
                   <span className="text-[10px] text-muted-foreground">
                     {t("episode.workbench.video.noteDialogue")}

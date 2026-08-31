@@ -18,7 +18,6 @@ import {
 import {
   backendErrorResponseToastMessage,
   backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
 } from "@/shared/api/errors";
 
 const TAB_BY_ASSET_TYPE: Record<AssetRefType, AssetTab> = {
@@ -40,14 +39,8 @@ interface ProjectQuery {
   };
 }
 
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-  error?: unknown;
-}
-
 export interface CharactersPageControllerDependencies {
   readStoredAssetTab(project: string): AssetTab;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
   useProject(project: string): ProjectQuery;
   writeStoredAssetTab(project: string, tab: AssetTab): void;
 }
@@ -68,10 +61,6 @@ export function createUseCharactersPageController(
     const identityOwnerIndex =
       characterQueries.useIdentityOwnerIndex(project);
     const isDesktop = useMediaQuery("(min-width: 1024px)");
-    const buildCharactersCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "build_characters",
-    );
     const deepLink = useAssetsDeepLink();
     const appliedIdentityDeepLink = useRef<string | null>(null);
 
@@ -195,11 +184,6 @@ export function createUseCharactersPageController(
       addDialogOpen,
       assetFocusId: deepLink.id,
       assetTab,
-      buildCharactersCostDisplay:
-        buildCharactersCost.data?.data.display ??
-        (buildCharactersCost.error instanceof BillingRuleNotConfiguredError
-          ? t("common.billingRuleNotConfiguredShort")
-          : null),
       buildStarted,
       characters,
       filteredCharacters,

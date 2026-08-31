@@ -40,7 +40,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { withMediaVariant } from "@/lib/media-url";
 import { SidebarListSkeleton, DetailPaneSkeleton } from "@/components/skeletons";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -667,7 +666,6 @@ export function CreateStyleDialogView({
     previewUrl,
     setId,
     setName,
-    styleAnalyzeCostDisplay,
   } = controller;
 
   return (
@@ -727,7 +725,6 @@ export function CreateStyleDialogView({
                 <Upload className="size-3.5" />
               )}
               {analyzed ? t("styles.reupload") : t("styles.uploadRef")}
-              <CreditCostInline display={styleAnalyzeCostDisplay} />
             </Button>
             <input
               ref={fileInputRef}

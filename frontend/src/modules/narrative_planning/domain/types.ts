@@ -50,7 +50,7 @@ export interface Beat {
   video_prompt?: string;
   keyframe_prompt?: string;
   video_mode?: string;
-  seedance2_config_json?: string;
+  video_config_json?: string;
   estimated_duration?: number;
   detected_identities?: string[];
   detected_props?: string[];
@@ -76,7 +76,7 @@ export interface BeatUpdate {
   video_prompt?: string;
   keyframe_prompt?: string;
   video_mode?: string;
-  seedance2_config_json?: string;
+  video_config_json?: string;
   audio_type?: string;
   speaker?: string;
   detected_identities?: string[];

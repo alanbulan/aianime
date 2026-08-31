@@ -15,9 +15,7 @@ import {
   resolveCommercialModelRoleRoute,
   useCommercialModelCatalog,
   useCommercialModelAccessStatus,
-  useGenerationCreditCost,
 } from "@/modules/model_usage/public";
-import { isCeRuntime } from "@/lib/runtime-config";
 import { createBeatViewerQueryHooks } from "@/modules/asset_world/application/beat-viewer-query-hooks";
 import {
   loadBeatDirectorStageManifest as loadBeatDirectorStageManifestUseCase,
@@ -155,7 +153,6 @@ const usePropsPanelController = createUsePropsPanelController(
   {
     useAssetFocus,
     useAssetReferenceIndex,
-    useGenerationCreditCost,
   },
 );
 const usePropDialogController = createUsePropDialogController();
@@ -166,7 +163,6 @@ const useScenesPanelController = createUseScenesPanelController(
     readStoredSceneGroupSelection,
     useAssetFocus,
     useAssetReferenceIndex,
-    useGenerationCreditCost,
     writeStoredSceneGroupSelection,
   },
 );
@@ -318,7 +314,6 @@ function PropAssetCardContent({
     () =>
       createUsePropAssetCardController(propQueries, {
         openPropFreezone,
-        useGenerationCreditCost,
       }),
     [openPropFreezone],
   );
@@ -372,7 +367,6 @@ function SceneAssetCardContent({
       createUseSceneAssetCardController(sceneQueries, {
         downloadBlob: downloadBlobAsFile,
         openSceneFreezone,
-        useGenerationCreditCost,
       }),
     [openSceneFreezone],
   );
@@ -448,15 +442,12 @@ const useStyleDetailController = createUseStyleDetailController(styleQueries, {
   stylePreviewUrl,
   useUpdateProject,
 });
-const useCreateStyleController = createUseCreateStyleController(styleQueries, {
-  useGenerationCreditCost,
-});
+const useCreateStyleController = createUseCreateStyleController(styleQueries);
 const useCharactersPageController = createUseCharactersPageController(
   characterQueries,
   imageSourceQueries,
   {
     readStoredAssetTab,
-    useGenerationCreditCost,
     useProject,
     writeStoredAssetTab,
   },
@@ -471,10 +462,7 @@ const useCharacterVoiceController = createUseCharacterVoiceController(
     createVoiceRecorder: createBrowserVoiceRecorder,
   },
 );
-const useIdentityCardController = createUseIdentityCardController(
-  characterQueries,
-  { isCeRuntime, useGenerationCreditCost },
-);
+const useIdentityCardController = createUseIdentityCardController(characterQueries);
 const useIdentitiesGridController = createUseIdentitiesGridController(
   characterQueries,
   { useAssetReferenceIndex },
@@ -669,7 +657,6 @@ function CharacterDetailContent({
     () =>
       createUseCharacterDetailController(characterQueries, {
         openCharacterFreezone,
-        useGenerationCreditCost,
       }),
     [openCharacterFreezone],
   );

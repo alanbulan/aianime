@@ -45,6 +45,7 @@ export function CharacterImageSourceSelect({
   const compatibleItems = (catalogQuery.data?.items ?? []).filter((item) => {
     const roles = commercialModelRoles(item);
     return (
+      Boolean(catalogRouteValue(item)) &&
       roles.includes("IMAGE_GENERATION") &&
       (kind === "prop" || roles.includes("IMAGE_EDIT"))
     );

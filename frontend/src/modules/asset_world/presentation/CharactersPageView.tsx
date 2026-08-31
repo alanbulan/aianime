@@ -46,7 +46,6 @@ import { UsageCountBadge } from "@/components/assets/usage-count-badge";
 import { CopyAssetLinkButton } from "@/modules/asset_world/presentation/CopyAssetLinkButton";
 import { AssetBeatReferences } from "@/components/assets/asset-beat-references";
 import { LightboxImage } from "@/components/lightbox-image";
-import { CreditCostInline } from "@/components/credit-cost-inline";
 import { EMPTY_STATE_ACTION_BUTTON_CLASS } from "@/components/ui/empty-state-styles";
 import {
   AssetHeaderActionsSlotProvider,
@@ -388,7 +387,6 @@ function CharacterAvatar({
 function CharactersPageHeader({
   onRebuild,
   rebuildDisabled,
-  buildCharactersCostDisplay,
   onAdd,
   project,
   activeTab,
@@ -396,7 +394,6 @@ function CharactersPageHeader({
 }: {
   onRebuild: () => void;
   rebuildDisabled: boolean;
-  buildCharactersCostDisplay?: string | null;
   onAdd: () => void;
   project: string;
   activeTab: AssetTab;
@@ -454,11 +451,6 @@ function CharactersPageHeader({
             >
               <RefreshCw className="size-3.5" />
               {t("characters.autoExtract")}
-              <CreditCostInline
-                display={buildCharactersCostDisplay}
-                className="text-primary-foreground"
-                iconClassName="text-primary-foreground drop-shadow-none [&_path]:fill-current"
-              />
             </Button>
           </>
         )}
@@ -715,7 +707,6 @@ function PortraitBlock({
   const { character } = controller;
   const {
     attemptCount,
-    costDisplay,
     generate,
     generateBusy,
     generateConfirmOpen,
@@ -759,7 +750,6 @@ function PortraitBlock({
           {character.portrait_url
             ? t("characters.portrait.regenerate")
             : t("characters.summary.generateNew")}
-          <CreditCostInline display={costDisplay} />
         </Button>
         <Button
           size="sm"
@@ -1020,7 +1010,6 @@ export function IdentityCardView({
     generatePortraitOpen: confirmGenPortraitOpen,
     identity,
     identityAge,
-    identityCostDisplay: identityCost,
     imageAttempts,
     imageInputRef,
     isAgeVariant,
@@ -1051,23 +1040,16 @@ export function IdentityCardView({
     setGeneratePortraitOpen: setConfirmGenPortraitOpen,
     setRenameOpen,
     setRenameValue,
-    showCreditDecorations,
     updatePending,
     upload,
     uploadCostumePending,
     uploadPortraitPending,
   } = controller;
-  const identityCreditButtonClass = showCreditDecorations
-    ? "relative h-7 gap-1 rounded-[8px] px-2 pr-9 text-xs transition-transform active:scale-95"
-    : "h-7 gap-1 rounded-[8px] px-2 text-xs transition-transform active:scale-95";
-  const identityCreditDialogActionClass = showCreditDecorations
-    ? "relative border-[3px] border-primary bg-transparent pr-9 transition-transform hover:border-primary hover:bg-transparent active:scale-95"
-    : "transition-transform active:scale-95";
+  const identityActionButtonClass =
+    "h-7 gap-1 rounded-[8px] px-2 text-xs transition-transform active:scale-95";
   const HARD_BLOCK_THRESHOLD = 5 as const;
 
-  // Hard-block gate: when generation attempts are ≥ threshold, the user must
-  // check "I understand this still costs credits — force continue" before the
-  // ordinary confirm dialog is shown. Applies to both body image and portrait.
+  // Repeated-generation gate for both body images and portraits.
   const [hardBlockOpen, setHardBlockOpen] = useState<"image" | "portrait" | null>(
     null,
   );
@@ -1236,7 +1218,7 @@ export function IdentityCardView({
             <Button
               size="sm"
               variant="outline"
-              className={identityCreditButtonClass}
+              className={identityActionButtonClass}
               onClick={requestGenImageOrBlock}
               disabled={generateImageBusy || !appearance.trim()}
             >
@@ -1248,7 +1230,6 @@ export function IdentityCardView({
               {identity.image_url
                 ? t("characters.identities.regenerate")
                 : t("characters.identities.generate")}
-              <CreditCostInline display={identityCost} />
             </Button>
             <Button
               size="sm"
@@ -1507,7 +1488,7 @@ export function IdentityCardView({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className={identityCreditButtonClass}
+                                className={identityActionButtonClass}
                                 onClick={requestGenPortraitOrBlock}
                                 disabled={
                                   generatePortraitBusy ||
@@ -1523,7 +1504,6 @@ export function IdentityCardView({
                                 {identity.portrait_image_url
                                   ? t("characters.identities.regenerate")
                                   : t("characters.identities.generate")}
-                                <CreditCostInline display={identityCost} />
                               </Button>
                             }
                           />
@@ -1690,10 +1670,9 @@ export function IdentityCardView({
                 setConfirmGenOpen(false);
                 runGenImage();
               }}
-              className={identityCreditDialogActionClass}
+              className="transition-transform active:scale-95"
             >
               {t("characters.identities.generate")}
-              <CreditCostInline display={identityCost} />
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1723,10 +1702,9 @@ export function IdentityCardView({
                 setConfirmGenPortraitOpen(false);
                 runGenPortrait();
               }}
-              className={identityCreditDialogActionClass}
+              className="transition-transform active:scale-95"
             >
               {t("characters.identities.generate")}
-              <CreditCostInline display={identityCost} />
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1776,7 +1754,6 @@ export function IdentityCardView({
               disabled={!hardBlockAcknowledged}
             >
               {t("characters.identities.hardBlockProceed")}
-              <CreditCostInline display={identityCost} />
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -2282,7 +2259,6 @@ function CharactersSplit({
   detailContent,
   onRebuild,
   rebuildDisabled,
-  buildCharactersCostDisplay,
 }: {
   isDesktop: boolean;
   buildStarted: boolean;
@@ -2298,7 +2274,6 @@ function CharactersSplit({
   detailContent: ReactNode;
   onRebuild: () => void;
   rebuildDisabled: boolean;
-  buildCharactersCostDisplay?: string | null;
 }) {
   const { t } = useTranslation();
   const isExtracting = buildStarted && taskStream.status !== "idle";
@@ -2380,7 +2355,6 @@ function CharactersSplit({
             >
               <RefreshCw className="size-3.5" />
               {t("characters.autoExtract")}
-              <CreditCostInline display={buildCharactersCostDisplay} />
             </Button>
           </div>
         ) : searchActive && characters.length === 0 ? (
@@ -2470,7 +2444,6 @@ export function CharactersPageView({
   const { t } = useTranslation();
   const {
     assetTab,
-    buildCharactersCostDisplay,
     buildStarted,
     characters,
     filteredCharacters,
@@ -2498,7 +2471,6 @@ export function CharactersPageView({
       <CharactersPageHeader
         onRebuild={openRebuildDialog}
         rebuildDisabled={rebuildDisabled}
-        buildCharactersCostDisplay={buildCharactersCostDisplay}
         onAdd={openAddDialog}
         project={project}
         activeTab={assetTab}
@@ -2530,7 +2502,6 @@ export function CharactersPageView({
             detailContent={detailContent}
             onRebuild={openRebuildDialog}
             rebuildDisabled={rebuildDisabled}
-            buildCharactersCostDisplay={buildCharactersCostDisplay}
           />
         </>
       ) : assetTab === "voices" ? (

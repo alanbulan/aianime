@@ -15,10 +15,7 @@ import {
   isPlanEpisodeAssetsResult,
   type NarrativePlanningQueryHooks,
 } from "@/modules/narrative_planning/application/query-hooks";
-import {
-  backendErrorToastMessage,
-  BillingRuleNotConfiguredError,
-} from "@/shared/api/errors";
+import { backendErrorToastMessage } from "@/shared/api/errors";
 import { saveScopes, trackSave } from "@/shared/stores/save-status-store";
 import type { Character } from "@/modules/asset_world/public";
 
@@ -52,15 +49,9 @@ interface ProjectQuery {
   data?: { spine_template?: string | null; rhythm?: string | null };
 }
 
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-  error: unknown;
-}
-
 export interface ScriptPageControllerDependencies {
   useCharacters(project: string): CharacterListQuery;
   useProject(project: string): ProjectQuery;
-  useGenerationCreditCost(kind: string, value: string): CreditCostQuery;
 }
 
 export interface ScriptPageControllerOptions {
@@ -81,18 +72,6 @@ export function clampRewriteNumber(
   max: number,
 ): number {
   return Math.min(max, Math.max(min, Math.round(value)));
-}
-
-function creditCostDisplay(
-  query: CreditCostQuery,
-  billingRuleFallback: string,
-): string | null {
-  return (
-    query.data?.data.display ??
-    (query.error instanceof BillingRuleNotConfiguredError
-      ? billingRuleFallback
-      : null)
-  );
 }
 
 export function createUseScriptPageController(
@@ -126,24 +105,6 @@ export function createUseScriptPageController(
     const planProps = queries.usePlanEpisodeProps(project);
     const generateScript = queries.useGenerateScript(project, episodeNumber);
     const generateRewrite = queries.useGenerateRewrite(project, episodeNumber);
-
-    const planIdentitiesCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "identity_planner",
-    );
-    const planScenesCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "episode_scene_planner",
-    );
-    const planPropsCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "episode_prop_planner",
-    );
-    const generateScriptCost = dependencies.useGenerationCreditCost(
-      "feature",
-      "script_writer",
-    );
-    const billingRuleFallback = t("common.billingRuleNotConfiguredShort");
 
     const scriptTask = useTaskController({
       key: {
@@ -542,10 +503,6 @@ export function createUseScriptPageController(
           : !scriptTask.started && sceneMenu.length === 0
             ? t("episode.script.sceneRequired")
           : undefined,
-      generateScriptCostDisplay: creditCostDisplay(
-        generateScriptCost,
-        billingRuleFallback,
-      ),
       generating,
       handleGenerateButtonClick,
       handleGenerateRewrite,
@@ -596,18 +553,6 @@ export function createUseScriptPageController(
           parseRewriteNumber(value, current),
         ),
       pickerOpen,
-      planIdentitiesCostDisplay: creditCostDisplay(
-        planIdentitiesCost,
-        billingRuleFallback,
-      ),
-      planPropsCostDisplay: creditCostDisplay(
-        planPropsCost,
-        billingRuleFallback,
-      ),
-      planScenesCostDisplay: creditCostDisplay(
-        planScenesCost,
-        billingRuleFallback,
-      ),
       project,
       propMenu,
       propPlanning: planProps.isPending || propTask.started,

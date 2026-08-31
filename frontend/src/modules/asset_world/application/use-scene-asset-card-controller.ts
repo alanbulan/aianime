@@ -21,22 +21,12 @@ import type {
   ScenePanoSource,
   SceneStagePlySource,
 } from "@/modules/asset_world/domain/scene";
-import type { GenerationCreditCostOptions } from "@/modules/model_usage/public";
 import { backendErrorToastMessage } from "@/shared/api/errors";
 import { resolveMediaUrl } from "@/lib/media-url";
-
-interface CreditCostQuery {
-  data?: { data: { display?: string | null } };
-}
 
 export interface SceneAssetCardControllerDependencies {
   downloadBlob(blob: Blob, filename: string): void;
   openSceneFreezone(project: string, sceneName: string): Promise<void>;
-  useGenerationCreditCost(
-    kind: string,
-    value: string,
-    options?: GenerationCreditCostOptions,
-  ): CreditCostQuery;
 }
 
 export interface SceneAssetCardControllerOptions {
@@ -119,21 +109,6 @@ export function createUseSceneAssetCardController(
     const clearDirectorWorld = sceneQueries.useClearSceneDirectorWorld(
       project,
       scene.name,
-    );
-    const masterCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageSourceSelection,
-      { imageRole: "scene_master" },
-    );
-    const reverseCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageSourceSelection,
-      { imageRole: "scene_reverse_master" },
-    );
-    const panoCost = dependencies.useGenerationCreditCost(
-      "image_selection",
-      imageSourceSelection,
-      { imageRole: "scene_pano" },
     );
 
     const hasMaster = Boolean(resolveMediaUrl(scene.master_url));
@@ -442,7 +417,6 @@ export function createUseSceneAssetCardController(
       handleOpenStageViewer,
       handlePanoCapture,
       handleSaveDirectorWorld,
-      masterCost: masterCost.data?.data.display ?? undefined,
       masterInputRef,
       masterPlyRunning:
         stagePlySource === "master" &&
@@ -454,7 +428,6 @@ export function createUseSceneAssetCardController(
       openUploadCustom: () => customInputRef.current?.click(),
       openUploadMaster: () => masterInputRef.current?.click(),
       openUploadPano: () => panoInputRef.current?.click(),
-      panoCost: panoCost.data?.data.display ?? undefined,
       panoDialogOpen,
       panoInputRef,
       panoManifest: panoManifest.data?.ok ? panoManifest.data.data : null,
@@ -463,7 +436,6 @@ export function createUseSceneAssetCardController(
         (generateStagePly.isPending || stagePanoTask.started),
       panoRunning: generatePano.isPending || panoTask.started,
       referenceCount,
-      reverseCost: reverseCost.data?.data.display ?? undefined,
       reversePlyRunning:
         stagePlySource === "reverse" &&
         (generateStagePly.isPending || stageSingleFaceTask.started),

@@ -10,15 +10,12 @@ import {
   Square,
   X,
 } from "lucide-react";
-import { memo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CreditCostInline } from "@/components/credit-cost-inline";
-import { useCreditDisplayHidden } from "@/components/credit-visual";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isCeRuntime } from "@/lib/runtime-config";
 import { cn } from "@/lib/utils";
 import type {
   IngestFileStatus,
@@ -241,7 +238,6 @@ function UploadedFileCard({
   isIngesting,
   canStart,
   isStarting,
-  ingestCostDisplay,
   onStart,
   onCancel,
   isCancelling,
@@ -259,7 +255,6 @@ function UploadedFileCard({
   isIngesting: boolean;
   canStart: boolean;
   isStarting: boolean;
-  ingestCostDisplay?: string | null;
   onStart: () => void;
   onCancel: () => void;
   isCancelling: boolean;
@@ -359,7 +354,6 @@ function UploadedFileCard({
                     <Play className="size-3.5 fill-current" />
                   )}
                   {isStarting ? t("ingest.processing") : t("ingest.startIngest")}
-                  <CreditCostInline display={ingestCostDisplay} />
                 </Button>
               )}
               {/* 导入完成后去掉「重新上传」「删除」：已导入的小说不再允许就地换文件
@@ -496,12 +490,10 @@ function InputModeToggle({
 function IngestStartButton({
   disabled,
   isBusy,
-  costDisplay,
   onClick,
 }: {
   disabled: boolean;
   isBusy: boolean;
-  costDisplay?: string | null;
   onClick: () => void;
 }) {
   const { t } = useTranslation();
@@ -512,57 +504,15 @@ function IngestStartButton({
       disabled={disabled}
       className="h-8 w-[124px] rounded-[8px] bg-primary px-0 text-xs font-normal text-primary-foreground shadow-none transition-colors hover:bg-primary/85 active:bg-primary/75"
     >
-      <span className="grid w-full grid-cols-[12px_52px_26px] items-center justify-center gap-1.5">
+      <span className="inline-flex w-full items-center justify-center gap-1.5">
         <Play className="size-3 fill-current" />
         <span className="text-center">
           {isBusy ? t("ingest.processing") : t("ingest.startIngest")}
         </span>
-        <IngestCreditCostSlot display={costDisplay} />
       </span>
     </Button>
   );
 }
-
-const IngestCreditCostSlot = memo(function IngestCreditCostSlot({
-  display,
-}: {
-  display?: string | null;
-}) {
-  const hidden = useCreditDisplayHidden() || isCeRuntime() || !display;
-  return (
-    <span className="flex h-4 w-[26px] items-center justify-center overflow-hidden">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "inline-flex w-[26px] items-center justify-center gap-0.5 text-[11px] font-medium leading-none tabular-nums text-primary-foreground",
-          hidden && "invisible",
-        )}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="size-3 shrink-0 text-primary-foreground"
-          aria-hidden="true"
-        >
-          <path
-            d="M12 2.6l2.16 6.28L20.4 11l-6.24 2.12L12 19.4l-2.16-6.28L3.6 11l6.24-2.12L12 2.6Z"
-            fill="currentColor"
-          />
-          <path
-            d="M18.1 16.2l.72 1.98 1.98.72-1.98.72-.72 1.98-.72-1.98-1.98-.72 1.98-.72.72-1.98Z"
-            fill="currentColor"
-            opacity="0.78"
-          />
-          <path
-            d="M7.2 3.3l.44 1.18 1.18.44-1.18.44-.44 1.18-.44-1.18-1.18-.44 1.18-.44.44-1.18Z"
-            fill="currentColor"
-            opacity="0.72"
-          />
-        </svg>
-        <span className="min-w-[8px] text-center">{display ?? "0"}</span>
-      </span>
-    </span>
-  );
-});
 
 function StatCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
