@@ -25,7 +25,6 @@ export interface IpcMainLike {
 export const COMMERCIAL_CHANNELS = {
   status: "desktop:commercial:status",
   publicConfig: "desktop:commercial:public-config",
-  publicLogo: "desktop:commercial:public-logo",
   publicCaptcha: "desktop:commercial:public-captcha",
   session: "desktop:commercial:session",
   rememberedLogin: "desktop:commercial:remembered-login",

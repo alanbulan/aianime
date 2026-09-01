@@ -38,6 +38,11 @@ test("commercial IPC channel contracts stay aligned across main and preload boun
 
   assert.deepEqual(productionPreload, mainProcess);
   assert.deepEqual(developmentPreload, mainProcess);
+  assert.equal(Object.hasOwn(mainProcess, "publicLogo"), false);
+  assert.equal(
+    Object.values(mainProcess).includes("desktop:commercial:public-logo"),
+    false,
+  );
 });
 
 test("window and clipboard channels stay aligned in both desktop modes", () => {

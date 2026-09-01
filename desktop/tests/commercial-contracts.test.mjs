@@ -6,6 +6,7 @@ import {
   projectCommercialInvocationDetails,
   projectCommercialInvocationList,
   projectCommercialQuota,
+  projectCommercialRelease,
   selectReleaseArtifactId,
 } from "../src/commercial-contracts.ts";
 
@@ -156,6 +157,29 @@ test("authorization projection maps current Gateway fields without aliases", () 
     snapshot.activation?.lastHeartbeatAt,
     "2026-08-07T10:20:30Z",
   );
+});
+
+test("release projection accepts the canonical empty version when no update is available", () => {
+  const projected = projectCommercialRelease({
+    available: false,
+    required: false,
+    reason: "already up to date",
+    version: {
+      id: "",
+      version: "",
+      notes: "",
+      pubDate: "",
+      minimumSupportedVersion: "",
+      status: "",
+      createdAt: "",
+      publishedAt: "",
+      artifacts: [],
+    },
+  });
+
+  assert.equal(projected.available, false);
+  assert.equal(projected.version.id, "");
+  assert.deepEqual(projected.version.artifacts, []);
 });
 
 test("release artifact selection picks the UUID matching platform and arch", () => {

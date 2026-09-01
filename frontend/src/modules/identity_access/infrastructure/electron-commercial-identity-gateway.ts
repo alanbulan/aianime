@@ -35,14 +35,6 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
       ),
     );
   },
-  async fetchPublicLogo(tenantCode) {
-    return parseCommercialImage(
-      await invokeCommercial(() =>
-        requireCommercialBridge().publicLogo(tenantCode),
-      ),
-      "commercial public Logo",
-    );
-  },
   async fetchCaptcha(tenantCode) {
     return parseCommercialCaptcha(
       await invokeCommercial(() =>

@@ -20,7 +20,6 @@ const RUNTIME_DEPENDENCY_CHANNELS = {
 const COMMERCIAL_CHANNELS = {
   status: "desktop:commercial:status",
   publicConfig: "desktop:commercial:public-config",
-  publicLogo: "desktop:commercial:public-logo",
   publicCaptcha: "desktop:commercial:public-captcha",
   session: "desktop:commercial:session",
   rememberedLogin: "desktop:commercial:remembered-login",
@@ -97,8 +96,6 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     status: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.status),
     publicConfig: (tenantCode) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.publicConfig, tenantCode),
-    publicLogo: (tenantCode) =>
-      ipcRenderer.invoke(COMMERCIAL_CHANNELS.publicLogo, tenantCode),
     publicCaptcha: (tenantCode) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.publicCaptcha, tenantCode),
     session: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.session),

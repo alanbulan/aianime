@@ -38,6 +38,18 @@ const releaseVersion = {
   artifacts: [],
 };
 
+const emptyReleaseVersion = {
+  id: "",
+  version: "",
+  notes: "",
+  pubDate: "",
+  minimumSupportedVersion: "",
+  status: "",
+  createdAt: "",
+  publishedAt: "",
+  artifacts: [],
+};
+
 describe("commercial release contract", () => {
   afterEach(() => {
     delete window.aiAnimeDesktop;
@@ -89,6 +101,28 @@ describe("commercial release contract", () => {
         version: { ...version, channel: "stable" },
       }),
     ).toThrow("commercial release.version fields must be exactly");
+  });
+
+  it("accepts the canonical empty version when no update is available", () => {
+    expect(
+      parseCommercialBootstrapRelease({
+        softwareAuthorization: null,
+        personalQuota: null,
+        models: null,
+        release: {
+          available: false,
+          required: false,
+          version: emptyReleaseVersion,
+          reason: "already up to date",
+        },
+        warnings: [],
+      }),
+    ).toEqual({
+      available: false,
+      required: false,
+      reason: "already up to date",
+      artifactId: null,
+    });
   });
 
   it("normalizes Electron update download progress", () => {

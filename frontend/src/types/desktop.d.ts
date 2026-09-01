@@ -365,9 +365,6 @@ interface AIAnimeCommercialBridge {
   publicConfig: (
     tenantCode: string,
   ) => Promise<AIAnimeCommercialDesktopPublicConfig>;
-  publicLogo: (
-    tenantCode: string,
-  ) => Promise<{ contentType: string; dataUrl: string }>;
   publicCaptcha: (
     tenantCode: string,
   ) => Promise<{ key: string; imageDataUrl: string }>;

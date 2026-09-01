@@ -575,10 +575,8 @@ React module
 
 | 能力 | Gateway 路径 | 产品入口 |
 | --- | --- | --- |
-| 公共租户配置 | `GET /api/v1/config/public` | 登录页 |
-| 租户 Logo | `GET /api/v1/config/logo` | 登录页 |
+| 公共租户配置 | `GET /api/v1/client/config/public` | 登录页 |
 | 图形验证码 | `GET /api/v1/auth/captcha` | 登录页 |
-| 用户注册 | `POST /api/v1/auth/register` | 登录页（按租户公开配置显示） |
 | 登录 | `POST /api/v1/client/auth/login` | 登录页 |
 | Token 刷新 | `POST /api/v1/client/auth/refresh` | Electron 会话自动刷新 |
 | 退出 | `POST /api/v1/client/auth/logout` | 账号菜单/会话清理 |
@@ -598,12 +596,14 @@ React module
 | Invocation 列表/详情 | `GET /api/v1/client/relay/invocations*` | 设置 -> 调用记录 |
 | Invocation 取消 | `POST /api/v1/client/relay/invocations/{id}/cancel` | 调用记录中的可取消任务 |
 | Invocation 结果 | `GET /api/v1/client/relay/invocations/{id}/result` | 系统保存对话框流式落盘 |
-| 公告 | `GET /api/v1/client/announcements/active` | 通知中心 |
+| 公告 | `GET /api/v1/client/announcements/active` | 客户端全局公告 |
 | 版本检查 | `GET /api/v1/client/releases/check` | 更新提示/强制升级 |
 | 标准更新 Feed/构件 | `GET /api/v1/client/releases/updater/*` | `electron-updater` 下载与安装 |
 | 模型协议 | `/v1/*`、`/v1beta/*` | Electron 本地模型代理 |
 
-上表表示代码调用链和合同测试存在，不表示远端生产数据已经在线验收。
+桌面 Logo 固定使用安装包内 `/images/ai-anime-logo-mark.png`，不读取管理端站点 Logo，
+也不暴露租户 Logo IPC。上表表示代码调用链和合同测试存在，不表示远端生产数据已经
+在线验收。
 
 ### 7.2 当前版本明确不消费
 

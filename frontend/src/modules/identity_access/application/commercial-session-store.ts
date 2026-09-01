@@ -22,7 +22,6 @@ export interface CommercialAuthState {
   rememberedLogin: CommercialRememberedLogin | null;
   tenantCode: string;
   publicConfig: CommercialPublicConfig | null;
-  logoDataUrl: string | null;
   captcha: CommercialCaptcha | null;
   profile: CommercialUserProfile | null;
   avatarDataUrl: string | null;
@@ -67,7 +66,6 @@ export function createCommercialAuthStore(
     rememberedLogin: null,
     tenantCode: tenantPreference.read(),
     publicConfig: null,
-    logoDataUrl: null,
     captcha: null,
     profile: null,
     avatarDataUrl: null,
@@ -102,25 +100,19 @@ export function createCommercialAuthStore(
         tenantCode: normalized,
         ...(normalized === state.tenantCode
           ? {}
-          : { publicConfig: null, logoDataUrl: null, captcha: null }),
+          : { publicConfig: null, captcha: null }),
       }));
     },
     loadPublicConfig: async (tenantCodeOverride) => {
       const tenantCode = (tenantCodeOverride ?? get().tenantCode).trim();
       if (!tenantCode) throw new Error("Tenant code is required");
       const publicConfig = await gateway.fetchPublicConfig(tenantCode);
-      let logoDataUrl: string | null = null;
-      try {
-        logoDataUrl = (await gateway.fetchPublicLogo(tenantCode)).dataUrl;
-      } catch {
-        // Branding remains usable when the optional binary Logo is unavailable.
-      }
       let captcha: CommercialCaptcha | null = null;
       if (publicConfig.login.captchaEnabled) {
         captcha = await gateway.fetchCaptcha(tenantCode);
       }
       tenantPreference.write(tenantCode);
-      set({ tenantCode, publicConfig, logoDataUrl, captcha });
+      set({ tenantCode, publicConfig, captcha });
       return publicConfig;
     },
     refreshCaptcha: async () => {

@@ -670,20 +670,8 @@ test("release update feed keeps the access token in the main process", async () 
   });
 });
 
-test("public Logo is bounded and returned as a renderer-safe data URL", async () => {
-  const client = new CommercialApiClient({
-    baseUrl: "http://127.0.0.1:8889",
-    sessionStore: new MemorySessionStore(),
-    fetchImpl: async () =>
-      new Response(Uint8Array.from([0x89, 0x50, 0x4e, 0x47]), {
-        headers: { "Content-Type": "image/png" },
-      }),
-  });
-
-  assert.deepEqual(await client.publicLogo("customer-a"), {
-    contentType: "image/png",
-    dataUrl: "data:image/png;base64,iVBORw==",
-  });
+test("desktop branding never loads the tenant-managed public Logo", () => {
+  assert.equal(Object.hasOwn(CommercialApiClient.prototype, "publicLogo"), false);
 });
 
 test("public captcha is converted to a bounded renderer-safe image", async () => {

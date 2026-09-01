@@ -12,9 +12,6 @@ import type {
 export interface CommercialIdentityGateway {
   status(): Promise<{ configured: boolean; gatewayOrigin: string }>;
   fetchPublicConfig(tenantCode: string): Promise<CommercialPublicConfig>;
-  fetchPublicLogo(
-    tenantCode: string,
-  ): Promise<{ contentType: string; dataUrl: string }>;
   fetchCaptcha(tenantCode: string): Promise<CommercialCaptcha>;
   restoreSession(): Promise<CommercialSession | null>;
   rememberedLogin(): Promise<CommercialRememberedLogin | null>;

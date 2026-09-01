@@ -74,7 +74,6 @@ import type {
   CommercialPasswordResetVerification,
   CommercialProfileUpdateInput,
   CommercialProtectedImage,
-  CommercialPublicLogo,
   CommercialReleaseQuery,
   CommercialReleaseUpdateFeed,
   CommercialRememberedLoginInput,
@@ -102,7 +101,6 @@ export {
   requiredText,
 } from "./commercial-api-validation.js";
 
-const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 const MAX_CAPTCHA_BYTES = 512 * 1024;
 export const COMMERCIAL_GATEWAY_URL = "https://aianime.mingcw.com";
 export const COMMERCIAL_RUNTIME_DEPENDENCIES_URL =
@@ -117,30 +115,6 @@ export class CommercialApiClient extends CommercialApiTransport {
         query: { tenantCode: requiredText(tenantCode, "tenantCode") },
       }),
     );
-  }
-
-  async publicLogo(tenantCode: string): Promise<CommercialPublicLogo> {
-    const response = await this.requestResponse("GET", "/api/v1/config/logo", {
-      query: { tenantCode: requiredText(tenantCode, "tenantCode") },
-      accept: "image/*",
-    });
-    await assertSuccessfulResponse(response);
-    const contentType = (response.headers.get("content-type") ?? "").split(";", 1)[0]?.trim();
-    if (!contentType?.startsWith("image/")) {
-      throw new CommercialApiError("Gateway 返回的 Logo 不是图片", {
-        status: response.status,
-      });
-    }
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.byteLength === 0 || bytes.byteLength > MAX_LOGO_BYTES) {
-      throw new CommercialApiError("Gateway 返回的 Logo 大小无效", {
-        status: response.status,
-      });
-    }
-    return {
-      contentType,
-      dataUrl: `data:${contentType};base64,${bytes.toString("base64")}`,
-    };
   }
 
   async publicCaptcha(tenantCode: string): Promise<CommercialCaptcha> {

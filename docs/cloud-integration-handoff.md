@@ -4,38 +4,46 @@
 
 ## 1. 登录首屏
 
-三个接口都从 GET query 读取 `tenantCode`。下方 `customer-a` 是占位示例，部署方必须提供真实编码，不能把租户显示名称“默认租户”或字符串 `default` 当作编码：
+两个接口都从 GET query 读取 `tenantCode`。下方 `customer-a` 是占位示例，部署方必须提供真实编码，不能把租户显示名称“默认租户”或字符串 `default` 当作编码：
 
 ```http
-GET /api/v1/config/public?tenantCode=customer-a
-GET /api/v1/config/logo?tenantCode=customer-a
+GET /api/v1/client/config/public?tenantCode=customer-a
 GET /api/v1/auth/captcha?tenantCode=customer-a
 ```
 
-公共配置最小响应：
+公共配置只返回桌面登录所需字段：
 
 ```json
 {
-  "system": { "siteName": "AI anime" },
+  "brand": {
+    "siteName": "AI anime",
+    "siteDescription": "AI 创作客户端"
+  },
   "login": {
     "captchaEnabled": true,
-    "rememberMe": true
+    "rememberMe": true,
+    "smsLoginEnabled": false
   },
-  "register": { "enabled": false }
+  "password": {
+    "minLength": 8,
+    "maxLength": 128,
+    "requireUppercase": true,
+    "requireLowercase": true,
+    "requireNumber": true,
+    "requireSpecial": false
+  }
 }
 ```
 
-Logo 返回原始图片字节，`Content-Type` 必须为 `image/*`，大小为 1 字节到 5 MiB。Captcha 返回 JSON，`svg` 必须是完整 SVG 文本且不超过 512 KiB：
+桌面 Logo 固定使用客户端安装包中的 `/images/ai-anime-logo-mark.png`，不读取管理端站点 Logo，也不得调用 `/api/v1/config/logo`。Captcha 返回 JSON，`svg` 必须是完整 SVG 文本且不超过 512 KiB：
 
 ```json
 { "key": "single-use-captcha-key", "svg": "<svg>...</svg>" }
 ```
 
-登录继续使用 `POST /api/v1/client/auth/login`，请求中的 `captchaKey` 与 `captchaCode` 必须和上述验证码校验。
+登录使用 `POST /api/v1/client/auth/login`。密码模式显式发送 `loginType: "PASSWORD"`；只有 `smsLoginEnabled=true` 时才可发送短信并使用 `loginType: "SMS"`，两类负载字段互斥。需要图形验证码时，`captchaKey` 与 `captchaCode` 必须匹配上述验证码。
 
-2026-08-09 使用隔离测试租户实测：`config/public` 和图形验证码均返回 `200`，客户端登录与会话恢复成功。该租户公开配置中的 Logo 为空，因此 Logo 二进制接口返回 `404`；客户端现在只在公开配置明确给出 Logo 时请求该可选接口。
-
-登录页已接入图形验证码和注册；旧滑块坐标验证码不再属于客户端合同。账户资料、头像、改密和三步忘记密码均通过 Electron IPC 接入：受保护头像由主进程携带 Bearer Token 读取，校验 MIME/大小后只向渲染进程返回 `data:` URL；改密成功后清除本地 JWT 和工作区 Cookie 并回到登录页。
+登录页不提供公共注册。旧滑块坐标验证码不再属于客户端合同。账户资料、头像、改密和三步忘记密码均通过 Electron IPC 接入：受保护头像由主进程携带 Bearer Token 读取，校验 MIME/大小后只向渲染进程返回 `data:` URL；改密成功后清除本地 JWT 和工作区 Cookie 并回到登录页。
 
 ## 2. 离线租约
 
@@ -72,30 +80,26 @@ GET /api/v1/client/releases/check?currentVersion=1.1.5&target=windows&arch=x86_6
 Authorization: Bearer <access-token>
 ```
 
-有更新时至少返回：
+响应必须满足 Gateway `ReleaseCheckResp` 的精确字段合同，版本与构件 ID 均为 UUID。
+有更新时客户端从 `version.artifacts` 中选择匹配 `target` 和 `arch` 的构件；没有更新时
+`version` 仍是完整空对象，不能返回 `null`：
 
 ```json
 {
-  "available": true,
+  "available": false,
   "required": false,
-  "reason": "NEW_VERSION",
   "version": {
-    "version": "1.1.6",
-    "artifacts": [
-      {
-        "id": 1201,
-        "target": "windows",
-        "arch": "x86_64",
-        "installerKind": "nsis"
-      },
-      {
-        "id": 1202,
-        "target": "macos",
-        "arch": "arm64",
-        "installerKind": "zip"
-      }
-    ]
-  }
+    "id": "",
+    "version": "",
+    "notes": "",
+    "pubDate": "",
+    "minimumSupportedVersion": "",
+    "status": "",
+    "createdAt": "",
+    "publishedAt": "",
+    "artifacts": []
+  },
+  "reason": "already up to date"
 }
 ```
 
@@ -109,14 +113,14 @@ Windows `1.1.6` 已发布为可选更新：`versionId=a56d3729-734e-4327-b212-2b
 
 ```http
 # Windows
-GET /api/v1/client/releases/updater/latest.yml?artifactId=1201
+GET /api/v1/client/releases/updater/latest.yml?artifactId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
 
 # macOS
-GET /api/v1/client/releases/updater/latest-mac.yml?artifactId=1202
+GET /api/v1/client/releases/updater/latest-mac.yml?artifactId=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
 
 # YAML 中 files[].url 对应的安装包
-GET /api/v1/client/releases/updater/AI-anime-1.1.6-x64-setup.exe?artifactId=1201
-GET /api/v1/client/releases/updater/AI-anime-1.1.6-macos-arm64.zip?artifactId=1202
+GET /api/v1/client/releases/updater/AI-anime-1.1.6-x64-setup.exe?artifactId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+GET /api/v1/client/releases/updater/AI-anime-1.1.6-macos-arm64.zip?artifactId=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
 
 Authorization: Bearer <access-token>
 ```

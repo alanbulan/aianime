@@ -232,11 +232,6 @@ export interface CommercialLicenseActivationInput {
   clientVersion: string;
 }
 
-export interface CommercialPublicLogo {
-  contentType: string;
-  dataUrl: string;
-}
-
 export interface CommercialCaptcha {
   key: string;
   imageDataUrl: string;

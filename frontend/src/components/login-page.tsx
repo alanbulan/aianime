@@ -14,6 +14,7 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { gsap } from "gsap";
+import { BrandMark } from "@/components/brand";
 import { RegionSelector } from "@/components/region-selector";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,9 +52,6 @@ export function LoginPage() {
   const commercialCaptcha = useCommercialAuthStore((state) => state.captcha);
   const rememberedCommercialLogin = useCommercialAuthStore(
     (state) => state.rememberedLogin,
-  );
-  const commercialLogoDataUrl = useCommercialAuthStore(
-    (state) => state.logoDataUrl,
   );
   const initializeCommercial = useCommercialAuthStore(
     (state) => state.initialize,
@@ -326,13 +324,7 @@ export function LoginPage() {
       >
         <div className="w-full">
           <div className="mb-7">
-            {commercialConfigured && commercialLogoDataUrl ? (
-              <img
-                src={commercialLogoDataUrl}
-                alt=""
-                className="mb-4 h-10 w-auto max-w-48 object-contain object-left"
-              />
-            ) : null}
+            <BrandMark className="mb-4 h-10 w-auto max-w-48 object-left" />
             <h1 className="text-2xl font-semibold">
               {commercialConfigured && commercialPublicConfig?.brand.siteName
                 ? commercialPublicConfig.brand.siteName

@@ -25,9 +25,6 @@ export function registerCommercialAccountHandlers(
   context.handle(channels.publicConfig, (input) =>
     client.publicConfig(requiredText(input, "tenantCode")),
   );
-  context.handle(channels.publicLogo, (input) =>
-    client.publicLogo(requiredText(input, "tenantCode")),
-  );
   context.handle(channels.publicCaptcha, (input) =>
     client.publicCaptcha(requiredText(input, "tenantCode")),
   );

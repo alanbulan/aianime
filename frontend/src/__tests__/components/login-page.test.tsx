@@ -39,7 +39,6 @@ const mocks = vi.hoisted(() => {
         username: "client_user",
         hasPassword: true,
       } as { tenantCode: string; username: string; hasPassword: true } | null,
-      logoDataUrl: null,
       initialize: vi.fn(async () => undefined),
       setTenantCode: vi.fn(),
       loadPublicConfig: vi.fn(async () => publicConfig),
@@ -109,6 +108,14 @@ describe("LoginPage remembered password", () => {
     };
     mocks.revealRememberedPassword.mockReset();
     mocks.revealRememberedPassword.mockResolvedValue("Secret 123");
+  });
+
+  it("renders the bundled desktop Logo", () => {
+    const { container } = render(<LoginPage />);
+
+    expect(
+      container.querySelector('img[src="/images/ai-anime-logo-mark.png"]'),
+    ).toBeInTheDocument();
   });
 
   it("reveals the real saved password only after clicking the eye button", async () => {

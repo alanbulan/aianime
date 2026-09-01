@@ -75,10 +75,6 @@ function createGateway(
       gatewayOrigin: "http://203.0.113.10:8889",
     })),
     fetchPublicConfig: vi.fn(async () => publicConfig),
-    fetchPublicLogo: vi.fn(async () => ({
-      contentType: "image/png",
-      dataUrl: "data:image/png;base64,AA==",
-    })),
     fetchCaptcha: vi.fn(async () => ({
       key: "captcha-key",
       imageDataUrl: "data:image/svg+xml;base64,PHN2Zy8+",
@@ -166,7 +162,7 @@ describe("commercial auth store", () => {
     });
 
     expect(gateway.fetchPublicConfig).toHaveBeenCalledWith("customer-a");
-    expect(gateway.fetchPublicLogo).toHaveBeenCalledWith("customer-a");
+    expect(gateway).not.toHaveProperty("fetchPublicLogo");
     expect(gateway.login).toHaveBeenCalledWith({
       loginType: "PASSWORD",
       tenantCode: "customer-a",
@@ -178,16 +174,6 @@ describe("commercial auth store", () => {
     expect(store.getState().publicConfig).toEqual(publicConfig);
     expect(store.getState().tenantCode).toBe("customer-a");
     expect(preference.write).toHaveBeenCalledWith("customer-a");
-  });
-
-  it("loads the optional tenant logo independently of the minimal config", async () => {
-    const gateway = createGateway();
-    const store = createCommercialAuthStore(gateway, createPreference());
-
-    await store.getState().loadPublicConfig("customer-a");
-
-    expect(gateway.fetchPublicLogo).toHaveBeenCalledWith("customer-a");
-    expect(store.getState().logoDataUrl).toBe("data:image/png;base64,AA==");
   });
 
   it("clears the summary after logout", async () => {

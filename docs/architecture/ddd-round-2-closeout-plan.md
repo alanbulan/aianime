@@ -423,7 +423,7 @@ Electron main 是平台适配器，不承载 React 视图规则，也不复制 I
 
 | 网关能力 | 现有模块归属 | 当前状态 | 第二轮落点 |
 | --- | --- | --- | --- |
-| 公开品牌配置、Logo | Identity & Access | 已接入 | 登录前经 typed IPC 读取；二进制 Logo 只转为受控 data URL |
+| 公开品牌配置、随包 Logo | Identity & Access | 已接入 | 登录前只读取最小公开配置；Logo 固定为客户端随包资源，不经 IPC 或云端配置 |
 | 客户端登录、刷新、退出 | Identity & Access | 已接入 | JWT 加密存储与单飞刷新在 Electron；前端只读取会话摘要 |
 | Bootstrap | Identity & Access 组合读取 | 已接入单次投影 | entitlement、quota、TEXT catalog、release 投影到现有领域缓存；多 operation 仍受网关单参数限制 |
 | 当前许可、Challenge、激活、租约 | Identity & Access | 在线链已接入 | Ed25519 激活与工作区门禁已完成；离线租约验签受网关公钥/schema 阻塞 |
