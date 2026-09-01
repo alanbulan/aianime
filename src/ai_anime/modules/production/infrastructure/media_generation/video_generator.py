@@ -35,6 +35,7 @@ from ai_anime.modules.production.domain.video_model import (
 )
 from ai_anime.modules.task_execution.public import TaskCancelled, TaskTimedOut
 from ai_anime.modules.task_execution.public import run_project_subprocess
+from ai_anime.shared.utils.media_io import get_audio_duration
 
 COMMERCIAL_VIDEO_HTTP_TIMEOUT_SECONDS = 1800.0
 COMMERCIAL_VIDEO_DOWNLOAD_ATTEMPTS = 3
@@ -394,6 +395,33 @@ class CommercialVideoGenerator(VideoGeneratorBase):
             if value is not None:
                 payload[key] = value
 
+        reference_counts = {"image": 0, "video": 0, "audio": 0}
+        for reference in references:
+            media_type = str(reference.type or "").strip().lower()
+            if media_type in reference_counts:
+                reference_counts[media_type] += 1
+        if capability:
+            limits = {
+                "image": capability.max_reference_images,
+                "video": capability.max_reference_videos,
+                "audio": capability.max_reference_audios,
+            }
+            for media_type, count in reference_counts.items():
+                limit = limits[media_type]
+                if limit is not None and count > limit:
+                    raise ValueError(
+                        f"{media_type} reference count {count} exceeds model limit {limit}"
+                    )
+            total = sum(reference_counts.values())
+            if (
+                capability.max_reference_total is not None
+                and total > capability.max_reference_total
+            ):
+                raise ValueError(
+                    f"reference file count {total} exceeds model limit "
+                    f"{capability.max_reference_total}"
+                )
+
         media: list[tuple[str, tuple[bytes, str, str] | str]] = []
         seen: set[tuple[str, str]] = set()
 
@@ -406,8 +434,96 @@ class CommercialVideoGenerator(VideoGeneratorBase):
 
         append_media("input_reference", image_path)
         append_media("last_frame", last_frame_path)
+        reference_video_durations: list[float] = []
+        reference_audio_durations: list[float] = []
+        require_video_durations = bool(
+            capability
+            and any(
+                value is not None
+                for value in (
+                    capability.reference_video_min_seconds,
+                    capability.reference_video_max_seconds,
+                    capability.reference_video_total_min_seconds,
+                    capability.reference_video_total_max_seconds,
+                )
+            )
+        )
+        require_audio_durations = bool(
+            capability
+            and any(
+                value is not None
+                for value in (
+                    capability.reference_audio_min_seconds,
+                    capability.reference_audio_max_seconds,
+                    capability.reference_audio_total_min_seconds,
+                    capability.reference_audio_total_max_seconds,
+                )
+            )
+        )
         for reference in references:
             append_media(self._reference_field(reference), reference.path)
+            media_type = str(reference.type or "").strip().lower()
+            if media_type == "video" and require_video_durations:
+                reference_video_durations.append(
+                    round(get_audio_duration(reference.path), 6)
+                )
+            elif media_type == "audio" and require_audio_durations:
+                reference_audio_durations.append(
+                    round(get_audio_duration(reference.path), 6)
+                )
+
+        def validate_durations(
+            media_type: str,
+            durations: list[float],
+            minimum: float | None,
+            maximum: float | None,
+            total_minimum: float | None,
+            total_maximum: float | None,
+        ) -> None:
+            if not durations:
+                return
+            for value in durations:
+                if minimum is not None and value < minimum:
+                    raise ValueError(
+                        f"{media_type} reference duration {value:g}s is below model limit {minimum:g}s"
+                    )
+                if maximum is not None and value > maximum:
+                    raise ValueError(
+                        f"{media_type} reference duration {value:g}s exceeds model limit {maximum:g}s"
+                    )
+            total = sum(durations)
+            if total_minimum is not None and total < total_minimum:
+                raise ValueError(
+                    f"total {media_type} reference duration {total:g}s is below model limit "
+                    f"{total_minimum:g}s"
+                )
+            if total_maximum is not None and total > total_maximum:
+                raise ValueError(
+                    f"total {media_type} reference duration {total:g}s exceeds model limit "
+                    f"{total_maximum:g}s"
+                )
+
+        if capability:
+            validate_durations(
+                "video",
+                reference_video_durations,
+                capability.reference_video_min_seconds,
+                capability.reference_video_max_seconds,
+                capability.reference_video_total_min_seconds,
+                capability.reference_video_total_max_seconds,
+            )
+            validate_durations(
+                "audio",
+                reference_audio_durations,
+                capability.reference_audio_min_seconds,
+                capability.reference_audio_max_seconds,
+                capability.reference_audio_total_min_seconds,
+                capability.reference_audio_total_max_seconds,
+            )
+        if reference_video_durations:
+            payload["reference_video_durations"] = reference_video_durations
+        if reference_audio_durations:
+            payload["reference_audio_durations"] = reference_audio_durations
 
         return payload, media, bool(config.get("return_last_frame"))
 

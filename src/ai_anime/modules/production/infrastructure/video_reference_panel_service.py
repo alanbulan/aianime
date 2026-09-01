@@ -197,6 +197,7 @@ async def generate_video_prompt_for_panel(
     append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
+        reference_video_paths=list(config.reference_video_paths),
         reference_audio_paths=list(config.reference_audio_paths),
     )
     initial_prompt = _initial_video_prompt(beat)
@@ -283,6 +284,10 @@ async def save_video_reference_uploaded_asset(
     if media_kind == "images":
         config.reference_image_paths = _unique_paths(
             list(config.reference_image_paths) + [path_value]
+        )
+    elif media_kind == "videos":
+        config.reference_video_paths = _unique_paths(
+            list(config.reference_video_paths) + [path_value]
         )
     else:
         config.reference_audio_paths = _unique_paths(
@@ -447,7 +452,14 @@ async def remove_video_reference_uploaded_asset(
     path: str,
 ) -> bool:
     config = parse_video_config(beat.get("video_config_json"))
-    paths = config.reference_image_paths if media_kind == "images" else config.reference_audio_paths
+    path_fields = {
+        "images": config.reference_image_paths,
+        "videos": config.reference_video_paths,
+        "audios": config.reference_audio_paths,
+    }
+    paths = path_fields.get(media_kind)
+    if paths is None:
+        return False
     path_value = str(path)
     if path_value not in paths:
         return False
@@ -491,6 +503,7 @@ def build_video_reference_panel_state(
     append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
+        reference_video_paths=list(config.reference_video_paths),
         reference_audio_paths=list(config.reference_audio_paths),
     )
     prompt_source = config.prompt_source or "saved"
@@ -612,18 +625,24 @@ def _sync_video_reference_asset_paths(
     append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
+        reference_video_paths=list(config.reference_video_paths),
         reference_audio_paths=list(config.reference_audio_paths),
     )
     assets = apply_prompt_audio_selection(assets, str(config.final_prompt or ""))
     auto_images = selected_reference_paths(assets, "reference_images")
+    auto_videos = selected_reference_paths(assets, "reference_videos")
     auto_audios = selected_reference_paths(assets, "reference_audios")
     extra_images = [
         path for path in config.reference_image_paths if path not in auto_images
+    ]
+    extra_videos = [
+        path for path in config.reference_video_paths if path not in auto_videos
     ]
     extra_audios = [
         path for path in config.reference_audio_paths if path not in auto_audios
     ]
     config.reference_image_paths = _unique_paths(auto_images + extra_images)
+    config.reference_video_paths = _unique_paths(auto_videos + extra_videos)
     config.reference_audio_paths = _unique_paths(auto_audios + extra_audios)
 
 
@@ -664,10 +683,14 @@ def _video_reference_media_kind(filename: str, content_type: str) -> str | None:
     mime = str(content_type or "").lower()
     if mime.startswith("image/"):
         return "images"
+    if mime.startswith("video/"):
+        return "videos"
     if mime.startswith("audio/"):
         return "audios"
     if name.endswith((".png", ".jpg", ".jpeg", ".webp")):
         return "images"
+    if name.endswith((".mp4", ".mov", ".mkv", ".webm")):
+        return "videos"
     if name.endswith((".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg")):
         return "audios"
     return None

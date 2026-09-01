@@ -81,6 +81,7 @@ def _unique_paths(paths: list[str]) -> list[str]:
 def _references_from_paths(
     *,
     image_paths: list[str],
+    video_paths: list[str],
     audio_paths: list[str],
 ) -> list[ShotReference]:
     references: list[ShotReference] = []
@@ -91,6 +92,15 @@ def _references_from_paths(
                 path,
                 f"图片{index}",
                 field="reference_images",
+            )
+        )
+    for index, path in enumerate(video_paths, start=1):
+        references.append(
+            ShotReference(
+                "video",
+                path,
+                f"视频{index}",
+                field="reference_videos",
             )
         )
     for index, path in enumerate(audio_paths, start=1):
@@ -243,6 +253,7 @@ def collect_video_reference_prereq_errors(
         append_user_video_reference_assets(
             assets,
             reference_image_paths=list(config.reference_image_paths),
+            reference_video_paths=list(config.reference_video_paths),
             reference_audio_paths=list(config.reference_audio_paths),
         )
         assets = apply_prompt_audio_selection(assets, final_prompt)
@@ -314,6 +325,7 @@ async def prepare_video_reference_generation_inputs(
     append_user_video_reference_assets(
         assets,
         reference_image_paths=list(config.reference_image_paths),
+        reference_video_paths=list(config.reference_video_paths),
         reference_audio_paths=list(config.reference_audio_paths),
     )
 
@@ -341,8 +353,10 @@ async def prepare_video_reference_generation_inputs(
     assets = apply_prompt_audio_selection(assets, final_prompt)
 
     auto_images = selected_reference_paths(assets, "reference_images")
+    auto_videos = selected_reference_paths(assets, "reference_videos")
     auto_audios = selected_reference_paths(assets, "reference_audios")
     config.reference_image_paths = _unique_paths(auto_images)
+    config.reference_video_paths = _unique_paths(auto_videos)
     config.reference_audio_paths = _unique_paths(auto_audios)
     _validate_reference_audio_request(config.reference_audio_paths)
 
@@ -367,6 +381,7 @@ async def prepare_video_reference_generation_inputs(
     else:
         references = _references_from_paths(
             image_paths=config.reference_image_paths,
+            video_paths=config.reference_video_paths,
             audio_paths=config.reference_audio_paths,
         )
         final_prompt = _with_multimodal_frame_guidance(final_prompt, assets)

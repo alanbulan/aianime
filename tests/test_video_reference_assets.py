@@ -223,8 +223,16 @@ def test_multimodal_assets_resolve_variant_time_to_variant_time_plate(tmp_path):
     base_scene = project_dir / "assets" / "scenes" / "客厅" / "master.png"
     base_night_scene = project_dir / "assets" / "scenes" / "客厅_夜" / "master.png"
     variant_scene = project_dir / "assets" / "scenes" / "客厅_漏水" / "master.png"
-    variant_night_scene = project_dir / "assets" / "scenes" / "客厅_漏水_夜" / "master.png"
-    for image_path in (frame, base_scene, base_night_scene, variant_scene, variant_night_scene):
+    variant_night_scene = (
+        project_dir / "assets" / "scenes" / "客厅_漏水_夜" / "master.png"
+    )
+    for image_path in (
+        frame,
+        base_scene,
+        base_night_scene,
+        variant_scene,
+        variant_night_scene,
+    ):
         _write_png(image_path)
 
     assets = build_video_reference_assets(
@@ -283,9 +291,13 @@ def test_multimodal_assets_fall_back_to_base_scene_master_when_variant_image_mis
     assert scene_asset.path == base_scene
 
 
-async def test_prepare_video_reference_generation_inputs_preserves_config_duration(tmp_path):
+async def test_prepare_video_reference_generation_inputs_preserves_config_duration(
+    tmp_path,
+):
     from ai_anime.modules.production.application.video_config import dump_video_config
-    from ai_anime.modules.production.infrastructure.video_reference_pipeline import prepare_video_reference_generation_inputs
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        prepare_video_reference_generation_inputs,
+    )
 
     project_dir = tmp_path / "output" / "alice" / "project"
     frame = project_dir / "frames" / "ep001" / "beat_01.png"
@@ -342,8 +354,7 @@ async def test_prepare_video_reference_generation_rejects_contaminated_generated
                     {
                         "mode": VideoReferenceMode.FIRST_FRAME.value,
                         "final_prompt": (
-                            "她说出：“你听到了？”。"
-                            "использовать参考@音频1作为角色声线。"
+                            "她说出：“你听到了？”。использовать参考@音频1作为角色声线。"
                         ),
                         "prompt_source": "generated",
                         "prompt_validation_source": "镜头草稿不含外语。",
@@ -490,9 +501,7 @@ async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
         str(identity),
         str(scene),
     ]
-    assert prepared.prompt.startswith(
-        "图片1作为视频起始画面，图片2作为视频结束画面"
-    )
+    assert prepared.prompt.startswith("图片1作为视频起始画面，图片2作为视频结束画面")
     assert "其余图片与音频仅作为身份、环境、道具和声线参考" in prepared.prompt
     assert (
         parse_video_config(prepared.video_config_json).final_prompt
@@ -501,7 +510,9 @@ async def test_prepare_multimodal_inputs_adds_semantic_frame_guidance(tmp_path):
 
 
 def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_path):
-    from ai_anime.modules.production.infrastructure.video_reference_assets import build_video_reference_assets
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        build_video_reference_assets,
+    )
 
     project_dir = tmp_path / "project"
     assets = build_video_reference_assets(
@@ -522,7 +533,9 @@ def test_multimodal_assets_merge_detected_identities_with_visual_markers(tmp_pat
     ]
 
 
-def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio(tmp_path):
+def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio(
+    tmp_path,
+):
     from ai_anime.modules.production.infrastructure.video_reference_assets import (
         build_video_reference_assets,
         selected_reference_paths,
@@ -531,10 +544,22 @@ def test_multimodal_dialogue_assets_use_character_voice_reference_not_beat_audio
     project_dir = tmp_path / "project"
     frame = project_dir / "frames" / "ep001" / "beat_01.png"
     identity_image = (
-        project_dir / "assets" / "characters" / "面馆男青年" / "identities" / "青年时期.png"
+        project_dir
+        / "assets"
+        / "characters"
+        / "面馆男青年"
+        / "identities"
+        / "青年时期.png"
     )
     scene = project_dir / "assets" / "scenes" / "兰州拉面馆" / "master.png"
-    voice = project_dir / "assets" / "characters" / "面馆男青年" / "voices" / "voice_default.mp3"
+    voice = (
+        project_dir
+        / "assets"
+        / "characters"
+        / "面馆男青年"
+        / "voices"
+        / "voice_default.mp3"
+    )
     stale_beat_audio = project_dir / "audio" / "ep001" / "beat_01.mp3"
     for image_path in (frame, identity_image, scene):
         _write_png(image_path)
@@ -586,10 +611,20 @@ def test_multimodal_dialogue_assets_follow_multi_speaker_text_order(tmp_path):
     _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
     _write_png(project_dir / "assets" / "scenes" / "兰州拉面馆" / "master.png")
     man_voice = (
-        project_dir / "assets" / "characters" / "面馆男青年" / "voices" / "voice_default.mp3"
+        project_dir
+        / "assets"
+        / "characters"
+        / "面馆男青年"
+        / "voices"
+        / "voice_default.mp3"
     )
     woman_voice = (
-        project_dir / "assets" / "characters" / "面馆女青年" / "voices" / "voice_default.mp3"
+        project_dir
+        / "assets"
+        / "characters"
+        / "面馆女青年"
+        / "voices"
+        / "voice_default.mp3"
     )
     for path in (man_voice, woman_voice):
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -611,7 +646,8 @@ def test_multimodal_dialogue_assets_follow_multi_speaker_text_order(tmp_path):
             "audio_type": "dialogue",
             "scene_ref": {"scene_id": "兰州拉面馆"},
             "narration_segment": (
-                "面馆男青年（打开易拉罐）：现在啥事儿没有啊？" "面馆女青年（抬头）：你知道杜晨吗？"
+                "面馆男青年（打开易拉罐）：现在啥事儿没有啊？"
+                "面馆女青年（抬头）：你知道杜晨吗？"
             ),
         },
         mode=VideoReferenceMode.MULTIMODAL_REFERENCE,
@@ -674,14 +710,18 @@ def test_multimodal_narration_keeps_project_narrator_mentionable_when_duration_n
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure import video_reference_assets as asset_mod
+    from ai_anime.modules.production.infrastructure import (
+        video_reference_assets as asset_mod,
+    )
     from ai_anime.modules.production.infrastructure.video_reference_assets import (
         build_video_reference_assets,
         selected_reference_paths,
     )
 
     monkeypatch.setattr(pc, "STATE_DIR", tmp_path / "state")
-    monkeypatch.setattr(asset_mod, "probe_voice_sample_duration_seconds", lambda _path: 12.0)
+    monkeypatch.setattr(
+        asset_mod, "probe_voice_sample_duration_seconds", lambda _path: 12.0
+    )
     project_dir = tmp_path / "output" / "alice" / "project"
     _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
     narrator_voice = project_dir / "assets" / "narrator" / "voice.mp3"
@@ -718,7 +758,9 @@ def test_multimodal_reference_rejects_audio_below_workflow_hard_minimum(
     tmp_path, monkeypatch
 ):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
-    from ai_anime.modules.production.infrastructure import video_reference_assets as asset_mod
+    from ai_anime.modules.production.infrastructure import (
+        video_reference_assets as asset_mod,
+    )
     from ai_anime.modules.production.infrastructure.video_reference_assets import (
         build_video_reference_assets,
     )
@@ -758,6 +800,112 @@ def test_multimodal_reference_rejects_audio_below_workflow_hard_minimum(
     assert "至少 1.8 秒" in audio_asset.validation_error
 
 
+def test_user_ref2va_assets_accept_official_six_three_three_shape(tmp_path):
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        append_user_video_reference_assets,
+        apply_prompt_audio_selection,
+        selected_reference_paths,
+    )
+
+    images = [tmp_path / f"image-{index}.png" for index in range(6)]
+    videos = [tmp_path / f"video-{index}.mp4" for index in range(3)]
+    audios = [tmp_path / f"audio-{index}.wav" for index in range(3)]
+    for path in images:
+        _write_png(path)
+    for path in [*videos, *audios]:
+        path.write_bytes(b"media")
+
+    assets = []
+    append_user_video_reference_assets(
+        assets,
+        reference_image_paths=[str(path) for path in images],
+        reference_video_paths=[str(path) for path in videos],
+        reference_audio_paths=[str(path) for path in audios],
+    )
+    assets = apply_prompt_audio_selection(assets, "音频1 音频2 音频3")
+
+    assert len(selected_reference_paths(assets, "reference_images")) == 6
+    assert len(selected_reference_paths(assets, "reference_videos")) == 3
+    assert len(selected_reference_paths(assets, "reference_audios")) == 3
+    assert sum(asset.selected for asset in assets) == 12
+
+
+def test_user_ref2va_assets_expose_overflow_instead_of_slicing(tmp_path):
+    from ai_anime.modules.production.infrastructure.video_reference_assets import (
+        append_user_video_reference_assets,
+        apply_prompt_audio_selection,
+        selected_reference_paths,
+    )
+
+    images = [tmp_path / f"image-{index}.png" for index in range(7)]
+    videos = [tmp_path / f"video-{index}.mp4" for index in range(3)]
+    audios = [tmp_path / f"audio-{index}.wav" for index in range(3)]
+    for path in images:
+        _write_png(path)
+    for path in [*videos, *audios]:
+        path.write_bytes(b"media")
+
+    assets = []
+    append_user_video_reference_assets(
+        assets,
+        reference_image_paths=[str(path) for path in images],
+        reference_video_paths=[str(path) for path in videos],
+        reference_audio_paths=[str(path) for path in audios],
+    )
+    assets = apply_prompt_audio_selection(assets, "音频1 音频2 音频3")
+
+    assert len(selected_reference_paths(assets, "reference_images")) == 7
+    assert len(selected_reference_paths(assets, "reference_videos")) == 3
+    assert len(selected_reference_paths(assets, "reference_audios")) == 2
+    overflow = next(asset for asset in assets if asset.path == audios[2])
+    assert overflow.selected is False
+    assert overflow.reference_label == "未发送"
+    assert "12 个混合参考文件上限" in overflow.note
+
+
+@pytest.mark.asyncio
+async def test_uploaded_video_reference_persists_and_deletes_video_path(tmp_path):
+    from ai_anime.modules.production.application.video_config import parse_video_config
+    from ai_anime.modules.production.infrastructure.video_reference_panel_service import (
+        remove_video_reference_uploaded_asset,
+        save_video_reference_uploaded_asset,
+    )
+
+    class Store:
+        async def update_beat_asset(self, **kwargs):
+            self.saved_json = kwargs["video_config_json"]
+
+    store = Store()
+    beat = {"beat_number": 2, "video_config_json": "{}"}
+    saved = await save_video_reference_uploaded_asset(
+        store=store,
+        episode=1,
+        beat=beat,
+        project_dir=tmp_path,
+        filename="motion.mp4",
+        content=b"video",
+        content_type="video/mp4",
+    )
+
+    assert saved is not None
+    assert saved.parent.name == "videos"
+    assert parse_video_config(beat["video_config_json"]).reference_video_paths == [
+        str(saved)
+    ]
+
+    removed = await remove_video_reference_uploaded_asset(
+        store=store,
+        episode=1,
+        beat=beat,
+        media_kind="videos",
+        path=str(saved),
+    )
+
+    assert removed is True
+    assert not saved.exists()
+    assert parse_video_config(beat["video_config_json"]).reference_video_paths == []
+
+
 def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
     from ai_anime.modules.production.infrastructure.video_reference_assets import (
         apply_prompt_audio_selection,
@@ -768,7 +916,14 @@ def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
 
     project_dir = tmp_path / "project"
     first_audio = project_dir / "assets" / "narrator" / "voice.mp3"
-    second_audio = project_dir / "video_reference_uploads" / "ep001" / "beat_01" / "audios" / "alt.wav"
+    second_audio = (
+        project_dir
+        / "video_reference_uploads"
+        / "ep001"
+        / "beat_01"
+        / "audios"
+        / "alt.wav"
+    )
     first_audio.parent.mkdir(parents=True, exist_ok=True)
     second_audio.parent.mkdir(parents=True, exist_ok=True)
     first_audio.write_bytes(b"default narrator")
@@ -787,6 +942,7 @@ def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
     append_user_video_reference_assets(
         assets,
         reference_image_paths=[],
+        reference_video_paths=[],
         reference_audio_paths=[str(second_audio)],
     )
 
@@ -799,7 +955,9 @@ def test_prompt_audio_selection_sends_only_referenced_audio(tmp_path):
     assert selected_reference_paths(selected, "reference_audios") == [str(second_audio)]
 
 
-def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, monkeypatch):
+def test_drama_narration_assets_ignore_first_person_protagonist_voice(
+    tmp_path, monkeypatch
+):
     from ai_anime.modules.project_workspace.infrastructure import project_config as pc
     from ai_anime.modules.production.infrastructure.video_reference_assets import (
         build_video_reference_assets,
@@ -810,7 +968,9 @@ def test_drama_narration_assets_ignore_first_person_protagonist_voice(tmp_path, 
     project_dir = tmp_path / "output" / "alice" / "project"
     _write_png(project_dir / "frames" / "ep001" / "beat_01.png")
     _write_png(project_dir / "assets" / "scenes" / "旧书店" / "master.png")
-    protagonist_voice = project_dir / "assets" / "characters" / "陆辰" / "voice_sample.wav"
+    protagonist_voice = (
+        project_dir / "assets" / "characters" / "陆辰" / "voice_sample.wav"
+    )
     protagonist_voice.parent.mkdir(parents=True, exist_ok=True)
     protagonist_voice.write_bytes(b"protagonist voice")
     narrator_voice = project_dir / "assets" / "narrator" / "voice.mp3"
@@ -1038,7 +1198,9 @@ def test_first_last_frame_mode_uses_matching_video_input_overrides(tmp_path):
         mode=VideoReferenceMode.FIRST_LAST_FRAME,
     )
 
-    assert selected_reference_paths(assets, "first_frame_image") == [str(first_override)]
+    assert selected_reference_paths(assets, "first_frame_image") == [
+        str(first_override)
+    ]
     assert selected_reference_paths(assets, "last_frame_image") == [str(last_override)]
     by_key = {asset.key: asset for asset in assets}
     assert by_key["first_frame"].crop_source_path == first
@@ -1063,11 +1225,15 @@ async def test_crop_video_reference_asset_to_first_frame_writes_video_input_over
         _write_png(Path(output_path), width=720, height=1280)
 
     monkeypatch.setattr(panel_service, "crop_image_to_path", fake_crop_image_to_path)
-    monkeypatch.setattr(panel_service, "validate_video_reference_image", lambda _path: "")
+    monkeypatch.setattr(
+        panel_service, "validate_video_reference_image", lambda _path: ""
+    )
 
     class Store:
         async def update_beat_asset(self, **_kwargs):
-            raise AssertionError("video input crops must not mutate reference_image_paths")
+            raise AssertionError(
+                "video input crops must not mutate reference_image_paths"
+            )
 
     result = await panel_service.crop_video_reference_asset(
         store=Store(),
@@ -1076,9 +1242,18 @@ async def test_crop_video_reference_asset_to_first_frame_writes_video_input_over
         project_dir=project_dir,
         asset_key="first_frame",
         source_path=source,
-        crop_data={"target": "first_frame", "x": 0, "y": 0, "width": 512, "height": 768},
+        crop_data={
+            "target": "first_frame",
+            "x": 0,
+            "y": 0,
+            "width": 512,
+            "height": 768,
+        },
     )
 
     expected = paths.video_input_frame(2, slot="first_frame")
     assert result == expected
-    assert paths.valid_video_input_frame(2, slot="first_frame", source_path=source) == expected
+    assert (
+        paths.valid_video_input_frame(2, slot="first_frame", source_path=source)
+        == expected
+    )

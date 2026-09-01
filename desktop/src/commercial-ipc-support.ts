@@ -541,6 +541,7 @@ export function mergeModelCapabilities(
     );
     const maxReferenceTotal = firstNonNegativeInteger(
       capabilities.maxReferenceTotal,
+      capabilities.referenceTotalMax,
       referenceLimits.total,
       referencesProperty.maxItems,
     );

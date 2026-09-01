@@ -82,6 +82,8 @@ describe("Production video model query", () => {
               maxDuration: 15,
               referenceImageMax: 9,
               referenceVideoMax: 3,
+              referenceAudioMax: 3,
+              referenceTotalMax: 12,
             },
             parameterSchema: {},
           },
@@ -104,6 +106,10 @@ describe("Production video model query", () => {
         maxDuration: 15,
         resolutionOptions: ["480p", "720p", "1080p"],
         ratioOptions: ["16:9", "9:16", "1:1"],
+        referenceImageMax: 9,
+        referenceVideoMax: 3,
+        referenceAudioMax: 3,
+        referenceTotalMax: 12,
       }),
     ]);
   });

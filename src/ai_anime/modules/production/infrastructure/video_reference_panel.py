@@ -117,7 +117,7 @@ def _asset_status_payload(
             local_path=Path(crop_source_path),
         )
     can_delete = (
-        str(asset.key).startswith(("user_image:", "user_audio:"))
+        str(asset.key).startswith(("user_image:", "user_video:", "user_audio:"))
         or VIDEO_REFERENCE_UPLOAD_DIR in Path(absolute_path).parts
         or VIDEO_REFERENCE_CROP_DIR in Path(absolute_path).parts
     )

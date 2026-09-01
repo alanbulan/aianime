@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class VideoReferenceAssetDeleteRequest(BaseModel):
-    media_kind: Literal["images", "audios"]
+    media_kind: Literal["images", "videos", "audios"]
     path: str
 
 

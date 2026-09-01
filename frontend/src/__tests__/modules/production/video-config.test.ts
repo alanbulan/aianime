@@ -143,6 +143,7 @@ describe("production video config domain", () => {
       JSON.stringify({
         prompt_validation_source: "source",
         reference_image_paths: ["a.png"],
+        reference_video_paths: ["motion.mp4"],
         final_prompt: "old prompt",
       }),
     );
@@ -155,6 +156,7 @@ describe("production video config domain", () => {
     expect(serializeBeatVideoConfig(draft, previous)).toMatchObject({
       prompt_validation_source: "source",
       reference_image_paths: ["a.png"],
+      reference_video_paths: ["motion.mp4"],
       prompt_guidance: "guidance",
       final_prompt: "new prompt",
       prompt_source: "manual",

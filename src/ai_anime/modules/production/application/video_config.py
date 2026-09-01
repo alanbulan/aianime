@@ -34,6 +34,7 @@ class BeatVideoConfig(BaseModel):
     human_review: bool = True
     scene_optimize: str = ""
     reference_image_paths: list[str] = Field(default_factory=list)
+    reference_video_paths: list[str] = Field(default_factory=list)
     reference_audio_paths: list[str] = Field(default_factory=list)
     text_overlay: dict[str, Any] = Field(default_factory=dict)
     selected_asset_keys: list[str] = Field(default_factory=list)

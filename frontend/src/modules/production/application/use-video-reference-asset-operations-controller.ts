@@ -26,7 +26,7 @@ export interface VideoReferenceAssetOperationQueries {
     episode: number,
   ): Mutation<{
     beatNum: number;
-    mediaKind: "images" | "audios";
+    mediaKind: "images" | "videos" | "audios";
     path: string;
   }>;
   useCropVideoReferenceAsset(
@@ -136,7 +136,12 @@ export function createUseVideoReferenceAssetOperationsController(
       try {
         const response = await remove.mutateAsync({
           beatNum: options.beatNumber,
-          mediaKind: asset.media_type === "audio" ? "audios" : "images",
+          mediaKind:
+            asset.media_type === "audio"
+              ? "audios"
+              : asset.media_type === "video"
+                ? "videos"
+                : "images",
           path,
         });
         if (showResponseError(response)) return;

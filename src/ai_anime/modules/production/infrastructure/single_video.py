@@ -166,6 +166,7 @@ def _prepare_reference_video_beat(
         append_user_video_reference_assets(
             assets,
             reference_image_paths=list(config.reference_image_paths),
+            reference_video_paths=list(config.reference_video_paths),
             reference_audio_paths=[],
         )
         image_paths = selected_reference_paths(assets, "reference_images")

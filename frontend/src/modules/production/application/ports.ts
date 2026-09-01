@@ -201,7 +201,7 @@ export interface ProductionVideoGateway {
     project: string,
     episode: number,
     beatNumber: number,
-    mediaKind: "images" | "audios",
+    mediaKind: "images" | "videos" | "audios",
     path: string,
   ): Promise<VideoReferenceBeatStatusResponse>;
   cropVideoReferenceAsset(

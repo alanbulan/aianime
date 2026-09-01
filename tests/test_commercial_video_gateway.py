@@ -239,6 +239,175 @@ def test_reference_video_builds_standard_multipart_parts(
     assert media[1][1] == "https://media.example/last.png"
 
 
+def test_h3_ref2va_preserves_twelve_mixed_parts_and_ordered_durations(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = "MiniMax-H3"
+    generator = _generator(
+        monkeypatch,
+        model=model,
+        model_capabilities=[
+            {
+                "modelId": model,
+                "maxReferenceImages": 9,
+                "maxReferenceVideos": 3,
+                "maxReferenceAudios": 3,
+                "maxReferenceTotal": 12,
+                "referenceVideoMaxSeconds": 15,
+                "referenceVideoTotalMaxSeconds": 15,
+                "referenceAudioMaxSeconds": 15,
+                "referenceAudioTotalMaxSeconds": 15,
+            }
+        ],
+    )
+    references: list[ShotReference] = []
+    durations: dict[str, float] = {}
+    for media_type, count, field_name in (
+        ("image", 6, "reference_images"),
+        ("video", 3, "reference_videos"),
+        ("audio", 3, "reference_audios"),
+    ):
+        for index in range(1, count + 1):
+            path = (
+                tmp_path
+                / f"{media_type}-{index}.{'png' if media_type == 'image' else 'mp4' if media_type == 'video' else 'wav'}"
+            )
+            path.write_bytes(f"{media_type}-{index}".encode())
+            references.append(
+                ShotReference(
+                    media_type,
+                    str(path),
+                    f"{media_type}-{index}",
+                    field=field_name,
+                )
+            )
+            if media_type != "image":
+                expected = [2.0, 3.0, 4.0] if media_type == "video" else [5.0, 4.0, 3.0]
+                durations[str(path)] = expected[index - 1]
+    monkeypatch.setattr(
+        video_module,
+        "get_audio_duration",
+        lambda path: durations[str(path)],
+    )
+
+    payload, media, _return_last_frame = generator._build_request(
+        image_path=None,
+        last_frame_path=None,
+        references=references,
+        prompt="保持全部参考素材的角色、动作和声音一致",
+        aspect_ratio="1:1",
+        duration=5,
+        kwargs={"video_config": {"resolution": "768p"}},
+    )
+
+    assert [name for name, _part in media] == [
+        *(["reference_images"] * 6),
+        *(["reference_videos"] * 3),
+        *(["reference_audios"] * 3),
+    ]
+    assert payload["reference_video_durations"] == [2.0, 3.0, 4.0]
+    assert payload["reference_audio_durations"] == [5.0, 4.0, 3.0]
+
+
+@pytest.mark.parametrize(
+    ("durations", "message"),
+    [
+        ([1.9], "below model limit 2s"),
+        ([15.1], "exceeds model limit 15s"),
+        ([8.0, 8.0], "total video reference duration 16s exceeds model limit 15s"),
+    ],
+)
+def test_h3_ref2va_rejects_measured_duration_overflow_before_upload(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    durations: list[float],
+    message: str,
+) -> None:
+    model = "MiniMax-H3"
+    generator = _generator(
+        monkeypatch,
+        model=model,
+        model_capabilities=[
+            {
+                "modelId": model,
+                "maxReferenceVideos": 3,
+                "maxReferenceTotal": 12,
+                "referenceVideoMinSeconds": 2,
+                "referenceVideoMaxSeconds": 15,
+                "referenceVideoTotalMaxSeconds": 15,
+            }
+        ],
+    )
+    references: list[ShotReference] = []
+    measured: dict[str, float] = {}
+    for index, duration in enumerate(durations):
+        path = tmp_path / f"video-{index}.mp4"
+        path.write_bytes(b"video")
+        measured[str(path)] = duration
+        references.append(ShotReference("video", str(path), f"video-{index}"))
+    monkeypatch.setattr(
+        video_module,
+        "get_audio_duration",
+        lambda path: measured[str(path)],
+    )
+
+    with pytest.raises(ValueError, match=message):
+        generator._build_request(
+            image_path=None,
+            last_frame_path=None,
+            references=references,
+            prompt="prompt",
+            aspect_ratio="16:9",
+            duration=5,
+            kwargs={},
+        )
+
+
+@pytest.mark.parametrize(
+    ("counts", "message"),
+    [
+        ((10, 0, 0), "image reference count 10 exceeds model limit 9"),
+        ((7, 3, 3), "reference file count 13 exceeds model limit 12"),
+    ],
+)
+def test_h3_ref2va_rejects_reference_overflow_before_upload(
+    monkeypatch: pytest.MonkeyPatch,
+    counts: tuple[int, int, int],
+    message: str,
+) -> None:
+    model = "MiniMax-H3"
+    generator = _generator(
+        monkeypatch,
+        model=model,
+        model_capabilities=[
+            {
+                "modelId": model,
+                "maxReferenceImages": 9,
+                "maxReferenceVideos": 3,
+                "maxReferenceAudios": 3,
+                "maxReferenceTotal": 12,
+            }
+        ],
+    )
+    references = [
+        ShotReference(media_type, f"https://media.example/{media_type}-{index}", "ref")
+        for media_type, count in zip(("image", "video", "audio"), counts, strict=True)
+        for index in range(count)
+    ]
+
+    with pytest.raises(ValueError, match=message):
+        generator._build_request(
+            image_path=None,
+            last_frame_path=None,
+            references=references,
+            prompt="prompt",
+            aspect_ratio="16:9",
+            duration=5,
+            kwargs={},
+        )
+
+
 @pytest.mark.parametrize(
     "options",
     [

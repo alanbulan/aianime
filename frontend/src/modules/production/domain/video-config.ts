@@ -45,6 +45,7 @@ export interface BeatVideoConfigDraft {
     prompt_inputs_hash: string;
     prompt_updated_at: string;
     reference_image_paths: string[];
+    reference_video_paths: string[];
     reference_audio_paths: string[];
     selected_asset_keys: string[];
   };
@@ -505,6 +506,7 @@ function defaultBeatVideoConfig(
       prompt_inputs_hash: String(raw.prompt_inputs_hash ?? ""),
       prompt_updated_at: String(raw.prompt_updated_at ?? ""),
       reference_image_paths: stringList(raw.reference_image_paths),
+      reference_video_paths: stringList(raw.reference_video_paths),
       reference_audio_paths: stringList(raw.reference_audio_paths),
       selected_asset_keys: stringList(raw.selected_asset_keys),
     },

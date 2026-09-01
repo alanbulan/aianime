@@ -86,7 +86,7 @@ export function createVideoReferencePanelQueryHooks(
         path,
       }: {
         beatNum: number;
-        mediaKind: "images" | "audios";
+        mediaKind: "images" | "videos" | "audios";
         path: string;
       }) =>
         gateway.deleteVideoReferenceAsset(

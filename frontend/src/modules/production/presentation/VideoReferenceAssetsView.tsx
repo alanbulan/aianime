@@ -12,6 +12,7 @@ import {
   Scissors,
   Trash2,
   Upload,
+  Video,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -322,7 +323,7 @@ export function VideoReferenceAssetsView({
           ref={uploadInputRef}
           type="file"
           className="hidden"
-          accept={imageOnly ? "image/*" : "image/*,audio/*"}
+          accept={imageOnly ? "image/*" : "image/*,video/*,audio/*"}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) void controller.uploadAsset(file);
@@ -355,9 +356,15 @@ export function VideoReferenceAssetsView({
                   (asset.url || asset.path)
                     ? resolveMediaUrl(asset.url || asset.path)
                     : null;
+                const assetVideoSrc =
+                  asset.media_type === "video" &&
+                  asset.exists !== false &&
+                  (asset.url || asset.path)
+                    ? resolveMediaUrl(asset.url || asset.path)
+                    : null;
                 const hasFallback = state === "fallback";
                 const showTileText =
-                  Boolean(assetImageSrc) ||
+                  Boolean(assetImageSrc || assetVideoSrc) ||
                   asset.media_type === "audio" ||
                   hasFallback ||
                   asset.exists === false;
@@ -405,10 +412,20 @@ export function VideoReferenceAssetsView({
                         )}
                         decoding="async"
                       />
+                    ) : assetVideoSrc ? (
+                      <video
+                        src={assetVideoSrc}
+                        aria-label={asset.label}
+                        muted
+                        preload="metadata"
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-muted">
                         {asset.media_type === "audio" ? (
                           <Mic className="size-6 text-muted-foreground/70" />
+                        ) : asset.media_type === "video" ? (
+                          <Video className="size-6 text-muted-foreground/70" />
                         ) : (
                           <ImageIcon className="size-6 text-muted-foreground/70" />
                         )}

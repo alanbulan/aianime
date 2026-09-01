@@ -61,6 +61,9 @@ MAX_VIDEO_VOICE_REFERENCE_SECONDS = 5.0
 MIN_SUPPORTED_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MIN_SECONDS
 MAX_SUPPORTED_VOICE_REFERENCE_SECONDS = REFERENCE_VOICE_MAX_SECONDS
 MAX_VIDEO_REFERENCE_IMAGES = 9
+MAX_VIDEO_REFERENCE_VIDEOS = 3
+MAX_VIDEO_REFERENCE_AUDIOS = 3
+MAX_VIDEO_REFERENCE_FILES = 12
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +80,7 @@ class VideoReferenceAsset:
     reference_label: str
     note: str = ""
     image_number: int | None = None
+    video_number: int | None = None
     audio_number: int | None = None
     identity_id: str = ""
     prop_id: str = ""
@@ -125,6 +129,7 @@ def _limit_video_reference_images(
         )
     return result
 
+
 def _text(value: Any) -> str:
     return str(value or "").strip()
 
@@ -141,7 +146,9 @@ def _unique_strings(values: list[Any]) -> list[str]:
 
 
 def _identity_ids_from_visual_markers(beat: dict[str, Any]) -> list[str]:
-    return _unique_strings(re.findall(r"\{\{([^}]+)\}\}", _text(beat.get("visual_description"))))
+    return _unique_strings(
+        re.findall(r"\{\{([^}]+)\}\}", _text(beat.get("visual_description")))
+    )
 
 
 def _load_sqlite_detected_identities(
@@ -229,7 +236,9 @@ def resolve_beat_identity_ids(
         if sqlite_detected is not None:
             candidates.extend(sqlite_detected)
 
-    detected = beat.get("detected_identities") or beat.get("detected_identities_json") or []
+    detected = (
+        beat.get("detected_identities") or beat.get("detected_identities_json") or []
+    )
     if isinstance(detected, str):
         try:
             detected = json.loads(detected)
@@ -289,14 +298,23 @@ def _identity_asset_path(project_output: Path, identity_id: str) -> Path:
     character, identity = _split_identity_label(identity_id)
     if not identity:
         return project_output / "assets" / "characters" / character / "portrait.png"
-    return project_output / "assets" / "characters" / character / "identities" / f"{identity}.png"
+    return (
+        project_output
+        / "assets"
+        / "characters"
+        / character
+        / "identities"
+        / f"{identity}.png"
+    )
 
 
 def _prop_asset_path(project_output: Path, prop_id: str) -> Path:
     return canonical_prop_reference_path(project_output, prop_id)
 
 
-def _load_sqlite_episode_prop_menu(project_output: Path, episode: int) -> list[dict[str, Any]]:
+def _load_sqlite_episode_prop_menu(
+    project_output: Path, episode: int
+) -> list[dict[str, Any]]:
     db_path = resolve_project_data_db_path(project_output)
     if not db_path.exists():
         return []
@@ -317,7 +335,11 @@ def _load_sqlite_episode_prop_menu(project_output: Path, episode: int) -> list[d
         parsed = json.loads(row[0] or "[]")
     except json.JSONDecodeError:
         return []
-    return [item for item in parsed if isinstance(item, dict)] if isinstance(parsed, list) else []
+    return (
+        [item for item in parsed if isinstance(item, dict)]
+        if isinstance(parsed, list)
+        else []
+    )
 
 
 def _truthy_flag(value: Any) -> bool:
@@ -431,7 +453,11 @@ def _read_png_size(path: Path) -> tuple[int, int] | None:
             header = handle.read(24)
     except OSError:
         return None
-    if len(header) >= 24 and header[:8] == b"\x89PNG\r\n\x1a\n" and header[12:16] == b"IHDR":
+    if (
+        len(header) >= 24
+        and header[:8] == b"\x89PNG\r\n\x1a\n"
+        and header[12:16] == b"IHDR"
+    ):
         return struct.unpack(">II", header[16:24])
     return None
 
@@ -536,23 +562,37 @@ def _load_sqlite_characters(project_output: Path) -> list[NovelCharacter]:
                 NovelCharacter(
                     name=row["name"],
                     aliases=(
-                        json.loads(row["aliases_json"] or "[]") if "aliases_json" in keys else []
+                        json.loads(row["aliases_json"] or "[]")
+                        if "aliases_json" in keys
+                        else []
                     ),
                     role=row["role"] or "" if "role" in keys else "",
                     is_main=bool(row["is_main"]) if "is_main" in keys else False,
                     gender=row["gender"] or "" if "gender" in keys else "",
-                    age_group=row["age_group"] or "youth" if "age_group" in keys else "youth",
+                    age_group=row["age_group"] or "youth"
+                    if "age_group" in keys
+                    else "youth",
                     body_type=row["body_type"] or "" if "body_type" in keys else "",
-                    description=row["description"] or "" if "description" in keys else "",
-                    face_prompt=row["face_prompt"] or "" if "face_prompt" in keys else "",
+                    description=row["description"] or ""
+                    if "description" in keys
+                    else "",
+                    face_prompt=row["face_prompt"] or ""
+                    if "face_prompt" in keys
+                    else "",
                     appearance_details=(
-                        row["appearance_details"] or "" if "appearance_details" in keys else ""
+                        row["appearance_details"] or ""
+                        if "appearance_details" in keys
+                        else ""
                     ),
                     identities_json=(
-                        row["identities_json"] or "[]" if "identities_json" in keys else "[]"
+                        row["identities_json"] or "[]"
+                        if "identities_json" in keys
+                        else "[]"
                     ),
                     reference_audio_path=(
-                        row["reference_audio_path"] or "" if "reference_audio_path" in keys else ""
+                        row["reference_audio_path"] or ""
+                        if "reference_audio_path" in keys
+                        else ""
                     ),
                     reference_audio_sha256=(
                         row["reference_audio_sha256"] or ""
@@ -669,13 +709,21 @@ def _identity_prompt_fallback(identity_id: str, characters: list[Any]) -> str:
     if character is None:
         return _identity_display_label(identity_id)
 
-    face_prompt = _text(getattr(identity, "face_prompt", "")) if identity is not None else ""
+    face_prompt = (
+        _text(getattr(identity, "face_prompt", "")) if identity is not None else ""
+    )
     if not face_prompt:
         face_prompt = _text(getattr(character, "face_prompt", ""))
-    appearance = _text(getattr(identity, "appearance_details", "")) if identity is not None else ""
+    appearance = (
+        _text(getattr(identity, "appearance_details", ""))
+        if identity is not None
+        else ""
+    )
     if not appearance:
         appearance = _text(getattr(character, "appearance_details", ""))
-    body_type = _text(getattr(identity, "body_type", "")) if identity is not None else ""
+    body_type = (
+        _text(getattr(identity, "body_type", "")) if identity is not None else ""
+    )
     if not body_type:
         body_type = _text(getattr(character, "body_type", ""))
     parts = [part for part in (face_prompt, appearance, body_type) if part]
@@ -693,7 +741,8 @@ def _speaker_matches_character(speaker: str, character: Any) -> bool:
         return True
     aliases = getattr(character, "aliases", None) or []
     return any(
-        speaker_text == alias or speaker_display_name(speaker_text) == alias for alias in aliases
+        speaker_text == alias or speaker_display_name(speaker_text) == alias
+        for alias in aliases
     )
 
 
@@ -706,7 +755,9 @@ def _identity_for_speaker(speaker: str, character: Any, beat: dict[str, Any]):
         if _text(getattr(identity, "identity_id", "")) == speaker_text:
             return identity
 
-    if beat_speaker and speaker_display_name(beat_speaker) == getattr(character, "name", ""):
+    if beat_speaker and speaker_display_name(beat_speaker) == getattr(
+        character, "name", ""
+    ):
         for identity in identities:
             if _text(getattr(identity, "identity_id", "")) == beat_speaker:
                 return identity
@@ -719,21 +770,27 @@ def _identity_for_speaker(speaker: str, character: Any, beat: dict[str, Any]):
 
 def _voice_asset_label(character: Any, identity: Any | None) -> str:
     character_name = _text(getattr(character, "name", ""))
-    identity_name = _text(getattr(identity, "identity_name", "")) if identity is not None else ""
+    identity_name = (
+        _text(getattr(identity, "identity_name", "")) if identity is not None else ""
+    )
     if identity_name:
         return f"{character_name} · {identity_name}声线"
     return f"{character_name}声线"
 
 
 def _voice_asset_key(character: Any, identity: Any | None) -> str:
-    identity_id = _text(getattr(identity, "identity_id", "")) if identity is not None else ""
+    identity_id = (
+        _text(getattr(identity, "identity_id", "")) if identity is not None else ""
+    )
     if identity_id:
         return f"voice:{identity_id}"
     return f"voice:{_text(getattr(character, 'name', ''))}"
 
 
 def _voice_identity_id(character: Any, identity: Any | None) -> str:
-    identity_id = _text(getattr(identity, "identity_id", "")) if identity is not None else ""
+    identity_id = (
+        _text(getattr(identity, "identity_id", "")) if identity is not None else ""
+    )
     return identity_id or _text(getattr(character, "name", ""))
 
 
@@ -744,7 +801,9 @@ def _project_path(project_output: Path, stored_path: str) -> Path:
     return project_output / path
 
 
-def _stored_voice_candidate(project_output: Path, character: Any, identity: Any | None) -> Path:
+def _stored_voice_candidate(
+    project_output: Path, character: Any, identity: Any | None
+) -> Path:
     if identity is not None:
         stored = _text(getattr(identity, "reference_audio_path", ""))
         if stored:
@@ -763,11 +822,18 @@ def _stored_voice_candidate(project_output: Path, character: Any, identity: Any 
 
     character_name = _text(getattr(character, "name", ""))
     return (
-        project_output / "assets" / "characters" / character_name / "voices" / "voice_default.mp3"
+        project_output
+        / "assets"
+        / "characters"
+        / character_name
+        / "voices"
+        / "voice_default.mp3"
     )
 
 
-def _resolve_voice_path(project_output: Path, character: Any, identity: Any | None) -> Path:
+def _resolve_voice_path(
+    project_output: Path, character: Any, identity: Any | None
+) -> Path:
     resolution = resolve_character_voice(
         project_dir=project_output,
         character=character,
@@ -858,7 +924,9 @@ def _narration_voice_asset(
         style = DEFAULT_NARRATION_STYLE
 
     if style == "first_person":
-        protagonist = next((item for item in characters if getattr(item, "is_main", False)), None)
+        protagonist = next(
+            (item for item in characters if getattr(item, "is_main", False)), None
+        )
         if protagonist is not None:
             identities = list(getattr(protagonist, "identities", None) or [])
             identity = identities[0] if identities else None
@@ -929,7 +997,9 @@ def build_video_reference_assets(
     ) -> None:
         nonlocal next_image_number
         exists = path.exists()
-        validation_error = validate_video_reference_image(path) if exists and selected else ""
+        validation_error = (
+            validate_video_reference_image(path) if exists and selected else ""
+        )
         use = selected and exists and not validation_error
         image_number = next_image_number if use else None
         if image_number:
@@ -982,7 +1052,9 @@ def build_video_reference_assets(
         if audio_number:
             next_audio_number += 1
         asset_note = (
-            f"{note}；{validation_note}" if validation_note and note else (validation_note or note)
+            f"{note}；{validation_note}"
+            if validation_note and note
+            else (validation_note or note)
         )
         assets.append(
             VideoReferenceAsset(
@@ -1084,7 +1156,9 @@ def build_video_reference_assets(
         )
 
     resolved_characters = (
-        list(characters) if characters is not None else _load_sqlite_characters(project_output)
+        list(characters)
+        if characters is not None
+        else _load_sqlite_characters(project_output)
     )
     resolved_props = _load_sqlite_props(project_output)
     resolved_prop_menu = (
@@ -1128,12 +1202,16 @@ def build_video_reference_assets(
         prop_obj = _find_prop(prop_id, resolved_props)
         base_prop_id = _text(getattr(prop_obj, "name", "")) or prop_id
         prop_path = _prop_asset_path(project_output, base_prop_id)
-        menu_meta = _prop_menu_metadata(prop_id, resolved_prop_menu) or _prop_menu_metadata(
+        menu_meta = _prop_menu_metadata(
+            prop_id, resolved_prop_menu
+        ) or _prop_menu_metadata(
             base_prop_id,
             resolved_prop_menu,
         )
         is_global_prop = (
-            prop_obj is not None or bool(menu_meta.get("is_global_asset")) or prop_path.exists()
+            prop_obj is not None
+            or bool(menu_meta.get("is_global_asset"))
+            or prop_path.exists()
         )
         prop_scope = "global" if is_global_prop else "episode"
         prop_fallback = _prop_prompt_fallback(prop_id, resolved_props, menu_meta)
@@ -1198,11 +1276,15 @@ def build_video_reference_assets(
     return _limit_video_reference_images(assets)
 
 
-def selected_reference_paths(assets: list[VideoReferenceAsset], request_field: str) -> list[str]:
+def selected_reference_paths(
+    assets: list[VideoReferenceAsset], request_field: str
+) -> list[str]:
     return [
         str(asset.path)
         for asset in assets
-        if asset.selected and asset.request_field == request_field and asset.path.exists()
+        if asset.selected
+        and asset.request_field == request_field
+        and asset.path.exists()
     ]
 
 
@@ -1218,43 +1300,46 @@ def append_user_video_reference_assets(
     assets: list[VideoReferenceAsset],
     *,
     reference_image_paths: list[str],
+    reference_video_paths: list[str],
     reference_audio_paths: list[str],
 ) -> None:
-    auto_image_paths = {
-        str(asset.path)
-        for asset in assets
-        if asset.selected and asset.request_field == "reference_images"
-    }
-    auto_audio_paths = {
-        str(asset.path)
-        for asset in assets
-        if asset.selected and asset.request_field == "reference_audios"
+    auto_paths = {
+        request_field: {
+            str(asset.path)
+            for asset in assets
+            if asset.selected and asset.request_field == request_field
+        }
+        for request_field in (
+            "reference_images",
+            "reference_videos",
+            "reference_audios",
+        )
     }
     image_count = sum(
-        1 for asset in assets if asset.selected and asset.request_field == "reference_images"
+        1
+        for asset in assets
+        if asset.selected and asset.request_field == "reference_images"
+    )
+    video_count = sum(
+        1
+        for asset in assets
+        if asset.selected and asset.request_field == "reference_videos"
     )
     audio_count = sum(
-        1 for asset in assets if asset.selected and asset.request_field == "reference_audios"
+        1
+        for asset in assets
+        if asset.selected and asset.request_field == "reference_audios"
     )
-    for path in _user_reference_paths(list(reference_image_paths), auto_image_paths):
+    for path in _user_reference_paths(
+        list(reference_image_paths), auto_paths["reference_images"]
+    ):
         item_path = Path(path)
         validation_error = (
             validate_video_reference_image(item_path) if item_path.exists() else ""
         )
-        selected = (
-            item_path.exists()
-            and not validation_error
-            and image_count < MAX_VIDEO_REFERENCE_IMAGES
-        )
+        selected = item_path.exists() and not validation_error
         if selected:
             image_count += 1
-        overflow_note = (
-            f"超过单次最多 {MAX_VIDEO_REFERENCE_IMAGES} 张参考图，未发送。"
-            if item_path.exists()
-            and not validation_error
-            and not selected
-            else ""
-        )
         assets.append(
             VideoReferenceAsset(
                 key=f"user_image:{path}",
@@ -1265,11 +1350,31 @@ def append_user_video_reference_assets(
                 selected=selected,
                 request_field="reference_images" if selected else "",
                 reference_label=f"图片{image_count}" if selected else "未发送",
-                note=overflow_note,
                 validation_error=validation_error,
             )
         )
-    for path in _user_reference_paths(list(reference_audio_paths), auto_audio_paths):
+    for path in _user_reference_paths(
+        list(reference_video_paths), auto_paths["reference_videos"]
+    ):
+        video_count += 1
+        item_path = Path(path)
+        assets.append(
+            VideoReferenceAsset(
+                key=f"user_video:{path}",
+                label=item_path.name,
+                media_type="video",
+                path=item_path,
+                exists=item_path.exists(),
+                selected=item_path.exists(),
+                request_field="reference_videos" if item_path.exists() else "",
+                reference_label=f"视频{video_count}"
+                if item_path.exists()
+                else "未发送",
+            )
+        )
+    for path in _user_reference_paths(
+        list(reference_audio_paths), auto_paths["reference_audios"]
+    ):
         audio_count += 1
         item_path = Path(path)
         assets.append(
@@ -1280,10 +1385,63 @@ def append_user_video_reference_assets(
                 path=item_path,
                 exists=item_path.exists(),
                 selected=item_path.exists(),
-                request_field="reference_audios",
-                reference_label=f"音频{audio_count}",
+                request_field="reference_audios" if item_path.exists() else "",
+                reference_label=f"音频{audio_count}"
+                if item_path.exists()
+                else "未发送",
             )
         )
+
+
+def _limit_multimodal_reference_assets(
+    assets: list[VideoReferenceAsset],
+) -> list[VideoReferenceAsset]:
+    limits = {
+        "reference_images": MAX_VIDEO_REFERENCE_IMAGES,
+        "reference_videos": MAX_VIDEO_REFERENCE_VIDEOS,
+        "reference_audios": MAX_VIDEO_REFERENCE_AUDIOS,
+    }
+    labels = {
+        "reference_images": "图片",
+        "reference_videos": "视频",
+        "reference_audios": "音频",
+    }
+    counts = {field: 0 for field in limits}
+    total = 0
+    result: list[VideoReferenceAsset] = []
+    for asset in assets:
+        field = asset.request_field
+        if not asset.selected or field not in limits:
+            result.append(asset)
+            continue
+        if counts[field] >= limits[field] or total >= MAX_VIDEO_REFERENCE_FILES:
+            note = f"超过单次 {limits[field]} 个同类或 {MAX_VIDEO_REFERENCE_FILES} 个混合参考文件上限，未发送。"
+            result.append(
+                replace(
+                    asset,
+                    selected=False,
+                    request_field="",
+                    reference_label="未发送",
+                    note=f"{asset.note}；{note}" if asset.note else note,
+                    image_number=None,
+                    video_number=None,
+                    audio_number=None,
+                )
+            )
+            continue
+        counts[field] += 1
+        total += 1
+        sequence = counts[field]
+        result.append(
+            replace(
+                asset,
+                reference_label=f"{labels[field]}{sequence}",
+                image_number=sequence if field == "reference_images" else None,
+                video_number=sequence if field == "reference_videos" else None,
+                audio_number=sequence if field == "reference_audios" else None,
+            )
+        )
+    return result
 
 
 def apply_prompt_audio_selection(
@@ -1313,4 +1471,4 @@ def apply_prompt_audio_selection(
                 request_field="reference_audios" if should_send else "",
             )
         )
-    return result
+    return _limit_multimodal_reference_assets(result)

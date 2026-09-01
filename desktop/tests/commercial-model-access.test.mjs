@@ -1211,10 +1211,10 @@ test("video catalog synchronization sends only projected generation capabilities
                         "firstLastFrame",
                       ],
                       maxReferenceImages: 5,
+                      referenceTotalMax: 6,
                       referenceLimits: {
                         videos: 1,
                         audios: 0,
-                        total: 6,
                       },
                       referenceAudioMinSeconds: 1.8,
                       referenceAudioItemMaxDuration: 15.2,

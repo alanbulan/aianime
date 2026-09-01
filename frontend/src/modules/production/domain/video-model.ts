@@ -43,6 +43,7 @@ export interface VideoModelOption {
   referenceImageMax?: number;
   referenceVideoMax?: number;
   referenceAudioMax?: number;
+  referenceTotalMax?: number;
 }
 
 export function videoModelOptionsFromCatalog(
@@ -151,6 +152,7 @@ function videoModelOptionFromCatalog(
   const referenceImageMax = finiteNumber(capabilities.referenceImageMax);
   const referenceVideoMax = finiteNumber(capabilities.referenceVideoMax);
   const referenceAudioMax = finiteNumber(capabilities.referenceAudioMax);
+  const referenceTotalMax = finiteNumber(capabilities.referenceTotalMax);
   const hasCapabilityDrivenConfig = Boolean(
     supportedModes.length > 1 ||
       declaredResolutionOptions.length ||
@@ -162,7 +164,8 @@ function videoModelOptionFromCatalog(
       booleanValue(capabilities.nativeAudio) === true ||
       (referenceImageMax ?? 0) > 0 ||
       (referenceVideoMax ?? 0) > 0 ||
-      (referenceAudioMax ?? 0) > 0,
+      (referenceAudioMax ?? 0) > 0 ||
+      (referenceTotalMax ?? 0) > 0,
   );
   const supportsAdvancedConfig =
     booleanValue(capabilities.advancedConfig) ??
@@ -214,6 +217,7 @@ function videoModelOptionFromCatalog(
     ...optional("referenceImageMax", referenceImageMax),
     ...optional("referenceVideoMax", referenceVideoMax),
     ...optional("referenceAudioMax", referenceAudioMax),
+    ...optional("referenceTotalMax", referenceTotalMax),
   };
 }
 
