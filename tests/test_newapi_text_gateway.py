@@ -93,6 +93,48 @@ def test_model_gateway_text_provider_can_disable_system_proxy(monkeypatch):
             asyncio.run(http_client.aclose())
 
 
+def test_model_gateway_profile_keeps_thinking_and_uses_auto_for_structured_output():
+    import asyncio
+
+    from pydantic_ai.models import ModelRequestParameters
+    from pydantic_ai.tools import ToolDefinition
+
+    import ai_anime.modules.model_usage.infrastructure.model_runtime as config
+
+    model = config._model_gateway_text_openai_model(
+        "qwen3.8-flash",
+        api_key="key",
+        base_url="https://example.test/v1",
+        timeout_seconds=12.0,
+        profile=config._model_gateway_text_profile(),
+    )
+    http_client = model.provider._own_http_client
+    settings = {"openai_reasoning_effort": "low"}
+    try:
+        _, tool_choice = model._get_tool_choice(
+            settings,
+            ModelRequestParameters(
+                output_tools=[
+                    ToolDefinition(
+                        name="final_result",
+                        parameters_json_schema={
+                            "type": "object",
+                            "properties": {"value": {"type": "string"}},
+                            "required": ["value"],
+                        },
+                        kind="output",
+                    )
+                ],
+                allow_text_output=False,
+            ),
+        )
+    finally:
+        asyncio.run(http_client.aclose())
+
+    assert settings == {"openai_reasoning_effort": "low"}
+    assert tool_choice == "auto"
+
+
 def test_model_gateway_text_model_closes_owned_http_client_after_request(monkeypatch):
     import asyncio
     import uuid

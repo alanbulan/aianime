@@ -319,6 +319,9 @@ def test_text_model_factory_uses_role_default_and_router_endpoint(
     assert captured["model"] == "cloud-text"
     assert captured["base_url"] == "http://127.0.0.1:45678/v1"
     assert captured["api_key"] == "desktop-proxy-token"
+    assert captured["profile"] == {
+        "openai_supports_tool_choice_required": False,
+    }
 
     config.get_text_pydantic_model()
     assert captured["model"] == "cloud-text"

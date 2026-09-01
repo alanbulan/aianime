@@ -152,6 +152,13 @@ def _model_gateway_text_openai_model(
     )
 
 
+def _model_gateway_text_profile():
+    """Use safe defaults when an OpenAI-compatible relay omits model capabilities."""
+    from pydantic_ai.profiles.openai import OpenAIModelProfile
+
+    return OpenAIModelProfile(openai_supports_tool_choice_required=False)
+
+
 def get_text_pydantic_model(
     *,
     timeout_seconds_override: float | None = None,
@@ -177,7 +184,7 @@ def get_text_pydantic_model(
         api_key=api_key,
         base_url=base_url,
         timeout_seconds=timeout_seconds,
-        profile=None,
+        profile=_model_gateway_text_profile(),
         model_selector=str(model_selector or "").strip() or None,
     )
 

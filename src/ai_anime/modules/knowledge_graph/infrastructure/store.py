@@ -9,8 +9,11 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import date, datetime
 from pathlib import Path
+from threading import Lock
 from typing import Awaitable, Callable, Dict, List, Optional, Any, Iterable
 import json
 from importlib import import_module
@@ -67,21 +70,19 @@ from ai_anime.modules.narrative_planning.public import (
 console = Console()
 logger = logging.getLogger(__name__)
 _cognee_initialized_state_dirs: set[str] = set()
-_cognee_initialization_lock: asyncio.Lock | None = None
-_cognee_initialization_lock_loop = None
+_cognee_initialization_lock = Lock()
 
 
-def _get_cognee_initialization_lock() -> asyncio.Lock:
-    """Return a lock bound to the current event loop."""
-    global _cognee_initialization_lock, _cognee_initialization_lock_loop
-    loop = asyncio.get_running_loop()
-    if (
-        _cognee_initialization_lock is None
-        or _cognee_initialization_lock_loop is not loop
-    ):
-        _cognee_initialization_lock = asyncio.Lock()
-        _cognee_initialization_lock_loop = loop
-    return _cognee_initialization_lock
+@asynccontextmanager
+async def _cognee_initialization_guard() -> AsyncIterator[None]:
+    """Serialize Cognee setup across worker threads and event loops."""
+    while not _cognee_initialization_lock.acquire(blocking=False):
+        await asyncio.sleep(0.01)
+
+    try:
+        yield
+    finally:
+        _cognee_initialization_lock.release()
 
 
 def _json_list_payload(values: list[str]) -> str:
@@ -471,7 +472,7 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
     async def _initialize_cognee_storage(self) -> None:
         """Migrate and initialize the current project-local Cognee database."""
         state_key = str(Path(self.state_dir).resolve())
-        async with _get_cognee_initialization_lock():
+        async with _cognee_initialization_guard():
             # Cognee keeps storage paths in process-global configuration. Apply
             # the project context while holding the initialization lock so a
             # concurrent project cannot redirect Alembic midway through setup.
