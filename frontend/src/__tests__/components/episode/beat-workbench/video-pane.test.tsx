@@ -58,7 +58,7 @@ beforeAll(async () => {
                 videoReady: "视频",
                 videoReferences: "参考素材",
                 videoReferenceVoice: "声线",
-                videoReferenceStatSent: "{{count}} 已发送",
+                videoReferenceStatSent: "{{count}} 已选择",
                 videoReferenceStatInvalid: "{{count}} 不合规",
                 videoReferenceStatMissing: "{{count}} 文件缺失",
                 videoReferenceStatUnused: "{{count}} 未引用",
@@ -67,12 +67,12 @@ beforeAll(async () => {
                 videoReferenceAtReferences: "@ 引用",
                 videoReferenceMentionCandidates: "引用候选",
                 videoReferenceDetails: "参考素材详情",
-                videoReferenceSent: "已发送",
+                videoReferenceSent: "已选择",
                 videoReferenceInvalid: "不合规",
                 videoReferenceMissing: "缺失",
                 videoReferenceFallback: "缺参考图",
                 videoReferenceUnused: "未引用",
-                videoReferenceProblemTitle: "以下素材未发送，请先处理：",
+                videoReferenceProblemTitle: "以下素材不可用于本次请求，请先处理：",
                 videoReferenceProblemItem: "{{label}}：{{detail}}",
                 videoReferenceImage: "参考图",
                 videoReferenceEmpty: "暂无参考素材",
@@ -1097,7 +1097,7 @@ describe("VideoPane VideoReference inspector", () => {
     expect(screen.getAllByRole("button", { name: "裁剪" }).length).toBeGreaterThan(0);
     expect(screen.getByText("声线就绪")).toBeInTheDocument();
     expect(
-      screen.getAllByText("4 已发送 · 1 未引用 · 1 文本替代").length,
+      screen.getAllByText("4 已选择 · 1 未引用 · 1 文本替代").length,
     ).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "画面文字" })).not.toBeInTheDocument();
     expect(
@@ -1135,13 +1135,13 @@ describe("VideoPane VideoReference inspector", () => {
     renderPane();
 
     expect(screen.getByText("声线不合规")).toBeInTheDocument();
-    expect(screen.getAllByText("0 已发送 · 1 不合规").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("0 已选择 · 1 不合规").length).toBeGreaterThan(0);
     expect(
-      screen.getByText("以下素材未发送，请先处理："),
+      screen.getByText("以下素材不可用于本次请求，请先处理："),
     ).toBeInTheDocument();
     expect(screen.getAllByText(validationError).length).toBeGreaterThan(0);
     expect(screen.getByText("不合规")).toBeInTheDocument();
-    expect(screen.queryByText("0 已发送 · 1 文件缺失")).not.toBeInTheDocument();
+    expect(screen.queryByText("0 已选择 · 1 文件缺失")).not.toBeInTheDocument();
     expect(screen.queryByText("未引用")).not.toBeInTheDocument();
   });
 
