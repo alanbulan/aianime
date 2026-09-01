@@ -508,9 +508,7 @@ function resolveModelLabel(
   catalogItemsByCode: ReadonlyMap<string, CommercialModelCatalogItem>,
   t: (key: string, options?: Record<string, unknown>) => string,
 ): string {
-  const item = invocation.modelSkuCode
-    ? catalogItemsByCode.get(normalizeModelCode(invocation.modelSkuCode))
-    : undefined;
+  const item = catalogItemsByCode.get(normalizeModelCode(invocation.modelCode));
   if (item?.displayName.trim()) return item.displayName.trim();
   return t("settings.invocations.unknownModel");
 }

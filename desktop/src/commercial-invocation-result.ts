@@ -6,12 +6,12 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
 export interface CommercialInvocationResultClient {
-  invocationResult(id: string | number): Promise<Response>;
+  invocationResult(id: string): Promise<Response>;
 }
 
 export async function saveCommercialInvocationResult(
   client: CommercialInvocationResultClient,
-  id: string | number,
+  id: string,
   selectFilePath: (suggestedName: string) => Promise<string | null>,
 ): Promise<{ saved: boolean; fileName?: string }> {
   const response = await client.invocationResult(id);
@@ -52,7 +52,7 @@ export async function saveCommercialInvocationResult(
 
 function commercialResultFileName(
   contentDisposition: string | null,
-  id: string | number,
+  id: string,
 ): string {
   const fallback = `AI-anime-result-${String(id)}.bin`;
   const encoded = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition ?? "")?.[1];

@@ -28,7 +28,6 @@ import {
   type CommercialRememberedLoginInput,
   type CommercialModelCatalogQuery,
   type CommercialProfileUpdateInput,
-  type CommercialRegistrationInput,
 } from "./commercial-api-client.js";
 
 export interface CommercialLeaseVerificationOptions {
@@ -837,26 +836,61 @@ export function verifyAuthorizationLease(
 
 export function parseLoginInput(value: unknown): CommercialLoginInput {
   const input = requiredRecord(value, "login");
+  const loginType = requiredText(input.loginType, "loginType").toUpperCase();
   const rememberMe = input.rememberMe;
   if (rememberMe !== undefined && typeof rememberMe !== "boolean") {
     throw new CommercialApiError("rememberMe 必须是布尔值");
   }
-  const captchaKey = optionalText(input.captchaKey);
-  const captchaCode = optionalText(input.captchaCode);
-  return {
-    tenantCode: requiredText(input.tenantCode, "tenantCode"),
-    username: requiredText(input.username, "username"),
-    password: requiredRawText(input.password, "password"),
-    ...(rememberMe === undefined ? {} : { rememberMe }),
-    ...(captchaKey ? { captchaKey } : {}),
-    ...(captchaCode ? { captchaCode } : {}),
-  };
+  if (loginType === "PASSWORD") {
+    assertAllowedFields(input, "password login", [
+      "loginType",
+      "tenantCode",
+      "username",
+      "password",
+      "rememberMe",
+      "captchaKey",
+      "captchaCode",
+    ]);
+    const captchaKey = optionalText(input.captchaKey);
+    const captchaCode = optionalText(input.captchaCode);
+    return {
+      loginType: "PASSWORD",
+      tenantCode: requiredText(input.tenantCode, "tenantCode"),
+      username: requiredText(input.username, "username"),
+      password: requiredRawText(input.password, "password"),
+      ...(rememberMe === undefined ? {} : { rememberMe }),
+      ...(captchaKey ? { captchaKey } : {}),
+      ...(captchaCode ? { captchaCode } : {}),
+    };
+  }
+  if (loginType === "SMS") {
+    assertAllowedFields(input, "SMS login", [
+      "loginType",
+      "tenantCode",
+      "phone",
+      "smsCode",
+      "rememberMe",
+    ]);
+    return {
+      loginType: "SMS",
+      tenantCode: requiredText(input.tenantCode, "tenantCode"),
+      phone: requiredText(input.phone, "phone"),
+      smsCode: requiredText(input.smsCode, "smsCode"),
+      ...(rememberMe === undefined ? {} : { rememberMe }),
+    };
+  }
+  throw new CommercialApiError("loginType 必须是 PASSWORD 或 SMS");
 }
 
 export function parseRememberedLoginInput(
   value: unknown,
 ): CommercialRememberedLoginInput {
   const input = requiredRecord(value, "remembered login");
+  assertAllowedFields(input, "remembered login", [
+    "captchaCode",
+    "captchaKey",
+    "rememberMe",
+  ]);
   const rememberMe = input.rememberMe;
   if (rememberMe !== undefined && typeof rememberMe !== "boolean") {
     throw new CommercialApiError("rememberMe 必须是布尔值");
@@ -865,23 +899,6 @@ export function parseRememberedLoginInput(
   const captchaCode = optionalText(input.captchaCode);
   return {
     ...(rememberMe === undefined ? {} : { rememberMe }),
-    ...(captchaKey ? { captchaKey } : {}),
-    ...(captchaCode ? { captchaCode } : {}),
-  };
-}
-
-export function parseRegistrationInput(value: unknown): CommercialRegistrationInput {
-  const input = requiredRecord(value, "registration");
-  const nickname = optionalText(input.nickname);
-  const email = optionalText(input.email);
-  const captchaKey = optionalText(input.captchaKey);
-  const captchaCode = optionalText(input.captchaCode);
-  return {
-    tenantCode: requiredText(input.tenantCode, "tenantCode"),
-    username: requiredText(input.username, "username"),
-    password: requiredRawText(input.password, "password"),
-    ...(nickname ? { nickname } : {}),
-    ...(email ? { email } : {}),
     ...(captchaKey ? { captchaKey } : {}),
     ...(captchaCode ? { captchaCode } : {}),
   };
@@ -889,6 +906,13 @@ export function parseRegistrationInput(value: unknown): CommercialRegistrationIn
 
 export function parseProfileUpdateInput(value: unknown): CommercialProfileUpdateInput {
   const input = requiredRecord(value, "profile update");
+  assertAllowedFields(input, "profile update", [
+    "email",
+    "gender",
+    "nickname",
+    "phone",
+    "profileDescription",
+  ]);
   const gender = requiredInteger(input.gender, "gender");
   if (gender !== 0 && gender !== 1 && gender !== 2) {
     throw new CommercialApiError("gender 只能为 0、1 或 2");
@@ -956,25 +980,49 @@ export function parseModelCatalogQuery(value: unknown): {
 
 export function parseInvocationQuery(value: unknown): CommercialInvocationQuery {
   const input = optionalRecord(value);
-  const page = input.page === undefined ? undefined : requiredInteger(input.page, "page");
-  const pageSize =
-    input.pageSize === undefined
+  assertAllowedFields(input, "invocation query", [
+    "status",
+    "operation",
+    "modelCode",
+    "limit",
+    "offset",
+  ]);
+  const limit =
+    input.limit === undefined
       ? undefined
-      : requiredInteger(input.pageSize, "pageSize");
-  if (page !== undefined && page < 1) {
-    throw new CommercialApiError("page 必须大于等于 1");
+      : requiredInteger(input.limit, "limit");
+  const offset =
+    input.offset === undefined
+      ? undefined
+      : requiredInteger(input.offset, "offset");
+  if (limit !== undefined && (limit < 1 || limit > 100)) {
+    throw new CommercialApiError("limit 必须是 1 到 100 之间的整数");
   }
-  if (pageSize !== undefined && (pageSize < 1 || pageSize > 100)) {
-    throw new CommercialApiError("pageSize 必须是 1 到 100 之间的整数");
+  if (offset !== undefined && offset < 0) {
+    throw new CommercialApiError("offset 必须大于等于 0");
   }
   const status = optionalText(input.status);
   const operation = optionalText(input.operation);
-  const modelSkuCode = optionalText(input.modelSkuCode);
+  const modelCode = optionalText(input.modelCode);
   return {
-    ...(page === undefined ? {} : { page }),
-    ...(pageSize === undefined ? {} : { pageSize }),
     ...(status ? { status } : {}),
     ...(operation ? { operation } : {}),
-    ...(modelSkuCode ? { modelSkuCode } : {}),
+    ...(modelCode ? { modelCode } : {}),
+    ...(limit === undefined ? {} : { limit }),
+    ...(offset === undefined ? {} : { offset }),
   };
+}
+
+function assertAllowedFields(
+  input: Record<string, unknown>,
+  name: string,
+  allowed: readonly string[],
+): void {
+  const allowedSet = new Set(allowed);
+  const unexpected = Object.keys(input).filter((field) => !allowedSet.has(field));
+  if (unexpected.length > 0) {
+    throw new CommercialApiError(
+      `${name} 包含未声明字段：${unexpected.sort().join(", ")}`,
+    );
+  }
 }

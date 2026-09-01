@@ -37,6 +37,15 @@ const passthroughSecureStorage = {
   decryptString: (value) => value.toString("utf8"),
 };
 
+const TEST_IDS = {
+  license: "11111111-1111-4111-8111-111111111111",
+  device: "22222222-2222-4222-8222-222222222222",
+  activation: "33333333-3333-4333-8333-333333333333",
+  lease: "44444444-4444-4444-8444-444444444444",
+  model: "55555555-5555-4555-8555-555555555555",
+  artifact: "66666666-6666-4666-8666-666666666666",
+};
+
 const loginResponse = {
   accessToken: "client-jwt",
   expiresIn: 3600,
@@ -55,6 +64,38 @@ const loginResponse = {
   },
 };
 
+const quotaResponse = {
+  account: {
+    id: "77777777-7777-4777-8777-777777777777",
+    subjectType: "USER",
+    subjectId: 1001,
+    status: "ACTIVE",
+    availableUnits: 100,
+    reservedUnits: 0,
+    version: 1,
+  },
+  buckets: [],
+  spendableUnits: 100,
+};
+
+function modelItem(overrides = {}) {
+  return {
+    id: TEST_IDS.model,
+    code: "cloud-text",
+    displayName: "Cloud Text",
+    operation: "TEXT",
+    capabilityJson: "{}",
+    parameterSchemaJson: "{}",
+    unitsPerCall: 1,
+    clientVisible: true,
+    status: "ACTIVE",
+    createdAt: "2026-08-01T00:00:00Z",
+    updatedAt: "2026-08-01T00:00:00Z",
+    isDefault: true,
+    ...overrides,
+  };
+}
+
 test("login persists the secret but returns only a renderer-safe summary", async () => {
   const calls = [];
   const store = new MemorySessionStore();
@@ -69,6 +110,7 @@ test("login persists the secret but returns only a renderer-safe summary", async
   });
 
   const summary = await client.login({
+    loginType: "PASSWORD",
     tenantCode: "customer-a",
     username: "client_user",
     password: "secret",
@@ -88,6 +130,7 @@ test("login persists the secret but returns only a renderer-safe summary", async
   });
   assert.equal(calls[0].url, "https://gateway.test/api/v1/client/auth/login");
   assert.deepEqual(JSON.parse(calls[0].init.body), {
+    loginType: "PASSWORD",
     tenantCode: "customer-a",
     username: "client_user",
     password: "secret",
@@ -108,6 +151,7 @@ test("remembered credentials stay hidden until the renderer explicitly reveals t
   });
 
   await client.login({
+    loginType: "PASSWORD",
     tenantCode: "customer-a",
     username: "client_user",
     password: "secret",
@@ -133,6 +177,7 @@ test("login without remember-me keeps the session only for the current process",
   });
 
   const session = await client.login({
+    loginType: "PASSWORD",
     tenantCode: "customer-a",
     username: "client_user",
     password: "secret",
@@ -150,36 +195,40 @@ test("login without remember-me keeps the session only for the current process",
   assert.equal(await restartedClient.restoreSession(), null);
 });
 
-test("public registration sends only the documented account fields", async () => {
+test("SMS code and SMS login use the explicit client-only contract", async () => {
   const calls = [];
   const client = new CommercialApiClient({
     baseUrl: "https://gateway.test",
     sessionStore: new MemorySessionStore(),
     fetchImpl: async (url, init) => {
       calls.push({ url: String(url), init });
-      return new Response(null, { status: 204 });
+      return String(url).endsWith("/api/v1/auth/sms-code")
+        ? Response.json({ success: true, message: "sent" })
+        : Response.json(loginResponse);
     },
   });
 
-  await client.register({
+  await client.sendSmsLoginCode("customer-a", "+8613800000000");
+  await client.login({
+    loginType: "SMS",
     tenantCode: "customer-a",
-    username: "new-user",
-    password: "Secret123",
-    nickname: "New User",
-    email: "new@example.com",
-    captchaKey: "captcha-key",
-    captchaCode: "ABCD",
+    phone: "+8613800000000",
+    smsCode: "123456",
+    rememberMe: true,
   });
 
-  assert.equal(calls[0].url, "https://gateway.test/api/v1/auth/register");
+  assert.equal(calls[0].url, "https://gateway.test/api/v1/auth/sms-code");
   assert.deepEqual(JSON.parse(calls[0].init.body), {
     tenantCode: "customer-a",
-    username: "new-user",
-    password: "Secret123",
-    nickname: "New User",
-    email: "new@example.com",
-    captchaKey: "captcha-key",
-    captchaCode: "ABCD",
+    phone: "+8613800000000",
+    scene: "login",
+  });
+  assert.deepEqual(JSON.parse(calls[1].init.body), {
+    loginType: "SMS",
+    tenantCode: "customer-a",
+    phone: "+8613800000000",
+    smsCode: "123456",
+    rememberMe: true,
   });
   assert.equal(new Headers(calls[0].init.headers).has("Authorization"), false);
 });
@@ -206,7 +255,13 @@ test("concurrent authenticated calls single-flight an expiring token refresh", a
         await Promise.resolve();
         return Response.json({ accessToken: "new-jwt", expiresIn: 3600 });
       }
-      return Response.json({ ok: true });
+      if (href.endsWith("/api/v1/client/quota/balance")) {
+        return Response.json(quotaResponse);
+      }
+      if (href.includes("/api/v1/client/models")) {
+        return Response.json({ items: [modelItem()], catalogVersion: "v1" });
+      }
+      throw new Error(`unexpected request ${href}`);
     },
   });
 
@@ -268,6 +323,7 @@ test("remembered login automatically reauthenticates after refresh is rejected",
     ],
   );
   assert.deepEqual(JSON.parse(calls[1].init.body), {
+    loginType: "PASSWORD",
     tenantCode: "customer-a",
     username: "client_user",
     password: "secret",
@@ -428,7 +484,10 @@ test("logout clears the local secret when remote revocation is offline", async (
     },
   });
 
-  assert.deepEqual(await client.logout(), { remoteRevoked: false });
+  assert.deepEqual(await client.logout(), {
+    remoteRevoked: false,
+    success: false,
+  });
   assert.equal(store.value, null);
 });
 
@@ -458,7 +517,10 @@ test("explicit logout clears the token but preserves remembered credentials", as
     },
   });
 
-  assert.deepEqual(await client.logout(), { remoteRevoked: false });
+  assert.deepEqual(await client.logout(), {
+    remoteRevoked: false,
+    success: false,
+  });
   assert.equal(sessionStore.value, null);
   assert.deepEqual(rememberedLoginStore.value, {
     schemaVersion: 1,
@@ -488,11 +550,12 @@ test("remembered credentials survive explicit logout and client re-instantiation
       fetchImpl: async (url) =>
         String(url).endsWith("/api/v1/client/auth/login")
           ? Response.json(loginResponse)
-          : new Response(null, { status: 204 }),
+          : Response.json({ success: true }),
     });
 
   const client = createClient();
   await client.login({
+    loginType: "PASSWORD",
     tenantCode: "customer-a",
     username: "client_user",
     password: "secret",
@@ -532,7 +595,20 @@ function authenticatedClient(fetchImpl, options = {}) {
 test("commercial model catalog and details send the activated device id", async () => {
   const calls = [];
   const client = authenticatedClient(async (url, init) => {
-    calls.push({ url: String(url), init });
+    const target = String(url);
+    calls.push({ url: target, init });
+    if (target.endsWith("/api/v1/client/models/DEMO_TEXT")) {
+      return Response.json(modelItem({ code: "DEMO_TEXT" }));
+    }
+    if (target.includes("/api/v1/client/bootstrap")) {
+      return Response.json({
+        softwareAuthorization: null,
+        personalQuota: null,
+        models: null,
+        release: null,
+        warnings: [],
+      });
+    }
     return Response.json({ catalogVersion: "catalog-v1", items: [] });
   });
   const deviceId = "2217d912-c377-42de-b2eb-759cf172bae2";
@@ -582,11 +658,11 @@ test("release update feed keeps the access token in the main process", async () 
     throw new Error("releaseUpdateFeed must not make a network request");
   });
 
-  const feed = await client.releaseUpdateFeed(1201);
+  const feed = await client.releaseUpdateFeed(TEST_IDS.artifact);
 
   assert.equal(
     feed.url,
-    "https://gateway.test/api/v1/client/releases/updater/?artifactId=1201",
+    `https://gateway.test/api/v1/client/releases/updater/?artifactId=${TEST_IDS.artifact}`,
   );
   assert.deepEqual(feed.requestHeaders, {
     Authorization: "Bearer client-jwt",
@@ -734,10 +810,26 @@ test("password change revokes the stored session and public reset uses three ste
     now: () => 1_000,
     fetchImpl: async (url, init) => {
       calls.push({ url: String(url), init });
-      if (String(url).endsWith("/reset-password/verify")) {
+      const target = String(url);
+      if (target.endsWith("/reset-password/verify")) {
         return Response.json({ resetTicket: "single-use-ticket", expiresIn: 600 });
       }
-      return Response.json({ success: true });
+      if (target.endsWith("/api/v1/user/password")) {
+        return Response.json({
+          success: true,
+          sessionsRevoked: true,
+          tokenReissued: false,
+        });
+      }
+      if (target.endsWith("/api/v1/auth/email-code")) {
+        return Response.json({ success: true, message: "sent" });
+      }
+      return Response.json({
+        success: true,
+        message: "reset",
+        sessionsRevoked: true,
+        tokenReissued: false,
+      });
     },
   });
 
@@ -769,6 +861,40 @@ test("password change revokes the stored session and public reset uses three ste
     resetTicket: "single-use-ticket",
     newPassword: " New password ",
   });
+});
+
+test("unsuccessful command responses fail without mutating the active session", async () => {
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "client-jwt",
+    expiresAtEpochMs: Date.now() + 3_600_000,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    fetchImpl: async (url) =>
+      String(url).endsWith("/api/v1/user/password")
+        ? Response.json({
+            success: false,
+            sessionsRevoked: false,
+            tokenReissued: false,
+          })
+        : Response.json({ success: false, message: "SMS delivery failed" }),
+  });
+
+  await assert.rejects(
+    client.sendSmsLoginCode("customer-a", "+8613800000000"),
+    /SMS delivery failed/,
+  );
+  await assert.rejects(
+    client.changePassword("old-password", "new-password"),
+    /修改密码失败/,
+  );
+  assert.equal(store.value.accessToken, "client-jwt");
 });
 
 test("plain HTTP is restricted to loopback addresses", () => {
@@ -903,18 +1029,25 @@ test("license challenge and activation reuse one request ID", async () => {
       calls.push({ url: String(url), body: JSON.parse(init.body) });
       if (String(url).endsWith("/challenge")) {
         return Response.json({
-          id: "challenge-id",
+          id: "77777777-7777-4777-8777-777777777777",
+          licenseId: TEST_IDS.license,
+          publicKeyHash: "public-key-hash",
           challenge: "random-value",
           message: " exact bytes ",
+          expiresAt: "2026-08-01T00:05:00Z",
           signatureAlgorithm: "Ed25519",
         });
       }
-      return Response.json({ device: {}, activation: {}, lease: {} });
+      return Response.json({
+        activationId: TEST_IDS.activation,
+        leaseId: TEST_IDS.lease,
+        expiresAt: "2026-08-02T00:00:00Z",
+      });
     },
   });
 
   await client.activateLicense({
-    licenseId: "license-id",
+    licenseId: TEST_IDS.license,
     device: {
       summary: async () => ({
         publicKey: "public-key",

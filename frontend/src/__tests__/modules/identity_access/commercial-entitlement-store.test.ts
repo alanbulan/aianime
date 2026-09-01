@@ -6,9 +6,16 @@ import type { CommercialEntitlement } from "@/modules/identity_access/domain/com
 
 const deactivatedEntitlement: CommercialEntitlement = {
   license: {
-    id: "license-1",
+    id: "11111111-1111-4111-8111-111111111111",
+    versionCode: "standard-2026",
+    versionName: "Standard",
     editionType: "STANDARD",
     allowsCustomModels: false,
+    status: "ACTIVE",
+    validFrom: "2026-01-01T00:00:00Z",
+    validUntil: "2027-01-01T00:00:00Z",
+    maxDevices: 1,
+    activeDevices: 0,
   },
   device: null,
   activation: null,

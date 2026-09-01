@@ -10,7 +10,6 @@ import type {
   CommercialRememberedLogin,
   CommercialProfileUpdateInput,
   CommercialPublicConfig,
-  CommercialRegistrationInput,
   CommercialSession,
   CommercialUserProfile,
 } from "@/modules/identity_access/domain/commercial-session";
@@ -31,7 +30,7 @@ export interface CommercialAuthState {
   setTenantCode: (tenantCode: string) => void;
   loadPublicConfig: (tenantCode?: string) => Promise<CommercialPublicConfig>;
   refreshCaptcha: () => Promise<CommercialCaptcha>;
-  register: (input: CommercialRegistrationInput) => Promise<void>;
+  sendSmsLoginCode: (phone: string) => Promise<void>;
   login: (input: CommercialLoginInput) => Promise<CommercialSession>;
   loginRemembered: (
     rememberMe: boolean,
@@ -111,12 +110,10 @@ export function createCommercialAuthStore(
       if (!tenantCode) throw new Error("Tenant code is required");
       const publicConfig = await gateway.fetchPublicConfig(tenantCode);
       let logoDataUrl: string | null = null;
-      if (publicConfig.system.logo) {
-        try {
-          logoDataUrl = (await gateway.fetchPublicLogo(tenantCode)).dataUrl;
-        } catch {
-          // Branding remains usable when the optional binary Logo is unavailable.
-        }
+      try {
+        logoDataUrl = (await gateway.fetchPublicLogo(tenantCode)).dataUrl;
+      } catch {
+        // Branding remains usable when the optional binary Logo is unavailable.
       }
       let captcha: CommercialCaptcha | null = null;
       if (publicConfig.login.captchaEnabled) {
@@ -133,40 +130,17 @@ export function createCommercialAuthStore(
       set({ captcha });
       return captcha;
     },
-    register: async (input) => {
-      const tenantCode = input.tenantCode.trim();
-      const state = get();
-      let publicConfig = state.publicConfig;
-      if (!publicConfig || state.tenantCode !== tenantCode) {
-        publicConfig = await state.loadPublicConfig(tenantCode);
+    sendSmsLoginCode: async (phone) => {
+      const tenantCode = get().tenantCode.trim();
+      if (!tenantCode) throw new Error("Tenant code is required");
+      let publicConfig = get().publicConfig;
+      if (!publicConfig) {
+        publicConfig = await get().loadPublicConfig(tenantCode);
       }
-      if (!publicConfig.register?.enabled) {
-        throw new Error("Registration is disabled for this tenant");
+      if (!publicConfig.login.smsLoginEnabled) {
+        throw new Error("SMS login is disabled for this tenant");
       }
-      if (
-        publicConfig.register.verifyEmail ||
-        publicConfig.register.verifyPhone
-      ) {
-        throw new Error("Registration verification contract is unavailable");
-      }
-      const captcha = get().captcha;
-      if (publicConfig.login.captchaEnabled && !input.captchaCode?.trim()) {
-        throw new Error("Captcha code is required");
-      }
-      try {
-        await gateway.register({
-          ...input,
-          tenantCode,
-          ...(publicConfig.login.captchaEnabled && captcha
-            ? { captchaKey: captcha.key, captchaCode: input.captchaCode!.trim() }
-            : {}),
-        });
-      } catch (error) {
-        if (publicConfig.login.captchaEnabled) {
-          await get().refreshCaptcha().catch(() => undefined);
-        }
-        throw error;
-      }
+      await gateway.sendSmsLoginCode(tenantCode, phone.trim());
     },
     login: async (input) => {
       const tenantCode = input.tenantCode.trim();
@@ -175,36 +149,52 @@ export function createCommercialAuthStore(
       if (!publicConfig || state.tenantCode !== tenantCode) {
         publicConfig = await state.loadPublicConfig(tenantCode);
       }
+      const isPasswordLogin = input.loginType === "PASSWORD";
+      if (!isPasswordLogin && !publicConfig.login.smsLoginEnabled) {
+        throw new Error("SMS login is disabled for this tenant");
+      }
       const captcha = get().captcha;
-      if (publicConfig.login.captchaEnabled && !input.captchaCode?.trim()) {
+      if (
+        isPasswordLogin &&
+        publicConfig.login.captchaEnabled &&
+        !input.captchaCode?.trim()
+      ) {
         throw new Error("Captcha code is required");
       }
       try {
-        const session = await gateway.login({
-          ...input,
-          tenantCode,
-          ...(publicConfig.login.captchaEnabled && captcha
-            ? { captchaKey: captcha.key, captchaCode: input.captchaCode!.trim() }
-            : {}),
-        });
+        const session = await gateway.login(
+          isPasswordLogin
+            ? {
+                ...input,
+                tenantCode,
+                ...(publicConfig.login.captchaEnabled && captcha
+                  ? {
+                      captchaKey: captcha.key,
+                      captchaCode: input.captchaCode!.trim(),
+                    }
+                  : {}),
+              }
+            : { ...input, tenantCode },
+        );
         tenantPreference.write(tenantCode);
         set({
           availability: "configured",
           tenantCode,
           session,
           captcha: null,
-          rememberedLogin: input.rememberMe
-            ? {
-                tenantCode,
-                username: input.username.trim(),
-                hasPassword: true,
-              }
-            : null,
+          rememberedLogin:
+            isPasswordLogin && input.rememberMe
+              ? {
+                  tenantCode,
+                  username: input.username.trim(),
+                  hasPassword: true,
+                }
+              : null,
         });
         await get().loadProfile().catch(() => undefined);
         return session;
       } catch (error) {
-        if (publicConfig.login.captchaEnabled) {
+        if (isPasswordLogin && publicConfig.login.captchaEnabled) {
           await get().refreshCaptcha().catch(() => undefined);
         }
         throw error;
@@ -360,9 +350,9 @@ function mergeProfileIntoSession(
     user: {
       id: profile.id,
       username: profile.username,
-      ...(profile.nickname ? { nickname: profile.nickname } : {}),
-      ...(profile.email ? { email: profile.email } : {}),
-      ...(profile.avatar ? { avatar: profile.avatar } : {}),
+      nickname: profile.nickname,
+      email: profile.email,
+      avatar: profile.avatar,
     },
   };
 }

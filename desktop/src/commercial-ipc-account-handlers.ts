@@ -2,13 +2,12 @@
 
 import {
   requiredRawText,
-  requiredRecord,
   requiredText,
 } from "./commercial-api-client.js";
+import { strictRecord } from "./commercial-api-validation.js";
 import {
   parseLoginInput,
   parseProfileUpdateInput,
-  parseRegistrationInput,
   parseRememberedLoginInput,
   requiredBytes,
 } from "./commercial-ipc-support.js";
@@ -31,9 +30,6 @@ export function registerCommercialAccountHandlers(
   );
   context.handle(channels.publicCaptcha, (input) =>
     client.publicCaptcha(requiredText(input, "tenantCode")),
-  );
-  context.handle(channels.register, (input) =>
-    client.register(parseRegistrationInput(input)),
   );
   context.handle(channels.session, async () => {
     const session = await client.restoreSession();
@@ -70,7 +66,11 @@ export function registerCommercialAccountHandlers(
   );
   context.handle(channels.avatar, () => client.currentAvatar());
   context.handle(channels.uploadAvatar, async (input) => {
-    const upload = requiredRecord(input, "avatar upload");
+    const upload = strictRecord(input, "avatar upload", [
+      "bytes",
+      "contentType",
+      "fileName",
+    ]);
     const contentType = requiredText(
       upload.contentType,
       "contentType",
@@ -94,31 +94,56 @@ export function registerCommercialAccountHandlers(
     return { profile: await client.currentProfile() };
   });
   context.handle(channels.changePassword, async (input) => {
-    const body = requiredRecord(input, "change password");
-    await client.changePassword(
+    const body = strictRecord(input, "change password", [
+      "newPassword",
+      "oldPassword",
+    ]);
+    const result = await client.changePassword(
       requiredRawText(body.oldPassword, "oldPassword"),
       requiredRawText(body.newPassword, "newPassword"),
     );
     await context.clearAuthenticatedState();
+    return result;
   });
-  context.handle(channels.sendPasswordResetCode, async (input) => {
-    const body = requiredRecord(input, "send password reset code");
-    await client.sendPasswordResetCode(
+  context.handle(channels.sendSmsLoginCode, (input) => {
+    const body = strictRecord(input, "send SMS login code", [
+      "phone",
+      "tenantCode",
+    ]);
+    return client.sendSmsLoginCode(
+      requiredText(body.tenantCode, "tenantCode"),
+      requiredText(body.phone, "phone"),
+    );
+  });
+  context.handle(channels.sendPasswordResetCode, (input) => {
+    const body = strictRecord(input, "send password reset code", [
+      "email",
+      "tenantCode",
+    ]);
+    return client.sendPasswordResetCode(
       requiredText(body.tenantCode, "tenantCode"),
       requiredText(body.email, "email"),
     );
   });
   context.handle(channels.verifyPasswordResetCode, (input) => {
-    const body = requiredRecord(input, "verify password reset code");
+    const body = strictRecord(input, "verify password reset code", [
+      "code",
+      "email",
+      "tenantCode",
+    ]);
     return client.verifyPasswordResetCode(
       requiredText(body.tenantCode, "tenantCode"),
       requiredText(body.email, "email"),
       requiredText(body.code, "code"),
     );
   });
-  context.handle(channels.resetPassword, async (input) => {
-    const body = requiredRecord(input, "reset password");
-    await client.resetPassword(
+  context.handle(channels.resetPassword, (input) => {
+    const body = strictRecord(input, "reset password", [
+      "newPassword",
+      "resetTicket",
+      "tenantCode",
+    ]);
+    return client.resetPassword(
       requiredText(body.tenantCode, "tenantCode"),
       requiredText(body.resetTicket, "resetTicket"),
       requiredRawText(body.newPassword, "newPassword"),

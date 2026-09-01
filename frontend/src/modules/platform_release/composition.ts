@@ -30,12 +30,12 @@ export const { useCommercialAnnouncements } = commercialAnnouncementQueries;
 export const { useCommercialRelease } = commercialReleaseQueries;
 
 export function downloadCommercialUpdate(
-  artifactId: string | number,
+  artifactId: string,
 ): Promise<{ version: string }> {
   return electronCommercialReleaseGateway.downloadUpdate(artifactId);
 }
 
-export function installCommercialUpdate(): Promise<void> {
+export function installCommercialUpdate(): Promise<{ accepted: boolean }> {
   return electronCommercialReleaseGateway.installUpdate();
 }
 

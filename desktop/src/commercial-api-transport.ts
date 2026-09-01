@@ -2,7 +2,10 @@
 
 import { randomUUID } from "node:crypto";
 
-import { authorizationDeviceId } from "./commercial-contracts.js";
+import {
+  parseCommercialAuthorizationWire,
+  type CommercialAuthorizationWire,
+} from "./commercial-contracts.js";
 import { CommercialApiError } from "./commercial-api-error.js";
 import { requiredText } from "./commercial-api-validation.js";
 import {
@@ -11,6 +14,7 @@ import {
   isPermanentLoginFailure,
   normalizeGatewayBaseUrl,
   parseLoginResponse,
+  parseLogoutResponse,
   parseRefreshResponse,
 } from "./commercial-api-response.js";
 import type {
@@ -18,7 +22,6 @@ import type {
   CommercialModelRequest,
   CommercialRememberedLoginStore,
   CommercialSessionStore,
-  Identifier,
   LoginResponse,
   RememberedCommercialLogin,
   RequestOptions,
@@ -41,7 +44,7 @@ export class CommercialApiTransport {
   protected sessionCache: StoredCommercialSession | null | undefined;
   protected rememberedLoginCache: StoredCommercialRememberedLogin | null | undefined;
   protected refreshInFlight: Promise<StoredCommercialSession> | null = null;
-  protected activeDeviceId: Identifier | null = null;
+  protected activeDeviceId: string | null = null;
 
   constructor(options: CommercialClientOptions) {
     this.baseUrl = normalizeGatewayBaseUrl(options.baseUrl);
@@ -51,24 +54,26 @@ export class CommercialApiTransport {
     this.now = options.now ?? Date.now;
   }
 
-  currentLicense(devicePublicKeyHash: string): Promise<unknown> {
+  currentLicense(
+    devicePublicKeyHash: string,
+  ): Promise<CommercialAuthorizationWire> {
     return this.loadCurrentLicense(devicePublicKeyHash);
   }
 
-  protected async loadCurrentLicense(devicePublicKeyHash: string): Promise<unknown> {
-    const value = await this.authenticatedJson("GET", "/api/v1/client/licenses/current", {
+  protected async loadCurrentLicense(
+    devicePublicKeyHash: string,
+  ): Promise<CommercialAuthorizationWire> {
+    const value = parseCommercialAuthorizationWire(
+      await this.authenticatedJson("GET", "/api/v1/client/licenses/current", {
       query: {
         devicePublicKeyHash: requiredText(
           devicePublicKeyHash,
           "devicePublicKeyHash",
-        ),
-      },
-    });
-    try {
-      this.activeDeviceId = authorizationDeviceId(value);
-    } catch {
-      this.activeDeviceId = null;
-    }
+          ),
+        },
+      }),
+    );
+    this.activeDeviceId = value.device?.id ?? null;
     return value;
   }
 
@@ -195,7 +200,7 @@ export class CommercialApiTransport {
   protected async requestModelResponse(
     input: CommercialModelRequest & {
       token: string;
-      deviceId: Identifier | null;
+      deviceId: string | null;
       idempotencyKey: string | null;
     },
   ): Promise<Response> {
@@ -261,8 +266,8 @@ export class CommercialApiTransport {
           gatewayOrigin: this.baseUrl,
           accessToken: response.accessToken,
           expiresAtEpochMs: this.now() + response.expiresIn * 1000,
-          user: response.user ?? previous.user,
-          tenant: response.tenant ?? previous.tenant,
+          user: previous.user,
+          tenant: previous.tenant,
           ...(previous.rememberMe === undefined
             ? {}
             : { rememberMe: previous.rememberMe }),
@@ -309,6 +314,7 @@ export class CommercialApiTransport {
   ): Promise<StoredCommercialSession> {
     const value = await this.requestJson("POST", "/api/v1/client/auth/login", {
       body: {
+        loginType: "PASSWORD",
         tenantCode: rememberedLogin.tenantCode,
         username: rememberedLogin.username,
         password: rememberedLogin.password,
@@ -325,7 +331,9 @@ export class CommercialApiTransport {
   }
 
   protected async revokeToken(token: string): Promise<void> {
-    await this.requestJson("POST", "/api/v1/client/auth/logout", { token });
+    parseLogoutResponse(
+      await this.requestJson("POST", "/api/v1/client/auth/logout", { token }),
+    );
   }
 
   protected createStoredSession(

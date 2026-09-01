@@ -5,7 +5,7 @@ export interface CommercialQuota {
 }
 
 export interface CommercialModelCatalogItem {
-  id: string | number;
+  id: string;
   code: string;
   displayName: string;
   operation: string;
@@ -553,15 +553,61 @@ export function normalizeCommercialModelMode(value: string): string {
 }
 
 export function parseCommercialQuota(value: unknown): CommercialQuota {
-  const root = record(value, "commercial quota");
-  const account = record(root.account, "commercial quota account");
+  const root = exactRecord(value, "commercial quota", [
+    "account",
+    "buckets",
+    "spendableUnits",
+  ]);
+  const account = exactRecord(root.account, "commercial quota account", [
+    "availableUnits",
+    "id",
+    "reservedUnits",
+    "status",
+    "subjectId",
+    "subjectType",
+    "version",
+  ]);
+  uuid(account.id, "account.id");
+  text(account.subjectType, "account.subjectType");
+  requiredPositiveInteger(account.subjectId, "account.subjectId");
+  text(account.status, "account.status");
+  nonNegativeInteger(account.version, "account.version");
+  if (!Array.isArray(root.buckets)) {
+    throw new Error("commercial quota buckets must be an array");
+  }
+  root.buckets.forEach((value, index) => {
+    const name = `buckets[${index}]`;
+    const bucket = exactRecord(value, name, [
+      "bucketType",
+      "expiresAt",
+      "id",
+      "initialUnits",
+      "remainingUnits",
+      "reservedUnits",
+      "sourceType",
+      "status",
+    ]);
+    uuid(bucket.id, `${name}.id`);
+    text(bucket.sourceType, `${name}.sourceType`);
+    nonNegativeInteger(bucket.initialUnits, `${name}.initialUnits`);
+    nonNegativeInteger(bucket.remainingUnits, `${name}.remainingUnits`);
+    nonNegativeInteger(bucket.reservedUnits, `${name}.reservedUnits`);
+    if (typeof bucket.expiresAt !== "string") {
+      throw new Error(`${name}.expiresAt must be a string`);
+    }
+    text(bucket.status, `${name}.status`);
+    text(bucket.bucketType, `${name}.bucketType`);
+  });
   return {
-    spendableUnits: nonNegativeNumber(root.spendableUnits, "spendableUnits"),
-    availableUnits: nonNegativeNumber(
+    spendableUnits: nonNegativeInteger(
+      root.spendableUnits,
+      "spendableUnits",
+    ),
+    availableUnits: nonNegativeInteger(
       account.availableUnits,
       "account.availableUnits",
     ),
-    reservedUnits: nonNegativeNumber(
+    reservedUnits: nonNegativeInteger(
       account.reservedUnits,
       "account.reservedUnits",
     ),
@@ -571,7 +617,10 @@ export function parseCommercialQuota(value: unknown): CommercialQuota {
 export function parseCommercialModelCatalog(
   value: unknown,
 ): CommercialModelCatalog {
-  const root = record(value, "commercial model catalog");
+  const root = exactRecord(value, "commercial model catalog", [
+    "catalogVersion",
+    "items",
+  ]);
   if (!Array.isArray(root.items)) {
     throw new Error("commercial model catalog items must be an array");
   }
@@ -587,7 +636,30 @@ export function parseCommercialModelCatalogItem(
   value: unknown,
   name = "model",
 ): CommercialModelCatalogItem {
-  const item = record(value, name);
+  const item = projectedRecord(
+    value,
+    name,
+    [
+      "capabilityJson",
+      "clientVisible",
+      "code",
+      "displayName",
+      "id",
+      "isDefault",
+      "operation",
+      "parameterSchemaJson",
+      "status",
+      "unitsPerCall",
+    ],
+    [
+      "capabilityJson",
+      "code",
+      "displayName",
+      "id",
+      "operation",
+      "parameterSchemaJson",
+    ],
+  );
   return {
     id: identifier(item.id, `${name}.id`),
     code: text(item.code, `${name}.code`),
@@ -608,7 +680,13 @@ export function parseCommercialModelCatalogItem(
 export function parseCommercialModelUsageBootstrap(
   value: unknown,
 ): CommercialModelUsageBootstrap {
-  const root = record(value, "commercial bootstrap");
+  const root = exactRecord(value, "commercial bootstrap", [
+    "models",
+    "personalQuota",
+    "release",
+    "softwareAuthorization",
+    "warnings",
+  ]);
   return {
     quota:
       root.personalQuota === undefined || root.personalQuota === null
@@ -648,16 +726,52 @@ function record(value: unknown, name: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function exactRecord(
+  value: unknown,
+  name: string,
+  fields: readonly string[],
+): Record<string, unknown> {
+  const result = record(value, name);
+  const actual = Object.keys(result).sort();
+  const expected = [...fields].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((field, index) => field !== expected[index])
+  ) {
+    throw new Error(`${name} fields must be exactly ${expected.join(", ")}`);
+  }
+  return result;
+}
+
+function projectedRecord(
+  value: unknown,
+  name: string,
+  allowedFields: readonly string[],
+  requiredFields: readonly string[],
+): Record<string, unknown> {
+  const result = record(value, name);
+  const allowed = new Set(allowedFields);
+  const unknown = Object.keys(result).filter((field) => !allowed.has(field));
+  const missing = requiredFields.filter(
+    (field) => !Object.prototype.hasOwnProperty.call(result, field),
+  );
+  if (unknown.length > 0 || missing.length > 0) {
+    throw new Error(
+      `${name} has invalid fields; missing: ${missing.join(", ") || "none"}; unknown: ${unknown.join(", ") || "none"}`,
+    );
+  }
+  return result;
+}
+
 function text(value: unknown, name: string): string {
   const normalized = typeof value === "string" ? value.trim() : "";
   if (!normalized) throw new Error(`${name} must be a non-empty string`);
   return normalized;
 }
 
-function identifier(value: unknown, name: string): string | number {
+function identifier(value: unknown, name: string): string {
   if (typeof value === "string" && value.trim()) return value;
-  if (typeof value === "number" && Number.isSafeInteger(value)) return value;
-  throw new Error(`${name} must be a string or safe integer`);
+  throw new Error(`${name} must be a non-empty string`);
 }
 
 function nonNegativeNumber(value: unknown, name: string): number {
@@ -665,6 +779,32 @@ function nonNegativeNumber(value: unknown, name: string): number {
     throw new Error(`${name} must be a non-negative number`);
   }
   return value;
+}
+
+function nonNegativeInteger(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return Number(value);
+}
+
+function requiredPositiveInteger(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 1) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return Number(value);
+}
+
+function uuid(value: unknown, name: string): string {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      normalized,
+    )
+  ) {
+    throw new Error(`${name} must be a UUID string`);
+  }
+  return normalized.toLowerCase();
 }
 
 function jsonRecord(value: unknown, name: string): Record<string, unknown> {

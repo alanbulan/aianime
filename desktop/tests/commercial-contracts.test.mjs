@@ -5,24 +5,135 @@ import {
   projectCommercialAuthorization,
   projectCommercialInvocationDetails,
   projectCommercialInvocationList,
+  projectCommercialQuota,
   selectReleaseArtifactId,
 } from "../src/commercial-contracts.ts";
+
+const IDS = {
+  license: "11111111-1111-4111-8111-111111111111",
+  device: "22222222-2222-4222-8222-222222222222",
+  activation: "33333333-3333-4333-8333-333333333333",
+  lease: "44444444-4444-4444-8444-444444444444",
+  invocation: "55555555-5555-4555-8555-555555555555",
+  reservation: "66666666-6666-4666-8666-666666666666",
+  release: "77777777-7777-4777-8777-777777777777",
+  artifact: "88888888-8888-4888-8888-888888888888",
+  artifactAlt: "99999999-9999-4999-8999-999999999999",
+};
 
 function authorization(editionType, allowsCustomModels, activated = true) {
   return {
     license: {
-      id: "license-id",
+      id: IDS.license,
+      versionCode: "professional-2026",
+      versionName: "Professional",
+      status: "ACTIVE",
+      validFrom: "2026-01-01T00:00:00Z",
+      validUntil: "2027-01-02T03:04:05Z",
+      maxDevices: 3,
+      activeDevices: activated ? 1 : 0,
       editionType,
       allowsCustomModels,
     },
-    device: activated ? { id: "device-id" } : null,
-    activation: activated ? { id: "activation-id" } : null,
-    lease: {
-      id: "lease-id",
-      payloadJson: '{"secret":"must-not-cross-ipc"}',
-      signature: "lease-signature",
-      keyId: "license-signing-2026-01",
+    device: activated
+      ? {
+          id: IDS.device,
+          publicKeyHash: "sha256:device",
+          deviceName: "Studio Mac",
+          platform: "macos",
+          arch: "arm64",
+          clientVersion: "1.1.62",
+          status: "ACTIVE",
+          createdAt: "2026-08-01T00:00:00Z",
+          lastSeenAt: "2026-08-07T10:20:30Z",
+        }
+      : null,
+    activation: activated
+      ? {
+          id: IDS.activation,
+          licenseId: IDS.license,
+          deviceId: IDS.device,
+          status: "ACTIVE",
+          activatedAt: "2026-08-01T00:00:00Z",
+          lastHeartbeatAt: "2026-08-07T10:20:30Z",
+          endedAt: "",
+          endReason: "",
+        }
+      : null,
+    lease: activated
+      ? {
+          id: IDS.lease,
+          activationId: IDS.activation,
+          issuedAt: "2026-08-07T10:00:00Z",
+          expiresAt: "2026-08-08T10:00:00Z",
+          payloadJson: '{"secret":"must-not-cross-ipc"}',
+          signature: "lease-signature",
+          keyId: "lease-2026-08-v1",
+        }
+      : null,
+  };
+}
+
+function releaseArtifact(id, target, arch, installerKind) {
+  return {
+    id,
+    versionId: IDS.release,
+    target,
+    arch,
+    installerKind,
+    fileId: 10,
+    manifestFileId: 11,
+    sha256: "a".repeat(64),
+    sizeBytes: 1024,
+    manifestSha256: "b".repeat(64),
+    manifestSizeBytes: 128,
+    fileName: `${target}.${installerKind}`,
+    manifestFileName: "latest.yml",
+    contentType: "application/octet-stream",
+    manifestContentType: "text/yaml",
+    createdAt: "2026-08-01T00:00:00Z",
+  };
+}
+
+function release(artifacts) {
+  return {
+    available: true,
+    required: false,
+    reason: "NEW_VERSION",
+    version: {
+      id: IDS.release,
+      version: "1.1.63",
+      notes: "Contract update",
+      pubDate: "2026-08-08T00:00:00Z",
+      minimumSupportedVersion: "1.1.0",
+      status: "PUBLISHED",
+      createdAt: "2026-08-01T00:00:00Z",
+      publishedAt: "2026-08-08T00:00:00Z",
+      artifacts,
     },
+  };
+}
+
+function invocation() {
+  return {
+    id: IDS.invocation,
+    modelCode: "GPT_IMAGE_2",
+    operation: "IMAGE_GENERATION",
+    executionMode: "SYNC",
+    status: "SUCCEEDED",
+    quotaStatus: "COMMITTED",
+    reservationId: IDS.reservation,
+    reservedUnits: 10,
+    chargedUnits: 8,
+    refundedUnits: 2,
+    balanceBefore: 960,
+    balanceAfter: 952,
+    errorCode: "",
+    errorMessage: "",
+    createdAt: "2026-08-01T00:00:00Z",
+    startedAt: "2026-08-01T00:00:01Z",
+    completedAt: "2026-08-01T00:00:02Z",
+    durationMs: 1000,
   };
 }
 
@@ -35,47 +146,34 @@ test("STANDARD edition cannot enable BYOK even when the raw flag is true", () =>
   assert.equal(snapshot.capabilities.allowsCustomModels, false);
 });
 
-test("authorization projection maps the current gateway timestamp fields", () => {
-  const value = authorization("PROFESSIONAL", true);
-  value.license.validUntil = "2027-01-02T03:04:05Z";
-  value.activation.lastHeartbeatAt = "2026-08-07T10:20:30Z";
+test("authorization projection maps current Gateway fields without aliases", () => {
+  const snapshot = projectCommercialAuthorization(
+    authorization("PROFESSIONAL", true),
+  );
 
-  const snapshot = projectCommercialAuthorization(value);
-
-  assert.equal(snapshot.license?.expiresAt, "2027-01-02T03:04:05Z");
-  assert.equal(snapshot.activation?.lastSeenAt, "2026-08-07T10:20:30Z");
+  assert.equal(snapshot.license.validUntil, "2027-01-02T03:04:05Z");
+  assert.equal(
+    snapshot.activation?.lastHeartbeatAt,
+    "2026-08-07T10:20:30Z",
+  );
 });
 
-test("release artifact selection picks the id matching platform and arch", () => {
+test("release artifact selection picks the UUID matching platform and arch", () => {
   const projected = selectReleaseArtifactId(
-    {
-      available: true,
-      required: false,
-      version: {
-        versionCode: "1.1.0",
-        artifacts: [
-          { id: 1, target: "windows", arch: "arm64", fileName: "a.exe" },
-          { id: 2, target: "windows", arch: "x86_64", fileName: "b.exe" },
-          { id: 3, target: "macos", arch: "arm64", fileName: "c.dmg" },
-        ],
-      },
-    },
+    release([
+      releaseArtifact(IDS.artifactAlt, "windows", "arm64", "nsis"),
+      releaseArtifact(IDS.artifact, "windows", "x86_64", "nsis"),
+    ]),
     "windows",
     "x86_64",
   );
 
-  assert.equal(projected.artifactId, 2);
+  assert.equal(projected.artifactId, IDS.artifact);
 });
 
 test("release artifact selection returns null when no artifact matches", () => {
   const projected = selectReleaseArtifactId(
-    {
-      available: true,
-      required: false,
-      version: {
-        artifacts: [{ id: 1, target: "windows", arch: "arm64" }],
-      },
-    },
+    release([releaseArtifact(IDS.artifact, "windows", "arm64", "nsis")]),
     "macos",
     "arm64",
   );
@@ -85,31 +183,15 @@ test("release artifact selection returns null when no artifact matches", () => {
 
 test("release artifact selection prefers the macOS updater ZIP", () => {
   const projected = selectReleaseArtifactId(
-    {
-      available: true,
-      required: false,
-      version: {
-        artifacts: [
-          {
-            id: "mac-zip",
-            target: "macos",
-            arch: "arm64",
-            installerKind: "zip",
-          },
-          {
-            id: "mac-dmg",
-            target: "macos",
-            arch: "arm64",
-            installerKind: "DMG",
-          },
-        ],
-      },
-    },
+    release([
+      releaseArtifact(IDS.artifact, "macos", "arm64", "zip"),
+      releaseArtifact(IDS.artifactAlt, "macos", "arm64", "dmg"),
+    ]),
     "macos",
     "arm64",
   );
 
-  assert.equal(projected.artifactId, "mac-zip");
+  assert.equal(projected.artifactId, IDS.artifact);
 });
 
 test("PROFESSIONAL BYOK requires both server capability and device activation", () => {
@@ -143,25 +225,47 @@ test("lease payload and signature never cross the renderer projection", () => {
   assert.equal(Object.hasOwn(snapshot.lease, "signature"), false);
 });
 
-test("invocation projections retain the settled quota breakdown", () => {
-  const invocation = {
-    id: "invocation-1",
-    status: "SUCCEEDED",
-    quotaStatus: "COMMITTED",
-    reservationId: "reservation-1",
-    reservedUnits: 10,
-    chargedUnits: 8,
-    refundedUnits: 2,
-    balanceBefore: 960,
-    balanceAfter: 952,
+test("invocation projections retain the approved settled quota fields", () => {
+  const item = invocation();
+  const list = projectCommercialInvocationList({ items: [item], total: 1 });
+  const details = projectCommercialInvocationDetails({ invocation: item });
+
+  assert.deepEqual(list.items[0], item);
+  assert.deepEqual(details.invocation, item);
+  assert.equal(Object.hasOwn(list, "page"), false);
+  assert.equal(Object.hasOwn(item, "requestId"), false);
+});
+
+test("strict client projections reject missing and extra response fields", () => {
+  const quota = {
+    account: {
+      id: IDS.license,
+      subjectType: "USER",
+      subjectId: 42,
+      status: "ACTIVE",
+      availableUnits: 10,
+      reservedUnits: 0,
+      version: 1,
+    },
+    buckets: [],
+    spendableUnits: 10,
   };
 
-  const list = projectCommercialInvocationList({
-    items: [invocation],
-    total: 1,
-  });
-  const details = projectCommercialInvocationDetails({ invocation });
-
-  assert.deepEqual(list.items[0], invocation);
-  assert.deepEqual(details.invocation, invocation);
+  assert.throws(
+    () => projectCommercialQuota({ ...quota, username: "not-approved" }),
+    /fields must be exactly/,
+  );
+  const { spendableUnits: _removed, ...missing } = quota;
+  assert.throws(() => projectCommercialQuota(missing), /fields must be exactly/);
+  assert.throws(
+    () =>
+      projectCommercialAuthorization({
+        ...authorization("STANDARD", false),
+        license: {
+          ...authorization("STANDARD", false).license,
+          id: 1,
+        },
+      }),
+    /UUID string/,
+  );
 });

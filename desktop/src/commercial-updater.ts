@@ -2,8 +2,6 @@
 
 import type { CommercialReleaseUpdateFeed } from "./commercial-api-client.js";
 
-type Identifier = string | number;
-
 interface UpdateCheckResultLike {
   isUpdateAvailable: boolean;
   updateInfo: { version: string };
@@ -51,7 +49,7 @@ export class CommercialDesktopUpdater {
   constructor(
     private readonly updater: ElectronUpdaterLike,
     private readonly resolveFeed: (
-      artifactId: Identifier,
+      artifactId: string,
     ) => Promise<CommercialReleaseUpdateFeed>,
     private readonly onDownloadProgress?: (
       progress: CommercialUpdateDownloadProgress,
@@ -68,7 +66,7 @@ export class CommercialDesktopUpdater {
   }
 
   async download(
-    artifactId: Identifier,
+    artifactId: string,
   ): Promise<CommercialUpdateDownloadResult> {
     // The whole download mutates shared updater state (feed URL, request
     // headers, progress routing). A second concurrent call — a double-clicked
@@ -85,7 +83,7 @@ export class CommercialDesktopUpdater {
   }
 
   private async runDownload(
-    artifactId: Identifier,
+    artifactId: string,
   ): Promise<CommercialUpdateDownloadResult> {
     this.downloadedVersion = null;
     const feed = await this.resolveFeed(artifactId);

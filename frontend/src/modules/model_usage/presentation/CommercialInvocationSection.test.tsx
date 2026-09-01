@@ -68,17 +68,24 @@ vi.mock("@/modules/model_usage/composition", () => ({
   }),
   useCommercialInvocationDetails: () => ({
     data: {
-      id: "invocation-1",
-      status: mocks.invocationStatus,
+      id: "11111111-1111-4111-8111-111111111111",
+      modelCode: "GPT_IMAGE_2",
       operation: "IMAGE",
-      modelSkuCode: "GPT_IMAGE_2",
+      executionMode: "SYNC",
+      status: mocks.invocationStatus,
       quotaStatus: "COMMITTED",
-      reservationId: "reservation-1",
+      reservationId: "22222222-2222-4222-8222-222222222222",
       reservedUnits: 10,
       chargedUnits: 8,
       refundedUnits: 2,
       balanceBefore: 960,
       balanceAfter: 952,
+      errorCode: "",
+      errorMessage: "",
+      createdAt: "2026-08-01T00:00:00Z",
+      startedAt: "2026-08-01T00:00:01Z",
+      completedAt: "",
+      durationMs: 0,
     },
     error: null,
     isLoading: false,
@@ -87,13 +94,24 @@ vi.mock("@/modules/model_usage/composition", () => ({
     data: {
       items: [
         {
-          id: "invocation-1",
-          status: mocks.invocationStatus,
+          id: "11111111-1111-4111-8111-111111111111",
+          modelCode: "GPT_IMAGE_2",
           operation: "IMAGE",
-          modelSkuCode: "GPT_IMAGE_2",
+          executionMode: "SYNC",
+          status: mocks.invocationStatus,
           quotaStatus: "COMMITTED",
+          reservationId: "22222222-2222-4222-8222-222222222222",
           reservedUnits: 10,
           chargedUnits: 8,
+          refundedUnits: 2,
+          balanceBefore: 960,
+          balanceAfter: 952,
+          errorCode: "",
+          errorMessage: "",
+          createdAt: "2026-08-01T00:00:00Z",
+          startedAt: "2026-08-01T00:00:01Z",
+          completedAt: "",
+          durationMs: 0,
         },
       ],
       page: 1,
@@ -110,7 +128,7 @@ vi.mock("@/modules/model_usage/composition", () => ({
       catalogVersion: "1",
       items: [
         {
-          id: "model-1",
+          id: "33333333-3333-4333-8333-333333333333",
           code: "GPT_IMAGE_2",
           displayName: "GPT Image 2",
           operation: "IMAGE",
@@ -148,7 +166,9 @@ describe("CommercialInvocationSection", () => {
     expect(dialog).toHaveTextContent("已预占");
     expect(dialog).toHaveTextContent("已提交");
     expect(dialog).toHaveTextContent("额度预占单号");
-    expect(dialog).toHaveTextContent("reservation-1");
+    expect(dialog).toHaveTextContent(
+      "22222222-2222-4222-8222-222222222222",
+    );
     expect(dialog).toHaveTextContent("最终实扣");
     expect(dialog).toHaveTextContent("960 → 952");
   });

@@ -25,6 +25,17 @@ describe("Commercial update settings entry", () => {
     const checkRelease = vi.fn().mockResolvedValue({
       available: false,
       required: false,
+      version: {
+        id: "33333333-3333-4333-8333-333333333333",
+        version: "1.1.6",
+        notes: "Release notes",
+        pubDate: "2026-08-02T00:00:00Z",
+        minimumSupportedVersion: "1.1.5",
+        status: "PUBLISHED",
+        createdAt: "2026-08-01T00:00:00Z",
+        publishedAt: "2026-08-02T00:00:00Z",
+        artifacts: [],
+      },
       reason: "up-to-date",
       artifactId: null,
     });

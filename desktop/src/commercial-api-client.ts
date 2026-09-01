@@ -3,13 +3,33 @@
 import { randomUUID } from "node:crypto";
 
 import { CommercialApiError } from "./commercial-api-error.js";
+import {
+  parseCommercialAuthorizationWire,
+  parseCommercialBootstrapWire,
+  projectCommercialInvocation,
+  projectCommercialInvocationDetails,
+  projectCommercialInvocationList,
+  projectCommercialModelCatalog,
+  projectCommercialModelCatalogItem,
+  projectCommercialQuota,
+  projectCommercialRelease,
+  type CommercialAuthorizationWire,
+  type CommercialBootstrapWire,
+  type CommercialInvocationListSnapshot,
+  type CommercialInvocationSnapshot,
+  type CommercialModelCatalogItemSnapshot,
+  type CommercialModelCatalogSnapshot,
+  type CommercialQuotaSnapshot,
+  type CommercialReleaseSnapshot,
+} from "./commercial-contracts.js";
 import { CommercialApiTransport, REFRESH_SKEW_MS } from "./commercial-api-transport.js";
 import {
   optionalText,
-  requiredIdentifier,
   requiredRawText,
   requiredRecord,
   requiredText,
+  requiredUUID,
+  strictRecord,
 } from "./commercial-api-validation.js";
 import {
   AVATAR_CONTENT_TYPES,
@@ -18,7 +38,15 @@ import {
   boundedText,
   isAuthenticationFailure,
   isPermanentLoginFailure,
+  parseAnnouncementList,
+  parseAvatarUploadResponse,
+  parseBaseResponse,
+  parseDesktopPublicConfig,
   parseLoginResponse,
+  parseLogoutResponse,
+  parsePasswordChangeResponse,
+  parsePasswordResetResponse,
+  parseSuccessMessageResponse,
   parseUserProfile,
   profileGender,
   protectedImageData,
@@ -26,25 +54,34 @@ import {
   toSessionSummary,
 } from "./commercial-api-response.js";
 import type {
+  CommercialAnnouncementList,
   CommercialAvatarUploadInput,
+  CommercialAvatarUploadResponse,
+  CommercialBaseResponse,
   CommercialBootstrapRequestQuery,
   CommercialCaptcha,
+  CommercialDesktopPublicConfig,
   CommercialInvocationQuery,
   CommercialLicenseActivationInput,
+  CommercialLicenseActivationResponse,
+  CommercialLicenseDeactivationResponse,
+  CommercialLicenseLeaseRefreshResponse,
   CommercialLoginInput,
+  CommercialLogoutResult,
   CommercialModelCatalogQuery,
+  CommercialPasswordChangeResponse,
+  CommercialPasswordResetResponse,
   CommercialPasswordResetVerification,
   CommercialProfileUpdateInput,
   CommercialProtectedImage,
   CommercialPublicLogo,
-  CommercialRegistrationInput,
   CommercialReleaseQuery,
   CommercialReleaseUpdateFeed,
   CommercialRememberedLoginInput,
   CommercialRememberedLoginSummary,
   CommercialSessionSummary,
+  CommercialSuccessMessageResponse,
   CommercialUserProfile,
-  Identifier,
   QueryValue,
 } from "./commercial-api-types.js";
 export type { SecureStorageAdapter } from "./secure-file-store.js";
@@ -58,8 +95,8 @@ export {
 export {
   optionalRecord,
   optionalText,
-  requiredIdentifier,
   requiredInteger,
+  requiredUUID,
   requiredRawText,
   requiredRecord,
   requiredText,
@@ -72,10 +109,14 @@ export const COMMERCIAL_RUNTIME_DEPENDENCIES_URL =
   `${COMMERCIAL_GATEWAY_URL}/api/v1/client/runtime-dependencies`;
 
 export class CommercialApiClient extends CommercialApiTransport {
-  async publicConfig(tenantCode: string): Promise<unknown> {
-    return this.requestJson("GET", "/api/v1/config/public", {
-      query: { tenantCode: requiredText(tenantCode, "tenantCode") },
-    });
+  async publicConfig(
+    tenantCode: string,
+  ): Promise<CommercialDesktopPublicConfig> {
+    return parseDesktopPublicConfig(
+      await this.requestJson("GET", "/api/v1/client/config/public", {
+        query: { tenantCode: requiredText(tenantCode, "tenantCode") },
+      }),
+    );
   }
 
   async publicLogo(tenantCode: string): Promise<CommercialPublicLogo> {
@@ -103,11 +144,12 @@ export class CommercialApiClient extends CommercialApiTransport {
   }
 
   async publicCaptcha(tenantCode: string): Promise<CommercialCaptcha> {
-    const value = requiredRecord(
+    const value = strictRecord(
       await this.requestJson("GET", "/api/v1/auth/captcha", {
         query: { tenantCode: requiredText(tenantCode, "tenantCode") },
       }),
       "captcha response",
+      ["key", "svg"],
     );
     const key = requiredText(value.key, "captcha.key");
     const svg = requiredText(value.svg, "captcha.svg");
@@ -124,25 +166,47 @@ export class CommercialApiClient extends CommercialApiTransport {
   }
 
   async login(input: CommercialLoginInput): Promise<CommercialSessionSummary> {
+    if (input.loginType !== "PASSWORD" && input.loginType !== "SMS") {
+      throw new CommercialApiError("loginType 必须是 PASSWORD 或 SMS");
+    }
     const tenantCode = requiredText(input.tenantCode, "tenantCode");
-    const username = requiredText(input.username, "username");
-    const password = requiredRawText(input.password, "password");
-    const body = compactObject({
-      tenantCode,
-      username,
-      password,
-      rememberMe: input.rememberMe,
-      captchaKey: optionalText(input.captchaKey),
-      captchaCode: optionalText(input.captchaCode),
-    });
+    const passwordCredentials =
+      input.loginType === "PASSWORD"
+        ? {
+            username: requiredText(input.username, "username"),
+            password: requiredRawText(input.password, "password"),
+          }
+        : null;
+    const body =
+      input.loginType === "PASSWORD"
+        ? compactObject({
+            loginType: "PASSWORD",
+            tenantCode,
+            username: passwordCredentials!.username,
+            password: passwordCredentials!.password,
+            rememberMe: input.rememberMe,
+            captchaKey: optionalText(input.captchaKey),
+            captchaCode: optionalText(input.captchaCode),
+          })
+        : compactObject({
+            loginType: "SMS",
+            tenantCode,
+            phone: requiredText(input.phone, "phone"),
+            smsCode: requiredText(input.smsCode, "smsCode"),
+            rememberMe: input.rememberMe,
+          });
     const value = await this.requestJson("POST", "/api/v1/client/auth/login", {
       body,
     });
     const response = parseLoginResponse(value);
     const session = this.createStoredSession(
       response,
-      input.rememberMe === true
-        ? { tenantCode, username, password }
+      input.loginType === "PASSWORD" && input.rememberMe === true
+        ? {
+            tenantCode,
+            username: passwordCredentials!.username,
+            password: passwordCredentials!.password,
+          }
         : undefined,
     );
     try {
@@ -186,6 +250,7 @@ export class CommercialApiClient extends CommercialApiTransport {
       throw new CommercialApiError("没有可用的已保存登录信息", { status: 401 });
     }
     return this.login({
+      loginType: "PASSWORD",
       tenantCode: remembered.tenantCode,
       username: remembered.username,
       password: remembered.password,
@@ -196,20 +261,6 @@ export class CommercialApiClient extends CommercialApiTransport {
       ...(input.captchaCode === undefined
         ? {}
         : { captchaCode: input.captchaCode }),
-    });
-  }
-
-  async register(input: CommercialRegistrationInput): Promise<void> {
-    await this.requestJson("POST", "/api/v1/auth/register", {
-      body: compactObject({
-        tenantCode: requiredText(input.tenantCode, "tenantCode"),
-        username: requiredText(input.username, "username"),
-        password: requiredRawText(input.password, "password"),
-        nickname: optionalText(input.nickname),
-        email: optionalText(input.email),
-        captchaKey: optionalText(input.captchaKey),
-        captchaCode: optionalText(input.captchaCode),
-      }),
     });
   }
 
@@ -230,17 +281,22 @@ export class CommercialApiClient extends CommercialApiTransport {
     }
   }
 
-  async logout(): Promise<{ remoteRevoked: boolean }> {
+  async logout(): Promise<CommercialLogoutResult> {
     const session = await this.loadSession();
     let remoteRevoked = false;
+    let success = true;
     try {
       if (session) {
-        await this.requestJson("POST", "/api/v1/client/auth/logout", {
-          token: session.accessToken,
-        });
-        remoteRevoked = true;
+        const response = parseLogoutResponse(
+          await this.requestJson("POST", "/api/v1/client/auth/logout", {
+            token: session.accessToken,
+          }),
+        );
+        remoteRevoked = response.success;
+        success = response.success;
       }
     } catch {
+      success = false;
       remoteRevoked = false;
     } finally {
       if (session?.rememberedLogin) {
@@ -248,7 +304,7 @@ export class CommercialApiClient extends CommercialApiTransport {
       }
       await this.clearSession();
     }
-    return { remoteRevoked };
+    return { remoteRevoked, success };
   }
 
   async currentProfile(): Promise<CommercialUserProfile> {
@@ -261,9 +317,9 @@ export class CommercialApiClient extends CommercialApiTransport {
       user: {
         id: profile.id,
         username: profile.username,
-        ...(profile.nickname ? { nickname: profile.nickname } : {}),
-        ...(profile.email ? { email: profile.email } : {}),
-        ...(profile.avatar ? { avatar: profile.avatar } : {}),
+        nickname: profile.nickname,
+        email: profile.email,
+        avatar: profile.avatar,
       },
     });
     return profile;
@@ -272,19 +328,22 @@ export class CommercialApiClient extends CommercialApiTransport {
   async updateProfile(
     input: CommercialProfileUpdateInput,
   ): Promise<CommercialUserProfile> {
-    await this.authenticatedJson("PUT", "/api/v1/user/profile", {
-      body: {
-        nickname: boundedText(input.nickname, "nickname", 64),
-        email: boundedText(input.email, "email", 255),
-        phone: boundedText(input.phone, "phone", 32),
-        gender: profileGender(input.gender),
-        profileDescription: boundedText(
-          input.profileDescription,
-          "profileDescription",
-          1_000,
-        ),
-      },
-    });
+    const result = parseBaseResponse(
+      await this.authenticatedJson("PUT", "/api/v1/user/profile", {
+        body: {
+          nickname: boundedText(input.nickname, "nickname", 64),
+          email: boundedText(input.email, "email", 255),
+          phone: boundedText(input.phone, "phone", 32),
+          gender: profileGender(input.gender),
+          profileDescription: boundedText(
+            input.profileDescription,
+            "profileDescription",
+            1_000,
+          ),
+        },
+      }),
+    );
+    requireSuccessfulBaseResponse(result, "更新资料");
     return this.currentProfile();
   }
 
@@ -298,7 +357,9 @@ export class CommercialApiClient extends CommercialApiTransport {
     return protectedImageData(response, "头像");
   }
 
-  async uploadAvatar(input: CommercialAvatarUploadInput): Promise<unknown> {
+  async uploadAvatar(
+    input: CommercialAvatarUploadInput,
+  ): Promise<CommercialAvatarUploadResponse> {
     const contentType = requiredText(input.contentType, "contentType").toLowerCase();
     if (!AVATAR_CONTENT_TYPES.has(contentType)) {
       throw new CommercialApiError("头像只支持 JPEG、PNG 或 WebP");
@@ -313,23 +374,35 @@ export class CommercialApiClient extends CommercialApiTransport {
       new Blob([bytes], { type: contentType }),
       requiredText(input.fileName, "fileName"),
     );
-    return this.authenticatedJson("POST", "/api/v1/user/avatar", { formData });
+    return parseAvatarUploadResponse(
+      await this.authenticatedJson("POST", "/api/v1/user/avatar", { formData }),
+    );
   }
 
-  async deleteAvatar(): Promise<void> {
-    await this.authenticatedJson("DELETE", "/api/v1/user/avatar");
+  async deleteAvatar(): Promise<CommercialBaseResponse> {
+    const result = parseBaseResponse(
+      await this.authenticatedJson("DELETE", "/api/v1/user/avatar"),
+    );
+    requireSuccessfulBaseResponse(result, "删除头像");
+    return result;
   }
 
-  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<CommercialPasswordChangeResponse> {
     const session = await this.requireSession();
     const remembered = await this.loadRememberedLogin();
     const normalizedNewPassword = requiredRawText(newPassword, "newPassword");
-    await this.authenticatedJson("PUT", "/api/v1/user/password", {
-      body: {
-        oldPassword: requiredRawText(oldPassword, "oldPassword"),
-        newPassword: normalizedNewPassword,
-      },
-    });
+    const result = parsePasswordChangeResponse(
+      await this.authenticatedJson("PUT", "/api/v1/user/password", {
+        body: {
+          oldPassword: requiredRawText(oldPassword, "oldPassword"),
+          newPassword: normalizedNewPassword,
+        },
+      }),
+    );
+    requireSuccessfulCommand(result, "修改密码");
     if (
       remembered
       && remembered.tenantCode === session.tenant.code
@@ -342,16 +415,41 @@ export class CommercialApiClient extends CommercialApiTransport {
       });
     }
     await this.clearSession();
+    return result;
   }
 
-  async sendPasswordResetCode(tenantCode: string, email: string): Promise<void> {
-    await this.requestJson("POST", "/api/v1/auth/email-code", {
-      body: {
-        tenantCode: requiredText(tenantCode, "tenantCode"),
-        email: requiredText(email, "email"),
-        scene: "reset",
-      },
-    });
+  async sendPasswordResetCode(
+    tenantCode: string,
+    email: string,
+  ): Promise<CommercialSuccessMessageResponse> {
+    const result = parseSuccessMessageResponse(
+      await this.requestJson("POST", "/api/v1/auth/email-code", {
+        body: {
+          tenantCode: requiredText(tenantCode, "tenantCode"),
+          email: requiredText(email, "email"),
+          scene: "reset",
+        },
+      }),
+    );
+    requireSuccessfulCommand(result, "发送密码重置验证码");
+    return result;
+  }
+
+  async sendSmsLoginCode(
+    tenantCode: string,
+    phone: string,
+  ): Promise<CommercialSuccessMessageResponse> {
+    const result = parseSuccessMessageResponse(
+      await this.requestJson("POST", "/api/v1/auth/sms-code", {
+        body: {
+          tenantCode: requiredText(tenantCode, "tenantCode"),
+          phone: requiredText(phone, "phone"),
+          scene: "login",
+        },
+      }),
+    );
+    requireSuccessfulCommand(result, "发送短信登录验证码");
+    return result;
   }
 
   async verifyPasswordResetCode(
@@ -359,7 +457,7 @@ export class CommercialApiClient extends CommercialApiTransport {
     email: string,
     code: string,
   ): Promise<CommercialPasswordResetVerification> {
-    const response = requiredRecord(
+    const response = strictRecord(
       await this.requestJson("POST", "/api/v1/auth/reset-password/verify", {
         body: {
           tenantCode: requiredText(tenantCode, "tenantCode"),
@@ -368,6 +466,7 @@ export class CommercialApiClient extends CommercialApiTransport {
         },
       }),
       "password reset verification",
+      ["resetTicket", "expiresIn"],
     );
     return {
       resetTicket: requiredText(response.resetTicket, "resetTicket"),
@@ -379,25 +478,30 @@ export class CommercialApiClient extends CommercialApiTransport {
     tenantCode: string,
     resetTicket: string,
     newPassword: string,
-  ): Promise<void> {
-    await this.requestJson("POST", "/api/v1/auth/reset-password", {
-      body: {
-        tenantCode: requiredText(tenantCode, "tenantCode"),
-        resetTicket: requiredText(resetTicket, "resetTicket"),
-        newPassword: requiredRawText(newPassword, "newPassword"),
-      },
-    });
+  ): Promise<CommercialPasswordResetResponse> {
+    const result = parsePasswordResetResponse(
+      await this.requestJson("POST", "/api/v1/auth/reset-password", {
+        body: {
+          tenantCode: requiredText(tenantCode, "tenantCode"),
+          resetTicket: requiredText(resetTicket, "resetTicket"),
+          newPassword: requiredRawText(newPassword, "newPassword"),
+        },
+      }),
+    );
+    requireSuccessfulCommand(result, "重置密码");
     const remembered = await this.loadRememberedLogin();
     if (remembered?.tenantCode === tenantCode.trim()) {
       await this.clearRememberedLogin();
     }
+    return result;
   }
 
-  bootstrap(
+  async bootstrap(
     query: CommercialBootstrapRequestQuery,
-    deviceId?: Identifier,
-  ): Promise<unknown> {
-    return this.authenticatedJson("GET", "/api/v1/client/bootstrap", {
+    deviceId?: string,
+  ): Promise<CommercialBootstrapWire> {
+    return parseCommercialBootstrapWire(
+      await this.authenticatedJson("GET", "/api/v1/client/bootstrap", {
       query: compactObject({
         devicePublicKeyHash: optionalText(query.devicePublicKeyHash),
         modelOperation: optionalText(query.modelOperation),
@@ -406,52 +510,85 @@ export class CommercialApiClient extends CommercialApiTransport {
         target: optionalText(query.target),
         arch: optionalText(query.arch),
       }),
-      ...(deviceId === undefined ? {} : { deviceId }),
-    });
+        ...(deviceId === undefined
+          ? {}
+          : { deviceId: requiredUUID(deviceId, "deviceId") }),
+      }),
+    );
   }
 
-  quotaBalance(): Promise<unknown> {
-    return this.authenticatedJson("GET", "/api/v1/client/quota/balance");
+  async quotaBalance(): Promise<CommercialQuotaSnapshot> {
+    return projectCommercialQuota(
+      await this.authenticatedJson("GET", "/api/v1/client/quota/balance"),
+    );
   }
 
-  modelCatalog(
+  async modelCatalog(
     query: CommercialModelCatalogQuery = {},
-    deviceId?: Identifier,
-  ): Promise<unknown> {
-    return this.authenticatedJson("GET", "/api/v1/client/models", {
+    deviceId?: string,
+  ): Promise<CommercialModelCatalogSnapshot> {
+    return projectCommercialModelCatalog(
+      await this.authenticatedJson("GET", "/api/v1/client/models", {
       query: compactObject({
         operation: optionalText(query.operation),
         catalogVersion: optionalText(query.catalogVersion),
       }),
-      ...(deviceId === undefined ? {} : { deviceId }),
-    });
-  }
-
-  modelDetails(sku: string, deviceId?: Identifier): Promise<unknown> {
-    return this.authenticatedJson(
-      "GET",
-      `/api/v1/client/models/${encodeURIComponent(requiredText(sku, "sku"))}`,
-      deviceId === undefined ? {} : { deviceId },
+        ...(deviceId === undefined
+          ? {}
+          : { deviceId: requiredUUID(deviceId, "deviceId") }),
+      }),
     );
   }
 
-  async activateLicense(input: CommercialLicenseActivationInput): Promise<unknown> {
+  async modelDetails(
+    sku: string,
+    deviceId?: string,
+  ): Promise<CommercialModelCatalogItemSnapshot> {
+    return projectCommercialModelCatalogItem(
+      await this.authenticatedJson(
+        "GET",
+        `/api/v1/client/models/${encodeURIComponent(requiredText(sku, "sku"))}`,
+        deviceId === undefined
+          ? {}
+          : { deviceId: requiredUUID(deviceId, "deviceId") },
+      ),
+    );
+  }
+
+  async activateLicense(
+    input: CommercialLicenseActivationInput,
+  ): Promise<CommercialLicenseActivationResponse> {
+    const licenseId = requiredUUID(input.licenseId, "licenseId");
     const requestId = randomUUID();
     const device = await input.device.summary();
-    const challengeValue = requiredRecord(
+    const challengeValue = strictRecord(
       await this.authenticatedJson(
         "POST",
         "/api/v1/client/licenses/challenge",
         {
           body: {
-            licenseId: input.licenseId,
+            licenseId,
             publicKeyHash: device.publicKeyHash,
             requestId,
           },
         },
       ),
       "license challenge",
+      [
+        "id",
+        "licenseId",
+        "publicKeyHash",
+        "challenge",
+        "message",
+        "expiresAt",
+        "signatureAlgorithm",
+      ],
     );
+    requiredUUID(challengeValue.id, "challenge.id");
+    requiredUUID(challengeValue.licenseId, "challenge.licenseId");
+    requiredText(challengeValue.publicKeyHash, "challenge.publicKeyHash");
+    requiredText(challengeValue.challenge, "challenge.challenge");
+    requiredText(challengeValue.expiresAt, "challenge.expiresAt");
     const signatureAlgorithm = requiredText(
       challengeValue.signatureAlgorithm,
       "challenge.signatureAlgorithm",
@@ -463,12 +600,13 @@ export class CommercialApiClient extends CommercialApiTransport {
     }
     const message = requiredRawText(challengeValue.message, "challenge.message");
     const challengeSignature = await input.device.signMessage(message);
-    return this.authenticatedJson(
-      "POST",
-      "/api/v1/client/licenses/activate",
-      {
-        body: {
-          licenseId: input.licenseId,
+    const response = strictRecord(
+      await this.authenticatedJson(
+        "POST",
+        "/api/v1/client/licenses/activate",
+        {
+          body: {
+          licenseId,
           publicKey: device.publicKey,
           publicKeyHash: device.publicKeyHash,
           deviceName: requiredText(input.deviceName, "deviceName"),
@@ -481,104 +619,157 @@ export class CommercialApiClient extends CommercialApiTransport {
             "challenge.challenge",
           ),
           challengeSignature,
-          requestId,
+            requestId,
+          },
         },
-      },
+      ),
+      "license activation response",
+      ["activationId", "leaseId", "expiresAt"],
     );
+    return {
+      activationId: requiredUUID(response.activationId, "activationId"),
+      leaseId: requiredUUID(response.leaseId, "leaseId"),
+      expiresAt: requiredText(response.expiresAt, "expiresAt"),
+    };
   }
 
-  refreshLicenseLease(activationId: Identifier): Promise<unknown> {
-    return this.authenticatedJson(
-      "POST",
-      "/api/v1/client/licenses/lease/refresh",
-      { body: { activationId } },
+  async refreshLicenseLease(
+    activationId: string,
+  ): Promise<CommercialLicenseLeaseRefreshResponse> {
+    const response = strictRecord(
+      await this.authenticatedJson(
+        "POST",
+        "/api/v1/client/licenses/lease/refresh",
+        { body: { activationId: requiredUUID(activationId, "activationId") } },
+      ),
+      "license lease refresh response",
+      ["leaseId", "issuedAt", "expiresAt", "keyId"],
     );
+    return {
+      leaseId: requiredUUID(response.leaseId, "leaseId"),
+      issuedAt: requiredText(response.issuedAt, "issuedAt"),
+      expiresAt: requiredText(response.expiresAt, "expiresAt"),
+      keyId: requiredText(response.keyId, "keyId"),
+    };
   }
 
-  deactivateLicense(activationId: Identifier, reason: string): Promise<unknown> {
-    return this.authenticatedJson(
-      "POST",
-      "/api/v1/client/licenses/deactivate",
-      {
-        body: {
-          activationId: requiredIdentifier(activationId, "activationId"),
-          reason: requiredText(reason, "reason"),
-          confirmed: true,
+  async deactivateLicense(
+    activationId: string,
+    reason: string,
+  ): Promise<CommercialLicenseDeactivationResponse> {
+    const response = strictRecord(
+      await this.authenticatedJson(
+        "POST",
+        "/api/v1/client/licenses/deactivate",
+        {
+          body: {
+            activationId: requiredUUID(activationId, "activationId"),
+            reason: requiredText(reason, "reason"),
+            confirmed: true,
+          },
         },
-      },
+      ),
+      "license deactivation response",
+      ["activationId", "status", "endedAt", "endReason"],
     );
+    return {
+      activationId: requiredUUID(response.activationId, "activationId"),
+      status: requiredText(response.status, "status"),
+      endedAt: requiredText(response.endedAt, "endedAt"),
+      endReason: requiredText(response.endReason, "endReason"),
+    };
   }
 
-  announcements(limit = 20): Promise<unknown> {
+  async announcements(limit = 20): Promise<CommercialAnnouncementList> {
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
       throw new CommercialApiError("limit 必须是 1 到 100 之间的整数");
     }
-    return this.authenticatedJson(
-      "GET",
-      "/api/v1/client/announcements/active",
-      { query: { limit } },
+    return parseAnnouncementList(
+      await this.authenticatedJson(
+        "GET",
+        "/api/v1/client/announcements/active",
+        { query: { limit } },
+      ),
     );
   }
 
-  listInvocations(query: CommercialInvocationQuery = {}): Promise<unknown> {
-    return this.authenticatedJson(
-      "GET",
-      "/api/v1/client/relay/invocations",
-      {
-        query: compactObject({
-          page: query.page,
-          pageSize: query.pageSize,
-          status: optionalText(query.status),
-          operation: optionalText(query.operation),
-          modelSkuCode: optionalText(query.modelSkuCode),
-        }),
-      },
+  async listInvocations(
+    query: CommercialInvocationQuery = {},
+  ): Promise<CommercialInvocationListSnapshot> {
+    return projectCommercialInvocationList(
+      await this.authenticatedJson(
+        "GET",
+        "/api/v1/client/relay/invocations",
+        {
+          query: compactObject({
+            status: optionalText(query.status),
+            operation: optionalText(query.operation),
+            modelCode: optionalText(query.modelCode),
+            limit: query.limit,
+            offset: query.offset,
+          }),
+        },
+      ),
     );
   }
 
-  invocationDetails(id: Identifier): Promise<unknown> {
-    return this.authenticatedJson(
-      "GET",
-      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}`,
+  async invocationDetails(
+    id: string,
+  ): Promise<{ invocation: CommercialInvocationSnapshot }> {
+    return projectCommercialInvocationDetails(
+      await this.authenticatedJson(
+        "GET",
+        `/api/v1/client/relay/invocations/${encodeURIComponent(requiredUUID(id, "id"))}`,
+      ),
     );
   }
 
-  cancelInvocation(id: Identifier, reason: string): Promise<unknown> {
-    return this.authenticatedJson(
-      "POST",
-      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}/cancel`,
-      { body: { reason: requiredText(reason, "reason") } },
+  async cancelInvocation(
+    id: string,
+    reason: string,
+  ): Promise<CommercialInvocationSnapshot> {
+    const invocationId = requiredUUID(id, "id");
+    return projectCommercialInvocation(
+      await this.authenticatedJson(
+        "POST",
+        `/api/v1/client/relay/invocations/${encodeURIComponent(invocationId)}/cancel`,
+        { body: { reason: requiredText(reason, "reason") } },
+      ),
     );
   }
 
-  async invocationResult(id: Identifier): Promise<Response> {
+  async invocationResult(id: string): Promise<Response> {
     const response = await this.authenticatedResponse(
       "GET",
-      `/api/v1/client/relay/invocations/${encodeURIComponent(String(requiredIdentifier(id, "id")))}/result`,
+      `/api/v1/client/relay/invocations/${encodeURIComponent(requiredUUID(id, "id"))}/result`,
       { accept: "application/octet-stream" },
     );
     await assertSuccessfulResponse(response);
     return response;
   }
 
-  checkRelease(query: CommercialReleaseQuery): Promise<unknown> {
-    return this.authenticatedJson("GET", "/api/v1/client/releases/check", {
-      query: {
-        currentVersion: requiredText(query.currentVersion, "currentVersion"),
-        target: requiredText(query.target, "target"),
-        arch: requiredText(query.arch, "arch"),
-      },
-    });
+  async checkRelease(
+    query: CommercialReleaseQuery,
+  ): Promise<CommercialReleaseSnapshot> {
+    return projectCommercialRelease(
+      await this.authenticatedJson("GET", "/api/v1/client/releases/check", {
+        query: {
+          currentVersion: requiredText(query.currentVersion, "currentVersion"),
+          target: requiredText(query.target, "target"),
+          arch: requiredText(query.arch, "arch"),
+        },
+      }),
+    );
   }
 
   async releaseUpdateFeed(
-    artifactId: Identifier,
+    artifactId: string,
   ): Promise<CommercialReleaseUpdateFeed> {
     const session = await this.requireFreshSession();
     const url = new URL("/api/v1/client/releases/updater/", `${this.baseUrl}/`);
     url.searchParams.set(
       "artifactId",
-      String(requiredIdentifier(artifactId, "artifactId")),
+      requiredUUID(artifactId, "artifactId"),
     );
     return {
       url: url.toString(),
@@ -589,6 +780,24 @@ export class CommercialApiClient extends CommercialApiTransport {
     };
   }
 
+}
+
+function requireSuccessfulCommand(
+  result: { success: boolean; message?: string },
+  action: string,
+): void {
+  if (!result.success) {
+    throw new CommercialApiError(result.message?.trim() || `${action}失败`);
+  }
+}
+
+function requireSuccessfulBaseResponse(
+  result: CommercialBaseResponse,
+  action: string,
+): void {
+  if (result.code !== 0) {
+    throw new CommercialApiError(result.message.trim() || `${action}失败`);
+  }
 }
 
 export function resolveCommercialGatewayUrl(): string {

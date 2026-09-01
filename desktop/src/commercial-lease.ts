@@ -24,7 +24,7 @@ export interface OfflineLeaseVerifyOptions {
   /** Optional: signed payload must contain the same device public-key hash. */
   devicePublicKeyHash?: string;
   /** Optional: signed payload must contain the same license id. */
-  licenseId?: string | number;
+  licenseId?: string;
 }
 
 export interface OfflineLeaseVerificationResult {
@@ -46,6 +46,21 @@ const failed = (
   reason,
 });
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/i;
+const LEASE_PAYLOAD_FIELDS = [
+  "activationId",
+  "allowsCustomModels",
+  "deviceId",
+  "devicePublicKeyHash",
+  "editionType",
+  "expiresAt",
+  "issuedAt",
+  "keyId",
+  "licenseId",
+] as const;
+
 /**
  * Verifies an offline lease per the Gateway contract: the signature covers the
  * raw UTF-8 bytes of `payloadJson` with the key referenced by `keyId`; the
@@ -57,6 +72,22 @@ export function verifyOfflineLease(
   options: OfflineLeaseVerifyOptions,
 ): OfflineLeaseVerificationResult {
   const now = options.now ?? Date.now;
+  if (typeof lease.id !== "string" || !UUID_PATTERN.test(lease.id)) {
+    return failed("租约 id 不是 UUID");
+  }
+  if (
+    typeof lease.activationId !== "string" ||
+    !UUID_PATTERN.test(lease.activationId)
+  ) {
+    return failed("租约 activationId 不是 UUID");
+  }
+  if (typeof lease.issuedAt !== "string") {
+    return failed("租约缺少签发时间");
+  }
+  const issuedAtMs = Date.parse(lease.issuedAt);
+  if (!Number.isFinite(issuedAtMs)) {
+    return failed("租约签发时间格式无效");
+  }
   if (typeof lease.payloadJson !== "string" || !lease.payloadJson) {
     return failed("租约缺少 payloadJson");
   }
@@ -78,6 +109,9 @@ export function verifyOfflineLease(
       format: "pem",
       type: "spki",
     });
+    if (publicKey.asymmetricKeyType !== "ed25519") {
+      return failed("许可签名公钥必须是 Ed25519 公钥");
+    }
   } catch {
     return failed("许可签名公钥无效");
   }
@@ -110,6 +144,61 @@ export function verifyOfflineLease(
     return failed("租约载荷无效");
   }
 
+  const actualPayloadFields = Object.keys(payload).sort();
+  if (
+    actualPayloadFields.length !== LEASE_PAYLOAD_FIELDS.length ||
+    LEASE_PAYLOAD_FIELDS.some(
+      (field, index) => field !== actualPayloadFields[index],
+    )
+  ) {
+    return failed("租约载荷字段不完整或包含未知字段");
+  }
+  if (
+    typeof payload.activationId !== "string" ||
+    !UUID_PATTERN.test(payload.activationId) ||
+    payload.activationId !== lease.activationId
+  ) {
+    return failed("租约 activationId 不一致");
+  }
+  if (
+    typeof payload.licenseId !== "string" ||
+    !UUID_PATTERN.test(payload.licenseId)
+  ) {
+    return failed("租约 licenseId 不是 UUID");
+  }
+  if (
+    options.licenseId !== undefined &&
+    payload.licenseId !== options.licenseId
+  ) {
+    return failed("租约许可摘要不一致");
+  }
+  if (
+    typeof payload.deviceId !== "string" ||
+    !UUID_PATTERN.test(payload.deviceId)
+  ) {
+    return failed("租约 deviceId 不是 UUID");
+  }
+  if (
+    typeof payload.devicePublicKeyHash !== "string" ||
+    !SHA256_PATTERN.test(payload.devicePublicKeyHash)
+  ) {
+    return failed("租约缺少有效的设备公钥摘要");
+  }
+  if (
+    options.devicePublicKeyHash !== undefined &&
+    payload.devicePublicKeyHash !== options.devicePublicKeyHash.toLowerCase()
+  ) {
+    return failed("租约设备摘要不一致");
+  }
+  if (payload.keyId !== lease.keyId) {
+    return failed("租约 keyId 不一致");
+  }
+  if (payload.issuedAt !== lease.issuedAt) {
+    return failed("租约签发时间不一致");
+  }
+  if (payload.expiresAt !== lease.expiresAt) {
+    return failed("租约有效期不一致");
+  }
   if (typeof lease.expiresAt !== "string") {
     return failed("租约缺少有效期");
   }
@@ -117,26 +206,11 @@ export function verifyOfflineLease(
   if (!Number.isFinite(expiresAtMs)) {
     return failed("租约有效期格式无效");
   }
+  if (expiresAtMs <= issuedAtMs) {
+    return failed("租约有效期不得早于签发时间");
+  }
   if (expiresAtMs <= now()) {
     return failed("租约已过期", true);
-  }
-
-  if (payload.keyId !== undefined && String(payload.keyId) !== lease.keyId) {
-    return failed("租约 keyId 不一致");
-  }
-  if (
-    options.licenseId !== undefined &&
-    payload.licenseId !== undefined &&
-    String(payload.licenseId) !== String(options.licenseId)
-  ) {
-    return failed("租约许可摘要不一致");
-  }
-  if (
-    options.devicePublicKeyHash !== undefined &&
-    payload.devicePublicKeyHash !== undefined &&
-    String(payload.devicePublicKeyHash) !== options.devicePublicKeyHash
-  ) {
-    return failed("租约设备摘要不一致");
   }
 
   const editionType =
@@ -146,12 +220,15 @@ export function verifyOfflineLease(
   if (!editionType) {
     return failed("租约缺少 editionType");
   }
+  if (typeof payload.allowsCustomModels !== "boolean") {
+    return failed("租约缺少 allowsCustomModels");
+  }
 
   return {
     verified: true,
     expired: false,
     editionType,
-    allowsCustomModels: payload.allowsCustomModels === true,
+    allowsCustomModels: payload.allowsCustomModels,
     reason: null,
   };
 }

@@ -6,23 +6,36 @@ import test from "node:test";
 
 import { verifyOfflineLease } from "../src/commercial-lease.ts";
 
+const LEASE_ID = "11111111-1111-4111-8111-111111111111";
+const ACTIVATION_ID = "22222222-2222-4222-8222-222222222222";
+const LICENSE_ID = "33333333-3333-4333-8333-333333333333";
+const DEVICE_ID = "44444444-4444-4444-8444-444444444444";
+const DEVICE_PUBLIC_KEY_HASH = "a".repeat(64);
+
 function leaseFixture(overrides = {}, payloadOverrides = {}) {
   const { publicKey, privateKey } = generateKeyPairSync("ed25519");
   const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+  const activationId = overrides.activationId ?? ACTIVATION_ID;
+  const issuedAt = overrides.issuedAt ?? "2026-07-23T09:00:00Z";
+  const expiresAt = overrides.expiresAt ?? "2099-01-01T00:00:00Z";
   const payload = {
-    keyId: "license-signing-2026-01",
+    activationId,
+    licenseId: LICENSE_ID,
+    deviceId: DEVICE_ID,
+    devicePublicKeyHash: DEVICE_PUBLIC_KEY_HASH,
     editionType: "PROFESSIONAL",
     allowsCustomModels: true,
-    licenseId: "license-id",
-    devicePublicKeyHash: "device-hash",
+    issuedAt,
+    expiresAt,
+    keyId: "license-signing-2026-01",
     ...payloadOverrides,
   };
   const payloadJson = JSON.stringify(payload);
   const lease = {
-    id: "lease-id",
-    activationId: "activation-id",
-    issuedAt: "2026-07-23T09:00:00Z",
-    expiresAt: "2099-01-01T00:00:00Z",
+    id: LEASE_ID,
+    activationId,
+    issuedAt,
+    expiresAt,
     payloadJson,
     signature: sign(null, Buffer.from(payloadJson, "utf8"), privateKey).toString(
       "base64",
@@ -37,8 +50,8 @@ test("verifies a valid offline lease and exposes signed capability fields", () =
   const { publicKeyPem, lease } = leaseFixture();
   const result = verifyOfflineLease(lease, {
     publicKeys: { "license-signing-2026-01": publicKeyPem },
-    devicePublicKeyHash: "device-hash",
-    licenseId: "license-id",
+    devicePublicKeyHash: DEVICE_PUBLIC_KEY_HASH,
+    licenseId: LICENSE_ID,
     now: () => Date.parse("2026-07-25T00:00:00Z"),
   });
 
@@ -107,11 +120,32 @@ test("rejects a device digest mismatch when the expected hash is given", () => {
   const { publicKeyPem, lease } = leaseFixture();
   const result = verifyOfflineLease(lease, {
     publicKeys: { "license-signing-2026-01": publicKeyPem },
-    devicePublicKeyHash: "another-device-hash",
+    devicePublicKeyHash: "b".repeat(64),
   });
 
   assert.equal(result.verified, false);
   assert.match(result.reason, /设备摘要不一致/);
+});
+
+test("rejects signed leases with missing bindings or non-UUID resource ids", () => {
+  const missingBinding = leaseFixture({}, { devicePublicKeyHash: undefined });
+  assert.equal(
+    verifyOfflineLease(missingBinding.lease, {
+      publicKeys: {
+        "license-signing-2026-01": missingBinding.publicKeyPem,
+      },
+    }).verified,
+    false,
+  );
+
+  const invalidLeaseId = leaseFixture({ id: "lease-id" });
+  const invalidResult = verifyOfflineLease(invalidLeaseId.lease, {
+    publicKeys: {
+      "license-signing-2026-01": invalidLeaseId.publicKeyPem,
+    },
+  });
+  assert.equal(invalidResult.verified, false);
+  assert.match(invalidResult.reason, /UUID/);
 });
 
 test("rejects a lease without a signed edition type", () => {

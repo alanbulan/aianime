@@ -27,7 +27,6 @@ export type {
   CommercialRememberedLogin,
   CommercialProfileUpdateInput,
   CommercialPublicConfig,
-  CommercialRegistrationInput,
   CommercialSession,
   CommercialTenant,
   CommercialUser,

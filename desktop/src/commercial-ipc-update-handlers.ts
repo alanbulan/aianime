@@ -3,8 +3,8 @@
 import { selectReleaseArtifactId } from "./commercial-contracts.js";
 import {
   CommercialApiError,
-  requiredIdentifier,
   requiredInteger,
+  requiredUUID,
 } from "./commercial-api-client.js";
 import type { CommercialIpcContext } from "./commercial-ipc-context.js";
 
@@ -30,7 +30,7 @@ export function registerCommercialUpdateHandlers(
     ),
   );
   context.handle(channels.downloadUpdate, async (input) => {
-    const artifactId = requiredIdentifier(input, "artifactId");
+    const artifactId = requiredUUID(input, "artifactId");
     if (!options.releaseUpdater) {
       throw new CommercialApiError("客户端尚未配置更新器");
     }
@@ -41,5 +41,6 @@ export function registerCommercialUpdateHandlers(
       throw new CommercialApiError("客户端尚未配置更新器");
     }
     options.releaseUpdater.install();
+    return { accepted: true };
   });
 }

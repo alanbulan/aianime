@@ -1,22 +1,24 @@
-export type CommercialInvocationId = string | number;
+export type CommercialInvocationId = string;
 
 export interface CommercialInvocation {
   id: CommercialInvocationId;
+  modelCode: string;
+  operation: string;
+  executionMode: string;
   status: string;
-  operation?: string;
-  modelSkuCode?: string;
-  quotaStatus?: string;
-  reservationId?: CommercialInvocationId;
-  reservedUnits?: number;
-  chargedUnits?: number;
-  refundedUnits?: number;
-  balanceBefore?: number;
-  balanceAfter?: number;
-  requestId?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  completedAt?: string;
-  errorMessage?: string;
+  quotaStatus: string;
+  reservationId: string;
+  reservedUnits: number;
+  chargedUnits: number;
+  refundedUnits: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  errorCode: string;
+  errorMessage: string;
+  createdAt: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
 }
 
 export interface CommercialInvocationList {
@@ -26,10 +28,14 @@ export interface CommercialInvocationList {
   pageSize: number;
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function parseCommercialInvocationList(
   value: unknown,
+  pagination: { page: number; pageSize: number },
 ): CommercialInvocationList {
-  const root = record(value, "invocation list");
+  const root = record(value, "invocation list", ["items", "total"]);
   if (!Array.isArray(root.items)) {
     throw new Error("invocation list items must be an array");
   }
@@ -38,16 +44,37 @@ export function parseCommercialInvocationList(
       parseCommercialInvocation(item, `invocations[${index}]`),
     ),
     total: nonNegativeInteger(root.total, "total"),
-    page: optionalPositiveInteger(root.page) ?? 1,
-    pageSize: optionalPositiveInteger(root.pageSize) ?? 20,
+    page: positiveInteger(pagination.page, "page"),
+    pageSize: positiveInteger(pagination.pageSize, "pageSize"),
   };
 }
 
 export function parseCommercialInvocationDetails(
   value: unknown,
 ): CommercialInvocation {
-  const root = record(value, "invocation details");
+  const root = record(value, "invocation details", ["invocation"]);
   return parseCommercialInvocation(root.invocation, "invocation");
+}
+
+export function parseCommercialInvocationSaveResult(
+  value: unknown,
+): { saved: boolean; fileName?: string } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("invocation save result must be an object");
+  }
+  const candidate = value as Record<string, unknown>;
+  if (candidate.saved === false) {
+    record(candidate, "invocation save result", ["saved"]);
+    return { saved: false };
+  }
+  if (candidate.saved === true) {
+    const result = record(candidate, "invocation save result", [
+      "fileName",
+      "saved",
+    ]);
+    return { saved: true, fileName: text(result.fileName, "fileName") };
+  }
+  throw new Error("invocation save result.saved must be a boolean");
 }
 
 export function canCancelCommercialInvocation(status: string): boolean {
@@ -72,32 +99,93 @@ function parseCommercialInvocation(
   value: unknown,
   name: string,
 ): CommercialInvocation {
-  const invocation = record(value, name);
+  const invocation = record(value, name, [
+    "id",
+    "modelCode",
+    "operation",
+    "executionMode",
+    "status",
+    "quotaStatus",
+    "reservationId",
+    "reservedUnits",
+    "chargedUnits",
+    "refundedUnits",
+    "balanceBefore",
+    "balanceAfter",
+    "errorCode",
+    "errorMessage",
+    "createdAt",
+    "startedAt",
+    "completedAt",
+    "durationMs",
+  ]);
+  const reservationId = stringValue(
+    invocation.reservationId,
+    `${name}.reservationId`,
+  );
+  if (reservationId) uuid(reservationId, `${name}.reservationId`);
   return {
-    id: identifier(invocation.id, `${name}.id`),
+    id: uuid(invocation.id, `${name}.id`),
+    modelCode: text(invocation.modelCode, `${name}.modelCode`),
+    operation: text(invocation.operation, `${name}.operation`),
+    executionMode: text(invocation.executionMode, `${name}.executionMode`),
     status: text(invocation.status, `${name}.status`),
-    ...optionalText("operation", invocation.operation),
-    ...optionalText("modelSkuCode", invocation.modelSkuCode),
-    ...optionalText("quotaStatus", invocation.quotaStatus),
-    ...optionalIdentifier("reservationId", invocation.reservationId),
-    ...optionalNonNegativeNumber("reservedUnits", invocation.reservedUnits),
-    ...optionalNonNegativeNumber("chargedUnits", invocation.chargedUnits),
-    ...optionalNonNegativeNumber("refundedUnits", invocation.refundedUnits),
-    ...optionalNonNegativeNumber("balanceBefore", invocation.balanceBefore),
-    ...optionalNonNegativeNumber("balanceAfter", invocation.balanceAfter),
-    ...optionalText("requestId", invocation.requestId),
-    ...optionalText("createdAt", invocation.createdAt),
-    ...optionalText("updatedAt", invocation.updatedAt),
-    ...optionalText("completedAt", invocation.completedAt),
-    ...optionalText("errorMessage", invocation.errorMessage),
+    quotaStatus: text(invocation.quotaStatus, `${name}.quotaStatus`),
+    reservationId,
+    reservedUnits: nonNegativeNumber(
+      invocation.reservedUnits,
+      `${name}.reservedUnits`,
+    ),
+    chargedUnits: nonNegativeNumber(
+      invocation.chargedUnits,
+      `${name}.chargedUnits`,
+    ),
+    refundedUnits: nonNegativeNumber(
+      invocation.refundedUnits,
+      `${name}.refundedUnits`,
+    ),
+    balanceBefore: nonNegativeNumber(
+      invocation.balanceBefore,
+      `${name}.balanceBefore`,
+    ),
+    balanceAfter: nonNegativeNumber(
+      invocation.balanceAfter,
+      `${name}.balanceAfter`,
+    ),
+    errorCode: stringValue(invocation.errorCode, `${name}.errorCode`),
+    errorMessage: stringValue(invocation.errorMessage, `${name}.errorMessage`),
+    createdAt: stringValue(invocation.createdAt, `${name}.createdAt`),
+    startedAt: stringValue(invocation.startedAt, `${name}.startedAt`),
+    completedAt: stringValue(invocation.completedAt, `${name}.completedAt`),
+    durationMs: nonNegativeInteger(invocation.durationMs, `${name}.durationMs`),
   };
 }
 
-function record(value: unknown, name: string): Record<string, unknown> {
+function record(
+  value: unknown,
+  name: string,
+  fields: readonly string[],
+): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${name} must be an object`);
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  const actual = Object.keys(result).sort();
+  const expected = [...fields].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((field, index) => field !== expected[index])
+  ) {
+    throw new Error(`${name} fields must be exactly ${expected.join(", ")}`);
+  }
+  return result;
+}
+
+function uuid(value: unknown, name: string): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value.trim())) {
+    throw new Error(`${name} must be a UUID string`);
+  }
+  return value.trim().toLowerCase();
 }
 
 function text(value: unknown, name: string): string {
@@ -106,10 +194,16 @@ function text(value: unknown, name: string): string {
   return normalized;
 }
 
-function identifier(value: unknown, name: string): CommercialInvocationId {
-  if (typeof value === "string" && value.trim()) return value;
-  if (typeof value === "number" && Number.isSafeInteger(value)) return value;
-  throw new Error(`${name} must be a string or safe integer`);
+function stringValue(value: unknown, name: string): string {
+  if (typeof value !== "string") throw new Error(`${name} must be a string`);
+  return value;
+}
+
+function nonNegativeNumber(value: unknown, name: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${name} must be a non-negative number`);
+  }
+  return value;
 }
 
 function nonNegativeInteger(value: unknown, name: string): number {
@@ -119,28 +213,9 @@ function nonNegativeInteger(value: unknown, name: string): number {
   return Number(value);
 }
 
-function optionalPositiveInteger(value: unknown): number | undefined {
-  return Number.isSafeInteger(value) && Number(value) > 0
-    ? Number(value)
-    : undefined;
-}
-
-function optionalText<K extends string>(key: K, value: unknown) {
-  const normalized = typeof value === "string" ? value.trim() : "";
-  return normalized ? ({ [key]: normalized } as Record<K, string>) : {};
-}
-
-function optionalIdentifier<K extends string>(key: K, value: unknown) {
-  if (value === undefined || value === null || value === "") return {};
-  return {
-    [key]: identifier(value, key),
-  } as Record<K, CommercialInvocationId>;
-}
-
-function optionalNonNegativeNumber<K extends string>(key: K, value: unknown) {
-  if (value === undefined || value === null) return {};
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    throw new Error(`${key} must be a non-negative number`);
+function positiveInteger(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) <= 0) {
+    throw new Error(`${name} must be a positive integer`);
   }
-  return { [key]: value } as Record<K, number>;
+  return Number(value);
 }

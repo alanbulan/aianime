@@ -57,8 +57,21 @@ function withCommercialRelease(available: boolean) {
       checkRelease: vi.fn().mockResolvedValue({
         available,
         required: false,
-        reason: available ? "new-version" : null,
-        artifactId: available ? 7 : null,
+        version: {
+          id: "22222222-2222-4222-8222-222222222222",
+          version: "1.1.6",
+          notes: "Release notes",
+          pubDate: "2026-08-02T00:00:00Z",
+          minimumSupportedVersion: "1.1.5",
+          status: "PUBLISHED",
+          createdAt: "2026-08-01T00:00:00Z",
+          publishedAt: "2026-08-02T00:00:00Z",
+          artifacts: [],
+        },
+        reason: available ? "new-version" : "up-to-date",
+        artifactId: available
+          ? "11111111-1111-4111-8111-111111111111"
+          : null,
       }),
     },
   } as unknown as AIAnimeDesktopBridge;

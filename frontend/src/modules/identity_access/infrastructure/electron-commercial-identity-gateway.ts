@@ -1,9 +1,17 @@
 import type { CommercialIdentityGateway } from "@/modules/identity_access/application/commercial-session-ports";
 import {
+  parseCommercialAvatarUploadResult,
   parseCommercialCaptcha,
+  parseCommercialImage,
+  parseCommercialLogoutResult,
+  parseCommercialPasswordChangeResult,
+  parseCommercialPasswordResetResult,
+  parseCommercialProfileResult,
   parseCommercialPublicConfig,
   parseCommercialRememberedLogin,
   parseCommercialSession,
+  parseCommercialStatus,
+  parseCommercialSuccessMessage,
   parseCommercialUserProfile,
   parsePasswordResetVerification,
 } from "@/modules/identity_access/domain/commercial-session";
@@ -17,7 +25,7 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
   async status() {
     const commercial = getCommercialBridge();
     return commercial
-      ? invokeCommercial(() => commercial.status())
+      ? parseCommercialStatus(await invokeCommercial(() => commercial.status()))
       : { configured: false, gatewayOrigin: "" };
   },
   async fetchPublicConfig(tenantCode) {
@@ -28,13 +36,12 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
     );
   },
   async fetchPublicLogo(tenantCode) {
-    const logo = await invokeCommercial(() =>
-      requireCommercialBridge().publicLogo(tenantCode),
+    return parseCommercialImage(
+      await invokeCommercial(() =>
+        requireCommercialBridge().publicLogo(tenantCode),
+      ),
+      "commercial public Logo",
     );
-    if (!logo.contentType.startsWith("image/") || !logo.dataUrl.startsWith("data:image/")) {
-      throw new Error("Commercial Gateway returned an invalid public Logo");
-    }
-    return logo;
   },
   async fetchCaptcha(tenantCode) {
     return parseCommercialCaptcha(
@@ -42,9 +49,6 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
         requireCommercialBridge().publicCaptcha(tenantCode),
       ),
     );
-  },
-  register(input) {
-    return invokeCommercial(() => requireCommercialBridge().register(input));
   },
   async restoreSession() {
     const session = await invokeCommercial(() => requireCommercialBridge().session());
@@ -77,8 +81,10 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
       ),
     );
   },
-  logout() {
-    return invokeCommercial(() => requireCommercialBridge().logout());
+  async logout() {
+    return parseCommercialLogoutResult(
+      await invokeCommercial(() => requireCommercialBridge().logout()),
+    );
   },
   async fetchProfile() {
     return parseCommercialUserProfile(
@@ -93,40 +99,44 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
     );
   },
   async fetchAvatar() {
-    const avatar = await invokeCommercial(() =>
-      requireCommercialBridge().avatar(),
+    return parseCommercialImage(
+      await invokeCommercial(() => requireCommercialBridge().avatar()),
+      "commercial protected avatar",
     );
-    if (
-      !avatar.contentType.startsWith("image/") ||
-      !avatar.dataUrl.startsWith(`data:${avatar.contentType};base64,`)
-    ) {
-      throw new Error("Commercial Gateway returned an invalid protected avatar");
-    }
-    return avatar;
   },
   async uploadAvatar(input) {
-    const result = await invokeCommercial(() =>
-      requireCommercialBridge().uploadAvatar(input),
+    return parseCommercialAvatarUploadResult(
+      await invokeCommercial(() =>
+        requireCommercialBridge().uploadAvatar(input),
+      ),
     );
-    return {
-      profile: parseCommercialUserProfile(result.profile),
-      avatar: result.avatar,
-    };
   },
   async deleteAvatar() {
-    const result = await invokeCommercial(() =>
-      requireCommercialBridge().deleteAvatar(),
-    );
-    return { profile: parseCommercialUserProfile(result.profile) };
-  },
-  changePassword(oldPassword, newPassword) {
-    return invokeCommercial(() =>
-      requireCommercialBridge().changePassword({ oldPassword, newPassword }),
+    return parseCommercialProfileResult(
+      await invokeCommercial(() => requireCommercialBridge().deleteAvatar()),
     );
   },
-  sendPasswordResetCode(tenantCode, email) {
-    return invokeCommercial(() =>
-      requireCommercialBridge().sendPasswordResetCode({ tenantCode, email }),
+  async changePassword(oldPassword, newPassword) {
+    return parseCommercialPasswordChangeResult(
+      await invokeCommercial(() =>
+        requireCommercialBridge().changePassword({ oldPassword, newPassword }),
+      ),
+    );
+  },
+  async sendSmsLoginCode(tenantCode, phone) {
+    return parseCommercialSuccessMessage(
+      await invokeCommercial(() =>
+        requireCommercialBridge().sendSmsLoginCode({ tenantCode, phone }),
+      ),
+      "commercial SMS login code result",
+    );
+  },
+  async sendPasswordResetCode(tenantCode, email) {
+    return parseCommercialSuccessMessage(
+      await invokeCommercial(() =>
+        requireCommercialBridge().sendPasswordResetCode({ tenantCode, email }),
+      ),
+      "commercial password reset code result",
     );
   },
   async verifyPasswordResetCode(tenantCode, email, code) {
@@ -140,13 +150,15 @@ export const electronCommercialIdentityGateway: CommercialIdentityGateway = {
       ),
     );
   },
-  resetPassword(tenantCode, resetTicket, newPassword) {
-    return invokeCommercial(() =>
-      requireCommercialBridge().resetPassword({
-        tenantCode,
-        resetTicket,
-        newPassword,
-      }),
+  async resetPassword(tenantCode, resetTicket, newPassword) {
+    return parseCommercialPasswordResetResult(
+      await invokeCommercial(() =>
+        requireCommercialBridge().resetPassword({
+          tenantCode,
+          resetTicket,
+          newPassword,
+        }),
+      ),
     );
   },
 };

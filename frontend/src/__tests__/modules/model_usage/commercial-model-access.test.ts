@@ -9,6 +9,7 @@ import {
   parseByokDiscoveredModelMetadata,
   parseCommercialModelAccessStatus,
   parseCommercialModelCatalogItem,
+  parseCommercialQuota,
   resolveRequiredCatalogModelCode,
   resolveCommercialModelRoleRoute,
   type CommercialModelCatalog,
@@ -356,6 +357,50 @@ describe("commercial model details", () => {
       "VIDEO_IMAGE_REFERENCE",
       "VIDEO_ALL_REFERENCE",
     ]);
+  });
+});
+
+describe("commercial quota contract", () => {
+  const quota = {
+    spendableUnits: 70,
+    account: {
+      id: "11111111-1111-4111-8111-111111111111",
+      subjectType: "USER",
+      subjectId: 42,
+      status: "ACTIVE",
+      availableUnits: 80,
+      reservedUnits: 10,
+      version: 3,
+    },
+    buckets: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        sourceType: "TENANT_ALLOCATION",
+        initialUnits: 100,
+        remainingUnits: 80,
+        reservedUnits: 10,
+        expiresAt: "2027-01-01T00:00:00Z",
+        status: "ACTIVE",
+        bucketType: "ALLOCATED",
+      },
+    ],
+  };
+
+  it("validates the complete Electron quota snapshot", () => {
+    expect(parseCommercialQuota(quota)).toEqual({
+      spendableUnits: 70,
+      availableUnits: 80,
+      reservedUnits: 10,
+    });
+    expect(() =>
+      parseCommercialQuota({
+        ...quota,
+        buckets: [{ ...quota.buckets[0], status: undefined }],
+      }),
+    ).toThrow(/status/);
+    expect(() =>
+      parseCommercialQuota({ ...quota, tenantId: 9 }),
+    ).toThrow(/fields must be exactly/);
   });
 });
 

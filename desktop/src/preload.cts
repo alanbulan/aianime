@@ -22,7 +22,6 @@ const COMMERCIAL_CHANNELS = {
   publicConfig: "desktop:commercial:public-config",
   publicLogo: "desktop:commercial:public-logo",
   publicCaptcha: "desktop:commercial:public-captcha",
-  register: "desktop:commercial:register",
   session: "desktop:commercial:session",
   rememberedLogin: "desktop:commercial:remembered-login",
   revealRememberedPassword: "desktop:commercial:reveal-remembered-password",
@@ -35,6 +34,7 @@ const COMMERCIAL_CHANNELS = {
   uploadAvatar: "desktop:commercial:upload-avatar",
   deleteAvatar: "desktop:commercial:delete-avatar",
   changePassword: "desktop:commercial:change-password",
+  sendSmsLoginCode: "desktop:commercial:send-sms-login-code",
   sendPasswordResetCode: "desktop:commercial:send-password-reset-code",
   verifyPasswordResetCode: "desktop:commercial:verify-password-reset-code",
   resetPassword: "desktop:commercial:reset-password",
@@ -103,8 +103,6 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.publicLogo, tenantCode),
     publicCaptcha: (tenantCode: string) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.publicCaptcha, tenantCode),
-    register: (input: unknown) =>
-      ipcRenderer.invoke(COMMERCIAL_CHANNELS.register, input),
     session: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.session),
     rememberedLogin: () =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.rememberedLogin),
@@ -123,6 +121,8 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     deleteAvatar: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.deleteAvatar),
     changePassword: (input: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.changePassword, input),
+    sendSmsLoginCode: (input: unknown) =>
+      ipcRenderer.invoke(COMMERCIAL_CHANNELS.sendSmsLoginCode, input),
     sendPasswordResetCode: (input: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.sendPasswordResetCode, input),
     verifyPasswordResetCode: (input: unknown) =>
@@ -156,16 +156,16 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.modelDetails, sku),
     invocationList: (query: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.invocationList, query),
-    invocationDetails: (id: string | number) =>
+    invocationDetails: (id: string) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.invocationDetails, id),
     cancelInvocation: (input: unknown) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.cancelInvocation, input),
-    saveInvocationResult: (id: string | number) =>
+    saveInvocationResult: (id: string) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.saveInvocationResult, id),
     announcements: (limit = 20) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.announcements, limit),
     checkRelease: () => ipcRenderer.invoke(COMMERCIAL_CHANNELS.checkRelease),
-    downloadUpdate: (artifactId: string | number) =>
+    downloadUpdate: (artifactId: string) =>
       ipcRenderer.invoke(COMMERCIAL_CHANNELS.downloadUpdate, artifactId),
     onUpdateDownloadProgress: (listener: (progress: unknown) => void) => {
       const handler = (_event: unknown, progress: unknown) => listener(progress);

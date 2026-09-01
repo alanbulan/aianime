@@ -2,19 +2,18 @@
 
 import type { CommercialDeviceSigner } from "./commercial-device.js";
 
-export type Identifier = string | number;
 export type QueryValue = string | number | boolean | null | undefined;
 
 export interface CommercialUser {
-  id: Identifier;
+  id: number;
   username: string;
-  nickname?: string;
-  email?: string;
-  avatar?: string;
+  nickname: string;
+  email: string;
+  avatar: string;
 }
 
 export interface CommercialUserProfile {
-  id: Identifier;
+  id: number;
   username: string;
   nickname: string;
   email: string;
@@ -22,7 +21,7 @@ export interface CommercialUserProfile {
   gender: 0 | 1 | 2;
   avatar: string;
   status: number;
-  deptId: Identifier;
+  deptId: number;
   deptName: string;
   profileDescription: string;
 }
@@ -52,10 +51,10 @@ export interface CommercialPasswordResetVerification {
 }
 
 export interface CommercialTenant {
-  id: Identifier;
+  id: number;
   code: string;
   name: string;
-  isSystem?: boolean;
+  isSystem: boolean;
 }
 
 export interface CommercialSessionSummary {
@@ -65,7 +64,8 @@ export interface CommercialSessionSummary {
   tenant: CommercialTenant;
 }
 
-export interface CommercialLoginInput {
+export interface CommercialPasswordLoginInput {
+  loginType: "PASSWORD";
   tenantCode: string;
   username: string;
   password: string;
@@ -73,6 +73,18 @@ export interface CommercialLoginInput {
   captchaKey?: string;
   captchaCode?: string;
 }
+
+export interface CommercialSmsLoginInput {
+  loginType: "SMS";
+  tenantCode: string;
+  phone: string;
+  smsCode: string;
+  rememberMe?: boolean;
+}
+
+export type CommercialLoginInput =
+  | CommercialPasswordLoginInput
+  | CommercialSmsLoginInput;
 
 export interface CommercialRememberedLoginInput {
   rememberMe?: boolean;
@@ -86,14 +98,73 @@ export interface CommercialRememberedLoginSummary {
   hasPassword: true;
 }
 
-export interface CommercialRegistrationInput {
-  tenantCode: string;
-  username: string;
-  password: string;
-  nickname?: string;
-  email?: string;
-  captchaKey?: string;
-  captchaCode?: string;
+export interface CommercialDesktopPublicConfig {
+  brand: {
+    siteName: string;
+    siteDescription: string;
+  };
+  login: {
+    captchaEnabled: boolean;
+    rememberMe: boolean;
+    smsLoginEnabled: boolean;
+  };
+  password: {
+    minLength: number;
+    maxLength: number;
+    requireUppercase: boolean;
+    requireLowercase: boolean;
+    requireNumber: boolean;
+    requireSpecial: boolean;
+  };
+}
+
+export interface CommercialBaseResponse {
+  code: number;
+  message: string;
+}
+
+export interface CommercialSuccessMessageResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface CommercialAvatarUploadResponse {
+  avatar: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+export interface CommercialPasswordChangeResponse {
+  success: boolean;
+  sessionsRevoked: boolean;
+  tokenReissued: boolean;
+}
+
+export interface CommercialPasswordResetResponse {
+  success: boolean;
+  message: string;
+  sessionsRevoked: boolean;
+  tokenReissued: boolean;
+}
+
+export interface CommercialLogoutResult {
+  remoteRevoked: boolean;
+  success: boolean;
+}
+
+export interface CommercialAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  level: string;
+  pinned: boolean;
+  publishAt: string;
+  expiresAt: string;
+}
+
+export interface CommercialAnnouncementList {
+  items: CommercialAnnouncement[];
+  total: number;
 }
 
 export interface CommercialBootstrapQuery {
@@ -114,11 +185,11 @@ export interface CommercialModelCatalogQuery {
 }
 
 export interface CommercialInvocationQuery {
-  page?: number;
-  pageSize?: number;
   status?: string;
   operation?: string;
-  modelSkuCode?: string;
+  modelCode?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface CommercialReleaseQuery {
@@ -132,8 +203,28 @@ export interface CommercialReleaseUpdateFeed {
   requestHeaders: Readonly<Record<string, string>>;
 }
 
+export interface CommercialLicenseActivationResponse {
+  activationId: string;
+  leaseId: string;
+  expiresAt: string;
+}
+
+export interface CommercialLicenseLeaseRefreshResponse {
+  leaseId: string;
+  issuedAt: string;
+  expiresAt: string;
+  keyId: string;
+}
+
+export interface CommercialLicenseDeactivationResponse {
+  activationId: string;
+  status: string;
+  endedAt: string;
+  endReason: string;
+}
+
 export interface CommercialLicenseActivationInput {
-  licenseId: Identifier;
+  licenseId: string;
   device: CommercialDeviceSigner;
   deviceName: string;
   platform: string;
@@ -211,8 +302,6 @@ export interface LoginResponse {
 export interface RefreshResponse {
   accessToken: string;
   expiresIn: number;
-  user?: CommercialUser;
-  tenant?: CommercialTenant;
 }
 
 export interface RequestOptions {
@@ -222,7 +311,7 @@ export interface RequestOptions {
   formData?: FormData;
   contentType?: string;
   token?: string;
-  deviceId?: Identifier;
+  deviceId?: string;
   accept?: string;
 }
 

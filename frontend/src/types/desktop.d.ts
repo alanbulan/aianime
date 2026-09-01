@@ -6,19 +6,29 @@ interface AIAnimeWindowControls {
   onMaximizedChange: (listener: (maximized: boolean) => void) => () => void;
 }
 
+type AIAnimeJsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | AIAnimeJsonValue[]
+  | { [key: string]: AIAnimeJsonValue };
+
+type AIAnimeCommercialEditionType = "STANDARD" | "PROFESSIONAL";
+
 interface AIAnimeCommercialUser {
-  id: string | number;
+  id: number;
   username: string;
-  nickname?: string;
-  email?: string;
-  avatar?: string;
+  nickname: string;
+  email: string;
+  avatar: string;
 }
 
 interface AIAnimeCommercialTenant {
-  id: string | number;
+  id: number;
   code: string;
   name: string;
-  isSystem?: boolean;
+  isSystem: boolean;
 }
 
 interface AIAnimeCommercialSession {
@@ -29,7 +39,7 @@ interface AIAnimeCommercialSession {
 }
 
 interface AIAnimeCommercialUserProfile {
-  id: string | number;
+  id: number;
   username: string;
   nickname: string;
   email: string;
@@ -37,19 +47,45 @@ interface AIAnimeCommercialUserProfile {
   gender: 0 | 1 | 2;
   avatar: string;
   status: number;
-  deptId: string | number;
+  deptId: number;
   deptName: string;
   profileDescription: string;
 }
 
-interface AIAnimeCommercialLoginInput {
-  tenantCode: string;
-  username: string;
-  password: string;
-  rememberMe?: boolean;
-  captchaKey?: string;
-  captchaCode?: string;
+interface AIAnimeCommercialDesktopPublicConfig {
+  brand: { siteName: string; siteDescription: string };
+  login: {
+    captchaEnabled: boolean;
+    rememberMe: boolean;
+    smsLoginEnabled: boolean;
+  };
+  password: {
+    minLength: number;
+    maxLength: number;
+    requireUppercase: boolean;
+    requireLowercase: boolean;
+    requireNumber: boolean;
+    requireSpecial: boolean;
+  };
 }
+
+type AIAnimeCommercialLoginInput =
+  | {
+      loginType: "PASSWORD";
+      tenantCode: string;
+      username: string;
+      password: string;
+      rememberMe?: boolean;
+      captchaKey?: string;
+      captchaCode?: string;
+    }
+  | {
+      loginType: "SMS";
+      tenantCode: string;
+      phone: string;
+      smsCode: string;
+      rememberMe?: boolean;
+    };
 
 interface AIAnimeCommercialRememberedLogin {
   tenantCode: string;
@@ -57,14 +93,162 @@ interface AIAnimeCommercialRememberedLogin {
   hasPassword: true;
 }
 
-interface AIAnimeCommercialRegistrationInput {
-  tenantCode: string;
-  username: string;
-  password: string;
-  nickname?: string;
-  email?: string;
-  captchaKey?: string;
-  captchaCode?: string;
+interface AIAnimeCommercialAuthorization {
+  license: {
+    id: string;
+    versionCode: string;
+    versionName: string;
+    editionType: AIAnimeCommercialEditionType;
+    allowsCustomModels: boolean;
+    status: string;
+    validFrom: string;
+    validUntil: string;
+    maxDevices: number;
+    activeDevices: number;
+  };
+  device: {
+    id: string;
+    publicKeyHash: string;
+    name: string;
+    platform: string;
+    arch: string;
+    clientVersion: string;
+    status: string;
+    createdAt: string;
+    lastSeenAt: string;
+  } | null;
+  activation: {
+    id: string;
+    licenseId: string;
+    deviceId: string;
+    status: string;
+    activatedAt: string;
+    lastHeartbeatAt: string;
+    endedAt: string;
+    endReason: string;
+  } | null;
+  lease: {
+    id: string;
+    activationId: string;
+    issuedAt: string;
+    expiresAt: string;
+    keyId: string;
+    verifiedOffline: boolean;
+  } | null;
+  capabilities: {
+    editionType: AIAnimeCommercialEditionType | null;
+    deviceActivated: boolean;
+    allowsCloudModels: boolean;
+    allowsCustomModels: boolean;
+  };
+}
+
+interface AIAnimeCommercialQuota {
+  spendableUnits: number;
+  account: {
+    id: string;
+    subjectType: string;
+    subjectId: number;
+    status: string;
+    availableUnits: number;
+    reservedUnits: number;
+    version: number;
+  };
+  buckets: Array<{
+    id: string;
+    sourceType: string;
+    initialUnits: number;
+    remainingUnits: number;
+    reservedUnits: number;
+    expiresAt: string;
+    status: string;
+    bucketType: string;
+  }>;
+}
+
+interface AIAnimeCommercialModel {
+  id: string;
+  code: string;
+  displayName: string;
+  operation: string;
+  capabilityJson?: string;
+  parameterSchemaJson?: string;
+  unitsPerCall?: number;
+  clientVisible?: boolean;
+  status?: string;
+  isDefault?: boolean;
+}
+
+interface AIAnimeCommercialModelCatalog {
+  catalogVersion: string;
+  items: AIAnimeCommercialModel[];
+}
+
+interface AIAnimeCommercialInvocation {
+  id: string;
+  modelCode: string;
+  operation: string;
+  executionMode: string;
+  status: string;
+  quotaStatus: string;
+  reservationId: string;
+  reservedUnits: number;
+  chargedUnits: number;
+  refundedUnits: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  errorCode: string;
+  errorMessage: string;
+  createdAt: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+}
+
+interface AIAnimeCommercialReleaseArtifact {
+  id: string;
+  versionId: string;
+  target: string;
+  arch: string;
+  installerKind: string;
+  fileId: number;
+  manifestFileId: number;
+  sha256: string;
+  sizeBytes: number;
+  manifestSha256: string;
+  manifestSizeBytes: number;
+  fileName: string;
+  manifestFileName: string;
+  contentType: string;
+  manifestContentType: string;
+  createdAt: string;
+}
+
+interface AIAnimeCommercialReleaseVersion {
+  id: string;
+  version: string;
+  notes: string;
+  pubDate: string;
+  minimumSupportedVersion: string;
+  status: string;
+  createdAt: string;
+  publishedAt: string;
+  artifacts: AIAnimeCommercialReleaseArtifact[];
+}
+
+interface AIAnimeCommercialRelease {
+  available: boolean;
+  required: boolean;
+  version: AIAnimeCommercialReleaseVersion;
+  reason: string;
+}
+
+interface AIAnimeCommercialBootstrap {
+  softwareAuthorization: AIAnimeCommercialAuthorization | null;
+  personalQuota: AIAnimeCommercialQuota | null;
+  models: AIAnimeCommercialModelCatalog | null;
+  release: AIAnimeCommercialRelease | null;
+  warnings: string[];
 }
 
 interface AIAnimeByokModelAssignment {
@@ -72,9 +256,9 @@ interface AIAnimeByokModelAssignment {
   role: string;
   priority: number;
   enabled: boolean;
-  capabilities?: Record<string, unknown>;
-  capabilityOverrides?: Record<string, unknown>;
-  parameterSchema?: Record<string, unknown>;
+  capabilities?: object;
+  capabilityOverrides?: object;
+  parameterSchema?: object;
   contextWindow?: number;
   maxOutputTokens?: number;
   reasoningEfforts?: string[];
@@ -84,7 +268,7 @@ interface AIAnimeByokModelAssignment {
     maxOutputTokens?: number;
     reasoningEfforts?: string[];
     defaultReasoningEffort?: string;
-    parameterOverrides?: Record<string, unknown>;
+    parameterOverrides?: object;
   };
 }
 
@@ -92,6 +276,37 @@ type AIAnimeByokProviderProtocol =
   | "OPENAI_COMPATIBLE"
   | "ANTHROPIC"
   | "GEMINI";
+
+interface AIAnimeByokProviderStatus {
+  id: string;
+  name: string;
+  protocol: AIAnimeByokProviderProtocol;
+  baseUrl: string;
+  apiKeyPreview: string;
+  configured: boolean;
+  enabled: boolean;
+  priority: number;
+  modelAssignments: AIAnimeByokModelAssignment[];
+}
+
+interface AIAnimeCommercialModelAccessStatus {
+  mode: "mixed";
+  cloudModelAssignments: AIAnimeByokModelAssignment[];
+  byokConfigured: boolean;
+  byokProviders: AIAnimeByokProviderStatus[];
+  allowsCustomModels: boolean;
+  gatewayOrigin: string;
+}
+
+interface AIAnimeDiscoveredModel {
+  id: string;
+  capabilities?: object;
+  parameterSchema?: object;
+  contextWindow?: number;
+  maxOutputTokens?: number;
+  reasoningEfforts?: string[];
+  defaultReasoningEffort?: string;
+}
 
 interface AIAnimeCommercialUpdateDownloadProgress {
   percent: number;
@@ -147,24 +362,27 @@ interface AIAnimeRuntimeDependencyBridge {
 
 interface AIAnimeCommercialBridge {
   status: () => Promise<{ configured: boolean; gatewayOrigin: string }>;
-  publicConfig: (tenantCode: string) => Promise<unknown>;
+  publicConfig: (
+    tenantCode: string,
+  ) => Promise<AIAnimeCommercialDesktopPublicConfig>;
   publicLogo: (
     tenantCode: string,
   ) => Promise<{ contentType: string; dataUrl: string }>;
   publicCaptcha: (
     tenantCode: string,
   ) => Promise<{ key: string; imageDataUrl: string }>;
-  register: (input: AIAnimeCommercialRegistrationInput) => Promise<void>;
   session: () => Promise<AIAnimeCommercialSession | null>;
   rememberedLogin: () => Promise<AIAnimeCommercialRememberedLogin | null>;
   revealRememberedPassword: () => Promise<string>;
-  login: (input: AIAnimeCommercialLoginInput) => Promise<AIAnimeCommercialSession>;
+  login: (
+    input: AIAnimeCommercialLoginInput,
+  ) => Promise<AIAnimeCommercialSession>;
   loginRemembered: (input: {
     rememberMe?: boolean;
     captchaKey?: string;
     captchaCode?: string;
   }) => Promise<AIAnimeCommercialSession>;
-  logout: () => Promise<{ remoteRevoked: boolean }>;
+  logout: () => Promise<{ remoteRevoked: boolean; success: boolean }>;
   profile: () => Promise<AIAnimeCommercialUserProfile>;
   updateProfile: (input: {
     nickname: string;
@@ -186,11 +404,19 @@ interface AIAnimeCommercialBridge {
   changePassword: (input: {
     oldPassword: string;
     newPassword: string;
-  }) => Promise<void>;
+  }) => Promise<{
+    success: boolean;
+    sessionsRevoked: boolean;
+    tokenReissued: boolean;
+  }>;
+  sendSmsLoginCode: (input: {
+    tenantCode: string;
+    phone: string;
+  }) => Promise<{ success: boolean; message: string }>;
   sendPasswordResetCode: (input: {
     tenantCode: string;
     email: string;
-  }) => Promise<void>;
+  }) => Promise<{ success: boolean; message: string }>;
   verifyPasswordResetCode: (input: {
     tenantCode: string;
     email: string;
@@ -200,19 +426,24 @@ interface AIAnimeCommercialBridge {
     tenantCode: string;
     resetTicket: string;
     newPassword: string;
-  }) => Promise<void>;
+  }) => Promise<{
+    success: boolean;
+    message: string;
+    sessionsRevoked: boolean;
+    tokenReissued: boolean;
+  }>;
   bootstrap: (query: {
     modelOperation?: string;
     catalogVersion?: string;
     currentVersion?: string;
     target?: string;
     arch?: string;
-  }) => Promise<unknown>;
-  currentLicense: () => Promise<unknown>;
-  activateLicense: () => Promise<unknown>;
-  refreshLicenseLease: () => Promise<unknown>;
-  deactivateLicense: (reason: string) => Promise<unknown>;
-  modelAccessStatus: () => Promise<unknown>;
+  }) => Promise<AIAnimeCommercialBootstrap>;
+  currentLicense: () => Promise<AIAnimeCommercialAuthorization>;
+  activateLicense: () => Promise<AIAnimeCommercialAuthorization>;
+  refreshLicenseLease: () => Promise<AIAnimeCommercialAuthorization>;
+  deactivateLicense: (reason: string) => Promise<AIAnimeCommercialAuthorization>;
+  modelAccessStatus: () => Promise<AIAnimeCommercialModelAccessStatus>;
   configureByok: (input: {
     providerId?: string;
     name?: string;
@@ -222,49 +453,69 @@ interface AIAnimeCommercialBridge {
     enabled?: boolean;
     priority?: number;
     modelAssignments?: AIAnimeByokModelAssignment[];
-  }) => Promise<unknown>;
+  }) => Promise<AIAnimeCommercialModelAccessStatus>;
   selectCloudModels: (input?: {
     modelAssignments?: AIAnimeByokModelAssignment[];
-  }) => Promise<unknown>;
-  clearByok: (input?: { providerId?: string }) => Promise<unknown>;
+  }) => Promise<AIAnimeCommercialModelAccessStatus>;
+  clearByok: (input?: {
+    providerId?: string;
+  }) => Promise<AIAnimeCommercialModelAccessStatus>;
   byokProviderModels: (input: {
     providerId?: string;
     name?: string;
     protocol?: AIAnimeByokProviderProtocol;
     baseUrl: string;
     apiKey?: string;
-  }) => Promise<unknown>;
-  quotaBalance: () => Promise<unknown>;
+  }) => Promise<{
+    providerId: string;
+    models: string[];
+    modelMetadata: AIAnimeDiscoveredModel[];
+    catalogVersion: string;
+  }>;
+  quotaBalance: () => Promise<AIAnimeCommercialQuota>;
   modelCatalog: (query: {
     operation?: string;
     catalogVersion?: string;
     source?: "active" | "cloud";
-  }) => Promise<unknown>;
-  modelDetails: (sku: string) => Promise<unknown>;
+  }) => Promise<AIAnimeCommercialModelCatalog>;
+  modelDetails: (sku: string) => Promise<AIAnimeCommercialModel>;
   invocationList: (query: {
-    page?: number;
-    pageSize?: number;
     status?: string;
     operation?: string;
-    modelSkuCode?: string;
-  }) => Promise<unknown>;
-  invocationDetails: (id: string | number) => Promise<unknown>;
+    modelCode?: string;
+    limit?: number;
+    offset?: number;
+  }) => Promise<{ items: AIAnimeCommercialInvocation[]; total: number }>;
+  invocationDetails: (
+    id: string,
+  ) => Promise<{ invocation: AIAnimeCommercialInvocation }>;
   cancelInvocation: (input: {
-    id: string | number;
+    id: string;
     reason: string;
-  }) => Promise<unknown>;
+  }) => Promise<{ invocation: AIAnimeCommercialInvocation }>;
   saveInvocationResult: (
-    id: string | number,
+    id: string,
   ) => Promise<{ saved: boolean; fileName?: string }>;
-  announcements: (limit?: number) => Promise<unknown>;
-  checkRelease: () => Promise<unknown>;
-  downloadUpdate: (
-    artifactId: string | number,
-  ) => Promise<{ version: string }>;
+  announcements: (limit?: number) => Promise<{
+    items: Array<{
+      id: string;
+      title: string;
+      body: string;
+      level: string;
+      pinned: boolean;
+      publishAt: string;
+      expiresAt: string;
+    }>;
+    total: number;
+  }>;
+  checkRelease: () => Promise<
+    AIAnimeCommercialRelease & { artifactId: string | null }
+  >;
+  downloadUpdate: (artifactId: string) => Promise<{ version: string }>;
   onUpdateDownloadProgress: (
     listener: (progress: AIAnimeCommercialUpdateDownloadProgress) => void,
   ) => () => void;
-  installUpdate: () => Promise<void>;
+  installUpdate: () => Promise<{ accepted: boolean }>;
 }
 
 interface AIAnimeDesktopBridge {

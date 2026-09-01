@@ -5,9 +5,20 @@ import { LoginPage } from "@/components/login-page";
 
 const mocks = vi.hoisted(() => {
   const publicConfig = {
-    system: { siteName: "AI Anime" },
-    login: { captchaEnabled: false, rememberMe: true },
-    register: { enabled: false },
+    brand: { siteName: "AI Anime", siteDescription: "Desktop studio" },
+    login: {
+      captchaEnabled: false,
+      rememberMe: true,
+      smsLoginEnabled: false,
+    },
+    password: {
+      minLength: 8,
+      maxLength: 128,
+      requireUppercase: false,
+      requireLowercase: false,
+      requireNumber: false,
+      requireSpecial: false,
+    },
   };
   const revealRememberedPassword = vi.fn(async () => "Secret 123");
   return {
@@ -36,7 +47,7 @@ const mocks = vi.hoisted(() => {
       login: vi.fn(async () => undefined),
       loginRemembered: vi.fn(async () => undefined),
       revealRememberedPassword,
-      register: vi.fn(async () => undefined),
+      sendSmsLoginCode: vi.fn(async () => ({ success: true, message: "sent" })),
       sendPasswordResetCode: vi.fn(async () => undefined),
       verifyPasswordResetCode: vi.fn(async () => ({
         resetTicket: "reset-ticket",

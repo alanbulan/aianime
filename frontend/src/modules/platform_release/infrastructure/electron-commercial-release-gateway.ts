@@ -2,6 +2,8 @@ import type { CommercialReleaseGateway } from "@/modules/platform_release/applic
 import {
   parseCommercialReleaseStatus,
   parseCommercialUpdateDownloadProgress,
+  parseCommercialUpdateDownloadResult,
+  parseCommercialUpdateInstallResult,
   type CommercialUpdateDownloadProgress,
 } from "@/modules/platform_release/domain/commercial-release";
 import {
@@ -22,7 +24,9 @@ export const electronCommercialReleaseGateway: CommercialReleaseGateway = {
     if (!commercial.downloadUpdate) {
       throw new Error("Update download requires the Electron desktop app");
     }
-    return invokeCommercial(() => commercial.downloadUpdate(artifactId));
+    return parseCommercialUpdateDownloadResult(
+      await invokeCommercial(() => commercial.downloadUpdate(artifactId)),
+    );
   },
   async installUpdate() {
     const commercial = requireCommercialBridge(
@@ -31,7 +35,9 @@ export const electronCommercialReleaseGateway: CommercialReleaseGateway = {
     if (!commercial.installUpdate) {
       throw new Error("Update install requires the Electron desktop app");
     }
-    await invokeCommercial(() => commercial.installUpdate());
+    return parseCommercialUpdateInstallResult(
+      await invokeCommercial(() => commercial.installUpdate()),
+    );
   },
 };
 

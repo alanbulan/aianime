@@ -6,7 +6,7 @@ import {
   KeyRound,
   LoaderCircle,
   RefreshCw,
-  UserPlus,
+  Smartphone,
   UserRound,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
@@ -27,7 +27,8 @@ import {
 } from "@/modules/identity_access/public";
 import { useRegionStore } from "@/shared/stores/region-store";
 
-type AuthView = "login" | "register" | "authorize" | "forgot";
+type AuthView = "login" | "authorize" | "forgot";
+type CommercialLoginMode = "password" | "sms";
 type PasswordResetStep = "request" | "verify" | "reset";
 
 export function LoginPage() {
@@ -71,7 +72,9 @@ export function LoginPage() {
   const revealCommercialRememberedPassword = useCommercialAuthStore(
     (state) => state.revealRememberedPassword,
   );
-  const commercialRegister = useCommercialAuthStore((state) => state.register);
+  const sendSmsLoginCode = useCommercialAuthStore(
+    (state) => state.sendSmsLoginCode,
+  );
   const sendPasswordResetCode = useCommercialAuthStore(
     (state) => state.sendPasswordResetCode,
   );
@@ -83,10 +86,14 @@ export function LoginPage() {
   );
   const regionId = useRegionStore((state) => state.selectedRegionId);
   const [view, setView] = useState<AuthView>("login");
+  const [commercialLoginMode, setCommercialLoginMode] =
+    useState<CommercialLoginMode>("password");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [phone, setPhone] = useState("");
+  const [smsCode, setSmsCode] = useState("");
+  const [sendingSmsCode, setSendingSmsCode] = useState(false);
   const [email, setEmail] = useState("");
   const [authorizationCode, setAuthorizationCode] = useState("");
   const [captchaCode, setCaptchaCode] = useState("");
@@ -103,11 +110,8 @@ export function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const needsRegion = clusterConfig.mode === "multi-region" && !regionId;
   const commercialConfigured = commercialAvailability === "configured";
-  const registrationEnabled = Boolean(
-    commercialPublicConfig?.register?.enabled &&
-      !commercialPublicConfig.register.verifyEmail &&
-      !commercialPublicConfig.register.verifyPhone,
-  );
+  const smsLoginEnabled =
+    commercialPublicConfig?.login.smsLoginEnabled === true;
 
   useEffect(() => {
     void initializeCommercial().catch((reason: unknown) => {
@@ -129,6 +133,7 @@ export function LoginPage() {
     if (appliedRememberedLoginRef.current === key) return;
     appliedRememberedLoginRef.current = key;
     setTenantCode(rememberedCommercialLogin.tenantCode);
+    setCommercialLoginMode("password");
     setUsername(rememberedCommercialLogin.username);
     setPassword("");
     setShowPassword(false);
@@ -212,9 +217,12 @@ export function LoginPage() {
         if (password !== confirmPassword) {
           throw new Error(t("auth.passwordMismatch"));
         }
-        if (password.length < 8 || password.length > 128) {
-          throw new Error(t("auth.resetPasswordLength"));
-        }
+        const passwordError = validateCommercialPassword(
+          password,
+          commercialPublicConfig?.password,
+          t,
+        );
+        if (passwordError) throw new Error(passwordError);
         await resetCommercialPassword(resetTicket, password);
         setView("login");
         setPasswordResetStep("request");
@@ -225,57 +233,39 @@ export function LoginPage() {
         setSuccess(t("auth.passwordResetSucceeded"));
         return;
       }
-      if (commercialConfigured && view === "register") {
-        if (password !== confirmPassword) {
-          throw new Error(t("auth.passwordMismatch"));
-        }
-        const passwordError = validateCommercialPassword(
-          password,
-          commercialPublicConfig?.password,
-          t,
-        );
-        if (passwordError) throw new Error(passwordError);
-        await commercialRegister({
-          tenantCode,
-          username: username.trim(),
-          password,
-          ...(nickname.trim() ? { nickname: nickname.trim() } : {}),
-          ...(email.trim() ? { email: email.trim() } : {}),
-          ...(commercialPublicConfig?.login.captchaEnabled
-            ? { captchaCode }
-            : {}),
-        });
-        setView("login");
-        setPassword("");
-        setConfirmPassword("");
-        setCaptchaCode("");
-        setSuccess(t("auth.registrationSucceeded"));
-        if (commercialPublicConfig?.login.captchaEnabled) {
-          await refreshCommercialCaptcha().catch(() => undefined);
-        }
-        return;
-      } else if (commercialConfigured) {
+      if (commercialConfigured) {
         const shouldRemember = commercialPublicConfig?.login.rememberMe
           ? rememberMe
           : false;
-        const canUseRememberedPassword = Boolean(
-          usingRememberedPassword
-          && rememberedCommercialLogin
-          && tenantCode.trim() === rememberedCommercialLogin.tenantCode
-          && username.trim() === rememberedCommercialLogin.username,
-        );
-        if (canUseRememberedPassword) {
-          await commercialLoginRemembered(shouldRemember, captchaCode);
-        } else {
+        if (commercialLoginMode === "sms") {
           await commercialLogin({
+            loginType: "SMS",
             tenantCode,
-            username: username.trim(),
-            password,
+            phone: phone.trim(),
+            smsCode: smsCode.trim(),
             rememberMe: shouldRemember,
-            ...(commercialPublicConfig?.login.captchaEnabled
-              ? { captchaCode }
-              : {}),
           });
+        } else {
+          const canUseRememberedPassword = Boolean(
+            usingRememberedPassword
+            && rememberedCommercialLogin
+            && tenantCode.trim() === rememberedCommercialLogin.tenantCode
+            && username.trim() === rememberedCommercialLogin.username,
+          );
+          if (canUseRememberedPassword) {
+            await commercialLoginRemembered(shouldRemember, captchaCode);
+          } else {
+            await commercialLogin({
+              loginType: "PASSWORD",
+              tenantCode,
+              username: username.trim(),
+              password,
+              rememberMe: shouldRemember,
+              ...(commercialPublicConfig?.login.captchaEnabled
+                ? { captchaCode }
+                : {}),
+            });
+          }
         }
         const user = await getCurrentUser({ clearOnNetworkFailure: false });
         if (!user) throw new Error(t("auth.workspaceSessionFailed"));
@@ -289,6 +279,20 @@ export function LoginPage() {
       setError(reason instanceof Error ? reason.message : t("auth.loginFailed"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const requestSmsCode = async () => {
+    setSendingSmsCode(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await sendSmsLoginCode(phone);
+      setSuccess(t("auth.smsCodeSent"));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t("auth.loginFailed"));
+    } finally {
+      setSendingSmsCode(false);
     }
   };
 
@@ -330,13 +334,13 @@ export function LoginPage() {
               />
             ) : null}
             <h1 className="text-2xl font-semibold">
-              {commercialConfigured && commercialPublicConfig?.system.siteName
-                ? commercialPublicConfig.system.siteName
+              {commercialConfigured && commercialPublicConfig?.brand.siteName
+                ? commercialPublicConfig.brand.siteName
                 : t("auth.accessTitle")}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {commercialConfigured && commercialPublicConfig?.system.siteDescription
-                ? commercialPublicConfig.system.siteDescription
+              {commercialConfigured && commercialPublicConfig?.brand.siteDescription
+                ? commercialPublicConfig.brand.siteDescription
                 : t(
                     commercialConfigured
                       ? "auth.commercialAccessSubtitle"
@@ -347,27 +351,27 @@ export function LoginPage() {
 
           <RegionSelector />
 
-          {commercialConfigured && registrationEnabled && view !== "forgot" ? (
+          {commercialConfigured && smsLoginEnabled && view !== "forgot" ? (
             <div className="mb-6 mt-4 grid h-10 grid-cols-2 rounded-md bg-muted p-1" role="tablist">
               <AuthModeButton
-                active={view === "login"}
+                active={commercialLoginMode === "password"}
                 icon={<UserRound className="size-4" />}
                 label={t("auth.passwordLogin")}
                 onClick={() => {
-                  setView("login");
-                  appliedRememberedLoginRef.current = "";
+                  setCommercialLoginMode("password");
+                  setSmsCode("");
                   setError(null);
                   setSuccess(null);
                 }}
               />
               <AuthModeButton
-                active={view === "register"}
-                icon={<UserPlus className="size-4" />}
-                label={t("auth.register")}
+                active={commercialLoginMode === "sms"}
+                icon={<Smartphone className="size-4" />}
+                label={t("auth.smsLogin")}
                 onClick={() => {
-                  setView("register");
-                  if (usingRememberedPassword) setPassword("");
+                  setCommercialLoginMode("sms");
                   setUsingRememberedPassword(false);
+                  setCaptchaCode("");
                   setError(null);
                   setSuccess(null);
                 }}
@@ -406,6 +410,7 @@ export function LoginPage() {
                   onChange={(event) => {
                     setTenantCode(event.target.value);
                     setUsingRememberedPassword(false);
+                    setCommercialLoginMode("password");
                     setView("login");
                     setCaptchaCode("");
                     setError(null);
@@ -509,109 +514,120 @@ export function LoginPage() {
               </>
             ) : commercialConfigured || view === "login" ? (
               <>
-                <Field label={t("auth.username")} htmlFor="username">
-                  <Input
-                    id="username"
-                    autoComplete="username"
-                    value={username}
-                    onChange={(event) => {
-                      setUsername(event.target.value);
-                      setUsingRememberedPassword(false);
-                    }}
-                    placeholder={t("auth.usernamePlaceholder")}
-                    required
-                  />
-                </Field>
-                {commercialConfigured && view === "register" ? (
+                {commercialConfigured && commercialLoginMode === "sms" ? (
                   <>
-                    <Field label={t("auth.nickname")} htmlFor="nickname">
+                    <Field label={t("auth.phone")} htmlFor="phone">
                       <Input
-                        id="nickname"
-                        autoComplete="name"
-                        value={nickname}
-                        onChange={(event) => setNickname(event.target.value)}
-                        placeholder={t("auth.nicknamePlaceholder")}
+                        id="phone"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        placeholder={t("auth.phonePlaceholder")}
+                        required
                       />
                     </Field>
-                    <Field label={t("auth.email")} htmlFor="registration-email">
-                      <Input
-                        id="registration-email"
-                        type="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder={t("auth.emailPlaceholder")}
-                        required={commercialPublicConfig?.register?.verifyEmail === true}
-                      />
+                    <Field label={t("auth.smsCode")} htmlFor="sms-code">
+                      <div className="grid grid-cols-[minmax(0,1fr)_128px] gap-2">
+                        <Input
+                          id="sms-code"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          value={smsCode}
+                          onChange={(event) => setSmsCode(event.target.value)}
+                          placeholder={t("auth.smsCodePlaceholder")}
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={sendingSmsCode || !phone.trim() || !tenantCode.trim()}
+                          onClick={() => void requestSmsCode()}
+                        >
+                          {sendingSmsCode ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                          ) : null}
+                          {t("auth.sendSmsCode")}
+                        </Button>
+                      </div>
                     </Field>
                   </>
-                ) : null}
-                <Field label={t("auth.password")} htmlFor="password">
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete={
-                        commercialConfigured && view === "register"
-                          ? "new-password"
-                          : "current-password"
-                      }
-                      value={password}
-                      onChange={(event) => {
-                        setPassword(event.target.value);
-                        setUsingRememberedPassword(false);
-                      }}
-                      placeholder={t(
-                        usingRememberedPassword
-                          ? "auth.savedPasswordPlaceholder"
-                          : "auth.passwordPlaceholder",
-                      )}
-                      className="pr-10"
-                      required={!usingRememberedPassword}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-0 top-0 flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
-                      onClick={() => {
-                        if (!usingRememberedPassword) {
-                          setShowPassword((value) => !value);
-                          return;
-                        }
-                        setError(null);
-                        void revealCommercialRememberedPassword()
-                          .then((rememberedPassword) => {
-                            setPassword(rememberedPassword);
+                ) : (
+                  <>
+                    <Field label={t("auth.username")} htmlFor="username">
+                      <Input
+                        id="username"
+                        autoComplete="username"
+                        value={username}
+                        onChange={(event) => {
+                          setUsername(event.target.value);
+                          setUsingRememberedPassword(false);
+                        }}
+                        placeholder={t("auth.usernamePlaceholder")}
+                        required
+                      />
+                    </Field>
+                    <Field label={t("auth.password")} htmlFor="password">
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="current-password"
+                          value={password}
+                          onChange={(event) => {
+                            setPassword(event.target.value);
                             setUsingRememberedPassword(false);
-                            setShowPassword(true);
-                          })
-                          .catch((reason: unknown) => {
-                            setError(
-                              reason instanceof Error
-                                ? reason.message
-                                : t("auth.loginFailed"),
-                            );
-                          });
-                      }}
-                      aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
-                    >
-                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
-                  </div>
-                </Field>
-                {commercialConfigured && view === "register" ? (
-                  <Field label={t("auth.confirmPassword")} htmlFor="confirm-password">
-                    <Input
-                      id="confirm-password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="new-password"
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      placeholder={t("auth.passwordPlaceholder")}
-                      required
-                    />
-                  </Field>
-                ) : null}
-                {commercialPublicConfig?.login.captchaEnabled ? (
+                          }}
+                          placeholder={t(
+                            usingRememberedPassword
+                              ? "auth.savedPasswordPlaceholder"
+                              : "auth.passwordPlaceholder",
+                          )}
+                          className="pr-10"
+                          required={!usingRememberedPassword}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-0 top-0 flex size-9 items-center justify-center text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            if (!usingRememberedPassword) {
+                              setShowPassword((value) => !value);
+                              return;
+                            }
+                            setError(null);
+                            void revealCommercialRememberedPassword()
+                              .then((rememberedPassword) => {
+                                setPassword(rememberedPassword);
+                                setUsingRememberedPassword(false);
+                                setShowPassword(true);
+                              })
+                              .catch((reason: unknown) => {
+                                setError(
+                                  reason instanceof Error
+                                    ? reason.message
+                                    : t("auth.loginFailed"),
+                                );
+                              });
+                          }}
+                          aria-label={
+                            showPassword
+                              ? t("auth.hidePassword")
+                              : t("auth.showPassword")
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff className="size-4" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
+                        </button>
+                      </div>
+                    </Field>
+                  </>
+                )}
+                {commercialLoginMode === "password" &&
+                commercialPublicConfig?.login.captchaEnabled ? (
                   <Field label={t("auth.captcha")} htmlFor="captcha-code">
                     <div className="grid grid-cols-[minmax(0,1fr)_136px] gap-2">
                       <Input
@@ -664,7 +680,9 @@ export function LoginPage() {
                     <span>{t("auth.remember")}</span>
                   </label>
                 ) : null}
-                {commercialConfigured && view === "login" ? (
+                {commercialConfigured &&
+                view === "login" &&
+                commercialLoginMode === "password" ? (
                   <button
                     type="button"
                     className="ml-auto block text-xs text-muted-foreground hover:text-foreground"
@@ -710,9 +728,13 @@ export function LoginPage() {
                 needsRegion ||
                 commercialAvailability === "unknown" ||
                 (commercialConfigured && !tenantCode) ||
-                (commercialPublicConfig?.login.captchaEnabled &&
+                (commercialLoginMode === "password" &&
+                  commercialPublicConfig?.login.captchaEnabled &&
                   view !== "forgot" &&
                   !captchaCode.trim()) ||
+                (commercialConfigured &&
+                  commercialLoginMode === "sms" &&
+                  (!phone.trim() || !smsCode.trim())) ||
                 (view === "forgot" &&
                   ((passwordResetStep === "request" && !email.trim()) ||
                     (passwordResetStep === "verify" && !verificationCode.trim()) ||
@@ -726,9 +748,7 @@ export function LoginPage() {
                 ? t("auth.authenticating")
                 : commercialConfigured && view === "forgot"
                   ? t(`auth.resetActions.${passwordResetStep}`)
-                : commercialConfigured && view === "register"
-                  ? t("auth.registerButton")
-                  : commercialConfigured || view === "login"
+                : commercialConfigured || view === "login"
                     ? t("auth.loginButton")
                     : t("auth.authorizeButton")}
             </Button>
@@ -787,7 +807,7 @@ function Field({
 
 function validateCommercialPassword(
   password: string,
-  policy: CommercialPublicConfig["password"],
+  policy: CommercialPublicConfig["password"] | undefined,
   t: TFunction,
 ): string | null {
   if (!policy) return null;

@@ -19,14 +19,26 @@ const session: CommercialSession = {
     username: "client_user",
     nickname: "客户端用户",
     email: "client@example.com",
+    avatar: "",
   },
   tenant: { id: 11, code: "customer-a", name: "客户 A", isSystem: false },
 };
 
 const publicConfig: CommercialPublicConfig = {
-  system: { siteName: "Enlectron" },
-  login: { captchaEnabled: false, rememberMe: true },
-  register: { enabled: false },
+  brand: { siteName: "Enlectron", siteDescription: "Desktop studio" },
+  login: {
+    captchaEnabled: false,
+    rememberMe: true,
+    smsLoginEnabled: false,
+  },
+  password: {
+    minLength: 8,
+    maxLength: 128,
+    requireUppercase: false,
+    requireLowercase: false,
+    requireNumber: false,
+    requireSpecial: false,
+  },
 };
 
 const profile: CommercialUserProfile = {
@@ -71,13 +83,12 @@ function createGateway(
       key: "captcha-key",
       imageDataUrl: "data:image/svg+xml;base64,PHN2Zy8+",
     })),
-    register: vi.fn(async () => undefined),
     restoreSession: vi.fn(async () => null),
     rememberedLogin: vi.fn(async () => null),
     revealRememberedPassword: vi.fn(async () => "secret"),
     login: vi.fn(async () => session),
     loginRemembered: vi.fn(async () => session),
-    logout: vi.fn(async () => ({ remoteRevoked: true })),
+    logout: vi.fn(async () => ({ remoteRevoked: true, success: true })),
     fetchProfile: vi.fn(async () => profile),
     updateProfile: vi.fn(async (input) => ({ ...profile, ...input })),
     fetchAvatar: vi.fn(async () => ({
@@ -92,13 +103,23 @@ function createGateway(
       },
     })),
     deleteAvatar: vi.fn(async () => ({ profile: { ...profile, avatar: "" } })),
-    changePassword: vi.fn(async () => undefined),
-    sendPasswordResetCode: vi.fn(async () => undefined),
+    changePassword: vi.fn(async () => ({
+      success: true,
+      sessionsRevoked: true,
+      tokenReissued: false,
+    })),
+    sendSmsLoginCode: vi.fn(async () => ({ success: true, message: "sent" })),
+    sendPasswordResetCode: vi.fn(async () => ({ success: true, message: "sent" })),
     verifyPasswordResetCode: vi.fn(async () => ({
       resetTicket: "reset-ticket",
       expiresIn: 600,
     })),
-    resetPassword: vi.fn(async () => undefined),
+    resetPassword: vi.fn(async () => ({
+      success: true,
+      message: "reset",
+      sessionsRevoked: true,
+      tokenReissued: false,
+    })),
     ...overrides,
   };
 }
@@ -137,6 +158,7 @@ describe("commercial auth store", () => {
     const store = createCommercialAuthStore(gateway, preference);
 
     const result = await store.getState().login({
+      loginType: "PASSWORD",
       tenantCode: " customer-a ",
       username: "client_user",
       password: "secret",
@@ -144,8 +166,9 @@ describe("commercial auth store", () => {
     });
 
     expect(gateway.fetchPublicConfig).toHaveBeenCalledWith("customer-a");
-    expect(gateway.fetchPublicLogo).not.toHaveBeenCalled();
+    expect(gateway.fetchPublicLogo).toHaveBeenCalledWith("customer-a");
     expect(gateway.login).toHaveBeenCalledWith({
+      loginType: "PASSWORD",
       tenantCode: "customer-a",
       username: "client_user",
       password: "secret",
@@ -157,13 +180,8 @@ describe("commercial auth store", () => {
     expect(preference.write).toHaveBeenCalledWith("customer-a");
   });
 
-  it("loads the optional tenant logo only when public config advertises it", async () => {
-    const gateway = createGateway({
-      fetchPublicConfig: vi.fn(async () => ({
-        ...publicConfig,
-        system: { ...publicConfig.system, logo: "/api/v1/config/logo" },
-      })),
-    });
+  it("loads the optional tenant logo independently of the minimal config", async () => {
+    const gateway = createGateway();
     const store = createCommercialAuthStore(gateway, createPreference());
 
     await store.getState().loadPublicConfig("customer-a");
@@ -290,64 +308,48 @@ describe("commercial auth store", () => {
     );
   });
 
-  it("registers only when enabled and injects the current captcha", async () => {
-    const registrationConfig: CommercialPublicConfig = {
+  it("sends an SMS login code only when the tenant capability is enabled", async () => {
+    const smsConfig: CommercialPublicConfig = {
       ...publicConfig,
-      login: { captchaEnabled: true, rememberMe: true },
-      register: { enabled: true },
+      login: { ...publicConfig.login, smsLoginEnabled: true },
     };
-    const register = vi.fn(async () => undefined);
+    const sendSmsLoginCode = vi.fn(async () => ({
+      success: true,
+      message: "sent",
+    }));
     const gateway = createGateway({
-      fetchPublicConfig: vi.fn(async () => registrationConfig),
-      register,
+      fetchPublicConfig: vi.fn(async () => smsConfig),
+      sendSmsLoginCode,
     });
-    const store = createCommercialAuthStore(gateway, createPreference());
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
 
-    await store.getState().register({
-      tenantCode: "customer-a",
-      username: "new-user",
-      password: "Secret123",
-      nickname: "New User",
-      captchaCode: "ABCD",
-    });
+    await store.getState().sendSmsLoginCode("13800000000");
 
-    expect(register).toHaveBeenCalledWith({
-      tenantCode: "customer-a",
-      username: "new-user",
-      password: "Secret123",
-      nickname: "New User",
-      captchaKey: "captcha-key",
-      captchaCode: "ABCD",
-    });
+    expect(sendSmsLoginCode).toHaveBeenCalledWith(
+      "customer-a",
+      "13800000000",
+    );
   });
 
-  it("does not submit registration when an undefined verification flow is required", async () => {
-    const register = vi.fn(async () => undefined);
-    const gateway = createGateway({
-      fetchPublicConfig: vi.fn(async () => ({
-        ...publicConfig,
-        register: { enabled: true, verifyEmail: true },
-      })),
-      register,
-    });
-    const store = createCommercialAuthStore(gateway, createPreference());
+  it("rejects SMS code issuance when the tenant capability is disabled", async () => {
+    const sendSmsLoginCode = vi.fn(async () => ({
+      success: true,
+      message: "sent",
+    }));
+    const gateway = createGateway({ sendSmsLoginCode });
+    const store = createCommercialAuthStore(gateway, createPreference("customer-a"));
 
     await expect(
-      store.getState().register({
-        tenantCode: "customer-a",
-        username: "new-user",
-        password: "Secret123",
-        email: "new@example.com",
-      }),
-    ).rejects.toThrow("Registration verification contract is unavailable");
+      store.getState().sendSmsLoginCode("13800000000"),
+    ).rejects.toThrow("SMS login is disabled for this tenant");
 
-    expect(register).not.toHaveBeenCalled();
+    expect(sendSmsLoginCode).not.toHaveBeenCalled();
   });
 
   it("injects the current captcha key and refreshes it after a failed login", async () => {
     const captchaConfig: CommercialPublicConfig = {
       ...publicConfig,
-      login: { captchaEnabled: true, rememberMe: true },
+      login: { ...publicConfig.login, captchaEnabled: true },
     };
     const login = vi.fn(async () => {
       throw new Error("invalid captcha");
@@ -371,6 +373,7 @@ describe("commercial auth store", () => {
 
     await expect(
       store.getState().login({
+        loginType: "PASSWORD",
         tenantCode: "customer-a",
         username: "client_user",
         password: "secret",
@@ -379,6 +382,7 @@ describe("commercial auth store", () => {
     ).rejects.toThrow("invalid captcha");
 
     expect(login).toHaveBeenCalledWith({
+      loginType: "PASSWORD",
       tenantCode: "customer-a",
       username: "client_user",
       password: "secret",

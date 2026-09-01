@@ -13,13 +13,13 @@ describe("commercial announcement contract", () => {
       parseCommercialAnnouncementFeed({
         items: [
           {
-            id: "announcement-1",
+            id: "11111111-1111-4111-8111-111111111111",
             title: "Maintenance",
             body: "Maintenance at 02:00.",
             level: "WARNING",
             pinned: true,
             publishAt: "2026-07-30T18:00:00Z",
-            expiresAt: null,
+            expiresAt: "",
           },
         ],
         total: 1,
@@ -27,7 +27,7 @@ describe("commercial announcement contract", () => {
     ).toEqual({
       items: [
         {
-          id: "announcement-1",
+          id: "11111111-1111-4111-8111-111111111111",
           title: "Maintenance",
           body: "Maintenance at 02:00.",
           level: "WARNING",
@@ -46,7 +46,15 @@ describe("commercial announcement contract", () => {
     );
     expect(() =>
       parseCommercialAnnouncementFeed({
-        items: [{ id: "announcement-1", title: "Maintenance" }],
+        items: [{
+          id: "11111111-1111-4111-8111-111111111111",
+          title: "Maintenance",
+          body: "",
+          level: "INFO",
+          pinned: false,
+          publishAt: "2026-07-30T18:00:00Z",
+          expiresAt: "",
+        }],
         total: 1,
       }),
     ).toThrow("commercial announcements.items[0].body must be a non-empty string");

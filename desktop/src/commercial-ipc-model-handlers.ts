@@ -11,18 +11,13 @@ import {
   authorizationDeviceId,
   authorizationLicenseId,
   projectCommercialBootstrap,
-  projectCommercialInvocationDetails,
-  projectCommercialInvocationList,
-  projectCommercialModelCatalog,
-  projectCommercialModelCatalogItem,
-  projectCommercialQuota,
 } from "./commercial-contracts.js";
 import {
   CommercialApiError,
   optionalRecord,
   optionalText,
-  requiredIdentifier,
   requiredInteger,
+  requiredUUID,
   requiredRecord,
   requiredText,
 } from "./commercial-api-client.js";
@@ -59,10 +54,10 @@ export function registerCommercialModelHandlers(
         : undefined,
     );
     const bootstrap = projectCommercialBootstrap(rawBootstrap);
-    const rawAuthorization = optionalRecord(rawBootstrap).softwareAuthorization;
+    const rawAuthorization = rawBootstrap.softwareAuthorization;
     context.currentAuthorization = bootstrap.softwareAuthorization
       ? verifyAuthorizationLease(
-          rawAuthorization,
+          rawAuthorization!,
           bootstrap.softwareAuthorization,
           options,
         )
@@ -91,17 +86,13 @@ export function registerCommercialModelHandlers(
     await context.synchronizeModelAccess();
     return bootstrap;
   });
-  context.handle(channels.quotaBalance, async () =>
-    projectCommercialQuota(await client.quotaBalance()),
-  );
+  context.handle(channels.quotaBalance, () => client.quotaBalance());
   context.handle(channels.modelCatalog, async (input) => {
     const { source, query } = parseModelCatalogQuery(input);
     const authorization = await context.ensureCurrentAuthorization();
-    const cloudCatalog = projectCommercialModelCatalog(
-      await client.modelCatalog(
-        query,
-        authorizationDeviceId(authorization),
-      ),
+    const cloudCatalog = await client.modelCatalog(
+      query,
+      authorizationDeviceId(authorization),
     );
     context.updateModelCapabilities(cloudCatalog, query.operation);
     context.cloudModelAssignments = updateCloudModelAssignments(
@@ -126,36 +117,28 @@ export function registerCommercialModelHandlers(
   });
   context.handle(channels.modelDetails, async (input) => {
     const authorization = await context.ensureCurrentAuthorization();
-    return projectCommercialModelCatalogItem(
-      await client.modelDetails(
-        requiredText(input, "sku"),
-        authorizationDeviceId(authorization),
-      ),
+    return client.modelDetails(
+      requiredText(input, "sku"),
+      authorizationDeviceId(authorization),
     );
   });
-  context.handle(channels.invocationList, async (input) =>
-    projectCommercialInvocationList(
-      await client.listInvocations(parseInvocationQuery(input)),
-    ),
+  context.handle(channels.invocationList, (input) =>
+    client.listInvocations(parseInvocationQuery(input)),
   );
-  context.handle(channels.invocationDetails, async (input) =>
-    projectCommercialInvocationDetails(
-      await client.invocationDetails(requiredIdentifier(input, "id")),
-    ),
+  context.handle(channels.invocationDetails, (input) =>
+    client.invocationDetails(requiredUUID(input, "id")),
   );
   context.handle(channels.cancelInvocation, async (input) => {
     const body = requiredRecord(input, "cancel invocation");
-    const id = requiredIdentifier(body.id, "id");
+    const id = requiredUUID(body.id, "id");
     await client.cancelInvocation(id, requiredText(body.reason, "reason"));
-    return projectCommercialInvocationDetails(
-      await client.invocationDetails(id),
-    );
+    return client.invocationDetails(id);
   });
   context.handle(channels.saveInvocationResult, async (input) => {
     if (!options.saveInvocationResult) {
       throw new CommercialApiError("客户端尚未配置调用结果保存器");
     }
-    return options.saveInvocationResult(requiredIdentifier(input, "id"));
+    return options.saveInvocationResult(requiredUUID(input, "id"));
   });
 
   registerLicenseHandlers(context);

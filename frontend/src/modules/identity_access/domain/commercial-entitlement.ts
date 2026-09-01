@@ -2,32 +2,45 @@ export type CommercialEditionType = "STANDARD" | "PROFESSIONAL";
 
 export interface CommercialEntitlement {
   license: {
-    id: string | number;
-    versionCode?: string;
-    versionName?: string;
+    id: string;
+    versionCode: string;
+    versionName: string;
     editionType: CommercialEditionType;
     allowsCustomModels: boolean;
-    status?: string;
-    expiresAt?: string;
-  } | null;
+    status: string;
+    validFrom: string;
+    validUntil: string;
+    maxDevices: number;
+    activeDevices: number;
+  };
   device: {
-    id: string | number;
-    name?: string;
-    status?: string;
+    id: string;
+    publicKeyHash: string;
+    name: string;
+    platform: string;
+    arch: string;
+    clientVersion: string;
+    status: string;
+    createdAt: string;
+    lastSeenAt: string;
   } | null;
   activation: {
-    id: string | number;
-    status?: string;
-    activatedAt?: string;
-    lastSeenAt?: string;
+    id: string;
+    licenseId: string;
+    deviceId: string;
+    status: string;
+    activatedAt: string;
+    lastHeartbeatAt: string;
+    endedAt: string;
+    endReason: string;
   } | null;
   lease: {
-    id: string | number;
-    activationId?: string | number;
-    issuedAt?: string;
-    expiresAt?: string;
-    keyId?: string;
-    verifiedOffline: false;
+    id: string;
+    activationId: string;
+    issuedAt: string;
+    expiresAt: string;
+    keyId: string;
+    verifiedOffline: boolean;
   } | null;
   capabilities: {
     editionType: CommercialEditionType | null;
@@ -37,70 +50,173 @@ export interface CommercialEntitlement {
   };
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function commercialEntitlementAllowsWorkspace(
   entitlement: CommercialEntitlement,
 ): boolean {
-  return Boolean(
-    entitlement.license && entitlement.capabilities.deviceActivated,
-  );
+  return entitlement.capabilities.deviceActivated;
 }
 
-export function parseCommercialEntitlement(value: unknown): CommercialEntitlement {
-  const root = record(value, "commercial entitlement");
-  const licenseRecord = nullableRecord(root.license);
-  const deviceRecord = nullableRecord(root.device);
-  const activationRecord = nullableRecord(root.activation);
-  const leaseRecord = nullableRecord(root.lease);
-  const capabilitiesRecord = record(root.capabilities, "commercial capabilities");
-  const license = licenseRecord
-    ? {
-        id: identifier(licenseRecord.id, "license.id"),
-        editionType: edition(licenseRecord.editionType),
-        allowsCustomModels: licenseRecord.allowsCustomModels === true,
-        ...optionalText("versionCode", licenseRecord.versionCode),
-        ...optionalText("versionName", licenseRecord.versionName),
-        ...optionalText("status", licenseRecord.status),
-        ...optionalText("expiresAt", licenseRecord.expiresAt),
-      }
-    : null;
+export function parseCommercialEntitlement(
+  value: unknown,
+): CommercialEntitlement {
+  const root = record(value, "commercial entitlement", [
+    "license",
+    "device",
+    "activation",
+    "lease",
+    "capabilities",
+  ]);
+  const licenseRecord = record(root.license, "license", [
+    "id",
+    "versionCode",
+    "versionName",
+    "editionType",
+    "allowsCustomModels",
+    "status",
+    "validFrom",
+    "validUntil",
+    "maxDevices",
+    "activeDevices",
+  ]);
+  const deviceRecord = nullableRecord(root.device, "device", [
+    "id",
+    "publicKeyHash",
+    "name",
+    "platform",
+    "arch",
+    "clientVersion",
+    "status",
+    "createdAt",
+    "lastSeenAt",
+  ]);
+  const activationRecord = nullableRecord(root.activation, "activation", [
+    "id",
+    "licenseId",
+    "deviceId",
+    "status",
+    "activatedAt",
+    "lastHeartbeatAt",
+    "endedAt",
+    "endReason",
+  ]);
+  const leaseRecord = nullableRecord(root.lease, "lease", [
+    "id",
+    "activationId",
+    "issuedAt",
+    "expiresAt",
+    "keyId",
+    "verifiedOffline",
+  ]);
+  const capabilitiesRecord = record(
+    root.capabilities,
+    "commercial capabilities",
+    [
+      "editionType",
+      "deviceActivated",
+      "allowsCloudModels",
+      "allowsCustomModels",
+    ],
+  );
+
+  const license = {
+    id: uuid(licenseRecord.id, "license.id"),
+    versionCode: stringValue(licenseRecord.versionCode, "license.versionCode"),
+    versionName: stringValue(licenseRecord.versionName, "license.versionName"),
+    editionType: edition(licenseRecord.editionType),
+    allowsCustomModels: booleanValue(
+      licenseRecord.allowsCustomModels,
+      "license.allowsCustomModels",
+    ),
+    status: stringValue(licenseRecord.status, "license.status"),
+    validFrom: stringValue(licenseRecord.validFrom, "license.validFrom"),
+    validUntil: stringValue(licenseRecord.validUntil, "license.validUntil"),
+    maxDevices: nonNegativeInteger(
+      licenseRecord.maxDevices,
+      "license.maxDevices",
+    ),
+    activeDevices: nonNegativeInteger(
+      licenseRecord.activeDevices,
+      "license.activeDevices",
+    ),
+  };
   const device = deviceRecord
     ? {
-        id: identifier(deviceRecord.id, "device.id"),
-        ...optionalText("name", deviceRecord.name),
-        ...optionalText("status", deviceRecord.status),
+        id: uuid(deviceRecord.id, "device.id"),
+        publicKeyHash: text(deviceRecord.publicKeyHash, "device.publicKeyHash"),
+        name: stringValue(deviceRecord.name, "device.name"),
+        platform: stringValue(deviceRecord.platform, "device.platform"),
+        arch: stringValue(deviceRecord.arch, "device.arch"),
+        clientVersion: stringValue(
+          deviceRecord.clientVersion,
+          "device.clientVersion",
+        ),
+        status: stringValue(deviceRecord.status, "device.status"),
+        createdAt: stringValue(deviceRecord.createdAt, "device.createdAt"),
+        lastSeenAt: stringValue(deviceRecord.lastSeenAt, "device.lastSeenAt"),
       }
     : null;
   const activation = activationRecord
     ? {
-        id: identifier(activationRecord.id, "activation.id"),
-        ...optionalText("status", activationRecord.status),
-        ...optionalText("activatedAt", activationRecord.activatedAt),
-        ...optionalText("lastSeenAt", activationRecord.lastSeenAt),
+        id: uuid(activationRecord.id, "activation.id"),
+        licenseId: uuid(activationRecord.licenseId, "activation.licenseId"),
+        deviceId: uuid(activationRecord.deviceId, "activation.deviceId"),
+        status: stringValue(activationRecord.status, "activation.status"),
+        activatedAt: stringValue(
+          activationRecord.activatedAt,
+          "activation.activatedAt",
+        ),
+        lastHeartbeatAt: stringValue(
+          activationRecord.lastHeartbeatAt,
+          "activation.lastHeartbeatAt",
+        ),
+        endedAt: stringValue(activationRecord.endedAt, "activation.endedAt"),
+        endReason: stringValue(
+          activationRecord.endReason,
+          "activation.endReason",
+        ),
       }
     : null;
   const lease = leaseRecord
     ? {
-        id: identifier(leaseRecord.id, "lease.id"),
-        ...optionalIdentifier("activationId", leaseRecord.activationId),
-        ...optionalText("issuedAt", leaseRecord.issuedAt),
-        ...optionalText("expiresAt", leaseRecord.expiresAt),
-        ...optionalText("keyId", leaseRecord.keyId),
-        verifiedOffline: false as const,
+        id: uuid(leaseRecord.id, "lease.id"),
+        activationId: uuid(leaseRecord.activationId, "lease.activationId"),
+        issuedAt: stringValue(leaseRecord.issuedAt, "lease.issuedAt"),
+        expiresAt: stringValue(leaseRecord.expiresAt, "lease.expiresAt"),
+        keyId: text(leaseRecord.keyId, "lease.keyId"),
+        verifiedOffline: booleanValue(
+          leaseRecord.verifiedOffline,
+          "lease.verifiedOffline",
+        ),
       }
     : null;
-  if (leaseRecord && leaseRecord.verifiedOffline !== false) {
-    throw new Error("Unverified commercial lease cannot enable offline access");
+  const declaredEdition = nullableEdition(capabilitiesRecord.editionType);
+  if (declaredEdition !== null && declaredEdition !== license.editionType) {
+    throw new Error("Commercial capability edition does not match the license");
   }
   const deviceActivated = Boolean(
-    capabilitiesRecord.deviceActivated === true && device && activation,
+    booleanValue(
+      capabilitiesRecord.deviceActivated,
+      "capabilities.deviceActivated",
+    ) &&
+      device &&
+      activation,
   );
   const allowsCloudModels = Boolean(
-    capabilitiesRecord.allowsCloudModels === true && license && deviceActivated,
+    booleanValue(
+      capabilitiesRecord.allowsCloudModels,
+      "capabilities.allowsCloudModels",
+    ) && deviceActivated,
   );
   const allowsCustomModels = Boolean(
-    capabilitiesRecord.allowsCustomModels === true &&
+    booleanValue(
+      capabilitiesRecord.allowsCustomModels,
+      "capabilities.allowsCustomModels",
+    ) &&
       allowsCloudModels &&
-      license?.editionType === "PROFESSIONAL" &&
+      license.editionType === "PROFESSIONAL" &&
       license.allowsCustomModels,
   );
 
@@ -110,7 +226,7 @@ export function parseCommercialEntitlement(value: unknown): CommercialEntitlemen
     activation,
     lease,
     capabilities: {
-      editionType: license?.editionType ?? null,
+      editionType: license.editionType,
       deviceActivated,
       allowsCloudModels,
       allowsCustomModels,
@@ -118,31 +234,78 @@ export function parseCommercialEntitlement(value: unknown): CommercialEntitlemen
   };
 }
 
-export function parseBootstrapEntitlement(value: unknown): CommercialEntitlement {
-  const bootstrap = record(value, "commercial bootstrap");
+export function parseBootstrapEntitlement(
+  value: unknown,
+): CommercialEntitlement {
+  const bootstrap = record(value, "commercial bootstrap", [
+    "softwareAuthorization",
+    "personalQuota",
+    "models",
+    "release",
+    "warnings",
+  ]);
   if (bootstrap.softwareAuthorization === null) {
     throw new Error("当前账户没有可用的软件许可");
   }
   return parseCommercialEntitlement(bootstrap.softwareAuthorization);
 }
 
-function record(value: unknown, name: string): Record<string, unknown> {
+function record(
+  value: unknown,
+  name: string,
+  fields: readonly string[],
+): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(`${name} must be an object`);
   }
-  return value as Record<string, unknown>;
+  const result = value as Record<string, unknown>;
+  const actual = Object.keys(result).sort();
+  const expected = [...fields].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((field, index) => field !== expected[index])
+  ) {
+    throw new Error(`${name} fields must be exactly ${expected.join(", ")}`);
+  }
+  return result;
 }
 
-function nullableRecord(value: unknown): Record<string, unknown> | null {
-  return value === null || value === undefined
-    ? null
-    : record(value, "commercial entitlement field");
+function nullableRecord(
+  value: unknown,
+  name: string,
+  fields: readonly string[],
+): Record<string, unknown> | null {
+  return value === null ? null : record(value, name, fields);
 }
 
-function identifier(value: unknown, name: string): string | number {
-  if (typeof value === "string" && value.trim()) return value;
-  if (typeof value === "number" && Number.isSafeInteger(value)) return value;
-  throw new Error(`${name} must be a string or safe integer`);
+function uuid(value: unknown, name: string): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value.trim())) {
+    throw new Error(`${name} must be a UUID string`);
+  }
+  return value.trim().toLowerCase();
+}
+
+function text(value: unknown, name: string): string {
+  const result = typeof value === "string" ? value.trim() : "";
+  if (!result) throw new Error(`${name} must be a non-empty string`);
+  return result;
+}
+
+function stringValue(value: unknown, name: string): string {
+  if (typeof value !== "string") throw new Error(`${name} must be a string`);
+  return value;
+}
+
+function booleanValue(value: unknown, name: string): boolean {
+  if (typeof value !== "boolean") throw new Error(`${name} must be a boolean`);
+  return value;
+}
+
+function nonNegativeInteger(value: unknown, name: string): number {
+  if (!Number.isSafeInteger(value) || Number(value) < 0) {
+    throw new Error(`${name} must be a non-negative integer`);
+  }
+  return Number(value);
 }
 
 function edition(value: unknown): CommercialEditionType {
@@ -150,13 +313,6 @@ function edition(value: unknown): CommercialEditionType {
   throw new Error("license.editionType is invalid");
 }
 
-function optionalText<K extends string>(key: K, value: unknown) {
-  const normalized = typeof value === "string" ? value.trim() : "";
-  return normalized ? ({ [key]: normalized } as Record<K, string>) : {};
-}
-
-function optionalIdentifier<K extends string>(key: K, value: unknown) {
-  return value === undefined || value === null
-    ? {}
-    : ({ [key]: identifier(value, key) } as Record<K, string | number>);
+function nullableEdition(value: unknown): CommercialEditionType | null {
+  return value === null ? null : edition(value);
 }

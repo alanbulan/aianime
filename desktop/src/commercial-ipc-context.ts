@@ -9,8 +9,9 @@ import type {
 import {
   authorizationDeviceId,
   projectCommercialAuthorization,
-  projectCommercialModelCatalog,
   type CommercialAuthorizationSnapshot,
+  type CommercialAuthorizationWire,
+  type CommercialModelCatalogSnapshot,
   type CommercialModelCapabilitySnapshot,
 } from "./commercial-contracts.js";
 import {
@@ -54,11 +55,11 @@ export interface RegisterCommercialIpcOptions {
   ) => void | Promise<void>;
   onLoggedOut: () => void | Promise<void>;
   releaseUpdater?: {
-    download(artifactId: string | number): Promise<{ version: string }>;
+    download(artifactId: string): Promise<{ version: string }>;
     install(): void;
   };
   saveInvocationResult?: (
-    id: string | number,
+    id: string,
   ) => Promise<{ saved: boolean; fileName?: string }>;
   /**
    * keyId -> PEM SPKI public keys for offline lease verification. When empty,
@@ -181,7 +182,7 @@ export class CommercialIpcContext {
   }
 
   updateModelCapabilities(
-    catalog: ReturnType<typeof projectCommercialModelCatalog> | null,
+    catalog: CommercialModelCatalogSnapshot | null,
     requestedOperation?: string,
   ): void {
     if (!catalog) return;
@@ -198,13 +199,13 @@ export class CommercialIpcContext {
     );
   }
 
-  async loadCurrentLicense(): Promise<unknown> {
+  async loadCurrentLicense(): Promise<CommercialAuthorizationWire> {
     const device = await this.options.deviceIdentity.summary();
     return this.client.currentLicense(device.publicKeyHash);
   }
 
   async publishAuthorization(
-    value: unknown,
+    value: CommercialAuthorizationWire,
   ): Promise<CommercialAuthorizationSnapshot> {
     const authorization = projectCommercialAuthorization(value);
     this.currentAuthorization = verifyAuthorizationLease(
@@ -239,11 +240,9 @@ export class CommercialIpcContext {
         const authorization = await this.ensureCurrentAuthorization();
         const access = await this.loadModelAccessForRouting();
         this.cloudModelAssignments = [...(access.cloudModelAssignments ?? [])];
-        const catalog = projectCommercialModelCatalog(
-          await this.client.modelCatalog(
-            {},
-            authorizationDeviceId(authorization),
-          ),
+        const catalog = await this.client.modelCatalog(
+          {},
+          authorizationDeviceId(authorization),
         );
         this.updateModelCapabilities(catalog);
         this.cloudModelAssignments = updateCloudModelAssignments(

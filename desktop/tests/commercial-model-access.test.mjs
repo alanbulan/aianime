@@ -47,6 +47,83 @@ class MemorySessionStore {
   }
 }
 
+const TEST_IDS = {
+  license: "11111111-1111-4111-8111-111111111111",
+  device: "22222222-2222-4222-8222-222222222222",
+  activation: "33333333-3333-4333-8333-333333333333",
+  lease: "44444444-4444-4444-8444-444444444444",
+  model: "55555555-5555-4555-8555-555555555555",
+  release: "66666666-6666-4666-8666-666666666666",
+  artifact: "77777777-7777-4777-8777-777777777777",
+};
+
+function authorizationFixture({
+  editionType = "PROFESSIONAL",
+  allowsCustomModels = true,
+  activated = true,
+  deviceId = TEST_IDS.device,
+  lease = null,
+} = {}) {
+  return {
+    license: {
+      id: TEST_IDS.license,
+      versionCode: "professional-2026",
+      versionName: "Professional",
+      status: "ACTIVE",
+      validFrom: "2026-01-01T00:00:00Z",
+      validUntil: "2027-01-01T00:00:00Z",
+      maxDevices: 3,
+      activeDevices: activated ? 1 : 0,
+      editionType,
+      allowsCustomModels,
+    },
+    device: activated
+      ? {
+          id: deviceId,
+          publicKeyHash: "device-public-key-hash",
+          deviceName: "Desktop",
+          platform: "windows",
+          arch: "x86_64",
+          clientVersion: "1.1.62",
+          status: "ACTIVE",
+          createdAt: "2026-08-01T00:00:00Z",
+          lastSeenAt: "2026-08-01T01:00:00Z",
+        }
+      : null,
+    activation: activated
+      ? {
+          id: TEST_IDS.activation,
+          licenseId: TEST_IDS.license,
+          deviceId,
+          status: "ACTIVE",
+          activatedAt: "2026-08-01T00:00:00Z",
+          lastHeartbeatAt: "2026-08-01T01:00:00Z",
+          endedAt: "",
+          endReason: "",
+        }
+      : null,
+    lease,
+  };
+}
+
+function modelItemFixture(overrides = {}) {
+  return {
+    id: TEST_IDS.model,
+    code: "cloud-text-v1",
+    displayName: "Cloud Text",
+    operation: "TEXT",
+    capabilityJson: "{}",
+    parameterSchemaJson: "{}",
+    unitsPerCall: 1,
+    clientVisible: true,
+    status: "ACTIVE",
+    createdAt: "2026-08-01T00:00:00Z",
+    updatedAt: "2026-08-01T00:00:00Z",
+    isDefault: true,
+    ...overrides,
+  };
+}
+
 test("desktop route parser follows the shared cross-runtime model contract", async () => {
   const contract = JSON.parse(await readFile(
     new URL("../../tests/fixtures/model-route-contract.json", import.meta.url),
@@ -278,7 +355,6 @@ test("commercial auth IPC preserves exact password text", async () => {
     },
     client: {
       baseUrl: "https://gateway.test",
-      register: async (input) => calls.push({ type: "register", input }),
       login: async (input) => {
         calls.push({ type: "login", input });
         return {
@@ -288,16 +364,7 @@ test("commercial auth IPC preserves exact password text", async () => {
           tenant,
         };
       },
-      currentLicense: async () => ({
-        license: {
-          id: "license-1",
-          editionType: "PROFESSIONAL",
-          allowsCustomModels: true,
-        },
-        device: { id: "2217d912-c377-42de-b2eb-759cf172bae2" },
-        activation: { id: "activation-1" },
-        lease: null,
-      }),
+      currentLicense: async () => authorizationFixture(),
       modelCatalog: async () => ({
         catalogVersion: "catalog-v1",
         items: [],
@@ -323,17 +390,10 @@ test("commercial auth IPC preserves exact password text", async () => {
     onLoggedOut: async () => undefined,
   });
 
-  await handlers.get(COMMERCIAL_CHANNELS.register)(
-    { sender: { id: 1 } },
-    {
-      tenantCode: " customer-a ",
-      username: " client ",
-      password: " Secret 123 ",
-    },
-  );
   await handlers.get(COMMERCIAL_CHANNELS.login)(
     { sender: { id: 1 } },
     {
+      loginType: "PASSWORD",
       tenantCode: " customer-a ",
       username: " client ",
       password: " Secret 123 ",
@@ -342,16 +402,9 @@ test("commercial auth IPC preserves exact password text", async () => {
 
   assert.deepEqual(calls, [
     {
-      type: "register",
-      input: {
-        tenantCode: "customer-a",
-        username: "client",
-        password: " Secret 123 ",
-      },
-    },
-    {
       type: "login",
       input: {
+        loginType: "PASSWORD",
         tenantCode: "customer-a",
         username: "client",
         password: " Secret 123 ",
@@ -477,16 +530,7 @@ test("restored sessions hydrate the complete cloud model access once", async () 
       }),
       currentLicense: async () => {
         licenseCalls += 1;
-        return {
-          license: {
-            id: "license-1",
-            editionType: "PROFESSIONAL",
-            allowsCustomModels: true,
-          },
-          device: { id: deviceId },
-          activation: { id: "activation-1" },
-          lease: null,
-        };
+        return authorizationFixture({ deviceId });
       },
       modelCatalog: async (query, receivedDeviceId) => {
         catalogCalls += 1;
@@ -656,16 +700,11 @@ test("standard authorization hides persisted BYOK details from the renderer", as
     },
     client: {
       baseUrl: "http://203.0.113.10:8889",
-      currentLicense: async () => ({
-        license: {
-          id: "license-1",
+      currentLicense: async () =>
+        authorizationFixture({
           editionType: "STANDARD",
           allowsCustomModels: false,
-        },
-        device: { id: "device-1" },
-        activation: { id: "activation-1" },
-        lease: null,
-      }),
+        }),
     },
     deviceIdentity: {
       summary: async () => ({
@@ -754,26 +793,15 @@ test("Bootstrap merges configured BYOK models with cloud SKUs", async () => {
     client: {
       baseUrl: "http://203.0.113.10:8889",
       bootstrap: async () => ({
-        softwareAuthorization: {
-          license: {
-            id: "license-1",
-            editionType: "PROFESSIONAL",
-            allowsCustomModels: true,
-          },
-          device: { id: "device-1" },
-          activation: { id: "activation-1" },
-          lease: null,
-        },
+        softwareAuthorization: authorizationFixture(),
         personalQuota: null,
         models: {
           catalogVersion: "cloud-1",
           items: [
-            {
-              id: "cloud-text",
+            modelItemFixture({
               code: "cloud/text-standard",
               displayName: "Cloud Text",
-              operation: "TEXT",
-            },
+            }),
           ],
         },
         release: null,
@@ -840,16 +868,7 @@ test("explicit cloud catalog requests do not reuse the active BYOK catalog", asy
     },
     client: {
       baseUrl: "https://gateway.example.test",
-      currentLicense: async () => ({
-        license: {
-          id: "license-1",
-          editionType: "PROFESSIONAL",
-          allowsCustomModels: true,
-        },
-        device: { id: "device-1" },
-        activation: { id: "activation-1" },
-        lease: null,
-      }),
+      currentLicense: async () => authorizationFixture(),
       modelCatalog: async () => {
         cloudCatalogCalls += 1;
         return {
@@ -923,16 +942,7 @@ test("cloud model catalog remains available when local BYOK storage cannot load"
     },
     client: {
       baseUrl: "https://gateway.example.test",
-      currentLicense: async () => ({
-        license: {
-          id: "license-1",
-          editionType: "PROFESSIONAL",
-          allowsCustomModels: true,
-        },
-        device: { id: "device-1" },
-        activation: { id: "activation-1" },
-        lease: null,
-      }),
+      currentLicense: async () => authorizationFixture(),
       modelCatalog: async () => ({
         catalogVersion: "cloud-v1",
         items: [
@@ -993,16 +1003,25 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
   const handlers = new Map();
   const keyId = "lease-test-v1";
   const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const devicePublicKeyHash = "a".repeat(64);
+  const issuedAt = "2026-08-01T00:00:00Z";
+  const expiresAt = "2099-01-01T00:00:00Z";
   const payloadJson = JSON.stringify({
-    keyId,
-    licenseId: "license-1",
-    devicePublicKeyHash: "public-key-hash",
+    activationId: TEST_IDS.activation,
+    licenseId: TEST_IDS.license,
+    deviceId: TEST_IDS.device,
+    devicePublicKeyHash,
     editionType: "PROFESSIONAL",
     allowsCustomModels: true,
+    issuedAt,
+    expiresAt,
+    keyId,
   });
   const lease = {
-    id: "lease-1",
-    expiresAt: "2099-01-01T00:00:00Z",
+    id: TEST_IDS.lease,
+    activationId: TEST_IDS.activation,
+    issuedAt,
+    expiresAt,
     keyId,
     payloadJson,
     signature: sign(null, Buffer.from(payloadJson, "utf8"), privateKey).toString(
@@ -1018,16 +1037,7 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
     client: {
       baseUrl: "https://gateway.example.test",
       bootstrap: async () => ({
-        softwareAuthorization: {
-          license: {
-            id: "license-1",
-            editionType: "PROFESSIONAL",
-            allowsCustomModels: true,
-          },
-          device: { id: "device-1" },
-          activation: { id: "activation-1" },
-          lease,
-        },
+        softwareAuthorization: authorizationFixture({ lease }),
         personalQuota: null,
         models: null,
         release: null,
@@ -1037,7 +1047,7 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
     deviceIdentity: {
       summary: async () => ({
         publicKey: "public-key",
-        publicKeyHash: "public-key-hash",
+        publicKeyHash: devicePublicKeyHash,
       }),
     },
     modelAccessStore: {
@@ -1058,7 +1068,7 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
     leaseSigningKeys: {
       [keyId]: publicKey.export({ type: "spki", format: "pem" }),
     },
-    devicePublicKeyHash: "public-key-hash",
+    devicePublicKeyHash,
   });
 
   const bootstrap = handlers.get(COMMERCIAL_CHANNELS.bootstrap);
@@ -1081,16 +1091,7 @@ test("video catalog synchronization sends only projected generation capabilities
     },
     client: {
       baseUrl: "https://gateway.example.test",
-      currentLicense: async () => ({
-        license: {
-          id: "license-1",
-          editionType: "PROFESSIONAL",
-          allowsCustomModels: true,
-        },
-        device: { id: deviceId },
-        activation: { id: "activation-1" },
-        lease: null,
-      }),
+      currentLicense: async () => authorizationFixture({ deviceId }),
       modelCatalog: async ({ operation }, receivedDeviceId) => {
         catalogDeviceIds.push(receivedDeviceId);
         return operation === "TEXT"
@@ -1356,7 +1357,12 @@ test("release checks use Electron-owned version, platform, and architecture", as
       baseUrl: "http://203.0.113.10:8889",
       checkRelease: async (query) => {
         receivedQuery = query;
-        return { available: false, required: false, reason: "up-to-date" };
+        return {
+          available: false,
+          required: false,
+          reason: "up-to-date",
+          version: { artifacts: [] },
+        };
       },
     },
     deviceIdentity: {},
@@ -1387,6 +1393,8 @@ test("release checks use Electron-owned version, platform, and architecture", as
     available: false,
     required: false,
     reason: "up-to-date",
+    version: { artifacts: [] },
+    artifactId: null,
   });
 });
 
@@ -1424,12 +1432,14 @@ test("release update commands delegate only the selected artifact id", async () 
   const downloadUpdate = handlers.get(COMMERCIAL_CHANNELS.downloadUpdate);
   const installUpdate = handlers.get(COMMERCIAL_CHANNELS.installUpdate);
   assert.deepEqual(
-    await downloadUpdate({ sender: { id: 1 } }, "artifact-1"),
+    await downloadUpdate({ sender: { id: 1 } }, TEST_IDS.artifact),
     { version: "1.1.6" },
   );
-  await installUpdate({ sender: { id: 1 } });
+  assert.deepEqual(await installUpdate({ sender: { id: 1 } }), {
+    accepted: true,
+  });
 
-  assert.deepEqual(downloaded, ["artifact-1"]);
+  assert.deepEqual(downloaded, [TEST_IDS.artifact]);
   assert.equal(installs, 1);
 });
 
@@ -4961,7 +4971,7 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
       const call = { url: String(url), init };
       calls.push(call);
       if (call.url.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
+        return Response.json(authorizationFixture());
       }
       if (call.url.endsWith("/api/v1/client/auth/refresh")) {
         return Response.json({ accessToken: "new-client-jwt", expiresIn: 3600 });
@@ -4994,8 +5004,8 @@ test("cloud model writes inject JWT, device ID, and one idempotency key", async 
   const secondHeaders = new Headers(modelCalls[1].init.headers);
   assert.equal(firstHeaders.get("Authorization"), "Bearer old-client-jwt");
   assert.equal(secondHeaders.get("Authorization"), "Bearer new-client-jwt");
-  assert.equal(firstHeaders.get("X-Device-Id"), "device-42");
-  assert.equal(secondHeaders.get("X-Device-Id"), "device-42");
+  assert.equal(firstHeaders.get("X-Device-Id"), TEST_IDS.device);
+  assert.equal(secondHeaders.get("X-Device-Id"), TEST_IDS.device);
   assert.match(firstHeaders.get("Idempotency-Key"), /^[0-9a-f-]{36}$/);
   assert.equal(
     secondHeaders.get("Idempotency-Key"),
@@ -5022,7 +5032,7 @@ test("cloud model writes do not blindly replay transient gateway failures", asyn
       const call = { url: String(url), init };
       calls.push(call);
       if (call.url.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
+        return Response.json(authorizationFixture());
       }
       if (call.url.endsWith("/v1/images/generations")) {
         modelAttempts += 1;
@@ -5069,7 +5079,7 @@ test("DELETE cloud model mutations keep one idempotency key and are not replayed
       const call = { url: String(url), init };
       calls.push(call);
       if (call.url.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
+        return Response.json(authorizationFixture());
       }
       if (call.url.endsWith("/v1/videos/video-42")) {
         return new Response("gateway timeout", { status: 504 });
@@ -5127,7 +5137,7 @@ test("cloud model catalog reads send the activated device and retry transient fa
     fetchImpl: async (url, init) => {
       const target = String(url);
       if (target.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
+        return Response.json(authorizationFixture());
       }
       if (target.endsWith("/v1/models")) {
         modelAttempts += 1;
@@ -5150,7 +5160,7 @@ test("cloud model catalog reads send the activated device and retry transient fa
   assert.equal(response.status, 200);
   assert.equal(modelAttempts, 3);
   assert.equal(
-    modelHeaders.every((headers) => headers.get("X-Device-Id") === "device-42"),
+    modelHeaders.every((headers) => headers.get("X-Device-Id") === TEST_IDS.device),
     true,
   );
 });
@@ -5172,7 +5182,7 @@ test("model proxy owns cloud read retries without multiplying client retries", a
     fetchImpl: async (url) => {
       const target = String(url);
       if (target.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
+        return Response.json(authorizationFixture());
       }
       if (target.endsWith("/v1/models")) {
         modelAttempts += 1;
@@ -5225,7 +5235,7 @@ test("cloud model transport validates protocol-specific request headers", async 
       const call = { url: String(url), init };
       calls.push(call);
       if (call.url.includes("/api/v1/client/licenses/current")) {
-        return Response.json({ device: { id: "device-42" } });
+        return Response.json(authorizationFixture());
       }
       return Response.json({ ok: true });
     },

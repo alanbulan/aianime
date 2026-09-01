@@ -1,7 +1,6 @@
 // Copyright (c) 2026 AI anime
 
 import { CommercialApiError } from "./commercial-api-error.js";
-import type { Identifier } from "./commercial-api-types.js";
 import {
   createRequiredRecord,
   createRequiredText,
@@ -34,10 +33,47 @@ export function optionalText(value: unknown): string | undefined {
   return text || undefined;
 }
 
-export function requiredIdentifier(value: unknown, name: string): Identifier {
-  if (typeof value === "string" && value.trim()) return value;
-  if (typeof value === "number" && Number.isSafeInteger(value)) return value;
-  throw new CommercialApiError(`${name} 必须是字符串或安全整数`);
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function requiredUUID(value: unknown, name: string): string {
+  if (typeof value !== "string" || !UUID_PATTERN.test(value.trim())) {
+    throw new CommercialApiError(`${name} 必须是 UUID 字符串`);
+  }
+  return value.trim().toLowerCase();
+}
+
+export function requiredString(value: unknown, name: string): string {
+  if (typeof value !== "string") {
+    throw new CommercialApiError(`${name} 必须是字符串`);
+  }
+  return value;
+}
+
+export function requiredBoolean(value: unknown, name: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new CommercialApiError(`${name} 必须是布尔值`);
+  }
+  return value;
+}
+
+export function strictRecord(
+  value: unknown,
+  name: string,
+  fields: readonly string[],
+): Record<string, unknown> {
+  const record = requiredRecord(value, name);
+  const actual = Object.keys(record).sort();
+  const expected = [...fields].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((field, index) => field !== expected[index])
+  ) {
+    throw new CommercialApiError(
+      `${name} 字段必须严格为 ${expected.join(", ")}`,
+    );
+  }
+  return record;
 }
 
 export function requiredInteger(value: unknown, name: string): number {

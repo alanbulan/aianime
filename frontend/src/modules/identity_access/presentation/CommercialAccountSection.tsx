@@ -132,7 +132,7 @@ export function CommercialLicenseSection({
                   ? commercialValueLabel(t, "status", entitlement.license.status)
                   : t("settings.account.unknown")
               }
-              detail={formatDate(entitlement.license?.expiresAt)}
+              detail={formatDate(entitlement.license.validUntil)}
             />
             <InfoRow
               label={t("settings.account.device")}
@@ -146,7 +146,7 @@ export function CommercialLicenseSection({
             <InfoRow
               label={t("settings.account.activatedAt")}
               value={formatDate(entitlement.activation?.activatedAt) ?? "-"}
-              detail={formatDate(entitlement.activation?.lastSeenAt)}
+              detail={formatDate(entitlement.activation?.lastHeartbeatAt)}
             />
             <InfoRow
               label={t("settings.account.leaseExpiresAt")}

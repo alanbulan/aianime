@@ -3,7 +3,7 @@ import type { CommercialReleaseStatus } from "@/modules/platform_release/domain/
 export interface CommercialReleaseGateway {
   check(): Promise<CommercialReleaseStatus>;
   downloadUpdate(
-    artifactId: string | number,
+    artifactId: string,
   ): Promise<{ version: string }>;
-  installUpdate(): Promise<void>;
+  installUpdate(): Promise<{ accepted: boolean }>;
 }
