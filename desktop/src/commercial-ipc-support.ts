@@ -397,6 +397,20 @@ export function mergeModelCapabilities(
     if (item.operation === "IMAGE") {
       const imagePromptProfile = optionalText(capabilities.imagePromptProfile);
       if (imagePromptProfile) projected.imagePromptProfile = imagePromptProfile;
+      const imageRatioOptions = projectedVideoRatioOptions(
+        capabilities,
+        properties,
+      );
+      if (imageRatioOptions.length) {
+        projected.imageRatioOptions = imageRatioOptions;
+      }
+      const imageSizeOptions = projectedVideoSizeOptions(
+        capabilities,
+        properties,
+      );
+      if (imageSizeOptions.length) {
+        projected.imageSizeOptions = imageSizeOptions;
+      }
     }
     if (item.operation !== "VIDEO") {
       if (Object.keys(projected).length > 1) target.set(item.code, projected);

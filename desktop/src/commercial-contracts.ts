@@ -175,6 +175,8 @@ export interface CommercialModelCapabilitySnapshot {
   modelId: string;
   extraParameterNames?: string[];
   imagePromptProfile?: string;
+  imageRatioOptions?: string[];
+  imageSizeOptions?: string[];
   videoWorkflow?: "standard" | "advanced-reference" | "reference";
   videoRatioOptions?: string[];
   videoResolutionOptions?: string[];

@@ -394,6 +394,49 @@ def resolve_standard_image_size(aspect_ratio: str = "1:1", image_size: str = "1K
     return f"{width_i}x{height_i}"
 
 
+def _image_aspect_value(value: str | None) -> float | None:
+    normalized = str(value or "").strip().replace("-", ":")
+    try:
+        raw_width, raw_height = normalized.split(":", 1)
+        width = float(raw_width)
+        height = float(raw_height)
+    except (TypeError, ValueError):
+        return None
+    if (
+        not math.isfinite(width)
+        or not math.isfinite(height)
+        or width <= 0
+        or height <= 0
+    ):
+        return None
+    return width / height
+
+
+def resolve_catalog_image_size(
+    aspect_ratio: str,
+    size_options: tuple[str, ...],
+    ratio_options: tuple[str, ...] = (),
+) -> str:
+    """Resolve a semantic aspect ratio to a catalog-declared exact size."""
+    target_ratio = _image_aspect_value(aspect_ratio) or 1.0
+    if len(ratio_options) == len(size_options):
+        for index, option in enumerate(ratio_options):
+            option_ratio = _image_aspect_value(option)
+            if option_ratio is not None and math.isclose(
+                option_ratio,
+                target_ratio,
+                rel_tol=1e-6,
+            ):
+                return size_options[index]
+
+    def distance(option: str) -> float:
+        width_text, height_text = option.split("x", 1)
+        option_ratio = int(width_text) / int(height_text)
+        return abs(math.log(option_ratio / target_ratio))
+
+    return min(size_options, key=distance)
+
+
 def normalize_image_quality(value: str | None, default: str = "medium") -> str:
     quality = str(value or default or "medium").strip().lower()
     return quality if quality in _STANDARD_IMAGE_VALID_QUALITIES else default
@@ -648,7 +691,35 @@ async def _call_image_generation_api(
 
     aspect_ratio = str(image_config.get("aspect_ratio") or "1:1").strip() or "1:1"
     image_size = normalize_image_size(str(image_config.get("image_size") or "1K"))
+    capability = runtime_model_capability(clean_model) or runtime_model_capability(
+        model_selector
+    )
     size = resolve_standard_image_size(aspect_ratio, image_size)
+    if capability is not None and capability.image_size_options:
+        requested_ratio = _image_aspect_value(aspect_ratio)
+        supported_ratios = tuple(
+            option_ratio
+            for option in capability.image_ratio_options
+            if (option_ratio := _image_aspect_value(option)) is not None
+        )
+        if requested_ratio is None or (
+            supported_ratios
+            and not any(
+                math.isclose(option, requested_ratio, rel_tol=1e-6)
+                for option in supported_ratios
+            )
+        ):
+            return (
+                None,
+                "",
+                f"模型 {clean_model} 不支持图片画幅 {aspect_ratio}；"
+                f"可选：{', '.join(capability.image_ratio_options)}",
+            )
+        size = resolve_catalog_image_size(
+            aspect_ratio,
+            capability.image_size_options,
+            capability.image_ratio_options,
+        )
     extra_fields: dict[str, object] = {
         "aspect_ratio": aspect_ratio,
         "image_size": image_size,
@@ -667,7 +738,6 @@ async def _call_image_generation_api(
         "response_format": "b64_json",
         "extra_fields": extra_fields,
     }
-    capability = runtime_model_capability(model_selector or clean_model)
     if capability is not None and "quality" in capability.extra_parameter_names:
         quality = normalize_image_quality(
             str(image_config.get("quality") or ""),

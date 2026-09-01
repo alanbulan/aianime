@@ -110,6 +110,8 @@ def test_internal_capability_endpoint_accepts_only_router_state(
         "modelCapabilities": [
             {
                 "modelId": "cloud/video-standard",
+                "imageRatioOptions": ["1:1", "16:9"],
+                "imageSizeOptions": ["1328x1328", "1664x928"],
                 "videoWorkflow": "advanced-reference",
                 "videoRatioOptions": ["16:9", "9:16"],
                 "videoResolutionOptions": ["512p", "720p"],
@@ -157,6 +159,8 @@ def test_internal_capability_endpoint_accepts_only_router_state(
     assert payload["byok"] == {"allowed": True, "configured": True}
     capability = runtime_model_capability("cloud/video-standard")
     assert capability is not None
+    assert capability.image_ratio_options == ("1:1", "16:9")
+    assert capability.image_size_options == ("1328x1328", "1664x928")
     assert capability.video_resolution_options == (
         "512p",
         "720p",
@@ -425,6 +429,8 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
         model_capabilities=[
             {
                 "modelId": "cloud/video-standard",
+                "imageRatioOptions": ["1:1", "16:9"],
+                "imageSizeOptions": ["1328x1328", "1664x928"],
                 "videoWorkflow": "advanced-reference",
                 "videoRatioOptions": ["16:9", "9:16"],
                 "videoResolutionOptions": ["720p", "1080p"],
@@ -451,6 +457,8 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "print(json.dumps({'loaded': loaded, 'allowsCustomModels': is_byok_allowed(), 'mode': access.mode, 'baseUrl': access.base_url, "
             "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
             "'modelAssignments': [[item.model_id, item.role] for item in access.model_assignments], "
+            "'imageRatioOptions': list(capability.image_ratio_options) if capability else None, "
+            "'imageSizeOptions': list(capability.image_size_options) if capability else None, "
             "'videoWorkflow': capability.video_workflow if capability else None, "
             "'videoRatioOptions': list(capability.video_ratio_options) if capability else None, "
             "'videoResolutionOptions': list(capability.video_resolution_options) if capability else None, "
@@ -488,6 +496,8 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             ["cloud-text", "TEXT"],
             ["byok-text", "TEXT"],
         ],
+        "imageRatioOptions": ["1:1", "16:9"],
+        "imageSizeOptions": ["1328x1328", "1664x928"],
         "videoWorkflow": "advanced-reference",
         "videoRatioOptions": ["16:9", "9:16"],
         "videoResolutionOptions": ["720p", "1080p"],

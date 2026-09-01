@@ -30,7 +30,10 @@ import {
   registerCommercialIpc,
 } from "../src/commercial.ts";
 import { COMMERCIAL_IPC_ERROR_PREFIX } from "../src/commercial-ipc.ts";
-import { mergeModelCatalogs } from "../src/commercial-ipc-support.ts";
+import {
+  mergeModelCapabilities,
+  mergeModelCatalogs,
+} from "../src/commercial-ipc-support.ts";
 
 class MemorySessionStore {
   value = null;
@@ -182,6 +185,68 @@ test("active cloud catalogs always expose exact route selectors", () => {
   assert.equal(active.catalogVersion, "cloud-v1");
   assert.deepEqual(JSON.parse(active.items[0].capabilityJson), {
     routeSelector: "cloud:gpt-5",
+  });
+});
+
+test("image catalog synchronization preserves declared ratio-to-size capabilities", () => {
+  const capabilities = new Map();
+
+  mergeModelCapabilities(
+    {
+      catalogVersion: "cloud-v1",
+      items: [
+        modelItemFixture({
+          code: "QWEN_IMAGE_2512",
+          operation: "IMAGE",
+          capabilityJson: JSON.stringify({
+            imagePromptProfile: "qwen-image",
+            ratioOptions: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+            resolutionOptions: [
+              "1328x1328",
+              "1664x928",
+              "928x1664",
+              "1472x1140",
+              "1140x1472",
+              "1584x1056",
+              "1056x1584",
+            ],
+          }),
+          parameterSchemaJson: JSON.stringify({
+            properties: {
+              size: {
+                enum: [
+                  "1328x1328",
+                  "1664x928",
+                  "928x1664",
+                  "1472x1140",
+                  "1140x1472",
+                  "1584x1056",
+                  "1056x1584",
+                ],
+              },
+              quality: { enum: ["standard", "hd"] },
+            },
+          }),
+        }),
+      ],
+    },
+    capabilities,
+  );
+
+  assert.deepEqual(capabilities.get("QWEN_IMAGE_2512"), {
+    modelId: "QWEN_IMAGE_2512",
+    extraParameterNames: ["size", "quality"],
+    imagePromptProfile: "qwen-image",
+    imageRatioOptions: ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"],
+    imageSizeOptions: [
+      "1328x1328",
+      "1664x928",
+      "928x1664",
+      "1472x1140",
+      "1140x1472",
+      "1584x1056",
+      "1056x1584",
+    ],
   });
 });
 

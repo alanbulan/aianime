@@ -15,6 +15,7 @@ pytestmark = pytest.mark.m04
 
 QUALITY_IMAGE_MODEL = "image-model-with-quality"
 BASIC_IMAGE_MODEL = "image-model-basic"
+CATALOG_IMAGE_MODEL = "QWEN_IMAGE_2512"
 
 
 def _configure_image_generation_route(model: str) -> None:
@@ -121,6 +122,167 @@ async def test_image_transport_enforces_router_role_from_reference_presence(
             prompt="test",
             reference_images=reference_images,
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("aspect_ratio", "expected_size"),
+    [
+        ("1:1", "1328x1328"),
+        ("16:9", "1664x928"),
+        ("9:16", "928x1664"),
+        ("4:3", "1472x1140"),
+        ("3:4", "1140x1472"),
+        ("3:2", "1584x1056"),
+        ("2:3", "1056x1584"),
+    ],
+)
+async def test_catalog_image_request_uses_declared_exact_size(
+    monkeypatch,
+    aspect_ratio: str,
+    expected_size: str,
+) -> None:
+    import httpx
+
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+        _call_image_generation_api,
+    )
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {
+                "modelId": CATALOG_IMAGE_MODEL,
+                "role": "IMAGE_GENERATION",
+                "priority": 1,
+            },
+        ],
+        model_capabilities=[
+            {
+                "modelId": CATALOG_IMAGE_MODEL,
+                "imageRatioOptions": [
+                    "1:1",
+                    "16:9",
+                    "9:16",
+                    "4:3",
+                    "3:4",
+                    "3:2",
+                    "2:3",
+                ],
+                "imageSizeOptions": [
+                    "1328x1328",
+                    "1664x928",
+                    "928x1664",
+                    "1472x1140",
+                    "1140x1472",
+                    "1584x1056",
+                    "1056x1584",
+                ],
+            },
+        ],
+    )
+    posted = {}
+
+    class FakeResponse:
+        headers = {}
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"data": [{"b64_json": base64.b64encode(b"image").decode()}]}
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def post(self, url, *, headers, json):
+            posted.update(json)
+            return FakeResponse()
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+
+    image_bytes, _text, error = await _call_image_generation_api(
+        prompt="catalog size",
+        image_config={
+            "model": CATALOG_IMAGE_MODEL,
+            "model_selector": f"cloud:{CATALOG_IMAGE_MODEL}",
+            "aspect_ratio": aspect_ratio,
+            "image_size": "1K",
+        },
+    )
+
+    assert image_bytes == b"image"
+    assert error == ""
+    assert posted["size"] == expected_size
+
+
+@pytest.mark.asyncio
+async def test_catalog_image_request_rejects_undeclared_aspect_before_post(
+    monkeypatch,
+) -> None:
+    import httpx
+
+    from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
+        _call_image_generation_api,
+    )
+
+    configure_model_access(
+        allows_custom_models=False,
+        mode="mixed",
+        model_assignments=[
+            {
+                "modelId": CATALOG_IMAGE_MODEL,
+                "role": "IMAGE_GENERATION",
+                "priority": 1,
+            },
+        ],
+        model_capabilities=[
+            {
+                "modelId": CATALOG_IMAGE_MODEL,
+                "imageRatioOptions": ["1:1"],
+                "imageSizeOptions": ["1328x1328"],
+            },
+        ],
+    )
+    posted = False
+
+    class FakeAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def post(self, *args, **kwargs):
+            nonlocal posted
+            posted = True
+            raise AssertionError("unsupported aspect must not reach the gateway")
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+
+    image_bytes, _text, error = await _call_image_generation_api(
+        prompt="unsupported aspect",
+        image_config={
+            "model": CATALOG_IMAGE_MODEL,
+            "aspect_ratio": "21:9",
+            "image_size": "1K",
+        },
+    )
+
+    assert image_bytes is None
+    assert "不支持图片画幅 21:9" in error
+    assert posted is False
 
 
 def test_model_gateway_sketch_config_uses_explicit_catalog_code(monkeypatch):

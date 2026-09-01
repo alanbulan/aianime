@@ -314,6 +314,12 @@ export class LocalBackend {
         ? {
             modelCapabilities: input.modelCapabilities.map((item) => ({
               ...item,
+              ...(item.imageRatioOptions
+                ? { imageRatioOptions: [...item.imageRatioOptions] }
+                : {}),
+              ...(item.imageSizeOptions
+                ? { imageSizeOptions: [...item.imageSizeOptions] }
+                : {}),
               ...(item.videoRatioOptions
                 ? { videoRatioOptions: [...item.videoRatioOptions] }
                 : {}),

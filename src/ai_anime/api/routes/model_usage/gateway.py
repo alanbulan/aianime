@@ -59,6 +59,16 @@ class CommercialModelCapabilityBody(BaseModel):
         alias="imagePromptProfile",
         max_length=64,
     )
+    image_ratio_options: list[str] = Field(
+        default_factory=list,
+        alias="imageRatioOptions",
+        max_length=32,
+    )
+    image_size_options: list[str] = Field(
+        default_factory=list,
+        alias="imageSizeOptions",
+        max_length=32,
+    )
     video_workflow: str | None = Field(
         default=None,
         alias="videoWorkflow",
@@ -181,6 +191,7 @@ class CommercialModelCapabilityBody(BaseModel):
         alias="referenceVideoTotalMaxSeconds",
         gt=0,
     )
+
 
 class CommercialModelAccessBody(BaseModel):
     model_config = ConfigDict(extra="forbid")

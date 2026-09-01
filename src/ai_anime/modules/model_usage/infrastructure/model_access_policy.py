@@ -62,6 +62,8 @@ class RuntimeModelCapability:
     model_id: str
     extra_parameter_names: tuple[str, ...] = ()
     image_prompt_profile: str | None = None
+    image_ratio_options: tuple[str, ...] = ()
+    image_size_options: tuple[str, ...] = ()
     video_workflow: str | None = None
     video_ratio_options: tuple[str, ...] = ()
     video_resolution_options: tuple[str, ...] = ()
@@ -282,6 +284,25 @@ def _normalize_video_resolution_max_seconds(
     return tuple(sorted(limits.items()))
 
 
+def _normalize_image_ratio_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(f"model capability {index} has invalid imageRatioOptions")
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip().lower()
+        if option != "auto" and re.fullmatch(r"\d{1,4}:\d{1,4}", option) is None:
+            raise ValueError(f"model capability {index} has invalid imageRatioOptions")
+        if option not in options:
+            options.append(option)
+    return tuple(options)
+
+
 def _normalize_video_ratio_options(
     value: object,
     *,
@@ -300,6 +321,30 @@ def _normalize_video_ratio_options(
             )
         if option not in options:
             options.append(option)
+    return tuple(options)
+
+
+def _normalize_image_size_options(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(f"model capability {index} has invalid imageSizeOptions")
+    options: list[str] = []
+    for raw in value:
+        option = str(raw or "").strip().lower()
+        match = re.fullmatch(r"(\d{2,5})x(\d{2,5})", option)
+        if match is None:
+            raise ValueError(f"model capability {index} has invalid imageSizeOptions")
+        width, height = (int(match.group(1)), int(match.group(2)))
+        if not (64 <= width <= 8192 and 64 <= height <= 8192):
+            raise ValueError(f"model capability {index} has invalid imageSizeOptions")
+        normalized = f"{width}x{height}"
+        if normalized not in options:
+            options.append(normalized)
     return tuple(options)
 
 
@@ -447,6 +492,20 @@ def _normalize_model_capabilities(
                 raise ValueError(
                     f"model capability {index} has invalid imagePromptProfile"
                 )
+            image_ratio_options = _normalize_image_ratio_options(
+                value.get(
+                    "imageRatioOptions",
+                    value.get("image_ratio_options"),
+                ),
+                index=index,
+            )
+            image_size_options = _normalize_image_size_options(
+                value.get(
+                    "imageSizeOptions",
+                    value.get("image_size_options"),
+                ),
+                index=index,
+            )
             video_ratio_options = _normalize_video_ratio_options(
                 value.get(
                     "videoRatioOptions",
@@ -560,6 +619,8 @@ def _normalize_model_capabilities(
                 model_id=model_id,
                 extra_parameter_names=extra_parameter_names,
                 image_prompt_profile=image_prompt_profile,
+                image_ratio_options=image_ratio_options,
+                image_size_options=image_size_options,
                 video_workflow=video_workflow,
                 video_ratio_options=video_ratio_options,
                 video_resolution_options=video_resolution_options,
@@ -595,6 +656,14 @@ def _normalize_model_capabilities(
             raise ValueError(
                 f"model capability {index} has invalid imagePromptProfile"
             )
+        image_ratio_options = _normalize_image_ratio_options(
+            capability.image_ratio_options,
+            index=index,
+        )
+        image_size_options = _normalize_image_size_options(
+            capability.image_size_options,
+            index=index,
+        )
         video_ratio_options = _normalize_video_ratio_options(
             capability.video_ratio_options,
             index=index,
@@ -693,6 +762,8 @@ def _normalize_model_capabilities(
             model_id=model_id,
             extra_parameter_names=extra_parameter_names,
             image_prompt_profile=image_prompt_profile,
+            image_ratio_options=image_ratio_options,
+            image_size_options=image_size_options,
             video_workflow=video_workflow,
             video_ratio_options=video_ratio_options,
             video_resolution_options=video_resolution_options,
@@ -844,6 +915,16 @@ def serialize_model_access_for_subprocess() -> str:
                     **(
                         {"imagePromptProfile": item.image_prompt_profile}
                         if item.image_prompt_profile is not None
+                        else {}
+                    ),
+                    **(
+                        {"imageRatioOptions": list(item.image_ratio_options)}
+                        if item.image_ratio_options
+                        else {}
+                    ),
+                    **(
+                        {"imageSizeOptions": list(item.image_size_options)}
+                        if item.image_size_options
                         else {}
                     ),
                     **(
