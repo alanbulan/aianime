@@ -3,6 +3,6 @@
 export const COMMERCIAL_LEASE_SIGNING_KEYS: Readonly<Record<string, string>> =
   Object.freeze({
     "lease-2026-08-v1": `-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAW9A+dPoc336/CVLAa7KnMsnnE3CaQYA+zOeCKg/2t5U=
+MCowBQYDK2VwAyEAMxNupEH/YnDo/BOARRP7T7lEWaJal1qRfBpy7MFVzIo=
 -----END PUBLIC KEY-----`,
   });

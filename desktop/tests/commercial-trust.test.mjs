@@ -17,6 +17,6 @@ test("production offline lease trust root stays parseable and pinned", () => {
     .digest("hex");
   assert.equal(
     fingerprint,
-    "f2a6404d48738c0a2294f634e4d1d90569f5fd61983fbf4d7e26b330f631f9f0",
+    "5ef507de9f66914ec882f205dc82986c99e98fd3c0a823acd2b1b171e9745b6f",
   );
 });
