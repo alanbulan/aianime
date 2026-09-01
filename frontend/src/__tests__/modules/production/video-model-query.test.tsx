@@ -108,6 +108,94 @@ describe("Production video model query", () => {
     ]);
   });
 
+  it("opens model configuration from complete video capabilities when the schema is empty", () => {
+    const useVideoModels = createUseVideoModels(() => ({
+      data: {
+        catalogVersion: "catalog-capability-only",
+        items: [
+          {
+            id: "intermediary-video",
+            code: "intermediary-video",
+            displayName: "Intermediary video model",
+            operation: "VIDEO",
+            capabilities: {
+              routeSelector: "cloud:intermediary-video",
+              supportedModes: [
+                "TEXT_TO_VIDEO",
+                "IMAGE_TO_VIDEO",
+                "MULTIMODAL_REFERENCE",
+              ],
+              resolutionOptions: ["480p", "720p", "1080p"],
+              ratioOptions: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
+              minDuration: 4,
+              maxDuration: 15,
+              referenceImageMax: 9,
+              referenceVideoMax: 3,
+              referenceAudioMax: 0,
+            },
+            parameterSchema: {},
+          },
+        ],
+      },
+      error: null,
+      isLoading: false,
+    }));
+
+    const { result } = renderHook(() => useVideoModels());
+
+    expect(result.current.data).toEqual([
+      expect.objectContaining({
+        value: "cloud:intermediary-video",
+        workflow: "standard",
+        supportsAdvancedConfig: true,
+        minDuration: 4,
+        maxDuration: 15,
+        resolutionOptions: ["480p", "720p", "1080p"],
+        ratioOptions: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
+        supportedModes: [
+          "TEXT_TO_VIDEO",
+          "IMAGE_TO_VIDEO",
+          "MULTIMODAL_REFERENCE",
+        ],
+        referenceImageMax: 9,
+        referenceVideoMax: 3,
+        referenceAudioMax: 0,
+      }),
+    ]);
+  });
+
+  it("keeps an explicit advanced-config disable ahead of capability inference", () => {
+    const useVideoModels = createUseVideoModels(() => ({
+      data: {
+        catalogVersion: "catalog-explicit-disable",
+        items: [
+          {
+            id: "restricted-video",
+            code: "restricted-video",
+            displayName: "Restricted video model",
+            operation: "VIDEO",
+            capabilities: {
+              routeSelector: "cloud:restricted-video",
+              advancedConfig: false,
+              supportedModes: ["TEXT_TO_VIDEO", "IMAGE_TO_VIDEO"],
+              resolutionOptions: ["720p", "1080p"],
+              ratioOptions: ["16:9", "9:16"],
+              minDuration: 4,
+              maxDuration: 15,
+            },
+            parameterSchema: {},
+          },
+        ],
+      },
+      error: null,
+      isLoading: false,
+    }));
+
+    const { result } = renderHook(() => useVideoModels());
+
+    expect(result.current.data?.[0]?.supportsAdvancedConfig).toBe(false);
+  });
+
   it("keeps H3 exact sizes and audio capabilities aligned with the catalog", () => {
     const useVideoModels = createUseVideoModels(() => ({
       data: {

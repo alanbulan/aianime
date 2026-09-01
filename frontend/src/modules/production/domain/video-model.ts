@@ -148,6 +148,22 @@ function videoModelOptionFromCatalog(
       properties.duration?.maximum,
     ),
   );
+  const referenceImageMax = finiteNumber(capabilities.referenceImageMax);
+  const referenceVideoMax = finiteNumber(capabilities.referenceVideoMax);
+  const referenceAudioMax = finiteNumber(capabilities.referenceAudioMax);
+  const hasCapabilityDrivenConfig = Boolean(
+    supportedModes.length > 1 ||
+      declaredResolutionOptions.length ||
+      ratioOptions.length ||
+      sceneOptimizeOptions.length ||
+      minDuration !== undefined ||
+      maxDuration !== undefined ||
+      booleanValue(capabilities.generateAudio) === true ||
+      booleanValue(capabilities.nativeAudio) === true ||
+      (referenceImageMax ?? 0) > 0 ||
+      (referenceVideoMax ?? 0) > 0 ||
+      (referenceAudioMax ?? 0) > 0,
+  );
   const supportsAdvancedConfig =
     booleanValue(capabilities.advancedConfig) ??
     Boolean(
@@ -156,7 +172,8 @@ function videoModelOptionFromCatalog(
         properties.duration ||
         properties.size ||
         properties.resolution ||
-        properties.input_reference,
+        properties.input_reference ||
+        hasCapabilityDrivenConfig,
     );
 
   return {
@@ -194,18 +211,9 @@ function videoModelOptionFromCatalog(
     ...optionalArray("supportedModes", supportedModes),
     ...optionalArray("sceneOptimizeOptions", sceneOptimizeOptions),
     ...optionalArray("extraParameterNames", extraParameterNames),
-    ...optional(
-      "referenceImageMax",
-      finiteNumber(capabilities.referenceImageMax),
-    ),
-    ...optional(
-      "referenceVideoMax",
-      finiteNumber(capabilities.referenceVideoMax),
-    ),
-    ...optional(
-      "referenceAudioMax",
-      finiteNumber(capabilities.referenceAudioMax),
-    ),
+    ...optional("referenceImageMax", referenceImageMax),
+    ...optional("referenceVideoMax", referenceVideoMax),
+    ...optional("referenceAudioMax", referenceAudioMax),
   };
 }
 

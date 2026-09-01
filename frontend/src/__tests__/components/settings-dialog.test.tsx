@@ -443,7 +443,7 @@ describe("SettingsDialog", () => {
       .toBeInTheDocument();
   });
 
-  it("按图片和视频契约显示参数、模式、规格与时长，而不是文本字段未声明", async () => {
+  it("按实际可编辑项显示参数数量，并展示视频模式、规格与时长", async () => {
     modelUsageMockState.catalogItems = [
       {
         id: "video-model-id",
@@ -489,7 +489,7 @@ describe("SettingsDialog", () => {
     fireEvent.click(screen.getByRole("tab", { name: "模型" }));
 
     expect(await screen.findByText(
-      "参数 4 项 · 模式 3 项 · 规格 4 项 · 时长 4–15 秒",
+      "参数 2 项 · 模式 3 项 · 规格 4 项 · 时长 4–15 秒",
     )).toBeInTheDocument();
     expect(screen.queryByText(/上下文 未声明/u)).not.toBeInTheDocument();
 

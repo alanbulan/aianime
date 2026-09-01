@@ -1984,10 +1984,9 @@ function ModelMetadataInline({
             : {}),
         }
       : catalogMetadata?.reasoningEffort;
-  const declarations = commercialModelParameterDeclarations(
+  const parameterCount = commercialModelParameterOverrideDeclarations(
     resolvedAssignmentParameterSchema(model, assignment),
-  );
-  const parameterCount = declarations.filter((item) => item.depth === 0).length;
+  ).length;
   const capability = modelCapabilitySummary(model, assignment);
   const segments = [
     ...(contextWindow !== undefined
