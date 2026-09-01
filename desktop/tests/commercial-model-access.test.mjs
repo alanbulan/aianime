@@ -22,6 +22,7 @@ import {
   CommercialModelProxy,
   modelRoutingSnapshot,
 } from "../src/commercial-model-proxy.ts";
+import { parseCommercialBootstrapWire } from "../src/commercial-contracts.ts";
 import {
   COMMERCIAL_CHANNELS,
   CommercialApiClient,
@@ -792,7 +793,7 @@ test("Bootstrap merges configured BYOK models with cloud SKUs", async () => {
     },
     client: {
       baseUrl: "http://203.0.113.10:8889",
-      bootstrap: async () => ({
+      bootstrap: async () => parseCommercialBootstrapWire({
         softwareAuthorization: authorizationFixture(),
         personalQuota: null,
         models: {
@@ -1036,7 +1037,7 @@ test("bootstrap verifies the raw offline lease before projecting it", async () =
     },
     client: {
       baseUrl: "https://gateway.example.test",
-      bootstrap: async () => ({
+      bootstrap: async () => parseCommercialBootstrapWire({
         softwareAuthorization: authorizationFixture({ lease }),
         personalQuota: null,
         models: null,

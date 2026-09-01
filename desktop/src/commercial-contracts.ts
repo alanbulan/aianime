@@ -289,9 +289,8 @@ export function parseCommercialBootstrapWire(
 }
 
 export function projectCommercialBootstrap(
-  value: unknown,
+  root: CommercialBootstrapWire,
 ): CommercialBootstrapSnapshot {
-  const root = parseCommercialBootstrapWire(value);
   return {
     softwareAuthorization: root.softwareAuthorization
       ? projectCommercialAuthorization(root.softwareAuthorization)

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  parseCommercialBootstrapWire,
   projectCommercialAuthorization,
+  projectCommercialBootstrap,
   projectCommercialInvocationDetails,
   projectCommercialInvocationList,
   projectCommercialQuota,
@@ -20,6 +22,7 @@ const IDS = {
   release: "77777777-7777-4777-8777-777777777777",
   artifact: "88888888-8888-4888-8888-888888888888",
   artifactAlt: "99999999-9999-4999-8999-999999999999",
+  model: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 };
 
 function authorization(editionType, allowsCustomModels, activated = true) {
@@ -157,6 +160,41 @@ test("authorization projection maps current Gateway fields without aliases", () 
     snapshot.activation?.lastHeartbeatAt,
     "2026-08-07T10:20:30Z",
   );
+});
+
+test("validated Bootstrap wire is projected without parsing model items twice", () => {
+  const wire = parseCommercialBootstrapWire({
+    softwareAuthorization: null,
+    personalQuota: null,
+    models: {
+      catalogVersion: "catalog-v1",
+      items: [
+        {
+          id: IDS.model,
+          code: "cloud-text",
+          displayName: "Cloud Text",
+          operation: "TEXT",
+          capabilityJson: "{}",
+          parameterSchemaJson: "{}",
+          unitsPerCall: 10,
+          clientVisible: true,
+          status: "ACTIVE",
+          createdAt: "2026-08-01T00:00:00Z",
+          updatedAt: "2026-08-02T00:00:00Z",
+          isDefault: true,
+        },
+      ],
+    },
+    release: null,
+    warnings: [],
+  });
+
+  const projected = projectCommercialBootstrap(wire);
+
+  assert.equal(projected.models.items[0].id, IDS.model);
+  assert.equal(projected.models.items[0].code, "cloud-text");
+  assert.equal("createdAt" in projected.models.items[0], false);
+  assert.equal("updatedAt" in projected.models.items[0], false);
 });
 
 test("release projection accepts the canonical empty version when no update is available", () => {
