@@ -55,6 +55,7 @@ async def _generate_commercial_image(
     prompt: str,
     reference_images: list[tuple[bytes, str] | tuple[str, bytes, str]] | None,
     aspect_ratio: str,
+    negative_prompt: str,
 ) -> tuple[bytes | None, str]:
     from ai_anime.modules.production.infrastructure.media_generation.image_grid import (
         _call_image_generation_api,
@@ -68,6 +69,7 @@ async def _generate_commercial_image(
             "model_selector": str(model_selector or "").strip(),
             "aspect_ratio": aspect_ratio,
             "image_size": "1K",
+            "negative_prompt": negative_prompt,
         },
     )
     return image_bytes, error
@@ -146,6 +148,7 @@ class CommercialImageGenerator:
                 prompt=resolved_prompt,
                 reference_images=references or None,
                 aspect_ratio=_aspect_ratio(resolved_width, resolved_height),
+                negative_prompt=avoid,
             )
             if image_bytes is None:
                 return ImageGenResult(

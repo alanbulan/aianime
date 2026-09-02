@@ -281,6 +281,66 @@ test("concurrent authenticated calls single-flight an expiring token refresh", a
   assert.equal(store.value.accessToken, "new-jwt");
 });
 
+test("concurrent model writes single-flight an expiring token refresh", async () => {
+  const calls = [];
+  const store = new MemorySessionStore();
+  store.value = {
+    schemaVersion: 1,
+    gatewayOrigin: "https://gateway.test",
+    accessToken: "old-jwt",
+    expiresAtEpochMs: 1_500,
+    user: loginResponse.user,
+    tenant: loginResponse.tenant,
+  };
+  const client = new CommercialApiClient({
+    baseUrl: "https://gateway.test",
+    sessionStore: store,
+    now: () => 1_000,
+    fetchImpl: async (url, init) => {
+      const call = { url: String(url), init };
+      calls.push(call);
+      if (call.url.endsWith("/api/v1/client/auth/refresh")) {
+        await Promise.resolve();
+        return Response.json({ accessToken: "new-jwt", expiresIn: 3600 });
+      }
+      return Response.json({ data: [{ b64_json: "aW1hZ2U=" }] });
+    },
+  });
+  client.activeDeviceId = TEST_IDS.device;
+
+  const responses = await Promise.all(
+    Array.from({ length: 6 }, (_, index) =>
+      client.modelRequest({
+        method: "POST",
+        path: "/v1/images/generations",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": `portrait-${index}`,
+        },
+        body: JSON.stringify({ model: "QWEN_IMAGE_2512", prompt: `role-${index}` }),
+        devicePublicKeyHash: "device-public-key-hash",
+      }),
+    ),
+  );
+
+  assert.equal(responses.every((response) => response.status === 200), true);
+  assert.equal(
+    calls.filter((call) => call.url.endsWith("/api/v1/client/auth/refresh")).length,
+    1,
+  );
+  const modelCalls = calls.filter((call) => call.url.endsWith("/v1/images/generations"));
+  assert.equal(modelCalls.length, 6);
+  assert.deepEqual(
+    modelCalls.map((call) => new Headers(call.init.headers).get("idempotency-key")),
+    Array.from({ length: 6 }, (_, index) => `portrait-${index}`),
+  );
+  for (const call of modelCalls) {
+    const headers = new Headers(call.init.headers);
+    assert.equal(headers.get("authorization"), "Bearer new-jwt");
+    assert.equal(headers.get("x-device-id"), TEST_IDS.device);
+  }
+});
+
 test("remembered login automatically reauthenticates after refresh is rejected", async () => {
   const calls = [];
   const store = new MemorySessionStore();

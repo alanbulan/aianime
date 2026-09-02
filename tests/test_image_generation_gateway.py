@@ -52,7 +52,7 @@ def _isolated_model_gateway(monkeypatch, tmp_path):
         model_capabilities=[
             {
                 "modelId": QUALITY_IMAGE_MODEL,
-                "extraParameterNames": ["quality"],
+                "extraParameterNames": ["quality", "negative_prompt"],
             },
             {"modelId": BASIC_IMAGE_MODEL},
         ],
@@ -470,6 +470,7 @@ def test_model_gateway_image_call_sends_declared_quality_parameter(monkeypatch):
                 "aspect_ratio": "3:4",
                 "image_size": "0.5K",
                 "quality": "medium",
+                "negative_prompt": "photorealism, 3D CGI",
             },
         )
     )
@@ -481,6 +482,7 @@ def test_model_gateway_image_call_sends_declared_quality_parameter(monkeypatch):
     assert posted["json"]["model"] == QUALITY_IMAGE_MODEL
     assert posted["json"]["prompt"] == "portrait prompt"
     assert posted["json"]["quality"] == "medium"
+    assert posted["json"]["negative_prompt"] == "photorealism, 3D CGI"
     assert posted["json"]["extra_fields"] == {
         "aspect_ratio": "3:4",
         "image_size": "1K",
@@ -700,6 +702,7 @@ def test_model_gateway_image_call_omits_undeclared_quality_parameter(monkeypatch
                 "aspect_ratio": "3:4",
                 "image_size": "1K",
                 "quality": "medium",
+                "negative_prompt": "photorealism, 3D CGI",
             },
         )
     )
@@ -708,6 +711,7 @@ def test_model_gateway_image_call_omits_undeclared_quality_parameter(monkeypatch
     assert error == ""
     assert posted["json"]["model"] == BASIC_IMAGE_MODEL
     assert "quality" not in posted["json"]
+    assert "negative_prompt" not in posted["json"]
     assert posted["json"]["extra_fields"] == {
         "aspect_ratio": "3:4",
         "image_size": "1K",
@@ -750,7 +754,12 @@ def test_model_gateway_image_call_uses_standard_multipart_edits(monkeypatch):
         image_grid._call_image_generation_api(
             prompt="identity prompt",
             reference_images=[b"ref-a", b"ref-b"],
-            image_config={"aspect_ratio": "3:4", "image_size": "1K", "quality": "medium"},
+            image_config={
+                "aspect_ratio": "3:4",
+                "image_size": "1K",
+                "quality": "medium",
+                "negative_prompt": "photorealism",
+            },
         )
     )
 
@@ -760,6 +769,7 @@ def test_model_gateway_image_call_uses_standard_multipart_edits(monkeypatch):
     assert "Content-Type" not in posted["headers"]
     assert posted["headers"]["Idempotency-Key"]
     assert posted["data"]["model"] == QUALITY_IMAGE_MODEL
+    assert posted["data"]["negative_prompt"] == "photorealism"
     assert posted["files"] == [
         ("image", ("reference-1.png", b"ref-a", "image/png")),
         ("image", ("reference-2.png", b"ref-b", "image/png")),
@@ -1046,6 +1056,7 @@ def test_model_gateway_character_image_preserves_reference_order(
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "quality": "medium",
+        "negative_prompt": "",
     }
     assert captured["reference_images"] == [
         ("reference_portrait.jpg", b"portrait-bytes", "image/jpeg"),
@@ -1103,6 +1114,7 @@ def test_character_portrait_uses_text_only_style_contract(
     assert captured["reference_images"] is None
     assert "soft anime linework" in captured["prompt"]
     assert "photorealism" in captured["prompt"]
+    assert captured["image_config"]["negative_prompt"] == "photorealism"
     assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in captured["prompt"]
     assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
     assert "Keep different named characters visibly distinct" in captured["prompt"]
@@ -1174,6 +1186,7 @@ def test_identity_sheet_keeps_character_and_costume_references_without_style_pre
         ("character-portrait.png", b"character-face", "image/png"),
         ("costume.png", b"costume", "image/png"),
     ]
+    assert captured["negative_prompt"] == "photorealism"
     assert "soft anime linework" in captured["prompt"]
     assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in captured["prompt"]
     assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
@@ -1318,6 +1331,7 @@ def test_model_gateway_scene_master_uses_text_only_global_style(monkeypatch, tmp
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
+        "negative_prompt": "避免风格漂移",
     }
     assert "SCENE NAME: 古董店" in captured["prompt"]
     assert "从店门可以直接看到收银台" in captured["prompt"]
@@ -1481,6 +1495,7 @@ def test_reverse_master_uses_master_reference_with_basic_image_model(monkeypatch
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
+        "negative_prompt": "避免风格漂移",
     }
     assert "REFERENCE 1 = the scene's FRONT-FACING master" in captured["prompt"]
 
@@ -1535,6 +1550,7 @@ def test_reverse_master_sends_catalog_declared_quality(monkeypatch, tmp_path):
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
+        "negative_prompt": "避免风格漂移",
         "quality": "medium",
     }
 
@@ -1609,6 +1625,7 @@ def test_prop_reference_sends_catalog_declared_quality(monkeypatch, tmp_path):
     assert posted["headers"]["Authorization"] == "Bearer gateway-token"
     assert posted["json"]["model"] == QUALITY_IMAGE_MODEL
     assert posted["json"]["quality"] == "medium"
+    assert posted["json"]["negative_prompt"] == "watermark"
     assert posted["json"]["extra_fields"] == {
         "aspect_ratio": "16:9",
         "image_size": "1K",
@@ -1684,6 +1701,7 @@ def test_prop_reference_omits_undeclared_quality(monkeypatch, tmp_path):
     assert output_path.read_bytes() == b"prop-ref"
     assert posted["json"]["model"] == BASIC_IMAGE_MODEL
     assert "quality" not in posted["json"]
+    assert "negative_prompt" not in posted["json"]
     assert posted["json"]["extra_fields"] == {
         "aspect_ratio": "16:9",
         "image_size": "1K",
@@ -1776,6 +1794,7 @@ def test_freezone_single_image_generation_routes_model_gateway(monkeypatch, tmp_
         "aspect_ratio": "1:1",
         "image_size": "2K",
         "quality": "medium",
+        "negative_prompt": "",
     }
 
 

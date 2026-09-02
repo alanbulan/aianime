@@ -910,6 +910,9 @@ class ImageGridGenerator:
                     "quality": self.sketch_image_quality
                     if sketch
                     else self.image_quality,
+                    "negative_prompt": str(
+                        runtime_style_preset.get("avoid_instructions") or ""
+                    ).strip(),
                 },
             )
             if not image_bytes:

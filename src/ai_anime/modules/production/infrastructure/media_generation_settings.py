@@ -72,11 +72,14 @@ def apply_style_reference(
     references = list(reference_images or [])
     style_instructions = str(style_preset.get("style_instructions") or "").strip()
     avoid_instructions = str(style_preset.get("avoid_instructions") or "").strip()
+    style_label = str(style_preset.get("label") or "").strip()
     style_tag = str(style_preset.get("style_tag") or "").strip()
-    if not any((style_instructions, avoid_instructions, style_tag)):
+    if not any((style_instructions, avoid_instructions, style_label, style_tag)):
         return prompt, references
 
     additions: list[str] = []
+    if style_label and style_label not in prompt:
+        additions.append(f"PROJECT STYLE NAME:\n{style_label}")
     if style_instructions and style_instructions not in prompt:
         additions.append(f"PROJECT VISUAL STYLE:\n{style_instructions}")
     if style_tag and style_tag not in prompt:
