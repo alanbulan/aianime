@@ -105,7 +105,7 @@ prepare_x86_64_runtime() {
     fi
     (
       cd "$source_dir"
-      revision="$ffmpeg_version" SKIPINSTALL=yes ./build-ffmpeg --build
+      GIT_CEILING_DIRECTORIES="$source_dir" SKIPINSTALL=yes ./build-ffmpeg --build
     )
     install -m 0755 "${source_dir}/workspace/bin/ffmpeg" "$cached_ffmpeg"
     install -m 0755 "${source_dir}/workspace/bin/ffprobe" "$cached_ffprobe"

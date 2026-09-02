@@ -57,7 +57,7 @@ test("Intel macOS native dependencies stay available at the Ventura baseline", a
   assert.match(ffmpegScript, /SKIPINSTALL=yes \.\/build-ffmpeg --build/);
   assert.match(
     ffmpegScript,
-    /revision="\$ffmpeg_version" SKIPINSTALL=yes \.\/build-ffmpeg --build/,
+    /GIT_CEILING_DIRECTORIES="\$source_dir" SKIPINSTALL=yes \.\/build-ffmpeg --build/,
   );
   assert.match(
     ffmpegScript,
