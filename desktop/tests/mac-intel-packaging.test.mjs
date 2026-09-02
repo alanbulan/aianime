@@ -55,6 +55,14 @@ test("Intel macOS native dependencies stay available at the Ventura baseline", a
     /3d0fc6ffb45d2e991ec4b6c0833c60e016c2e36781a7c279f53e0f108231e964/,
   );
   assert.match(ffmpegScript, /SKIPINSTALL=yes \.\/build-ffmpeg --build/);
+  assert.match(
+    ffmpegScript,
+    /revision="\$ffmpeg_version" SKIPINSTALL=yes \.\/build-ffmpeg --build/,
+  );
+  assert.match(
+    ffmpegScript,
+    /"\$expected_ffmpeg_version" \| "\$expected_ffmpeg_version"-\*/,
+  );
   assert.match(ffmpegScript, /required_filter in drawtext subtitles/);
   assert.match(ffmpegScript, /h264_videotoolbox/);
   assert.match(ffmpegScript, /maximum_macos_version="13\.0"/);

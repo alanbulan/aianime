@@ -105,7 +105,7 @@ prepare_x86_64_runtime() {
     fi
     (
       cd "$source_dir"
-      SKIPINSTALL=yes ./build-ffmpeg --build
+      revision="$ffmpeg_version" SKIPINSTALL=yes ./build-ffmpeg --build
     )
     install -m 0755 "${source_dir}/workspace/bin/ffmpeg" "$cached_ffmpeg"
     install -m 0755 "${source_dir}/workspace/bin/ffprobe" "$cached_ffprobe"
@@ -161,10 +161,15 @@ fi
 ffmpeg_path="${runtime_dir}/ffmpeg"
 ffprobe_path="${runtime_dir}/ffprobe"
 version_output="$($ffmpeg_path -hide_banner -version 2>&1)"
-if ! grep -Fq "ffmpeg version ${expected_ffmpeg_version}" <<<"$version_output"; then
+reported_ffmpeg_version="$(awk 'NR == 1 && $1 == "ffmpeg" && $2 == "version" { print $3 }' <<<"$version_output")"
+case "$reported_ffmpeg_version" in
+"$expected_ffmpeg_version" | "$expected_ffmpeg_version"-*) ;;
+*)
   echo "Unexpected FFmpeg version; expected ${expected_ffmpeg_version}" >&2
+  echo "Actual FFmpeg version: ${reported_ffmpeg_version:-unknown}" >&2
   exit 1
-fi
+  ;;
+esac
 build_configuration="$($ffmpeg_path -hide_banner -buildconf 2>&1)"
 if grep -Eqi -- '--enable-(gpl|nonfree)' <<<"$build_configuration"; then
   echo "Bundled FFmpeg build enables GPL or non-free components" >&2
