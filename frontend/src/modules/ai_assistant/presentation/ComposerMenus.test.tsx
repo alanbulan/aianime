@@ -136,8 +136,8 @@ describe("SlashCommandMenu", () => {
     const user = userEvent.setup();
     const onSelectCommand = vi.fn();
     const command: ChatSlashCommand = {
-      name: "help",
-      description: "查看命令说明",
+      name: "tools",
+      description: "查看可用工具",
       kind: "command",
     };
 
@@ -164,7 +164,7 @@ describe("SlashCommandMenu", () => {
       </Command>,
     );
 
-    await user.click(screen.getByLabelText("/help：查看命令说明"));
+    await user.click(screen.getByLabelText("/tools：查看可用工具"));
 
     expect(onSelectCommand).toHaveBeenCalledWith(command);
   });

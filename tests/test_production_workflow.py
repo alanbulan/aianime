@@ -275,6 +275,17 @@ async def test_ensure_sketches_resumes_from_existing_beat_assets(
         waited_tickets.append(ticket)
         return {"updated_beats": [6, 7, 8]}
 
+    class _Store:
+        def get_sketch_colors(self, episode_num):
+            assert episode_num == 1
+            return {}
+
+        async def close(self):
+            return None
+
+    async def make_store(_context):
+        return _Store()
+
     monkeypatch.setattr(
         production_public,
         "selected_regeneration_use_cases",
@@ -286,6 +297,7 @@ async def test_ensure_sketches_resumes_from_existing_beat_assets(
         lambda: _FullGeneration(),
     )
     monkeypatch.setattr(runner, "_wait_ticket", wait_ticket)
+    monkeypatch.setattr(runner, "make_sqlite_store_for_context", make_store)
 
     paths = await runner._ensure_sketches(
         SimpleNamespace(output_dir=tmp_path),
@@ -318,7 +330,7 @@ async def test_ensure_sketches_resumes_from_existing_beat_assets(
         "sketch_regen",
         "sketch_regen",
     ]
-    assert progress_messages == ["第 1 集补齐 3 个缺失草图"]
+    assert progress_messages == ["第 1 集补齐或重做 3 个失效草图"]
     for number in range(1, 6):
         assert (sketches_dir / f"beat_{number:02d}.png").read_bytes() == (
             f"existing-{number}".encode()
@@ -606,6 +618,11 @@ async def test_production_runner_owns_the_complete_stage_order(
         "_assign_colors",
         lambda *args, **kwargs: stage("colors"),
     )
+    monkeypatch.setattr(
+        runner,
+        "_require_episode_visual_assets",
+        lambda *args, **kwargs: stage("asset_gate"),
+    )
     monkeypatch.setattr(runner, "_ensure_sketches", ensure_sketches)
     monkeypatch.setattr(
         runner,
@@ -672,6 +689,7 @@ async def test_production_runner_owns_the_complete_stage_order(
         "props",
         "assets",
         "markers",
+        "asset_gate",
         "colors",
         "sketches",
         "detection",

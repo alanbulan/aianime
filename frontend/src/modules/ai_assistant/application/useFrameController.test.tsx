@@ -144,11 +144,6 @@ describe("useSuperChatFrameController", () => {
 
     expect(options.setSlashCommands).toHaveBeenCalledWith([
       {
-        name: "help",
-        description: "查看可用命令和 Skills 的使用方式",
-        kind: "command",
-      },
-      {
         name: "model",
         description: "选择仅对当前对话生效的模型路由",
         kind: "command",

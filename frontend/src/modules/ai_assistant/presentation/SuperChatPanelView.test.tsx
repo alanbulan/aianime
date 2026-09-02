@@ -29,6 +29,7 @@ vi.mock("@/modules/ai_assistant/presentation/ChatPanelDetailOverlays", () => ({
 
 vi.mock("@/modules/ai_assistant/presentation/ChatPanelContextViews", () => ({
   ChatPanelContextViews: () => <div data-testid="context-views" />,
+  ChatPanelActionViews: () => <div data-testid="action-views" />,
 }));
 
 vi.mock("@/modules/ai_assistant/presentation/ChatPanelHeader", () => ({
@@ -186,6 +187,7 @@ describe("SuperChat panel view", () => {
       "panel-header",
       "context-views",
       "message-area",
+      "action-views",
       "composer",
     ]);
     expect(screen.getByTestId("detail-overlays")).toBeInTheDocument();

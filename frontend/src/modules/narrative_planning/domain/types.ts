@@ -103,6 +103,10 @@ export interface PipelineProjectStatus {
 export interface PipelineStepStatus {
   identity_plan?: boolean;
   identity_images?: boolean;
+  scene_plan?: boolean;
+  prop_plan?: boolean;
+  scene_images?: boolean;
+  prop_images?: boolean;
   script?: boolean;
   sketches?: boolean;
   coloring?: boolean;
@@ -117,6 +121,8 @@ export interface PipelineStatus {
   global: PipelineProjectStatus;
   current_episode: number | null;
   episode_status: PipelineStepStatus | null;
+  visual_asset_issues?: string[];
+  stale_sketch_beats?: number[];
   next_step: string;
   next_step_name: string;
 }

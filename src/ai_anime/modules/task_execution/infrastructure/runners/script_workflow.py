@@ -13,6 +13,7 @@ from ai_anime.modules.narrative_planning.public import (
     ScriptWorkflowPlan,
     ScriptWorkflowSnapshot,
     ScriptWorkflowTicket,
+    inspect_episode_scene_plan,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
 from ai_anime.modules.task_execution.public import (
@@ -23,6 +24,7 @@ from ai_anime.modules.task_execution.public import (
     effective_task_status,
     project_task_state_key,
     project_task_use_cases,
+    parse_task_timestamp,
     register_project_task_runner,
 )
 from ai_anime.modules.task_execution.infrastructure.task_state import (
@@ -137,10 +139,27 @@ class ProjectScriptWorkflowRuntime:
             make_sqlite_store_for_context,
         )
 
+        tasks = project_task_use_cases().list_for_project(self._context)
+        completed_times: dict[str, Any] = {}
+        for task in tasks:
+            node_id = _node_id_for_task(task)
+            if node_id is None or effective_task_status(task) != "completed":
+                continue
+            completed_at = parse_task_timestamp(
+                getattr(task, "completed_at", None)
+                or getattr(task, "updated_at", None)
+            )
+            if completed_at is None:
+                continue
+            previous = completed_times.get(node_id)
+            if previous is None or completed_at > previous:
+                completed_times[node_id] = completed_at
+
         store = await make_sqlite_store_for_context(self._context)
         try:
             characters = list(store.get_all_characters() or [])
             episodes = list(store.get_all_episodes() or [])
+            scene_records = list(await store.list_scenes() or [])
             episode_numbers = tuple(
                 sorted(
                     {
@@ -154,17 +173,33 @@ class ProjectScriptWorkflowRuntime:
             scenes: set[int] = set()
             scripts: set[int] = set()
             script_target_mismatches: set[int] = set()
+            stale_script_episodes: set[int] = set()
             for episode in episodes:
                 episode_number = int(getattr(episode, "number", 0) or 0)
                 if episode_number <= 0:
                     continue
                 if getattr(episode, "identity_ids", None):
                     identities.add(episode_number)
-                if getattr(episode, "scene_menu", None):
+                if inspect_episode_scene_plan(episode, scene_records).complete:
                     scenes.add(episode_number)
                 beats = await store.get_beats_as_dicts(episode_number)
                 if script_beats_complete(beats, options.target_beats):
-                    scripts.add(episode_number)
+                    script_time = completed_times.get(
+                        f"script:ep{episode_number:03d}"
+                    )
+                    planning_times = [
+                        completed_times.get(f"identities:ep{episode_number:03d}"),
+                        completed_times.get(f"scenes:ep{episode_number:03d}"),
+                    ]
+                    planning_is_newer = any(
+                        timestamp
+                        and (script_time is None or timestamp > script_time)
+                        for timestamp in planning_times
+                    )
+                    if not planning_is_newer:
+                        scripts.add(episode_number)
+                    else:
+                        stale_script_episodes.add(episode_number)
                 elif (
                     options.target_beats is not None
                     and beats
@@ -176,14 +211,14 @@ class ProjectScriptWorkflowRuntime:
             await store.close()
 
         task_statuses: dict[str, str] = {}
-        tasks = project_task_use_cases().list_for_project(self._context)
         for task in tasks:
             node_id = _node_id_for_task(task)
             if node_id is None or node_id in task_statuses:
                 continue
             if (
                 task.task_type == "script_writer"
-                and task.episode in script_target_mismatches
+                and task.episode
+                in (script_target_mismatches | stale_script_episodes)
                 and effective_task_status(task) == "completed"
             ):
                 continue

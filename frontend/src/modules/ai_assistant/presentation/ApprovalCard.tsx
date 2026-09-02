@@ -19,7 +19,7 @@ export function ApprovalCard({
     : null;
 
   return (
-    <div className="border-b border-warning/20 bg-warning/10 px-3 py-3">
+    <div className="rounded-xl border border-warning/20 bg-warning/10 px-3 py-3 shadow-sm">
       <div className="mb-2 flex items-start gap-2">
         <ShieldAlert className="mt-0.5 size-4 shrink-0 text-warning" />
         <div className="min-w-0 flex-1">

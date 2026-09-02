@@ -74,7 +74,7 @@ describe("AI Assistant slash commands", () => {
 
   it("filters by command name or description", () => {
     const commands = [
-      { name: "help", description: "List commands" },
+      { name: "model", description: "Choose a model route" },
       { name: "compact", description: "Compress conversation context" },
     ];
 
@@ -118,7 +118,6 @@ describe("AI Assistant slash commands", () => {
   });
 
   it("distinguishes commands, routed lists, and Skills needing input", () => {
-    expect(slashCommandAction({ name: "help", description: "帮助" })).toBe("help-picker");
     expect(slashCommandAction({ name: "model", description: "模型" })).toBe("model-picker");
     expect(slashCommandAction({ name: "tools", description: "工具" })).toBe("tool-picker");
     expect(slashCommandAction({
@@ -130,11 +129,11 @@ describe("AI Assistant slash commands", () => {
 
   it("keeps session-maintenance actions out of the Slash catalog", () => {
     expect(DEFAULT_CHAT_SLASH_COMMANDS.map((item) => item.name)).toEqual([
-      "help",
       "model",
       "tools",
     ]);
     expect(normalizeSlashCommands([
+      { name: "help", description: "帮助", kind: "command" },
       { name: "context", description: "上下文", kind: "command" },
       { name: "reset", description: "清空", kind: "command" },
     ])).toBe(DEFAULT_CHAT_SLASH_COMMANDS);

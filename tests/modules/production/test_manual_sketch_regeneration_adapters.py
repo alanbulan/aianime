@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -81,6 +82,7 @@ def _context(tmp_path: Path) -> ProjectContext:
 def _build(monkeypatch, store: _Store):
     from ai_anime.modules.production.infrastructure import (
         manual_sketch_regeneration,
+        visual_asset_readiness,
     )
 
     async def make_store(_context):
@@ -90,6 +92,18 @@ def _build(monkeypatch, store: _Store):
         manual_sketch_regeneration.project_stores,
         "make_sqlite_store_for_context",
         make_store,
+    )
+
+    async def inspect_ready(*_args, **_kwargs):
+        return SimpleNamespace(
+            ready_for_sketches=True,
+            rejection_message=lambda: "",
+        )
+
+    monkeypatch.setattr(
+        visual_asset_readiness,
+        "inspect_project_episode_visual_assets",
+        inspect_ready,
     )
     settings = _Settings()
     image_settings = _ImageSettings()

@@ -13,9 +13,13 @@ from ai_anime.modules.task_execution.public import (
     effective_task_status,
     get_task_manager,
     parse_task_timestamp,
+    project_task_use_cases,
+)
+from ai_anime.modules.production.public import (
+    inspect_episode_visual_assets,
+    stale_canonical_sketch_numbers,
 )
 from ai_anime.shared.utils.path_resolver import (
-    compute_identity_path,
     compute_portrait_path,
 )
 
@@ -32,6 +36,9 @@ _STEP_MAP = {
     "identity_images": (None, "身份图生成"),
     "scene_plan": ("episode_scene_planner", "场景规划"),
     "script": ("script_writer", "脚本生成"),
+    "prop_plan": ("episode_prop_planner", "道具规划"),
+    "scene_images": (None, "场景参考图生成"),
+    "prop_images": (None, "道具参考图生成"),
     "sketches": ("sketch_generation", "草图生成"),
     "coloring": (None, "配色+身份/道具检测"),
     "global_optimize": ("global_optimize_video", "全局视频优化"),
@@ -216,21 +223,46 @@ async def pipeline_status(
         )
 
     target_episode = store.get_episode(target_ep)
-    identity_ids = set(getattr(target_episode, "identity_ids", []) or [])
-    has_identity_plan = bool(identity_ids)
-    has_scene_plan = bool(getattr(target_episode, "scene_menu", None))
-    has_identity_images = has_identity_plan
-    if has_identity_plan:
-        for char in main_chars:
-            for ident in getattr(char, "identities", []) or []:
-                if ident.identity_id not in identity_ids:
-                    continue
-                if not compute_identity_path(
-                    project_dir, char.name, ident.identity_name
-                ):
-                    has_identity_images = False
-
     beats = await store.get_beats_as_dicts(target_ep)
+    identity_ids = set(getattr(target_episode, "identity_ids", []) or [])
+    scenes = list(await store.list_scenes() or []) if hasattr(store, "list_scenes") else []
+    props = list(await store.list_props() or []) if hasattr(store, "list_props") else []
+    prop_plan_task = None
+    if resolved.ctx:
+        prop_plan_task = next(
+            (
+                task
+                for task in project_task_use_cases().list_for_project(resolved.ctx)
+                if task.task_type == "episode_prop_planner"
+                and task.episode == target_ep
+            ),
+            None,
+        )
+    else:
+        prop_plan_task = mgr.get_task(
+            "episode_prop_planner",
+            username,
+            project_name,
+            target_ep,
+            scope=f"prop_run_ep{target_ep:03d}",
+        ) or mgr.get_task(
+            "episode_prop_planner",
+            username,
+            project_name,
+            target_ep,
+        )
+    readiness = inspect_episode_visual_assets(
+        project_dir=project_dir,
+        episode=target_episode,
+        characters=characters,
+        scenes=scenes,
+        props=props,
+        beats=beats,
+        prop_plan_completed=(
+            prop_plan_task is not None
+            and effective_task_status(prop_plan_task) == "completed"
+        ),
+    )
     has_script = _all_or_empty([beat_has_script_content(b) for b in beats])
 
     sketches_dir = project_dir / "sketches" / f"ep{target_ep:03d}"
@@ -239,7 +271,14 @@ async def pipeline_status(
         for beat in beats
         if int(beat.get("beat_number", 0) or 0) > 0
     ]
-    has_sketches = _beat_file_series_complete(sketches_dir, "png", beats)
+    sketch_colors = store.get_sketch_colors(target_ep) or {}
+    stale_sketch_beats = stale_canonical_sketch_numbers(
+        project_dir,
+        target_ep,
+        beats,
+        sketch_colors=sketch_colors,
+    )
+    has_sketches = readiness.ready_for_sketches and not stale_sketch_beats
 
     detection_task = (
         mgr.get_task_for_project(
@@ -255,7 +294,6 @@ async def pipeline_status(
             target_ep,
         )
     )
-    sketch_colors = store.get_sketch_colors(target_ep) or {}
     has_coloring = (
         has_sketches
         and bool(sketch_colors)
@@ -291,10 +329,13 @@ async def pipeline_status(
     )
 
     episode_status = {
-        "identity_plan": has_identity_plan,
-        "identity_images": has_identity_images,
-        "scene_plan": has_scene_plan,
+        "identity_plan": readiness.identity_plan_complete,
+        "scene_plan": readiness.scene_plan_complete,
         "script": has_script,
+        "prop_plan": readiness.prop_plan_complete,
+        "identity_images": readiness.identity_images_complete,
+        "scene_images": readiness.scene_images_complete,
+        "prop_images": readiness.prop_images_complete,
         "sketches": has_sketches,
         "coloring": has_coloring,
         "global_optimize": has_global_optimize,
@@ -319,9 +360,12 @@ async def pipeline_status(
     next_step = "done"
     for key in (
         "identity_plan",
-        "identity_images",
         "scene_plan",
         "script",
+        "prop_plan",
+        "identity_images",
+        "scene_images",
+        "prop_images",
         "sketches",
         "coloring",
         "global_optimize",
@@ -349,6 +393,8 @@ async def pipeline_status(
             "global": global_status,
             "current_episode": target_ep,
             "episode_status": episode_status,
+            "visual_asset_issues": list(readiness.issues),
+            "stale_sketch_beats": stale_sketch_beats,
             "missing_video_prompt_beats": missing_video_prompt_beats,
             "next_step": task_type or next_step,
             "next_step_name": step_name,

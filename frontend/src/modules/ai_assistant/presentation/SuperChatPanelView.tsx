@@ -8,6 +8,7 @@ import {
   type ChatMessageAreaProps,
 } from "@/modules/ai_assistant/presentation/ChatMessageArea";
 import {
+  ChatPanelActionViews,
   ChatPanelContextViews,
   type ChatPanelContextViewsProps,
 } from "@/modules/ai_assistant/presentation/ChatPanelContextViews";
@@ -56,6 +57,10 @@ export function SuperChatPanelView({
         <ChatPanelContextViews {...contextViews} />
         <ChatMessageArea
           {...messageArea}
+          isFreezoneLayout={isFreezoneLayout}
+        />
+        <ChatPanelActionViews
+          {...contextViews}
           isFreezoneLayout={isFreezoneLayout}
         />
         <ChatComposer

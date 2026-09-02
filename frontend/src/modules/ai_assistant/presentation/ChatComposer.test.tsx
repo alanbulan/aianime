@@ -133,32 +133,15 @@ describe("SuperChat Composer view", () => {
     expect(historyProps.onHistorySelect).toHaveBeenNthCalledWith(2, "newer");
   });
 
-  it("filters slash commands and opens help as a structured second-level route", () => {
-    const onDraftChange = vi.fn();
-    const commandProps = props({
-      draft: "/he",
-      onDraftChange,
-      slashCommands: [
-        { name: "help", description: "List commands" },
-        { name: "model", description: "Switch model", inputHint: "model" },
-      ],
-    });
-    const { rerender } = render(<ChatComposer {...commandProps} />);
-    const textarea = screen.getByRole("textbox");
+  it("only reserves the waiting-status row while it is visible", () => {
+    const { container, rerender } = render(<ChatComposer {...props()} />);
 
-    expect(screen.getByRole("listbox", { name: "aiAssistant.slashCommands" }))
-      .toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /\/help/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /\/model/ })).toBeNull();
+    expect(container.querySelector("[data-composer-waiting-status]")).toBeNull();
 
-    fireEvent.keyDown(textarea, { key: "Enter" });
-    expect(onDraftChange).toHaveBeenCalledWith("");
-    expect(screen.getByText("命令与 Skills")).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "搜索命令或 Skill" }))
+    rerender(<ChatComposer {...props({ showWaitingIndicator: true })} />);
+
+    expect(container.querySelector("[data-composer-waiting-status]"))
       .toBeInTheDocument();
-    expect(commandProps.onRunSlashCommand).not.toHaveBeenCalled();
-    expect(commandProps.onSubmit).not.toHaveBeenCalled();
-    rerender(<ChatComposer {...props()} />);
   });
 
   it("opens a searchable model picker and applies a conversation-only route", () => {
@@ -237,43 +220,13 @@ describe("SuperChat Composer view", () => {
       .toHaveTextContent("模型始终遵循用途优先级");
     expect(screen.queryByRole("option", { name: /向用户提问/ })).toBeNull();
 
-    fireEvent.keyDown(search, { key: "Escape" });
+    fireEvent.keyDown(window, { key: "Escape" });
     expect(onDraftChange).toHaveBeenLastCalledWith("/");
     expect(screen.getByRole("option", { name: /\/tools/ })).toBeInTheDocument();
-  });
 
-  it("clears the parent search when entering a second-level catalog", () => {
-    const tools = [
-      {
-        name: "question",
-        label: "向用户提问",
-        description: "请求用户确认关键参数。",
-        category: "确认与决策",
-        source: "AI anime",
-      },
-      {
-        name: "terminal",
-        label: "运行终端命令",
-        description: "执行开发命令并读取输出。",
-        category: "代码与执行",
-        source: "Hermes",
-      },
-    ];
-    render(<ChatComposer {...props({
-      draft: "/help",
-      slashCommands: [
-        { name: "help", description: "查看命令", kind: "command" },
-        { name: "tools", description: "查看工具", kind: "command", tools },
-      ],
-    })} />);
-
-    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" });
-    const search = screen.getByRole("combobox", { name: "搜索命令或 Skill" });
-    fireEvent.change(search, { target: { value: "tools" } });
     fireEvent.click(screen.getByRole("option", { name: /\/tools/ }));
-
-    expect(screen.getByRole("combobox", { name: "搜索可用工具" })).toHaveValue("");
-    expect(screen.getAllByRole("option")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "返回上一级（Esc）" }));
+    expect(screen.getByRole("option", { name: /\/tools/ })).toBeInTheDocument();
   });
 
   it("opens the Codex-style composer model picker without replacing the draft", () => {

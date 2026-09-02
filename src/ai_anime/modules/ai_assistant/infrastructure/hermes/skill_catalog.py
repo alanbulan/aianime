@@ -18,7 +18,6 @@ from ai_anime.modules.ai_assistant.infrastructure.hermes.tool_catalog import (
 
 
 CORE_SLASH_COMMANDS: tuple[dict[str, str], ...] = (
-    {"name": "help", "description": "查看可用命令和 Skills 的使用方式"},
     {
         "name": "model",
         "description": "选择仅对当前对话生效的模型路由",
@@ -27,6 +26,7 @@ CORE_SLASH_COMMANDS: tuple[dict[str, str], ...] = (
 )
 
 _CORE_COMMAND_NAMES = frozenset(item["name"] for item in CORE_SLASH_COMMANDS)
+_RESERVED_COMMAND_NAMES = _CORE_COMMAND_NAMES | {"help"}
 _UNSUPPORTED_RUNTIME_COMMAND_NAMES = frozenset(
     {"compact", "context", "queue", "reset", "steer", "version"}
 )
@@ -193,7 +193,7 @@ def _skill_entries(home: Path) -> list[dict[str, Any]]:
             if not name or name in disabled or name in seen_names:
                 continue
             slug = _skill_slug(name)
-            if not slug or slug in _CORE_COMMAND_NAMES or slug in seen_slugs:
+            if not slug or slug in _RESERVED_COMMAND_NAMES or slug in seen_slugs:
                 continue
             seen_names.add(name)
             seen_slugs.add(slug)
@@ -302,7 +302,7 @@ def expand_skill_invocation(home: Path, prompt: str) -> str | None:
     if match is None:
         return None
     slug = _skill_slug(match.group(1))
-    if slug in _CORE_COMMAND_NAMES:
+    if slug in _RESERVED_COMMAND_NAMES:
         return None
     entry = next(
         (item for item in _skill_entries(home) if item["name"] == slug),

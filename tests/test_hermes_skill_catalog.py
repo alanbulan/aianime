@@ -49,7 +49,8 @@ def test_catalog_lists_core_commands_and_discovered_skills(tmp_path: Path) -> No
     commands = list_slash_commands_for_home(tmp_path)
     by_name = {item["name"]: item for item in commands}
 
-    assert by_name["help"]["kind"] == "command"
+    assert "help" not in by_name
+    assert by_name["model"]["kind"] == "command"
     assert "queue" not in by_name
     assert {"context", "reset", "compact", "version"}.isdisjoint(by_name)
     assert by_name["ai-anime"] == {
@@ -161,7 +162,7 @@ def test_runtime_command_update_keeps_discovered_skills(tmp_path: Path) -> None:
 
     by_name = {item["name"]: item for item in merged}
 
-    assert list(by_name) == ["help", "model", "tools", "ai-anime"]
+    assert list(by_name) == ["model", "tools", "ai-anime"]
     assert "compact" not in by_name
     assert by_name["ai-anime"] == {
         "name": "ai-anime",

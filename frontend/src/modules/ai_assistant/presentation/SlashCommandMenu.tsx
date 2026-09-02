@@ -5,7 +5,7 @@ import {
   Network, Play, Route, ScanSearch, Sparkles, Video, Volume2, Workflow,
   Wrench,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import { useEffect, type ComponentType } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -25,13 +25,11 @@ import { cn } from "@/lib/utils";
 
 export type SlashMenuMode =
   | "commands"
-  | "help"
   | "models"
   | "tools"
   | "skill";
 
 const COMMAND_ICONS: Record<string, ComponentType<{ className?: string }>> = {
-  help: CircleHelp,
   model: Bot,
   tools: Wrench,
 };
@@ -69,7 +67,7 @@ function SlashCommandOption({ command, description, onSelect }: {
   const Icon = isSkill ? Blocks : COMMAND_ICONS[command.name] ?? Sparkles;
   const actionLabel = action === "model-picker"
     ? "选择"
-    : action === "tool-picker" || action === "help-picker"
+    : action === "tool-picker"
       ? "查看"
       : action === "skill-picker" ? "详情" : "打开";
   return (
@@ -209,12 +207,7 @@ function SkillRoute({ command, onBack, onUse }: {
 }) {
   const source = command.source === "user" ? "用户 Skill" : "内置 Skill";
   return (
-    <div onKeyDown={(event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onBack();
-      }
-    }}>
+    <div>
       <PickerHeader label={`/${command.name}`} note={source} onBack={onBack} />
       <div className="space-y-3 p-3.5">
         <div className="flex items-start gap-3">
@@ -266,6 +259,16 @@ export function SlashCommandMenu({
   onUseSkill: () => void;
 }) {
   const { t } = useTranslation();
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      onBack();
+    };
+    window.addEventListener("keydown", handleEscape, true);
+    return () => window.removeEventListener("keydown", handleEscape, true);
+  }, [onBack]);
   const automaticModels = models.filter((model) => model.source === "auto");
   const cloudModels = models.filter((model) => model.source === "cloud");
   const byokModels = models.filter((model) => model.source === "byok");
@@ -294,9 +297,7 @@ export function SlashCommandMenu({
       {mode === "models" ? (
         <>
           <PickerHeader label="选择当前对话模型" note="不修改全局优先级" onBack={onBack} />
-          <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索模型或提供方…" aria-label="搜索模型" onKeyDown={(event) => {
-            if (event.key === "Escape") { event.preventDefault(); onBack(); }
-          }} />
+          <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索模型或提供方…" aria-label="搜索模型" />
           <CommandList label="当前对话可用模型" className="max-h-[min(24rem,calc(100vh_-_31.25rem))]">
             {modelsLoading ? <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground"><LoaderCircle className="size-4 animate-spin" />正在读取模型优先级…</div> : null}
             {!modelsLoading ? <CommandEmpty>没有可用于文本对话的模型</CommandEmpty> : null}
@@ -311,30 +312,13 @@ export function SlashCommandMenu({
           <div className="border-b border-border/70 bg-muted/25 px-3 py-2 text-[11px] leading-4 text-muted-foreground">
             工具是助手执行任务时自动选择的能力，不是需要手动发送的 Slash 命令。可按名称、用途或分类搜索。
           </div>
-          <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索工具名称、用途或分类…" aria-label="搜索可用工具" onKeyDown={(event) => {
-            if (event.key === "Escape") { event.preventDefault(); onBack(); }
-          }} />
+          <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索工具名称、用途或分类…" aria-label="搜索可用工具" />
           <CommandList label="当前范围可用工具" className="max-h-[min(24rem,calc(100vh_-_31.25rem))]">
             <CommandEmpty>没有匹配的工具</CommandEmpty>
             {toolCategories.map((category) => (
               <CommandGroup key={category} heading={category}>{toolsByCategory.get(category)?.map((tool) => <ToolOption key={tool.name} tool={tool} />)}</CommandGroup>
             ))}
           </CommandList>
-        </>
-      ) : mode === "help" ? (
-        <>
-          <PickerHeader
-            label="命令与 Skills"
-            note={`${commands.filter((item) => item.kind !== "skill").length} 个命令 · ${commands.filter((item) => item.kind === "skill").length} 个 Skills`}
-            onBack={onBack}
-          />
-          <div className="border-b border-border/70 bg-muted/25 px-3 py-2 text-[11px] leading-4 text-muted-foreground">
-            选择任一项目进入对应的二级面板；需要参数的 Skill 会先展示完整说明，再回填到输入框。
-          </div>
-          <CommandInput autoFocus value={query} onValueChange={onQueryChange} placeholder="搜索命令或 Skill…" aria-label="搜索命令或 Skill" onKeyDown={(event) => {
-            if (event.key === "Escape") { event.preventDefault(); onBack(); }
-          }} />
-          <CommandCatalog commands={commands} onSelectCommand={onSelectCommand} />
         </>
       ) : mode === "skill" && selectedCommand ? (
         <SkillRoute command={selectedCommand} onBack={onBack} onUse={onUseSkill} />
@@ -346,12 +330,29 @@ export function SlashCommandMenu({
       )}
       <div className="flex items-center gap-3 border-t border-border/70 px-3 py-1.5 text-[10px] text-muted-foreground">
         {mode === "skill" ? (
-          <><span>Esc 返回</span><span>所有操作均在当前对话范围内生效</span></>
+          <>
+            <button
+              type="button"
+              className="-mx-1 rounded px-1 hover:bg-accent hover:text-foreground"
+              aria-label="返回上一级（Esc）"
+              onClick={onBack}
+            >
+              Esc 返回
+            </button>
+            <span>所有操作均在当前对话范围内生效</span>
+          </>
         ) : (
           <>
             <span>↑↓ {mode === "tools" ? "浏览" : t("aiAssistant.slashNavigate", "选择")}</span>
             <span>{mode === "tools" ? "输入关键词筛选" : "Enter 打开"}</span>
-            <span>Esc {mode === "commands" ? t("aiAssistant.slashClose", "关闭") : "返回"}</span>
+            <button
+              type="button"
+              className="-mx-1 rounded px-1 hover:bg-accent hover:text-foreground"
+              aria-label={mode === "commands" ? "关闭命令菜单（Esc）" : "返回上一级（Esc）"}
+              onClick={onBack}
+            >
+              Esc {mode === "commands" ? t("aiAssistant.slashClose", "关闭") : "返回"}
+            </button>
           </>
         )}
         {disabled && mode === "models" ? <span className="ml-auto text-amber-600">任务执行中，暂不能切换模型</span> : null}

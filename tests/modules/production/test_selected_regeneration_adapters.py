@@ -103,6 +103,7 @@ def _context(tmp_path: Path) -> ProjectContext:
 
 def _build(monkeypatch, store: _Store):
     from ai_anime.modules.production.infrastructure import selected_regeneration
+    from ai_anime.modules.production.infrastructure import visual_asset_readiness
 
     async def make_store(_context):
         return store
@@ -111,6 +112,17 @@ def _build(monkeypatch, store: _Store):
         selected_regeneration.project_stores,
         "make_sqlite_store_for_context",
         make_store,
+    )
+    async def inspect_ready(*_args, **_kwargs):
+        return SimpleNamespace(
+            ready_for_sketches=True,
+            rejection_message=lambda: "",
+        )
+
+    monkeypatch.setattr(
+        visual_asset_readiness,
+        "inspect_project_episode_visual_assets",
+        inspect_ready,
     )
     image_settings = _ImageSettings()
     generation_context = _GenerationContext()
@@ -236,6 +248,40 @@ async def test_sketch_preparer_uses_all_beats_without_render_padding(
     assert task.config["selected_beat_numbers"] == [2, 1]
     assert "sketch_aspect_padding" not in task.config
     assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_selected_sketch_preparer_rejects_incomplete_visual_assets(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import visual_asset_readiness
+
+    store = _Store([{"beat_number": 1, "detected_identities": []}])
+    preparer, *_ = _build(monkeypatch, store)
+
+    async def inspect_incomplete(*_args, **_kwargs):
+        return SimpleNamespace(
+            ready_for_sketches=False,
+            rejection_message=lambda: "草图生成前置资产未就绪：道具规划尚未完成",
+        )
+
+    monkeypatch.setattr(
+        visual_asset_readiness,
+        "inspect_project_episode_visual_assets",
+        inspect_incomplete,
+    )
+
+    with pytest.raises(SelectedRegenerationRejected, match="道具规划尚未完成"):
+        await preparer.prepare(
+            _context(tmp_path),
+            RegenerateSelectedBeatsCommand(
+                kind=SelectedRegenerationKind.SKETCH,
+                episode_num=2,
+                beat_indices=(1,),
+                mode_key="1x1_2-3_sketch",
+            ),
+        )
 
 
 @pytest.mark.asyncio

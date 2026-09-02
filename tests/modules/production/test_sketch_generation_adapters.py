@@ -122,6 +122,7 @@ def _build_preparer(
     plan=((1, 1), (2, 2)),
 ):
     from ai_anime.modules.production.infrastructure import sketch_generation
+    from ai_anime.modules.production.infrastructure import visual_asset_readiness
 
     async def make_store(_context):
         return store
@@ -130,6 +131,17 @@ def _build_preparer(
         sketch_generation.project_stores,
         "make_sqlite_store_for_context",
         make_store,
+    )
+    async def inspect_ready(*_args, **_kwargs):
+        return SimpleNamespace(
+            ready_for_sketches=True,
+            rejection_message=lambda: "",
+        )
+
+    monkeypatch.setattr(
+        visual_asset_readiness,
+        "inspect_project_episode_visual_assets",
+        inspect_ready,
     )
     settings = _Settings()
     image_settings = _ImageSettings()
@@ -204,6 +216,37 @@ async def test_preparer_rejects_missing_colors(
     preparer = result[0]
 
     with pytest.raises(SketchGenerationRejected, match="未检测到颜色分配"):
+        await preparer.prepare(
+            _context(tmp_path),
+            GenerateSketchesCommand(episode_num=3),
+        )
+
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_preparer_rejects_incomplete_visual_assets(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import visual_asset_readiness
+
+    store = _Store([{"beat_number": 1}], {"hero": "#3366ff"})
+    preparer, *_ = _build_preparer(monkeypatch, store, plan=((1, 1),))
+
+    async def inspect_incomplete(*_args, **_kwargs):
+        return SimpleNamespace(
+            ready_for_sketches=False,
+            rejection_message=lambda: "草图生成前置资产未就绪：场景主视图缺失：办公室",
+        )
+
+    monkeypatch.setattr(
+        visual_asset_readiness,
+        "inspect_project_episode_visual_assets",
+        inspect_incomplete,
+    )
+
+    with pytest.raises(SketchGenerationRejected, match="场景主视图缺失：办公室"):
         await preparer.prepare(
             _context(tmp_path),
             GenerateSketchesCommand(episode_num=3),

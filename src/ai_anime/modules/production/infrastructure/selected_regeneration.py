@@ -128,6 +128,19 @@ class LocalSelectedRegenerationPreparer:
                     indices_error
                     or f"未找到 beat_indices：{missing_numbers}"
                 )
+            if command.kind is SelectedRegenerationKind.SKETCH:
+                from ai_anime.modules.production.infrastructure.visual_asset_readiness import (
+                    inspect_project_episode_visual_assets,
+                )
+
+                readiness = await inspect_project_episode_visual_assets(
+                    store,
+                    context,
+                    command.episode_num,
+                    beats=beats,
+                )
+                if not readiness.ready_for_sketches:
+                    raise SelectedRegenerationRejected(readiness.rejection_message())
             if command.kind is SelectedRegenerationKind.RENDER:
                 detection_error = render_ai_detection_error(selected_beats)
                 if detection_error:

@@ -87,7 +87,11 @@ async def run_sketch_select(
     beat_hashes: dict[int, str] = {}
     for i, beat in enumerate(beats):
         bn = i + 1
-        beat_hashes[bn] = compute_beat_content_hash(beat, sketch_colors=sketch_colors)
+        beat_hashes[bn] = compute_beat_content_hash(
+            beat,
+            sketch_colors=sketch_colors,
+            project_dir=project_dir,
+        )
 
     beat_results: list[dict] = []
     selected_count = 0

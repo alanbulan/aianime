@@ -19,6 +19,12 @@ from ai_anime.shared.utils.state_index_files import (
 from ai_anime.modules.narrative_planning.public import beat_scene_id
 from ai_anime.modules.production.domain.detected_refs import (
     extract_char_identities_from_markers,
+    extract_prop_ids_from_markers,
+)
+from ai_anime.shared.utils.path_resolver import (
+    canonical_prop_reference_path,
+    canonical_scene_master_path,
+    canonical_scene_reverse_master_path,
 )
 from ai_anime.modules.production.infrastructure.grid_pool_models import (
     GridEntry,
@@ -36,6 +42,8 @@ logger = logging.getLogger(__name__)
 def compute_beat_content_hash(
     beat: dict,
     sketch_colors: Optional[Dict[str, str]] = None,
+    project_dir: Union[str, Path, None] = None,
+    asset_fingerprints: Optional[Dict[str, str]] = None,
 ) -> str:
     """计算影响草图生成的 beat 内容哈希。
 
@@ -58,7 +66,41 @@ def compute_beat_content_hash(
                     parts.append(f"color:{identity_id}={color}")
         except Exception:
             pass
+    if project_dir is not None:
+        project_path = Path(project_dir)
+        cache = asset_fingerprints if asset_fingerprints is not None else {}
+        scene_id = beat_scene_id(beat)
+        if scene_id:
+            for label, path in (
+                ("scene-master", canonical_scene_master_path(project_path, scene_id)),
+                (
+                    "scene-reverse",
+                    canonical_scene_reverse_master_path(project_path, scene_id),
+                ),
+            ):
+                parts.append(f"{label}:{scene_id}={_file_fingerprint(path, cache)}")
+        for prop_id in extract_prop_ids_from_markers(
+            beat.get("visual_description", "") or "",
+            strict=False,
+        ):
+            parts.append(
+                f"prop:{prop_id}="
+                f"{_file_fingerprint(canonical_prop_reference_path(project_path, prop_id), cache)}"
+            )
+        return "v2:" + hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
+
+
+def _file_fingerprint(path: Path, cache: Dict[str, str]) -> str:
+    key = str(path)
+    if key in cache:
+        return cache[key]
+    if not path.exists():
+        cache[key] = "missing"
+        return cache[key]
+    stat = path.stat()
+    cache[key] = hashlib.sha256(path.read_bytes()).hexdigest() + f":{stat.st_size}"
+    return cache[key]
 
 
 def is_pool_image_stale(
@@ -71,7 +113,11 @@ def is_pool_image_stale(
         return False
     if img.beat_content_hash:
         current_hash = beat_hashes.get(img.original_beat)
-        return current_hash is not None and current_hash != img.beat_content_hash
+        if current_hash is None:
+            return False
+        if current_hash.startswith("v2:") and not img.beat_content_hash.startswith("v2:"):
+            return bool(script_mt and (not img.generated_at or img.generated_at < script_mt))
+        return current_hash != img.beat_content_hash
     return bool(script_mt and (not img.generated_at or img.generated_at < script_mt))
 
 
@@ -103,6 +149,93 @@ def build_beat_sketch_paths(
         if p.exists():
             result[bn] = str(p)
     return result
+
+
+def stale_canonical_sketch_numbers(
+    project_dir: Union[str, Path],
+    episode: int,
+    beats: list[dict],
+    *,
+    sketch_colors: Optional[Dict[str, str]] = None,
+) -> list[int]:
+    """Return missing or dependency-stale canonical storyboard sketches."""
+
+    project_path = Path(project_dir)
+    grids_dir = project_path / "grids" / f"ep{episode:03d}"
+    sketches_dir = project_path / "sketches" / f"ep{episode:03d}"
+    pool = load_pool_index(grids_dir)
+    images = tuple(pool.images) if pool is not None else ()
+    fingerprint_cache: Dict[str, str] = {}
+    stale: list[int] = []
+
+    for beat in beats:
+        beat_num = int(beat.get("beat_number") or 0)
+        if beat_num <= 0:
+            continue
+        canonical = sketches_dir / f"beat_{beat_num:02d}.png"
+        if not canonical.exists():
+            stale.append(beat_num)
+            continue
+
+        canonical_hash = compute_image_hash(canonical)
+        pool_image = next(
+            (
+                image
+                for image in images
+                if image.type == "sketch"
+                and int(image.original_beat or 0) == beat_num
+                and image.content_hash
+                and image.content_hash == canonical_hash
+            ),
+            None,
+        )
+        dependency_paths = _beat_visual_dependency_paths(project_path, beat)
+        dependency_is_newer = any(
+            path.exists() and path.stat().st_mtime_ns > canonical.stat().st_mtime_ns
+            for path in dependency_paths
+        )
+        if pool_image is None or not pool_image.beat_content_hash:
+            if dependency_is_newer:
+                stale.append(beat_num)
+            continue
+
+        current_hash = compute_beat_content_hash(
+            beat,
+            sketch_colors=sketch_colors,
+            project_dir=project_path,
+            asset_fingerprints=fingerprint_cache,
+        )
+        stored_hash = pool_image.beat_content_hash
+        if stored_hash.startswith("v2:"):
+            if stored_hash != current_hash:
+                stale.append(beat_num)
+            continue
+
+        legacy_hash = compute_beat_content_hash(beat, sketch_colors=sketch_colors)
+        if stored_hash != legacy_hash or dependency_is_newer:
+            stale.append(beat_num)
+
+    return list(dict.fromkeys(stale))
+
+
+def _beat_visual_dependency_paths(project_dir: Path, beat: dict) -> tuple[Path, ...]:
+    paths: list[Path] = []
+    scene_id = beat_scene_id(beat)
+    if scene_id:
+        paths.extend(
+            (
+                canonical_scene_master_path(project_dir, scene_id),
+                canonical_scene_reverse_master_path(project_dir, scene_id),
+            )
+        )
+    paths.extend(
+        canonical_prop_reference_path(project_dir, prop_id)
+        for prop_id in extract_prop_ids_from_markers(
+            beat.get("visual_description", "") or "",
+            strict=False,
+        )
+    )
+    return tuple(paths)
 
 
 def build_pool_index(
@@ -735,12 +868,16 @@ def save_grid_and_split(
 
     # 5. 预计算 beat content hash（用于 sketch stale 判断）
     beat_hash_map: Dict[int, str] = {}
+    asset_fingerprints: Dict[str, str] = {}
     if beats:
         for beat in beats:
             beat_num = beat.get("beat_number")
             if beat_num is not None:
                 beat_hash_map[beat_num] = compute_beat_content_hash(
-                    beat, sketch_colors=sketch_colors
+                    beat,
+                    sketch_colors=sketch_colors,
+                    project_dir=grids_dir.parent.parent,
+                    asset_fingerprints=asset_fingerprints,
                 )
 
     # 6. 重命名为 beat-centric + 去重入池

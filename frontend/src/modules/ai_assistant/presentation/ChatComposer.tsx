@@ -50,8 +50,7 @@ type QueuedMessageItem = {
 };
 
 type ModelPickerOrigin = "composer" | "slash" | null;
-type SlashRoute = "help" | "tools" | "skill" | null;
-type SlashRouteParent = "commands" | "help";
+type SlashRoute = "tools" | "skill" | null;
 
 export type ChatComposerProps = {
   activeModel: string | null;
@@ -154,7 +153,6 @@ export function ChatComposer({
   const [modelPickerOrigin, setModelPickerOrigin] = useState<ModelPickerOrigin>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [slashRoute, setSlashRoute] = useState<SlashRoute>(null);
-  const [slashRouteParent, setSlashRouteParent] = useState<SlashRouteParent>("commands");
   const [selectedCommand, setSelectedCommand] = useState<ChatSlashCommand | null>(null);
   const [dismissedSlashDraft, setDismissedSlashDraft] = useState<string | null>(null);
   const [paletteQuery, setPaletteQuery] = useState("");
@@ -195,11 +193,6 @@ export function ChatComposer({
         model.id === (activeModel ?? "auto")
       ));
       setSelectedSlashValue(`model:${selectedModel?.id ?? models[0]?.id ?? "auto"}`);
-      return;
-    }
-    if (paletteMode === "help") {
-      const first = slashCommands[0];
-      setSelectedSlashValue(first ? `${first.kind ?? "command"}:${first.name}` : "");
       return;
     }
     setSelectedSlashValue(paletteMode === "commands" ? firstSlashValue : "");
@@ -249,18 +242,12 @@ export function ChatComposer({
 
   const selectSlashCommand = (command: ChatSlashCommand) => {
     const action = slashCommandAction(command);
-    const parent = slashRoute === "help" ? "help" : "commands";
-    setSlashRouteParent(parent);
     setDismissedSlashDraft(null);
     setModelPickerOrigin(null);
     setContextMenuOpen(false);
     setSelectedCommand(null);
     onResetHistorySelection();
     onDraftChange("");
-    if (action === "help-picker") {
-      setSlashRoute("help");
-      return;
-    }
     if (action === "model-picker") {
       setModelPickerOrigin("slash");
       setSlashRoute(null);
@@ -304,10 +291,11 @@ export function ChatComposer({
   };
 
   const closeSlashPicker = () => {
-    if (paletteMode !== "help" && slashRouteParent === "help") {
+    if (paletteMode === "commands") {
+      setDismissedSlashDraft(draft);
       setModelPickerOrigin(null);
-      setSlashRoute("help");
-      setSelectedCommand(null);
+      resetSlashRoute();
+      restoreDraftFocus();
       return;
     }
     setModelPickerOrigin(null);
@@ -336,23 +324,26 @@ export function ChatComposer({
           ? "搜索模型"
           : paletteMode === "tools"
             ? "搜索可用工具"
-            : paletteMode === "help"
-              ? "搜索命令或 Skill"
-              : t("aiAssistant.slashCommands", "Slash 命令与 Skills")}
+            : t("aiAssistant.slashCommands", "Slash 命令与 Skills")}
         loop
-        shouldFilter={paletteMode === "models" || paletteMode === "tools" || paletteMode === "help"}
+        shouldFilter={paletteMode === "models" || paletteMode === "tools"}
         value={selectedSlashValue}
         onValueChange={setSelectedSlashValue}
       >
-      <div className={cn(
-        "relative mx-auto mb-2.5 h-7 w-full max-w-[760px]",
-        isFreezoneLayout && "max-w-none",
-      )}>
-        <ComposerWaitingStatus
-          label={t("aiAssistant.waitingResponse")}
-          visible={showWaitingIndicator}
-        />
-      </div>
+      {showWaitingIndicator && (
+        <div
+          data-composer-waiting-status=""
+          className={cn(
+            "relative mx-auto mb-2.5 h-7 w-full max-w-[760px]",
+            isFreezoneLayout && "max-w-none",
+          )}
+        >
+          <ComposerWaitingStatus
+            label={t("aiAssistant.waitingResponse")}
+            visible
+          />
+        </div>
+      )}
       <div
         className={cn(
           "mx-auto w-full max-w-[760px]",

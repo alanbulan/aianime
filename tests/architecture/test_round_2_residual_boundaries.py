@@ -1127,6 +1127,9 @@ def test_desktop_model_access_routes_cloud_and_multiple_byok_providers_together(
     commercial_client = (
         REPO_ROOT / "desktop" / "src" / "commercial-api-client.ts"
     ).read_text(encoding="utf-8")
+    commercial_transport = (
+        REPO_ROOT / "desktop" / "src" / "commercial-api-transport.ts"
+    ).read_text(encoding="utf-8")
     commercial_ipc = (REPO_ROOT / "desktop" / "src" / "commercial-ipc.ts").read_text(
         encoding="utf-8"
     )
@@ -1173,8 +1176,13 @@ def test_desktop_model_access_routes_cloud_and_multiple_byok_providers_together(
 
     assert "function registerCommercialIpc" not in commercial_client
     assert "COMMERCIAL_CHANNELS" not in commercial_client
-    assert "requestResponse(" in commercial_client
+    assert "export class CommercialApiClient extends CommercialApiTransport" in (
+        commercial_client
+    )
+    assert "requestResponse(" not in commercial_client
     assert "IpcMainLike" not in commercial_client
+    assert "protected async requestResponse(" in commercial_transport
+    assert "protected readonly fetchImpl" in commercial_transport
 
 
 def test_legacy_image_model_configuration_cannot_return() -> None:

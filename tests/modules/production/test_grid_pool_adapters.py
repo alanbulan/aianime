@@ -154,7 +154,8 @@ async def test_list_pool_projects_hashes_urls_and_closes_store(
         assert candidate is context
         return store
 
-    def compute_hash(beat, sketch_colors):
+    def compute_hash(beat, sketch_colors, project_dir=None):
+        assert project_dir == context.output_dir
         hash_calls.append((beat, sketch_colors))
         return "current-hash"
 
@@ -302,7 +303,7 @@ async def test_sketch_candidates_filter_sort_project_and_close_store(
     monkeypatch.setattr(
         grid_pool.pool_indexer,
         "compute_beat_content_hash",
-        lambda _beat, sketch_colors: f"hash:{sketch_colors['hero']}",
+        lambda _beat, sketch_colors, project_dir=None: f"hash:{sketch_colors['hero']}",
     )
     monkeypatch.setattr(
         grid_pool.pool_indexer,
@@ -402,7 +403,7 @@ async def test_select_rejects_stale_sketch_and_closes_store(
     monkeypatch.setattr(
         grid_pool.pool_indexer,
         "compute_beat_content_hash",
-        lambda _beat, sketch_colors: "current-hash",
+        lambda _beat, sketch_colors, project_dir=None: "current-hash",
     )
     monkeypatch.setattr(
         grid_pool.pool_indexer,

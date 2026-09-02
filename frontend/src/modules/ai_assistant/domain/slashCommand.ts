@@ -6,11 +6,6 @@ import type {
 
 export const DEFAULT_CHAT_SLASH_COMMANDS: ChatSlashCommand[] = [
   {
-    name: "help",
-    description: "查看可用命令和 Skills 的使用方式",
-    kind: "command",
-  },
-  {
     name: "model",
     description: "选择仅对当前对话生效的模型路由",
     kind: "command",
@@ -36,7 +31,6 @@ const CORE_COMMAND_NAMES = new Set(
 );
 
 export type SlashCommandAction =
-  | "help-picker"
   | "model-picker"
   | "tool-picker"
   | "skill-picker";
@@ -46,9 +40,6 @@ export function slashCommandAction(
 ): SlashCommandAction {
   if (command.kind === "skill") {
     return "skill-picker";
-  }
-  if (command.name === "help") {
-    return "help-picker";
   }
   if (command.name === "model") {
     return "model-picker";

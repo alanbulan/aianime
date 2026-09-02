@@ -89,7 +89,10 @@ import type {
   DecisionRequest,
 } from "@/modules/ai_assistant/domain/contracts";
 
-import { ChatPanelContextViews } from "./ChatPanelContextViews";
+import {
+  ChatPanelActionViews,
+  ChatPanelContextViews,
+} from "./ChatPanelContextViews";
 
 const approval: ApprovalRequest = {
   id: "approval-1",
@@ -142,7 +145,13 @@ function baseProps() {
 
 describe("SuperChat panel context views", () => {
   it("keeps optional error, approval, and search views hidden", () => {
-    render(<ChatPanelContextViews {...baseProps()} />);
+    const props = baseProps();
+    render(
+      <>
+        <ChatPanelContextViews {...props} />
+        <ChatPanelActionViews {...props} isFreezoneLayout={false} />
+      </>,
+    );
 
     expect(screen.queryByTestId("approval-approval-1")).toBeNull();
     expect(screen.queryByTestId("search-bar")).toBeNull();
@@ -163,7 +172,12 @@ describe("SuperChat panel context views", () => {
       searchOpen: true,
       searchQuery: "shot",
     };
-    render(<ChatPanelContextViews {...props} />);
+    render(
+      <>
+        <ChatPanelContextViews {...props} />
+        <ChatPanelActionViews {...props} isFreezoneLayout={false} />
+      </>,
+    );
 
     expect(screen.getByText("transport error")).toBeInTheDocument();
     expect(screen.getByTestId("pinned-panel")).toHaveAttribute(
@@ -192,6 +206,10 @@ describe("SuperChat panel context views", () => {
       "data-submitting",
       "true",
     );
+    expect(
+      screen.getByTestId("decision-decision-1")
+        .closest("[data-chat-action-views]"),
+    ).not.toBeNull();
     expect(props.onClearPinned).toHaveBeenCalledTimes(1);
     expect(props.onTogglePin).toHaveBeenCalledWith("message-1");
     expect(props.onSearchChange).toHaveBeenCalledWith("scene");

@@ -62,6 +62,36 @@ def test_parse_numbered_legacy_header_with_people_line():
     ]
 
 
+def test_parse_markdown_episode_scene_bracket_headers() -> None:
+    text = """
+## 1-1 场景：【内 公司办公区 夜】
+陈默：系统怎么停了？
+## 1-2 场景：【内 会议室 夜】
+周航：先开会。
+# 1-3 场景：【内 电梯 夜】
+△电梯门缓缓合拢。
+# 1-4 场景：【内 公司机房 夜】
+△服务器指示灯熄灭。
+"""
+
+    blocks = parse_scene_blocks(text)
+
+    assert [(block.episode, block.scene_no) for block in blocks] == [
+        (1, "1"),
+        (1, "2"),
+        (1, "3"),
+        (1, "4"),
+    ]
+    assert [block.location for block in blocks] == [
+        "公司办公区",
+        "会议室",
+        "电梯",
+        "公司机房",
+    ]
+    assert all(block.time_of_day == "夜" for block in blocks)
+    assert all(block.interior_exterior == "内" for block in blocks)
+
+
 def test_parse_numbered_marker_then_location_line():
     text = """
 1-1

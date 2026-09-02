@@ -4,6 +4,13 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from ai_anime.modules.production.application.visual_asset_readiness import (
+        EpisodeVisualAssetReadiness,
+        inspect_episode_visual_assets,
+    )
+    from ai_anime.modules.production.infrastructure.visual_asset_readiness import (
+        inspect_project_episode_visual_assets,
+    )
     from ai_anime.modules.production.infrastructure.media_generation_settings import (
         DEFAULT_VIDEO_RESOLUTION,
         FFMPEG_PATH,
@@ -115,6 +122,7 @@ if TYPE_CHECKING:
         rebuild_pool_index,
         save_grid_and_split,
         save_pool_index,
+        stale_canonical_sketch_numbers,
     )
     from ai_anime.modules.production.infrastructure.media_generation.prompt_builder import (
         PromptComponents,
@@ -417,6 +425,18 @@ _LAZY_MODULES = {
 }
 
 _LAZY_EXPORTS = {
+    "EpisodeVisualAssetReadiness": (
+        "ai_anime.modules.production.application.visual_asset_readiness",
+        "EpisodeVisualAssetReadiness",
+    ),
+    "inspect_episode_visual_assets": (
+        "ai_anime.modules.production.application.visual_asset_readiness",
+        "inspect_episode_visual_assets",
+    ),
+    "inspect_project_episode_visual_assets": (
+        "ai_anime.modules.production.infrastructure.visual_asset_readiness",
+        "inspect_project_episode_visual_assets",
+    ),
     "DEFAULT_NARRATION_STYLE": (
         "ai_anime.modules.production.infrastructure.video_reference_voice",
         "DEFAULT_NARRATION_STYLE",
@@ -624,6 +644,10 @@ _LAZY_EXPORTS.update(
         "compute_beat_content_hash": (
             f"{_MEDIA_GENERATION}.pool_indexer",
             "compute_beat_content_hash",
+        ),
+        "stale_canonical_sketch_numbers": (
+            f"{_MEDIA_GENERATION}.pool_indexer",
+            "stale_canonical_sketch_numbers",
         ),
         "create_grid_generator": (
             f"{_MEDIA_GENERATION}.image_grid",
@@ -930,6 +954,7 @@ def sketch_editing_use_cases() -> SketchEditingUseCases:
 
 
 __all__ = [
+    "EpisodeVisualAssetReadiness",
     "DEFAULT_VIDEO_RESOLUTION",
     "FFMPEG_PATH",
     "IMAGE_DEFAULT_HEIGHT",
@@ -1130,6 +1155,8 @@ __all__ = [
     "grid_pool_use_cases",
     "global_prop_marker_colors",
     "image_generation_usage_use_cases",
+    "inspect_episode_visual_assets",
+    "inspect_project_episode_visual_assets",
     "manual_sketch_regeneration_use_cases",
     "narration_style_prompt",
     "normalize_detected_identities",
@@ -1195,6 +1222,7 @@ __all__ = [
     "character_grid_split",
     "combine_to_grid",
     "compute_beat_content_hash",
+    "stale_canonical_sketch_numbers",
     "create_grid_generator",
     "create_image_generator",
     "create_prompt_context",

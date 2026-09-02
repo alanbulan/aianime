@@ -102,7 +102,6 @@ class LocalSketchGenerationPreparer:
                 raise SketchGenerationRejected(
                     f"No beats found for episode {command.episode_num}"
                 )
-
             grid_plan = self._grid_planner.plan(
                 beats,
                 scene_grouping=command.sketch_scene_grouping,
@@ -130,6 +129,18 @@ class LocalSketchGenerationPreparer:
                 raise SketchGenerationRejected(
                     "未检测到颜色分配，请先调用 assign-colors 接口"
                 )
+            from ai_anime.modules.production.infrastructure.visual_asset_readiness import (
+                inspect_project_episode_visual_assets,
+            )
+
+            readiness = await inspect_project_episode_visual_assets(
+                store,
+                context,
+                command.episode_num,
+                beats=beats,
+            )
+            if not readiness.ready_for_sketches:
+                raise SketchGenerationRejected(readiness.rejection_message())
 
             episode = generation_context.episode_or_none(command.episode_num)
             prop_menu = await self._prop_menu_source.for_episode(

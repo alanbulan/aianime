@@ -148,6 +148,7 @@ class LocalGridPoolGateway:
                 beat_hashes[beat_num] = pool_indexer.compute_beat_content_hash(
                     beat,
                     sketch_colors=sketch_colors,
+                    project_dir=context.output_dir,
                 )
 
         images = tuple(
@@ -259,6 +260,7 @@ class LocalGridPoolGateway:
             beat_hashes[parsed_beat_num] = pool_indexer.compute_beat_content_hash(
                 beat,
                 sketch_colors=sketch_colors,
+                project_dir=context.output_dir,
             )
 
         candidates: list[BeatSketchCandidateView] = []
@@ -340,6 +342,7 @@ class LocalGridPoolGateway:
                     pool_indexer.compute_beat_content_hash(
                         beats[beat_index],
                         sketch_colors=sketch_colors,
+                        project_dir=context.output_dir,
                     )
                 )
             if (

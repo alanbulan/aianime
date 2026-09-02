@@ -62,7 +62,6 @@ class LocalManualSketchRegenerationPreparer:
                 raise ManualSketchRegenerationRejected(
                     f"第 {command.episode_num} 集没有 beats"
                 )
-
             storyboard_beats = storyboard_beats_for_manual_sketches(beats)
             sketches_dir = (
                 context.output_dir / "sketches" / f"ep{command.episode_num:03d}"
@@ -76,6 +75,18 @@ class LocalManualSketchRegenerationPreparer:
                     episode_num=command.episode_num,
                     segments=(),
                 )
+            from ai_anime.modules.production.infrastructure.visual_asset_readiness import (
+                inspect_project_episode_visual_assets,
+            )
+
+            readiness = await inspect_project_episode_visual_assets(
+                store,
+                context,
+                command.episode_num,
+                beats=beats,
+            )
+            if not readiness.ready_for_sketches:
+                raise ManualSketchRegenerationRejected(readiness.rejection_message())
 
             project_config = self._settings.load(
                 context.owner_username,

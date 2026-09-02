@@ -91,12 +91,6 @@ async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, t
         "compute_portrait_path",
         lambda project_dir, character_name: tmp_path / "portrait.png",
     )
-    monkeypatch.setattr(
-        pipeline,
-        "compute_identity_path",
-        lambda project_dir, character_name, identity_name: tmp_path / "identity.png",
-    )
-
     response = await pipeline.pipeline_status(
         project="demo",
         episode=1,

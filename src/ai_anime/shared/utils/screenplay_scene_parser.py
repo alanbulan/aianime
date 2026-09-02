@@ -93,6 +93,13 @@ BRACKETED_LABELED_SCENE_RE = re.compile(
     rf"(?P<location>.+?)\s+"
     r"(?P<interior>内|外)\s*[】\]]\s*$"
 )
+EPISODE_SCENE_BRACKETED_RE = re.compile(
+    rf"^(?P<episode>\d+)\s*[-－.．]\s*(?P<scene_no>\d+)\s*"
+    rf"场景\s*[:：]\s*[【\[]\s*"
+    r"(?P<interior>内|外)\s+"
+    rf"(?P<location>.+?)\s+"
+    rf"(?P<time>{TIME_TOKEN_RE})\s*[】\]]\s*$"
+)
 SIMPLE_LOCATION_RE = re.compile(
     rf"^(?P<location>.+?)[\s，,]+"
     rf"(?:(?P<time_first>{TIME_TOKEN_RE})[\s，,]+(?P<interior_last>内|外)"
@@ -178,26 +185,30 @@ def parse_scene_blocks(text_or_lines: str | list[str]) -> list[ParsedSceneBlock]
         line = raw_line.strip()
         if not line:
             continue
+        parse_line = _strip_markdown_heading_prefix(line)
 
-        episode_match = EPISODE_HEADER_RE.match(line)
+        episode_match = EPISODE_HEADER_RE.match(parse_line)
         if episode_match:
             current_episode = chinese_to_int(episode_match.group(1))
             if current.header_line or current.lines:
                 current.episode = current.episode or current_episode
             continue
 
-        bracketed_labeled = BRACKETED_LABELED_SCENE_RE.fullmatch(line)
-        if bracketed_labeled:
+        bracketed_scene = _parse_bracketed_labeled_scene(parse_line)
+        if bracketed_scene:
+            episode_number, scene_no, location, time_of_day, interior = bracketed_scene
+            if episode_number > 0:
+                current_episode = episode_number
             if current_episode <= 0:
                 current_episode = 1
-            start_block(line, scene_no=bracketed_labeled.group("scene_no") or "")
-            current.location = (bracketed_labeled.group("location") or "").strip()
-            current.time_of_day = bracketed_labeled.group("time") or ""
-            current.interior_exterior = bracketed_labeled.group("interior") or ""
+            start_block(line, scene_no=scene_no)
+            current.location = location
+            current.time_of_day = time_of_day
+            current.interior_exterior = interior
             collecting_header = True
             continue
 
-        international = _parse_international_scene_header(line)
+        international = _parse_international_scene_header(parse_line)
         if international:
             if current_episode <= 0:
                 current_episode = 1
@@ -209,7 +220,7 @@ def parse_scene_blocks(text_or_lines: str | list[str]) -> list[ParsedSceneBlock]
             collecting_header = True
             continue
 
-        insert_scene = INSERT_SCENE_RE.fullmatch(line)
+        insert_scene = INSERT_SCENE_RE.fullmatch(parse_line)
         if insert_scene:
             rest = (insert_scene.group("rest") or "").strip()
             next_line = lines[line_index + 1] if line_index + 1 < len(lines) else ""
@@ -233,14 +244,14 @@ def parse_scene_blocks(text_or_lines: str | list[str]) -> list[ParsedSceneBlock]
             # only a production annotation. The following heading owns the block.
             continue
 
-        colon_marker = COLON_SCENE_MARKER_RE.match(line)
+        colon_marker = COLON_SCENE_MARKER_RE.match(parse_line)
         if colon_marker:
             if current_episode <= 0:
                 current_episode = 1
             start_block(line, scene_no=colon_marker.group("scene_no") or "")
             continue
 
-        inline = INLINE_LABELED_SCENE_RE.match(line)
+        inline = INLINE_LABELED_SCENE_RE.match(parse_line)
         if inline:
             if current_episode <= 0:
                 current_episode = 1
@@ -252,7 +263,7 @@ def parse_scene_blocks(text_or_lines: str | list[str]) -> list[ParsedSceneBlock]
             )
             continue
 
-        numbered = NUMBERED_SCENE_RE.match(line)
+        numbered = NUMBERED_SCENE_RE.match(parse_line)
         if numbered and _looks_like_scene_number_line(numbered):
             ep = int(numbered.group("episode"))
             if current_episode <= 0 or ep != current_episode:
@@ -261,7 +272,7 @@ def parse_scene_blocks(text_or_lines: str | list[str]) -> list[ParsedSceneBlock]
             start_block(line, scene_no=numbered.group("scene") or "", location_line=rest)
             continue
 
-        marker = SCENE_MARKER_RE.match(line)
+        marker = SCENE_MARKER_RE.match(parse_line)
         next_line = lines[line_index + 1] if line_index + 1 < len(lines) else ""
         if marker and (
             _looks_like_bare_scene_marker(line)
@@ -326,10 +337,10 @@ def parse_scene_blocks(text_or_lines: str | list[str]) -> list[ParsedSceneBlock]
 
 
 def is_scene_start_line(line: str) -> bool:
-    stripped = (line or "").strip()
+    stripped = _strip_markdown_heading_prefix((line or "").strip())
     if not stripped:
         return False
-    if BRACKETED_LABELED_SCENE_RE.fullmatch(stripped):
+    if _parse_bracketed_labeled_scene(stripped):
         return True
     if _parse_international_scene_header(stripped):
         return True
@@ -351,6 +362,12 @@ def is_scene_start_line(line: str) -> bool:
 
 
 def parse_location_header(line: str) -> tuple[str, str, str] | None:
+    bracketed = _parse_bracketed_labeled_scene(
+        _strip_markdown_heading_prefix((line or "").strip())
+    )
+    if bracketed:
+        _, _, location, time_of_day, interior = bracketed
+        return location, time_of_day, interior
     locs = parse_location_line(line)
     if not locs:
         return None
@@ -521,6 +538,34 @@ def _strip_location_prefix(line: str) -> str:
     if labeled:
         return labeled.group("location").strip()
     return text
+
+
+def _strip_markdown_heading_prefix(line: str) -> str:
+    return re.sub(r"^\s{0,3}#{1,6}\s+", "", line or "").strip()
+
+
+def _parse_bracketed_labeled_scene(
+    line: str,
+) -> tuple[int, str, str, str, str] | None:
+    episode_scene = EPISODE_SCENE_BRACKETED_RE.fullmatch(line or "")
+    if episode_scene:
+        return (
+            int(episode_scene.group("episode") or 0),
+            episode_scene.group("scene_no") or "",
+            (episode_scene.group("location") or "").strip(),
+            episode_scene.group("time") or "",
+            episode_scene.group("interior") or "",
+        )
+    legacy = BRACKETED_LABELED_SCENE_RE.fullmatch(line or "")
+    if not legacy:
+        return None
+    return (
+        0,
+        legacy.group("scene_no") or "",
+        (legacy.group("location") or "").strip(),
+        legacy.group("time") or "",
+        legacy.group("interior") or "",
+    )
 
 
 def _strip_numbered_scene_prefix(line: str) -> str:

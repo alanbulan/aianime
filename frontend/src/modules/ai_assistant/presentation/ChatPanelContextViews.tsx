@@ -9,6 +9,7 @@ import { ApprovalCard } from "@/modules/ai_assistant/presentation/ApprovalCard";
 import { DecisionCard } from "@/modules/ai_assistant/presentation/DecisionCard";
 import { PinnedPanel } from "@/modules/ai_assistant/presentation/PinnedPanel";
 import { SearchBar } from "@/modules/ai_assistant/presentation/SearchBar";
+import { cn } from "@/lib/utils";
 
 type ApprovalDecision = "allow-once" | "allow-always" | "deny";
 
@@ -34,17 +35,23 @@ export type ChatPanelContextViewsProps = {
   onTogglePin: (messageId: string) => void;
 };
 
+export type ChatPanelActionViewsProps = Pick<
+  ChatPanelContextViewsProps,
+  | "approvals"
+  | "decisions"
+  | "submittingDecisionIds"
+  | "onResolveApproval"
+  | "onResolveDecision"
+> & {
+  isFreezoneLayout: boolean;
+};
+
 export function ChatPanelContextViews({
-  approvals,
-  decisions,
-  submittingDecisionIds,
   error,
   pinnedMessages,
   searchOpen,
   searchQuery,
   onClearPinned,
-  onResolveApproval,
-  onResolveDecision,
   onSearchChange,
   onSearchClose,
   onTogglePin,
@@ -56,23 +63,6 @@ export function ChatPanelContextViews({
           {error}
         </div>
       )}
-
-      {decisions.map((decision) => (
-        <DecisionCard
-          key={decision.id}
-          decision={decision}
-          submitting={submittingDecisionIds.has(decision.id)}
-          onSubmit={(answers) => onResolveDecision(decision, answers)}
-        />
-      ))}
-
-      {approvals.map((approval) => (
-        <ApprovalCard
-          key={approval.id}
-          approval={approval}
-          onResolve={(decision) => onResolveApproval(approval, decision)}
-        />
-      ))}
 
       <PinnedPanel
         messages={pinnedMessages}
@@ -88,5 +78,45 @@ export function ChatPanelContextViews({
         />
       )}
     </>
+  );
+}
+
+export function ChatPanelActionViews({
+  approvals,
+  decisions,
+  submittingDecisionIds,
+  isFreezoneLayout,
+  onResolveApproval,
+  onResolveDecision,
+}: ChatPanelActionViewsProps) {
+  if (decisions.length === 0 && approvals.length === 0) return null;
+
+  return (
+    <div
+      data-chat-action-views=""
+      className="shrink-0 px-3 pb-2 pt-1"
+    >
+      <div className={cn(
+        "mx-auto max-h-[min(40vh,22rem)] w-full max-w-[760px] space-y-2 overflow-y-auto [scrollbar-gutter:stable_both-edges] [scrollbar-width:thin]",
+        isFreezoneLayout && "max-w-none",
+      )}>
+        {decisions.map((decision) => (
+          <DecisionCard
+            key={decision.id}
+            decision={decision}
+            submitting={submittingDecisionIds.has(decision.id)}
+            onSubmit={(answers) => onResolveDecision(decision, answers)}
+          />
+        ))}
+
+        {approvals.map((approval) => (
+          <ApprovalCard
+            key={approval.id}
+            approval={approval}
+            onResolve={(decision) => onResolveApproval(approval, decision)}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

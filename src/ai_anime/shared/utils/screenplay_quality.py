@@ -8,6 +8,7 @@ from typing import Literal
 
 from ai_anime.shared.utils.screenplay_scene_parser import (
     BRACKETED_LABELED_SCENE_RE,
+    EPISODE_SCENE_BRACKETED_RE,
     CHINESE_FOUNTAIN_SCENE_RE,
     INTERIOR_EXTERIOR,
     INTERNATIONAL_SCENE_RE,
@@ -152,7 +153,10 @@ def _has_source_scene_header_evidence(header_line: str) -> bool:
         "",
         header,
     ).strip()
+    header = re.sub(r"^\s{0,3}#{1,6}\s+", "", header).strip()
     if BRACKETED_LABELED_SCENE_RE.fullmatch(header):
+        return True
+    if EPISODE_SCENE_BRACKETED_RE.fullmatch(header):
         return True
     if CHINESE_FOUNTAIN_SCENE_RE.fullmatch(header):
         return True

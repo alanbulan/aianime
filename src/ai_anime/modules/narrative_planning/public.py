@@ -98,6 +98,10 @@ from ai_anime.modules.narrative_planning.application.script_workflow import (
     ScriptWorkflowTicket,
     build_script_workflow_plan,
 )
+from ai_anime.modules.narrative_planning.application.scene_plan_readiness import (
+    EpisodeScenePlanReadiness,
+    inspect_episode_scene_plan,
+)
 from ai_anime.modules.narrative_planning.application.video_prompt_optimization import (
     GenerateVideoPromptCommand,
     GeneratedVideoPrompt,
@@ -513,6 +517,7 @@ __all__ = [
     "EpisodeContentWriteFailed",
     "EpisodeNotFound",
     "EpisodePlannerAgent",
+    "EpisodeScenePlanReadiness",
     "EpisodeAssetPlanningTask",
     "FinalBeatTransitionNotAllowed",
     "GenerateEpisodeRewriteCommand",
@@ -574,6 +579,7 @@ __all__ = [
     "get_episode_details",
     "get_episode_beats",
     "insert_manual_shot",
+    "inspect_episode_scene_plan",
     "load_adapted_episode_content",
     "load_episode_script",
     "load_raw_episode_content",

@@ -108,6 +108,9 @@ async def test_runtime_ignores_old_completed_task_when_target_count_changed(
                 )
             ]
 
+        async def list_scenes(self):
+            return [SimpleNamespace(name="客厅", aliases=[])]
+
         async def get_beats_as_dicts(self, episode_number):
             assert episode_number == 1
             return beats
@@ -145,6 +148,85 @@ async def test_runtime_ignores_old_completed_task_when_target_count_changed(
 
     assert snapshot.script_episodes == frozenset()
     assert "script:ep001" not in snapshot.task_statuses
+
+
+@pytest.mark.asyncio
+async def test_runtime_rejects_partial_scene_menu_and_newer_scene_plan_invalidates_script(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        script_workflow as runner,
+    )
+    from ai_anime.shared.infrastructure import project_stores
+
+    episode = SimpleNamespace(
+        number=1,
+        identity_ids=["陈默_日常"],
+        scene_menu=[SimpleNamespace(scene_id="公司一楼大厅", base_scene_id="")],
+        beat_source_text="""
+## 1-1 场景：【内 公司办公区 夜】
+陈默：服务器停了。
+## 1-2 场景：【内 公司机房 夜】
+△所有指示灯熄灭。
+""",
+        adapted_content="",
+        raw_content="",
+    )
+
+    class _Store:
+        def get_all_characters(self):
+            return [SimpleNamespace(name="陈默")]
+
+        def get_all_episodes(self):
+            return [episode]
+
+        async def list_scenes(self):
+            return [SimpleNamespace(name="公司一楼大厅", aliases=["大厅"])]
+
+        async def get_beats_as_dicts(self, episode_number):
+            assert episode_number == 1
+            return [{"beat_number": 1, "visual_description": "陈默站在大厅"}]
+
+        async def close(self):
+            return None
+
+    async def make_store(context):
+        return _Store()
+
+    tasks = [
+        SimpleNamespace(
+            task_type="episode_scene_planner",
+            episode=1,
+            status="completed",
+            completed_at="2026-09-02T12:00:00+08:00",
+        ),
+        SimpleNamespace(
+            task_type="script_writer",
+            episode=1,
+            status="completed",
+            completed_at="2026-09-02T11:00:00+08:00",
+        ),
+    ]
+    monkeypatch.setattr(project_stores, "make_sqlite_store_for_context", make_store)
+    monkeypatch.setattr(
+        runner,
+        "project_task_use_cases",
+        lambda: SimpleNamespace(list_for_project=lambda context: tasks),
+    )
+
+    snapshot = await runner.ProjectScriptWorkflowRuntime(
+        context=object(),
+        envelope={},
+    ).snapshot(ScriptWorkflowOptions(target="script", episodes=(1,)))
+
+    assert snapshot.scene_episodes == frozenset()
+    assert snapshot.script_episodes == frozenset()
+    plan = build_script_workflow_plan(
+        snapshot,
+        ScriptWorkflowOptions(target="script", episodes=(1,)),
+    )
+    assert _nodes(plan)["scenes:ep001"].status == "ready"
+    assert _nodes(plan)["script:ep001"].status == "waiting"
 
 
 def test_missing_episode_is_a_visible_block_after_episode_planning() -> None:

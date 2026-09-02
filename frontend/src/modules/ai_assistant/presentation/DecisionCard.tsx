@@ -57,7 +57,7 @@ export function DecisionCard({
 
   return (
     <section
-      className="border-b border-primary/20 bg-primary/5 px-3 py-3"
+      className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 shadow-sm"
       aria-labelledby={`decision-title-${decision.id}`}
     >
       <div className="mb-3 flex items-start gap-2">

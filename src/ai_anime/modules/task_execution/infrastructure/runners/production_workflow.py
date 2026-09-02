@@ -796,6 +796,29 @@ async def _assign_colors(context: ProjectContext, episode_num: int) -> None:
     )
 
 
+async def _require_episode_visual_assets(
+    context: ProjectContext,
+    episode_num: int,
+    beats: list[dict[str, Any]],
+) -> None:
+    from ai_anime.modules.production.public import (
+        inspect_project_episode_visual_assets,
+    )
+
+    store = await make_sqlite_store_for_context(context)
+    try:
+        readiness = await inspect_project_episode_visual_assets(
+            store,
+            context,
+            episode_num,
+            beats=beats,
+        )
+    finally:
+        await store.close()
+    if not readiness.ready_for_sketches:
+        raise RuntimeError(readiness.rejection_message())
+
+
 async def _ensure_sketches(
     context: ProjectContext,
     episode_num: int,
@@ -816,6 +839,7 @@ async def _ensure_sketches(
         SelectedRegenerationKind,
         sketch_generation_use_cases,
         sketch_scene_grid_split,
+        stale_canonical_sketch_numbers,
         selected_regeneration_use_cases,
     )
 
@@ -857,10 +881,20 @@ async def _ensure_sketches(
             for receipt in scheduled.receipts
         ]
     else:
+        store = await make_sqlite_store_for_context(context)
+        try:
+            sketch_colors = store.get_sketch_colors(episode_num) or {}
+        finally:
+            await store.close()
         missing_numbers = [
             number
-            for number in sketchable_numbers
-            if not resolver.sketch(number).exists()
+            for number in stale_canonical_sketch_numbers(
+                context.output_dir,
+                episode_num,
+                beats,
+                sketch_colors=sketch_colors,
+            )
+            if number in set(sketchable_numbers)
         ]
         if not missing_numbers:
             return paths
@@ -881,7 +915,7 @@ async def _ensure_sketches(
         ]
         reporter.update(
             progress,
-            f"第 {episode_num} 集补齐 {len(missing_numbers)} 个缺失草图",
+            f"第 {episode_num} 集补齐或重做 {len(missing_numbers)} 个失效草图",
         )
         tickets = []
         for plan_index, entry in enumerate(missing_plan, start=1):
@@ -900,7 +934,7 @@ async def _ensure_sketches(
                 _ticket_from_scheduled(
                     scheduled,
                     label=(
-                        f"第 {episode_num} 集缺失草图批次 {plan_index}"
+                        f"第 {episode_num} 集缺失或失效草图批次 {plan_index}"
                         f"（Beat {', '.join(str(number) for number in beat_numbers)}）"
                     ),
                     episode=episode_num,
@@ -1632,6 +1666,8 @@ async def _run_production_workflow_steps(
             episode_num,
         )
         beats = await _episode_beats(context, episode_num)
+        reporter.update(base, f"第 {episode_num} 集校验草图前置资产")
+        await _require_episode_visual_assets(context, episode_num, beats)
         reporter.update(base, f"第 {episode_num} 集分配草图标记颜色")
         await _assign_colors(context, episode_num)
         sketch_paths = await _ensure_sketches(
