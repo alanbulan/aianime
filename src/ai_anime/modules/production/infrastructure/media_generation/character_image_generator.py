@@ -273,6 +273,7 @@ class CharacterImageGenerator:
                 output_path=portrait_ref_path,
                 image_size="0.5K",
                 reference_images=style_references,
+                negative_prompt=negative_keywords,
             )
 
             if portrait_bytes and portrait_ref_path:
@@ -506,6 +507,7 @@ class CharacterImageGenerator:
                 aspect_ratio=aspect_ratio,
                 image_size=image_size,
                 reference_images=references,
+                negative_prompt=negative_keywords,
             )
 
             if image_bytes:
@@ -694,6 +696,7 @@ MUST AVOID:
                 aspect_ratio="16:9",
                 image_size="1K",
                 reference_images=style_references,
+                negative_prompt=negative_keywords,
             )
             if not image_bytes:
                 return CharacterReferenceResult(
@@ -1025,6 +1028,7 @@ STRICT REQUIREMENTS (MUST AVOID):
         aspect_ratio: str = "3:4",
         image_size: str = "1K",
         reference_images: list[ImageReferenceInput] | None = None,
+        negative_prompt: str = "",
     ) -> Optional[bytes]:
         """通过当前商业模型访问生成单张图像。"""
         try:
@@ -1041,6 +1045,7 @@ STRICT REQUIREMENTS (MUST AVOID):
                         self.image_quality,
                         default="medium",
                     ),
+                    "negative_prompt": negative_prompt,
                 },
             )
             if not image_bytes and error_detail:

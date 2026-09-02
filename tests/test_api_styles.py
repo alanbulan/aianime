@@ -124,6 +124,7 @@ def test_style_preview_is_not_submitted_and_text_contract_preserves_subject_slot
         "draw the requested subject",
         subject_references,
         {
+            "label": "青春恋爱喜剧 2D 动画",
             "style_instructions": "clean cel-animation linework",
             "avoid_instructions": "photorealistic skin texture",
             "style_reference_image_path": str(style_reference),
@@ -132,6 +133,7 @@ def test_style_preview_is_not_submitted_and_text_contract_preserves_subject_slot
 
     assert references == subject_references
     assert len(references) == 10
+    assert "PROJECT STYLE NAME:\n青春恋爱喜剧 2D 动画" in prompt
     assert "clean cel-animation linework" in prompt
     assert "photorealistic skin texture" in prompt
     assert "GLOBAL STYLE CONTRACT (TEXT-ONLY RENDERING GRAMMAR)" in prompt

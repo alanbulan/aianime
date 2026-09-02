@@ -166,6 +166,7 @@ async def generate_prop_reference(
             model_selector=str(config.get("model_selector") or "") or None,
             quality=config.get("image_quality", "medium"),
             reference_images=references,
+            negative_prompt=str(style_preset.get("avoid_instructions") or "").strip(),
         )
 
         elapsed = time.time() - start_time
@@ -190,6 +191,7 @@ async def _generate_via_gateway(
     model_selector: str | None = None,
     quality: str = "medium",
     reference_images: list[ImageReferenceInput] | None = None,
+    negative_prompt: str = "",
 ) -> Optional[str]:
     """通过当前商业图片模型生成道具参考图。"""
 
@@ -203,6 +205,7 @@ async def _generate_via_gateway(
             "image_size": normalize_image_size(PROP_REF_IMAGE_SIZE),
             "quality": normalize_image_quality(quality, default="medium"),
             "output_format": "png",
+            "negative_prompt": negative_prompt,
         },
     )
 

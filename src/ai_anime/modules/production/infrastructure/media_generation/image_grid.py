@@ -517,10 +517,12 @@ async def _generate_image(
         Path(path).read_bytes() for path in ref_paths
     ]
     effective_prompt = prompt
+    negative_prompt = ""
     if project_dir is not None:
         _style_id, style_preset = get_project_style_preset(project_dir, style)
         style_instructions = str(style_preset.get("style_instructions") or "").strip()
         avoid_instructions = str(style_preset.get("avoid_instructions") or "").strip()
+        negative_prompt = avoid_instructions
         style_sections = []
         if style_instructions and style_instructions not in effective_prompt:
             style_sections.append(f"PROJECT VISUAL STYLE:\n{style_instructions}")
@@ -543,6 +545,7 @@ async def _generate_image(
             "aspect_ratio": aspect_ratio,
             "image_size": image_size,
             "quality": quality or generator.image_quality,
+            "negative_prompt": negative_prompt,
         },
     )
     if not image_bytes:
@@ -745,6 +748,13 @@ async def _call_image_generation_api(
         )
         payload["quality"] = quality
         extra_fields["quality"] = quality
+    negative_prompt = str(image_config.get("negative_prompt") or "").strip()
+    if (
+        negative_prompt
+        and capability is not None
+        and "negative_prompt" in capability.extra_parameter_names
+    ):
+        payload["negative_prompt"] = negative_prompt
     for key, value in model_params.items():
         if key == "quality":
             continue

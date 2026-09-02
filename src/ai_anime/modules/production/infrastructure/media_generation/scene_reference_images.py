@@ -539,6 +539,7 @@ def resolve_scene_reference_image_model(
 def _scene_image_config(
     model: str,
     model_selector: str | None = None,
+    negative_prompt: str = "",
 ) -> dict[str, str]:
     image_config = {
         "model": model,
@@ -546,6 +547,7 @@ def _scene_image_config(
         "aspect_ratio": "16:9",
         "image_size": "1K",
         "output_format": "png",
+        "negative_prompt": negative_prompt,
     }
     capability = runtime_model_capability(model_selector or model)
     if capability is not None and "quality" in capability.extra_parameter_names:
@@ -622,7 +624,11 @@ async def generate_scene_reference_image(
     image_bytes, _text, error = await _call_image_generation_api(
         prompt=prompt,
         reference_images=references or None,
-        image_config=_scene_image_config(selected_model, model_selector),
+        image_config=_scene_image_config(
+            selected_model,
+            model_selector,
+            str(style_preset.get("avoid_instructions") or "").strip(),
+        ),
     )
 
     if error or not image_bytes:
