@@ -124,19 +124,10 @@ def create_script_writer_tools(store: CogneeStore, episode_num: int) -> list[Cal
         如果不存在则返回提示使用语义搜索。
 
         通常章节原文已在 task 描述中提供，此工具作为备用。
-        当 task 中原文被截断时，可调用此工具获取完整内容。
+        调用时返回完整内容，不在应用层截断。
         """
         content = await store.load_episode_content(episode_num)
         if content:
-            # 如果内容过长，分段返回
-            if len(content) > 8000:
-                return f"""## 第{episode_num}集原文（前 8000 字）
-
-{content[:8000]}
-
----
-（原文共 {len(content)} 字，已截取前 8000 字。如需更多细节，请使用 tool_semantic_search 搜索特定内容）
-"""
             return f"## 第{episode_num}集原文\n\n{content}"
 
         return "当前集无完整原文存储，请使用 tool_semantic_search 搜索相关内容"

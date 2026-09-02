@@ -158,7 +158,6 @@ async def pipeline_status(
 
     characters = store.get_all_characters()
     episodes = store.get_all_episodes()
-    main_chars = [c for c in characters if getattr(c, "is_main", False)]
 
     ingest_task = (
         mgr.get_task_for_project(resolved.ctx, "ingest_fast", 0)
@@ -171,8 +170,8 @@ async def pipeline_status(
         or bool(episodes)
     )
     configured = _user_has_configured(username, project_name)
-    portraits_done = bool(main_chars) and all(
-        bool(compute_portrait_path(project_dir, c.name)) for c in main_chars
+    portraits_done = bool(characters) and all(
+        bool(compute_portrait_path(project_dir, c.name)) for c in characters
     )
 
     global_status = {
@@ -183,7 +182,7 @@ async def pipeline_status(
         "portraits_done": portraits_done,
     }
 
-    if not (ingested and configured and characters and episodes and portraits_done):
+    if not (ingested and configured and characters and episodes):
         if not ingested:
             next_step = "ingest"
         elif not configured:
@@ -192,8 +191,6 @@ async def pipeline_status(
             next_step = "characters"
         elif not episodes:
             next_step = "episodes"
-        else:
-            next_step = "portraits"
         task_type, step_name = _STEP_MAP[next_step]
         return {
             "ok": True,

@@ -14,7 +14,6 @@ from ai_anime.modules.story_intake.application.errors import (
     NoChaptersDetected,
     StoryDocumentParseFailed,
     StoryDocumentTooLarge,
-    StoryTextTooLarge,
 )
 from ai_anime.modules.story_intake.application.ports import (
     KnowledgeGraph,
@@ -24,7 +23,6 @@ from ai_anime.modules.story_intake.application.ports import (
 )
 from ai_anime.modules.story_intake.domain import (
     IngestionOptions,
-    MAX_STORY_IMPORT_CHARS,
     MAX_STORY_IMPORT_BYTES,
     STORY_UPLOAD_PREVIEW_CHARS,
 )
@@ -62,11 +60,8 @@ class UploadStoryDocument:
         )
         try:
             story_text = self._documents.load_text(document)
-            text_chars = self._documents.count_text_chars(story_text)
-            if text_chars > MAX_STORY_IMPORT_CHARS:
-                raise StoryTextTooLarge(text_chars, MAX_STORY_IMPORT_CHARS)
             preview = self._get_chapter_preview.execute(story_text)
-        except (StoryDocumentParseFailed, StoryTextTooLarge):
+        except StoryDocumentParseFailed:
             raise
         except Exception as exc:
             logger.warning(
@@ -117,9 +112,7 @@ class StartIngestion:
         try:
             story_text = self._documents.load_text(document)
             text_chars = self._documents.count_text_chars(story_text)
-            if text_chars > MAX_STORY_IMPORT_CHARS:
-                raise StoryTextTooLarge(text_chars, MAX_STORY_IMPORT_CHARS)
-        except (StoryDocumentParseFailed, StoryTextTooLarge):
+        except StoryDocumentParseFailed:
             raise
         except Exception as exc:
             logger.warning(

@@ -50,6 +50,15 @@ const RETRYABLE_ROUTE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const MAX_ROUTE_ATTEMPTS = 3;
 const MODEL_PROXY_REQUEST_TIMEOUT_MS = 30 * 60_000;
 
+function isRecoverableCloudImageWrite(method: string, path: string): boolean {
+  if (!isModelWriteMethod(method)) return false;
+  const pathname = new URL(path, "http://model-proxy.local").pathname;
+  return (
+    pathname === "/v1/images/generations" ||
+    pathname === "/v1/images/edits"
+  );
+}
+
 export interface CommercialModelRoutingConfiguration {
   access: StoredCommercialModelAccess;
   allowsCustomModels: boolean;
@@ -380,9 +389,13 @@ export class CommercialModelProxy {
     for (let index = 0; index < input.routes.length; index += 1) {
       const route = input.routes[index];
       if (!route) continue;
-      const routeAttempts = isModelWriteMethod(input.method)
-        ? 1
-        : MAX_ROUTE_ATTEMPTS;
+      const recoverableCloudImageWrite =
+        route.source === "cloud" &&
+        isRecoverableCloudImageWrite(input.method, input.path);
+      const routeAttempts =
+        !isModelWriteMethod(input.method) || recoverableCloudImageWrite
+          ? MAX_ROUTE_ATTEMPTS
+          : 1;
       for (let routeAttempt = 1; routeAttempt <= routeAttempts; routeAttempt += 1) {
         totalAttempts += 1;
         try {
@@ -424,7 +437,11 @@ export class CommercialModelProxy {
           }
           const canFallback =
             index < input.routes.length - 1 &&
-            shouldFallback(route, upstream.status);
+            shouldFallback(route, upstream.status) &&
+            !(
+              recoverableCloudImageWrite &&
+              RETRYABLE_ROUTE_STATUSES.has(upstream.status)
+            );
           if (!canFallback) {
             this.auditRouteAttempt(
               route,

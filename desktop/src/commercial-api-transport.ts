@@ -97,10 +97,9 @@ export class CommercialApiTransport {
       : null;
     const execute = async (token: string) => {
       let response: Response | null = null;
-      // 模型写请求已经进入服务端幂等协议。收到 502/503/504 后直接重放，
-      // 可能命中仍在处理且尚无可复用结果的 Invocation，并把原始故障覆盖成 409。
-      // 写请求保留原始响应，由上层决定是否按 Invocation 状态恢复；
-      // 无副作用的读取仅在未由上层代理接管重试时自动重试。
+      // 模型写请求已经进入服务端幂等协议，但重放策略由上层模型代理统一掌握：
+      // 图片生成会以同一请求体和 Idempotency-Key 恢复原 Invocation，其他写请求
+      // 仍保持单次。这里不做嵌套重试；无副作用的读取可独立重试。
       const maxAttempts =
         isModelWriteMethod(method) || input.retryTransientFailures === false
           ? 1

@@ -1253,12 +1253,10 @@ class CogneeStore(ProjectSQLiteGraphStateMixin):
         try:
             import litellm
 
-            truncated = content[:8000] if len(content) > 8000 else content
-
             prompt = f"""请分析以下章节内容，提取关键信息。
 
 章节内容：
-{truncated}
+{content}
 
 请用 JSON 格式返回以下信息：
 {{

@@ -280,7 +280,10 @@ class CharacterEnrichment(BaseModel):
         default_factory=list, description="原文中真实出现过的稳定别名/昵称/固定称呼"
     )
     role: str = Field(default="", description="角色定位")
-    is_main: bool = Field(default=False, description="是否为主角/核心角色")
+    is_main: bool = Field(
+        default=False,
+        description="是否为唯一叙事锚点；第一人称项目中即第一人称叙述者",
+    )
     gender: str = Field(default="", description="性别")
     age_group: Literal["child", "youth", "middle", "elder"] = Field(
         default="youth", description="年龄段: child/youth/middle/elder"
@@ -401,7 +404,7 @@ async def extract_characters_from_graph(
 1. name: 角色主名称（最正式的称呼）
 2. aliases: 该角色在原文中真实出现过的其他称呼/头衔/昵称（利用图谱关系发现的稳定别名）
 3. role: 角色定位（如：主角、闺蜜、前男友、皇后）
-4. is_main: 是否为解说主角/第一人称叙述者（整部小说只能有 1 个 is_main=True）
+4. is_main: 是否为唯一叙事锚点；第一人称项目中即第一人称叙述者（整部小说只能有 1 个 is_main=True）。注意：这与 role 中可有多人的“主角”无关
 5. gender: 性别（男/女）
 6. age_group: 年龄段分类，必须是以下四个值之一: child（儿童）/ youth（青年）/ middle（中年）/ elder（老年）
 7. body_type: 体型描述（如：纤细高挑、健壮魁梧、娇小玲珑）
@@ -455,7 +458,7 @@ async def extract_characters_from_graph(
                 else:
                     found_first = True
             narrator_main = next((c.name for c in characters if c.is_main), "")
-            log(f"⚠️ LLM 返回 {main_count} 个解说主角，已只保留第一个: {narrator_main}")
+            log(f"⚠️ LLM 返回 {main_count} 个叙事锚点，已只保留第一个: {narrator_main}")
         log(f"LLM 结构化提取完成: {len(characters)} 个角色")
     except Exception as e:
         import logging

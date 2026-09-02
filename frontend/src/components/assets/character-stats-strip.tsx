@@ -15,7 +15,8 @@ import type { Character } from "@/modules/asset_world/public";
 export type CharacterStats = {
   total: number;
   withPortraits: number;
-  mainCharacters: number;
+  storyLeads: number;
+  narrativeAnchors: number;
   identityReady: number;
   voiceReady: number;
 };
@@ -23,7 +24,7 @@ export type CharacterStats = {
 export type CharacterStatsStripProps = {
   characters: Character[];
   identityCounts?: Record<string, number>;
-  mainCharacterLabel?: string;
+  narrativeAnchorLabel?: string;
   className?: string;
 };
 
@@ -39,6 +40,13 @@ function hasValue(value: string | null | undefined): boolean {
   return Boolean(value?.trim());
 }
 
+function isStoryLeadRole(role: string | null | undefined): boolean {
+  const value = role?.trim() ?? "";
+  return (
+    value.includes("主角") || /^(男主|女主)(?:$|[、，,/\s])/.test(value)
+  );
+}
+
 export function deriveCharacterStats(
   characters: Character[],
   identityCounts?: Record<string, number>,
@@ -46,7 +54,8 @@ export function deriveCharacterStats(
   const stats: CharacterStats = {
     total: characters.length,
     withPortraits: 0,
-    mainCharacters: 0,
+    storyLeads: 0,
+    narrativeAnchors: 0,
     identityReady: 0,
     voiceReady: 0,
   };
@@ -55,9 +64,8 @@ export function deriveCharacterStats(
     if (hasValue(character.portrait_path) || hasValue(character.portrait_url)) {
       stats.withPortraits += 1;
     }
-    if (character.is_main === true) {
-      stats.mainCharacters += 1;
-    }
+    if (isStoryLeadRole(character.role)) stats.storyLeads += 1;
+    if (character.is_main === true) stats.narrativeAnchors += 1;
     if (hasValue(character.reference_audio_path)) {
       stats.voiceReady += 1;
     }
@@ -72,7 +80,7 @@ export function deriveCharacterStats(
 export function CharacterStatsStrip({
   characters,
   identityCounts,
-  mainCharacterLabel = "解说主角",
+  narrativeAnchorLabel = "叙事锚点",
   className,
 }: CharacterStatsStripProps) {
   const stats = useMemo(
@@ -83,10 +91,16 @@ export function CharacterStatsStrip({
   const items: DisplayStatItem[] = [
     { key: "total", label: "总角色", icon: Users, display: `${stats.total}` },
     {
-      key: "mainCharacters",
-      label: mainCharacterLabel,
+      key: "storyLeads",
+      label: "故事主角",
+      icon: Users,
+      display: `${stats.storyLeads}`,
+    },
+    {
+      key: "narrativeAnchors",
+      label: narrativeAnchorLabel,
       icon: Star,
-      display: `${stats.mainCharacters}`,
+      display: `${stats.narrativeAnchors}`,
     },
     {
       key: "withPortraits",

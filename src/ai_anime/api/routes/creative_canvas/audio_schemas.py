@@ -169,7 +169,7 @@ class FreezoneAudioSpeechRequest(BaseModel):
     voice_ref: Optional[FreezoneAudioVoiceRef] = Field(
         default=None,
         description=(
-            "可选声线引用。为空时使用项目默认解说/解说主角声线；传入时后端会按 scope 和角色/身份标识"
+            "可选声线引用。为空时使用项目默认解说/第一人称叙述者声线；传入时后端会按 scope 和角色/身份标识"
             "重新解析账号级或项目内参考音频。"
         ),
     )

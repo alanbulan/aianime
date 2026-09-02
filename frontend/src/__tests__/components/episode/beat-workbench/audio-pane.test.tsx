@@ -293,7 +293,7 @@ describe("AudioPane", () => {
     await user.click(screen.getByRole("button", { name: "确认" }));
 
     expect(toastError).toHaveBeenCalledWith(
-      "Beat 01 解说声线缺失：解说主角声线缺失，请到角色工作台上传角色声线。请到「角色」中上传解说主角声线。",
+      "Beat 01 解说声线缺失：解说主角声线缺失，请到角色工作台上传角色声线。请到「角色」中上传第一人称叙述者声线。",
       expect.objectContaining({
         action: expect.objectContaining({ label: "去配置" }),
       }),

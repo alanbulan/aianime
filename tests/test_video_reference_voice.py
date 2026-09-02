@@ -557,7 +557,7 @@ def test_resolve_narrator_source_first_person_missing_narrator_main_audio(tmp_pa
 
     assert resolution.audio_path is None
     assert resolution.sha256 == ""
-    assert "解说主角声线缺失" in resolution.error
+    assert "第一人称叙述者声线缺失" in resolution.error
 
 
 def test_resolve_narrator_source_first_person_falls_back_to_character_default(tmp_path):
@@ -624,7 +624,7 @@ def test_resolve_narrator_source_first_person_missing_narrator_main(tmp_path):
     )
 
     assert resolution.audio_path is None
-    assert "未找到解说主角" in resolution.error
+    assert "未选择第一人称叙述者" in resolution.error
 
 
 def test_resolve_narrator_source_third_person_uses_project_narrator(tmp_path):

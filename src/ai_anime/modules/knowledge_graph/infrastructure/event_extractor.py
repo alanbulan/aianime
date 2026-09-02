@@ -71,15 +71,10 @@ class EventExtractor:
 
         log(f"开始提取第 {chapter_num} 章事件...")
 
-        # 如果章节内容过长，截取
-        truncated = chapter_content[:12000] if len(chapter_content) > 12000 else chapter_content
-        if len(chapter_content) > 12000:
-            log(f"章节内容过长 ({len(chapter_content)} 字)，已截取前 12000 字")
-
         prompt = f"""分析以下章节内容，识别其中的独立事件/场景。
 
 章节内容：
-{truncated}
+{chapter_content}
 
 事件划分原则：
 1. 每个事件是一个完整的叙事单位（一次对话、一个场景、一个动作序列）

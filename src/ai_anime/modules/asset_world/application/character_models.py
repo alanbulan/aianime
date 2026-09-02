@@ -138,7 +138,10 @@ class NovelCharacter(BaseModel):
     name: str = Field(..., description="角色全名")
     aliases: List[str] = Field(default_factory=list, description="别名列表")
     role: str = Field(default="", description="角色定位（主角/配角/反派）")
-    is_main: bool = Field(default=False, description="是否为主角/核心角色")
+    is_main: bool = Field(
+        default=False,
+        description="是否为唯一叙事锚点；第一人称项目中即第一人称叙述者",
+    )
     gender: str = Field(default="", description="性别")
     age_group: str = Field(
         default="youth", description="年龄段: child/youth/middle/elder"

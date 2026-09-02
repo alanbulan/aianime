@@ -164,28 +164,36 @@ export interface CharacterMainCopy {
   unsetMain: string;
   mainSet: string;
   mainUnset: string;
+  help: string;
 }
 
 const DRAMA_MAIN_COPY: CharacterMainCopy = {
-  label: "主角",
-  makeMain: "设为主角",
-  unsetMain: "取消主角",
-  mainSet: "已设为主角",
-  mainUnset: "已取消主角",
+  label: "叙事锚点",
+  makeMain: "设为叙事锚点",
+  unsetMain: "取消叙事锚点",
+  mainSet: "已设为叙事锚点",
+  mainUnset: "已取消叙事锚点",
+  help:
+    "用于确定主要叙事视角；全项目只能选择 1 人，选择其他角色会自动替换。故事主角请在“角色定位”中设置，可以设置多人。",
 };
 
-const NARRATED_MAIN_COPY: CharacterMainCopy = {
-  label: "解说主角",
-  makeMain: "设为解说主角",
-  unsetMain: "取消解说主角",
-  mainSet: "已设为解说主角",
-  mainUnset: "已取消解说主角",
+const FIRST_PERSON_MAIN_COPY: CharacterMainCopy = {
+  label: "第一人称叙述者",
+  makeMain: "设为第一人称叙述者",
+  unsetMain: "取消第一人称叙述者",
+  mainSet: "已设为第一人称叙述者",
+  mainUnset: "已取消第一人称叙述者",
+  help:
+    "用于第一人称改写和解说声线；全项目只能选择 1 人，选择其他角色会自动替换。故事主角请在“角色定位”中设置，可以设置多人。",
 };
 
 export function characterMainCopyForSpineTemplate(
   spineTemplate: string | null | undefined,
+  narrationStyle?: string | null,
 ): CharacterMainCopy {
-  return spineTemplate === "narrated" ? NARRATED_MAIN_COPY : DRAMA_MAIN_COPY;
+  return spineTemplate === "narrated" && narrationStyle === "first_person"
+    ? FIRST_PERSON_MAIN_COPY
+    : DRAMA_MAIN_COPY;
 }
 
 const CHARACTER_SEARCH_FIELDS = [

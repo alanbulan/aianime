@@ -497,12 +497,12 @@ function CharacterListItem({
   character,
   selected,
   onSelect,
-  mainCharacterLabel,
+  mainCopy,
 }: {
   character: Character;
   selected: boolean;
   onSelect: () => void;
-  mainCharacterLabel: string;
+  mainCopy: CharacterMainCopy;
 }) {
   const { t } = useTranslation();
   const ageKey = labelKeyFor(AGE_GROUP_OPTIONS, character.age_group);
@@ -534,9 +534,10 @@ function CharacterListItem({
           {character.is_main && (
             <span
               className="inline-flex items-center gap-0.5 text-xs font-medium text-primary"
-              data-ui-tooltip={mainCharacterLabel}
+              data-ui-tooltip={mainCopy.help}
+              aria-label={mainCopy.label}
             >
-              <Star className="size-3.5 fill-current" />
+              <Star className="size-3.5 fill-current" aria-hidden />
             </span>
           )}
         </div>
@@ -609,17 +610,18 @@ function CharacterHeaderRow({
         <h2 className="truncate text-[19px] font-semibold tracking-tight text-foreground">
           {character.name}
         </h2>
-        {(roleLabel || character.is_main) && (
+        {roleLabel && (
+          <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+            {roleLabel}
+          </span>
+        )}
+        {character.is_main && (
           <span
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-              character.is_main
-                ? "border border-warning/40 bg-warning/15 text-warning"
-                : "border border-border bg-muted text-muted-foreground",
-            )}
+            className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-2 py-0.5 text-xs font-semibold text-warning"
+            data-ui-tooltip={mainCopy.help}
           >
-            {character.is_main && <Star className="size-2.5 fill-current" />}
-            {character.is_main ? mainCopy.label : roleLabel}
+            <Star className="size-2.5 fill-current" aria-hidden />
+            {mainCopy.label}
           </span>
         )}
       </div>
@@ -649,6 +651,8 @@ function CharacterHeaderRow({
           onClick={() => void toggleMain()}
           disabled={updatePending}
           className={cn("gap-1.5", character.is_main && "text-primary")}
+          data-ui-tooltip={mainCopy.help}
+          aria-label={`${character.is_main ? mainCopy.unsetMain : mainCopy.makeMain}。${mainCopy.help}`}
         >
           <Star
             className={cn("size-3.5", character.is_main && "fill-current")}
@@ -863,7 +867,10 @@ function DetailsFormCard({
               className={CHARACTER_INPUT_CLASS}
             />
           </Field>
-          <Field label={t("characters.basics.role")}>
+          <Field
+            label={t("characters.basics.role")}
+            hint="故事主角在这里设置，可以设置多人；星标只选择一个叙事锚点。"
+          >
             <Input
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -2383,7 +2390,7 @@ function CharactersSplit({
                   character={char}
                   selected={selectedName === char.name}
                   onSelect={() => setSelectedName(char.name)}
-                  mainCharacterLabel={mainCopy.label}
+                  mainCopy={mainCopy}
                 />
               ))}
             </div>
@@ -2484,7 +2491,7 @@ export function CharactersPageView({
           <div className="shrink-0 border-b border-border bg-background px-3 py-3 lg:px-9">
             <CharacterStatsStrip
               characters={characters}
-              mainCharacterLabel={mainCopy.label}
+              narrativeAnchorLabel={mainCopy.label}
             />
           </div>
           <CharactersSplit

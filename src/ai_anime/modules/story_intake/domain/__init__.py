@@ -2,7 +2,6 @@
 
 from ai_anime.modules.story_intake.domain.ingestion import (
     IngestionOptions,
-    MAX_STORY_IMPORT_CHARS,
     MAX_STORY_IMPORT_BYTES,
     MAX_STORY_UPLOAD_BYTES,
     STORY_UPLOAD_PREVIEW_CHARS,
@@ -20,7 +19,6 @@ from ai_anime.modules.story_intake.domain.imported_story import (
 
 __all__ = [
     "IngestionOptions",
-    "MAX_STORY_IMPORT_CHARS",
     "MAX_STORY_IMPORT_BYTES",
     "MAX_STORY_UPLOAD_BYTES",
     "STORY_UPLOAD_PREVIEW_CHARS",

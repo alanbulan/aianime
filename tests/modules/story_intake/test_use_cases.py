@@ -43,6 +43,7 @@ class FakeStoryDocuments:
         }
         self.format_check = {"level": "ok", "issues": []}
         self.upload_stream = None
+        self.text_chars = 12
 
     def store_upload(self, project_dir, filename, stream):
         self.upload_stream = stream
@@ -55,7 +56,7 @@ class FakeStoryDocuments:
         return self.story_text
 
     def count_text_chars(self, text):
-        return 12
+        return self.text_chars
 
     def build_chapter_preview(self, text):
         return dict(self.preview)
@@ -145,6 +146,19 @@ def test_upload_story_document_combines_preview_and_format_check(tmp_path):
     assert result["format_check"] == documents.format_check
 
 
+def test_upload_story_document_has_no_application_character_limit(tmp_path):
+    documents = FakeStoryDocuments(tmp_path)
+    documents.text_chars = 100_001
+    use_case = UploadStoryDocument(documents, GetChapterPreview(documents))
+
+    result = use_case.execute(
+        _scope(tmp_path),
+        UploadStoryDocumentCommand(filename="novel.txt", stream=io.BytesIO(b"story")),
+    )
+
+    assert result["filename"] == "novel.txt"
+
+
 @pytest.mark.asyncio
 async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
     documents = FakeStoryDocuments(tmp_path)
@@ -192,6 +206,24 @@ async def test_start_ingestion_owns_the_stable_task_payload(tmp_path):
         "queue": "inline",
         "message": "导入任务已进入队列: novel.txt",
     }
+
+
+@pytest.mark.asyncio
+async def test_start_ingestion_has_no_application_character_limit(tmp_path):
+    documents = FakeStoryDocuments(tmp_path)
+    documents.text_chars = 100_001
+    scheduler = FakeTaskScheduler()
+
+    await StartIngestion(
+        documents,
+        FakeProjectSettings(),
+        scheduler,
+    ).execute(
+        _scope(tmp_path),
+        StartIngestionCommand(filename="novel.txt", spine_template="drama"),
+    )
+
+    assert scheduler.calls[0][1].text_chars == 100_001
 
 
 @pytest.mark.asyncio

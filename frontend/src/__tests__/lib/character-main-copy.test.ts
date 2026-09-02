@@ -4,23 +4,34 @@ import { describe, expect, it } from "vitest";
 import { characterMainCopyForSpineTemplate } from "@/modules/asset_world/public";
 
 describe("characterMainCopyForSpineTemplate", () => {
-  it("uses plain protagonist copy for premium drama projects", () => {
+  it("separates the narrative anchor from story protagonists", () => {
     expect(characterMainCopyForSpineTemplate("drama")).toMatchObject({
-      label: "主角",
-      makeMain: "设为主角",
-      unsetMain: "取消主角",
-      mainSet: "已设为主角",
-      mainUnset: "已取消主角",
+      label: "叙事锚点",
+      makeMain: "设为叙事锚点",
+      unsetMain: "取消叙事锚点",
+      mainSet: "已设为叙事锚点",
+      mainUnset: "已取消叙事锚点",
+    });
+    expect(characterMainCopyForSpineTemplate("drama").help).toContain(
+      "角色定位",
+    );
+  });
+
+  it("uses explicit narrator copy for first-person narrated projects", () => {
+    expect(
+      characterMainCopyForSpineTemplate("narrated", "first_person"),
+    ).toMatchObject({
+      label: "第一人称叙述者",
+      makeMain: "设为第一人称叙述者",
+      unsetMain: "取消第一人称叙述者",
+      mainSet: "已设为第一人称叙述者",
+      mainUnset: "已取消第一人称叙述者",
     });
   });
 
-  it("uses narrator protagonist copy for narrated projects", () => {
-    expect(characterMainCopyForSpineTemplate("narrated")).toMatchObject({
-      label: "解说主角",
-      makeMain: "设为解说主角",
-      unsetMain: "取消解说主角",
-      mainSet: "已设为解说主角",
-      mainUnset: "已取消解说主角",
-    });
+  it("keeps third-person narrated projects on narrative-anchor semantics", () => {
+    expect(
+      characterMainCopyForSpineTemplate("narrated", "third_person").label,
+    ).toBe("叙事锚点");
   });
 });

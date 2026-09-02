@@ -31,8 +31,8 @@ NARRATOR_ASSET_KEY = "voice:narrator"
 DEFAULT_NARRATION_STYLE = "third_person"
 NARRATION_STYLES: dict[str, dict[str, str]] = {
     "first_person": {
-        "label": "第一人称（解说主角视角）",
-        "prompt": "以第一人称视角，用解说主角内心独白般的语气娓娓道来",
+        "label": "第一人称（角色叙述视角）",
+        "prompt": "以第一人称视角，用第一人称叙述者内心独白般的语气娓娓道来",
     },
     "third_person": {
         "label": "第三人称（旁观者视角）",
@@ -214,7 +214,7 @@ def resolve_narrator_source(
                 source="protagonist_identity",
                 audio_path=None,
                 sha256="",
-                error="未找到解说主角（is_main=True），请先在角色工作台标记解说主角",
+                error="未选择第一人称叙述者，请先在角色工作台设置第一人称叙述者",
             )
         audio_path, sha256, identity_id, identity_name = _narrator_main_identity_audio(
             project_dir, narrator_main
@@ -228,7 +228,7 @@ def resolve_narrator_source(
                 character_name=narrator_main.name,
                 identity_id=identity_id,
                 identity_name=identity_name,
-                error="解说主角声线缺失，请在角色工作台为解说主角配置声线",
+                error="第一人称叙述者声线缺失，请在角色工作台为第一人称叙述者配置声线",
             )
         return NarratorResolution(
             style=style,

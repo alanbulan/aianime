@@ -30,7 +30,7 @@ describe("Production audio prerequisite rules", () => {
       ),
     ).toEqual({
       message:
-        "Beat 01 解说声线缺失：请到角色工作台配置解说主角。请到「角色」中上传解说主角声线。",
+        "Beat 01 解说声线缺失：请到角色工作台配置解说主角。请到「角色」中上传第一人称叙述者声线。",
       target: "characters",
     });
   });

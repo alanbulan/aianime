@@ -27,13 +27,6 @@ class StoryDocumentTooLarge(StoryIntakeError):
         self.max_bytes = max_bytes
 
 
-class StoryTextTooLarge(StoryIntakeError):
-    def __init__(self, actual_chars: int, max_chars: int) -> None:
-        super().__init__(actual_chars, max_chars)
-        self.actual_chars = actual_chars
-        self.max_chars = max_chars
-
-
 class StoryDocumentNotFound(StoryIntakeError):
     def __init__(self, filename: str) -> None:
         super().__init__(filename)

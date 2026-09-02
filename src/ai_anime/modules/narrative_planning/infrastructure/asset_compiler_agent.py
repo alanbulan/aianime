@@ -794,7 +794,6 @@ class AssetCompiler:
             for scene in existing_scenes
             if str(getattr(scene, "name", "") or "").strip()
         }
-        excerpt = source_text[:12000]
         task = f"""请为当前集规划 2.0 场景资产。
 
 ## 集数
@@ -804,7 +803,7 @@ class AssetCompiler:
 {", ".join(sorted(existing_scene_names)) if existing_scene_names else "（无）"}
 
 ## 本集文本
-{excerpt}
+{source_text}
 """
         agent = Agent(
             get_text_pydantic_model(),

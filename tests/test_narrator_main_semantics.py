@@ -65,5 +65,5 @@ def test_first_person_narrator_copy_uses_narrator_main_terms(tmp_path):
     )
 
     assert resolution.source == "protagonist_identity"
-    assert NARRATION_STYLES["first_person"]["label"] == "第一人称（解说主角视角）"
-    assert "解说主角" in NARRATION_STYLES["first_person"]["prompt"]
+    assert NARRATION_STYLES["first_person"]["label"] == "第一人称（角色叙述视角）"
+    assert "第一人称叙述者" in NARRATION_STYLES["first_person"]["prompt"]

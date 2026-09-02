@@ -69,7 +69,7 @@ logger = logging.getLogger("ai_anime.api.projects")
 
 router = APIRouter()
 NARRATOR_VOICE_MODE_EXPLANATION = (
-    "第一人称解说使用解说主角声线；第三人称解说使用项目解说声线。"
+    "第一人称解说使用所选第一人称叙述者的角色声线；第三人称解说使用项目解说声线。"
 )
 PROJECT_COVER_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 PROJECT_COVER_MAX_BYTES = 12 * 1024 * 1024
@@ -218,7 +218,7 @@ def _project_cover_candidates(
 
 def _narrator_identity_detail(resolution) -> str:
     if not resolution.character_name:
-        return "未配置解说主角"
+        return "未选择第一人称叙述者"
     if resolution.identity_name:
         return f"{resolution.character_name}（{resolution.identity_name}）"
     if resolution.identity_id:
@@ -234,7 +234,7 @@ def _narrator_voice_display_lines(
     if style == "first_person":
         detail = _narrator_identity_detail(resolution)
         return {
-            "heading": "第一人称解说主角声线",
+            "heading": "第一人称叙述者声线",
             "detail": f"当前为第一人称：使用 {detail}",
             "explanation": NARRATOR_VOICE_MODE_EXPLANATION,
         }

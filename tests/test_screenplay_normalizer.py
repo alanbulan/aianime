@@ -272,6 +272,18 @@ async def test_normalize_screenplay_scenes_uses_agent_output():
 
 
 @pytest.mark.asyncio
+async def test_normalize_screenplay_scenes_sends_complete_source():
+    fake_agent = _FakeAgent(NormalizedScreenplay())
+    marker = "剧本末尾不可丢失"
+    source = "场景正文" * 5_100 + marker
+
+    await normalize_screenplay_scenes(source, agent=fake_agent)
+
+    assert marker in fake_agent.prompts[0]
+    assert source in fake_agent.prompts[0]
+
+
+@pytest.mark.asyncio
 async def test_normalize_screenplay_scenes_returns_empty_without_calling_agent():
     fake_agent = _FakeAgent(NormalizedScreenplay())
 

@@ -3793,6 +3793,62 @@ test("local model proxy does not reuse an upstream length after fetch decodes th
   assert.equal(await response.text(), payload);
 });
 
+test("cloud image writes recover transient failures with one idempotency key", async (t) => {
+  const calls = [];
+  const audit = [];
+  const client = {
+    async modelRequest(input) {
+      calls.push(input);
+      if (calls.length === 1) throw new TypeError("fetch failed");
+      if (calls.length === 2) {
+        return Response.json(
+          { error: { message: "gateway unavailable" } },
+          { status: 502 },
+        );
+      }
+      return Response.json({ data: [{ url: "https://example.test/image.png" }] });
+    },
+  };
+  const proxy = new CommercialModelProxy(
+    client,
+    {
+      async summary() {
+        return { publicKeyHash: "device-public-key-hash" };
+      },
+    },
+    (entry) => audit.push(entry),
+  );
+  configureCloudProxy(proxy, [
+    { modelId: "QWEN_IMAGE_2512", role: "IMAGE_GENERATION" },
+  ]);
+  await proxy.start();
+  t.after(() => proxy.stop());
+
+  const response = await fetch(`${proxy.baseUrl}/images/generations`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${proxy.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: "QWEN_IMAGE_2512", prompt: "角色肖像" }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-ai-anime-route-attempts"), "3");
+  assert.equal(calls.length, 3);
+  const idempotencyKeys = calls.map((call) =>
+    new Headers(call.headers).get("Idempotency-Key"),
+  );
+  assert.match(idempotencyKeys[0], /^[0-9a-f-]{36}$/);
+  assert.equal(new Set(idempotencyKeys).size, 1);
+  assert.deepEqual(
+    audit
+      .filter((entry) => entry.event === "route_attempt")
+      .map((entry) => entry.outcome),
+    ["retry", "retry", "selected"],
+  );
+});
+
 test("local model proxy forwards multipart, Anthropic, and Range protocol data", async (t) => {
   const calls = [];
   const client = {

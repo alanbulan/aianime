@@ -18,7 +18,7 @@ const characters: Character[] = [
   },
   {
     name: "Jun",
-    role: "配角",
+    role: "女主/联合主角",
     portrait_path: "assets/characters/Jun/portrait.png",
     reference_audio_path: "",
   },
@@ -31,11 +31,12 @@ const characters: Character[] = [
 ];
 
 describe("deriveCharacterStats", () => {
-  it("counts portraits, main characters, identities, and ready voice paths", () => {
+  it("counts story leads separately from the unique narrative anchor", () => {
     expect(deriveCharacterStats(characters, { Mira: 2, Jun: 1 })).toEqual({
       total: 3,
       withPortraits: 2,
-      mainCharacters: 1,
+      storyLeads: 2,
+      narrativeAnchors: 1,
       identityReady: 2,
       voiceReady: 1,
     });
@@ -59,7 +60,8 @@ describe("CharacterStatsStrip", () => {
     const strip = screen.getByRole("list", { name: "角色统计" });
     expect(strip).toHaveClass("custom-strip");
     expect(strip).toHaveTextContent("总角色3");
-    expect(strip).toHaveTextContent("解说主角1");
+    expect(strip).toHaveTextContent("故事主角2");
+    expect(strip).toHaveTextContent("叙事锚点1");
     expect(strip).toHaveTextContent("头像2/3");
     expect(strip).toHaveTextContent("身份2/3");
     expect(strip).toHaveTextContent("声线1/3");
@@ -69,15 +71,16 @@ describe("CharacterStatsStrip", () => {
     expect(screen.getByLabelText("声线: 1/3")).toBeInTheDocument();
   });
 
-  it("uses the supplied main character label for drama projects", () => {
+  it("uses the supplied narrative anchor label without changing lead count", () => {
     render(
       <CharacterStatsStrip
         characters={characters}
-        mainCharacterLabel="主角"
+        narrativeAnchorLabel="第一人称叙述者"
       />,
     );
 
-    expect(screen.getByLabelText("主角: 1")).toBeInTheDocument();
-    expect(screen.queryByLabelText("解说主角: 1")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("故事主角: 2")).toBeInTheDocument();
+    expect(screen.getByLabelText("第一人称叙述者: 1")).toBeInTheDocument();
+    expect(screen.queryByLabelText("叙事锚点: 1")).not.toBeInTheDocument();
   });
 });

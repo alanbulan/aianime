@@ -216,7 +216,7 @@ def _status_from_resolution(style: str, resolution: NarratorResolution) -> Narra
 
 def _narrator_identity_detail(status: NarratorReferenceStatus) -> str:
     if not status.character_name:
-        return "未配置解说主角"
+        return "未选择第一人称叙述者"
     if status.identity_name:
         return f"{status.character_name}（{status.identity_name}）"
     if status.identity_id:

@@ -99,6 +99,7 @@ export function createUseCharactersPageController(
       projectResponse?.narration_style === "first_person";
     const mainCopy = characterMainCopyForSpineTemplate(
       projectResponse?.spine_template,
+      projectResponse?.narration_style,
     );
     const filteredCharacters = useMemo(
       () => filterCharacters(characters, searchQuery),

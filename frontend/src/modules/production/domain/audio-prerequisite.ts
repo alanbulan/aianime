@@ -20,9 +20,13 @@ export function resolveAudioRegenerationError(
   if (!message.includes("解说声线缺失")) {
     return { message, target: null };
   }
-  if (message.includes("解说主角") || message.includes("角色工作台")) {
+  if (
+    message.includes("第一人称叙述者") ||
+    message.includes("解说主角") ||
+    message.includes("角色工作台")
+  ) {
     return {
-      message: `${message}。请到「角色」中上传解说主角声线。`,
+      message: `${message}。请到「角色」中上传第一人称叙述者声线。`,
       target: "characters",
     };
   }

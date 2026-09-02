@@ -348,6 +348,50 @@ async def test_narrated_scene_analysis_retries_one_valid_empty_response(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_narrated_scene_analysis_sends_complete_episode_text(monkeypatch):
+    import ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent as asset_compiler
+
+    calls: list[str] = []
+
+    class Agent:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        async def run(self, task: str):
+            calls.append(task)
+            return SimpleNamespace(
+                output=SimpleNamespace(
+                    scenes=[
+                        asset_compiler.NarratedSceneRequirement(
+                            scene_name="公司大厅",
+                            evidence_lines=["他走进公司大厅。"],
+                        )
+                    ]
+                )
+            )
+
+    monkeypatch.setattr(asset_compiler, "Agent", Agent)
+    monkeypatch.setattr(asset_compiler, "get_text_pydantic_model", lambda: "text-model")
+    monkeypatch.setattr(
+        asset_compiler,
+        "get_text_pydantic_model_settings",
+        lambda *_args: {},
+    )
+    marker = "场景规划原文末尾"
+    source = "本集正文" * 3_100 + marker
+    compiler = asset_compiler.AssetCompiler(_FakeCogneeStore())
+
+    await compiler._analyze_narrated_scene_requirements(
+        source,
+        SimpleNamespace(number=1, title="第一集"),
+        lambda _message: None,
+    )
+
+    assert marker in calls[0]
+    assert source in calls[0]
+
+
+@pytest.mark.asyncio
 async def test_compile_scenes_promotes_stable_visual_states_to_pending_scenes(monkeypatch):
     import ai_anime.modules.narrative_planning.infrastructure.asset_compiler_agent as asset_compiler
 

@@ -14,7 +14,6 @@ from ai_anime.modules.story_intake.application.errors import (
     StoryDocumentParseFailed,
     StoryDocumentTooLarge,
     StoryIntakeError,
-    StoryTextTooLarge,
     UnsafeStoryDocumentName,
     UnsupportedStoryDocument,
 )
@@ -79,7 +78,6 @@ __all__ = [
     "StoryDocumentTooLarge",
     "StoryIntakeError",
     "StoryImportRequired",
-    "StoryTextTooLarge",
     "UnsafeStoryDocumentName",
     "UnsupportedStoryDocument",
     "UploadStoryDocumentCommand",

@@ -4,11 +4,14 @@ import pytest
 
 
 class _FakePipelineStore:
+    def __init__(self, *, is_main: bool = True):
+        self.is_main = is_main
+
     def get_all_characters(self):
         return [
             SimpleNamespace(
                 name="Hero",
-                is_main=True,
+                is_main=self.is_main,
                 identities=[
                     SimpleNamespace(identity_id="hero_main", identity_name="Hero Main")
                 ],
@@ -103,6 +106,41 @@ async def test_pipeline_status_uses_sparse_beat_numbers_for_media(monkeypatch, t
     assert response["data"]["episode_status"]["video"] is True
 
 
+@pytest.mark.asyncio
+async def test_pipeline_does_not_use_narrative_anchor_as_portrait_gate(
+    monkeypatch, tmp_path
+):
+    from ai_anime.api.deps import ProjectResolution
+    from ai_anime.api.routes.task_execution import pipeline
+
+    async def fake_resolve_project_scope(project, user, *, required_role="viewer"):
+        return ProjectResolution(
+            ctx=None,
+            username="alice",
+            project_name="demo",
+            project_dir=tmp_path,
+            output_dir=str(tmp_path),
+            state_dir=str(tmp_path / "state"),
+            runtime_dir=str(tmp_path / "runtime"),
+        )
+
+    monkeypatch.setattr(pipeline, "resolve_project_scope", fake_resolve_project_scope)
+    monkeypatch.setattr(pipeline, "_user_has_configured", lambda *_: True)
+    monkeypatch.setattr(pipeline, "_advanced_video_prompts_required", lambda *_: False)
+    monkeypatch.setattr(pipeline, "compute_portrait_path", lambda *_: "")
+
+    response = await pipeline.pipeline_status(
+        project="demo",
+        episode=1,
+        user={"username": "alice"},
+        store=_FakePipelineStore(is_main=False),
+    )
+
+    assert response["data"]["global"]["portraits_done"] is False
+    assert response["data"]["current_episode"] == 1
+    assert response["data"]["next_step"] != "portraits"
+
+
 def test_pipeline_script_status_accepts_current_sqlite_beat_fields():
     from ai_anime.modules.task_execution.public import beat_has_script_content
 
@@ -156,6 +194,7 @@ def test_pipeline_rejects_first_frames_older_than_current_sketches(tmp_path):
         )
         is False
     )
+
 
 def test_pipeline_requires_identity_detection_newer_than_sketches(tmp_path):
     from ai_anime.api.routes.task_execution.pipeline import (

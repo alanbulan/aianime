@@ -263,7 +263,7 @@ export function createUseStoryIntakeController(
         ?.labelKey ?? "ingest.projectTypes.drama";
     const spineTemplateLocked = ingestStarted || (hasImportedContent && !reimporting);
     // 解说风格（第一/第三人称）只对解说剧（narrated）有意义；精品剧（drama）不存在
-    // 解说主角/旁白的人称概念，切到精品剧时隐藏入口并在保存时不落库该字段。
+    // 第一人称叙述者/旁白的人称概念，切到精品剧时隐藏入口并在保存时不落库该字段。
     const showNarrationStyle = settingsValues.spine_template === "narrated";
 
     const handleFieldChange = useCallback(
