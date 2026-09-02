@@ -3,6 +3,7 @@
 import asyncio
 import os
 import uuid
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -144,7 +145,10 @@ def test_ladybug_native_binding_supports_chinese_project_paths(tmp_path):
     )
 
     assert requests
-    assert requests[0].kwargs["database_path"] == str(database_path).encode("mbcs")
+    remote_database_path = requests[0].kwargs["database_path"]
+    assert isinstance(remote_database_path, str)
+    assert remote_database_path.isascii()
+    assert Path(remote_database_path).resolve() == database_path.resolve()
 
 
 def test_first_ce_gateway_configuration_does_not_require_restart(monkeypatch):

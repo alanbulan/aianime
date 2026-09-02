@@ -11,7 +11,9 @@ import hashlib
 import importlib
 import logging
 import os
+import subprocess
 import sys
+import tempfile
 import uuid
 import warnings
 from contextlib import contextmanager
@@ -56,6 +58,7 @@ _KEYLESS_MODEL_ACCESS_PLACEHOLDER = "ai-anime-no-auth"
 logger = logging.getLogger(__name__)
 _cognee_logging_setup_lock = RLock()
 _MISSING_ENV = object()
+_ladybug_path_alias_lock = RLock()
 
 
 @contextmanager
@@ -416,19 +419,60 @@ def _apply_cognee_runtime_defaults() -> None:
 
 
 def _ladybug_native_database_path(database_path: object) -> object:
-    """Encode non-ASCII Windows paths for Ladybug's narrow native binding."""
+    """Expose a non-ASCII Ladybug database path through an ASCII junction."""
     if os.name != "nt" or not isinstance(database_path, str) or database_path.isascii():
         return database_path
-    try:
-        return database_path.encode("mbcs")
-    except UnicodeEncodeError as exc:
+
+    logical_path = Path(database_path)
+    target_directory = logical_path.parent.resolve()
+    target_directory.mkdir(parents=True, exist_ok=True)
+    alias_root = Path(tempfile.gettempdir()) / "ai-anime-ladybug-paths"
+    if not str(alias_root).isascii() or not logical_path.name.isascii():
         raise RuntimeError(
-            "Ladybug 图数据库无法访问当前项目路径：路径包含 Windows 系统编码不支持的字符"
-        ) from exc
+            "Ladybug 图数据库无法访问当前项目路径：无法生成纯 ASCII 路径别名"
+        )
+
+    alias_key = hashlib.sha256(
+        os.path.normcase(str(target_directory)).encode("utf-8")
+    ).hexdigest()
+    alias_directory = alias_root / alias_key
+
+    with _ladybug_path_alias_lock:
+        alias_root.mkdir(parents=True, exist_ok=True)
+        if not alias_directory.exists():
+            try:
+                alias_directory.symlink_to(target_directory, target_is_directory=True)
+            except OSError:
+                completed = subprocess.run(
+                    [
+                        "cmd.exe",
+                        "/d",
+                        "/c",
+                        "mklink",
+                        "/J",
+                        str(alias_directory),
+                        str(target_directory),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                )
+                if completed.returncode != 0 and not alias_directory.exists():
+                    detail = (completed.stderr or completed.stdout or "unknown error").strip()
+                    raise RuntimeError(
+                        f"Ladybug 图数据库路径别名创建失败：{detail}"
+                    )
+
+        if alias_directory.resolve() != target_directory:
+            raise RuntimeError("Ladybug 图数据库路径别名指向了错误的项目目录")
+
+    return str(alias_directory / logical_path.name)
 
 
 def _install_ladybug_windows_path_compatibility() -> None:
-    """Patch Ladybug's Windows path conversion and aliased pybind close."""
+    """Patch Ladybug's Windows Unicode path handling and aliased pybind close."""
     global _ladybug_windows_path_patch_installed
     if os.name != "nt" or _ladybug_windows_path_patch_installed:
         return
@@ -461,7 +505,7 @@ def _install_ladybug_windows_path_compatibility() -> None:
 
     # Cognee 1.5 opens Ladybug in a worker process by default. Patching the
     # in-process Database class does not reach that spawned interpreter, so
-    # encode the path before it crosses the worker protocol as well.
+    # resolve the ASCII alias before the path crosses the worker protocol too.
     proxy_module = importlib.import_module(
         "cognee.infrastructure.databases.graph.kuzu.subprocess.proxy"
     )
