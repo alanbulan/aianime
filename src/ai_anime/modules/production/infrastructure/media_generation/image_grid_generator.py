@@ -277,6 +277,7 @@ class ImageGridGenerator:
             List[int]
         ] = None,  # 仅这些 beat 使用导演参考
         director_control_frames_dir: str | Path | None = None,
+        idempotency_key: str | None = None,
     ) -> GridGenerationResult:
         """生成网格图。
 
@@ -913,6 +914,7 @@ class ImageGridGenerator:
                     "negative_prompt": str(
                         runtime_style_preset.get("avoid_instructions") or ""
                     ).strip(),
+                    "idempotency_key": idempotency_key,
                 },
             )
             if not image_bytes:

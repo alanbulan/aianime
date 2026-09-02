@@ -21,7 +21,10 @@ from ai_anime.modules.task_execution.public import (
     QUEUE_KINDS,
     register_project_task_runner,
 )
-from ai_anime.modules.task_execution.infrastructure.task_state import TaskStateManager, get_task_manager
+from ai_anime.modules.task_execution.infrastructure.task_state import (
+    TaskStateManager,
+    get_task_manager,
+)
 
 pytestmark = pytest.mark.m07
 
@@ -219,7 +222,9 @@ def _task_ports(monkeypatch):
 async def test_ce_generation_submit_returns_inline_backend(monkeypatch, tmp_path):
     from ai_anime.shared import ports
     from ai_anime.api.routes.narrative_planning import episodes
-    from ai_anime.api.routes.narrative_planning.episodes_schemas import EpisodePlanRequest
+    from ai_anime.api.routes.narrative_planning.episodes_schemas import (
+        EpisodePlanRequest,
+    )
 
     ctx = _ctx(tmp_path)
     ctx.output_dir.mkdir(parents=True, exist_ok=True)
@@ -269,7 +274,10 @@ async def test_task_list_and_project_stream_task_updated_share_serialized_fields
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
     task = manager.create_task_for_project(
         ctx,
         "single_video",
@@ -356,7 +364,10 @@ async def test_single_task_stream_uses_effective_status_and_closes_on_terminal(
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
     task = manager.create_task_for_project(
         ctx,
         f"m07_{status}",
@@ -459,7 +470,10 @@ async def test_clear_completed_deletes_only_effective_completed_tasks(
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
 
     completed = manager.create_task_for_project(
         ctx, "m07_completed", 1, status="completed"
@@ -507,7 +521,10 @@ async def test_task_limits_shape_and_ce_single_eligible_user(monkeypatch, tmp_pa
     ctx = _ctx(tmp_path)
     manager = TaskStateManager()
     await _install_project_context(monkeypatch, ctx)
-    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
 
     async def count_eligible_users(_ctx):
         return 1
@@ -664,7 +681,10 @@ def test_m07_http_coverage_exercises_task_center_routes(monkeypatch, tmp_path):
             return True
 
     monkeypatch.setattr(tasks, "resolve_project_context", fake_resolve_project_context)
-    monkeypatch.setattr("ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager", lambda: manager)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
     monkeypatch.setattr("ai_anime.shared.ports.get_task_backend", lambda: FakeBackend())
 
     async def count_eligible_users(_ctx):
@@ -769,7 +789,9 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
         ctx = _ctx(tmp_path / backend)
         fake_backend = _FakeTaskBackend(backend)
         await _install_project_context(monkeypatch, ctx)
-        monkeypatch.setattr("ai_anime.shared.ports.get_task_backend", lambda: fake_backend)
+        monkeypatch.setattr(
+            "ai_anime.shared.ports.get_task_backend", lambda: fake_backend
+        )
         task = get_task_manager().create_task_for_project(
             ctx,
             "m07_shape",
@@ -840,7 +862,20 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
 
 
 @pytest.mark.asyncio
-async def test_inline_cancel_is_cooperative_runner_stop(tmp_path):
+async def test_inline_cancel_is_cooperative_runner_stop(monkeypatch, tmp_path):
+    from ai_anime.modules.task_execution.infrastructure import inline_backend
+
+    cancellation_calls = []
+
+    async def persist_model_cancellation(task_id, *, reason):
+        cancellation_calls.append((task_id, reason))
+        return True
+
+    monkeypatch.setattr(
+        inline_backend,
+        "request_model_invocation_cancellation",
+        persist_model_cancellation,
+    )
     ctx = _ctx(tmp_path)
     backend = build_inline_task_backend()
     task_type = "m07_cooperative_cancel"
@@ -893,6 +928,12 @@ async def test_inline_cancel_is_cooperative_runner_stop(tmp_path):
     assert observed_cancel is True
     assert task is not None
     assert task.status == "cancelled"
+    assert cancellation_calls == [
+        (
+            queued.task_state.task_id,
+            "local project task was explicitly cancelled",
+        )
+    ]
 
 
 @pytest.mark.asyncio

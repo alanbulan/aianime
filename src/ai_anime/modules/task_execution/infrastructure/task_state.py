@@ -21,7 +21,6 @@ import sqlite3
 import threading
 import uuid
 from contextlib import contextmanager
-from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -33,7 +32,10 @@ from ai_anime.migrations.task_execution import (
     run_task_state_migrations,
 )
 from ai_anime.shared.runtime_paths import OUTPUT_DIR, STATE_DIR
-from ai_anime.modules.project_workspace.public import ProjectContext, require_project_home_node
+from ai_anime.modules.project_workspace.public import (
+    ProjectContext,
+    require_project_home_node,
+)
 from ai_anime.modules.task_execution.domain.queue import normalize_queue_kind
 from ai_anime.modules.task_execution.domain.task_identity import (
     project_task_scope_from_key,
@@ -48,6 +50,12 @@ from ai_anime.modules.task_execution.domain.task_restart_recovery import (
     build_interrupted_inline_recovery_plan,
 )
 from ai_anime.modules.task_execution.domain.task_time import parse_task_timestamp
+from ai_anime.shared.infrastructure.project_task_context import (
+    get_current_project_task_id as get_current_project_task_id,
+)
+from ai_anime.shared.infrastructure.project_task_context import (
+    project_task_run_context as project_task_run_context,
+)
 from ai_anime.shared.infrastructure.sqlite_pragmas import configure_sqlite_connection
 from ai_anime.shared.utils.time_format import utc_iso, utc_now_iso
 
@@ -55,27 +63,11 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_LANE_LIMIT_UNSET = object()
 _PROCESS_STARTED_AT = datetime.now(timezone.utc)
-_CURRENT_PROJECT_TASK_ID: ContextVar[str | None] = ContextVar(
-    "ai_anime_current_project_task_id",
-    default=None,
-)
 
 
-@contextmanager
-def project_task_run_context(task_id: str):
-    """Bind project task state updates in this call stack to one Celery run."""
-    token = _CURRENT_PROJECT_TASK_ID.set(str(task_id))
-    try:
-        yield
-    finally:
-        _CURRENT_PROJECT_TASK_ID.reset(token)
-
-
-def get_current_project_task_id() -> str:
-    return str(_CURRENT_PROJECT_TASK_ID.get() or "").strip()
-
-
-def _queue_kind_from_metadata(metadata: dict | None, fallback: str | None = None) -> str:
+def _queue_kind_from_metadata(
+    metadata: dict | None, fallback: str | None = None
+) -> str:
     raw = None
     if metadata:
         raw = metadata.get("queue_kind")
@@ -151,7 +143,9 @@ class TaskState:
     beat_num: Optional[int] = None
     scope: Optional[str] = None
 
-    status: str = "pending"  # legacy default; Celery path uses submitting|queued|running
+    status: str = (
+        "pending"  # legacy default; Celery path uses submitting|queued|running
+    )
     progress: float = 0.0
     current_task: str = ""
     result: Optional[dict] = None
@@ -170,7 +164,9 @@ class TaskState:
         last_update = parse_task_timestamp(self.updated_at or self.created_at)
         if last_update is None:
             return False
-        return (datetime.now(timezone.utc) - last_update).total_seconds() >= timeout_seconds
+        return (
+            datetime.now(timezone.utc) - last_update
+        ).total_seconds() >= timeout_seconds
 
 
 class TaskStateManager:
@@ -191,6 +187,7 @@ class TaskStateManager:
         # 僵尸清扫按库只跑一次(见 _sweep_interrupted_inline_tasks_once)
         self._swept_dbs: set[str] = set()
         self._sweep_lock = threading.Lock()
+
     STARTING_TIMEOUT = _env_int(
         "AI_ANIME_TASK_STARTING_TIMEOUT",
         180,
@@ -213,7 +210,9 @@ class TaskStateManager:
         return merged
 
     @staticmethod
-    def _merge_task_metadata(existing: dict | None, incoming: dict | None) -> dict | None:
+    def _merge_task_metadata(
+        existing: dict | None, incoming: dict | None
+    ) -> dict | None:
         if not existing:
             return incoming
         if not incoming:
@@ -221,7 +220,9 @@ class TaskStateManager:
         return {**existing, **incoming}
 
     @staticmethod
-    def _merge_logs(existing: List[str], incoming: List[str], max_logs: int) -> List[str]:
+    def _merge_logs(
+        existing: List[str], incoming: List[str], max_logs: int
+    ) -> List[str]:
         """合并日志并消除尾部重叠。
 
         Actor 侧上传的通常是 `status.logs[-N:]`，不是纯增量。
@@ -335,8 +336,12 @@ class TaskStateManager:
             task_type=row["task_type"],
             queue_kind=row["queue_kind"] if "queue_kind" in row.keys() else "default",
             project_id=project_id,
-            requester_user_id=row["requester_user_id"] if "requester_user_id" in row.keys() else "",
-            owner_username=row["owner_username"] if "owner_username" in row.keys() else "",
+            requester_user_id=row["requester_user_id"]
+            if "requester_user_id" in row.keys()
+            else "",
+            owner_username=row["owner_username"]
+            if "owner_username" in row.keys()
+            else "",
             project_name=row["project_name"] if "project_name" in row.keys() else "",
             username=row["username"],
             project=row["project"],
@@ -487,7 +492,9 @@ class TaskStateManager:
         )
         ttl = self.COMPLETED_TTL if status in TERMINAL_TASK_STATUSES else None
         self._save_for_context(ctx, state, ttl=ttl)
-        logger.info("Project task created: %s/%s/%s", task_type, ctx.project_id, episode)
+        logger.info(
+            "Project task created: %s/%s/%s", task_type, ctx.project_id, episode
+        )
         return state
 
     def reserve_task_for_project(
@@ -752,7 +759,9 @@ class TaskStateManager:
             state.logs = self._merge_logs(state.logs, progress_logs, self.MAX_LOGS)
         if metadata is not None:
             state.metadata = self._merge_task_metadata(state.metadata, metadata)
-            state.result = self._merge_metadata_into_result(state.result, state.metadata)
+            state.result = self._merge_metadata_into_result(
+                state.result, state.metadata
+            )
         state.updated_at = utc_now_iso()
         self._save(state)
 
@@ -771,7 +780,7 @@ class TaskStateManager:
         expected_task_id: str | None = None,
         queue_kind: str | None = None,
     ):
-        expected_task_id = expected_task_id or _CURRENT_PROJECT_TASK_ID.get()
+        expected_task_id = expected_task_id or get_current_project_task_id()
         with self._connect_context(ctx) as conn:
             conn.execute("BEGIN IMMEDIATE")
             task_key, state = self._project_task_for_mutation(
@@ -892,7 +901,13 @@ class TaskStateManager:
                 episode,
             )
             state = self.create_task(
-                task_type, username, project, episode, beat_num, scope, metadata=metadata
+                task_type,
+                username,
+                project,
+                episode,
+                beat_num,
+                scope,
+                metadata=metadata,
             )
 
         state.status = "completed"
@@ -926,7 +941,7 @@ class TaskStateManager:
         expected_task_id: str | None = None,
         queue_kind: str | None = None,
     ):
-        expected_task_id = expected_task_id or _CURRENT_PROJECT_TASK_ID.get()
+        expected_task_id = expected_task_id or get_current_project_task_id()
         with self._connect_context(ctx) as conn:
             conn.execute("BEGIN IMMEDIATE")
             task_key, state = self._project_task_for_mutation(
@@ -992,7 +1007,9 @@ class TaskStateManager:
                 state,
                 compute_expiry(self.COMPLETED_TTL),
             )
-        logger.info("Project task completed: %s/%s/%s", task_type, ctx.project_id, episode)
+        logger.info(
+            "Project task completed: %s/%s/%s", task_type, ctx.project_id, episode
+        )
 
     def fail_task(
         self,
@@ -1026,7 +1043,13 @@ class TaskStateManager:
                 f"Task state missing on fail, creating: {task_type}/{username}/{project}/{episode}"
             )
             state = self.create_task(
-                task_type, username, project, episode, beat_num, scope, metadata=metadata
+                task_type,
+                username,
+                project,
+                episode,
+                beat_num,
+                scope,
+                metadata=metadata,
             )
 
         state.status = "failed"
@@ -1040,11 +1063,15 @@ class TaskStateManager:
             state.logs = self._merge_logs(state.logs, logs, self.MAX_LOGS)
         if metadata is not None:
             state.metadata = self._merge_task_metadata(state.metadata, metadata)
-            state.result = self._merge_metadata_into_result(state.result, state.metadata)
+            state.result = self._merge_metadata_into_result(
+                state.result, state.metadata
+            )
         state.completed_at = utc_now_iso()
         state.updated_at = utc_now_iso()
         self._save(state, ttl=self.COMPLETED_TTL)
-        logger.warning(f"Task failed: {task_type}/{username}/{project}/{episode}: {error}")
+        logger.warning(
+            f"Task failed: {task_type}/{username}/{project}/{episode}: {error}"
+        )
 
     def fail_task_for_project(
         self,
@@ -1061,7 +1088,7 @@ class TaskStateManager:
         expected_task_id: str | None = None,
         queue_kind: str | None = None,
     ):
-        expected_task_id = expected_task_id or _CURRENT_PROJECT_TASK_ID.get()
+        expected_task_id = expected_task_id or get_current_project_task_id()
         with self._connect_context(ctx) as conn:
             conn.execute("BEGIN IMMEDIATE")
             task_key, state = self._project_task_for_mutation(
@@ -1100,8 +1127,7 @@ class TaskStateManager:
                 return
             if state.status in TERMINAL_TASK_STATUSES:
                 logger.warning(
-                    "Ignore fail update for terminal project task: "
-                    "%s/%s/%s status=%s",
+                    "Ignore fail update for terminal project task: %s/%s/%s status=%s",
                     task_type,
                     ctx.project_id,
                     episode,
@@ -1320,13 +1346,15 @@ class TaskStateManager:
                     [(key, ctx.project_id) for key in expired_keys],
                 )
 
-        tasks.sort(key=lambda task: task.updated_at or task.created_at or "", reverse=True)
+        tasks.sort(
+            key=lambda task: task.updated_at or task.created_at or "", reverse=True
+        )
         return tasks
 
     def count_active_tasks_for_project(self, ctx: ProjectContext) -> int:
         try:
             with self._connect_context(ctx) as conn:
-                    return self._count_active_project_tasks_on_connection(
+                return self._count_active_project_tasks_on_connection(
                     conn,
                     project_id=ctx.project_id,
                 )
@@ -1390,7 +1418,9 @@ class TaskStateManager:
                     try:
                         tasks.append(self._row_to_state(row))
                     except Exception as e:
-                        logger.warning(f"Failed to parse task state for key {row['task_key']}: {e}")
+                        logger.warning(
+                            f"Failed to parse task state for key {row['task_key']}: {e}"
+                        )
 
                 if expired_keys:
                     conn.executemany(
@@ -1398,7 +1428,9 @@ class TaskStateManager:
                         [(key,) for key in expired_keys],
                     )
 
-        tasks.sort(key=lambda task: task.updated_at or task.created_at or "", reverse=True)
+        tasks.sort(
+            key=lambda task: task.updated_at or task.created_at or "", reverse=True
+        )
         return tasks
 
     def count_active_tasks_for_user(self, username: str) -> int:
@@ -1463,7 +1495,9 @@ class TaskStateManager:
         )
 
     @staticmethod
-    def _save_on_connection(conn, task_key: str, state: TaskState, expires_at: str | None) -> None:
+    def _save_on_connection(
+        conn, task_key: str, state: TaskState, expires_at: str | None
+    ) -> None:
         conn.execute(
             """
             INSERT INTO task_states (

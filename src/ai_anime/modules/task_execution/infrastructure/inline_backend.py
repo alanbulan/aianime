@@ -38,6 +38,9 @@ from ai_anime.modules.task_execution.infrastructure.task_state import (
     get_current_project_task_id,
     get_task_manager,
 )
+from ai_anime.shared.infrastructure.model_invocation_control import (
+    request_model_invocation_cancellation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -305,7 +308,9 @@ class InlineTaskBackend:
         job: _InlineLaneJob,
         error: str,
     ) -> None:
-        task = asyncio.create_task(asyncio.to_thread(self._settle_escaped_task, job, error))
+        task = asyncio.create_task(
+            asyncio.to_thread(self._settle_escaped_task, job, error)
+        )
         self._background_tasks.add(task)
         task.add_done_callback(self._on_settlement_done)
 
@@ -376,6 +381,10 @@ class InlineTaskBackend:
             scope=task_state.scope,
         )
         self._remove_queued_task(task_state.task_id)
+        await request_model_invocation_cancellation(
+            task_state.task_id,
+            reason="local project task was explicitly cancelled",
+        )
         await asyncio.to_thread(
             get_task_manager().update_progress_for_project,
             ctx,

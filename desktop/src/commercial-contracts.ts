@@ -171,6 +171,15 @@ export interface CommercialInvocationListSnapshot {
   total: number;
 }
 
+export interface CommercialInvocationKeyStateSnapshot {
+  operation: string;
+  idempotencyKey: string;
+  cancellationRequested: boolean;
+  cancellationReason: string;
+  cancellationRequestedAt: string;
+  invocation: CommercialInvocationSnapshot | null;
+}
+
 export interface CommercialModelCapabilitySnapshot {
   modelId: string;
   extraParameterNames?: string[];
@@ -621,6 +630,51 @@ export function projectCommercialInvocationDetails(value: unknown): {
   const root = exactRecord(value, "invocation details", ["invocation"]);
   return {
     invocation: projectCommercialInvocation(root.invocation, "invocation"),
+  };
+}
+
+export function projectCommercialInvocationKeyState(
+  value: unknown,
+): CommercialInvocationKeyStateSnapshot {
+  const root = exactRecord(value, "invocation key state", [
+    "operation",
+    "idempotencyKey",
+    "cancellationRequested",
+    "cancellationReason",
+    "cancellationRequestedAt",
+    "invocationCreated",
+    "invocation",
+  ]);
+  const invocationCreated = booleanValue(
+    root.invocationCreated,
+    "invocation key state.invocationCreated",
+  );
+  if (!invocationCreated && root.invocation !== null) {
+    throw new Error(
+      "invocation key state.invocation must be null before invocation creation",
+    );
+  }
+  return {
+    operation: requiredText(root.operation, "invocation key state.operation"),
+    idempotencyKey: requiredText(
+      root.idempotencyKey,
+      "invocation key state.idempotencyKey",
+    ),
+    cancellationRequested: booleanValue(
+      root.cancellationRequested,
+      "invocation key state.cancellationRequested",
+    ),
+    cancellationReason: stringValue(
+      root.cancellationReason,
+      "invocation key state.cancellationReason",
+    ),
+    cancellationRequestedAt: stringValue(
+      root.cancellationRequestedAt,
+      "invocation key state.cancellationRequestedAt",
+    ),
+    invocation: invocationCreated
+      ? projectCommercialInvocation(root.invocation, "invocation key state.invocation")
+      : null,
   };
 }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,7 +10,9 @@ from PIL import Image
 
 from ai_anime.modules.production.infrastructure.media_generation import image_grid
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.task_execution.infrastructure.runners import render as render_runner
+from ai_anime.modules.task_execution.infrastructure.runners import (
+    render as render_runner,
+)
 
 
 pytestmark = pytest.mark.m09
@@ -269,9 +272,11 @@ async def test_selected_regeneration_retries_only_transient_failures(
     class RetryGenerator:
         def __init__(self) -> None:
             self.calls = 0
+            self.idempotency_keys: list[str] = []
 
         async def generate_grid(self, **kwargs):
             self.calls += 1
+            self.idempotency_keys.append(kwargs["idempotency_key"])
             if self.calls == 1:
                 return image_grid.GridGenerationResult(
                     success=False,
@@ -311,6 +316,10 @@ async def test_selected_regeneration_retries_only_transient_failures(
     )
 
     assert generator.calls == 2
+    assert len(set(generator.idempotency_keys)) == 1
+    assert (
+        str(uuid.UUID(generator.idempotency_keys[0])) == generator.idempotency_keys[0]
+    )
     assert results[0].success is True
     retry_event = next(event for event in progress_events if event["event"] == "retry")
     assert retry_event["attempt"] == 2

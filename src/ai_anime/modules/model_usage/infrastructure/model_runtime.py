@@ -5,6 +5,9 @@ import uuid
 from contextvars import ContextVar
 from typing import Any
 
+from ai_anime.shared.infrastructure.project_task_context import (
+    get_current_project_task_id,
+)
 from ai_anime.shared.runtime_dotenv import load_project_dotenv
 
 load_project_dotenv()
@@ -13,6 +16,7 @@ _TEXT_MODEL_IDEMPOTENCY_KEY: ContextVar[str] = ContextVar(
     "ai_anime_text_model_idempotency_key",
     default="",
 )
+
 
 def _env_float(name: str, default: float) -> float:
     raw = os.environ.get(name)
@@ -170,7 +174,9 @@ def get_text_pydantic_model(
         resolve_model_for_role,
     )
 
-    model_name = str(model_name_override or "").strip() or resolve_model_for_role("TEXT")
+    model_name = str(model_name_override or "").strip() or resolve_model_for_role(
+        "TEXT"
+    )
     api_key, base_url = get_model_gateway_credentials()
     if not base_url:
         raise ValueError("Model Base URL is not configured.")
@@ -221,9 +227,7 @@ def get_pydantic_model_settings(
 ) -> dict | None:
     """Build settings for the OpenAI-compatible cloud/BYOK transport."""
     thinking_level = (
-        thinking_level_override
-        or os.environ.get("MODEL_THINKING_LEVEL")
-        or "low"
+        thinking_level_override or os.environ.get("MODEL_THINKING_LEVEL") or "low"
     )
 
     settings: dict[str, object] = {}
@@ -311,6 +315,8 @@ def get_model_access_json_transport(
         headers["X-AI-Anime-Model-Role"] = role.strip().upper()
     if model_selector:
         headers["X-AI-Anime-Model-Selector"] = model_selector.strip()
+    if task_id := get_current_project_task_id():
+        headers["X-AI-Anime-Task-ID"] = task_id
     return base_url.rstrip("/"), headers
 
 
@@ -349,6 +355,11 @@ def get_model_access_openai_client(
         default_headers={
             "Idempotency-Key": str(uuid.uuid4()),
             "X-AI-Anime-Model-Role": role.strip().upper(),
+            **(
+                {"X-AI-Anime-Task-ID": get_current_project_task_id()}
+                if get_current_project_task_id()
+                else {}
+            ),
             **(
                 {"X-AI-Anime-Model-Selector": model_selector.strip()}
                 if model_selector and model_selector.strip()

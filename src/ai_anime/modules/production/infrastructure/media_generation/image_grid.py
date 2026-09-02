@@ -200,7 +200,9 @@ def _safe_request_context(
         "extra_fields": payload.get("extra_fields") or {},
         "reference_image_count": reference_image_count,
         "prompt_chars": len(prompt or ""),
-        "prompt_sha256": hashlib.sha256((prompt or "").encode("utf-8")).hexdigest()[:16],
+        "prompt_sha256": hashlib.sha256((prompt or "").encode("utf-8")).hexdigest()[
+            :16
+        ],
     }
 
 
@@ -264,8 +266,6 @@ def _image_multipart_files(
             raise ValueError(f"reference image {index} must use an image content type")
         files.append(("image", (filename, content, mime_type)))
     return files
-
-
 
 
 class _InlineImagePart:
@@ -334,7 +334,9 @@ def _round_standard_edge(value: float) -> int:
     return max(16, int(math.ceil(value / 16.0)) * 16)
 
 
-def resolve_standard_image_size(aspect_ratio: str = "1:1", image_size: str = "1K") -> str:
+def resolve_standard_image_size(
+    aspect_ratio: str = "1:1", image_size: str = "1K"
+) -> str:
     """Map internal aspect/image-size labels to standard flexible size strings.
 
     Flexible-size image APIs require bounded dimensions: both edges are multiples
@@ -442,8 +444,6 @@ def normalize_image_quality(value: str | None, default: str = "medium") -> str:
     return quality if quality in _STANDARD_IMAGE_VALID_QUALITIES else default
 
 
-
-
 async def generate_text_to_image(
     prompt: str,
     output_path: str,
@@ -484,7 +484,9 @@ async def generate_reference_edit_image(
     """Edit one image through the current commercial model access."""
     ref_paths = [path for path in reference_images if path and os.path.exists(path)]
     if not ref_paths:
-        raise FileNotFoundError("No valid reference images provided for edit generation")
+        raise FileNotFoundError(
+            "No valid reference images provided for edit generation"
+        )
     return await _generate_image(
         prompt=prompt,
         reference_image_paths=ref_paths,
@@ -529,7 +531,9 @@ async def _generate_image(
         if avoid_instructions and avoid_instructions not in effective_prompt:
             style_sections.append(f"AVOID:\n{avoid_instructions}")
         if style_sections:
-            effective_prompt = f"{effective_prompt.rstrip()}\n\n" + "\n\n".join(style_sections)
+            effective_prompt = f"{effective_prompt.rstrip()}\n\n" + "\n\n".join(
+                style_sections
+            )
         effective_prompt, ref_bytes = apply_style_reference(
             effective_prompt,
             ref_bytes,
@@ -666,7 +670,8 @@ def find_sketch_for_beat_range(
 async def _call_image_generation_api(
     *,
     prompt: str,
-    reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]] | None = None,
+    reference_images: list[bytes | tuple[bytes, str] | tuple[str, bytes, str]]
+    | None = None,
     image_config: dict | None = None,
     trace: dict[str, str] | None = None,
 ) -> tuple[bytes | None, str, str]:
@@ -678,10 +683,9 @@ async def _call_image_generation_api(
 
     model_role = "IMAGE_EDIT" if reference_images else "IMAGE_GENERATION"
     image_config = image_config or {}
-    clean_model = (
-        str(image_config.get("model") or "").strip()
-        or resolve_model_for_role(model_role)
-    )
+    clean_model = str(
+        image_config.get("model") or ""
+    ).strip() or resolve_model_for_role(model_role)
     model_selector = str(image_config.get("model_selector") or "").strip()
 
     try:
@@ -778,6 +782,7 @@ async def _call_image_generation_api(
         reference_image_count=len(multipart_files),
     )
     logger.info("AI anime API image request: %s", request_context)
+
     def _record_trace(
         *,
         provider_request_id: str = "",
@@ -793,7 +798,8 @@ async def _call_image_generation_api(
     provider_request_id = ""
     try:
         request_headers = dict(headers)
-        request_headers["Idempotency-Key"] = str(uuid.uuid4())
+        idempotency_key = str(image_config.get("idempotency_key") or "").strip()
+        request_headers["Idempotency-Key"] = idempotency_key or str(uuid.uuid4())
 
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(
@@ -804,7 +810,9 @@ async def _call_image_generation_api(
             ),
             follow_redirects=True,
         ) as client:
-            logger.info("AI anime API image POST start: %s", request_context.get("endpoint"))
+            logger.info(
+                "AI anime API image POST start: %s", request_context.get("endpoint")
+            )
             async with asyncio.timeout(IMAGE_GATEWAY_TOTAL_TIMEOUT_SECONDS):
                 if multipart_files:
                     request_headers.pop("Content-Type", None)
@@ -839,7 +847,11 @@ async def _call_image_generation_api(
             try:
                 result = response.json()
             except (TypeError, ValueError) as exc:
-                return None, "", f"AI anime API Images response is not valid JSON: {exc}"
+                return (
+                    None,
+                    "",
+                    f"AI anime API Images response is not valid JSON: {exc}",
+                )
             if not isinstance(result, dict):
                 return None, "", "AI anime API Images response must be an object"
             logger.info(
@@ -849,10 +861,14 @@ async def _call_image_generation_api(
             )
             provider_request_id = (
                 provider_request_id
-                or str(result.get("request_id") or result.get("requestId") or "").strip()
+                or str(
+                    result.get("request_id") or result.get("requestId") or ""
+                ).strip()
             )
             response_id = str(result.get("id") or "").strip()
-            _record_trace(provider_request_id=provider_request_id, response_id=response_id)
+            _record_trace(
+                provider_request_id=provider_request_id, response_id=response_id
+            )
             protocol_error = model_protocol_error_message(result)
             if protocol_error:
                 request_context_text = (
@@ -867,7 +883,11 @@ async def _call_image_generation_api(
 
             data = result.get("data") or []
             if not isinstance(data, list) or not data:
-                return None, "", f"AI anime API Images response missing data: {sorted(result.keys())}"
+                return (
+                    None,
+                    "",
+                    f"AI anime API Images response missing data: {sorted(result.keys())}",
+                )
 
             first = data[0] or {}
             if not isinstance(first, dict):
@@ -888,7 +908,9 @@ async def _call_image_generation_api(
                 # (60s),避免落入主生成请求的长读取超时。
                 # 加 phase log 让 hang 时能定位卡在哪。
                 logger.info("AI anime API image GET url start: %s", image_url[:120])
-                async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as fetch:
+                async with httpx.AsyncClient(
+                    timeout=60.0, follow_redirects=True
+                ) as fetch:
                     image_response = await fetch.get(image_url)
                 logger.info(
                     "AI anime API image GET url done: status=%d bytes=%d",
@@ -899,7 +921,11 @@ async def _call_image_generation_api(
                 image_bytes = image_response.content
                 return image_bytes, "", ""
 
-            return None, "", f"AI anime API Images response missing b64_json/url: {first}"
+            return (
+                None,
+                "",
+                f"AI anime API Images response missing b64_json/url: {first}",
+            )
     except TimeoutError:
         timeout_minutes = int(IMAGE_GATEWAY_TOTAL_TIMEOUT_SECONDS // 60)
         logger.warning(
@@ -913,7 +939,9 @@ async def _call_image_generation_api(
         status_code = exc.response.status_code
         response_headers = getattr(exc.response, "headers", {}) or {}
         safe_headers = _safe_header_summary(response_headers)
-        request_id = _provider_request_id_from_headers(response_headers) or provider_request_id
+        request_id = (
+            _provider_request_id_from_headers(response_headers) or provider_request_id
+        )
         error_context = _context_for_error(request_context)
         header_context = (
             f"request_id={request_id}; headers={safe_headers}; "
@@ -930,9 +958,15 @@ async def _call_image_generation_api(
         if status_code in {502, 503, 504}:
             request_reference = f"，请求编号：{request_id}" if request_id else ""
             reason = "请求超时" if status_code == 504 else "暂时不可用"
-            route_attempts = str(response_headers.get("x-ai-anime-route-attempts") or "").strip()
-            attempts_text = f"，统一路由已尝试 {route_attempts} 次" if route_attempts else ""
-            route_source = str(response_headers.get("x-ai-anime-route-source") or "").strip()
+            route_attempts = str(
+                response_headers.get("x-ai-anime-route-attempts") or ""
+            ).strip()
+            attempts_text = (
+                f"，统一路由已尝试 {route_attempts} 次" if route_attempts else ""
+            )
+            route_source = str(
+                response_headers.get("x-ai-anime-route-source") or ""
+            ).strip()
             service = {
                 "cloud": "云端图片生成服务",
                 "byok": "BYOK 图片生成服务",
@@ -1199,7 +1233,9 @@ async def regenerate_selected_beats(
                 build_beat_sketch_paths,
             )
 
-            grid_beat_sketch_paths = build_beat_sketch_paths(episode_grids_dir, beat_numbers)
+            grid_beat_sketch_paths = build_beat_sketch_paths(
+                episode_grids_dir, beat_numbers
+            )
         if beat_sketch_paths_override and not is_sketch:
             grid_beat_sketch_paths = {
                 int(beat_num): str(path)
@@ -1263,6 +1299,7 @@ async def regenerate_selected_beats(
             emit_progress("started", grid_index=grid_index)
             try:
                 result: GridGenerationResult | None = None
+                idempotency_key = str(uuid.uuid4())
                 for attempt in range(1, attempts + 1):
                     result = await generator.generate_grid(
                         beats=item["beats"],
@@ -1284,6 +1321,7 @@ async def regenerate_selected_beats(
                         prop_refs_override=prop_refs_override,
                         sketch_aspect_padding=sketch_aspect_padding,
                         force_image_size=force_image_size,
+                        idempotency_key=idempotency_key,
                     )
                     if result.success or attempt >= attempts:
                         break
@@ -1321,8 +1359,7 @@ async def regenerate_selected_beats(
                     emit_grid_completed(item, result, reused=False)
                 if result.success:
                     logger.info(
-                        f"[RegenBeats] Grid {grid_index} 成功: "
-                        f"{result.grid_image_path}"
+                        f"[RegenBeats] Grid {grid_index} 成功: {result.grid_image_path}"
                     )
                 else:
                     logger.info(f"[RegenBeats] Grid {grid_index} 失败: {result.error}")

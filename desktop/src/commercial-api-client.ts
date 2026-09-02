@@ -8,6 +8,7 @@ import {
   parseCommercialBootstrapWire,
   projectCommercialInvocation,
   projectCommercialInvocationDetails,
+  projectCommercialInvocationKeyState,
   projectCommercialInvocationList,
   projectCommercialModelCatalog,
   projectCommercialModelCatalogItem,
@@ -15,6 +16,7 @@ import {
   projectCommercialRelease,
   type CommercialAuthorizationWire,
   type CommercialBootstrapWire,
+  type CommercialInvocationKeyStateSnapshot,
   type CommercialInvocationListSnapshot,
   type CommercialInvocationSnapshot,
   type CommercialModelCatalogItemSnapshot,
@@ -694,6 +696,44 @@ export class CommercialApiClient extends CommercialApiTransport {
       await this.authenticatedJson(
         "GET",
         `/api/v1/client/relay/invocations/${encodeURIComponent(requiredUUID(id, "id"))}`,
+      ),
+    );
+  }
+
+  async invocationByIdempotencyKey(
+    operation: string,
+    idempotencyKey: string,
+  ): Promise<CommercialInvocationKeyStateSnapshot> {
+    return projectCommercialInvocationKeyState(
+      await this.authenticatedJson(
+        "GET",
+        "/api/v1/client/relay/invocations/by-idempotency-key",
+        {
+          query: {
+            operation: requiredText(operation, "operation").toUpperCase(),
+            idempotencyKey: requiredText(idempotencyKey, "idempotencyKey"),
+          },
+        },
+      ),
+    );
+  }
+
+  async cancelInvocationByIdempotencyKey(
+    operation: string,
+    idempotencyKey: string,
+    reason: string,
+  ): Promise<CommercialInvocationKeyStateSnapshot> {
+    return projectCommercialInvocationKeyState(
+      await this.authenticatedJson(
+        "POST",
+        "/api/v1/client/relay/invocations/by-idempotency-key/cancel",
+        {
+          body: {
+            operation: requiredText(operation, "operation").toUpperCase(),
+            idempotencyKey: requiredText(idempotencyKey, "idempotencyKey"),
+            reason: requiredText(reason, "reason"),
+          },
+        },
       ),
     );
   }

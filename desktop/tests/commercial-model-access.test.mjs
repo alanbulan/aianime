@@ -3585,7 +3585,14 @@ test("Gemini provider strategy translates embedding and image roles", async (t) 
   const address = providerServer.address();
   assert.ok(address && typeof address !== "string");
   const proxy = new CommercialModelProxy(
-    { async modelRequest() { throw new Error("cloud must not be called"); } },
+    {
+      async modelInvocationSubject() {
+        return "https://gateway.test|11|22";
+      },
+      async modelRequest() {
+        throw new Error("cloud must not be called");
+      },
+    },
     {
       async summary() {
         return { schemaVersion: 1, publicKey: "key", publicKeyHash: "hash" };
@@ -3797,6 +3804,9 @@ test("cloud image writes recover transient failures with one idempotency key", a
   const calls = [];
   const audit = [];
   const client = {
+    async modelInvocationSubject() {
+      return "https://gateway.test|11|22";
+    },
     async modelRequest(input) {
       calls.push(input);
       if (calls.length === 1) throw new TypeError("fetch failed");
@@ -3849,11 +3859,10 @@ test("cloud image writes recover transient failures with one idempotency key", a
   );
 });
 
-test("BYOK image responses retry transient failures without changing route, payload, or request ID", async (t) => {
+test("BYOK image failures execute once without changing route, payload, or request ID", async (t) => {
   for (const scenario of [
-    { name: "generation recovers", path: "generations", statuses: [502, 503, 200], expected: 200, count: 3 },
-    { name: "edit recovers", path: "edits", statuses: [502, 200], expected: 200, count: 2 },
-    { name: "retry limit", path: "edits", statuses: [502], expected: 502, count: 3 },
+    { name: "generation 502 is outcome unknown", path: "generations", statuses: [502, 200], expected: 502, count: 1 },
+    { name: "edit 503 is outcome unknown", path: "edits", statuses: [503, 200], expected: 502, count: 1 },
     { name: "validation is final", path: "generations", statuses: [422], expected: 422, count: 1 },
     { name: "authentication is final", path: "edits", statuses: [401], expected: 401, count: 1 },
     { name: "transport outcome is unknown", path: "edits", statuses: [0], expected: 502, count: 1 },
@@ -3883,7 +3892,10 @@ test("BYOK image responses retry transient failures without changing route, payl
       context.after(() => new Promise((resolve) => provider.close(resolve)));
       const role = scenario.path === "edits" ? "IMAGE_EDIT" : "IMAGE_GENERATION";
       const proxy = new CommercialModelProxy(
-        { async modelRequest() { cloudCalls += 1; return Response.json({}); } },
+        {
+          async modelInvocationSubject() { return "https://gateway.test|11|22"; },
+          async modelRequest() { cloudCalls += 1; return Response.json({}); },
+        },
         { async summary() { return { publicKeyHash: "device-hash" }; } },
       );
       proxy.configureRouting({
@@ -3931,7 +3943,7 @@ test("BYOK image responses retry transient failures without changing route, payl
   }
 });
 
-test("BYOK image retry stops when the requesting task disconnects", async (t) => {
+test("BYOK image disconnect never replays the write", async (t) => {
   let calls = 0;
   let firstResponse;
   const first = new Promise((resolve) => { firstResponse = resolve; });
@@ -3944,7 +3956,10 @@ test("BYOK image retry stops when the requesting task disconnects", async (t) =>
   });
   await new Promise((resolve) => provider.listen(0, "127.0.0.1", resolve));
   t.after(() => new Promise((resolve) => provider.close(resolve)));
-  const proxy = new CommercialModelProxy({}, {});
+  const proxy = new CommercialModelProxy(
+    { async modelInvocationSubject() { return "https://gateway.test|11|22"; } },
+    {},
+  );
   proxy.configureRouting({
     allowsCustomModels: true,
     cloudModelAssignments: [],
@@ -3977,6 +3992,9 @@ test("BYOK image retry stops when the requesting task disconnects", async (t) =>
 test("local model proxy forwards multipart, Anthropic, and Range protocol data", async (t) => {
   const calls = [];
   const client = {
+    async modelInvocationSubject() {
+      return "https://gateway.test|11|22";
+    },
     async modelRequest(input) {
       calls.push(input);
       if (input.path.endsWith("/content")) {

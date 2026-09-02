@@ -131,7 +131,9 @@ flowchart TB
      -> BYOK：用户配置的 OpenAI-compatible / Anthropic / Gemini 接口
 ```
 
-Electron 代理负责优先级、fallback、协议转换、超时、取消、幂等键、响应契约检查和敏感日志脱敏。Cloud 认证使用 Electron 保存的 Gateway 会话；BYOK 配置使用 `safeStorage` 加密保存。两者不会下放到 React，也不会写入项目文件。
+Electron 代理负责优先级、fallback、协议转换、超时、显式取消、图片幂等恢复、响应契约检查和敏感日志脱敏。图片写请求按 Gateway Origin、租户、用户、操作和 `Idempotency-Key` 隔离，Cloud 的 502/503/504 恢复只复用原请求体、路由和键。任务取消意图先由 `safeStorage` 加密落盘，再请求云端按键取消；HTTP 断连或等待超时只结束本地等待，不产生取消意图。Cloud 认证使用 Electron 保存的 Gateway 会话；BYOK 配置使用 `safeStorage` 加密保存。两者不会下放到 React，也不会写入项目文件。
+
+BYOK 图片供应商没有经验证的原生幂等与取消协议时，代理不承诺远端终止。请求发出后若结果不明确，记录为 `OUTCOME_UNKNOWN`，禁止自动重发或切换供应商；成功响应只在 32 MiB 上限内加密保留 24 小时并按原键重放。
 
 ### 2.4 身份与密钥边界
 
@@ -595,7 +597,8 @@ React module
 | 模型目录 | `GET /api/v1/client/models` | 模型选择与能力过滤 |
 | 单模型详情 | `GET /api/v1/client/models/{sku}` | 设置 -> 模型详情 |
 | Invocation 列表/详情 | `GET /api/v1/client/relay/invocations*` | 设置 -> 调用记录 |
-| Invocation 取消 | `POST /api/v1/client/relay/invocations/{id}/cancel` | 调用记录中的可取消任务 |
+| Invocation 按键查询/取消 | `GET /api/v1/client/relay/invocations/by-idempotency-key`、`POST .../by-idempotency-key/cancel` | 精确恢复或取消本人的原调用 |
+| Invocation 按 ID 取消 | `POST /api/v1/client/relay/invocations/{id}/cancel` | 调用记录中的可取消任务 |
 | Invocation 结果 | `GET /api/v1/client/relay/invocations/{id}/result` | 系统保存对话框流式落盘 |
 | 公告 | `GET /api/v1/client/announcements/active` | 客户端全局公告 |
 | 版本检查 | `GET /api/v1/client/releases/check` | 更新提示/强制升级 |

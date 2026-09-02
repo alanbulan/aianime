@@ -22,6 +22,7 @@ import {
   modelRoutingSnapshot,
 } from "../src/commercial-model-proxy.ts";
 import { EncryptedFileCommercialModelAccessStore } from "../src/commercial-model-access.ts";
+import { EncryptedFileModelInvocationStore } from "../src/commercial-model-invocation-store.ts";
 import { saveCommercialInvocationResult } from "../src/commercial-invocation-result.ts";
 import {
   CommercialApiClient,
@@ -379,6 +380,12 @@ async function startApplication() {
     client,
     deviceIdentity,
     (entry) => appendModelRouteAudit(modelRouteLogPath, entry),
+    {
+      invocationStore: new EncryptedFileModelInvocationStore(
+        join(app.getPath("userData"), "commercial-model-invocations"),
+        safeStorage,
+      ),
+    },
   );
   await commercialModelProxy.start();
   const runtimeDependencies = new RuntimeDependencyManager(app.getPath("userData"));
