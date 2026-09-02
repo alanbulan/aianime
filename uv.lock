@@ -15,6 +15,10 @@ resolution-markers = [
 ]
 
 [manifest]
+overrides = [
+    { name = "ladybug", marker = "(platform_machine != 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version) or sys_platform != 'darwin'", specifier = "==0.19.0" },
+    { name = "ladybug", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or ('Darwin Kernel Version 22.' in platform_version and sys_platform == 'darwin') or ('Darwin Kernel Version 23.' in platform_version and sys_platform == 'darwin')", specifier = "==0.17.1" },
+]
 
 [[manifest.dependency-metadata]]
 name = "da2"
@@ -806,8 +810,8 @@ dependencies = [
     { name = "gunicorn" },
     { name = "instructor" },
     { name = "jinja2" },
-    { name = "ladybug", version = "0.17.1", source = { registry = "https://pypi.org/simple" }, marker = "('Darwin Kernel Version 22.' in platform_version and sys_platform == 'darwin') or ('Darwin Kernel Version 23.' in platform_version and sys_platform == 'darwin')" },
-    { name = "ladybug", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "('Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version) or sys_platform != 'darwin'" },
+    { name = "ladybug", version = "0.17.1", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or ('Darwin Kernel Version 22.' in platform_version and sys_platform == 'darwin') or ('Darwin Kernel Version 23.' in platform_version and sys_platform == 'darwin')" },
+    { name = "ladybug", version = "0.19.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version) or sys_platform != 'darwin'" },
     { name = "lancedb", version = "0.25.3", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
     { name = "lancedb", version = "0.37.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'x86_64' or sys_platform != 'darwin'" },
     { name = "langdetect" },
@@ -1922,6 +1926,8 @@ resolution-markers = [
     "(python_full_version >= '3.12' and platform_machine != 'x86_64' and 'Darwin Kernel Version 22.' in platform_version and sys_platform == 'darwin') or (python_full_version >= '3.12' and platform_machine != 'x86_64' and 'Darwin Kernel Version 23.' in platform_version and sys_platform == 'darwin')",
     "(python_full_version < '3.12' and platform_machine == 'x86_64' and 'Darwin Kernel Version 22.' in platform_version and sys_platform == 'darwin') or (python_full_version < '3.12' and platform_machine == 'x86_64' and 'Darwin Kernel Version 23.' in platform_version and sys_platform == 'darwin')",
     "(python_full_version < '3.12' and platform_machine != 'x86_64' and 'Darwin Kernel Version 22.' in platform_version and sys_platform == 'darwin') or (python_full_version < '3.12' and platform_machine != 'x86_64' and 'Darwin Kernel Version 23.' in platform_version and sys_platform == 'darwin')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version and sys_platform == 'darwin'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7e/f6/1511d2ab4391af8a4133c556ccaf79b613d79c6120e3fcced02c8d438982/ladybug-0.17.1.tar.gz", hash = "sha256:82efea498713c7da7f6f94f80252574599252d26ee10fb11e62ae932b5d8f2ba", size = 10160802, upload-time = "2026-06-02T20:08:43.241Z" }
 wheels = [
@@ -1938,9 +1944,7 @@ source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and platform_machine == 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version and sys_platform == 'darwin'",
     "(python_full_version >= '3.12' and platform_machine != 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version and sys_platform == 'darwin') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'win32')",
-    "python_full_version < '3.12' and platform_machine == 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version and sys_platform == 'darwin'",
     "(python_full_version < '3.12' and platform_machine != 'x86_64' and 'Darwin Kernel Version 22.' not in platform_version and 'Darwin Kernel Version 23.' not in platform_version and sys_platform == 'darwin') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'win32')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/65/f7/0ef0a9616d622c790c7fd559d10eb0fdd320c5880e79da035d0b23d2ab8d/ladybug-0.19.0.tar.gz", hash = "sha256:02a0725d29b36fd0de469dab14928c3bc8c5dfee4019acfd60ca504caffc4cd7", size = 10301849, upload-time = "2026-07-30T00:36:34.015Z" }

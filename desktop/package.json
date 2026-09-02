@@ -27,7 +27,7 @@
     "package:dir": "pnpm run package:prepare && electron-builder --dir && node scripts/smoke-packaged-win-resources.mjs",
     "package:win": "node scripts/assert-package-host.mjs win32 x64 && pnpm run package:prepare && electron-builder --win nsis --x64 --publish never && node scripts/smoke-packaged-win-resources.mjs",
     "package:mac": "node scripts/assert-package-host.mjs darwin arm64 && pnpm run package:prepare && electron-builder --mac dmg zip --arm64 --publish never",
-    "package:mac:x64": "node scripts/assert-package-host.mjs darwin x64 && MACOSX_DEPLOYMENT_TARGET=13.0 pnpm run package:prepare && electron-builder --mac dmg zip --x64 --publish never -c.mac.minimumSystemVersion=13.0.0 && bash scripts/smoke-packaged-mac-resources.sh x86_64 13.0.0"
+    "package:mac:x64": "node scripts/assert-package-host.mjs darwin x64 && bash scripts/prepare-macos-intel-python.sh && MACOSX_DEPLOYMENT_TARGET=13.0 UV_NO_SYNC=1 pnpm run package:prepare && electron-builder --mac dmg zip --x64 --publish never -c.mac.minimumSystemVersion=13.4.0 && bash scripts/smoke-packaged-mac-resources.sh x86_64 13.4.0"
   },
   "devDependencies": {
     "@types/node": "^26.3.0",

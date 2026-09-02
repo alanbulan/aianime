@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   package:
-    name: Package x86_64 for macOS 13+
+    name: Package x86_64 for macOS 13.4+
     runs-on: macos-15-intel
     timeout-minutes: 360
     env:
@@ -75,7 +75,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.24.0 --activate
           python -m pip install --disable-pip-version-check meson==1.12.0
-          for command_name in clang make python3 meson ninja lipo otool; do
+          for command_name in clang make python3 meson ninja perl cargo rustc lipo otool; do
             command -v "${command_name}" >/dev/null
           done
           test "$(pnpm --version)" = "11.24.0"

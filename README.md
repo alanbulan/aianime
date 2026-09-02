@@ -12,7 +12,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 | --- | --- | --- | --- |
 | Windows | x64 | Windows 10/11 | NSIS `.exe` |
 | macOS | Apple Silicon arm64 | macOS 15 | `.dmg`、`.zip` |
-| macOS | Intel x86_64 | macOS 13 Ventura | `.dmg`、`.zip` |
+| macOS | Intel x86_64 | macOS 13.4 Ventura | `.dmg`、`.zip` |
 
 本仓库采用 DDD 风格的模块化单体，不是微服务集合。本轮已登记的平铺上下文、顶层存储、任务状态和商业入口债务已经完成所有权迁移；跨上下文依赖由 `public.py` / `public.ts` 和自动化边界测试约束。DDD 合规以职责和依赖方向为准，不以目录层数或单个文件大小代替边界判断。
 
@@ -787,7 +787,7 @@ Apple Silicon 包当前最低版本为 15.0。
 
 ### macOS Intel x86_64 / Ventura
 
-必须在 Intel Mac 上运行。Electron 维持 44.0.0；该版本支持 macOS 13，因此无需为 Ventura 降级。首次打包还需要 Xcode Command Line Tools、Python 3、Meson 和 Ninja，Intel FFmpeg 会从固定版本、固定 SHA-256 的源码构建并缓存：
+必须在 Intel Mac 上运行。Electron 维持 44.0.0；该版本支持 macOS 13，因此无需为 Ventura 降级。首次打包还需要 Xcode Command Line Tools、Python 3、Meson、Ninja、Rust/Cargo 和 Perl，Intel FFmpeg 与 OpenSSL 会从固定版本、固定 SHA-256 的源码构建并缓存：
 
 ```bash
 xcode-select --install
@@ -804,7 +804,11 @@ AI-anime-<version>-macos-x64.zip
 latest-mac.yml
 ```
 
-Intel 包声明最低 macOS 13.0。打包命令会运行后端、FFmpeg、Hermes 和签名冒烟，并检查应用内每个 Mach-O 文件都包含 `x86_64`、其最低系统版本不高于 13.0。PyInstaller sidecar 不能从 Windows 或 Apple Silicon 交叉生成，因此该命令必须在 Intel macOS 宿主上原生执行。
+Intel 包声明最低 macOS 13.4，覆盖指定的 Ventura 13.7.8。ONNX Runtime 1.23.2 的 Intel 轮子虽然标为 `macosx_13_0`，内置 Mach-O 实际要求 13.4，因此不能将整个应用声明为 13.0。源码编译仍以 13.0 为目标；打包前分别按 `x86_64-apple-darwin` 同步主后端和 Hermes 的锁定依赖，再通过 `UV_NO_SYNC=1` 防止后续构建按宿主系统重新选择 NumPy/SciPy 等新系统轮子。打包命令会运行后端、FFmpeg、Hermes 和签名冒烟，并检查应用内每个 Mach-O 文件都包含 `x86_64`、其最低系统版本不高于 13.4。PyInstaller sidecar 不能从 Windows 或 Apple Silicon 交叉生成，因此该命令必须在 Intel macOS 宿主上原生执行。
+
+Ladybug 仅对 Intel Mac 固定为 0.17.1；Windows 仍用 0.19.0，Apple Silicon 沿用原有系统版本选择。[Cognee 1.5.3 的官方依赖说明](https://github.com/topoteretes/cognee/blob/v1.5.3/pyproject.toml) 将 macOS 13/14 限定在 0.17.x，并说明该旧版有后续版本修复的存储问题。本项目对 Intel 构建接受这一兼容性取舍；不能保证直接打开 0.19.0 创建的图数据库，不执行自动降级或数据覆盖。
+
+Intel 的 cryptography 维持锁定版本，不降级加密库；按其[官方静态构建方式](https://cryptography.io/en/latest/installation/#building-cryptography-on-macos)链接针对 13.0 编译的 OpenSSL 4.0.2，避免带入构建机的 Homebrew 动态库。目标专用缓存放在 `desktop/.macos-intel-cache/`，两个 Python 环境在耗时的 FFmpeg 构建前先做 Mach-O 预检，成品仍执行完整扫描。Windows 与 Apple Silicon 不调用这一准备脚本。
 
 ### GitHub Actions 自动生成 Intel 包
 
@@ -819,9 +823,9 @@ git push github v1.1.62
 
 `.github/workflows/build-macos-intel.yml` 使用 GitHub 官方 `macos-15-intel` x86_64 Runner，固定 Node.js、Python、uv、pnpm 和 Meson 版本，然后执行同一条 `pnpm --dir desktop package:mac:x64` 命令。手动运行的 DMG、ZIP、`latest-mac.yml` 和 `SHA256SUMS-macos-x64.txt` 作为 Actions 制品保留 1 天；`v*` 标签构建则放入草稿 GitHub Release，需人工验收后再发布。标签必须和 `desktop/package.json` 的版本完全一致，否则流水线会立即拒绝出包。
 
-GitHub 托管环境是 macOS 15，不是 Ventura。流水线会校验所有 Mach-O 的 x86_64 架构和不高于 13.0 的最低系统版本，并在 Intel Runner 上完成后端、FFmpeg、字幕、Hermes 和签名冒烟；这仍不等于已在 macOS 13.7.8 实机验收。对外发布前，必须在指定的 Intel Ventura 机器上完成干净安装、启动、登录、视频/字幕生成和退出冒烟。[GitHub 官方 Runner 表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 确认 `macos-15-intel` 是标准 x64 环境；[Runner 图像公告](https://github.com/actions/runner-images/issues/13045) 将它定义为最后一个 x86_64 macOS 图像，当前公布的可用期到 2027 年 8 月，之后需改用 Intel Mac 自托管 Runner。草稿 Release 里每个制品还受 [GitHub Release 单文件小于 2 GiB](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) 的限制，工作流已在上传前显式检查。
+GitHub 托管环境是 macOS 15，不是 Ventura。流水线会校验所有 Mach-O 的 x86_64 架构和不高于 13.4 的最低系统版本，并在 Intel Runner 上完成后端、FFmpeg、字幕、Hermes 和签名冒烟；这仍不等于已在 macOS 13.7.8 实机验收。对外发布前，必须在指定的 Intel Ventura 机器上完成干净安装、启动、登录、视频/字幕生成和退出冒烟。[GitHub 官方 Runner 表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 确认 `macos-15-intel` 是标准 x64 环境；[Runner 图像公告](https://github.com/actions/runner-images/issues/13045) 将它定义为最后一个 x86_64 macOS 图像，当前公布的可用期到 2027 年 8 月，之后需改用 Intel Mac 自托管 Runner。草稿 Release 里每个制品还受 [GitHub Release 单文件小于 2 GiB](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) 的限制，工作流已在上传前显式检查。
 
-新 GitHub 仓库应设为私有，不得将商业配置、密钥、内部发布逻辑或制品推送到现有 `upstream`。私有仓库的 macOS Runner 会消耗账户 Actions 额度，超额后按 GitHub 当前计费规则收费。
+GitHub 仓库公开前必须确认源码和历史中不包含密钥或敏感数据；公共仓库使用标准托管 Runner 免费。私有仓库的 macOS Runner 会消耗账户 Actions 额度，超额后按 GitHub 当前计费规则收费。不得将商业配置、密钥、内部发布逻辑或制品推送到现有 `upstream`。
 
 仓库现有 Gitee Go 流水线使用 Linux x64 云端构建步骤，只负责质量门、前端测试构建和自动版本提交，不能直接生成该 macOS 构件。Gitee 公开文档中的自有主机 Agent 也只明确支持 Linux；自动化出包必须另行接入一台 Intel / macOS 13 构建机，由 Gitee 触发它执行 `pnpm --dir desktop package:mac:x64`，不能把该命令直接加到现有 `build@gcc` 或 `build@nodejs` 步骤中。
 

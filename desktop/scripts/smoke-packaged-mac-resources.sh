@@ -2,7 +2,7 @@
 set -euo pipefail
 
 expected_arch="${1:-x86_64}"
-maximum_system_version="${2:-13.0.0}"
+maximum_system_version="${2:-13.4.0}"
 case "$expected_arch" in
 arm64 | x86_64) ;;
 *)
@@ -15,28 +15,6 @@ desktop_root="$(cd "$(dirname "$0")/.." && pwd)"
 release_root="${desktop_root}/release"
 temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/ai-anime-macos-smoke.XXXXXX")"
 trap 'rm -rf "$temporary_root"' EXIT
-
-version_not_newer_than() {
-  awk -v actual="$1" -v maximum="$2" 'BEGIN {
-    split(actual, a, ".");
-    split(maximum, b, ".");
-    for (i = 1; i <= 4; i++) {
-      av = a[i] + 0;
-      bv = b[i] + 0;
-      if (av < bv) exit 0;
-      if (av > bv) exit 1;
-    }
-    exit 0;
-  }'
-}
-
-minimum_macos_version() {
-  otool -l "$1" | awk '
-    $1 == "cmd" { command = $2; next }
-    command == "LC_BUILD_VERSION" && $1 == "minos" { print $2; exit }
-    command == "LC_VERSION_MIN_MACOSX" && $1 == "version" { print $2; exit }
-  '
-}
 
 app_path=""
 while IFS= read -r candidate; do
@@ -66,42 +44,10 @@ if [[ "$declared_minimum" != "$maximum_system_version" ]]; then
   exit 1
 fi
 
-mach_o_count=0
-while IFS= read -r candidate; do
-  if ! file "$candidate" | grep -q 'Mach-O'; then
-    continue
-  fi
-  mach_o_count=$((mach_o_count + 1))
-  candidate_archs="$(lipo -archs "$candidate")"
-  case " ${candidate_archs} " in
-  *" ${expected_arch} "*) ;;
-  *)
-    echo "Packaged Mach-O file does not contain ${expected_arch}: ${candidate} (${candidate_archs})" >&2
-    exit 1
-    ;;
-  esac
-
-  inspection_path="$candidate"
-  case "$candidate_archs" in
-  *" "*)
-    inspection_path="${temporary_root}/slice-${mach_o_count}"
-    lipo "$candidate" -thin "$expected_arch" -output "$inspection_path"
-    ;;
-  esac
-  minimum_version="$(minimum_macos_version "$inspection_path")"
-  if [[ -z "$minimum_version" ]] || ! version_not_newer_than "$minimum_version" "$maximum_system_version"; then
-    echo "Packaged Mach-O requires a newer macOS than ${maximum_system_version}: ${candidate} (${minimum_version:-unknown})" >&2
-    exit 1
-  fi
-done < <(find "${app_path}/Contents" -type f -print)
-
-if [[ "$mach_o_count" -eq 0 ]]; then
-  echo "No Mach-O files were found in the packaged application" >&2
-  exit 1
-fi
+bash "${desktop_root}/scripts/check-macos-binaries.sh" "${app_path}/Contents" "$expected_arch" "$maximum_system_version"
 
 resources="${app_path}/Contents/Resources"
-backend="${resources}/backend/ai-anime-backend/ai-anime-backend"
+backend="${resources}/backend/ai-anime-backend"
 ffmpeg="${resources}/bin/ffmpeg"
 ffprobe="${resources}/bin/ffprobe"
 hermes="${resources}/hermes/hermes-acp/hermes-acp"
@@ -148,4 +94,4 @@ for extension in dmg zip; do
   fi
 done
 
-echo "Packaged macOS resources passed: ${expected_arch}, minimum macOS ${maximum_system_version}, ${mach_o_count} Mach-O files."
+echo "Packaged macOS resources passed: ${expected_arch}, minimum macOS ${maximum_system_version}."
