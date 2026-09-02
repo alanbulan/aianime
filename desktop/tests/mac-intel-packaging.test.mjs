@@ -130,6 +130,7 @@ test("packaged Intel app verification checks architecture, minimum OS, runtime a
   assert.match(smokeScript, /backend="\$\{resources\}\/backend\/ai-anime-backend"/);
   assert.doesNotMatch(smokeScript, /backend\/ai-anime-backend\/ai-anime-backend/);
   assert.match(smokeScript, /--runtime-smoke-check/);
+  assert.ok(smokeScript.includes('filters="$("$ffmpeg" -hide_banner -filters'));
   assert.match(smokeScript, /-c:v h264_videotoolbox/);
   assert.match(smokeScript, /subtitles=\$\{subtitle_path\}/);
   assert.match(smokeScript, /codesign --verify --deep --strict/);

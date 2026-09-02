@@ -65,7 +65,7 @@ if ! grep -q '^AI_ANIME_BACKEND_SMOKE ' <<<"$backend_output"; then
 fi
 
 "$ffprobe" -hide_banner -version >/dev/null
-filters="$($ffmpeg -hide_banner -filters 2>/dev/null || true)"
+filters="$("$ffmpeg" -hide_banner -filters 2>/dev/null || true)"
 for required_filter in drawtext subtitles; do
   if ! grep -Eq "[[:space:]]${required_filter}[[:space:]]" <<<"$filters"; then
     echo "Packaged FFmpeg is missing ${required_filter}" >&2
