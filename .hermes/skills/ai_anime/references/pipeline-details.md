@@ -27,7 +27,7 @@ ai_anime_run_production_workflow(
 实际 POST /projects/$PID/workflow/production
 ```
 
-该父任务内部调用与前端手动操作相同的应用用例，按断点完成脚本图、生产模型前置、世界资产、草图、AI 检测、全局优化、声线与配音模型前置、首帧、Seedance 最终提示词、音频、逐 beat 视频和合成。助手只等待父 `production_workflow` 的精确 `task_key`，不得按下文单步接口再编排一条完整流程。
+该父任务内部调用与前端手动操作相同的应用用例，按断点完成脚本图、生产模型前置、本集视觉资产、声线与配音模型前置、草图、AI 检测、首帧、全局优化、声线复检、Seedance 最终提示词、音频、逐 beat 视频和合成。助手只等待父 `production_workflow` 的精确 `task_key`，不得按下文单步接口再编排一条完整流程。
 
 完整生产父任务失败或取消后，用户说“继续/重试/接着做”仍调用该入口恢复同一目标。状态接口的 `next_step` 只说明断点，不授权助手改用下文单步写接口。
 
@@ -249,6 +249,8 @@ POST /projects/$PID/props/$PROP_NAME/delete
 ```
 
 ### Step 12: 草图生成 [ASYNC -> sketch_generation]
+
+完整成片目标必须先由父工作流准备并验收本集视觉资产和所需声线；`pipeline/status.next_step=voice_assets` 时查看 `voice_asset_issues` 并恢复父任务，不跳到草图。只做静态分镜时不要求声线，以下单步入口仍只检查视觉资产。
 
 ```
 POST /projects/$PID/episodes/$EP/sketches/assign-colors

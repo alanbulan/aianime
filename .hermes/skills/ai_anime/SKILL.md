@@ -56,14 +56,14 @@ requires:
   - 用户明确索要最终成片时，如果接口已经返回正式相对路径，就只交付该相对路径并立即收口；不要再补“可直接打开”绝对 URL、host 前缀或下载直链。
   - 对于身份图、肖像这类生成型图片请求，只要接口已返回业务结果相对路径，就视为交付完成；不要再做路径校验或拼接绝对 URL。
 - 长时间任务后台执行；对用户只用自然语言表达当前状态、完成情况和下一步。
-- **唯一流程协议**：前端“完整生成”和助手连续自动生成必须调用同一个 `POST /projects/{project}/workflow/production`，助手对应工具为 `ai_anime_run_production_workflow`。该父任务从持久化状态恢复并完成摄入、脚本、生产模型前置、资产、逐 Beat 单张草图、检测、首帧、视频提示词优化、声线与配音模型前置、Seedance 最终提示词、音频、逐 beat 视频和合成。连续目标只提交一次并只等待它返回的精确 `task_key`；严禁助手再用 `pipeline/status` 串接各阶段工具形成第二套客户端流程。
+- **唯一流程协议**：前端“完整生成”和助手连续自动生成必须调用同一个 `POST /projects/{project}/workflow/production`，助手对应工具为 `ai_anime_run_production_workflow`。该父任务从持久化状态恢复并完成摄入、脚本、生产模型前置、本集视觉资产、声线与配音模型前置、逐 Beat 单张草图、检测、首帧、视频提示词优化、声线复检、Seedance 最终提示词、音频、逐 beat 视频和合成。连续目标只提交一次并只等待它返回的精确 `task_key`；严禁助手再用 `pipeline/status` 串接各阶段工具形成第二套客户端流程。
 - **局部与脚本入口**：用户明确要求“每步确认/只做下一步/重做某个局部”时，才按 `pipeline/status.next_step` 调单步工具；只要求生成分集脚本或补齐脚本前置时调用 `ai_anime_run_script_workflow`。用户要求“自动跑/一口气跑完/完成整集/不要暂停”时直接调用一次 `ai_anime_run_production_workflow`，不要先调用脚本工作流再自行续跑。
 - **大任务直接提交父任务**：用户要求完成整集或跨阶段目标时，不要求用户拆成多轮提示；指定集一次传入 `episodes`，全部分集则省略。依赖、断点恢复、并发、幂等和子任务等待全部由后端父任务负责。
 - **继续继承原目标**：上一项完整生产父任务失败或取消后，用户只说“继续/重试/接着做”，仍然调用一次 `ai_anime_run_production_workflow` 从持久化断点恢复；不得把 `pipeline/status.next_step` 当成授权，改为手工串接检测、首帧、音频、视频等局部写工具。只有最近目标本来就是逐步确认或明确局部重做时，“继续”才推进一个单步任务。
 - **完整生产覆盖边界**：普通继续/恢复不得传 `rebuild=true`，父任务只能补缺失项并保留已有草图、首帧、音频、视频和成片。只有用户明确要求整条流水线全部重建/覆盖，且已满足对应覆盖确认规则时，才允许传 `rebuild=true`。
 - **首帧重做边界**：`ai_anime_render_first_frames` 是显式覆盖工具，不是普通续跑入口。局部重做必须传用户明确指定的 `beat_indices`；只有用户明确要求重做整集所有首帧时才传 `all_beats=true`。省略范围不得自动推断为全选。
 - **异步任务等待规则**：自动模式必须用 `ai_anime_wait_task` 等待已启动或已在运行的目标任务，不通过密集重复 GET 轮询。一次等待超时不等于任务失败；重新读取状态后，任务仍在运行则继续等待，不重复提交写请求。
-- **视频请求规则**：完整生产父任务内部按身份/脚本/场景/草图/检测/优化/声线前置检查/首帧/Seedance 最终提示词/音频/逐 beat 视频/合成的固定依赖执行；局部单步请求仍必须满足对应前置，全部 beat 完成后才允许 compose。
+- **视频请求规则**：完整生产父任务内部按身份/脚本/本集视觉资产/声线前置检查/草图/检测/首帧/优化/声线复检/Seedance 最终提示词/音频/逐 beat 视频/合成的固定依赖执行；局部单步请求仍必须满足对应前置，全部 beat 完成后才允许 compose。
 - **Seedance 模式边界**：按 Beat 自适应。Beat 的 `video_mode=keyframe` 且下一 Beat 帧可用时走严格首尾帧，只传两个端点；其余 Beat 按已配置模式，默认走多参考。Seedance 2.0 多参考模式把当前 render 作为语义首帧，下一 Beat render 可用时作为语义尾帧，再附加适用的角色/身份、场景、道具和音频，端点通过提示词表达而不是混入严格 `last_frame` 槽。具体供应商未声明多模态能力时不得构造这种组合。`return_last_frame` 只保存模型返回尾帧，不代表自动把它作为下一 Beat 输入。
 - **错误即停**：任一写工具返回 `ok:false`、HTTP 4xx/5xx、`identity_plan_required`、`Task not found`、`当前项目 ... 队列任务已满`、404 或网络错误时，不得继续后续写操作或猜路径。只有后端状态明确给出两个以上安全、可恢复的合法方向时，调用 `question` 让用户选择后按所选方向恢复；否则立即把 `error/detail/message` 转成简短自然语言并说明唯一前置或等待条件。禁止在同一轮反复重试同一工具。
 - `ai_anime_generate_audio` 会先按已配置的云端/BYOK 优先级调用 `AUDIO_VOICE_DESIGN`，自动创建并绑定缺失的项目解说人或角色声线，再启动配音。若仍返回 `voice_prereq_required`、`voice_design_model_unavailable` 或 `voice_design_failed`，必须转述后端的真实模型/声线前置错误；不要声称上传或录制是唯一办法，也不要在前置未修复时继续启动视频、合成或其它写任务。
@@ -148,7 +148,8 @@ requires:
 当前后端没有 `literal-script/generate`、`anchor-image/*`、整集 `/videos/generate` 路由；不要调用这些旧接口。
 
 **逐集视频链的固定真实顺序**（完整生产由父任务执行；单步重做才使用对应专用工具）：
-`生产图片模型前置` → `逐 Beat 1x1 草图就绪` → `AI 检测（文本标记优先，检测仅作无标记兼容）` → `首帧 selected_regen` → `global_optimize_video` → `声线与配音模型前置检查` → `Seedance 最终提示词` → `audio_generation_indextts2` → `单 beat 视频 single_video（逐 beat）` → `compose 合成` → `final delivery`。
+`生产图片模型前置` → `本集视觉资产就绪` → `声线与配音模型前置检查` → `逐 Beat 1x1 草图就绪` → `AI 检测（文本标记优先，检测仅作无标记兼容）` → `首帧 selected_regen` → `global_optimize_video` → `声线复检` → `Seedance 最终提示词` → `audio_generation_indextts2` → `单 beat 视频 single_video（逐 beat）` → `compose 合成` → `final delivery`。
+- `pipeline/status.next_step=voice_assets` 表示本集声线前置尚未通过，缺失原因见 `voice_asset_issues`；完整生产仍由父任务补齐和复检，不跳过此阶段。只做静态分镜时不要求声线，也不要求填满未使用角色或年龄槽位。
 - `compose_episode` **必须**在所有 beat 视频都生成后才可执行；否则后端报「没有可用的视频片段」——这是前置未完成，不是 compose 的 body 问题。
 - `single_video` 需要：① 该 beat 首帧已存在 ② 该 beat 有非空 `video_prompt`（来自脚本步骤）③ 使用 Seedance 时已有非空最终提示词。完整生产父任务会自动补齐最终提示词；局部请求报「最终提示词为空」时必须停止，不能继续提交其它视频。
 - `global_optimize_video` 逐 Beat 使用当前正式渲染图，缺失时回退到该 Beat 草图；不会创建或依赖 3x3/5x5 临时网格。报「找不到可用的渲染图或草图」即镜头画面前置未完成。

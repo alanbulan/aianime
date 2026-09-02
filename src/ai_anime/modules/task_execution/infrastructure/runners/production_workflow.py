@@ -1668,7 +1668,27 @@ async def _run_production_workflow_steps(
         beats = await _episode_beats(context, episode_num)
         reporter.update(base, f"第 {episode_num} 集校验草图前置资产")
         await _require_episode_visual_assets(context, episode_num, beats)
-        reporter.update(base, f"第 {episode_num} 集分配草图标记颜色")
+        # Complete production prepares its required voices before storyboard
+        # images. Standalone sketch generation remains a visual-only workflow.
+        await _ensure_audio_prerequisites(
+            context,
+            episode_num,
+            beats,
+            reporter=reporter,
+            progress=base + episode_span * 0.02,
+            force=overwrite_existing_assets,
+        )
+        await _ensure_video_voice_prerequisites(
+            context,
+            episode_num,
+            beats,
+            requested_model=payload.get("video_model"),
+            video_routing_policy=video_routing_policy,
+            reporter=reporter,
+            progress=base + episode_span * 0.04,
+            force=overwrite_existing_assets,
+        )
+        reporter.update(base + episode_span * 0.05, f"第 {episode_num} 集分配草图标记颜色")
         await _assign_colors(context, episode_num)
         sketch_paths = await _ensure_sketches(
             context,
@@ -1708,6 +1728,8 @@ async def _run_production_workflow_steps(
             progress=base + episode_span * 0.40,
             force=overwrite_existing_assets,
         )
+        # Optimization can change dialogue/speakers. Recheck the updated beats;
+        # existing usable voices are reused, not regenerated unconditionally.
         await _ensure_audio_prerequisites(
             context,
             episode_num,

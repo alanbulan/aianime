@@ -170,6 +170,25 @@ def _build_preparer(
 
 
 @pytest.mark.asyncio
+async def test_standalone_sketch_preparation_does_not_generate_voices(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+
+    async def unexpected_voice_call(*_args, **_kwargs):
+        raise AssertionError("a standalone sketch must not prepare audio or voices")
+
+    monkeypatch.setattr(production_public, "build_episode_audio_generation_plan", unexpected_voice_call)
+    monkeypatch.setattr(production_public, "provision_voice_design_requirements", unexpected_voice_call)
+    store = _Store([{"beat_number": 1, "speaker": "hero"}], {"hero": "#3366ff"})
+    preparer, *_ = _build_preparer(monkeypatch, store, plan=((1, 1),))
+
+    await preparer.prepare(_context(tmp_path), GenerateSketchesCommand(episode_num=3))
+
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_preparer_rejects_missing_beats_and_closes_store(
     monkeypatch,
     tmp_path: Path,

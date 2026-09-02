@@ -62,3 +62,33 @@ def test_continuous_episode_mode_reaches_delivery_without_manual_pause():
     assert "不要求用户再发“继续”" in run_modes
     assert "恢复同一个完整生产目标" in run_modes
     assert "all_beats=true" in run_modes
+    assert "在草图前先补齐本集视觉资产" in run_modes
+    assert "pipeline/status.next_step=voice_assets" in run_modes
+    assert "首帧 → 全局优化 → 声线复检" in run_modes
+
+
+def test_episode_playbook_prepares_voices_before_full_production_sketches():
+    episode = (
+        HERMES_ASSETS / "skills" / "ai_anime" / "playbooks" / "episode.md"
+    ).read_text(encoding="utf-8")
+
+    assert "视觉资产、声线与配音模型前置，再依次执行草图" in episode
+    assert "voice_asset_issues" in episode
+    assert "只做静态分镜时不要求声线" in episode
+
+
+def test_main_skill_and_pipeline_details_match_voice_gate_stage_order():
+    skill = (
+        HERMES_ASSETS / "skills" / "ai_anime" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    pipeline = (
+        HERMES_ASSETS / "skills" / "ai_anime" / "references" / "pipeline-details.md"
+    ).read_text(encoding="utf-8")
+
+    assert "`声线与配音模型前置检查` → `逐 Beat 1x1 草图就绪`" in skill
+    assert "`首帧 selected_regen` → `global_optimize_video` → `声线复检`" in skill
+    assert "声线与配音模型前置、草图、AI 检测、首帧、全局优化、声线复检" in pipeline
+    for guidance in (skill, pipeline):
+        assert "pipeline/status.next_step=voice_assets" in guidance
+        assert "voice_asset_issues" in guidance
+        assert "只做静态分镜时不要求声线" in guidance

@@ -489,6 +489,7 @@ async def test_ensure_composed_preserves_current_final_without_rebuild(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("voice_failure_stage", [None, "audio_prereq", "video_voice"])
 @pytest.mark.parametrize(
     (
         "rebuild",
@@ -512,6 +513,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     markers_changed: bool,
     expected_visual_force: bool,
     expected_audio_force: bool,
+    voice_failure_stage: str | None,
 ) -> None:
     from ai_anime.modules.task_execution.infrastructure.runners import (
         production_workflow as runner,
@@ -585,6 +587,8 @@ async def test_production_runner_owns_the_complete_stage_order(
     async def forced_stage(name, *args, **kwargs):
         calls.append(name)
         force_flags[name] = kwargs.get("force", False)
+        if name == voice_failure_stage:
+            raise RuntimeError(f"{name}: voice prerequisites missing")
 
     monkeypatch.setattr(runner, "_ProgressReporter", _Reporter)
     monkeypatch.setattr(
@@ -668,6 +672,20 @@ async def test_production_runner_owns_the_complete_stage_order(
         owner_username="alice",
         project_name="demo",
     )
+    if voice_failure_stage is not None:
+        with pytest.raises(RuntimeError, match="voice prerequisites missing"):
+            await runner._run_production_workflow_steps(
+                {"payload": {"episodes": [1], "rebuild": rebuild}},
+                context,
+            )
+        assert calls[-1] == voice_failure_stage
+        assert "asset_gate" in calls
+        assert "sketches" not in calls
+        assert "frames" not in calls
+        assert "audio" not in calls
+        assert "videos" not in calls
+        assert "compose" not in calls
+        return
     result = await runner._run_production_workflow(
         {
             "payload": {
@@ -690,6 +708,8 @@ async def test_production_runner_owns_the_complete_stage_order(
         "assets",
         "markers",
         "asset_gate",
+        "audio_prereq",
+        "video_voice",
         "colors",
         "sketches",
         "detection",

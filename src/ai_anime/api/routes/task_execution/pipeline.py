@@ -16,9 +16,12 @@ from ai_anime.modules.task_execution.public import (
     project_task_use_cases,
 )
 from ai_anime.modules.production.public import (
+    build_episode_audio_generation_plan,
+    collect_video_reference_prereq_errors,
     inspect_episode_visual_assets,
     stale_canonical_sketch_numbers,
 )
+from ai_anime.shared.utils.async_ops import call_blocking
 from ai_anime.shared.utils.path_resolver import (
     compute_portrait_path,
 )
@@ -39,10 +42,11 @@ _STEP_MAP = {
     "prop_plan": ("episode_prop_planner", "道具规划"),
     "scene_images": (None, "场景参考图生成"),
     "prop_images": (None, "道具参考图生成"),
+    "voice_assets": (None, "本集声线准备"),
     "sketches": ("sketch_generation", "草图生成"),
     "coloring": (None, "配色+身份/道具检测"),
-    "global_optimize": ("global_optimize_video", "全局视频优化"),
     "first_frames": ("selected_regen", "首帧生成"),
+    "global_optimize": ("global_optimize_video", "全局视频优化"),
     "video_prompt_optimization": (None, "最终视频提示词"),
     "tts": (None, "TTS 配音"),
     "video": ("single_video", "视频生成"),
@@ -325,6 +329,35 @@ async def pipeline_status(
         else []
     )
 
+    audio_plan = None
+    voice_asset_issues: list[str] = []
+    if has_script:
+        # Use the same speech/voice plan as generation: silent beats and unused
+        # library characters do not require voices or an audio output file.
+        audio_plan = await build_episode_audio_generation_plan(
+            store=store,
+            username=username,
+            project=project_name,
+            episode=target_ep,
+            beat_numbers=None,
+            mode="sync_changed",
+        )
+        voice_asset_issues.extend(audio_plan.errors)
+        if advanced_video_prompts_required:
+            reference_errors = await call_blocking(
+                collect_video_reference_prereq_errors,
+                project_output=project_dir,
+                episode=target_ep,
+                beats=beats,
+                characters=characters,
+            )
+            voice_asset_issues.extend(
+                f"Beat {error.beat_number} {error.label}：{error.reason}"
+                for error in reference_errors
+                if error.media_type == "audio"
+            )
+    voice_asset_issues = list(dict.fromkeys(voice_asset_issues))
+
     episode_status = {
         "identity_plan": readiness.identity_plan_complete,
         "scene_plan": readiness.scene_plan_complete,
@@ -333,18 +366,21 @@ async def pipeline_status(
         "identity_images": readiness.identity_images_complete,
         "scene_images": readiness.scene_images_complete,
         "prop_images": readiness.prop_images_complete,
+        "voice_assets": has_script and not voice_asset_issues,
         "sketches": has_sketches,
         "coloring": has_coloring,
-        "global_optimize": has_global_optimize,
         "first_frames": _beat_file_series_current(
             frames_dir,
             "png",
             beats,
             ((sketches_dir, "png"),),
         ),
+        "global_optimize": has_global_optimize,
         "video_prompt_optimization": not missing_video_prompt_beats,
-        "tts": _beat_file_series_complete(
-            audio_dir, "mp3", beats
+        "tts": (
+            audio_plan is not None
+            and not audio_plan.errors
+            and not audio_plan.beat_numbers
         ),
         "video": _beat_file_series_current(
             videos_dir,
@@ -363,10 +399,11 @@ async def pipeline_status(
         "identity_images",
         "scene_images",
         "prop_images",
+        "voice_assets",
         "sketches",
         "coloring",
-        "global_optimize",
         "first_frames",
+        "global_optimize",
         "video_prompt_optimization",
         "tts",
         "video",
@@ -391,6 +428,7 @@ async def pipeline_status(
             "current_episode": target_ep,
             "episode_status": episode_status,
             "visual_asset_issues": list(readiness.issues),
+            "voice_asset_issues": voice_asset_issues,
             "stale_sketch_beats": stale_sketch_beats,
             "missing_video_prompt_beats": missing_video_prompt_beats,
             "next_step": task_type or next_step,
