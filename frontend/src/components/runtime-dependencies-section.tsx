@@ -64,6 +64,10 @@ export function RuntimeDependenciesSection({ active }: { active: boolean }) {
   const state = installing ? "installing" : status?.state ?? "not-installed";
   const healthy = status?.healthy === true;
   const supported = status?.supported !== false;
+  const isIntelMacUnsupported =
+    status?.state === "unsupported" &&
+    status.platform === "darwin" &&
+    status.arch === "x64";
   const progressPercent = progress?.percent ?? 0;
   const totalBytes = progress?.totalBytes ?? status?.downloadSizeBytes;
 
@@ -134,6 +138,15 @@ export function RuntimeDependenciesSection({ active }: { active: boolean }) {
         {error ? (
           <p className="mt-4 text-sm text-destructive" role="alert">
             {error}
+          </p>
+        ) : null}
+
+        {isIntelMacUnsupported ? (
+          <p
+            className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm leading-relaxed text-foreground"
+            role="status"
+          >
+            {t("settings.dependencies.intelMacUnsupportedNotice")}
           </p>
         ) : null}
 

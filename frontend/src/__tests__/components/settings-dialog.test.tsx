@@ -25,6 +25,10 @@ vi.mock("react-i18next", () => ({
         "settings.tabs.dependencies": "环境依赖",
         "settings.tabs.update": "关于与更新",
         "settings.dependencies.states.ready": "可用",
+        "settings.dependencies.states.unsupported": "暂不支持",
+        "settings.dependencies.install": "安装环境",
+        "settings.dependencies.intelMacUnsupportedNotice":
+          "Intel Mac 不会下载或启动此组件，安装按钮已停用。受影响的只有本地 SOG/3DGS 生成与转换。",
         "settings.modelAccess.cloud": "云端模型",
         "settings.modelAccess.byok": "BYOK 模型",
         "settings.modelAccess.fetchModels": "获取模型列表",
@@ -322,6 +326,41 @@ describe("SettingsDialog", () => {
 
     await waitFor(() => expect(status).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("NVIDIA CUDA（支持 CPU 回退）")).toBeInTheDocument();
+  });
+
+  it("在 Intel Mac 上明确说明 3D 限制并停用安装", async () => {
+    const install = vi.fn();
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: {
+        platform: "darwin",
+        commercial: {},
+        runtimeDependencies: {
+          status: vi.fn().mockResolvedValue({
+            id: "world",
+            supported: false,
+            installed: false,
+            healthy: false,
+            installing: false,
+            state: "unsupported",
+            platform: "darwin",
+            arch: "x64",
+            accelerator: "当前平台暂无预编译运行环境",
+            message:
+              "Intel Mac 可正常使用主应用，但当前不提供导演世界 3D 运行环境。系统不会下载或启动不兼容组件。",
+          }),
+          install,
+          onProgress: vi.fn(() => vi.fn()),
+        },
+      },
+    });
+
+    render(<SettingsDialog open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "环境依赖" }));
+
+    expect(await screen.findByText(/Intel Mac 不会下载或启动此组件/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "安装环境" })).toBeDisabled();
+    expect(install).not.toHaveBeenCalled();
   });
 
   it("在模型用途选中后继续显示本地化标签", async () => {

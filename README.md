@@ -12,6 +12,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 | --- | --- | --- | --- |
 | Windows | x64 | Windows 10/11 | NSIS `.exe` |
 | macOS | Apple Silicon arm64 | macOS 15 | `.dmg`、`.zip` |
+| macOS | Intel x86_64 | macOS 13 Ventura | `.dmg`、`.zip` |
 
 本仓库采用 DDD 风格的模块化单体，不是微服务集合。本轮已登记的平铺上下文、顶层存储、任务状态和商业入口债务已经完成所有权迁移；跨上下文依赖由 `public.py` / `public.ts` 和自动化边界测试约束。DDD 合规以职责和依赖方向为准，不以目录层数或单个文件大小代替边界判断。
 
@@ -23,7 +24,7 @@ AI anime 是面向 AI 漫剧生产的桌面应用。发布包由 React 前端、
 - React 通过 FastAPI 完成本地项目、剧集、资产、画布、任务和生成工作流。
 - 商业登录、账户资料、受保护头像、密码重置、许可、额度、模型目录、公告和版本更新通过 Electron IPC 访问真实 Gateway 路径。
 - 普通版 Cloud 模型请求经 Electron 本地模型代理转发到 Gateway；专业版 BYOK 由用户配置标准模型接口。
-- Windows x64 与 macOS arm64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
+- Windows x64、macOS arm64 与 macOS Intel x86_64 的运行时路径、FFmpeg、安装器选择和打包配置均有契约测试。
 - 旧 `agents`、`director_world`、`generators`、`seedance2_i2v` Python 路径已经退役；Backup、Knowledge Graph 和 Verification 已按实际职责分层。
 - 桌面任务默认使用有界内联执行器，原生重任务进入可终止子进程；服务重启会按任务契约恢复或终止遗留状态。
 - SuperChat 消息、右侧时间轴和任务列表已经使用可变高度虚拟列表，长会话不再持续累积 DOM 节点。
@@ -634,7 +635,7 @@ React module
 当前剩余线上验收项：
 
 1. 修复 `CODEX_SMOKE_IMAGE` 对应供应商的 Base URL、`/v1/images/generations` 路径或模型映射，并用同一 SKU 复测成功结果。
-2. 在 macOS 宿主机生成并发布 `macos/arm64` ZIP/DMG 与 `latest-mac.yml` 后完成该平台验收。
+2. 在对应 macOS 宿主机分别生成并发布 `macos/arm64`、`macos/x86_64` ZIP/DMG 与各自的 `latest-mac.yml` 后完成平台验收。
 
 可直接交给云端实施的字段、JSON 示例、密钥位置和发布顺序见 [云端接入与安全更新交接](docs/cloud-integration-handoff.md)。
 
@@ -684,7 +685,7 @@ Electron 使用 `app.getPath("userData")`：
 - `uv`
 - Node.js 24.19.0 LTS
 - pnpm 11.24.0
-- Windows x64 或 Apple Silicon Mac
+- Windows x64、Apple Silicon Mac 或 Intel Mac
 
 安装依赖：
 
@@ -744,7 +745,7 @@ Windows 上建议让 Pytest、Vitest 和 TypeScript 串行运行，避免多个�
 打包链路依次执行：
 
 1. 生成应用图标。
-2. 下载并校验当前平台 LGPL FFmpeg。
+2. 下载或构建并校验当前平台的 LGPL 兼容 FFmpeg。
 3. 构建 React CE renderer。
 4. 编译 Electron 主进程。
 5. 用 PyInstaller 构建 FastAPI sidecar。
@@ -782,7 +783,51 @@ AI-anime-<version>-macos-arm64.zip
 latest-mac.yml
 ```
 
-当前 macOS 最低版本为 15.0。Windows 允许无证书打包，macOS 使用本地 ad-hoc 签名，两者都不需要在打包机配置开发者账号或证书。系统仍可能显示来源提示，但不再阻止构建。
+Apple Silicon 包当前最低版本为 15.0。
+
+### macOS Intel x86_64 / Ventura
+
+必须在 Intel Mac 上运行。Electron 维持 44.0.0；该版本支持 macOS 13，因此无需为 Ventura 降级。首次打包还需要 Xcode Command Line Tools、Python 3、Meson 和 Ninja，Intel FFmpeg 会从固定版本、固定 SHA-256 的源码构建并缓存：
+
+```bash
+xcode-select --install
+uv tool install meson
+uv tool install ninja
+pnpm --dir desktop package:mac:x64
+```
+
+输出：
+
+```text
+AI-anime-<version>-macos-x64.dmg
+AI-anime-<version>-macos-x64.zip
+latest-mac.yml
+```
+
+Intel 包声明最低 macOS 13.0。打包命令会运行后端、FFmpeg、Hermes 和签名冒烟，并检查应用内每个 Mach-O 文件都包含 `x86_64`、其最低系统版本不高于 13.0。PyInstaller sidecar 不能从 Windows 或 Apple Silicon 交叉生成，因此该命令必须在 Intel macOS 宿主上原生执行。
+
+### GitHub Actions 自动生成 Intel 包
+
+推送代码到 GitHub 后，可在 Actions 页面手动运行 `Build macOS Intel`；也可推送与当前应用版本一致的标签自动出包：
+
+```bash
+git remote add github git@github.com:YOUR_ACCOUNT/YOUR_REPOSITORY.git
+git push -u github master
+git tag v1.1.62
+git push github v1.1.62
+```
+
+`.github/workflows/build-macos-intel.yml` 使用 GitHub 官方 `macos-15-intel` x86_64 Runner，固定 Node.js、Python、uv、pnpm 和 Meson 版本，然后执行同一条 `pnpm --dir desktop package:mac:x64` 命令。手动运行的 DMG、ZIP、`latest-mac.yml` 和 `SHA256SUMS-macos-x64.txt` 作为 Actions 制品保留 1 天；`v*` 标签构建则放入草稿 GitHub Release，需人工验收后再发布。标签必须和 `desktop/package.json` 的版本完全一致，否则流水线会立即拒绝出包。
+
+GitHub 托管环境是 macOS 15，不是 Ventura。流水线会校验所有 Mach-O 的 x86_64 架构和不高于 13.0 的最低系统版本，并在 Intel Runner 上完成后端、FFmpeg、字幕、Hermes 和签名冒烟；这仍不等于已在 macOS 13.7.8 实机验收。对外发布前，必须在指定的 Intel Ventura 机器上完成干净安装、启动、登录、视频/字幕生成和退出冒烟。[GitHub 官方 Runner 表](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 确认 `macos-15-intel` 是标准 x64 环境；[Runner 图像公告](https://github.com/actions/runner-images/issues/13045) 将它定义为最后一个 x86_64 macOS 图像，当前公布的可用期到 2027 年 8 月，之后需改用 Intel Mac 自托管 Runner。草稿 Release 里每个制品还受 [GitHub Release 单文件小于 2 GiB](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) 的限制，工作流已在上传前显式检查。
+
+新 GitHub 仓库应设为私有，不得将商业配置、密钥、内部发布逻辑或制品推送到现有 `upstream`。私有仓库的 macOS Runner 会消耗账户 Actions 额度，超额后按 GitHub 当前计费规则收费。
+
+仓库现有 Gitee Go 流水线使用 Linux x64 云端构建步骤，只负责质量门、前端测试构建和自动版本提交，不能直接生成该 macOS 构件。Gitee 公开文档中的自有主机 Agent 也只明确支持 Linux；自动化出包必须另行接入一台 Intel / macOS 13 构建机，由 Gitee 触发它执行 `pnpm --dir desktop package:mac:x64`，不能把该命令直接加到现有 `build@gcc` 或 `build@nodejs` 步骤中。
+
+主安装包之外的“导演世界 3D 运行环境”仍只提供 Windows x64 与 macOS arm64 预编译包，Intel Mac 的“设置 → 环境依赖”会将它标记为不支持；这是现有可选运行时的架构限制，不是本次依赖降级造成。主包中的后端、Whisper、FFmpeg、字幕和 Hermes 会随 Intel 包构建并执行自动冒烟；完整界面与生成工作流仍需在安装后的目标机验收。
+
+Apple Silicon 包最低版本仍为 15.0。Windows 允许无证书打包，两个 macOS 包均使用本地 ad-hoc 签名，不要求打包机配置开发者账号或证书；对外分发时仍需 Developer ID 签名与公证，才能避免 Gatekeeper 的未识别开发者拦截。
 
 更新由 `electron-updater` 处理。`electron-builder` 会生成 `latest.yml` / `latest-mac.yml`，云端直接托管 YAML 和对应安装包，具体接口见 [云端交接文档](docs/cloud-integration-handoff.md)。
 

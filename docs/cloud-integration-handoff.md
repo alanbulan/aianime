@@ -121,6 +121,7 @@ GET /api/v1/client/releases/updater/latest-mac.yml?artifactId=bbbbbbbb-bbbb-4bbb
 # YAML 中 files[].url 对应的安装包
 GET /api/v1/client/releases/updater/AI-anime-1.1.6-x64-setup.exe?artifactId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
 GET /api/v1/client/releases/updater/AI-anime-1.1.6-macos-arm64.zip?artifactId=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb
+GET /api/v1/client/releases/updater/AI-anime-1.1.6-macos-x64.zip?artifactId=cccccccc-cccc-4ccc-8ccc-cccccccccccc
 
 Authorization: Bearer <access-token>
 ```
@@ -128,7 +129,7 @@ Authorization: Bearer <access-token>
 云端处理规则：
 
 1. 校验 Bearer Token、租户、发布可见性和 `artifactId` 归属。
-2. `latest.yml` 只能对应 Windows NSIS，`latest-mac.yml` 只能对应 macOS arm64 ZIP。
+2. `latest.yml` 只能对应 Windows NSIS；`latest-mac.yml` 只能对应与发布构件架构一致的 macOS ZIP（`arm64` 或 `x86_64`），不能在两种架构间复用。
 3. YAML 直接返回 `electron-builder` 生成的原文，使用 `Content-Type: text/yaml; charset=utf-8` 和 `Cache-Control: no-store`。
 4. YAML 中 `files[].url` 使用同目录的相对文件名，不要写第三方存储域名。
 5. 安装包接口返回原始文件字节和正确 `Content-Length`，不返回 JSON、HTML 或下载页。
@@ -244,7 +245,8 @@ sha512: 0Soo+g6HeWW/nKvAMBP30veqFYtYSzR6H/6N4Xytk2Sormxh5Bfm27WBy7RFNyQij7G27Q61
 macOS 打包：
 
 ```bash
-pnpm --dir desktop package:mac
+pnpm --dir desktop package:mac      # Apple Silicon arm64 / macOS 15+
+pnpm --dir desktop package:mac:x64  # Intel x64 / macOS 13+
 ```
 
 上传：
@@ -252,8 +254,12 @@ pnpm --dir desktop package:mac
 ```text
 desktop/release/AI-anime-<version>-macos-arm64.dmg
 desktop/release/AI-anime-<version>-macos-arm64.zip
+desktop/release/AI-anime-<version>-macos-x64.dmg
+desktop/release/AI-anime-<version>-macos-x64.zip
 desktop/release/latest-mac.yml
 ```
+
+两种 macOS 架构必须分别建立发布构件并分别保存各自生成的 `latest-mac.yml`；客户端会按 `process.arch` 选择 `arm64` 或 `x86_64` 构件。上传同名 YAML 时由对应 `artifactId` 隔离，不能让后上传的架构覆盖另一架构的内容。
 
 客户端已关闭差分下载，因此云端暂时不需要提供 blockmap。发布时先上传文件和 YAML，再创建发布记录，最后设为可见。
 

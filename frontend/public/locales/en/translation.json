@@ -3818,6 +3818,7 @@
       "check": "Check integrity",
       "installing": "Installing runtime…",
       "fetchingManifest": "Fetching the domestic mirror manifest…",
+      "intelMacUnsupportedNotice": "Intel Macs will not download or launch this component, and the install button is disabled. Only local SOG/3DGS generation and conversion are affected; the main app, scripts, images, videos, scene images, 360 panoramas, and existing Director World assets remain available.",
       "footnote": "Runtime archives prefer domestic mirrors; DA-2 uses a domestic Hugging Face mirror, and SHARP prefers a domestic mirror with its official source as fallback. Model weights are downloaded on first use and are not part of the main installer. macOS uses Apple Silicon MPS acceleration; Windows uses NVIDIA CUDA, and both can fall back to CPU.",
       "states": {
         "unsupported": "Unsupported",

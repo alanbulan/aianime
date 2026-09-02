@@ -3818,6 +3818,7 @@
       "check": "检查完整性",
       "installing": "正在安装运行环境…",
       "fetchingManifest": "正在获取国内镜像安装清单…",
+      "intelMacUnsupportedNotice": "Intel Mac 不会下载或启动此组件，安装按钮已停用。受影响的只有本地 SOG/3DGS 生成与转换；主应用及脚本、图片、视频、场景图片、360 全景和已有导演世界资产仍可使用。",
       "footnote": "运行环境安装包优先从国内镜像下载；DA-2 使用国内 Hugging Face 镜像，SHARP 权重使用国内镜像并以官方源兜底。模型权重在首次使用时按需下载，不计入主安装包。macOS 版本适配 Apple Silicon 的 MPS 加速，Windows 版本适配 NVIDIA CUDA，并都支持 CPU 回退。",
       "states": {
         "unsupported": "暂不支持",

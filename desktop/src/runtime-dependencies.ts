@@ -356,12 +356,16 @@ export class RuntimeDependencyManager {
       accelerator: acceleratorLabel(this.platform, this.arch),
     };
     if (!supported) {
+      const message =
+        this.platform === "darwin" && this.arch === "x64"
+          ? "Intel Mac 可正常使用主应用，但当前不提供导演世界 3D 运行环境。系统不会下载或启动不兼容组件；脚本、图片、视频、场景图片、360 全景和已有导演世界资产仍可使用。"
+          : "当前仅提供 Windows x64 与 macOS Apple Silicon 预编译运行环境。";
       return {
         ...base,
         installed: false,
         healthy: false,
         state: "unsupported",
-        message: "当前仅提供 Windows x64 与 macOS Apple Silicon 预编译运行环境。",
+        message,
       };
     }
     if (this.installing) {

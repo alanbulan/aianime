@@ -1,0 +1,156 @@
+name: Build macOS Intel
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-macos-intel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: Package x86_64 for macOS 13+
+    runs-on: macos-15-intel
+    timeout-minutes: 360
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24.19.0"
+          architecture: x64
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11.9"
+          architecture: x64
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.11.8"
+          enable-cache: false
+
+      - name: Verify Intel build host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "x86_64"
+          test "$(node -p 'process.arch')" = "x64"
+          test "$(python -c 'import platform; print(platform.machine())')" = "x86_64"
+          sw_vers
+          df -h .
+
+      - name: Verify release tag
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_version="$(node -p "JSON.parse(require('fs').readFileSync('desktop/package.json', 'utf8')).version")"
+          expected_tag="v${app_version}"
+          if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match desktop version ${expected_tag}." >&2
+            exit 1
+          fi
+
+      - name: Install build prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.24.0 --activate
+          python -m pip install --disable-pip-version-check meson==1.12.0
+          for command_name in clang make python3 meson ninja lipo otool; do
+            command -v "${command_name}" >/dev/null
+          done
+          test "$(pnpm --version)" = "11.24.0"
+          pnpm --dir desktop install --frozen-lockfile
+          pnpm --dir frontend install --frozen-lockfile
+
+      - name: Build and verify Intel package
+        shell: bash
+        run: pnpm --dir desktop package:mac:x64
+
+      - name: Prepare package manifest
+        id: artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_version="$(node -p "JSON.parse(require('fs').readFileSync('desktop/package.json', 'utf8')).version")"
+          release_dir="desktop/release"
+          dmg_path="${release_dir}/AI-anime-${app_version}-macos-x64.dmg"
+          zip_path="${release_dir}/AI-anime-${app_version}-macos-x64.zip"
+          update_path="${release_dir}/latest-mac.yml"
+          checksum_path="${release_dir}/SHA256SUMS-macos-x64.txt"
+          for artifact_path in "${dmg_path}" "${zip_path}" "${update_path}"; do
+            test -f "${artifact_path}"
+          done
+          for release_asset in "${dmg_path}" "${zip_path}"; do
+            if (( $(stat -f %z "${release_asset}") >= 2147483648 )); then
+              echo "GitHub Release assets must be smaller than 2 GiB: ${release_asset}" >&2
+              exit 1
+            fi
+          done
+          shasum -a 256 "${dmg_path}" "${zip_path}" "${update_path}" >"${checksum_path}"
+          printf 'dmg_path=%s\n' "${dmg_path}" >>"${GITHUB_OUTPUT}"
+          printf 'zip_path=%s\n' "${zip_path}" >>"${GITHUB_OUTPUT}"
+          printf 'update_path=%s\n' "${update_path}" >>"${GITHUB_OUTPUT}"
+          printf 'checksum_path=%s\n' "${checksum_path}" >>"${GITHUB_OUTPUT}"
+          du -h "${dmg_path}" "${zip_path}" "${update_path}" "${checksum_path}"
+
+      - name: Upload temporary workflow artifact
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: AI-anime-macos-intel-${{ github.run_id }}
+          path: |
+            ${{ steps.artifacts.outputs.dmg_path }}
+            ${{ steps.artifacts.outputs.zip_path }}
+            ${{ steps.artifacts.outputs.update_path }}
+            ${{ steps.artifacts.outputs.checksum_path }}
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+      - name: Save tagged build to a draft release
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DMG_PATH: ${{ steps.artifacts.outputs.dmg_path }}
+          ZIP_PATH: ${{ steps.artifacts.outputs.zip_path }}
+          UPDATE_PATH: ${{ steps.artifacts.outputs.update_path }}
+          CHECKSUM_PATH: ${{ steps.artifacts.outputs.checksum_path }}
+        run: |
+          set -euo pipefail
+          if release_is_draft="$(gh release view "${GITHUB_REF_NAME}" --json isDraft --jq '.isDraft' 2>/dev/null)"; then
+            if [[ "${release_is_draft}" != "true" ]]; then
+              echo "Release ${GITHUB_REF_NAME} is already published; refusing to replace its assets." >&2
+              exit 1
+            fi
+            gh release upload "${GITHUB_REF_NAME}" \
+              "${DMG_PATH}" "${ZIP_PATH}" "${UPDATE_PATH}" "${CHECKSUM_PATH}" \
+              --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              "${DMG_PATH}" "${ZIP_PATH}" "${UPDATE_PATH}" "${CHECKSUM_PATH}" \
+              --draft \
+              --generate-notes \
+              --title "${GITHUB_REF_NAME}" \
+              --verify-tag
+          fi

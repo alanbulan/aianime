@@ -114,12 +114,19 @@ test("runtime dependency manifest defaults to the domestic release host", () => 
 test("runtime dependency status distinguishes unsupported and uninstalled platforms", async () => {
   const root = await mkdtemp(join(tmpdir(), "ai-anime-runtime-test-"));
   try {
-    const unsupported = await new RuntimeDependencyManager(root, {
-      platform: "linux",
+    const intelMacManager = new RuntimeDependencyManager(root, {
+      platform: "darwin",
       arch: "x64",
-    }).status();
+    });
+    const unsupported = await intelMacManager.status();
     assert.equal(unsupported.state, "unsupported");
     assert.equal(unsupported.supported, false);
+    assert.match(unsupported.message, /Intel Mac 可正常使用主应用/);
+    assert.match(unsupported.message, /不会下载或启动不兼容组件/);
+    await assert.rejects(
+      intelMacManager.install(),
+      /当前平台没有可安装的导演世界 3D 运行环境/,
+    );
 
     const uninstalled = await new RuntimeDependencyManager(root, {
       platform: "win32",

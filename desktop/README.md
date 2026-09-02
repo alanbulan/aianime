@@ -49,11 +49,18 @@ pnpm --dir desktop test
 pnpm --dir desktop package:dir    # 生成 unpacked 目录
 pnpm --dir desktop package:win    # 生成 NSIS 安装包
 pnpm --dir desktop package:mac    # 在 Apple Silicon Mac 上生成 DMG 与 ZIP
+pnpm --dir desktop package:mac:x64 # 在 Intel Mac 上生成兼容 Ventura 的 DMG 与 ZIP
 ```
 
-打包链路依次执行：应用图标生成、对应平台的 LGPL FFmpeg 拉取与校验、前端 CE 构建、Electron 主进程编译、后端 PyInstaller、Hermes 运行时 PyInstaller，最后 electron-builder 出包。Windows 目标为 x64；macOS 目标为 Apple Silicon arm64、macOS 15 及以上。PyInstaller sidecar 不能跨系统或跨架构生成，因此两种安装包必须分别在对应宿主系统构建。
+打包链路依次执行：应用图标生成、对应平台的 LGPL 兼容 FFmpeg 准备与校验、前端 CE 构建、Electron 主进程编译、后端 PyInstaller、Hermes 运行时 PyInstaller，最后 electron-builder 出包。Windows 目标为 x64；Apple Silicon 包要求 macOS 15 及以上；Intel x64 包要求 macOS 13 Ventura 及以上。PyInstaller sidecar 不能跨系统或跨架构生成，因此各安装包必须分别在对应宿主系统构建。
 
-打包不强制开发者证书：Windows 可直接生成无证书 NSIS，macOS 使用 ad-hoc 签名。`electron-builder` 同时生成 `latest.yml` / `latest-mac.yml`，客户端由 `electron-updater` 完成下载、SHA-512 校验和安装。
+Intel 首次打包前需保证 `clang`、`make`、`python3`、`meson` 和 `ninja` 可从 `PATH` 调用。打包链会从固定 SHA-256 的 `markus-perl/ffmpeg-build-script` 源码构建并缓存 Intel FFmpeg，随后验证 `h264_videotoolbox`、`drawtext`、`subtitles`、系统动态库链接、Mach-O 架构和最低 macOS 版本。出包后还会检查所有内置 Mach-O、运行后端/FFmpeg/Hermes 冒烟并执行严格签名校验。
+
+仓库的 `.github/workflows/build-macos-intel.yml` 可在 GitHub Actions 中手动运行，也会在推送与 `desktop/package.json` 版本一致的 `v*` 标签时自动运行。它使用 `macos-15-intel` 生成 DMG、ZIP、`latest-mac.yml` 和 SHA-256 清单；手动构建保留 1 天 Actions 制品，标签构建保存到不会直接发布的草稿 Release。该托管 Runner 运行 macOS 15，能验证 x86_64 架构、13.0 最低版本与内置运行时，但不能代替 Intel macOS 13.7.8 上的最终安装和业务冒烟。
+
+可选的“导演世界 3D 运行环境”当前只支持 Windows x64 和 macOS arm64，不随轻量主安装包分发；Intel x64 客户端会明确显示该可选运行环境不受支持。
+
+打包不强制开发者证书：Windows 可直接生成无证书 NSIS，macOS 使用 ad-hoc 签名。对外分发的 macOS 包仍需 Developer ID 签名和 Apple 公证。`electron-builder` 同时生成 `latest.yml` / `latest-mac.yml`，客户端由 `electron-updater` 完成下载、SHA-512 校验和安装。
 
 ## 安全边界
 
