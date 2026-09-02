@@ -9,25 +9,9 @@ const executable = join(
   "ai-anime-backend",
   executableName,
 );
-const splatRuntimeRoot = join(process.cwd(), "runtime", "splat-transform");
-const splatNode = join(
-  splatRuntimeRoot,
-  process.platform === "win32" ? "node.exe" : "node",
-);
-const splatCli = join(
-  splatRuntimeRoot,
-  "node_modules",
-  "@playcanvas",
-  "splat-transform",
-  "bin",
-  "cli.mjs",
-);
 
 if (!existsSync(executable)) {
   throw new Error(`packaged backend not found: ${executable}`);
-}
-if (!existsSync(splatNode) || !existsSync(splatCli)) {
-  throw new Error("packaged splat-transform runtime is incomplete");
 }
 
 const result = spawnSync(executable, ["--runtime-smoke-check"], {
@@ -102,22 +86,6 @@ for (const [workerName, expectedOption] of packagedWorkers) {
   if (workerOutput.includes("--data-root")) {
     throw new Error(`packaged worker ${workerName} was routed to the API server entrypoint`);
   }
-}
-
-const splat = spawnSync(splatNode, [splatCli, "--help"], {
-  encoding: "utf8",
-  timeout: 60_000,
-  windowsHide: true,
-});
-if (
-  splat.error ||
-  splat.status !== 0 ||
-  !String(splat.stdout).includes("Transform and Filter Gaussian Splats")
-) {
-  if (splat.error) throw splat.error;
-  throw new Error(
-    `packaged splat-transform dispatch failed (${String(splat.status)}): ${splat.stderr || splat.stdout}`,
-  );
 }
 
 console.log(

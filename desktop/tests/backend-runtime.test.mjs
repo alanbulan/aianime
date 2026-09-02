@@ -193,6 +193,10 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
     new URL("../src/backend.ts", import.meta.url),
     "utf8",
   );
+  const backendSmoke = await readFile(
+    new URL("../scripts/smoke-backend-runtime.mjs", import.meta.url),
+    "utf8",
+  );
   const workerRuntime = await readFile(
     new URL(
       "../../src/ai_anime/modules/asset_world/infrastructure/director_world/worker_runtime.py",
@@ -279,6 +283,7 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(worldEntrypoint, /import safetensors/);
   assert.match(worldEntrypoint, /hasattr\(hub_mixin, "safetensors"\)/);
   assert.match(desktopPackage.scripts["build:backend"], /smoke-backend-runtime\.mjs/);
+  assert.doesNotMatch(backendSmoke, /splat-transform/);
   assert.match(desktopPackage.scripts["build:main"], /clean-main-dist\.mjs/);
   assert.match(
     desktopPackage.scripts["build:world-runtime"],
