@@ -159,7 +159,7 @@ async def generate_prop_reference(
         username,
         project_name,
     )
-    model = str(body.model if body else "").strip()
+    model = str((body.model if body else None) or "").strip()
     try:
         scheduled = await prop_task_use_cases().schedule_reference(
             repository=store,
@@ -189,7 +189,7 @@ async def batch_generate_prop_references(
         username,
         project_name,
     )
-    model = str(body.model if body else "").strip()
+    model = str((body.model if body else None) or "").strip()
 
     try:
         scheduled = await prop_task_use_cases().schedule_batch_references(

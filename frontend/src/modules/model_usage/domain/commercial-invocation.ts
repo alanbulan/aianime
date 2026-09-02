@@ -86,7 +86,19 @@ export function canCancelCommercialInvocation(status: string): boolean {
     "CANCELLED",
     "CANCELED",
     "REJECTED_NO_COST",
+    "CANCEL_REQUESTED",
   ]).has(status.trim().toUpperCase());
+}
+
+export function isCommercialQuotaPending(quotaStatus: string): boolean {
+  return new Set(["PENDING", "RESERVED", "HELD", "DISPATCHING", "REVIEW_REQUIRED"])
+    .has(quotaStatus.trim().toUpperCase());
+}
+
+export function shouldRefreshCommercialInvocation(invocation: CommercialInvocation): boolean {
+  return canCancelCommercialInvocation(invocation.status) ||
+    invocation.status.trim().toUpperCase() === "CANCEL_REQUESTED" ||
+    isCommercialQuotaPending(invocation.quotaStatus);
 }
 
 export function canSaveCommercialInvocationResult(status: string): boolean {

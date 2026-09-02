@@ -153,6 +153,36 @@ async def test_prop_reference_rejects_missing_or_empty_prop(tmp_path: Path) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("batch", [False, True])
+async def test_prop_generation_without_model_uses_global_route(
+    batch: bool, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    roles = []
+
+    def resolve(role: str) -> str:
+        roles.append(role)
+        return "priority-image-model"
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role", resolve,
+    )
+    scheduler = _Scheduler()
+    use_cases = PropTaskUseCases(scheduler)
+    kwargs = dict(task_context=_context(), output_dir=tmp_path, style="anime", model="")
+    if batch:
+        await use_cases.schedule_batch_references(**kwargs)
+        task = scheduler.batch_task
+    else:
+        await use_cases.schedule_reference(
+            **kwargs, repository=_Repository([_Prop(name="玉佩")]), prop_name="玉佩",
+        )
+        task = scheduler.reference_task
+    assert roles == ["IMAGE_GENERATION"]
+    assert task.model == "priority-image-model"
+    assert task.model_selector == ""
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("operation", "message"),
     [

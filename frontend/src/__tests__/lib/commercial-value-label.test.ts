@@ -2,6 +2,8 @@ import type { TFunction } from "i18next";
 import { describe, expect, it } from "vitest";
 
 import { commercialValueLabel } from "@/shared/commercial-value-label";
+import zh from "../../../public/locales/zh/translation.json";
+import en from "../../../public/locales/en/translation.json";
 
 const translations: Record<string, string> = {
   "settings.values.edition.PROFESSIONAL": "专业版",
@@ -20,6 +22,11 @@ const t = ((key: string, options?: { defaultValue?: string }) =>
   translations[key] ?? options?.defaultValue ?? key) as TFunction;
 
 describe("commercial value labels", () => {
+  it.each(["CREATED", "AUTHORIZED", "RESERVED", "DISPATCHING", "RUNNING", "STREAMING", "CANCEL_REQUESTED", "SUCCEEDED", "FAILED", "CANCELLED", "REJECTED_NO_COST"])("has localized labels for the server's %s status", (status) => {
+    const labels = zh.settings.values.status as Record<string, string>;
+    expect(labels[status]).toMatch(/[\u4e00-\u9fff]/);
+    expect((en.settings.values.status as Record<string, string>)[status]).toBeTruthy();
+  });
   it("localizes known commercial enum values", () => {
     expect(commercialValueLabel(t, "edition", "professional")).toBe("专业版");
     expect(commercialValueLabel(t, "operation", "IMAGE")).toBe("图片");

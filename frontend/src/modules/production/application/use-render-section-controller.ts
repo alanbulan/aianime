@@ -549,7 +549,7 @@ export function createUseRenderSectionController(
           );
           return;
         }
-        regenTask.start({ scope: response.scope });
+        regenTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(t("episode.workbench.render.regenStarted"));
       } catch {
         toast.error(t("episode.workbench.render.regenFailed"));

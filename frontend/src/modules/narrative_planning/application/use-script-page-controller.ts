@@ -376,7 +376,7 @@ export function createUseScriptPageController(
           toast.error(response.error || t("common.error"));
           return;
         }
-        rewriteTask.start({ scope: response.scope });
+        rewriteTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(response.message);
       } catch {
         toast.error(t("common.error"));
@@ -405,7 +405,7 @@ export function createUseScriptPageController(
           toast.error(backendErrorToastMessage(response.error, t));
           return;
         }
-        scriptTask.start({ scope: response.scope });
+        scriptTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }
@@ -418,7 +418,7 @@ export function createUseScriptPageController(
           toast.error(backendErrorToastMessage(response.error, t));
           return;
         }
-        identityTask.start({ scope: response.scope });
+        identityTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }
@@ -439,7 +439,7 @@ export function createUseScriptPageController(
           );
           return;
         }
-        sceneTask.start({ scope: response.scope });
+        sceneTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }
@@ -460,7 +460,7 @@ export function createUseScriptPageController(
           );
           return;
         }
-        propTask.start({ scope: response.scope });
+        propTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }

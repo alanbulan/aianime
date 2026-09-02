@@ -413,6 +413,7 @@ async def test_single_task_stream_uses_effective_status_and_closes_on_terminal(
     payload = json.loads(event["data"])
 
     assert event["event"] == expected_event
+    assert payload["task_id"] == task.task_id
     assert {"status", "progress", "current_task", "logs"} <= set(payload)
     if expected_event in {"completed", "failed", "cancelled"}:
         assert {"result", "error", "error_code"} <= set(payload)
@@ -834,6 +835,7 @@ async def test_m07_task_backend_read_and_stream_shapes_are_ce_ee_isomorphic(
         "progress",
         "result",
         "status",
+        "task_id",
     ]
 
 

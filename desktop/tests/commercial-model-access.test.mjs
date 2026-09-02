@@ -3849,6 +3849,131 @@ test("cloud image writes recover transient failures with one idempotency key", a
   );
 });
 
+test("BYOK image responses retry transient failures without changing route, payload, or request ID", async (t) => {
+  for (const scenario of [
+    { name: "generation recovers", path: "generations", statuses: [502, 503, 200], expected: 200, count: 3 },
+    { name: "edit recovers", path: "edits", statuses: [502, 200], expected: 200, count: 2 },
+    { name: "retry limit", path: "edits", statuses: [502], expected: 502, count: 3 },
+    { name: "validation is final", path: "generations", statuses: [422], expected: 422, count: 1 },
+    { name: "authentication is final", path: "edits", statuses: [401], expected: 401, count: 1 },
+    { name: "transport outcome is unknown", path: "edits", statuses: [0], expected: 502, count: 1 },
+  ]) {
+    await t.test(scenario.name, async (context) => {
+      const calls = [];
+      let cloudCalls = 0;
+      const provider = createServer(async (request, response) => {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(Buffer.from(chunk));
+        calls.push({
+          key: request.headers["idempotency-key"],
+          payload: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+          path: request.url,
+        });
+        const status = scenario.statuses[Math.min(calls.length - 1, scenario.statuses.length - 1)];
+        if (!status) {
+          request.socket.destroy();
+          return;
+        }
+        response.writeHead(status, { "Content-Type": "application/json" });
+        response.end(JSON.stringify(status === 200
+          ? { data: [{ b64_json: "aW1hZ2U=" }] }
+          : { error: { message: "provider unavailable" } }));
+      });
+      await new Promise((resolve) => provider.listen(0, "127.0.0.1", resolve));
+      context.after(() => new Promise((resolve) => provider.close(resolve)));
+      const role = scenario.path === "edits" ? "IMAGE_EDIT" : "IMAGE_GENERATION";
+      const proxy = new CommercialModelProxy(
+        { async modelRequest() { cloudCalls += 1; return Response.json({}); } },
+        { async summary() { return { publicKeyHash: "device-hash" }; } },
+      );
+      proxy.configureRouting({
+        allowsCustomModels: true,
+        cloudModelAssignments: [{ modelId: "cloud-backup", role, priority: 100, enabled: true }],
+        access: {
+          schemaVersion: 5,
+          cloudModelAssignments: [],
+          byokProviders: [{
+            id: "image-provider", name: "BYOK image", protocol: "OPENAI_COMPATIBLE",
+            baseUrl: `http://127.0.0.1:${provider.address().port}/v1`,
+            apiKey: "test-key", enabled: true, priority: 1,
+            modelAssignments: [{ modelId: "image-model", role, priority: 1, enabled: true }],
+          }],
+        },
+      });
+      await proxy.start();
+      context.after(() => proxy.stop());
+      const prompt = "完整人物与风格提示".repeat(160);
+      const response = await fetch(`${proxy.baseUrl}/images/${scenario.path}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${proxy.token}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": "same-generation-attempt",
+        },
+        body: JSON.stringify({ model: "route-placeholder", prompt }),
+      });
+      await response.text();
+      assert.equal(response.status, scenario.expected);
+      assert.equal(calls.length, scenario.count);
+      assert.equal(cloudCalls, 0);
+      if (scenario.statuses[0]) {
+        assert.equal(response.headers.get("x-ai-anime-route-source"), "byok");
+        assert.equal(response.headers.get("x-ai-anime-route-attempts"), String(scenario.count));
+      }
+      for (const call of calls) {
+        assert.equal(call.key, "same-generation-attempt");
+        assert.equal(call.payload.prompt, prompt);
+        assert.equal(call.payload.model, "image-model");
+        assert.equal(call.path, `/v1/images/${scenario.path}`);
+        assert.deepEqual(call, calls[0]);
+      }
+    });
+  }
+});
+
+test("BYOK image retry stops when the requesting task disconnects", async (t) => {
+  let calls = 0;
+  let firstResponse;
+  const first = new Promise((resolve) => { firstResponse = resolve; });
+  const provider = createServer(async (request, response) => {
+    for await (const _chunk of request) { /* drain the request */ }
+    calls += 1;
+    response.writeHead(502, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ error: { message: "temporarily unavailable" } }));
+    firstResponse();
+  });
+  await new Promise((resolve) => provider.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise((resolve) => provider.close(resolve)));
+  const proxy = new CommercialModelProxy({}, {});
+  proxy.configureRouting({
+    allowsCustomModels: true,
+    cloudModelAssignments: [],
+    access: {
+      schemaVersion: 5, cloudModelAssignments: [],
+      byokProviders: [{
+        id: "image-provider", name: "BYOK image", protocol: "OPENAI_COMPATIBLE",
+        baseUrl: `http://127.0.0.1:${provider.address().port}/v1`,
+        apiKey: "test-key", enabled: true, priority: 1,
+        modelAssignments: [{ modelId: "image-model", role: "IMAGE_EDIT", priority: 1, enabled: true }],
+      }],
+    },
+  });
+  await proxy.start();
+  t.after(() => proxy.stop());
+  const controller = new AbortController();
+  const pending = fetch(`${proxy.baseUrl}/images/edits`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${proxy.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "image-model", prompt: "test" }),
+    signal: controller.signal,
+  });
+  await first;
+  controller.abort();
+  await assert.rejects(pending, (error) => error.name === "AbortError");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal(calls, 1);
+});
+
 test("local model proxy forwards multipart, Anthropic, and Range protocol data", async (t) => {
   const calls = [];
   const client = {

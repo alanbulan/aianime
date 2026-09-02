@@ -3841,6 +3841,10 @@
         "EMBEDDING": "向量"
       },
       "status": {
+        "CREATED": "已创建",
+        "AUTHORIZED": "已授权",
+        "STREAMING": "正在输出",
+        "CANCEL_REQUESTED": "取消处理中",
         "ACTIVE": "有效",
         "INACTIVE": "未启用",
         "ENABLED": "已启用",
@@ -4002,7 +4006,8 @@
       "quotaUnitsValue": "{{count}} 单位",
       "reservedSummary": "预占 {{count}}",
       "chargedSummary": "实扣 {{count}}",
-      "quotaSettlementPending": "当前额度尚未结算；HELD 或需复核状态下，实扣、退款及最终余额可能暂未产生。",
+      "settlementPending": "待结算",
+      "quotaSettlementPending": "当前额度处于预占或待复核状态，尚未完成结算；最终实扣、退还额度及余额以服务端确认结果为准。",
       "requestId": "请求 ID",
       "createdAt": "创建时间",
       "completedAt": "完成时间"

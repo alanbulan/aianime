@@ -13,6 +13,8 @@ vi.mock("@/shared/api/transport", () => ({
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 import { server } from "@/__tests__/setup-msw";
 import { useTaskCenterStore, useTasks } from "@/modules/task_execution/public";
+import { createTaskQueryHooks } from "@/modules/task_execution/presentation/taskQueryHooks";
+import { queryKeys } from "@/lib/query-keys";
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
@@ -24,6 +26,29 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe("Task Center query hooks", () => {
+  it("refreshes task, invocation list, invocation details and quota after cancelling", async () => {
+    const cancelTask = vi.fn(async () => undefined);
+    const { useCancelTask } = createTaskQueryHooks({
+      listProjectTasks: vi.fn(async () => []), cancelTask,
+      clearCompletedTasks: vi.fn(async () => undefined), deleteTask: vi.fn(async () => undefined),
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const keys = [
+      queryKeys.tasks("demo"),
+      queryKeys.commercialInvocations({ page: 1, pageSize: 20, status: "", operation: "" }),
+      queryKeys.commercialInvocation("invocation-1"),
+      queryKeys.commercialQuota(),
+    ];
+    keys.forEach((key) => client.setQueryData(key, {}));
+    const { result } = renderHook(() => useCancelTask(), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    });
+    const target = { type: "character_portrait", project: "demo", episode: 0, scope: "Qwen" };
+    await act(async () => { await result.current.mutateAsync(target); });
+    expect(cancelTask).toHaveBeenCalledExactlyOnceWith(target);
+    keys.forEach((key) => expect(client.getQueryState(key)?.isInvalidated).toBe(true));
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
     useTaskCenterStore.getState().reset();

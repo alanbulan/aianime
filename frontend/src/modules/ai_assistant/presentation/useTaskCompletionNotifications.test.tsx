@@ -16,7 +16,7 @@ const t = (key: string) => key;
 function task(overrides: Partial<TaskState> = {}): TaskState {
   return {
     task_key: "task:demo",
-    task_id: "id-demo",
+    task_id: overrides.task_key || "id-demo",
     task_type: "unknown",
     username: "alice",
     project: "project-a",
@@ -127,6 +127,44 @@ describe("SuperChat task completion notifications", () => {
     );
   });
 
+  it("reports each successful retry on the same object once per task ID", () => {
+    const eventBus = createTaskEventBus();
+    const appendNotification = vi.fn(async (_text: string) => true);
+    renderHook(
+      () => useTaskCompletionNotifications({ project: "project-a", appendNotification, t }),
+      { wrapper: wrapperFor(eventBus) },
+    );
+    const first = task({ task_key: "same-object", task_id: "first-run" });
+    const second = task({ task_key: "same-object", task_id: "second-run" });
+    act(() => {
+      eventBus.emit({ type: "task_complete", task: first, previous: null });
+      eventBus.emit({ type: "task_complete", task: first, previous: null });
+      eventBus.emit({ type: "task_complete", task: second, previous: first });
+      eventBus.emit({ type: "task_complete", task: second, previous: first });
+    });
+    expect(appendNotification).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not misclassify an exhausted 502 as a missing asset prerequisite", () => {
+    vi.useFakeTimers();
+    const eventBus = createTaskEventBus();
+    const appendNotification = vi.fn(async (_text: string) => true);
+    renderHook(
+      () => useTaskCompletionNotifications({ project: "project-a", appendNotification, t }),
+      { wrapper: wrapperFor(eventBus) },
+    );
+    act(() => {
+      eventBus.emit({
+        type: "task_failed", previous: null,
+        task: task({ status: "failed", error: "BYOK 图片生成服务暂时不可用（HTTP 502），统一路由已尝试 3 次。" }),
+      });
+      vi.runAllTimers();
+    });
+    expect(appendNotification).toHaveBeenCalledExactlyOnceWith(
+      "分镜生成失败：BYOK 图片生成服务暂时不可用（HTTP 502），统一路由已尝试 3 次。",
+    );
+  });
+
   it("uses each failure detail fallback and unsubscribes on unmount", () => {
     vi.useFakeTimers();
     const eventBus = createTaskEventBus();
@@ -170,9 +208,9 @@ describe("SuperChat task completion notifications", () => {
     });
 
     expect(appendNotification.mock.calls.map(([text]) => text)).toEqual([
-      "分镜生成失败：GPU 超时\n请根据错误处理前置条件后再继续。",
-      "分镜生成失败：素材缺失\n请根据错误处理前置条件后再继续。",
-      "分镜生成失败：未提供具体错误原因\n请根据错误处理前置条件后再继续。",
+      "分镜生成失败：GPU 超时",
+      "分镜生成失败：素材缺失",
+      "分镜生成失败：未提供具体错误原因",
     ]);
 
     unmount();
@@ -229,7 +267,7 @@ describe("SuperChat task completion notifications", () => {
 
       expect(appendNotification).toHaveBeenCalledTimes(1);
       expect(appendNotification).toHaveBeenCalledWith(
-        "生成单镜视频 · ep1（第 1 集 Beat 8）失败：Agent 已完成但未生成文件\n请根据错误处理前置条件后再继续。",
+        "生成单镜视频 · ep1（第 1 集 Beat 8）失败：Agent 已完成但未生成文件",
       );
     },
   );
@@ -270,8 +308,8 @@ describe("SuperChat task completion notifications", () => {
     });
 
     expect(appendNotification.mock.calls.map(([text]) => text)).toEqual([
-      "生成单镜视频失败：子任务失败\n请根据错误处理前置条件后再继续。",
-      "完整生产工作流失败：工作流独立失败\n请根据错误处理前置条件后再继续。",
+      "生成单镜视频失败：子任务失败",
+      "完整生产工作流失败：工作流独立失败",
     ]);
   });
 
@@ -349,7 +387,7 @@ describe("SuperChat task completion notifications", () => {
     });
 
     expect(originalAppend).toHaveBeenCalledWith(
-      "分镜生成失败：生成失败\n请根据错误处理前置条件后再继续。",
+      "分镜生成失败：生成失败",
     );
     expect(nextAppend).not.toHaveBeenCalled();
   });
@@ -380,7 +418,7 @@ describe("SuperChat task completion notifications", () => {
 
     expect(appendNotification).toHaveBeenCalledTimes(1);
     expect(appendNotification).toHaveBeenCalledWith(
-      "分镜生成失败：生成失败\n请根据错误处理前置条件后再继续。",
+      "分镜生成失败：生成失败",
     );
     act(() => {
       vi.runAllTimers();

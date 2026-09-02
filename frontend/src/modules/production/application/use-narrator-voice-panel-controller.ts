@@ -195,6 +195,7 @@ function isQueuedVoiceResponse(
   ok: true;
   message: string;
   scope?: string;
+  task_id?: string;
 } {
   return Boolean(
     response &&
@@ -483,7 +484,7 @@ export function createUseNarratorVoicePanelController(
           toast.error(t("common.error"));
           return;
         }
-        presetVoiceTask.start({ scope: response.scope });
+        presetVoiceTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(response.message);
       } catch {
         toast.error(t("common.error"));
@@ -548,7 +549,7 @@ export function createUseNarratorVoicePanelController(
           toast.error(t("common.error"));
           return;
         }
-        designVoiceTask.start({ scope: response.scope });
+        designVoiceTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(response.message);
       } catch {
         toast.error(t("common.error"));

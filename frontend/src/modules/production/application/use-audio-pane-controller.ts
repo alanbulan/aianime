@@ -127,7 +127,7 @@ export function createUseAudioPaneController(
           );
           return;
         }
-        audioTask.start({ scope: response.scope });
+        audioTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(
           t("episode.workbench.audio.regenerated", {
             n: beat.beat_number,

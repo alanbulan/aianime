@@ -224,3 +224,4 @@ async def test_project_task_stream_includes_logs(tmp_path, monkeypatch):
 
     payload = json.loads(first["data"])
     assert payload["logs"] == ["start", "step"]
+    assert payload["task_id"] == "t1"

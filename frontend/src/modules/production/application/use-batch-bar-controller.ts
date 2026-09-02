@@ -384,7 +384,7 @@ export function createUseBatchBarController(
           );
           return;
         }
-        audioTask.start({ scope: response.scope });
+        audioTask.start({ scope: response.scope, taskId: response.task_id });
       } catch {
         toast.error(t("common.error"));
       }
@@ -400,7 +400,7 @@ export function createUseBatchBarController(
           );
           return;
         }
-        globalOptimizeTask.start();
+        globalOptimizeTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(
           t("episode.workbench.batch.globalOptimizeStarted"),
         );
@@ -419,7 +419,7 @@ export function createUseBatchBarController(
           );
           return;
         }
-        productionWorkflowTask.start({ scope: response.scope });
+        productionWorkflowTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(
           response.message ||
             t("episode.workbench.batch.productionWorkflowStarted"),
@@ -439,7 +439,7 @@ export function createUseBatchBarController(
           toast.error(response.error || t("common.error"));
           return;
         }
-        identityDetectionTask.start({ scope: response.scope });
+        identityDetectionTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(
           response.message || t("episode.workbench.batch.aiDetectQueued"),
         );

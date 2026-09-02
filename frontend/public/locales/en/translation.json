@@ -3841,6 +3841,10 @@
         "EMBEDDING": "Embedding"
       },
       "status": {
+        "CREATED": "Created",
+        "AUTHORIZED": "Authorized",
+        "STREAMING": "Streaming",
+        "CANCEL_REQUESTED": "Cancellation pending",
         "ACTIVE": "Active",
         "INACTIVE": "Inactive",
         "ENABLED": "Enabled",
@@ -4002,7 +4006,8 @@
       "quotaUnitsValue": "{{count}} units",
       "reservedSummary": "Reserved {{count}}",
       "chargedSummary": "Charged {{count}}",
-      "quotaSettlementPending": "Quota settlement is still pending. While held or under review, final charge, refund, and balance values may not be available yet.",
+      "settlementPending": "Awaiting settlement",
+      "quotaSettlementPending": "Quota is reserved or awaiting review. Final charges, released units, and balances depend on the confirmed server settlement.",
       "requestId": "Request ID",
       "createdAt": "Created at",
       "completedAt": "Completed at"

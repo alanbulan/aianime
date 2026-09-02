@@ -1626,7 +1626,7 @@ function ThreeDDirectorSurface({
         state: sceneSnapshotForPersistence(viewerApp.exportSceneSnapshot(), activeSceneSourceId),
         renderer_backend: "playcanvas_3gs",
       });
-      aiStagingTask.start({ scope: receipt.task_scope });
+      aiStagingTask.start({ scope: receipt.task_scope, taskId: receipt.task_id });
     } catch (aiError) {
       setError(aiError instanceof Error ? aiError.message : String(aiError));
     } finally {

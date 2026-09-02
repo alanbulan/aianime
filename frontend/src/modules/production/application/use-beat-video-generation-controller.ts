@@ -120,7 +120,7 @@ export function createUseBeatVideoGenerationController(
           );
           return;
         }
-        task.start();
+        task.start({ scope: response.scope, taskId: response.task_id });
         toast.success(
           t("episode.workbench.video.started", { n: options.beatNumber }),
         );

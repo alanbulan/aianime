@@ -69,7 +69,7 @@ export function useTaskCompletionNotifications({
         }
       }
 
-      const dedupeKey = `${event.type}:${event.task.task_key || event.task.task_id}`;
+      const dedupeKey = `${event.type}:${taskIdentity(event.task)}`;
       if (notifiedTaskKeysRef.current.has(dedupeKey)) return;
       notifiedTaskKeysRef.current.add(dedupeKey);
 
@@ -113,7 +113,7 @@ export function useTaskCompletionNotifications({
         }
         if (isCoalescedParentFailure()) return;
         void appendNotification(
-          `${label}失败：${event.task.error || event.task.current_task || "未提供具体错误原因"}\n请根据错误处理前置条件后再继续。`,
+          `${label}失败：${event.task.error || event.task.current_task || "未提供具体错误原因"}`,
         );
       };
       const timer = setTimeout(

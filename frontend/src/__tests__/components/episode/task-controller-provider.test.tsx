@@ -208,6 +208,8 @@ describe("ownership transitions emit snapshot updates", () => {
     let snap: TaskControllerSnapshot = {
       started: false,
       activeTaskType: "t",
+      activeTaskId: null,
+      runVersion: 0,
       activeScope: null,
       streamState: {
         status: "idle",
@@ -537,7 +539,7 @@ describe("TaskControllerProvider + useTaskController integration", () => {
     renderWithProvider(<Probe />, false);
 
     act(() => {
-      renders[renders.length - 1].start({ scope: "stage_asset__abc123" });
+      renders[renders.length - 1].start({ scope: "stage_asset__abc123", taskId: "stage-run" });
     });
     expect(renders[renders.length - 1].started).toBe(true);
 
@@ -545,6 +547,7 @@ describe("TaskControllerProvider + useTaskController integration", () => {
       data: [
         {
           task_type: "stage_asset",
+          task_id: "stage-run",
           episode: 0,
           scope: "stage_asset__abc123",
           status: "completed",

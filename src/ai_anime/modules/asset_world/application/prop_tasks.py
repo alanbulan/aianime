@@ -10,10 +10,12 @@ from ai_anime.modules.asset_world.application.dto import (
     ScheduledAssetTask,
 )
 from ai_anime.modules.asset_world.application.errors import (
+    InvalidImageSelection,
     InvalidPropInput,
     PropNotFound,
     PropProjectContextRequired,
 )
+from ai_anime.modules.asset_world.application.image_settings import resolve_image_model
 from ai_anime.modules.asset_world.application.ports import (
     PropTaskRepository,
     PropTaskScheduler,
@@ -42,7 +44,10 @@ class PropTaskUseCases:
             raise PropNotFound(f"Prop '{prop_name}' not found")
         if not (prop.visual_prompt or prop.description or prop.name):
             raise InvalidPropInput(f"Prop '{prop.name}' has no visual prompt")
-        model_route = resolve_model_route(model)
+        try:
+            model_route = resolve_model_route(resolve_image_model(model))
+        except InvalidImageSelection as exc:
+            raise InvalidPropInput(str(exc)) from exc
         if not model_route.model:
             raise InvalidPropInput("请先选择道具图片模型")
         context = self._require_context(
@@ -74,7 +79,10 @@ class PropTaskUseCases:
         style: str,
         model: str,
     ) -> ScheduledAssetTask:
-        model_route = resolve_model_route(model)
+        try:
+            model_route = resolve_model_route(resolve_image_model(model))
+        except InvalidImageSelection as exc:
+            raise InvalidPropInput(str(exc)) from exc
         if not model_route.model:
             raise InvalidPropInput("请先选择道具图片模型")
         context = self._require_context(

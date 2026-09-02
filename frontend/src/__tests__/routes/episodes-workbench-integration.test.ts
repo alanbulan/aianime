@@ -89,10 +89,10 @@ describe("episodes workbench integration", () => {
       "TASK_TYPES.EPISODE_PROP_PLANNER",
     );
     expect(itemControllerSource).toContain(
-      "sceneTask.start({ scope: response.scope })",
+      "sceneTask.start({ scope: response.scope, taskId: response.task_id })",
     );
     expect(itemControllerSource).toContain(
-      "propTask.start({ scope: response.scope })",
+      "propTask.start({ scope: response.scope, taskId: response.task_id })",
     );
   });
 

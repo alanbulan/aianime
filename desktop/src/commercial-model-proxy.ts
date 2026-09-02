@@ -50,7 +50,7 @@ const RETRYABLE_ROUTE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const MAX_ROUTE_ATTEMPTS = 3;
 const MODEL_PROXY_REQUEST_TIMEOUT_MS = 30 * 60_000;
 
-function isRecoverableCloudImageWrite(method: string, path: string): boolean {
+function isImageWrite(method: string, path: string): boolean {
   if (!isModelWriteMethod(method)) return false;
   const pathname = new URL(path, "http://model-proxy.local").pathname;
   return (
@@ -389,11 +389,12 @@ export class CommercialModelProxy {
     for (let index = 0; index < input.routes.length; index += 1) {
       const route = input.routes[index];
       if (!route) continue;
-      const recoverableCloudImageWrite =
-        route.source === "cloud" &&
-        isRecoverableCloudImageWrite(input.method, input.path);
+      const recoverableImageWrite =
+        isImageWrite(input.method, input.path) &&
+        (route.source === "cloud" ||
+          (route.protocol ?? "OPENAI_COMPATIBLE") === "OPENAI_COMPATIBLE");
       const routeAttempts =
-        !isModelWriteMethod(input.method) || recoverableCloudImageWrite
+        !isModelWriteMethod(input.method) || recoverableImageWrite
           ? MAX_ROUTE_ATTEMPTS
           : 1;
       for (let routeAttempt = 1; routeAttempt <= routeAttempts; routeAttempt += 1) {
@@ -439,7 +440,7 @@ export class CommercialModelProxy {
             index < input.routes.length - 1 &&
             shouldFallback(route, upstream.status) &&
             !(
-              recoverableCloudImageWrite &&
+              recoverableImageWrite &&
               RETRYABLE_ROUTE_STATUSES.has(upstream.status)
             );
           if (!canFallback) {
@@ -502,7 +503,11 @@ export class CommercialModelProxy {
             this.auditRouteAttempt(route, totalAttempts, undefined, "rejected", error);
             throw error;
           }
-          if (routeAttempt < routeAttempts) {
+          // A BYOK transport failure has no response proving the request failed.
+          // Do not replay an ambiguous write: provider idempotency is not guaranteed.
+          const canRetryTransport =
+            route.source === "cloud" || !isModelWriteMethod(input.method);
+          if (canRetryTransport && routeAttempt < routeAttempts) {
             this.auditRouteAttempt(route, totalAttempts, undefined, "retry", error);
             await wait(150 * routeAttempt, undefined, { signal: input.signal });
             continue;

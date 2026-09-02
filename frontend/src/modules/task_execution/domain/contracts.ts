@@ -36,6 +36,7 @@ export interface TaskState {
 }
 
 export interface TaskStreamEvent {
+  task_id: string;
   status: TaskStatus;
   progress: number;
   current_task?: string;

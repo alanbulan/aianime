@@ -3,13 +3,19 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { queryKeys } from "@/lib/query-keys";
 import type {
   CommercialInvocationGateway,
   CommercialInvocationQuery,
 } from "@/modules/model_usage/application/commercial-invocation-ports";
-import type { CommercialInvocationId } from "@/modules/model_usage/domain/commercial-invocation";
+import {
+  shouldRefreshCommercialInvocation,
+  type CommercialInvocationId,
+} from "@/modules/model_usage/domain/commercial-invocation";
+
+const INVOCATION_REFRESH_INTERVAL_MS = 5000;
 
 export function createCommercialInvocationQueries(
   gateway: CommercialInvocationGateway,
@@ -18,13 +24,14 @@ export function createCommercialInvocationQueries(
     query: CommercialInvocationQuery,
     enabled = true,
   ) {
+    const queryClient = useQueryClient();
     const normalized = {
       page: query.page,
       pageSize: query.pageSize,
       status: query.status?.trim().toUpperCase() ?? "",
       operation: query.operation?.trim().toUpperCase() ?? "",
     };
-    return useQuery({
+    const result = useQuery({
       queryKey: queryKeys.commercialInvocations(normalized),
       queryFn: () =>
         gateway.list({
@@ -34,19 +41,39 @@ export function createCommercialInvocationQueries(
           ...(normalized.operation ? { operation: normalized.operation } : {}),
         }),
       enabled,
+      refetchInterval: INVOCATION_REFRESH_INTERVAL_MS,
+      refetchOnWindowFocus: "always",
     });
+    useEffect(() => {
+      if (enabled && result.data) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.commercialQuota() });
+      }
+    }, [enabled, result.data, queryClient]);
+    return result;
   }
 
   function useCommercialInvocationDetails(
     id: CommercialInvocationId | null,
     enabled = true,
   ) {
+    const queryClient = useQueryClient();
     const normalizedId = id === null ? "" : String(id);
-    return useQuery({
+    const result = useQuery({
       queryKey: queryKeys.commercialInvocation(normalizedId),
       queryFn: () => gateway.details(id as CommercialInvocationId),
       enabled: enabled && id !== null,
+      refetchInterval: (query) =>
+        query.state.data && shouldRefreshCommercialInvocation(query.state.data)
+          ? INVOCATION_REFRESH_INTERVAL_MS
+          : false,
+      refetchOnWindowFocus: "always",
     });
+    useEffect(() => {
+      if (enabled && id !== null && result.data) {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.commercialQuota() });
+      }
+    }, [enabled, id, result.data, queryClient]);
+    return result;
   }
 
   function useCancelCommercialInvocation() {
@@ -65,7 +92,7 @@ export function createCommercialInvocationQueries(
           invocation,
         );
         void queryClient.invalidateQueries({
-          queryKey: ["commercial", "invocations"],
+          queryKey: queryKeys.commercialInvocations(),
         });
         void queryClient.invalidateQueries({
           queryKey: queryKeys.commercialQuota(),

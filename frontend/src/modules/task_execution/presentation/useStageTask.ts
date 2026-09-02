@@ -97,6 +97,7 @@ export function useStageTask(opts: UseStageTaskOptions): StageTask {
       setStarted(false);
       onError?.(e);
     },
+    onCancelled: () => setStarted(false),
   });
 
   useEffect(() => {

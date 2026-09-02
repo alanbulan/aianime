@@ -1523,6 +1523,7 @@ describe("ThreeDDirectorDialog", () => {
     });
     expect(aiStagingTaskMock.start).toHaveBeenCalledWith({
       scope: "ai_staging",
+      taskId: "task-1",
     });
     expect(viewerMock.placeMarker).not.toHaveBeenCalledWith(
       "staging",

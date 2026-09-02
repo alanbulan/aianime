@@ -6,6 +6,7 @@ import { CommercialInvocationSection } from "@/modules/model_usage/presentation/
 const mocks = vi.hoisted(() => ({
   cancelInvocation: vi.fn(),
   invocationStatus: "RESERVED",
+  quotaStatus: "COMMITTED",
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
 }));
@@ -26,6 +27,9 @@ const translations: Record<string, string> = {
   "settings.invocations.balanceChangeValue": "960 → 952",
   "settings.invocations.quotaUnitsValue": "8 单位",
   "settings.invocations.chargedSummary": "实扣 8",
+  "settings.invocations.reservedSummary": "预占 10",
+  "settings.invocations.settlementPending": "待结算",
+  "settings.invocations.quotaSettlementPending": "额度尚未结算，以服务端确认结果为准。",
   "settings.invocations.cancel": "取消调用",
   "settings.invocations.cancelDescription": "将请求取消当前调用。",
   "settings.invocations.cancelReason": "用户主动取消调用",
@@ -44,6 +48,8 @@ const translations: Record<string, string> = {
   "settings.values.status.DISPATCHING": "调度中",
   "settings.values.status.REJECTED_NO_COST": "已拒绝（未扣费）",
   "settings.values.status.RESERVED": "已预占",
+  "settings.values.status.CANCEL_REQUESTED": "取消处理中",
+  "settings.values.status.STREAMING": "正在输出",
   "settings.values.status.SUCCEEDED": "已成功",
 };
 
@@ -73,7 +79,7 @@ vi.mock("@/modules/model_usage/composition", () => ({
       operation: "IMAGE",
       executionMode: "SYNC",
       status: mocks.invocationStatus,
-      quotaStatus: "COMMITTED",
+      quotaStatus: mocks.quotaStatus,
       reservationId: "22222222-2222-4222-8222-222222222222",
       reservedUnits: 10,
       chargedUnits: 8,
@@ -99,7 +105,7 @@ vi.mock("@/modules/model_usage/composition", () => ({
           operation: "IMAGE",
           executionMode: "SYNC",
           status: mocks.invocationStatus,
-          quotaStatus: "COMMITTED",
+          quotaStatus: mocks.quotaStatus,
           reservationId: "22222222-2222-4222-8222-222222222222",
           reservedUnits: 10,
           chargedUnits: 8,
@@ -145,6 +151,7 @@ vi.mock("@/modules/model_usage/composition", () => ({
 describe("CommercialInvocationSection", () => {
   beforeEach(() => {
     mocks.invocationStatus = "RESERVED";
+    mocks.quotaStatus = "COMMITTED";
     mocks.cancelInvocation.mockReset();
     mocks.cancelInvocation.mockResolvedValue({});
     mocks.toastError.mockReset();
@@ -182,6 +189,24 @@ describe("CommercialInvocationSection", () => {
     expect(
       screen.queryByRole("button", { name: "取消调用" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("取消处理中显示预占与待结算，不显示提前退款或重复取消按钮", () => {
+    mocks.invocationStatus = "CANCEL_REQUESTED";
+    mocks.quotaStatus = "HELD";
+    render(<CommercialInvocationSection active bridgeAvailable />);
+
+    expect(screen.getByText("取消处理中")).toBeInTheDocument();
+    expect(screen.getByText(/预占 10/)).toBeInTheDocument();
+    expect(screen.queryByText(/实扣 8/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "取消调用" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "查看详情" }));
+    const dialog = screen.getByRole("dialog", { name: "调用详情" });
+    expect(dialog).toHaveTextContent("待结算");
+    expect(dialog).not.toHaveTextContent("960 → 952");
+    expect(dialog).not.toHaveTextContent("CANCEL_REQUESTED");
+    expect(dialog).not.toHaveTextContent("HELD");
   });
 
   it("将 relay 调用状态冲突转换为本地化提示", async () => {

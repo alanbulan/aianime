@@ -162,7 +162,7 @@ export function createUseCharacterDetailController(
           toast.error(response.error || t("common.error"));
           return;
         }
-        portraitTask.start({ scope: response.scope });
+        portraitTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(t("characters.toasts.imageGenerating"));
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));

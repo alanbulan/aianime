@@ -28,7 +28,7 @@ describe("store.hydrate + upsert + remove", () => {
   it("hydrate preserves newer in-memory tasks when BE payload is stale", () => {
     const s = useTaskCenterStore.getState();
     s.upsert(sampleTask({ task_id: "a1", task_key: "k", progress: 0.9, updated_at: "2026-04-18T15:00:00Z" }));
-    s.hydrate([sampleTask({ task_id: "a2", task_key: "k", progress: 0.1, updated_at: "2026-04-18T14:00:00Z" })]);
+    s.hydrate([sampleTask({ task_id: "a1", task_key: "k", progress: 0.1, updated_at: "2026-04-18T14:00:00Z" })]);
     expect(useTaskCenterStore.getState().tasks.get("k")!.progress).toBe(0.9);
   });
 
@@ -38,6 +38,22 @@ describe("store.hydrate + upsert + remove", () => {
     expect(useTaskCenterStore.getState().tasks.size).toBe(1);
     expect(useTaskCenterStore.getState().tasks.get("k")!.progress).toBe(0.5);
     expect(useTaskCenterStore.getState().tasks.get("k")!.task_id).toBe("a2");
+  });
+
+  it("keeps a newer run when the previous run updates after cancellation", () => {
+    const current = sampleTask({
+      task_id: "new", task_key: "k", status: "running", created_at: "2026-09-02T10:00:00Z",
+      updated_at: "2026-09-02T10:01:00Z",
+    });
+    const old = sampleTask({
+      task_id: "old", task_key: "k", status: "failed", created_at: "2026-09-02T09:00:00Z",
+      updated_at: "2026-09-02T10:02:00Z",
+    });
+    const store = useTaskCenterStore.getState();
+    store.upsert(current);
+    store.hydrate([old]);
+    store.upsert(old);
+    expect(useTaskCenterStore.getState().tasks.get("k")).toBe(current);
   });
 
   it("same task_key re-run with new task_id replaces current task center row", () => {

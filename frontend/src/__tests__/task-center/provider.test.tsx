@@ -138,6 +138,57 @@ describe("TaskCenterProvider", () => {
     expect(useTaskCenterStore.getState().tasks.size).toBe(1);
   });
 
+  it("ignores failures from an older run and late failures after current-run success", async () => {
+    const running = sampleTask({
+      task_key: "portrait-scope", task_id: "retry-run", task_type: "character_portrait",
+      status: "running", created_at: "2026-09-02T10:00:00Z", updated_at: "2026-09-02T10:00:00Z",
+    });
+    server.use(http.get("*/api/v1/projects/demo/tasks", () =>
+      HttpResponse.json({ ok: true, data: [running] })));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { toast } = await import("sonner");
+    const errorToast = vi.spyOn(toast, "error");
+    render(<Harness queryClient={queryClient} />);
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+    act(() => MockEventSource.instances[0].dispatch("task_updated", {
+      ...running, task_id: "old-run", status: "failed", error: "old failure",
+      created_at: "2026-09-02T09:00:00Z", updated_at: "2026-09-02T10:03:00Z",
+      completed_at: new Date().toISOString(),
+    }));
+    expect(useTaskCenterStore.getState().tasks.get(running.task_key)?.status).toBe("running");
+    const completed = {
+      ...running, status: "completed", updated_at: "2026-09-02T10:04:00Z",
+      completed_at: new Date().toISOString(),
+    };
+    act(() => MockEventSource.instances[0].dispatch("task_updated", completed));
+    act(() => MockEventSource.instances[0].dispatch("task_updated", {
+      ...completed, status: "failed", error: "late failure", updated_at: "2026-09-02T10:05:00Z",
+    }));
+    expect(useTaskCenterStore.getState().tasks.get(running.task_key)?.status).toBe("completed");
+    expect(queryClient.getQueryData(queryKeys.tasks("demo"))).toEqual({ ok: true, data: [completed] });
+    expect(errorToast).not.toHaveBeenCalled();
+    errorToast.mockRestore();
+  });
+
+  it("refreshes call history and quota when cancellation arrives from the task stream", async () => {
+    const running = sampleTask({ task_key: "portrait-scope", task_id: "cancel-run", status: "running" });
+    server.use(http.get("*/api/v1/projects/demo/tasks", () =>
+      HttpResponse.json({ ok: true, data: [running] })));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    const { toast } = await import("sonner");
+    const errorToast = vi.spyOn(toast, "error");
+    render(<Harness queryClient={queryClient} />);
+    await waitFor(() => expect(MockEventSource.instances).toHaveLength(1));
+    act(() => MockEventSource.instances[0].dispatch("task_updated", {
+      ...running, status: "cancelled", completed_at: new Date().toISOString(),
+    }));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.commercialInvocations() });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.commercialQuota() });
+    expect(errorToast).not.toHaveBeenCalled();
+    errorToast.mockRestore();
+  });
+
   it("single-flights polling and reconnect hydration", async () => {
     let calls = 0;
     let resolvePending: ((tasks: []) => void) | null = null;

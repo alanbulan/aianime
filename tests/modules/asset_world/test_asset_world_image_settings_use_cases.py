@@ -163,19 +163,25 @@ def test_asset_selection_update_validates_and_persists_kind_key() -> None:
         )
 
 
-def test_character_model_prefers_explicit_request_then_project_selection() -> None:
+def test_character_model_prefers_explicit_request_without_pin_from_saved_selection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     store = _Store(
         {
             ("alice", "demo", "character_image_selection"): "shared-model",
         }
     )
     use_cases = _use_cases(store)
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role",
+        lambda _role: "global-priority-model",
+    )
 
     assert (
         use_cases.resolve_character_model("alice", "demo", " explicit-model ")
         == "explicit-model"
     )
-    assert use_cases.resolve_character_model("alice", "demo", None) == "shared-model"
+    assert use_cases.resolve_character_model("alice", "demo", None) == "global-priority-model"
 
 
 def test_character_model_falls_back_to_global_priority_route(
@@ -308,7 +314,7 @@ def test_character_generation_options_merge_effective_project_defaults() -> None
         "alice",
         "demo",
         requested_style=None,
-        requested_model=None,
+        requested_model="shared-model",
     ) == CharacterGenerationOptions(
         style="project-style",
         ethnicity="project-ethnicity",

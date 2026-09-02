@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   canCancelCommercialInvocation,
   canSaveCommercialInvocationResult,
+  isCommercialQuotaPending,
+  shouldRefreshCommercialInvocation,
   parseCommercialInvocationDetails,
   parseCommercialInvocationList,
   parseCommercialInvocationSaveResult,
@@ -99,6 +101,7 @@ describe("commercial invocations", () => {
     expect(canCancelCommercialInvocation("FAILED")).toBe(false);
     expect(canCancelCommercialInvocation("CANCELLED")).toBe(false);
     expect(canCancelCommercialInvocation("REJECTED_NO_COST")).toBe(false);
+    expect(canCancelCommercialInvocation("CANCEL_REQUESTED")).toBe(false);
   });
 
   it("only offers result saving for successful states", () => {
@@ -106,5 +109,16 @@ describe("commercial invocations", () => {
     expect(canSaveCommercialInvocationResult("COMPLETED")).toBe(true);
     expect(canSaveCommercialInvocationResult("RUNNING")).toBe(false);
     expect(canSaveCommercialInvocationResult("FAILED")).toBe(false);
+  });
+
+  it("refreshes an accepted cancellation until both execution and quota settle", () => {
+    expect(shouldRefreshCommercialInvocation({ ...invocation, status: "CANCEL_REQUESTED", quotaStatus: "HELD" })).toBe(true);
+    expect(shouldRefreshCommercialInvocation({ ...invocation, status: "CANCELLED", quotaStatus: "HELD" })).toBe(true);
+    expect(shouldRefreshCommercialInvocation({ ...invocation, status: "CANCELLED", quotaStatus: "RELEASED" })).toBe(false);
+    expect(shouldRefreshCommercialInvocation({ ...invocation, status: "SUCCEEDED", quotaStatus: "COMMITTED" })).toBe(false);
+  });
+
+  it.each(["PENDING", "RESERVED", "HELD", "DISPATCHING", "REVIEW_REQUIRED"])("does not treat %s quota as a final charge", (status) => {
+    expect(isCommercialQuotaPending(status)).toBe(true);
   });
 });

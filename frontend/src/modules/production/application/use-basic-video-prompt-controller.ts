@@ -111,7 +111,7 @@ export function createUseBasicVideoPromptController(
           return;
         }
         if (!("data" in response)) {
-          generationTask.start();
+          generationTask.start({ scope: response.scope, taskId: response.task_id });
           toast.success(
             t("episode.workbench.video.beatVideoPromptGenerateStarted"),
           );

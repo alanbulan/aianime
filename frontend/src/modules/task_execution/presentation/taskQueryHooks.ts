@@ -53,6 +53,8 @@ export function createTaskQueryHooks(gateway: TaskQueryGateway) {
       mutationFn: (target: TaskTarget) => gateway.cancelTask(target),
       onSuccess: (_data, target) => {
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks(target.project) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.commercialInvocations() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.commercialQuota() });
       },
     });
   }

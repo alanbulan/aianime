@@ -11,6 +11,14 @@ export const isActive = (t: TaskState): boolean =>
   t.status === "starting" ||
   t.status === "running";
 
+export function isStaleTaskSnapshot(incoming: TaskState, current: TaskState): boolean {
+  if (incoming.task_id !== current.task_id) {
+    return Date.parse(incoming.created_at) < Date.parse(current.created_at);
+  }
+  if (isTerminal(current) && incoming.status !== current.status) return true;
+  return Date.parse(incoming.updated_at) < Date.parse(current.updated_at);
+}
+
 export const ageMs = (t: TaskState, now: number = Date.now()): number =>
   now - Date.parse(t.updated_at);
 

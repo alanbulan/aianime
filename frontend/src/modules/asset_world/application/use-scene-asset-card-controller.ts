@@ -202,7 +202,7 @@ export function createUseSceneAssetCardController(
           toast.error(response.error);
           return;
         }
-        masterTask.start({ scope: response.scope });
+        masterTask.start({ scope: response.scope, taskId: response.task_id });
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks(project) });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
@@ -219,7 +219,7 @@ export function createUseSceneAssetCardController(
           toast.error(response.error);
           return;
         }
-        panoTask.start({ scope: response.scope });
+        panoTask.start({ scope: response.scope, taskId: response.task_id });
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks(project) });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
@@ -235,7 +235,7 @@ export function createUseSceneAssetCardController(
           toast.error(response.error);
           return;
         }
-        reverseTask.start({ scope: response.scope });
+        reverseTask.start({ scope: response.scope, taskId: response.task_id });
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks(project) });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
@@ -252,9 +252,9 @@ export function createUseSceneAssetCardController(
           return;
         }
         if (source === "pano") {
-          stagePanoTask.start({ scope: response.scope });
+        stagePanoTask.start({ scope: response.scope, taskId: response.task_id });
         } else {
-          stageSingleFaceTask.start({ scope: response.scope });
+        stageSingleFaceTask.start({ scope: response.scope, taskId: response.task_id });
         }
         queryClient.invalidateQueries({ queryKey: queryKeys.tasks(project) });
       } catch (error) {

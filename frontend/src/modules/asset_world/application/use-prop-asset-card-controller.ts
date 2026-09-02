@@ -63,7 +63,7 @@ export function createUsePropAssetCardController(
           toast.error(response.error);
           return;
         }
-        referenceTask.start({ scope: response.scope });
+        referenceTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }

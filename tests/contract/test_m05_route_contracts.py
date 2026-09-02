@@ -156,6 +156,9 @@ def _data_url() -> str:
 class _M05Store:
     def __init__(self):
         self.resolved_roles: list[tuple[str, str]] = []
+        self.episode = None
+        self.characters = []
+        self.props = []
         self.scenes = {
             _SCENE: NovelScene(
                 name=_SCENE,
@@ -222,7 +225,14 @@ class _M05Store:
         return self.scenes.pop(name, None) is not None
 
     def get_all_characters(self):
-        return []
+        return list(self.characters)
+
+    def get_episode(self, episode: int):
+        assert episode == 1
+        return self.episode
+
+    async def list_props(self):
+        return list(self.props)
 
     async def get_beats_as_dicts(self, episode: int):
         assert episode == 1
@@ -525,6 +535,34 @@ def _seed_stage_files(project_dir: Path) -> None:
     )
 
 
+def _seed_visual_assets(project_dir: Path, store: _M05Store) -> None:
+    from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter, NovelProp
+    from ai_anime.shared.utils.path_resolver import (
+        canonical_identity_path,
+        canonical_portrait_path,
+        canonical_prop_reference_path,
+    )
+
+    character = NovelCharacter(name="林昭")
+    character.identities = [CharacterIdentity(
+        identity_id="林昭_青年", character_name="林昭", identity_name="青年",
+    )]
+    store.characters = [character]
+    store.props = [NovelProp(name="雨伞")]
+    store.episode = SimpleNamespace(
+        identity_ids=["林昭_青年"],
+        scene_menu=[SimpleNamespace(scene_id=_SCENE)],
+        prop_menu=[SimpleNamespace(prop_id="雨伞")],
+    )
+    for path in (
+        canonical_portrait_path(project_dir, "林昭"),
+        canonical_identity_path(project_dir, "林昭", "青年"),
+        canonical_prop_reference_path(project_dir, "雨伞"),
+    ):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(_png_bytes())
+
+
 def test_m05_openapi_exposes_expected_operations(m05_client_factory):
     client, _backend, _project_dir, _store = m05_client_factory("inline")
 
@@ -575,6 +613,30 @@ def test_scene_reference_generation_accepts_image_source_model(m05_client_factor
     assert task_backend.calls[-1]["payload"]["model"] == "image-model-b"
 
 
+@pytest.mark.parametrize(("kind", "role"), [("master", "IMAGE_GENERATION"), ("reverse", "IMAGE_EDIT")])
+@pytest.mark.parametrize("body", [None, {}, {"model": None}])
+def test_scene_reference_without_selection_enters_global_route(
+    m05_client_factory, kind: str, role: str, body,
+):
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    client, task_backend, _project_dir, _store = m05_client_factory("inline")
+    configure_model_access(
+        allows_custom_models=True, mode="mixed",
+        model_assignments=[
+            {"modelId": "low-priority", "role": role, "priority": 100},
+            {"modelId": "global-priority", "role": role, "priority": 1},
+        ],
+    )
+    response = client.post(
+        f"/api/v1/projects/{_PROJECT}/scenes/{_SCENE}/{kind}/generate-async", json=body,
+    )
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert task_backend.calls[-1]["payload"]["model"] == "global-priority"
+    assert task_backend.calls[-1]["payload"]["model_selector"] == ""
+
+
 def test_scene_stage_generation_uses_world_queue_and_owned_payload(
     m05_client_factory,
 ):
@@ -612,10 +674,11 @@ def test_scene_stage_generation_uses_world_queue_and_owned_payload(
 
 
 def test_m05_l2_exercises_happy_path_route_contracts(m05_client_factory):
-    client, _backend, project_dir, _store = m05_client_factory("inline")
+    client, _backend, project_dir, store = m05_client_factory("inline")
     (project_dir / "novel.txt").write_text("测试小说正文", encoding="utf-8")
     _seed_stage_files(project_dir)
     _seed_labels(project_dir)
+    _seed_visual_assets(project_dir, store)
 
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/scenes"))
     _assert_ok(client.get(f"/api/v1/projects/{_PROJECT}/scenes/plate-preview"))
@@ -1021,9 +1084,10 @@ def test_m05_negative_render_execute_rejects_stale_fingerprint(m05_client_factor
 
 def test_m05_task_responses_are_ce_ee_isomorphic_without_celery_only_fields(m05_client_factory):
     for backend in ("inline", "celery"):
-        client, task_backend, project_dir, _store = m05_client_factory(backend)
+        client, task_backend, project_dir, store = m05_client_factory(backend)
         _seed_stage_files(project_dir)
         _seed_labels(project_dir)
+        _seed_visual_assets(project_dir, store)
 
         cases = [
             ("episode_scene_planner", client.post(f"/api/v1/projects/{_PROJECT}/episodes/1/scenes/plan")),

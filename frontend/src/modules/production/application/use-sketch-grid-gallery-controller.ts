@@ -257,7 +257,7 @@ export function createUseSketchGridCardController(
           );
           return;
         }
-        sketchTask.start({ scope });
+        sketchTask.start({ scope: response.scope ?? scope, taskId: response.task_id });
         toast.success(
           t("episode.workbench.sketchGrid.regenStarted", {
             n: options.group.gridIndex,

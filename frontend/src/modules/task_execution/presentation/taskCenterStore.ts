@@ -4,7 +4,7 @@ import type {
   StreamHealth,
   TaskState,
 } from "@/modules/task_execution/domain/contracts";
-import { isActive, isTerminal } from "@/modules/task_execution/domain/taskState";
+import { isActive, isStaleTaskSnapshot, isTerminal } from "@/modules/task_execution/domain/taskState";
 
 export type Filter = "all" | "running" | "failed" | "done";
 
@@ -58,7 +58,7 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
     const next = new Map<string, TaskState>();
     for (const t of tasks) {
       const prev = existing.get(t.task_key);
-      if (!prev || Date.parse(t.updated_at) >= Date.parse(prev.updated_at)) {
+      if (!prev || !isStaleTaskSnapshot(t, prev)) {
         next.set(t.task_key, t);
       } else {
         next.set(t.task_key, prev);
@@ -68,6 +68,7 @@ export const useTaskCenterStore = create<TaskCenterState>((set, get) => ({
   },
   upsert: (task) => {
     const prev = get().tasks.get(task.task_key) ?? null;
+    if (prev && isStaleTaskSnapshot(task, prev)) return prev;
     const next = new Map(get().tasks);
     next.set(task.task_key, task);
     set({ tasks: next });

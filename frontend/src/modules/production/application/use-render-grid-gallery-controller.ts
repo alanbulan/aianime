@@ -238,7 +238,7 @@ export function createUseRenderGridCardController(
           );
           return;
         }
-        regenerationTask.start({ scope });
+        regenerationTask.start({ scope: response.scope ?? scope, taskId: response.task_id });
         toast.success(
           t("episode.workbench.renderGrid.regenStarted", {
             n: options.group.gridIndex,

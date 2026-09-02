@@ -904,7 +904,11 @@ def test_model_gateway_image_http_error_logs_redacted_request_context(monkeypatc
     assert "token=secret" not in log_text
 
 
-def test_model_gateway_image_http_5xx_relies_on_unified_router_retry(monkeypatch):
+@pytest.mark.parametrize(
+    ("source", "service"),
+    [("cloud", "云端图片生成服务"), ("byok", "BYOK 图片生成服务"), ("", "图片生成服务")],
+)
+def test_model_gateway_image_http_5xx_relies_on_unified_router_retry(monkeypatch, source, service):
     import httpx
     from ai_anime.modules.production.infrastructure.media_generation import (
         image_grid,
@@ -915,7 +919,11 @@ def test_model_gateway_image_http_5xx_relies_on_unified_router_retry(monkeypatch
     class FailingResponse:
         status_code = 502
         text = '{"error":{"message":"error","type":"bad_response"}}'
-        headers = {"x-request-id": "req-fail"}
+        headers = {
+            "x-request-id": "req-fail",
+            "x-ai-anime-route-source": source,
+            "x-ai-anime-route-attempts": "3",
+        }
 
         def raise_for_status(self):
             raise httpx.HTTPStatusError(
@@ -950,7 +958,10 @@ def test_model_gateway_image_http_5xx_relies_on_unified_router_retry(monkeypatch
 
     assert image_bytes is None
     assert "HTTP 502" in error
-    assert "云端图片生成服务暂时不可用" in error
+    assert f"{service}暂时不可用" in error
+    assert "统一路由已尝试 3 次" in error
+    if source != "cloud":
+        assert "云端" not in error
     assert "请求编号：req-fail" in error
     assert "http://gateway.test" not in error
     assert "bad_response" not in error

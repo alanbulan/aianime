@@ -11,7 +11,7 @@ import { orientationForAspectRatio } from "@/shared/aspect-ratio";
 import { queryKeys } from "@/lib/query-keys";
 import type { Beat, DataResponse, Episode } from "@/modules/narrative_planning/public";
 import type { ProjectConfig } from "@/modules/project_workspace/public";
-import type { ProductionVideoGateway } from "@/modules/production/application/ports";
+import type { ProductionTaskResponse, ProductionVideoGateway } from "@/modules/production/application/ports";
 import type { EpisodeCounts } from "@/modules/production/domain/beat-state";
 import {
   episodeResolutionFor,
@@ -24,7 +24,7 @@ import {
 
 interface ComposeMutation {
   isPending: boolean;
-  mutateAsync(command: ComposeEpisodeCommand): Promise<unknown>;
+  mutateAsync(command: ComposeEpisodeCommand): Promise<ProductionTaskResponse>;
 }
 
 interface ProjectMutation {
@@ -180,12 +180,12 @@ export function createUseEpisodeComposePageController(
     const handleCompose = async () => {
       try {
         setResultUrl(null);
-        await composeEpisode.mutateAsync({
+        const response = await composeEpisode.mutateAsync({
           addSubtitles,
           addBgm: false,
           resolution,
         });
-        task.start();
+        task.start({ scope: response.scope, taskId: response.task_id });
       } catch {
         toast.error(t("common.error"));
       }

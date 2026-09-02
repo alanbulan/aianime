@@ -116,11 +116,7 @@ export function createUsePropsPanelController(
         toast.error(response.error);
         return;
       }
-      if (response.scope) {
-        batchTask.start({ scope: response.scope });
-      } else {
-        batchTask.start();
-      }
+      batchTask.start({ scope: response.scope, taskId: response.task_id });
       toast.success(response.message);
     };
 

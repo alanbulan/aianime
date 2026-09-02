@@ -932,10 +932,15 @@ async def _call_image_generation_api(
             reason = "请求超时" if status_code == 504 else "暂时不可用"
             route_attempts = str(response_headers.get("x-ai-anime-route-attempts") or "").strip()
             attempts_text = f"，统一路由已尝试 {route_attempts} 次" if route_attempts else ""
+            route_source = str(response_headers.get("x-ai-anime-route-source") or "").strip()
+            service = {
+                "cloud": "云端图片生成服务",
+                "byok": "BYOK 图片生成服务",
+            }.get(route_source, "图片生成服务")
             return (
                 None,
                 "",
-                f"云端图片生成服务{reason}（HTTP {status_code}）"
+                f"{service}{reason}（HTTP {status_code}）"
                 f"{request_reference}{attempts_text}。",
             )
         return (

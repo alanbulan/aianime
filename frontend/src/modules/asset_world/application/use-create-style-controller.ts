@@ -130,7 +130,7 @@ export function createUseCreateStyleController(
           toast.error(analyzeResponse.error);
           return;
         }
-        analysisTask.start({ scope: analyzeResponse.scope });
+        analysisTask.start({ scope: analyzeResponse.scope, taskId: analyzeResponse.task_id });
         toast.success(analyzeResponse.message);
       } catch (error) {
         toast.error(error instanceof Error ? error.message : t("common.error"));

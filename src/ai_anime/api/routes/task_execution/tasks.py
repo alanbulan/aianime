@@ -293,6 +293,7 @@ async def stream_project_task(
 
             if changed or is_terminal:
                 payload = {
+                    "task_id": task.task_id,
                     "status": effective_status,
                     "progress": round(task.progress, 3),
                     "current_task": task.current_task,

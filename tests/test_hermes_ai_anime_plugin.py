@@ -346,6 +346,29 @@ def test_generate_portrait_omits_body_to_use_global_priority(
     assert calls == [None]
 
 
+@pytest.mark.parametrize(
+    ("handler_name", "path"),
+    [
+        ("_handle_generate_scene_master", "master/generate-async"),
+        ("_handle_generate_scene_reverse", "reverse/generate-async"),
+    ],
+)
+def test_scene_tools_omit_model_to_use_global_role_route(
+    ai_anime_plugin, monkeypatch: pytest.MonkeyPatch, handler_name: str, path: str,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls = []
+
+    def fake_request(method: str, endpoint: str, *, query=None, body=None):
+        calls.append((method, endpoint, body))
+        return {"ok": True, "task_id": "scene-run", "task_type": "scene_reference_asset"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+    result = getattr(ai_anime_plugin, handler_name)({"name": "Hall"})
+    assert result["ok"] is True
+    assert calls == [("POST", f"/api/v1/projects/project-1/scenes/Hall/{path}", None)]
+
+
 def test_design_character_voices_uses_dedicated_priority_route(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 AI anime
 import { describe, it, expect } from "vitest";
 import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
+import { isStaleTaskSnapshot } from "./taskState";
 import {
   ageMs,
   displayLabel,
@@ -17,6 +18,23 @@ describe("isTerminal", () => {
   it("returns false for submitting", () => expect(isTerminal(sampleTask({ status: "submitting" }))).toBe(false));
   it("returns false for pending", () => expect(isTerminal(sampleTask({ status: "pending" }))).toBe(false));
   it("returns false for starting", () => expect(isTerminal(sampleTask({ status: "starting" }))).toBe(false));
+});
+
+describe("task snapshot run ordering", () => {
+  const current = sampleTask({ task_id: "new", created_at: "2026-09-02T09:36:47Z", updated_at: "2026-09-02T09:37:32Z" });
+
+  it("rejects an older run even when its delayed error has a newer update time", () => {
+    expect(isStaleTaskSnapshot({ ...current, task_id: "old", status: "failed", created_at: "2026-09-02T09:31:00Z", updated_at: "2026-09-02T09:40:00Z" }, current)).toBe(true);
+  });
+  it("accepts a new run after cancellation", () => {
+    expect(isStaleTaskSnapshot(current, { ...current, task_id: "old", status: "cancelled", created_at: "2026-09-02T09:31:00Z" })).toBe(false);
+  });
+  it("rejects stale progress for the same run", () => {
+    expect(isStaleTaskSnapshot({ ...current, updated_at: "2026-09-02T09:36:50Z" }, current)).toBe(true);
+  });
+  it.each(["completed", "cancelled"] as const)("does not replace a %s result with a late error", (status) => {
+    expect(isStaleTaskSnapshot({ ...current, status: "failed", updated_at: "2026-09-02T09:40:00Z" }, { ...current, status })).toBe(true);
+  });
 });
 
 describe("isActive", () => {

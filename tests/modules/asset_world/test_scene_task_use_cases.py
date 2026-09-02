@@ -191,6 +191,97 @@ async def test_scene_reference_rejects_missing_scene(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("kind", "role"), [("master", "IMAGE_GENERATION"), ("reverse_master", "IMAGE_EDIT")]
+)
+@pytest.mark.parametrize("model", [None, "", "  "])
+async def test_scene_reference_without_model_inherits_global_role(
+    kind: str, role: str, model: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    roles = []
+
+    def resolve(requested_role: str) -> str:
+        roles.append(requested_role)
+        return "priority-image-model"
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role", resolve,
+    )
+    scheduler = _Scheduler()
+    await SceneTaskUseCases(scheduler, _Assets()).schedule_reference(
+        repository=_Repository([_Scene(name="大殿")]), task_context=_context(),
+        output_dir=tmp_path, scene_name="大殿", kind=kind, style="anime", model=model,
+    )
+    assert roles == [role]
+    assert scheduler.reference_task.model == "priority-image-model"
+    assert scheduler.reference_task.model_selector == ""
+
+
+@pytest.mark.asyncio
+async def test_scene_reference_preserves_explicit_model_selector(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected(_role: str) -> str:
+        raise AssertionError("An explicit selection must not resolve a global model")
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role", unexpected,
+    )
+    scheduler = _Scheduler()
+    await SceneTaskUseCases(scheduler, _Assets()).schedule_reference(
+        repository=_Repository([_Scene(name="大殿")]), task_context=_context(),
+        output_dir=tmp_path, scene_name="大殿", kind="master", style="anime",
+        model="byok:provider:chosen-image",
+    )
+    assert scheduler.reference_task.model == "chosen-image"
+    assert scheduler.reference_task.model_selector == "byok:provider:chosen-image"
+
+
+@pytest.mark.asyncio
+async def test_scene_reference_reports_missing_global_route(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def missing(_role: str) -> str:
+        raise PermissionError("missing role")
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role", missing,
+    )
+    scheduler = _Scheduler()
+    with pytest.raises(SceneGenerationRejected, match="IMAGE_GENERATION 云端或 BYOK 模型"):
+        await SceneTaskUseCases(scheduler, _Assets()).schedule_reference(
+            repository=_Repository([_Scene(name="大殿")]), task_context=_context(),
+            output_dir=tmp_path, scene_name="大殿", kind="master", style="", model=None,
+        )
+    assert scheduler.reference_task is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("source", "role"), [("master", "IMAGE_EDIT"), ("text", "IMAGE_GENERATION")])
+async def test_scene_panorama_without_model_uses_source_role(
+    source: str, role: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    roles = []
+
+    def resolve(requested_role: str) -> str:
+        roles.append(requested_role)
+        return "pano-image-model"
+
+    monkeypatch.setattr(
+        "ai_anime.modules.asset_world.application.image_settings.resolve_model_for_role", resolve,
+    )
+    scheduler = _Scheduler()
+    await SceneTaskUseCases(scheduler, _Assets(masters={"大殿"})).schedule_pano_generation(
+        repository=_Repository([_Scene(name="大殿")]), task_context=_context(),
+        project_dir=tmp_path, scene_name="大殿",
+        command=GenerateScenePanoCommand(source=source), project_style="anime",
+    )
+    assert roles == [role]
+    assert scheduler.stage_task.params["model"] == "pano-image-model"
+    assert not scheduler.stage_task.params.get("model_selector")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("operation", "message"),
     [
         ("build", "场景补充需要 project context"),

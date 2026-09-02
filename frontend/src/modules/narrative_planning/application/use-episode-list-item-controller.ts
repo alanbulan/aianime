@@ -137,7 +137,7 @@ export function createUseEpisodeListItemController(
           );
           return;
         }
-        sceneTask.start({ scope: response.scope });
+        sceneTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }
@@ -158,7 +158,7 @@ export function createUseEpisodeListItemController(
           );
           return;
         }
-        propTask.start({ scope: response.scope });
+        propTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }

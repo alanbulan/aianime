@@ -22,9 +22,15 @@ interface UseTaskStreamOptions {
   episode: number;
   beatNum?: number;
   scope?: string;
+  taskId?: string;
+  runVersion?: number;
   enabled?: boolean;
+  shouldHandleEvent?: () => boolean;
+  onUpdate?: (state: TaskStreamState, taskId: string) => void;
   onComplete?: (result: unknown) => void;
   onError?: (error: string) => void;
+  onCancelled?: () => void;
+  onSuperseded?: () => void;
   invalidateKeys?: QueryKey[];
   showCompleteToast?: boolean;
 }
@@ -36,7 +42,10 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
     episode,
     beatNum,
     scope,
+    taskId,
+    runVersion = 0,
     enabled = true,
+    shouldHandleEvent,
     invalidateKeys,
     showCompleteToast = true,
   } = options;
@@ -56,6 +65,12 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
   onCompleteRef.current = options.onComplete;
   const onErrorRef = useRef(options.onError);
   onErrorRef.current = options.onError;
+  const onUpdateRef = useRef(options.onUpdate);
+  onUpdateRef.current = options.onUpdate;
+  const onCancelledRef = useRef(options.onCancelled);
+  onCancelledRef.current = options.onCancelled;
+  const onSupersededRef = useRef(options.onSuperseded);
+  onSupersededRef.current = options.onSuperseded;
   const invalidateKeysRef = useRef(invalidateKeys);
   invalidateKeysRef.current = invalidateKeys;
 
@@ -117,21 +132,35 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
     const url = qs ? `${base}?${qs}` : base;
     const es = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = es;
+    const close = () => {
+      es.close();
+      if (eventSourceRef.current === es) eventSourceRef.current = null;
+    };
+    const isCurrent = () =>
+      eventSourceRef.current === es && (shouldHandleEvent?.() ?? true);
 
     const handleEvent = (e: MessageEvent) => {
+      if (!isCurrent()) return;
       try {
         const data: TaskStreamEvent = JSON.parse(e.data);
-        setState({
+        if (taskId && data.task_id !== taskId) {
+          close();
+          onSupersededRef.current?.();
+          return;
+        }
+        const nextState: TaskStreamState = {
           status: data.status,
           progress: data.progress ?? 0,
           currentTask: data.current_task ?? "",
           result: data.result ?? null,
           error: data.error ?? null,
           logs: Array.isArray(data.logs) ? data.logs.filter((x) => typeof x === "string") : [],
-        });
+        };
+        setState(nextState);
+        onUpdateRef.current?.(nextState, data.task_id);
 
         if (data.status === "completed") {
-          cleanup();
+          close();
           if (invalidateKeysRef.current) {
             invalidateKeysRef.current.forEach((key) =>
               queryClient.invalidateQueries({ queryKey: key }),
@@ -142,15 +171,13 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
           }
           onCompleteRef.current?.(data.result);
         } else if (data.status === "failed") {
-          cleanup();
+          close();
           const message = taskErrorMessage(data, "Task failed");
           toast.error(message);
           onErrorRef.current?.(message);
         } else if (data.status === "cancelled") {
-          cleanup();
-          const message = taskErrorMessage(data, "Task cancelled");
-          toast.error(message);
-          onErrorRef.current?.(message);
+          close();
+          onCancelledRef.current?.();
         }
       } catch {
         // Ignore parse errors
@@ -173,11 +200,12 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
     // a missing task — callers' `invalidateKeys` would never fire.
     // Treat it as a terminal failure so the UI unsticks.
     es.addEventListener("error", (e: MessageEvent) => {
+      if (!isCurrent()) return;
       try {
         const data = JSON.parse(e.data);
         const msg = data?.error || "Task not found";
         setState((prev) => ({ ...prev, status: "failed", error: msg }));
-        cleanup();
+        close();
         const message = taskErrorMessage(
           { error: msg, error_code: data?.error_code },
           "Task not found",
@@ -196,7 +224,7 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
       // resends terminal event on reconnect.
     };
 
-    return cleanup;
+    return close;
   }, [
     enabled,
     username,
@@ -205,6 +233,9 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
     episode,
     beatNum,
     scope,
+    taskId,
+    runVersion,
+    shouldHandleEvent,
     cleanup,
     queryClient,
     showCompleteToast,

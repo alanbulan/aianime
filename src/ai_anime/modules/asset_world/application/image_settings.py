@@ -32,6 +32,21 @@ from ai_anime.modules.model_usage.public import (
 )
 
 
+def resolve_image_model(
+    requested_model: str | None,
+    *,
+    fallback_role: str = "IMAGE_GENERATION",
+) -> str:
+    """Only an explicit request pins a model; omitted models use global routing."""
+    requested = str(requested_model or "").strip()
+    if requested:
+        return requested
+    try:
+        return resolve_model_for_role(fallback_role)
+    except PermissionError as exc:
+        raise ImageModelPrerequisiteMissing(fallback_role) from exc
+
+
 class ImageSettingsUseCases:
     def __init__(
         self,
@@ -136,18 +151,7 @@ class ImageSettingsUseCases:
         *,
         fallback_role: str = "IMAGE_GENERATION",
     ) -> str:
-        requested = str(requested_model or "").strip()
-        if requested:
-            return requested
-        project_selection = str(
-            self.get_character_selection(username, project)["character_image_selection"]
-        ).strip()
-        if project_selection:
-            return project_selection
-        try:
-            return resolve_model_for_role(fallback_role)
-        except PermissionError as exc:
-            raise ImageModelPrerequisiteMissing(fallback_role) from exc
+        return resolve_image_model(requested_model, fallback_role=fallback_role)
 
     def character_generation_options(
         self,

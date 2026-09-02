@@ -502,6 +502,36 @@ def test_prop_reference_generation_accepts_image_source_model(m04_client_factory
     assert task_backend.calls[-1]["payload"]["model"] == "image-model-a"
 
 
+@pytest.mark.parametrize(
+    ("endpoint", "role"),
+    [
+        (f"characters/{_CHARACTER}/portrait-async", "IMAGE_GENERATION"),
+        (f"characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate-async", "IMAGE_EDIT"),
+        (f"props/{_PROP}/reference/generate-async", "IMAGE_GENERATION"),
+    ],
+)
+@pytest.mark.parametrize("body", [None, {"style": "mock"}])
+def test_asset_generation_without_explicit_model_ignores_workbench_selection(
+    m04_client_factory, endpoint: str, role: str, body,
+):
+    from ai_anime.modules.model_usage.public import configure_model_access
+
+    client, task_backend, _project_dir = m04_client_factory("inline")
+    client.patch(
+        f"/api/v1/projects/{_PROJECT}/character-image-selection",
+        json={"character_image_selection": "cloud:workbench-model"},
+    )
+    configure_model_access(
+        allows_custom_models=True, mode="mixed",
+        model_assignments=[{"modelId": "global-priority", "role": role}],
+    )
+    response = client.post(f"/api/v1/projects/{_PROJECT}/{endpoint}", json=body)
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
+    assert task_backend.calls[-1]["payload"]["model"] == "global-priority"
+    assert task_backend.calls[-1]["payload"]["model_selector"] == ""
+
+
 def test_image_settings_preserve_validation_error_contracts(m04_client_factory):
     client, _backend, _project_dir = m04_client_factory("inline")
 
@@ -662,12 +692,14 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async"
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait-async",
+            json={"model": "mock"},
         )
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait", json={}
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/portrait",
+            json={"model": "mock"},
         )
     )
     _assert_ok(
@@ -706,17 +738,20 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/portrait/generate-async"
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/portrait/generate-async",
+            json={"model": "mock"},
         )
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/portrait/generate"
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/portrait/generate",
+            json={"model": "mock"},
         )
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate-async"
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate-async",
+            json={"model": "mock"},
         )
     )
     _assert_ok(
@@ -726,7 +761,8 @@ def test_m04_l2_exercises_endpoint_contracts(m04_client_factory):
     )
     _assert_ok(
         client.post(
-            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate"
+            f"/api/v1/projects/{_PROJECT}/characters/{_CHARACTER}/identities/{_IDENTITY_ID}/generate",
+            json={"model": "mock"},
         )
     )
 

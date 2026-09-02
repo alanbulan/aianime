@@ -267,10 +267,12 @@ export function TaskCenterProviderView({
           }),
         });
         if (!cancelled) {
-          for (const task of res.data) {
+          useTaskCenterStore.getState().hydrate(res.data);
+          const tasks = Array.from(useTaskCenterStore.getState().tasks.values());
+          queryClient.setQueryData(queryKeys.tasks(projectId), { ok: true, data: tasks });
+          for (const task of tasks) {
             completionSource.onTask(task);
           }
-          useTaskCenterStore.getState().hydrate(res.data);
         }
         return true;
       } catch (err) {
@@ -345,8 +347,9 @@ export function TaskCenterProviderView({
         },
         onAuthRevoked: () => completionSource.onAuthRevoked(),
         onEvent: (task, source) => {
-          completionSource.onTask(task);
           const prev = useTaskCenterStore.getState().upsert(task);
+          if (useTaskCenterStore.getState().tasks.get(task.task_key) !== task) return;
+          completionSource.onTask(task);
 
           // Push-through cache update (not invalidate) to keep legacy `useTasks()` consumers
           // in sync without hammering the backend.
@@ -374,8 +377,8 @@ export function TaskCenterProviderView({
           const isFresh =
             Number.isNaN(completedAt) ||
             Date.now() - completedAt < TOAST_FRESHNESS_MS;
-          const sawRunning = prev !== null && !isTerminal(prev);
-          const firstFreshObservation = isFresh && prev === null;
+          const sawRunning = prev !== null && prev.task_id === task.task_id && !isTerminal(prev);
+          const firstFreshObservation = isFresh && (prev === null || prev.task_id !== task.task_id);
 
           // Invalidate asset queries for any genuinely-new completion, even
           // when it arrives via a reconnect/hydration snapshot — otherwise an
@@ -388,6 +391,9 @@ export function TaskCenterProviderView({
             if (isTerminal(task)) {
               void queryClient.invalidateQueries({
                 queryKey: queryKeys.commercialQuota(),
+              });
+              void queryClient.invalidateQueries({
+                queryKey: queryKeys.commercialInvocations(),
               });
             }
           }

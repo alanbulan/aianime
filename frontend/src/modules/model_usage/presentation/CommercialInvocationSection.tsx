@@ -50,6 +50,7 @@ import type { CommercialModelCatalogItem } from "@/modules/model_usage/domain/co
 import {
   canCancelCommercialInvocation,
   canSaveCommercialInvocationResult,
+  isCommercialQuotaPending,
   type CommercialInvocation,
   type CommercialInvocationId,
 } from "@/modules/model_usage/domain/commercial-invocation";
@@ -115,7 +116,7 @@ export function CommercialInvocationSection({
             label={t("settings.invocations.status")}
             valueGroup="status"
             value={status}
-            values={["", "PENDING", "RUNNING", "SUCCEEDED", "FAILED", "CANCELLED"]}
+            values={["", "PENDING", "RESERVED", "DISPATCHING", "RUNNING", "STREAMING", "CANCEL_REQUESTED", "SUCCEEDED", "FAILED", "CANCELLED"]}
             onChange={(value) => {
               setStatus(value);
               setPage(1);
@@ -349,7 +350,9 @@ function InvocationRow({
 }) {
   const { t } = useTranslation();
   const quotaSummary =
-    invocation.chargedUnits !== undefined
+    isCommercialQuotaPending(invocation.quotaStatus)
+      ? t("settings.invocations.reservedSummary", { count: invocation.reservedUnits })
+      : invocation.chargedUnits !== undefined
       ? t("settings.invocations.chargedSummary", {
           count: invocation.chargedUnits,
         })
@@ -413,6 +416,8 @@ function InvocationDetails({
   }
   if (error) return <InlineNotice>{errorMessage(error, t("settings.invocations.detailsFailed"))}</InlineNotice>;
   if (!invocation) return null;
+  const quotaPending = isCommercialQuotaPending(invocation.quotaStatus);
+  const pendingLabel = t("settings.invocations.settlementPending");
   const fields = [
     [
       t("settings.invocations.status"),
@@ -446,15 +451,15 @@ function InvocationDetails({
     ],
     [
       t("settings.invocations.chargedUnits"),
-      formatQuotaUnits(invocation.chargedUnits, t),
+      quotaPending ? pendingLabel : formatQuotaUnits(invocation.chargedUnits, t),
     ],
     [
       t("settings.invocations.refundedUnits"),
-      formatQuotaUnits(invocation.refundedUnits, t),
+      quotaPending ? pendingLabel : formatQuotaUnits(invocation.refundedUnits, t),
     ],
     [
       t("settings.invocations.balanceChange"),
-      invocation.balanceBefore === undefined || invocation.balanceAfter === undefined
+      quotaPending ? pendingLabel : invocation.balanceBefore === undefined || invocation.balanceAfter === undefined
         ? undefined
         : t("settings.invocations.balanceChangeValue", {
             before: invocation.balanceBefore,
@@ -474,7 +479,7 @@ function InvocationDetails({
           </div>
         ))}
       </dl>
-      {isQuotaSettlementPending(invocation.quotaStatus) ? (
+      {quotaPending ? (
         <p className="mt-4 border-l-2 border-warning pl-3 text-[11px] leading-5 text-muted-foreground">
           {t("settings.invocations.quotaSettlementPending")}
         </p>
@@ -497,12 +502,6 @@ function formatQuotaUnits(
     : t("settings.invocations.quotaUnitsValue", { count: value });
 }
 
-function isQuotaSettlementPending(status: string | undefined): boolean {
-  return new Set(["HELD", "REVIEW_REQUIRED"]).has(
-    status?.trim().toUpperCase() ?? "",
-  );
-}
-
 function resolveModelLabel(
   invocation: CommercialInvocation,
   catalogItemsByCode: ReadonlyMap<string, CommercialModelCatalogItem>,
@@ -522,9 +521,11 @@ function StatusBadge({ status }: { status: string }) {
   const normalized = status.trim().toUpperCase();
   const tone = normalized === "SUCCEEDED" || normalized === "SUCCESS" || normalized === "COMPLETED"
     ? "bg-success/10 text-success"
-    : normalized === "FAILED" || normalized === "CANCELLED" || normalized === "CANCELED"
+    : normalized === "FAILED"
       ? "bg-destructive/10 text-destructive"
-      : "bg-warning/10 text-warning";
+      : normalized === "CANCELLED" || normalized === "CANCELED"
+        ? "bg-muted text-muted-foreground"
+        : "bg-warning/10 text-warning";
   return (
     <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${tone}`}>
       {commercialValueLabel(t, "status", status)}

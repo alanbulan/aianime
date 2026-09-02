@@ -657,7 +657,7 @@ export function createUseSketchSectionController(
           );
           return;
         }
-        regenTask.start({ scope: response.scope });
+        regenTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(t("episode.workbench.sketch.regenStarted"));
       } catch {
         toast.error(t("episode.workbench.sketch.regenFailed"));
@@ -691,7 +691,7 @@ export function createUseSketchSectionController(
           );
           return;
         }
-        directorTask.start({ scope: response.scope });
+        directorTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(
           t("episode.workbench.sketch.convertDirectorStarted"),
         );

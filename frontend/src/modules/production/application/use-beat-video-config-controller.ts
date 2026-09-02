@@ -353,7 +353,7 @@ export function createUseBeatVideoConfigController(
           );
           return;
         }
-        generationTask.start({ scope: response.scope });
+        generationTask.start({ scope: response.scope, taskId: response.task_id });
         toast.success(response.message);
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));

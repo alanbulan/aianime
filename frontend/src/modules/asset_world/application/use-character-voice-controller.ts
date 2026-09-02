@@ -698,7 +698,7 @@ export function createUseCharacterVoiceController(
           sampleRate,
           responseFormat,
         });
-        voiceDesignTask.start({ scope: created.scope });
+        voiceDesignTask.start({ scope: created.scope, taskId: created.taskId ?? undefined });
       } catch {
         toast.error(t("characters.voiceSamples.voiceDesignFailed"));
       } finally {
@@ -747,7 +747,7 @@ export function createUseCharacterVoiceController(
           text: sampleText,
           voice: selectedVoice,
         });
-        presetVoiceTask.start({ scope: created.scope });
+        presetVoiceTask.start({ scope: created.scope, taskId: created.taskId ?? undefined });
       } catch {
         toast.error(t("characters.voiceSamples.presetCreateFailed"));
       } finally {

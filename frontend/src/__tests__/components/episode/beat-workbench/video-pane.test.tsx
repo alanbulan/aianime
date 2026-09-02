@@ -2000,7 +2000,7 @@ describe("VideoPane VideoReference inspector", () => {
       manualPromptReference: "manual reference prompt",
       promptGuidance: "more camera motion",
     });
-    expect(taskStartMock).toHaveBeenCalledWith({ scope: undefined });
+    expect(taskStartMock).toHaveBeenCalledWith({ scope: undefined, taskId: "task-video-reference-prompt" });
     expect(toast.success).toHaveBeenCalledWith(
       "第 1 集 Beat 1 视频提示词优化已入队",
     );
@@ -2063,7 +2063,7 @@ describe("VideoPane VideoReference inspector", () => {
     });
 
     await waitFor(() =>
-      expect(taskStartMock).toHaveBeenCalledWith({ scope: undefined }),
+      expect(taskStartMock).toHaveBeenCalledWith({ scope: undefined, taskId: "task-video-reference-prompt" }),
     );
     expect(toast.success).toHaveBeenCalledWith(
       "第 1 集 Beat 1 视频提示词优化已入队",

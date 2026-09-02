@@ -118,12 +118,14 @@ export const queryKeys = {
     ["commercial", "models", source, operation] as const,
   commercialModel: (sku: string) =>
     ["commercial", "models", "detail", sku] as const,
-  commercialInvocations: (query: {
+  commercialInvocations: (query?: {
     page: number;
     pageSize: number;
     status: string;
     operation: string;
-  }) => ["commercial", "invocations", query] as const,
+  }) => query
+    ? ["commercial", "invocations", query] as const
+    : ["commercial", "invocations"] as const,
   commercialInvocation: (id: string) =>
     ["commercial", "invocations", "detail", id] as const,
   commercialModelAccess: () => ["commercial", "model-access"] as const,

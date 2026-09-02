@@ -339,7 +339,7 @@ export function createUseBeatsPageController(
           toast.error(backendErrorToastMessage(response.error, t));
           return;
         }
-        scriptTask.start({ scope: response.scope });
+        scriptTask.start({ scope: response.scope, taskId: response.task_id });
       } catch (error) {
         toast.error(backendErrorToastMessage(error, t));
       }

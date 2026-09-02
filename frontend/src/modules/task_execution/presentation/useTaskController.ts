@@ -16,6 +16,7 @@ import {
 import { useTaskStream } from "./useTaskStream";
 import { useCancelTask, useTasks } from "../public";
 import { mergeTaskLogs } from "@/lib/script-feedback";
+import { queryKeys } from "@/lib/query-keys";
 
 /**
  * Public handle returned by `useTaskController`. Mirrors `useStageTask`'s
@@ -26,11 +27,10 @@ export interface TaskControllerHandle {
   stream: TaskStreamState;
   logs: string[];
   /**
-   * Mark the task as started and open the SSE stream. Pass `{ scope }` when
-   * the backend's TaskResponse carried it — lets the first stream request
-   * hit the right row immediately instead of waiting for reconcile.
+   * Bind the new run to the task ID and scope returned by the submission.
+   * The object scope is reusable; the task ID identifies this attempt only.
    */
-  start: (override?: { scope?: string }) => void;
+  start: (override?: { scope?: string; taskId?: string }) => void;
   stop: () => Promise<void>;
   stopping: boolean;
 }
@@ -184,6 +184,7 @@ export function useTaskController(
         ...entry.getSnapshot(),
         started: true,
         activeTaskType: match.task_type,
+        activeTaskId: match.task_id,
         // Capture the scope the BE assigned to this matched task so the stream
         // URL below hits the correct (scoped) endpoint. Without this the per-
         // task SSE endpoint returns "Task not found" and completion events
@@ -211,6 +212,31 @@ export function useTaskController(
   const callbacksRef = useRef({ onComplete, onError });
   callbacksRef.current = { onComplete, onError };
 
+  const isCurrentRun = useCallback(() => {
+    const current = entry.getSnapshot();
+    return current.started && current.runVersion === snapshot.runVersion;
+  }, [entry, snapshot.runVersion]);
+
+  const finish = useCallback(
+    (status: "completed" | "failed" | "cancelled", result?: unknown, error?: string) => {
+      if (!isCurrentRun()) return;
+      const current = entry.getSnapshot();
+      entry.setSnapshot({
+        ...current,
+        started: false,
+        streamState: {
+          ...current.streamState,
+          status,
+          result: result ?? current.streamState.result,
+          error: error ?? current.streamState.error,
+        },
+      });
+      if (status === "completed") callbacksRef.current.onComplete?.(result);
+      if (status === "failed") callbacksRef.current.onError?.(error || "Task failed");
+    },
+    [entry, isCurrentRun],
+  );
+
   // Fallback for missed per-task SSE terminal events. The project task list is
   // also kept fresh by polling/global SSE; if it already shows this task as
   // terminal, clear the local `started` flag instead of leaving the beat card
@@ -218,11 +244,13 @@ export function useTaskController(
   useEffect(() => {
     if (!isOwner) return;
     if (!snapshot.started) return;
+    if (!snapshot.activeTaskId) return;
     if (tasksRes === undefined) return;
     const tasks = tasksRes.data ?? [];
     const candidates = [snapshot.activeTaskType || key.taskType, ...(alsoReconcile ?? [])];
     const match = tasks.find(
       (t) =>
+        t.task_id === snapshot.activeTaskId &&
         candidates.includes(t.task_type) &&
         (key.beatNum === undefined || t.beat_num === key.beatNum) &&
         ((snapshot.activeScope ?? key.scope) === undefined ||
@@ -232,10 +260,9 @@ export function useTaskController(
     if (!match) return;
 
     const current = entry.getSnapshot();
-    if (!current.started) return;
+    if (!isCurrentRun() || current.activeTaskId !== match.task_id) return;
     entry.setSnapshot({
       ...current,
-      started: false,
       streamState: {
         status: match.status,
         progress: match.progress ?? current.streamState.progress,
@@ -252,15 +279,12 @@ export function useTaskController(
           queryClient.invalidateQueries({ queryKey }),
         );
       }
-      callbacksRef.current.onComplete?.(match.result);
-    } else {
-      callbacksRef.current.onError?.(
-        match.error ?? (match.status === "cancelled" ? "Task cancelled" : "Task failed"),
-      );
     }
+    finish(match.status as "completed" | "failed" | "cancelled", match.result, match.error ?? undefined);
   }, [
     isOwner,
     snapshot.started,
+    snapshot.activeTaskId,
     snapshot.activeTaskType,
     snapshot.activeScope,
     tasksRes,
@@ -271,9 +295,11 @@ export function useTaskController(
     alsoReconcile,
     invalidateKeys,
     queryClient,
+    finish,
+    isCurrentRun,
   ]);
 
-  const ownerStream = useTaskStream({
+  useTaskStream({
     taskType: snapshot.activeTaskType,
     project: key.project,
     episode: key.episode,
@@ -283,62 +309,28 @@ export function useTaskController(
     // the UI don't know the server-computed scope (e.g., selection_scope =
     // mode_key + sha1(beats)), so activeScope from reconcile is authoritative.
     scope: snapshot.activeScope ?? key.scope,
+    taskId: snapshot.activeTaskId ?? undefined,
+    runVersion: snapshot.runVersion,
     enabled: isOwner && snapshot.started,
+    shouldHandleEvent: isCurrentRun,
     invalidateKeys,
     showCompleteToast,
-    onComplete: (r) => {
-      entry.setSnapshot({ ...entry.getSnapshot(), started: false });
-      callbacksRef.current.onComplete?.(r);
+    onUpdate: (streamState, taskId) => {
+      if (!isCurrentRun()) return;
+      entry.setSnapshot({
+        ...entry.getSnapshot(),
+        activeTaskId: taskId || snapshot.activeTaskId,
+        streamState,
+      });
     },
-    onError: (e) => {
+    onComplete: (result) => finish("completed", result),
+    onError: (error) => finish("failed", undefined, error),
+    onCancelled: () => finish("cancelled"),
+    onSuperseded: () => {
+      if (!isCurrentRun()) return;
       entry.setSnapshot({ ...entry.getSnapshot(), started: false });
-      callbacksRef.current.onError?.(e);
     },
   });
-
-  // Push the owner's live stream state into the entry so observers see it.
-  // Done post-commit to avoid writing during render.
-  useEffect(() => {
-    if (!isOwner) return;
-    if (!snapshot.started && ownerStream.status === "idle") return;
-    const current = entry.getSnapshot();
-    const prev = current.streamState;
-    const ownerLogs = ownerStream.logs ?? [];
-    const logsSame =
-      prev.logs.length === ownerLogs.length &&
-      prev.logs.every((line, index) => line === ownerLogs[index]);
-    if (
-      prev.status === ownerStream.status &&
-      prev.progress === ownerStream.progress &&
-      prev.currentTask === ownerStream.currentTask &&
-      prev.result === ownerStream.result &&
-      prev.error === ownerStream.error &&
-      logsSame
-    ) {
-      return;
-    }
-    entry.setSnapshot({
-      ...current,
-      streamState: {
-        status: ownerStream.status,
-        progress: ownerStream.progress,
-        currentTask: ownerStream.currentTask,
-        result: ownerStream.result,
-        error: ownerStream.error,
-        logs: ownerLogs,
-      },
-    });
-  }, [
-    isOwner,
-    snapshot.started,
-    entry,
-    ownerStream.status,
-    ownerStream.progress,
-    ownerStream.currentTask,
-    ownerStream.result,
-    ownerStream.error,
-    ownerStream.logs,
-  ]);
 
   // ─── Logs rolling buffer (per-consumer; kept local) ──────────────────────
   //
@@ -351,6 +343,7 @@ export function useTaskController(
     const candidates = [key.taskType, ...(alsoReconcile ?? [])];
     const match = tasks.find(
       (t) =>
+        t.task_id === snapshot.activeTaskId &&
         candidates.includes(t.task_type) &&
         (key.beatNum === undefined || t.beat_num === key.beatNum) &&
         (key.scope === undefined || (t.scope ?? null) === (key.scope ?? null)) &&
@@ -360,6 +353,7 @@ export function useTaskController(
   }, [
     isOwner,
     tasksRes,
+    snapshot.activeTaskId,
     key.taskType,
     key.beatNum,
     key.scope,
@@ -370,61 +364,6 @@ export function useTaskController(
   useEffect(() => {
     appendLogs(snapshot.streamState.logs);
   }, [snapshot.streamState.logs, appendLogs]);
-
-  // Fallback terminal reconciliation. The per-task SSE is the primary path,
-  // but if the terminal event is missed the `/tasks` list still knows the
-  // truth. Clear local spinners from that authoritative task row.
-  useEffect(() => {
-    if (!isOwner) return;
-    if (!snapshot.started) return;
-    if (tasksRes === undefined) return;
-
-    const tasks = tasksRes.data ?? [];
-    const activeScope = snapshot.activeScope ?? key.scope ?? null;
-    const match = tasks.find(
-      (t) =>
-        t.task_type === snapshot.activeTaskType &&
-        (key.beatNum === undefined || t.beat_num === key.beatNum) &&
-        (activeScope === null || (t.scope ?? null) === activeScope) &&
-        !isActiveStatus(t.status),
-    );
-    if (!match) return;
-
-    entry.setSnapshot({
-      ...entry.getSnapshot(),
-      started: false,
-      activeScope: match.scope ?? activeScope,
-      streamState: {
-        status: match.status,
-        progress: match.progress ?? 1,
-        currentTask: match.current_task ?? "",
-        result: match.result ?? null,
-        error: match.error ?? null,
-        logs: Array.isArray(match.logs) ? match.logs.filter((x) => typeof x === "string") : [],
-      },
-    });
-    if (invalidateKeys) {
-      invalidateKeys.forEach((queryKey) => {
-        queryClient.invalidateQueries({ queryKey });
-      });
-    }
-    if (match.status === "completed") {
-      callbacksRef.current.onComplete?.(match.result);
-    } else if (match.status === "failed") {
-      callbacksRef.current.onError?.(match.error || "Task failed");
-    }
-  }, [
-    isOwner,
-    snapshot.started,
-    snapshot.activeScope,
-    snapshot.activeTaskType,
-    tasksRes,
-    key.scope,
-    key.beatNum,
-    entry,
-    invalidateKeys,
-    queryClient,
-  ]);
 
   useEffect(() => {
     const current = snapshot.streamState.currentTask;
@@ -443,21 +382,17 @@ export function useTaskController(
   const cancelTask = useCancelTask();
 
   const start = useCallback(
-    (override?: { scope?: string }) => {
+    (override?: { scope?: string; taskId?: string }) => {
       logsRef.current = [];
-      // Re-open the reconcile window so the NEXT /tasks poll tick can discover
-      // the server-assigned scope for this run. Callers that *know* the scope
-      // up front (from the TaskResponse returned by the mutation) should pass
-      // it via `start({ scope })` — that way the per-task SSE stream hits the
-      // right row on first open, without racing reconcile. Without it, the
-      // stream initially opens with scope=null and the BE's get_task() fails
-      // until reconcile catches up (sometimes losing if the task completes
-      // fast).
-      entry.reconciled = false;
+      // Do not reconcile a new submission against the previous run's cached
+      // row. If no ID was returned, the live SSE event establishes the ID.
+      entry.reconciled = true;
       entry.setSnapshot({
         ...entry.getSnapshot(),
         started: true,
         activeTaskType: key.taskType,
+        activeTaskId: override?.taskId ?? null,
+        runVersion: entry.getSnapshot().runVersion + 1,
         activeScope: override?.scope ?? key.scope ?? null,
         streamState: {
           status: "idle",
@@ -468,8 +403,9 @@ export function useTaskController(
           logs: [],
         },
       });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.tasks(key.project) });
     },
-    [entry, key.taskType, key.scope],
+    [entry, key.taskType, key.scope, key.project, queryClient],
   );
 
   const stop = useCallback(async () => {

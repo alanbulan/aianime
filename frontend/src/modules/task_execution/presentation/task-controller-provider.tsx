@@ -54,8 +54,6 @@
  *      disconnects until another subscriber claims ownership on its next effect.
  *      This is a single-digit-millisecond gap; EventSource reconnect semantics
  *      handle it on the server side.
- *   2. `useCancelTask` does not forward `beat_num` / `scope` to the backend yet;
- *      scope-narrowed cancellation is a follow-up. Today's cancel is stage-wide.
  */
 
 import {
@@ -93,6 +91,8 @@ export interface TaskStreamState {
 export interface TaskControllerSnapshot {
   started: boolean;
   activeTaskType: string;
+  activeTaskId: string | null;
+  runVersion: number;
   /**
    * Scope of the currently-running matched task, discovered during reconcile.
    * The scope is derived server-side from content (e.g., selection_scope →
@@ -162,6 +162,8 @@ function createEntry(key: TaskKey): TaskRegistryEntry {
   let snapshot: TaskControllerSnapshot = {
     started: false,
     activeTaskType: key.taskType,
+    activeTaskId: null,
+    runVersion: 0,
     activeScope: key.scope ?? null,
     streamState: INITIAL_STREAM_STATE,
     hasOwner: false,

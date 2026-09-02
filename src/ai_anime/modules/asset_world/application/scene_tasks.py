@@ -12,9 +12,11 @@ from ai_anime.modules.asset_world.application.dto import (
     ScheduledAssetTask,
 )
 from ai_anime.modules.asset_world.application.errors import (
+    InvalidImageSelection,
     SceneGenerationRejected,
     SceneProjectContextRequired,
 )
+from ai_anime.modules.asset_world.application.image_settings import resolve_image_model
 from ai_anime.modules.asset_world.application.ports import (
     SceneTaskAssets,
     SceneTaskRepository,
@@ -71,7 +73,15 @@ class SceneTaskUseCases:
         model: str | None,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
-        model_route = resolve_model_route(model)
+        try:
+            model_route = resolve_model_route(
+                resolve_image_model(
+                    model,
+                    fallback_role="IMAGE_GENERATION" if kind == "master" else "IMAGE_EDIT",
+                )
+            )
+        except InvalidImageSelection as exc:
+            raise SceneGenerationRejected(str(exc)) from exc
         if not model_route.model:
             raise SceneGenerationRejected("请先选择场景图片模型")
         context = self._require_context(
@@ -189,13 +199,21 @@ class SceneTaskUseCases:
         project_style: str,
     ) -> ScheduledAssetTask:
         scene = await require_scene(repository, scene_name)
-        model_route = resolve_model_route(command.model)
-        if not model_route.model:
-            raise SceneGenerationRejected("请先选择场景图片模型")
         source = resolve_scene_pano_source(
             command.source,
             has_master=self._assets.has_master(project_dir, scene.name),
         )
+        try:
+            model_route = resolve_model_route(
+                resolve_image_model(
+                    command.model,
+                    fallback_role="IMAGE_EDIT" if source == "master" else "IMAGE_GENERATION",
+                )
+            )
+        except InvalidImageSelection as exc:
+            raise SceneGenerationRejected(str(exc)) from exc
+        if not model_route.model:
+            raise SceneGenerationRejected("请先选择场景图片模型")
         params: dict[str, object] = {
             "description": scene_360_description(scene),
             "style": command.style or project_style,
