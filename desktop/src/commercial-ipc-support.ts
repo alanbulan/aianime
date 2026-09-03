@@ -164,6 +164,11 @@ function projectedExtraParameterNames(
   );
 }
 
+function audioFormatFromValue(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  return /^[a-z][a-z0-9_-]{0,31}$/.test(normalized) ? normalized : null;
+}
+
 function videoResolutionFromValue(value: string): string | null {
   const normalized = value.trim().toLowerCase();
   return /^\d{2,5}p$/.test(normalized) ? normalized : null;
@@ -368,7 +373,15 @@ export function mergeModelCapabilities(
 ): void {
   for (const item of catalog?.items ?? []) {
     target.delete(item.code);
-    if (item.operation !== "VIDEO" && item.operation !== "IMAGE") continue;
+    const normalizedOperation = item.operation.trim().toUpperCase();
+    const isAudioOperation = normalizedOperation.startsWith("AUDIO");
+    if (
+      normalizedOperation !== "VIDEO" &&
+      normalizedOperation !== "IMAGE" &&
+      !isAudioOperation
+    ) {
+      continue;
+    }
     const capabilities = parseCatalogRecord(
       item.capabilityJson,
       item.code,
@@ -394,7 +407,53 @@ export function mergeModelCapabilities(
     if (extraParameterNames.length) {
       projected.extraParameterNames = extraParameterNames;
     }
-    if (item.operation === "IMAGE") {
+    if (isAudioOperation) {
+      const responseFormatProperty = optionalRecord(properties.response_format);
+      const responseFormatCamelProperty = optionalRecord(
+        properties.responseFormat,
+      );
+      const requestedDefault = [
+        capabilities.audioDefaultResponseFormat,
+        capabilities.defaultResponseFormat,
+        responseFormatProperty.default,
+        responseFormatCamelProperty.default,
+      ]
+        .map(optionalText)
+        .map((value) => audioFormatFromValue(value ?? ""))
+        .find((value): value is string => value !== null);
+      const audioResponseFormats = Array.from(
+        new Set(
+          [
+            capabilities.audioResponseFormats,
+            capabilities.responseFormats,
+            responseFormatProperty.enum,
+            responseFormatCamelProperty.enum,
+          ]
+            .flatMap(stringArray)
+            .map(audioFormatFromValue)
+            .filter((value): value is string => value !== null),
+        ),
+      );
+      if (requestedDefault && !audioResponseFormats.length) {
+        audioResponseFormats.push(requestedDefault);
+      }
+      if (audioResponseFormats.length) {
+        projected.audioResponseFormats = audioResponseFormats;
+      }
+      if (requestedDefault && audioResponseFormats.includes(requestedDefault)) {
+        projected.audioDefaultResponseFormat = requestedDefault;
+      }
+      projected.audioSupportsEmotionPrompt =
+        declaredBoolean(
+          capabilities.audioSupportsEmotionPrompt,
+          capabilities.supportsEmotionPrompt,
+        ) ?? Boolean(properties.emotion_prompt || properties.emotionPrompt);
+      if (Object.keys(projected).length > 1) {
+        target.set(item.code, projected);
+      }
+      continue;
+    }
+    if (normalizedOperation === "IMAGE") {
       const imagePromptProfile = optionalText(capabilities.imagePromptProfile);
       if (imagePromptProfile) projected.imagePromptProfile = imagePromptProfile;
       const imageRatioOptions = projectedVideoRatioOptions(
@@ -412,7 +471,7 @@ export function mergeModelCapabilities(
         projected.imageSizeOptions = imageSizeOptions;
       }
     }
-    if (item.operation !== "VIDEO") {
+    if (normalizedOperation !== "VIDEO") {
       if (Object.keys(projected).length > 1) target.set(item.code, projected);
       continue;
     }

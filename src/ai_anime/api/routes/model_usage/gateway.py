@@ -54,6 +54,21 @@ class CommercialModelCapabilityBody(BaseModel):
         alias="extraParameterNames",
         max_length=64,
     )
+    audio_response_formats: list[str] = Field(
+        default_factory=list,
+        alias="audioResponseFormats",
+        max_length=16,
+    )
+    audio_default_response_format: str | None = Field(
+        default=None,
+        alias="audioDefaultResponseFormat",
+        max_length=32,
+        pattern=r"^[a-z][a-z0-9_-]{0,31}$",
+    )
+    audio_supports_emotion_prompt: bool | None = Field(
+        default=None,
+        alias="audioSupportsEmotionPrompt",
+    )
     image_prompt_profile: str | None = Field(
         default=None,
         alias="imagePromptProfile",

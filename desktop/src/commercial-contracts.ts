@@ -183,6 +183,9 @@ export interface CommercialInvocationKeyStateSnapshot {
 export interface CommercialModelCapabilitySnapshot {
   modelId: string;
   extraParameterNames?: string[];
+  audioResponseFormats?: string[];
+  audioDefaultResponseFormat?: string;
+  audioSupportsEmotionPrompt?: boolean;
   imagePromptProfile?: string;
   imageRatioOptions?: string[];
   imageSizeOptions?: string[];

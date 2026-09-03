@@ -61,6 +61,9 @@ class RuntimeModelAssignment:
 class RuntimeModelCapability:
     model_id: str
     extra_parameter_names: tuple[str, ...] = ()
+    audio_response_formats: tuple[str, ...] = ()
+    audio_default_response_format: str | None = None
+    audio_supports_emotion_prompt: bool | None = None
     image_prompt_profile: str | None = None
     image_ratio_options: tuple[str, ...] = ()
     image_size_options: tuple[str, ...] = ()
@@ -399,6 +402,37 @@ def _normalize_video_extra_parameter_names(
     return tuple(options)
 
 
+def _normalize_audio_response_formats(
+    value: object,
+    *,
+    index: int,
+) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, (str, bytes)) or not isinstance(value, Iterable):
+        raise ValueError(
+            f"model capability {index} has invalid audioResponseFormats"
+        )
+    options: list[str] = []
+    for raw in value:
+        if not isinstance(raw, str):
+            raise ValueError(
+                f"model capability {index} has invalid audioResponseFormats"
+            )
+        option = raw.strip().lower()
+        if re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", option) is None:
+            raise ValueError(
+                f"model capability {index} has invalid audioResponseFormats"
+            )
+        if option not in options:
+            options.append(option)
+    if len(options) > 16:
+        raise ValueError(
+            f"model capability {index} has invalid audioResponseFormats"
+        )
+    return tuple(options)
+
+
 def _normalize_video_scene_optimize_options(
     value: object,
     *,
@@ -481,6 +515,55 @@ def _normalize_model_capabilities(
                 ),
                 index=index,
             )
+            audio_response_formats = _normalize_audio_response_formats(
+                value.get(
+                    "audioResponseFormats",
+                    value.get("audio_response_formats"),
+                ),
+                index=index,
+            )
+            raw_audio_default_response_format = value.get(
+                "audioDefaultResponseFormat",
+                value.get("audio_default_response_format"),
+            )
+            if raw_audio_default_response_format is not None and not isinstance(
+                raw_audio_default_response_format,
+                str,
+            ):
+                raise ValueError(
+                    f"model capability {index} has invalid "
+                    "audioDefaultResponseFormat"
+                )
+            audio_default_response_format = (
+                str(raw_audio_default_response_format or "").strip().lower() or None
+            )
+            if (
+                audio_default_response_format is not None
+                and (
+                    re.fullmatch(
+                        r"[a-z][a-z0-9_-]{0,31}",
+                        audio_default_response_format,
+                    )
+                    is None
+                    or audio_default_response_format not in audio_response_formats
+                )
+            ):
+                raise ValueError(
+                    f"model capability {index} has invalid "
+                    "audioDefaultResponseFormat"
+                )
+            audio_supports_emotion_prompt = value.get(
+                "audioSupportsEmotionPrompt",
+                value.get("audio_supports_emotion_prompt"),
+            )
+            if audio_supports_emotion_prompt is not None and not isinstance(
+                audio_supports_emotion_prompt,
+                bool,
+            ):
+                raise ValueError(
+                    f"model capability {index} has invalid "
+                    "audioSupportsEmotionPrompt"
+                )
             raw_image_prompt_profile = value.get(
                 "imagePromptProfile",
                 value.get("image_prompt_profile"),
@@ -618,6 +701,9 @@ def _normalize_model_capabilities(
             capability = RuntimeModelCapability(
                 model_id=model_id,
                 extra_parameter_names=extra_parameter_names,
+                audio_response_formats=audio_response_formats,
+                audio_default_response_format=audio_default_response_format,
+                audio_supports_emotion_prompt=audio_supports_emotion_prompt,
                 image_prompt_profile=image_prompt_profile,
                 image_ratio_options=image_ratio_options,
                 image_size_options=image_size_options,
@@ -649,6 +735,43 @@ def _normalize_model_capabilities(
             capability.extra_parameter_names,
             index=index,
         )
+        audio_response_formats = _normalize_audio_response_formats(
+            capability.audio_response_formats,
+            index=index,
+        )
+        if capability.audio_default_response_format is not None and not isinstance(
+            capability.audio_default_response_format,
+            str,
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid audioDefaultResponseFormat"
+            )
+        audio_default_response_format = (
+            str(capability.audio_default_response_format or "").strip().lower()
+            or None
+        )
+        if (
+            audio_default_response_format is not None
+            and (
+                re.fullmatch(
+                    r"[a-z][a-z0-9_-]{0,31}",
+                    audio_default_response_format,
+                )
+                is None
+                or audio_default_response_format not in audio_response_formats
+            )
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid audioDefaultResponseFormat"
+            )
+        audio_supports_emotion_prompt = capability.audio_supports_emotion_prompt
+        if audio_supports_emotion_prompt is not None and not isinstance(
+            audio_supports_emotion_prompt,
+            bool,
+        ):
+            raise ValueError(
+                f"model capability {index} has invalid audioSupportsEmotionPrompt"
+            )
         image_prompt_profile = (
             str(capability.image_prompt_profile or "").strip() or None
         )
@@ -761,6 +884,9 @@ def _normalize_model_capabilities(
         unique[model_id] = RuntimeModelCapability(
             model_id=model_id,
             extra_parameter_names=extra_parameter_names,
+            audio_response_formats=audio_response_formats,
+            audio_default_response_format=audio_default_response_format,
+            audio_supports_emotion_prompt=audio_supports_emotion_prompt,
             image_prompt_profile=image_prompt_profile,
             image_ratio_options=image_ratio_options,
             image_size_options=image_size_options,
@@ -912,6 +1038,29 @@ def serialize_model_access_for_subprocess() -> str:
             "modelCapabilities": [
                 {
                     "modelId": item.model_id,
+                    **(
+                        {"audioResponseFormats": list(item.audio_response_formats)}
+                        if item.audio_response_formats
+                        else {}
+                    ),
+                    **(
+                        {
+                            "audioDefaultResponseFormat": (
+                                item.audio_default_response_format
+                            )
+                        }
+                        if item.audio_default_response_format is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            "audioSupportsEmotionPrompt": (
+                                item.audio_supports_emotion_prompt
+                            )
+                        }
+                        if item.audio_supports_emotion_prompt is not None
+                        else {}
+                    ),
                     **(
                         {"imagePromptProfile": item.image_prompt_profile}
                         if item.image_prompt_profile is not None
