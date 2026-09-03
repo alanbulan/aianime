@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { EncryptedFileModelInvocationStore } from "../src/commercial-model-invocation-store.ts";
+import {
+  EncryptedFileModelInvocationStore,
+  InMemoryModelInvocationStore,
+} from "../src/commercial-model-invocation-store.ts";
 import { CommercialModelProxy } from "../src/commercial-model-proxy.ts";
 
 const SUBJECT = "https://gateway.example.test|11|22";
@@ -86,8 +89,10 @@ function imageRequest(proxy, idempotencyKey, prompt, taskId = "") {
   });
 }
 
-test("concurrent cloud image retries single-flight one exact invocation", async (t) => {
-  let complete;
+test("concurrent cloud image retries single-flight one exact invocation", { timeout: 10_000 }, async (t) => {
+  const { promise: responseReady, resolve: complete } = Promise.withResolvers();
+  const invocationStore = new InMemoryModelInvocationStore();
+  const claim = t.mock.method(invocationStore, "claim");
   const calls = [];
   const client = {
     async modelInvocationSubject() {
@@ -95,34 +100,46 @@ test("concurrent cloud image retries single-flight one exact invocation", async 
     },
     async modelRequest(input) {
       calls.push(input);
-      return new Promise((resolve) => {
-        complete = () => resolve(Response.json(
-          { data: [{ b64_json: "image-result" }], id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
-          {
-            headers: {
-              "X-AI-Invocation-Id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-              "X-AI-Idempotency-Key": "image-single-flight",
-            },
+      await responseReady;
+      return Response.json(
+        { data: [{ b64_json: "image-result" }], id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+        {
+          headers: {
+            "X-AI-Invocation-Id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            "X-AI-Idempotency-Key": "image-single-flight",
           },
-        ));
-      });
+        },
+      );
     },
   };
-  const proxy = new CommercialModelProxy(client, DEVICE);
+  const proxy = new CommercialModelProxy(client, DEVICE, undefined, { invocationStore });
   configureCloudImage(proxy);
   await proxy.start();
-  t.after(() => proxy.stop());
+  t.after(async () => {
+    complete();
+    await proxy.stop();
+  });
 
   const first = imageRequest(proxy, "image-single-flight", "same portrait");
   const second = imageRequest(proxy, "image-single-flight", "same portrait");
-  while (calls.length === 0) await new Promise((resolve) => setTimeout(resolve, 1));
+  const responses = Promise.allSettled([first, second]);
+  // Both HTTP requests must reach the store while the upstream is still pending.
+  // Releasing after only the first call races a later socket/request on macOS.
+  await t.waitFor(() => {
+    assert.equal(claim.mock.callCount(), 2);
+    assert.ok(calls.length > 0);
+  }, { interval: 1, timeout: 5_000 });
   assert.equal(calls.length, 1);
   complete();
 
-  const [firstResponse, secondResponse] = await Promise.all([first, second]);
+  const [firstResponse, secondResponse] = (await responses).map((response) => {
+    if (response.status === "rejected") throw response.reason;
+    return response.value;
+  });
   assert.equal(firstResponse.status, 200);
   assert.equal(secondResponse.status, 200);
-  assert.deepEqual(await firstResponse.json(), await secondResponse.json());
+  const result = await firstResponse.json();
+  assert.deepEqual(result, await secondResponse.json());
   assert.equal(
     firstResponse.headers.get("x-ai-invocation-id"),
     "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -140,6 +157,19 @@ test("concurrent cloud image retries single-flight one exact invocation", async 
   assert.equal(conflict.status, 409);
   assert.equal((await conflict.json()).error.code, "IDEMPOTENCY_KEY_REUSED");
   assert.equal(calls.length, 1);
+
+  // A retry after completion asks the cloud gateway to replay the same key;
+  // it is no longer part of the active local single-flight.
+  const retry = await imageRequest(proxy, "image-single-flight", "same portrait");
+  assert.equal(retry.status, 200);
+  assert.deepEqual(await retry.json(), result);
+  assert.equal(
+    retry.headers.get("x-ai-invocation-id"),
+    firstResponse.headers.get("x-ai-invocation-id"),
+  );
+  assert.equal(calls.length, 2);
+  assert.equal(new Headers(calls[0].headers).get("Idempotency-Key"), "image-single-flight");
+  assert.equal(new Headers(calls[1].headers).get("Idempotency-Key"), "image-single-flight");
 });
 
 test("task cancellation persists before the cloud invocation is registered", async (t) => {
