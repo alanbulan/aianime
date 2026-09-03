@@ -1,0 +1,8 @@
+extends: ./electron-builder.yml
+mac:
+  minimumSystemVersion: 13.4.0
+  files:
+    # These belong to the separately installed 3D runtime, which does not support Intel Macs.
+    # Do not bundle webgpu's macOS 15-only Dawn binary into the Ventura main app.
+    - "!**/node_modules/@playcanvas/splat-transform{,/**/*}"
+    - "!**/node_modules/webgpu{,/**/*}"

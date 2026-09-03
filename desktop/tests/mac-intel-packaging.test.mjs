@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 test("Intel macOS packaging targets Ventura without changing Windows or arm64 packaging", async () => {
   const manifest = JSON.parse(
@@ -24,8 +29,60 @@ test("Intel macOS packaging targets Ventura without changing Windows or arm64 pa
     /prepare-macos-intel-python\.sh && MACOSX_DEPLOYMENT_TARGET=13\.0 UV_NO_SYNC=1 pnpm run package:prepare/,
   );
   assert.match(x64Package, /--x64/);
-  assert.match(x64Package, /-c\.mac\.minimumSystemVersion=13\.4\.0/);
+  assert.match(x64Package, /--config electron-builder\.macos-intel\.yml/);
+  for (const name of ["package:win", "package:dir", "package:mac", "package:world-runtime"]) {
+    assert.doesNotMatch(manifest.scripts[name], /electron-builder\.macos-intel/);
+  }
   assert.match(x64Package, /smoke-packaged-mac-resources\.sh x86_64 13\.4\.0/);
+});
+
+test("Intel builder filters optional 3D modules without changing shared resources or other platforms", async () => {
+  const require = createRequire(import.meta.url);
+  const builderRequire = createRequire(require.resolve("electron-builder/package.json"));
+  const { getConfig, validateConfiguration } = builderRequire("app-builder-lib/out/util/config/config.js");
+  const { getNodeModuleFileMatcher } = builderRequire("app-builder-lib/out/fileMatcher.js");
+  const desktopRoot = fileURLToPath(new URL("..", import.meta.url));
+  const base = await getConfig(desktopRoot, "electron-builder.yml");
+  const intel = await getConfig(desktopRoot, "electron-builder.macos-intel.yml");
+  await validateConfiguration(intel, { isEnabled: false });
+
+  assert.equal(intel.mac.minimumSystemVersion, "13.4.0");
+  assert.equal(base.mac.minimumSystemVersion, "15.0.0");
+  assert.deepEqual(intel.win, base.win);
+  assert.deepEqual(intel.files, base.files);
+  assert.deepEqual(intel.extraResources, base.extraResources);
+  assert.deepEqual(intel.publish, base.publish);
+
+  const includes = (config, platform, modulePath) => {
+    const matcher = getNodeModuleFileMatcher(
+      desktopRoot,
+      join(desktopRoot, "release", "test-app"),
+      (pattern) => pattern,
+      config[platform],
+      { config, debugLogger: { isEnabled: false } },
+    );
+    return matcher.createFilter()(join(desktopRoot, modulePath), {
+      moduleFullFilePath: modulePath,
+      isDirectory: () => false,
+    });
+  };
+  for (const modulePath of [
+    "node_modules/webgpu/dist/darwin-universal.dawn.node",
+    "node_modules/webgpu/index.js",
+    "node_modules/@playcanvas/splat-transform/bin/cli.mjs",
+    "node_modules/@playcanvas/splat-transform/node_modules/webgpu/dist/darwin-universal.dawn.node",
+  ]) {
+    assert.equal(includes(intel, "mac", modulePath), false, modulePath);
+    assert.equal(includes(base, "mac", modulePath), true, modulePath);
+    assert.equal(includes(base, "win", modulePath), true, modulePath);
+  }
+  for (const modulePath of [
+    "node_modules/electron-updater/out/main.js",
+    "node_modules/builder-util-runtime/out/index.js",
+    "node_modules/debug/src/index.js",
+  ]) {
+    assert.equal(includes(intel, "mac", modulePath), true, modulePath);
+  }
 });
 
 test("Intel Python environments select target wheels before packaging without resyncing to the host", async () => {
@@ -127,6 +184,10 @@ test("packaged Intel app verification checks architecture, minimum OS, runtime a
   assert.match(smokeScript, /Print :LSMinimumSystemVersion/);
   assert.match(smokeScript, /lipo -archs/);
   assert.match(smokeScript, /check-macos-binaries\.sh" "\$\{app_path\}\/Contents" "\$expected_arch" "\$maximum_system_version"/);
+  assert.match(smokeScript, /ELECTRON_RUN_AS_NODE=1 "\$main_executable" - "\$\{resources\}\/app\.asar"/);
+  assert.match(smokeScript, /appRequire\("electron-updater"\)\.MacUpdater/);
+  assert.match(smokeScript, /Optional 3D module must not be bundled/);
+  assert.match(smokeScript, /test -f "\$\{resources\}\/frontend\/index\.html"/);
   assert.match(smokeScript, /backend="\$\{resources\}\/backend\/ai-anime-backend"/);
   assert.doesNotMatch(smokeScript, /backend\/ai-anime-backend\/ai-anime-backend/);
   assert.match(smokeScript, /--runtime-smoke-check/);
@@ -144,13 +205,67 @@ test("Mach-O compatibility checks the requested slice and reports every incompat
   );
 
   assert.match(checkScript, /lipo -archs/);
-  assert.match(checkScript, /otool -arch "\$expected_arch" -l/);
+  assert.match(checkScript, /otool -m -arch "\$expected_arch" -l/);
   assert.match(checkScript, /LC_BUILD_VERSION/);
   assert.match(checkScript, /LC_VERSION_MIN_MACOSX/);
   assert.match(checkScript, /mach_o_failures=\$\(\(mach_o_failures \+ 1\)\)/);
   assert.match(checkScript, /"\$mach_o_failures" -gt 0/);
   assert.match(checkScript, /"\$mach_o_count" -eq 0/);
 });
+
+test(
+  "real macOS tools audit literal Helper filenames and reject newer or wrong-architecture binaries",
+  { skip: process.platform !== "darwin", timeout: 60_000 },
+  async (t) => {
+    const root = await mkdtemp(join(tmpdir(), "ai-anime-macho-test-"));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const scanRoot = join(root, "AI anime.app", "Contents");
+    const helperRoot = join(scanRoot, "Frameworks", "AI anime Helper (GPU).app", "Contents", "MacOS");
+    await mkdir(helperRoot, { recursive: true });
+    const compile = (path, arch, minimumVersion) => {
+      const result = spawnSync("clang", [
+        "-arch", arch,
+        `-mmacosx-version-min=${minimumVersion}`,
+        "-dynamiclib", "-x", "c", "-", "-o", path,
+      ], {
+        input: "int ai_anime_macho_fixture(void) { return 0; }\n",
+        encoding: "utf8",
+        timeout: 20_000,
+      });
+      assert.equal(result.status, 0, result.stderr || result.error?.message);
+    };
+    const checker = fileURLToPath(new URL("../scripts/check-macos-binaries.sh", import.meta.url));
+    const audit = () => spawnSync("bash", [checker, scanRoot, "x86_64", "13.4.0"], {
+      encoding: "utf8",
+      timeout: 20_000,
+    });
+
+    const intelSlice = join(root, "intel.dylib");
+    const armSlice = join(root, "arm.dylib");
+    compile(intelSlice, "x86_64", "13.4");
+    compile(armSlice, "arm64", "15.0");
+    const fatHelper = spawnSync("lipo", [
+      "-create", intelSlice, armSlice,
+      "-output", join(helperRoot, "AI anime Helper (GPU)"),
+    ], { encoding: "utf8", timeout: 20_000 });
+    assert.equal(fatHelper.status, 0, fatHelper.stderr || fatHelper.error?.message);
+    const compatible = audit();
+    assert.equal(compatible.status, 0, compatible.stderr || compatible.error?.message);
+    assert.match(compatible.stdout, /macOS compatibility passed/);
+
+    const newerBinary = join(scanRoot, "requires-macos-15.dylib");
+    const wrongArchBinary = join(scanRoot, "arm64-only.dylib");
+    compile(newerBinary, "x86_64", "15.0");
+    compile(wrongArchBinary, "arm64", "13.4");
+    const incompatible = audit();
+    assert.equal(incompatible.status, 1, incompatible.stderr || incompatible.error?.message);
+    assert.ok(incompatible.stderr.includes(newerBinary));
+    assert.ok(incompatible.stderr.includes(wrongArchBinary));
+    assert.match(incompatible.stderr, /requires a newer macOS than 13\.4\.0/);
+    assert.match(incompatible.stderr, /does not contain x86_64/);
+    assert.match(incompatible.stderr, /compatibility check failed for 2 Mach-O files/);
+  },
+);
 
 test("GitHub Actions packages Intel macOS on an explicit x86_64 runner", async () => {
   const workflow = await readFile(
@@ -162,6 +277,9 @@ test("GitHub Actions packages Intel macOS on an explicit x86_64 runner", async (
   assert.doesNotMatch(workflow, /runs-on: macos-latest/);
   assert.match(workflow, /test "\$\(uname -m\)" = "x86_64"/);
   assert.match(workflow, /MACOSX_DEPLOYMENT_TARGET: "13\.0"/);
+  assert.match(workflow, /Test desktop packaging contracts/);
+  assert.match(workflow, /pnpm --dir desktop test/);
+  assert.ok(workflow.indexOf("pnpm --dir desktop test") < workflow.indexOf("pnpm --dir desktop package:mac:x64"));
   assert.match(workflow, /pnpm --dir desktop package:mac:x64/);
   assert.match(workflow, /AI-anime-\$\{app_version\}-macos-x64\.dmg/);
   assert.match(workflow, /AI-anime-\$\{app_version\}-macos-x64\.zip/);

@@ -47,6 +47,28 @@ fi
 bash "${desktop_root}/scripts/check-macos-binaries.sh" "${app_path}/Contents" "$expected_arch" "$maximum_system_version"
 
 resources="${app_path}/Contents/Resources"
+test -f "${resources}/frontend/index.html"
+ELECTRON_RUN_AS_NODE=1 "$main_executable" - "${resources}/app.asar" <<'NODE'
+const assert = require("node:assert/strict");
+const { existsSync, readFileSync } = require("node:fs");
+const { createRequire } = require("node:module");
+const { join } = require("node:path");
+const archive = process.argv[2];
+const manifestPath = join(archive, "package.json");
+const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+assert.ok(process.versions.electron, "Packaged Electron runtime did not start");
+assert.ok(existsSync(join(archive, manifest.main)), "Packaged main entry is missing");
+const appRequire = createRequire(manifestPath);
+assert.equal(typeof appRequire("electron-updater").MacUpdater, "function");
+if (process.arch === "x64") {
+  for (const moduleName of ["@playcanvas/splat-transform", "webgpu"]) {
+    assert.equal(existsSync(join(archive, "node_modules", moduleName)), false,
+      `Optional 3D module must not be bundled in the Intel main app: ${moduleName}`);
+  }
+}
+console.log(`Packaged Electron/ASAR/updater smoke passed: ${process.versions.electron}`);
+NODE
+
 backend="${resources}/backend/ai-anime-backend"
 ffmpeg="${resources}/bin/ffmpeg"
 ffprobe="${resources}/bin/ffprobe"

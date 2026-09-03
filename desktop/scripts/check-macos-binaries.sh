@@ -28,7 +28,8 @@ version_not_newer_than() {
 }
 
 minimum_macos_version() {
-  otool -arch "$expected_arch" -l "$1" | awk '
+  # Treat Helper (GPU) / Helper (Renderer) as literal filenames, not archive(member).
+  otool -m -arch "$expected_arch" -l "$1" | awk '
     $1 == "cmd" { command = $2; next }
     !found && command == "LC_BUILD_VERSION" && $1 == "minos" { print $2; found = 1 }
     !found && command == "LC_VERSION_MIN_MACOSX" && $1 == "version" { print $2; found = 1 }

@@ -82,6 +82,10 @@ jobs:
           pnpm --dir desktop install --frozen-lockfile
           pnpm --dir frontend install --frozen-lockfile
 
+      - name: Test desktop packaging contracts
+        shell: bash
+        run: pnpm --dir desktop test
+
       - name: Build and verify Intel package
         shell: bash
         run: pnpm --dir desktop package:mac:x64
