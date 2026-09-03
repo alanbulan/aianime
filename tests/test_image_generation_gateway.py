@@ -205,6 +205,7 @@ async def test_catalog_image_request_uses_declared_exact_size(
 
         async def post(self, url, *, headers, json):
             posted.update(json)
+            posted["idempotency_key"] = headers["Idempotency-Key"]
             return FakeResponse()
 
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
@@ -216,12 +217,14 @@ async def test_catalog_image_request_uses_declared_exact_size(
             "model_selector": f"cloud:{CATALOG_IMAGE_MODEL}",
             "aspect_ratio": aspect_ratio,
             "image_size": "1K",
+            "idempotency_key": "logical-image-retry-key",
         },
     )
 
     assert image_bytes == b"image"
     assert error == ""
     assert posted["size"] == expected_size
+    assert posted["idempotency_key"] == "logical-image-retry-key"
 
 
 @pytest.mark.asyncio
@@ -814,7 +817,11 @@ def test_model_gateway_image_call_preserves_reference_image_extensions(monkeypat
                 ("face.jpg", b"jpg-bytes", "image/jpeg"),
                 (b"webp-bytes", "image/webp"),
             ],
-            image_config={"aspect_ratio": "3:4", "image_size": "1K", "quality": "medium"},
+            image_config={
+                "aspect_ratio": "3:4",
+                "image_size": "1K",
+                "quality": "medium",
+            },
         )
     )
 
@@ -827,16 +834,21 @@ def test_model_gateway_image_call_preserves_reference_image_extensions(monkeypat
     ]
 
 
-def test_model_gateway_image_http_error_logs_redacted_request_context(monkeypatch, caplog):
+def test_model_gateway_image_http_error_logs_redacted_request_context(
+    monkeypatch, caplog
+):
     import httpx
     from ai_anime.modules.production.infrastructure.media_generation import (
         image_grid,
     )
 
     posted = {}
+
     class FakeResponse:
         status_code = 400
-        text = '{"error":{"message":"provider_error","type":"bad_response_status_code"}}'
+        text = (
+            '{"error":{"message":"provider_error","type":"bad_response_status_code"}}'
+        )
         headers = {
             "x-request-id": "req-123",
             "cf-ray": "cf-ray-456",
@@ -847,7 +859,9 @@ def test_model_gateway_image_http_error_logs_redacted_request_context(monkeypatc
         def raise_for_status(self):
             raise httpx.HTTPStatusError(
                 "bad response",
-                request=httpx.Request("POST", "http://gateway.test/v1/images/generations"),
+                request=httpx.Request(
+                    "POST", "http://gateway.test/v1/images/generations"
+                ),
                 response=self,
             )
 
@@ -872,8 +886,7 @@ def test_model_gateway_image_http_error_logs_redacted_request_context(monkeypatc
     caplog.set_level(
         logging.WARNING,
         logger=(
-            "ai_anime.modules.production.infrastructure.media_generation."
-            "image_grid"
+            "ai_anime.modules.production.infrastructure.media_generation.image_grid"
         ),
     )
 
@@ -881,7 +894,11 @@ def test_model_gateway_image_http_error_logs_redacted_request_context(monkeypatc
         image_grid._call_image_generation_api(
             prompt="sensitive prompt body",
             reference_images=[b"ref-a"],
-            image_config={"aspect_ratio": "2:1", "image_size": "2K", "quality": "medium"},
+            image_config={
+                "aspect_ratio": "2:1",
+                "image_size": "2K",
+                "quality": "medium",
+            },
         )
     )
 
@@ -928,7 +945,9 @@ def test_model_gateway_image_http_5xx_relies_on_unified_router_retry(monkeypatch
         def raise_for_status(self):
             raise httpx.HTTPStatusError(
                 "bad gateway",
-                request=httpx.Request("POST", "http://gateway.test/v1/images/generations"),
+                request=httpx.Request(
+                    "POST", "http://gateway.test/v1/images/generations"
+                ),
                 response=self,
             )
 
@@ -952,7 +971,11 @@ def test_model_gateway_image_http_5xx_relies_on_unified_router_retry(monkeypatch
     image_bytes, _text, error = run_async(
         image_grid._call_image_generation_api(
             prompt="retry prompt",
-            image_config={"aspect_ratio": "2:1", "image_size": "2K", "quality": "medium"},
+            image_config={
+                "aspect_ratio": "2:1",
+                "image_size": "2K",
+                "quality": "medium",
+            },
         )
     )
 
@@ -1203,7 +1226,9 @@ def test_identity_sheet_keeps_character_and_costume_references_without_style_pre
     assert "GLOBAL STYLE REFERENCE IMAGE" not in captured["prompt"]
 
 
-def test_model_gateway_character_portrait_reraises_insufficient_credit(monkeypatch, tmp_path):
+def test_model_gateway_character_portrait_reraises_insufficient_credit(
+    monkeypatch, tmp_path
+):
     from ai_anime.modules.production.infrastructure.media_generation import (
         character_image_generator,
     )
@@ -1236,7 +1261,9 @@ def test_model_gateway_character_portrait_reraises_insufficient_credit(monkeypat
         )
 
 
-def test_model_gateway_character_portrait_raise_on_error_preserves_provider_detail(monkeypatch, tmp_path):
+def test_model_gateway_character_portrait_raise_on_error_preserves_provider_detail(
+    monkeypatch, tmp_path
+):
     import ai_anime.modules.production.infrastructure.media_generation_settings as config
     from ai_anime.modules.production.infrastructure.media_generation import (
         image_generator,
@@ -1348,7 +1375,9 @@ def test_model_gateway_scene_master_uses_text_only_global_style(monkeypatch, tmp
     assert "从店门可以直接看到收银台" in captured["prompt"]
 
 
-def test_model_gateway_scene_time_plate_master_injects_time_and_base_reference(monkeypatch, tmp_path):
+def test_model_gateway_scene_time_plate_master_injects_time_and_base_reference(
+    monkeypatch, tmp_path
+):
     from ai_anime.modules.production.infrastructure.media_generation import (
         scene_reference_images,
     )
@@ -1399,7 +1428,9 @@ def test_model_gateway_scene_time_plate_master_injects_time_and_base_reference(m
     assert "Keep the same architecture" in captured["prompt"]
 
 
-def test_model_gateway_scene_variant_plate_master_keeps_described_lighting(monkeypatch, tmp_path):
+def test_model_gateway_scene_variant_plate_master_keeps_described_lighting(
+    monkeypatch, tmp_path
+):
     from ai_anime.modules.production.infrastructure.media_generation import (
         scene_reference_images,
     )
@@ -1440,7 +1471,9 @@ def test_model_gateway_scene_variant_plate_master_keeps_described_lighting(monke
         )
     )
 
-    assert output_path == tmp_path / "assets" / "scenes" / "城市街道_雨夜版" / "master.png"
+    assert (
+        output_path == tmp_path / "assets" / "scenes" / "城市街道_雨夜版" / "master.png"
+    )
     assert captured["reference_images"] == [
         ("base_scene_master_master.png", b"base-master-bytes", "image/png"),
     ]
@@ -1451,7 +1484,9 @@ def test_model_gateway_scene_variant_plate_master_keeps_described_lighting(monke
     assert "IGNORE mood/time-of-day phrases" not in captured["prompt"]
 
 
-def test_reverse_master_uses_master_reference_with_basic_image_model(monkeypatch, tmp_path):
+def test_reverse_master_uses_master_reference_with_basic_image_model(
+    monkeypatch, tmp_path
+):
     _isolate_settings_db(monkeypatch, tmp_path)
     from ai_anime.modules.production.infrastructure.media_generation import (
         scene_reference_images,
@@ -1492,7 +1527,9 @@ def test_reverse_master_uses_master_reference_with_basic_image_model(monkeypatch
         )
     )
 
-    assert output_path == tmp_path / "assets" / "scenes" / "古董店" / "reverse_master.png"
+    assert (
+        output_path == tmp_path / "assets" / "scenes" / "古董店" / "reverse_master.png"
+    )
     assert output_path.read_bytes() == b"scene-reverse"
     assert "api_key" not in captured
     assert "base_url" not in captured
@@ -1720,7 +1757,9 @@ def test_prop_reference_omits_undeclared_quality(monkeypatch, tmp_path):
     }
 
 
-def test_model_gateway_prop_reference_reraises_insufficient_credit(monkeypatch, tmp_path):
+def test_model_gateway_prop_reference_reraises_insufficient_credit(
+    monkeypatch, tmp_path
+):
     _isolate_settings_db(monkeypatch, tmp_path)
     import ai_anime.modules.production.infrastructure.media_generation_settings as config
     from ai_anime.modules.production.infrastructure.media_generation import (
@@ -1736,7 +1775,11 @@ def test_model_gateway_prop_reference_reraises_insufficient_credit(monkeypatch, 
     monkeypatch.setenv("AI_ANIME_CLOUD_PROXY_BASE_URL", "http://gateway.test/v1")
     importlib.reload(config)
     prop_image_generator = importlib.reload(prop_image_generator)
-    monkeypatch.setattr(prop_image_generator, "_call_image_generation_api", fake_call_image_generation_api)
+    monkeypatch.setattr(
+        prop_image_generator,
+        "_call_image_generation_api",
+        fake_call_image_generation_api,
+    )
     monkeypatch.setattr(
         prop_image_generator,
         "get_grid_generation_config",
@@ -1767,7 +1810,9 @@ def test_freezone_single_image_generation_routes_model_gateway(monkeypatch, tmp_
         captured.update(kwargs)
         return b"freezone-image", "", ""
 
-    monkeypatch.setattr(image_grid, "_call_image_generation_api", fake_call_image_generation_api)
+    monkeypatch.setattr(
+        image_grid, "_call_image_generation_api", fake_call_image_generation_api
+    )
 
     output_path = tmp_path / "freezone.png"
     image_path = run_async(

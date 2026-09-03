@@ -27,6 +27,13 @@ import {
   requestByok,
 } from "./commercial-model-protocols.js";
 import {
+  InMemoryModelInvocationStore,
+  type ModelInvocationIdentity,
+  type ModelInvocationStore,
+  type StoredModelInvocation,
+  type StoredModelResponse,
+} from "./commercial-model-invocation-store.js";
+import {
   assertLocalAuthorization,
   assertLoopbackRequest,
   assertModelResponseContract,
@@ -36,6 +43,7 @@ import {
   isRetryableRequestFailure,
   isTimeoutAbort,
   isVideoCreatePath,
+  modelRequestFingerprint,
   normalizeModelSelectorHeader,
   normalizeRoleHeader,
   pipeModelResponse,
@@ -53,10 +61,11 @@ const MODEL_PROXY_REQUEST_TIMEOUT_MS = 30 * 60_000;
 function isImageWrite(method: string, path: string): boolean {
   if (!isModelWriteMethod(method)) return false;
   const pathname = new URL(path, "http://model-proxy.local").pathname;
-  return (
-    pathname === "/v1/images/generations" ||
-    pathname === "/v1/images/edits"
-  );
+  return pathname === "/v1/images/generations" || pathname === "/v1/images/edits";
+}
+
+function isRecoverableCloudImageWrite(method: string, path: string): boolean {
+  return isImageWrite(method, path);
 }
 
 export interface CommercialModelRoutingConfiguration {
@@ -92,6 +101,7 @@ export interface ModelRouteAuditEntry {
 
 interface CommercialModelProxyOptions {
   requestTimeoutMs?: number;
+  invocationStore?: ModelInvocationStore;
 }
 
 /**
@@ -110,6 +120,8 @@ interface StickyVideoRoute {
 /** Long enough for any realistic video job, short enough to bound key residency. */
 const VIDEO_TASK_ROUTE_TTL_MS = 6 * 60 * 60_000;
 const VIDEO_TASK_ROUTE_CAPACITY = 500;
+const MODEL_CONTROL_PATH_PREFIX = "/v1/_aigo/";
+const MODEL_TASK_CANCEL_PATH = /^\/v1\/_aigo\/model-invocations\/tasks\/([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/cancel$/i;
 
 function allowedVideoParameters(
   capability: CommercialModelCapabilitySnapshot | undefined,
@@ -141,7 +153,12 @@ export class CommercialModelProxy {
     modelCapabilities: [],
   };
   private readonly videoTaskRoutes = new Map<string, StickyVideoRoute>();
+  private readonly imageInvocations = new Map<
+    string,
+    Promise<{ response: Response; route: ModelRoute; attempts: number }>
+  >();
   private readonly requestTimeoutMs: number;
+  private readonly invocationStore: ModelInvocationStore;
 
   constructor(
     private readonly client: CommercialApiClient,
@@ -153,6 +170,7 @@ export class CommercialModelProxy {
       1,
       Math.floor(options.requestTimeoutMs ?? MODEL_PROXY_REQUEST_TIMEOUT_MS),
     );
+    this.invocationStore = options.invocationStore ?? new InMemoryModelInvocationStore();
   }
 
   get baseUrl(): string {
@@ -237,8 +255,10 @@ export class CommercialModelProxy {
     // close() only stops accepting new sockets; idle keep-alive connections
     // would hold the server open for seconds during shutdown.
     server.closeIdleConnections();
-    await new Promise<void>((resolve) => server.close(() => resolve()));
-    server.closeAllConnections();
+    await new Promise<void>((resolve) => {
+      server.close(() => resolve());
+      server.closeAllConnections();
+    });
   }
 
   private async handle(
@@ -253,11 +273,27 @@ export class CommercialModelProxy {
         throw new CommercialApiError("不支持的模型代理方法", { status: 405 });
       }
       const path = request.url ?? "/";
+      const requestUrl = new URL(path, "http://model-proxy.local");
       const contentType = String(request.headers["content-type"] ?? "");
       const rawBody =
         method === "GET" || method === "HEAD"
           ? undefined
           : await readModelRequestBody(request, contentType);
+      if (requestUrl.pathname.startsWith(MODEL_CONTROL_PATH_PREFIX)) {
+        if (
+          requestUrl.search ||
+          requestUrl.hash ||
+          !MODEL_TASK_CANCEL_PATH.test(requestUrl.pathname)
+        ) {
+          throw new CommercialApiError("任务调用取消路径无效", { status: 400 });
+        }
+        if (method !== "POST") {
+          throw new CommercialApiError("任务调用取消只接受 POST", { status: 405 });
+        }
+        await this.handleTaskCancellation(path, rawBody, response);
+        return;
+      }
+
       const requestHeaders = { ...request.headers };
       if (isModelWriteMethod(method) && !requestHeaders["idempotency-key"]) {
         requestHeaders["idempotency-key"] = randomUUID();
@@ -285,16 +321,21 @@ export class CommercialModelProxy {
           status: 422,
         });
       }
+
+      const imageWrite = isImageWrite(method, path);
       const abortController = new AbortController();
       const abortUpstream = () => abortController.abort();
-      request.once("aborted", abortUpstream);
-      response.once("close", abortUpstream);
-      const requestSignal = AbortSignal.any([
-        abortController.signal,
-        AbortSignal.timeout(this.requestTimeoutMs),
-      ]);
-
-      const upstream = await this.requestWithFallback({
+      if (!imageWrite) {
+        request.once("aborted", abortUpstream);
+        response.once("close", abortUpstream);
+      }
+      const requestSignal = imageWrite
+        ? AbortSignal.timeout(this.requestTimeoutMs)
+        : AbortSignal.any([
+            abortController.signal,
+            AbortSignal.timeout(this.requestTimeoutMs),
+          ]);
+      const requestInput = {
         method,
         path,
         contentType,
@@ -303,7 +344,16 @@ export class CommercialModelProxy {
         requestHeaders,
         reasoningEffort,
         signal: requestSignal,
-      });
+      };
+      const upstream = imageWrite
+        ? await this.requestIdempotentImageWrite({
+            ...requestInput,
+            role,
+            selector: assistantSelector ?? "",
+            taskId: normalizeTaskIdHeader(request.headers["x-ai-anime-task-id"]),
+          })
+        : await this.requestWithFallback(requestInput);
+      if (response.destroyed) return;
       assertModelResponseContract(path, upstream.response);
       await this.rememberVideoTaskRoute(
         method,
@@ -319,6 +369,7 @@ export class CommercialModelProxy {
         upstream.attempts,
       );
     } catch (error) {
+      if (response.destroyed) return;
       if (response.headersSent) {
         response.destroy(error instanceof Error ? error : undefined);
         return;
@@ -339,6 +390,281 @@ export class CommercialModelProxy {
         }),
       );
     }
+  }
+
+  private async requestIdempotentImageWrite(input: {
+    method: string;
+    path: string;
+    contentType: string;
+    rawBody?: Buffer;
+    routes: readonly ModelRoute[];
+    requestHeaders: IncomingMessage["headers"];
+    reasoningEffort: string | null;
+    signal: AbortSignal;
+    role: ByokModelRole | null;
+    selector: string;
+    taskId: string;
+  }): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
+    const idempotencyKey = normalizeIdempotencyKeyHeader(
+      input.requestHeaders["idempotency-key"],
+    );
+    const subject = await this.client.modelInvocationSubject();
+    const requestHash = await modelRequestFingerprint(
+      input.method,
+      input.path,
+      input.contentType,
+      input.rawBody,
+      {
+        role: input.role ?? "",
+        selector: input.selector,
+        reasoningEffort: input.reasoningEffort ?? "",
+      },
+    );
+    const identity: ModelInvocationIdentity = {
+      subject,
+      operation: "IMAGE",
+      idempotencyKey,
+    };
+    const initialRoute = input.routes[0];
+    if (!initialRoute) {
+      throw new CommercialApiError("图片模型没有可用路由", { status: 422 });
+    }
+    const claim = await this.invocationStore.claim({
+      ...identity,
+      requestHash,
+      taskId: input.taskId,
+      routeKey: initialRoute.key,
+      routeSource: initialRoute.source,
+    });
+    if (claim.kind === "conflict") {
+      throw new CommercialApiError(
+        "同一 Idempotency-Key 已用于不同的图片请求参数",
+        { status: 409, code: "IDEMPOTENCY_KEY_REUSED" },
+      );
+    }
+
+    const pinnedRoute = claim.record.routeKey
+      ? input.routes.find((route) => route.key === claim.record.routeKey)
+      : initialRoute;
+    if (!pinnedRoute) {
+      throw new CommercialApiError("原图片调用路由已不可用，禁止切换供应商重放", {
+        status: 409,
+        code: "IDEMPOTENT_ROUTE_UNAVAILABLE",
+      });
+    }
+    const sharedKey = modelInvocationMapKey(identity);
+    const active = this.imageInvocations.get(sharedKey);
+    if (active) {
+      const result = await active;
+      return { ...result, response: result.response.clone() };
+    }
+
+    const taskCancellation = input.taskId
+      ? await this.invocationStore.taskCancellation(subject, input.taskId)
+      : null;
+    if (taskCancellation) {
+      const cancelled = await this.invocationStore.requestCancellation(
+        identity,
+        taskCancellation.reason,
+      );
+      return this.cancelledImageResult(identity, cancelled, pinnedRoute);
+    }
+    if (claim.record.cancellationRequested) {
+      return this.cancelledImageResult(identity, claim.record, pinnedRoute);
+    }
+    if (claim.record.routeSource === "byok") {
+      if (claim.record.response) {
+        return {
+          response: responseFromStored(claim.record.response),
+          route: pinnedRoute,
+          attempts: 0,
+        };
+      }
+      if (claim.record.state !== "PENDING") {
+        return {
+          response: unavailableByokReplayResponse(identity, claim.record),
+          route: pinnedRoute,
+          attempts: 0,
+        };
+      }
+    }
+
+    const execution = this.executeIdempotentImageWrite(
+      input,
+      identity,
+      claim.record.routeKey ? [pinnedRoute] : input.routes,
+    );
+    this.imageInvocations.set(sharedKey, execution);
+    try {
+      const result = await execution;
+      return { ...result, response: result.response.clone() };
+    } finally {
+      if (this.imageInvocations.get(sharedKey) === execution) {
+        this.imageInvocations.delete(sharedKey);
+      }
+    }
+  }
+
+  private async executeIdempotentImageWrite(
+    input: {
+      method: string;
+      path: string;
+      contentType: string;
+      rawBody?: Buffer;
+      requestHeaders: IncomingMessage["headers"];
+      reasoningEffort: string | null;
+      signal: AbortSignal;
+    },
+    identity: ModelInvocationIdentity,
+    routes: readonly ModelRoute[],
+  ): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
+    const attempt: { route?: ModelRoute } = {};
+    try {
+      const upstream = await this.requestWithFallback({
+        ...input,
+        routes,
+        beforeRouteRequest: async (route) => {
+          attempt.route = route;
+          const record = await this.invocationStore.markStarted(identity, route);
+          if (record.cancellationRequested) {
+            throw new CommercialApiError("图片调用已收到显式取消，未提交供应商", {
+              status: 409,
+              code: "INVOCATION_CANCELLED_BEFORE_DISPATCH",
+            });
+          }
+        },
+      });
+      const buffered = await bufferRouteResponse(upstream);
+      const stored = await storedResponse(buffered.response.clone());
+      if (buffered.route.source === "cloud") {
+        await this.invocationStore.complete(
+          identity,
+          buffered.response.ok
+            ? "SUCCEEDED"
+            : buffered.response.status >= 500
+              ? "OUTCOME_UNKNOWN"
+              : "FAILED",
+          null,
+        );
+        return buffered;
+      }
+      if (buffered.response.status >= 500) {
+        const unknown = byokOutcomeUnknownResponse(
+          identity,
+          buffered.response.status,
+        );
+        await this.invocationStore.complete(
+          identity,
+          "OUTCOME_UNKNOWN",
+          await storedResponse(unknown.clone()),
+        );
+        return { ...buffered, response: unknown };
+      }
+      await this.invocationStore.complete(
+        identity,
+        buffered.response.ok ? "SUCCEEDED" : "FAILED",
+        stored,
+      );
+      return buffered;
+    } catch (error) {
+      const activeRoute = attempt.route;
+      if (activeRoute?.source === "byok" && isRetryableRequestFailure(error)) {
+        const unknown = byokOutcomeUnknownResponse(identity, 0);
+        await this.invocationStore.complete(
+          identity,
+          "OUTCOME_UNKNOWN",
+          await storedResponse(unknown.clone()),
+        );
+        return { response: unknown, route: activeRoute, attempts: 1 };
+      }
+      throw error;
+    }
+  }
+
+  private async cancelledImageResult(
+    identity: ModelInvocationIdentity,
+    record: StoredModelInvocation,
+    route: ModelRoute,
+  ): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
+    if (route.source === "cloud") {
+      const state = await this.client.cancelInvocationByIdempotencyKey(
+        identity.operation,
+        identity.idempotencyKey,
+        record.cancellationReason || "local project task was explicitly cancelled",
+      );
+      return {
+        response: cancellationStateResponse(identity, "cloud", state.invocation?.status ?? "PENDING_CREATION", state.invocation?.quotaStatus ?? "NONE"),
+        route,
+        attempts: 0,
+      };
+    }
+    return {
+      response: cancellationStateResponse(identity, "byok", record.state, "PROVIDER_MANAGED"),
+      route,
+      attempts: 0,
+    };
+  }
+
+  private async handleTaskCancellation(
+    path: string,
+    rawBody: Buffer | undefined,
+    response: ServerResponse,
+  ): Promise<void> {
+    const pathname = new URL(path, "http://model-proxy.local").pathname;
+    const match = MODEL_TASK_CANCEL_PATH.exec(pathname);
+    if (!match?.[1]) {
+      throw new CommercialApiError("本地任务 ID 无效", { status: 400 });
+    }
+    const taskId = match[1].toLowerCase();
+    const body = parseControlBody(rawBody);
+    const reason = requiredControlText(body.reason, "reason", 500);
+    const subject = await this.client.modelInvocationSubject();
+    await this.invocationStore.requestTaskCancellation(subject, taskId, reason);
+    const records = await this.invocationStore.recordsForTask(subject, taskId);
+    const states = [];
+    for (const record of records) {
+      const cancelled = await this.invocationStore.requestCancellation(record, reason);
+      if (record.routeSource === "cloud") {
+        try {
+          const cloud = await this.client.cancelInvocationByIdempotencyKey(
+            record.operation,
+            record.idempotencyKey,
+            reason,
+          );
+          states.push({
+            idempotencyKey: record.idempotencyKey,
+            source: "cloud",
+            cancellationRequested: cloud.cancellationRequested,
+            executionStatus: cloud.invocation?.status ?? "PENDING_CREATION",
+            quotaStatus: cloud.invocation?.quotaStatus ?? "NONE",
+            remoteCancellationStatus: "REQUESTED",
+          });
+        } catch (error) {
+          states.push({
+            idempotencyKey: record.idempotencyKey,
+            source: "cloud",
+            cancellationRequested: true,
+            executionStatus: "CANCEL_REQUEST_FAILED",
+            quotaStatus: "UNKNOWN",
+            remoteCancellationStatus: "REQUEST_FAILED",
+            error: error instanceof Error ? error.message : "cloud cancellation failed",
+          });
+        }
+        continue;
+      }
+      states.push({
+        idempotencyKey: cancelled.idempotencyKey,
+        source: cancelled.routeSource || "pending",
+        cancellationRequested: true,
+        executionStatus: cancelled.state,
+        quotaStatus: cancelled.routeSource === "byok" ? "PROVIDER_MANAGED" : "NONE",
+        remoteCancellationStatus:
+          cancelled.routeSource === "byok" ? "UNSUPPORTED_BY_PROXY" : "NOT_DISPATCHED",
+      });
+    }
+    response.statusCode = 200;
+    response.setHeader("Content-Type", "application/json; charset=utf-8");
+    response.end(JSON.stringify({ taskId, cancellationRequested: true, invocations: states }));
   }
 
   private routesForRequest(
@@ -383,18 +709,17 @@ export class CommercialModelProxy {
     requestHeaders: IncomingMessage["headers"];
     reasoningEffort: string | null;
     signal: AbortSignal;
+    beforeRouteRequest?: (route: ModelRoute) => Promise<void>;
   }): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
     let lastError: unknown;
     let totalAttempts = 0;
     for (let index = 0; index < input.routes.length; index += 1) {
       const route = input.routes[index];
       if (!route) continue;
-      const recoverableImageWrite =
-        isImageWrite(input.method, input.path) &&
-        (route.source === "cloud" ||
-          (route.protocol ?? "OPENAI_COMPATIBLE") === "OPENAI_COMPATIBLE");
+      const recoverableCloudImageWrite =
+        route.source === "cloud" && isImageWrite(input.method, input.path);
       const routeAttempts =
-        !isModelWriteMethod(input.method) || recoverableImageWrite
+        !isModelWriteMethod(input.method) || recoverableCloudImageWrite
           ? MAX_ROUTE_ATTEMPTS
           : 1;
       for (let routeAttempt = 1; routeAttempt <= routeAttempts; routeAttempt += 1) {
@@ -414,6 +739,7 @@ export class CommercialModelProxy {
             ),
             route.parameterOverrides,
           );
+          await input.beforeRouteRequest?.(route);
           const upstream =
             route.source === "cloud"
               ? await this.requestCloud(route, input, prepared)
@@ -440,7 +766,7 @@ export class CommercialModelProxy {
             index < input.routes.length - 1 &&
             shouldFallback(route, upstream.status) &&
             !(
-              recoverableImageWrite &&
+              recoverableCloudImageWrite &&
               RETRYABLE_ROUTE_STATUSES.has(upstream.status)
             );
           if (!canFallback) {
@@ -656,6 +982,194 @@ export class CommercialModelProxy {
       if (!availableKeys.has(entry.route.key)) this.videoTaskRoutes.delete(taskId);
     }
   }
+}
+
+function modelInvocationMapKey(identity: ModelInvocationIdentity): string {
+  return `${identity.subject}\0${identity.operation}\0${identity.idempotencyKey}`;
+}
+
+function normalizeIdempotencyKeyHeader(
+  value: string | string[] | undefined,
+): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const key = String(raw ?? "").trim();
+  if (!key || [...key].length > 255 || /[\u0000-\u001f\u007f]/u.test(key)) {
+    throw new CommercialApiError("Idempotency-Key 无效", {
+      status: 400,
+      code: "INVALID_IDEMPOTENCY_KEY",
+    });
+  }
+  return key;
+}
+
+function normalizeTaskIdHeader(value: string | string[] | undefined): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const taskId = String(raw ?? "").trim().toLowerCase();
+  if (!taskId) return "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(taskId)) {
+    throw new CommercialApiError("本地任务 ID 无效", {
+      status: 400,
+      code: "INVALID_TASK_ID",
+    });
+  }
+  return taskId;
+}
+
+function parseControlBody(rawBody: Buffer | undefined): Record<string, unknown> {
+  if (!rawBody) {
+    throw new CommercialApiError("任务取消请求体不能为空", { status: 400 });
+  }
+  try {
+    const value = JSON.parse(rawBody.toString("utf8")) as unknown;
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error("not an object");
+    }
+    return value as Record<string, unknown>;
+  } catch {
+    throw new CommercialApiError("任务取消请求体不是有效 JSON 对象", {
+      status: 400,
+    });
+  }
+}
+
+function requiredControlText(
+  value: unknown,
+  name: string,
+  maxLength: number,
+): string {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text || [...text].length > maxLength) {
+    throw new CommercialApiError(`${name} 必须为 1 到 ${maxLength} 个字符`, {
+      status: 400,
+    });
+  }
+  return text;
+}
+
+async function bufferRouteResponse(input: {
+  response: Response;
+  route: ModelRoute;
+  attempts: number;
+}): Promise<{ response: Response; route: ModelRoute; attempts: number }> {
+  const body = Buffer.from(await input.response.arrayBuffer());
+  return {
+    ...input,
+    response: new Response(body, {
+      status: input.response.status,
+      statusText: input.response.statusText,
+      headers: input.response.headers,
+    }),
+  };
+}
+
+async function storedResponse(response: Response): Promise<StoredModelResponse> {
+  const headers: Record<string, string> = {};
+  response.headers.forEach((value, key) => {
+    headers[key] = value;
+  });
+  return {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+    bodyBase64: Buffer.from(await response.arrayBuffer()).toString("base64"),
+  };
+}
+
+function responseFromStored(response: StoredModelResponse): Response {
+  return new Response(Buffer.from(response.bodyBase64, "base64"), {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
+
+function unavailableByokReplayResponse(
+  identity: ModelInvocationIdentity,
+  record: StoredModelInvocation,
+): Response {
+  const outcomeUnknown =
+    record.state === "IN_FLIGHT" || record.state === "OUTCOME_UNKNOWN";
+  return modelInvocationErrorResponse(
+    outcomeUnknown ? 502 : 409,
+    outcomeUnknown
+      ? "BYOK_EXECUTION_OUTCOME_UNKNOWN"
+      : "IDEMPOTENT_RESULT_EXPIRED",
+    outcomeUnknown
+      ? "BYOK 图片调用的远端执行结果未知，已禁止自动重发或切换供应商"
+      : "图片调用结果已过本地保留期，已禁止使用相同幂等键重新执行",
+    identity,
+    record.routeSource,
+    record.state,
+    record.routeSource === "byok" ? "PROVIDER_MANAGED" : "NONE",
+  );
+}
+
+function byokOutcomeUnknownResponse(
+  identity: ModelInvocationIdentity,
+  upstreamStatus: number,
+): Response {
+  return modelInvocationErrorResponse(
+    502,
+    "BYOK_EXECUTION_OUTCOME_UNKNOWN",
+    upstreamStatus > 0
+      ? `BYOK 图片供应商返回 ${upstreamStatus}，执行结果可能已产生，已禁止自动重发`
+      : "BYOK 图片请求在提交后失去明确响应，已禁止自动重发",
+    identity,
+    "byok",
+    "OUTCOME_UNKNOWN",
+    "PROVIDER_MANAGED",
+  );
+}
+
+function cancellationStateResponse(
+  identity: ModelInvocationIdentity,
+  source: "cloud" | "byok",
+  executionStatus: string,
+  quotaStatus: string,
+): Response {
+  return modelInvocationErrorResponse(
+    409,
+    source === "cloud"
+      ? "INVOCATION_CANCEL_REQUESTED"
+      : "BYOK_REMOTE_CANCEL_UNSUPPORTED",
+    source === "cloud"
+      ? "图片调用已记录显式取消意图"
+      : "图片调用已在本地标记取消；BYOK 供应商不保证远端终止",
+    identity,
+    source,
+    executionStatus,
+    quotaStatus,
+  );
+}
+
+function modelInvocationErrorResponse(
+  status: number,
+  code: string,
+  message: string,
+  identity: ModelInvocationIdentity,
+  source: string,
+  executionStatus: string,
+  quotaStatus: string,
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: { message, type: "invocation_state_error", code },
+      invocation: {
+        operation: identity.operation,
+        idempotencyKey: identity.idempotencyKey,
+        source,
+        executionStatus,
+        quotaStatus,
+      },
+    }),
+    {
+      status,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "X-AI-Idempotency-Key": identity.idempotencyKey,
+      },
+    },
+  );
 }
 
 async function responseErrorForRouteAudit(

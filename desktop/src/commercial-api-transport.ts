@@ -60,6 +60,11 @@ export class CommercialApiTransport {
     return this.loadCurrentLicense(devicePublicKeyHash);
   }
 
+  async modelInvocationSubject(): Promise<string> {
+    const session = await this.requireSession();
+    return `${session.gatewayOrigin}|${session.tenant.id}|${session.user.id}`;
+  }
+
   protected async loadCurrentLicense(
     devicePublicKeyHash: string,
   ): Promise<CommercialAuthorizationWire> {

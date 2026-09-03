@@ -73,6 +73,20 @@ state/commercial-signing/lease-2026-08-v1-private.pem
 
 云端需要修复 `CODEX_SMOKE_IMAGE` 对应供应商 Base URL、图片生成路径或模型映射，然后用同一 SKU 验证能返回真实图片字节或 URL。客户端无需改路由。
 
+### 3.1 图片恢复与显式取消
+
+Electron 为每个图片写请求持久化请求指纹、固定路由、`Idempotency-Key` 和本地任务
+ID。Cloud 的 502/503/504 恢复必须复用完全相同的正文、路由和键；Gateway 接受调用后
+在图片响应中返回 `X-AI-Invocation-Id`、
+`X-AI-Idempotency-Key`，JSON 顶层也返回 `id`。
+
+显式任务取消先写入 Electron `safeStorage`，再调用
+`POST /api/v1/client/relay/invocations/by-idempotency-key/cancel`。查询恢复使用同路径的
+`GET` 接口，并携带 `operation` 与 `idempotencyKey` query。HTTP 断连、客户端 Abort
+和等待超时都只结束本地等待，不得自动调用取消。BYOK 供应商没有经验证的原生幂等与
+取消能力时，客户端只记录本地取消意图；已经发出但结果不明的写请求标记
+`OUTCOME_UNKNOWN`，不得自动重发、切换供应商或宣称远端已终止。
+
 ## 4. 版本检查
 
 ```http

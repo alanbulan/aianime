@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 
+import { createHash } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 
@@ -203,6 +204,65 @@ export function isVideoCreatePath(path: string): boolean {
   return new URL(path, "http://model-proxy.local").pathname === "/v1/videos";
 }
 
+export async function modelRequestFingerprint(
+  method: string,
+  path: string,
+  contentType: string,
+  body: Buffer | undefined,
+  metadata: Record<string, string>,
+): Promise<string> {
+  const hash = createHash("sha256");
+  hash.update(method.toUpperCase());
+  hash.update("\0");
+  hash.update(new URL(path, "http://model-proxy.local").pathname);
+  for (const [key, value] of Object.entries(metadata).sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    hash.update("\0");
+    hash.update(key);
+    hash.update("=");
+    hash.update(value);
+  }
+  if (!body) return hash.digest("hex");
+
+  const normalizedContentType = contentType.trim().toLowerCase();
+  if (normalizedContentType.startsWith("application/json")) {
+    hash.update("\0json\0");
+    hash.update(stableJson(parseJsonBody(body)));
+    return hash.digest("hex");
+  }
+  if (normalizedContentType.startsWith("multipart/form-data")) {
+    const form = await parseMultipartBody(body, contentType);
+    const values = new Map<string, FormDataEntryValue[]>();
+    form.forEach((value, key) => {
+      const entries = values.get(key) ?? [];
+      entries.push(value);
+      values.set(key, entries);
+    });
+    for (const key of [...values.keys()].sort()) {
+      for (const value of values.get(key) ?? []) {
+        hash.update("\0field\0");
+        hash.update(key);
+        if (typeof value === "string") {
+          hash.update("\0text\0");
+          hash.update(value);
+          continue;
+        }
+        hash.update("\0file\0");
+        hash.update(value.name);
+        hash.update("\0");
+        hash.update(value.type);
+        hash.update("\0");
+        hash.update(Buffer.from(await value.arrayBuffer()));
+      }
+    }
+    return hash.digest("hex");
+  }
+  hash.update("\0raw\0");
+  hash.update(body);
+  return hash.digest("hex");
+}
+
 export async function readModelRequestBody(
   request: IncomingMessage,
   contentType: string,
@@ -245,6 +305,20 @@ export async function readModelRequestBody(
     }
   }
   return body;
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableJson(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
 }
 
 function parseJsonBody(body: Buffer): Record<string, unknown> | unknown[] | null {
@@ -490,6 +564,8 @@ export function pipeModelResponse(
     "location",
     "retry-after",
     "x-request-id",
+    "x-ai-invocation-id",
+    "x-ai-idempotency-key",
     "x-voice-id",
   ]) {
     const value = upstream.headers.get(header);

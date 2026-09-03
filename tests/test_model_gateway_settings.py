@@ -25,6 +25,7 @@ from ai_anime.modules.model_usage.public import (
     runtime_model_capability,
 )
 from ai_anime.modules.task_execution.public import run_project_model_subprocess
+from ai_anime.shared.infrastructure.project_task_context import project_task_run_context
 
 
 @pytest.fixture(autouse=True)
@@ -345,6 +346,25 @@ def test_synchronous_text_operation_owns_one_idempotency_key(
 
     assert str(uuid.UUID(idempotency_key)) == idempotency_key
     assert role == "TEXT"
+
+
+def test_image_client_binds_the_current_project_task_to_proxy_requests(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    _isolate_runtime(monkeypatch, tmp_path)
+    task_id = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+    with project_task_run_context(task_id):
+        client = config.get_model_access_openai_client(role="IMAGE_GENERATION")
+        _endpoint, json_headers = config.get_model_access_json_transport(
+            role="IMAGE_GENERATION"
+        )
+    try:
+        assert client.default_headers["X-AI-Anime-Task-ID"] == task_id
+        assert json_headers["X-AI-Anime-Task-ID"] == task_id
+        assert str(uuid.UUID(client.default_headers["Idempotency-Key"]))
+    finally:
+        client.close()
 
 
 def test_startup_migration_purges_retired_local_gateway_secrets(

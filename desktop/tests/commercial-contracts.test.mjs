@@ -6,6 +6,7 @@ import {
   projectCommercialAuthorization,
   projectCommercialBootstrap,
   projectCommercialInvocationDetails,
+  projectCommercialInvocationKeyState,
   projectCommercialInvocationList,
   projectCommercialQuota,
   projectCommercialRelease,
@@ -296,6 +297,28 @@ test("invocation projections retain the approved settled quota fields", () => {
   assert.deepEqual(details.invocation, item);
   assert.equal(Object.hasOwn(list, "page"), false);
   assert.equal(Object.hasOwn(item, "requestId"), false);
+});
+
+test("invocation key state requires JSON null before invocation creation", () => {
+  const pending = {
+    operation: "IMAGE",
+    idempotencyKey: "image-request-key",
+    cancellationRequested: true,
+    cancellationReason: "user cancelled",
+    cancellationRequestedAt: "2026-09-02T00:00:00Z",
+    invocationCreated: false,
+    invocation: null,
+  };
+
+  assert.equal(projectCommercialInvocationKeyState(pending).invocation, null);
+  assert.throws(
+    () =>
+      projectCommercialInvocationKeyState({
+        ...pending,
+        invocation: {},
+      }),
+    /must be null before invocation creation/,
+  );
 });
 
 test("strict client projections reject missing and extra response fields", () => {
