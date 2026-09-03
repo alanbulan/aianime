@@ -67,7 +67,7 @@ import {
   type ReactNode,
 } from "react";
 
-import type { TaskStatus } from "../domain/contracts";
+import type { StreamHealth, TaskStatus } from "../domain/contracts";
 
 // ─── Public types ───────────────────────────────────────────────────────────
 
@@ -80,6 +80,12 @@ export interface TaskKey {
 }
 
 export interface TaskStreamState {
+  task_id?: string;
+  task_key?: string;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string;
+  streamHealth?: StreamHealth;
   status: "idle" | TaskStatus;
   progress: number;
   currentTask: string;

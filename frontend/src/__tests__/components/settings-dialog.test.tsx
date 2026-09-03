@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsDialog } from "@/components/settings-dialog";
@@ -139,22 +139,7 @@ vi.mock("@/modules/model_usage/public", async () => {
       metadata.parseModelParameterOverridesJsonDraft,
     parseModelCapabilityOverridesJsonDraft:
       metadata.parseModelCapabilityOverridesJsonDraft,
-    commercialModelRuntimeMetadata: (item: {
-      capabilities?: { contextWindowTokens?: number };
-      parameterSchema?: { properties?: { reasoning_effort?: Record<string, unknown> } };
-    }) => ({
-      ...(item.capabilities?.contextWindowTokens
-        ? { contextWindow: item.capabilities.contextWindowTokens }
-        : {}),
-      ...(item.parameterSchema?.properties?.reasoning_effort
-        ? {
-            reasoningEffort: {
-              options: item.parameterSchema.properties.reasoning_effort.enum ?? [],
-              defaultValue: item.parameterSchema.properties.reasoning_effort.default,
-            },
-          }
-        : {}),
-    }),
+    commercialModelRuntimeMetadata: metadata.commercialModelRuntimeMetadata,
     effectiveModelRuntimeSettings: (assignment?: {
       contextWindow?: number;
       maxOutputTokens?: number;
@@ -777,6 +762,49 @@ describe("SettingsDialog", () => {
     expect(await screen.findByText("上下文 262144 tokens"))
       .toBeInTheDocument();
     expect(screen.queryByText("模式 1 项")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    { outputKey: "max_tokens", reasoningKey: "reasoning_effort" },
+    { outputKey: "maxOutputTokens", reasoningKey: "reasoningEffort" },
+  ])("模型详情去重 $outputKey 并保留模型独有参数", async ({ outputKey, reasoningKey }) => {
+    const model = {
+      id: "text-model-id",
+      code: "text-model",
+      displayName: "Text model",
+      operation: "TEXT",
+      roles: ["TEXT"],
+      capabilities: { contextWindowTokens: 1050000, maxOutputTokens: 128000, tools: true },
+      parameterSchema: {
+        properties: {
+          [outputKey]: { type: "integer", maximum: 128000 },
+          [reasoningKey]: { type: "string", enum: ["low", "high"] },
+          temperature: { type: "number", minimum: 0, maximum: 2 },
+        },
+      },
+    };
+    modelUsageMockState.catalogItems = [model];
+    modelUsageMockState.detailsItem = model;
+    modelUsageMockState.cloudModelAssignments = [
+      { modelId: model.code, role: "TEXT", priority: 100, enabled: true },
+    ];
+    Object.defineProperty(window, "aiAnimeDesktop", {
+      configurable: true,
+      value: { commercial: {} },
+    });
+
+    render(<SettingsDialog open onOpenChange={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "模型" }));
+    fireEvent.click(await screen.findByRole("button", { name: "查看模型详情" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Text model" });
+    expect(within(dialog).getByText("1050000 tokens")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("128000 tokens")).toHaveLength(1);
+    expect(within(dialog).getAllByText("low / high")).toHaveLength(1);
+    expect(within(dialog).queryByText(outputKey)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(reasoningKey)).not.toBeInTheDocument();
+    expect(within(dialog).getByText("temperature")).toBeInTheDocument();
+    expect(dialog.querySelector("pre")).toBeNull();
   });
 
   it("在模型详情中显示嵌套参数的完整路径", async () => {

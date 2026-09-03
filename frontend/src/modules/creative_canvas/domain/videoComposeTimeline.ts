@@ -42,7 +42,7 @@ export interface ComposeClip {
   muted: boolean;
   /**
    * 播放倍速（变速）。1 = 原速。时间线上占用长度 = 源裁剪长度 / speed。
-   * ⚠️ 导出是否真正变速取决于后端 compose 接口是否支持该字段。
+   * 导出时视频画面和音轨统一按该值变速。
    */
   speed: number;
 }
@@ -251,7 +251,6 @@ export function buildComposePayload(
         sourceEnd: clip.trimEndMs / 1000,
         volume: clip.volume,
         muted: clip.muted,
-        // ⚠️ 后端需支持该字段才会真正变速；否则被忽略（导出按原速）。
         speed: clip.speed > 0 ? clip.speed : 1,
       })),
     }))
@@ -262,9 +261,6 @@ export function buildComposePayload(
     canvasId: options.canvasId,
     resolution: state.resolution,
     fps: options.fps ?? 30,
-    // ⚠️ 后端需支持 cover_url 才会把封面烧进导出的 MP4；未支持时被忽略，
-    // 前端的画布缩略图/poster 仍正常工作（封面来自同一个 url）。
-    coverUrl: state.cover?.url ?? null,
     tracks,
   };
 }

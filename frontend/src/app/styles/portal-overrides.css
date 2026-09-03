@@ -847,21 +847,6 @@ button:hover .ai-anime-keyframe-video-play {
   line-height: 16px;
 }
 
-.ai-anime-keyframe-video-progress {
-  display: block;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgb(255 255 255 / 16%);
-}
-
-.ai-anime-keyframe-video-progress > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-primary);
-}
-
 @keyframes ai-anime-keyframe-video-shimmer {
   0% {
     transform: translateX(-100%);

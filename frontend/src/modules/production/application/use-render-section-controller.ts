@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { selectionScope, useTaskController } from "@/modules/task_execution/public";
+import { selectionScope, useTaskController, type TaskStreamState } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/shared/aspect-ratio";
 import { formatGeneratedAgeLabel } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -246,7 +246,7 @@ export interface RenderSectionController {
   relight: { enabled: boolean; timeOfDay: string } | null;
   renderActive: boolean;
   renderAspectRatio: string;
-  renderPercent: number;
+  renderTask: TaskStreamState;
   stalePromptOpen: boolean;
   uploadPending: boolean;
   commitDirectorCapture(meta: RenderDirectorCaptureMeta): Promise<void>;
@@ -415,13 +415,6 @@ export function createUseRenderSectionController(
     const detailRender = assignedRender ?? candidates[0] ?? null;
     const previewUrl =
       options.beat.frame_url ?? detailRender?.cell_url ?? null;
-    const renderPercent = Math.max(
-      0,
-      Math.min(
-        100,
-        Math.round((regenTask.stream?.progress ?? 0) * 100),
-      ),
-    );
     const candidateItems = candidates.map((image) => {
       const isActive =
         currentAssignment !== null &&
@@ -756,7 +749,7 @@ export function createUseRenderSectionController(
         : null,
       renderActive: regenTask.started,
       renderAspectRatio: ratioToCss(aspectSpec.renderAspect),
-      renderPercent,
+      renderTask: regenTask.stream,
       stalePromptOpen: stalePrompt !== null,
       uploadPending: uploadRender.isPending,
       commitDirectorCapture,

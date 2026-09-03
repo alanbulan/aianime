@@ -401,6 +401,7 @@ export function TextAnnotationNodeView({
             {controller.isGenerating ? (
               <NodeGenerationOverlay
                 progress={controller.generationProgress}
+                generation={controller.data}
               />
             ) : null}
           </div>

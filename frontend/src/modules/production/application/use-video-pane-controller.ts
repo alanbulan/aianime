@@ -223,6 +223,7 @@ export function createUseVideoPaneController(
       videoActive: generation.started,
       videoModels,
       videoProgress: generation.progress,
+      videoTask: generation.stream,
       videoUrl: beat.video_url,
       useVideoReferencePreview: showAdvancedVideoConfig,
     });

@@ -135,7 +135,6 @@ describe('useVideoComposeExportController', () => {
         canvasId: 'canvas-a',
         fps: 30,
         resolution: '720p',
-        coverUrl: '/cover-a.jpg',
       }),
     });
     expect(mocks.fetchBlob).toHaveBeenCalledWith(

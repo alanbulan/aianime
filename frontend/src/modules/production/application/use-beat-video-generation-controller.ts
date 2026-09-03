@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/modules/task_execution/public";
+import { useTaskController, type TaskStreamState } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import { TASK_TYPES } from "@/modules/task_execution/public";
 import type {
@@ -48,6 +48,7 @@ export interface BeatVideoGenerationController {
   confirmationOpen: boolean;
   generationPending: boolean;
   progress: number;
+  stream: TaskStreamState;
   started: boolean;
   stopping: boolean;
   confirmGeneration(): Promise<void>;
@@ -134,6 +135,7 @@ export function createUseBeatVideoGenerationController(
       confirmationOpen,
       generationPending: regenerate.isPending,
       progress: task.stream?.progress ?? 0,
+      stream: task.stream,
       started: task.started,
       stopping: task.stopping,
       confirmGeneration,

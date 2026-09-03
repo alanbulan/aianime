@@ -84,6 +84,7 @@ export function IngestResultPanel({
           size={previewFile.size}
           status={previewStatus}
           progress={taskStream.progress}
+          task={taskStream}
           currentTask={taskStream.currentTask}
           error={ingestError}
           formatCheck={uploadedFile?.format_check ?? null}

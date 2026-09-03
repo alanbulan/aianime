@@ -1480,8 +1480,11 @@ describe("frontend architecture boundaries", () => {
       ]),
     );
     expect(importSpecifiers(generationOverlayPath)).toEqual([
-      "lucide-react",
       "react-i18next",
+      "@/modules/task_execution/public",
+      "@/components/task-progress",
+      "@/components/ui/progress",
+      "../application/nodeGenerationTaskState",
     ]);
     expect(importSpecifiers(regenerateButtonPath)).toEqual(["lucide-react"]);
     expect(importSpecifiers(editableTableCellPath)).toEqual(["react"]);
@@ -23035,11 +23038,10 @@ describe("frontend architecture boundaries", () => {
 
     expect(importSpecifiers(domainPath)).toEqual([]);
     expect(domainSource).toContain(
-      "export const CANVAS_SCENE_360_ASPECT_RATIOS",
+      'export const CANVAS_SCENE_360_ASPECT_RATIO = "2:1"',
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([
-        "../domain/scene360",
         "./completeCanvasMediaGenerationTask",
         "./prepareCanvasImageSource",
       ]),
@@ -25821,9 +25823,6 @@ describe("frontend architecture boundaries", () => {
     );
     expect(domainSource).toContain(
       "export function resolveCanvasUpscaleImageSize(",
-    );
-    expect(domainSource).toContain(
-      "export function resolveCanvasUpscaleScaleFactor(",
     );
     expect(new Set(importSpecifiers(applicationPath))).toEqual(
       new Set([

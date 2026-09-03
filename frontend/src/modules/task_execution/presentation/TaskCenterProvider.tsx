@@ -268,6 +268,7 @@ export function TaskCenterProviderView({
         });
         if (!cancelled) {
           useTaskCenterStore.getState().hydrate(res.data);
+          useTaskCenterStore.getState().setLastEventAt(Date.now());
           const tasks = Array.from(useTaskCenterStore.getState().tasks.values());
           queryClient.setQueryData(queryKeys.tasks(projectId), { ok: true, data: tasks });
           for (const task of tasks) {
@@ -431,7 +432,10 @@ export function TaskCenterProviderView({
           bus.emit({ type: "task_removed", taskKey: key });
           queryClient.invalidateQueries({ queryKey: queryKeys.tasks(projectId) });
         },
-        onHealth: (h) => useTaskCenterStore.getState().setHealth(h),
+        onHealth: (h) => {
+          useTaskCenterStore.getState().setHealth(h);
+          if (h === 'connected') useTaskCenterStore.getState().setLastEventAt(Date.now());
+        },
         onReconnected: () => {
           void hydrate();
         },

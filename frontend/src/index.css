@@ -8,3 +8,23 @@
 @import "./app/styles/tokens.css";
 @import "./app/styles/portal-overrides.css";
 @import "./app/styles/base.css";
+
+@keyframes task-progress-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+[data-slot="progress"][data-active] [data-slot="progress-indicator"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, white 40%, transparent), transparent);
+  animation: task-progress-shimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="progress"][data-active] [data-slot="progress-indicator"]::after {
+    animation: none;
+  }
+}

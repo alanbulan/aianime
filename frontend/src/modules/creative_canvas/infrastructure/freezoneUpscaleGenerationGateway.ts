@@ -12,7 +12,6 @@ export const freezoneUpscaleGenerationGateway: CanvasUpscaleGenerationGateway = 
         method: "POST",
         json: {
           source_url: command.sourceUrl,
-          scale_factor: command.scaleFactor,
           image_size: command.imageSize,
           model: command.model,
           ...(command.modelSelector ? { model_id: command.modelSelector } : {}),

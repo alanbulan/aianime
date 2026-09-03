@@ -9,6 +9,8 @@ export type KeyframeVideoPreviewItem = {
   videoSrc?: string;
   status?: string;
   progress?: number;
+  taskKey?: string;
+  taskId?: string;
 };
 
 type UnifiedMediaKind = "image" | "video" | "audio";
@@ -184,6 +186,9 @@ export function extractPendingKeyframeVideoItem(
 ): KeyframeVideoPreviewItem | null {
   const root = spec.elements[spec.root];
   const rootProps = elementProps(root);
+  const metadata = spec.metadata && typeof spec.metadata === 'object' ? spec.metadata as Record<string, unknown> : {};
+  const taskKey = textProp(metadata.task_key, rootProps.task_key);
+  const taskId = textProp(metadata.task_id, rootProps.task_id);
   const title = textProp(rootProps.title, rootProps.description, spec.type);
   const description = textProp(rootProps.description);
   let status = "";
@@ -209,5 +214,7 @@ export function extractPendingKeyframeVideoItem(
     description,
     status,
     progress,
+    ...(taskKey ? { taskKey } : {}),
+    ...(taskId ? { taskId } : {}),
   };
 }

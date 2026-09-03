@@ -321,6 +321,7 @@ export function VideoNodeView({ controller }: VideoNodeViewProps) {
         ) : isGenerating ? (
           <VideoGeneratingState
             progress={controller.generationProgress}
+            generation={data}
             previewImageUrl={
               data.previewImageUrl
                 ? resolveImageDisplayUrl(data.previewImageUrl)

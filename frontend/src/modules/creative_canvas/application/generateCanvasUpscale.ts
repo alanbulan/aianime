@@ -1,8 +1,5 @@
 // Copyright (c) 2026 AI anime
-import type {
-  CanvasUpscaleImageSize,
-  CanvasUpscaleScaleFactor,
-} from "../domain/upscale";
+import type { CanvasUpscaleImageSize } from "../domain/upscale";
 import {
   completeCanvasMediaGenerationTask,
   type CanvasGenerationTaskRef,
@@ -11,7 +8,6 @@ import {
 
 export interface CanvasUpscaleGenerationCommand {
   readonly sourceUrl: string;
-  readonly scaleFactor: CanvasUpscaleScaleFactor;
   readonly imageSize: CanvasUpscaleImageSize;
   readonly model: string;
   readonly modelSelector?: string;
@@ -27,7 +23,6 @@ export interface CanvasUpscaleGenerationGateway {
 export interface GenerateCanvasUpscaleParams {
   readonly projectId: string;
   readonly sourceUrl: string;
-  readonly scaleFactor: CanvasUpscaleScaleFactor;
   readonly imageSize: CanvasUpscaleImageSize;
   readonly model: string;
   readonly modelSelector?: string;
@@ -50,7 +45,6 @@ export async function generateCanvasUpscale(
 ): Promise<GenerateCanvasUpscaleResult> {
   const task = await dependencies.submissionGateway.submit(params.projectId, {
     sourceUrl: params.sourceUrl.split("?")[0],
-    scaleFactor: params.scaleFactor,
     imageSize: params.imageSize,
     model: params.model,
     modelSelector: params.modelSelector,

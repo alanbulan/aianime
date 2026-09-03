@@ -442,7 +442,6 @@ export const SelectedNodeOverlay = memo(({
           upscaleSourceUrl: sourceImageUrl,
           upscaleModelId: '',
           upscaleImageSize: '2K',
-          upscaleScaleFactor: 2,
         },
       );
       addEdge(sourceNode.id, placeholderNodeId);
@@ -602,6 +601,7 @@ export const SelectedNodeOverlay = memo(({
       {scene360Node && scene360ImageSource && (
         <Scene360Overlay
           projectId={projectId}
+          canvasId={canvasId}
           node={scene360Node}
           imageSource={scene360ImageSource}
           onClose={handleCloseScene360}

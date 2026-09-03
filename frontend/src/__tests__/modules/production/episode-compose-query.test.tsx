@@ -52,7 +52,7 @@ describe("Production episode compose queries", () => {
     });
     result.current.mutate({
       addSubtitles: true,
-      addBgm: false,
+      addBgm: true,
       resolution: "1080x1920",
     });
 
@@ -62,7 +62,7 @@ describe("Production episode compose queries", () => {
     );
     expect(body).toEqual({
       add_subtitles: true,
-      add_bgm: false,
+      add_bgm: true,
       resolution: "1080x1920",
     });
   });

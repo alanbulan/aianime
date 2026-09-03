@@ -11,6 +11,7 @@ import {
 import { AlertCircle, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { writeTextToClipboard } from '@/shared/platform/text-clipboard';
 
 interface GlobalErrorDialogProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function GlobalErrorDialog({
 }: GlobalErrorDialogProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const copiedResetTimerRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
@@ -65,17 +67,19 @@ export function GlobalErrorDialog({
     if (isOpen) {
       clearCopiedResetTimer();
       setCopied(false);
+      setCopyFailed(false);
       setShowDetails(false);
     }
-  }, [clearCopiedResetTimer, isOpen]);
+  }, [clearCopiedResetTimer, isOpen, copyText, details, message]);
 
   const handleCopy = useCallback(async () => {
     const payload = copyText || [message, details].filter(Boolean).join('\n\n');
     if (!payload) {
       return;
     }
+    setCopyFailed(false);
     try {
-      await navigator.clipboard.writeText(payload);
+      await writeTextToClipboard(payload);
       if (!mountedRef.current) return;
       clearCopiedResetTimer();
       setCopied(true);
@@ -83,8 +87,11 @@ export function GlobalErrorDialog({
         copiedResetTimerRef.current = null;
         setCopied(false);
       }, 1200);
-    } catch (error) {
-      console.error('Failed to copy global error text', error);
+    } catch {
+      if (!mountedRef.current) return;
+      clearCopiedResetTimer();
+      setCopied(false);
+      setCopyFailed(true);
     }
   }, [clearCopiedResetTimer, copyText, details, message]);
 
@@ -136,6 +143,11 @@ export function GlobalErrorDialog({
           </div>
         )}
 
+        {copyFailed && (
+          <p role="alert" className="px-5 pb-2 text-sm text-destructive">
+            {t('errorDialog.copyFailed')}
+          </p>
+        )}
         <DialogFooter className="justify-end gap-2 rounded-none px-5 pb-4 pt-1">
           {canCopy && (
             <Button

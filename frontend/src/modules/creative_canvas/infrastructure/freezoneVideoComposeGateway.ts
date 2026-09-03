@@ -17,7 +17,6 @@ export const freezoneVideoComposeGateway: CanvasVideoComposeGateway = {
           fps: request.fps ?? 30,
           background_color: request.backgroundColor ?? "#000000",
           keep_original_audio: request.keepOriginalAudio ?? true,
-          cover_url: request.coverUrl ?? "",
           tracks: request.tracks.map((track) => ({
             track_id: track.trackId,
             kind: track.kind,

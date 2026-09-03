@@ -5,11 +5,14 @@ import { Loader2, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useReducedMotion } from "@/shared/hooks/use-reduced-motion";
+import { useTaskProgress, type TaskProgressSource } from '@/modules/task_execution/public';
+import { TaskProgressFeedback } from '@/components/task-progress';
 
 interface StageProgressPanelProps {
   title: string;
   currentTask: string;
   progress: number;
+  task?: TaskProgressSource;
   logs: string[];
   onStop: () => void;
   stopping?: boolean;
@@ -27,6 +30,7 @@ export function StageProgressPanel({
   title,
   currentTask,
   progress,
+  task,
   logs,
   onStop,
   stopping = false,
@@ -42,7 +46,7 @@ export function StageProgressPanel({
     });
   }, [logs, reducedMotion]);
 
-  const percent = Math.round(progress * 100);
+  const displayProgress = useTaskProgress(task ?? { status: 'running', progress });
 
   return (
     <div className="border-b border-border bg-card">
@@ -56,9 +60,7 @@ export function StageProgressPanel({
         <span className="flex-1 truncate text-foreground">
           {currentTask || t("common.preparing")}
         </span>
-        <span className="font-mono tabular-nums text-muted-foreground">
-          {percent}%
-        </span>
+        <TaskProgressFeedback progress={displayProgress} />
         <Button
           variant="ghost"
           size="sm"
@@ -75,7 +77,8 @@ export function StageProgressPanel({
         </Button>
       </div>
       <Progress
-        value={percent}
+        value={displayProgress.value}
+        active={displayProgress.active}
         aria-label={title}
         className="rounded-none"
       />

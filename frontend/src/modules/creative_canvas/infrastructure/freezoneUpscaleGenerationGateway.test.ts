@@ -21,7 +21,6 @@ describe("freezoneUpscaleGenerationGateway", () => {
     vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
       sourceUrl: "/static/source.png",
-      scaleFactor: 6 as const,
       imageSize: "4K" as const,
       model: "image-model",
     };
@@ -35,7 +34,6 @@ describe("freezoneUpscaleGenerationGateway", () => {
         method: "POST",
         json: {
           source_url: "/static/source.png",
-          scale_factor: 6,
           image_size: "4K",
           model: "image-model",
         },

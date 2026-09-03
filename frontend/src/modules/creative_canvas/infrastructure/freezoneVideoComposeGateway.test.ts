@@ -53,7 +53,6 @@ describe("freezoneVideoComposeGateway", () => {
           fps: 30,
           background_color: "#000000",
           keep_original_audio: true,
-          cover_url: "",
           tracks: [
             {
               track_id: "track-video-1",

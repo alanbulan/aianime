@@ -20,7 +20,6 @@ import {
   useTaskController,
 } from "@/modules/task_execution/public";
 import {
-  clampDuration,
   getBeatVideoConfigSaveKey,
   normalizeReferenceVideoDraftForModel,
   normalizeAdvancedVideoDraftForModel,
@@ -33,6 +32,7 @@ import {
   videoRatioOptionsForModel,
   videoResolutionOptionsForModel,
   videoDurationBoundsForModel,
+  videoDurationOptionsForModel,
   serializeReferenceVideoConfig,
   serializeBeatVideoConfig,
   type BeatVideoConfigDraft,
@@ -94,6 +94,7 @@ export interface BeatVideoConfigController {
   promptPending: boolean;
   ready: boolean;
   videoDurationBounds: VideoDurationBounds;
+  videoDurationOptions: readonly number[];
   videoModeOptions: readonly VideoReferenceMode[];
   videoRatioOptions: readonly VideoAspectRatio[];
   videoResolutionOptions: readonly VideoResolution[];
@@ -141,6 +142,10 @@ export function createUseBeatVideoConfigController(
     );
     const videoDurationBounds = useMemo(
       () => videoDurationBoundsForModel(options.selectedModel),
+      [options.selectedModel],
+    );
+    const videoDurationOptions = useMemo(
+      () => videoDurationOptionsForModel(options.selectedModel),
       [options.selectedModel],
     );
     const referenceResolutionOptions = useMemo(
@@ -263,6 +268,8 @@ export function createUseBeatVideoConfigController(
             referenceResolutionOptions,
             referenceRatioOptions,
             options.selectedModel?.resolutionMaxSeconds,
+            videoDurationBounds,
+            videoDurationOptions,
           )
         : normalizeAdvancedVideoDraftForModel(
             current,
@@ -271,6 +278,8 @@ export function createUseBeatVideoConfigController(
             supportsSceneOptimize,
             videoModeOptions,
             videoRatioOptions,
+            videoDurationBounds,
+            videoDurationOptions,
           );
       if (!sameBeatVideoConfig(current, next)) applyDraft(next);
     }, [
@@ -282,26 +291,11 @@ export function createUseBeatVideoConfigController(
       referenceResolutionOptions,
       videoModeOptions,
       videoRatioOptions,
+      videoDurationBounds,
+      videoDurationOptions,
       videoResolutionOptions,
       showPromptConfig,
       supportsSceneOptimize,
-    ]);
-
-    useEffect(() => {
-      if (!showPromptConfig) return;
-      const current = draftRef.current;
-      const nextDuration = clampDuration(
-        current.duration,
-        videoDurationBounds,
-      );
-      if (current.duration !== nextDuration) {
-        applyDraft({ ...current, duration: nextDuration });
-      }
-    }, [
-      applyDraft,
-      videoDurationBounds.max,
-      videoDurationBounds.min,
-      showPromptConfig,
     ]);
 
     const dirty = !sameBeatVideoConfig(draft, config);
@@ -380,6 +374,17 @@ export function createUseBeatVideoConfigController(
         changeDraft((current) => ({
           ...current,
           mode,
+          ...(mode === "text_to_video"
+            ? {
+                managed: {
+                  ...current.managed,
+                  reference_image_paths: [],
+                  reference_video_paths: [],
+                  reference_audio_paths: [],
+                  selected_asset_keys: [],
+                },
+              }
+            : {}),
         })),
       [changeDraft],
     );
@@ -397,6 +402,8 @@ export function createUseBeatVideoConfigController(
           supportsSceneOptimize,
           modeOptions: videoModeOptions,
           ratioOptions: videoRatioOptions,
+          durationBounds: videoDurationBounds,
+          durationOptions: videoDurationOptions,
           resolutionOptions: videoResolutionOptions,
           sizeOptions: options.selectedModel?.sizeOptions,
           sourceConfig: config,
@@ -411,6 +418,8 @@ export function createUseBeatVideoConfigController(
             kind: "reference",
             draft,
             ratioOptions: referenceRatioOptions,
+            durationBounds: videoDurationBounds,
+            durationOptions: videoDurationOptions,
             resolutionOptions: referenceResolutionOptions,
             resolutionMaxSeconds: options.selectedModel?.resolutionMaxSeconds,
             sourceConfig: config,
@@ -437,6 +446,7 @@ export function createUseBeatVideoConfigController(
       promptPending: generate.isPending || generationTask.started,
       ready: draft.final_prompt.trim().length > 0,
       videoDurationBounds,
+      videoDurationOptions,
       videoModeOptions,
       videoRatioOptions,
       videoResolutionOptions,

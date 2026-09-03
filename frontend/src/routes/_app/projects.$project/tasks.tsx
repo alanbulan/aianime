@@ -19,11 +19,10 @@ import {
   useClearCompleted,
   useDeleteTask,
   useTasks,
-  taskProgressPercent,
 } from "@/modules/task_execution/public";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { TaskProgress } from "@/components/task-progress";
 import { TaskListSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 import { stageForTaskType } from "@/lib/episode-stage-registry";
@@ -165,15 +164,12 @@ function TaskRow({
             </Badge>
           </div>
           {/* Progress / detail on same line */}
-          {task.status === "running" ? (
+          {isActiveTaskStatus(task.status) ? (
             <div className="mt-1 flex items-center gap-4">
               <span className="shrink-0 truncate text-[11px] text-muted-foreground/80">
                 {task.current_task}
               </span>
-              <Progress value={taskProgressPercent(task)} className="shrink-0 w-28 h-[3px] [&>div]:h-[3px] [&>div]:gap-0" />
-              <span className="shrink-0 font-mono text-[11px] text-muted-foreground/70">
-                {taskProgressPercent(task)}%
-              </span>
+              <TaskProgress task={task} className="w-44 shrink-0" />
             </div>
           ) : task.current_task ? (
             <div className="mt-1">

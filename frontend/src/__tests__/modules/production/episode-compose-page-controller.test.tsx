@@ -10,6 +10,7 @@ const downloadFile = vi.hoisted(() => vi.fn());
 const exportEpisode = vi.hoisted(() => vi.fn());
 const taskStart = vi.hoisted(() => vi.fn());
 const updateProject = vi.hoisted(() => vi.fn());
+let finalVideoUrl = "/static/final.mp4";
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -62,12 +63,13 @@ const useController = createUseEpisodeComposePageController(
     }),
     useFinalVideo: () => ({
       data: {
-        data: { exists: true, video_url: "/static/final.mp4" },
+        data: { exists: true, video_url: finalVideoUrl },
       },
     }),
     useProject: () => ({
       data: {
         add_subtitles: false,
+        add_bgm: true,
         aspect_ratio: "16:9",
         video_resolution: "1080x1920",
       },
@@ -110,30 +112,34 @@ describe("episode compose page controller", () => {
     taskStart.mockReset();
     updateProject.mockReset();
     updateProject.mockResolvedValue({});
+    finalVideoUrl = "/static/final.mp4";
   });
 
-  it("normalizes saved preferences for the project orientation", async () => {
+  it("preserves explicit export dimensions independently of the project orientation", async () => {
     const { result } = renderController();
 
     await waitFor(() => {
-      expect(result.current.resolution).toBe("1920x1080");
+      expect(result.current.resolution).toBe("1080x1920");
       expect(result.current.addSubtitles).toBe(false);
+      expect(result.current.addBgm).toBe(true);
       expect(result.current.resultUrl).toBe("/static/final.mp4");
     });
     expect(result.current.displayTitle).toBe("第二集");
     expect(result.current.durationLabel).toBe("1:01");
 
     act(() => result.current.handleResolutionChange("720x1280"));
-    expect(result.current.resolution).toBe("1280x720");
+    expect(result.current.resolution).toBe("720x1280");
     expect(updateProject).toHaveBeenCalledWith({
-      video_resolution: "1280x720",
+      video_resolution: "720x1280",
     });
 
     act(() => result.current.handleAddSubtitlesChange());
     expect(updateProject).toHaveBeenCalledWith({ add_subtitles: true });
+    act(() => result.current.handleAddBgmChange());
+    expect(updateProject).toHaveBeenCalledWith({ add_bgm: false });
   });
 
-  it("starts composition with BGM explicitly disabled", async () => {
+  it("starts composition with the selected subtitle and resolution settings", async () => {
     const { result } = renderController();
 
     await act(async () => {
@@ -141,11 +147,29 @@ describe("episode compose page controller", () => {
     });
 
     expect(composeEpisode).toHaveBeenCalledWith({
-      addBgm: false,
+      addBgm: true,
       addSubtitles: false,
-      resolution: "1920x1080",
+      resolution: "1080x1920",
     });
     expect(taskStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("recomposes an existing video with the selected portrait frame and subtitles", async () => {
+    const { result } = renderController();
+    act(() => result.current.handleResolutionChange("1920x1080"));
+    expect(result.current.resolution).toBe("1920x1080");
+    act(() => {
+      result.current.handleResolutionChange("1080x1920");
+      result.current.handleAddSubtitlesChange();
+    });
+    await act(async () => {
+      await result.current.handleCompose();
+    });
+    expect(composeEpisode).toHaveBeenCalledWith({
+      addBgm: true,
+      addSubtitles: true,
+      resolution: "1080x1920",
+    });
   });
 
   it("delegates all exports and applies stable filenames", async () => {
@@ -175,5 +199,13 @@ describe("episode compose page controller", () => {
       expect.any(Blob),
       "demo_ep2.zip",
     );
+  });
+
+  it("refreshes the preview when recomposition publishes a new file version", async () => {
+    const { result, rerender } = renderController();
+    await waitFor(() => expect(result.current.resultUrl).toBe("/static/final.mp4"));
+    finalVideoUrl = "/static/final.mp4?v=2";
+    rerender();
+    await waitFor(() => expect(result.current.resultUrl).toBe(finalVideoUrl));
   });
 });

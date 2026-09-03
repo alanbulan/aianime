@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { playwright } from "@vitest/browser-playwright";
 import path from "path";
 import { defineConfig } from "vitest/config";
@@ -75,6 +76,7 @@ export default defineConfig({
       },
       {
         extends: true,
+        plugins: [tailwindcss()],
         test: {
           name: "browser",
           include: browserTestPatterns,

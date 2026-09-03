@@ -73,7 +73,6 @@ describe("Production render-plan queries", () => {
       aspectMode: "9:16",
       forceOneByOne: false,
       imageGenerationSelection: "image-model-a",
-      sketchAspectPadding: true,
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
@@ -83,7 +82,6 @@ describe("Production render-plan queries", () => {
       aspect_mode: "9:16",
       force_one_by_one: false,
       image_generation_selection: "image-model-a",
-      sketch_aspect_padding: true,
     });
     expect(result.current.data?.ok).toBe(true);
     if (!result.current.data?.ok) {

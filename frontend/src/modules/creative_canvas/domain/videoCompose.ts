@@ -26,6 +26,5 @@ export interface CanvasVideoComposeRequest {
   readonly fps?: number;
   readonly backgroundColor?: string;
   readonly keepOriginalAudio?: boolean;
-  readonly coverUrl?: string | null;
   readonly tracks: readonly CanvasVideoComposeTrack[];
 }

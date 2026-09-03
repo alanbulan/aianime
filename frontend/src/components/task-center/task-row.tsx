@@ -3,10 +3,10 @@ import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import {
   displayLabel,
-  taskProgressPercent,
+  isActive,
   type TaskState,
 } from "@/modules/task_execution/public";
-import { Progress } from "@/components/ui/progress";
+import { TaskProgress } from "@/components/task-progress";
 import { cn } from "@/lib/utils";
 
 function shortTimestamp(task: TaskState): string {
@@ -51,7 +51,6 @@ export function TaskRow({
 }) {
   const { t } = useTranslation();
   const label = displayLabel(task, t);
-  const progressPercent = taskProgressPercent(task);
   return (
     <button
       type="button"
@@ -72,15 +71,8 @@ export function TaskRow({
           </span>
         ) : null}
       </span>
-      {task.status === "running" && (
-        <div className="flex shrink-0 items-center gap-1.5">
-          <div className="w-16">
-            <Progress value={progressPercent} />
-          </div>
-          <span className="w-8 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-            {progressPercent}%
-          </span>
-        </div>
+      {isActive(task) && (
+        <TaskProgress task={task} aria-label={label} compact className="w-36 shrink-0" />
       )}
       <span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground/70">
         {shortTimestamp(task)}

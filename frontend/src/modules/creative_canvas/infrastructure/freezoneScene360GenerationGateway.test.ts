@@ -23,8 +23,10 @@ describe("freezoneScene360GenerationGateway", () => {
     await expect(
       freezoneScene360GenerationGateway.submit("project/1", {
         referenceUrl: "/static/source.png",
-        aspectRatio: "21:9",
+        canvasId: "canvas-1",
+        nodeId: "pano-1",
         model: "cloud-image-standard",
+        modelSelector: "image-route",
       }),
     ).resolves.toBe(task);
     expect(apiCall).toHaveBeenCalledWith(
@@ -35,8 +37,10 @@ describe("freezoneScene360GenerationGateway", () => {
           reference_url: "/static/source.png",
           image_size: "2K",
           mode: "candidate",
-          aspect_ratio: "21:9",
+          canvas_id: "canvas-1",
+          node_id: "pano-1",
           model: "cloud-image-standard",
+          model_id: "image-route",
         },
       },
     );

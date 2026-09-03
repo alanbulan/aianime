@@ -9,11 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   displayLabel,
   isActive,
-  taskProgressPercent,
   type TaskState,
 } from "@/modules/task_execution/public";
 import { taskErrorMessage } from "@/modules/task_execution/public";
-import { Progress } from "@/components/ui/progress";
+import { TaskProgress } from "@/components/task-progress";
 
 export function formatLocalTaskTime(value?: string | null): string {
   if (!value) return "—";
@@ -181,7 +180,6 @@ export function TaskDetail() {
   const skillId = metadataField(task, "skill_id");
   const canvasId = metadataField(task, "canvas_id");
   const nodeId = metadataField(task, "node_id");
-  const progressPercent = taskProgressPercent(task);
   const elapsed = formatTaskElapsed(
     task.created_at,
     taskIsActive ? null : task.completed_at || task.updated_at,
@@ -248,11 +246,7 @@ export function TaskDetail() {
               <div className="mt-1.5 whitespace-pre-wrap font-medium">
                 {task.current_task || t(`taskCenter.status.${task.status}`)}
               </div>
-              <Progress value={progressPercent} className="mt-2" />
-              <div className="mt-1 flex items-center justify-between font-mono text-[11px] text-muted-foreground">
-                <span>{t("taskCenter.detail.current.progress")}</span>
-                <span>{progressPercent}%</span>
-              </div>
+              <TaskProgress task={task} aria-label={t("taskCenter.detail.current.progress")} className="mt-2" />
             </div>
           ) : null}
           <div className="mt-3">

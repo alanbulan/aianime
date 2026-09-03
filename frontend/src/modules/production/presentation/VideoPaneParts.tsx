@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactEventHandler, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Check,
@@ -29,9 +29,11 @@ const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 export function BeatVideoPlayer({
   src,
   beatNum,
+  onLoadedMetadata,
 }: {
   src: string;
   beatNum: number;
+  onLoadedMetadata?: ReactEventHandler<HTMLVideoElement>;
 }) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -151,6 +153,7 @@ export function BeatVideoPlayer({
           setVolume(event.currentTarget.volume);
           setMuted(event.currentTarget.muted);
           setPlaybackRate(event.currentTarget.playbackRate);
+          onLoadedMetadata?.(event);
         }}
         onDurationChange={(event) =>
           setDuration(event.currentTarget.duration || 0)
@@ -179,7 +182,7 @@ export function BeatVideoPlayer({
         </button>
       ) : null}
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/95 via-media/72 to-transparent px-3 pb-2 pt-10 opacity-100 transition-opacity group-hover:opacity-100">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-media/95 via-media/72 to-transparent px-2 pb-2 pt-10 opacity-100 transition-opacity group-hover:opacity-100">
         <Slider
           min={0}
           max={duration || 1}
@@ -194,7 +197,7 @@ export function BeatVideoPlayer({
           aria-label={t("viewer.videoSeek", "视频进度")}
         />
 
-        <div className="flex min-w-0 items-center gap-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <VideoControlButton
             label={isPlaying ? t("common.pause", "暂停") : t("common.play", "播放")}
             onClick={togglePlayback}
@@ -202,7 +205,7 @@ export function BeatVideoPlayer({
             {isPlaying ? <Pause className="size-4" /> : <Play className="size-4 fill-current" />}
           </VideoControlButton>
 
-          <span className="shrink-0 text-[11px] tabular-nums text-media-foreground/90">
+          <span className="max-w-full truncate text-[11px] tabular-nums text-media-foreground/90">
             {formatVideoTime(currentTime)} / {formatVideoTime(duration)}
           </span>
 
@@ -234,7 +237,7 @@ export function BeatVideoPlayer({
           <div className="ml-auto flex items-center gap-0.5">
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="inline-flex h-8 min-w-10 items-center justify-center rounded-md px-1.5 text-[11px] font-medium text-media-foreground/90 outline-none transition hover:bg-media-foreground/12 focus-visible:ring-2 focus-visible:ring-media-foreground/55"
+                className="inline-flex h-8 min-w-9 items-center justify-center rounded-md px-1.5 text-[11px] font-medium text-media-foreground/90 outline-none transition hover:bg-media-foreground/12 focus-visible:ring-2 focus-visible:ring-media-foreground/55"
                 aria-label={t("viewer.playbackRate", "播放速度")}
               >
                 {playbackRate}×
@@ -316,9 +319,11 @@ function formatVideoTime(seconds: number): string {
 export function VideoReferenceMediaPreview({
   src,
   state,
+  onLoadedMetadata,
 }: {
   src: string | null;
   state: BeatStageState;
+  onLoadedMetadata?: ReactEventHandler<HTMLVideoElement>;
 }) {
   const { t } = useTranslation();
   if (!src) {
@@ -330,7 +335,7 @@ export function VideoReferenceMediaPreview({
       </span>
     );
   }
-  return <BeatVideoPlayer src={src} beatNum={0} />;
+  return <BeatVideoPlayer src={src} beatNum={0} onLoadedMetadata={onLoadedMetadata} />;
 }
 
 export function VideoReferenceSummaryPill({

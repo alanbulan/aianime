@@ -1,6 +1,9 @@
 // Copyright (c) 2026 AI anime
 import { Play, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from 'react-i18next';
+import { useTaskCenterStore } from '@/modules/task_execution/public';
+import { TaskProgress } from '@/components/task-progress';
 
 import { PreciseAudioPlayer } from "@/components/media/PreciseAudioPlayer";
 import {
@@ -115,6 +118,12 @@ function KeyframeVideoPreviewCard({
 }: {
   item: KeyframeVideoPreviewItem;
 }) {
+  const { t } = useTranslation();
+  const task = useTaskCenterStore((state) => {
+    const byKey = item.taskKey ? state.tasks.get(item.taskKey) : undefined;
+    if (byKey && (!item.taskId || item.taskId === byKey.task_id)) return byKey;
+    return item.taskId ? [...state.tasks.values()].find((candidate) => candidate.task_id === item.taskId) : undefined;
+  });
   const [open, setOpen] = useState(false);
   const poster = useResolvedSpecUrl(item.poster);
   const videoSrc = useResolvedSpecUrl(item.videoSrc);
@@ -166,11 +175,13 @@ function KeyframeVideoPreviewCard({
                     {item.status}
                   </span>
                 )}
-                {item.progress !== undefined && (
-                  <span className="ai-anime-keyframe-video-progress">
-                    <span style={{ width: `${item.progress}%` }} />
+                {task ? (
+                  <TaskProgress task={task} className="[&>span]:text-media-foreground/80" />
+                ) : item.progress !== undefined ? (
+                  <span className="text-[10px] text-media-foreground/80">
+                    {t('taskProgress.snapshot', { percent: Math.max(0, Math.min(100, item.progress)) })}
                   </span>
-                )}
+                ) : null}
               </span>
             </button>
           </div>

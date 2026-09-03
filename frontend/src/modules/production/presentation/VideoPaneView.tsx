@@ -62,7 +62,7 @@ export function VideoPaneView({
     <div className={GRID_CLASS}>
       <VideoPaneMediaView
         controller={media}
-        frameAspectCss={ratioToCss(projectAspect)}
+        frameAspectCss={ratioToCss(draft.ratio || projectAspect)}
       />
 
       {!showPromptConfig && (

@@ -34,7 +34,6 @@ export interface CreateRenderPlanCommand {
   forceOneByOne?: boolean;
   aspectMode: string;
   imageGenerationSelection?: string;
-  sketchAspectPadding?: boolean;
 }
 
 export interface ExecuteRenderPlanCommand {

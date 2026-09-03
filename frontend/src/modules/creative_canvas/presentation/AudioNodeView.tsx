@@ -66,6 +66,7 @@ export function AudioNodeView({
         {controller.isGenerating ? (
           <NodeGenerationOverlay
             progress={controller.generationProgress}
+            generation={controller.data}
           />
         ) : controller.audioSource ? (
           <AudioWaveformPlayer

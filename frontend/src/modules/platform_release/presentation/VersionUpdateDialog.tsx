@@ -29,6 +29,7 @@ export function VersionUpdateDialog() {
   >("idle");
   const [downloadProgress, setDownloadProgress] =
     useState<CommercialUpdateDownloadProgress | null>(null);
+  const [downloadStartedAt, setDownloadStartedAt] = useState<number | null>(null);
   const autoOpenedCommercialRef = useRef(false);
   const artifactId = commercialRelease.data?.artifactId ?? null;
   const isInstalling =
@@ -37,6 +38,7 @@ export function VersionUpdateDialog() {
   const handleInstall = useCallback(async () => {
     if (!artifactId || isInstalling) return;
     setDownloadProgress(null);
+    setDownloadStartedAt(Date.now());
     setInstallState("downloading");
     try {
       await downloadCommercialUpdate(artifactId);
@@ -114,8 +116,8 @@ export function VersionUpdateDialog() {
           </div>
           {commercialUpdateAvailable && artifactId !== null ? (
             <div className="mt-7 space-y-2">
-              {installState === "downloading" ? (
-                <CommercialUpdateProgressView progress={downloadProgress} />
+              {installState !== "idle" ? (
+                <CommercialUpdateProgressView progress={downloadProgress} startedAt={downloadStartedAt} status={installState === 'error' ? 'failed' : installState === 'installing' ? 'finalizing' : 'running'} />
               ) : null}
               {installState === "error" ? (
                 <p className="text-center text-[12.5px] leading-5 text-destructive">
@@ -129,11 +131,7 @@ export function VersionUpdateDialog() {
                 onClick={() => void handleInstall()}
               >
                 {isInstalling
-                  ? installState === "downloading" && downloadProgress
-                    ? t("app.commercialUpdate.downloadingWithPercent", {
-                        percent: Math.round(downloadProgress.percent),
-                      })
-                    : t(
+                  ? t(
                         installState === "downloading"
                           ? "app.commercialUpdate.downloading"
                           : "app.commercialUpdate.installing",

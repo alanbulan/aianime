@@ -3335,22 +3335,14 @@ export type {
   CanvasRelightSmartPrompt,
 } from "@/modules/creative_canvas/domain/relight";
 export {
-  CANVAS_SCENE_360_ASPECT_RATIOS,
-  DEFAULT_CANVAS_SCENE_360_ASPECT_RATIO,
+  CANVAS_SCENE_360_ASPECT_RATIO,
 } from "@/modules/creative_canvas/domain/scene360";
-export type { CanvasScene360AspectRatio } from "@/modules/creative_canvas/domain/scene360";
 export {
   CANVAS_UPSCALE_IMAGE_SIZES,
-  CANVAS_UPSCALE_SCALE_FACTORS,
   DEFAULT_CANVAS_UPSCALE_IMAGE_SIZE,
-  DEFAULT_CANVAS_UPSCALE_SCALE_FACTOR,
   resolveCanvasUpscaleImageSize,
-  resolveCanvasUpscaleScaleFactor,
 } from "@/modules/creative_canvas/domain/upscale";
-export type {
-  CanvasUpscaleImageSize,
-  CanvasUpscaleScaleFactor,
-} from "@/modules/creative_canvas/domain/upscale";
+export type { CanvasUpscaleImageSize } from "@/modules/creative_canvas/domain/upscale";
 export {
   CandidateBindingBadges,
   NodeContextBadges,

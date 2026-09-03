@@ -450,6 +450,7 @@ export function ImageGenNodeView({ controller }: ImageGenNodeViewProps) {
         {isGenerating && !historyPreviewUrl && (
           <NodeGenerationOverlay
             progress={generationProgress}
+            generation={data}
           />
         )}
 

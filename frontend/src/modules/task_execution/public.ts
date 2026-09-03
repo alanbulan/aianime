@@ -1,4 +1,7 @@
 // Copyright (c) 2026 AI anime
+export { useTaskProgress } from "@/modules/task_execution/presentation/useTaskProgress";
+export type { TaskProgressOptions, TaskProgressView } from "@/modules/task_execution/presentation/useTaskProgress";
+export type { TaskProgressSource } from "@/modules/task_execution/domain/optimisticProgress";
 export {
   TaskCenterProvider,
   useCancelTask,

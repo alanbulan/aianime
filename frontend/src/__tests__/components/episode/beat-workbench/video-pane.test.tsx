@@ -47,6 +47,8 @@ beforeAll(async () => {
                 switchFailed: "切换失败",
                 videoReferencePrompt: "VideoReference.0主体提示词",
                 videoReferenceReady: "已配置",
+                videoPromptReady: "模型提示词已配置",
+                videoPromptMissing: "模型提示词未配置",
                 videoReferenceSaved: "VideoReference 配置已保存",
                 videoReferenceInspector: "VideoReference Inspector",
                 videoReferencePreviewMode: "VideoReference 预览模式",
@@ -544,7 +546,7 @@ vi.mock("@/modules/production/composition", async () => {
       state: options.state,
       useVideoReferencePreview: options.useVideoReferencePreview,
       videoActive: options.videoActive,
-      videoPercent: Math.round(options.videoProgress * 100),
+      videoTask: { status: options.videoActive ? 'running' as const : 'idle' as const, progress: options.videoProgress },
       deleteCandidate: async () => undefined,
       selectCandidate: async (poolId: string) => {
         await poolSelectMock({ beatNum: options.beatNumber, poolId });
@@ -844,6 +846,18 @@ function expandVideoReferences() {
 }
 
 describe("VideoPane VideoReference inspector", () => {
+  it("distinguishes an unconfigured model prompt from a missing file", () => {
+    renderPane(makeBeat({ video_config_json: "{}" }));
+
+    expect(screen.getByText("模型提示词未配置")).toBeInTheDocument();
+    expect(screen.queryByText("文件缺失")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("VideoReference.0主体提示词"), {
+      target: { value: "模型专用提示词" },
+    });
+    expect(screen.getByText("模型提示词已配置")).toBeInTheDocument();
+    expect(screen.queryByText("模型提示词未配置")).not.toBeInTheDocument();
+  });
+
   it("renders and saves the 1.x video prompt while showing image-only reference details", () => {
     videoQueryMockState.includeAudioAsset = true;
     renderPane(
@@ -1105,7 +1119,7 @@ describe("VideoPane VideoReference inspector", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "音频" })).not.toBeInTheDocument();
     expect(screen.getAllByText("Render").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("已配置").length).toBeGreaterThan(0);
+    expect(screen.getByText("模型提示词已配置")).toBeInTheDocument();
   });
 
   it("shows an existing but too-short voice as invalid instead of missing or unused", () => {
@@ -1328,7 +1342,7 @@ describe("VideoPane VideoReference inspector", () => {
   it("does not expose raw VideoReference mode names in the VideoReference controls", () => {
     renderPane();
 
-    expect(screen.getAllByText("已配置").length).toBeGreaterThan(0);
+    expect(screen.getByText("模型提示词已配置")).toBeInTheDocument();
     expect(screen.getByLabelText("生成模式")).toHaveTextContent("多参模式");
     expect(screen.queryByText("multimodal_reference")).not.toBeInTheDocument();
   });

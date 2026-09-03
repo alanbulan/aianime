@@ -30,7 +30,6 @@ describe("generateCanvasUpscale", () => {
         {
           projectId: "project-1",
           sourceUrl: "/static/source.png?v=42",
-          scaleFactor: 4,
           imageSize: "4K",
           model: "image-model",
         },
@@ -39,7 +38,6 @@ describe("generateCanvasUpscale", () => {
     ).resolves.toEqual({ task, url: "/static/upscaled.png" });
     expect(submissionGateway.submit).toHaveBeenCalledWith("project-1", {
       sourceUrl: "/static/source.png",
-      scaleFactor: 4,
       imageSize: "4K",
       model: "image-model",
     });

@@ -120,6 +120,7 @@ export function PropsPanelView({
               title={t("assets.props.batchStatusTitle")}
               currentTask={batchCurrentTask}
               progress={batchProgress}
+              task={controller.batchStream}
               logs={batchLogs}
               onStop={stopBatch}
               stopping={batchStopping}

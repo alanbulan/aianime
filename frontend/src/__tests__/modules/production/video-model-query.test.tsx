@@ -26,9 +26,11 @@ describe("Production video model query", () => {
                 routeSelector: "cloud:video-model-reference",
                 videoWorkflow: "advanced-reference",
                 generateAudio: true,
+                durationOptions: [4, 8, 12],
               },
               parameterSchema: {
                 properties: {
+                  mode: { enum: ["TEXT_TO_VIDEO", "IMAGE_TO_VIDEO"] },
                   resolution: { enum: ["480p", "720p"] },
                   duration: { minimum: 4, maximum: 15 },
                 },
@@ -52,7 +54,9 @@ describe("Production video model query", () => {
         supportsNativeAudio: true,
         minDuration: 4,
         maxDuration: 15,
+        durationOptions: [4, 8, 12],
         resolutionOptions: ["480p", "720p"],
+        supportedModes: ["TEXT_TO_VIDEO", "IMAGE_TO_VIDEO"],
       }),
     ]);
   });
@@ -168,6 +172,41 @@ describe("Production video model query", () => {
         referenceAudioMax: 0,
       }),
     ]);
+  });
+
+  it("opens configuration when the schema declares text-only video mode", () => {
+    const useVideoModels = createUseVideoModels(() => ({
+      data: {
+        catalogVersion: "catalog-text-only",
+        items: [
+          {
+            id: "text-only-video",
+            code: "text-only-video",
+            displayName: "Text-only video model",
+            operation: "VIDEO",
+            capabilities: {
+              routeSelector: "cloud:text-only-video",
+            },
+            parameterSchema: {
+              properties: {
+                mode: { enum: ["TEXT_TO_VIDEO"] },
+              },
+            },
+          },
+        ],
+      },
+      error: null,
+      isLoading: false,
+    }));
+
+    const { result } = renderHook(() => useVideoModels());
+
+    expect(result.current.data?.[0]).toEqual(
+      expect.objectContaining({
+        supportedModes: ["TEXT_TO_VIDEO"],
+        supportsAdvancedConfig: true,
+      }),
+    );
   });
 
   it("keeps an explicit advanced-config disable ahead of capability inference", () => {

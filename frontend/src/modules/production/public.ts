@@ -294,6 +294,7 @@ export {
   serializeReferenceVideoConfig,
   serializeBeatVideoConfig,
   videoDurationBoundsForModel,
+  videoDurationOptionsForModel,
   videoModelDisplayLabel,
 } from "@/modules/production/domain/video-config";
 export type {

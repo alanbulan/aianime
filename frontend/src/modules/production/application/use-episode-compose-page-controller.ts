@@ -14,9 +14,8 @@ import type { ProjectConfig } from "@/modules/project_workspace/public";
 import type { ProductionTaskResponse, ProductionVideoGateway } from "@/modules/production/application/ports";
 import type { EpisodeCounts } from "@/modules/production/domain/beat-state";
 import {
-  episodeResolutionFor,
-  episodeResolutionTier,
   formatEpisodeDuration,
+  resolveEpisodeResolution,
   type ComposeEpisodeCommand,
   type EpisodeExportKind,
   type EpisodeResolution,
@@ -90,6 +89,7 @@ export function createUseEpisodeComposePageController(
       orientationForAspectRatio(projectConfig?.aspect_ratio) ?? "portrait";
 
     const [addSubtitles, setAddSubtitles] = useState(true);
+    const [addBgm, setAddBgm] = useState(false);
     const [resolution, setResolution] =
       useState<EpisodeResolution>("720x1280");
     const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -97,8 +97,8 @@ export function createUseEpisodeComposePageController(
 
     useEffect(() => {
       setResolution(
-        episodeResolutionFor(
-          episodeResolutionTier(projectConfig?.video_resolution),
+        resolveEpisodeResolution(
+          projectConfig?.video_resolution,
           orientation,
         ),
       );
@@ -107,6 +107,10 @@ export function createUseEpisodeComposePageController(
     useEffect(() => {
       setAddSubtitles(projectConfig?.add_subtitles ?? true);
     }, [projectConfig?.add_subtitles]);
+
+    useEffect(() => {
+      setAddBgm(projectConfig?.add_bgm ?? false);
+    }, [projectConfig?.add_bgm]);
 
     const persistComposePreferences = useCallback(
       (updates: Partial<ProjectConfig>) => {
@@ -119,10 +123,7 @@ export function createUseEpisodeComposePageController(
 
     const handleResolutionChange = useCallback(
       (value: string | null) => {
-        const next = episodeResolutionFor(
-          episodeResolutionTier(value),
-          orientation,
-        );
+        const next = resolveEpisodeResolution(value, orientation);
         setResolution(next);
         persistComposePreferences({ video_resolution: next });
       },
@@ -134,6 +135,12 @@ export function createUseEpisodeComposePageController(
       setAddSubtitles(next);
       persistComposePreferences({ add_subtitles: next });
     }, [addSubtitles, persistComposePreferences]);
+
+    const handleAddBgmChange = useCallback(() => {
+      const next = !addBgm;
+      setAddBgm(next);
+      persistComposePreferences({ add_bgm: next });
+    }, [addBgm, persistComposePreferences]);
 
     const outputFilename = `ep${String(episode).padStart(3, "0")}_final.mp4`;
     const beats = beatsQuery.data?.data ?? [];
@@ -173,16 +180,16 @@ export function createUseEpisodeComposePageController(
       : null;
 
     useEffect(() => {
-      if (isComposing || resultUrl || !hydratedUrl) return;
+      if (isComposing || !hydratedUrl) return;
       setResultUrl(hydratedUrl);
-    }, [hydratedUrl, isComposing, resultUrl]);
+    }, [hydratedUrl, isComposing]);
 
     const handleCompose = async () => {
       try {
         setResultUrl(null);
         const response = await composeEpisode.mutateAsync({
           addSubtitles,
-          addBgm: false,
+          addBgm,
           resolution,
         });
         task.start({ scope: response.scope, taskId: response.task_id });
@@ -204,6 +211,7 @@ export function createUseEpisodeComposePageController(
     };
 
     return {
+      addBgm,
       addSubtitles,
       beatsEmpty: !beatsQuery.isLoading && beats.length === 0,
       beatsLoading: beatsQuery.isLoading,
@@ -213,6 +221,7 @@ export function createUseEpisodeComposePageController(
       displayTitle,
       durationLabel,
       handleAddSubtitlesChange,
+      handleAddBgmChange,
       handleCompose,
       handleDownloadVideo: () =>
         downloadExport("video", `${project}_${outputFilename}`),
@@ -221,7 +230,6 @@ export function createUseEpisodeComposePageController(
       handleResolutionChange,
       isComposing,
       onOpenBeat: options.onOpenBeat,
-      orientation,
       outputFilename,
       resolution,
       resultUrl,

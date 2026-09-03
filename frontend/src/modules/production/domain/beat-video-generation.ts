@@ -7,6 +7,7 @@ import {
   serializeReferenceVideoConfig,
   type ExactVideoResolution,
   type BeatVideoConfigDraft,
+  type VideoDurationBounds,
   type VideoResolution,
 } from "@/modules/production/domain/video-config";
 
@@ -24,6 +25,8 @@ export interface AdvancedBeatVideoGenerationInput
   supportsSceneOptimize: boolean;
   modeOptions?: readonly BeatVideoConfigDraft["mode"][];
   ratioOptions?: readonly BeatVideoConfigDraft["ratio"][];
+  durationBounds?: VideoDurationBounds;
+  durationOptions?: readonly number[];
   resolutionOptions: readonly VideoResolution[];
   sizeOptions?: readonly string[];
   sourceConfig: BeatVideoConfigDraft;
@@ -34,6 +37,8 @@ export interface ReferenceBeatVideoGenerationInput
   kind: "reference";
   draft: BeatVideoConfigDraft;
   ratioOptions: readonly BeatVideoConfigDraft["ratio"][];
+  durationBounds?: VideoDurationBounds;
+  durationOptions?: readonly number[];
   resolutionOptions: readonly VideoResolution[];
   resolutionMaxSeconds?: Readonly<Record<string, number>>;
   sourceConfig: BeatVideoConfigDraft;
@@ -82,6 +87,8 @@ export function prepareBeatVideoGeneration(
       input.supportsSceneOptimize,
       input.modeOptions,
       input.ratioOptions,
+      input.durationBounds,
+      input.durationOptions,
     );
     const draftChanged = !sameBeatVideoConfig(normalizedDraft, input.draft);
     const exactSize = exactVideoSizeForConfig(
@@ -115,6 +122,8 @@ export function prepareBeatVideoGeneration(
     input.resolutionOptions,
     input.ratioOptions,
     input.resolutionMaxSeconds,
+    input.durationBounds,
+    input.durationOptions,
   );
   return {
     command: {

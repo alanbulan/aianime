@@ -647,6 +647,7 @@ export function EpisodesPageView({
           title={t("episode.list.planning")}
           currentTask={planTask.stream.currentTask}
           progress={planTask.stream.progress}
+          task={planTask.stream}
           logs={planTask.logs}
           onStop={planTask.stop}
           stopping={planTask.stopping}

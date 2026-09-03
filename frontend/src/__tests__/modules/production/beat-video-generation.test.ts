@@ -27,11 +27,14 @@ describe("beat video generation domain", () => {
       dirty: false,
       draft: sourceConfig,
       supportsSceneOptimize: false,
+      durationBounds: { min: 4, max: 12 },
+      durationOptions: [4, 8, 12],
       resolutionOptions: ["720p"],
       sourceConfig,
     });
 
     expect(result.normalizedDraft?.resolution).toBe("720p");
+    expect(result.normalizedDraft?.duration).toBe(8);
     expect(result.draftChanged).toBe(true);
     expect(result.saveDraftBeforeGeneration).toBe(true);
     expect(result.command).toMatchObject({

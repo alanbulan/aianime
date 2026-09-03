@@ -2714,6 +2714,8 @@ describe("round 2 residual architecture boundaries", () => {
     const publicPath = resolve(moduleRoot, "public.ts");
     const ownedPaths = [
       "domain/contracts.ts",
+      "domain/optimisticProgress.ts",
+      "domain/optimisticProgress.test.ts",
       "domain/taskOrigin.ts",
       "domain/taskOrigin.test.ts",
       "domain/taskScope.ts",
@@ -2742,6 +2744,8 @@ describe("round 2 residual architecture boundaries", () => {
       "presentation/useTaskSubscribe.ts",
       "presentation/task-controller-provider.tsx",
       "presentation/useTaskController.ts",
+      "presentation/useTaskProgress.ts",
+      "presentation/useTaskProgress.test.tsx",
       "presentation/useStageTask.ts",
       "presentation/useScopedTaskBatchInvalidation.ts",
       "presentation/useTaskStream.ts",
@@ -2783,6 +2787,7 @@ describe("round 2 residual architecture boundaries", () => {
     expect(importSpecifiers(publicPath)).toEqual(
       expect.arrayContaining([
         "@/modules/task_execution/domain/contracts",
+        "@/modules/task_execution/domain/optimisticProgress",
         "@/modules/task_execution/domain/taskOrigin",
         "@/modules/task_execution/domain/taskScope",
         "@/modules/task_execution/domain/taskState",
@@ -2797,6 +2802,7 @@ describe("round 2 residual architecture boundaries", () => {
         "@/modules/task_execution/presentation/taskOriginLink",
         "@/modules/task_execution/presentation/taskQueryHooks",
         "@/modules/task_execution/presentation/useTaskSubscribe",
+        "@/modules/task_execution/presentation/useTaskProgress",
       ]),
     );
 

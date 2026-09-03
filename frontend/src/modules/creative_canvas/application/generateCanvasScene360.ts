@@ -1,5 +1,4 @@
 // Copyright (c) 2026 AI anime
-import type { CanvasScene360AspectRatio } from "../domain/scene360";
 import {
   completeCanvasMediaGenerationTask,
   type CanvasGenerationTaskRef,
@@ -9,7 +8,8 @@ import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSo
 
 export interface CanvasScene360GenerationCommand {
   readonly referenceUrl: string;
-  readonly aspectRatio: CanvasScene360AspectRatio;
+  readonly canvasId: string;
+  readonly nodeId: string;
   readonly model: string;
   readonly modelSelector?: string;
 }
@@ -24,7 +24,8 @@ export interface CanvasScene360GenerationGateway {
 export interface GenerateCanvasScene360Params {
   readonly projectId: string;
   readonly referenceUrl: string;
-  readonly aspectRatio: CanvasScene360AspectRatio;
+  readonly canvasId: string;
+  readonly nodeId: string;
   readonly model: string;
   readonly modelSelector?: string;
 }
@@ -51,7 +52,8 @@ export async function generateCanvasScene360(
   );
   const task = await dependencies.submissionGateway.submit(params.projectId, {
     referenceUrl,
-    aspectRatio: params.aspectRatio,
+    canvasId: params.canvasId,
+    nodeId: params.nodeId,
     model: params.model,
     modelSelector: params.modelSelector,
   });

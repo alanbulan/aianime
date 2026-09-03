@@ -20,10 +20,7 @@ describe("compose export API alignment", () => {
     expect(gateway).not.toContain("export/${kind}");
   });
 
-  it("drops the BGM toggle but still sends add_bgm:false to /videos/compose", () => {
-    const controller = read(
-      "src/modules/production/application/use-episode-compose-page-controller.ts",
-    );
+  it("keeps the BGM option connected from the view to the compose request", () => {
     const view = read(
       "src/modules/production/presentation/EpisodeComposePageView.tsx",
     );
@@ -31,12 +28,9 @@ describe("compose export API alignment", () => {
       "src/modules/production/infrastructure/http-production-video-gateway.ts",
     );
 
-    // The 添加背景音乐 toggle was removed from the UI; the compose payload keeps
-    // the flag explicitly off so the backend default never re-enables it.
-    expect(controller).toContain("addBgm: false");
     expect(gateway).toContain("add_bgm: command.addBgm");
-    expect(view).not.toContain("setAddBgm");
-    expect(view).not.toContain("video.addBgm");
+    expect(view).toContain("handleAddBgmChange");
+    expect(view).toContain('t("video.addBgm")');
   });
 
   it("hydrates and persists NiceGUI compose preferences from project config", () => {
@@ -48,8 +42,10 @@ describe("compose export API alignment", () => {
     expect(controller).toContain("queries.useUpdateProject(project)");
     expect(controller).toContain("projectConfig?.video_resolution");
     expect(controller).toContain("projectConfig?.add_subtitles");
+    expect(controller).toContain("projectConfig?.add_bgm");
     expect(controller).toContain("video_resolution: next");
     expect(controller).toContain("add_subtitles: next");
+    expect(controller).toContain("add_bgm: next");
   });
 
   it("keeps compose blocker copy fully localized", () => {

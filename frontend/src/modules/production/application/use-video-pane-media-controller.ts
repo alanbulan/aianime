@@ -1,5 +1,6 @@
 // Copyright (c) 2026 AI anime
 import { useMemo } from "react";
+import type { TaskProgressSource } from '@/modules/task_execution/public';
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -39,6 +40,7 @@ export interface VideoPaneMediaControllerOptions {
     label: string;
   }>;
   videoProgress: number;
+  videoTask?: TaskProgressSource;
   videoUrl?: string | null;
   useVideoReferencePreview: boolean;
 }
@@ -65,7 +67,7 @@ export interface VideoPaneMediaController {
   state: BeatStageState;
   useVideoReferencePreview: boolean;
   videoActive: boolean;
-  videoPercent: number;
+  videoTask: TaskProgressSource;
   deleteCandidate(poolId: string): Promise<void>;
   selectCandidate(poolId: string): Promise<void>;
 }
@@ -189,10 +191,7 @@ export function createUseVideoPaneMediaController(
       state: options.state,
       useVideoReferencePreview: options.useVideoReferencePreview,
       videoActive: options.videoActive,
-      videoPercent: Math.max(
-        0,
-        Math.min(100, Math.round(options.videoProgress * 100)),
-      ),
+      videoTask: options.videoTask ?? { status: options.videoActive ? 'running' : 'idle', progress: options.videoProgress },
       deleteCandidate,
       selectCandidate,
     };

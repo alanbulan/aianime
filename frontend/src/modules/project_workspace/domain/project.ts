@@ -15,6 +15,7 @@ export interface ProjectConfig {
   use_director_render?: boolean;
   video_resolution?: string;
   add_subtitles?: boolean;
+  add_bgm?: boolean;
   sketch_image_selection?: string;
   render_image_selection?: string;
   sketch_aspect_padding?: boolean;

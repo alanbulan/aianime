@@ -1,12 +1,13 @@
 // Copyright (c) 2026 AI anime
 import { useTranslation } from "react-i18next";
-import type { ElementType } from "react";
+import { useState, type CSSProperties, type ElementType } from "react";
 import {
   ArrowUpRight,
   Download,
   FileText,
   Film,
   Loader2,
+  Music2,
   Subtitles,
 } from "lucide-react";
 
@@ -87,6 +88,7 @@ export function EpisodeComposePageView({
 }) {
   const { t } = useTranslation();
   const {
+    addBgm,
     addSubtitles,
     beatsEmpty,
     beatsLoading,
@@ -95,6 +97,7 @@ export function EpisodeComposePageView({
     counts,
     displayTitle,
     durationLabel,
+    handleAddBgmChange,
     handleAddSubtitlesChange,
     handleCompose,
     handleDownloadVideo,
@@ -102,7 +105,6 @@ export function EpisodeComposePageView({
     handleResolutionChange,
     isComposing,
     onOpenBeat,
-    orientation,
     outputFilename,
     resolution,
     resultUrl,
@@ -110,6 +112,16 @@ export function EpisodeComposePageView({
     task,
     totalBeats,
   } = controller;
+  const [previewSize, setPreviewSize] = useState<{
+    src: string;
+    width: number;
+    height: number;
+  } | null>(null);
+  const currentPreviewSize = previewSize?.src === resultUrl ? previewSize : null;
+  const [outputWidth, outputHeight] = resolution.split("x").map(Number);
+  const previewAspect = currentPreviewSize
+    ? currentPreviewSize.width / currentPreviewSize.height
+    : outputWidth / outputHeight;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -154,7 +166,10 @@ export function EpisodeComposePageView({
                 {t("episode.compose.options")}
               </div>
               <div className="mt-0.5 text-sm font-medium text-foreground">
-                {addSubtitles ? t("episode.compose.subtitlesOn") : t("episode.compose.subtitlesOff")}
+                {[
+                  addSubtitles ? t("episode.compose.subtitlesOn") : t("episode.compose.subtitlesOff"),
+                  addBgm ? t("episode.compose.bgmOn") : t("episode.compose.bgmOff"),
+                ].join(" · ")}
               </div>
             </div>
           </div>
@@ -188,24 +203,13 @@ export function EpisodeComposePageView({
                 </h1>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                   <span className="font-mono">{outputFilename}</span>
-                  {resultUrl ? (
+                  {currentPreviewSize && (
                     <>
                       <MetaDot />
-                      <span>{episodeResolutionLabel(resolution)}</span>
-                      <MetaDot />
-                      <span>
-                        {addSubtitles
-                          ? t("episode.compose.subtitlesOn")
-                          : t("episode.compose.subtitlesOff")}
-                      </span>
-                      {durationLabel ? (
-                        <>
-                          <MetaDot />
-                          <span>{durationLabel}</span>
-                        </>
-                      ) : null}
+                      <span>{currentPreviewSize.width} × {currentPreviewSize.height}</span>
                     </>
-                  ) : durationLabel ? (
+                  )}
+                  {durationLabel ? (
                     <>
                       <MetaDot />
                       <span>
@@ -282,28 +286,37 @@ export function EpisodeComposePageView({
           {!beatsEmpty && <hr className="border-border" />}
 
           {/* Config row + warning: below divider */}
-          {!beatsEmpty && !resultUrl && !isComposing && (
+          {!beatsEmpty && !isComposing && (
             <div className="flex flex-col gap-5 pb-2 pt-1 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-              <div className="min-w-0 space-y-1.5">
-                <h2 className="text-base font-semibold text-warning">
-                  {t("episode.compose.blockerCount", { count: counts.compose.missing.length })}
+              {counts.compose.missing.length > 0 ? (
+                <div className="min-w-0 space-y-1.5">
+                  <h2 className="text-base font-semibold text-warning">
+                    {t("episode.compose.blockerCount", { count: counts.compose.missing.length })}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {t("episode.compose.blockerSubtitle")}
+                  </p>
+                </div>
+              ) : (
+                <h2 className="text-sm font-medium text-foreground">
+                  {t("episode.compose.options")}
                 </h2>
-                <p className="text-xs text-muted-foreground">
-                  {t("episode.compose.blockerSubtitle")}
-                </p>
-              </div>
+              )}
               <div className="flex shrink-0 flex-wrap items-center gap-6">
                 {/* Resolution */}
                 <div className="flex items-center gap-1.5">
                   <span className="text-[12px] text-muted-foreground">{t("episode.compose.resolution")}:</span>
                   <Select value={resolution} onValueChange={handleResolutionChange}>
-                    <SelectTrigger className="!h-7 w-28 rounded-[6px] border border-border bg-transparent py-0 text-[12px] font-medium text-foreground/85">
+                    <SelectTrigger
+                      aria-label={t("episode.compose.resolution")}
+                      className="!h-7 w-56 rounded-[6px] border border-border bg-transparent py-0 text-[12px] font-medium text-foreground/85"
+                    >
                       <SelectValue>
                         {() => episodeResolutionLabel(resolution)}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {episodeResolutionOptions(orientation).map((value) => (
+                      {episodeResolutionOptions().map((value) => (
                         <SelectItem key={value} value={value}>
                           {episodeResolutionLabel(value)}
                         </SelectItem>
@@ -319,18 +332,33 @@ export function EpisodeComposePageView({
                   icon={Subtitles}
                   label={t("video.addSubtitles")}
                 />
+                <InlineSwitch
+                  checked={addBgm}
+                  onChange={handleAddBgmChange}
+                  icon={Music2}
+                  label={t("video.addBgm")}
+                />
               </div>
             </div>
           )}
 
           {/* Content below divider */}
           {resultUrl ? (
-            // Vertical (9:16) drama clips are taller than they are wide.
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+            <div
+              className="flex min-h-0 flex-1 items-center justify-center overflow-hidden [container-type:size]"
+              style={{ "--preview-aspect": previewAspect } as CSSProperties}
+            >
               <UnifiedVideoPlayer
+                key={resultUrl}
                 src={resultUrl}
-                className="max-h-full max-w-full"
-                videoClassName="max-h-full max-w-full"
+                className="aspect-(--preview-aspect) w-[min(100cqw,calc(100cqh*var(--preview-aspect)))] max-w-full shrink-0"
+                compact={previewAspect < 1}
+                onLoadedMetadata={(event) => {
+                  const { videoWidth, videoHeight } = event.currentTarget;
+                  if (videoWidth > 0 && videoHeight > 0) {
+                    setPreviewSize({ src: resultUrl, width: videoWidth, height: videoHeight });
+                  }
+                }}
               />
             </div>
           ) : beatsLoading ? (
@@ -349,6 +377,7 @@ export function EpisodeComposePageView({
               title={t("episode.compose.composing")}
               currentTask={task.stream.currentTask}
               progress={task.stream.progress}
+              task={task.stream}
               logs={task.logs}
               onStop={task.stop}
               stopping={task.stopping}

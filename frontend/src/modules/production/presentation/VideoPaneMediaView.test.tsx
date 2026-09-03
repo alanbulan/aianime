@@ -40,7 +40,7 @@ describe("VideoPaneMediaView", () => {
       state: "ready",
       useVideoReferencePreview: false,
       videoActive: false,
-      videoPercent: 100,
+      videoTask: { status: 'completed', progress: 1 },
       deleteCandidate: vi.fn(async () => undefined),
       selectCandidate: vi.fn(async () => undefined),
     };
@@ -87,7 +87,7 @@ describe("VideoPaneMediaView", () => {
       state: "ready",
       useVideoReferencePreview: false,
       videoActive: false,
-      videoPercent: 100,
+      videoTask: { status: 'completed', progress: 1 },
       deleteCandidate,
       selectCandidate: vi.fn(async () => undefined),
     };

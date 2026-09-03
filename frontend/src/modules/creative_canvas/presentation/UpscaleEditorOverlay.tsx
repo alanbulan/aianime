@@ -14,11 +14,8 @@ import { ProviderModelPicker } from './ProviderModelPicker';
 import { ZoomScaledToolbar } from './ZoomScaledToolbar';
 import {
   CANVAS_UPSCALE_IMAGE_SIZES,
-  CANVAS_UPSCALE_SCALE_FACTORS,
   resolveCanvasUpscaleImageSize,
-  resolveCanvasUpscaleScaleFactor,
   type CanvasUpscaleImageSize,
-  type CanvasUpscaleScaleFactor,
 } from '../domain/upscale';
 import { generationTaskDescriptor } from '../application/resumeGeneration';
 import type { CanvasGenerationTaskRef } from '../application/completeCanvasMediaGenerationTask';
@@ -53,7 +50,6 @@ interface UpscalePersistedFields {
   upscaleSourceUrl?: string;
   upscaleModelId?: string;
   upscaleImageSize?: CanvasUpscaleImageSize;
-  upscaleScaleFactor?: CanvasUpscaleScaleFactor;
 }
 
 interface UpscaleEditorOverlayProps {
@@ -87,9 +83,6 @@ export function createUpscaleEditorOverlay({
     typeof persisted.upscaleModelId === 'string' ? persisted.upscaleModelId : '';
   const { models: availableModels } = useCanvasImageModels(projectId, 'edit');
   const persistedImageSize = resolveCanvasUpscaleImageSize(persisted.upscaleImageSize);
-  const persistedScaleFactor = resolveCanvasUpscaleScaleFactor(
-    persisted.upscaleScaleFactor,
-  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedModel =
@@ -106,13 +99,6 @@ export function createUpscaleEditorOverlay({
   const handleImageSizeChange = useCallback(
     (size: CanvasUpscaleImageSize) => {
       updateNodeData(node.id, { upscaleImageSize: size });
-    },
-    [node.id, updateNodeData],
-  );
-
-  const handleScaleFactorChange = useCallback(
-    (factor: CanvasUpscaleScaleFactor) => {
-      updateNodeData(node.id, { upscaleScaleFactor: factor });
     },
     [node.id, updateNodeData],
   );
@@ -143,7 +129,6 @@ export function createUpscaleEditorOverlay({
         {
           projectId,
           sourceUrl,
-          scaleFactor: persistedScaleFactor,
           imageSize: persistedImageSize,
           model: apiModel,
           modelSelector: selectedModel.routeSelector,
@@ -174,7 +159,6 @@ export function createUpscaleEditorOverlay({
     isSubmitting,
     node.id,
     persistedImageSize,
-    persistedScaleFactor,
     projectId,
     selectedModel,
     sourceUrl,
@@ -225,9 +209,6 @@ export function createUpscaleEditorOverlay({
             <QualityPicker value={persistedImageSize} onChange={handleImageSizeChange} />
           </PanelRow>
 
-          <PanelRow label={t('upscaleEditor.scaleLabel')}>
-            <ScaleFactorPicker value={persistedScaleFactor} onChange={handleScaleFactorChange} />
-          </PanelRow>
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-3 border-t border-border pt-3">
@@ -335,35 +316,6 @@ function QualityPicker({ value, onChange }: QualityPickerProps) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-interface ScaleFactorPickerProps {
-  value: CanvasUpscaleScaleFactor;
-  onChange: (next: CanvasUpscaleScaleFactor) => void;
-}
-
-function ScaleFactorPicker({ value, onChange }: ScaleFactorPickerProps) {
-  return (
-    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-0.5">
-      {CANVAS_UPSCALE_SCALE_FACTORS.map((factor) => {
-        const isActive = value === factor;
-        return (
-          <button
-            key={factor}
-            type="button"
-            onClick={() => onChange(factor)}
-            className={`flex h-7 w-12 items-center justify-center rounded-md text-xs font-medium transition-colors ${
-              isActive
-                ? 'bg-foreground text-background'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-            }`}
-          >
-            {factor}
-          </button>
-        );
-      })}
     </div>
   );
 }

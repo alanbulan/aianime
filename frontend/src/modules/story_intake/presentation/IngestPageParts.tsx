@@ -14,7 +14,8 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { TaskProgress } from "@/components/task-progress";
+import type { TaskProgressSource } from '@/modules/task_execution/public';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type {
@@ -231,6 +232,7 @@ function UploadedFileCard({
   size,
   status,
   progress,
+  task,
   currentTask,
   error,
   formatCheck,
@@ -248,6 +250,7 @@ function UploadedFileCard({
   size: number | null;
   status: IngestFileStatus;
   progress: number;
+  task?: TaskProgressSource;
   currentTask: string;
   error: string | null;
   formatCheck?: FormatCheck | null;
@@ -262,7 +265,6 @@ function UploadedFileCard({
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
-  const percent = Math.round(progress * 100);
   // 导入完成后风险提示已无行动价值，只在导入前/失败/中止时常驻展示。
   const showFormatWarning =
     formatCheck?.level === "warning" && status !== "completed";
@@ -391,9 +393,8 @@ function UploadedFileCard({
             <span className="min-w-0 flex-1 truncate">
               {currentTask || t("ingest.processing")}
             </span>
-            <span className="shrink-0 font-mono tabular-nums">{percent}%</span>
           </div>
-          <Progress value={percent} />
+          <TaskProgress task={task ?? { status: 'running', progress }} aria-label={t('ingest.processing')} />
         </div>
       )}
     </div>

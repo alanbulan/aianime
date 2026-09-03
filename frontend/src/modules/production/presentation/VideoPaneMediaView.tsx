@@ -1,9 +1,10 @@
 // Copyright (c) 2026 AI anime
-import { useState } from "react";
+import { useState, type ReactEventHandler } from "react";
 import { useTranslation } from "react-i18next";
 import { Download, Loader2, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { TaskProgress } from '@/components/task-progress';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,19 +47,31 @@ export function VideoPaneMediaView({
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(
     null,
   );
+  const [previewAspect, setPreviewAspect] = useState<{ src: string; ratio: string } | null>(null);
+  const onLoadedMetadata: ReactEventHandler<HTMLVideoElement> = (event) => {
+    const { videoWidth, videoHeight } = event.currentTarget;
+    if (controller.previewSource && videoWidth > 0 && videoHeight > 0) {
+      setPreviewAspect({ src: controller.previewSource, ratio: `${videoWidth} / ${videoHeight}` });
+    }
+  };
+  const aspectRatio = previewAspect?.src === controller.previewSource
+    ? previewAspect.ratio
+    : frameAspectCss;
 
   return (
     <>
-      <div className={VIDEO_PREVIEW_CLASS} style={{ aspectRatio: "16 / 9" }}>
+      <div className={VIDEO_PREVIEW_CLASS} style={{ aspectRatio }}>
         {controller.useVideoReferencePreview ? (
           <VideoReferenceMediaPreview
             src={controller.previewSource}
             state={controller.state}
+            onLoadedMetadata={onLoadedMetadata}
           />
         ) : controller.previewSource ? (
           <BeatVideoPlayer
             src={controller.previewSource}
             beatNum={controller.beatNumber}
+            onLoadedMetadata={onLoadedMetadata}
           />
         ) : (
           <span className="text-xs text-muted-foreground">
@@ -84,29 +97,12 @@ export function VideoPaneMediaView({
         {controller.videoActive && (
           <div
             className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-media/55 backdrop-blur-[1px]"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={controller.videoPercent}
           >
             <Loader2
               aria-hidden
               className="size-5 animate-spin text-media-foreground/90"
             />
-            <div className="flex items-baseline leading-none text-media-foreground">
-              <span className="text-2xl font-semibold tabular-nums tracking-tight">
-                {controller.videoPercent}
-              </span>
-              <span className="ml-0.5 text-xs font-medium text-media-foreground/70">
-                %
-              </span>
-            </div>
-            <div className="h-1 w-24 overflow-hidden rounded-full bg-media-foreground/20">
-              <div
-                className="h-full rounded-full bg-media-foreground/85 transition-[width] duration-300 ease-out"
-                style={{ width: `${controller.videoPercent}%` }}
-              />
-            </div>
+            <TaskProgress task={controller.videoTask} className="w-4/5 max-w-52 [&>span]:justify-center [&>span]:text-media-foreground" aria-label={t('episode.workbench.video.generating')} />
           </div>
         )}
       </div>
@@ -132,7 +128,7 @@ export function VideoPaneMediaView({
                 >
                   <div
                     className="h-[76px] bg-media"
-                    style={{ aspectRatio: frameAspectCss }}
+                    style={candidate.previewSource ? undefined : { aspectRatio: frameAspectCss }}
                   >
                     {candidate.previewSource && (
                       <video
@@ -142,7 +138,7 @@ export function VideoPaneMediaView({
                         preload="metadata"
                         disableRemotePlayback
                         disablePictureInPicture
-                        className="h-full w-full object-cover"
+                        className="block h-full w-auto object-contain"
                       />
                     )}
                   </div>

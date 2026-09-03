@@ -33,6 +33,7 @@ export interface VideoModelOption {
   dialogueOnly: boolean;
   minDuration?: number;
   maxDuration?: number;
+  durationOptions?: number[];
   resolutionOptions?: string[];
   resolutionMaxSeconds?: Record<string, number>;
   sizeOptions?: string[];
@@ -121,7 +122,11 @@ function videoModelOptionFromCatalog(
       : ratioOptionsFromSizes(sizeOptions),
   );
   const supportedModes = stringArray(
-    firstDefined(capabilities.supportedModes, capabilities.modes),
+    firstDefined(
+      capabilities.supportedModes,
+      capabilities.modes,
+      properties.mode?.enum,
+    ),
   );
   const sceneOptimizeOptions = stringArray(
     firstDefined(
@@ -138,6 +143,8 @@ function videoModelOptionFromCatalog(
   const minDuration = finiteNumber(
     firstDefined(
       capabilities.minDuration,
+      capabilities.minSeconds,
+      capabilities.videoGenerationMinSeconds,
       properties.seconds?.minimum,
       properties.duration?.minimum,
     ),
@@ -145,8 +152,19 @@ function videoModelOptionFromCatalog(
   const maxDuration = finiteNumber(
     firstDefined(
       capabilities.maxDuration,
+      capabilities.maxSeconds,
+      capabilities.videoGenerationMaxSeconds,
       properties.seconds?.maximum,
       properties.duration?.maximum,
+    ),
+  );
+  const durationOptions = positiveNumberArray(
+    firstDefined(
+      capabilities.durationOptions,
+      capabilities.secondsOptions,
+      capabilities.videoDurationOptions,
+      properties.seconds?.enum,
+      properties.duration?.enum,
     ),
   );
   const referenceImageMax = finiteNumber(capabilities.referenceImageMax);
@@ -154,12 +172,13 @@ function videoModelOptionFromCatalog(
   const referenceAudioMax = finiteNumber(capabilities.referenceAudioMax);
   const referenceTotalMax = finiteNumber(capabilities.referenceTotalMax);
   const hasCapabilityDrivenConfig = Boolean(
-    supportedModes.length > 1 ||
+    supportedModes.length > 0 ||
       declaredResolutionOptions.length ||
       ratioOptions.length ||
       sceneOptimizeOptions.length ||
       minDuration !== undefined ||
       maxDuration !== undefined ||
+      durationOptions.length ||
       booleanValue(capabilities.generateAudio) === true ||
       booleanValue(capabilities.nativeAudio) === true ||
       (referenceImageMax ?? 0) > 0 ||
@@ -196,6 +215,7 @@ function videoModelOptionFromCatalog(
     dialogueOnly: booleanValue(capabilities.dialogueOnly) ?? false,
     ...optional("minDuration", minDuration),
     ...optional("maxDuration", maxDuration),
+    ...optionalArray("durationOptions", durationOptions),
     ...optionalArray(
       "resolutionOptions",
       resolutionOptions,
@@ -276,6 +296,15 @@ function finiteNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+function positiveNumberArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return unique(
+    value
+      .map((item) => Number(item))
+      .filter((item) => Number.isFinite(item) && item > 0),
+  );
+}
+
 function positiveNumberRecord(value: unknown): Record<string, number> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const entries = Object.entries(value)
@@ -354,7 +383,7 @@ function ratioOptionsFromSizes(sizeOptions: readonly string[]): string[] {
   );
 }
 
-function unique(values: string[]): string[] {
+function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values));
 }
 
@@ -362,6 +391,6 @@ function optional<K extends string, V>(key: K, value: V | undefined) {
   return value === undefined ? {} : ({ [key]: value } as Record<K, V>);
 }
 
-function optionalArray<K extends string>(key: K, value: string[]) {
-  return value.length === 0 ? {} : ({ [key]: unique(value) } as Record<K, string[]>);
+function optionalArray<K extends string, V>(key: K, value: V[]) {
+  return value.length === 0 ? {} : ({ [key]: unique(value) } as Record<K, V[]>);
 }

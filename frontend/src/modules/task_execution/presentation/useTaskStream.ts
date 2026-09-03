@@ -138,6 +138,7 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
     };
     const isCurrent = () =>
       eventSourceRef.current === es && (shouldHandleEvent?.() ?? true);
+    let latestState: TaskStreamState | null = null;
 
     const handleEvent = (e: MessageEvent) => {
       if (!isCurrent()) return;
@@ -149,6 +150,12 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
           return;
         }
         const nextState: TaskStreamState = {
+          task_id: data.task_id,
+          task_key: data.task_key,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+          completed_at: data.completed_at,
+          streamHealth: 'connected',
           status: data.status,
           progress: data.progress ?? 0,
           currentTask: data.current_task ?? "",
@@ -156,6 +163,7 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
           error: data.error ?? null,
           logs: Array.isArray(data.logs) ? data.logs.filter((x) => typeof x === "string") : [],
         };
+        latestState = nextState;
         setState(nextState);
         onUpdateRef.current?.(nextState, data.task_id);
 
@@ -218,11 +226,15 @@ export function useTaskStream(options: UseTaskStreamOptions): TaskStreamState {
       }
     });
 
-    es.onerror = () => {
-      // Plain network-level error (connection drop). EventSource
-      // auto-reconnects; if task finished while disconnected, server
-      // resends terminal event on reconnect.
+    const updateHealth = (streamHealth: 'connected' | 'reconnecting') => {
+      if (!isCurrent() || !latestState) return;
+      const next = { ...latestState, streamHealth };
+      latestState = next;
+      setState(next);
+      onUpdateRef.current?.(next, next.task_id ?? taskId ?? '');
     };
+    es.onopen = () => updateHealth('connected');
+    es.onerror = () => updateHealth('reconnecting');
 
     return close;
   }, [

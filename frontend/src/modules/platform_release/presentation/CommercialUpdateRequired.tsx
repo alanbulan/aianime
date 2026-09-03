@@ -20,6 +20,7 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
   >("idle");
   const [downloadProgress, setDownloadProgress] =
     useState<CommercialUpdateDownloadProgress | null>(null);
+  const [downloadStartedAt, setDownloadStartedAt] = useState<number | null>(null);
   const artifactId = release.data?.artifactId ?? null;
   const isInstalling =
     installState === "downloading" || installState === "installing";
@@ -27,6 +28,7 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
   const handleInstall = useCallback(async () => {
     if (!artifactId || isInstalling) return;
     setDownloadProgress(null);
+    setDownloadStartedAt(Date.now());
     setInstallState("downloading");
     try {
       await downloadCommercialUpdate(artifactId);
@@ -69,8 +71,8 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
         ) : null}
         {artifactId !== null ? (
           <div className="mt-6 space-y-2">
-            {installState === "downloading" ? (
-              <CommercialUpdateProgressView progress={downloadProgress} />
+            {installState !== "idle" ? (
+              <CommercialUpdateProgressView progress={downloadProgress} startedAt={downloadStartedAt} status={installState === 'error' ? 'failed' : installState === 'installing' ? 'finalizing' : 'running'} />
             ) : null}
             <Button
               type="button"
@@ -81,11 +83,7 @@ export function CommercialUpdateRequired({ enabled }: { enabled: boolean }) {
               {isInstalling ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden="true" />
               ) : null}
-              {isInstalling && installState === "downloading" && downloadProgress
-                ? t("app.commercialUpdate.downloadingWithPercent", {
-                    percent: Math.round(downloadProgress.percent),
-                  })
-                : t(
+              {t(
                     isInstalling
                       ? installState === "downloading"
                         ? "app.commercialUpdate.downloading"

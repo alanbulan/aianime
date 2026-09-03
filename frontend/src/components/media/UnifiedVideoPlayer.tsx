@@ -241,7 +241,7 @@ export const UnifiedVideoPlayer = forwardRef<
           >
             {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
           </Button>
-          <span className="shrink-0 text-[10px] tabular-nums text-media-foreground/85">
+          <span className="min-w-0 flex-1 truncate text-[10px] tabular-nums text-media-foreground/85">
             {formatPreciseMediaTime(currentTime, duration)} / {formatPreciseMediaTime(duration, duration)}
           </span>
           {!compact && (

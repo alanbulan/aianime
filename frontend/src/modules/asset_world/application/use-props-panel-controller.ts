@@ -161,6 +161,7 @@ export function createUsePropsPanelController(
       batchGeneratePending: batchGenerate.isPending,
       batchLogs,
       batchProgress: batchTask.stream.progress,
+      batchStream: batchTask.stream,
       batchStopping: batchTask.stopping,
       deleteDialog: {
         confirm: confirmDelete,

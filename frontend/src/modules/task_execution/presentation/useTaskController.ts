@@ -265,6 +265,11 @@ export function useTaskController(
       ...current,
       streamState: {
         status: match.status,
+        task_id: match.task_id,
+        task_key: match.task_key,
+        created_at: match.created_at,
+        updated_at: match.updated_at,
+        completed_at: match.completed_at,
         progress: match.progress ?? current.streamState.progress,
         currentTask: match.current_task ?? current.streamState.currentTask,
         result: match.result ?? null,

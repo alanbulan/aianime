@@ -791,9 +791,6 @@ export const httpProductionVideoGateway: ProductionVideoGateway = {
                 image_generation_selection: command.imageGenerationSelection,
               }
             : {}),
-          ...(command.sketchAspectPadding !== undefined
-            ? { sketch_aspect_padding: command.sketchAspectPadding }
-            : {}),
         },
       })
       .json<ProductionDataResponse<RenderPlan> | ProductionErrorResponse>();

@@ -29,9 +29,8 @@
       "acknowledge": "Later",
       "downloadAndInstall": "Download & install",
       "downloading": "Downloading",
-      "downloadingWithPercent": "Downloading {{percent}}%",
-      "downloadProgress": "{{percent}}% · {{transferred}} / {{total}} · {{speed}}/s",
-      "downloadProgressUnknownTotal": "{{percent}}% · {{transferred}} downloaded · {{speed}}/s",
+      "downloadProgress": "{{transferred}} / {{total}} · {{speed}}/s",
+      "downloadProgressUnknownTotal": "{{transferred}} downloaded · {{speed}}/s",
       "installing": "Starting installer",
       "installFailed": "Download or install failed. Try again.",
       "requiredTitle": "This version must be updated",
@@ -1387,6 +1386,7 @@
     "globalOptimize": "Global Optimize",
     "videoGenerating": "Generating video...",
     "addSubtitles": "Add Subtitles",
+    "addBgm": "Auto BGM",
     "composeVideo": "Compose Video",
     "composing": "Composing...",
     "composeHint": "Configure options and click \"Compose Video\" to generate final video",
@@ -1898,7 +1898,8 @@
         "switchFailed": "Switch failed",
         "videoReferencePrompt": "Advanced video subject prompt",
         "videoReferenceReady": "Configured",
-        "videoReferenceMissing": "Missing",
+        "videoPromptReady": "Model prompt configured",
+        "videoPromptMissing": "Model prompt not configured",
         "videoReferenceSaved": "Advanced video config saved",
         "videoReferenceInspector": "Advanced video Inspector",
         "videoReferencePreviewMode": "Advanced video preview mode",
@@ -1946,11 +1947,13 @@
         "videoReferenceCropWidth": "Width",
         "videoReferenceCropHeight": "Height",
         "videoReferenceModeLabels": {
+          "text_to_video": "Text-to-video",
           "first_frame": "First-frame mode",
           "first_last_frame": "First-last-frame mode",
           "multimodal_reference": "Multi-reference mode"
         },
         "videoReferenceModeDescriptions": {
+          "text_to_video": "Sends only the prompt, without a first frame, last frame, or reference assets.",
           "first_frame": "Strictly locks the current render as the first frame; no other reference images are sent.",
           "first_last_frame": "Strictly locks the current Beat render as the first frame and the next Beat render as the last frame; no other references are sent.",
           "multimodal_reference": "The current render is the semantic start frame; when available, the next Beat render is the semantic end frame alongside character, scene, prop, and audio references. Prompt-level endpoints are not strict first/last-frame slots."
@@ -2423,7 +2426,6 @@
       "composeTitle": "Confirm compose 「{{title}}」",
       "composeDesc": "Concatenate all beat video clips into a complete episode. This may take a few minutes.",
       "composeDescSubtitles": " (with subtitles)",
-      "composeDescBgm": " (with BGM)",
       "composeConfirm": "Start Compose",
       "composeCancel": "Cancel",
       "composing": "Composing",
@@ -2445,6 +2447,8 @@
       "readyToCompose": "All beats ready — click \"Compose Episode\" in the top right to start",
       "subtitlesOn": "with subtitles",
       "subtitlesOff": "no subtitles",
+      "bgmOn": "with auto BGM",
+      "bgmOff": "no BGM",
       "durationApprox": "~{{value}}",
       "durationUnknown": "duration unknown",
       "planDot": " · ",
@@ -3041,7 +3045,6 @@
     "providerLabel": "Provider",
     "modelLabel": "Model",
     "qualityLabel": "Quality",
-    "scaleLabel": "Scale",
     "submit": "Generate",
     "cancel": "Cancel",
     "preset": {
@@ -4429,7 +4432,15 @@
   "errorDialog": {
     "detailsTitle": "Error details",
     "copyReport": "Copy error report",
+    "copyFailed": "Copy failed. Try again.",
     "technicalDetails": "Technical details"
+  },
+  "taskProgress": {
+    "snapshot": "Last reported {{percent}}%",
+    "estimated": "Estimated {{percent}}%",
+    "elapsed": "Elapsed {{time}}",
+    "reconnecting": "Connection lost. Reconnecting…",
+    "processing": "Still processing, please wait"
   },
   "videoCompose": {
     "title": "Video Compose",

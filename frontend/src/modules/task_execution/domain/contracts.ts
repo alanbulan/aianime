@@ -37,6 +37,10 @@ export interface TaskState {
 
 export interface TaskStreamEvent {
   task_id: string;
+  task_key?: string;
+  created_at?: string;
+  updated_at?: string;
+  completed_at?: string;
   status: TaskStatus;
   progress: number;
   current_task?: string;

@@ -31,7 +31,9 @@ export function formatEpisodeDuration(totalSeconds: number): string | null {
 export function episodeResolutionTier(
   value: string | null | undefined,
 ): EpisodeResolutionTier {
-  return value === "1080x1920" || value === "1920x1080" ? "1080" : "720";
+  return value === "1080x1920" || value === "1920x1080" || value === "1080p"
+    ? "1080"
+    : "720";
 }
 
 export function episodeResolutionFor(
@@ -47,14 +49,30 @@ export function episodeResolutionFor(
 export function episodeResolutionLabel(
   resolution: EpisodeResolution,
 ): string {
-  return episodeResolutionTier(resolution) === "1080" ? "1080p" : "720p";
+  const [width, height] = resolution.split("x").map(Number);
+  const ratio = width < height ? "9:16" : "16:9";
+  return `${episodeResolutionTier(resolution)}p · ${ratio} (${resolution.replace("x", "×")})`;
 }
 
 export function episodeResolutionOptions(
-  orientation: EpisodeOrientation,
+  orientation?: EpisodeOrientation,
 ): EpisodeResolution[] {
+  if (!orientation) {
+    return [
+      ...episodeResolutionOptions("portrait"),
+      ...episodeResolutionOptions("landscape"),
+    ];
+  }
   return [
     episodeResolutionFor("720", orientation),
     episodeResolutionFor("1080", orientation),
   ];
+}
+
+export function resolveEpisodeResolution(
+  value: string | null | undefined,
+  fallbackOrientation: EpisodeOrientation,
+): EpisodeResolution {
+  return episodeResolutionOptions().find((resolution) => resolution === value)
+    ?? episodeResolutionFor(episodeResolutionTier(value), fallbackOrientation);
 }

@@ -186,6 +186,32 @@ describe("VideoReference config controller", () => {
     ]);
   });
 
+  it("normalizes and exposes catalog-declared duration options", () => {
+    const { result } = renderController({
+      beat: makeBeat({
+        video_config_json: JSON.stringify({
+          mode: "first_frame",
+          duration: 7,
+          resolution: "720p",
+          ratio: "9:16",
+          final_prompt: "主体提示词",
+        }),
+      }),
+      selectedModel: makeModel({
+        minDuration: 4,
+        maxDuration: 12,
+        durationOptions: [4, 8, 12],
+      }),
+    });
+
+    expect(result.current.videoDurationOptions).toEqual([4, 8, 12]);
+    expect(result.current.draft.duration).toBe(8);
+    expect(result.current.generationInput).toMatchObject({
+      durationBounds: { min: 4, max: 12 },
+      durationOptions: [4, 8, 12],
+    });
+  });
+
   it("keeps H3 quality and ratio as independent visible controls", () => {
     const h3 = makeModel({
       value: "cloud:video-model-c",

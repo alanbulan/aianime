@@ -1,4 +1,5 @@
 // Copyright (c) 2026 AI anime
+import { TaskProgress } from '@/components/task-progress';
 import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -111,7 +112,7 @@ export function RenderSectionView({
     relight,
     renderActive,
     renderAspectRatio,
-    renderPercent,
+    renderTask,
     stalePromptOpen,
     uploadPending,
     onConfirmRegen,
@@ -164,29 +165,12 @@ export function RenderSectionView({
             {renderActive && (
               <div
                 className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[10px] bg-media/55 backdrop-blur-[1px]"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={renderPercent}
               >
                 <Loader2
                   aria-hidden
                   className="size-5 animate-spin text-media-foreground/90"
                 />
-                <div className="flex items-baseline leading-none text-media-foreground">
-                  <span className="text-2xl font-semibold tabular-nums tracking-tight">
-                    {renderPercent}
-                  </span>
-                  <span className="ml-0.5 text-xs font-medium text-media-foreground/70">
-                    %
-                  </span>
-                </div>
-                <div className="h-1 w-24 overflow-hidden rounded-full bg-media-foreground/20">
-                  <div
-                    className="h-full rounded-full bg-media-foreground/85 transition-[width] duration-300 ease-out"
-                    style={{ width: `${renderPercent}%` }}
-                  />
-                </div>
+                <TaskProgress task={renderTask} className="w-4/5 max-w-52 [&>span]:justify-center [&>span]:text-media-foreground" aria-label={t('episode.workbench.render.generating')} />
               </div>
             )}
           </div>

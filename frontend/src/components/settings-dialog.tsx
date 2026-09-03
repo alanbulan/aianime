@@ -1208,7 +1208,7 @@ function ModelDetailsDialog({
   const { t } = useTranslation();
   return (
     <Dialog open={Boolean(sku)} onOpenChange={onOpenChange}>
-      <DialogContent className="grid h-[min(76dvh,680px)] max-h-[calc(100dvh-2rem)] max-w-[calc(100%-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[680px]">
+      <DialogContent className="grid max-h-[min(76dvh,680px)] max-w-[calc(100%-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:max-w-[680px]">
         <DialogHeader className="relative z-10 border-b border-border bg-popover px-5 py-4">
           <DialogTitle>{model?.displayName ?? t("settings.modelAccess.modelDetails")}</DialogTitle>
         </DialogHeader>
@@ -1254,6 +1254,18 @@ function ModelDetailsPanel({
   }
   if (!model) return null;
   const runtimeMetadata = commercialModelRuntimeMetadata(model);
+  const declarations = commercialModelParameterDeclarations(model.parameterSchema).filter(
+    (declaration) => {
+      const key = declaration.depth === 0
+        ? declaration.path.replace(/[_-]/gu, "").toLowerCase()
+        : "";
+      return !(
+        (runtimeMetadata.maxOutputTokens !== undefined &&
+          ["maxtokens", "maxcompletiontokens", "maxoutputtokens", "outputtokenlimit"].includes(key)) ||
+        (runtimeMetadata.reasoningEffort !== undefined && key === "reasoningeffort")
+      );
+    },
+  );
   return (
     <div className="px-1">
       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
@@ -1289,22 +1301,17 @@ function ModelDetailsPanel({
           />
         )}
       </div>
-      <ModelParameterDetails parameterSchema={model.parameterSchema} />
-      <JsonDetails
-        label={t("settings.modelAccess.capabilities")}
-        value={model.capabilities}
-      />
+      <ModelParameterDetails declarations={declarations} />
     </div>
   );
 }
 
 function ModelParameterDetails({
-  parameterSchema,
+  declarations,
 }: {
-  parameterSchema: Record<string, unknown>;
+  declarations: ModelParameterDeclaration[];
 }) {
   const { t } = useTranslation();
-  const declarations = commercialModelParameterDeclarations(parameterSchema);
   if (declarations.length === 0) return null;
   const topLevelCount = declarations.filter((item) => item.depth === 0).length;
   return (
@@ -2230,25 +2237,6 @@ function DetailValue({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] text-muted-foreground">{label}</p>
       <p className="break-words text-foreground">{value}</p>
     </div>
-  );
-}
-
-function JsonDetails({
-  label,
-  value,
-}: {
-  label: string;
-  value: Record<string, unknown>;
-}) {
-  return (
-    <details className="mt-3 border-t border-border/70 pt-2">
-      <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-        {label}
-      </summary>
-      <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all bg-muted/45 p-2 text-[11px] text-foreground">
-        {JSON.stringify(value, null, 2)}
-      </pre>
-    </details>
   );
 }
 

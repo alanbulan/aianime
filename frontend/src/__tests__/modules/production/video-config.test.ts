@@ -15,6 +15,7 @@ import {
   serializeBeatVideoConfig,
   serializeReferenceVideoConfig,
   videoDurationBoundsForModel,
+  videoDurationOptionsForModel,
   videoModeOptionsForModel,
   videoModelDisplayLabel,
   videoRatioOptionsForModel,
@@ -60,6 +61,7 @@ describe("production video config domain", () => {
       "720p",
     ]);
     expect(videoModeOptionsForModel(capabilities)).toEqual([
+      "text_to_video",
       "first_last_frame",
       "multimodal_reference",
     ]);
@@ -73,11 +75,15 @@ describe("production video config domain", () => {
 
   it("normalizes duration bounds and values", () => {
     expect(videoDurationBoundsForModel({ minDuration: 4.4, maxDuration: 12.2 })).toEqual({
-      min: 4,
+      min: 5,
       max: 12,
     });
     expect(clampDuration("12.7", { min: 4, max: 12 })).toBe(12);
     expect(clampDuration("invalid", { min: 8, max: 12 })).toBe(8);
+    expect(
+      videoDurationOptionsForModel({ durationOptions: [12, 4, 8, 8] }),
+    ).toEqual([4, 8, 12]);
+    expect(clampDuration(7, { min: 4, max: 12 }, [4, 8, 12])).toBe(8);
   });
 
   it("normalizes advanced settings against declared capabilities", () => {

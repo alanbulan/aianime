@@ -21,6 +21,7 @@ export type VideoResolutionTier = "480p" | "720p" | "768p" | "1080p";
 export type ExactVideoResolution = `${number}x${number}`;
 export type VideoResolution = VideoResolutionTier | ExactVideoResolution;
 export type VideoReferenceMode =
+  | "text_to_video"
   | "first_frame"
   | "first_last_frame"
   | "multimodal_reference";
@@ -78,6 +79,7 @@ export type VideoModelConfigCapabilities = Pick<
   | "supportedModes"
   | "minDuration"
   | "maxDuration"
+  | "durationOptions"
   | "resolutionMaxSeconds"
   | "sceneOptimizeOptions"
 >;
@@ -105,6 +107,7 @@ export function defaultVideoRatioForProjectAspect(
 
 export function normalizeVideoReferenceMode(value: unknown): VideoReferenceMode {
   if (
+    value === "text_to_video" ||
     value === "first_frame" ||
     value === "first_last_frame" ||
     value === "multimodal_reference"
@@ -167,6 +170,9 @@ function videoModeFromCapability(value: string): VideoReferenceMode | null {
   if (["first_frame", "image_to_video", "i2v"].includes(normalized)) {
     return "first_frame";
   }
+  if (["text_to_video", "t2v"].includes(normalized)) {
+    return "text_to_video";
+  }
   if (["first_last_frame", "keyframe", "flf"].includes(normalized)) {
     return "first_last_frame";
   }
@@ -225,6 +231,8 @@ export function normalizeAdvancedVideoDraftForModel(
   isValueStyle: boolean,
   modeOptions: readonly VideoReferenceMode[] = DEFAULT_ADVANCED_VIDEO_MODE_OPTIONS,
   ratioOptions: readonly VideoAspectRatio[] = DEFAULT_ADVANCED_VIDEO_RATIO_OPTIONS,
+  durationBounds: VideoDurationBounds = { min: 1, max: 15 },
+  durationOptions: readonly number[] = [],
 ): BeatVideoConfigDraft {
   const fallbackResolution = resolutionOptions.includes("720p")
     ? "720p"
@@ -243,10 +251,16 @@ export function normalizeAdvancedVideoDraftForModel(
   const sceneOptimize = isValueStyle
     ? draft.scene_optimize || "anime"
     : "";
+  const duration = clampDuration(
+    draft.duration,
+    durationBounds,
+    durationOptions,
+  );
   if (
     draft.resolution === resolution &&
     draft.mode === mode &&
     draft.ratio === ratio &&
+    draft.duration === duration &&
     draft.scene_optimize === sceneOptimize
   ) {
     return draft;
@@ -254,6 +268,7 @@ export function normalizeAdvancedVideoDraftForModel(
   return {
     ...draft,
     mode,
+    duration,
     ratio,
     resolution,
     scene_optimize: sceneOptimize,
@@ -315,10 +330,17 @@ export function normalizeReferenceVideoDraftForModel(
   resolutionOptions: readonly VideoResolution[],
   ratioOptions: readonly VideoAspectRatio[],
   resolutionMaxSeconds: Readonly<Record<string, number>> = {},
+  durationBounds: VideoDurationBounds = { min: 1, max: 15 },
+  durationOptions: readonly number[] = [],
 ): BeatVideoConfigDraft {
+  const duration = clampDuration(
+    draft.duration,
+    durationBounds,
+    durationOptions,
+  );
   const durationResolutionOptions = referenceVideoResolutionOptionsForDuration(
     resolutionOptions,
-    draft.duration,
+    duration,
     resolutionMaxSeconds,
   );
   const fallbackResolution = durationResolutionOptions[0] || "720p";
@@ -331,6 +353,7 @@ export function normalizeReferenceVideoDraftForModel(
   const mode = normalizeReferenceVideoMode(draft.mode);
   if (
     draft.mode === mode &&
+    draft.duration === duration &&
     draft.resolution === resolution &&
     draft.ratio === ratio &&
     draft.generate_audio === false &&
@@ -343,6 +366,7 @@ export function normalizeReferenceVideoDraftForModel(
   return {
     ...draft,
     mode,
+    duration,
     resolution,
     ratio,
     generate_audio: false,
@@ -355,11 +379,25 @@ export function normalizeReferenceVideoDraftForModel(
 export function videoDurationBoundsForModel(
   model: VideoModelConfigCapabilities | null | undefined,
 ): VideoDurationBounds {
+  const options = normalizedVideoDurationOptions(model?.durationOptions);
   const min = Number(model?.minDuration);
   const max = Number(model?.maxDuration);
-  const safeMin = Number.isFinite(min) && min > 0 ? Math.round(min) : 1;
-  const safeMax = Number.isFinite(max) && max >= safeMin ? Math.round(max) : 15;
+  const safeMin = Number.isFinite(min) && min > 0
+    ? Math.ceil(min)
+    : options[0] ?? 1;
+  const safeMax = Number.isFinite(max) && Math.floor(max) >= safeMin
+    ? Math.floor(max)
+    : options[options.length - 1] ?? Math.max(safeMin, 15);
   return { min: safeMin, max: safeMax };
+}
+
+export function videoDurationOptionsForModel(
+  model: VideoModelConfigCapabilities | null | undefined,
+): readonly number[] {
+  const bounds = videoDurationBoundsForModel(model);
+  return normalizedVideoDurationOptions(model?.durationOptions).filter(
+    (option) => option >= bounds.min && option <= bounds.max,
+  );
 }
 
 export function normalizeVideoResolutionTier(
@@ -406,12 +444,31 @@ export function normalizeVideoAspectRatio(
 export function clampDuration(
   value: unknown,
   bounds: VideoDurationBounds = { min: 1, max: 15 },
+  options: readonly number[] = [],
 ): number {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return Math.max(bounds.min, Math.min(bounds.max, 5));
-  }
-  return Math.max(bounds.min, Math.min(bounds.max, Math.round(parsed)));
+  const requested = Number.isFinite(parsed) ? Math.round(parsed) : 5;
+  const bounded = Math.max(bounds.min, Math.min(bounds.max, requested));
+  const supported = normalizedVideoDurationOptions(options).filter(
+    (option) => option >= bounds.min && option <= bounds.max,
+  );
+  return (
+    supported.find((option) => option >= bounded) ??
+    supported[supported.length - 1] ??
+    bounded
+  );
+}
+
+function normalizedVideoDurationOptions(
+  values: readonly number[] | null | undefined,
+): number[] {
+  return Array.from(
+    new Set(
+      (values ?? []).filter(
+        (value) => Number.isFinite(value) && Number.isInteger(value) && value > 0,
+      ),
+    ),
+  ).sort((left, right) => left - right);
 }
 
 export function sameBeatVideoConfig(

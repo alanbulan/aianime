@@ -62,11 +62,13 @@ export function VideoGenerationHistoryPreview({
 export interface VideoGeneratingStateProps {
   previewImageUrl: string | null;
   progress?: number | null;
+  generation?: unknown;
 }
 
 export function VideoGeneratingState({
   previewImageUrl,
   progress = null,
+  generation,
 }: VideoGeneratingStateProps) {
   return (
     <div className="relative h-full w-full">
@@ -80,6 +82,7 @@ export function VideoGeneratingState({
       ) : null}
       <NodeGenerationOverlay
         progress={progress}
+        generation={generation}
       />
     </div>
   );

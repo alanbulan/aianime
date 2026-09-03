@@ -29,9 +29,8 @@
       "acknowledge": "稍后处理",
       "downloadAndInstall": "下载并安装",
       "downloading": "正在下载",
-      "downloadingWithPercent": "正在下载 {{percent}}%",
-      "downloadProgress": "{{percent}}% · {{transferred}} / {{total}} · {{speed}}/秒",
-      "downloadProgressUnknownTotal": "{{percent}}% · 已下载 {{transferred}} · {{speed}}/秒",
+      "downloadProgress": "{{transferred}} / {{total}} · {{speed}}/秒",
+      "downloadProgressUnknownTotal": "已下载 {{transferred}} · {{speed}}/秒",
       "installing": "正在启动安装",
       "installFailed": "下载或安装失败，请重试",
       "requiredTitle": "当前版本需要升级",
@@ -1387,6 +1386,7 @@
     "globalOptimize": "全局优化",
     "videoGenerating": "视频生成中...",
     "addSubtitles": "添加字幕",
+    "addBgm": "自动配乐",
     "composeVideo": "合成视频",
     "composing": "合成中...",
     "composeHint": "配置选项后点击「合成视频」生成最终视频",
@@ -1898,7 +1898,8 @@
         "switchFailed": "切换失败",
         "videoReferencePrompt": "Advanced video主体提示词",
         "videoReferenceReady": "已配置",
-        "videoReferenceMissing": "缺失",
+        "videoPromptReady": "模型提示词已配置",
+        "videoPromptMissing": "模型提示词未配置",
         "videoReferenceSaved": "Advanced video 配置已保存",
         "videoReferenceInspector": "Advanced video 检视器",
         "videoReferencePreviewMode": "Advanced video 预览模式",
@@ -1946,11 +1947,13 @@
         "videoReferenceCropWidth": "宽",
         "videoReferenceCropHeight": "高",
         "videoReferenceModeLabels": {
+          "text_to_video": "文生视频",
           "first_frame": "首帧模式",
           "first_last_frame": "首尾帧模式",
           "multimodal_reference": "多参模式"
         },
         "videoReferenceModeDescriptions": {
+          "text_to_video": "仅发送提示词，不发送首帧、尾帧或任何参考素材。",
           "first_frame": "严格锁定当前 Render 为首帧；不会同时发送其他参考图。",
           "first_last_frame": "严格锁定当前 Beat Render 为首帧、下一 Beat Render 为尾帧；不会同时发送其他参考素材。",
           "multimodal_reference": "当前 Render 作为语义首帧；下一 Beat Render 可用时作为语义尾帧，并同时参考角色、场景、道具和音频。端点由提示词约束，不等同于严格首尾帧接口。"
@@ -2423,7 +2426,6 @@
       "composeTitle": "确认合成「{{title}}」",
       "composeDesc": "将所有节拍的视频片段拼接为完整剧集，合成过程可能需要几分钟。",
       "composeDescSubtitles": "（含字幕）",
-      "composeDescBgm": "（含背景音乐）",
       "composeConfirm": "开始合成",
       "composeCancel": "取消",
       "composing": "合成",
@@ -2445,6 +2447,8 @@
       "readyToCompose": "全部镜头已就绪，点击右上角「合成剧集」开始",
       "subtitlesOn": "含字幕",
       "subtitlesOff": "无字幕",
+      "bgmOn": "含自动配乐",
+      "bgmOff": "无配乐",
       "durationApprox": "约 {{value}}",
       "durationUnknown": "时长未估",
       "planDot": " · ",
@@ -3041,7 +3045,6 @@
     "providerLabel": "模型选择",
     "modelLabel": "模型",
     "qualityLabel": "画质",
-    "scaleLabel": "放大倍数",
     "submit": "提交生成",
     "cancel": "取消",
     "preset": {
@@ -4429,7 +4432,15 @@
   "errorDialog": {
     "detailsTitle": "错误详情",
     "copyReport": "复制报错信息",
+    "copyFailed": "复制失败，请重试",
     "technicalDetails": "技术详情"
+  },
+  "taskProgress": {
+    "snapshot": "上次记录 {{percent}}%",
+    "estimated": "预计 {{percent}}%",
+    "elapsed": "已用 {{time}}",
+    "reconnecting": "连接中断，正在重连…",
+    "processing": "仍在处理，请稍候"
   },
   "videoCompose": {
     "title": "视频合成",

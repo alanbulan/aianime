@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { selectionScope, useTaskController } from "@/modules/task_execution/public";
+import { selectionScope, useTaskController, type TaskStreamState } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/shared/aspect-ratio";
 import { isNoReferenceMarker } from "@/lib/beat-markers";
 import { formatGeneratedAgeLabel } from "@/lib/format-relative-time";
@@ -279,7 +279,7 @@ export interface SketchSectionController {
   regenTask: SketchTaskViewModel;
   sketchActive: boolean;
   sketchAspectRatio: string;
-  sketchPercent: number;
+  sketchTask: TaskStreamState;
   stageDialogOpen: boolean;
   stalePromptOpen: boolean;
   uploadPending: boolean;
@@ -425,10 +425,6 @@ export function createUseSketchSectionController(
     const sketchStream = directorTask.started
       ? directorTask.stream
       : regenTask.stream;
-    const sketchPercent = Math.max(
-      0,
-      Math.min(100, Math.round((sketchStream?.progress ?? 0) * 100)),
-    );
     const candidates = options.images
       .filter((image) => image.type === "sketch" && image.cell_url)
       .sort((first, second) => {
@@ -862,7 +858,7 @@ export function createUseSketchSectionController(
       },
       sketchActive,
       sketchAspectRatio: ratioToCss(spec.sketchAspect),
-      sketchPercent,
+      sketchTask: sketchStream,
       stageDialogOpen,
       stalePromptOpen: stalePrompt !== null,
       uploadPending: uploadSketch.isPending,

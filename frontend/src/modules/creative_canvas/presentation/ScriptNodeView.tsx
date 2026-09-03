@@ -146,6 +146,7 @@ export function ScriptNodeView({
         {controller.isGenerating ? (
           <NodeGenerationOverlay
             progress={controller.generationProgress}
+            generation={controller.data}
           />
         ) : null}
         {controller.hasResult ? (

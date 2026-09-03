@@ -11,12 +11,14 @@ import {
 import { useAppStore } from "@/modules/project_workspace/public";
 import {
   displayLabel,
-  taskProgressPercent,
+  useTaskProgress,
   type StreamHealth,
 } from "@/modules/task_execution/public";
 import { RegionBadge } from "@/components/layout/region-badge";
 import { APP_VERSION } from "@/lib/app-version";
 import { cn } from "@/lib/utils";
+import { Progress } from '@/components/ui/progress';
+import { TaskProgressFeedback } from '@/components/task-progress';
 
 const HEALTH_COLOR: Record<StreamHealth, string> = {
   idle: "text-muted-foreground",
@@ -77,13 +79,7 @@ export function TaskStatusBar() {
 
   const primaryKey = leading?.task_key ?? lastDone?.task_key ?? null;
   const progressTask = leading ?? lastDone ?? null;
-  const progress = progressTask ? taskProgressPercent(progressTask) : 0;
-  const progressTone = progressTask?.status === "failed"
-    ? "bg-destructive/55"
-    : progressTask?.status === "completed"
-      ? "bg-success/55"
-      : "bg-primary/55";
-  const isProgressActive = progressTask ? !["completed", "failed", "cancelled"].includes(progressTask.status) : false;
+  const progress = useTaskProgress(progressTask ?? { status: 'idle' });
   const onBarClick = () => togglePanelWith(primaryKey);
   const onBarKeyDown = (e: KeyboardEvent<HTMLElement>) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -141,7 +137,7 @@ export function TaskStatusBar() {
             {t("taskCenter.statusBar.idle")}
           </span>
         )}
-        {isProgressActive ? (
+        {progress.active ? (
           <span className="ml-2 hidden shrink-0 items-center gap-1.5 sm:flex">
             <span
               className="size-1.5 shrink-0 rounded-full bg-primary/55 animate-[task-status-breathe_2.4s_ease-in-out_infinite]"
@@ -152,18 +148,8 @@ export function TaskStatusBar() {
             >
               {t("taskCenter.statusBar.generationRunning")}
             </span>
-            <span
-              className="h-0.5 w-16 overflow-hidden rounded-full bg-border"
-              aria-label={t("taskCenter.statusBar.progress", { percent: progress })}
-            >
-              <span
-                className={cn("block h-full rounded-full transition-[width] duration-300", progressTone)}
-                style={{ width: `${progress}%` }}
-              />
-            </span>
-            <span className="w-8 text-right tabular-nums text-muted-foreground">
-              {progress}%
-            </span>
+            <Progress className="w-16" active={progress.active} value={progress.value} aria-label={t("taskCenter.statusBar.progress", { percent: progress.percent })} />
+            <TaskProgressFeedback progress={progress} compact className="flex-nowrap whitespace-nowrap" />
           </span>
         ) : null}
       </div>

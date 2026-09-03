@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw } from "lucid
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { TaskProgress } from "@/components/task-progress";
 
 export function formatBytes(bytes: number | undefined): string {
   if (!bytes || bytes <= 0) return "—";
@@ -25,6 +25,7 @@ export function RuntimeDependenciesSection({ active }: { active: boolean }) {
   const [progress, setProgress] = useState<AIAnimeRuntimeDependencyProgress | null>(null);
   const [loading, setLoading] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [installStartedAt, setInstallStartedAt] = useState<number | null>(null);
   const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
@@ -50,6 +51,7 @@ export function RuntimeDependenciesSection({ active }: { active: boolean }) {
   const install = async () => {
     if (!bridge) return;
     setInstalling(true);
+    setInstallStartedAt(Date.now());
     setError("");
     setProgress({ phase: "manifest", message: t("settings.dependencies.fetchingManifest") });
     try {
@@ -68,7 +70,6 @@ export function RuntimeDependenciesSection({ active }: { active: boolean }) {
     status?.state === "unsupported" &&
     status.platform === "darwin" &&
     status.arch === "x64";
-  const progressPercent = progress?.percent ?? 0;
   const totalBytes = progress?.totalBytes ?? status?.downloadSizeBytes;
 
   return (
@@ -131,7 +132,18 @@ export function RuntimeDependenciesSection({ active }: { active: boolean }) {
                 </span>
               ) : null}
             </div>
-            <Progress value={progressPercent} />
+            <TaskProgress
+              local
+              startedAt={installStartedAt}
+              task={{
+                status: error ? 'failed' : installing
+                  ? progress?.phase === 'manifest' ? 'queued'
+                    : progress?.phase === 'downloading' ? 'running' : 'finalizing'
+                  : healthy ? 'completed' : 'failed',
+                progress: (progress?.percent ?? 0) / 100,
+              }}
+              aria-label={t('settings.dependencies.installing')}
+            />
           </div>
         ) : null}
 

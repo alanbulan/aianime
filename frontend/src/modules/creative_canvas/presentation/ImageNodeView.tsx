@@ -123,6 +123,7 @@ export function ImageNodeView({
         {controller.isGenerating && (
           <NodeGenerationOverlay
             progress={controller.generationProgress}
+            generation={controller.data}
           />
         )}
       </div>

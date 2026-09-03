@@ -1,6 +1,8 @@
 // Copyright (c) 2026 AI anime
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { useTaskCenterStore } from "@/modules/task_execution/public";
+import { sampleTask } from "@/__mocks__/msw/handlers/tasks";
 
 vi.mock("@/modules/ai_assistant/presentation/SpecMediaModals", () => ({
   VideoDetailModal: ({
@@ -27,6 +29,11 @@ import type { UiSpec } from "@/modules/ai_assistant/domain/structuredContent";
 import { UiSpecRenderer } from "./SpecMediaGallery";
 
 describe("SuperChat spec media gallery", () => {
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    useTaskCenterStore.getState().reset();
+  });
   it("falls back to structured JSON for non-media specs", () => {
     render(
       <UiSpecRenderer
@@ -117,8 +124,8 @@ describe("SuperChat spec media gallery", () => {
     });
   });
 
-  it("renders pending keyframe status and progress", () => {
-    const { container } = render(
+  it("labels historical progress as a snapshot without starting a live progress bar", () => {
+    render(
       <UiSpecRenderer
         spec={{
           type: "keyframe_video",
@@ -138,9 +145,34 @@ describe("SuperChat spec media gallery", () => {
     expect(screen.getByText("Episode 1")).toBeInTheDocument();
     expect(screen.getByText("Rendering")).toBeInTheDocument();
     expect(screen.getByText("Queued")).toBeInTheDocument();
-    expect(
-      container.querySelector(".ai-anime-keyframe-video-progress > span"),
-    ).toHaveStyle({ width: "37%" });
+    expect(screen.getByText("taskProgress.snapshot")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
+  it("follows the linked task clock and reaches 100 only after task completion", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-09-03T12:00:00Z");
+    vi.setSystemTime(now);
+    const task = sampleTask({ progress: 0.37, created_at: now.toISOString(), updated_at: now.toISOString() });
+    useTaskCenterStore.getState().hydrate([task]);
+    useTaskCenterStore.getState().setHealth("connected");
+    render(<UiSpecRenderer spec={{
+      type: "keyframe_video",
+      root: "root",
+      metadata: { task_key: task.task_key, task_id: task.task_id },
+      elements: {
+        root: { type: "Card", props: { title: "Episode 1" } },
+        progress: { type: "Progress", props: { value: 37 } },
+      },
+    }} />);
+    const bar = screen.getByRole("progressbar");
+    expect(Number(bar.getAttribute("aria-valuenow"))).toBe(37);
+    act(() => vi.advanceTimersByTime(1000));
+    expect(Number(bar.getAttribute("aria-valuenow"))).toBeGreaterThan(37);
+    expect(Number(bar.getAttribute("aria-valuenow"))).toBeLessThan(100);
+    act(() => useTaskCenterStore.getState().upsert({ ...task, status: "completed", progress: 1, updated_at: new Date().toISOString() }));
+    expect(bar).toHaveAttribute("aria-valuenow", "100");
+    expect(bar).not.toHaveAttribute("data-active");
   });
 
   it("opens playable keyframe video details", async () => {

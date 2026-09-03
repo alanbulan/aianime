@@ -57,7 +57,7 @@ import { Button } from "@/components/ui/button";
 import { SUBTLE_HEADER_ACTION_BUTTON_CLASS } from "@/components/ui/header-action-styles";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { TaskProgress } from "@/components/task-progress";
 import { SaveStatus } from "@/components/save-status";
 import { saveScopes } from "@/shared/stores/save-status-store";
 import { SidebarListSkeleton } from "@/components/skeletons";
@@ -2303,11 +2303,8 @@ function CharactersSplit({
         <span className="min-w-0 truncate">
           {taskStream.currentTask || t("characters.extracting")}
         </span>
-        <span className="shrink-0 font-mono tabular-nums text-foreground/80">
-          {Math.round(taskStream.progress * 100)}%
-        </span>
       </div>
-      <Progress value={taskStream.progress * 100} className="mt-3 h-1.5" />
+      <TaskProgress task={taskStream} className="mt-3" />
     </div>
   );
 

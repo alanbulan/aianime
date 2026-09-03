@@ -297,6 +297,7 @@ export function ThreeDWorldNodeView({
         {isGenerating ? (
           <NodeGenerationOverlay
             progress={controller.generationProgress}
+            generation={controller.data}
           />
         ) : null}
       </div>

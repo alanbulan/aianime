@@ -176,8 +176,34 @@ export function BeatVideoConfigView({
     draft.ratio || projectAspect,
   );
   const promptStatus = config.ready
-    ? t("episode.workbench.video.videoReferenceReady")
-    : t("episode.workbench.video.videoReferenceMissing");
+    ? t("episode.workbench.video.videoPromptReady")
+    : t("episode.workbench.video.videoPromptMissing");
+  const changeDuration = (value: unknown) => {
+    const duration = clampDuration(
+      value,
+      config.videoDurationBounds,
+      config.videoDurationOptions,
+    );
+    config.changeDraft((current) => ({
+      ...current,
+      duration,
+      ...(showReferenceVideoConfig
+        && !referenceVideoResolutionOptionsForDuration(
+          config.referenceResolutionOptions,
+          duration,
+          config.referenceResolutionMaxSeconds,
+        ).includes(current.resolution)
+        ? {
+            resolution:
+              referenceVideoResolutionOptionsForDuration(
+                config.referenceResolutionOptions,
+                duration,
+                config.referenceResolutionMaxSeconds,
+              )[0] ?? current.resolution,
+          }
+        : {}),
+    }));
+  };
 
   const rememberSelection = (
     field: VideoReferenceMentionField,
@@ -199,6 +225,7 @@ export function BeatVideoConfigView({
   const handleReferenceDragOver = (
     event: DragEvent<HTMLTextAreaElement>,
   ) => {
+    if (draft.mode === "text_to_video") return;
     const types = Array.from(event.dataTransfer.types);
     const mayBeReferenceDrop =
       mention.referenceOptions.length > 0 &&
@@ -216,6 +243,7 @@ export function BeatVideoConfigView({
     field: VideoReferenceMentionField,
     event: DragEvent<HTMLTextAreaElement>,
   ) => {
+    if (draft.mode === "text_to_video") return;
     const customLabel = event.dataTransfer.getData(REFERENCE_DRAG_TYPE);
     const plainLabel = event.dataTransfer
       .getData("text/plain")
@@ -236,6 +264,7 @@ export function BeatVideoConfigView({
     field: VideoReferenceMentionField,
     event: KeyboardEvent<HTMLTextAreaElement>,
   ) => {
+    if (draft.mode === "text_to_video") return;
     mention.setActiveField(field);
     if (!mention.mentionOpen || event.nativeEvent.isComposing) return;
     switch (event.key) {
@@ -260,6 +289,7 @@ export function BeatVideoConfigView({
     }
   };
   const renderReferenceControls = (field: VideoReferenceMentionField) => {
+    if (draft.mode === "text_to_video") return null;
     if (mention.activeField !== field) return null;
     if (mention.mentionOpen) {
       return (
@@ -326,10 +356,12 @@ export function BeatVideoConfigView({
             ? `${modelLabel} 检视器`
             : t("episode.workbench.video.videoReferenceInspector")}
         </Label>
-        <VideoReferenceSummaryPill
-          active={status?.media.render_ready ?? fallbackFrameReady}
-          label={t("episode.workbench.video.renderReady")}
-        />
+        {draft.mode !== "text_to_video" && (
+          <VideoReferenceSummaryPill
+            active={status?.media.render_ready ?? fallbackFrameReady}
+            label={t("episode.workbench.video.renderReady")}
+          />
+        )}
         {showAudioMediaStatus && (
           <VideoReferenceSummaryPill
             active={status?.media.audio_ready ?? fallbackAudioReady}
@@ -337,26 +369,25 @@ export function BeatVideoConfigView({
           />
         )}
         <VideoReferenceSummaryPill active={config.ready} label={promptStatus} />
-        {showAdvancedVideoConfig && (
+        {showAdvancedVideoConfig && status && (
           <VideoReferenceSummaryPill
-            active={status?.voice.ready ?? false}
-            attention={Boolean(status?.voice.required && !status.voice.ready)}
-            detail={status?.voice.detail}
-            label={
-              status?.voice.label ??
-              t("episode.workbench.video.narratorVoiceMissing")
-            }
+            active={status.voice.ready}
+            attention={status.voice.required && !status.voice.ready}
+            detail={status.voice.detail}
+            label={status.voice.label}
           />
         )}
-        <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
-          {videoReferenceStatsText(t, {
-            fallbacks: status?.assets.fallbacks ?? 0,
-            invalid: status?.assets.invalid ?? 0,
-            missing: status?.assets.missing ?? 0,
-            selected: status?.assets.selected ?? 0,
-            unused: status?.assets.unused ?? 0,
-          })}
-        </span>
+        {draft.mode !== "text_to_video" && (
+          <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
+            {videoReferenceStatsText(t, {
+              fallbacks: status?.assets.fallbacks ?? 0,
+              invalid: status?.assets.invalid ?? 0,
+              missing: status?.assets.missing ?? 0,
+              selected: status?.assets.selected ?? 0,
+              unused: status?.assets.unused ?? 0,
+            })}
+          </span>
+        )}
         <span className="inline-flex h-5 max-w-full items-center rounded-full border border-border bg-muted px-2 text-[11px] leading-none text-muted-foreground">
           {t("episode.workbench.video.videoVersions", {
             count: mediaCandidateCount,
@@ -364,20 +395,22 @@ export function BeatVideoConfigView({
         </span>
       </div>
 
-      <VideoReferenceAssetsView
-        assets={assets}
-        controller={assetOperations}
-        imageOnly={showReferenceVideoConfig}
-        invalidCount={status?.assets.invalid ?? 0}
-        fallbackCount={status?.assets.fallbacks ?? 0}
-        missingCount={status?.assets.missing ?? 0}
-        mode={draft.mode}
-        open={referencesOpen}
-        selectedCount={status?.assets.selected ?? 0}
-        unusedCount={status?.assets.unused ?? 0}
-        onOpenChange={onReferencesOpenChange}
-        onReferenceDragStart={handleReferenceDragStart}
-      />
+      {draft.mode !== "text_to_video" && (
+        <VideoReferenceAssetsView
+          assets={assets}
+          controller={assetOperations}
+          imageOnly={showReferenceVideoConfig}
+          invalidCount={status?.assets.invalid ?? 0}
+          fallbackCount={status?.assets.fallbacks ?? 0}
+          missingCount={status?.assets.missing ?? 0}
+          mode={draft.mode}
+          open={referencesOpen}
+          selectedCount={status?.assets.selected ?? 0}
+          unusedCount={status?.assets.unused ?? 0}
+          onOpenChange={onReferencesOpenChange}
+          onReferenceDragStart={handleReferenceDragStart}
+        />
+      )}
 
       <div className="grid gap-3 rounded-[10px] border border-border bg-card p-3 md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
         <VideoReferenceField
@@ -429,40 +462,38 @@ export function BeatVideoConfigView({
           label={t("episode.workbench.video.duration")}
           htmlFor={`${videoReferenceId}-duration`}
         >
-          <Input
-            id={`${videoReferenceId}-duration`}
-            aria-label={t("episode.workbench.video.duration")}
-            type="number"
-            min={config.videoDurationBounds.min}
-            max={config.videoDurationBounds.max}
-            value={draft.duration}
-            onChange={(event) => {
-              const duration = clampDuration(
-                event.target.value,
-                config.videoDurationBounds,
-              );
-              config.changeDraft((current) => ({
-                ...current,
-                duration,
-                ...(showReferenceVideoConfig
-                  && !referenceVideoResolutionOptionsForDuration(
-                    config.referenceResolutionOptions,
-                    duration,
-                    config.referenceResolutionMaxSeconds,
-                  ).includes(current.resolution)
-                  ? {
-                      resolution:
-                        referenceVideoResolutionOptionsForDuration(
-                          config.referenceResolutionOptions,
-                          duration,
-                          config.referenceResolutionMaxSeconds,
-                        )[0] ?? current.resolution,
-                    }
-                  : {}),
-              }));
-            }}
-            className={cn("!h-9", CONTROL_CLASS)}
-          />
+          {config.videoDurationOptions.length ? (
+            <Select
+              value={String(draft.duration)}
+              onValueChange={changeDuration}
+            >
+              <SelectTrigger
+                id={`${videoReferenceId}-duration`}
+                aria-label={t("episode.workbench.video.duration")}
+                className={cn("!h-9", CONTROL_CLASS)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {config.videoDurationOptions.map((duration) => (
+                  <SelectItem key={duration} value={String(duration)}>
+                    {duration}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id={`${videoReferenceId}-duration`}
+              aria-label={t("episode.workbench.video.duration")}
+              type="number"
+              min={config.videoDurationBounds.min}
+              max={config.videoDurationBounds.max}
+              value={draft.duration}
+              onChange={(event) => changeDuration(event.target.value)}
+              className={cn("!h-9", CONTROL_CLASS)}
+            />
+          )}
         </VideoReferenceField>
         {resolutionOptions.length ? (
           <VideoReferenceField
