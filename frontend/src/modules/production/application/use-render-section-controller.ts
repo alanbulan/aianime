@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/modules/task_execution/public";
+import { selectionScope, useTaskController } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/shared/aspect-ratio";
 import { formatGeneratedAgeLabel } from "@/lib/format-relative-time";
 import { resolveMediaUrl } from "@/lib/media-url";
@@ -355,13 +355,14 @@ export function createUseRenderSectionController(
       options.episode,
       "render",
     );
-    // selected_regen is persisted by its returned scope. Adding beatNum here
-    // would prevent the SSE controller from resuming the persisted task row.
+    // Keep the card on its single-beat selection without changing the backend
+    // task address, which uses scope rather than beat_num for regeneration.
     const regenTask = useTaskController({
       key: {
         taskType: "selected_regen",
         project: options.project,
         episode: options.episode,
+        scope: selectionScope(singleRenderModeKey, [options.beat.beat_number]),
       },
       invalidateKeys: [
         queryKeys.grids(options.project, options.episode),

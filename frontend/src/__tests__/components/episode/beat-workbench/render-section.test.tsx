@@ -10,6 +10,7 @@ import { RenderSection } from "@/modules/production/render-section-composition";
 import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
 import type { PoolImage } from "@/modules/production/public";
+import { selectionScope, type UseTaskControllerOptions } from "@/modules/task_execution/public";
 
 const i18n = i18next.createInstance();
 
@@ -177,12 +178,10 @@ const scenePlatePreviewState: {
   };
 } = { data: null };
 
+const taskControllerMock = vi.fn();
+
 vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
-  useTaskController: () => ({
-    start: taskStartMock,
-    started: false,
-    stopping: false,
-  }),
+  useTaskController: (options: UseTaskControllerOptions) => taskControllerMock(options),
 }));
 
 vi.mock("@/shared/hooks/use-now", () => ({
@@ -303,6 +302,12 @@ const newerRenderImage: PoolImage = {
 
 beforeEach(() => {
   useAspectRatioStore.getState().reset();
+  taskControllerMock.mockReset();
+  taskControllerMock.mockReturnValue({
+    start: taskStartMock,
+    started: false,
+    stopping: false,
+  });
   poolSelectMock.mockReset();
   regenerateMock.mockReset();
   uploadMock.mockReset();
@@ -414,6 +419,62 @@ beforeEach(() => {
 });
 
 describe("RenderSection", () => {
+  it("does not overlay a finished render with another beat's regeneration progress", () => {
+    const otherScope = selectionScope("1x1_2-3", [6]);
+    taskControllerMock.mockImplementation(({ key }: UseTaskControllerOptions) => ({
+      start: taskStartMock,
+      started: key.scope === undefined || key.scope === otherScope,
+      stopping: false,
+      stream: { progress: 0.2 },
+    }));
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <RenderSection
+          beat={beat}
+          project="demo"
+          episode={1}
+          images={[renderImage, sketchImage]}
+          assignments={{ "5": "render-5" }}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(taskControllerMock).toHaveBeenCalledWith(expect.objectContaining({
+      key: {
+        taskType: "selected_regen",
+        project: "demo",
+        episode: 1,
+        scope: selectionScope("1x1_2-3", [5]),
+      },
+    }));
+  });
+
+  it("keeps current-beat render regeneration progress visible", () => {
+    const ownScope = selectionScope("1x1_2-3", [5]);
+    taskControllerMock.mockImplementation(({ key }: UseTaskControllerOptions) => ({
+      start: taskStartMock,
+      started: key.scope === ownScope,
+      stopping: false,
+      stream: { progress: 0.2 },
+    }));
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <RenderSection
+          beat={beat}
+          project="demo"
+          episode={1}
+          images={[renderImage]}
+          assignments={{ "5": "render-5" }}
+        />
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
+  });
+
   it("does not expose removed render detail or bad-image analysis actions", () => {
     render(
       <I18nextProvider i18n={i18n}>

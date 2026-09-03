@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   propReferenceAssetScope,
   sceneReferenceAssetScope,
+  selectionScope,
   stageAssetScope,
 } from "./taskScope";
 
@@ -11,6 +12,27 @@ import {
 // scope stored on task rows. If these drift, `useTaskController` reconcile
 // stops matching and loading state is lost on refresh.
 describe("task-scope hashing matches the backend", () => {
+  it("selection_scope keeps single-beat and batch regeneration separate", () => {
+    expect(selectionScope("1x1_2-3_sketch", [1])).toBe(
+      "1x1_2-3_sketch__356a192b7913",
+    );
+    expect(selectionScope("1x1_16-9", [4])).toBe(
+      "1x1_16-9__1b6453892473",
+    );
+    expect(selectionScope("1x1_2-3_sketch", [18, 24, 25, 26, 27, 28, 29, 30])).toBe(
+      "1x1_2-3_sketch__46d763f99a67",
+    );
+  });
+
+  it("selection_scope removes duplicates without sorting the selected beats", () => {
+    expect(selectionScope("1x1_2-3_sketch", [3, 1, 3, 2])).toBe(
+      "1x1_2-3_sketch__cdc2aaa798cc",
+    );
+    expect(selectionScope("1x1_2-3_sketch", [3, 1, 2])).not.toBe(
+      selectionScope("1x1_2-3_sketch", [1, 2, 3]),
+    );
+  });
+
   it("scene_reference_asset_scope", () => {
     expect(sceneReferenceAssetScope("大学宿舍", "master")).toBe(
       "scene_ref__f126561a8bba",

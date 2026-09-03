@@ -117,6 +117,7 @@ export type {
 export {
   propReferenceAssetScope,
   sceneReferenceAssetScope,
+  selectionScope,
   stageAssetScope,
   taskConfigScope,
 } from "@/modules/task_execution/domain/taskScope";

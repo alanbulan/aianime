@@ -98,6 +98,13 @@ export function taskConfigScope(label: string, config: Record<string, string>): 
   return `${label}__${sha1Hex(payload).slice(0, 12)}`;
 }
 
+/** Mirror of `selection_scope`: preserve the selection order when deduplicating. */
+export function selectionScope(modeKey: string, beatNumbers: readonly number[]): string {
+  const beatsKey = [...new Set(beatNumbers)].join(",");
+  const payload = new TextEncoder().encode(beatsKey);
+  return `${modeKey}__${sha1Hex(payload).slice(0, 12)}`;
+}
+
 /** Mirror of `scene_reference_asset_scope` — kinds: "master", "reverse". */
 export function sceneReferenceAssetScope(sceneName: string, kind: string): string {
   return taskConfigScope("scene_ref", { scene: sceneName, kind });

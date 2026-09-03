@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useTaskController } from "@/modules/task_execution/public";
+import { selectionScope, useTaskController } from "@/modules/task_execution/public";
 import { ratioToCss } from "@/shared/aspect-ratio";
 import { isNoReferenceMarker } from "@/lib/beat-markers";
 import { formatGeneratedAgeLabel } from "@/lib/format-relative-time";
@@ -359,13 +359,14 @@ export function createUseSketchSectionController(
       options.episode,
       options.beat.beat_number,
     );
-    // sketch_regen is persisted by the scope returned from the mutation;
-    // passing beatNum here would prevent the SSE controller from resuming it.
+    // Regeneration uses a selection scope, not a backend beat_num. Match the
+    // exact single-beat selection so other shots/batches cannot drive this card.
     const regenTask = useTaskController({
       key: {
         taskType: "sketch_regen",
         project: options.project,
         episode: options.episode,
+        scope: selectionScope(singleSketchModeKey, [options.beat.beat_number]),
       },
       invalidateKeys: [
         queryKeys.grids(options.project, options.episode),
@@ -377,6 +378,7 @@ export function createUseSketchSectionController(
         taskType: "sketch_generation",
         project: options.project,
         episode: options.episode,
+        beatNum: options.beat.beat_number,
       },
       invalidateKeys: [
         queryKeys.grids(options.project, options.episode),

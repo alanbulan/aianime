@@ -16,6 +16,7 @@ import {
   type TaskRegistryEntry,
 } from "@/modules/task_execution/presentation/task-controller-provider";
 import { useTaskController } from "@/modules/task_execution/presentation/useTaskController";
+import { selectionScope } from "@/modules/task_execution/domain/taskScope";
 
 // ─── Module mocks ───────────────────────────────────────────────────────────
 //
@@ -360,6 +361,103 @@ describe("TaskControllerProvider + useTaskController integration", () => {
   beforeEach(() => {
     useTaskStreamMock.mockClear();
     taskQueryMockState.data = undefined;
+  });
+
+  it.each([
+    ["sketch_regen", "1x1_2-3_sketch"],
+    ["selected_regen", "1x1_2-3"],
+  ])("isolates %s beat cards while another batch keeps running", (taskType, modeKey) => {
+    const keyFor = (beatNumber: number): TaskKey => ({
+      taskType,
+      project: "demo",
+      episode: 1,
+      scope: selectionScope(modeKey, [beatNumber]),
+    });
+    const ownTask = {
+      task_id: "beat-4-run",
+      task_type: taskType,
+      episode: 1,
+      beat_num: null,
+      scope: keyFor(4).scope,
+      status: "running",
+      progress: 0.2,
+    };
+    const unrelatedBatch = {
+      ...ownTask,
+      task_id: "other-beats-run",
+      scope: selectionScope(modeKey, [18, 24, 25, 26, 27, 28, 29, 30]),
+    };
+    taskQueryMockState.data = { data: [unrelatedBatch, ownTask] };
+    const handles = new Map<number, ReturnType<typeof useTaskController>>();
+    let force: (() => void) | null = null;
+    let mapLookup: ((key: TaskKey) => TaskRegistryEntry) | null = null;
+    function Probe({ beatNumber }: { beatNumber: number }) {
+      handles.set(beatNumber, useTaskController({ key: keyFor(beatNumber) }));
+      return null;
+    }
+    function Host() {
+      const [, setTick] = useState(0);
+      force = () => setTick((tick) => tick + 1);
+      return <><Probe beatNumber={1} /><Probe beatNumber={4} /></>;
+    }
+
+    renderWithProvider(
+      <>
+        <Host />
+        <RegistryInspector onReady={(get) => { mapLookup = get; }} />
+      </>,
+    );
+
+    expect(handles.get(1)?.started).toBe(false);
+    expect(handles.get(4)?.started).toBe(true);
+    expect(mapLookup!(keyFor(4)).getSnapshot().activeTaskId).toBe("beat-4-run");
+    expect(mapLookup!(keyFor(1))).not.toBe(mapLookup!(keyFor(4)));
+
+    taskQueryMockState.data = {
+      data: [unrelatedBatch, { ...ownTask, status: "completed", progress: 1 }],
+    };
+    act(() => { force?.(); });
+
+    expect(handles.get(4)?.started).toBe(false);
+    expect(handles.get(4)?.stream.status).toBe("completed");
+    expect(handles.get(1)?.started).toBe(false);
+  });
+
+  it("does not carry the previous beat's active task into the next card", () => {
+    const scope = selectionScope("1x1_2-3_sketch", [4]);
+    taskQueryMockState.data = {
+      data: [{
+        task_id: "beat-4-run",
+        task_type: "sketch_regen",
+        episode: 1,
+        beat_num: null,
+        scope,
+        status: "running",
+        progress: 0.2,
+      }],
+    };
+    let setBeat: ((beatNumber: number) => void) | null = null;
+    let handle: ReturnType<typeof useTaskController> | null = null;
+    function Probe() {
+      const [beatNumber, updateBeat] = useState(4);
+      setBeat = updateBeat;
+      handle = useTaskController({
+        key: {
+          taskType: "sketch_regen",
+          project: "demo",
+          episode: 1,
+          scope: selectionScope("1x1_2-3_sketch", [beatNumber]),
+        },
+      });
+      return null;
+    }
+
+    renderWithProvider(<Probe />);
+    expect(handle!.started).toBe(true);
+    act(() => { setBeat?.(1); });
+    expect(handle!.started).toBe(false);
+    act(() => { setBeat?.(4); });
+    expect(handle!.started).toBe(true);
   });
 
   it("keeps one registry entry per key under StrictMode (C1 regression guard)", () => {

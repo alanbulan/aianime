@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SketchSection } from "@/modules/production/sketch-section-composition";
 import { useAspectRatioStore } from "@/shared/stores/aspect-ratio-store";
 import type { Beat } from "@/modules/narrative_planning/public";
+import { selectionScope, type UseTaskControllerOptions } from "@/modules/task_execution/public";
 import type { ThreeDDirectorCaptureMeta } from "@/features/viewer-kit/three-d/ThreeDDirectorDialog";
 
 const markSeenMock = vi.fn();
@@ -18,6 +19,7 @@ const directorStatusMock = vi.fn();
 const directorStatusRefetchMock = vi.fn();
 const directorConvertMock = vi.fn();
 const taskStartMock = vi.fn();
+const taskControllerMock = vi.fn();
 const regenerateSketchMock = vi.fn();
 const poolSelectMock = vi.fn();
 const poolDeleteMock = vi.fn();
@@ -140,7 +142,7 @@ vi.mock("@/modules/asset_world/public", () => ({
 }));
 
 vi.mock("@/modules/task_execution/public", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/modules/task_execution/public")>()),
-  useTaskController: () => ({ start: taskStartMock }),
+  useTaskController: (options: UseTaskControllerOptions) => taskControllerMock(options),
 }));
 
 vi.mock("@/shared/hooks/use-now", () => ({
@@ -219,6 +221,8 @@ function makeBeat(overrides: Partial<Beat> = {}): Beat {
 describe("SketchSection", () => {
   beforeEach(() => {
     useAspectRatioStore.getState().reset();
+    taskControllerMock.mockReset();
+    taskControllerMock.mockReturnValue({ start: taskStartMock, started: false });
     regenerateSketchMock.mockReset();
     regenerateSketchMock.mockResolvedValue({
       ok: true,
@@ -316,6 +320,78 @@ describe("SketchSection", () => {
       task_type: "sketch_generation",
       scope: "director_control_to_sketch:ep001:beat_04",
     });
+  });
+
+  it("does not overlay a completed sketch with an unrelated batch's progress", () => {
+    const batchScope = selectionScope("1x1_2-3_sketch", [18, 24, 25, 26, 27, 28, 29, 30]);
+    taskControllerMock.mockImplementation(({ key }: UseTaskControllerOptions) => ({
+      start: taskStartMock,
+      started: key.taskType === "sketch_regen" &&
+        (key.scope === undefined || key.scope === batchScope),
+      stream: { progress: 0.2 },
+    }));
+
+    render(
+      <SketchSection
+        beat={makeBeat({ beat_number: 1 })}
+        project="demo"
+        episode={1}
+        images={[]}
+        assignments={{}}
+      />,
+    );
+
+    expect(screen.getByAltText("Beat 1 sketch")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(taskControllerMock).toHaveBeenCalledWith(expect.objectContaining({
+      key: {
+        taskType: "sketch_regen",
+        project: "demo",
+        episode: 1,
+        scope: selectionScope("1x1_2-3_sketch", [1]),
+      },
+    }));
+  });
+
+  it("shows its own regeneration progress and clears it when switching beats", () => {
+    const ownScope = selectionScope("1x1_2-3_sketch", [4]);
+    taskControllerMock.mockImplementation(({ key }: UseTaskControllerOptions) => ({
+      start: taskStartMock,
+      started: key.taskType === "sketch_regen" && key.scope === ownScope,
+      stream: { progress: 0.2 },
+    }));
+    const view = (beatNumber: number) => (
+      <SketchSection
+        beat={makeBeat({ beat_number: beatNumber })}
+        project="demo"
+        episode={1}
+        images={[]}
+        assignments={{}}
+      />
+    );
+    const { rerender } = render(view(4));
+
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "20");
+    rerender(view(5));
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(taskControllerMock).toHaveBeenLastCalledWith(expect.objectContaining({
+      key: { taskType: "sketch_generation", project: "demo", episode: 1, beatNum: 5 },
+    }));
+  });
+
+  it("does not adopt another beat's Director Control task", () => {
+    taskControllerMock.mockImplementation(({ key }: UseTaskControllerOptions) => ({
+      start: taskStartMock,
+      started: key.taskType === "sketch_generation" &&
+        (key.beatNum === undefined || key.beatNum === 5),
+      stream: { progress: 0.2 },
+    }));
+
+    render(
+      <SketchSection beat={makeBeat()} project="demo" episode={1} images={[]} assignments={{}} />,
+    );
+
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("keeps sketch identity, detected props, and local marked props in the right-side info row", () => {
