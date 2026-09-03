@@ -51,70 +51,6 @@ def test_global_optimizer_collects_one_current_frame_per_shot_without_grid(tmp_p
 
 
 @pytest.mark.asyncio
-async def test_bulk_keyframe_video_uses_next_storyboard_beat(
-    monkeypatch,
-    tmp_path,
-):
-    from ai_anime.modules.task_execution.infrastructure.runners import video
-    from ai_anime.shared.utils.path_resolver import PathResolver
-
-    paths = PathResolver(str(tmp_path), 1)
-    for beat_number in (1, 41, 2):
-        frame_path = paths.frame(beat_number)
-        frame_path.parent.mkdir(parents=True, exist_ok=True)
-        frame_path.write_bytes(b"frame")
-
-    class FakeTaskManager:
-        def update_progress_for_project(self, *args, **kwargs):
-            return None
-
-    submitted: list[dict] = []
-
-    async def fake_run_single(envelope, _context):
-        submitted.append(envelope)
-        return {"beat_num": envelope["beat_num"]}
-
-    monkeypatch.setattr(video, "get_task_manager", lambda: FakeTaskManager())
-    monkeypatch.setattr(video, "_audio_duration", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(video, "_run_single_video_async", fake_run_single)
-    beats = [
-        {
-            "beat_number": 1,
-            "video_mode": "first_frame",
-            "video_prompt": "beat one",
-        },
-        {
-            "beat_number": 41,
-            "video_mode": "keyframe",
-            "keyframe_prompt": "transition to the next storyboard shot",
-            "video_prompt": "beat forty-one",
-        },
-        {
-            "beat_number": 2,
-            "video_mode": "first_frame",
-            "video_prompt": "beat two",
-        },
-    ]
-
-    await video._run_video_generation_async(
-        {
-            "episode": 1,
-            "payload": {
-                "beats": beats,
-                "output_dir": str(tmp_path),
-                "video_model": "cloud-video-standard",
-            },
-        },
-        _project_ctx(tmp_path),
-    )
-
-    config = submitted[1]["payload"]["config"]
-    assert config["next_beat"]["beat_number"] == 2
-    assert config["last_frame_path"] == str(paths.frame(2))
-    assert config["video_mode"] == "keyframe"
-
-
-@pytest.mark.asyncio
 async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch, tmp_path):
     from ai_anime.modules.task_execution.infrastructure.runners import video
     from ai_anime.shared.infrastructure import project_stores
@@ -125,6 +61,7 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
     sketch_path.write_bytes(b"fake-png")
 
     calls: list[str] = []
+    languages: list[str] = []
 
     class FakeTaskManager:
         def update_progress_for_project(self, *args, **kwargs):
@@ -149,6 +86,7 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
 
     class FakeOptimizer:
         async def optimize_single_beat(self, **kwargs):
+            languages.append(kwargs["language"])
             return {"prompt": "optimized prompt"}
 
     async def fake_make_cognee_store_for_context(*args, **kwargs):
@@ -186,6 +124,7 @@ async def test_global_optimize_video_closes_cognee_store_on_success(monkeypatch,
     )
 
     assert result["optimized"] == 1
+    assert languages == ["en"]
     assert calls == [
         "init",
         "initialize",

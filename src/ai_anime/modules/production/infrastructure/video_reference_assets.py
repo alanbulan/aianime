@@ -1073,6 +1073,9 @@ def build_video_reference_assets(
             )
         )
 
+    if mode == VideoReferenceMode.TEXT_TO_VIDEO:
+        return assets
+
     paths = PathResolver(project_output, episode)
     first_frame_source = paths.frame(beat_num)
     first_frame_path = (

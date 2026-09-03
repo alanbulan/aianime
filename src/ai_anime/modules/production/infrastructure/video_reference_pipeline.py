@@ -18,6 +18,7 @@ from ai_anime.modules.production.infrastructure.video_reference_assets import (
 )
 from ai_anime.modules.production.infrastructure.video_prompt_composer import (
     validate_generated_video_prompt,
+    validate_video_prompt_for_mode,
 )
 from ai_anime.modules.production.application.video_config import (
     VideoReferenceMode,
@@ -197,6 +198,7 @@ def _validate_dialogue_final_prompt(
     beat: dict[str, Any],
     final_prompt: str,
     assets: list[VideoReferenceAsset],
+    require_reference_audio: bool = True,
 ) -> None:
     if normalize_video_audio_type(beat) != "dialogue":
         return
@@ -213,6 +215,9 @@ def _validate_dialogue_final_prompt(
             "视频最终提示词缺少台词内容："
             + "、".join(str(item) for item in missing_lines[:3])
         )
+
+    if not require_reference_audio:
+        return
 
     audio_labels = [
         asset.reference_label
@@ -250,12 +255,13 @@ def collect_video_reference_prereq_errors(
             prop_menu=prop_menu,
         )
         final_prompt = str(config.final_prompt or "").strip()
-        append_user_video_reference_assets(
-            assets,
-            reference_image_paths=list(config.reference_image_paths),
-            reference_video_paths=list(config.reference_video_paths),
-            reference_audio_paths=list(config.reference_audio_paths),
-        )
+        if config.mode != VideoReferenceMode.TEXT_TO_VIDEO:
+            append_user_video_reference_assets(
+                assets,
+                reference_image_paths=list(config.reference_image_paths),
+                reference_video_paths=list(config.reference_video_paths),
+                reference_audio_paths=list(config.reference_audio_paths),
+            )
         assets = apply_prompt_audio_selection(assets, final_prompt)
         beat_number = int(beat.get("beat_number") or index + 1)
         selected_audio_assets = _selected_audio_assets(assets)
@@ -322,12 +328,13 @@ async def prepare_video_reference_generation_inputs(
         characters=characters,
         prop_menu=prop_menu,
     )
-    append_user_video_reference_assets(
-        assets,
-        reference_image_paths=list(config.reference_image_paths),
-        reference_video_paths=list(config.reference_video_paths),
-        reference_audio_paths=list(config.reference_audio_paths),
-    )
+    if config.mode != VideoReferenceMode.TEXT_TO_VIDEO:
+        append_user_video_reference_assets(
+            assets,
+            reference_image_paths=list(config.reference_image_paths),
+            reference_video_paths=list(config.reference_video_paths),
+            reference_audio_paths=list(config.reference_audio_paths),
+        )
 
     target_duration = normalize_video_generation_duration(
         config.duration,
@@ -349,6 +356,7 @@ async def prepare_video_reference_generation_inputs(
             final_prompt,
             source_text=config.prompt_validation_source,
         )
+    validate_video_prompt_for_mode(config.mode, final_prompt)
     config.final_prompt = final_prompt
     assets = apply_prompt_audio_selection(assets, final_prompt)
 
@@ -364,6 +372,9 @@ async def prepare_video_reference_generation_inputs(
         beat=beat,
         final_prompt=final_prompt,
         assets=assets,
+        require_reference_audio=(
+            config.mode != VideoReferenceMode.TEXT_TO_VIDEO
+        ),
     )
 
     image_path: str | None = None
@@ -378,7 +389,7 @@ async def prepare_video_reference_generation_inputs(
         last_frames = selected_reference_paths(assets, "last_frame_image")
         image_path = first_frames[0] if first_frames else None
         last_frame_path = last_frames[0] if last_frames else None
-    else:
+    elif config.mode == VideoReferenceMode.MULTIMODAL_REFERENCE:
         references = _references_from_paths(
             image_paths=config.reference_image_paths,
             video_paths=config.reference_video_paths,

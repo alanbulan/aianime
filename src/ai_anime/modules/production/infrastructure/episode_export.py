@@ -6,16 +6,19 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from ai_anime.modules.production.domain.subtitles import (
+    build_subtitle_cues,
+    split_subtitle_text,
+)
 from ai_anime.shared.utils.async_ops import call_blocking
 from ai_anime.shared.utils.media_io import get_audio_duration_async
 from ai_anime.shared.utils.path_resolver import PathResolver
 
 
 def _format_srt_time(seconds: float) -> str:
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    millis = int((seconds % 1) * 1000)
+    hours, remainder = divmod(round(seconds * 1000), 3600000)
+    minutes, remainder = divmod(remainder, 60000)
+    secs, millis = divmod(remainder, 1000)
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 
@@ -28,32 +31,38 @@ class LocalEpisodeExportFiles:
     ) -> str:
         paths = PathResolver(str(project_dir), episode_num)
         srt_lines: list[str] = []
-        current_time = 0.0
-        sequence = 0
+        captions: list[tuple[float, list[str]]] = []
+        has_video_clips = any(
+            paths.video(beat.get("beat_number", index)).exists()
+            for index, beat in enumerate(beats, 1)
+        )
 
         for index, beat in enumerate(beats, 1):
             beat_num = beat.get("beat_number", index)
-            narration = beat.get("narration_segment", "")
-            if not narration:
+            video_path = paths.video(beat_num)
+            if has_video_clips and not video_path.exists():
                 continue
 
-            audio_path = paths.audio(beat_num)
-            duration = 5.0
-            if audio_path.exists():
+            durations: list[float] = []
+            for media_path in (video_path, paths.audio(beat_num)):
+                if not media_path.exists():
+                    continue
                 try:
-                    duration = await get_audio_duration_async(str(audio_path))
+                    durations.append(await get_audio_duration_async(str(media_path)))
                 except Exception:
-                    duration = 5.0
+                    continue
+            duration = min(durations) if durations else 5.0
+            captions.append(
+                (duration, split_subtitle_text(str(beat.get("narration_segment") or "")))
+            )
 
-            start = current_time
-            current_time += duration
-            sequence += 1
+        for sequence, cue in enumerate(build_subtitle_cues(captions), 1):
             srt_lines.extend(
                 (
                     str(sequence),
-                    f"{_format_srt_time(start)} --> "
-                    f"{_format_srt_time(current_time)}",
-                    narration,
+                    f"{_format_srt_time(cue.start)} --> "
+                    f"{_format_srt_time(cue.end)}",
+                    cue.text,
                     "",
                 )
             )

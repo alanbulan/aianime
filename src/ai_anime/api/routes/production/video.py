@@ -220,12 +220,7 @@ async def generate_single_video(
     video_model = str(body.model or "").strip()
     model_selector = str(body.model_selector or "").strip()
     if body.video_routing_policy == "role_priority":
-        model_route = resolve_video_generation_route(
-            resolved.username,
-            resolved.project_name,
-            routing_policy="role_priority",
-        )
-        video_model = model_route.model
+        video_model = ""
         model_selector = ""
     elif not video_model:
         model_route = resolve_video_generation_route(
@@ -241,6 +236,7 @@ async def generate_single_video(
                 episode_num=episode_num,
                 beat_num=beat_num,
                 video_model=video_model,
+                video_routing_policy=body.video_routing_policy,
                 model_selector=model_selector or None,
                 resolution=body.resolution,
                 use_director_render=body.use_director_render,

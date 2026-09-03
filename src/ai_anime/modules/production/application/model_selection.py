@@ -33,9 +33,12 @@ def resolve_video_generation_route(
     routing_policy: Literal["project_selection", "role_priority"] = (
         "project_selection"
     ),
+    role: str | None = None,
 ) -> ModelRoute:
     if routing_policy == "role_priority":
-        return ModelRoute(model=resolve_model_for_role("VIDEO_IMAGE_TO_VIDEO"))
+        if not str(role or "").strip():
+            raise ValueError("video model role is required for role-priority routing")
+        return ModelRoute(model=resolve_model_for_role(str(role).strip().upper()))
     if routing_policy != "project_selection":
         raise ValueError("video routing policy is invalid")
 

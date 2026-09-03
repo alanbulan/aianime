@@ -48,6 +48,15 @@ STYLE_CONFIG_FIELDS = {
     "animation_subtype",
 }
 REQUIRED_STYLE_CONFIG_FIELDS = STYLE_CONFIG_FIELDS - {"base"}
+CREATE_STYLE_FIELDS = {
+    "project_id",
+    "id",
+    "name",
+    "config",
+    "create_preview",
+    "preview_prompt",
+    "attachment_path",
+}
 INGEST_PATH_ERROR = (
     "invalid ingest API path: use /projects/{project}/ingest/upload or "
     "/projects/{project}/ingest/start; ingest_fast is a task_type, not an endpoint; "
@@ -64,7 +73,7 @@ SCRIPT_WORKFLOW_TOOL_ERROR = (
 )
 SINGLE_VIDEO_TOOL_ERROR = (
     "Single-video generation is only available through ai_anime_start_single_video; "
-    "do not bypass role-priority model routing with ai_anime_post."
+    "do not bypass its role-priority default and explicit model selection rules with ai_anime_post."
 )
 TEXT_CONTENT_FILTER_CHAT_ERROR = (
     "模型内容安全过滤拦截了本次文本生成，请调整原文或改写稿中的敏感描述后重试。"
@@ -699,7 +708,6 @@ def _project_from_args(args: dict[str, Any]) -> str:
     project = str(
         _default_project_id()
         or args.get("project_id")
-        or args.get("project")
         or ""
     ).strip()
     if not project:
@@ -722,16 +730,19 @@ def _limit_items(items: list[dict[str, Any]], args: dict[str, Any], default: int
     return items[offset : offset + limit]
 
 
-def _requested_beats(args: dict[str, Any]) -> set[int] | None:
-    raw = args.get("beat_indices") or args.get("beats")
+def _requested_beats(
+    args: dict[str, Any],
+    *,
+    allow_single: bool = True,
+) -> set[int] | None:
+    raw = args.get("beat_indices")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    for key in ("beat", "beat_num", "beat_number", "index"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    if allow_single and args.get("beat") is not None:
+        values.append(args["beat"])
     beats: set[int] = set()
     for value in values:
         try:
@@ -750,43 +761,33 @@ def _requested_names(args: dict[str, Any]) -> set[str] | None:
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    for key in ("name", "character"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    if args.get("name") is not None:
+        values.append(args["name"])
     names = {str(value).strip() for value in values if str(value or "").strip()}
     return names or None
 
 
 def _requested_queries(args: dict[str, Any]) -> set[str] | None:
-    raw = args.get("queries") or args.get("keywords")
-    values: list[Any] = []
-    if isinstance(raw, list):
-        values.extend(raw)
-    elif raw is not None:
-        values.append(raw)
-    for key in ("query", "search", "keyword", "text", "identity_name"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    values = [args["query"]] if args.get("query") is not None else []
     queries = {str(value).strip() for value in values if str(value or "").strip()}
     return queries or None
 
 
 def _requested_scene_names(args: dict[str, Any]) -> set[str] | None:
-    raw = args.get("names") or args.get("scene_names")
+    raw = args.get("names")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    for key in ("name", "scene_name"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    if args.get("name") is not None:
+        values.append(args["name"])
     names = {str(value).strip() for value in values if str(value or "").strip()}
     return names or None
 
 
 def _requested_scene_indices(args: dict[str, Any]) -> set[int] | None:
-    raw = args.get("scene_indices") or args.get("indices")
+    raw = args.get("scene_indices")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
@@ -931,7 +932,10 @@ def _handle_post(args: dict[str, Any], **_: Any) -> str:
                 return tool_error(INGEST_START_TOOL_ERROR)
             return tool_error(SCRIPT_WORKFLOW_TOOL_ERROR)
         if normalized_path == "/api/v1/styles":
-            return _handle_create_style(args)
+            body = args.get("body")
+            if not isinstance(body, dict):
+                return tool_error("body must be an object")
+            return _handle_create_style(dict(body))
         return tool_result(
             _request(
                 "POST",
@@ -1049,33 +1053,34 @@ def _canonical_style_config(value: Any) -> dict[str, Any]:
 def _handle_create_style(args: dict[str, Any], **_: Any) -> str:
     """Create an account-wide style without inventing an internal id."""
     try:
-        source = args.get("body") if isinstance(args.get("body"), dict) else args
-        name = str(source.get("name") or "").strip()
+        unknown = sorted(set(args) - CREATE_STYLE_FIELDS)
+        if unknown:
+            raise ValueError(
+                "unsupported create style fields: " + ", ".join(unknown)
+            )
+        name = str(args.get("name") or "").strip()
         if not name:
             raise ValueError("name is required")
         project = str(
-            source.get("project")
+            _default_project_id()
             or args.get("project_id")
-            or _default_project_id()
+            or ""
         ).strip()
-        preview_prompt = source.get("preview_prompt")
-        attachment_path = source.get("attachment_path")
-        create_preview = bool(source.get("create_preview"))
+        preview_prompt = args.get("preview_prompt")
+        attachment_path = args.get("attachment_path")
+        create_preview = bool(args.get("create_preview"))
         if attachment_path and (preview_prompt or create_preview):
             raise ValueError("preview_prompt/create_preview and attachment_path cannot be used together")
 
-        config = _canonical_style_config(source.get("config"))
+        config = _canonical_style_config(args.get("config"))
 
         body: dict[str, Any] = {
             "name": name,
             "config": config,
         }
-        style_id = str(source.get("id") or "").strip()
+        style_id = str(args.get("id") or "").strip()
         if style_id:
             body["id"] = style_id
-        preview_path = source.get("preview_path")
-        if preview_path:
-            body["preview_path"] = preview_path
         created = _request("POST", "/api/v1/styles", body=body)
         if created.get("ok") is False:
             if created.get("error") == "style_already_exists":
@@ -1176,7 +1181,7 @@ def _handle_create_style(args: dict[str, Any], **_: Any) -> str:
 def _handle_generate_style_preview(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
-        style_id = str(args.get("style_id") or args.get("id") or "").strip()
+        style_id = str(args.get("style_id") or "").strip()
         if not style_id:
             raise ValueError("style_id is required")
         return tool_result(
@@ -1192,7 +1197,7 @@ def _handle_generate_style_preview(args: dict[str, Any], **_: Any) -> str:
 
 def _handle_upload_style_preview(args: dict[str, Any], **_: Any) -> str:
     try:
-        style_id = str(args.get("style_id") or args.get("id") or "").strip()
+        style_id = str(args.get("style_id") or "").strip()
         if not style_id:
             raise ValueError("style_id is required")
         return tool_result(
@@ -1233,26 +1238,14 @@ def _handle_pipeline_status(args: dict[str, Any], **_: Any) -> str:
 def _handle_list_tasks(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
-        response = _request("GET", f"/api/v1/projects/{project}/tasks")
-        data = response.get("data")
-        if isinstance(data, list):
-            episode = args.get("episode")
-            episode_filter = int(episode) if episode is not None else None
-            task_type_filter = str(args.get("task_type") or "").strip()
-            status_filter = str(args.get("status") or "").strip().lower()
-            filtered = []
-            for task in data:
-                if not isinstance(task, dict):
-                    continue
-                if episode_filter is not None and int(task.get("episode") or 0) != episode_filter:
-                    continue
-                if task_type_filter and str(task.get("task_type") or "") != task_type_filter:
-                    continue
-                if status_filter and str(task.get("status") or "").strip().lower() != status_filter:
-                    continue
-                filtered.append(task)
-            response = {**response, "data": filtered}
-        return _read_tool_result(response)
+        query = {
+            key: args[key]
+            for key in ("episode", "task_type", "status")
+            if args.get(key) is not None
+        }
+        return _read_tool_result(
+            _request("GET", f"/api/v1/projects/{project}/tasks", query=query)
+        )
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -1536,6 +1529,7 @@ def _start_script_workflow(
         "target_duration_total",
         "target_beats",
         "max_parallel",
+        "node_timeout_seconds",
     ):
         if args.get(key) is not None:
             body[key] = args[key]
@@ -1646,17 +1640,17 @@ def _production_preflight_questions(args: dict[str, Any]) -> list[dict[str, Any]
             {
                 "id": "add_bgm",
                 "header": "背景音乐",
-                "question": "最终合成是否自动添加背景音乐？",
+                "question": "最终合成是否自动生成并混入背景音乐？",
                 "options": [
                     {
                         "id": "yes",
                         "label": "添加 BGM",
-                        "description": "增强节奏和情绪，由工作流自动混音。",
+                        "description": "调用音乐生成模型制作本集配乐，再以低音量混入成片。",
                     },
                     {
                         "id": "no",
                         "label": "暂不添加",
-                        "description": "先保留对白与音效，避免自动配乐风格不匹配。",
+                        "description": "仅保留对白、环境声和视频原声。",
                     },
                 ],
                 "recommended_option_id": "yes",
@@ -2233,7 +2227,7 @@ def _require_episode(args: dict[str, Any]) -> int:
 
 
 def _require_name(args: dict[str, Any]) -> str:
-    name = str(args.get("name") or args.get("character") or "").strip()
+    name = str(args.get("name") or "").strip()
     if not name:
         raise ValueError("name (character name) is required")
     return name
@@ -2308,7 +2302,7 @@ def _handle_generate_scene_master(args: dict[str, Any], **_: Any) -> str:
     """Generate one scene's canonical master reference image."""
     try:
         project = _project_from_args(args)
-        name = str(args.get("name") or args.get("scene_name") or "").strip()
+        name = str(args.get("name") or "").strip()
         if not name:
             raise ValueError("name (scene name) is required")
         return tool_result(
@@ -2325,7 +2319,7 @@ def _handle_generate_scene_reverse(args: dict[str, Any], **_: Any) -> str:
     """Generate one scene's reverse master reference image."""
     try:
         project = _project_from_args(args)
-        name = str(args.get("name") or args.get("scene_name") or "").strip()
+        name = str(args.get("name") or "").strip()
         if not name:
             raise ValueError("name (scene name) is required")
         return tool_result(
@@ -2349,7 +2343,9 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
-        requested_beats = sorted(_requested_beats(args) or ())
+        requested_beats = sorted(
+            _requested_beats(args, allow_single=False) or ()
+        )
         all_beats = args.get("all_beats") is True
         if requested_beats and all_beats:
             raise ValueError("pass either beat_indices or all_beats=true, not both")
@@ -2364,23 +2360,6 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
             "sketch_scene_grouping": True,
             "aspect_ratio": "2:3",
         }
-        if isinstance(args.get("body"), dict):
-            body.update(
-                {
-                    key: value
-                    for key, value in args["body"].items()
-                    if key
-                    in {
-                        "style",
-                        "grid_index",
-                        "sketch_scene_grouping",
-                        "aspect_ratio",
-                        "image_generation_selection",
-                        "replace_existing",
-                    }
-                    and value is not None
-                }
-            )
         for key in (
             "style",
             "grid_index",
@@ -2391,9 +2370,6 @@ def _handle_generate_sketches(args: dict[str, Any], **_: Any) -> str:
         ):
             if key in args and args[key] is not None:
                 body[key] = args[key]
-        if args.get("model") is not None and "image_generation_selection" not in body:
-            body["image_generation_selection"] = args["model"]
-
         grid_index = int(
             body.get("grid_index")
             if body.get("grid_index") is not None
@@ -2491,7 +2467,8 @@ def _handle_optimize_video_global(args: dict[str, Any], **_: Any) -> str:
     returned task_key.
     """
     try:
-        return tool_result(_episode_post(args, "optimize/video-global"))
+        body = {"language": args["language"]} if args.get("language") is not None else None
+        return tool_result(_episode_post(args, "optimize/video-global", body=body))
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -2698,7 +2675,7 @@ def _handle_get_sketch_candidates(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
-        beat = int(args.get("beat") or args.get("beat_num") or args.get("beat_number") or 0)
+        beat = int(args.get("beat") or 0)
         if beat <= 0:
             raise ValueError("beat is required")
         resp = _request(
@@ -2833,7 +2810,7 @@ def _handle_get_character_media(args: dict[str, Any], **_: Any) -> str:
     """Get display-ready character portrait/identity image URLs."""
     try:
         project = _project_from_args(args)
-        media_kind = str(args.get("media_kind") or args.get("kind") or "all").strip().lower()
+        media_kind = str(args.get("media_kind") or "all").strip().lower()
         if media_kind not in {"all", "portrait", "identity"}:
             media_kind = "all"
         include_identities = bool(args.get("include_identities", True)) and media_kind != "portrait"
@@ -3097,7 +3074,7 @@ def _handle_render_first_frames(args: dict[str, Any], **_: Any) -> str:
     try:
         project = _project_from_args(args)
         episode = _require_episode(args)
-        beats = sorted(_requested_beats(args) or ())
+        beats = sorted(_requested_beats(args, allow_single=False) or ())
         all_beats = args.get("all_beats") is True
         if beats and all_beats:
             raise ValueError("pass either beat_indices or all_beats=true, not both")
@@ -3117,8 +3094,8 @@ def _handle_render_first_frames(args: dict[str, Any], **_: Any) -> str:
         body: dict[str, Any] = {"beat_indices": [int(b) for b in beats]}
         if args.get("style"):
             body["style"] = str(args["style"])
-        if args.get("model"):
-            body["model"] = str(args["model"])
+        if args.get("image_generation_selection") is not None:
+            body["image_generation_selection"] = args["image_generation_selection"]
         return tool_result(
             _request(
                 "POST",
@@ -3137,7 +3114,12 @@ def _handle_compose_episode(args: dict[str, Any], **_: Any) -> str:
     task_key.
     """
     try:
-        return tool_result(_episode_post(args, "videos/compose", body={}))
+        body = {
+            key: args[key]
+            for key in ("add_subtitles", "add_bgm", "resolution")
+            if args.get(key) is not None
+        }
+        return tool_result(_episode_post(args, "videos/compose", body=body))
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -3220,27 +3202,82 @@ def _handle_generate_identity_image(args: dict[str, Any], **_: Any) -> str:
         return tool_error(str(exc))
 
 
+_SINGLE_VIDEO_REQUEST_PROPS = {
+    "model": {
+        "type": "string",
+        "description": (
+            "Optional API model identifier from the current model catalog. Set only when "
+            "the user explicitly selects a model for this request; otherwise omit it."
+        ),
+    },
+    "model_selector": {
+        "type": "string",
+        "description": "Optional cloud/BYOK route selector paired with model, as in the web request. Requires model.",
+    },
+    "use_director_render": {
+        "type": "boolean",
+        "description": "Whether to use the director-render first frame, matching the web request.",
+    },
+    "video_config_json": {
+        "type": "string",
+        "description": (
+            "Serialized JSON object containing the video panel configuration. Supplied fields "
+            "are merged with saved configuration; explicit top-level fields then override them. "
+            "Omit to keep the saved configuration."
+        ),
+    },
+    "duration": {"type": "integer", "minimum": 1, "description": "Optional duration in whole seconds, supported by the selected model."},
+    "resolution": {"type": "string", "description": "Optional output resolution supported by the selected model."},
+    "mode": {
+        "type": "string",
+        "enum": ["text_to_video", "first_frame", "first_last_frame", "multimodal_reference"],
+        "description": "Optional canonical generation mode supported by the selected model.",
+    },
+    "ratio": {"type": "string", "description": "Optional aspect ratio supported by the selected model, such as 9:16 or 16:9."},
+    "generate_audio": {"type": "boolean", "description": "Whether to generate video audio. Explicit false overrides the saved setting."},
+    "return_last_frame": {"type": "boolean", "description": "Whether to return the generated video's last frame."},
+    "human_review": {"type": "boolean", "description": "Human-review setting from the video panel configuration."},
+    "scene_optimize": {"type": "string", "description": "Model-specific scene optimization setting from the video panel."},
+    "final_prompt": {
+        "type": "string",
+        "description": (
+            "Final prompt for reference video workflows. Overrides video_config_json.final_prompt "
+            "when supplied; advanced reference generation requires a non-empty final prompt. "
+            "Standard workflows use the beat's saved video_prompt/keyframe_prompt."
+        ),
+    },
+    "audio_setting": {"type": "string", "description": "Model-specific audio settings, matching the web request."},
+    "prompt_guidance": {"type": "string", "description": "Prompt guidance from the video panel configuration."},
+    "text_overlay": {"type": "object", "description": "Text overlay configuration from the video panel; an empty object clears it."},
+}
+
+
 def _handle_start_single_video(args: dict[str, Any], **_: Any) -> str:
     """Generate one beat's video (单 beat 视频, single_video task).
 
-    POST /projects/{project}/episodes/{episode}/beats/{beat}/video. The beat's
-    prompt is taken from its stored ``video_prompt`` (set by the script step) —
-    you do NOT pass a prompt. Requires the beat's first frame to exist already
-    (otherwise the API returns "首帧不存在") and the beat to have a non-empty
-    video_prompt (otherwise the backend returns "prompt is required"). Only
-    duration / resolution / mode are accepted request fields. Model routing always
-    follows the configured role priority for agent-triggered generation.
+    POST /projects/{project}/episodes/{episode}/beats/{beat}/video. Prompt/config
+    overrides match the web endpoint and share its validation/persistence path.
+    Standard generation uses saved ``video_prompt``/``keyframe_prompt``; advanced
+    reference generation requires a non-empty ``final_prompt``, supplied directly,
+    inside ``video_config_json``, or already saved. Unspecified configuration stays
+    unchanged. An explicitly selected model uses the same routing as the web UI;
+    omitting the model retains the agent's configured role-priority default.
     """
     try:
         project = _project_from_args(args)
-        episode = int(args.get("episode") or 1)
-        beat = int(args.get("beat") or args.get("beat_number") or 0)
+        episode = _require_episode(args)
+        beat = int(args.get("beat") or 0)
         if beat <= 0:
             raise ValueError("beat must be a positive integer")
-        body: dict[str, Any] = {"video_routing_policy": "role_priority"}
-        for key in ("duration", "resolution", "mode"):
-            if args.get(key) is not None:
-                body[key] = args[key]
+        body: dict[str, Any] = {
+            key: args[key]
+            for key in _SINGLE_VIDEO_REQUEST_PROPS
+            if args.get(key) is not None
+        }
+        model = str(body.get("model") or "").strip()
+        if str(body.get("model_selector") or "").strip() and not model:
+            raise ValueError("model is required when model_selector is provided")
+        body["video_routing_policy"] = "project_selection" if model else "role_priority"
         return tool_result(_request("POST", f"/api/v1/projects/{project}/episodes/{episode}/beats/{beat}/video", body=body))
     except Exception as exc:
         return tool_error(str(exc))
@@ -3628,7 +3665,8 @@ TOOLS = (
                     "description": (
                         "Set true only when the user explicitly delegated all omitted choices to the "
                         "assistant's recommendations. Uses all planned episodes, preserves existing "
-                        "assets, follows provider-compatible video resolution, and enables subtitles/BGM."
+                        "assets, follows provider-compatible video resolution, and enables subtitles "
+                        "and generated background music."
                     ),
                 },
                 "episodes": {
@@ -3681,7 +3719,10 @@ TOOLS = (
                 },
                 "video_resolution": {"type": "string"},
                 "add_subtitles": {"type": "boolean"},
-                "add_bgm": {"type": "boolean"},
+                "add_bgm": {
+                    "type": "boolean",
+                    "description": "Generate episode music with AUDIO_MUSIC and mix it into the final video.",
+                },
             },
         ),
         _handle_run_production_workflow,
@@ -3734,12 +3775,13 @@ TOOLS = (
                     "enum": ["Chinese", "Japanese", "Korean", "Western"],
                     "description": "Default character ethnicity inferred from names and setting.",
                 },
-                "target_episodes": {"type": "integer", "description": "Episode count used when planning is missing."},
+                "target_episodes": {"type": "integer", "minimum": 1, "maximum": 200, "description": "Episode count used when planning is missing."},
                 "planning_mode": {"type": "string", "enum": ["chapters", "ai_events", "ai"]},
                 "script_mode": {"type": "string", "enum": ["duration", "literal"]},
-                "target_duration_total": {"type": "integer", "description": "Target seconds per episode."},
+                "target_duration_total": {"type": "integer", "minimum": 30, "maximum": 600, "description": "Target seconds per episode."},
                 "target_beats": {"type": "integer", "minimum": 5, "maximum": 80, "description": "Explicit beat count per episode."},
                 "max_parallel": {"type": "integer", "minimum": 1, "maximum": 6, "description": "Maximum concurrent ready graph nodes. Default: 4."},
+                "node_timeout_seconds": {"type": "integer", "minimum": 30, "maximum": 28800, "description": "Timeout for each workflow node. Default: 7200."},
             },
         ),
         _handle_run_script_workflow,
@@ -3814,8 +3856,8 @@ TOOLS = (
             "workflow task_key, then read /projects/{project}/episodes.",
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
-                "target_episodes": {"type": "integer", "description": "How many episodes to plan (default 10)."},
-                "planning_mode": {"type": "string", "description": "Planning mode (default 'chapters')."},
+                "target_episodes": {"type": "integer", "minimum": 1, "maximum": 200, "description": "How many episodes to plan (default 10)."},
+                "planning_mode": {"type": "string", "enum": ["chapters", "ai_events", "ai"], "description": "Planning mode (default 'chapters')."},
             },
         ),
         _handle_plan_episodes,
@@ -3850,7 +3892,6 @@ TOOLS = (
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "name": {"type": "string", "description": "Character name (required)."},
-                "character": {"type": "string", "description": "Alias of name."},
                 "face_prompt": {
                     "type": "string",
                     "description": "Concrete facial features: hairstyle, face shape, eyes, skin tone, age cues; no clothing.",
@@ -3917,7 +3958,6 @@ TOOLS = (
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "name": {"type": "string", "description": "Scene name (required)."},
-                "scene_name": {"type": "string", "description": "Alias of name."},
             },
             ["name"],
         ),
@@ -3934,7 +3974,6 @@ TOOLS = (
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "name": {"type": "string", "description": "Scene name (required)."},
-                "scene_name": {"type": "string", "description": "Alias of name."},
             },
             ["name"],
         ),
@@ -4034,10 +4073,6 @@ TOOLS = (
                 "auto_assign_colors": {
                     "type": "boolean",
                     "description": "Run /sketches/assign-colors before generation. Default: true.",
-                },
-                "body": {
-                    "type": "object",
-                    "description": "Advanced override merged into the canonical generate body.",
                 },
             },
             ["episode"],
@@ -4170,7 +4205,6 @@ TOOLS = (
                     "items": {"type": "string"},
                     "description": "Show scenes whose name contains any of these texts.",
                 },
-                "scene_name": {"type": "string", "description": "Alias of name; fuzzy contains match."},
                 "scene_type": {"type": "string", "description": "Show only scenes with this scene_type."},
                 "index": {
                     "type": "integer",
@@ -4219,10 +4253,6 @@ TOOLS = (
                     "type": "string",
                     "description": "Broad fuzzy text query over character name, role/description, identity names, and identity descriptions.",
                 },
-                "identity_name": {
-                    "type": "string",
-                    "description": "Fuzzy text query over identity image names/ids.",
-                },
                 "offset": {
                     "type": "integer",
                     "description": "Zero-based media offset after character filtering. Use with limit for paging.",
@@ -4254,10 +4284,6 @@ TOOLS = (
                 "query": {
                     "type": "string",
                     "description": "Fuzzy text query over beat title, description, narration/dialogue, speaker, characters, and scene.",
-                },
-                "search": {
-                    "type": "string",
-                    "description": "Alias of query.",
                 },
                 "offset": {
                     "type": "integer",
@@ -4291,6 +4317,10 @@ TOOLS = (
                     "description": "Set true only for an explicit user request to rebuild every Beat.",
                 },
                 "style": {"type": "string", "description": "Optional visual style override."},
+                "image_generation_selection": {
+                    "type": "string",
+                    "description": "Optional backend/provider selection from render settings.",
+                },
             },
             ["episode"],
         ),
@@ -4363,6 +4393,11 @@ TOOLS = (
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "episode": {"type": "integer", "description": "Episode number (required)."},
+                "language": {
+                    "type": "string",
+                    "enum": ["en", "zh"],
+                    "description": "Prompt language. Backend default: en.",
+                },
             },
             ["episode"],
         ),
@@ -4378,6 +4413,12 @@ TOOLS = (
             {
                 "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
                 "episode": {"type": "integer", "description": "Episode number (required)."},
+                "add_subtitles": {"type": "boolean", "description": "Add subtitles. Backend default: true."},
+                "add_bgm": {
+                    "type": "boolean",
+                    "description": "Generate and mix episode background music. Backend default: false.",
+                },
+                "resolution": {"type": "string", "description": "Output resolution. Backend default: 720x1280."},
             },
             ["episode"],
         ),
@@ -4404,19 +4445,20 @@ TOOLS = (
         _schema(
             "ai_anime_start_single_video",
             "Generate one beat's video (单 beat 视频, single_video task), POST /episodes/{ep}/beats/"
-            "{beat}/video. You do NOT pass a prompt — the beat's stored video_prompt is used. "
-            "Prerequisites: the beat's first frame must exist AND the beat must have a non-empty "
-            "video_prompt; if the API returns '首帧不存在' or 'prompt is required', that prerequisite "
-            "is missing — report it, do NOT invent fixes. Model routing always follows the configured "
-            "role priority. Compose only works after all beat videos exist.",
+            "{beat}/video. Accepts the same generation configuration fields as the web endpoint. "
+            "Pass model/model_selector only for a model explicitly selected by the user; omit both "
+            "to use the configured role priority. Standard generation uses saved video_prompt "
+            "(keyframe_prompt for keyframe mode). Advanced reference generation requires a non-empty "
+            "final_prompt, supplied directly, in video_config_json, or already saved. Omitted settings "
+            "keep their saved values. Image/reference modes require their corresponding visual assets; "
+            "text_to_video deliberately uses no first frame or reference assets. Backend validation and "
+            "configuration persistence are shared with the web endpoint; report missing prerequisites "
+            "returned by the API. Compose only works after all beat videos exist.",
             {
                 "project_id": {"type": "string"},
                 "episode": {"type": "integer"},
                 "beat": {"type": "integer", "description": "Beat number (required)."},
-                "beat_number": {"type": "integer"},
-                "duration": {"type": "number", "description": "Optional seconds."},
-                "resolution": {"type": "string", "description": "Optional output resolution."},
-                "mode": {"type": "string", "description": "Optional generation mode."},
+                **_SINGLE_VIDEO_REQUEST_PROPS,
             },
             ["episode", "beat"],
         ),

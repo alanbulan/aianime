@@ -55,7 +55,10 @@ async def test_director_control_to_sketch_runner_logs_to_sketch_generation_task(
 
     manager = FakeTaskManager()
 
-    async def fake_convert_control_frame_to_sketch(**_kwargs):
+    conversion_args: dict[str, object] = {}
+
+    async def fake_convert_control_frame_to_sketch(**kwargs):
+        conversion_args.update(kwargs)
         return {"promoted_sketch": str(promoted_sketch)}
 
     monkeypatch.setattr(sketch_runner, "get_task_manager", lambda: manager)
@@ -70,13 +73,18 @@ async def test_director_control_to_sketch_runner_logs_to_sketch_generation_task(
             "episode": 2,
             "beat_num": 3,
             "scope": "director_control_to_sketch:ep002:beat_03",
-            "payload": {"output_dir": str(ctx.output_dir), "state_dir": str(ctx.state_dir)},
+            "payload": {
+                "output_dir": str(ctx.output_dir),
+                "state_dir": str(ctx.state_dir),
+                "quality": "high",
+            },
         },
         ctx,
     )
 
     assert result["sketch_path"] == str(promoted_sketch)
     assert result["beat_numbers"] == [3]
+    assert conversion_args["quality"] == "high"
     assert [update["task_type"] for update in manager.updates] == [
         "sketch_generation",
         "sketch_generation",

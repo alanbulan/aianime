@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import threading
 from pathlib import Path
 from types import SimpleNamespace
@@ -224,6 +225,62 @@ async def test_status_projects_panel_state_and_closes_store(
     assert data["assets"]["items"][0]["url"].startswith(
         "/static/projects/proj-1/references/image.png?v="
     )
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_status_resolves_narrator_config_by_project_name_for_id_request(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import video_reference_panel
+    from ai_anime.modules.project_workspace.infrastructure import project_config
+    from ai_anime.shared.utils import project_paths
+
+    context = _context(tmp_path)
+    monkeypatch.setattr(project_config, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(project_paths, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(project_paths, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(project_paths, "RUNTIME_DIR", tmp_path / "runtime")
+    context.state_dir.mkdir(parents=True)
+    (context.state_dir / "project_config.json").write_text(
+        json.dumps({"narrator_reference_audio_path": "assets/narrator/voice.wav"}),
+        encoding="utf-8",
+    )
+    voice_path = context.output_dir / "assets" / "narrator" / "voice.wav"
+    voice_path.parent.mkdir(parents=True)
+    voice_path.write_bytes(b"existing narrator voice")
+    beat = {"beat_number": 3, "audio_type": "narration", "video_config_json": "{}"}
+    store = _Store([beat])
+    store.project_dir = context.output_dir
+    gateway, _, _ = _gateway(monkeypatch, store)
+    monkeypatch.setattr(
+        video_reference_panel.video_reference_panel_service,
+        "build_video_reference_panel_state",
+        lambda **_kwargs: SimpleNamespace(
+            assets=[],
+            final_prompt="existing prompt",
+            prompt_source="fallback",
+            prompt_status="ready",
+            prompt_guidance="",
+            text_overlay={},
+            prompt_inputs_hash="",
+            current_prompt_inputs_hash="",
+        ),
+    )
+
+    response = await gateway.status(
+        context,
+        VideoReferencePanelQuery(
+            project=context.project_id,
+            episode_num=2,
+            beat_num=3,
+        ),
+    )
+
+    assert response["data"]["voice"]["ready"] is True
+    assert response["data"]["voice"]["label"] == "声线就绪"
+    assert response["data"]["voice"]["detail"] == str(voice_path)
     assert store.close_calls == 1
 
 

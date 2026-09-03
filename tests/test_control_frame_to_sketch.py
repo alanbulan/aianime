@@ -50,8 +50,11 @@ async def test_director_control_frame_to_sketch_uses_commercial_access(monkeypat
         async def close(self):
             pass
 
+    generator_config: dict[str, object] = {}
+
     class FakeGenerator:
         def __init__(self, config):
+            generator_config.update(config)
             self.access_mode = config["access_mode"]
 
         async def generate_grid(self, **_kwargs):
@@ -94,9 +97,12 @@ async def test_director_control_frame_to_sketch_uses_commercial_access(monkeypat
         episode=1,
         beat=3,
         model="gpt-image-2",
+        quality="high",
         output_dir=project_dir,
         state_dir=state_dir,
     )
 
     assert result["ok"] is True
     assert result["beat"] == 3
+    assert generator_config["image_quality"] == "high"
+    assert generator_config["sketch_image_quality"] == "high"

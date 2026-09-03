@@ -3254,10 +3254,12 @@ async def test_sketch_from_context_uses_beat_db_and_routes_to_gen_without_source
         body=FreezoneSketchFromContextRequest(
             episode=1,
             beat=8,
+            aspect_ratio="16:9",
             source_kind="beat",
             canvas_id="canvas_a",
             node_id="node_ctx",
             model="cloud-image-standard",
+            quality="high",
         ),
         user={"username": "admin"},
     )
@@ -3266,6 +3268,8 @@ async def test_sketch_from_context_uses_beat_db_and_routes_to_gen_without_source
     assert captured["episode"] == 1
     assert captured["payload"]["config"]["direct_sketch_beats"] is True
     assert captured["payload"]["config"]["beat_numbers"] == [8]
+    assert captured["payload"]["config"]["mode_key"] == "1x1_16-9_sketch"
+    assert captured["payload"]["config"]["sketch_image_quality"] == "high"
     assert captured["payload"]["canvas_id"] == "canvas_a"
     assert captured["payload"]["node_id"] == "node_ctx"
 
@@ -3387,7 +3391,7 @@ async def test_frame_from_context_infers_landscape_from_sketch_and_medium_qualit
 
 
 @pytest.mark.asyncio
-async def test_scene_360_endpoint_caps_mainline_image_size_to_2k(
+async def test_scene_360_endpoint_preserves_requested_image_size(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3432,7 +3436,9 @@ async def test_scene_360_endpoint_caps_mainline_image_size_to_2k(
 
     assert result["data"]["task_type"] == "stage_asset"
     assert captured["payload"]["scene_name"] == "小区"
-    assert captured["payload"]["params"]["image_size"] == "2K"
+    assert captured["payload"]["canvas_id"] == "canvas_a"
+    assert captured["payload"]["node_id"] == "node_scene_360"
+    assert captured["payload"]["params"]["image_size"] == "4K"
     assert captured["payload"]["params"]["quality"] == "low"
     assert captured["payload"]["params"]["update_manifest"] is False
     assert captured["payload"]["params"]["artifact_dir"]

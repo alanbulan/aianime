@@ -1239,15 +1239,11 @@ test("video catalog synchronization sends only projected generation capabilities
                     displayName: "Cloud Text",
                     operation: "TEXT",
                     capabilityJson: JSON.stringify({
-                      contextWindowTokens: 204800,
+                      contextWindow: 204800,
                     }),
                     parameterSchemaJson: JSON.stringify({
+                      outputTokenLimit: 65536,
                       properties: {
-                        max_completion_tokens: {
-                          type: "integer",
-                          minimum: 1,
-                          maximum: 65536,
-                        },
                         reasoning_effort: {
                           type: "string",
                           enum: ["none", "low", "medium", "high"],
@@ -4175,6 +4171,7 @@ test("cloud video requests are normalized to the server contract", async (t) => 
         "seed",
         "turbo",
         "guidance_scale",
+        "return_last_frame",
       ],
       videoSceneOptimizeOptions: ["anime", "realistic"],
       videoSupportsHumanReview: true,
@@ -4204,6 +4201,8 @@ test("cloud video requests are normalized to the server contract", async (t) => 
       human_review: true,
       scene_optimize: "anime",
       return_last_frame: true,
+      input_reference: 'https://assets.example.com/start.png',
+      reference_images: ['https://assets.example.com/character.png'],
     }),
   });
   assert.equal(jsonResponse.status, 200);
@@ -4220,6 +4219,8 @@ test("cloud video requests are normalized to the server contract", async (t) => 
     generate_audio: true,
     human_review: true,
     scene_optimize: "anime",
+    input_reference: 'https://assets.example.com/start.png',
+    reference_images: ['https://assets.example.com/character.png'],
   });
 
   const form = new FormData();
@@ -4234,6 +4235,7 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   form.append("generate_audio", "true");
   form.append("human_review", "true");
   form.append("scene_optimize", "anime");
+  form.append("return_last_frame", "false");
   form.append(
     "reference_images",
     new Blob(["image-bytes"], { type: "image/png" }),
@@ -4244,6 +4246,11 @@ test("cloud video requests are normalized to the server contract", async (t) => 
     new Blob(["video-bytes"], { type: "video/mp4" }),
     "motion.mp4",
   );
+  form.append('last_frame', 'https://assets.example.com/end.png');
+  form.append('reference_images[]', 'https://assets.example.com/character-1.png');
+  form.append('reference_images[]', 'https://assets.example.com/character-2.png');
+  form.append('reference_video_durations', '[8]');
+  form.append('reference_audio_durations', '[4]');
   const multipartResponse = await fetch(`${proxy.baseUrl}/videos`, {
     method: "POST",
     headers,
@@ -4260,10 +4267,55 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   assert.equal(calls[1].body.get("generate_audio"), "true");
   assert.equal(calls[1].body.get("human_review"), "true");
   assert.equal(calls[1].body.get("scene_optimize"), "anime");
+  assert.equal(calls[1].body.get("return_last_frame"), null);
   assert.equal(calls[1].body.get("reference_images"), null);
   assert.equal(calls[1].body.get("reference_videos"), null);
   assert.equal(calls[1].body.get("reference_image") instanceof Blob, true);
   assert.equal(calls[1].body.get("reference_video") instanceof Blob, true);
+  assert.equal(calls[1].body.get('last_frame'), 'https://assets.example.com/end.png');
+  assert.deepEqual(calls[1].body.getAll('reference_image').slice(1), [
+    'https://assets.example.com/character-1.png',
+    'https://assets.example.com/character-2.png',
+  ]);
+  assert.equal(calls[1].body.get('reference_video_durations'), null);
+  assert.equal(calls[1].body.get('reference_audio_durations'), null);
+});
+
+test("cloud output-frame options stay local while BYOK parameters remain intact", async () => {
+  for (const cloudVideo of [true, false]) {
+    for (const enabled of [false, true]) {
+      const options = { return_last_frame: enabled };
+      const source = new FormData();
+      source.set("return_last_frame", String(enabled));
+      const request = new Request("http://localhost/videos", { method: "POST", body: source });
+      const prepared = await prepareBodyForRoute(
+        Buffer.from(await request.arrayBuffer()),
+        request.headers.get("content-type"),
+        "video-model",
+        cloudVideo,
+        null,
+        undefined,
+        ["return_last_frame"],
+        options,
+      );
+      assert.equal(prepared.body.get("return_last_frame"), cloudVideo ? null : String(enabled));
+
+      const json = await prepareBodyForRoute(
+        Buffer.from(JSON.stringify(options)),
+        "application/json",
+        "video-model",
+        cloudVideo,
+        null,
+        undefined,
+        ["return_last_frame"],
+        options,
+      );
+      assert.deepEqual(JSON.parse(json.body), {
+        model: "video-model",
+        ...(cloudVideo ? {} : options),
+      });
+    }
+  }
 });
 
 test("local model proxy infers the dedicated audio music route", async (t) => {

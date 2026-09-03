@@ -2,7 +2,7 @@
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class VideoReferenceAssetDeleteRequest(BaseModel):
@@ -28,10 +28,12 @@ class VideoReferenceAssetAudioTrimRequest(BaseModel):
 
 
 class GlobalOptimizeRequest(BaseModel):
-    language: str = "en"
+    language: Literal["en", "zh"] = "en"
 
 
 class VideoComposeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     add_subtitles: bool = True
     add_bgm: bool = False
     resolution: str = "720x1280"
@@ -48,8 +50,15 @@ class SingleVideoRequest(BaseModel):
     )
     use_director_render: bool = False
     video_config_json: Optional[str] = None
-    mode: Optional[str] = None
-    duration: Optional[int] = None
+    mode: Optional[
+        Literal[
+            "text_to_video",
+            "first_frame",
+            "first_last_frame",
+            "multimodal_reference",
+        ]
+    ] = None
+    duration: Optional[int] = Field(default=None, gt=0)
     ratio: Optional[str] = None
     generate_audio: Optional[bool] = None
     return_last_frame: Optional[bool] = None

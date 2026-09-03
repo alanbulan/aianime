@@ -37,8 +37,10 @@
 | `POST` | `/projects/{project}/characters/{name}/identities` | 新增身份 |
 | `PATCH` | `/projects/{project}/characters/{name}/identities/{identity_id}` | 修改身份（identity_id = `角色名_身份名`） |
 | `DELETE` | `/projects/{project}/characters/{name}/identities/{identity_id}` | 删除身份 |
-| `POST` | `/projects/{project}/characters/{name}/identities/{identity_name}/upload` | 上传身份图 |
-| `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/generate` | 生成身份图（Identity Locking）`{"style":"...","model":"..."}` [SYNC] |
+| `POST` | `/projects/{project}/characters/{name}/identities/{identity_name}/upload` | 上传身份主图；使用身份名称（如 `少年`），multipart 字段为 `file` |
+| `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/costume/upload` | 上传身份服装图；使用身份 ID（如 `秦_少年`），multipart 字段为 `file` |
+| `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/portrait/upload` | 上传身份肖像图；使用身份 ID，multipart 字段为 `file` |
+| `POST` | `/projects/{project}/characters/{name}/identities/{identity_id}/generate-async` | 生成身份图（Identity Locking）`{"style":"...","model":"..."}` [ASYNC → identity_image]；助手使用 `ai_anime_generate_identity_image`，按返回的 `task_key` 等待任务完成 |
 
 ## 分集
 
@@ -89,7 +91,6 @@
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | `POST` | `/projects/{project}/episodes/{ep}/sketches/generate` | 正式草图 `{"grid_index":-1,"sketch_scene_grouping":true,"aspect_ratio":"2:3","image_generation_selection":"...","replace_existing":false}` [ASYNC]。生产计划固定每 Beat 独立 1x1；`-1` 只补缺失，已有图跳过。不得发送不存在的 `model` 或 `sketch_location_grouping` 字段。 |
-| `POST` | `/projects/{project}/episodes/{ep}/grids/generate` | 历史/显式网格实验 [ASYNC]，不作为正式草图生产入口 |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/regenerate` | 重新生成单个网格 [ASYNC] |
 | `POST` | `/projects/{project}/episodes/{ep}/grids/{idx}/cut` | 切割入池 |
 | `GET` | `/projects/{project}/episodes/{ep}/grids` | 查看生成历史与图池（返回 `images[].stale` 布尔字段，true=旧版脚本生成） |
@@ -110,7 +111,7 @@
 |------|------|------|
 | `POST` | `/projects/{project}/episodes/{ep}/optimize/video-global` | 全局视频优化(SuperPower⚡️) `{"language":"en"}` en=英文(默认), zh=中文 [ASYNC] |
 | `POST` | `/projects/{project}/episodes/{ep}/beats/{beat}/video` | 单 beat 局部生成 [ASYNC: single_video]，请求字段为 `model`、`resolution`、`duration`、`mode` 等；未指定 `model` 时由后端按项目配置解析。同一用户请求里同一 beat 只 POST 一次；失败必须反馈任务真实错误，不得因查询暂未出现而重复 POST。完整整集目标使用 `/workflow/production`。 |
-| `POST` | `/projects/{project}/episodes/{ep}/videos/compose` | 合成 `{"add_subtitles":true,"add_bgm":false}` [ASYNC] |
+| `POST` | `/projects/{project}/episodes/{ep}/videos/compose` | 合成 `{"add_subtitles":true,"add_bgm":true}`；`add_bgm` 会调用 `AUDIO_MUSIC` 生成并混入配乐 [ASYNC] |
 
 ## 导出 & 文件
 
@@ -159,8 +160,8 @@
 | `DELETE` | `/api/v1/styles/{id}` | 删除自定义风格 |
 | `POST` | `/api/v1/styles/{id}/preview` | 为已有自定义风格提交参考图任务到任务中心；助手必须使用 `ai_anime_generate_style_preview`，不得重新创建风格或提交任何配置字段 |
 | `GET` | `/api/v1/styles/{id}/preview` | 风格预览图（返回图片文件）。创建工具或参考图任务已返回成功时禁止再调用该接口验证 |
-| `POST` | `/projects/{project}/styles/analyze` | 风格分析（上传参考图提取风格参数）multipart/form-data [SYNC] |
-| `POST` | `/projects/{project}/styles/preview-upload` | 直接保存自定义风格参考图；助手使用 `ai_anime_upload_style_preview`，路径必须来自当前消息的 `[CHAT_ATTACHMENTS]` |
+| `POST` | `/projects/{project}/styles/analyze` | 风格分析（上传参考图提取风格参数）；multipart 字段 `file`、可选 `style_id` [ASYNC]，按返回的 `task_key` 等待任务完成 |
+| `PUT` | `/api/v1/styles/{style_id}/preview` | 直接保存账号级自定义风格参考图，multipart 字段为 `file`；助手使用 `ai_anime_upload_style_preview`，上传文件路径必须来自当前消息的 `[CHAT_ATTACHMENTS]` |
 
 ## 流水线状态
 
@@ -172,7 +173,7 @@
 
 | 方法 | 路径 | 用途 |
 |------|------|------|
-| `GET` | `/projects/{project}/tasks` | 列出项目任务 |
+| `GET` | `/projects/{project}/tasks` | 列出项目任务；可用 `episode`、`task_type`、`status` 查询参数组合筛选，`episode=0` 表示项目级任务，`status` 按展示状态匹配 |
 | `GET` | `/projects/{project}/tasks/status?task_key={task_key}` | 按创建结果中的精确任务键查询；助手工具唯一使用此入口 |
 | `GET` | `/projects/{project}/tasks/{task_type}/{episode}` | 任务中心按页面维度查询，单 beat 任务带 `?beat_num=N` |
 | `GET` | `/projects/{project}/tasks/{task_type}/{episode}/stream` | 项目任务 SSE，单 beat 任务带 `?beat_num=N` |

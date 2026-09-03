@@ -11,9 +11,7 @@ def display_episode(args: dict[str, Any]) -> int:
 
 def display_candidate_beat(args: dict[str, Any]) -> int:
     try:
-        return int(
-            args.get("beat") or args.get("beat_num") or args.get("beat_number") or 0
-        )
+        return int(args.get("beat") or 0)
     except (TypeError, ValueError):
         return 0
 
@@ -37,15 +35,14 @@ def _limit_items(
 
 
 def _requested_beats(args: dict[str, Any]) -> set[int] | None:
-    raw = args.get("beat_indices") or args.get("beats")
+    raw = args.get("beat_indices")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    for key in ("beat", "beat_num", "beat_number", "index"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    if args.get("beat") is not None:
+        values.append(args["beat"])
     beats: set[int] = set()
     for value in values:
         try:
@@ -64,43 +61,33 @@ def _requested_names(args: dict[str, Any]) -> set[str] | None:
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    for key in ("name", "character"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    if args.get("name") is not None:
+        values.append(args["name"])
     names = {str(value).strip() for value in values if str(value or "").strip()}
     return names or None
 
 
 def _requested_queries(args: dict[str, Any]) -> set[str] | None:
-    raw = args.get("queries") or args.get("keywords")
-    values: list[Any] = []
-    if isinstance(raw, list):
-        values.extend(raw)
-    elif raw is not None:
-        values.append(raw)
-    for key in ("query", "search", "keyword", "text", "identity_name"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    values = [args["query"]] if args.get("query") is not None else []
     queries = {str(value).strip() for value in values if str(value or "").strip()}
     return queries or None
 
 
 def _requested_scene_names(args: dict[str, Any]) -> set[str] | None:
-    raw = args.get("names") or args.get("scene_names")
+    raw = args.get("names")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
     elif raw is not None:
         values.append(raw)
-    for key in ("name", "scene_name"):
-        if args.get(key) is not None:
-            values.append(args[key])
+    if args.get("name") is not None:
+        values.append(args["name"])
     names = {str(value).strip() for value in values if str(value or "").strip()}
     return names or None
 
 
 def _requested_scene_indices(args: dict[str, Any]) -> set[int] | None:
-    raw = args.get("scene_indices") or args.get("indices")
+    raw = args.get("scene_indices")
     values: list[Any] = []
     if isinstance(raw, list):
         values.extend(raw)
@@ -334,9 +321,7 @@ def character_identity_requests(
     args: dict[str, Any],
     response: Any,
 ) -> list[tuple[int, str]]:
-    media_kind = (
-        str(args.get("media_kind") or args.get("kind") or "all").strip().lower()
-    )
+    media_kind = str(args.get("media_kind") or "all").strip().lower()
     if media_kind not in {"all", "portrait", "identity"}:
         media_kind = "all"
     include_identities = (
@@ -378,9 +363,7 @@ def project_character_media_specs(
     response: Any,
     identity_responses: Mapping[int, Any] | None = None,
 ) -> list[dict[str, Any]]:
-    media_kind = (
-        str(args.get("media_kind") or args.get("kind") or "all").strip().lower()
-    )
+    media_kind = str(args.get("media_kind") or "all").strip().lower()
     if media_kind not in {"all", "portrait", "identity"}:
         media_kind = "all"
     include_identities = (

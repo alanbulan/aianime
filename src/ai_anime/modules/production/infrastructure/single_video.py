@@ -5,14 +5,17 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 from ai_anime.modules.narrative_planning.public import (
     resolve_target_video_duration,
 )
-from ai_anime.modules.model_usage.public import runtime_model_capability
+from ai_anime.modules.model_usage.public import (
+    resolve_model_for_role,
+    runtime_model_capability,
+)
 from ai_anime.modules.production.application.ports import (
     ProductionBeatAudioDurationSource,
     ProductionEpisodeSource,
@@ -48,7 +51,9 @@ from ai_anime.modules.production.infrastructure.video_reference_assets import (
 from ai_anime.modules.production.application.video_config import (
     VideoReferenceMode,
     dump_video_config,
+    explicit_video_mode,
     parse_video_config,
+    video_model_role_for_mode,
 )
 from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
     prepare_video_reference_generation_inputs,
@@ -101,15 +106,6 @@ def _merge_video_reference_request_config(
     return saved_json
 
 
-def _video_model_role(mode: VideoReferenceMode) -> str:
-    return {
-        VideoReferenceMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
-        VideoReferenceMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
-        VideoReferenceMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
-        VideoReferenceMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
-    }[mode]
-
-
 def _prepare_reference_video_beat(
     *,
     model_label: str,
@@ -120,7 +116,7 @@ def _prepare_reference_video_beat(
     episode_num: int,
     beat: dict[str, Any],
     next_beat: dict[str, Any] | None,
-    frame_path: Path,
+    frame_path: Path | None,
     video_mode: str,
     prompt: str,
     duration: float,
@@ -130,6 +126,10 @@ def _prepare_reference_video_beat(
 ) -> _ReferenceVideoPreparation:
     config = parse_video_config(beat.get("video_config_json"))
     mode = config.mode
+    if mode == VideoReferenceMode.TEXT_TO_VIDEO:
+        raise ValueError(
+            f"{model_label} 不支持文生视频模式，请改用支持文生视频的模型"
+        )
     if mode == VideoReferenceMode.FIRST_LAST_FRAME or video_mode == "keyframe":
         raise ValueError(
             f"{model_label} 不支持首尾帧模式，请改用首帧模式或多参模式"
@@ -153,6 +153,8 @@ def _prepare_reference_video_beat(
     image_path: str | None = None
     references: list[dict[str, str]] = []
     if mode == VideoReferenceMode.FIRST_FRAME:
+        if frame_path is None:
+            raise ValueError(f"{model_label} 首帧模式缺少首帧图片")
         image_path = str(frame_path)
     else:
         assets = build_video_reference_assets(
@@ -327,6 +329,86 @@ class LocalSingleVideoPreparer:
         if beat is None:
             raise SingleVideoRejected(f"Beat {command.beat_num} not found")
 
+        try:
+            configured_mode = explicit_video_mode(
+                command.mode if command.was_provided("mode") else None,
+                command.video_config_json,
+                beat.get("video_config_json"),
+            )
+        except ValueError as exc:
+            raise SingleVideoRejected(str(exc)) from exc
+        output_dir = Path(context.output_dir)
+        paths = PathResolver(output_dir, command.episode_num)
+        frame_path = paths.first_frame_for_video(
+            command.beat_num,
+            use_director_render=command.use_director_render,
+        )
+        if configured_mode == VideoReferenceMode.TEXT_TO_VIDEO:
+            effective_frame_path: Path | None = None
+        elif frame_path.exists():
+            effective_frame_path = frame_path
+        else:
+            raise SingleVideoRejected(
+                f"Beat {command.beat_num} 首帧不存在，请先生成预览"
+            )
+
+        beat_index = beats.index(beat)
+        next_beat = beats[beat_index + 1] if beat_index + 1 < len(beats) else None
+
+        video_mode = (
+            "keyframe"
+            if configured_mode == VideoReferenceMode.FIRST_LAST_FRAME
+            or (
+                configured_mode is None
+                and beat.get("video_mode", "first_frame") == "keyframe"
+            )
+            else "first_frame"
+        )
+        effective_mode = configured_mode or (
+            VideoReferenceMode.FIRST_LAST_FRAME
+            if video_mode == "keyframe"
+            else VideoReferenceMode.FIRST_FRAME
+        )
+        model_role = video_model_role_for_mode(effective_mode)
+        prompt = standard_video_prompt(beat, video_mode)
+        audio_duration = await self._audio_durations.for_beat(
+            context,
+            command.episode_num,
+            command.beat_num,
+        )
+        video_duration = resolve_target_video_duration(beat, audio_duration)
+
+        last_frame_path = None
+        if video_mode == "keyframe":
+            next_beat_number = int((next_beat or {}).get("beat_number") or 0)
+            if next_beat_number > 0:
+                next_frame = paths.first_frame_for_video(
+                    next_beat_number,
+                    use_director_render=command.use_director_render,
+                )
+                if next_frame.exists():
+                    last_frame_path = str(next_frame)
+            if not last_frame_path:
+                if configured_mode == VideoReferenceMode.FIRST_LAST_FRAME:
+                    raise SingleVideoRejected(
+                        f"Beat {command.beat_num} 已请求首尾帧模式，但下一镜头首帧不存在"
+                    )
+                video_mode = "first_frame"
+                prompt = standard_video_prompt(beat, video_mode)
+                effective_mode = VideoReferenceMode.FIRST_FRAME
+                model_role = video_model_role_for_mode(effective_mode)
+
+        if command.video_routing_policy == "role_priority":
+            try:
+                video_model = resolve_model_for_role(model_role)
+            except (PermissionError, ValueError) as exc:
+                raise SingleVideoRejected(str(exc)) from exc
+            command = replace(
+                command,
+                video_model=video_model,
+                model_selector=None,
+            )
+
         model_capability = runtime_model_capability(command.video_model)
         model_error = dialogue_only_video_model_error(
             [beat],
@@ -360,48 +442,8 @@ class LocalSingleVideoPreparer:
             "video_extra_parameter_names",
             (),
         )
-        output_dir = Path(context.output_dir)
-        paths = PathResolver(output_dir, command.episode_num)
-        frame_path = paths.first_frame_for_video(
-            command.beat_num,
-            use_director_render=command.use_director_render,
-        )
-        if not frame_path.exists():
-            raise SingleVideoRejected(
-                f"Beat {command.beat_num} 首帧不存在，请先生成预览"
-            )
 
-        beat_index = beats.index(beat)
-        next_beat = beats[beat_index + 1] if beat_index + 1 < len(beats) else None
-
-        video_mode = beat.get("video_mode", "first_frame")
-        model_role = (
-            "VIDEO_FIRST_LAST_FRAME"
-            if video_mode == "keyframe"
-            else "VIDEO_IMAGE_TO_VIDEO"
-        )
-        prompt = standard_video_prompt(beat, video_mode)
-        audio_duration = await self._audio_durations.for_beat(
-            context,
-            command.episode_num,
-            command.beat_num,
-        )
-        video_duration = resolve_target_video_duration(beat, audio_duration)
-
-        last_frame_path = None
-        if video_mode == "keyframe":
-            next_beat_number = int((next_beat or {}).get("beat_number") or 0)
-            if next_beat_number > 0:
-                next_frame = paths.first_frame_for_video(
-                    next_beat_number,
-                    use_director_render=command.use_director_render,
-                )
-                if next_frame.exists():
-                    last_frame_path = str(next_frame)
-            if not last_frame_path:
-                video_mode = "first_frame"
-                prompt = standard_video_prompt(beat, video_mode)
-                model_role = "VIDEO_IMAGE_TO_VIDEO"
+        frame_path = effective_frame_path
 
         video_config_json = None
         single_video_resolution: str | None = None
@@ -409,10 +451,16 @@ class LocalSingleVideoPreparer:
         reference_ratio: str | None = None
         if uses_advanced_reference or uses_reference:
             try:
+                config_overrides = command.video_config_overrides()
+                if configured_mode is None:
+                    config_overrides = {
+                        "mode": effective_mode.value,
+                        **config_overrides,
+                    }
                 request_config_json = _merge_video_reference_request_config(
                     beat,
                     video_config_json=command.video_config_json,
-                    config_overrides=command.video_config_overrides(),
+                    config_overrides=config_overrides,
                 )
                 await self._persist_video_config(
                     store,
@@ -461,7 +509,7 @@ class LocalSingleVideoPreparer:
                     )
                     single_video_resolution = prepared_config.resolution
                     reference_ratio = prepared_config.ratio
-                    model_role = _video_model_role(prepared.mode)
+                    model_role = video_model_role_for_mode(prepared.mode)
                     video_mode = (
                         "keyframe" if prepared.last_frame_path else "first_frame"
                     )
@@ -539,11 +587,35 @@ class LocalSingleVideoPreparer:
             except ValueError as exc:
                 raise SingleVideoRejected(str(exc)) from exc
         else:
+            standard_config = None
+            has_video_config = bool(
+                command.video_config_json is not None
+                or command.video_config_overrides()
+                or beat.get("video_config_json")
+            )
+            if has_video_config:
+                try:
+                    video_config_json = _merge_video_reference_request_config(
+                        beat,
+                        video_config_json=command.video_config_json,
+                        config_overrides=command.video_config_overrides(),
+                    )
+                except ValueError as exc:
+                    raise SingleVideoRejected(str(exc)) from exc
+                await self._persist_video_config(
+                    store,
+                    episode_num=command.episode_num,
+                    beat_num=command.beat_num,
+                    config_json=video_config_json,
+                )
+                standard_config = parse_video_config(video_config_json)
+                prompt = str(standard_config.final_prompt or prompt).strip()
+                video_duration = float(standard_config.duration)
             if not prompt.strip():
                 raise SingleVideoRejected(
                     missing_video_prompt_error(command.beat_num)
                 )
-            if command.duration is not None:
+            if not has_video_config and command.duration is not None:
                 try:
                     video_duration = float(command.duration)
                 except (TypeError, ValueError):
@@ -553,11 +625,16 @@ class LocalSingleVideoPreparer:
                     float(video_duration),
                     float(math.ceil(float(audio_duration))),
                 )
-            if command.was_provided("resolution"):
+            if command.was_provided("resolution") or has_video_config:
                 try:
+                    requested_standard_resolution = (
+                        standard_config.resolution
+                        if standard_config is not None
+                        else command.resolution
+                    )
                     single_video_resolution = video_resolution(
                         command.video_model,
-                        command.resolution,
+                        requested_standard_resolution,
                         resolution_options,
                         size_options,
                     )
@@ -574,6 +651,7 @@ class LocalSingleVideoPreparer:
             "video_generation_max_seconds",
             None,
         )
+        duration_options = getattr(model_capability, "video_duration_options", ())
         try:
             video_duration = float(
                 normalize_video_generation_duration(
@@ -581,10 +659,30 @@ class LocalSingleVideoPreparer:
                     audio_duration,
                     minimum_seconds=minimum_duration,
                     maximum_seconds=maximum_duration,
+                    duration_options=duration_options,
                 )
             )
         except ValueError as exc:
             raise SingleVideoRejected(str(exc)) from exc
+
+        if video_config_json:
+            normalized_config = parse_video_config(video_config_json)
+            normalized_duration = int(video_duration)
+            if normalized_config.duration != normalized_duration:
+                normalized_config.duration = normalized_duration
+                video_config_json = dump_video_config(normalized_config)
+                beat["video_config_json"] = video_config_json
+                await self._persist_video_config(
+                    store,
+                    episode_num=command.episode_num,
+                    beat_num=command.beat_num,
+                    config_json=video_config_json,
+                )
+            video_mode = (
+                "keyframe"
+                if normalized_config.mode == VideoReferenceMode.FIRST_LAST_FRAME
+                else normalized_config.mode.value
+            )
 
         config: dict[str, Any] = {
             "beat": dict(beat),

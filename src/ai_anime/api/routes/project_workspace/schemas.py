@@ -26,6 +26,7 @@ class ProjectUpdate(BaseModel):
     use_director_render: Optional[bool] = None
     video_resolution: Optional[str] = None
     add_subtitles: Optional[bool] = None
+    add_bgm: Optional[bool] = None
     sketch_image_selection: Optional[str] = None
     render_image_selection: Optional[str] = None
     sketch_aspect_padding: Optional[bool] = None

@@ -327,6 +327,50 @@ async def test_prepare_video_reference_generation_inputs_preserves_config_durati
     assert '"duration":8' in prepared.video_config_json
 
 
+async def test_text_to_video_inputs_do_not_attach_reference_assets(tmp_path):
+    from ai_anime.modules.production.application.video_config import (
+        dump_video_config,
+        parse_video_config,
+    )
+    from ai_anime.modules.production.infrastructure.video_reference_pipeline import (
+        prepare_video_reference_generation_inputs,
+    )
+
+    missing_reference = tmp_path / "missing-reference.png"
+    prepared = await prepare_video_reference_generation_inputs(
+        project_output=tmp_path,
+        episode=1,
+        beat={
+            "beat_number": 1,
+            "audio_type": "dialogue",
+            "narration_segment": "你好。",
+            "video_config_json": dump_video_config(
+                {
+                    "mode": VideoReferenceMode.TEXT_TO_VIDEO.value,
+                    "final_prompt": "角色面对镜头说：你好。",
+                    "reference_image_paths": [str(missing_reference)],
+                    "reference_audio_paths": [str(tmp_path / "missing.mp3")],
+                }
+            ),
+        },
+        video_mode="first_frame",
+        prompt="unused",
+        duration=4,
+        resolution="720p",
+        ratio="9:16",
+    )
+
+    saved = parse_video_config(prepared.video_config_json)
+    assert prepared.mode == VideoReferenceMode.TEXT_TO_VIDEO
+    assert prepared.image_path is None
+    assert prepared.last_frame_path is None
+    assert prepared.references == []
+    assert prepared.assets == []
+    assert saved.reference_image_paths == []
+    assert saved.reference_video_paths == []
+    assert saved.reference_audio_paths == []
+
+
 async def test_prepare_video_reference_generation_rejects_contaminated_generated_prompt(
     tmp_path,
 ):

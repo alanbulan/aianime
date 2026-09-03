@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
 from sse_starlette.sse import EventSourceResponse
@@ -46,12 +47,24 @@ async def _sse_token_still_valid(
 
 
 @router.get("/projects/{project}/tasks")
-async def list_project_tasks(project: str, user: dict = Depends(get_api_user)):
+async def list_project_tasks(
+    project: str,
+    episode: Annotated[int | None, Query(description="按集数筛选，0 表示项目级任务")] = None,
+    task_type: Annotated[str | None, Query(description="按任务类型筛选")] = None,
+    status: Annotated[str | None, Query(description="按任务展示状态筛选")] = None,
+    user: dict = Depends(get_api_user),
+):
     """列出单个项目的任务。生产多节点路径由 OpenResty 路由到项目 home node。"""
     ctx = await resolve_project_context(
         user=user, project_id=project, required_role="viewer"
     )
-    tasks = await asyncio.to_thread(project_task_use_cases().list_for_project, ctx)
+    tasks = await asyncio.to_thread(
+        project_task_use_cases().list_for_project,
+        ctx,
+        episode=episode,
+        task_type=task_type,
+        status=status,
+    )
     return {
         "ok": True,
         "data": [serialize_project_task(task, context=ctx) for task in tasks],

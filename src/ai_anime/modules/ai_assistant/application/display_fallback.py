@@ -65,9 +65,7 @@ class DisplayFallbacks:
         args: dict[str, Any],
         token: str,
     ) -> list[dict[str, Any]]:
-        api_project = str(
-            args.get("project_id") or args.get("project") or project
-        ).strip()
+        api_project = str(args.get("project_id") or project).strip()
         project_q = quote(api_project, safe="")
 
         if tool_name in {"ai_anime_get_sketches", "ai_anime_get_first_frames"}:

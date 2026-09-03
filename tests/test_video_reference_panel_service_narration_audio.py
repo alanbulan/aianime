@@ -218,6 +218,59 @@ async def test_prompt_generation_persists_manual_reference_for_later_validation(
 
 
 @pytest.mark.asyncio
+async def test_text_to_video_prompt_generation_ignores_saved_reference_paths(
+    tmp_path, monkeypatch
+):
+    from ai_anime.modules.production.application.video_config import (
+        VideoReferenceMode,
+        dump_video_config,
+    )
+    from ai_anime.modules.production.infrastructure import (
+        video_reference_panel_service,
+    )
+
+    captured: dict[str, object] = {}
+
+    class _Store:
+        async def update_beat_asset(self, **kwargs):
+            captured["saved_json"] = kwargs["video_config_json"]
+
+    async def composer(**kwargs):
+        captured["assets"] = kwargs["assets"]
+        captured["draft_prompt"] = kwargs["draft_prompt"]
+        return "人物在雨夜街道撑伞向前走。"
+
+    monkeypatch.setattr(
+        video_reference_panel_service,
+        "append_user_video_reference_assets",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("文生视频不应追加参考素材")
+        ),
+    )
+
+    await video_reference_panel_service.generate_video_prompt_for_panel(
+        store=_Store(),
+        episode=1,
+        beat={
+            "beat_number": 1,
+            "visual_description": "雨夜街道上，人物撑伞向前走。",
+            "video_config_json": dump_video_config(
+                {
+                    "mode": VideoReferenceMode.TEXT_TO_VIDEO.value,
+                    "reference_image_paths": ["stale.png"],
+                    "reference_audio_paths": ["stale.mp3"],
+                }
+            ),
+        },
+        project_dir=tmp_path,
+        composer=composer,
+    )
+
+    assert captured["assets"] == []
+    assert str(captured["draft_prompt"]).startswith("根据文字描述生成视频")
+
+
+@pytest.mark.asyncio
 async def test_prompt_generation_surfaces_ai_failure_without_saving_fallback(
     tmp_path, monkeypatch
 ):

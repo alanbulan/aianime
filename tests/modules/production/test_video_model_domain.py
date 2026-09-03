@@ -24,6 +24,30 @@ def test_video_duration_respects_audio_config_and_model_bounds() -> None:
     assert normalize_video_generation_duration(4, 8.86, minimum_seconds=4) == 9
     with pytest.raises(ValueError, match="超过所选模型支持的最大时长"):
         normalize_video_generation_duration(15.2, maximum_seconds=15)
+    assert normalize_video_generation_duration(
+        8,
+        minimum_seconds=4,
+        maximum_seconds=12,
+        duration_options=(4, 8, 12),
+    ) == 8
+    assert normalize_video_generation_duration(
+        7,
+        minimum_seconds=4,
+        maximum_seconds=12,
+        duration_options=(4, 8, 12),
+    ) == 8
+    assert normalize_video_generation_duration(
+        7,
+        minimum_seconds=5,
+        maximum_seconds=10,
+        duration_options=(4, 8, 12),
+    ) == 8
+    with pytest.raises(ValueError, match="可用时长选项的最大值 12 秒"):
+        normalize_video_generation_duration(
+            13,
+            maximum_seconds=15,
+            duration_options=(4, 8, 12),
+        )
 
 
 def test_video_resolution_respects_each_model_capability() -> None:

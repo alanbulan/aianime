@@ -252,6 +252,10 @@ async def test_single_video_runner_passes_references_and_audio_setting(
                     "video_duration": 7,
                     "ratio": "1:1",
                     "audio_setting": "origin",
+                    "video_config": (
+                        '{"duration":7,"generate_audio":false,'
+                        '"return_last_frame":true}'
+                    ),
                     "references": [
                         {
                             "type": "image",
@@ -270,6 +274,9 @@ async def test_single_video_runner_passes_references_and_audio_setting(
     assert generate_calls[0]["image_path"] is None
     assert generate_calls[0]["aspect_ratio"] == "1:1"
     assert generate_calls[0]["audio_setting"] == "origin"
+    assert generate_calls[0]["video_config"] == (
+        '{"duration":7,"generate_audio":false,"return_last_frame":true}'
+    )
     assert generate_calls[0]["references"] == [
         ShotReference(
             "image",

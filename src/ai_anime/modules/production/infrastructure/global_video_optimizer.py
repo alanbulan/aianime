@@ -92,8 +92,8 @@ You are a cinematic motion director. Given one shot's current reference frame, c
 - ⚠️ **Temporal direction**: the sketch is video frame one. For `first_frame` mode, the prompt must describe motion that occurs AFTER the sketch frame. Do NOT describe the process of arriving at this frame.
 
 ## Prompt Requirements
-- Write in **Chinese (中文) only**, **present tense** throughout
-- Write a **single flowing paragraph** of 4–6 句（~50–90 字）
+- Write in the **requested output language only**, using **present tense** throughout
+- Write a **single flowing paragraph** of 4–6 sentences (~50–90 words or comparable Chinese length)
 - ⚠️ **Every prompt MUST include a camera direction with displacement or zoom** (e.g. "The camera pushes in…", "A slow dolly follows…", "Close-up as…", "Wide shot tracking…"). Static camera words are BANNED: holds, stays, remains, static, locked, fixed. The camera must always move.
 - ⚠️ **Camera endpoint**: describe what the frame looks like when the camera motion finishes (e.g. "…ending on a tight close-up of her trembling hands"). This gives the model a clear target for the end of the clip.
 - ⚠️ **No emotion labels**: NEVER use abstract emotion words (sad, haunting, desperate, hopeful, anxious, melancholy). Instead show emotion through BODY LANGUAGE (clenched fists, averted gaze, hunched shoulders, trembling lips).
@@ -107,7 +107,7 @@ You are a cinematic motion director. Given one shot's current reference frame, c
 - ⚠️ **Dialogue beats**: if a Beat is marked as dialogue, describe the speaking action (lips moving, gestures while talking). The dialogue text will be appended by the system — only describe the physical action in the prompt.
 
 ## Output Format
-Output the Chinese motion prompt directly, with no JSON, explanation, or markdown.
+Output the motion prompt directly in the requested language, with no JSON, explanation, or markdown.
 """
 
 
@@ -130,7 +130,7 @@ You are a visual quality reviewer. Compare a sketch frame against its video moti
 - ⚠️ When describing characters, MUST use the provided appearance descriptions. NEVER use character names.
 - Distinguish characters by visual features (e.g. "the woman in black", "the gray-haired elder")
 - Ambient atmospheric elements already visible in the sketch MAY be mentioned. Do NOT invent atmospheric effects.
-- ⚠️ **Prompts MUST be in English, present tense**
+- ⚠️ **Prompts MUST use the requested output language and present tense**
 
 ## Prompt Requirements
 - Single flowing paragraph, 4–6 sentences (~50–90 words)
@@ -147,6 +147,19 @@ You are a visual quality reviewer. Compare a sketch frame against its video moti
 Output a strict JSON object with no explanation or markdown:
 {"needs_fix": true/false, "reason": "brief explanation", "prompt": "corrected prompt (return original if needs_fix=false)"}
 """
+
+
+def _normalize_video_prompt_language(language: str) -> str:
+    normalized = str(language or "en").strip().lower()
+    if normalized not in {"en", "zh"}:
+        raise ValueError("language must be one of: en, zh")
+    return normalized
+
+
+def _video_prompt_language_instruction(language: str) -> str:
+    if _normalize_video_prompt_language(language) == "zh":
+        return "Write the motion prompt in Chinese (中文)."
+    return "Write the motion prompt in English."
 
 
 def _normalize_gender_label(value: str) -> str:
@@ -195,7 +208,10 @@ def create_global_video_reviewer_agent(language: str = "en") -> Agent:
     model = get_text_pydantic_model()
     return Agent(
         model,
-        system_prompt=GLOBAL_VIDEO_REVIEWER_INSTRUCTIONS_EN,
+        system_prompt=(
+            f"{GLOBAL_VIDEO_REVIEWER_INSTRUCTIONS_EN}\n\n"
+            f"## Output Language\n{_video_prompt_language_instruction(language)}"
+        ),
         output_type=NativeOutput(ReviewResult),
         name="Video Prompt Reviewer",
     )
@@ -218,7 +234,10 @@ def create_global_video_optimizer_agent(language: str = "en") -> Agent:
 
     return Agent(
         get_text_pydantic_model(),
-        system_prompt=GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN,
+        system_prompt=(
+            f"{GLOBAL_VIDEO_OPTIMIZER_INSTRUCTIONS_EN}\n\n"
+            f"## Output Language\n{_video_prompt_language_instruction(language)}"
+        ),
         output_type=str,
         name="Global Video Motion Director",
         **agent_kwargs,
@@ -232,9 +251,12 @@ class GlobalVideoPromptOptimizer:
         self._agents: dict[str, Agent] = {}
 
     def _get_agent(self, language: str = "en") -> Agent:
-        if language not in self._agents:
-            self._agents[language] = create_global_video_optimizer_agent(language)
-        return self._agents[language]
+        normalized_language = _normalize_video_prompt_language(language)
+        if normalized_language not in self._agents:
+            self._agents[normalized_language] = create_global_video_optimizer_agent(
+                normalized_language
+            )
+        return self._agents[normalized_language]
 
     def _compress_image(self, image_path: str, compress_quality: int = 70) -> bytes:
         """压缩图片并返回 bytes。"""
@@ -290,6 +312,8 @@ class GlobalVideoPromptOptimizer:
         Returns:
             {"beat_number": int, "video_mode": "first_frame", "prompt": str}
         """
+        language = _normalize_video_prompt_language(language)
+        output_language = "Chinese (中文)" if language == "zh" else "English"
         color_map_text = self._build_color_map_text(character_color_map)
         identity_to_color = self._build_identity_to_color(character_color_map)
 
@@ -381,10 +405,10 @@ class GlobalVideoPromptOptimizer:
 1. Treat the sketch frame and Start Frame as video t=0; describe only what happens after it
 2. Use Motion Prompt as the authoritative forward action chain
 3. If Motion Prompt starts with an action that contradicts the visible t=0 state, begin from the first compatible action instead
-4. Generate the motion prompt in Chinese (中文)
+4. Generate the motion prompt in {output_language}
 5. Use character appearance descriptions, never use character names
 
-Output the Chinese motion prompt directly. No JSON, explanation, or markdown."""
+Output the {output_language} motion prompt directly. No JSON, explanation, or markdown."""
 
         # Load and compress the sketch image
         if not os.path.exists(sketch_image_path):
@@ -416,7 +440,8 @@ Output the Chinese motion prompt directly. No JSON, explanation, or markdown."""
         if audio_type == "dialogue":
             line = beat.get("narration_segment", "")
             if line and line not in result["prompt"]:
-                result["prompt"] = f"{result['prompt']} Says: {line}"
+                dialogue_label = "对白：" if language == "zh" else "Dialogue: "
+                result["prompt"] = f"{result['prompt']} {dialogue_label}{line}"
 
         logger.info("Beat %s 视频提示词已生成，长度=%s", bn, len(result["prompt"]))
         return result

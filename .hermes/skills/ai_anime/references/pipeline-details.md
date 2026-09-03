@@ -356,7 +356,7 @@ SSE /projects/$PID/tasks/single_video/$EP/stream?beat_num=$BEAT
 
 ```
 POST /projects/$PID/episodes/$EP/videos/compose
-Body: {"add_subtitles": true, "add_bgm": false}
+Body: {"add_subtitles": true, "add_bgm": true}
 
 GET /projects/$PID/tasks/compose_episode/$EP
 SSE /projects/$PID/tasks/compose_episode/$EP/stream

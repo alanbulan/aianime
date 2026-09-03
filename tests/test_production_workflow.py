@@ -443,6 +443,7 @@ async def test_ensure_composed_rebuilds_final_older_than_source_media(
     assert result == final_path
     assert final_path.read_bytes() == b"recomposed-final"
     assert len(compose_calls) == 1
+    assert compose_calls[0].add_bgm is True
 
 
 @pytest.mark.asyncio
@@ -469,6 +470,11 @@ async def test_ensure_composed_preserves_current_final_without_rebuild(
         production_public,
         "episode_video_use_cases",
         lambda: pytest.fail("current final must not be recomposed"),
+    )
+    monkeypatch.setattr(
+        production_public,
+        "episode_composition_is_current",
+        lambda **_kwargs: True,
     )
 
     result = await runner._ensure_composed(
@@ -522,6 +528,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     calls: list[str] = []
     captured_options = []
     force_flags: dict[str, bool] = {}
+    compose_options: dict[str, object] = {}
 
     class _Reporter:
         def __init__(self, context, envelope) -> None:
@@ -579,6 +586,7 @@ async def test_production_runner_owns_the_complete_stage_order(
     async def ensure_composed(*args, **kwargs):
         calls.append("compose")
         force_flags["compose"] = kwargs.get("force", False)
+        compose_options.update(kwargs)
         path = tmp_path / "videos" / "episodes" / "ep001_final.mp4"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"x")
@@ -664,7 +672,11 @@ async def test_production_runner_owns_the_complete_stage_order(
     monkeypatch.setattr(
         runner,
         "load_project_config",
-        lambda username, project: {"aspect_ratio": "2:3"},
+        lambda username, project: {
+            "aspect_ratio": "2:3",
+            "add_subtitles": False,
+            "add_bgm": True,
+        },
     )
 
     context = SimpleNamespace(
@@ -701,6 +713,8 @@ async def test_production_runner_owns_the_complete_stage_order(
 
     assert captured_options[0].target_beats == 12
     assert captured_options[0].rebuild is rebuild
+    assert compose_options["add_bgm"] is True
+    assert compose_options["add_subtitles"] is False
     assert [call for call in calls if not call.startswith("progress:")] == [
         "script",
         "models",
@@ -1037,17 +1051,12 @@ async def test_production_workflow_generates_only_missing_beat_videos(
         lambda: _SingleVideoUseCases(),
     )
 
-    def resolve_video_route(*_args, **kwargs):
-        assert kwargs == {"routing_policy": "role_priority"}
-        return SimpleNamespace(
-            model="video-seeddance-4wlmqpxwma4r65j3",
-            selector="",
-        )
-
     monkeypatch.setattr(
         production_public,
         "resolve_video_generation_route",
-        resolve_video_route,
+        lambda *_args, **_kwargs: pytest.fail(
+            "role-priority selection must be deferred to the per-beat preparer"
+        ),
     )
 
     async def wait_ticket(*_args, **_kwargs):
@@ -1079,11 +1088,64 @@ async def test_production_workflow_generates_only_missing_beat_videos(
     assert all(
         command.provided_fields == frozenset({"resolution", "ratio"})
         and command.ratio == "2:3"
-        and command.video_model == "video-seeddance-4wlmqpxwma4r65j3"
+        and command.video_routing_policy == "role_priority"
+        and command.video_model == ""
         and command.model_selector is None
         for command in commands
     )
     assert {number: paths.video(number).read_bytes() for number in range(1, 6)} == before
+
+
+def test_video_models_by_beat_routes_each_effective_mode_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.modules.production import public as production_public
+    from ai_anime.modules.task_execution.infrastructure.runners import (
+        production_workflow as runner,
+    )
+
+    resolved_roles: list[str] = []
+
+    def resolve_route(*_args, **kwargs):
+        role = str(kwargs["role"])
+        resolved_roles.append(role)
+        return SimpleNamespace(model=f"model:{role}")
+
+    monkeypatch.setattr(
+        production_public,
+        "resolve_video_generation_route",
+        resolve_route,
+    )
+    context = SimpleNamespace(owner_username="alice", project_name="demo")
+    models = runner._video_models_by_beat(
+        context,
+        [
+            {"beat_number": 1, "video_config_json": '{"mode":"text_to_video"}'},
+            {"beat_number": 2, "video_mode": "keyframe"},
+            {"beat_number": 3},
+            {
+                "beat_number": 4,
+                "video_config_json": '{"mode":"multimodal_reference"}',
+            },
+            {"beat_number": 5},
+        ],
+        requested_model="cloud:ignored-for-role-priority",
+        video_routing_policy="role_priority",
+    )
+
+    assert models == {
+        1: "model:VIDEO_TEXT_TO_VIDEO",
+        2: "model:VIDEO_FIRST_LAST_FRAME",
+        3: "model:VIDEO_IMAGE_TO_VIDEO",
+        4: "model:VIDEO_ALL_REFERENCE",
+        5: "model:VIDEO_IMAGE_TO_VIDEO",
+    }
+    assert resolved_roles == [
+        "VIDEO_TEXT_TO_VIDEO",
+        "VIDEO_FIRST_LAST_FRAME",
+        "VIDEO_IMAGE_TO_VIDEO",
+        "VIDEO_ALL_REFERENCE",
+    ]
 
 
 @pytest.mark.asyncio

@@ -156,6 +156,11 @@ async def append_video_prompt_guidance_template(
     config = parse_video_config(beat.get("video_config_json"))
     if prompt_guidance is not None:
         config.prompt_guidance = str(prompt_guidance or "").strip()
+    if config.mode == VideoReferenceMode.TEXT_TO_VIDEO:
+        config.reference_image_paths = []
+        config.reference_video_paths = []
+        config.reference_audio_paths = []
+        config.selected_asset_keys = []
     if template and template not in config.prompt_guidance:
         parts = [part for part in [config.prompt_guidance, template] if part]
         config.prompt_guidance = "\n".join(parts)
@@ -194,12 +199,13 @@ async def generate_video_prompt_for_panel(
         next_beat=next_beat,
         prop_menu=prop_menu,
     )
-    append_user_video_reference_assets(
-        assets,
-        reference_image_paths=list(config.reference_image_paths),
-        reference_video_paths=list(config.reference_video_paths),
-        reference_audio_paths=list(config.reference_audio_paths),
-    )
+    if config.mode != VideoReferenceMode.TEXT_TO_VIDEO:
+        append_user_video_reference_assets(
+            assets,
+            reference_image_paths=list(config.reference_image_paths),
+            reference_video_paths=list(config.reference_video_paths),
+            reference_audio_paths=list(config.reference_audio_paths),
+        )
     initial_prompt = _initial_video_prompt(beat)
     supplied_reference = (
         str(manual_prompt_reference or "").strip()
@@ -500,12 +506,13 @@ def build_video_reference_panel_state(
         characters=characters,
         prop_menu=prop_menu,
     )
-    append_user_video_reference_assets(
-        assets,
-        reference_image_paths=list(config.reference_image_paths),
-        reference_video_paths=list(config.reference_video_paths),
-        reference_audio_paths=list(config.reference_audio_paths),
-    )
+    if config.mode != VideoReferenceMode.TEXT_TO_VIDEO:
+        append_user_video_reference_assets(
+            assets,
+            reference_image_paths=list(config.reference_image_paths),
+            reference_video_paths=list(config.reference_video_paths),
+            reference_audio_paths=list(config.reference_audio_paths),
+        )
     prompt_source = config.prompt_source or "saved"
     final_prompt = config.final_prompt
     initial_prompt = _initial_video_prompt(beat)
@@ -614,6 +621,12 @@ def _sync_video_reference_asset_paths(
     next_beat: dict[str, Any] | None = None,
     prop_menu: list[Any] | None = None,
 ) -> None:
+    if config.mode == VideoReferenceMode.TEXT_TO_VIDEO:
+        config.reference_image_paths = []
+        config.reference_video_paths = []
+        config.reference_audio_paths = []
+        config.selected_asset_keys = []
+        return
     assets = build_video_reference_assets(
         project_output=Path(project_dir),
         episode=episode,

@@ -38,6 +38,15 @@ const CLOUD_VIDEO_CORE_TEXT_FIELDS = new Set([
   "reference_video_duration",
   "reference_audio_duration",
 ]);
+const CLOUD_VIDEO_MEDIA_FIELDS = new Set([
+  "input_reference", "first_frame", "last_frame",
+  "reference_image", "reference_images", "reference_images[]",
+  "reference_video", "reference_videos", "reference_videos[]",
+  "reference_audio", "reference_audios", "reference_audios[]",
+]);
+// Output-frame flags are not reference assets. The sidecar extracts requested
+// output frames locally; forwarding this flag as multipart text fails cloud review.
+const CLOUD_VIDEO_LOCAL_OPTION_FIELDS = new Set(["return_last_frame"]);
 const CLOUD_VIDEO_MEDIA_FIELD_ALIASES = new Map([
   ["reference_images", "reference_image"],
   ["reference_images[]", "reference_image"],
@@ -76,8 +85,10 @@ export async function prepareBodyForRoute(
         ? Object.fromEntries(
             Object.entries(payload).filter(([key]) => {
               const normalizedKey = key.toLowerCase();
+              if (CLOUD_VIDEO_LOCAL_OPTION_FIELDS.has(normalizedKey)) return false;
               return (
                 CLOUD_VIDEO_CORE_TEXT_FIELDS.has(normalizedKey) ||
+                CLOUD_VIDEO_MEDIA_FIELDS.has(normalizedKey) ||
                 allowedVideoExtraParameters.includes(key)
               );
             }),
@@ -113,15 +124,20 @@ export async function prepareBodyForRoute(
     source.forEach((value, key) => {
       const normalizedKey = key.toLowerCase();
       if (normalizedKey === "model") return;
+      if (cloudVideo && CLOUD_VIDEO_LOCAL_OPTION_FIELDS.has(normalizedKey)) return;
       if (typeof value === "string") {
         if (
           cloudVideo &&
           !CLOUD_VIDEO_CORE_TEXT_FIELDS.has(normalizedKey) &&
+          !CLOUD_VIDEO_MEDIA_FIELDS.has(normalizedKey) &&
           !allowedVideoExtraParameters.includes(key)
         ) {
           return;
         }
-        target.append(key, value);
+        const targetKey = cloudVideo
+          ? (CLOUD_VIDEO_MEDIA_FIELD_ALIASES.get(normalizedKey) ?? key)
+          : key;
+        target.append(targetKey, value);
         return;
       }
       const targetKey = cloudVideo
@@ -155,8 +171,11 @@ function filterParameterOverrides(
   if (!cloudVideo) return overrides;
   return Object.fromEntries(
     Object.entries(overrides).filter(([key]) => (
-      CLOUD_VIDEO_CORE_TEXT_FIELDS.has(key.toLowerCase())
-      || allowedVideoExtraParameters.includes(key)
+      !CLOUD_VIDEO_LOCAL_OPTION_FIELDS.has(key.toLowerCase())
+      && (
+        CLOUD_VIDEO_CORE_TEXT_FIELDS.has(key.toLowerCase())
+        || allowedVideoExtraParameters.includes(key)
+      )
     )),
   );
 }

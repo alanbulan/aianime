@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ai_anime.api.routes.creative_canvas.mark_schemas import FreezoneVideoMark
 
@@ -382,6 +382,8 @@ class FreezoneVideoUpscaleRequest(BaseModel):
     """
 
     source_url: str = Field(description="待高清处理视频的静态地址")
+    canvas_id: str = Field(default="")
+    node_id: str = Field(default="")
     resolution: Literal["1080p", "2k", "4k"] = Field(
         default="1080p",
         description="目标清晰度档位。按长边缩放：1080p=1920，2k=2560，4k=3840",
@@ -427,6 +429,7 @@ class FreezoneVideoComposeItem(BaseModel):
     source_end: float = Field(
         gt=0.0, description="源媒体裁剪结束秒，必须大于 source_start"
     )
+    speed: float = Field(default=1.0, ge=0.25, le=4.0, description="播放倍速")
     volume: float = Field(default=1.0, ge=0.0, le=2.0, description="音量倍率")
     muted: bool = Field(default=False, description="是否静音")
 
@@ -440,6 +443,8 @@ class FreezoneVideoComposeTrack(BaseModel):
 
 
 class FreezoneVideoComposeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: str = Field(default="", description="合成任务标题，可为空")
     canvas_id: str = Field(default="", description="来源画布 id，可为空")
     resolution: Literal["720p", "1080p"] = Field(

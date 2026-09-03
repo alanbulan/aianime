@@ -186,6 +186,92 @@ async def test_standard_video_preserves_duration_resolution_and_task_payload(
 
 
 @pytest.mark.asyncio
+async def test_standard_video_preserves_inline_video_config(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    _frame(tmp_path)
+    store = _Store(
+        [
+            {
+                "beat_number": 2,
+                "audio_type": "silence",
+                "video_mode": "first_frame",
+                "video_prompt": "old prompt",
+            }
+        ]
+    )
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_config_json=(
+                '{"mode":"first_frame","duration":9,"resolution":"720p",'
+                '"final_prompt":"configured prompt","generate_audio":false,'
+                '"return_last_frame":true}'
+            ),
+        ),
+    )
+
+    config = parse_video_config(task.config["video_config"])
+    assert task.config["prompt"] == "configured prompt"
+    assert task.config["video_duration"] == 9
+    assert task.config["resolution"] == "720p"
+    assert config.generate_audio is False
+    assert config.return_last_frame is True
+    assert store.updated[-1]["video_config_json"] == task.config["video_config"]
+    assert store.close_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_video_duration_option_is_persisted_with_effective_duration(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    _frame(tmp_path)
+    store = _Store(
+        [
+            {
+                "beat_number": 2,
+                "audio_type": "dialogue",
+                "video_mode": "first_frame",
+                "video_prompt": "video prompt",
+            }
+        ]
+    )
+    preparer, _props, _durations = _preparer(monkeypatch, store, 6.2)
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_workflow="standard",
+            video_resolution_options=("720p",),
+            video_size_options=(),
+            video_generation_min_seconds=4,
+            video_generation_max_seconds=12,
+            video_duration_options=(4, 8, 12),
+        ),
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_config_json=(
+                '{"mode":"first_frame","duration":4,'
+                '"resolution":"720p","final_prompt":"video prompt"}'
+            ),
+        ),
+    )
+
+    assert task.config["video_duration"] == 8
+    assert parse_video_config(task.config["video_config"]).duration == 8
+    assert parse_video_config(store.updated[-1]["video_config_json"]).duration == 8
+
+
+@pytest.mark.asyncio
 async def test_standard_catalog_video_preserves_declared_size_and_ratio(
     monkeypatch,
     tmp_path: Path,
@@ -260,6 +346,255 @@ async def test_keyframe_video_uses_next_storyboard_beat_instead_of_numeric_neigh
     assert task.config["frame_path"] == str(current_frame)
     assert task.config["last_frame_path"] == str(next_frame)
     assert task.config["video_mode"] == "keyframe"
+
+
+@pytest.mark.asyncio
+async def test_role_priority_resolves_model_for_effective_keyframe_mode(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    current_frame = _frame(tmp_path, 2)
+    next_frame = _frame(tmp_path, 3)
+    store = _Store(
+        [
+            {
+                "beat_number": 2,
+                "audio_type": "silence",
+                "video_mode": "keyframe",
+                "keyframe_prompt": "continue into the next shot",
+            },
+            {"beat_number": 3, "video_mode": "first_frame"},
+        ]
+    )
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+    resolved_roles: list[str] = []
+
+    def resolve_model(role: str) -> str:
+        resolved_roles.append(role)
+        return "video-model-first-last"
+
+    monkeypatch.setattr(single_video, "resolve_model_for_role", resolve_model)
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda model: SimpleNamespace(
+            model_id=model,
+            video_workflow="standard",
+            video_resolution_options=(),
+            video_size_options=(),
+            video_generation_min_seconds=1,
+            video_generation_max_seconds=12,
+            video_duration_options=(),
+        ),
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_model="",
+            video_routing_policy="role_priority",
+            duration=9,
+            provided_fields=frozenset({"duration"}),
+        ),
+    )
+
+    assert resolved_roles == ["VIDEO_FIRST_LAST_FRAME"]
+    assert task.config["video_model"] == "video-model-first-last"
+    assert task.config["model_role"] == "VIDEO_FIRST_LAST_FRAME"
+    assert task.config["frame_path"] == str(current_frame)
+    assert task.config["last_frame_path"] == str(next_frame)
+    assert task.config["video_duration"] == 9
+
+
+@pytest.mark.asyncio
+async def test_role_priority_honors_explicit_first_last_mode_on_a_first_frame_beat(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    current_frame = _frame(tmp_path, 2)
+    next_frame = _frame(tmp_path, 3)
+    store = _Store(
+        [
+            {
+                "beat_number": 2,
+                "audio_type": "silence",
+                "video_mode": "first_frame",
+                "video_prompt": "first-frame prompt",
+                "keyframe_prompt": "transition prompt",
+            },
+            {"beat_number": 3, "video_mode": "first_frame"},
+        ]
+    )
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+    resolved_roles: list[str] = []
+
+    def resolve_model(role: str) -> str:
+        resolved_roles.append(role)
+        return "video-model-first-last"
+
+    monkeypatch.setattr(single_video, "resolve_model_for_role", resolve_model)
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_workflow="standard",
+            video_resolution_options=(),
+            video_size_options=(),
+            video_generation_min_seconds=1,
+            video_generation_max_seconds=12,
+            video_duration_options=(),
+        ),
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_model="",
+            video_routing_policy="role_priority",
+            mode="first_last_frame",
+            provided_fields=frozenset({"mode"}),
+        ),
+    )
+
+    assert resolved_roles == ["VIDEO_FIRST_LAST_FRAME"]
+    assert task.config["model_role"] == "VIDEO_FIRST_LAST_FRAME"
+    assert task.config["video_mode"] == "keyframe"
+    assert task.config["frame_path"] == str(current_frame)
+    assert task.config["last_frame_path"] == str(next_frame)
+
+
+@pytest.mark.asyncio
+async def test_role_priority_text_to_video_does_not_require_a_first_frame(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    store = _Store(
+        [
+            {
+                "beat_number": 2,
+                "audio_type": "silence",
+                "video_mode": "first_frame",
+                "video_prompt": "a city waking at dawn",
+            }
+        ]
+    )
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+    resolved_roles: list[str] = []
+
+    def resolve_model(role: str) -> str:
+        resolved_roles.append(role)
+        return "video-model-text"
+
+    monkeypatch.setattr(single_video, "resolve_model_for_role", resolve_model)
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_workflow="standard",
+            video_resolution_options=(),
+            video_size_options=(),
+            video_generation_min_seconds=1,
+            video_generation_max_seconds=12,
+            video_duration_options=(),
+        ),
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_model="",
+            video_routing_policy="role_priority",
+            mode="text_to_video",
+            provided_fields=frozenset({"mode"}),
+        ),
+    )
+
+    assert resolved_roles == ["VIDEO_TEXT_TO_VIDEO"]
+    assert task.config["model_role"] == "VIDEO_TEXT_TO_VIDEO"
+    assert task.config["video_mode"] == "text_to_video"
+    assert task.config["frame_path"] is None
+
+
+@pytest.mark.asyncio
+async def test_implicit_first_frame_mode_stays_aligned_for_advanced_model(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    from ai_anime.modules.production.infrastructure import single_video
+
+    frame = _frame(tmp_path, 2)
+    store = _Store(
+        [
+            {
+                "beat_number": 2,
+                "audio_type": "silence",
+                "video_mode": "first_frame",
+                "video_prompt": "a quiet street",
+            }
+        ]
+    )
+    preparer, _props, _durations = _preparer(monkeypatch, store)
+    resolved_roles: list[str] = []
+    prepared_modes: list[VideoReferenceMode] = []
+
+    def resolve_model(role: str) -> str:
+        resolved_roles.append(role)
+        return "video-model-advanced"
+
+    async def prepare_inputs(**kwargs):
+        config = parse_video_config(kwargs["beat"]["video_config_json"])
+        prepared_modes.append(config.mode)
+        return SimpleNamespace(
+            prompt="a quiet street",
+            video_config_json=kwargs["beat"]["video_config_json"],
+            duration=4,
+            mode=config.mode,
+            image_path=str(frame),
+            last_frame_path=None,
+            references=[],
+        )
+
+    monkeypatch.setattr(single_video, "resolve_model_for_role", resolve_model)
+    monkeypatch.setattr(
+        single_video,
+        "runtime_model_capability",
+        lambda _model: SimpleNamespace(
+            video_workflow="advanced-reference",
+            video_resolution_options=("720p",),
+            video_size_options=(),
+            video_generation_min_seconds=1,
+            video_generation_max_seconds=12,
+            video_duration_options=(),
+        ),
+    )
+    monkeypatch.setattr(
+        single_video,
+        "prepare_video_reference_generation_inputs",
+        prepare_inputs,
+    )
+
+    task = await preparer.prepare(
+        _context(tmp_path),
+        _command(
+            video_model="",
+            video_routing_policy="role_priority",
+            resolution="720p",
+            provided_fields=frozenset({"resolution"}),
+        ),
+    )
+
+    assert resolved_roles == ["VIDEO_IMAGE_TO_VIDEO"]
+    assert prepared_modes == [VideoReferenceMode.FIRST_FRAME]
+    assert task.config["model_role"] == "VIDEO_IMAGE_TO_VIDEO"
+    assert parse_video_config(task.config["video_config"]).mode == (
+        VideoReferenceMode.FIRST_FRAME
+    )
 
 
 @pytest.mark.parametrize(

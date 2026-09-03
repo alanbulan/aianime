@@ -189,6 +189,7 @@ def test_compose_episode_passes_deadline_timeout_to_ffmpeg(tmp_path, monkeypatch
         timeouts.append(kwargs.get("timeout"))
         if cmd[0] == "ffprobe":
             return SimpleNamespace(returncode=0, stdout="", stderr="")
+        Path(cmd[-1]).write_bytes(b"video")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(video, "get_task_manager", lambda: _FakeTaskManager())

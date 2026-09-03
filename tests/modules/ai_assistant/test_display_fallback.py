@@ -145,7 +145,7 @@ async def test_display_fallback_projects_stale_sketch_candidates():
     specs = await DisplayFallbacks(gateway).build(
         "project-a",
         "ai_anime_get_sketch_candidates",
-        {"episode": 3, "beat_number": 4},
+        {"episode": 3, "beat": 4},
         token="token",
     )
 
@@ -183,7 +183,7 @@ async def test_display_fallback_filters_scene_images_and_optional_media():
         "project-a",
         "ai_anime_get_scene_images",
         {
-            "scene_name": "客厅",
+            "name": "客厅",
             "scene_type": "interior",
             "include_reverse": False,
             "include_pano": True,

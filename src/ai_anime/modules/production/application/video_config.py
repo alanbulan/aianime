@@ -65,6 +65,65 @@ class BeatVideoConfig(BaseModel):
         return max(1, duration)
 
 
+def explicit_video_mode(*values: Any) -> VideoReferenceMode | None:
+    """Return the first explicitly supplied mode without inventing a default."""
+
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, VideoReferenceMode):
+            return value
+        if isinstance(value, BeatVideoConfig):
+            return value.mode
+        candidate: Any = value
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                continue
+            if text.startswith("{"):
+                try:
+                    candidate = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+            else:
+                candidate = text
+        if isinstance(candidate, dict):
+            if candidate.get("mode") is None:
+                continue
+            candidate = candidate["mode"]
+        try:
+            return VideoReferenceMode(str(candidate))
+        except ValueError as exc:
+            raise ValueError(f"unsupported video mode: {candidate}") from exc
+    return None
+
+
+def video_model_role_for_mode(mode: VideoReferenceMode | str) -> str:
+    try:
+        normalized = mode if isinstance(mode, VideoReferenceMode) else VideoReferenceMode(mode)
+    except ValueError as exc:
+        raise ValueError(f"unsupported video mode: {mode}") from exc
+    return {
+        VideoReferenceMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
+        VideoReferenceMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
+        VideoReferenceMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
+        VideoReferenceMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
+    }[normalized]
+
+
+def video_model_role_for_beat(
+    beat: dict[str, Any],
+    *,
+    has_next_beat: bool,
+) -> str:
+    configured_mode = explicit_video_mode(beat.get("video_config_json"))
+    if configured_mode is not None:
+        return video_model_role_for_mode(configured_mode)
+    if str(beat.get("video_mode") or "") == "keyframe" and has_next_beat:
+        return "VIDEO_FIRST_LAST_FRAME"
+    return "VIDEO_IMAGE_TO_VIDEO"
+
+
 def parse_video_config(value: Any) -> BeatVideoConfig:
     """Parse a stored dict/JSON config into a normalized config object."""
 

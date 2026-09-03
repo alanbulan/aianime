@@ -48,11 +48,12 @@ _PROTOCOL_RESERVED_TAG_RE = re.compile(
     r"<[a-z0-9_-]*(?:thinking|reflection)\b",
     re.IGNORECASE,
 )
+_VIDEO_REFERENCE_LABEL_RE = re.compile(r"@?(?:图片|视频|音频)\s*\d+", re.IGNORECASE)
 
 
 VIDEO_PROMPT_COMPOSER_SYSTEM_PROMPT = """你是视频生成提示词撰写器。
-你负责根据固定资产清单、分镜上下文、用户写作要求和规则草稿，写出最终视频提示词。
-资产顺序已经由系统决定，你只能使用资产清单中已有的图片1、音频1等编号。
+你负责根据生成模式、分镜上下文、用户写作要求、规则草稿和可用资产，写出最终视频提示词。
+有资产时，其顺序已经由系统决定，你只能使用资产清单中已有的图片1、音频1等编号。
 不要新增图片或音频编号，不要重排编号，不要输出 @ 符号。
 不要为了覆盖资产清单而强行使用所有素材；只引用对当前镜头有明确帮助的素材。
 时长、分辨率、画幅、真人审核等请求参数由 API 单独发送，不要写进 prompt。
@@ -150,6 +151,19 @@ def normalize_video_editor_prompt(prompt: str) -> str:
         .replace("@音频", "音频")
         .replace("@视频", "视频")
     )
+
+
+def validate_video_prompt_for_mode(
+    mode: VideoReferenceMode | str,
+    prompt: str,
+) -> None:
+    if (
+        VideoReferenceMode(mode) == VideoReferenceMode.TEXT_TO_VIDEO
+        and _VIDEO_REFERENCE_LABEL_RE.search(str(prompt or ""))
+    ):
+        raise ValueError(
+            "文生视频提示词不能引用参考素材编号，请删除引用或重新执行 AI 优化"
+        )
 
 
 def validate_generated_video_prompt(
@@ -381,6 +395,8 @@ def _reference_sentence_for_assets(
     assets: list[Any] | None,
 ) -> str:
     mode = VideoReferenceMode(mode)
+    if mode == VideoReferenceMode.TEXT_TO_VIDEO:
+        return "根据文字描述生成视频"
     image_parts: list[str] = []
     audio_parts: list[str] = []
 
@@ -579,8 +595,9 @@ def build_video_prompt_composer_task(
     request_params: dict[str, Any] | None = None,
     manual_prompt_reference: str = "",
 ) -> str:
+    normalized_mode = VideoReferenceMode(mode)
     payload = {
-        "mode": VideoReferenceMode(mode).value,
+        "mode": normalized_mode.value,
         "asset_manifest": build_video_reference_asset_manifest(assets),
         "beat": {
             "visual_description": beat.get("visual_description") or "",
@@ -605,13 +622,21 @@ def build_video_prompt_composer_task(
         "request_params_for_context_only": request_params or {},
         "rule_based_draft_prompt": normalize_video_editor_prompt(draft_prompt),
     }
+    mode_instruction = (
+        "请根据下面 JSON 写出最终文生视频提示词。\n"
+        "- 当前模式不发送任何参考素材，不要引用图片、视频或音频编号。\n"
+        if normalized_mode == VideoReferenceMode.TEXT_TO_VIDEO
+        else (
+            "请根据下面 JSON 写出最终图生视频提示词。\n"
+            "- 必须遵循官方写法，使用“图片1”“音频1”等编号指代参考素材。\n"
+            "- 只能使用 asset_manifest 中已有编号，不能新增图片或音频编号。\n"
+            "- 不要强行用完 asset_manifest；只引用当前镜头真正需要的图片或音频。\n"
+            "- 音频素材是可选声线/声音参考，不是必须全部使用；没有必要就不要写入 prompt。\n"
+        )
+    )
     return (
-        "请根据下面 JSON 写出最终图生视频提示词。\n\n"
+        f"{mode_instruction}\n"
         "硬性要求：\n"
-        "- 必须遵循官方写法，使用“图片1”“音频1”等编号指代参考素材。\n"
-        "- 只能使用 asset_manifest 中已有编号，不能新增图片或音频编号。\n"
-        "- 不要强行用完 asset_manifest；只引用当前镜头真正需要的图片或音频。\n"
-        "- 音频素材是可选声线/声音参考，不是必须全部使用；没有必要就不要写入 prompt。\n"
         "- asset_fallbacks 是未发送的文字约束资产；可用其中 fallback_text 描述道具或角色，但不能给它编图片编号。\n"
         "- 不能重排编号，不能描述请求 JSON，不要输出 @。\n"
         "- duration、resolution、ratio、generate_audio、return_last_frame、human_review "
@@ -719,6 +744,7 @@ async def generate_video_prompt(
             prompt,
             source_text=draft_prompt,
         )
+        validate_video_prompt_for_mode(mode, prompt)
         return GeneratedVideoPrompt(
             prompt=prompt,
             used_ai=True,

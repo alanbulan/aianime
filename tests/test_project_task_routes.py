@@ -101,6 +101,75 @@ async def test_project_task_list_reads_only_resolved_project(tmp_path, monkeypat
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ({}, {"video_running", "video_completed", "video_other_episode", "compose_running", "identity_completed"}),
+        ({"episode": 0}, {"identity_completed"}),
+        ({"episode": 1}, {"video_running", "video_completed", "compose_running"}),
+        ({"task_type": " single_video "}, {"video_running", "video_completed", "video_other_episode"}),
+        ({"status": " RUNNING "}, {"video_running", "video_other_episode", "compose_running"}),
+        ({"status": "completed"}, {"video_completed", "identity_completed"}),
+        ({"episode": 1, "task_type": "single_video", "status": "running"}, {"video_running"}),
+        ({"episode": 1, "task_type": "identity_image"}, set()),
+        ({"status": "unknown"}, set()),
+    ],
+)
+async def test_project_task_list_filters_over_http(tmp_path, monkeypatch, query, expected):
+    import httpx
+    from fastapi import FastAPI
+
+    ctx = _ctx(tmp_path, role="viewer")
+    manager = TaskStateManager()
+    task_ids = {}
+    for scope, task_type, episode, status in [
+        ("video_running", "single_video", 1, "running"),
+        ("video_completed", "single_video", 1, "completed"),
+        ("video_other_episode", "single_video", 2, "running"),
+        ("compose_running", "compose_episode", 1, "running"),
+        ("identity_completed", "identity_image", 0, "running"),
+    ]:
+        task = manager.create_task_for_project(
+            ctx, task_type, episode, scope=scope, status=status
+        )
+        task_ids[scope] = task.task_id
+    manager.update_progress_for_project(
+        ctx, "identity_image", 0, scope="identity_completed",
+        progress=1.0, current_task="完成",
+    )
+    other = _ctx(tmp_path / "other", role="viewer")
+    object.__setattr__(other, "project_id", "proj_other")
+    manager.create_task_for_project(other, "single_video", 1, status="running")
+
+    async def fake_resolve_project_context(**kwargs):
+        assert kwargs["project_id"] == ctx.project_id
+        assert kwargs["required_role"] == "viewer"
+        return ctx
+
+    monkeypatch.setattr(tasks_route, "resolve_project_context", fake_resolve_project_context)
+    monkeypatch.setattr(
+        "ai_anime.modules.task_execution.infrastructure.task_state.get_task_manager",
+        lambda: manager,
+    )
+    app = FastAPI()
+    app.include_router(tasks_route.router, prefix="/api/v1")
+    app.dependency_overrides[tasks_route.get_api_user] = lambda: {"username": "bob"}
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/projects/proj_123/tasks", params=query)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert {task["task_id"] for task in payload["data"]} == {
+        task_ids[name] for name in expected
+    }
+    assert all(task["project_id"] == ctx.project_id for task in payload["data"])
+    if query.get("status", "").strip().lower() == "completed":
+        assert all(task["status"] == "completed" for task in payload["data"])
+
+
+@pytest.mark.asyncio
 async def test_project_task_status_uses_exact_creation_key(tmp_path, monkeypatch):
     ctx = _ctx(tmp_path, role="viewer")
     manager = TaskStateManager()

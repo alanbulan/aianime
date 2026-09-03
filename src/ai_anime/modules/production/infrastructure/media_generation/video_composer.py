@@ -6,6 +6,7 @@
 import logging
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -13,6 +14,10 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from ai_anime.modules.production.domain.subtitles import (
+    build_subtitle_cues,
+    split_subtitle_text,
+)
 from ai_anime.modules.production.infrastructure.media_generation_settings import (
     get_video_config,
 )
@@ -161,6 +166,123 @@ class VideoComposer:
         self.codec = config["codec"]
         self.audio_codec = config["audio_codec"]
         self.bitrate = config["bitrate"]
+
+    def write_episode_subtitles(
+        self,
+        captions: list[tuple[float, str]],
+        output_path: Path,
+    ) -> int:
+        """Write sequential sentence cues within each composed clip's duration."""
+        from PIL import ImageFont
+
+        windows_fonts = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts"
+        font_name = "Arial"
+        selected_font: Path | None = None
+        fonts_dir = output_path.parent / "subtitle-fonts"
+        fonts_dir.mkdir(exist_ok=True)
+        for font_path, candidate_name in (
+            (windows_fonts / "msyh.ttc", "Microsoft YaHei"),
+            (windows_fonts / "simsun.ttc", "SimSun"),
+            (Path("/System/Library/Fonts/PingFang.ttc"), "PingFang SC"),
+            (Path("/System/Library/Fonts/LanguageSupport/PingFang.ttc"), "PingFang SC"),
+            (Path("/System/Library/Fonts/STHeiti Medium.ttc"), "Heiti SC"),
+            (Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"), "Noto Sans CJK SC"),
+        ):
+            if font_path.is_file():
+                shutil.copyfile(font_path, fonts_dir / font_path.name)
+                font_name = candidate_name
+                selected_font = font_path
+                break
+
+        font_size = max(18, round(min(self.width, self.height) / 22))
+        margin = round(self.width * 0.06)
+        bottom_margin = round(self.height * 0.05)
+        font = (
+            ImageFont.truetype(str(selected_font), size=font_size)
+            if selected_font is not None
+            else ImageFont.load_default(size=font_size)
+        )
+        max_text_width = (self.width - 2 * margin) * 0.96
+
+        def wrap_text(text: str) -> str:
+            wrapped: list[str] = []
+            for paragraph in text.splitlines():
+                line = ""
+                for token in re.findall(r"[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|\s+|.", paragraph):
+                    if (
+                        line
+                        and all(character in "，。！？；：、,.!?;:)]）】》”’…" for character in token)
+                        and font.getlength(line + token) <= self.width - 2 * margin
+                    ):
+                        line += token
+                        continue
+                    if line and font.getlength(line + token) > max_text_width:
+                        wrapped.append(line.rstrip())
+                        line = ""
+                    if not line:
+                        token = token.lstrip()
+                    for character in token:
+                        if line and font.getlength(line + character) > max_text_width:
+                            wrapped.append(line.rstrip())
+                            line = ""
+                        line += character
+                wrapped.append(line.rstrip())
+            return "\n".join(wrapped)
+
+        lines = [
+            "[Script Info]",
+            "ScriptType: v4.00+",
+            f"PlayResX: {self.width}",
+            f"PlayResY: {self.height}",
+            "WrapStyle: 0",
+            "ScaledBorderAndShadow: yes",
+            "",
+            "[V4+ Styles]",
+            "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+            "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, "
+            "ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, "
+            "Alignment, MarginL, MarginR, MarginV, Encoding",
+            f"Style: Default,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,"
+            "&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,2,"
+            f"{margin},{margin},{bottom_margin},1",
+            "",
+            "[Events]",
+            "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+        ]
+
+        def timestamp(seconds: float) -> str:
+            centiseconds = round(seconds * 100)
+            hours, remainder = divmod(centiseconds, 360000)
+            minutes, remainder = divmod(remainder, 6000)
+            secs, fraction = divmod(remainder, 100)
+            return f"{hours}:{minutes:02d}:{secs:02d}.{fraction:02d}"
+
+        caption_parts: list[tuple[float, list[str]]] = []
+        for duration, text in captions:
+            parts: list[str] = []
+            for sentence in split_subtitle_text(text):
+                wrapped = wrap_text(sentence).splitlines()
+                parts.extend(
+                    "\n".join(wrapped[index:index + 2])
+                    for index in range(0, len(wrapped), 2)
+                )
+            caption_parts.append((duration, parts))
+        cues = build_subtitle_cues(caption_parts)
+        for cue in cues:
+            escaped = (
+                cue.text.replace("\\", "\\\\")
+                .replace("{", r"\{")
+                .replace("}", r"\}")
+                .replace("\r\n", "\n")
+                .replace("\r", "\n")
+                .replace("\n", r"\N")
+            )
+            lines.append(
+                f"Dialogue: 0,{timestamp(cue.start)},{timestamp(cue.end)},"
+                f"Default,,0,0,0,,{escaped}"
+            )
+        output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return len(cues)
 
     async def compose_episode(
         self,

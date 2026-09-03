@@ -361,6 +361,7 @@ class CommercialVideoGenerator(VideoGeneratorBase):
                 "video_generation_max_seconds",
                 None,
             ),
+            duration_options=getattr(capability, "video_duration_options", ()),
         )
         resolution = str(config.get("resolution") or self.resolution).strip()
         ratio = str(config.get("ratio") or aspect_ratio or "16:9").strip()

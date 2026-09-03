@@ -926,6 +926,345 @@ def test_first_frame_regeneration_requires_explicit_all_beats_opt_in(
     assert schema["parameters"]["properties"]["all_beats"]["type"] == "boolean"
 
 
+def test_first_frame_regeneration_preserves_model_selection(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.api.routes.production.render_schemas import BeatsRegenerateRequest
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    requests = []
+
+    def fake_request(method: str, path: str, *, body=None):
+        assert method == "POST"
+        assert path == "/api/v1/projects/project-1/episodes/1/beats/regenerate"
+        requests.append(BeatsRegenerateRequest.model_validate(body))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_render_first_frames(
+        {
+            "episode": 1,
+            "beat_indices": [2],
+            "image_generation_selection": "image-route",
+        }
+    )
+
+    assert result["ok"] is True
+    assert requests[0].image_generation_selection == "image-route"
+
+
+@pytest.mark.parametrize("add_subtitles", [False, True])
+@pytest.mark.parametrize("add_bgm", [False, True])
+def test_compose_episode_preserves_export_settings(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+    add_subtitles: bool,
+    add_bgm: bool,
+) -> None:
+    from ai_anime.api.routes.production.video_schemas import VideoComposeRequest
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    requests = []
+
+    def fake_request(method: str, path: str, *, body=None):
+        assert method == "POST"
+        assert path == "/api/v1/projects/project-1/episodes/1/videos/compose"
+        requests.append(VideoComposeRequest.model_validate(body))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_compose_episode(
+        {
+            "episode": 1,
+            "add_subtitles": add_subtitles,
+            "add_bgm": add_bgm,
+            "resolution": "1920x1080",
+        }
+    )
+
+    assert result["ok"] is True
+    assert requests[0].add_subtitles is add_subtitles
+    assert requests[0].add_bgm is add_bgm
+    assert requests[0].resolution == "1920x1080"
+    assert requests[0].model_fields_set == {
+        "add_subtitles",
+        "add_bgm",
+        "resolution",
+    }
+
+
+@pytest.mark.parametrize("language", [None, "zh", "en"])
+def test_global_video_optimization_preserves_language_and_backend_default(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+    language: str | None,
+) -> None:
+    from ai_anime.api.routes.production.video_schemas import GlobalOptimizeRequest
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    requests = []
+
+    def fake_request(method: str, path: str, *, body=None):
+        assert method == "POST"
+        assert path == "/api/v1/projects/project-1/episodes/1/optimize/video-global"
+        requests.append(GlobalOptimizeRequest.model_validate(body or {}))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_optimize_video_global(
+        {"episode": 1, **({"language": language} if language is not None else {})}
+    )
+
+    assert result["ok"] is True
+    assert requests[0].language == (language or GlobalOptimizeRequest().language)
+    assert requests[0].model_fields_set == ({"language"} if language else set())
+
+
+def test_media_tool_options_match_backend_schema(ai_anime_plugin) -> None:
+    from ai_anime.api.routes.production.render_schemas import BeatsRegenerateRequest
+    from ai_anime.api.routes.production.video_schemas import (
+        GlobalOptimizeRequest,
+        SingleVideoRequest,
+        VideoComposeRequest,
+    )
+
+    tool_schemas = {
+        name: schema["parameters"]["properties"]
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+    }
+    options = [
+        (
+            "ai_anime_render_first_frames",
+            BeatsRegenerateRequest,
+            "image_generation_selection",
+        ),
+        ("ai_anime_compose_episode", VideoComposeRequest, "add_subtitles"),
+        ("ai_anime_compose_episode", VideoComposeRequest, "add_bgm"),
+        ("ai_anime_compose_episode", VideoComposeRequest, "resolution"),
+        ("ai_anime_optimize_video_global", GlobalOptimizeRequest, "language"),
+        ("ai_anime_start_single_video", SingleVideoRequest, "duration"),
+    ]
+    for tool_name, request_model, field in options:
+        backend_field = request_model.model_json_schema()["properties"][field]
+        backend_types = {
+            item["type"] for item in backend_field.get("anyOf", [backend_field])
+        } - {"null"}
+        assert tool_schemas[tool_name][field]["type"] in backend_types
+
+
+def test_single_video_tool_exposes_all_backend_generation_parameters(ai_anime_plugin) -> None:
+    from ai_anime.api.routes.production.video_schemas import SingleVideoRequest
+
+    schema = next(
+        schema for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name == "ai_anime_start_single_video"
+    )
+    fields = {
+        key: value for key, value in schema["parameters"]["properties"].items()
+        if key not in {"project_id", "episode", "beat"}
+    }
+    backend_fields = SingleVideoRequest.model_json_schema()["properties"]
+    assert set(fields) == set(backend_fields) - {"video_routing_policy"}
+    for field, declaration in fields.items():
+        backend = backend_fields[field]
+        assert declaration["type"] in {
+            option["type"] for option in backend.get("anyOf", [backend])
+        }
+
+
+def test_hermes_tools_only_expose_canonical_parameter_names(
+    ai_anime_plugin,
+) -> None:
+    properties = {
+        name: set(schema["parameters"]["properties"])
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+    }
+
+    assert "body" not in properties["ai_anime_generate_sketches"]
+    assert "character" not in properties["ai_anime_update_character_face_prompt"]
+    assert "scene_name" not in properties["ai_anime_generate_scene_master"]
+    assert "scene_name" not in properties["ai_anime_generate_scene_reverse"]
+    assert "scene_name" not in properties["ai_anime_get_scene_images"]
+    assert "identity_name" not in properties["ai_anime_get_character_media"]
+    assert "search" not in properties["ai_anime_get_episode_media"]
+    assert "beat_number" not in properties["ai_anime_start_single_video"]
+
+
+def test_hermes_parameter_helpers_do_not_accept_hidden_aliases(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AI_ANIME_PROJECT_ID", raising=False)
+
+    assert ai_anime_plugin._requested_beats(
+        {"beats": [1], "beat_num": 2, "beat_number": 3, "index": 4}
+    ) is None
+    assert ai_anime_plugin._requested_names({"character": "Ada"}) is None
+    assert ai_anime_plugin._requested_queries(
+        {"queries": ["Ada"], "search": "pilot", "identity_name": "uniform"}
+    ) is None
+    assert ai_anime_plugin._requested_scene_names(
+        {"scene_names": ["Hall"], "scene_name": "Street"}
+    ) is None
+    assert ai_anime_plugin._requested_scene_indices({"indices": [1]}) is None
+    with pytest.raises(ValueError, match="project_id is required"):
+        ai_anime_plugin._project_from_args({"project": "legacy-project"})
+
+
+def test_bound_project_remains_authoritative_for_dedicated_tools(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-bound")
+
+    assert (
+        ai_anime_plugin._project_from_args({"project_id": "other-project"})
+        == "project-bound"
+    )
+
+
+def test_single_video_tool_forwards_full_config_and_false_values(
+    ai_anime_plugin, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.api.routes.production.video_schemas import SingleVideoRequest
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    requests = []
+
+    def request(method, path, *, body):
+        assert method == "POST"
+        assert path == "/api/v1/projects/project-1/episodes/1/beats/2/video"
+        requests.append(SingleVideoRequest.model_validate(body))
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", request)
+    overrides = {
+        "duration": 9,
+        "resolution": "1080p",
+        "mode": "multimodal_reference",
+        "ratio": "9:16",
+        "use_director_render": False,
+        "video_config_json": '{"final_prompt":"原提示词","generate_audio":true}',
+        "final_prompt": "本次最终提示词",
+        "generate_audio": False,
+        "return_last_frame": False,
+        "human_review": False,
+        "scene_optimize": "",
+        "audio_setting": "",
+        "prompt_guidance": "保持人物和画面居中",
+        "text_overlay": {},
+    }
+    result = ai_anime_plugin._handle_start_single_video(
+        {"episode": 1, "beat": 2, **overrides}
+    )
+
+    assert result == {"ok": True}
+    assert requests[0].model_dump(exclude_unset=True) == {
+        **overrides, "video_routing_policy": "role_priority",
+    }
+
+
+def test_single_video_tool_does_not_override_saved_config_with_omitted_values(
+    ai_anime_plugin, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = []
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request",
+        lambda method, path, *, body: calls.append(body) or {"ok": True},
+    )
+    ai_anime_plugin._handle_start_single_video(
+        {"episode": 1, "beat": 2, "ratio": None, "final_prompt": None, "generate_audio": None}
+    )
+    assert calls == [{"video_routing_policy": "role_priority"}]
+
+
+def test_single_video_tool_rejects_a_selector_without_its_model(
+    ai_anime_plugin, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    monkeypatch.setattr(
+        ai_anime_plugin, "_request",
+        lambda *_args, **_kwargs: pytest.fail("incomplete selection must not start generation"),
+    )
+    result = ai_anime_plugin._handle_start_single_video(
+        {"episode": 1, "beat": 2, "model_selector": "cloud:video-route"}
+    )
+    assert result == {"tool_error": "model is required when model_selector is provided"}
+
+
+def test_web_and_tool_single_video_requests_reach_the_same_application_command(
+    ai_anime_plugin, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from ai_anime.api.routes.production import video as production_video
+    from ai_anime.modules.production.application.single_video import ScheduledSingleVideo
+
+    commands = []
+    context = object()
+
+    async def resolve(*_args, **_kwargs):
+        return type("Resolution", (), {"ctx": context})()
+
+    class UseCases:
+        async def generate(self, resolved_context, command):
+            assert resolved_context is context
+            commands.append(command)
+            return ScheduledSingleVideo(
+                task_id="task-1",
+                task_key="task:single_video:project:project-1:1:2",
+                backend="celery",
+                queue="node.local.video",
+                episode_num=1,
+                beat_num=2,
+            )
+
+    monkeypatch.setattr(production_video, "resolve_project_scope", resolve)
+    monkeypatch.setattr(production_video, "single_video_use_cases", lambda: UseCases())
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    app = FastAPI()
+    app.include_router(production_video.router, prefix="/api/v1")
+    app.dependency_overrides[production_video.get_api_user] = lambda: {"username": "alice"}
+    parameters = {
+        "model": "selected-video-model",
+        "model_selector": "cloud:selected-video-route",
+        "use_director_render": False,
+        "duration": 8,
+        "resolution": "720p",
+        "mode": "multimodal_reference",
+        "ratio": "9:16",
+        "video_config_json": '{"final_prompt":"同一最终提示词","generate_audio":false}',
+        "audio_setting": "",
+    }
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/projects/project-1/episodes/1/beats/2/video",
+            json={**parameters, "video_routing_policy": "project_selection"},
+        )
+        assert response.status_code == 200
+        assert response.json()["ok"] is True
+
+        def request(method, path, *, body):
+            result = client.request(method, path, json=body)
+            assert result.status_code == 200
+            return result.json()
+
+        monkeypatch.setattr(ai_anime_plugin, "_request", request)
+        result = ai_anime_plugin._handle_start_single_video(
+            {"episode": 1, "beat": 2, **parameters}
+        )
+
+    assert result["ok"] is True
+    assert len(commands) == 2
+    assert commands[1] == commands[0]
+
+
 def test_bound_project_rewrites_generic_paths_and_hides_project_schema_field(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
@@ -1132,8 +1471,7 @@ def test_media_handlers_send_current_backend_contract_fields(
         {
             "episode": 1,
             "auto_assign_colors": False,
-            "model": "image-route",
-            "body": {"unsupported": True},
+            "image_generation_selection": "image-route",
         }
     )
     ai_anime_plugin._handle_generate_audio(
@@ -1163,7 +1501,7 @@ def test_media_handlers_send_current_backend_contract_fields(
         (
             "POST",
             "/api/v1/projects/project-1/episodes/1/beats/2/video",
-            {"video_routing_policy": "role_priority"},
+            {"model": "video-route", "video_routing_policy": "project_selection"},
         ),
         (
             "POST",
@@ -1224,7 +1562,7 @@ def test_sketch_tool_uses_frontend_selected_regeneration_contract(
             "auto_assign_colors": False,
             "beat_indices": [6, 2, 6],
             "aspect_ratio": "16:9",
-            "model": "image-route",
+            "image_generation_selection": "image-route",
         }
     )
 
@@ -1745,9 +2083,23 @@ def test_wait_task_stops_after_three_missing_snapshots(
     assert result["wait"]["timed_out"] is False
 
 
-def test_list_tasks_filters_locally_without_unsupported_query_parameters(
+@pytest.mark.parametrize(
+    ("args", "query"),
+    [
+        (
+            {"episode": 1, "task_type": "single_video", "status": "running"},
+            {"episode": 1, "task_type": "single_video", "status": "running"},
+        ),
+        ({"episode": 0, "status": " RUNNING "}, {"episode": 0, "status": " RUNNING "}),
+        ({"episode": None, "task_type": None, "status": None}, {}),
+        ({}, {}),
+    ],
+)
+def test_list_tasks_forwards_filters_to_backend(
     ai_anime_plugin,
     monkeypatch,
+    args,
+    query,
 ) -> None:
     monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
     calls = []
@@ -1759,18 +2111,14 @@ def test_list_tasks_filters_locally_without_unsupported_query_parameters(
             "status_code": 200,
             "data": [
                 {"episode": 1, "task_type": "single_video", "status": "running"},
-                {"episode": 2, "task_type": "single_video", "status": "completed"},
-                {"episode": 1, "task_type": "compose_episode", "status": "running"},
             ],
         }
 
     monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
 
-    result = ai_anime_plugin._handle_list_tasks(
-        {"episode": 1, "task_type": "single_video", "status": "running"}
-    )
+    result = ai_anime_plugin._handle_list_tasks(args)
 
-    assert calls == [("GET", "/api/v1/projects/project-1/tasks", None, None)]
+    assert calls == [("GET", "/api/v1/projects/project-1/tasks", query, None)]
     assert result["data"] == [
         {"episode": 1, "task_type": "single_video", "status": "running"}
     ]
@@ -1819,7 +2167,8 @@ def test_hermes_production_tools_match_openapi_request_fields(
     assert "audio_model" not in tool_schemas["ai_anime_run_production_workflow"]
     assert "video_model" in tool_schemas["ai_anime_run_production_workflow"]
     assert "model" not in tool_schemas["ai_anime_generate_audio"]
-    assert "model" not in tool_schemas["ai_anime_start_single_video"]
+    assert "model" in tool_schemas["ai_anime_start_single_video"]
+    assert "model_selector" in tool_schemas["ai_anime_start_single_video"]
 
 
 def test_generate_audio_treats_no_required_audio_as_successful_skip(

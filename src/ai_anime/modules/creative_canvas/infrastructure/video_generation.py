@@ -84,16 +84,18 @@ class ConfiguredCreativeCanvasVideoModelPolicy:
         minimum = capability.video_generation_min_seconds
         maximum = capability.video_generation_max_seconds
         options = capability.video_duration_options
-        if options and float(duration) not in options:
-            formatted = ", ".join(f"{option:g}" for option in options)
-            raise ValueError(f"video duration must be one of: {formatted}")
         if not options and minimum is None and maximum is None:
             raise ValueError("video model duration parameters are not declared")
-        if minimum is not None and duration < minimum:
-            raise ValueError(f"video duration must be at least {minimum:g} seconds")
-        if maximum is not None and duration > maximum:
-            raise ValueError(f"video duration must be at most {maximum:g} seconds")
-        return duration
+        from ai_anime.modules.production.public import (
+            normalize_video_generation_duration,
+        )
+
+        return normalize_video_generation_duration(
+            duration,
+            minimum_seconds=minimum,
+            maximum_seconds=maximum,
+            duration_options=options,
+        )
 
     def normalize_generate_audio(self, model: str | None, value: bool) -> bool:
         capability = runtime_model_capability(model)

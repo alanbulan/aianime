@@ -15,8 +15,8 @@ from ai_anime.modules.production.public import (
     video_pool_use_cases,
 )
 from ai_anime.modules.project_workspace.public import ProjectContext
-from ai_anime.modules.narrative_planning.public import resolve_target_video_duration
 from ai_anime.modules.task_execution.public import (
+    TaskCancelled,
     TaskTimedOut,
     await_envelope_with_cancel_watch,
     raise_if_envelope_cancel_requested,
@@ -169,9 +169,6 @@ async def _run_single_video_async(
             current_task=f"生成 Beat {beat_num} 视频",
         )
 
-    if video_mode == "keyframe" and last_frame_path and not uses_advanced_reference:
-        video_duration = 5.0
-
     video_references = []
     if uses_advanced_reference:
         from ai_anime.modules.production.public import (
@@ -204,7 +201,7 @@ async def _run_single_video_async(
         video_mode = (
             "keyframe"
             if prepared.mode == VideoReferenceMode.FIRST_LAST_FRAME
-            else "first_frame"
+            else prepared.mode.value
         )
 
     model_references = video_references
@@ -241,7 +238,7 @@ async def _run_single_video_async(
         generate_kwargs["references"] = model_references
     if config.get("audio_setting"):
         generate_kwargs["audio_setting"] = str(config["audio_setting"])
-    if uses_advanced_reference:
+    if video_config:
         generate_kwargs["video_config"] = video_config
 
     result = await video_gen.generate(**generate_kwargs)
@@ -415,145 +412,17 @@ def _normalize_embedded_audio(
     return True
 
 
-async def _run_video_generation_async(
-    envelope: dict[str, Any],
-    ctx: ProjectContext,
-) -> dict[str, Any]:
-    from ai_anime.shared.utils.path_resolver import PathResolver
-
-    payload = envelope.get("payload") or {}
-    episode = int(envelope.get("episode") or payload.get("episode") or 0)
-    output_dir = str(payload.get("output_dir") or ctx.output_dir)
-    beats = list(payload.get("beats") or [])
-    video_model = str(payload.get("video_model") or "").strip()
-    resolution = str(payload.get("resolution") or "720p")
-    ratio = str(payload.get("ratio") or "9:16")
-    prop_menu = payload.get("prop_menu")
-    use_director_render = bool(payload.get("use_director_render"))
-    manager = get_task_manager()
-    paths = PathResolver(output_dir, episode)
-    generated: list[dict[str, Any]] = []
-
-    for index, beat in enumerate(beats):
-        beat_num = int(beat.get("beat_number") or index + 1)
-        next_beat = beats[index + 1] if index + 1 < len(beats) else None
-        manager.update_progress_for_project(
-            ctx,
-            "video_generation",
-            episode,
-            progress=index / max(1, len(beats)),
-            current_task=f"生成 Beat {beat_num} 视频...",
-        )
-        frame_path = paths.first_frame_for_video(
-            beat_num,
-            use_director_render=use_director_render,
-        )
-        if not frame_path.exists():
-            manager.update_progress_for_project(
-                ctx,
-                "video_generation",
-                episode,
-                logs=[f"Beat {beat_num} 缺少首帧，跳过: {frame_path}"],
-            )
-            continue
-
-        video_mode = str(beat.get("video_mode") or "first_frame")
-        prompt = str(
-            beat.get("keyframe_prompt")
-            if video_mode == "keyframe"
-            else beat.get("video_prompt") or ""
-        )
-        audio_path = paths.audio(beat_num)
-        duration = resolve_target_video_duration(
-            beat,
-            _audio_duration(
-                audio_path,
-                timeout_seconds=remaining_timeout_seconds(envelope, default_seconds=30),
-            ),
-        )
-        last_frame_path = None
-        if video_mode == "keyframe":
-            next_beat_number = int((next_beat or {}).get("beat_number") or 0)
-            if next_beat_number > 0:
-                next_frame = paths.first_frame_for_video(
-                    next_beat_number,
-                    use_director_render=use_director_render,
-                )
-                if next_frame.exists():
-                    last_frame_path = str(next_frame)
-            if not last_frame_path:
-                video_mode = "first_frame"
-                prompt = str(beat.get("video_prompt") or "")
-
-        model_role = (
-            "VIDEO_FIRST_LAST_FRAME"
-            if video_mode == "keyframe" and last_frame_path
-            else "VIDEO_IMAGE_TO_VIDEO"
-        )
-        if (
-            video_model_uses_advanced_reference_workflow(video_model)
-            and model_role != "VIDEO_FIRST_LAST_FRAME"
-        ):
-            from ai_anime.modules.production.public import (
-                VideoReferenceMode,
-                parse_video_config,
-            )
-
-            reference_mode = parse_video_config(
-                beat.get("video_config_json")
-            ).mode
-            model_role = {
-                VideoReferenceMode.TEXT_TO_VIDEO: "VIDEO_TEXT_TO_VIDEO",
-                VideoReferenceMode.FIRST_FRAME: "VIDEO_IMAGE_TO_VIDEO",
-                VideoReferenceMode.FIRST_LAST_FRAME: "VIDEO_FIRST_LAST_FRAME",
-                VideoReferenceMode.MULTIMODAL_REFERENCE: "VIDEO_ALL_REFERENCE",
-            }[reference_mode]
-
-        single_envelope = {
-            "task_type": SINGLE_VIDEO_TASK_TYPE,
-            "episode": episode,
-            "beat_num": beat_num,
-            "payload": {
-                "output_dir": output_dir,
-                "config": {
-                    "beat": beat,
-                    "next_beat": next_beat,
-                    "frame_path": str(frame_path),
-                    "video_mode": video_mode,
-                    "prompt": prompt,
-                    "video_duration": duration,
-                    "video_model": video_model,
-                    "model_role": model_role,
-                    "last_frame_path": last_frame_path,
-                    "resolution": resolution,
-                    "ratio": ratio,
-                    "prop_menu": prop_menu,
-                },
-            },
-        }
-        generated.append(await _run_single_video_async(single_envelope, ctx))
-
-    return {"generated": len(generated), "items": generated}
-
-
-def run_video_generation(
-    envelope: dict[str, Any], ctx: ProjectContext
-) -> dict[str, Any]:
-    return asyncio.run(
-        await_envelope_with_cancel_watch(
-            _run_video_generation_async(envelope, ctx),
-            envelope,
-            task_type="video_generation",
-        )
-    )
-
-
 def run_compose_episode(
     envelope: dict[str, Any], ctx: ProjectContext
 ) -> dict[str, Any]:
     import subprocess
     import tempfile
 
+    from ai_anime.modules.production.public import (
+        VideoComposer,
+        generate_episode_bgm,
+        write_episode_composition_manifest,
+    )
     from ai_anime.shared.utils.path_resolver import PathResolver
 
     payload = envelope.get("payload") or {}
@@ -561,7 +430,8 @@ def run_compose_episode(
     output_dir = str(payload.get("output_dir") or ctx.output_dir)
     beats = list(payload.get("beats") or [])
     resolution = str(payload.get("resolution") or "720x1280")
-    add_subtitles = bool(payload.get("add_subtitles"))
+    add_subtitles = bool(payload.get("add_subtitles", True))
+    add_bgm = bool(payload.get("add_bgm", False))
     manager = get_task_manager()
     paths = PathResolver(output_dir, episode)
     final_dir = Path(output_dir) / "videos" / "episodes"
@@ -578,7 +448,9 @@ def run_compose_episode(
     def subprocess_timeout(default_seconds: int) -> int | None:
         return remaining_timeout_seconds(envelope, default_seconds=default_seconds)
 
-    def run_checked(cmd: list[str], *, default_timeout_seconds: int):
+    def run_checked(
+        cmd: list[str], *, default_timeout_seconds: int, cwd: Path | None = None
+    ):
         try:
             return run_project_subprocess(
                 cmd,
@@ -586,6 +458,7 @@ def run_compose_episode(
                 capture_output=True,
                 text=True,
                 timeout=subprocess_timeout(default_timeout_seconds),
+                cwd=cwd,
             )
         except subprocess.TimeoutExpired as exc:
             raise TaskTimedOut(
@@ -593,20 +466,37 @@ def run_compose_episode(
             ) from exc
 
     try:
-        target_width, target_height = map(int, resolution.split("x"))
-    except Exception:
-        target_width, target_height = 720, 1280
+        target_width, target_height = map(
+            int, resolution.strip().lower().replace("×", "x").split("x")
+        )
+        if min(target_width, target_height) <= 0 or target_width % 2 or target_height % 2:
+            raise ValueError("dimensions must be positive and even")
+    except ValueError as exc:
+        raise ValueError("导出分辨率必须是正偶数宽×高，例如 1080x1920") from exc
 
+    composer = VideoComposer(width=target_width, height=target_height)
+    missing_video_beats = [
+        int(beat.get("beat_number") or index + 1)
+        for index, beat in enumerate(beats)
+        if not paths.video(int(beat.get("beat_number") or index + 1)).is_file()
+    ]
+    if missing_video_beats:
+        missing = "、".join(str(number) for number in missing_video_beats)
+        raise RuntimeError(
+            f"无法合成：Beat {missing} 的视频不存在，请先生成全部 Beat 视频"
+        )
     video_clips: list[str] = []
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_dir = Path(tmp)
+    clip_texts: list[str] = []
+    composition_source_paths: list[Path] = []
+    subtitles_added = False
+    bgm_added = False
+    with tempfile.TemporaryDirectory(prefix=".compose-", dir=final_dir) as tmp:
+        tmp_dir = Path(tmp).resolve()
         for index, beat in enumerate(beats):
             check_cancel()
             beat_num = int(beat.get("beat_number") or index + 1)
             video_path = paths.video(beat_num)
             audio_path = paths.audio(beat_num)
-            if not video_path.exists():
-                continue
             clip_path = tmp_dir / f"beat_{beat_num:04d}.mp4"
             manager.update_progress_for_project(
                 ctx,
@@ -696,28 +586,104 @@ def run_compose_episode(
             check_cancel()
             if result.returncode == 0:
                 video_clips.append(str(clip_path))
+                clip_texts.append(str(beat.get("narration_segment") or "").strip())
+                composition_source_paths.append(video_path)
+                if audio_path.exists():
+                    composition_source_paths.append(audio_path)
             else:
+                error = f"Beat {beat_num} 合成失败: {result.stderr[:500]}"
                 manager.update_progress_for_project(
                     ctx,
                     "compose_episode",
                     episode,
-                    logs=[f"Beat {beat_num} 合成失败: {result.stderr[:500]}"],
+                    logs=[error],
                 )
+                raise RuntimeError(error)
 
         if not video_clips:
             raise RuntimeError("没有可用的视频片段")
+
+        clip_durations: list[float] = []
+        if (add_subtitles and any(clip_texts)) or add_bgm:
+            for clip in video_clips:
+                check_cancel()
+                duration = _audio_duration(
+                    Path(clip), timeout_seconds=subprocess_timeout(30)
+                )
+                if duration is None or duration <= 0:
+                    raise RuntimeError(f"无法读取片段时长: {Path(clip).name}")
+                clip_durations.append(duration)
+
+        if add_subtitles and any(clip_texts):
+            captions: list[tuple[float, str]] = []
+            for duration, text in zip(clip_durations, clip_texts, strict=True):
+                captions.append((duration, text))
+            subtitle_count = composer.write_episode_subtitles(
+                captions, tmp_dir / "subtitles.ass"
+            )
+            subtitles_added = True
+            manager.update_progress_for_project(
+                ctx,
+                "compose_episode",
+                episode,
+                current_task="烧录字幕并合成成片...",
+                logs=[f"按片段时长逐句生成 {subtitle_count} 条字幕，开始烧录"],
+            )
+        elif add_subtitles:
+            manager.update_progress_for_project(
+                ctx,
+                "compose_episode",
+                episode,
+                logs=["未找到对白或旁白文本，本次成片不含字幕"],
+            )
+
+        bgm_path: Path | None = None
+        if add_bgm:
+            manager.update_progress_for_project(
+                ctx,
+                "compose_episode",
+                episode,
+                current_task="生成剧集背景音乐...",
+            )
+            try:
+                bgm_path = asyncio.run(
+                    await_envelope_with_cancel_watch(
+                        generate_episode_bgm(
+                            project_dir=Path(output_dir),
+                            episode_num=episode,
+                            beats=beats,
+                            duration_seconds=sum(clip_durations),
+                        ),
+                        envelope,
+                        task_type="compose_episode",
+                    )
+                )
+            except (TaskCancelled, TaskTimedOut):
+                raise
+            except Exception as exc:
+                raise RuntimeError(f"已开启背景音乐，但配乐生成失败: {exc}") from exc
+            composition_source_paths.append(bgm_path)
+            bgm_added = True
+            manager.update_progress_for_project(
+                ctx,
+                "compose_episode",
+                episode,
+                logs=[f"已生成并混入剧集背景音乐: {bgm_path.name}"],
+            )
 
         check_cancel()
         cmd = ["ffmpeg", "-y"]
         for clip in video_clips:
             cmd.extend(["-i", clip])
+        if bgm_path is not None:
+            cmd.extend(["-stream_loop", "-1", "-i", str(bgm_path)])
         filter_parts = []
         for index in range(len(video_clips)):
             filter_parts.append(
                 f"[{index}:v]scale={target_width}:{target_height}:"
-                f"force_original_aspect_ratio=decrease,"
-                f"pad={target_width}:{target_height}:(ow-iw)/2:(oh-ih)/2:black,"
-                f"setsar=1,format=yuv420p[v{index}]"
+                f"force_original_aspect_ratio=increase:reset_sar=1,"
+                f"crop={target_width}:{target_height}:(iw-ow)/2:(ih-oh)/2,"
+                f"setsar=1,fps={composer.fps},format=yuv420p[v{index}]"
             )
             filter_parts.append(f"[{index}:a]aresample=44100[a{index}]")
         concat_inputs = "".join(
@@ -726,14 +692,37 @@ def run_compose_episode(
         filter_parts.append(
             f"{concat_inputs}concat=n={len(video_clips)}:v=1:a=1[outv][outa]"
         )
+        output_video = "[outv]"
+        if subtitles_added:
+            filter_parts.append(
+                "[outv]ass=filename=subtitles.ass:fontsdir=subtitle-fonts[captioned]"
+            )
+            output_video = "[captioned]"
+        output_audio = "[outa]"
+        if bgm_path is not None:
+            bgm_input_index = len(video_clips)
+            total_duration = sum(clip_durations)
+            fade_duration = min(2.0, total_duration)
+            fade_start = max(0.0, total_duration - fade_duration)
+            filter_parts.append(
+                f"[{bgm_input_index}:a]aresample=44100,volume=0.16,"
+                f"atrim=duration={total_duration:.3f},"
+                f"afade=t=out:st={fade_start:.3f}:d={fade_duration:.3f}[bgm]"
+            )
+            filter_parts.append(
+                "[outa][bgm]amix=inputs=2:duration=first:"
+                "dropout_transition=0:normalize=0[mixed]"
+            )
+            output_audio = "[mixed]"
+        completed_path = tmp_dir / output_path.name
         cmd.extend(
             [
                 "-filter_complex",
                 ";".join(filter_parts),
                 "-map",
-                "[outv]",
+                output_video,
                 "-map",
-                "[outa]",
+                output_audio,
                 *ffmpeg_video_encoding_args(preset="fast", crf=23),
                 "-pix_fmt",
                 "yuv420p",
@@ -741,17 +730,44 @@ def run_compose_episode(
                 "aac",
                 "-b:a",
                 "128k",
-                str(output_path),
+                str(completed_path),
             ]
         )
-        result = run_checked(cmd, default_timeout_seconds=30 * 60)
+        result = run_checked(cmd, default_timeout_seconds=30 * 60, cwd=tmp_dir)
         check_cancel()
         if result.returncode != 0:
             raise RuntimeError(f"拼接失败: {result.stderr[:500]}")
+        if not completed_path.is_file() or completed_path.stat().st_size == 0:
+            raise RuntimeError("合成失败：未生成有效的成片文件")
+        completed_path.replace(output_path)
+        write_episode_composition_manifest(
+            project_dir=Path(output_dir),
+            episode_num=episode,
+            beats=beats,
+            source_paths=composition_source_paths,
+            resolution=f"{target_width}x{target_height}",
+            add_subtitles=add_subtitles,
+            add_bgm=add_bgm,
+        )
+
+    manager.update_progress_for_project(
+        ctx,
+        "compose_episode",
+        episode,
+        logs=[
+            f"成片输出 {target_width}×{target_height}，"
+            f"{'字幕已烧录' if subtitles_added else '不含字幕'}，"
+            f"{'背景音乐已混入' if bgm_added else '不含背景音乐'}"
+        ],
+    )
 
     return {
         "video_path": output_path.as_posix(),
         "add_subtitles_requested": add_subtitles,
+        "subtitles_added": subtitles_added,
+        "add_bgm_requested": add_bgm,
+        "bgm_added": bgm_added,
+        "resolution": f"{target_width}x{target_height}",
     }
 
 
@@ -780,7 +796,7 @@ async def _run_global_optimize_video_async(
     beats = list(payload.get("beats") or [])
     characters = list(payload.get("characters") or [])
     output_dir = str(payload.get("output_dir") or ctx.output_dir)
-    language = str(payload.get("language") or "zh")
+    language = str(payload.get("language") or "en")
     manager = get_task_manager()
 
     def log(message: str, *, progress: float | None = None) -> None:

@@ -85,6 +85,8 @@ class StartCreativeCanvasVideoUpscaleCommand:
     resolution: str
     frame_interpolation: str
     denoise_strength: str
+    canvas_id: str = ""
+    node_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -117,6 +119,7 @@ class CreativeCanvasVideoCompositionItem:
     source_end: float
     volume: float
     muted: bool
+    speed: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -241,6 +244,8 @@ class CreativeCanvasVideoProcessingUseCases:
                 "resolution": command.resolution,
                 "frame_interpolation": command.frame_interpolation,
                 "denoise_strength": command.denoise_strength,
+                "canvas_id": command.canvas_id,
+                "node_id": command.node_id,
             },
         )
 
@@ -336,6 +341,7 @@ class CreativeCanvasVideoProcessingUseCases:
                         "timeline_start": item.timeline_start,
                         "source_start": item.source_start,
                         "source_end": item.source_end,
+                        "speed": item.speed,
                         "volume": item.volume,
                         "muted": item.muted,
                         "source_path": str(source_path),

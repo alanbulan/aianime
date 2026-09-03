@@ -12,6 +12,44 @@ from ai_anime.modules.production.infrastructure.episode_export import (
 
 
 @pytest.mark.asyncio
+async def test_subtitle_export_splits_sentences_and_preserves_composed_clip_timing(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    video_dir = tmp_path / "videos" / "beats" / "ep003"
+    video_dir.mkdir(parents=True)
+    for number in (1, 2, 4):
+        (video_dir / f"beat_{number:02d}.mp4").write_bytes(b"video")
+    audio_dir = tmp_path / "audio" / "ep003"
+    audio_dir.mkdir(parents=True)
+    (audio_dir / "beat_04.mp3").write_bytes(b"audio")
+
+    async def duration(media_path: str) -> float:
+        return {
+            "beat_01.mp4": 6.0,
+            "beat_02.mp4": 2.0,
+            "beat_04.mp4": 4.0,
+            "beat_04.mp3": 2.0,
+        }[Path(media_path).name]
+
+    monkeypatch.setattr(episode_export, "get_audio_duration_async", duration)
+    content = await LocalEpisodeExportFiles().subtitle_content(
+        tmp_path,
+        3,
+        [
+            {"beat_number": 1, "narration_segment": "你好！欢迎光临。"},
+            {"beat_number": 2, "narration_segment": ""},
+            {"beat_number": 3, "narration_segment": "未合成的分镜"},
+            {"beat_number": 4, "narration_segment": "请坐。"},
+        ],
+    )
+    assert content.strip().split("\n\n") == [
+        "1\n00:00:00,000 --> 00:00:02,250\n你好！",
+        "2\n00:00:02,250 --> 00:00:06,000\n欢迎光临。",
+        "3\n00:00:08,000 --> 00:00:10,000\n请坐。",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_subtitle_content_uses_audio_duration_and_five_second_fallback(
     monkeypatch,
     tmp_path: Path,

@@ -1185,6 +1185,51 @@ async def _ensure_first_frames(
         )
 
 
+def _video_models_by_beat(
+    context: ProjectContext,
+    beats: list[dict[str, Any]],
+    *,
+    requested_model: str | None,
+    video_routing_policy: str,
+) -> dict[int, str]:
+    from ai_anime.modules.production.public import (
+        resolve_video_generation_route,
+        video_model_role_for_beat,
+    )
+
+    if video_routing_policy != "role_priority":
+        route = resolve_video_generation_route(
+            context.owner_username,
+            context.project_name,
+            requested_model,
+            routing_policy=video_routing_policy,
+        )
+        return {number: route.model for number in _beat_numbers(beats)}
+
+    models: dict[int, str] = {}
+    models_by_role: dict[str, str] = {}
+    for index, beat in enumerate(beats):
+        beat_num = int(beat.get("beat_number") or 0)
+        if beat_num <= 0:
+            continue
+        role = video_model_role_for_beat(
+            beat,
+            has_next_beat=index + 1 < len(beats),
+        )
+        model = models_by_role.get(role)
+        if model is None:
+            route = resolve_video_generation_route(
+                context.owner_username,
+                context.project_name,
+                routing_policy="role_priority",
+                role=role,
+            )
+            model = route.model
+            models_by_role[role] = model
+        models[beat_num] = model
+    return models
+
+
 async def _ensure_video_prompts(
     context: ProjectContext,
     episode_num: int,
@@ -1202,23 +1247,28 @@ async def _ensure_video_prompts(
     )
     from ai_anime.modules.production.public import (
         parse_video_config,
-        resolve_video_generation_route,
         video_model_uses_advanced_reference_workflow,
     )
 
-    model_route = resolve_video_generation_route(
-        context.owner_username,
-        context.project_name,
-        requested_model,
-        routing_policy=video_routing_policy,
+    models_by_beat = _video_models_by_beat(
+        context,
+        beats,
+        requested_model=requested_model,
+        video_routing_policy=video_routing_policy,
     )
-    if not video_model_uses_advanced_reference_workflow(model_route.model):
+    advanced_beat_numbers = {
+        beat_num
+        for beat_num, model in models_by_beat.items()
+        if video_model_uses_advanced_reference_workflow(model)
+    }
+    if not advanced_beat_numbers:
         return beats
 
     pending = [
         int(beat.get("beat_number") or 0)
         for beat in beats
         if int(beat.get("beat_number") or 0) > 0
+        and int(beat.get("beat_number") or 0) in advanced_beat_numbers
         and (
             force
             or not parse_video_config(
@@ -1257,6 +1307,7 @@ async def _ensure_video_prompts(
         int(beat.get("beat_number") or 0)
         for beat in updated
         if int(beat.get("beat_number") or 0) > 0
+        and int(beat.get("beat_number") or 0) in advanced_beat_numbers
         and not parse_video_config(beat.get("video_config_json")).final_prompt
     ]
     if missing_after:
@@ -1283,7 +1334,6 @@ async def _ensure_video_voice_prerequisites(
         build_character_voice_requirement,
         collect_video_reference_prereq_errors,
         provision_voice_design_requirements,
-        resolve_video_generation_route,
         video_model_uses_advanced_reference_workflow,
     )
 
@@ -1292,13 +1342,20 @@ async def _ensure_video_voice_prerequisites(
         paths.video(number).exists() for number in _beat_numbers(beats)
     ):
         return
-    model_route = resolve_video_generation_route(
-        context.owner_username,
-        context.project_name,
-        requested_model,
-        routing_policy=video_routing_policy,
+    models_by_beat = _video_models_by_beat(
+        context,
+        beats,
+        requested_model=requested_model,
+        video_routing_policy=video_routing_policy,
     )
-    if not video_model_uses_advanced_reference_workflow(model_route.model):
+    advanced_beats = [
+        beat
+        for beat in beats
+        if video_model_uses_advanced_reference_workflow(
+            models_by_beat.get(int(beat.get("beat_number") or 0), "")
+        )
+    ]
+    if not advanced_beats:
         return
 
     async def load_characters() -> list[Any]:
@@ -1312,7 +1369,7 @@ async def _ensure_video_voice_prerequisites(
     errors = collect_video_reference_prereq_errors(
         project_output=context.output_dir,
         episode=episode_num,
-        beats=beats,
+        beats=advanced_beats,
         characters=characters,
     )
     audio_errors = [error for error in errors if error.media_type == "audio"]
@@ -1362,7 +1419,7 @@ async def _ensure_video_voice_prerequisites(
         errors = collect_video_reference_prereq_errors(
             project_output=context.output_dir,
             episode=episode_num,
-            beats=beats,
+            beats=advanced_beats,
             characters=characters,
         )
         audio_errors = [error for error in errors if error.media_type == "audio"]
@@ -1455,12 +1512,17 @@ async def _ensure_videos(
     ]
     if not missing:
         return
-    model_route = resolve_video_generation_route(
-        context.owner_username,
-        context.project_name,
-        requested_model,
-        routing_policy=video_routing_policy,
-    )
+    selected_model = ""
+    selected_model_selector: str | None = None
+    if video_routing_policy != "role_priority":
+        model_route = resolve_video_generation_route(
+            context.owner_username,
+            context.project_name,
+            requested_model,
+            routing_policy=video_routing_policy,
+        )
+        selected_model = model_route.model
+        selected_model_selector = model_route.selector or None
     for index, beat_num in enumerate(missing, start=1):
         reporter.update(
             progress,
@@ -1471,8 +1533,9 @@ async def _ensure_videos(
             GenerateSingleVideoCommand(
                 episode_num=episode_num,
                 beat_num=beat_num,
-                video_model=model_route.model,
-                model_selector=model_route.selector or None,
+                video_model=selected_model,
+                video_routing_policy=video_routing_policy,
+                model_selector=selected_model_selector,
                 resolution=resolution,
                 ratio=aspect_ratio,
                 use_director_render=use_director_render,
@@ -1508,6 +1571,8 @@ async def _ensure_composed(
 ) -> Path:
     from ai_anime.modules.production.public import (
         ComposeEpisodeVideoCommand,
+        episode_bgm_path,
+        episode_composition_is_current,
         episode_video_use_cases,
     )
 
@@ -1519,12 +1584,16 @@ async def _ensure_composed(
         for path in (paths.audio(number) for number in _beat_numbers(beats))
         if path.exists()
     )
-    final_is_current = (
-        final_path.exists()
-        and bool(source_paths)
-        and all(path.exists() for path in source_paths)
-        and final_path.stat().st_mtime_ns
-        >= max(path.stat().st_mtime_ns for path in source_paths)
+    if add_bgm:
+        source_paths.append(episode_bgm_path(context.output_dir, episode_num))
+    final_is_current = episode_composition_is_current(
+        project_dir=context.output_dir,
+        episode_num=episode_num,
+        beats=beats,
+        source_paths=source_paths,
+        resolution=resolution,
+        add_subtitles=add_subtitles,
+        add_bgm=add_bgm,
     )
     if not force and final_is_current:
         return final_path
@@ -1647,8 +1716,16 @@ async def _run_production_workflow_steps(
         aspect_ratio,
     )
     use_director_render = bool(config.get("use_director_render", False))
-    add_subtitles = bool(payload.get("add_subtitles", True))
-    add_bgm = bool(payload.get("add_bgm", False))
+    requested_subtitles = payload.get("add_subtitles")
+    add_subtitles = bool(
+        config.get("add_subtitles", True)
+        if requested_subtitles is None
+        else requested_subtitles
+    )
+    requested_bgm = payload.get("add_bgm")
+    add_bgm = bool(
+        config.get("add_bgm", False) if requested_bgm is None else requested_bgm
+    )
     video_routing_policy = str(
         payload.get("video_routing_policy") or "project_selection"
     )

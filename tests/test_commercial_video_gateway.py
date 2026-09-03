@@ -542,9 +542,11 @@ async def test_http_200_error_envelope_is_not_a_success(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("return_last_frame", [False, True])
 async def test_submit_poll_download_returns_gateway_invocation_id_only(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    return_last_frame: bool,
 ) -> None:
     generator = _generator(monkeypatch)
     calls: list[tuple[str, str, dict]] = []
@@ -567,8 +569,17 @@ async def test_submit_poll_download_returns_gateway_invocation_id_only(
     async def no_sleep(_seconds: float) -> None:
         return None
 
+    extracted_frames: list[str] = []
+
+    def extract_last_frame(output_path: str) -> str:
+        frame_path = Path(output_path).with_suffix(".png")
+        frame_path.write_bytes(b"last-frame")
+        extracted_frames.append(str(frame_path))
+        return str(frame_path)
+
     monkeypatch.setattr(generator, "_request_json", request_json)
     monkeypatch.setattr(generator, "_download_content", download_content)
+    monkeypatch.setattr(generator, "_extract_last_frame", extract_last_frame)
     monkeypatch.setattr(video_module.asyncio, "sleep", no_sleep)
     output = tmp_path / "result.mp4"
 
@@ -578,12 +589,20 @@ async def test_submit_poll_download_returns_gateway_invocation_id_only(
         output_path=str(output),
         poll_interval=0,
         max_polls=2,
+        video_config={"return_last_frame": return_last_frame},
     )
 
     assert result.status is VideoGenStatus.DONE
     assert result.task_id == "invocation-1"
     assert not hasattr(result, "provider_task_id")
     assert output.read_bytes() == b"video"
+    if return_last_frame:
+        assert result.last_frame_path == str(output.with_suffix(".png"))
+        assert Path(result.last_frame_path).read_bytes() == b"last-frame"
+        assert extracted_frames == [result.last_frame_path]
+    else:
+        assert result.last_frame_path is None
+        assert extracted_frames == []
     assert [(method, path) for method, path, _kwargs in calls] == [
         ("POST", "videos"),
         ("GET", "videos/invocation-1"),

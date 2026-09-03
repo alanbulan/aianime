@@ -413,7 +413,7 @@ class LocalVideoReferencePanelGateway:
                     beat=session.beat,
                     characters=session.characters,
                     username=session.context.owner_username,
-                    project=request.project,
+                    project=session.context.project_name,
                     store=session.store,
                     output_dir=session.output_dir,
                     assets=assets,

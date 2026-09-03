@@ -439,6 +439,8 @@ async def freezone_video_upscale(
                 resolution=body.resolution,
                 frame_interpolation=body.frame_interpolation,
                 denoise_strength=body.denoise_strength,
+                canvas_id=body.canvas_id,
+                node_id=body.node_id,
             )
         )
     except InvalidCreativeCanvasVideoProcessingRequest as exc:
@@ -596,6 +598,7 @@ async def freezone_video_compose(
                                 timeline_start=item.timeline_start,
                                 source_start=item.source_start,
                                 source_end=item.source_end,
+                                speed=item.speed,
                                 volume=item.volume,
                                 muted=item.muted,
                             )

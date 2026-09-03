@@ -4,6 +4,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+
 class FreezoneSketchFromContextRequest(BaseModel):
     episode: int
     beat: int
@@ -21,7 +22,7 @@ class FreezoneSketchFromContextRequest(BaseModel):
         min_length=1,
         description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
-    quality: Optional[str] = Field(
+    quality: Literal["low", "medium", "high"] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
 
@@ -63,7 +64,9 @@ class FreezoneScene360Request(BaseModel):
     )
     canvas_id: str = Field(default="")
     node_id: str = Field(default="")
-    image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
+    image_size: Literal["1K", "2K", "4K"] = Field(
+        default="2K", description="输出分辨率档位，默认 2K"
+    )
     mode: Literal["candidate", "commit"] = Field(
         default="candidate",
         description="candidate 只生成画布候选；commit 明确写回主线 360 slot",
@@ -73,7 +76,7 @@ class FreezoneScene360Request(BaseModel):
         description="登录后 IMAGE 模型目录返回的平台 SKU",
     )
     model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")
-    quality: Optional[str] = Field(
+    quality: Literal["low", "medium", "high"] = Field(
         default="medium", description="图片画质档位，默认 medium"
     )
 

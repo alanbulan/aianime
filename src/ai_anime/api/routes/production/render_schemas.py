@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class GridRegenerateRequest(BaseModel):
@@ -29,12 +29,13 @@ class SketchRegenerateRequest(BaseModel):
 
 
 class RenderPlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     beat_indices: list[int] = Field(..., min_length=1)
     strategy: Literal["location", "naive"] = "naive"
     force_one_by_one: bool = False
     aspect_mode: str = Field(..., description="e.g. '9:16', '1:1', '16:9'")
     image_generation_selection: Optional[str] = None
-    sketch_aspect_padding: Optional[bool] = None
 
 
 class PlanEntryOut(BaseModel):

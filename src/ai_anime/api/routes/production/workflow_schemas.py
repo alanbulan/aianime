@@ -30,8 +30,8 @@ class ProductionWorkflowRequest(BaseModel):
         "project_selection"
     )
     video_resolution: str | None = None
-    add_subtitles: bool = True
-    add_bgm: bool = False
+    add_subtitles: bool | None = None
+    add_bgm: bool | None = None
 
 
 __all__ = ["ProductionWorkflowRequest"]

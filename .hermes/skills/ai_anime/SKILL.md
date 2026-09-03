@@ -37,7 +37,7 @@ requires:
   - `question` 的问题数量不设业务上限：一次列出当前已经明确需要确认的全部相互独立问题；只有后续问题依赖前一轮答案时才分轮询问。每题给 2～3 个互斥选项，推荐项放在第一位并设置 `recommended_option_id`，每个选项用一句话说明影响或取舍。确实需要任意值时设置 `allow_custom=true`。
   - 工具会暂停当前执行，用户答复后从原工具调用处继续；没有拿到完整答复前不得继续写操作。
   - 用户已经明确给出某项值时不重复询问。用户明确说“按你的推荐/自动选择/你决定”时，视为把未指定项委托给推荐方案：调用完整生产工具时设置 `use_recommended_defaults=true`，并继续显式传入能从原稿可靠判断的内容型参数。
-  - 连续自动工作流启动前一次性梳理决策清单，至少覆盖适用的剧集范围、已有素材处理、输出画质、字幕和 BGM；带新摄入文件时还要覆盖无法从原稿可靠判断的叙事结构、视觉风格和角色族群。优先合并为最少批次，后续只有遇到新的真实阻塞才中途提问。
+  - 连续自动工作流启动前一次性梳理决策清单，至少覆盖适用的剧集范围、已有素材处理、输出画质和字幕；带新摄入文件时还要覆盖无法从原稿可靠判断的叙事结构、视觉风格和角色族群。优先合并为最少批次，后续只有遇到新的真实阻塞才中途提问。
 - 确认内容必须基于实际 API 调用结果（grounding 规则）：
   - 只确认实际发送并成功返回的字段和操作，不声称做了实际没做的事。
   - 如果 POST /characters 只传了 name/role/gender/age，不要说"已写入人设和外观提示词"。
@@ -150,8 +150,9 @@ requires:
 **逐集视频链的固定真实顺序**（完整生产由父任务执行；单步重做才使用对应专用工具）：
 `生产图片模型前置` → `本集视觉资产就绪` → `声线与配音模型前置检查` → `逐 Beat 1x1 草图就绪` → `AI 检测（文本标记优先，检测仅作无标记兼容）` → `首帧 selected_regen` → `global_optimize_video` → `声线复检` → `Seedance 最终提示词` → `audio_generation_indextts2` → `单 beat 视频 single_video（逐 beat）` → `compose 合成` → `final delivery`。
 - `pipeline/status.next_step=voice_assets` 表示本集声线前置尚未通过，缺失原因见 `voice_asset_issues`；完整生产仍由父任务补齐和复检，不跳过此阶段。只做静态分镜时不要求声线，也不要求填满未使用角色或年龄槽位。
-- `compose_episode` **必须**在所有 beat 视频都生成后才可执行；否则后端报「没有可用的视频片段」——这是前置未完成，不是 compose 的 body 问题。
-- `single_video` 需要：① 该 beat 首帧已存在 ② 该 beat 有非空 `video_prompt`（来自脚本步骤）③ 使用 Seedance 时已有非空最终提示词。完整生产父任务会自动补齐最终提示词；局部请求报「最终提示词为空」时必须停止，不能继续提交其它视频。
+- `compose_episode` **必须**在所有 beat 视频都生成后才可执行；缺任一 Beat 时后端会列出缺失编号并拒绝合成。这是前置未完成，不是 compose 的 body 问题。
+- `compose_episode(add_bgm=true)` 会通过 `AUDIO_MUSIC` 生成本集器乐配乐并以低音量混入成片；没有可用音乐模型时任务会明确失败，不能把未混音的成片报告为“含 BGM”。
+- `single_video` 需要非空生成提示词；`first_frame`、`first_last_frame`、`multimodal_reference` 还需要各自对应的画面/参考素材，`text_to_video` 不读取首帧或任何参考素材。使用 Seedance 等高级参考流程时必须已有非空最终提示词。完整生产父任务会自动补齐最终提示词；局部请求报「最终提示词为空」时必须停止，不能继续提交其它视频。
 - `global_optimize_video` 逐 Beat 使用当前正式渲染图，缺失时回退到该 Beat 草图；不会创建或依赖 3x3/5x5 临时网格。报「找不到可用的渲染图或草图」即镜头画面前置未完成。
 
 ### 执行纪律（强制，违反即错）
@@ -247,6 +248,7 @@ GET ${AI_ANIME_API_URL}/api/v1/projects/${AI_ANIME_PROJECT_ID}/pipeline/status
 - 视频模型选择：
   - 智能体完整生产默认不传单次模型覆盖，由后端按视频用途和设置页中的云端/BYOK 全局角色优先级解析；不得自动继承工作台项目 `video_model`。只有用户明确点名本次使用某个模型时，才把当前模型目录中的对应选择器作为 `video_model` 传入，覆盖仅作用于本次任务。
   - 单 beat 人工重做可传用户明确指定的 `model`；未指定时由后端解析项目配置和用途分配。
+  - AI 单 beat 工具 `ai_anime_start_single_video` 支持网页相同的生成参数，包括 `ratio`、`video_config_json` 和 `final_prompt`。用户明确指定模型时传目录中的 `model`，需要区分云端/BYOK 路由时同时传 `model_selector`；未指定模型时省略两者，保留全局角色优先级。不要把基础 `video_prompt` 当作高级参考模型的最终提示词。
   - 逐 beat 子任务与并发由 `production_workflow` 父任务负责；助手不自行批量提交。
 - 不要同时加载 `playbooks/init.md` 和 `playbooks/episode.md`
 - 不要重复加载已经在当前上下文里的同一 reference

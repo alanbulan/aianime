@@ -156,7 +156,8 @@ async def test_agent_single_video_uses_role_priority_without_selector(
     )
 
     assert response["ok"] is True
-    assert commands[0].video_model == "highest-priority-video"
+    assert commands[0].video_routing_policy == "role_priority"
+    assert commands[0].video_model == ""
     assert commands[0].model_selector is None
 
 

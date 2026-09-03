@@ -267,6 +267,7 @@ async def convert_control_frame_to_sketch(
     control_frame_path: str | Path | None = None,
     model: str | None = None,
     model_selector: str | None = None,
+    quality: str | None = None,
     require_control_frame_path: bool = False,
     candidate_output_path: str | Path | None = None,
     promote: bool = True,
@@ -370,7 +371,12 @@ async def convert_control_frame_to_sketch(
             "DIRECTOR_CONTROL_SKETCH_IMAGE_SIZE",
             generator_config.get("image_size") or "1K",
         )
-        sketch_quality = os.environ.get("DIRECTOR_CONTROL_SKETCH_IMAGE_QUALITY", "low")
+        sketch_quality = str(
+            quality
+            or os.environ.get("DIRECTOR_CONTROL_SKETCH_IMAGE_QUALITY", "low")
+        ).strip().lower()
+        if sketch_quality not in {"low", "medium", "high"}:
+            raise ValueError("quality must be one of: low, medium, high")
         generator_config["image_quality"] = sketch_quality
         generator_config["sketch_image_quality"] = sketch_quality
         generator = ImageGridGenerator(config=generator_config)

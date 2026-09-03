@@ -16,10 +16,28 @@ class ProjectTaskUseCases:
     def __init__(self, gateway: ProjectTaskGateway) -> None:
         self._gateway = gateway
 
-    def list_for_project(self, context: Any) -> list[ProjectTask]:
+    def list_for_project(
+        self,
+        context: Any,
+        *,
+        episode: int | None = None,
+        task_type: str | None = None,
+        status: str | None = None,
+    ) -> list[ProjectTask]:
         tasks = self._gateway.list_for_project(context)
+        task_type_filter = (task_type or "").strip()
+        status_filter = (status or "").strip().lower()
         return sorted(
-            tasks,
+            (
+                task
+                for task in tasks
+                if (episode is None or task.episode == episode)
+                and (not task_type_filter or task.task_type == task_type_filter)
+                and (
+                    not status_filter
+                    or effective_task_status(task).strip().lower() == status_filter
+                )
+            ),
             key=lambda task: task.updated_at or task.created_at or "",
             reverse=True,
         )

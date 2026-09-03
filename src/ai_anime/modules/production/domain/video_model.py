@@ -23,6 +23,7 @@ def normalize_video_generation_duration(
     *values: float | int | None,
     minimum_seconds: float | None = None,
     maximum_seconds: float | None = None,
+    duration_options: Iterable[float] = (),
 ) -> int:
     """Resolve one integer duration accepted by the selected video model."""
 
@@ -36,11 +37,14 @@ def normalize_video_generation_duration(
             candidates.append(int(math.ceil(seconds)))
 
     target = max(candidates, default=1)
+    minimum_integer: int | None = None
     if minimum_seconds is not None:
         minimum = float(minimum_seconds)
         if math.isfinite(minimum) and minimum > 0:
-            target = max(target, int(math.ceil(minimum)))
+            minimum_integer = int(math.ceil(minimum))
+            target = max(target, minimum_integer)
 
+    maximum_integer: int | None = None
     if maximum_seconds is not None:
         maximum = float(maximum_seconds)
         if math.isfinite(maximum) and maximum > 0:
@@ -50,6 +54,35 @@ def normalize_video_generation_duration(
                     f"视频目标时长 {target} 秒超过所选模型支持的最大时长 "
                     f"{maximum:g} 秒"
                 )
+
+    options: list[int] = []
+    for option in duration_options:
+        try:
+            seconds = float(option)
+        except (TypeError, ValueError):
+            continue
+        if not math.isfinite(seconds) or seconds <= 0:
+            continue
+        if not seconds.is_integer():
+            raise ValueError("视频模型的时长选项必须是正整数秒")
+        options.append(int(seconds))
+    declared_options = sorted(set(options))
+    options = [
+        option
+        for option in declared_options
+        if (minimum_integer is None or option >= minimum_integer)
+        and (maximum_integer is None or option <= maximum_integer)
+    ]
+    if declared_options and not options:
+        raise ValueError("视频模型的时长选项与最小/最大时长范围不一致")
+    if options:
+        supported = [option for option in options if option >= target]
+        if not supported:
+            raise ValueError(
+                f"视频目标时长 {target} 秒超过所选模型可用时长选项的最大值 "
+                f"{options[-1]} 秒"
+            )
+        target = supported[0]
     return target
 
 

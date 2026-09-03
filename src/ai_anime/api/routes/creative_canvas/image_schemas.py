@@ -2,7 +2,7 @@
 
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ai_anime.api.routes.creative_canvas.mark_schemas import FreezoneVideoMark
 
@@ -224,6 +224,8 @@ class FreezoneUpscaleRequest(BaseModel):
     使用图片模型 + 提示词方式做高清放大与修复。
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     source_url: str = Field(description="待高清放大的源图静态地址")
     model: str = Field(
         min_length=1,
@@ -239,10 +241,6 @@ class FreezoneUpscaleRequest(BaseModel):
     style: Optional[FreezoneImageStyleConfig] = Field(
         default=None,
         description="可选风格模板参数，用于把内置风格模板注入图片提示词",
-    )
-    scale_factor: Literal[2, 4, 6] = Field(
-        default=2,
-        description="放大倍数，可选 2 / 4 / 6",
     )
     image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
     model_id: Optional[str] = Field(default=None, description="本地统一代理路由选择器")

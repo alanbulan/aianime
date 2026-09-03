@@ -35,6 +35,7 @@ class GenerateSingleVideoCommand:
     beat_num: int
     video_model: str
     resolution: str
+    video_routing_policy: str = "project_selection"
     model_selector: str | None = None
     use_director_render: bool = False
     video_config_json: str | None = None

@@ -757,6 +757,7 @@ async def _run_control_frame_to_sketch_async(
         control_frames_dir=control_frames_dir or None,
         model=str(payload.get("model") or "").strip() or None,
         model_selector=str(payload.get("model_selector") or "").strip() or None,
+        quality=str(payload.get("quality") or "").strip() or None,
     )
     promoted = result.get("promoted_sketch") or str(paths.sketch(beat_num))
     _log(manager, ctx, task_type, episode, scope, f"草图已写入: {promoted}", progress=1.0)

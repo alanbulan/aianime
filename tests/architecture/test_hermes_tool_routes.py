@@ -107,6 +107,37 @@ def test_all_episode_helper_suffixes_match_registered_routes() -> None:
     assert not missing
 
 
+def test_documented_hermes_api_routes_are_registered() -> None:
+    from ai_anime.api.app import create_app
+
+    reference_path = (
+        PLUGIN_PATH.parents[2] / "skills" / "ai_anime" / "references" / "api-reference.md"
+    )
+    registered = {
+        (method.upper(), _normalize_route(path))
+        for path, methods in _walk_routes(create_app())
+        for method in methods
+    }
+    missing = []
+    documented_count = 0
+    for line_number, line in enumerate(
+        reference_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        match = re.match(r"^\| `(GET|POST|PUT|PATCH|DELETE)` \| `([^`]+)`", line)
+        if match is None:
+            continue
+        documented_count += 1
+        method, path = match.groups()
+        path = path.split("?", 1)[0]
+        if not path.startswith("/api/v1/"):
+            path = f"/api/v1{path}"
+        if (method, _normalize_route(path)) not in registered:
+            missing.append((line_number, method, path))
+
+    assert documented_count > 0
+    assert not missing
+
+
 def test_script_workflow_exposes_one_canonical_graph_route() -> None:
     from ai_anime.api.app import create_app
 

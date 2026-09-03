@@ -17,8 +17,12 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 | `grid_mode` | string | `3x3` 等 | `3x3` |
 | `video_model` | string | 当前模型目录返回的视频模型选择器；前端人工生成持久化为项目选择，AI 仅在用户明确点名本次模型时作为单次覆盖 | 空时由后端按用途分配解析 |
 | `video_resolution` | string | 项目画布/合成尺寸：`720p`, `1080p`, `720x1280`, `1080x1920`, `1280x720`, `1920x1080` | `720p` |
+| `add_subtitles` | bool | 剧集合成时是否默认烧录字幕 | `true` |
+| `add_bgm` | bool | 剧集合成时是否默认调用 `AUDIO_MUSIC` 生成并混入配乐 | `false` |
 
 视频选择规则：智能体完整生产默认省略 `video_model`，由后端按实际视频用途和设置页中的云端/BYOK 全局角色优先级选择，不自动继承工作台下拉框；用户明确点名本次模型时可传当前目录中的 `video_model` 作为单次覆盖。单 beat 局部人工生成可传 `model`，未指定时由后端解析项目配置和用途分配。项目 `video_resolution` 是画布/合成尺寸，不等于供应商生成清晰度枚举；单次生成分辨率必须使用所选模型能力（例如 Seedance 2.0 标准版为 480p/720p/1080p，Fast 为 480p/720p）。逐步确认模式一次只启动一个 eligible beat；连续完整生产只提交一个 `production_workflow` 父任务，由后端逐 beat 调度，助手不得自行批量提交。
+
+单 beat AI 生成使用 `ai_anime_start_single_video`，支持与网页相同的画幅 `ratio`、时长 `duration`、模式 `mode`、完整配置 `video_config_json`、最终提示词 `final_prompt` 和音频等配置字段。`video_config_json` 是 JSON 对象字符串，先与已保存配置合并，再由显式顶层字段覆盖；省略字段保留已保存配置，`false` 和空对象不能当作未传。高级参考模型必须有非空 `final_prompt`，可直接传入、放在配置中或事先保存。只有用户明确点名模型时才传 `model`，有对应路由时同时传 `model_selector`；未指定模型时 AI 工具按全局角色优先级选择。
 
 ## 角色
 

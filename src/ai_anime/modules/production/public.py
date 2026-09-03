@@ -40,6 +40,12 @@ if TYPE_CHECKING:
         collect_episode_audio_prereq_errors,
         run_episode_audio_generation,
     )
+    from ai_anime.modules.production.infrastructure.episode_composition import (
+        episode_bgm_path,
+        episode_composition_is_current,
+        generate_episode_bgm,
+        write_episode_composition_manifest,
+    )
     from ai_anime.modules.production.infrastructure.voice_design_provisioning import (
         VoiceDesignModelUnavailable,
         VoiceDesignProvisioningFailed,
@@ -328,7 +334,10 @@ from ai_anime.modules.production.application.video_config import (
     VideoReferenceMode,
     BeatVideoConfig,
     dump_video_config,
+    explicit_video_mode,
     parse_video_config,
+    video_model_role_for_beat,
+    video_model_role_for_mode,
 )
 from ai_anime.modules.production.application.selected_regeneration import (
     SELECTED_RENDER_REGEN_TASK_TYPE,
@@ -553,6 +562,22 @@ _LAZY_EXPORTS = {
 
 _LAZY_EXPORTS.update(
     {
+        "episode_bgm_path": (
+            "ai_anime.modules.production.infrastructure.episode_composition",
+            "episode_bgm_path",
+        ),
+        "episode_composition_is_current": (
+            "ai_anime.modules.production.infrastructure.episode_composition",
+            "episode_composition_is_current",
+        ),
+        "generate_episode_bgm": (
+            "ai_anime.modules.production.infrastructure.episode_composition",
+            "generate_episode_bgm",
+        ),
+        "write_episode_composition_manifest": (
+            "ai_anime.modules.production.infrastructure.episode_composition",
+            "write_episode_composition_manifest",
+        ),
         "DEFAULT_VIDEO_RESOLUTION": (_MEDIA_SETTINGS, "DEFAULT_VIDEO_RESOLUTION"),
         "FFMPEG_PATH": (_MEDIA_SETTINGS, "FFMPEG_PATH"),
         "IMAGE_DEFAULT_HEIGHT": (_MEDIA_SETTINGS, "IMAGE_DEFAULT_HEIGHT"),
@@ -1141,6 +1166,9 @@ __all__ = [
     "director_control_sketch_use_cases",
     "dialogue_voice_reference_rows",
     "dump_video_config",
+    "explicit_video_mode",
+    "episode_bgm_path",
+    "episode_composition_is_current",
     "episode_audio_use_cases",
     "episode_export_use_cases",
     "episode_video_use_cases",
@@ -1148,6 +1176,7 @@ __all__ = [
     "extract_prop_ids_from_markers",
     "file_sha256",
     "generate_video_prompt_for_panel",
+    "generate_episode_bgm",
     "get_global_video_optimizer",
     "get_grid_generation_config",
     "global_video_optimization_use_cases",
@@ -1190,6 +1219,8 @@ __all__ = [
     "sketch_regen_queue_use_cases",
     "video_api_resolution",
     "video_model_uses_advanced_reference_workflow",
+    "video_model_role_for_beat",
+    "video_model_role_for_mode",
     "video_model_uses_reference_workflow",
     "video_model_workflow",
     "video_reference_panel_use_cases",
@@ -1198,6 +1229,7 @@ __all__ = [
     "validate_video_resolution_duration",
     "single_video_use_cases",
     "video_pool_use_cases",
+    "write_episode_composition_manifest",
     "DEFAULT_NARRATION_STYLE",
     "NARRATION_STYLES",
     "SpeechSynthesisClient",

@@ -33,9 +33,13 @@ def test_video_upscale_filter_uses_lanczos_and_enhancement() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "node_scope", [{}, {"canvas_id": "canvas-1", "node_id": "video-1"}]
+)
 async def test_freezone_video_upscale_route_starts_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    node_scope: dict[str, str],
 ) -> None:
     username = "admin"
     project = "58"
@@ -98,6 +102,7 @@ async def test_freezone_video_upscale_route_starts_task(
             resolution="2k",
             frame_interpolation="none",
             denoise_strength="2x",
+            **node_scope,
         ),
         user={"username": username},
     )
@@ -118,6 +123,8 @@ async def test_freezone_video_upscale_route_starts_task(
     assert task.payload["resolution"] == "2k"
     assert task.payload["frame_interpolation"] == "none"
     assert task.payload["denoise_strength"] == "2x"
+    assert task.payload.get("canvas_id", "") == node_scope.get("canvas_id", "")
+    assert task.payload.get("node_id", "") == node_scope.get("node_id", "")
 
 
 @pytest.mark.asyncio

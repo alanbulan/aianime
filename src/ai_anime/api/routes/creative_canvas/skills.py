@@ -130,6 +130,7 @@ async def freezone_sketch_from_context(
                 source_url=body.source_url,
                 aspect_ratio=body.aspect_ratio,
                 model=body.model,
+                quality=body.quality,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
             )
@@ -213,6 +214,7 @@ async def freezone_scene_360(
                 model=body.model,
                 model_selector=body.model_id,
                 quality=body.quality,
+                image_size=body.image_size,
                 canvas_id=body.canvas_id or None,
                 node_id=body.node_id or None,
             )

@@ -50,6 +50,7 @@ class GenerateCreativeCanvasSketchFromContextCommand:
     source_url: str | None
     aspect_ratio: str
     model: str
+    quality: str = "medium"
     canvas_id: str | None = None
     node_id: str | None = None
 
@@ -81,6 +82,7 @@ class GenerateCreativeCanvasScene360Command:
     model: str
     model_selector: str | None
     quality: str | None
+    image_size: str = MAINLINE_SCENE_360_IMAGE_SIZE
     canvas_id: str | None = None
     node_id: str | None = None
 
@@ -95,6 +97,7 @@ class StartCreativeCanvasBackgroundSketchCommand:
     background_url: str
     model: str
     aspect_ratio: str = "2:3"
+    quality: str = "medium"
     canvas_id: str | None = None
     node_id: str | None = None
     task_display: Mapping[str, str] | None = None
@@ -109,6 +112,7 @@ class StartCreativeCanvasDirectorSketchCommand:
     director_combined_url: str
     model: str
     aspect_ratio: str = "2:3"
+    quality: str = "medium"
     canvas_id: str | None = None
     node_id: str | None = None
     task_display: Mapping[str, str] | None = None
@@ -121,6 +125,8 @@ class StartCreativeCanvasBeatSketchCommand:
     episode: int
     beat: int
     model: str
+    aspect_ratio: str = "2:3"
+    quality: str = "medium"
     canvas_id: str | None = None
     node_id: str | None = None
     task_display: Mapping[str, str] | None = None
@@ -261,6 +267,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     director_combined_url=source_url,
                     model=command.model,
                     aspect_ratio=command.aspect_ratio,
+                    quality=command.quality,
                     canvas_id=command.canvas_id,
                     node_id=command.node_id,
                     task_display={
@@ -281,6 +288,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     background_url=source_url,
                     model=command.model,
                     aspect_ratio=command.aspect_ratio,
+                    quality=command.quality,
                     canvas_id=command.canvas_id,
                     node_id=command.node_id,
                     task_display=task_display,
@@ -293,6 +301,8 @@ class CreativeCanvasMainlineGenerationUseCases:
                 episode=command.episode,
                 beat=command.beat,
                 model=command.model,
+                aspect_ratio=command.aspect_ratio,
+                quality=command.quality,
                 canvas_id=command.canvas_id,
                 node_id=command.node_id,
                 task_display=task_display,
@@ -358,7 +368,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                 reverse_url=command.reverse_reference_url,
                 model=command.model,
                 model_selector=command.model_selector,
-                image_size=MAINLINE_SCENE_360_IMAGE_SIZE,
+                image_size=command.image_size,
                 quality=command.quality,
                 canvas_id=command.canvas_id,
                 node_id=command.node_id,
@@ -397,6 +407,9 @@ class CreativeCanvasMainlineGenerationUseCases:
         )
         config["model"] = self._resolve_image_model(command.model)
         config.pop("image_generation_selection", None)
+        config["sketch_image_quality"] = normalize_mainline_frame_quality(
+            command.quality
+        )
         effective_beat = dict(command.beat_payload or {})
         if effective_beat:
             effective_beat["episode_number"] = command.episode
@@ -477,6 +490,7 @@ class CreativeCanvasMainlineGenerationUseCases:
                     "mode_key": mainline_mode_key(aspect_ratio, is_sketch=True),
                     "aspect_ratio": aspect_ratio,
                     "model": self._resolve_image_model(command.model),
+                    "quality": normalize_mainline_frame_quality(command.quality),
                     "canvas_id": command.canvas_id or "",
                     "node_id": command.node_id or "",
                     "task_family": "mainline_skill",
@@ -495,18 +509,22 @@ class CreativeCanvasMainlineGenerationUseCases:
         self,
         command: StartCreativeCanvasBeatSketchCommand,
     ) -> CreativeCanvasTaskReceipt:
-        mode_key = "1x1_2-3_sketch"
+        aspect_ratio = normalize_mainline_aspect_ratio(command.aspect_ratio)
+        mode_key = mainline_mode_key(aspect_ratio, is_sketch=True)
         scope = selection_scope(mode_key, [command.beat])
         config = await self._configs.single_beat_config(
             command.context,
             episode=command.episode,
             beat=command.beat,
             mode_key=mode_key,
-            aspect_ratio="2:3",
+            aspect_ratio=aspect_ratio,
             is_sketch=True,
         )
         config["model"] = self._resolve_image_model(command.model)
         config.pop("image_generation_selection", None)
+        config["sketch_image_quality"] = normalize_mainline_frame_quality(
+            command.quality
+        )
         return await self._scheduler.enqueue(
             command.context,
             CreativeCanvasTaskSubmission(

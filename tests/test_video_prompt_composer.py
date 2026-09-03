@@ -540,6 +540,60 @@ def test_video_prompt_composer_task_exposes_prop_assets_and_fallbacks():
     assert "红色铝制饮料罐" in task
 
 
+def test_text_to_video_prompt_does_not_invent_reference_inputs():
+    from ai_anime.modules.production.application.video_config import VideoReferenceMode
+    from ai_anime.modules.production.infrastructure.video_prompt_composer import (
+        build_video_prompt_composer_task,
+        build_video_prompt_draft,
+    )
+
+    beat = {"visual_description": "雨夜街道上，人物撑伞向前走。"}
+    draft = build_video_prompt_draft(
+        mode=VideoReferenceMode.TEXT_TO_VIDEO,
+        beat=beat,
+        assets=[],
+        text_overlay={},
+    )
+    task = build_video_prompt_composer_task(
+        mode=VideoReferenceMode.TEXT_TO_VIDEO,
+        beat=beat,
+        assets=[],
+        text_overlay={},
+        prompt_guidance="",
+        draft_prompt=draft,
+    )
+
+    assert draft.startswith("根据文字描述生成视频")
+    assert "输入参考素材" not in draft
+    assert "图生视频" not in draft
+    assert "最终文生视频提示词" in task
+    assert "不要引用图片、视频或音频编号" in task
+    assert "使用“图片1”“音频1”" not in task
+
+
+@pytest.mark.asyncio
+async def test_text_to_video_rejects_composer_reference_hallucination():
+    from ai_anime.modules.production.application.video_config import VideoReferenceMode
+    from ai_anime.modules.production.infrastructure.video_prompt_composer import (
+        generate_video_prompt,
+    )
+
+    async def composer(**_kwargs):
+        return "参考视频1，让人物向前走。"
+
+    result = await generate_video_prompt(
+        mode=VideoReferenceMode.TEXT_TO_VIDEO,
+        beat={"visual_description": "人物向前走。"},
+        assets=[],
+        text_overlay={},
+        prompt_guidance="",
+        composer=composer,
+    )
+
+    assert result.used_ai is False
+    assert "文生视频提示词不能引用参考素材编号" in result.error
+
+
 def test_video_prompt_hash_changes_when_prop_fallback_changes():
     from ai_anime.modules.production.infrastructure.video_reference_assets import VideoReferenceAsset
     from ai_anime.modules.production.application.video_config import VideoReferenceMode

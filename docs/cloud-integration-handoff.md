@@ -87,6 +87,37 @@ ID。Cloud 的 502/503/504 恢复必须复用完全相同的正文、路由和�
 取消能力时，客户端只记录本地取消意图；已经发出但结果不明的写请求标记
 `OUTCOME_UNKNOWN`，不得自动重发、切换供应商或宣称远端已终止。
 
+### 3.2 剧集配乐与视频模式
+
+剧集合成的 `add_bgm=true` 现在会实际调用音乐模型。云端需要完成以下配置和验收：
+
+1. 在音频模型目录中提供至少一个支持 `MUSIC` 的 SKU，并把它分配给
+   `AUDIO_MUSIC` 角色。
+2. Relay/Gateway 支持 `POST /v1/audio/music/generations`。请求体包含
+   `model`、`mode="MUSIC"`、`prompt`、`duration`、`response_format="mp3"`、
+   `force_instrumental=true`、`respect_sections_durations=true` 和
+   `output_format="mp3_44100_128"`；保留并透传 `Idempotency-Key`。
+3. 成功响应返回非空音频字节（例如 `Content-Type: audio/mpeg`），或 JSON 中可下载的
+   `url`/`audio_url`，或 Base64 `b64_json`。模型不可用或生成失败时必须返回失败状态，
+   不能返回空成功。
+4. 用超过单次音乐生成上限的剧集做验收：客户端会循环配乐、裁到成片长度、以 0.16
+   音量混入原音轨，并在末尾淡出；最终 MP4 必须同时含画面和音轨。
+
+视频目录使用以下规范字段，云端不要同时发布同义字段：
+
+- `supportedModes`: `TEXT_TO_VIDEO`、`IMAGE_TO_VIDEO`、`FIRST_LAST_FRAME`、
+  `MULTIMODAL_REFERENCE`（按模型真实能力提供）。
+- `videoWorkflow`: `standard`、`advanced-reference` 或 `reference`。
+- `resolutionOptions`、`ratioOptions`、`durationOptions`、`minDuration`、
+  `maxDuration`，以及需要时的 `referenceImageMax`、`referenceVideoMax`、
+  `referenceAudioMax`、`referenceTotalMax`。
+- 按能力分配 `VIDEO_TEXT_TO_VIDEO`、`VIDEO_IMAGE_TO_VIDEO`、
+  `VIDEO_FIRST_LAST_FRAME`、`VIDEO_IMAGE_REFERENCE`、`VIDEO_ALL_REFERENCE` 角色。
+
+发布时需要同时部署同一提交的前端、本地 FastAPI sidecar/worker 和 Hermes 插件；桌面包
+必须继续携带支持 `amix`、`afade`、`atempo`、`ass` 的 FFmpeg。此改动不需要数据库
+迁移。先上传安装构件与更新 YAML，再创建发布记录并设为可见。
+
 ## 4. 版本检查
 
 ```http
