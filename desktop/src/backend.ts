@@ -314,6 +314,12 @@ export class LocalBackend {
         ? {
             modelCapabilities: input.modelCapabilities.map((item) => ({
               ...item,
+              ...(item.extraParameterNames
+                ? { extraParameterNames: [...item.extraParameterNames] }
+                : {}),
+              ...(item.audioResponseFormats
+                ? { audioResponseFormats: [...item.audioResponseFormats] }
+                : {}),
               ...(item.imageRatioOptions
                 ? { imageRatioOptions: [...item.imageRatioOptions] }
                 : {}),

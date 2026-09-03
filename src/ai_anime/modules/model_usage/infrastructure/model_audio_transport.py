@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import os
 import re
+import shutil
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +29,22 @@ _FORBIDDEN_TRANSPORT_KEYS = frozenset(
 _JSON_AUDIO_REFERENCE_KEYS = frozenset(
     {"audio", "inputaudio", "referenceaudio", "voicereference", "audiourl"}
 )
+_AUDIO_FORMAT_ALIASES = {
+    "mpeg": "mp3",
+    "wave": "wav",
+    "x-wav": "wav",
+}
+_AUDIO_FORMAT_BY_SUFFIX = {
+    ".aac": "aac",
+    ".flac": "flac",
+    ".m4a": "m4a",
+    ".mp3": "mp3",
+    ".ogg": "ogg",
+    ".opus": "opus",
+    ".wav": "wav",
+    ".wave": "wav",
+}
+_SELF_DESCRIBING_AUDIO_FORMATS = frozenset(_AUDIO_FORMAT_BY_SUFFIX.values())
 
 
 @dataclass(frozen=True)
@@ -47,6 +65,127 @@ class ModelAudioTransportError(RuntimeError):
         super().__init__(message)
         self.request_id = request_id
         self.response_id = response_id
+
+
+def _normalize_audio_response_format(value: object) -> str:
+    normalized = str(value or "").strip().lower() or "mp3"
+    if re.fullmatch(r"[a-z][a-z0-9_-]{0,31}", normalized) is None:
+        raise ValueError("audio response format is invalid")
+    return normalized
+
+
+def _canonical_audio_format(value: object) -> str:
+    normalized = _normalize_audio_response_format(value)
+    return _AUDIO_FORMAT_ALIASES.get(normalized, normalized)
+
+
+def _select_audio_response_format(
+    requested: object,
+    capability: object | None,
+) -> str:
+    normalized_requested = _normalize_audio_response_format(requested)
+    supported = tuple(
+        _normalize_audio_response_format(item)
+        for item in getattr(capability, "audio_response_formats", ())
+    )
+    if not supported:
+        raise ValueError(
+            "selected audio model does not declare supported response formats"
+        )
+    if normalized_requested in supported:
+        return normalized_requested
+    declared_default = str(
+        getattr(capability, "audio_default_response_format", None) or ""
+    ).strip()
+    if declared_default in supported:
+        return declared_default
+    return supported[0]
+
+
+def _require_ffmpeg_executable() -> str:
+    configured = os.environ.get("FFMPEG_PATH", "ffmpeg").strip() or "ffmpeg"
+    resolved = shutil.which(configured)
+    if resolved:
+        return resolved
+    path = Path(configured).expanduser()
+    if path.is_file() and os.access(path, os.X_OK):
+        return str(path)
+    raise ModelAudioTransportError(
+        "ffmpeg is required to normalize the declared audio response format"
+    )
+
+
+def _audio_output_plan(
+    output_path: str | Path,
+    response_format: str,
+) -> tuple[Path, Path | None, str | None]:
+    target = Path(output_path)
+    target_format = _AUDIO_FORMAT_BY_SUFFIX.get(target.suffix.lower())
+    if target_format is None:
+        raise ValueError("audio output path has an unsupported file extension")
+    response_file_format = _canonical_audio_format(response_format)
+    if target_format == response_file_format:
+        return target, None, None
+    if response_file_format not in _SELF_DESCRIBING_AUDIO_FORMATS:
+        raise ValueError(
+            "declared audio response format cannot be normalized to the output path"
+        )
+    ffmpeg = _require_ffmpeg_executable()
+    provider_output = target.with_name(
+        f".{target.name}.{uuid.uuid4().hex}.{response_file_format}"
+    )
+    return provider_output, target, ffmpeg
+
+
+async def _transcode_audio_file(
+    source: Path,
+    target: Path,
+    ffmpeg: str,
+) -> None:
+    from ai_anime.modules.task_execution.public import run_project_subprocess
+    from ai_anime.shared.utils.async_ops import call_blocking
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    converted = target.with_name(
+        f".{target.name}.{uuid.uuid4().hex}{target.suffix.lower()}"
+    )
+    target_format = _AUDIO_FORMAT_BY_SUFFIX.get(target.suffix.lower())
+    codec_args = {
+        "mp3": ("-codec:a", "libmp3lame", "-b:a", "192k"),
+        "wav": ("-codec:a", "pcm_s16le"),
+    }.get(target_format, ())
+    try:
+        completed = await call_blocking(
+            run_project_subprocess,
+            [
+                ffmpeg,
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-i",
+                str(source),
+                "-vn",
+                *codec_args,
+                str(converted),
+            ],
+            timeout=120,
+            capture_output=True,
+        )
+    except BaseException:
+        converted.unlink(missing_ok=True)
+        raise
+    if completed.returncode != 0:
+        converted.unlink(missing_ok=True)
+        stderr = completed.stderr or b""
+        detail = stderr.decode("utf-8", "replace").strip()[:500]
+        raise ModelAudioTransportError(
+            f"audio format normalization failed: {detail or 'ffmpeg failed'}"
+        )
+    if not converted.is_file() or converted.stat().st_size <= 0:
+        converted.unlink(missing_ok=True)
+        raise ModelAudioTransportError("audio format normalization produced no output")
+    converted.replace(target)
 
 
 def _normalized_transport_key(value: object) -> str:
@@ -91,6 +230,7 @@ async def write_model_audio_speech(
     from ai_anime.modules.model_usage.domain.model_route import resolve_model_route
     from ai_anime.modules.model_usage.infrastructure.model_access_policy import (
         resolve_model_for_role,
+        runtime_model_capability,
     )
     from ai_anime.modules.model_usage.infrastructure.model_runtime import (
         get_model_access_json_transport,
@@ -116,6 +256,22 @@ async def write_model_audio_speech(
         )
     route = resolve_model_route(model_selector)
     effective_model = route.model or resolve_model_for_role(clean_model_role)
+    capability = runtime_model_capability(route.selector) or runtime_model_capability(
+        effective_model
+    )
+    effective_response_format = _select_audio_response_format(
+        response_format,
+        capability,
+    )
+    if (
+        clean_emotion_prompt
+        and getattr(capability, "audio_supports_emotion_prompt", None) is not True
+    ):
+        clean_emotion_prompt = ""
+    provider_output_path, normalized_output_path, ffmpeg = _audio_output_plan(
+        output_path,
+        effective_response_format,
+    )
     _reject_transport_fields(metadata or {})
     for key in metadata or {}:
         if _normalized_transport_key(key) in _JSON_AUDIO_REFERENCE_KEYS:
@@ -142,7 +298,7 @@ async def write_model_audio_speech(
         "model": effective_model,
         "mode": "VOICE_CLONE" if is_voice_clone else "SPEECH",
         "input": clean_input,
-        "response_format": str(response_format or "mp3").strip() or "mp3",
+        "response_format": effective_response_format,
     }
     clean_voice = str(voice or "").strip()
     if clean_voice:
@@ -153,26 +309,38 @@ async def write_model_audio_speech(
         body["emotion_prompt"] = clean_emotion_prompt
     if metadata:
         body["metadata"] = metadata
-    return await _write_model_audio_request(
-        endpoint=endpoint,
-        headers=headers,
-        output_path=output_path,
-        timeout_seconds=timeout_seconds,
-        json_body=None if is_voice_clone else body,
-        form_fields=body if is_voice_clone else None,
-        reference_audio=reference_audio,
-        safe_context={
-            "endpoint": endpoint,
-            "model": effective_model,
-            "model_role": clean_model_role,
-            "mode": body["mode"],
-            "response_format": body["response_format"],
-            "voice": clean_voice,
-            "input_chars": len(clean_input),
-            "emotion_prompt_chars": len(clean_emotion_prompt),
-            "metadata_keys": sorted((metadata or {}).keys()),
-        },
-    )
+    try:
+        result = await _write_model_audio_request(
+            endpoint=endpoint,
+            headers=headers,
+            output_path=provider_output_path,
+            timeout_seconds=timeout_seconds,
+            json_body=None if is_voice_clone else body,
+            form_fields=body if is_voice_clone else None,
+            reference_audio=reference_audio,
+            safe_context={
+                "endpoint": endpoint,
+                "model": effective_model,
+                "model_role": clean_model_role,
+                "mode": body["mode"],
+                "response_format": body["response_format"],
+                "voice": clean_voice,
+                "input_chars": len(clean_input),
+                "emotion_prompt_chars": len(clean_emotion_prompt),
+                "metadata_keys": sorted((metadata or {}).keys()),
+            },
+        )
+        if normalized_output_path is not None:
+            assert ffmpeg is not None
+            await _transcode_audio_file(
+                provider_output_path,
+                normalized_output_path,
+                ffmpeg,
+            )
+        return result
+    finally:
+        if normalized_output_path is not None:
+            provider_output_path.unlink(missing_ok=True)
 
 
 async def write_model_audio_music(

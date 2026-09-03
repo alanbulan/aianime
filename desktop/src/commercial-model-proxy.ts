@@ -190,6 +190,12 @@ export class CommercialModelProxy {
       ).map((item) => ({ ...item })),
       modelCapabilities: (configuration.modelCapabilities ?? []).map((item) => ({
         ...item,
+        ...(item.extraParameterNames
+          ? { extraParameterNames: [...item.extraParameterNames] }
+          : {}),
+        ...(item.audioResponseFormats
+          ? { audioResponseFormats: [...item.audioResponseFormats] }
+          : {}),
         ...(item.videoExtraParameterNames
           ? { videoExtraParameterNames: [...item.videoExtraParameterNames] }
           : {}),

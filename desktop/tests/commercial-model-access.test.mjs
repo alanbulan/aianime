@@ -250,6 +250,75 @@ test("image catalog synchronization preserves declared ratio-to-size capabilitie
   });
 });
 
+test("audio catalog synchronization projects transport compatibility from schema", () => {
+  const capabilities = new Map();
+
+  mergeModelCapabilities(
+    {
+      catalogVersion: "cloud-v1",
+      items: [
+        modelItemFixture({
+          code: "catalog-voice-clone-fixture",
+          operation: "AUDIO_VOICE_CLONE",
+          parameterSchemaJson: JSON.stringify({
+            type: "object",
+            properties: {
+              mode: { type: "string", enum: ["VOICE_CLONE"] },
+              input: { type: "string" },
+              reference_text: { type: "string" },
+              response_format: {
+                type: "string",
+                enum: ["wav"],
+                default: "wav",
+              },
+              max_new_tokens: { type: "integer" },
+            },
+            additionalProperties: false,
+          }),
+        }),
+        modelItemFixture({
+          code: "expressive-voice-clone-fixture",
+          operation: "AUDIO_VOICE_CLONE",
+          parameterSchemaJson: JSON.stringify({
+            type: "object",
+            properties: {
+              input: { type: "string" },
+              response_format: {
+                type: "string",
+                enum: ["mp3"],
+                default: "mp3",
+              },
+              emotion_prompt: { type: "string" },
+            },
+            additionalProperties: false,
+          }),
+        }),
+      ],
+    },
+    capabilities,
+  );
+
+  assert.deepEqual(capabilities.get("catalog-voice-clone-fixture"), {
+    modelId: "catalog-voice-clone-fixture",
+    extraParameterNames: [
+      "mode",
+      "reference_text",
+      "response_format",
+      "max_new_tokens",
+    ],
+    audioResponseFormats: ["wav"],
+    audioDefaultResponseFormat: "wav",
+    audioSupportsEmotionPrompt: false,
+  });
+  assert.deepEqual(capabilities.get("expressive-voice-clone-fixture"), {
+    modelId: "expressive-voice-clone-fixture",
+    extraParameterNames: ["response_format", "emotion_prompt"],
+    audioResponseFormats: ["mp3"],
+    audioDefaultResponseFormat: "mp3",
+    audioSupportsEmotionPrompt: true,
+  });
+});
+
 test("provider strategy factory covers native protocols, audio providers, and every generic model role", () => {
   assert.equal(
     resolveProviderStrategy("OPENAI_COMPATIBLE", "https://api.fish.audio/v1").id,

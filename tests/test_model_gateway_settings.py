@@ -136,7 +136,14 @@ def test_internal_capability_endpoint_accepts_only_router_state(
                 "referenceVideoMaxSeconds": 10,
                 "referenceVideoTotalMinSeconds": 5,
                 "referenceVideoTotalMaxSeconds": 20,
-            }
+            },
+            {
+                "modelId": "catalog-voice-clone-fixture",
+                "extraParameterNames": ["mode", "response_format"],
+                "audioResponseFormats": ["wav"],
+                "audioDefaultResponseFormat": "wav",
+                "audioSupportsEmotionPrompt": False,
+            },
         ],
     }
 
@@ -196,6 +203,12 @@ def test_internal_capability_endpoint_accepts_only_router_state(
     assert capability.reference_audio_total_max_seconds == 15.2
     assert capability.reference_video_min_seconds == 3
     assert capability.reference_video_total_max_seconds == 20
+    audio_capability = runtime_model_capability("catalog-voice-clone-fixture")
+    assert audio_capability is not None
+    assert audio_capability.extra_parameter_names == ("mode", "response_format")
+    assert audio_capability.audio_response_formats == ("wav",)
+    assert audio_capability.audio_default_response_format == "wav"
+    assert audio_capability.audio_supports_emotion_prompt is False
 
 
 def test_internal_capability_endpoint_rejects_provider_secrets(
@@ -463,7 +476,13 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
                 "videoGenerationMinSeconds": 4,
                 "maxReferenceImages": 5,
                 "referenceVideoMaxSeconds": 10,
-            }
+            },
+            {
+                "modelId": "catalog-voice-clone-fixture",
+                "audioResponseFormats": ["wav"],
+                "audioDefaultResponseFormat": "wav",
+                "audioSupportsEmotionPrompt": False,
+            },
         ],
     )
     script = "\n".join(
@@ -473,6 +492,7 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "loaded = load_model_access_from_stdin()",
             "access = runtime_model_access()",
             "capability = runtime_model_capability('cloud/video-standard')",
+            "audio_capability = runtime_model_capability('catalog-voice-clone-fixture')",
             "direct = ['AI_ANIME_CLOUD_PROXY_TOKEN', 'FUTURE_PROVIDER_API_KEY', 'FUTURE_PROVIDER_ACCESS_TOKEN', 'FUTURE_PROVIDER_BASE_URL']",
             "print(json.dumps({'loaded': loaded, 'allowsCustomModels': is_byok_allowed(), 'mode': access.mode, 'baseUrl': access.base_url, "
             "'apiKeyHash': hashlib.sha256(access.api_key.encode()).hexdigest(), "
@@ -491,6 +511,9 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
             "'videoGenerationMinSeconds': capability.video_generation_min_seconds if capability else None, "
             "'maxReferenceImages': capability.max_reference_images if capability else None, "
             "'referenceVideoMaxSeconds': capability.reference_video_max_seconds if capability else None, "
+            "'audioResponseFormats': list(audio_capability.audio_response_formats) if audio_capability else None, "
+            "'audioDefaultResponseFormat': audio_capability.audio_default_response_format if audio_capability else None, "
+            "'audioSupportsEmotionPrompt': audio_capability.audio_supports_emotion_prompt if audio_capability else None, "
             "'directProviderEnvironmentPresent': any(os.environ.get(name) for name in direct), "
             "'stdinMarkerPresent': 'AI_ANIME_MODEL_ACCESS_STDIN' in os.environ}))",
         ]
@@ -530,6 +553,9 @@ def test_model_subprocess_receives_only_router_state_over_stdin(
         "videoGenerationMinSeconds": 4.0,
         "maxReferenceImages": 5,
         "referenceVideoMaxSeconds": 10.0,
+        "audioResponseFormats": ["wav"],
+        "audioDefaultResponseFormat": "wav",
+        "audioSupportsEmotionPrompt": False,
         "directProviderEnvironmentPresent": False,
         "stdinMarkerPresent": False,
     }

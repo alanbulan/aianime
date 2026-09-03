@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -30,6 +31,14 @@ def _reset_model_access(monkeypatch: pytest.MonkeyPatch) -> None:
         model_assignments=[
             {"modelId": "cloud-audio", "role": "AUDIO_SPEECH"},
             {"modelId": "cloud-audio", "role": "AUDIO_VOICE_CLONE"},
+        ],
+        model_capabilities=[
+            {
+                "modelId": "cloud-audio",
+                "audioResponseFormats": ["mp3", "wav"],
+                "audioDefaultResponseFormat": "mp3",
+                "audioSupportsEmotionPrompt": True,
+            }
         ],
     )
     yield
@@ -145,6 +154,14 @@ async def test_audio_transport_keeps_provider_credentials_behind_router(
         model_assignments=[
             {"modelId": "local-audio", "role": "AUDIO_SPEECH"},
         ],
+        model_capabilities=[
+            {
+                "modelId": "local-audio",
+                "audioResponseFormats": ["mp3"],
+                "audioDefaultResponseFormat": "mp3",
+                "audioSupportsEmotionPrompt": False,
+            }
+        ],
     )
     encoded = base64.b64encode(b"base64-audio").decode("ascii")
     with respx.mock(assert_all_called=True) as router:
@@ -255,6 +272,101 @@ async def test_voice_clone_transport_uploads_reference_audio_as_multipart(
     assert b'name="emotion_prompt"' in body
     assert "压低声音，克制但急切".encode() in body
     assert b'name="reference_audio"' in body and b"reference-wav" in body
+
+
+@pytest.mark.asyncio
+async def test_voice_clone_uses_catalog_wav_and_omits_undeclared_emotion(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import ai_anime.modules.model_usage.infrastructure.model_audio_transport as transport
+    import ai_anime.modules.task_execution.public as task_execution
+
+    model_id = "catalog-voice-clone-fixture"
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_MIXED,
+        model_assignments=[
+            {"modelId": model_id, "role": "AUDIO_VOICE_CLONE"},
+        ],
+        model_capabilities=[
+            {
+                "modelId": model_id,
+                "audioResponseFormats": ["wav"],
+                "audioDefaultResponseFormat": "wav",
+                "audioSupportsEmotionPrompt": False,
+            }
+        ],
+    )
+    conversion_sources: list[Path] = []
+
+    def fake_run_project_subprocess(args, **kwargs):
+        assert args[0] == "test-ffmpeg"
+        assert "libmp3lame" in args
+        assert kwargs == {"timeout": 120, "capture_output": True}
+        source = Path(args[args.index("-i") + 1])
+        converted = Path(args[-1])
+        assert source.suffix == ".wav"
+        assert source.read_bytes() == b"provider-wav"
+        conversion_sources.append(source)
+        converted.write_bytes(b"normalized-mp3")
+        return subprocess.CompletedProcess(args, 0, stdout=b"", stderr=b"")
+
+    monkeypatch.setattr(
+        transport,
+        "_require_ffmpeg_executable",
+        lambda: "test-ffmpeg",
+    )
+    monkeypatch.setattr(
+        task_execution,
+        "run_project_subprocess",
+        fake_run_project_subprocess,
+    )
+    reference = base64.b64encode(b"reference-wav").decode("ascii")
+    with respx.mock(assert_all_called=True) as router:
+        route = router.post("https://gateway.example/v1/audio/speech").mock(
+            return_value=Response(
+                200,
+                content=b"provider-wav",
+                headers={"content-type": "audio/wav"},
+            )
+        )
+        output_path = tmp_path / "episode-001-beat-01.mp3"
+        await write_model_audio_speech(
+            output_path=output_path,
+            model_role="AUDIO_VOICE_CLONE",
+            input_text="Episode narration",
+            reference_audio=f"data:audio/wav;base64,{reference}",
+            emotion_prompt="calm narration",
+        )
+
+    assert output_path.read_bytes() == b"normalized-mp3"
+    assert conversion_sources and not conversion_sources[0].exists()
+    body = route.calls.last.request.content
+    assert b'name="response_format"\r\n\r\nwav' in body
+    assert b'name="emotion_prompt"' not in body
+    assert body.count(b'name="reference_audio"') == 1
+    assert b"reference-wav" in body
+
+
+@pytest.mark.asyncio
+async def test_voice_clone_rejects_missing_audio_format_capability_before_dispatch(
+    tmp_path: Path,
+) -> None:
+    configure_model_access(
+        allows_custom_models=False,
+        mode=MODE_MIXED,
+        model_assignments=[
+            {"modelId": "undeclared-audio-model", "role": "AUDIO_VOICE_CLONE"},
+        ],
+    )
+    with pytest.raises(ValueError, match="does not declare supported response formats"):
+        await write_model_audio_speech(
+            output_path=tmp_path / "episode-001-beat-01.mp3",
+            model_role="AUDIO_VOICE_CLONE",
+            input_text="Episode narration",
+            reference_audio="data:audio/wav;base64,YWJj",
+        )
 
 
 @pytest.mark.asyncio
