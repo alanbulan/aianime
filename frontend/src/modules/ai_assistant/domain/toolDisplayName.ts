@@ -40,6 +40,7 @@ export const AI_ANIME_TOOL_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   ai_anime_design_character_voices: "生成角色声线",
   ai_anime_generate_audio: "生成分集音频",
   ai_anime_optimize_video_global: "优化全局视频提示词",
+  ai_anime_optimize_video_prompt: "优化单镜头提示词",
   ai_anime_compose_episode: "合成整集视频",
   ai_anime_get_final_video: "读取最终成片",
   ai_anime_start_single_video: "生成单镜头视频",

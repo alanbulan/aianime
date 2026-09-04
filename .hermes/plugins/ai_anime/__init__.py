@@ -75,6 +75,11 @@ SINGLE_VIDEO_TOOL_ERROR = (
     "Single-video generation is only available through ai_anime_start_single_video; "
     "do not bypass its role-priority default and explicit model selection rules with ai_anime_post."
 )
+VIDEO_PROMPT_OPTIMIZATION_TOOL_ERROR = (
+    "Single-beat video prompt optimization is only available through "
+    "ai_anime_optimize_video_prompt; do not bypass its shared request contract with "
+    "ai_anime_post."
+)
 TEXT_CONTENT_FILTER_CHAT_ERROR = (
     "模型内容安全过滤拦截了本次文本生成，请调整原文或改写稿中的敏感描述后重试。"
 )
@@ -927,6 +932,8 @@ def _handle_post(args: dict[str, Any], **_: Any) -> str:
         normalized_path = _normalize_api_path(path)
         if _is_single_video_start_path(normalized_path):
             return tool_error(SINGLE_VIDEO_TOOL_ERROR)
+        if _is_video_prompt_optimization_path(normalized_path):
+            return tool_error(VIDEO_PROMPT_OPTIMIZATION_TOOL_ERROR)
         if _is_script_workflow_write_path(normalized_path):
             if _is_ingest_start_path(normalized_path):
                 return tool_error(INGEST_START_TOOL_ERROR)
@@ -1479,6 +1486,17 @@ def _is_single_video_start_path(path: str) -> bool:
         and parts[4] == "episodes"
         and parts[6] == "beats"
         and parts[8] == "video"
+    )
+
+
+def _is_video_prompt_optimization_path(path: str) -> bool:
+    parts = [part for part in path.strip("/").split("/") if part]
+    return (
+        len(parts) == 10
+        and parts[:3] == ["api", "v1", "projects"]
+        and parts[4] == "episodes"
+        and parts[6] == "beats"
+        and parts[8:] == ["video-prompt", "optimize"]
     )
 
 
@@ -2469,6 +2487,30 @@ def _handle_optimize_video_global(args: dict[str, Any], **_: Any) -> str:
     try:
         body = {"language": args["language"]} if args.get("language") is not None else None
         return tool_result(_episode_post(args, "optimize/video-global", body=body))
+    except Exception as exc:
+        return tool_error(str(exc))
+
+
+def _handle_optimize_video_prompt(args: dict[str, Any], **_: Any) -> str:
+    """Optimize one beat's saved video-panel prompt through the web endpoint."""
+    try:
+        project = _project_from_args(args)
+        episode = _require_episode(args)
+        beat = int(args.get("beat") or 0)
+        if beat <= 0:
+            raise ValueError("beat must be a positive integer")
+        body = {
+            key: args[key]
+            for key in ("manual_prompt_reference", "prompt_guidance")
+            if args.get(key) is not None
+        }
+        return tool_result(
+            _request(
+                "POST",
+                f"/api/v1/projects/{project}/episodes/{episode}/beats/{beat}/video-prompt/optimize",
+                body=body,
+            )
+        )
     except Exception as exc:
         return tool_error(str(exc))
 
@@ -4406,6 +4448,33 @@ TOOLS = (
             ["episode"],
         ),
         _handle_optimize_video_global,
+    ),
+    (
+        "ai_anime_optimize_video_prompt",
+        _schema(
+            "ai_anime_optimize_video_prompt",
+            "Run the same AI optimization as the workbench video panel for one beat and persist "
+            "the resulting final_prompt (video_prompt_optimization task). The endpoint reuses the "
+            "beat's saved video configuration and selected reference assets. Pass "
+            "manual_prompt_reference when the current prompt draft was edited and prompt_guidance "
+            "for the panel's guidance text. Wait with "
+            "ai_anime_wait_task(task_key=<returned task_key>).",
+            {
+                "project_id": {"type": "string", "description": "Defaults to AI_ANIME_PROJECT_ID."},
+                "episode": {"type": "integer", "description": "Episode number (required)."},
+                "beat": {"type": "integer", "description": "Beat number (required)."},
+                "manual_prompt_reference": {
+                    "type": "string",
+                    "description": "Optional current prompt draft used as the optimization reference.",
+                },
+                "prompt_guidance": {
+                    "type": "string",
+                    "description": "Optional guidance from the video panel.",
+                },
+            },
+            ["episode", "beat"],
+        ),
+        _handle_optimize_video_prompt,
     ),
     (
         "ai_anime_compose_episode",

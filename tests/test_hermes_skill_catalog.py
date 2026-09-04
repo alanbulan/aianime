@@ -76,9 +76,9 @@ def test_tool_catalog_is_complete_and_scope_aware() -> None:
         include_project_tools=False,
     )
 
-    assert len(project_tools) == 58
+    assert len(project_tools) == 59
     assert len(home_tools) == 15
-    assert len({tool["name"] for tool in project_tools}) == 58
+    assert len({tool["name"] for tool in project_tools}) == 59
     assert all(
         tool["label"]
         and tool["description"]
@@ -89,6 +89,7 @@ def test_tool_catalog_is_complete_and_scope_aware() -> None:
     project_by_name = {tool["name"]: tool for tool in project_tools}
     assert project_by_name["question"]["category"] == "确认与决策"
     assert project_by_name["ai_anime_start_single_video"]["source"] == "AI anime"
+    assert project_by_name["ai_anime_optimize_video_prompt"]["source"] == "AI anime"
     assert "question" not in {tool["name"] for tool in home_tools}
 
 

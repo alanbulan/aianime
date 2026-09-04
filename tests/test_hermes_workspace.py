@@ -156,6 +156,7 @@ def test_hermes_detects_content_filter_error_text():
 def test_hermes_classifies_ai_anime_write_tools():
     assert hermes_sdk._is_ai_anime_write_tool("ai_anime_generate_script")
     assert hermes_sdk._is_ai_anime_write_tool("ai_anime_start_single_video")
+    assert hermes_sdk._is_ai_anime_write_tool("ai_anime_optimize_video_prompt")
     assert hermes_sdk._is_ai_anime_write_tool("ai_anime_run_production_workflow")
     assert hermes_sdk._is_ai_anime_write_tool("ai_anime_create_style")
     assert not hermes_sdk._is_ai_anime_write_tool("ai_anime_pipeline_status")

@@ -24,6 +24,8 @@ Agent 处理用户编辑请求时，查此文档获取具体字段名、类型�
 
 单 beat AI 生成使用 `ai_anime_start_single_video`，支持与网页相同的画幅 `ratio`、时长 `duration`、模式 `mode`、完整配置 `video_config_json`、最终提示词 `final_prompt` 和音频等配置字段。`video_config_json` 是 JSON 对象字符串，先与已保存配置合并，再由显式顶层字段覆盖；省略字段保留已保存配置，`false` 和空对象不能当作未传。高级参考模型必须有非空 `final_prompt`，可直接传入、放在配置中或事先保存。只有用户明确点名模型时才传 `model`，有对应路由时同时传 `model_selector`；未指定模型时 AI 工具按全局角色优先级选择。
 
+单 Beat 视频面板的“AI 优化”使用 `ai_anime_optimize_video_prompt`。可传 `manual_prompt_reference` 和 `prompt_guidance`；工具读取 Beat 已保存的模式、时长、画幅、参考素材与文字配置，并将提示词指导及生成后的 `final_prompt` 写回同一个 `video_config_json`，工作台随后从该字段显示结果。
+
 ## 角色
 
 **API**: `PATCH /projects/{project}/characters/{name}`

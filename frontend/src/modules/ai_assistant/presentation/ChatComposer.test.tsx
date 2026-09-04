@@ -183,13 +183,13 @@ describe("SuperChat Composer view", () => {
   it("opens a complete searchable tool route without sending a chat command", () => {
     const onDraftChange = vi.fn();
     const onRunSlashCommand = vi.fn();
-    const tools = Array.from({ length: 58 }, (_, index) => ({
-      name: index === 57 ? "ai_anime_start_single_video" : `tool_${index + 1}`,
-      label: index === 0 ? "向用户提问" : index === 57 ? "生成单个 Beat 视频" : `工具 ${index + 1}`,
+    const tools = Array.from({ length: 59 }, (_, index) => ({
+      name: index === 58 ? "ai_anime_start_single_video" : `tool_${index + 1}`,
+      label: index === 0 ? "向用户提问" : index === 58 ? "生成单个 Beat 视频" : `工具 ${index + 1}`,
       description: index === 0
         ? "遇到会影响结果的关键歧义时，暂停执行并向用户提供清晰选项。"
-        : index === 57
-          ? "使用该 Beat 已保存的首帧和视频提示生成单段视频；模型始终遵循用途优先级。"
+        : index === 58
+          ? "使用该 Beat 已保存的面板参数生成单段视频；未指定模型时遵循全局用途优先级。"
           : `工具 ${index + 1} 的完整用途说明。`,
       category: index === 0 ? "确认与决策" : "视频与成片",
       source: index === 0 ? "Hermes" : "AI anime",
@@ -210,14 +210,14 @@ describe("SuperChat Composer view", () => {
 
     expect(onRunSlashCommand).not.toHaveBeenCalled();
     expect(onDraftChange).toHaveBeenCalledWith("");
-    expect(screen.getByText("58 个 · AI 自动调用")).toBeInTheDocument();
+    expect(screen.getByText("59 个 · AI 自动调用")).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "确认与决策" })).toBeInTheDocument();
     expect(screen.getByText(/遇到会影响结果的关键歧义/)).toBeInTheDocument();
 
     const search = screen.getByRole("combobox", { name: "搜索可用工具" });
     fireEvent.change(search, { target: { value: "start_single_video" } });
     expect(screen.getByRole("option", { name: /生成单个 Beat 视频/ }))
-      .toHaveTextContent("模型始终遵循用途优先级");
+      .toHaveTextContent("未指定模型时遵循全局用途优先级");
     expect(screen.queryByRole("option", { name: /向用户提问/ })).toBeNull();
 
     fireEvent.keyDown(window, { key: "Escape" });

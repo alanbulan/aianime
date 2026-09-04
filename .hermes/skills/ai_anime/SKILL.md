@@ -95,7 +95,7 @@ requires:
 - **工具约束**：
   - AI anime 管理的AI anime 助手会话禁用了 `bash`、`shell`、`terminal`、`subprocess`，因此不要尝试通过终端运行 `curl`、Python requests 或其它 shell 命令。
   - 调用后端时必须使用已启用的 `hermes-acp` 工具入口中的 AI anime 插件工具。文档中的 `GET/POST/PATCH/DELETE ...` 是要通过插件 HTTP 工具执行的 API 语义，不是要求用 curl。
-  - 需要用户决策时必须使用 `question`。业务操作优先使用：`ai_anime_run_production_workflow`、`ai_anime_pipeline_status`、`ai_anime_list_tasks`、`ai_anime_get_task`、`ai_anime_get_episode_script`、`ai_anime_list_ingest_uploads`、`ai_anime_run_script_workflow`、`ai_anime_start_ingest`、`ai_anime_create_style`、`ai_anime_generate_style_preview`、`ai_anime_upload_style_preview`、`ai_anime_update_character_face_prompt`、`ai_anime_plan_scenes`、`ai_anime_plan_props`、`ai_anime_generate_scene_master`、`ai_anime_generate_scene_reverse`、`ai_anime_detect_sketch_identities`、`ai_anime_design_character_voices`、`ai_anime_generate_audio`、`ai_anime_start_single_video`、`ai_anime_get_final_video`。
+  - 需要用户决策时必须使用 `question`。业务操作优先使用：`ai_anime_run_production_workflow`、`ai_anime_pipeline_status`、`ai_anime_list_tasks`、`ai_anime_get_task`、`ai_anime_get_episode_script`、`ai_anime_list_ingest_uploads`、`ai_anime_run_script_workflow`、`ai_anime_start_ingest`、`ai_anime_create_style`、`ai_anime_generate_style_preview`、`ai_anime_upload_style_preview`、`ai_anime_update_character_face_prompt`、`ai_anime_plan_scenes`、`ai_anime_plan_props`、`ai_anime_generate_scene_master`、`ai_anime_generate_scene_reverse`、`ai_anime_detect_sketch_identities`、`ai_anime_design_character_voices`、`ai_anime_generate_audio`、`ai_anime_optimize_video_prompt`、`ai_anime_start_single_video`、`ai_anime_get_final_video`。
   - 业务工具不覆盖的端点，使用受限通用工具：`ai_anime_get`、`ai_anime_post`、`ai_anime_patch`、`ai_anime_delete`。这些工具只接受 `/api/v1/...` 或 `/projects/...` 相对路径；不要传完整 URL。`/projects/{project}/ingest/start` 已由 `ai_anime_start_ingest` 覆盖，禁止通过 `ai_anime_post` 调用。
   - 摄入路由只有两个：`/projects/{project}/ingest/upload` 和 `/projects/{project}/ingest/start`。启动摄入必须使用 `ai_anime_start_ingest`，由工具按当前模型配置提交完整合同。`ingest_fast` 是任务类型，不是 HTTP endpoint。禁止推断或尝试 `/ingest/init`、`/ingest/setup`、`/ingest_script`、`/ingest_fast`、`/projects/{project}/ingest`、`/projects/{project}/ingest/init`、`/projects/{project}/ingest/setup`、`/projects/{project}/ingest_script`、`/projects/{project}/ingest_fast` 等路径；这类 404 不代表摄入模块未启用，只代表路径是错的。
   - 如果插件工具不可用，直接向用户说明“AI anime API 工具不可用”，停止本轮；不要退回终端命令。
@@ -249,6 +249,7 @@ GET ${AI_ANIME_API_URL}/api/v1/projects/${AI_ANIME_PROJECT_ID}/pipeline/status
   - 智能体完整生产默认不传单次模型覆盖，由后端按视频用途和设置页中的云端/BYOK 全局角色优先级解析；不得自动继承工作台项目 `video_model`。只有用户明确点名本次使用某个模型时，才把当前模型目录中的对应选择器作为 `video_model` 传入，覆盖仅作用于本次任务。
   - 单 beat 人工重做可传用户明确指定的 `model`；未指定时由后端解析项目配置和用途分配。
   - AI 单 beat 工具 `ai_anime_start_single_video` 支持网页相同的生成参数，包括 `ratio`、`video_config_json` 和 `final_prompt`。用户明确指定模型时传目录中的 `model`，需要区分云端/BYOK 路由时同时传 `model_selector`；未指定模型时省略两者，保留全局角色优先级。不要把基础 `video_prompt` 当作高级参考模型的最终提示词。
+  - 单 Beat 面板“AI 优化”使用 `ai_anime_optimize_video_prompt`。它读取并更新与工作台相同的 `video_config_json`，把 `prompt_guidance` 和生成后的 `final_prompt` 保存回 Beat；不接收视频模型参数，也不改变助手与人工面板各自的模型选择规则。
   - 逐 beat 子任务与并发由 `production_workflow` 父任务负责；助手不自行批量提交。
 - 不要同时加载 `playbooks/init.md` 和 `playbooks/episode.md`
 - 不要重复加载已经在当前上下文里的同一 reference

@@ -45,6 +45,7 @@ const EXPECTED_AI_ANIME_TOOLS = [
   "ai_anime_design_character_voices",
   "ai_anime_generate_audio",
   "ai_anime_optimize_video_global",
+  "ai_anime_optimize_video_prompt",
   "ai_anime_compose_episode",
   "ai_anime_get_final_video",
   "ai_anime_start_single_video",

@@ -287,6 +287,11 @@ _AI_ANIME_TOOLS: dict[str, tuple[str, str, str]] = {
         "对指定分集执行全局视频优化任务，改善镜头间一致性和成片衔接。",
         "视频与成片",
     ),
+    "ai_anime_optimize_video_prompt": (
+        "优化单镜头提示词",
+        "执行分镜视频面板中的 AI 优化，使用已保存的参考素材、主体提示词和提示词指导生成并保存最终提示词。",
+        "视频与成片",
+    ),
     "ai_anime_compose_episode": (
         "合成分集成片",
         "在所需 Beat 视频和音频齐备后合成并导出最终分集视频。",
@@ -299,7 +304,7 @@ _AI_ANIME_TOOLS: dict[str, tuple[str, str, str]] = {
     ),
     "ai_anime_start_single_video": (
         "生成单个 Beat 视频",
-        "使用该 Beat 已保存的首帧和视频提示生成单段视频；模型始终遵循用途优先级。",
+        "使用该 Beat 已保存的面板参数生成单段视频；未明确指定模型时遵循全局用途优先级，明确指定仅覆盖本次调用。",
         "视频与成片",
     ),
 }

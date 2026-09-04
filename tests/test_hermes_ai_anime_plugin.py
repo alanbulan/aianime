@@ -1066,7 +1066,56 @@ def test_global_video_optimization_preserves_language_and_backend_default(
     assert requests[0].model_fields_set == ({"language"} if language else set())
 
 
+def test_video_prompt_optimization_tool_forwards_panel_text_contract(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ai_anime.api.routes.narrative_planning.scripts_schemas import (
+        VideoPromptGenerateRequest,
+    )
+
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    requests: list[dict] = []
+
+    def fake_request(method: str, path: str, *, body=None):
+        assert method == "POST"
+        assert path == (
+            "/api/v1/projects/project-1/episodes/1/beats/2/"
+            "video-prompt/optimize"
+        )
+        VideoPromptGenerateRequest.model_validate(body)
+        requests.append(body)
+        return {"ok": True, "task_key": "task:video_prompt_optimization:2"}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    result = ai_anime_plugin._handle_optimize_video_prompt(
+        {
+            "episode": 1,
+            "beat": 2,
+            "manual_prompt_reference": "",
+            "prompt_guidance": "保持主体动作连贯",
+        }
+    )
+    omitted_result = ai_anime_plugin._handle_optimize_video_prompt(
+        {"episode": 1, "beat": 2}
+    )
+
+    assert result["ok"] is True
+    assert omitted_result["ok"] is True
+    assert requests == [
+        {
+            "manual_prompt_reference": "",
+            "prompt_guidance": "保持主体动作连贯",
+        },
+        {},
+    ]
+
+
 def test_media_tool_options_match_backend_schema(ai_anime_plugin) -> None:
+    from ai_anime.api.routes.narrative_planning.scripts_schemas import (
+        VideoPromptGenerateRequest,
+    )
     from ai_anime.api.routes.production.render_schemas import BeatsRegenerateRequest
     from ai_anime.api.routes.production.video_schemas import (
         GlobalOptimizeRequest,
@@ -1088,6 +1137,11 @@ def test_media_tool_options_match_backend_schema(ai_anime_plugin) -> None:
         ("ai_anime_compose_episode", VideoComposeRequest, "add_bgm"),
         ("ai_anime_compose_episode", VideoComposeRequest, "resolution"),
         ("ai_anime_optimize_video_global", GlobalOptimizeRequest, "language"),
+        (
+            "ai_anime_optimize_video_prompt",
+            VideoPromptGenerateRequest,
+            "prompt_guidance",
+        ),
         ("ai_anime_start_single_video", SingleVideoRequest, "duration"),
     ]
     for tool_name, request_model, field in options:
@@ -1133,6 +1187,7 @@ def test_hermes_tools_only_expose_canonical_parameter_names(
     assert "scene_name" not in properties["ai_anime_get_scene_images"]
     assert "identity_name" not in properties["ai_anime_get_character_media"]
     assert "search" not in properties["ai_anime_get_episode_media"]
+    assert "beat_number" not in properties["ai_anime_optimize_video_prompt"]
     assert "beat_number" not in properties["ai_anime_start_single_video"]
 
 
@@ -1467,6 +1522,31 @@ def test_generic_post_cannot_bypass_role_priority_single_video_tool(
 
     assert "ai_anime_start_single_video" in result["tool_error"]
     assert "role-priority" in result["tool_error"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/projects/project-1/episodes/1/beats/2/video-prompt/optimize",
+        "/projects/project-1/episodes/1/beats/2/video-prompt/%6fptimize",
+    ],
+)
+def test_generic_post_cannot_bypass_video_prompt_optimization_tool(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+) -> None:
+    monkeypatch.setattr(
+        ai_anime_plugin,
+        "_request",
+        lambda *args, **kwargs: pytest.fail(
+            "generic POST must not optimize a beat video prompt"
+        ),
+    )
+
+    result = ai_anime_plugin._handle_post({"path": path, "body": {}})
+
+    assert "ai_anime_optimize_video_prompt" in result["tool_error"]
 
 
 @pytest.mark.parametrize(

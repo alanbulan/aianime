@@ -139,6 +139,7 @@ _AI_ANIME_WRITE_TOOLS = {
     "ai_anime_generate_sketches",
     "ai_anime_detect_sketch_identities",
     "ai_anime_optimize_video_global",
+    "ai_anime_optimize_video_prompt",
     "ai_anime_generate_audio",
     "ai_anime_render_first_frames",
     "ai_anime_compose_episode",

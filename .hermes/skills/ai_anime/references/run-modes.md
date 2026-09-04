@@ -73,6 +73,8 @@
 20. 最终成片展示 `ai_anime_get_final_video`(ep=N)
 
 > 上述逐项工具用于单步确认。用户要求补齐脚本全部前置、指定多集或整章时，不逐项调用 8a/8b/9，统一使用 `ai_anime_run_script_workflow`。
+>
+> 用户明确要求优化某个 Beat 的视频面板提示词时，可在单 Beat 视频生成前调用 `ai_anime_optimize_video_prompt`；它是局部面板动作，不替代整集全局视频优化，也不新增另一套生产流程。
 
 每完成一集，调用 `question` 询问是否继续做第 N+1 集，再进入下一集。
 
