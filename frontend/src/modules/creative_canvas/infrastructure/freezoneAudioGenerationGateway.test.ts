@@ -40,8 +40,6 @@ describe("freezoneAudioGenerationGateway", () => {
             slot: "",
             voice_id: "",
           },
-          target_episode: undefined,
-          target_beat: undefined,
         },
       },
     );
@@ -96,8 +94,6 @@ describe("freezoneAudioGenerationGateway", () => {
           music_length_ms: 30_000,
           force_instrumental: false,
           respect_sections_durations: true,
-          target_episode: undefined,
-          target_beat: undefined,
         },
       },
     );

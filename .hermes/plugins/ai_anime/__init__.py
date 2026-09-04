@@ -3161,7 +3161,7 @@ def _handle_generate_portrait(args: dict[str, Any], **_: Any) -> str:
         name = _require_name(args)
         body = {
             key: args[key]
-            for key in ("model", "style")
+            for key in ("model", "style", "ethnicity")
             if args.get(key) not in (None, "")
         }
         return tool_result(
@@ -3540,7 +3540,6 @@ TOOLS = (
             "Use an image attached in the current chat as the reference image of an existing "
             "custom style. attachment_path must come from [CHAT_ATTACHMENTS].",
             {
-                "project_id": {"type": "string"},
                 "style_id": {"type": "string"},
                 "attachment_path": {"type": "string"},
             },
@@ -3809,12 +3808,12 @@ TOOLS = (
                 "spine_template": {
                     "type": "string",
                     "enum": ["drama", "narrated"],
-                    "description": "Required story structure: drama for scene/dialogue scripts; narrated for voice-over narration.",
+                    "description": "Optional story structure override. Omit it to keep the project's configured value.",
                 },
                 "visual_style": {
                     "type": "string",
                     "enum": ["chinese_period_drama", "anime", "realistic", "post_apocalyptic"],
-                    "description": "Required visual preset inferred from the uploaded source; Japanese/2D anime material uses anime.",
+                    "description": "Optional visual preset override. Omit it to keep the project's configured value.",
                 },
                 "narration_style": {
                     "type": "string",
@@ -3824,10 +3823,10 @@ TOOLS = (
                 "ethnicity": {
                     "type": "string",
                     "enum": ["Chinese", "Japanese", "Korean", "Western"],
-                    "description": "Required default character ethnicity inferred from names and setting.",
+                    "description": "Optional default character ethnicity override. Omit it to keep the project's configured value.",
                 },
             },
-            ["filename", "spine_template", "visual_style", "ethnicity"],
+            ["filename"],
         ),
         _handle_start_ingest,
     ),
@@ -3994,6 +3993,11 @@ TOOLS = (
                     "description": "Optional explicit model selector. Omit it to use the configured IMAGE_GENERATION cloud/BYOK priority route.",
                 },
                 "style": {"type": "string", "description": "Optional visual style override."},
+                "ethnicity": {
+                    "type": "string",
+                    "enum": ["Chinese", "Japanese", "Korean", "Western"],
+                    "description": "Optional character ethnicity override. Omit it to use the project setting.",
+                },
             },
             ["name"],
         ),

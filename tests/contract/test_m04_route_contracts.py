@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from ai_anime.modules.asset_world.public import CharacterIdentity, NovelCharacter
 from ai_anime.modules.asset_world.public import NovelProp, StyleConfig
+from ai_anime.api.routes.asset_world.characters_schemas import PortraitGenRequest
 
 pytestmark = pytest.mark.m04
 
@@ -20,6 +21,10 @@ _CHARACTER = "林昭"
 _IDENTITY_ID = "林昭_青年"
 _IDENTITY_NAME = "青年"
 _PROP = "玉佩"
+
+
+def test_portrait_request_omits_ethnicity_to_inherit_project_setting() -> None:
+    assert PortraitGenRequest().ethnicity is None
 
 
 def _png_bytes() -> bytes:

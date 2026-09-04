@@ -257,6 +257,16 @@ def test_start_ingest_uses_canonical_workflow_endpoint(
     ]
 
 
+def test_start_ingest_schema_only_requires_filename(ai_anime_plugin) -> None:
+    parameters = next(
+        schema["parameters"]
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name == "ai_anime_start_ingest"
+    )
+
+    assert parameters["required"] == ["filename"]
+
+
 def test_generic_post_rejects_ingest_start(
     ai_anime_plugin,
     monkeypatch: pytest.MonkeyPatch,
@@ -327,6 +337,25 @@ def test_generate_portrait_forwards_only_explicit_model_overrides(
             {"model": "byok:provider-1:image-model-lite"},
         )
     ]
+
+
+def test_generate_portrait_forwards_explicit_ethnicity_override(
+    ai_anime_plugin,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AI_ANIME_PROJECT_ID", "project-1")
+    calls: list[object] = []
+
+    def fake_request(method: str, path: str, *, query=None, body=None):
+        calls.append(body)
+        return {"ok": True}
+
+    monkeypatch.setattr(ai_anime_plugin, "_request", fake_request)
+
+    assert ai_anime_plugin._handle_generate_portrait(
+        {"name": "白石夏音", "ethnicity": "Japanese"}
+    )["ok"]
+    assert calls == [{"ethnicity": "Japanese"}]
 
 
 def test_generate_portrait_omits_body_to_use_global_priority(
@@ -483,6 +512,7 @@ def test_portrait_tools_expose_optional_model_override_contract(
     }
     assert "model" in schemas["ai_anime_generate_portrait"]["properties"]
     assert "model" not in schemas["ai_anime_generate_portrait"]["required"]
+    assert "ethnicity" in schemas["ai_anime_generate_portrait"]["properties"]
     assert (
         "IMAGE_GENERATION"
         in schemas["ai_anime_generate_portrait"]["properties"]["model"]["description"]
@@ -493,6 +523,18 @@ def test_portrait_tools_expose_optional_model_override_contract(
             "description"
         ]
     )
+
+
+def test_upload_style_preview_schema_has_no_project_parameter(
+    ai_anime_plugin,
+) -> None:
+    parameters = next(
+        schema["parameters"]
+        for name, schema, _handler in ai_anime_plugin.TOOLS
+        if name == "ai_anime_upload_style_preview"
+    )
+
+    assert set(parameters["properties"]) == {"style_id", "attachment_path"}
 
 
 def test_whole_script_workflow_supports_all_episodes_and_parallel_limit(

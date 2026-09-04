@@ -30,8 +30,6 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
                 slot: command.voiceRef.slot ?? "",
                 voice_id: command.voiceRef.voiceId ?? "",
               },
-          target_episode: undefined,
-          target_beat: undefined,
         },
       },
     );
@@ -46,8 +44,6 @@ export const freezoneAudioGenerationGateway: CanvasAudioGenerationSubmissionGate
           music_length_ms: command.musicLengthMs,
           force_instrumental: command.forceInstrumental,
           respect_sections_durations: command.respectSectionsDurations,
-          target_episode: undefined,
-          target_beat: undefined,
         },
       },
     );

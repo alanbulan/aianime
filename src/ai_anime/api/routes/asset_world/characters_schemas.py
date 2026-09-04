@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 class PortraitGenRequest(BaseModel):
     style: Optional[str] = None
-    ethnicity: str = "Chinese"
+    ethnicity: Optional[str] = None
     model: Optional[str] = None
 
 
