@@ -27,7 +27,6 @@ import {
 } from "@/modules/narrative_planning/presentation/EpisodesPageView";
 import { ScriptPageView } from "@/modules/narrative_planning/presentation/ScriptPageView";
 import { NarratorVoicePanel } from "@/modules/production/public";
-import { TaskControllerProvider } from "@/modules/task_execution/public";
 
 const assetWorldCanvasNavigation: AssetWorldCanvasNavigation = {
   openCharacter: (project, characterName) =>
@@ -140,14 +139,7 @@ function EpisodesPageControllerContent({
 }
 
 export function EpisodesPageContent(props: EpisodesPageContentProps) {
-  return createElement(
-    TaskControllerProvider,
-    {
-      project: props.project,
-      episode: 0,
-      children: createElement(EpisodesPageControllerContent, props),
-    },
-  );
+  return createElement(EpisodesPageControllerContent, props);
 }
 
 export function ScriptPageContent({

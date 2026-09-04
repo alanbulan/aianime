@@ -94,7 +94,7 @@ function renderController(
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <TaskControllerProvider project="demo" episode={1}>
+      <TaskControllerProvider>
         {children}
       </TaskControllerProvider>
     </QueryClientProvider>
@@ -223,7 +223,7 @@ describe("VideoReference config controller", () => {
     });
     const wrapper = ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>
-        <TaskControllerProvider project="demo" episode={1}>
+        <TaskControllerProvider>
           {children}
         </TaskControllerProvider>
       </QueryClientProvider>

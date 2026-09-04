@@ -101,10 +101,8 @@ describe("episodes workbench integration", () => {
     expect(pageControllerSource).toContain(
       "planTask.start({ scope: response.scope, taskId: response.task_id })",
     );
-    expect(workspaceCompositionSource).toContain("TaskControllerProvider");
-    expect(viewSource).not.toContain(
-      '<TaskControllerProvider project={project} episode={0}>',
-    );
+    expect(workspaceCompositionSource).not.toContain("TaskControllerProvider");
+    expect(viewSource).not.toContain("TaskControllerProvider");
   });
 
   it("shows only one episode planning action for the list state", () => {

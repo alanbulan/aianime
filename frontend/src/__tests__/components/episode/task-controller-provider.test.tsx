@@ -350,7 +350,7 @@ function renderWithProvider(
 ) {
   const tree = (
     <QueryClientProvider client={client}>
-      <TaskControllerProvider project="demo" episode={1}>
+      <TaskControllerProvider>
         {children}
       </TaskControllerProvider>
     </QueryClientProvider>

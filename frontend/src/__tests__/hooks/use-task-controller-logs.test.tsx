@@ -37,7 +37,7 @@ function wrap(children: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
     <QueryClientProvider client={qc}>
-      <TaskControllerProvider project="demo" episode={1}>
+      <TaskControllerProvider>
         {children}
       </TaskControllerProvider>
     </QueryClientProvider>

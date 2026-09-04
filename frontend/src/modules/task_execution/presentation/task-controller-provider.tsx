@@ -33,15 +33,14 @@
  *
  * Lifecycle invariants (enforced by design, guarded by integration tests):
  *
- *   1. Exactly one entry per serialized TaskKey per provider instance.
+ *   1. Exactly one entry per serialized TaskKey in the signed-in app shell.
  *      - Entries are *never* deleted while the provider is mounted. This is a
  *        deliberate choice to defeat React StrictMode's simulated unmount:
  *        cleanup → maybeDelete(empty) → remount would otherwise orphan the
  *        entry that the fiber still holds via `useMemo`, and a second
  *        subscriber would create a duplicate entry → duplicate SSE stream.
- *      - The map is bounded by the number of distinct TaskKeys touched during
- *        the provider's lifetime (~single-digit per episode). GC happens
- *        automatically when the provider remounts on scope change.
+ *      - TaskKey already contains project and episode, so one app-level map can
+ *        safely serve every workbench and modal without page-local providers.
  *
  *   2. Ownership transfer is reactive, not polled.
  *      - `releaseOwnership` bumps the snapshot (`hasOwner: false`), which
@@ -209,31 +208,17 @@ export function useTaskRegistry(): RegistryHandle {
   return ctx;
 }
 
-// Exported for tests and workbench composition. A provider owns one registry
-// scope; individual TaskKeys still carry the exact project and episode.
+// Mounted once by the signed-in app shell. Individual TaskKeys carry the exact
+// project and episode, so dialogs and route content share the same registry.
 export function TaskControllerProvider({
-  project,
-  episode,
   children,
 }: {
-  project: string;
-  episode: number;
   children: ReactNode;
 }) {
   // The registry map lives for the lifetime of this provider instance.
-  // Remounting (e.g. switching episodes) produces a fresh map.
+  // Signing out or unmounting the application shell produces a fresh map.
   const mapRef = useRef<Map<string, TaskRegistryEntry> | null>(null);
   if (mapRef.current === null) {
-    mapRef.current = new Map();
-  }
-
-  // Guard against stale entries when project/episode changes. If a parent
-  // reuses the provider across episodes (it doesn't today — episodes.tsx
-  // re-mounts per selected episode — but defend anyway), we reset.
-  const scopeKey = `${project}|${episode}`;
-  const lastScopeRef = useRef(scopeKey);
-  if (lastScopeRef.current !== scopeKey) {
-    lastScopeRef.current = scopeKey;
     mapRef.current = new Map();
   }
 
@@ -249,12 +234,9 @@ export function TaskControllerProvider({
       },
       // NB: no `maybeDelete`. Entries live for the provider's lifetime. Removing
       // empty entries naively breaks under StrictMode — see file-level docstring
-      // for the full argument. Memory is bounded by `|distinct TaskKeys per episode|`.
+      // for the full argument. The map contains only keys touched in this app session.
     }),
-    // `mapRef` is stable; `scopeKey` triggers a fresh handle when scope resets
-    // so consumers dependent on it re-subscribe cleanly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scopeKey],
+    [],
   );
 
   return (

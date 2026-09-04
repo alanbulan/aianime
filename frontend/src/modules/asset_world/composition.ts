@@ -1,7 +1,6 @@
 import { createElement, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { TaskControllerProvider } from "@/modules/task_execution/public";
 import { queryKeys } from "@/lib/query-keys";
 import { useAssetFocus } from "./application/useAssetFocus";
 import { useNavigateToAsset } from "./application/useAssetsDeepLink";
@@ -525,14 +524,10 @@ export function StylesPageContent({ project }: { project: string }) {
     open: controller.createOpen,
     project,
   });
-  return createElement(TaskControllerProvider, {
-    children: createElement(StylesPageView, {
-      controller,
-      createDialog,
-      detailContent,
-    }),
-    episode: 0,
-    project,
+  return createElement(StylesPageView, {
+    controller,
+    createDialog,
+    detailContent,
   });
 }
 
@@ -866,14 +861,10 @@ export function CharactersPageContent({
   renderNarratorVoicePanel,
   voiceCatalog,
 }: CharactersPageContentProps) {
-  return createElement(TaskControllerProvider, {
-    children: createElement(CharactersPageBody, {
-      canvasNavigation,
-      project,
-      renderNarratorVoicePanel,
-      voiceCatalog,
-    }),
-    episode: 0,
+  return createElement(CharactersPageBody, {
+    canvasNavigation,
     project,
+    renderNarratorVoicePanel,
+    voiceCatalog,
   });
 }

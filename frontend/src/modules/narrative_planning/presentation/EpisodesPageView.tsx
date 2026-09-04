@@ -26,7 +26,6 @@ import {
   useEpisodeActionsSlotActive,
   useEpisodeActionsSlotSetter,
 } from "@/components/episode/episode-actions-slot";
-import { TaskControllerProvider } from "@/modules/task_execution/public";
 import {
   CollapsibleHeaderRegion,
   HeaderCollapseProvider,
@@ -656,22 +655,17 @@ export function EpisodesPageView({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {selectedEpisode ? (
-          <TaskControllerProvider
-            project={project}
-            episode={selectedEpisode.number}
-          >
-            <EpisodeActionsSlotProvider>
-              <div className="flex min-h-0 flex-1 flex-col">
-                <EpisodeHeaderLayout
-                  episode={selectedEpisode}
-                  project={project}
-                />
-                <div className="min-h-0 flex-1 overflow-hidden">
-                  {episodeContent}
-                </div>
+          <EpisodeActionsSlotProvider>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <EpisodeHeaderLayout
+                episode={selectedEpisode}
+                project={project}
+              />
+              <div className="min-h-0 flex-1 overflow-hidden">
+                {episodeContent}
               </div>
-            </EpisodeActionsSlotProvider>
-          </TaskControllerProvider>
+            </div>
+          </EpisodeActionsSlotProvider>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {!isLoading && (

@@ -65,7 +65,7 @@ function setup() {
   const rendered = renderHook(() => useTaskController({ key, onComplete, onError }), {
     wrapper: ({ children }: { children: ReactNode }) => (
       <QueryClientProvider client={queryClient}>
-        <TaskControllerProvider project="demo" episode={0}>{children}</TaskControllerProvider>
+        <TaskControllerProvider>{children}</TaskControllerProvider>
       </QueryClientProvider>
     ),
   });

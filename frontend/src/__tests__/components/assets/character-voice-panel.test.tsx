@@ -145,7 +145,7 @@ function wrapper({ children }: { children: ReactNode }) {
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={qc}>
-        <TaskControllerProvider project="demo" episode={0}>
+        <TaskControllerProvider>
           {children}
         </TaskControllerProvider>
       </QueryClientProvider>
