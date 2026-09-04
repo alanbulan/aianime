@@ -1,6 +1,5 @@
 // Copyright (c) 2026 AI anime
 type MatteWorkerOutboundMessage =
-  | { type: 'ready'; id: number }
   | { type: 'result'; id: number; blob: Blob }
   | { type: 'error'; id: number; message: string };
 
@@ -20,9 +19,6 @@ function ensureWorker(): Worker {
   });
   worker.onmessage = (event: MessageEvent<MatteWorkerOutboundMessage>) => {
     const message = event.data;
-    if (message.type === 'ready') {
-      return;
-    }
     const entry = pending.get(message.id);
     if (!entry) {
       return;
@@ -44,10 +40,6 @@ function ensureWorker(): Worker {
     worker = null;
   };
   return worker;
-}
-
-export function preloadBrowserMatteWorker(): void {
-  ensureWorker().postMessage({ type: 'preload', id: 0 });
 }
 
 export function matteImageInBrowserWorker(blob: Blob): Promise<Blob> {

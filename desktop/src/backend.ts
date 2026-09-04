@@ -17,7 +17,7 @@ import {
   developmentWhisperModelPath,
   packagedVideoCodec,
 } from "./platform-runtime.js";
-import type { InstalledWorldRuntimePaths } from "./platform-runtime.js";
+import type { InstalledRuntimeDependencyPaths } from "./runtime-dependencies.js";
 
 const EVENT_PREFIX = "AI_ANIME_DESKTOP ";
 const TOKEN_HEADER = "X-AI-Anime-Desktop-Token";
@@ -56,7 +56,7 @@ interface LocalBackendOptions {
   repositoryRoot?: string;
   serveFrontend?: boolean;
   environment?: Readonly<Record<string, string>>;
-  runtimeDependencyPaths?: InstalledWorldRuntimePaths;
+  runtimeDependencyPaths?: InstalledRuntimeDependencyPaths;
   restartOnUnexpectedExit?: boolean;
   fetchImpl?: typeof fetch;
   onRestartExhausted?: (error: Error) => void;
@@ -85,7 +85,7 @@ export class LocalBackend {
   private readonly configuredRepoRoot: string | undefined;
   private readonly serveFrontend: boolean;
   private readonly environment: Readonly<Record<string, string>>;
-  private readonly runtimeDependencyPaths: InstalledWorldRuntimePaths | undefined;
+  private readonly runtimeDependencyPaths: InstalledRuntimeDependencyPaths | undefined;
   private readonly restartOnUnexpectedExit: boolean;
   private readonly fetchImpl: typeof fetch;
   private readonly onRestartExhausted: ((error: Error) => void) | undefined;
@@ -150,6 +150,9 @@ export class LocalBackend {
     const userData = this.desktopApp.getPath("userData");
     const dataRoot = join(userData, "data");
     const logDir = join(userData, "logs");
+    const matteRuntimeRoot =
+      this.runtimeDependencyPaths?.matteRoot
+      ?? join(userData, "dependencies", "matte", "current");
     mkdirSync(dataRoot, { recursive: true });
     mkdirSync(logDir, { recursive: true });
     this.logStream = createWriteStream(join(logDir, "backend.log"), {
@@ -185,6 +188,7 @@ export class LocalBackend {
         AI_ANIME_MODEL_ADMIN_TOKEN: this.modelAdminToken,
         HERMES_CLI_PATH: hermesRuntime.cliPath,
         AI_ANIME_HERMES_ASSETS_DIR: hermesRuntime.assetsPath,
+        AI_ANIME_MATTE_RUNTIME_ROOT: matteRuntimeRoot,
         ...(launch.whisperModelPath
           ? { AI_ANIME_WHISPER_MODEL_DIR: launch.whisperModelPath }
           : {}),

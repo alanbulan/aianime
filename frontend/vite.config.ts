@@ -99,6 +99,12 @@ export default defineConfig(({ mode }) => {
       __BUILD_ID__: JSON.stringify(BUILD_ID),
     },
     resolve: {
+      conditions: [
+        "onnxruntime-web-use-extern-wasm",
+        "module",
+        "browser",
+        "development|production",
+      ],
       alias: {
         "@": path.resolve(import.meta.dirname, "./src"),
         "node:worker_threads": path.resolve(
@@ -110,7 +116,9 @@ export default defineConfig(({ mode }) => {
     // Split heavy shared deps out of the main chunk so the initial payload is
     // mostly app code; vendor bundles cache across deploys.
     build: {
-      emptyOutDir: true,
+      // Vite 8's Rolldown builder currently leaves hashed files from previous
+      // builds behind. The package build scripts own the one safe dist cleanup.
+      emptyOutDir: false,
       rolldownOptions: {
         output: {
           manualChunks(id) {

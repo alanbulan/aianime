@@ -2,13 +2,6 @@ import type { BrowserWindow, Session } from "electron";
 
 import { isSameOrigin } from "./desktop-runtime-contracts.js";
 
-export const DESKTOP_MATTE_MODEL_CONNECT_SOURCES = [
-  "blob:",
-  "https://huggingface.co",
-  "https://*.huggingface.co",
-  "https://*.hf.co",
-] as const;
-
 interface BackendSecurityTarget {
   readonly baseUrl: string;
   readonly tokenHeader: string;
@@ -28,7 +21,7 @@ function contentSecurityPolicy(
   connectSources: readonly string[],
   scriptSources: readonly string[],
 ): string {
-  const connectSourceList = ["'self'", ...new Set(connectSources)].join(" ");
+  const connectSourceList = ["'self'", "blob:", ...new Set(connectSources)].join(" ");
   const scriptSourceList = ["'self'", ...new Set(scriptSources)].join(" ");
   return [
     "default-src 'self';",

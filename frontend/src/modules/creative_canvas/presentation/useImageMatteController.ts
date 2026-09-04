@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 import {
   buildImageMatteFailurePatch,
@@ -42,8 +42,6 @@ export interface ImageMatteControllerDependencies {
   ) => Promise<{ url: string }>;
   fetchBlob: (sourceUrl: string) => Promise<Blob>;
   matteImage: (blob: Blob) => Promise<Blob>;
-  preloadWorker: () => void;
-  schedulePreload: (callback: () => void) => () => void;
   now: () => number;
   exportNodeWidth: number;
   exportNodeHeight: number;
@@ -60,13 +58,6 @@ export function createUseImageMatteController(
     imageSource,
     displayName,
   }: ImageMatteControllerOptions) {
-    useEffect(() => {
-      if (!imageSource) {
-        return;
-      }
-      return dependencies.schedulePreload(dependencies.preloadWorker);
-    }, [imageSource]);
-
     const matte = useCallback(() => {
       if (!imageSource) {
         return;

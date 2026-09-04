@@ -274,6 +274,7 @@ test("desktop backend packages graph runtime resources and enforces UTF-8 output
   assert.match(backendSource, /PYTHONIOENCODING: "utf-8"/);
   assert.match(backendSource, /PYTHONUTF8: "1"/);
   assert.match(backendSource, /AI_ANIME_WORLD_RUNTIME_BIN/);
+  assert.match(backendSource, /AI_ANIME_MATTE_RUNTIME_ROOT/);
   assert.match(backendSource, /startHealthWatchdog\(child\)/);
   assert.match(backendSource, /HEALTH_CHECK_FAILURE_THRESHOLD = 3/);
   assert.match(backendSource, /backend health watchdog terminating unresponsive process/);

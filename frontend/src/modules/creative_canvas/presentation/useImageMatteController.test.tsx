@@ -16,11 +16,6 @@ const dependencies: ImageMatteControllerDependencies = {
   uploadAsset: vi.fn(),
   fetchBlob: vi.fn(),
   matteImage: vi.fn(),
-  preloadWorker: vi.fn(),
-  schedulePreload: vi.fn((callback) => {
-    callback();
-    return vi.fn();
-  }),
   now: vi.fn(() => 1234),
   exportNodeWidth: 480,
   exportNodeHeight: 360,
@@ -53,31 +48,11 @@ describe('createUseImageMatteController', () => {
     vi.mocked(dependencies.uploadAsset).mockReset();
     vi.mocked(dependencies.fetchBlob).mockReset();
     vi.mocked(dependencies.matteImage).mockReset();
-    vi.mocked(dependencies.preloadWorker).mockReset();
-    vi.mocked(dependencies.schedulePreload).mockReset();
     vi.mocked(dependencies.now).mockReset();
     vi.mocked(dependencies.reportError).mockReset();
     vi.mocked(dependencies.addExportImageNode).mockReturnValue('matte-node');
     vi.mocked(dependencies.findNodePosition).mockReturnValue({ x: 480, y: 20 });
-    vi.mocked(dependencies.schedulePreload).mockImplementation((callback) => {
-      callback();
-      return vi.fn();
-    });
     vi.mocked(dependencies.now).mockReturnValue(1234);
-  });
-
-  it('preloads the worker and releases the scheduled preload', () => {
-    const cancel = vi.fn();
-    vi.mocked(dependencies.schedulePreload).mockImplementation((callback) => {
-      callback();
-      return cancel;
-    });
-
-    const { unmount } = renderHook(() => useImageMatteController(options()));
-
-    expect(dependencies.preloadWorker).toHaveBeenCalledOnce();
-    unmount();
-    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it('creates a loading child and writes back the uploaded matte result', async () => {

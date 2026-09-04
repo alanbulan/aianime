@@ -33,10 +33,7 @@ import {
   resolveCommercialGatewayUrl,
 } from "../src/commercial.ts";
 import { COMMERCIAL_LEASE_SIGNING_KEYS } from "../src/commercial-trust.ts";
-import {
-  DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
-  installDesktopSessionSecurity,
-} from "../src/desktop-session-security.ts";
+import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
 import { developmentHermesCliPath } from "../src/hermes-runtime.ts";
 import { appendModelRouteAudit } from "../src/model-route-audit.ts";
 import {
@@ -415,7 +412,6 @@ async function startApplication() {
       additionalConnectSources: [
         backend.baseUrl,
         VITE_URL.replace(/^http:/u, "ws:"),
-        ...DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
       ],
       additionalScriptSources: [
         "'sha256-Z2/iFzh9VMlVkEOar1f/oSHWwQk3ve1qk/C2WdsC4Xk='",

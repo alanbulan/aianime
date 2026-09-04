@@ -7,8 +7,8 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc -b --pretty false",
-    "build": "tsc -b && vite build",
-    "build:ce": "tsc -b && vite build --mode ce",
+    "build": "node scripts/clean-dist.mjs && tsc -b && vite build",
+    "build:ce": "node scripts/clean-dist.mjs && tsc -b && vite build --mode ce",
     "preview": "vite preview",
     "test": "node run-test-projects.mjs",
     "test:unit": "vitest run --project unit",

@@ -123,7 +123,7 @@ import { getFreezoneCanvasMetadata } from './application/canvasMetadataState';
 import { getCanvasSceneAssetsForBeat as getCanvasSceneAssetsForBeatUseCase, type GetCanvasSceneAssetsForBeatParams } from './application/sceneAssets';
 import { recoverCanvasMediaGenerationTask } from './application/completeCanvasMediaGenerationTask';
 import { nodeNeedsGenerationResume, resumeNodeGeneration as resumeNodeGenerationUseCase, type ResumeNodeGenerationParams } from './application/resumeGeneration';
-import { matteImageInBrowserWorker, preloadBrowserMatteWorker } from './infrastructure/browserMatteWorkerClient';
+import { matteImageInBrowserWorker } from './infrastructure/browserMatteWorkerClient';
 import { platformCanvasAssetGateway } from './assetTransferComposition';
 import { pollExportImageGeneration as pollExportImageGenerationUseCase, type PollExportImageGenerationParams } from './application/pollExportImageGeneration';
 import { publishCanvasCommitRequested } from './application/canvasCommitEvents';
@@ -700,19 +700,6 @@ export const useImageMatteController = createUseImageMatteController({
     return response.blob();
   },
   matteImage: matteImageInBrowserWorker,
-  preloadWorker: preloadBrowserMatteWorker,
-  schedulePreload: (callback) => {
-    const target = window as typeof window & {
-      requestIdleCallback?: (idleCallback: () => void) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-    if (typeof target.requestIdleCallback === 'function') {
-      const handle = target.requestIdleCallback(callback);
-      return () => target.cancelIdleCallback?.(handle);
-    }
-    const timer = window.setTimeout(callback, 1200);
-    return () => window.clearTimeout(timer);
-  },
   now: () => Date.now(),
   exportNodeWidth: EXPORT_RESULT_NODE_DEFAULT_WIDTH,
   exportNodeHeight: EXPORT_RESULT_NODE_LAYOUT_HEIGHT,

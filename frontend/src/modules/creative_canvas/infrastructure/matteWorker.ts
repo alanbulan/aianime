@@ -1,19 +1,30 @@
 // Copyright (c) 2026 AI anime
 /// <reference lib="webworker" />
-import { pipeline } from '@huggingface/transformers';
+import { env, pipeline } from '@huggingface/transformers';
 
 const MATTE_MODEL = 'Xenova/modnet';
 
-type InboundMessage =
-  | { type: 'preload'; id: number }
-  | { type: 'matte'; id: number; blob: Blob };
+type InboundMessage = { type: 'matte'; id: number; blob: Blob };
 
 type OutboundMessage =
-  | { type: 'ready'; id: number }
   | { type: 'result'; id: number; blob: Blob }
   | { type: 'error'; id: number; message: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
+
+env.allowLocalModels = true;
+env.allowRemoteModels = false;
+env.useBrowserCache = false;
+env.useWasmCache = false;
+env.localModelPath = '/api/v1/runtime-dependencies/matte/models/';
+const wasmBackend = env.backends.onnx.wasm;
+if (!wasmBackend) {
+  throw new Error('ONNX WASM backend is unavailable');
+}
+wasmBackend.wasmPaths = {
+  mjs: '/api/v1/runtime-dependencies/matte/runtime/ort-wasm-simd-threaded.asyncify.mjs',
+  wasm: '/api/v1/runtime-dependencies/matte/runtime/ort-wasm-simd-threaded.asyncify.wasm',
+};
 
 if (!ctx.crossOriginIsolated) {
   try {
@@ -53,6 +64,7 @@ function getRemover(): Promise<RemoveBackground> {
       const remover = await pipeline('background-removal', MATTE_MODEL, {
         device: useGpu ? 'webgpu' : 'wasm',
         dtype: useGpu ? 'fp16' : 'q8',
+        local_files_only: true,
       });
       return remover as unknown as RemoveBackground;
     })();
@@ -69,12 +81,15 @@ function getRemover(): Promise<RemoveBackground> {
 ctx.onmessage = async (event: MessageEvent<InboundMessage>) => {
   const message = event.data;
   try {
-    if (message.type === 'preload') {
-      await getRemover();
-      ctx.postMessage({ type: 'ready', id: message.id } satisfies OutboundMessage);
-      return;
+    let remover: RemoveBackground;
+    try {
+      remover = await getRemover();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `抠图运行环境未安装或不完整，请前往“设置 > 环境依赖”安装后重试。${detail}`,
+      );
     }
-    const remover = await getRemover();
     const url = URL.createObjectURL(message.blob);
     try {
       const image = await remover(url);

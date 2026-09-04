@@ -83,8 +83,8 @@ contextBridge.exposeInMainWorld("aiAnimeDesktop", {
     writeText: (value) => ipcRenderer.invoke(CLIPBOARD_CHANNELS.writeText, value),
   }),
   runtimeDependencies: Object.freeze({
-    status: () => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.status),
-    install: () => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.install),
+    status: (id) => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.status, id),
+    install: (id) => ipcRenderer.invoke(RUNTIME_DEPENDENCY_CHANNELS.install, id),
     onProgress: (listener) => {
       const handler = (_event, progress) => listener(progress);
       ipcRenderer.on(RUNTIME_DEPENDENCY_CHANNELS.progress, handler);

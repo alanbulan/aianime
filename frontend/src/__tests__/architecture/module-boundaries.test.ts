@@ -4241,7 +4241,9 @@ describe("frontend architecture boundaries", () => {
     expect(composition).toContain("useCanvasStore.getState().addNode(");
     expect(composition).toContain("uploadCanvasAsset(projectId, blob, filename)");
     expect(composition).toContain("matteImageInBrowserWorker");
-    expect(composition).toContain("preloadBrowserMatteWorker");
+    expect(composition).not.toContain("preloadBrowserMatteWorker");
+    expect(matteWorker).toContain("env.allowRemoteModels = false");
+    expect(matteWorker).toContain("/api/v1/runtime-dependencies/matte/models/");
     expect(nodeActionToolbar).not.toContain(
       "@/features/canvas/infrastructure/matteClient",
     );
@@ -25163,6 +25165,13 @@ describe("frontend architecture boundaries", () => {
     const editControllerSource = readFileSync(editControllerPath, "utf8");
     const componentSource = readFileSync(componentPath, "utf8");
     const toolbarSource = readFileSync(toolbarPath, "utf8");
+    const viteConfigSource = readFileSync(
+      resolve(process.cwd(), "vite.config.ts"),
+      "utf8",
+    );
+    const frontendPackage = JSON.parse(
+      readFileSync(resolve(process.cwd(), "package.json"), "utf8"),
+    ) as { scripts?: Record<string, string> };
     const declarations = [
       ["export function", "buildImageMatteInitialData("].join(" "),
       ["export function", "buildImageMatteSuccessPatch("].join(" "),
@@ -25216,7 +25225,17 @@ describe("frontend architecture boundaries", () => {
     expect(compositionSource).toContain("useCanvasStore.getState().addNode(");
     expect(compositionSource).toContain("uploadCanvasAsset(projectId, blob, filename)");
     expect(compositionSource).toContain("fetch(sourceUrl)");
-    expect(compositionSource).toContain("requestIdleCallback");
+    expect(compositionSource).not.toContain("requestIdleCallback");
+    expect(workerSource).toContain("env.allowRemoteModels = false");
+    expect(workerSource).toContain("local_files_only: true");
+    expect(workerSource).toContain("wasmBackend.wasmPaths = {");
+    expect(viteConfigSource).toContain(
+      '"onnxruntime-web-use-extern-wasm"',
+    );
+    expect(frontendPackage.scripts?.build).toContain("scripts/clean-dist.mjs");
+    expect(frontendPackage.scripts?.["build:ce"]).toContain(
+      "scripts/clean-dist.mjs",
+    );
     expect(editControllerSource).toContain("useImageMatteController({");
     expect(editControllerSource).toContain("projectId,");
     expect(componentSource).toContain("projectId,");

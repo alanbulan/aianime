@@ -3,10 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
-  installDesktopSessionSecurity,
-} from "../src/desktop-session-security.ts";
+import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
 
 function createPermissionHarness(additionalConnectSources = []) {
   let checkPermission;
@@ -122,10 +119,8 @@ test("fullscreen remains blocked for subframes, other windows, and other origins
   );
 });
 
-test("matte model hosts are present in the renderer content security policy", () => {
-  const { receiveHeaders } = createPermissionHarness(
-    DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
-  );
+test("renderer content security policy keeps matte traffic local", () => {
+  const { receiveHeaders } = createPermissionHarness();
   let response;
   receiveHeaders({ responseHeaders: {} }, (value) => {
     response = value;
@@ -133,7 +128,5 @@ test("matte model hosts are present in the renderer content security policy", ()
 
   const policy = response.responseHeaders["Content-Security-Policy"][0];
   assert.match(policy, /connect-src [^;]*blob:/);
-  assert.match(policy, /connect-src [^;]*https:\/\/huggingface\.co/);
-  assert.match(policy, /connect-src [^;]*https:\/\/\*\.huggingface\.co/);
-  assert.match(policy, /connect-src [^;]*https:\/\/\*\.hf\.co/);
+  assert.doesNotMatch(policy, /huggingface|hf\.co|jsdelivr|unpkg/);
 });

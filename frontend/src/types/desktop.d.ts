@@ -322,8 +322,10 @@ type AIAnimeRuntimeDependencyState =
   | "ready"
   | "installing";
 
+type AIAnimeRuntimeDependencyId = "world" | "matte";
+
 interface AIAnimeRuntimeDependencyStatus {
-  id: "world";
+  id: AIAnimeRuntimeDependencyId;
   supported: boolean;
   installed: boolean;
   healthy: boolean;
@@ -339,6 +341,7 @@ interface AIAnimeRuntimeDependencyStatus {
 }
 
 interface AIAnimeRuntimeDependencyProgress {
+  id: AIAnimeRuntimeDependencyId;
   phase:
     | "manifest"
     | "downloading"
@@ -353,8 +356,8 @@ interface AIAnimeRuntimeDependencyProgress {
 }
 
 interface AIAnimeRuntimeDependencyBridge {
-  status: () => Promise<AIAnimeRuntimeDependencyStatus>;
-  install: () => Promise<AIAnimeRuntimeDependencyStatus>;
+  status: (id: AIAnimeRuntimeDependencyId) => Promise<AIAnimeRuntimeDependencyStatus>;
+  install: (id: AIAnimeRuntimeDependencyId) => Promise<AIAnimeRuntimeDependencyStatus>;
   onProgress: (
     listener: (progress: AIAnimeRuntimeDependencyProgress) => void,
   ) => () => void;

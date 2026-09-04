@@ -68,7 +68,7 @@ test("development and packaged main processes share routing and runtime contract
     assert.match(source, /devicePublicKeyHash:\s*device\.publicKeyHash/);
     assert.match(source, /appendModelRouteAudit\(modelRouteLogPath, entry\)/);
     assert.match(source, /installDesktopSessionSecurity\(\{/);
-    assert.match(source, /DESKTOP_MATTE_MODEL_CONNECT_SOURCES/);
+    assert.doesNotMatch(source, /DESKTOP_MATTE_MODEL_CONNECT_SOURCES/);
   }
 });
 

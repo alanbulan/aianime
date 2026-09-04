@@ -1118,7 +1118,6 @@ export {
 export type { ImageMatteNodePatch } from "@/modules/creative_canvas/domain/imageMatteNodeModel";
 export {
   matteImageInBrowserWorker,
-  preloadBrowserMatteWorker,
 } from "@/modules/creative_canvas/infrastructure/browserMatteWorkerClient";
 export { createUseImageMatteController } from "@/modules/creative_canvas/presentation/useImageMatteController";
 export type {

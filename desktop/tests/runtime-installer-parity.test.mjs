@@ -48,7 +48,7 @@ test(
     });
     await seedCurrent(manager.paths.root, "manager-old");
     const managerStatus = await withManifest(successManifestUrl, () =>
-      manager.install(),
+      manager.install("world"),
     );
     assert.equal(managerStatus.state, "ready");
     assert.equal(existsSync(join(manager.paths.root, "manager-old")), false);
@@ -106,7 +106,7 @@ async function assertRejectedInstallPreservesCurrent({
   });
   await seedCurrent(manager.paths.root, "keep-current");
   await assert.rejects(
-    withManifest(manifestUrl, () => manager.install()),
+    withManifest(manifestUrl, () => manager.install("world")),
     managerPattern,
   );
   assert.equal(existsSync(join(manager.paths.root, "keep-current")), true);

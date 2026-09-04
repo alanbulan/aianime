@@ -279,20 +279,30 @@ describe("SettingsDialog", () => {
     }
   });
 
-  it("进入环境依赖页签时检查 3D 运行环境完整性", async () => {
-    const status = vi.fn().mockResolvedValue({
-      id: "world",
+  it("进入环境依赖页签时检查并可独立安装两类运行环境", async () => {
+    const dependencyStatus = (id: "world" | "matte") => ({
+      id,
       supported: true,
-      installed: true,
-      healthy: true,
+      installed: id === "world",
+      healthy: id === "world",
       installing: false,
-      state: "ready",
+      state: id === "world" ? "ready" as const : "not-installed" as const,
       platform: "win32",
       arch: "x64",
-      accelerator: "NVIDIA CUDA（支持 CPU 回退）",
+      accelerator:
+        id === "world"
+          ? "NVIDIA CUDA（支持 CPU 回退）"
+          : "WebGPU（WASM 回退）",
       version: "1.1.38",
-      message: "完整",
+      message: id === "world" ? "3D 完整" : "抠图环境尚未安装",
     });
+    const status = vi.fn(async (id: "world" | "matte") => dependencyStatus(id));
+    const install = vi.fn(async (id: "world" | "matte") => ({
+      ...dependencyStatus(id),
+      installed: true,
+      healthy: true,
+      state: "ready" as const,
+    }));
     Object.defineProperty(window, "aiAnimeDesktop", {
       configurable: true,
       value: {
@@ -300,7 +310,7 @@ describe("SettingsDialog", () => {
         commercial: {},
         runtimeDependencies: {
           status,
-          install: vi.fn(),
+          install,
           onProgress: vi.fn(() => vi.fn()),
         },
       },
@@ -309,8 +319,18 @@ describe("SettingsDialog", () => {
     render(<SettingsDialog open onOpenChange={vi.fn()} />);
     fireEvent.click(screen.getByRole("tab", { name: "环境依赖" }));
 
-    await waitFor(() => expect(status).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(status).toHaveBeenCalledTimes(2));
+    expect(status).toHaveBeenCalledWith("world");
+    expect(status).toHaveBeenCalledWith("matte");
     expect(await screen.findByText("NVIDIA CUDA（支持 CPU 回退）")).toBeInTheDocument();
+    expect(screen.getByText("WebGPU（WASM 回退）")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /settings\.dependencies\.matteName.*安装环境/,
+      }),
+    );
+    await waitFor(() => expect(install).toHaveBeenCalledWith("matte"));
   });
 
   it("在 Intel Mac 上明确说明 3D 限制并停用安装", async () => {
@@ -321,19 +341,34 @@ describe("SettingsDialog", () => {
         platform: "darwin",
         commercial: {},
         runtimeDependencies: {
-          status: vi.fn().mockResolvedValue({
-            id: "world",
-            supported: false,
-            installed: false,
-            healthy: false,
-            installing: false,
-            state: "unsupported",
-            platform: "darwin",
-            arch: "x64",
-            accelerator: "当前平台暂无预编译运行环境",
-            message:
-              "Intel Mac 可正常使用主应用，但当前不提供导演世界 3D 运行环境。系统不会下载或启动不兼容组件。",
-          }),
+          status: vi.fn(async (id: "world" | "matte") =>
+            id === "world"
+              ? {
+                  id,
+                  supported: false,
+                  installed: false,
+                  healthy: false,
+                  installing: false,
+                  state: "unsupported",
+                  platform: "darwin",
+                  arch: "x64",
+                  accelerator: "当前平台暂无预编译运行环境",
+                  message:
+                    "Intel Mac 可正常使用主应用，但当前不提供导演世界 3D 运行环境。系统不会下载或启动不兼容组件。",
+                }
+              : {
+                  id,
+                  supported: true,
+                  installed: false,
+                  healthy: false,
+                  installing: false,
+                  state: "not-installed",
+                  platform: "darwin",
+                  arch: "x64",
+                  accelerator: "WebGPU（WASM 回退）",
+                  message: "图片抠图运行环境尚未安装",
+                },
+          ),
           install,
           onProgress: vi.fn(() => vi.fn()),
         },
@@ -344,7 +379,11 @@ describe("SettingsDialog", () => {
     fireEvent.click(screen.getByRole("tab", { name: "环境依赖" }));
 
     expect(await screen.findByText(/Intel Mac 不会下载或启动此组件/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "安装环境" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: /settings\.dependencies\.worldName.*安装环境/,
+      }),
+    ).toBeDisabled();
     expect(install).not.toHaveBeenCalled();
   });
 

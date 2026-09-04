@@ -45,6 +45,39 @@ def test_desktop_middleware_and_shutdown_route(
     assert shutdown_calls == [True]
 
 
+def test_desktop_serves_only_installed_matte_runtime_assets(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    runtime_root = tmp_path / "matte" / "current"
+    config_path = runtime_root / "models" / "Xenova" / "modnet" / "config.json"
+    config_path.parent.mkdir(parents=True)
+    config_path.write_text('{"model_type":"modnet"}', encoding="utf-8")
+    monkeypatch.setenv("AI_ANIME_DESKTOP_MODE", "1")
+    monkeypatch.setenv("AI_ANIME_DESKTOP_TOKEN", "desktop-test-token")
+    monkeypatch.setenv("AI_ANIME_MATTE_RUNTIME_ROOT", str(runtime_root))
+
+    from ai_anime.api.app import create_app
+
+    client = TestClient(create_app())
+    headers = {"X-AI-Anime-Desktop-Token": "desktop-test-token"}
+    response = client.get(
+        "/api/v1/runtime-dependencies/matte/models/Xenova/modnet/config.json",
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"model_type": "modnet"}
+    assert response.headers["content-type"].startswith("application/json")
+    assert (
+        client.get(
+            "/api/v1/runtime-dependencies/matte/models/unlisted.json",
+            headers=headers,
+        ).status_code
+        == 404
+    )
+
+
 def test_project_workspace_errors_keep_http_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

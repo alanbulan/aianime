@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -66,9 +67,9 @@ test("runtime dependency IPC registers status/install handlers and checks the ac
     send: (channel, payload) => progressEvents.push([channel, payload]),
   };
   const manager = {
-    status: async () => ({ state: "not-installed" }),
-    install: async (onProgress) => {
-      onProgress({ phase: "manifest", message: "checking" });
+    status: async (id) => ({ id, state: "not-installed" }),
+    install: async (id, onProgress) => {
+      onProgress({ id, phase: "manifest", message: "checking" });
       return { state: "ready" };
     },
   };
@@ -76,24 +77,29 @@ test("runtime dependency IPC registers status/install handlers and checks the ac
   registerRuntimeDependencyIpc(ipcMain, manager, (senderId) => senderId === 42);
 
   assert.deepEqual(
-    await handlers.get(RUNTIME_DEPENDENCY_CHANNELS.status)({ sender }),
-    { state: "not-installed" },
+    await handlers.get(RUNTIME_DEPENDENCY_CHANNELS.status)({ sender }, "world"),
+    { id: "world", state: "not-installed" },
   );
   assert.deepEqual(
-    await handlers.get(RUNTIME_DEPENDENCY_CHANNELS.install)({ sender }),
+    await handlers.get(RUNTIME_DEPENDENCY_CHANNELS.install)({ sender }, "world"),
     { state: "ready" },
   );
   assert.deepEqual(progressEvents, [
     [
       RUNTIME_DEPENDENCY_CHANNELS.progress,
-      { phase: "manifest", message: "checking" },
+      { id: "world", phase: "manifest", message: "checking" },
     ],
   ]);
   await assert.rejects(
-    handlers.get(RUNTIME_DEPENDENCY_CHANNELS.status)({
-      sender: { ...sender, id: 7 },
-    }),
+    handlers.get(RUNTIME_DEPENDENCY_CHANNELS.status)(
+      { sender: { ...sender, id: 7 } },
+      "world",
+    ),
     /active desktop window/,
+  );
+  await assert.rejects(
+    handlers.get(RUNTIME_DEPENDENCY_CHANNELS.status)({ sender }, "unknown"),
+    /unknown runtime dependency/,
   );
 });
 
@@ -118,20 +124,20 @@ test("runtime dependency status distinguishes unsupported and uninstalled platfo
       platform: "darwin",
       arch: "x64",
     });
-    const unsupported = await intelMacManager.status();
+    const unsupported = await intelMacManager.status("world");
     assert.equal(unsupported.state, "unsupported");
     assert.equal(unsupported.supported, false);
     assert.match(unsupported.message, /Intel Mac 可正常使用主应用/);
     assert.match(unsupported.message, /不会下载或启动不兼容组件/);
     await assert.rejects(
-      intelMacManager.install(),
+      intelMacManager.install("world"),
       /当前平台没有可安装的导演世界 3D 运行环境/,
     );
 
     const uninstalled = await new RuntimeDependencyManager(root, {
       platform: "win32",
       arch: "x64",
-    }).status();
+    }).status("world");
     assert.equal(uninstalled.state, "not-installed");
     assert.equal(uninstalled.installed, false);
   } finally {
@@ -174,13 +180,77 @@ test("runtime dependency manifest rejects unsafe URLs and invalid sizes before d
         new RuntimeDependencyManager(root, {
           platform: "win32",
           arch: "x64",
-        }).install(),
+        }).install("world"),
         /运行环境清单字段不完整/,
       );
       assert.equal(fetchCalls, 1);
     }
   } finally {
     globalThis.fetch = originalFetch;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("matte dependency installs verified files into the stable desktop directory", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ai-anime-matte-runtime-"));
+  const bytes = Buffer.from("local matte runtime fixture", "utf8");
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const packageInfo = {
+    version: "test-matte-1",
+    files: [
+      {
+        relativePath: "models/Xenova/modnet/config.json",
+        sizeBytes: bytes.byteLength,
+        sha256,
+        urls: ["https://fixtures.example/matte/config.json"],
+      },
+    ],
+  };
+  const corruptBytes = Buffer.alloc(bytes.byteLength, 0);
+  const fetchCalls = [];
+  packageInfo.files[0].urls = [
+    "https://mirror.example/matte/config.json",
+    "https://fixtures.example/matte/config.json",
+  ];
+  const fetchImpl = async (url) => {
+    fetchCalls.push(String(url));
+    return new Response(String(url).includes("mirror.example") ? corruptBytes : bytes);
+  };
+  try {
+    const manager = new RuntimeDependencyManager(root, {
+      platform: "win32",
+      arch: "x64",
+      mattePackage: packageInfo,
+      fetchImpl,
+    });
+    assert.equal((await manager.status("matte")).state, "not-installed");
+
+    const progress = [];
+    const installed = await manager.install("matte", (entry) => progress.push(entry));
+
+    assert.equal(installed.state, "ready");
+    assert.equal(installed.id, "matte");
+    assert.equal(
+      await readFile(join(manager.paths.matteRoot, packageInfo.files[0].relativePath), "utf8"),
+      bytes.toString("utf8"),
+    );
+    assert.ok(progress.every((entry) => entry.id === "matte"));
+    assert.equal(progress.at(-1)?.phase, "complete");
+    assert.deepEqual(fetchCalls, packageInfo.files[0].urls);
+
+    await writeFile(
+      join(manager.paths.matteRoot, packageInfo.files[0].relativePath),
+      "corrupt",
+      "utf8",
+    );
+    const reloaded = new RuntimeDependencyManager(root, {
+      platform: "win32",
+      arch: "x64",
+      mattePackage: packageInfo,
+      fetchImpl,
+    });
+    assert.equal((await reloaded.status("matte")).state, "incomplete");
+  } finally {
     await rm(root, { recursive: true, force: true });
   }
 });

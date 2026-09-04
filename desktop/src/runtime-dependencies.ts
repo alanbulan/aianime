@@ -21,6 +21,10 @@ import {
   type InstalledWorldRuntimePaths,
 } from "./platform-runtime.js";
 import { COMMERCIAL_RUNTIME_DEPENDENCIES_URL } from "./commercial-api-client.js";
+import {
+  MatteRuntimeDependencyManager,
+  type MatteDependencyPackage,
+} from "./matte-runtime-dependency.js";
 
 const DEFAULT_RUNTIME_MANIFEST_BASE_URL =
   COMMERCIAL_RUNTIME_DEPENDENCIES_URL;
@@ -49,6 +53,13 @@ export const RUNTIME_DEPENDENCY_CHANNELS = {
   progress: "desktop:runtime-dependencies:progress",
 } as const;
 
+export type RuntimeDependencyId = "world" | "matte";
+
+export interface InstalledRuntimeDependencyPaths
+  extends InstalledWorldRuntimePaths {
+  matteRoot: string;
+}
+
 export interface RuntimeDependencyPackage {
   id: "world";
   version: string;
@@ -75,6 +86,7 @@ export type RuntimeDependencyPhase =
   | "complete";
 
 export interface RuntimeDependencyProgress {
+  id: RuntimeDependencyId;
   phase: RuntimeDependencyPhase;
   message: string;
   transferredBytes?: number;
@@ -83,7 +95,7 @@ export interface RuntimeDependencyProgress {
 }
 
 export interface RuntimeDependencyStatus {
-  id: "world";
+  id: RuntimeDependencyId;
   supported: boolean;
   installed: boolean;
   healthy: boolean;
@@ -323,21 +335,34 @@ async function checkRuntime(paths: InstalledWorldRuntimePaths): Promise<void> {
 }
 
 export class RuntimeDependencyManager {
-  readonly paths: InstalledWorldRuntimePaths;
+  readonly paths: InstalledRuntimeDependencyPaths;
   private readonly platform: NodeJS.Platform;
   private readonly arch: string;
   private readonly dependencyRoot: string;
-  private installing = false;
+  private readonly matte: MatteRuntimeDependencyManager;
+  private worldInstalling = false;
   private smokeCheck: { at: number; error: Error | null } | null = null;
   private smokeCheckInFlight: Promise<Error | null> | null = null;
 
   constructor(
     userDataPath: string,
-    options: { platform?: NodeJS.Platform; arch?: string } = {},
+    options: {
+      platform?: NodeJS.Platform;
+      arch?: string;
+      mattePackage?: MatteDependencyPackage;
+      fetchImpl?: typeof fetch;
+    } = {},
   ) {
     this.platform = options.platform ?? process.platform;
     this.arch = options.arch ?? process.arch;
-    this.paths = installedWorldRuntimePaths(userDataPath, this.platform);
+    const worldPaths = installedWorldRuntimePaths(userDataPath, this.platform);
+    this.matte = new MatteRuntimeDependencyManager(userDataPath, {
+      platform: this.platform,
+      arch: this.arch,
+      ...(options.mattePackage ? { packageInfo: options.mattePackage } : {}),
+      ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+    });
+    this.paths = { ...worldPaths, matteRoot: this.matte.paths.root };
     this.dependencyRoot = resolve(userDataPath, "dependencies", "world");
     const resolvedUserData = resolve(userDataPath);
     if (!this.dependencyRoot.startsWith(`${resolvedUserData}${sep}`)) {
@@ -345,12 +370,17 @@ export class RuntimeDependencyManager {
     }
   }
 
-  async status(): Promise<RuntimeDependencyStatus> {
+  async status(id: RuntimeDependencyId): Promise<RuntimeDependencyStatus> {
+    if (id === "matte") return await this.matte.status();
+    return await this.worldStatus();
+  }
+
+  private async worldStatus(): Promise<RuntimeDependencyStatus> {
     const supported = supportedPlatform(this.platform, this.arch);
     const base = {
       id: "world" as const,
       supported,
-      installing: this.installing,
+      installing: this.worldInstalling,
       platform: this.platform,
       arch: this.arch,
       accelerator: acceleratorLabel(this.platform, this.arch),
@@ -368,7 +398,7 @@ export class RuntimeDependencyManager {
         message,
       };
     }
-    if (this.installing) {
+    if (this.worldInstalling) {
       return {
         ...base,
         installed: existsSync(this.paths.root),
@@ -451,13 +481,25 @@ export class RuntimeDependencyManager {
   }
 
   async install(
+    id: RuntimeDependencyId,
     onProgress: (progress: RuntimeDependencyProgress) => void = () => undefined,
+  ): Promise<RuntimeDependencyStatus> {
+    if (id === "matte") {
+      return await this.matte.install((progress) =>
+        onProgress({ id: "matte", ...progress }),
+      );
+    }
+    return await this.installWorld(onProgress);
+  }
+
+  private async installWorld(
+    onProgress: (progress: RuntimeDependencyProgress) => void,
   ): Promise<RuntimeDependencyStatus> {
     if (!supportedPlatform(this.platform, this.arch)) {
       throw new Error("当前平台没有可安装的导演世界 3D 运行环境");
     }
-    if (this.installing) throw new Error("导演世界 3D 运行环境正在安装");
-    this.installing = true;
+    if (this.worldInstalling) throw new Error("导演世界 3D 运行环境正在安装");
+    this.worldInstalling = true;
     // The install replaces the very binaries the smoke check probes.
     this.smokeCheck = null;
     const nonce = `${process.pid}-${Date.now()}`;
@@ -467,24 +509,24 @@ export class RuntimeDependencyManager {
     let movedCurrent = false;
     try {
       await mkdir(this.dependencyRoot, { recursive: true });
-      onProgress({ phase: "manifest", message: "正在获取国内镜像安装清单…" });
+      onProgress({ id: "world", phase: "manifest", message: "正在获取国内镜像安装清单…" });
       const manifest = await this.fetchManifest();
       await this.downloadArchive(manifest.package, archivePath, onProgress);
 
-      onProgress({ phase: "verifying", message: "正在校验安装包完整性…" });
+      onProgress({ id: "world", phase: "verifying", message: "正在校验安装包完整性…" });
       const digest = await sha256File(archivePath);
       if (digest.toLowerCase() !== manifest.package.sha256.toLowerCase()) {
         throw new Error("运行环境安装包 SHA-256 校验失败");
       }
       await verifyArchiveEntries(archivePath, this.platform);
 
-      onProgress({ phase: "extracting", message: "正在解压运行环境…" });
+      onProgress({ id: "world", phase: "extracting", message: "正在解压运行环境…" });
       await mkdir(stagingPath, { recursive: true });
       await runProcess(tarExecutable(this.platform), ["-xzf", archivePath, "-C", stagingPath], {
         timeoutMs: 900_000,
       });
 
-      onProgress({ phase: "checking", message: "正在检查 3D 推理与转换组件…" });
+      onProgress({ id: "world", phase: "checking", message: "正在检查 3D 推理与转换组件…" });
       const stagingPaths = pathsAtRoot(stagingPath, this.platform);
       await checkRuntime(stagingPaths);
       const receipt: InstallReceipt = {
@@ -510,14 +552,14 @@ export class RuntimeDependencyManager {
       }
       await rename(stagingPath, this.paths.root);
       if (movedCurrent) await rm(previousPath, { recursive: true, force: true });
-      onProgress({ phase: "complete", message: "导演世界 3D 运行环境安装完成。", percent: 100 });
+      onProgress({ id: "world", phase: "complete", message: "导演世界 3D 运行环境安装完成。", percent: 100 });
     } catch (error) {
       if (movedCurrent && !existsSync(this.paths.root) && existsSync(previousPath)) {
         await rename(previousPath, this.paths.root).catch(() => undefined);
       }
       throw error;
     } finally {
-      this.installing = false;
+      this.worldInstalling = false;
       // Whether the install landed or rolled back, the previous verdict is
       // stale — the next status() must probe the binaries that are there now.
       this.smokeCheck = null;
@@ -525,7 +567,7 @@ export class RuntimeDependencyManager {
       await rm(stagingPath, { recursive: true, force: true }).catch(() => undefined);
       await rm(previousPath, { recursive: true, force: true }).catch(() => undefined);
     }
-    return await this.status();
+    return await this.worldStatus();
   }
 
   private async fetchManifest(): Promise<RuntimeDependencyManifest> {
@@ -561,6 +603,7 @@ export class RuntimeDependencyManager {
             await destination.write(value);
             transferredBytes += value.byteLength;
             onProgress({
+              id: "world",
               phase: "downloading",
               message: "正在从国内镜像下载 3D 运行环境…",
               transferredBytes,
@@ -613,6 +656,12 @@ export function registerRuntimeDependencyIpc(
     senderMainFrame?: unknown,
   ) => boolean,
 ): void {
+  const requireDependencyId = (value: unknown): RuntimeDependencyId => {
+    if (value !== "world" && value !== "matte") {
+      throw new Error("unknown runtime dependency");
+    }
+    return value;
+  };
   const requireAllowedSender = (event: IpcMainInvokeEvent): void => {
     if (!isAllowedSender(
       event.sender.id,
@@ -622,14 +671,15 @@ export function registerRuntimeDependencyIpc(
       throw new Error("runtime dependency sender is not the active desktop window");
     }
   };
-  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.status, async (event) => {
+  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.status, async (event, value) => {
     requireAllowedSender(event);
-    return await manager.status();
+    return await manager.status(requireDependencyId(value));
   });
-  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.install, async (event) => {
+  ipcMain.handle(RUNTIME_DEPENDENCY_CHANNELS.install, async (event, value) => {
     requireAllowedSender(event);
+    const id = requireDependencyId(value);
     const sender = event.sender;
-    return await manager.install((progress) => {
+    return await manager.install(id, (progress) => {
       if (!sender.isDestroyed()) {
         sender.send(RUNTIME_DEPENDENCY_CHANNELS.progress, progress);
       }

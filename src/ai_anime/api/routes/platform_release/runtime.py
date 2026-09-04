@@ -2,15 +2,26 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Request
-from fastapi.responses import PlainTextResponse
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ai_anime.api.routes.identity_access.dependencies import get_api_user
 from ai_anime.api.file_delivery import serve_project_file
+
+
+MATTE_RUNTIME_ASSETS = {
+    "models/Xenova/modnet/config.json": "application/json",
+    "models/Xenova/modnet/preprocessor_config.json": "application/json",
+    "models/Xenova/modnet/onnx/model_quantized.onnx": "application/octet-stream",
+    "models/Xenova/modnet/onnx/model_fp16.onnx": "application/octet-stream",
+    "runtime/ort-wasm-simd-threaded.asyncify.mjs": "text/javascript",
+    "runtime/ort-wasm-simd-threaded.asyncify.wasm": "application/wasm",
+}
 
 
 class SpaStaticFiles(StaticFiles):
@@ -40,6 +51,21 @@ def register_runtime_routes(application: FastAPI, *, desktop_mode: bool) -> None
             return {"ok": False}
         shutdown()
         return {"ok": True}
+
+    @application.get(
+        "/api/v1/runtime-dependencies/matte/{asset_path:path}",
+        include_in_schema=False,
+    )
+    async def desktop_matte_runtime_asset(asset_path: str) -> FileResponse:
+        media_type = MATTE_RUNTIME_ASSETS.get(asset_path)
+        root_value = os.environ.get("AI_ANIME_MATTE_RUNTIME_ROOT", "").strip()
+        if media_type is None or not root_value:
+            raise HTTPException(status_code=404, detail="matte runtime asset not found")
+        root = Path(root_value).resolve()
+        target = root.joinpath(*asset_path.split("/")).resolve()
+        if root not in target.parents or not target.is_file():
+            raise HTTPException(status_code=404, detail="matte runtime asset not found")
+        return FileResponse(target, media_type=media_type)
 
 
 def register_static_media_routes(application: FastAPI) -> None:
