@@ -35,7 +35,10 @@ import {
 import { COMMERCIAL_LEASE_SIGNING_KEYS } from "./commercial-trust.js";
 import { CommercialDesktopUpdater } from "./commercial-updater.js";
 import { COMMERCIAL_CHANNELS } from "./commercial-ipc.js";
-import { installDesktopSessionSecurity } from "./desktop-session-security.js";
+import {
+  DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
+  installDesktopSessionSecurity,
+} from "./desktop-session-security.js";
 import { appendModelRouteAudit } from "./model-route-audit.js";
 import {
   registerRuntimeDependencyIpc,
@@ -302,6 +305,7 @@ async function startApplication(): Promise<void> {
       backend,
       rendererOrigin: backend.baseUrl,
       getMainWindow: () => mainWindow,
+      additionalConnectSources: DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
     });
     registerRuntimeDependencyIpc(
       ipcMain,

@@ -879,6 +879,7 @@ export function regenerateExportImageNode(
     {
       aiGateway: freezoneAiGateway,
       generateRedraw: generateCanvasRedraw,
+      generateGridAction: generateCanvasGridAction,
     },
   );
 }

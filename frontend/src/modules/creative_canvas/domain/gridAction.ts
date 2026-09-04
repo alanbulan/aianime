@@ -36,6 +36,13 @@ const GRID_ACTION_TEMPLATE_MODE: Record<
   frameProjection5sEarlier: "image_projection_before_5s",
 };
 
+export function isGridActionKey(value: unknown): value is GridActionKey {
+  return (
+    typeof value === "string"
+    && Object.prototype.hasOwnProperty.call(GRID_ACTION_TEMPLATE_MODE, value)
+  );
+}
+
 export interface GridActionRequest {
   readonly nodeId: string;
   readonly key: GridActionKey;

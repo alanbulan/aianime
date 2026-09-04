@@ -48,7 +48,7 @@ let removerPromise: Promise<RemoveBackground> | null = null;
 
 function getRemover(): Promise<RemoveBackground> {
   if (!removerPromise) {
-    removerPromise = (async () => {
+    const loading = (async () => {
       const useGpu = await detectGpu();
       const remover = await pipeline('background-removal', MATTE_MODEL, {
         device: useGpu ? 'webgpu' : 'wasm',
@@ -56,6 +56,12 @@ function getRemover(): Promise<RemoveBackground> {
       });
       return remover as unknown as RemoveBackground;
     })();
+    removerPromise = loading;
+    void loading.catch(() => {
+      if (removerPromise === loading) {
+        removerPromise = null;
+      }
+    });
   }
   return removerPromise;
 }

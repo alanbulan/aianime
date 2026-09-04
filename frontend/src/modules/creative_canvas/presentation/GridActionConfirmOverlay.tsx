@@ -1,5 +1,5 @@
 // Copyright (c) 2026 AI anime
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { NodeToolbar as ReactFlowNodeToolbar, Position } from '@xyflow/react';
 import { ArrowUp, Image as ImageIcon, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,7 @@ import type {
   GridActionRequest,
 } from '../domain/gridAction';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
+import { inheritMainlineFields } from '../domain/inheritMainlineFields';
 import {
   clearGenerationTaskDescriptor,
   generationTaskDescriptor,
@@ -27,17 +28,21 @@ import type {
   GenerateCanvasGridActionResult,
 } from '../application/generateCanvasGridAction';
 import type { CanvasCatalogModelOption } from '../application/generationCatalog';
+import { ProviderModelPicker } from './ProviderModelPicker';
 
 
 export interface GridActionSubmitPayload {
   sourceNodeId: string;
-  imageSource: string;
+  sourceUrl: string;
   actionKey: GridActionKey;
   label: string;
   prompt: string;
   cost: number;
   generationMode: 'image_reference';
   requestAspectRatio: 'auto';
+  catalogModelId: string;
+  model: string;
+  modelSelector?: string;
   submittedAt: string;
 }
 
@@ -103,7 +108,10 @@ export function createGridActionConfirmOverlay({
       const findNodePosition = useStore((state) => state.findNodePosition);
       const updateNodeData = useStore((state) => state.updateNodeData);
       const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
-      const selectedModel = imageModels[0];
+      const [modelId, setModelId] = useState('');
+      const selectedModel =
+        imageModels.find((model) => model.id === modelId)
+        ?? imageModels[0];
 
       const handleSubmit = useCallback(async () => {
         if (!selectedModel) return;
@@ -118,18 +126,38 @@ export function createGridActionConfirmOverlay({
           EXPORT_RESULT_NODE_LAYOUT_HEIGHT
         );
         const generationStartedAt = Date.now();
-        const nextNodeId = addNode(
-          CANVAS_NODE_TYPES.exportImage,
-          position,
+        const submitPayload: GridActionSubmitPayload = {
+          sourceNodeId: node.id,
+          sourceUrl: imageSource,
+          actionKey: request.key,
+          label: request.label,
+          prompt: request.prompt,
+          cost: request.cost,
+          generationMode: 'image_reference',
+          requestAspectRatio: 'auto',
+          catalogModelId: selectedModel.id,
+          model: selectedModel.apiModel,
+          modelSelector: selectedModel.routeSelector,
+          submittedAt: new Date(generationStartedAt).toISOString(),
+        };
+        const initialData = inheritMainlineFields(
+          { data: node.data as Record<string, unknown> },
           {
             displayName: request.label,
             imageUrl: null,
             previewImageUrl: null,
             aspectRatio: sourceAspectRatio,
-            resultKind: 'generic',
+            resultKind: 'generic' as const,
             isGenerating: true,
             generationStartedAt,
-          }
+            generationDurationMs: 60000,
+            gridActionRequest: submitPayload,
+          },
+        );
+        const nextNodeId = addNode(
+          CANVAS_NODE_TYPES.exportImage,
+          position,
+          initialData as unknown as Parameters<typeof addNode>[2],
         );
         addEdge(node.id, nextNodeId);
         setSelectedNode(nextNodeId);
@@ -140,11 +168,11 @@ export function createGridActionConfirmOverlay({
           const { url } = await generateCanvasGridAction(
             {
               projectId,
-              sourceUrl: imageSource,
-              actionKey: request.key,
-              prompt: request.label,
-              model: selectedModel.apiModel,
-              modelSelector: selectedModel.routeSelector,
+              sourceUrl: submitPayload.sourceUrl,
+              actionKey: submitPayload.actionKey,
+              prompt: submitPayload.prompt,
+              model: submitPayload.model,
+              modelSelector: submitPayload.modelSelector,
             },
             (task) => {
               taskKey = task.task_key;
@@ -209,12 +237,19 @@ export function createGridActionConfirmOverlay({
               <ImageIcon className="h-3.5 w-3.5 shrink-0 text-text-muted" />
               <span className="truncate font-medium">{request.label}</span>
             </div>
+            <ProviderModelPicker
+              selectedModelId={modelId}
+              onChange={setModelId}
+              models={imageModels}
+              imageMode="edit"
+            />
             <button
               type="button"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90"
               onClick={handleSubmit}
               disabled={!selectedModel}
               data-ui-tooltip={t('nodeToolbar.gridMenu.confirmBar.submit')}
+              aria-label={t('nodeToolbar.gridMenu.confirmBar.submit')}
             >
               <ArrowUp className="h-4 w-4" />
             </button>

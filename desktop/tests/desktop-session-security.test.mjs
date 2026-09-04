@@ -3,15 +3,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { installDesktopSessionSecurity } from "../src/desktop-session-security.ts";
+import {
+  DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
+  installDesktopSessionSecurity,
+} from "../src/desktop-session-security.ts";
 
-function createPermissionHarness() {
+function createPermissionHarness(additionalConnectSources = []) {
   let checkPermission;
   let requestPermission;
+  let receiveHeaders;
   const targetSession = {
     webRequest: {
       onBeforeSendHeaders() {},
-      onHeadersReceived() {},
+      onHeadersReceived(_filter, handler) {
+        receiveHeaders = handler;
+      },
     },
     setPermissionCheckHandler(handler) {
       checkPermission = handler;
@@ -34,9 +40,10 @@ function createPermissionHarness() {
     },
     rendererOrigin: "http://127.0.0.1:5173",
     getMainWindow: () => window,
+    additionalConnectSources,
   });
 
-  return { checkPermission, requestPermission };
+  return { checkPermission, requestPermission, receiveHeaders };
 }
 
 function requestDecision(handler, permission, details, senderId = 42) {
@@ -113,4 +120,20 @@ test("fullscreen remains blocked for subframes, other windows, and other origins
     ),
     false,
   );
+});
+
+test("matte model hosts are present in the renderer content security policy", () => {
+  const { receiveHeaders } = createPermissionHarness(
+    DESKTOP_MATTE_MODEL_CONNECT_SOURCES,
+  );
+  let response;
+  receiveHeaders({ responseHeaders: {} }, (value) => {
+    response = value;
+  });
+
+  const policy = response.responseHeaders["Content-Security-Policy"][0];
+  assert.match(policy, /connect-src [^;]*blob:/);
+  assert.match(policy, /connect-src [^;]*https:\/\/huggingface\.co/);
+  assert.match(policy, /connect-src [^;]*https:\/\/\*\.huggingface\.co/);
+  assert.match(policy, /connect-src [^;]*https:\/\/\*\.hf\.co/);
 });

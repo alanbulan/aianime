@@ -2,6 +2,13 @@ import type { BrowserWindow, Session } from "electron";
 
 import { isSameOrigin } from "./desktop-runtime-contracts.js";
 
+export const DESKTOP_MATTE_MODEL_CONNECT_SOURCES = [
+  "blob:",
+  "https://huggingface.co",
+  "https://*.huggingface.co",
+  "https://*.hf.co",
+] as const;
+
 interface BackendSecurityTarget {
   readonly baseUrl: string;
   readonly tokenHeader: string;

@@ -10,6 +10,10 @@ import type {
   GenerateCanvasRedrawParams,
   GenerateCanvasRedrawResult,
 } from "./generateCanvasRedraw";
+import type {
+  GenerateCanvasGridActionParams,
+  GenerateCanvasGridActionResult,
+} from "./generateCanvasGridAction";
 import {
   clearGenerationTaskDescriptor,
   generationTaskDescriptor,
@@ -20,6 +24,7 @@ import {
   type CanvasRedrawAspectRatio,
   type CanvasRedrawImageSize,
 } from "../domain/redraw";
+import { isGridActionKey, type GridActionKey } from "../domain/gridAction";
 
 /**
  * Params persisted on an export node created by the 擦除 / 重绘 flow, so a failed
@@ -30,6 +35,14 @@ interface FreezoneRedrawRequest {
   maskUrl: string;
   aspectRatio: CanvasRedrawAspectRatio;
   imageSize: CanvasRedrawImageSize;
+  model: string;
+  modelSelector?: string;
+}
+
+interface FreezoneGridActionRequest {
+  sourceUrl: string;
+  actionKey: GridActionKey;
+  prompt: string;
   model: string;
   modelSelector?: string;
 }
@@ -52,6 +65,10 @@ export interface RegenerateExportImageNodeDependencies {
     params: GenerateCanvasRedrawParams,
     onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
   ) => Promise<GenerateCanvasRedrawResult>;
+  readonly generateGridAction: (
+    params: GenerateCanvasGridActionParams,
+    onTaskSubmitted: (task: CanvasGenerationTaskRef) => void,
+  ) => Promise<GenerateCanvasGridActionResult>;
 }
 
 function readFreezoneRedrawRequest(
@@ -75,6 +92,35 @@ function readFreezoneRedrawRequest(
     model: req.model.trim(),
     ...(typeof req.modelSelector === "string" && req.modelSelector.trim()
       ? { modelSelector: req.modelSelector.trim() }
+      : {}),
+  };
+}
+
+function readFreezoneGridActionRequest(
+  data: Record<string, unknown>,
+): FreezoneGridActionRequest | undefined {
+  const request = data.gridActionRequest as
+    | Partial<FreezoneGridActionRequest>
+    | undefined;
+  if (
+    !request
+    || typeof request.sourceUrl !== "string"
+    || !request.sourceUrl.trim()
+    || !isGridActionKey(request.actionKey)
+    || typeof request.prompt !== "string"
+    || !request.prompt.trim()
+    || typeof request.model !== "string"
+    || !request.model.trim()
+  ) {
+    return undefined;
+  }
+  return {
+    sourceUrl: request.sourceUrl,
+    actionKey: request.actionKey,
+    prompt: request.prompt,
+    model: request.model.trim(),
+    ...(typeof request.modelSelector === "string" && request.modelSelector.trim()
+      ? { modelSelector: request.modelSelector.trim() }
       : {}),
   };
 }
@@ -134,6 +180,62 @@ async function regenerateFreezoneRedrawNode(
   }
 }
 
+async function regenerateFreezoneGridActionNode(
+  params: RegenerateExportImageNodeParams,
+  request: FreezoneGridActionRequest,
+  generateGridAction: RegenerateExportImageNodeDependencies["generateGridAction"],
+): Promise<void> {
+  const { nodeId, projectId, updateNodeData } = params;
+  updateNodeData(nodeId, {
+    ...clearGenerationTaskDescriptor(
+      typeof params.nodeData.generationTaskKey === "string"
+        ? params.nodeData.generationTaskKey
+        : null,
+    ),
+    isGenerating: true,
+    generationStartedAt: Date.now(),
+    generationError: null,
+    generationErrorDetails: null,
+  });
+
+  let taskKey: string | null = null;
+  try {
+    const { url } = await generateGridAction(
+      {
+        projectId,
+        sourceUrl: request.sourceUrl,
+        actionKey: request.actionKey,
+        prompt: request.prompt,
+        model: request.model,
+        modelSelector: request.modelSelector,
+      },
+      (task) => {
+        taskKey = task.task_key;
+        updateNodeData(nodeId, generationTaskDescriptor(task));
+      },
+    );
+    updateNodeData(nodeId, {
+      ...clearGenerationTaskDescriptor(taskKey),
+      imageUrl: url,
+      previewImageUrl: url,
+      isGenerating: false,
+      generationStartedAt: null,
+      generationError: null,
+      generationErrorDetails: null,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[regenerate] grid action failed", error);
+    updateNodeData(nodeId, {
+      ...clearGenerationTaskDescriptor(taskKey),
+      isGenerating: false,
+      generationStartedAt: null,
+      generationError: message,
+      generationErrorDetails: message,
+    });
+  }
+}
+
 /**
  * Re-submit the generation that produced an export-result node, after it failed.
  *
@@ -165,6 +267,16 @@ export async function regenerateExportImageNode(
       params,
       freezoneRequest,
       dependencies.generateRedraw,
+    );
+    return;
+  }
+
+  const gridActionRequest = readFreezoneGridActionRequest(nodeData);
+  if (gridActionRequest) {
+    await regenerateFreezoneGridActionNode(
+      params,
+      gridActionRequest,
+      dependencies.generateGridAction,
     );
     return;
   }
@@ -227,5 +339,6 @@ export function canRegenerateExportImageNode(
   return (
     Boolean(data.generationRequestPayload)
     || Boolean(readFreezoneRedrawRequest(data))
+    || Boolean(readFreezoneGridActionRequest(data))
   );
 }
