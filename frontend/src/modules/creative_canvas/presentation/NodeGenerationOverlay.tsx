@@ -31,13 +31,18 @@ export function NodeGenerationOverlay({
       className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center overflow-hidden ${rounded}`}
     >
       <div className="relative flex w-4/5 max-w-52 flex-col items-center gap-2 rounded-lg bg-media/60 px-3 py-3 text-center [container-type:inline-size]">
-          <div className="flex items-baseline leading-none text-media-foreground">
-            <span className="text-[clamp(18px,20cqw,34px)] font-semibold tabular-nums tracking-tight">
-              {displayProgress.percent}
-            </span>
-            <span className="ml-1 text-[15px] font-medium text-media-foreground/70">%</span>
-          </div>
-        <span className="text-[10px] text-media-foreground/80">{t('taskProgress.estimated', { percent: displayProgress.percent })}</span>
+        <div
+          className="flex items-baseline gap-1 leading-none text-media-foreground"
+          aria-label={t('taskProgress.estimated', { percent: displayProgress.percent })}
+        >
+          <span className="text-[10px] font-medium text-media-foreground/80">
+            {t('taskProgress.estimatedLabel')}
+          </span>
+          <span className="text-[clamp(18px,20cqw,34px)] font-semibold tabular-nums tracking-tight">
+            {displayProgress.percent}
+          </span>
+          <span className="text-[15px] font-medium text-media-foreground/70">%</span>
+        </div>
         <Progress value={displayProgress.value} active={displayProgress.active} aria-label={t(messageKey)} className="w-full" />
         <TaskProgressFeedback progress={displayProgress} showPercent={false} className="justify-center text-media-foreground/80" />
       </div>

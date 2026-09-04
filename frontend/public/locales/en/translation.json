@@ -4438,6 +4438,7 @@
   "taskProgress": {
     "snapshot": "Last reported {{percent}}%",
     "estimated": "Estimated {{percent}}%",
+    "estimatedLabel": "Estimated",
     "elapsed": "Elapsed {{time}}",
     "reconnecting": "Connection lost. Reconnecting…",
     "processing": "Still processing, please wait"

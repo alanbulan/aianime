@@ -22,11 +22,13 @@ describe('NodeGenerationOverlay', () => {
     expect(Number(screen.getByRole('progressbar').getAttribute('aria-valuenow'))).toBeGreaterThan(33);
   });
 
-  it('shows an explicit estimate and elapsed feedback while no numeric report is available', () => {
+  it('shows one estimated progress value and elapsed feedback while no numeric report is available', () => {
     render(<NodeGenerationOverlay progress={null} />);
 
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '8');
-    expect(screen.getByText('taskProgress.estimated')).toBeInTheDocument();
+    expect(screen.getByText('taskProgress.estimatedLabel')).toBeInTheDocument();
+    expect(screen.getByText('8.0')).toBeInTheDocument();
+    expect(screen.queryByText('taskProgress.estimated')).not.toBeInTheDocument();
     expect(screen.getByText('taskProgress.elapsed')).toBeInTheDocument();
     expect(screen.queryByText('96')).not.toBeInTheDocument();
   });

@@ -4438,6 +4438,7 @@
   "taskProgress": {
     "snapshot": "上次记录 {{percent}}%",
     "estimated": "预计 {{percent}}%",
+    "estimatedLabel": "预计进度",
     "elapsed": "已用 {{time}}",
     "reconnecting": "连接中断，正在重连…",
     "processing": "仍在处理，请稍候"
