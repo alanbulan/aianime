@@ -207,6 +207,8 @@ async function regenerateFreezoneGridActionNode(
     const { url } = await generateGridAction(
       {
         projectId,
+        canvasId: params.canvasId,
+        nodeId,
         sourceUrl: request.sourceUrl,
         actionKey: request.actionKey,
         prompt: request.prompt,

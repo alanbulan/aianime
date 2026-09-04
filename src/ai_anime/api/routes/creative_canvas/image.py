@@ -264,6 +264,8 @@ async def freezone_template_edit(
         style=body.style,
         model=body.model,
         quality=body.quality or "medium",
+        canvas_id=body.canvas_id or None,
+        node_id=body.node_id or None,
         model_id=body.model_id,
     )
 

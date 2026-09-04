@@ -12,6 +12,8 @@ import {
 import type { CanvasImageSourcePreparationGateway } from "./prepareCanvasImageSource";
 
 export interface CanvasGridActionGenerationCommand {
+  readonly canvasId: string;
+  readonly nodeId: string;
   readonly sourceUrl: string;
   readonly mode: CanvasTemplateEditMode;
   readonly prompt: string;
@@ -28,6 +30,8 @@ export interface CanvasGridActionGenerationGateway {
 
 export interface GenerateCanvasGridActionParams {
   readonly projectId: string;
+  readonly canvasId: string;
+  readonly nodeId: string;
   readonly sourceUrl: string;
   readonly actionKey: GridActionKey;
   readonly prompt: string;
@@ -56,6 +60,8 @@ export async function generateCanvasGridAction(
     params.sourceUrl,
   );
   const task = await dependencies.submissionGateway.submit(params.projectId, {
+    canvasId: params.canvasId,
+    nodeId: params.nodeId,
     sourceUrl,
     mode: resolveGridActionTemplateMode(params.actionKey),
     prompt: params.prompt,

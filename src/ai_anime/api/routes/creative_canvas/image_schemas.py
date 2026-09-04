@@ -184,6 +184,14 @@ class FreezoneTemplateEditRequest(BaseModel):
     """
 
     source_url: str = Field(description="源图静态地址，作为图生图的 base 图")
+    canvas_id: str = Field(
+        default="",
+        description="可选来源画布 id。用于后端按节点记录生成历史；为空时不记录节点历史。",
+    )
+    node_id: str = Field(
+        default="",
+        description="可选结果节点 id。用于后端按节点记录生成历史；为空时不记录节点历史。",
+    )
     mode: Literal[
         "multi_camera_nine_grid",
         "story_pitch_four_grid",

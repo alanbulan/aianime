@@ -636,6 +636,7 @@ export const SelectedNodeOverlay = memo(({
       {gridActionRequest && gridActionNode && gridActionImageSource && (
         <GridActionConfirmOverlay
           projectId={projectId}
+          canvasId={canvasId}
           node={gridActionNode}
           imageSource={gridActionImageSource}
           request={gridActionRequest}

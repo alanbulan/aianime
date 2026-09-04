@@ -169,6 +169,8 @@ describe('regenerateExportImageNode', () => {
     expect(generateGridAction).toHaveBeenCalledWith(
       {
         projectId: 'proj',
+        canvasId: 'canvas-a',
+        nodeId: 'export-node',
         actionKey: 'multiCameraGrid',
         model: 'cloud-image-standard',
         modelSelector: 'edit-route',

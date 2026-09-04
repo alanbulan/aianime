@@ -20,6 +20,8 @@ describe("freezoneGridActionGenerationGateway", () => {
     };
     vi.mocked(apiCall).mockResolvedValue(task);
     const command = {
+      canvasId: "canvas-1",
+      nodeId: "result-1",
       sourceUrl: "/static/source.png",
       mode: "storyboard_25_grid" as const,
       prompt: "Storyboard 25-grid",
@@ -34,6 +36,8 @@ describe("freezoneGridActionGenerationGateway", () => {
       {
         method: "POST",
         json: {
+          canvas_id: "canvas-1",
+          node_id: "result-1",
           source_url: "/static/source.png",
           mode: "storyboard_25_grid",
           prompt: "Storyboard 25-grid",

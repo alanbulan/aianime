@@ -84,6 +84,7 @@ describe('GridActionConfirmOverlay', () => {
     render(
       <GridActionConfirmOverlay
         projectId="project-1"
+        canvasId="canvas-1"
         node={sourceNode}
         imageSource="/static/source.png"
         request={{
@@ -105,6 +106,8 @@ describe('GridActionConfirmOverlay', () => {
     expect(generateCanvasGridAction).toHaveBeenCalledWith(
       {
         projectId: 'project-1',
+        canvasId: 'canvas-1',
+        nodeId: 'grid-result',
         sourceUrl: '/static/source.png',
         actionKey: 'multiCameraGrid',
         prompt: 'Create nine coherent camera views of the same subject.',

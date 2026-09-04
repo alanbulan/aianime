@@ -11,6 +11,8 @@ export const freezoneGridActionGenerationGateway: CanvasGridActionGenerationGate
       {
         method: "POST",
         json: {
+          canvas_id: command.canvasId,
+          node_id: command.nodeId,
           source_url: command.sourceUrl,
           mode: command.mode,
           prompt: command.prompt,

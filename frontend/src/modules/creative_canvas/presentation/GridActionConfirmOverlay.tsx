@@ -82,6 +82,7 @@ export type GridActionConfirmOverlayGenerateGridAction = (
 
 interface GridActionConfirmOverlayProps {
   projectId: string;
+  canvasId: string;
   node: CanvasNode;
   imageSource: string;
   request: GridActionRequest;
@@ -100,6 +101,7 @@ export function createGridActionConfirmOverlay({
   return memo(
     ({
       projectId,
+      canvasId,
       node,
       imageSource,
       request,
@@ -179,6 +181,8 @@ export function createGridActionConfirmOverlay({
           const { url } = await generateCanvasGridAction(
             {
               projectId,
+              canvasId,
+              nodeId: nextNodeId,
               sourceUrl: submitPayload.sourceUrl,
               actionKey: submitPayload.actionKey,
               prompt: submitPayload.prompt,
@@ -216,6 +220,7 @@ export function createGridActionConfirmOverlay({
         node,
         onClose,
         projectId,
+        canvasId,
         request,
         selectedModel,
         setSelectedNode,

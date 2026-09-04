@@ -30,6 +30,8 @@ describe("generateCanvasGridAction", () => {
       generateCanvasGridAction(
         {
           projectId: "project-1",
+          canvasId: "canvas-1",
+          nodeId: "result-1",
           sourceUrl: "data:image/png;base64,eA==",
           actionKey: "plotFourGrid",
           prompt: "Plot four-grid",
@@ -43,6 +45,8 @@ describe("generateCanvasGridAction", () => {
       "data:image/png;base64,eA==",
     );
     expect(submissionGateway.submit).toHaveBeenCalledWith("project-1", {
+      canvasId: "canvas-1",
+      nodeId: "result-1",
       sourceUrl: "/static/source.png",
       mode: "story_pitch_four_grid",
       prompt: "Plot four-grid",

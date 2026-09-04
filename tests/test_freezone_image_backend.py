@@ -6768,6 +6768,8 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
 
     body = FreezoneTemplateEditRequest(
         source_url="/static/admin/59/freezone/_uploads/portrait.png",
+        canvas_id="canvas-1",
+        node_id="result-node-1",
         mode="image_projection_after_3s",
         model="cloud-image-standard",
         quality="high",
@@ -6785,6 +6787,8 @@ async def test_template_edit_projection_preserves_source_aspect_ratio(
     assert captured["image_size"] == "original"
     assert captured["preserve_source_dimensions"] is True
     assert captured["quality"] == "high"
+    assert captured["canvas_id"] == "canvas-1"
+    assert captured["node_id"] == "result-node-1"
     assert "Preserve the source image aspect ratio" in captured["prompt"]
     assert "Within the same frame size" in captured["prompt"]
     assert "different action phase" in captured["prompt"]
