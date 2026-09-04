@@ -2129,6 +2129,7 @@ export {
 export type {
   CanvasDerivedExportNodeInput,
   CanvasDerivedExportNodeOptions,
+  CanvasStoryboardSplitParameters,
   DerivedCreatedNode,
   DerivedGraphNode,
   DerivedNodeFactory,

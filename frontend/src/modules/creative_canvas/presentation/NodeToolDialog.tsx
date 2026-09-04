@@ -25,7 +25,10 @@ import type {
 } from '../domain/canvasTool';
 import type { CanvasNode, CanvasNodeData } from '../domain/canvasNodeData';
 import type { StoryboardFrameItem } from '../domain/storyboard';
-import type { CanvasDerivedExportNodeOptions } from '../application/canvasDerivedNodeCreation';
+import type {
+  CanvasDerivedExportNodeOptions,
+  CanvasStoryboardSplitParameters,
+} from '../application/canvasDerivedNodeCreation';
 import type { PreparedNodeImage } from '../application/imagePreparation';
 
 import { UiButton, UiModal } from '@/components/ui';
@@ -56,6 +59,7 @@ export interface NodeToolDialogStore {
     cols: number,
     frames: StoryboardFrameItem[],
     frameAspectRatio?: string,
+    parameters?: CanvasStoryboardSplitParameters,
   ) => string | null;
   updateNodeData: (id: string, patch: Partial<CanvasNodeData>) => void;
   addEdge: (sourceId: string, targetId: string) => void;
@@ -299,7 +303,11 @@ export function createNodeToolDialog({
             result.rows,
             result.cols,
             uploadedFrames,
-            result.frameAspectRatio
+            result.frameAspectRatio,
+            {
+              lineThicknessPercent: result.lineThicknessPercent,
+              lineThicknessPx: result.lineThicknessPx,
+            },
           );
           if (createdNodeId) {
             addEdge(sourceNode.id, createdNodeId);
@@ -359,6 +367,7 @@ export function createNodeToolDialog({
       addStoryboardSplitNode,
       addDerivedExportNode,
       addEdge,
+      updateNodeData,
       closeDialog,
       resolveResultNodeTitle,
       t,

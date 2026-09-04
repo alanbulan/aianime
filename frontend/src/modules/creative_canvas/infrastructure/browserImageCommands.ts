@@ -1,4 +1,6 @@
 // Copyright (c) 2026 AI anime
+import { resolveImageSplitLayout } from '../domain/toolImageGeometry';
+
 export interface MergeStoryboardImagesPayload {
   frameSources: string[];
   rows: number;
@@ -145,32 +147,39 @@ export async function splitImageSource(
   source: string,
   rows: number,
   cols: number,
-  _lineThickness = 0,
+  lineThickness = 0,
 ): Promise<string[]> {
   const image = await loadImageElement(source);
-  const cellWidth = Math.floor(image.naturalWidth / cols);
-  const cellHeight = Math.floor(image.naturalHeight / rows);
+  const layout = resolveImageSplitLayout(
+    image.naturalWidth,
+    image.naturalHeight,
+    rows,
+    cols,
+    lineThickness,
+  );
+  if (!layout) {
+    throw new Error('分隔线过粗，无法完成分格抽取');
+  }
+
   const outputs: string[] = [];
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      const canvas = document.createElement('canvas');
-      canvas.width = cellWidth;
-      canvas.height = cellHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('canvas is unavailable');
-      ctx.drawImage(
-        image,
-        col * cellWidth,
-        row * cellHeight,
-        cellWidth,
-        cellHeight,
-        0,
-        0,
-        cellWidth,
-        cellHeight,
-      );
-      outputs.push(canvasToPng(canvas));
-    }
+  for (const rect of layout.cellRects) {
+    const canvas = document.createElement('canvas');
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas is unavailable');
+    ctx.drawImage(
+      image,
+      rect.x,
+      rect.y,
+      rect.width,
+      rect.height,
+      0,
+      0,
+      rect.width,
+      rect.height,
+    );
+    outputs.push(canvasToPng(canvas));
   }
   return outputs;
 }

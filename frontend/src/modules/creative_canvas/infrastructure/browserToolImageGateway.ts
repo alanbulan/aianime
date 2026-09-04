@@ -8,10 +8,6 @@ import type { CanvasToolImageGateway } from '../application/canvasToolProcessor'
 import { parseAspectRatio } from '../domain/aspectRatio';
 import { parseAnnotationItems } from '../domain/canvasAnnotationCodec';
 import { reduceAspectRatio } from '../domain/imageData';
-import {
-  resolveMaxAllowedLineThickness,
-  splitIntoSegments,
-} from '../domain/toolImageGeometry';
 import { drawAnnotations } from './browserCanvasAnnotationRenderer';
 import {
   browserImageRuntimeGateway,
@@ -174,84 +170,6 @@ async function annotateImage(
   return canvasToDataUrl(canvas);
 }
 
-async function splitImageLocally(
-  sourceImage: string,
-  rows: number,
-  cols: number,
-  lineThickness: number,
-): Promise<string[]> {
-  const image = await loadImageElement(sourceImage);
-  const maxAllowedLine = resolveMaxAllowedLineThickness(
-    image.naturalWidth,
-    image.naturalHeight,
-    rows,
-    cols,
-  );
-  const resolvedLineThickness = Math.min(
-    Math.max(0, lineThickness),
-    maxAllowedLine,
-  );
-
-  const usableWidth = image.naturalWidth - (cols - 1) * resolvedLineThickness;
-  const usableHeight = image.naturalHeight - (rows - 1) * resolvedLineThickness;
-  if (usableWidth < cols || usableHeight < rows) {
-    throw new Error('分隔线过粗，无法完成分格抽取');
-  }
-
-  const columnWidths = splitIntoSegments(usableWidth, cols);
-  const rowHeights = splitIntoSegments(usableHeight, rows);
-  const yOffsets: number[] = [];
-  let yCursor = 0;
-  for (let row = 0; row < rows; row += 1) {
-    yOffsets.push(yCursor);
-    yCursor += rowHeights[row];
-    if (row < rows - 1) {
-      yCursor += resolvedLineThickness;
-    }
-  }
-
-  const xOffsets: number[] = [];
-  let xCursor = 0;
-  for (let col = 0; col < cols; col += 1) {
-    xOffsets.push(xCursor);
-    xCursor += columnWidths[col];
-    if (col < cols - 1) {
-      xCursor += resolvedLineThickness;
-    }
-  }
-
-  const results: string[] = [];
-  for (let row = 0; row < rows; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      const targetWidth = columnWidths[col];
-      const targetHeight = rowHeights[row];
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-
-      const context = canvas.getContext('2d');
-      if (!context) {
-        throw new Error('无法初始化画布');
-      }
-
-      context.drawImage(
-        image,
-        xOffsets[col],
-        yOffsets[row],
-        targetWidth,
-        targetHeight,
-        0,
-        0,
-        targetWidth,
-        targetHeight,
-      );
-      results.push(canvasToDataUrl(canvas));
-    }
-  }
-
-  return results;
-}
-
 export const browserToolImageGateway: CanvasToolImageGateway = {
   crop: cropImage,
   annotate: annotateImage,
@@ -261,7 +179,6 @@ export const browserToolImageGateway: CanvasToolImageGateway = {
     return reduceAspectRatio(dimensions.width, dimensions.height);
   },
   getDimensions: browserImageRuntimeGateway.getDimensions,
-  splitLocally: splitImageLocally,
   readStoryboardMetadata: async (sourceImage) => {
     try {
       const metadata = await readStoryboardImageMetadata(sourceImage);

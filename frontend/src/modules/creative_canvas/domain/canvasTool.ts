@@ -12,6 +12,8 @@ export interface CanvasToolResult {
   rows?: number;
   cols?: number;
   frameAspectRatio?: string;
+  lineThicknessPercent?: number;
+  lineThicknessPx?: number;
 }
 
 interface ToolFieldBase {

@@ -104,7 +104,10 @@ describe('Canvas derived node creation', () => {
   });
 
   it('creates a storyboard split using the first frame aspect ratio', () => {
-    const source = node('source', 'uploadNode');
+    const source = node('source', 'uploadNode', {
+      mainline_context: [{ project_id: 'project-1' }],
+      slot_target: { project_id: 'project-1', episode: 1, beat: 2, slot: 'render' },
+    });
     const frames: StoryboardFrameItem[] = [
       {
         id: 'frame',
@@ -122,6 +125,7 @@ describe('Canvas derived node creation', () => {
       frames,
       undefined,
       factory(),
+      { lineThicknessPercent: 0.5, lineThicknessPx: 6 },
     );
     const size = resolveStoryboardSplitNodeDimensions(2, 3, '9:16');
 
@@ -133,7 +137,12 @@ describe('Canvas derived node creation', () => {
         frames,
         aspectRatio: '9:16',
         frameAspectRatio: '9:16',
+        splitLineThicknessPercent: 0.5,
+        splitLineThicknessPx: 6,
         exportOptions: createDefaultStoryboardExportOptions(),
+        mainline_context: source.data.mainline_context,
+        slot_target: source.data.slot_target,
+        user_spawned: true,
       },
       width: size.width,
       height: size.height,

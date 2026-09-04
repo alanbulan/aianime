@@ -17,7 +17,6 @@ const nextId = vi.fn();
 const persistImage = vi.fn();
 const readStoryboardMetadata = vi.fn();
 const splitImage = vi.fn();
-const splitImageLocally = vi.fn();
 
 const splitGateway: CanvasImageSplitGateway = {
   split: (sourceImage, rows, cols, lineThickness) =>
@@ -32,8 +31,6 @@ const imageGateway: CanvasToolImageGateway = {
   persist: (sourceImage) => persistImage(sourceImage),
   readStoryboardMetadata: (sourceImage) =>
     readStoryboardMetadata(sourceImage),
-  splitLocally: (sourceImage, rows, cols, lineThickness) =>
-    splitImageLocally(sourceImage, rows, cols, lineThickness),
 };
 
 const idGenerator: CanvasToolIdGenerator = {
@@ -59,7 +56,6 @@ describe('CanvasToolProcessor', () => {
       .mockImplementation(async (sourceImage: string) => `persisted:${sourceImage}`);
     readStoryboardMetadata.mockReset().mockResolvedValue(null);
     splitImage.mockReset().mockResolvedValue([]);
-    splitImageLocally.mockReset().mockResolvedValue([]);
   });
 
   it('delegates crop without exposing browser drawing to application', async () => {
@@ -101,11 +97,12 @@ describe('CanvasToolProcessor', () => {
     );
 
     expect(splitImage).toHaveBeenCalledWith('storyboard-image', 2, 2, 6);
-    expect(splitImageLocally).not.toHaveBeenCalled();
     expect(detectAspectRatio).toHaveBeenCalledWith('persisted:a');
     expect(result).toEqual({
       cols: 2,
       frameAspectRatio: '4:3',
+      lineThicknessPercent: 1,
+      lineThicknessPx: 6,
       rows: 2,
       storyboardFrames: [
         {
@@ -144,30 +141,28 @@ describe('CanvasToolProcessor', () => {
     });
   });
 
-  it('uses the browser split fallback and ratio fallback when primary processing fails', async () => {
+  it('reports the canonical splitter failure instead of switching implementations', async () => {
     splitImage.mockRejectedValue(new Error('primary split unavailable'));
-    splitImageLocally.mockResolvedValue(['fallback-frame']);
-    detectAspectRatio.mockRejectedValue(new Error('ratio unavailable'));
+
+    await expect(
+      processor.process(
+        NODE_TOOL_TYPES.splitStoryboard,
+        'storyboard-image',
+        { cols: 3, lineThickness: 4, rows: 2 },
+      ),
+    ).rejects.toThrow('primary split unavailable');
+  });
+
+  it('clamps the legacy pixel thickness before both export and persistence', async () => {
+    getDimensions.mockResolvedValue({ height: 8, width: 10 });
 
     const result = await processor.process(
       NODE_TOOL_TYPES.splitStoryboard,
       'storyboard-image',
-      { cols: 3, lineThickness: 4, rows: 2 },
+      { cols: 3, lineThickness: 99, rows: 2 },
     );
 
-    expect(getDimensions).not.toHaveBeenCalled();
-    expect(splitImageLocally).toHaveBeenCalledWith(
-      'storyboard-image',
-      2,
-      3,
-      4,
-    );
-    expect(result.frameAspectRatio).toBe('3:2');
-    expect(result.storyboardFrames?.[0]).toEqual(
-      expect.objectContaining({
-        aspectRatio: '3:2',
-        imageUrl: 'persisted:fallback-frame',
-      }),
-    );
+    expect(splitImage).toHaveBeenCalledWith('storyboard-image', 2, 3, 3);
+    expect(result.lineThicknessPx).toBe(3);
   });
 });

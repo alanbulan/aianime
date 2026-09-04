@@ -6,7 +6,7 @@ import { type StoryboardFrameItem } from '../domain/storyboard';
 import { type CanvasEdge, type CanvasNode, type CanvasNodeData } from '../domain/canvasNodeData';
 import { type NodeFactory } from '../application/canvasGraphPorts';
 import { createPanoCaptureNodes, type CanvasPanoCapture, type CanvasPanoCaptureOptions, type PanoCaptureGraphEdge, type PanoCaptureGraphNode, type PanoCaptureNodeFactory } from '../application/panoCaptureNodes';
-import { createCanvasDerivedExportNode, createCanvasDerivedUploadNode, createCanvasStoryboardSplitNode, type CanvasDerivedExportNodeOptions, type DerivedGraphNode, type DerivedNodeFactory } from '../application/canvasDerivedNodeCreation';
+import { createCanvasDerivedExportNode, createCanvasDerivedUploadNode, createCanvasStoryboardSplitNode, type CanvasDerivedExportNodeOptions, type CanvasStoryboardSplitParameters, type DerivedGraphNode, type DerivedNodeFactory } from '../application/canvasDerivedNodeCreation';
 import { duplicateCanvasNodeAsSibling, duplicateCanvasNodesAsSiblings, type DuplicationGraphEdge, type DuplicationGraphNode, type DuplicationNodeFactory } from '../application/canvasNodeDuplication';
 
 import type { Viewport } from '@xyflow/react';
@@ -38,6 +38,7 @@ export interface CanvasDerivedNodeCreationSlice {
     cols: number,
     frames: StoryboardFrameItem[],
     frameAspectRatio?: string,
+    parameters?: CanvasStoryboardSplitParameters,
   ) => string | null;
   /**
    * Clone a node as a result sibling with the same type, merged data, and
@@ -237,6 +238,7 @@ export function createZustandCanvasDerivedNodeCreationSlice(
       cols,
       frames,
       frameAspectRatio,
+      parameters,
     ) {
       const state = dependencies.getState();
       const node = createCanvasStoryboardSplitNode(
@@ -247,6 +249,7 @@ export function createZustandCanvasDerivedNodeCreationSlice(
         frames,
         frameAspectRatio,
         dependencies.nodeFactory as unknown as DerivedNodeFactory,
+        parameters,
       );
       return commitCreatedNode(state, node as unknown as CanvasNode);
     },

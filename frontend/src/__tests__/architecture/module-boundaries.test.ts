@@ -3989,6 +3989,14 @@ describe("frontend architecture boundaries", () => {
       "modules/creative_canvas/infrastructure/browserToolImageGateway.ts",
     );
     const toolImageGateway = readFileSync(toolImageGatewayPath, "utf8");
+    const browserImageCommandsPath = resolve(
+      SRC_ROOT,
+      "modules/creative_canvas/infrastructure/browserImageCommands.ts",
+    );
+    const browserImageCommands = readFileSync(
+      browserImageCommandsPath,
+      "utf8",
+    );
     const toolCompositionPath = resolve(
       SRC_ROOT,
       "modules/creative_canvas/canvasToolComposition.ts",
@@ -4256,7 +4264,9 @@ describe("frontend architecture boundaries", () => {
     expect(toolComposition).not.toContain("@/features/canvas");
     expect(toolImageGateway).toContain("document.createElement('canvas')");
     expect(toolImageGateway).not.toContain("@/modules/creative_canvas/public");
-    expect(toolImageGateway).toContain("../domain/toolImageGeometry");
+    expect(toolImageGateway).not.toContain("splitLocally");
+    expect(browserImageCommands).toContain("../domain/toolImageGeometry");
+    expect(browserImageCommands).toContain("resolveImageSplitLayout(");
     expect(toolImageGateway).toContain("cropImageSource");
     expect(toolImageGateway).toContain("./browserImageRuntime");
     expect(toolImageGateway).not.toContain("@/features/canvas");
@@ -4267,7 +4277,6 @@ describe("frontend architecture boundaries", () => {
         "../domain/aspectRatio",
         "../domain/canvasAnnotationCodec",
         "../domain/imageData",
-        "../domain/toolImageGeometry",
         "./browserCanvasAnnotationRenderer",
         "./browserImageRuntime",
       ]),
@@ -28248,7 +28257,7 @@ describe("frontend architecture boundaries", () => {
     const implementations = [
       /addDerivedUploadNode\(sourceNodeId, imageUrl, aspectRatio, previewImageUrl\) \{/,
       /addDerivedExportNode\(\s+sourceNodeId,\s+imageUrl,\s+aspectRatio,\s+previewImageUrl,\s+options,\s+\) \{/,
-      /addStoryboardSplitNode\(\s+sourceNodeId,\s+rows,\s+cols,\s+frames,\s+frameAspectRatio,\s+\) \{/,
+      /addStoryboardSplitNode\(\s+sourceNodeId,\s+rows,\s+cols,\s+frames,\s+frameAspectRatio,\s+parameters,\s+\) \{/,
       /duplicateNodeAsSibling\(sourceNodeId, index, dataOverrides = \{\}\) \{/,
       /duplicateNodesAsSiblings\(nodeIds\) \{/,
       /addPanoCaptureGroup\(sourceNodeId, captures, options\) \{/,

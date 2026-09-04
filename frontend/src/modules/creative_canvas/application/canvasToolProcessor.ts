@@ -6,7 +6,10 @@ import {
 import type { CanvasToolResult } from '../domain/canvasTool';
 import type { CanvasImageDimensions } from './imagePreparation';
 import type { StoryboardFrameItem } from '../domain/storyboard';
-import { resolveMaxAllowedLineThickness } from '../domain/toolImageGeometry';
+import {
+  clampImageSplitLineThicknessPx,
+  resolveImageSplitLineThicknessPx,
+} from '../domain/toolImageGeometry';
 
 export interface CanvasImageSplitGateway {
   split: (
@@ -29,12 +32,6 @@ export interface CanvasToolImageGateway {
   persist: (sourceImage: string) => Promise<string>;
   detectAspectRatio: (sourceImage: string) => Promise<string>;
   getDimensions: (sourceImage: string) => Promise<CanvasImageDimensions>;
-  splitLocally: (
-    sourceImage: string,
-    rows: number,
-    cols: number,
-    lineThickness: number,
-  ) => Promise<string[]>;
   readStoryboardMetadata: (
     sourceImage: string,
   ) => Promise<CanvasStoryboardImageMetadata | null>;
@@ -120,27 +117,12 @@ export class CanvasToolProcessor {
       normalizedLineThicknessPxFallback
     );
 
-    if (safeRows <= 0 || safeCols <= 0) {
-      throw new Error('宫格行列必须大于 0');
-    }
-
-    let outputs: string[];
-    try {
-      outputs = await this.splitGateway.split(
-        sourceImage,
-        safeRows,
-        safeCols,
-        safeLineThickness
-      );
-    } catch {
-      // Fallback when the gateway cannot split the image directly.
-      outputs = await this.imageGateway.splitLocally(
-        sourceImage,
-        safeRows,
-        safeCols,
-        safeLineThickness
-      );
-    }
+    const outputs = await this.splitGateway.split(
+      sourceImage,
+      safeRows,
+      safeCols,
+      safeLineThickness
+    );
 
     const persistedFrameImages = await Promise.all(
       outputs.map(async (imageUrl) => await this.imageGateway.persist(imageUrl))
@@ -171,6 +153,10 @@ export class CanvasToolProcessor {
       rows: safeRows,
       cols: safeCols,
       frameAspectRatio: resolvedFrameAspectRatio,
+      lineThicknessPercent: Number.isFinite(normalizedLineThicknessPercent)
+        ? Math.max(0, normalizedLineThicknessPercent)
+        : undefined,
+      lineThicknessPx: safeLineThickness,
     };
   }
 
@@ -181,27 +167,33 @@ export class CanvasToolProcessor {
     lineThicknessPercent: number,
     lineThicknessPxFallback: number
   ): Promise<number> {
-    if (!Number.isFinite(lineThicknessPercent)) {
-      return Math.max(0, Math.floor(lineThicknessPxFallback));
-    }
-
-    const normalizedPercent = Math.max(0, lineThicknessPercent);
-    if (normalizedPercent <= 0) {
+    const usesPercent = Number.isFinite(lineThicknessPercent);
+    const normalizedPercent = usesPercent
+      ? Math.max(0, lineThicknessPercent)
+      : 0;
+    const normalizedFallback = Math.max(0, Math.floor(lineThicknessPxFallback));
+    if ((usesPercent && normalizedPercent <= 0) || (!usesPercent && normalizedFallback <= 0)) {
       return 0;
     }
 
     const dimensions = await this.imageGateway.getDimensions(sourceImage);
     const imageWidth = Math.max(1, dimensions.width);
     const imageHeight = Math.max(1, dimensions.height);
-    const basis = Math.max(1, Math.min(imageWidth, imageHeight));
-    const rawPixelThickness = Math.max(1, Math.round((basis * normalizedPercent) / 100));
-    const maxAllowedThickness = resolveMaxAllowedLineThickness(
-      imageWidth,
-      imageHeight,
-      rows,
-      cols
-    );
-    return Math.max(0, Math.min(rawPixelThickness, maxAllowedThickness));
+    return usesPercent
+      ? resolveImageSplitLineThicknessPx(
+          imageWidth,
+          imageHeight,
+          rows,
+          cols,
+          normalizedPercent,
+        )
+      : clampImageSplitLineThicknessPx(
+          imageWidth,
+          imageHeight,
+          rows,
+          cols,
+          normalizedFallback,
+        );
   }
 
   private async readStoryboardMetadata(

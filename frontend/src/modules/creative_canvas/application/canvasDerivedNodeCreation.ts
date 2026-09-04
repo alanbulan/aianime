@@ -14,6 +14,7 @@ import {
 } from "../domain/imageNodeLayout";
 import { EXPORT_RESULT_DISPLAY_NAME, type CanvasExportResultKind } from "../domain/nodeDisplay";
 import type { StoryboardFrameItem } from "../domain/storyboard";
+import { inheritMainlineFields } from "../domain/inheritMainlineFields";
 import {
   resolveDerivedAspectRatio,
   resolveStoryboardSplitNodeDimensions,
@@ -46,6 +47,11 @@ export interface CanvasDerivedExportNodeInput {
   options?: CanvasDerivedExportNodeOptions;
   viewport: { x: number; y: number; zoom: number };
   viewportSize: { width: number; height: number };
+}
+
+export interface CanvasStoryboardSplitParameters {
+  lineThicknessPercent?: number;
+  lineThicknessPx?: number;
 }
 
 export interface DerivedGraphNode {
@@ -223,21 +229,32 @@ export function createCanvasStoryboardSplitNode(
   frames: StoryboardFrameItem[],
   frameAspectRatio: string | undefined,
   nodeFactory: DerivedNodeFactory,
+  parameters: CanvasStoryboardSplitParameters = {},
 ): DerivedCreatedNode {
+  const sourceNode = nodes.find((node) => node.id === sourceNodeId);
   const resolvedFrameAspectRatio = frameAspectRatio
     ?? frames.find((frame) => typeof frame.aspectRatio === "string")?.aspectRatio
     ?? DEFAULT_ASPECT_RATIO;
   const node = nodeFactory.createNode(
     CANVAS_CONNECTION_NODE_TYPES.storyboardSplit,
     getDerivedNodePosition(nodes, sourceNodeId),
-    {
-      gridRows: rows,
-      gridCols: cols,
-      frames,
-      aspectRatio: resolvedFrameAspectRatio,
-      frameAspectRatio: resolvedFrameAspectRatio,
-      exportOptions: createDefaultStoryboardExportOptions(),
-    },
+    inheritMainlineFields(
+      sourceNode ? { data: sourceNode.data } : null,
+      {
+        gridRows: rows,
+        gridCols: cols,
+        frames,
+        aspectRatio: resolvedFrameAspectRatio,
+        frameAspectRatio: resolvedFrameAspectRatio,
+        exportOptions: createDefaultStoryboardExportOptions(),
+        ...(typeof parameters.lineThicknessPercent === "number"
+          ? { splitLineThicknessPercent: parameters.lineThicknessPercent }
+          : {}),
+        ...(typeof parameters.lineThicknessPx === "number"
+          ? { splitLineThicknessPx: parameters.lineThicknessPx }
+          : {}),
+      },
+    ),
   );
   return withExplicitSize(
     node,

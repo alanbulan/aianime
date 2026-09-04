@@ -318,6 +318,10 @@ export interface StoryboardSplitNodeData {
   frameAspectRatio?: string;
   gridRows: number;
   gridCols: number;
+  /** Percentage selected in the split editor. */
+  splitLineThicknessPercent?: number;
+  /** Resolved source-image separator width removed from exported cells. */
+  splitLineThicknessPx?: number;
   frames: StoryboardFrameItem[];
   exportOptions?: StoryboardExportOptions;
   [key: string]: unknown;
