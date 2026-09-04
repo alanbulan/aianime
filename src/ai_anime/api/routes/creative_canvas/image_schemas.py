@@ -365,6 +365,10 @@ class FreezoneRelightRequest(BaseModel):
     )
     rim_light: bool = Field(default=False, description="是否添加轮廓光")
     prompt: str = Field(default="", description="用户补充提示词，可为空")
+    aspect_ratio: Literal["original", "1:1", "4:3", "3:4", "16:9", "9:16"] = Field(
+        default="original",
+        description="输出画幅；original 表示保持源图比例",
+    )
     image_size: str = Field(default="2K", description="输出分辨率档位，默认 2K")
     model: str = Field(
         min_length=1,

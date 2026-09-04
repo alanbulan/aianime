@@ -78,7 +78,7 @@ export function AudioNodeToolbarActionsView({
             key={format}
             disabled={!hasAudio || !available || isConverting}
             className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-            onSelect={() => {
+            onClick={() => {
               void download(format);
             }}
           >

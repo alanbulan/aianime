@@ -90,7 +90,7 @@ export function ImageGridToolbarActionsView({
                   ? 'gap-2 bg-primary/15 text-primary focus:bg-primary/25 focus:text-primary'
                   : styles.menuItem
               }
-              onSelect={() => selectAction(action)}
+              onClick={() => selectAction(action)}
             >
               <Icon className="h-4 w-4" />
               {action.label}

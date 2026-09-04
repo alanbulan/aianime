@@ -30,6 +30,7 @@ describe("freezoneRelightGenerationGateway", () => {
       keyLightDirection: "left" as const,
       rimLight: true,
       prompt: "golden hour",
+      aspectRatio: "original" as const,
       imageSize: "2K",
       model: "image-model",
     };
@@ -52,6 +53,7 @@ describe("freezoneRelightGenerationGateway", () => {
           key_light_direction: "left",
           rim_light: true,
           prompt: "golden hour",
+          aspect_ratio: "original",
           image_size: "2K",
           model: "image-model",
         },

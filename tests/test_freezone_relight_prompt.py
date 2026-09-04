@@ -1,3 +1,4 @@
+import pytest
 from pydantic import ValidationError
 
 from ai_anime.api.routes.creative_canvas.image_schemas import FreezoneRelightRequest
@@ -59,3 +60,37 @@ def test_relight_color_temperature_kelvin_is_bounded() -> None:
         assert "color_temperature_kelvin" in str(exc)
     else:
         raise AssertionError("Expected color_temperature_kelvin below range to be rejected")
+
+
+def test_relight_preserves_the_source_aspect_ratio_by_default() -> None:
+    body = FreezoneRelightRequest(
+        source_url="/static/source.png",
+        model="cloud-image-standard",
+    )
+
+    assert body.aspect_ratio == "original"
+
+
+@pytest.mark.asyncio
+async def test_relight_route_forwards_original_aspect_ratio(monkeypatch) -> None:
+    from ai_anime.api.routes.creative_canvas import image as image_routes
+
+    captured = {}
+
+    async def start_reference_image_editing(**kwargs):
+        captured.update(kwargs)
+        return {"task_key": "task", "task_type": "freezone_relight", "job_id": "job"}
+
+    monkeypatch.setattr(
+        image_routes,
+        "_start_reference_image_editing",
+        start_reference_image_editing,
+    )
+    body = FreezoneRelightRequest(
+        source_url="/static/source.png",
+        model="cloud-image-standard",
+    )
+
+    await image_routes.freezone_relight("project-1", body, {"id": "user-1"})
+
+    assert captured["aspect_ratio"] == "original"

@@ -226,7 +226,7 @@ async def freezone_relight(
         extra_reference_urls=(
             (body.lighting_reference_url,) if body.lighting_reference_url else ()
         ),
-        aspect_ratio="16:9",
+        aspect_ratio=body.aspect_ratio,
         image_size=body.image_size or "2K",
         camera=None,
         style=None,

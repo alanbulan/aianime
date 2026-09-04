@@ -78,7 +78,7 @@ export function ImageEditToolbarActionsView({
             <DropdownMenuItem
               key={action.key}
               className={styles.menuItem}
-              onSelect={() => selectAction(action.key)}
+              onClick={() => selectAction(action.key)}
             >
               <Icon className="h-4 w-4" />
               {action.label}

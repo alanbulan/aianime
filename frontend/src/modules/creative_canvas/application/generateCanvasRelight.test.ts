@@ -41,6 +41,7 @@ describe("generateCanvasRelight", () => {
             prompt: "keep facial detail",
             presetPrompt: "golden hour",
           },
+          aspectRatio: "original",
           imageSize: "2K",
           model: "image-model",
         },
@@ -62,6 +63,7 @@ describe("generateCanvasRelight", () => {
       keyLightDirection: "left",
       rimLight: true,
       prompt: "keep facial detail\ngolden hour",
+      aspectRatio: "original",
       imageSize: "2K",
       model: "image-model",
     });

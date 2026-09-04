@@ -130,14 +130,14 @@ export function VideoNodeToolbarActionsView({
         >
           <DropdownMenuItem
             className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-            onSelect={() => openSubtitleRemoval("smart")}
+            onClick={() => openSubtitleRemoval("smart")}
           >
             <Wand2 className="h-4 w-4" />
             {t("nodeToolbar.video.subtitleRemovalSmart")}
           </DropdownMenuItem>
           <DropdownMenuItem
             className={NODE_ACTION_TOOLBAR_MENU_ITEM_CLASS}
-            onSelect={() => openSubtitleRemoval("box")}
+            onClick={() => openSubtitleRemoval("box")}
           >
             <Crop className="h-4 w-4" />
             {t("nodeToolbar.video.subtitleRemovalBox")}

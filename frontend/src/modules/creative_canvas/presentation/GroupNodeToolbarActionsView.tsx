@@ -111,19 +111,19 @@ export function GroupNodeToolbarActionsView({
         >
           <DropdownMenuItem
             className={styles.menuItem}
-            onSelect={() => arrange("grid")}
+            onClick={() => arrange("grid")}
           >
             网格
           </DropdownMenuItem>
           <DropdownMenuItem
             className={styles.menuItem}
-            onSelect={() => arrange("horizontal")}
+            onClick={() => arrange("horizontal")}
           >
             横向排列
           </DropdownMenuItem>
           <DropdownMenuItem
             className={styles.menuItem}
-            onSelect={() => arrange("vertical")}
+            onClick={() => arrange("vertical")}
           >
             纵向排列
           </DropdownMenuItem>

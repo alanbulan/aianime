@@ -7,11 +7,70 @@ import { NodeMainlineToolbarActionsView } from './NodeMainlineToolbarActionsView
 import { NodeManagementToolbarActionsView } from './NodeManagementToolbarActionsView';
 import { NodeOutputToolbarActionsView } from './NodeOutputToolbarActionsView';
 import { ImageNodeToolbarActionsView } from './ImageNodeToolbarActionsView';
+import { ImageEditToolbarActionsView } from './ImageEditToolbarActionsView';
+import { ImageGridToolbarActionsView } from './ImageGridToolbarActionsView';
 import { VideoNodeToolbarActionsView } from './VideoNodeToolbarActionsView';
 
 const translate = ((key: string) => key) as never;
 
 describe('node toolbar action views', () => {
+  it('activates image edit menu items through the Base UI click contract', async () => {
+    const selectAction = vi.fn();
+    render(
+      <ImageEditToolbarActionsView
+        controller={{
+          actions: [
+            { key: 'matting', label: '抠图' },
+            { key: 'crop', label: '裁剪' },
+          ],
+          activeAction: { key: 'matting', label: '抠图' },
+          menuRootProps: { open: true, onOpenChange: vi.fn(), modal: false },
+          menuHoverProps: { onMouseEnter: vi.fn(), onMouseLeave: vi.fn() },
+          selectAction,
+        }}
+        styles={{ menuContent: '', menuItem: '', textButton: '' }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /抠图/ }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: '裁剪' }));
+
+    expect(selectAction).toHaveBeenCalledWith('crop');
+  });
+
+  it('activates grid menu items through the Base UI click contract', async () => {
+    const selectAction = vi.fn();
+    const request = {
+      nodeId: 'image-1',
+      key: 'multiCameraGrid' as const,
+      label: '多机位九宫格',
+      prompt: 'nine views',
+      cost: 9,
+    };
+    render(
+      <ImageGridToolbarActionsView
+        controller={{
+          t: translate,
+          actions: [request],
+          activeActionKey: null,
+          menuRootProps: { open: true, onOpenChange: vi.fn(), modal: false },
+          menuHoverProps: { onMouseEnter: vi.fn(), onMouseLeave: vi.fn() },
+          selectAction,
+        }}
+        styles={{ menuContent: '', menuItem: '', textButton: '' }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /nodeToolbar.gridMenu.trigger/ }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: '多机位九宫格' }),
+    );
+
+    expect(selectAction).toHaveBeenCalledWith(request);
+  });
+
   it('projects mainline state and forwards workbench commands', () => {
     const openWorkbench = vi.fn();
     const ensureBeatContextNode = vi.fn();

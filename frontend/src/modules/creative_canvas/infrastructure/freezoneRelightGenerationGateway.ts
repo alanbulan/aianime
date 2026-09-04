@@ -21,6 +21,7 @@ export const freezoneRelightGenerationGateway: CanvasRelightGenerationGateway = 
           key_light_direction: command.keyLightDirection,
           rim_light: command.rimLight,
           prompt: command.prompt,
+          aspect_ratio: command.aspectRatio,
           image_size: command.imageSize,
           model: command.model,
           ...(command.modelSelector ? { model_id: command.modelSelector } : {}),

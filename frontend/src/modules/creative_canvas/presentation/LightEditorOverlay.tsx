@@ -33,13 +33,18 @@ export interface LightEditorRequestPayload {
   imageSource: string;
   brightness: number;
   color: string;
+  colorTemperatureKelvin: number;
   mainLight: LightMainLightDescriptor;
   rimLight: boolean;
   smartMode: LightSmartModeDescriptor;
   prompt: string;
   displayName: string;
+  imageSize: string;
+  catalogModelId: string;
+  model: string;
+  modelSelector?: string;
   generationMode: 'image_reference';
-  requestAspectRatio: 'auto';
+  requestAspectRatio: 'original';
   submittedAt: string;
 }
 
@@ -102,6 +107,27 @@ export function createLightEditorOverlay({
             EXPORT_RESULT_NODE_LAYOUT_HEIGHT,
           );
           const generationStartedAt = Date.now();
+          const request: LightEditorRequestPayload = {
+            sourceNodeId: node.id,
+            imageSource,
+            brightness: payload.brightness,
+            color: payload.color,
+            colorTemperatureKelvin: payload.colorTemperatureKelvin,
+            mainLight: payload.mainLight,
+            rimLight: payload.rimLight,
+            smartMode: payload.smartMode,
+            prompt: payload.prompt,
+            displayName: payload.displayName,
+            imageSize: payload.imageSize,
+            catalogModelId: payload.catalogModelId,
+            model: payload.apiModel,
+            ...(payload.modelSelector
+              ? { modelSelector: payload.modelSelector }
+              : {}),
+            generationMode: 'image_reference',
+            requestAspectRatio: 'original',
+            submittedAt: new Date(generationStartedAt).toISOString(),
+          };
           // 1→1 relight: child inherits source's mainline fields (mainline_context
           // + slot_target + committed_slot_url) so the new node still represents
           // "another candidate for the same canonical slot" — Push lands the
@@ -118,6 +144,7 @@ export function createLightEditorOverlay({
               isGenerating: true,
               generationStartedAt,
               generationDurationMs: 60000,
+              lightEditorRequest: request,
             },
           );
           const nextNodeId = addNode(
@@ -141,6 +168,7 @@ export function createLightEditorOverlay({
                 keyLightCandidate: payload.mainLight.nearestPreset,
                 rimLight: payload.rimLight,
                 smartMode: payload.smartMode,
+                aspectRatio: request.requestAspectRatio,
                 imageSize: payload.imageSize,
                 model: payload.apiModel,
                 modelSelector: payload.modelSelector,

@@ -15,9 +15,11 @@ import { UiTextArea } from "@/components/ui";
 import { Slider } from "@/components/ui/slider";
 import type { CanvasRelightKeyLightDirection } from "../domain/relight";
 import { useCanvasImageModels } from "../generationCatalogComposition";
+import { ProviderModelPicker } from "./ProviderModelPicker";
 import {
   NODE_FLOATING_PANEL_SURFACE_CLASS,
   NODE_GENERATE_BUTTON_BASE_CLASS,
+  NODE_GENERATE_BUTTON_DISABLED_CLASS,
   NODE_GENERATE_BUTTON_ENABLED_CLASS,
 } from "./canvasNodeControlStyles";
 import { CANVAS_NODE_TOOLBAR_CARD_CLASS } from "./canvasNodeFrameStyles";
@@ -134,6 +136,7 @@ export interface LightEditorSubmitPayload {
   mainLight: LightMainLightDescriptor;
   rimLight: boolean;
   smartMode: LightSmartModeDescriptor;
+  catalogModelId: string;
   apiModel: string;
   modelSelector?: string;
   imageSize: LightImageSize;
@@ -266,6 +269,8 @@ function LightSpherePreview({
   const orbBlur = 16 + (1.4 - orbDepthScale) * 10;
   const intensity = brightness / 100;
   const innerIntensity = 0.4 + intensity * 0.7;
+  const perspectiveHighlight = `${Math.min(100, innerIntensity * 100)}%`;
+  const orthographicHighlight = `${Math.min(100, innerIntensity * 58)}%`;
   const lightHandleSize = Math.max(28, orbSize + 12);
 
   const cardPx = mode === "perspective" ? { w: 86, h: 56 } : { w: 110, h: 72 };
@@ -301,10 +306,12 @@ function LightSpherePreview({
           style={{
             background:
               mode === "perspective"
-                ? `radial-gradient(circle at ${orbX}% ${orbY}%, rgba(255,255,255,${innerIntensity}) 0%, rgba(80,84,96,0.45) 38%, rgba(15,17,24,0.96) 72%)`
-                : `radial-gradient(circle at 50% 50%, rgba(255,255,255,${innerIntensity * 0.58}) 0%, rgba(80,84,96,0.34) 42%, rgba(15,17,24,0.96) 76%)`,
-            boxShadow: "inset 0 0 30px rgba(0,0,0,0.68)",
-            border: "1px solid rgba(255,255,255,0.12)",
+                ? `radial-gradient(circle at ${orbX}% ${orbY}%, color-mix(in srgb, var(--media-foreground) ${perspectiveHighlight}, transparent) 0%, color-mix(in srgb, var(--media-foreground) 28%, var(--media-surface)) 38%, var(--media-surface) 72%)`
+                : `radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--media-foreground) ${orthographicHighlight}, transparent) 0%, color-mix(in srgb, var(--media-foreground) 22%, var(--media-surface)) 42%, var(--media-surface) 76%)`,
+            boxShadow:
+              "inset 0 0 30px color-mix(in srgb, var(--media-surface) 72%, transparent)",
+            border:
+              "1px solid color-mix(in srgb, var(--media-foreground) 12%, transparent)",
           }}
         />
         <svg
@@ -313,8 +320,8 @@ function LightSpherePreview({
         >
           <defs>
             <radialGradient id="light-cone-gradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+              <stop offset="0%" stopColor="var(--media-foreground)" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="var(--media-foreground)" stopOpacity="0" />
             </radialGradient>
           </defs>
           {mode === "perspective" ? (
@@ -330,7 +337,8 @@ function LightSpherePreview({
                     Math.sqrt(50 * 50 - (lat - 50) * (lat - 50)) * 0.18,
                   )}
                   fill="none"
-                  stroke="rgba(255,255,255,0.095)"
+                  stroke="var(--media-foreground)"
+                  strokeOpacity="0.095"
                   strokeWidth="0.4"
                 />
               ))}
@@ -342,7 +350,8 @@ function LightSpherePreview({
                   rx={Math.max(2, Math.abs(50 - lon))}
                   ry={50}
                   fill="none"
-                  stroke="rgba(255,255,255,0.07)"
+                  stroke="var(--media-foreground)"
+                  strokeOpacity="0.07"
                   strokeWidth="0.4"
                 />
               ))}
@@ -356,7 +365,8 @@ function LightSpherePreview({
                   cy={50}
                   r={r}
                   fill="none"
-                  stroke="rgba(255,255,255,0.07)"
+                  stroke="var(--media-foreground)"
+                  strokeOpacity="0.07"
                   strokeWidth="0.4"
                 />
               ))}
@@ -365,7 +375,8 @@ function LightSpherePreview({
                 y1={50}
                 x2={98}
                 y2={50}
-                stroke="rgba(255,255,255,0.11)"
+                stroke="var(--media-foreground)"
+                strokeOpacity="0.11"
                 strokeWidth="0.4"
               />
               <line
@@ -373,7 +384,8 @@ function LightSpherePreview({
                 y1={2}
                 x2={50}
                 y2={98}
-                stroke="rgba(255,255,255,0.11)"
+                stroke="var(--media-foreground)"
+                strokeOpacity="0.11"
                 strokeWidth="0.4"
               />
             </>
@@ -381,8 +393,10 @@ function LightSpherePreview({
           {showCone && (
             <polygon
               points={conePoints}
-              fill="rgba(255,255,255,0.12)"
-              stroke="rgba(255,255,255,0.18)"
+              fill="var(--media-foreground)"
+              fillOpacity="0.12"
+              stroke="var(--media-foreground)"
+              strokeOpacity="0.18"
               strokeWidth="0.3"
               strokeLinejoin="round"
             />
@@ -405,7 +419,8 @@ function LightSpherePreview({
                 y1={orbY}
                 x2={50}
                 y2={50}
-                stroke="rgba(255,255,255,0.58)"
+                stroke="var(--media-foreground)"
+                strokeOpacity="0.58"
                 strokeWidth="0.48"
                 strokeLinecap="round"
                 strokeDasharray="1.7 2.4"
@@ -432,7 +447,7 @@ function LightSpherePreview({
             <img
               src={imageSource}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full bg-media/20 object-contain"
               draggable={false}
             />
           </div>
@@ -467,7 +482,7 @@ function LightSpherePreview({
           <div
             className="flex h-full w-full items-center justify-center rounded-full border border-media-foreground/50 bg-media/25 text-media-foreground/90 transition-transform duration-150 group-hover:scale-110 group-active:scale-95"
             style={{
-              boxShadow: `0 0 18px rgba(255,255,255,0.2), 0 0 28px ${color}55`,
+              boxShadow: `0 0 18px color-mix(in srgb, var(--media-foreground) 20%, transparent), 0 0 28px ${color}55`,
             }}
           >
             <Move className="h-3.5 w-3.5" aria-hidden="true" />
@@ -859,8 +874,10 @@ export function LightEditorPanel({
   const [imageSize, setImageSize] = useState<LightImageSize>(
     DEFAULT_LIGHT_IMAGE_SIZE,
   );
+  const [modelId, setModelId] = useState("");
   const { models: imageModels } = useCanvasImageModels(projectId, 'edit');
-  const selectedModel = imageModels[0];
+  const selectedModel =
+    imageModels.find((model) => model.id === modelId) ?? imageModels[0];
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -938,7 +955,6 @@ export function LightEditorPanel({
       presetLabel: smartMode ? presetLabel : null,
       presetPrompt: smartMode ? presetPrompt : null,
     };
-    // No model picker in this panel: use the first authorized catalog SKU.
     if (!selectedModel) return;
     onSubmit({
       prompt,
@@ -949,6 +965,7 @@ export function LightEditorPanel({
       mainLight,
       rimLight,
       smartMode: smart,
+      catalogModelId: selectedModel.id,
       apiModel: selectedModel.apiModel,
       modelSelector: selectedModel.routeSelector,
       imageSize,
@@ -1092,11 +1109,22 @@ export function LightEditorPanel({
             </>
           )}
 
-          <div className="mt-auto flex items-center justify-end gap-5">
+          <div className="mt-auto flex items-center justify-between gap-3">
+            <ProviderModelPicker
+              models={imageModels}
+              selectedModelId={selectedModel?.id ?? ""}
+              onChange={setModelId}
+              imageMode="edit"
+            />
             <button
               type="button"
-              className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${NODE_GENERATE_BUTTON_ENABLED_CLASS}`}
+              className={`${NODE_GENERATE_BUTTON_BASE_CLASS} ${
+                selectedModel
+                  ? NODE_GENERATE_BUTTON_ENABLED_CLASS
+                  : NODE_GENERATE_BUTTON_DISABLED_CLASS
+              }`}
               onClick={handleSubmit}
+              disabled={!selectedModel}
               aria-label={t("lightEditor.submit")}
             >
               <ArrowUp className="h-4 w-4" />

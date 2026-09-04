@@ -23,6 +23,7 @@ export interface CanvasRelightGenerationCommand {
   readonly keyLightDirection: CanvasRelightKeyLightDirection;
   readonly rimLight: boolean;
   readonly prompt: string;
+  readonly aspectRatio: "original";
   readonly imageSize: string;
   readonly model: string;
   readonly modelSelector?: string;
@@ -44,6 +45,7 @@ export interface GenerateCanvasRelightParams {
   readonly keyLightCandidate: string | null;
   readonly rimLight: boolean;
   readonly smartMode: CanvasRelightSmartPrompt;
+  readonly aspectRatio: "original";
   readonly imageSize: string;
   readonly model: string;
   readonly modelSelector?: string;
@@ -82,6 +84,7 @@ export async function generateCanvasRelight(
     ),
     rimLight: params.rimLight,
     prompt: buildCanvasRelightPrompt(params.smartMode),
+    aspectRatio: params.aspectRatio,
     imageSize: params.imageSize,
     model: params.model,
     modelSelector: params.modelSelector,
