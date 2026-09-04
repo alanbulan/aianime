@@ -106,13 +106,16 @@ function NumberStepper({ label, value, min, max, onChange }: NumberStepperProps)
 export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsChange }: VisualToolEditorProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const previewAreaRef = useRef<HTMLDivElement | null>(null);
-  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
+  const [loadedImage, setLoadedImage] = useState<{
+    sourceImageUrl: string;
+    width: number;
+    height: number;
+  } | null>(null);
   const [previewAreaSize, setPreviewAreaSize] = useState<{ width: number; height: number } | null>(null);
   const displaySourceImageUrl = useMemo(() => resolveImageDisplayUrl(sourceImageUrl), [sourceImageUrl]);
-
-  useEffect(() => {
-    setNaturalSize(null);
-  }, [displaySourceImageUrl]);
+  const naturalSize = loadedImage?.sourceImageUrl === displaySourceImageUrl
+    ? loadedImage
+    : null;
 
   useEffect(() => {
     const previewArea = previewAreaRef.current;
@@ -333,7 +336,8 @@ export function SplitStoryboardToolEditor({ sourceImageUrl, options, onOptionsCh
                 }
                 onLoad={(event) => {
                   const target = event.currentTarget;
-                  setNaturalSize({
+                  setLoadedImage({
+                    sourceImageUrl: displaySourceImageUrl,
                     width: Math.max(1, target.naturalWidth),
                     height: Math.max(1, target.naturalHeight),
                   });

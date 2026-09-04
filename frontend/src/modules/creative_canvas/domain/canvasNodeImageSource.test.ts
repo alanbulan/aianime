@@ -8,7 +8,7 @@ import {
 } from './canvasNodeImageSource';
 
 describe('canvasNodeImageSource', () => {
-  it('resolves the displayed image for regular image source nodes', () => {
+  it('resolves the currently displayed preview for regular image source nodes', () => {
     const node = {
       type: CANVAS_CONNECTION_NODE_TYPES.upload,
       data: {
@@ -18,12 +18,16 @@ describe('canvasNodeImageSource', () => {
     };
 
     expect(isCanvasToolImageSourceNode(node)).toBe(true);
-    expect(resolveCanvasNodeSourceImageUrl(node)).toBe('image-url');
+    expect(resolveCanvasNodeSourceImageUrl(node)).toBe('preview-url');
   });
 
-  it('uses the image generation preview and reference fallbacks in order', () => {
+  it('uses the image generation display and reference fallbacks in order', () => {
     const type = CANVAS_CONNECTION_NODE_TYPES.imageGen;
 
+    expect(resolveCanvasNodeSourceImageUrl({
+      type,
+      data: { imageUrl: 'image-url', previewImageUrl: 'preview-url' },
+    })).toBe('preview-url');
     expect(resolveCanvasNodeSourceImageUrl({
       type,
       data: { previewImageUrl: 'preview-url', referenceImageUrl: 'reference-url' },

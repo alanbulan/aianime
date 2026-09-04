@@ -38,13 +38,13 @@ export function resolveCanvasNodeSourceImageUrl(
   const data = recordValue(node.data);
   if (node.type === CANVAS_CONNECTION_NODE_TYPES.imageGen) {
     return firstImageUrl(
-      data.imageUrl,
       data.previewImageUrl,
+      data.imageUrl,
       data.referenceImageUrl,
     );
   }
   if (isCanvasToolImageSourceNode(node)) {
-    return firstImageUrl(data.imageUrl, data.previewImageUrl);
+    return firstImageUrl(data.previewImageUrl, data.imageUrl);
   }
   return null;
 }
