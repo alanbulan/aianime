@@ -4171,6 +4171,9 @@ test("cloud video requests are normalized to the server contract", async (t) => 
         "seed",
         "turbo",
         "guidance_scale",
+        "reference_image_size",
+        "reference_video_durations",
+        "reference_audio_durations",
         "return_last_frame",
       ],
       videoSceneOptimizeOptions: ["anime", "realistic"],
@@ -4202,7 +4205,14 @@ test("cloud video requests are normalized to the server contract", async (t) => 
       scene_optimize: "anime",
       return_last_frame: true,
       input_reference: 'https://assets.example.com/start.png',
-      reference_images: ['https://assets.example.com/character.png'],
+      first_frame: 'C:\\Users\\desktop-user\\AppData\\Local\\Temp\\first.png',
+      reference_images: [
+        'https://assets.example.com/character.png',
+        '/tmp/private-character.png',
+        'file:///C:/Users/desktop-user/private-character.png',
+      ],
+      reference_audio: '../private-guide.wav',
+      reference_image_paths: ['C:\\project\\assets\\character.png'],
     }),
   });
   assert.equal(jsonResponse.status, 200);
@@ -4217,7 +4227,6 @@ test("cloud video requests are normalized to the server contract", async (t) => 
     turbo: true,
     guidance_scale: 6.5,
     generate_audio: true,
-    human_review: true,
     scene_optimize: "anime",
     input_reference: 'https://assets.example.com/start.png',
     reference_images: ['https://assets.example.com/character.png'],
@@ -4229,6 +4238,7 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   form.append("mode", "MULTIMODAL_REFERENCE");
   form.append("seconds", "8");
   form.append("size", "1080x1920");
+  form.append("ratio", "9:16");
   form.append("steps", "24");
   form.append("seed", "7");
   form.append("turbo", "false");
@@ -4236,6 +4246,16 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   form.append("human_review", "true");
   form.append("scene_optimize", "anime");
   form.append("return_last_frame", "false");
+  form.append(
+    "input_reference",
+    "C:\\Users\\desktop-user\\AppData\\Local\\Temp\\first.png",
+  );
+  form.append(
+    "input_reference",
+    new Blob(["first-frame-bytes"], { type: "image/png" }),
+    "first.png",
+  );
+  form.append("reference_images", "/tmp/private-character.png");
   form.append(
     "reference_images",
     new Blob(["image-bytes"], { type: "image/png" }),
@@ -4249,6 +4269,10 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   form.append('last_frame', 'https://assets.example.com/end.png');
   form.append('reference_images[]', 'https://assets.example.com/character-1.png');
   form.append('reference_images[]', 'https://assets.example.com/character-2.png');
+  form.append('reference_images[]', 'file:///C:/Users/desktop-user/private.png');
+  form.append('reference_audio', '../private-guide.wav');
+  form.append('reference_image_paths', '["C:\\\\project\\\\assets\\\\character.png"]');
+  form.append('reference_image_size', 'match');
   form.append('reference_video_durations', '[8]');
   form.append('reference_audio_durations', '[4]');
   const multipartResponse = await fetch(`${proxy.baseUrl}/videos`, {
@@ -4261,15 +4285,17 @@ test("cloud video requests are normalized to the server contract", async (t) => 
   assert.equal(calls[1].body.get("model"), "cloud-video-standard");
   assert.equal(calls[1].body.get("prompt"), "keep the character consistent");
   assert.equal(calls[1].body.get("mode"), "MULTIMODAL_REFERENCE");
+  assert.equal(calls[1].body.get("ratio"), "9:16");
   assert.equal(calls[1].body.get("steps"), "24");
   assert.equal(calls[1].body.get("seed"), "7");
   assert.equal(calls[1].body.get("turbo"), "false");
   assert.equal(calls[1].body.get("generate_audio"), "true");
-  assert.equal(calls[1].body.get("human_review"), "true");
+  assert.equal(calls[1].body.get("human_review"), null);
   assert.equal(calls[1].body.get("scene_optimize"), "anime");
   assert.equal(calls[1].body.get("return_last_frame"), null);
   assert.equal(calls[1].body.get("reference_images"), null);
   assert.equal(calls[1].body.get("reference_videos"), null);
+  assert.deepEqual(calls[1].body.getAll("input_reference").map((value) => value instanceof Blob), [true]);
   assert.equal(calls[1].body.get("reference_image") instanceof Blob, true);
   assert.equal(calls[1].body.get("reference_video") instanceof Blob, true);
   assert.equal(calls[1].body.get('last_frame'), 'https://assets.example.com/end.png');
@@ -4277,16 +4303,51 @@ test("cloud video requests are normalized to the server contract", async (t) => 
     'https://assets.example.com/character-1.png',
     'https://assets.example.com/character-2.png',
   ]);
-  assert.equal(calls[1].body.get('reference_video_durations'), null);
-  assert.equal(calls[1].body.get('reference_audio_durations'), null);
+  assert.equal(calls[1].body.get('reference_image_size'), 'match');
+  assert.equal(calls[1].body.get('reference_video_durations'), '[8]');
+  assert.equal(calls[1].body.get('reference_audio'), null);
+  assert.equal(calls[1].body.get('reference_image_paths'), null);
+  assert.equal(calls[1].body.get('reference_audio_durations'), '[4]');
+  const forwardedTextValues = [];
+  const forwardedManifest = {};
+  calls[1].body.forEach((value, key) => {
+    const kind = typeof value === 'string' ? 'text' : 'file';
+    const manifestKey = `${key}:${kind}`;
+    forwardedManifest[manifestKey] = (forwardedManifest[manifestKey] ?? 0) + 1;
+    if (typeof value === 'string') forwardedTextValues.push(value);
+  });
+  assert.equal(forwardedTextValues.some((value) => /(?:AppData|private|file:|\\\\project)/u.test(value)), false);
+  assert.deepEqual(forwardedManifest, {
+    'generate_audio:text': 1,
+    'input_reference:file': 1,
+    'last_frame:text': 1,
+    'mode:text': 1,
+    'model:text': 1,
+    'prompt:text': 1,
+    'reference_audio_durations:text': 1,
+    'reference_image:file': 1,
+    'reference_image:text': 2,
+    'reference_image_size:text': 1,
+    'reference_video:file': 1,
+    'reference_video_durations:text': 1,
+    'ratio:text': 1,
+    'scene_optimize:text': 1,
+    'seconds:text': 1,
+    'seed:text': 1,
+    'size:text': 1,
+    'steps:text': 1,
+    'turbo:text': 1,
+  });
 });
 
-test("cloud output-frame options stay local while BYOK parameters remain intact", async () => {
+test("cloud local-only video options stay local while BYOK parameters remain intact", async () => {
   for (const cloudVideo of [true, false]) {
     for (const enabled of [false, true]) {
-      const options = { return_last_frame: enabled };
+      const localReference = "C:\\Users\\desktop-user\\AppData\\Local\\Temp\\first.png";
+      const options = { return_last_frame: enabled, input_reference: localReference };
       const source = new FormData();
       source.set("return_last_frame", String(enabled));
+      source.set("input_reference", localReference);
       const request = new Request("http://localhost/videos", { method: "POST", body: source });
       const prepared = await prepareBodyForRoute(
         Buffer.from(await request.arrayBuffer()),
@@ -4295,10 +4356,11 @@ test("cloud output-frame options stay local while BYOK parameters remain intact"
         cloudVideo,
         null,
         undefined,
-        ["return_last_frame"],
+        ["return_last_frame", "input_reference"],
         options,
       );
       assert.equal(prepared.body.get("return_last_frame"), cloudVideo ? null : String(enabled));
+      assert.equal(prepared.body.get("input_reference"), cloudVideo ? null : localReference);
 
       const json = await prepareBodyForRoute(
         Buffer.from(JSON.stringify(options)),
@@ -4307,7 +4369,7 @@ test("cloud output-frame options stay local while BYOK parameters remain intact"
         cloudVideo,
         null,
         undefined,
-        ["return_last_frame"],
+        ["return_last_frame", "input_reference"],
         options,
       );
       assert.deepEqual(JSON.parse(json.body), {

@@ -81,6 +81,10 @@ def test_text_video_builds_standard_json_payload(
                 "resolution": "720p",
                 "scene_optimize": "anime",
                 "return_last_frame": True,
+                "prompt_inputs_hash": "local-state-hash",
+                "reference_image_paths": [r"C:\\project\\private-frame.png"],
+                "selected_asset_keys": ["local-asset-key"],
+                "text_overlay": {"text": "local overlay"},
             }
         },
     )
@@ -226,6 +230,8 @@ def test_reference_video_builds_standard_multipart_parts(
     )
 
     assert payload["size"] == "1080x1920"
+    assert str(first_frame) not in str(payload)
+    assert "https://media.example/last.png" not in str(payload)
     assert [field for field, _value in media] == [
         "input_reference",
         "last_frame",

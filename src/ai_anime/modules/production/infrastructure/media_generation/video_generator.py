@@ -148,8 +148,18 @@ _VIDEO_LOCAL_OPTION_KEYS = {
     "duration",
     "final_prompt",
     "mode",
+    "prompt_guidance",
+    "prompt_inputs_hash",
+    "prompt_source",
+    "prompt_updated_at",
+    "prompt_validation_source",
     "ratio",
+    "reference_audio_paths",
+    "reference_image_paths",
+    "reference_video_paths",
     "resolution",
+    "selected_asset_keys",
+    "text_overlay",
 }
 _VIDEO_FORBIDDEN_TRANSPORT_KEYS = {
     "apikey",
